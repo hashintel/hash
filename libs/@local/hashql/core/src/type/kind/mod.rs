@@ -17,10 +17,7 @@ use pretty::RcDoc;
 use self::{primitive::PrimitiveType, tuple::TupleType, union::UnionType};
 use super::{
     Type, TypeId,
-    environment::{
-        Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment,
-        UnificationEnvironment,
-    },
+    environment::{Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment},
     lattice::Lattice,
     pretty_print::PrettyPrint,
     recursion::RecursionDepthBoundary,
@@ -147,14 +144,6 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
         supertype: Type<'heap, Self>,
         env: &mut TypeAnalysisEnvironment<'_, 'heap>,
     ) -> bool {
-        todo!()
-    }
-
-    fn unify(
-        self: Type<'heap, Self>,
-        other: Type<'heap, Self>,
-        env: &mut UnificationEnvironment<'_, 'heap>,
-    ) {
         todo!()
     }
 

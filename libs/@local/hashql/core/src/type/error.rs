@@ -526,3 +526,41 @@ where
 
     diagnostic
 }
+
+pub(crate) fn cannot_be_subtype_of_never<K>(
+    env: &Environment,
+    actual_type: Type<K>,
+) -> TypeCheckDiagnostic
+where
+    K: PrettyPrint,
+{
+    let mut diagnostic =
+        Diagnostic::new(TypeCheckDiagnosticCategory::TypeMismatch, Severity::ERROR);
+
+    diagnostic
+        .labels
+        .push(Label::new(env.source, "This type cannot be a subtype of `!`").with_order(2));
+
+    diagnostic.labels.push(
+        Label::new(
+            actual_type.span,
+            format!(
+                "This type `{}` has values, but `!` has no values",
+                actual_type.kind.pretty_print(&env, 80)
+            ),
+        )
+        .with_order(1),
+    );
+
+    diagnostic.help = Some(Help::new(
+        "Only the `!` (Never) type itself can be a subtype of `!`. Any type with values cannot be \
+         a subtype of `!`, which by definition has no values.",
+    ));
+
+    diagnostic.note = Some(Note::new(
+        "In type theory, the `!` type (also called 'bottom type' or 'Never') is a type with no \
+         values. It can be a subtype of any type, but only `!` can be a subtype of `!`.",
+    ));
+
+    diagnostic
+}

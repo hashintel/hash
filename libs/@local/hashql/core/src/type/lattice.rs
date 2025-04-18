@@ -170,53 +170,6 @@ pub trait Lattice<'heap> {
         self.is_subtype_of(other, env) && other.is_subtype_of(self, env)
     }
 
-    /// Unifies two types according to subtyping rules.
-    ///
-    /// Determines if one type can be used in a context where another type is expected, according to
-    /// the subtyping relationship. Unlike `join` and `meet` which compute new types,
-    /// unification checks compatibility between existing types.
-    ///
-    /// In type theory terms, unification checks if `rhs <: lhs` ("rhs is a subtype of lhs"),
-    /// meaning values of type `rhs` can be used where values of type `lhs` are expected.
-    ///
-    /// # Applications
-    ///
-    /// Unification is fundamental to:
-    /// - Type checking function arguments against parameter types
-    /// - Verifying assignment compatibility
-    /// - Implementing polymorphic type systems
-    /// - Resolving type variables in type inference
-    ///
-    /// # Variance
-    ///
-    /// Unification respects variance, which determines how subtyping relationships
-    /// between component types affect subtyping relationships between composite types:
-    ///
-    /// - **Covariant**: Preserves subtyping direction (if A <: B then F<A> <: F<B>)
-    /// - **Contravariant**: Reverses subtyping direction (if A <: B then F<B> <: F<A>)
-    /// - **Invariant**: Requires exact type equality (F<A> <: F<B> only if A = B)
-    ///
-    /// # Behavior
-    ///
-    /// Rather than returning errors directly, this method reports errors through the
-    /// `UnificationEnvironment`. This allows for better error reporting and collection of multiple
-    /// errors during a single unification process.
-    ///
-    /// # Examples
-    ///
-    /// ```ignore
-    /// // Succeeds because Integer <: Number (Integer is a subtype of Number)
-    /// unify(Number, Integer)
-    ///
-    /// // Fails because Number is not a subtype of Integer
-    /// unify(Integer, Number) // This will report an error through the environment
-    /// ```
-    fn unify(
-        self: Type<'heap, Self>,
-        other: Type<'heap, Self>,
-        env: &mut UnificationEnvironment<'_, 'heap>,
-    );
-
     /// Simplifies a type to its canonical form.
     ///
     /// Type simplification transforms a type into an equivalent but simpler representation.

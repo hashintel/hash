@@ -1,13 +1,12 @@
+use core::ops::ControlFlow;
+
 use pretty::RcDoc;
 use smallvec::SmallVec;
 
 use super::{TypeKind, generic_argument::GenericArguments};
 use crate::r#type::{
     Type, TypeId,
-    environment::{
-        Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment,
-        UnificationEnvironment,
-    },
+    environment::{Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment},
     error::tuple_length_mismatch,
     lattice::Lattice,
     pretty_print::PrettyPrint,
@@ -120,15 +119,38 @@ impl<'heap> Lattice<'heap> for TupleType<'heap> {
     ) -> bool {
         // Tuples must have the same number of fields for subtyping to be possible
         if self.kind.fields.len() != supertype.kind.fields.len() {
+            // We always fail-fast here
+            let _: ControlFlow<()> = env.record_diagnostic(|env| {
+                tuple_length_mismatch(
+                    env.source,
+                    self,
+                    supertype,
+                    self.kind.fields.len(),
+                    supertype.kind.fields.len(),
+                )
+            });
+
             return false;
         }
 
+        let mut compatible = true;
+
         // Each field in the subtype must be a subtype of the corresponding field in the supertype
-        self.kind
-            .fields
-            .iter()
-            .zip(supertype.kind.fields.iter())
-            .all(|(&subfield, &superfield)| env.is_subtype_of(subfield, superfield))
+        // Unify corresponding fields in each tuple
+        for (&lhs_field, &rhs_field) in self.kind.fields.iter().zip(supertype.kind.fields.iter()) {
+            // Fields are covariant
+            let is_valid = env.in_covariant(|env| env.is_subtype_of(lhs_field, rhs_field));
+
+            if !is_valid && env.is_fail_fast() {
+                return false;
+            }
+
+            if !is_valid {
+                compatible = false;
+            }
+        }
+
+        compatible
     }
 
     fn is_equivalent(
@@ -143,40 +165,6 @@ impl<'heap> Lattice<'heap> for TupleType<'heap> {
                 .iter()
                 .zip(other.kind.fields.iter())
                 .all(|(&lhs, &rhs)| env.is_equivalent(lhs, rhs))
-    }
-
-    /// Unifies tuple types
-    ///
-    /// In a covariant context:
-    /// - Both tuples must have the same number of fields (tuples are invariant in length)
-    /// - Each corresponding field must be covariant
-    fn unify(
-        self: Type<'heap, Self>,
-        other: Type<'heap, Self>,
-        env: &mut UnificationEnvironment<'_, 'heap>,
-    ) {
-        // Tuples must have the same number of fields
-        if self.kind.fields.len() != other.kind.fields.len() {
-            let diagnostic = tuple_length_mismatch(
-                env.source,
-                self,
-                other,
-                self.kind.fields.len(),
-                other.kind.fields.len(),
-            );
-
-            env.diagnostics.push(diagnostic);
-
-            return;
-        }
-
-        // Unify corresponding fields in each tuple
-        for (&lhs_field, &rhs_field) in self.kind.fields.iter().zip(other.kind.fields.iter()) {
-            // Fields are covariant
-            env.in_covariant(|env| {
-                env.unify_type(lhs_field, rhs_field);
-            });
-        }
     }
 
     fn simplify(self: Type<'heap, Self>, env: &mut SimplifyEnvironment<'_, 'heap>) -> TypeId {
@@ -262,7 +250,6 @@ mod test {
         r#type::{
             environment::{
                 Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment,
-                UnificationEnvironment,
             },
             kind::{
                 TypeKind,
@@ -660,109 +647,109 @@ mod test {
         assert!(!a.is_equivalent(d, &mut analysis_env));
     }
 
-    #[test]
-    fn unification_same_structure() {
-        let heap = Heap::new();
-        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    // #[test]
+    // fn unification_same_structure() {
+    //     let heap = Heap::new();
+    //     let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
-        // Create two tuples with compatible types
-        // (Number, String) and (Integer, String) are compatible because Integer <: Number
-        tuple!(
-            env,
-            a,
-            [],
-            [
-                primitive!(env, PrimitiveType::Number),
-                primitive!(env, PrimitiveType::String)
-            ]
-        );
+    //     // Create two tuples with compatible types
+    //     // (Number, String) and (Integer, String) are compatible because Integer <: Number
+    //     tuple!(
+    //         env,
+    //         a,
+    //         [],
+    //         [
+    //             primitive!(env, PrimitiveType::Number),
+    //             primitive!(env, PrimitiveType::String)
+    //         ]
+    //     );
 
-        tuple!(
-            env,
-            b,
-            [],
-            [
-                primitive!(env, PrimitiveType::Integer),
-                primitive!(env, PrimitiveType::String)
-            ]
-        );
+    //     tuple!(
+    //         env,
+    //         b,
+    //         [],
+    //         [
+    //             primitive!(env, PrimitiveType::Integer),
+    //             primitive!(env, PrimitiveType::String)
+    //         ]
+    //     );
 
-        let mut unif_env = UnificationEnvironment::new(&env);
+    //     let mut unif_env = UnificationEnvironment::new(&env);
 
-        // Unifying compatible tuples should succeed without errors
-        a.unify(b, &mut unif_env);
-        assert!(
-            unif_env.diagnostics.take().is_empty(),
-            "Unification of compatible tuples should succeed"
-        );
-    }
+    //     // Unifying compatible tuples should succeed without errors
+    //     a.unify(b, &mut unif_env);
+    //     assert!(
+    //         unif_env.diagnostics.take().is_empty(),
+    //         "Unification of compatible tuples should succeed"
+    //     );
+    // }
 
-    #[test]
-    fn unification_different_length() {
-        let heap = Heap::new();
-        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    // #[test]
+    // fn unification_different_length() {
+    //     let heap = Heap::new();
+    //     let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
-        // Create tuples of different lengths
-        tuple!(env, a, [], [primitive!(env, PrimitiveType::Number)]);
+    //     // Create tuples of different lengths
+    //     tuple!(env, a, [], [primitive!(env, PrimitiveType::Number)]);
 
-        tuple!(
-            env,
-            b,
-            [],
-            [
-                primitive!(env, PrimitiveType::Number),
-                primitive!(env, PrimitiveType::String)
-            ]
-        );
+    //     tuple!(
+    //         env,
+    //         b,
+    //         [],
+    //         [
+    //             primitive!(env, PrimitiveType::Number),
+    //             primitive!(env, PrimitiveType::String)
+    //         ]
+    //     );
 
-        let mut unif_env = UnificationEnvironment::new(&env);
+    //     let mut unif_env = UnificationEnvironment::new(&env);
 
-        // Unifying tuples of different lengths should produce a diagnostic
-        a.unify(b, &mut unif_env);
-        let diagnostics = unif_env.diagnostics.take();
-        assert!(
-            !diagnostics.is_empty(),
-            "Unification of tuples with different lengths should fail"
-        );
-    }
+    //     // Unifying tuples of different lengths should produce a diagnostic
+    //     a.unify(b, &mut unif_env);
+    //     let diagnostics = unif_env.diagnostics.take();
+    //     assert!(
+    //         !diagnostics.is_empty(),
+    //         "Unification of tuples with different lengths should fail"
+    //     );
+    // }
 
-    #[test]
-    fn unification_incompatible_field_types() {
-        let heap = Heap::new();
-        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    // #[test]
+    // fn unification_incompatible_field_types() {
+    //     let heap = Heap::new();
+    //     let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
-        // Create tuples with incompatible field types
-        // Number and Boolean are incompatible types
-        tuple!(
-            env,
-            a,
-            [],
-            [
-                primitive!(env, PrimitiveType::Number),
-                primitive!(env, PrimitiveType::String)
-            ]
-        );
+    //     // Create tuples with incompatible field types
+    //     // Number and Boolean are incompatible types
+    //     tuple!(
+    //         env,
+    //         a,
+    //         [],
+    //         [
+    //             primitive!(env, PrimitiveType::Number),
+    //             primitive!(env, PrimitiveType::String)
+    //         ]
+    //     );
 
-        tuple!(
-            env,
-            b,
-            [],
-            [
-                primitive!(env, PrimitiveType::Boolean),
-                primitive!(env, PrimitiveType::String)
-            ]
-        );
+    //     tuple!(
+    //         env,
+    //         b,
+    //         [],
+    //         [
+    //             primitive!(env, PrimitiveType::Boolean),
+    //             primitive!(env, PrimitiveType::String)
+    //         ]
+    //     );
 
-        let mut unif_env = UnificationEnvironment::new(&env);
+    //     let mut unif_env = UnificationEnvironment::new(&env);
 
-        // Unifying tuples with incompatible field types should produce diagnostics
-        a.unify(b, &mut unif_env);
-        let diagnostics = unif_env.diagnostics.take();
-        assert!(
-            !diagnostics.is_empty(),
-            "Unification of tuples with incompatible fields should fail"
-        );
-    }
+    //     // Unifying tuples with incompatible field types should produce diagnostics
+    //     a.unify(b, &mut unif_env);
+    //     let diagnostics = unif_env.diagnostics.take();
+    //     assert!(
+    //         !diagnostics.is_empty(),
+    //         "Unification of tuples with incompatible fields should fail"
+    //     );
+    // }
 
     #[test]
     fn simplify_tuple() {

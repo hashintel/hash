@@ -367,6 +367,10 @@ impl<'env, 'heap> TypeAnalysisEnvironment<'env, 'heap> {
         r#type.is_uninhabited(self)
     }
 
+    pub fn is_fail_fast(&mut self) -> bool {
+        self.diagnostics.is_none()
+    }
+
     pub fn record_diagnostic(
         &mut self,
         diagnostic: impl FnOnce(&Environment<'heap>) -> TypeCheckDiagnostic,

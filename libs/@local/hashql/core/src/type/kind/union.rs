@@ -1,14 +1,13 @@
+use core::ops::ControlFlow;
+
 use pretty::RcDoc;
 use smallvec::SmallVec;
 
 use super::TypeKind;
 use crate::r#type::{
     Type, TypeId,
-    environment::{
-        Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment,
-        UnificationEnvironment,
-    },
-    error::union_variant_mismatch,
+    environment::{Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment},
+    error::{cannot_be_subtype_of_never, type_mismatch, union_variant_mismatch},
     lattice::Lattice,
     pretty_print::PrettyPrint,
     recursion::RecursionDepthBoundary,
@@ -20,8 +19,8 @@ pub struct UnionType<'heap> {
 }
 
 impl UnionType<'_> {
-    fn unnest(&self, env: &Environment) -> Vec<TypeId> {
-        let mut variants = Vec::with_capacity(self.variants.len());
+    fn unnest(&self, env: &Environment) -> SmallVec<TypeId, 16> {
+        let mut variants = SmallVec::with_capacity(self.variants.len());
 
         for &variant in self.variants {
             if let TypeKind::Union(union) = env.types[variant].copied().kind {
@@ -104,7 +103,9 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
 
         // If the supertype is empty, only an empty subtype can be a subtype of it
         if super_variants.is_empty() {
-            // TODO: record issue
+            // We always fail-fast here
+            let _: ControlFlow<()> =
+                env.record_diagnostic(|env| cannot_be_subtype_of_never(env, self));
 
             return false; // We already checked that self is not empty
         }
@@ -117,28 +118,25 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
             // For each variant in the subtype, check if it's a subtype of any variant in the
             // supertype
 
-            // try to find at least one match in the super‐variants
-            let mut found = false;
-            for &super_variant in &super_variants {
-                if env.in_covariant(|env| env.is_subtype_of(self_variant, super_variant)) {
-                    found = true;
-                    break;
-                }
+            // Try to find at least one match in the super‐variants
+            let found = super_variants.iter().any(|&super_variant| {
+                env.in_covariant(|env| env.is_subtype_of(self_variant, super_variant))
+            });
+
+            if found {
+                continue;
             }
 
-            if !found {
-                // no match for this self_var → emit exactly one diagnostic
-                let should_break = env
-                    .record_diagnostic(|env| {
-                        union_variant_mismatch(env, env.types[self_variant].copied(), supertype)
-                    })
-                    .is_break();
-
-                compatible = false;
-                if should_break {
-                    return false;
-                }
+            if env
+                .record_diagnostic(|env| {
+                    union_variant_mismatch(env, env.types[self_variant].copied(), supertype)
+                })
+                .is_break()
+            {
+                return false;
             }
+
+            compatible = false;
         }
 
         compatible
@@ -153,25 +151,46 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
         let rhs_variants = other.kind.unnest(env);
 
         if lhs_variants.len() != rhs_variants.len() {
+            // We always fail-fast here
+            let _: ControlFlow<()> = env.record_diagnostic(|env| {
+                let help = if lhs_variants.is_empty() || rhs_variants.is_empty() {
+                    "The Never type (empty union) can only be equivalent to itself. A non-empty \
+                     union cannot be equivalent to Never."
+                } else {
+                    "Union types must have the same number of variants to be equivalent."
+                };
+
+                type_mismatch(env, self, other, Some(help))
+            });
+
             return false;
         }
 
-        // For every variant x in lhs_variants, there exists a y in rhs_variants where x ≡ y
-        lhs_variants.iter().all(|&lhs_variant| {
-            rhs_variants
-                .iter()
-                .any(|&rhs_variant| env.is_equivalent(lhs_variant, rhs_variant))
-        })
-    }
+        let mut equivalent = true;
 
-    fn unify(
-        self: Type<'heap, Self>,
-        other: Type<'heap, Self>,
-        env: &mut UnificationEnvironment<'_, 'heap>,
-    ) {
-        // For each variant in `other` (the provided type), check if it's a subtype of at least one
-        // variant in `self`
-        //
+        // For every variant x in lhs_variants, there exists a y in rhs_variants where x ≡ y
+        for &lhs_variant in &lhs_variants {
+            let found = rhs_variants
+                .iter()
+                .any(|&rhs_variant| env.is_equivalent(lhs_variant, rhs_variant));
+
+            if found {
+                continue;
+            }
+
+            if env
+                .record_diagnostic(|env| {
+                    union_variant_mismatch(env, env.types[lhs_variant].copied(), other)
+                })
+                .is_break()
+            {
+                return false;
+            }
+
+            equivalent = false;
+        }
+
+        equivalent
     }
 
     fn simplify(self: Type<'heap, Self>, env: &mut SimplifyEnvironment<'_, 'heap>) -> TypeId {
@@ -192,11 +211,13 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
         variants.dedup();
         variants.retain(|&variant| !env.uninhabited(variant));
 
-        // Drop supertypes of other variants
+        // Drop subtypes of other variants
         let backup = variants.clone();
-        variants.retain(|&v| {
-            // keep v only if *no* other distinct u is a subtype of v
-            !backup.iter().any(|&u| env.is_subtype_of(u, v))
+        variants.retain(|&subtype| {
+            // keep v only if it is *not* a subtype of any other distinct u
+            !backup
+                .iter()
+                .any(|&supertype| subtype != supertype && env.is_subtype_of(subtype, supertype))
         });
 
         // Collapse empty or singleton

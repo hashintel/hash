@@ -1,12 +1,11 @@
+use core::ops::ControlFlow;
+
 use pretty::RcDoc;
 use smallvec::SmallVec;
 
 use crate::r#type::{
     Type, TypeId,
-    environment::{
-        Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment,
-        UnificationEnvironment,
-    },
+    environment::{Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment},
     error::type_mismatch,
     lattice::Lattice,
     pretty_print::{BLUE, PrettyPrint},
@@ -67,7 +66,7 @@ impl<'heap> Lattice<'heap> for PrimitiveType {
     fn is_subtype_of(
         self: Type<'heap, Self>,
         supertype: Type<'heap, Self>,
-        _: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
     ) -> bool {
         // If types are identical, they are always subtypes of each other
         if self.kind == supertype.kind {
@@ -78,9 +77,66 @@ impl<'heap> Lattice<'heap> for PrimitiveType {
         match (*self.kind, *supertype.kind) {
             // `Integer <: Number`
             (Self::Integer, Self::Number) => true,
+            (Self::Number, Self::Integer) => {
+                let _: ControlFlow<()> = env.record_diagnostic(|env| {
+                    type_mismatch(
+                        env,
+                        self,
+                        supertype,
+                        Some(
+                            "Expected an Integer but found a Number. While all Integers are \
+                             Numbers, not all Numbers are Integers (e.g., decimals like 3.14).",
+                        ),
+                    )
+                });
+
+                false
+            }
 
             // No other subtyping relationships exist between primitive types
-            _ => false,
+            _ => {
+                let _: ControlFlow<()> = env.record_diagnostic(|env| {
+                    // In covariant context: These primitive types have no subtyping relationship
+                    // Provide helpful conversion suggestions based on the specific type mismatch
+                    let help_message = match (self.kind, supertype.kind) {
+                        (Self::Number | Self::Integer, Self::String) => Some(
+                            "You can convert the number to a string using the \
+                             `::core::number::to_string/1` or `::core::number::to_string/2` \
+                             function",
+                        ),
+                        (Self::String, Self::Number | Self::Integer) => Some(
+                            "You can convert the string to a number using the \
+                             `::core::number::parse/1` or `::core::number::parse/2` function",
+                        ),
+                        (Self::Boolean, Self::String) => Some(
+                            "You can convert the boolean to a string using the \
+                             `::core::boolean::to_string/1` function",
+                        ),
+                        (Self::String, Self::Boolean) => Some(
+                            "You can convert the string to a boolean using the \
+                             `::core::boolean::parse/1` function",
+                        ),
+                        (Self::Boolean, Self::Number | Self::Integer) => Some(
+                            "You can convert the boolean to a number using the \
+                             `::core::number::from_boolean/1` function",
+                        ),
+                        (Self::Number | Self::Integer, Self::Boolean) => Some(
+                            "You can convert the number to a boolean using the \
+                             `::core::boolean::from_number/1` function",
+                        ),
+                        (Self::Null, _) | (_, Self::Null) => Some(
+                            "Null cannot be combined with other types. Consider using optional \
+                             types or a null check.",
+                        ),
+                        _ => None,
+                    };
+
+                    // Record a type mismatch diagnostic with helpful conversion suggestions
+                    type_mismatch(env, self, supertype, help_message)
+                });
+
+                false
+            }
         }
     }
 
@@ -90,80 +146,6 @@ impl<'heap> Lattice<'heap> for PrimitiveType {
         _: &mut TypeAnalysisEnvironment<'_, 'heap>,
     ) -> bool {
         self.kind == other.kind
-    }
-
-    fn unify(
-        self: Type<'heap, Self>,
-        other: Type<'heap, Self>,
-        env: &mut UnificationEnvironment<'_, 'heap>,
-    ) {
-        if self.kind == other.kind {
-            return;
-        }
-
-        match (self.kind, other.kind) {
-            // Handle the Integer <: Number subtyping relationship
-            (Self::Number, Self::Integer) => {
-                // In covariant context: Integer (rhs) is a subtype of Number (lhs).
-                // This is valid - Integer can be used where Number is expected
-            }
-
-            (Self::Integer, Self::Number) => {
-                // In covariant context: Number (rhs) is NOT a subtype of Integer (lhs)
-                // This is an error - Number cannot be used where Integer is expected
-                let diagnostic = type_mismatch(
-                    env,
-                    self,
-                    other,
-                    Some(
-                        "Expected an Integer but found a Number. While all Integers are Numbers, \
-                         not all Numbers are Integers (e.g., decimals like 3.14).",
-                    ),
-                );
-
-                env.diagnostics.push(diagnostic);
-            }
-
-            _ => {
-                // In covariant context: These primitive types have no subtyping relationship
-                // Provide helpful conversion suggestions based on the specific type mismatch
-                let help_message = match (self.kind, other.kind) {
-                    (Self::Number | Self::Integer, Self::String) => Some(
-                        "You can convert the number to a string using the \
-                         `::core::number::to_string/1` or `::core::number::to_string/2` function",
-                    ),
-                    (Self::String, Self::Number | Self::Integer) => Some(
-                        "You can convert the string to a number using the \
-                         `::core::number::parse/1` or `::core::number::parse/2` function",
-                    ),
-                    (Self::Boolean, Self::String) => Some(
-                        "You can convert the boolean to a string using the \
-                         `::core::boolean::to_string/1` function",
-                    ),
-                    (Self::String, Self::Boolean) => Some(
-                        "You can convert the string to a boolean using the \
-                         `::core::boolean::parse/1` function",
-                    ),
-                    (Self::Boolean, Self::Number | Self::Integer) => Some(
-                        "You can convert the boolean to a number using the \
-                         `::core::number::from_boolean/1` function",
-                    ),
-                    (Self::Number | Self::Integer, Self::Boolean) => Some(
-                        "You can convert the number to a boolean using the \
-                         `::core::boolean::from_number/1` function",
-                    ),
-                    (Self::Null, _) | (_, Self::Null) => Some(
-                        "Null cannot be combined with other types. Consider using optional types \
-                         or a null check.",
-                    ),
-                    _ => None,
-                };
-
-                // Record a type mismatch diagnostic with helpful conversion suggestions
-                let diagnostic = type_mismatch(env, self, other, help_message);
-                env.diagnostics.push(diagnostic);
-            }
-        }
     }
 
     fn simplify(self: Type<'heap, Self>, _: &mut SimplifyEnvironment<'_, 'heap>) -> TypeId {
@@ -196,7 +178,6 @@ impl PrettyPrint for PrimitiveType {
 #[cfg(test)]
 mod test {
     #![expect(clippy::min_ident_chars)]
-    use hashql_diagnostics::help::Help;
     use test_case::test_case;
 
     use super::PrimitiveType;
@@ -206,7 +187,6 @@ mod test {
         r#type::{
             environment::{
                 Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment,
-                UnificationEnvironment,
             },
             kind::{
                 TypeKind,
@@ -487,134 +467,134 @@ mod test {
         assert!(!null.is_subtype_of(boolean, &mut analysis_env));
     }
 
-    #[test_case(PrimitiveType::Number)]
-    #[test_case(PrimitiveType::Integer)]
-    #[test_case(PrimitiveType::String)]
-    #[test_case(PrimitiveType::Boolean)]
-    #[test_case(PrimitiveType::Null)]
-    fn unification_same_type(primitive: PrimitiveType) {
-        let heap = Heap::new();
-        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    // #[test_case(PrimitiveType::Number)]
+    // #[test_case(PrimitiveType::Integer)]
+    // #[test_case(PrimitiveType::String)]
+    // #[test_case(PrimitiveType::Boolean)]
+    // #[test_case(PrimitiveType::Null)]
+    // fn unification_same_type(primitive: PrimitiveType) {
+    //     let heap = Heap::new();
+    //     let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
-        primitive!(env, a, primitive);
-        primitive!(env, b, primitive);
+    //     primitive!(env, a, primitive);
+    //     primitive!(env, b, primitive);
 
-        let mut unif_env = UnificationEnvironment::new(&env);
+    //     let mut unif_env = UnificationEnvironment::new(&env);
 
-        // Unifying same types should succeed without errors
-        a.unify(b, &mut unif_env);
-        assert!(unif_env.diagnostics.take().is_empty());
-    }
+    //     // Unifying same types should succeed without errors
+    //     a.unify(b, &mut unif_env);
+    //     assert!(unif_env.diagnostics.take().is_empty());
+    // }
 
-    #[test]
-    fn unification_integer_number() {
-        let heap = Heap::new();
-        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    // #[test]
+    // fn unification_integer_number() {
+    //     let heap = Heap::new();
+    //     let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
-        primitive!(env, number, PrimitiveType::Number);
-        primitive!(env, integer, PrimitiveType::Integer);
+    //     primitive!(env, number, PrimitiveType::Number);
+    //     primitive!(env, integer, PrimitiveType::Integer);
 
-        let mut unif_env = UnificationEnvironment::new(&env);
+    //     let mut unif_env = UnificationEnvironment::new(&env);
 
-        number.unify(integer, &mut unif_env);
-        assert!(
-            unif_env.diagnostics.take().is_empty(),
-            "Number <-- Integer should succeed"
-        );
-    }
+    //     number.unify(integer, &mut unif_env);
+    //     assert!(
+    //         unif_env.diagnostics.take().is_empty(),
+    //         "Number <-- Integer should succeed"
+    //     );
+    // }
 
-    #[test]
-    fn unification_number_integer() {
-        let heap = Heap::new();
-        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    // #[test]
+    // fn unification_number_integer() {
+    //     let heap = Heap::new();
+    //     let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
-        primitive!(env, integer, PrimitiveType::Integer);
-        primitive!(env, number, PrimitiveType::Number);
+    //     primitive!(env, integer, PrimitiveType::Integer);
+    //     primitive!(env, number, PrimitiveType::Number);
 
-        let mut unif_env = UnificationEnvironment::new(&env);
+    //     let mut unif_env = UnificationEnvironment::new(&env);
 
-        integer.unify(number, &mut unif_env);
+    //     integer.unify(number, &mut unif_env);
 
-        let diagnostics = unif_env.diagnostics.take();
+    //     let diagnostics = unif_env.diagnostics.take();
 
-        assert!(!diagnostics.is_empty(), "Integer <-- Number should fail");
+    //     assert!(!diagnostics.is_empty(), "Integer <-- Number should fail");
 
-        // Verify error contains helpful message
-        let diagnostic = &diagnostics[0];
-        assert_eq!(
-            diagnostic.help.as_ref().map(Help::message),
-            Some(
-                "Expected an Integer but found a Number. While all Integers are Numbers, not all \
-                 Numbers are Integers (e.g., decimals like 3.14)."
-            )
-        );
-    }
+    //     // Verify error contains helpful message
+    //     let diagnostic = &diagnostics[0];
+    //     assert_eq!(
+    //         diagnostic.help.as_ref().map(Help::message),
+    //         Some(
+    //             "Expected an Integer but found a Number. While all Integers are Numbers, not all
+    // \              Numbers are Integers (e.g., decimals like 3.14)."
+    //         )
+    //     );
+    // }
 
-    #[test_case(
-        PrimitiveType::Number,
-        PrimitiveType::String;
-        "convert the number to a string"
-    )]
-    #[test_case(
-        PrimitiveType::String,
-        PrimitiveType::Number;
-        "convert the string to a number"
-    )]
-    #[test_case(
-        PrimitiveType::String,
-        PrimitiveType::Boolean;
-        "convert the string to a boolean"
-    )]
-    #[test_case(
-        PrimitiveType::Boolean,
-        PrimitiveType::String;
-        "convert the boolean to a string"
-    )]
-    #[test_case(
-        PrimitiveType::Boolean,
-        PrimitiveType::Number;
-        "convert the boolean to a number"
-    )]
-    #[test_case(
-        PrimitiveType::Number,
-        PrimitiveType::Boolean;
-        "convert the number to a boolean"
-    )]
-    #[test_case(
-        PrimitiveType::Null,
-        PrimitiveType::String;
-        "convert the null to a string"
-    )]
-    #[test_case(
-        PrimitiveType::String,
-        PrimitiveType::Null;
-        "convert the string to a null"
-    )]
-    #[test_case(
-        PrimitiveType::Null,
-        PrimitiveType::Number;
-        "convert the null to a number"
-    )]
-    #[test_case(
-        PrimitiveType::Number,
-        PrimitiveType::Null;
-        "convert the number to a null"
-    )]
-    fn unification_unrelated_types(lhs: PrimitiveType, rhs: PrimitiveType) {
-        let heap = Heap::new();
-        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    // #[test_case(
+    //     PrimitiveType::Number,
+    //     PrimitiveType::String;
+    //     "convert the number to a string"
+    // )]
+    // #[test_case(
+    //     PrimitiveType::String,
+    //     PrimitiveType::Number;
+    //     "convert the string to a number"
+    // )]
+    // #[test_case(
+    //     PrimitiveType::String,
+    //     PrimitiveType::Boolean;
+    //     "convert the string to a boolean"
+    // )]
+    // #[test_case(
+    //     PrimitiveType::Boolean,
+    //     PrimitiveType::String;
+    //     "convert the boolean to a string"
+    // )]
+    // #[test_case(
+    //     PrimitiveType::Boolean,
+    //     PrimitiveType::Number;
+    //     "convert the boolean to a number"
+    // )]
+    // #[test_case(
+    //     PrimitiveType::Number,
+    //     PrimitiveType::Boolean;
+    //     "convert the number to a boolean"
+    // )]
+    // #[test_case(
+    //     PrimitiveType::Null,
+    //     PrimitiveType::String;
+    //     "convert the null to a string"
+    // )]
+    // #[test_case(
+    //     PrimitiveType::String,
+    //     PrimitiveType::Null;
+    //     "convert the string to a null"
+    // )]
+    // #[test_case(
+    //     PrimitiveType::Null,
+    //     PrimitiveType::Number;
+    //     "convert the null to a number"
+    // )]
+    // #[test_case(
+    //     PrimitiveType::Number,
+    //     PrimitiveType::Null;
+    //     "convert the number to a null"
+    // )]
+    // fn unification_unrelated_types(lhs: PrimitiveType, rhs: PrimitiveType) {
+    //     let heap = Heap::new();
+    //     let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
-        primitive!(env, lhs, lhs);
-        primitive!(env, rhs, rhs);
+    //     primitive!(env, lhs, lhs);
+    //     primitive!(env, rhs, rhs);
 
-        let mut unif_env = UnificationEnvironment::new(&env);
+    //     let mut unif_env = UnificationEnvironment::new(&env);
 
-        lhs.unify(rhs, &mut unif_env);
+    //     lhs.unify(rhs, &mut unif_env);
 
-        let diagnostics = unif_env.diagnostics.take();
+    //     let diagnostics = unif_env.diagnostics.take();
 
-        assert!(!diagnostics.is_empty(), "Unification should fail");
-    }
+    //     assert!(!diagnostics.is_empty(), "Unification should fail");
+    // }
 
     #[test_case(PrimitiveType::Number)]
     #[test_case(PrimitiveType::Integer)]
