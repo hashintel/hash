@@ -4381,9 +4381,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@chainsafe/libp2p-noise@npm:16.1.0":
-  version: 16.1.0
-  resolution: "@chainsafe/libp2p-noise@npm:16.1.0"
+"@chainsafe/libp2p-noise@npm:16.1.2":
+  version: 16.1.2
+  resolution: "@chainsafe/libp2p-noise@npm:16.1.2"
   dependencies:
     "@chainsafe/as-chacha20poly1305": "npm:^0.1.0"
     "@chainsafe/as-sha256": "npm:^1.0.0"
@@ -4394,7 +4394,7 @@ __metadata:
     "@noble/curves": "npm:^1.1.0"
     "@noble/hashes": "npm:^1.3.1"
     it-length-prefixed: "npm:^10.0.1"
-    it-length-prefixed-stream: "npm:^1.0.0"
+    it-length-prefixed-stream: "npm:^2.0.1"
     it-pair: "npm:^2.0.6"
     it-pipe: "npm:^3.0.1"
     it-stream-types: "npm:^2.0.1"
@@ -4402,7 +4402,7 @@ __metadata:
     uint8arraylist: "npm:^2.4.3"
     uint8arrays: "npm:^5.0.0"
     wherearewe: "npm:^2.0.1"
-  checksum: 10c0/b537e8397b4be4192e738bfe88d1c6eff48052184164c77adddfac248275f5e5555093d829d758338f341d0039571034fb047e0e87d11b8081a93431078c5745
+  checksum: 10c0/4a7a3585e4551c7022833741c7df0c09e86aea02f9d3d3f20c8ff491883e335686dcb9338c526d38c95c239ff282e2e80dbcd4e48cdd37f5b6b9a3219f88f193
   languageName: node
   linkType: hard
 
@@ -8832,7 +8832,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@local/harpc-client@workspace:libs/@local/harpc/client/typescript"
   dependencies:
-    "@chainsafe/libp2p-noise": "npm:16.1.0"
+    "@chainsafe/libp2p-noise": "npm:16.1.2"
     "@chainsafe/libp2p-yamux": "npm:7.0.1"
     "@effect/platform": "npm:0.79.2"
     "@effect/platform-node": "npm:0.75.2"
@@ -30792,17 +30792,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"it-byte-stream@npm:^1.0.0":
-  version: 1.1.0
-  resolution: "it-byte-stream@npm:1.1.0"
-  dependencies:
-    it-queueless-pushable: "npm:^1.0.0"
-    it-stream-types: "npm:^2.0.1"
-    uint8arraylist: "npm:^2.4.8"
-  checksum: 10c0/df7e7bd26d726b91306a7181c1880e18cc21c43df843d279522923ef4cd080b0b91a4d0bd4eb929b6d597392402ce9c3fceebae31f429dee8a4b84b30c519fc8
-  languageName: node
-  linkType: hard
-
 "it-byte-stream@npm:^2.0.0, it-byte-stream@npm:^2.0.1":
   version: 2.0.1
   resolution: "it-byte-stream@npm:2.0.1"
@@ -30838,18 +30827,6 @@ __metadata:
   dependencies:
     it-peekable: "npm:^3.0.0"
   checksum: 10c0/93f90f7a8a474b747c7ba4c701363bdb9427329aaac6c5657d24d9d89dd8bddd1ca2590807129bb60184982da2e70fd4120fd8752578ecd722eb31ba83c66d0f
-  languageName: node
-  linkType: hard
-
-"it-length-prefixed-stream@npm:^1.0.0":
-  version: 1.2.0
-  resolution: "it-length-prefixed-stream@npm:1.2.0"
-  dependencies:
-    it-byte-stream: "npm:^1.0.0"
-    it-stream-types: "npm:^2.0.1"
-    uint8-varint: "npm:^2.0.4"
-    uint8arraylist: "npm:^2.4.8"
-  checksum: 10c0/093644881c73ab76b4074c65605f25b22892d1267fa9a2ec8c2a4731f4e51d86b54be0a6e2bc9772b81cc7c3f2f3d705695304fe33eeac32849076bdebb46829
   languageName: node
   linkType: hard
 
@@ -30952,16 +30929,6 @@ __metadata:
   dependencies:
     p-defer: "npm:^4.0.0"
   checksum: 10c0/ba99744f0a6fe9e555bdde76ce2144a3e35c37a33830c69d65f5512129fb5a58272f1bbb4b9741fca69be868c301109fc910b26629c8eb0961f0503dd80a4830
-  languageName: node
-  linkType: hard
-
-"it-queueless-pushable@npm:^1.0.0":
-  version: 1.0.0
-  resolution: "it-queueless-pushable@npm:1.0.0"
-  dependencies:
-    p-defer: "npm:^4.0.1"
-    race-signal: "npm:^1.0.2"
-  checksum: 10c0/93d7601515f32c01cc9ca0f77addcda57e3524516747716a0101e54f44d6cad5037bc9f7005f21837822fb154e47868f19f9c89dcc3e8fd255d72455a0b95e73
   languageName: node
   linkType: hard
 
@@ -37879,7 +37846,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"race-signal@npm:^1.0.2, race-signal@npm:^1.1.2, race-signal@npm:^1.1.3":
+"race-signal@npm:^1.1.2, race-signal@npm:^1.1.3":
   version: 1.1.3
   resolution: "race-signal@npm:1.1.3"
   checksum: 10c0/85273f32863e5025307bb495faec87a6210fcd5af44d9385b8db57f54b49744255f21a2dbca25354f959d098b430920309db905c6228bb5f55f01ee82464c38f
