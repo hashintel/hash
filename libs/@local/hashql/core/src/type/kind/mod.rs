@@ -9,11 +9,12 @@ pub mod generic_argument;
 #[cfg(test)]
 pub(crate) mod test;
 pub mod tuple;
+pub mod union;
 // pub mod union;
 
 use pretty::RcDoc;
 
-use self::{primitive::PrimitiveType, tuple::TupleType};
+use self::{primitive::PrimitiveType, tuple::TupleType, union::UnionType};
 use super::{
     Type, TypeId,
     environment::{
@@ -33,7 +34,7 @@ pub enum TypeKind<'heap> {
     // Struct(StructType),
     Tuple(TupleType<'heap>),
     // Opaque(OpaqueType),
-    // Union(UnionType),
+    Union(UnionType),
     // Intersection(IntersectionType),
     // Param(Param),
     Never,

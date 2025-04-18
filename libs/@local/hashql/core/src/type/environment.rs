@@ -123,7 +123,7 @@ pub struct Environment<'heap> {
 impl<'heap> Environment<'heap> {
     #[must_use]
     pub fn new(source: SpanId, heap: &'heap Heap) -> Self {
-        let this = Self {
+        Self {
             source,
 
             heap,
@@ -131,23 +131,25 @@ impl<'heap> Environment<'heap> {
             interner: Interner::new(heap),
 
             auxiliary: AuxiliaryData::new(),
-        };
-
-        this
+        }
     }
 
+    #[inline]
     pub fn alloc(&self, with: impl FnOnce(TypeId) -> Type<'heap>) -> TypeId {
         self.types.push_with(with)
     }
 
+    #[inline]
     pub fn intern_kind(&self, kind: TypeKind<'heap>) -> &'heap TypeKind<'heap> {
         self.interner.intern_kind(kind)
     }
 
+    #[inline]
     pub fn intern_type_ids(&self, ids: &[TypeId]) -> &'heap [TypeId] {
         self.interner.intern_type_ids(ids)
     }
 
+    #[inline]
     pub fn intern_generic_arguments(
         &self,
         arguments: &[GenericArgument],
