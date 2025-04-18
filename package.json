@@ -106,7 +106,7 @@
     "lefthook": "1.11.9",
     "npm-run-all2": "7.0.2"
   },
-  "packageManager": "yarn@4.9.0",
+  "packageManager": "yarn@4.9.1",
   "engines": {
     "node": ">= v22"
   }
