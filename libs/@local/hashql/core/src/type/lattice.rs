@@ -130,35 +130,43 @@ pub trait Lattice<'heap> {
     /// panic or never terminate).
     fn uninhabited(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool;
 
-    /// Checks if two types are semantically equivalent.
+    /// Determines if one type is a subtype of another.
     ///
-    /// Semantic equivalence determines if two types have the same meaning or behavior
-    /// in the type system. This encompasses both structural and potentially nominal aspects:
+    /// The subtyping relationship is fundamental to type systems, establishing when
+    /// a value of one type can be safely used in a context expecting another type.
+    /// If type A is a subtype of type B (written as A <: B), then any value of type A
+    /// can be safely used where a value of type B is expected.
     ///
-    /// - **Structural aspects**: Types with the same shape and composition are typically equivalent
-    /// - **Nominal aspects**: In some cases, type identity or declared names may also be considered
+    /// # Properties
     ///
-    /// Equivalence is primarily determined structurally (by comparing the shape and composition of
-    /// types). Except for opaque types, which are compared nominally.
-    ///
-    /// # Examples
-    ///
-    /// ```ignore
-    /// // Structural types:
-    /// type A = (x: Number, y: Number);
-    /// type B = (x: Number, y: Number);
-    /// // A and B would be semantically equivalent
-    ///
-    /// // Nominal/opaque types:
-    /// newtype A = (x: Number, y: Number);
-    /// newtype B = (x: Number, y: Number);
-    /// // A and B would NOT be equivalent despite identical structure
-    /// ```
-    fn semantically_equivalent(
+    /// The subtyping relation forms a partial order with the following properties:
+    /// - Reflexivity: Every type is a subtype of itself (`A <: A`).
+    /// - Transitivity: If `A <: B` and `B <: C`, then `A <: C`.
+    /// - Antisymmetry: If `A <: B` and `B <: A`, then `A` and `B` are equivalent.
+    fn is_subtype_of(
         self: Type<'heap, Self>,
         other: Type<'heap, Self>,
-        env: &mut EquivalenceEnvironment<'_, 'heap>,
+        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
     ) -> bool;
+
+    /// Determines if two types are equivalent under the subtyping relation.
+    ///
+    /// Two types are equivalent if they are mutual subtypes of each other - that is,
+    /// if type `A` is a subtype of `B` and `B` is also a subtype of `A`. This represents a
+    /// bidirectional compatibility relationship, where values of either type can
+    /// be used interchangeably in any context expecting the other type.
+    ///
+    /// # Implementation
+    ///
+    /// This method is implemented in terms of mutual subtyping checks, determining
+    /// if `self <: other` and `other <: self`.
+    fn is_equivalent(
+        self: Type<'heap, Self>,
+        other: Type<'heap, Self>,
+        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+    ) -> bool {
+        self.is_subtype_of(other, env) && other.is_subtype_of(self, env)
+    }
 
     /// Unifies two types according to subtyping rules.
     ///
