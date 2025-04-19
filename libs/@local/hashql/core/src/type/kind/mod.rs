@@ -13,7 +13,7 @@ pub mod tuple;
 pub mod union;
 // pub mod union;
 
-use core::ops::ControlFlow;
+use core::{ops::ControlFlow, ptr};
 
 use pretty::RcDoc;
 use smallvec::SmallVec;
@@ -157,17 +157,39 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
 
         other = resolved;
 
+        // Short circuit if the types are the same (this can be done via pointer comparison as the
+        // types are interned)
+        if ptr::eq(self.kind, other.kind) {
+            return SmallVec::from_slice(&[self.id]);
+        }
+
         #[expect(clippy::match_same_arms)]
         match (self.kind, other.kind) {
             // T ∨ Never <=> T
             (_, TypeKind::Never) => SmallVec::from_slice(&[self.id]),
             // Never ∨ T <=> T
             (TypeKind::Never, _) => SmallVec::from_slice(&[other.id]),
+            // T ∨ Never <=> T (slow)
+            (_, _) if env.is_bottom(other.id) => SmallVec::from_slice(&[self.id]),
+            // Never ∨ T <=> T (slow)
+            (_, _) if env.is_bottom(self.id) => SmallVec::from_slice(&[other.id]),
 
             // T ∨ Unknown <=> Unknown
             (_, TypeKind::Unknown) => SmallVec::from_slice(&[other.id]),
             // Unknown ∨ T <=> Unknown
             (TypeKind::Unknown, _) => SmallVec::from_slice(&[self.id]),
+            // T ∨ Unknown <=> Unknown (slow)
+            (_, _) if env.is_top(other.id) => SmallVec::from_slice(&[env.alloc(|id| Type {
+                id,
+                span: other.span,
+                kind: env.intern_kind(TypeKind::Unknown),
+            })]),
+            // Unknown ∨ T <=> Unknown (slow)
+            (_, _) if env.is_top(self.id) => SmallVec::from_slice(&[env.alloc(|id| Type {
+                id,
+                span: other.span,
+                kind: env.intern_kind(TypeKind::Unknown),
+            })]),
 
             // Infer ∨ _ <=> unreachable!()
             // _ ∨ Infer <=> unreachable!()
@@ -250,17 +272,39 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
 
         other = resolved;
 
+        // Short circuit if the types are the same (this can be done via pointer comparison as the
+        // types are interned)
+        if ptr::eq(self.kind, other.kind) {
+            return SmallVec::from_slice(&[self.id]);
+        }
+
         #[expect(clippy::match_same_arms)]
         match (self.kind, other.kind) {
             // T ∧ Never <=> Never
             (_, TypeKind::Never) => SmallVec::from_slice(&[other.id]),
             // Never ∧ T <=> Never
             (TypeKind::Never, _) => SmallVec::from_slice(&[self.id]),
+            // T ∧ Never <=> Never (slow)
+            (_, _) if env.is_bottom(other.id) => SmallVec::from_slice(&[env.alloc(|id| Type {
+                id,
+                span: other.span,
+                kind: env.intern_kind(TypeKind::Never),
+            })]),
+            // Never ∧ T <=> Never (slow)
+            (_, _) if env.is_bottom(self.id) => SmallVec::from_slice(&[env.alloc(|id| Type {
+                id,
+                span: self.span,
+                kind: env.intern_kind(TypeKind::Never),
+            })]),
 
             // T ∧ Unknown <=> T
             (_, TypeKind::Unknown) => SmallVec::from_slice(&[self.id]),
             // Unknown ∧ T <=> T
             (TypeKind::Unknown, _) => SmallVec::from_slice(&[other.id]),
+            // T ∧ Unknown <=> T (slow)
+            (_, _) if env.is_top(other.id) => SmallVec::from_slice(&[self.id]),
+            // Unknown ∧ T <=> T (slow)
+            (_, _) if env.is_top(self.id) => SmallVec::from_slice(&[other.id]),
 
             // Infer ∨ _ <=> unreachable!()
             // _ ∨ Infer <=> unreachable!()
@@ -383,6 +427,12 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
 
         other = resolved;
 
+        // Short circuit if the types are the same (this can be done via pointer comparison as the
+        // types are interned)
+        if ptr::eq(self.kind, other.kind) {
+            return true;
+        }
+
         #[expect(clippy::match_same_arms)]
         match (self.kind, other.kind) {
             // Infer == _ <=> unreachable!()
@@ -394,10 +444,12 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             (TypeKind::Never, TypeKind::Never) => true,
             (TypeKind::Never, _) => env.is_bottom(other.id),
             (_, TypeKind::Never) => env.is_bottom(self.id),
+            (_, _) if env.is_bottom(self.id) && env.is_bottom(other.id) => true,
 
             (TypeKind::Unknown, TypeKind::Unknown) => true,
             (TypeKind::Unknown, _) => env.is_top(other.id),
             (_, TypeKind::Unknown) => env.is_top(self.id),
+            (_, _) if env.is_top(self.id) && env.is_top(other.id) => true,
 
             (TypeKind::Primitive(lhs), TypeKind::Primitive(rhs)) => {
                 self.with(lhs).is_equivalent(other.with(rhs), env)
@@ -482,6 +534,12 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
 
         supertype = resolved;
 
+        // Short circuit if the types are the same (this can be done via pointer comparison as the
+        // types are interned)
+        if ptr::eq(self.kind, supertype.kind) {
+            return true;
+        }
+
         #[expect(clippy::match_same_arms)]
         match (self.kind, supertype.kind) {
             // Infer <: _ <=> unreachable!()
@@ -492,12 +550,21 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
 
             // `Never <: _`
             (TypeKind::Never, _) => true,
-            // `_ <: Never` is invalid
+            // `_ ≮: Never`
             (_, TypeKind::Never) => false,
+            // `Never <: _` (slow)
+            (_, _) if env.is_bottom(self.id) => true,
+            // `_ ≮: Never` (slow)
+            (_, _) if env.is_bottom(supertype.id) => false,
+
             // `_ <: Unknown`
             (_, TypeKind::Unknown) => true,
-            // `Unknown <: _` is invalid
+            // `Unknown ≮: _`
             (TypeKind::Unknown, _) => false,
+            // `_ <: Unknown` (slow)
+            (_, _) if env.is_top(supertype.id) => true,
+            // `Unknown ≮: _` (slow)
+            (_, _) if env.is_top(self.id) => false,
 
             (TypeKind::Primitive(lhs), TypeKind::Primitive(rhs)) => {
                 self.with(lhs).is_subtype_of(supertype.with(rhs), env)

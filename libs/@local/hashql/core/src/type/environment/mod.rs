@@ -382,6 +382,14 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
         self.boundary.exit(lhs.id, rhs.id);
         result
     }
+
+    pub fn is_bottom(&mut self, id: TypeId) -> bool {
+        self.simplify.is_bottom(id)
+    }
+
+    pub fn is_top(&mut self, id: TypeId) -> bool {
+        self.simplify.is_top(id)
+    }
 }
 
 // We usually try to avoid `Deref` and `DerefMut`, but it makes sense in this case.

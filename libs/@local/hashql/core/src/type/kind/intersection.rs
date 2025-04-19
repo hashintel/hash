@@ -243,7 +243,20 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
     }
 
     fn is_bottom(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
-        self.kind.variants.iter().any(|&id| env.is_bottom(id))
+        if self.kind.variants.iter().any(|&id| env.is_bottom(id)) {
+            return true;
+        }
+
+        // check if any of the variants are disjoint from each other
+        for (index, &lhs) in self.kind.variants.iter().enumerate() {
+            for &rhs in &self.kind.variants[index + 1..] {
+                if env.is_disjoint(lhs, rhs) {
+                    return true;
+                }
+            }
+        }
+
+        false
     }
 
     fn is_top(self: Type<'heap, Self>, _: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
@@ -741,7 +754,16 @@ mod test {
         // Create an intersection type
         intersection!(
             env,
-            intersection_type,
+            a,
+            [
+                primitive!(env, PrimitiveType::Number),
+                primitive!(env, PrimitiveType::String)
+            ]
+        );
+
+        intersection!(
+            env,
+            b,
             [
                 primitive!(env, PrimitiveType::Number),
                 primitive!(env, PrimitiveType::String)
@@ -751,7 +773,20 @@ mod test {
         let mut analysis_env = TypeAnalysisEnvironment::new(&env);
 
         // An intersection should be a subtype of itself (reflexivity)
-        assert!(intersection_type.is_subtype_of(intersection_type, &mut analysis_env));
+        //
+        // This might seem counterintuitive at first, but it's necessary for correctness, consider
+        // the distribution laws:
+        // (Integer & String) <: (Integer & String)
+        //   <=> Integer <: (Integer & String) ∧ String <: (Integer & String)
+        //   <=> (Integer <: Integer ∧ Integer <: String) ∧ (String <: Integer ∧ String <: String)
+        //   <=> (true ∧ false) ∧ (false ∧ true)
+        //   <=> false ∧ false
+        //   <=> false
+        assert!(!a.is_subtype_of(b, &mut analysis_env));
+
+        // ... as `Integer & String` is equivalent to `Never`, the `TypeKind` implementation should
+        // short-circuit to never
+        assert!(analysis_env.is_subtype_of(a.id, b.id));
     }
 
     #[test]
@@ -776,13 +811,16 @@ mod test {
         let mut analysis_env = TypeAnalysisEnvironment::new(&env);
 
         // Number & String <: Number
-        assert!(number_string.is_subtype_of(just_number, &mut analysis_env));
+        // see is_subtype_of_self for an in-depth explanation
+        assert!(!number_string.is_subtype_of(just_number, &mut analysis_env));
+        assert!(analysis_env.is_subtype_of(number_string.id, just_number.id));
 
         // Number ≮: Number & String
         assert!(!just_number.is_subtype_of(number_string, &mut analysis_env));
 
         // Number & Integer <: Number
         assert!(number_integer.is_subtype_of(just_number, &mut analysis_env));
+        assert!(analysis_env.is_subtype_of(number_integer.id, just_number.id));
     }
 
     #[test]
@@ -916,7 +954,7 @@ mod test {
         intersection!(
             env,
             intersection_type,
-            [nested, primitive!(env, PrimitiveType::String)]
+            [nested, primitive!(env, PrimitiveType::Integer)]
         );
 
         let mut simplify_env = SimplifyEnvironment::new(&env);
@@ -927,10 +965,7 @@ mod test {
             [intersection_type.simplify(&mut simplify_env)],
             [intersection!(
                 env,
-                [
-                    primitive!(env, PrimitiveType::Number),
-                    primitive!(env, PrimitiveType::String)
-                ]
+                [primitive!(env, PrimitiveType::Integer)]
             )]
         );
     }
@@ -1085,7 +1120,10 @@ mod test {
         intersection!(env, single_tuple, [tuple3]);
 
         // tuple1 & tuple2 <: tuple1
-        assert!(intersection_type.is_subtype_of(single_tuple, &mut analysis_env));
+        // see for an in-depth explanation see is_subtype_of_self
+        assert!(!intersection_type.is_subtype_of(single_tuple, &mut analysis_env));
+        assert!(analysis_env.is_subtype_of(intersection_type.id, single_tuple.id));
+
         // tuple1 ≮: tuple1 & tuple2
         assert!(!single_tuple.is_subtype_of(intersection_type, &mut analysis_env));
     }
@@ -1105,17 +1143,15 @@ mod test {
 
         let mut simplify_env = SimplifyEnvironment::new(&env);
 
-        // This should simplify to (A & B) | (A & C)
+        // This should simplify to
+        //  (A & B) | (A & C)
+        //    <=> (Number & String) | (Number & Boolean)
+        //    <=> Never | Never
+        //    <=> Never
         assert_equiv!(
             env,
             [intersection_with_union.simplify(&mut simplify_env)],
-            [union!(
-                env,
-                [
-                    intersection!(env, [number, string]),
-                    intersection!(env, [number, boolean])
-                ]
-            )]
+            [instantiate(&env, TypeKind::Never)]
         );
     }
 }
