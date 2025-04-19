@@ -79,6 +79,20 @@ pub trait Lattice<'heap> {
     /// A vector of type IDs representing the join result. The interpretation is:
     /// * Multiple elements: The supremum is a Union of the returned types
     /// * Empty vector: The supremum is `Never` (no common supertype exists)
+    ///
+    /// # Examples in Mathematical Notation
+    ///
+    /// Given `Integer <: Number` (Integer is a subtype of Number):
+    ///
+    /// - `join(Integer, Number) = Number`
+    ///   - Since Number is the least supertype that contains both Integer and Number
+    ///
+    /// - `join(Integer, String) = Integer | String`
+    ///   - When types are on separate branches of the hierarchy, join creates a union type
+    ///
+    /// - `join(Number, Number | String) = Number | String`
+    ///   - Joining with a union type creates the least supertype that contains all components
+    // TODO: test join(Number, Number | String)
     fn join(
         self: Type<'heap, Self>,
         other: Type<'heap, Self>,
@@ -113,6 +127,21 @@ pub trait Lattice<'heap> {
     /// A vector of type IDs representing the meet result. The interpretation is:
     /// * Multiple elements: The infimum is an Intersection of the returned types
     /// * Empty vector: The infimum is `Never` (no common subtype exists)
+    ///
+    /// # Examples in Mathematical Notation
+    ///
+    /// Given `Integer <: Number` (Integer is a subtype of Number):
+    ///
+    /// - `meet(Integer, Number) = Integer`
+    ///   - Since Integer is the greatest subtype that is contained in both Integer and Number
+    ///
+    /// - `meet(Integer, String) = Never`
+    ///   - When types are on separate branches of the hierarchy with no common subtype, meet
+    ///     results in Never
+    ///
+    /// - `meet(Number, Integer | String) = Integer`
+    ///   - Meeting Number with a union gives the intersection of meeting Number with each component
+    // TODO: test meet(Number, Integer | String) = Integer
     fn meet(
         self: Type<'heap, Self>,
         other: Type<'heap, Self>,

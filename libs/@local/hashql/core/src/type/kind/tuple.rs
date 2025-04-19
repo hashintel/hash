@@ -274,8 +274,9 @@ mod test {
             kind::{
                 TypeKind,
                 generic_argument::GenericArguments,
+                intersection::IntersectionType,
                 primitive::PrimitiveType,
-                test::{assert_equiv, primitive, tuple, union},
+                test::{assert_equiv, intersection, primitive, tuple, union},
                 union::UnionType,
             },
             lattice::{Lattice as _, test::assert_lattice_laws},
@@ -818,39 +819,27 @@ mod test {
         let result_with_simplify = env_with_simplify.meet(a, b);
         let result_without_simplify = env_without_simplify.meet(a, b);
 
-        // With simplification, the result should simplify to Never
-        let type_with_simplify = env.types[result_with_simplify].copied();
-        assert!(
-            matches!(type_with_simplify.kind, TypeKind::Never),
-            "Expected Never with simplification, got {:?}",
-            type_with_simplify.kind.pretty_print(&env, 80)
+        assert_equiv!(
+            env,
+            [result_without_simplify],
+            [tuple![
+                env,
+                [],
+                [intersection!(
+                    env,
+                    [
+                        primitive!(env, PrimitiveType::Number),
+                        primitive!(env, PrimitiveType::String)
+                    ]
+                )]
+            ]]
         );
 
-        // Without simplification, we should get an intersection type
-        let type_without_simplify = env.types[result_without_simplify].copied();
-        let TypeKind::Tuple(tuple_without_simplify) = type_without_simplify.kind else {
-            panic!(
-                "Expected Tuple type with simplification, got {:?}",
-                type_with_simplify.kind
-            );
-        };
-
-        let type_without_simplify = env.types[tuple_without_simplify.fields[0]].copied();
-
-        match type_without_simplify.kind {
-            TypeKind::Intersection(intersection) => {
-                assert_eq!(
-                    intersection.variants.len(),
-                    2,
-                    "Expected 2 variants in intersection, got {}",
-                    intersection.variants.len()
-                );
-            }
-            _ => panic!(
-                "Expected Intersection type when simplification is disabled, got {:?}",
-                type_without_simplify.kind
-            ),
-        }
+        assert_equiv!(
+            env,
+            [result_with_simplify],
+            [tuple![env, [], [instantiate(&env, TypeKind::Never)]]]
+        );
     }
 
     #[test]
@@ -861,12 +850,13 @@ mod test {
         let number = primitive!(env, PrimitiveType::Number);
         let string = primitive!(env, PrimitiveType::String);
 
-        // Create an intersection of disjoint types
-        let mut lattice_env = LatticeEnvironment::new(&env);
-        let intersection_id = lattice_env.meet(number, string);
-
         // Create a tuple with the intersection type
-        tuple!(env, tuple_with_intersection, [], [intersection_id]);
+        tuple!(
+            env,
+            tuple_with_intersection,
+            [],
+            [intersection!(env, [number, string])]
+        );
 
         let mut simplify_env = SimplifyEnvironment::new(&env);
 

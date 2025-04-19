@@ -348,3 +348,803 @@ impl PrettyPrint for UnionType<'_> {
         .group()
     }
 }
+
+#[cfg(test)]
+mod test {
+    #![expect(clippy::min_ident_chars)]
+    use super::UnionType;
+    use crate::{
+        heap::Heap,
+        span::SpanId,
+        r#type::{
+            environment::{
+                Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment,
+            },
+            kind::{
+                TypeKind,
+                generic_argument::GenericArguments,
+                intersection::IntersectionType,
+                primitive::PrimitiveType,
+                test::{assert_equiv, intersection, primitive, tuple, union},
+                tuple::TupleType,
+            },
+            lattice::{Lattice as _, test::assert_lattice_laws},
+            pretty_print::PrettyPrint as _,
+            test::instantiate,
+        },
+    };
+
+    #[test]
+    fn unnest_flattens_nested_unions() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create a union type with a nested union
+        let number = primitive!(env, PrimitiveType::Number);
+        let string = primitive!(env, PrimitiveType::String);
+        let boolean = primitive!(env, PrimitiveType::Boolean);
+
+        // Create a nested union: (String | Boolean)
+        let nested_union = union!(env, [string, boolean]);
+
+        // Create a union that includes the nested union: Number | (String | Boolean)
+        union!(env, union_type, [number, nested_union]);
+
+        // Unnesting should flatten to: Number | String | Boolean
+        let unnested = union_type.kind.unnest(&env);
+
+        assert_eq!(unnested.len(), 3);
+        assert!(unnested.contains(&number));
+        assert!(unnested.contains(&string));
+        assert!(unnested.contains(&boolean));
+    }
+
+    #[test]
+    fn join_identical_unions() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        union!(
+            env,
+            a,
+            [
+                primitive!(env, PrimitiveType::Number),
+                primitive!(env, PrimitiveType::String)
+            ]
+        );
+        union!(
+            env,
+            b,
+            [
+                primitive!(env, PrimitiveType::Number),
+                primitive!(env, PrimitiveType::String)
+            ]
+        );
+
+        let mut lattice_env = LatticeEnvironment::new(&env);
+
+        // Join identical unions should result in the same union
+        assert_equiv!(
+            env,
+            a.join(b, &mut lattice_env),
+            [union!(
+                env,
+                [
+                    primitive!(env, PrimitiveType::Number),
+                    primitive!(env, PrimitiveType::String)
+                ]
+            )]
+        );
+    }
+
+    #[test]
+    fn join_different_unions() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create different union types
+        union!(
+            env,
+            a,
+            [
+                primitive!(env, PrimitiveType::Number),
+                primitive!(env, PrimitiveType::String)
+            ]
+        );
+        union!(
+            env,
+            b,
+            [
+                primitive!(env, PrimitiveType::Boolean),
+                primitive!(env, PrimitiveType::Null)
+            ]
+        );
+
+        let mut lattice_env = LatticeEnvironment::new(&env);
+
+        // Join different unions should include all variants
+        assert_equiv!(
+            env,
+            a.join(b, &mut lattice_env),
+            [
+                primitive!(env, PrimitiveType::Number),
+                primitive!(env, PrimitiveType::String),
+                primitive!(env, PrimitiveType::Boolean),
+                primitive!(env, PrimitiveType::Null)
+            ]
+        );
+    }
+
+    #[test]
+    fn join_with_empty_union() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create an empty union (Never) and a non-empty union
+        union!(env, empty, []);
+        union!(
+            env,
+            non_empty,
+            [
+                primitive!(env, PrimitiveType::Number),
+                primitive!(env, PrimitiveType::String)
+            ]
+        );
+
+        let mut lattice_env = LatticeEnvironment::new(&env);
+
+        // Empty union joined with any union should be the other union
+        assert_equiv!(
+            env,
+            empty.join(non_empty, &mut lattice_env),
+            [union!(
+                env,
+                [
+                    primitive!(env, PrimitiveType::Number),
+                    primitive!(env, PrimitiveType::String)
+                ]
+            )]
+        );
+
+        // The reverse should also be true
+        assert_equiv!(
+            env,
+            non_empty.join(empty, &mut lattice_env),
+            [union!(
+                env,
+                [
+                    primitive!(env, PrimitiveType::Number),
+                    primitive!(env, PrimitiveType::String)
+                ]
+            )]
+        );
+    }
+
+    #[test]
+    fn join_with_overlapping_unions() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create overlapping unions
+        union!(
+            env,
+            a,
+            [
+                primitive!(env, PrimitiveType::Number),
+                primitive!(env, PrimitiveType::String)
+            ]
+        );
+        union!(
+            env,
+            b,
+            [
+                primitive!(env, PrimitiveType::String),
+                primitive!(env, PrimitiveType::Boolean)
+            ]
+        );
+
+        let mut lattice_env = LatticeEnvironment::new(&env);
+
+        // Join should deduplicate the common variant
+        assert_equiv!(
+            env,
+            a.join(b, &mut lattice_env),
+            [
+                primitive!(env, PrimitiveType::String),
+                primitive!(env, PrimitiveType::Number),
+                primitive!(env, PrimitiveType::Boolean)
+            ]
+        );
+    }
+
+    #[test]
+    fn meet_disjoint_unions() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create disjoint unions (no common variants)
+        union!(
+            env,
+            a,
+            [
+                primitive!(env, PrimitiveType::Number),
+                primitive!(env, PrimitiveType::String)
+            ]
+        );
+        union!(
+            env,
+            b,
+            [
+                primitive!(env, PrimitiveType::Boolean),
+                primitive!(env, PrimitiveType::Null)
+            ]
+        );
+
+        let mut lattice_env = LatticeEnvironment::new(&env);
+        lattice_env.without_simplify();
+
+        // Should have 4 combinations: Number & Boolean, Number & Null, String & Boolean, String &
+        // Null These will be represented as intersection types in the result
+        // Meet should result in pairwise combinations
+        assert_equiv!(
+            env,
+            a.meet(b, &mut lattice_env),
+            [union!(
+                env,
+                [
+                    intersection!(
+                        env,
+                        [
+                            primitive!(env, PrimitiveType::Number),
+                            primitive!(env, PrimitiveType::Boolean)
+                        ]
+                    ),
+                    intersection!(
+                        env,
+                        [
+                            primitive!(env, PrimitiveType::Number),
+                            primitive!(env, PrimitiveType::Null)
+                        ]
+                    ),
+                    intersection!(
+                        env,
+                        [
+                            primitive!(env, PrimitiveType::String),
+                            primitive!(env, PrimitiveType::Boolean)
+                        ]
+                    ),
+                    intersection!(
+                        env,
+                        [
+                            primitive!(env, PrimitiveType::String),
+                            primitive!(env, PrimitiveType::Null)
+                        ]
+                    )
+                ]
+            )]
+        );
+    }
+
+    #[test]
+    fn meet_identical_unions() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        union!(
+            env,
+            a,
+            [
+                primitive!(env, PrimitiveType::Number),
+                primitive!(env, PrimitiveType::String)
+            ]
+        );
+        union!(
+            env,
+            b,
+            [
+                primitive!(env, PrimitiveType::Number),
+                primitive!(env, PrimitiveType::String)
+            ]
+        );
+
+        let mut lattice_env = LatticeEnvironment::new(&env);
+
+        // Meet identical unions should result in the same union
+        assert_equiv!(
+            env,
+            a.meet(b, &mut lattice_env),
+            [union!(
+                env,
+                [
+                    primitive!(env, PrimitiveType::Number),
+                    primitive!(env, PrimitiveType::String)
+                ]
+            )]
+        );
+    }
+
+    #[test]
+    fn meet_with_empty_union() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create an empty union (Never) and a non-empty union
+        union!(env, empty, []);
+        union!(
+            env,
+            non_empty,
+            [
+                primitive!(env, PrimitiveType::Number),
+                primitive!(env, PrimitiveType::String)
+            ]
+        );
+
+        let mut lattice_env = LatticeEnvironment::new(&env);
+
+        // Empty union met with any union should be empty
+        assert_equiv!(
+            env,
+            empty.meet(non_empty, &mut lattice_env),
+            [union!(env, [])]
+        );
+
+        // The reverse should also be true
+        assert_equiv!(
+            env,
+            non_empty.meet(empty, &mut lattice_env),
+            [union!(env, [])]
+        );
+    }
+
+    #[test]
+    fn meet_subtype_supertype() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create a union with Number and another with Integer (where Integer <: Number)
+        let number = primitive!(env, PrimitiveType::Number);
+        let integer = primitive!(env, PrimitiveType::Integer);
+        let string = primitive!(env, PrimitiveType::String);
+
+        union!(env, number_union, [number, string]);
+        union!(env, integer_union, [integer, string]);
+
+        let mut lattice_env = LatticeEnvironment::new(&env);
+
+        // Meet should retain the subtype in the result
+        assert_equiv!(
+            env,
+            number_union.meet(integer_union, &mut lattice_env),
+            [union!(env, [integer, string])]
+        );
+    }
+
+    #[test]
+    fn is_bottom_test() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Empty union (Never)
+        union!(env, empty, []);
+
+        // Non-empty union
+        union!(env, non_empty, [primitive!(env, PrimitiveType::Number)]);
+
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // Empty union should be bottom (uninhabited)
+        assert!(empty.is_bottom(&mut analysis_env));
+
+        // Non-empty union should not be bottom
+        assert!(!non_empty.is_bottom(&mut analysis_env));
+    }
+
+    #[test]
+    fn is_top_test() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Regular union
+        union!(
+            env,
+            regular,
+            [
+                primitive!(env, PrimitiveType::Number),
+                primitive!(env, PrimitiveType::String)
+            ]
+        );
+
+        // Union containing top type (Unknown)
+        let unknown = instantiate(&env, TypeKind::Unknown);
+        union!(
+            env,
+            with_top,
+            [unknown, primitive!(env, PrimitiveType::String)]
+        );
+
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // Regular union should not be top
+        assert!(!regular.is_top(&mut analysis_env));
+
+        // Union with Unknown should be considered top
+        assert!(with_top.is_top(&mut analysis_env));
+    }
+
+    #[test]
+    fn is_subtype_of_self() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create a union type
+        union!(
+            env,
+            union_type,
+            [
+                primitive!(env, PrimitiveType::Number),
+                primitive!(env, PrimitiveType::String)
+            ]
+        );
+
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // A union should be a subtype of itself (reflexivity)
+        assert!(union_type.is_subtype_of(union_type, &mut analysis_env));
+    }
+
+    #[test]
+    fn empty_union_is_subtype_of_all() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Empty union (Never)
+        union!(env, empty, []);
+
+        // Non-empty union
+        union!(env, non_empty, [primitive!(env, PrimitiveType::Number)]);
+
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // Empty union should be a subtype of any other union
+        assert!(empty.is_subtype_of(non_empty, &mut analysis_env));
+    }
+
+    #[test]
+    fn no_union_is_subtype_of_never() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Empty union (Never)
+        union!(env, empty, []);
+
+        // Non-empty union
+        union!(env, non_empty, [primitive!(env, PrimitiveType::Number)]);
+
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // Non-empty union should not be a subtype of empty union
+        assert!(!non_empty.is_subtype_of(empty, &mut analysis_env));
+    }
+
+    #[test]
+    fn subtype_supertype_relation() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create a union with Number and String
+        let number = primitive!(env, PrimitiveType::Number);
+        let string = primitive!(env, PrimitiveType::String);
+        union!(env, number_string, [number, string]);
+
+        // Create a union with Integer (subtype of Number) and String
+        let integer = primitive!(env, PrimitiveType::Integer);
+        union!(env, integer_string, [integer, string]);
+
+        // Create a union with just Number
+        union!(env, just_number, [number]);
+
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // Integer | String should be a subtype of Number | String
+        assert!(integer_string.is_subtype_of(number_string, &mut analysis_env));
+
+        // Number | String should not be a subtype of Integer | String
+        assert!(!number_string.is_subtype_of(integer_string, &mut analysis_env));
+
+        // Number should be a subtype of Number | String
+        assert!(just_number.is_subtype_of(number_string, &mut analysis_env));
+
+        // Number | String should not be a subtype of Number
+        assert!(!number_string.is_subtype_of(just_number, &mut analysis_env));
+    }
+
+    #[test]
+    fn is_equivalent_test() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create identical unions (but at different type IDs)
+        union!(
+            env,
+            a,
+            [
+                primitive!(env, PrimitiveType::Number),
+                primitive!(env, PrimitiveType::String)
+            ]
+        );
+        union!(
+            env,
+            b,
+            [
+                primitive!(env, PrimitiveType::Number),
+                primitive!(env, PrimitiveType::String)
+            ]
+        );
+
+        // Create a union with same types in different order
+        union!(
+            env,
+            c,
+            [
+                primitive!(env, PrimitiveType::String),
+                primitive!(env, PrimitiveType::Number)
+            ]
+        );
+
+        // Create a union with different types
+        union!(
+            env,
+            d,
+            [
+                primitive!(env, PrimitiveType::Boolean),
+                primitive!(env, PrimitiveType::Number)
+            ]
+        );
+
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // Same unions should be equivalent
+        assert!(a.is_equivalent(b, &mut analysis_env));
+
+        // Order shouldn't matter for equivalence
+        assert!(a.is_equivalent(c, &mut analysis_env));
+
+        // Different unions should not be equivalent
+        assert!(!a.is_equivalent(d, &mut analysis_env));
+    }
+
+    #[test]
+    fn empty_union_equivalence() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create two empty unions
+        union!(env, a, []);
+        union!(env, b, []);
+
+        // Create a non-empty union
+        union!(env, c, [primitive!(env, PrimitiveType::Number)]);
+
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // Empty unions should be equivalent to each other
+        assert!(a.is_equivalent(b, &mut analysis_env));
+
+        // Empty union should not be equivalent to non-empty union
+        assert!(!a.is_equivalent(c, &mut analysis_env));
+    }
+
+    #[test]
+    fn simplify_identical_variants() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create a union with duplicate variants
+        let number = primitive!(env, PrimitiveType::Number);
+        union!(env, union_type, [number, number]);
+
+        let mut simplify_env = SimplifyEnvironment::new(&env);
+
+        // Simplifying should collapse duplicates
+        let result = union_type.simplify(&mut simplify_env);
+        let result_type = env.types[result].copied();
+
+        // Result should be just Number, not a union
+        assert!(matches!(
+            *result_type.kind,
+            TypeKind::Primitive(PrimitiveType::Number)
+        ));
+    }
+
+    #[test]
+    fn simplify_nested_unions() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create nested unions
+        let number = primitive!(env, PrimitiveType::Number);
+        let string = primitive!(env, PrimitiveType::String);
+        let nested = union!(env, [number]);
+        union!(env, union_type, [nested, string]);
+
+        let mut simplify_env = SimplifyEnvironment::new(&env);
+
+        // Simplifying should flatten nested unions
+        assert_equiv!(
+            env,
+            [union_type.simplify(&mut simplify_env)],
+            [union!(env, [number, string])]
+        );
+    }
+
+    #[test]
+    fn simplify_with_bottom() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create a union with a never type
+        let never = instantiate(&env, TypeKind::Never);
+        let number = primitive!(env, PrimitiveType::Number);
+        union!(env, union_type, [never, number]);
+
+        let mut simplify_env = SimplifyEnvironment::new(&env);
+
+        // Simplifying should remove the Never type
+        let result = union_type.simplify(&mut simplify_env);
+        let result_type = env.types[result].copied();
+
+        // Result should be just Number, not a union
+        assert!(matches!(
+            *result_type.kind,
+            TypeKind::Primitive(PrimitiveType::Number)
+        ));
+    }
+
+    #[test]
+    fn simplify_with_top() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create a union with a top (Unknown) type
+        let unknown = instantiate(&env, TypeKind::Unknown);
+        let number = primitive!(env, PrimitiveType::Number);
+        union!(env, union_type, [unknown, number]);
+
+        let mut simplify_env = SimplifyEnvironment::new(&env);
+
+        // Simplifying should collapse to the top type
+        let result = union_type.simplify(&mut simplify_env);
+        let result_type = env.types[result].copied();
+
+        // Result should be Unknown
+        assert!(matches!(*result_type.kind, TypeKind::Unknown));
+    }
+
+    #[test]
+    fn simplify_empty_union() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create an empty union
+        union!(env, union_type, []);
+
+        let mut simplify_env = SimplifyEnvironment::new(&env);
+
+        // Simplifying empty union should result in Never
+        let result = union_type.simplify(&mut simplify_env);
+        let result_type = env.types[result].copied();
+
+        assert!(matches!(*result_type.kind, TypeKind::Never));
+    }
+
+    #[test]
+    fn simplify_with_subtypes() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create a union with a type and its subtype
+        let number = primitive!(env, PrimitiveType::Number);
+        let integer = primitive!(env, PrimitiveType::Integer); // Integer is a subtype of Number
+        union!(env, union_type, [number, integer]);
+
+        let mut simplify_env = SimplifyEnvironment::new(&env);
+
+        // Simplifying should remove the subtype
+        let result = union_type.simplify(&mut simplify_env);
+        let result_type = env.types[result].copied();
+
+        // Result should be just Number
+        assert!(matches!(
+            *result_type.kind,
+            TypeKind::Primitive(PrimitiveType::Number)
+        ));
+    }
+
+    #[test]
+    fn lattice_laws() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create three distinct union types for testing lattice laws
+        let a = union!(env, [primitive!(env, PrimitiveType::Number)]);
+        let b = union!(env, [primitive!(env, PrimitiveType::String)]);
+        let c = union!(env, [primitive!(env, PrimitiveType::Boolean)]);
+
+        // Test that union types satisfy lattice laws (associativity, commutativity, absorption)
+        assert_lattice_laws(&env, a, b, c);
+    }
+
+    #[test]
+    fn complex_union_relationships() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create various types to use in unions
+        let number = primitive!(env, PrimitiveType::Number);
+        let integer = primitive!(env, PrimitiveType::Integer);
+        let string = primitive!(env, PrimitiveType::String);
+        let boolean = primitive!(env, PrimitiveType::Boolean);
+
+        // Number | String
+        union!(env, number_string, [number, string]);
+
+        // Integer | String
+        union!(env, integer_string, [integer, string]);
+
+        // Number | Boolean
+        union!(env, number_boolean, [number, boolean]);
+
+        // Number | Integer
+        union!(env, number_integer, [number, integer]);
+
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // Integer | String <: Number | String (because Integer <: Number)
+        assert!(integer_string.is_subtype_of(number_string, &mut analysis_env));
+
+        // Number | String ≮: Integer | String
+        assert!(!number_string.is_subtype_of(integer_string, &mut analysis_env));
+
+        // Number | Boolean ≮: Number | String
+        assert!(!number_boolean.is_subtype_of(number_string, &mut analysis_env));
+
+        // No subtype relationship between Number | Boolean and Integer | String
+        assert!(!number_boolean.is_subtype_of(integer_string, &mut analysis_env));
+        assert!(!integer_string.is_subtype_of(number_boolean, &mut analysis_env));
+
+        // Number | Integer simplifies to just Number
+        let mut simplify_env = SimplifyEnvironment::new(&env);
+        let simplified = number_integer.simplify(&mut simplify_env);
+        let simplified_type = env.types[simplified].copied();
+        assert!(matches!(
+            *simplified_type.kind,
+            TypeKind::Primitive(PrimitiveType::Number)
+        ));
+    }
+
+    #[test]
+    fn union_with_tuple_types() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create tuple types
+        let tuple1 = tuple!(env, [], [primitive!(env, PrimitiveType::Number)]);
+        let tuple2 = tuple!(env, [], [primitive!(env, PrimitiveType::String)]);
+
+        // Create a union of tuple types
+        union!(env, union_type, [tuple1, tuple2]);
+
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // Union operations should work with non-primitive types as well
+        assert!(!union_type.is_bottom(&mut analysis_env));
+        assert!(!union_type.is_top(&mut analysis_env));
+
+        // Test subtyping with tuples in unions
+        let subtype_tuple = tuple!(env, [], [primitive!(env, PrimitiveType::Integer)]); // (Integer) <: (Number)
+        union!(env, subtype_union, [subtype_tuple, tuple2]);
+
+        assert!(subtype_union.is_subtype_of(union_type, &mut analysis_env));
+        assert!(!union_type.is_subtype_of(subtype_union, &mut analysis_env));
+    }
+}

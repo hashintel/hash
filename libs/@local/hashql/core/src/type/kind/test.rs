@@ -40,9 +40,22 @@ macro_rules! union {
 
     ($env:expr, $name:ident, $variants:expr) => {
         let $name = union!($env, $variants);
-        let $name = $env.arena[$name].clone();
-        let $name = $name.map(|kind| kind.into_union().expect("should be a union"));
-        let $name = $name.as_ref();
+        let $name = $env.types[$name].copied();
+        let $name = $name.map(|kind| kind.union().expect("should be a union"));
+    };
+}
+
+macro_rules! intersection {
+    ($env:expr, $variants:expr) => {{
+        let variants = $env.intern_type_ids(&$variants);
+
+        instantiate(&$env, TypeKind::Intersection(IntersectionType { variants }))
+    }};
+
+    ($env:expr, $name:ident, $variants:expr) => {
+        let $name = intersection!($env, $variants);
+        let $name = $env.types[$name].copied();
+        let $name = $name.map(|kind| kind.intersection().expect("should be an intersection"));
     };
 }
 
@@ -80,6 +93,7 @@ macro_rules! assert_equiv {
 
 pub(crate) use assert_equiv;
 pub(crate) use assert_kind;
+pub(crate) use intersection;
 pub(crate) use primitive;
 pub(crate) use tuple;
 pub(crate) use union;
