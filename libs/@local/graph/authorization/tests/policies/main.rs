@@ -1,3 +1,4 @@
+#![feature(assert_matches)]
 #![expect(
     clippy::panic_in_result_fn,
     reason = "Tests use assertions that may panic"
@@ -8,7 +9,7 @@ extern crate alloc;
 mod definitions;
 
 use alloc::borrow::Cow;
-use core::{error::Error, str::FromStr as _};
+use core::{assert_matches::assert_matches, error::Error, str::FromStr as _};
 use std::sync::LazyLock;
 
 use hash_graph_authorization::policies::{
@@ -45,12 +46,14 @@ impl TestWeb {
     fn generate(
         policy_store: &mut impl PolicyStore,
         context: &mut ContextBuilder,
+        shortname: impl Into<String>,
     ) -> Result<Self, Box<dyn Error>> {
-        let web_id = policy_store.create_web()?;
+        let web_id = policy_store.create_web(Some(shortname.into()))?;
         let admin_role = policy_store.create_web_role(web_id, RoleName::Administrator)?;
         let member_role = policy_store.create_web_role(web_id, RoleName::Member)?;
 
-        let machine = TestMachine::generate(web_id, policy_store, context)?;
+        let machine =
+            TestMachine::generate(web_id, policy_store, context, format!("system-{web_id}"))?;
         policy_store
             .assign_role(
                 ActorId::Machine(machine.id),
@@ -86,6 +89,7 @@ impl TestUser {
     fn generate(
         policy_store: &mut impl PolicyStore,
         context: &mut ContextBuilder,
+        shortname: impl Into<String>,
     ) -> Result<Self, Box<dyn Error>> {
         static ENTITY_TYPES: LazyLock<[VersionedUrl; 2]> = LazyLock::new(|| {
             [
@@ -96,7 +100,7 @@ impl TestUser {
             ]
         });
 
-        let web = TestWeb::generate(policy_store, context)?;
+        let web = TestWeb::generate(policy_store, context, shortname)?;
         let id = policy_store.create_user(web.id)?;
         let entity = EntityResource {
             id: id.into(),
@@ -128,6 +132,7 @@ impl TestMachine {
         web_id: WebId,
         policy_store: &mut impl PolicyStore,
         context: &mut ContextBuilder,
+        name: impl Into<String>,
     ) -> Result<Self, Box<dyn Error>> {
         static ENTITY_TYPES: LazyLock<[VersionedUrl; 2]> = LazyLock::new(|| {
             [
@@ -138,7 +143,7 @@ impl TestMachine {
             ]
         });
 
-        let id = policy_store.create_machine()?;
+        let id = policy_store.create_machine(name.into())?;
         let entity = EntityResource {
             id: id.into(),
             web_id,
@@ -167,7 +172,7 @@ impl TestSystem {
         policy_store: &mut impl PolicyStore,
         context: &mut ContextBuilder,
     ) -> Result<Self, Box<dyn Error>> {
-        let web = TestWeb::generate(policy_store, context)?;
+        let web = TestWeb::generate(policy_store, context, "h")?;
         for policy in permit_view_system_entities(web.id)
             .into_iter()
             .chain(forbid_update_web_machine())
@@ -176,7 +181,7 @@ impl TestSystem {
             policy_store.store_policy(policy)?;
         }
 
-        let machine = TestMachine::generate(web.id, policy_store, context)?;
+        let machine = TestMachine::generate(web.id, policy_store, context, "h")?;
         policy_store.assign_role(
             ActorId::Machine(machine.id),
             ActorGroupId::Web(web.id),
@@ -186,9 +191,10 @@ impl TestSystem {
             policy_store.store_policy(policy)?;
         }
 
-        let hash_ai_machine = TestMachine::generate(web.id, policy_store, context)?;
+        let hash_ai_machine = TestMachine::generate(web.id, policy_store, context, "hash-ai")?;
 
-        let hash_instance_admins = policy_store.create_team(ActorGroupId::Web(web.id))?;
+        let hash_instance_admins =
+            policy_store.create_team(ActorGroupId::Web(web.id), "instance-admins".to_owned())?;
         let hash_instance_admins_admin_role =
             policy_store.create_team_role(hash_instance_admins, RoleName::Administrator)?;
         let hash_instance_admins_member_role =
@@ -262,7 +268,7 @@ fn instantiate() -> Result<(), Box<dyn Error>> {
     println!("system_web_machine_policy_set:\n{system_web_machine_policy_set:?}");
 
     // Only the system machine can instantiate a machine
-    assert!(matches!(
+    assert_matches!(
         system_web_machine_policy_set.evaluate(
             &Request {
                 actor: ActorId::Machine(system.web.machine.id),
@@ -275,8 +281,8 @@ fn instantiate() -> Result<(), Box<dyn Error>> {
             &context,
         )?,
         Authorized::Never
-    ));
-    assert!(matches!(
+    );
+    assert_matches!(
         system_machine_policy_set.evaluate(
             &Request {
                 actor: ActorId::Machine(system.machine.id),
@@ -289,9 +295,9 @@ fn instantiate() -> Result<(), Box<dyn Error>> {
             &context,
         )?,
         Authorized::Always
-    ));
+    );
 
-    assert!(matches!(
+    assert_matches!(
         system_machine_policy_set.evaluate(
             &Request {
                 actor: ActorId::Machine(system.machine.id),
@@ -304,8 +310,8 @@ fn instantiate() -> Result<(), Box<dyn Error>> {
             &context,
         )?,
         Authorized::Always
-    ));
-    assert!(matches!(
+    );
+    assert_matches!(
         system_machine_policy_set.evaluate(
             &Request {
                 actor: ActorId::Machine(system.machine.id),
@@ -318,7 +324,7 @@ fn instantiate() -> Result<(), Box<dyn Error>> {
             &context,
         )?,
         Authorized::Always
-    ));
+    );
 
     Ok(())
 }
@@ -334,7 +340,7 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
 
     let system = TestSystem::generate(&mut policy_store, &mut context)?;
 
-    let user = TestUser::generate(&mut policy_store, &mut context)?;
+    let user = TestUser::generate(&mut policy_store, &mut context, "alice")?;
 
     let machine_type = EntityTypeResource {
         web_id: system.web.id,
@@ -381,7 +387,7 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
 
     eprintln!("context:\n{context:?}");
 
-    assert!(matches!(
+    assert_matches!(
         user_policy_set.evaluate(
             &Request {
                 actor: ActorId::User(user.id),
@@ -394,8 +400,8 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
             &context,
         )?,
         Authorized::Never
-    ));
-    assert!(matches!(
+    );
+    assert_matches!(
         user_policy_set.evaluate(
             &Request {
                 actor: ActorId::User(user.id),
@@ -408,8 +414,8 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
             &context,
         )?,
         Authorized::Always
-    ));
-    assert!(matches!(
+    );
+    assert_matches!(
         user_policy_set.evaluate(
             &Request {
                 actor: ActorId::User(user.id),
@@ -422,9 +428,9 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
             &context,
         )?,
         Authorized::Always
-    ));
+    );
 
-    assert!(matches!(
+    assert_matches!(
         user_policy_set.evaluate(
             &Request {
                 actor: ActorId::User(user.id),
@@ -435,8 +441,8 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
             &context,
         )?,
         Authorized::Always
-    ));
-    assert!(matches!(
+    );
+    assert_matches!(
         user_machine_policy_set.evaluate(
             &Request {
                 actor: ActorId::Machine(user.web.machine.id),
@@ -447,8 +453,8 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
             &context,
         )?,
         Authorized::Always
-    ));
-    assert!(matches!(
+    );
+    assert_matches!(
         user_machine_policy_set.evaluate(
             &Request {
                 actor: ActorId::Machine(system.machine.id),
@@ -459,9 +465,9 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
             &context,
         )?,
         Authorized::Never
-    ));
+    );
 
-    assert!(matches!(
+    assert_matches!(
         user_policy_set.evaluate(
             &Request {
                 actor: ActorId::User(user.id),
@@ -472,8 +478,8 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
             &context,
         )?,
         Authorized::Always
-    ));
-    assert!(matches!(
+    );
+    assert_matches!(
         user_machine_policy_set.evaluate(
             &Request {
                 actor: ActorId::Machine(user.web.machine.id),
@@ -484,8 +490,8 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
             &context,
         )?,
         Authorized::Always
-    ));
-    assert!(matches!(
+    );
+    assert_matches!(
         user_machine_policy_set.evaluate(
             &Request {
                 actor: ActorId::Machine(system.machine.id),
@@ -496,7 +502,7 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
             &context,
         )?,
         Authorized::Never
-    ));
+    );
 
     Ok(())
 }
@@ -512,15 +518,9 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
 
     let system = TestSystem::generate(&mut policy_store, &mut context)?;
 
-    let org_web = TestWeb::generate(&mut policy_store, &mut context)?;
-    let org_machine_id = policy_store.create_machine()?;
-    policy_store.assign_role(
-        ActorId::Machine(org_machine_id),
-        ActorGroupId::Web(org_web.id),
-        RoleName::Administrator,
-    )?;
+    let org_web = TestWeb::generate(&mut policy_store, &mut context, "example")?;
 
-    let user = TestUser::generate(&mut policy_store, &mut context)?;
+    let user = TestUser::generate(&mut policy_store, &mut context, "alice")?;
     policy_store.assign_role(
         ActorId::User(user.id),
         ActorGroupId::Web(org_web.id),
@@ -563,7 +563,7 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
         .with_policies(policy_store.get_policies(ActorId::Machine(system.machine.id))?)?;
     println!("system_machine_policy_set:\n{system_machine_policy_set:?}");
 
-    assert!(matches!(
+    assert_matches!(
         org_machine_policy_set.evaluate(
             &Request {
                 actor: ActorId::Machine(org_web.machine.id),
@@ -574,9 +574,9 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
             &context,
         )?,
         Authorized::Always
-    ));
+    );
 
-    assert!(matches!(
+    assert_matches!(
         user_policy_set.evaluate(
             &Request {
                 actor: ActorId::User(user.id),
@@ -587,8 +587,8 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
             &context,
         )?,
         Authorized::Always
-    ));
-    assert!(matches!(
+    );
+    assert_matches!(
         org_machine_policy_set.evaluate(
             &Request {
                 actor: ActorId::Machine(org_web.machine.id),
@@ -599,8 +599,8 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
             &context,
         )?,
         Authorized::Always
-    ));
-    assert!(matches!(
+    );
+    assert_matches!(
         system_machine_policy_set.evaluate(
             &Request {
                 actor: ActorId::Machine(user.web.machine.id),
@@ -611,8 +611,8 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
             &context,
         )?,
         Authorized::Never
-    ));
-    assert!(matches!(
+    );
+    assert_matches!(
         system_machine_policy_set.evaluate(
             &Request {
                 actor: ActorId::Machine(system.web.machine.id),
@@ -623,9 +623,9 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
             &context,
         )?,
         Authorized::Never
-    ));
+    );
 
-    assert!(matches!(
+    assert_matches!(
         user_policy_set.evaluate(
             &Request {
                 actor: ActorId::User(user.id),
@@ -636,8 +636,8 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
             &context,
         )?,
         Authorized::Always
-    ));
-    assert!(matches!(
+    );
+    assert_matches!(
         org_machine_policy_set.evaluate(
             &Request {
                 actor: ActorId::Machine(org_web.machine.id),
@@ -648,8 +648,8 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
             &context,
         )?,
         Authorized::Always
-    ));
-    assert!(matches!(
+    );
+    assert_matches!(
         user_machine_policy_set.evaluate(
             &Request {
                 actor: ActorId::Machine(user.web.machine.id),
@@ -660,8 +660,8 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
             &context,
         )?,
         Authorized::Never
-    ));
-    assert!(matches!(
+    );
+    assert_matches!(
         system_machine_policy_set.evaluate(
             &Request {
                 actor: ActorId::Machine(system.web.machine.id),
@@ -672,7 +672,7 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
             &context,
         )?,
         Authorized::Never
-    ));
+    );
 
     Ok(())
 }
@@ -684,7 +684,7 @@ fn instance_admin_without_access_permissions() -> Result<(), Box<dyn Error>> {
 
     let system = TestSystem::generate(&mut policy_store, &mut context)?;
 
-    let user = TestUser::generate(&mut policy_store, &mut context)?;
+    let user = TestUser::generate(&mut policy_store, &mut context, "alice")?;
     println!("user: {user:?}");
 
     policy_store.extend_context(&mut context, ActorId::User(user.id))?;
@@ -694,7 +694,7 @@ fn instance_admin_without_access_permissions() -> Result<(), Box<dyn Error>> {
         PolicySet::default().with_policies(policy_store.get_policies(ActorId::User(user.id))?)?;
     println!("user_policy_set:\n{user_policy_set:?}");
 
-    assert!(matches!(
+    assert_matches!(
         user_policy_set.evaluate(
             &Request {
                 actor: ActorId::User(user.id),
@@ -707,8 +707,8 @@ fn instance_admin_without_access_permissions() -> Result<(), Box<dyn Error>> {
             &context,
         )?,
         Authorized::Always
-    ));
-    assert!(matches!(
+    );
+    assert_matches!(
         user_policy_set.evaluate(
             &Request {
                 actor: ActorId::User(user.id),
@@ -721,7 +721,7 @@ fn instance_admin_without_access_permissions() -> Result<(), Box<dyn Error>> {
             &context,
         )?,
         Authorized::Never
-    ));
+    );
 
     Ok(())
 }
@@ -733,7 +733,7 @@ fn instance_admin_with_access_permissions() -> Result<(), Box<dyn Error>> {
 
     let system = TestSystem::generate(&mut policy_store, &mut context)?;
 
-    let user = TestUser::generate(&mut policy_store, &mut context)?;
+    let user = TestUser::generate(&mut policy_store, &mut context, "alice")?;
     policy_store.assign_role(
         ActorId::User(user.id),
         system.hash_instance_admins,
@@ -747,7 +747,7 @@ fn instance_admin_with_access_permissions() -> Result<(), Box<dyn Error>> {
         PolicySet::default().with_policies(policy_store.get_policies(ActorId::User(user.id))?)?;
     println!("user_policy_set:\n{user_policy_set:?}");
 
-    assert!(matches!(
+    assert_matches!(
         user_policy_set.evaluate(
             &Request {
                 actor: ActorId::User(user.id),
@@ -760,8 +760,8 @@ fn instance_admin_with_access_permissions() -> Result<(), Box<dyn Error>> {
             &context,
         )?,
         Authorized::Always
-    ));
-    assert!(matches!(
+    );
+    assert_matches!(
         user_policy_set.evaluate(
             &Request {
                 actor: ActorId::User(user.id),
@@ -774,7 +774,7 @@ fn instance_admin_with_access_permissions() -> Result<(), Box<dyn Error>> {
             &context,
         )?,
         Authorized::Always
-    ));
+    );
 
     Ok(())
 }
@@ -786,7 +786,7 @@ fn partial_resource_evaluation() -> Result<(), Box<dyn Error>> {
 
     let system = TestSystem::generate(&mut policy_store, &mut context)?;
 
-    let user = TestUser::generate(&mut policy_store, &mut context)?;
+    let user = TestUser::generate(&mut policy_store, &mut context, "alice")?;
     policy_store.assign_role(
         ActorId::User(user.id),
         system.hash_instance_admins,

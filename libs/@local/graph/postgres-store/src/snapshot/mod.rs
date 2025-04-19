@@ -1,6 +1,3 @@
-pub mod entity;
-pub mod owner;
-
 pub use self::{
     error::{SnapshotDumpError, SnapshotRestoreError},
     metadata::{BlockProtocolModuleVersions, CustomGlobalMetadata},
@@ -12,9 +9,12 @@ pub use self::{
 };
 pub use crate::snapshot::metadata::SnapshotMetadata;
 
+mod entity;
 mod error;
 mod metadata;
 mod ontology;
+mod owner;
+mod principal;
 mod restore;
 mod web;
 
@@ -61,20 +61,18 @@ use type_system::{
         property_type::{PropertyTypeUuid, PropertyTypeWithMetadata},
     },
     principal::{
-        actor::ActorEntityUuid,
-        actor_group::{ActorGroupEntityUuid, WebId},
+        Actor, ActorGroup, Principal, PrincipalType, Role,
+        actor::{Ai, Machine, User},
+        actor_group::{ActorGroupEntityUuid, ActorGroupId, Team, Web, WebId},
+        role::{RoleId, TeamRole, TeamRoleId, WebRole, WebRoleId},
     },
 };
+use uuid::Uuid;
 
 use crate::{
     snapshot::{entity::EntityEmbeddingRecord, restore::SnapshotRecordBatch},
     store::postgres::{AsClient, PostgresStore, PostgresStorePool},
 };
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Account {
-    pub id: ActorEntityUuid,
-}
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AccountGroup {
@@ -83,7 +81,7 @@ pub struct AccountGroup {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct Web {
+pub struct SnapshotWeb {
     pub id: WebId,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub relations: Vec<WebRelationAndSubject>,
@@ -103,9 +101,9 @@ pub enum AuthorizationRelation {
 #[serde(rename_all = "camelCase", tag = "type", deny_unknown_fields)]
 pub enum SnapshotEntry {
     Snapshot(SnapshotMetadata),
-    Account(Account),
     AccountGroup(AccountGroup),
-    Web(Web),
+    Web(SnapshotWeb),
+    Principal(Principal),
     DataType(Box<DataTypeSnapshotRecord>),
     DataTypeEmbedding(DataTypeEmbeddingRecord),
     PropertyType(Box<PropertyTypeSnapshotRecord>),
@@ -127,14 +125,14 @@ impl SnapshotEntry {
                     global_metadata.block_protocol_module_versions.graph
                 ));
             }
-            Self::Account(account) => {
-                context.push_body(format!("account: {}", account.id));
-            }
             Self::AccountGroup(account_group) => {
                 context.push_body(format!("account group: {}", account_group.id));
             }
             Self::Web(web) => {
                 context.push_body(format!("web: {}", web.id));
+            }
+            Self::Principal(principal) => {
+                context.push_body(format!("principal: {}", principal.id()));
             }
             Self::DataType(data_type) => {
                 context.push_body(format!("data type: {}", data_type.metadata.record_id));
@@ -264,9 +262,7 @@ impl<C, A> SnapshotStore<C, A> {
 #[derive(Debug, Copy, Clone)]
 pub struct SnapshotDumpSettings {
     pub chunk_size: usize,
-    pub dump_webs: bool,
-    pub dump_accounts: bool,
-    pub dump_account_groups: bool,
+    pub dump_principals: bool,
     pub dump_entities: bool,
     pub dump_entity_types: bool,
     pub dump_property_types: bool,
@@ -276,29 +272,6 @@ pub struct SnapshotDumpSettings {
 }
 
 impl PostgresStorePool {
-    async fn read_accounts(
-        &self,
-    ) -> Result<
-        impl Stream<Item = Result<Account, Report<SnapshotDumpError>>> + Send,
-        Report<SnapshotDumpError>,
-    > {
-        // TODO: Make accounts a first-class `Record` type
-        //   see https://linear.app/hash/issue/H-752
-        Ok(self
-            .acquire(NoAuthorization, None)
-            .await
-            .change_context(SnapshotDumpError::Query)?
-            .as_client()
-            .query_raw(
-                "SELECT account_id FROM accounts",
-                [] as [&(dyn ToSql + Sync); 0],
-            )
-            .await
-            .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Query))?
-            .map_ok(|row| Account { id: row.get(0) })
-            .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Read)))
-    }
-
     async fn read_account_groups<'a>(
         &'a self,
         authorization_api: &'a (impl ZanzibarBackend + Sync),
@@ -313,10 +286,7 @@ impl PostgresStorePool {
             .await
             .change_context(SnapshotDumpError::Query)?
             .as_client()
-            .query_raw(
-                "SELECT account_group_id FROM account_groups",
-                [] as [&(dyn ToSql + Sync); 0],
-            )
+            .query_raw("SELECT id FROM actor_group", [] as [&(dyn ToSql + Sync); 0])
             .await
             .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Query))?
             .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Read))
@@ -339,11 +309,11 @@ impl PostgresStorePool {
             }))
     }
 
-    async fn read_webs<'a>(
+    async fn read_snapshot_webs<'a>(
         &'a self,
         authorization_api: &'a (impl ZanzibarBackend + Sync),
     ) -> Result<
-        impl Stream<Item = Result<Web, Report<SnapshotDumpError>>> + Send + 'a,
+        impl Stream<Item = Result<SnapshotWeb, Report<SnapshotDumpError>>> + Send + 'a,
         Report<SnapshotDumpError>,
     > {
         Ok(self
@@ -351,13 +321,13 @@ impl PostgresStorePool {
             .await
             .change_context(SnapshotDumpError::Query)?
             .as_client()
-            .query_raw("SELECT web_id FROM webs", [] as [&(dyn ToSql + Sync); 0])
+            .query_raw("SELECT id FROM web", [] as [&(dyn ToSql + Sync); 0])
             .await
             .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Query))?
             .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Read))
             .and_then(move |row| async move {
                 let id = row.get(0);
-                Ok(Web {
+                Ok(SnapshotWeb {
                     id,
                     relations: authorization_api
                         .read_relations::<(WebId, WebRelationAndSubject)>(
@@ -372,6 +342,266 @@ impl PostgresStorePool {
                         .change_context(SnapshotDumpError::Query)?,
                 })
             }))
+    }
+
+    async fn read_users(
+        &self,
+    ) -> Result<
+        impl Stream<Item = Result<Principal, Report<SnapshotDumpError>>> + Send,
+        Report<SnapshotDumpError>,
+    > {
+        Ok(self
+            .acquire(NoAuthorization, None)
+            .await
+            .change_context(SnapshotDumpError::Query)?
+            .as_client()
+            .query_raw(
+                "
+                SELECT user_actor.id,
+                       array_agg(role.id) FILTER (WHERE role.id IS NOT NULL),
+                       array_agg(role.principal_type) FILTER (WHERE role.id IS NOT NULL)
+                FROM user_actor
+                LEFT OUTER JOIN actor_role ON user_actor.id = actor_role.actor_id
+                LEFT OUTER JOIN role ON actor_role.role_id = role.id
+                GROUP BY user_actor.id",
+                [] as [&(dyn ToSql + Sync); 0],
+            )
+            .await
+            .change_context(SnapshotDumpError::Query)?
+            .map_ok(|row| {
+                let role_ids = row.get::<_, Option<Vec<Uuid>>>(1).unwrap_or_default();
+                let principal_types = row
+                    .get::<_, Option<Vec<PrincipalType>>>(2)
+                    .unwrap_or_default();
+                Principal::Actor(Actor::User(User {
+                    id: row.get(0),
+                    roles: role_ids
+                        .into_iter()
+                        .zip(principal_types)
+                        .map(|(id, principal_type)| match principal_type {
+                            PrincipalType::WebRole => RoleId::Web(WebRoleId::new(id)),
+                            PrincipalType::TeamRole => RoleId::Team(TeamRoleId::new(id)),
+                            _ => unreachable!("Unexpected role type: {principal_type:?}"),
+                        })
+                        .collect(),
+                }))
+            })
+            .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Read)))
+    }
+
+    async fn read_machines(
+        &self,
+    ) -> Result<
+        impl Stream<Item = Result<Principal, Report<SnapshotDumpError>>> + Send,
+        Report<SnapshotDumpError>,
+    > {
+        Ok(self
+            .acquire(NoAuthorization, None)
+            .await
+            .change_context(SnapshotDumpError::Query)?
+            .as_client()
+            .query_raw(
+                "
+                SELECT
+                    machine_actor.id,
+                    machine_actor.identifier,
+                    array_agg(role.id) FILTER (WHERE role.id IS NOT NULL),
+                    array_agg(role.principal_type) FILTER (WHERE role.id IS NOT NULL)
+                FROM machine_actor
+                LEFT OUTER JOIN actor_role ON machine_actor.id = actor_role.actor_id
+                LEFT OUTER JOIN role ON actor_role.role_id = role.id
+                GROUP BY machine_actor.id, machine_actor.identifier",
+                [] as [&(dyn ToSql + Sync); 0],
+            )
+            .await
+            .change_context(SnapshotDumpError::Query)?
+            .map_ok(|row| {
+                let role_ids = row.get::<_, Option<Vec<Uuid>>>(2).unwrap_or_default();
+                let principal_types = row
+                    .get::<_, Option<Vec<PrincipalType>>>(3)
+                    .unwrap_or_default();
+                Principal::Actor(Actor::Machine(Machine {
+                    id: row.get(0),
+                    identifier: row.get(1),
+                    roles: role_ids
+                        .into_iter()
+                        .zip(principal_types)
+                        .map(|(id, principal_type)| match principal_type {
+                            PrincipalType::WebRole => RoleId::Web(WebRoleId::new(id)),
+                            PrincipalType::TeamRole => RoleId::Team(TeamRoleId::new(id)),
+                            _ => unreachable!("Unexpected role type: {principal_type:?}"),
+                        })
+                        .collect(),
+                }))
+            })
+            .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Read)))
+    }
+
+    async fn read_ais(
+        &self,
+    ) -> Result<
+        impl Stream<Item = Result<Principal, Report<SnapshotDumpError>>> + Send,
+        Report<SnapshotDumpError>,
+    > {
+        Ok(self
+            .acquire(NoAuthorization, None)
+            .await
+            .change_context(SnapshotDumpError::Query)?
+            .as_client()
+            .query_raw(
+                "
+                SELECT
+                    ai_actor.id,
+                    ai_actor.identifier,
+                    array_agg(role.id) FILTER (WHERE role.id IS NOT NULL),
+                    array_agg(role.principal_type) FILTER (WHERE role.id IS NOT NULL)
+                FROM ai_actor
+                LEFT OUTER JOIN actor_role ON ai_actor.id = actor_role.actor_id
+                LEFT OUTER JOIN role ON actor_role.role_id = role.id
+                GROUP BY ai_actor.id, ai_actor.identifier",
+                [] as [&(dyn ToSql + Sync); 0],
+            )
+            .await
+            .change_context(SnapshotDumpError::Query)?
+            .map_ok(|row| {
+                let role_ids = row.get::<_, Option<Vec<Uuid>>>(2).unwrap_or_default();
+                let principal_types = row
+                    .get::<_, Option<Vec<PrincipalType>>>(3)
+                    .unwrap_or_default();
+                Principal::Actor(Actor::Ai(Ai {
+                    id: row.get(0),
+                    identifier: row.get(1),
+                    roles: role_ids
+                        .into_iter()
+                        .zip(principal_types)
+                        .map(|(id, principal_type)| match principal_type {
+                            PrincipalType::WebRole => RoleId::Web(WebRoleId::new(id)),
+                            PrincipalType::TeamRole => RoleId::Team(TeamRoleId::new(id)),
+                            _ => unreachable!("Unexpected role type: {principal_type:?}"),
+                        })
+                        .collect(),
+                }))
+            })
+            .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Read)))
+    }
+
+    async fn read_webs(
+        &self,
+    ) -> Result<
+        impl Stream<Item = Result<Principal, Report<SnapshotDumpError>>> + Send,
+        Report<SnapshotDumpError>,
+    > {
+        Ok(self
+            .acquire(NoAuthorization, None)
+            .await
+            .change_context(SnapshotDumpError::Query)?
+            .as_client()
+            .query_raw(
+                "
+                SELECT
+                    web.id,
+                    web.shortname,
+                    array_agg(role.id) FILTER (WHERE role.id IS NOT NULL)
+                FROM web
+                LEFT OUTER JOIN role ON web.id = role.actor_group_id
+                GROUP BY web.id, web.shortname",
+                [] as [&(dyn ToSql + Sync); 0],
+            )
+            .await
+            .change_context(SnapshotDumpError::Query)?
+            .map_ok(|row| {
+                let role_ids = row.get::<_, Option<Vec<WebRoleId>>>(2).unwrap_or_default();
+                Principal::ActorGroup(ActorGroup::Web(Web {
+                    id: row.get(0),
+                    shortname: row.get(1),
+                    roles: role_ids.into_iter().collect(),
+                }))
+            })
+            .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Read)))
+    }
+
+    async fn read_teams(
+        &self,
+    ) -> Result<
+        impl Stream<Item = Result<Principal, Report<SnapshotDumpError>>> + Send,
+        Report<SnapshotDumpError>,
+    > {
+        Ok(self
+            .acquire(NoAuthorization, None)
+            .await
+            .change_context(SnapshotDumpError::Query)?
+            .as_client()
+            .query_raw(
+                "SELECT
+                    team.id,
+                    parent.principal_type,
+                    parent.id,
+                    team.name,
+                    array_agg(role.id) FILTER (WHERE role.id IS NOT NULL)
+                FROM team
+                JOIN actor_group AS parent ON parent.id = parent_id
+                LEFT OUTER JOIN role ON team.id = role.actor_group_id
+                GROUP BY team.id, parent.principal_type, parent.id, team.name",
+                [] as [&(dyn ToSql + Sync); 0],
+            )
+            .await
+            .change_context(SnapshotDumpError::Query)?
+            .map_ok(|row| {
+                let role_ids = row.get::<_, Option<Vec<TeamRoleId>>>(4).unwrap_or_default();
+                Principal::ActorGroup(ActorGroup::Team(Team {
+                    id: row.get(0),
+                    parent_id: match row.get(1) {
+                        PrincipalType::Web => ActorGroupId::Web(row.get(2)),
+                        PrincipalType::Team => ActorGroupId::Team(row.get(2)),
+                        principal_type => {
+                            unreachable!("Unexpected principal type {principal_type}")
+                        }
+                    },
+                    name: row.get(3),
+                    roles: role_ids.into_iter().collect(),
+                }))
+            })
+            .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Read)))
+    }
+
+    async fn read_roles(
+        &self,
+    ) -> Result<
+        impl Stream<Item = Result<Principal, Report<SnapshotDumpError>>> + Send,
+        Report<SnapshotDumpError>,
+    > {
+        Ok(self
+            .acquire(NoAuthorization, None)
+            .await
+            .change_context(SnapshotDumpError::Query)?
+            .as_client()
+            .query_raw(
+                "SELECT
+                    principal_type,
+                    id,
+                    actor_group_id,
+                    name
+                FROM role",
+                [] as [&(dyn ToSql + Sync); 0],
+            )
+            .await
+            .change_context(SnapshotDumpError::Query)?
+            .map_ok(|row| {
+                Principal::Role(match row.get(0) {
+                    PrincipalType::WebRole => Role::Web(WebRole {
+                        id: row.get(1),
+                        web_id: row.get(2),
+                        name: row.get(3),
+                    }),
+                    PrincipalType::TeamRole => Role::Team(TeamRole {
+                        id: row.get(1),
+                        team_id: row.get(2),
+                        name: row.get(3),
+                    }),
+                    principal_type => unreachable!("Unexpected principal type {principal_type}"),
+                })
+            })
+            .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Read)))
     }
 
     /// Convenience function to create a stream of snapshot entries.
@@ -573,25 +803,25 @@ impl PostgresStorePool {
                 .forward(snapshot_record_tx.clone()),
             );
 
-            if settings.dump_webs {
+            if settings.dump_principals {
                 scope.spawn(
-                    self.read_webs(authorization_api)
+                    self.read_users()
+                        .try_flatten_stream()
+                        .chain(self.read_machines().try_flatten_stream())
+                        .chain(self.read_ais().try_flatten_stream())
+                        .chain(self.read_webs().try_flatten_stream())
+                        .chain(self.read_teams().try_flatten_stream())
+                        .chain(self.read_roles().try_flatten_stream())
+                        .map_ok(SnapshotEntry::Principal)
+                        .forward(snapshot_record_tx.clone()),
+                );
+                scope.spawn(
+                    self.read_snapshot_webs(authorization_api)
                         .try_flatten_stream()
                         .map_ok(SnapshotEntry::Web)
                         .forward(snapshot_record_tx.clone()),
                 );
-            }
 
-            if settings.dump_accounts {
-                scope.spawn(
-                    self.read_accounts()
-                        .try_flatten_stream()
-                        .map_ok(SnapshotEntry::Account)
-                        .forward(snapshot_record_tx.clone()),
-                );
-            }
-
-            if settings.dump_account_groups {
                 scope.spawn(
                     self.read_account_groups(authorization_api)
                         .try_flatten_stream()

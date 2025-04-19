@@ -383,3 +383,246 @@ CREATE TABLE actor_role (
     role_id UUID NOT NULL REFERENCES role (id) ON DELETE CASCADE,
     PRIMARY KEY (actor_id, role_id)
 );
+
+
+INSERT INTO web (id, shortname)
+SELECT
+    webs.web_id,
+    entity_editions.properties ->> 'https://hash.ai/@h/types/property-type/shortname/' AS shortname
+FROM webs
+LEFT OUTER JOIN entity_temporal_metadata
+    ON webs.web_id = entity_temporal_metadata.entity_uuid
+    AND entity_temporal_metadata.decision_time @> now()
+    AND entity_temporal_metadata.transaction_time @> now()
+LEFT OUTER JOIN entity_editions
+    ON entity_temporal_metadata.entity_edition_id = entity_editions.entity_edition_id;
+
+INSERT INTO user_actor (id)
+SELECT accounts.account_id
+FROM accounts
+INNER JOIN entity_temporal_metadata
+    ON accounts.account_id = entity_temporal_metadata.entity_uuid
+INNER JOIN entity_is_of_type
+    ON entity_temporal_metadata.entity_edition_id = entity_is_of_type.entity_edition_id
+INNER JOIN ontology_ids
+    ON entity_is_of_type.entity_type_ontology_id = ontology_ids.ontology_id
+WHERE entity_temporal_metadata.decision_time @> now()
+    AND entity_temporal_metadata.transaction_time @> now()
+    AND ontology_ids.base_url = 'https://hash.ai/@h/types/entity-type/user/';
+
+INSERT INTO machine_actor (id, identifier)
+SELECT
+    accounts.account_id,
+    entity_editions.properties ->> 'https://hash.ai/@h/types/property-type/machine-identifier/' AS identifier
+FROM accounts
+INNER JOIN entity_temporal_metadata
+    ON accounts.account_id = entity_temporal_metadata.entity_uuid
+INNER JOIN entity_is_of_type
+    ON entity_temporal_metadata.entity_edition_id = entity_is_of_type.entity_edition_id
+INNER JOIN ontology_ids
+    ON entity_is_of_type.entity_type_ontology_id = ontology_ids.ontology_id
+INNER JOIN entity_editions
+    ON entity_temporal_metadata.entity_edition_id = entity_editions.entity_edition_id
+WHERE entity_temporal_metadata.decision_time @> now()
+    AND entity_temporal_metadata.transaction_time @> now()
+    AND ontology_ids.base_url = 'https://hash.ai/@h/types/entity-type/machine/'
+    AND entity_editions.properties ->> 'https://hash.ai/@h/types/property-type/machine-identifier/' != 'hash-ai';
+
+INSERT INTO ai_actor (id, identifier)
+SELECT
+    accounts.account_id,
+    entity_editions.properties ->> 'https://hash.ai/@h/types/property-type/machine-identifier/' AS identifier
+FROM accounts
+INNER JOIN entity_temporal_metadata
+    ON accounts.account_id = entity_temporal_metadata.entity_uuid
+INNER JOIN entity_is_of_type
+    ON entity_temporal_metadata.entity_edition_id = entity_is_of_type.entity_edition_id
+INNER JOIN ontology_ids
+    ON entity_is_of_type.entity_type_ontology_id = ontology_ids.ontology_id
+INNER JOIN entity_editions
+    ON entity_temporal_metadata.entity_edition_id = entity_editions.entity_edition_id
+WHERE entity_temporal_metadata.decision_time @> now()
+    AND entity_temporal_metadata.transaction_time @> now()
+    AND ontology_ids.base_url = 'https://hash.ai/@h/types/entity-type/ai/'
+    AND entity_editions.properties ->> 'https://hash.ai/@h/types/property-type/ai-identifier/' = 'hash-ai';
+
+-- We currently only have a single team: the instance admins which we can identify
+-- by the only account group without a web id
+WITH
+    system_account AS (
+        SELECT (ontology_temporal_metadata.provenance ->> 'createdById')::UUID AS id
+        FROM ontology_temporal_metadata
+        ORDER BY ontology_temporal_metadata.transaction_time ASC
+        LIMIT 1
+    ),
+
+    system_web AS (
+        SELECT entity_temporal_metadata.entity_uuid AS id
+        FROM entity_temporal_metadata
+        INNER JOIN entity_is_of_type
+            ON entity_temporal_metadata.entity_edition_id = entity_is_of_type.entity_edition_id
+        INNER JOIN ontology_ids
+            ON entity_is_of_type.entity_type_ontology_id = ontology_ids.ontology_id
+        INNER JOIN entity_editions
+            ON entity_temporal_metadata.entity_edition_id = entity_editions.entity_edition_id
+        WHERE entity_temporal_metadata.decision_time @> now()
+            AND entity_temporal_metadata.transaction_time @> now()
+            AND ontology_ids.base_url = 'https://hash.ai/@h/types/entity-type/organization/'
+            AND entity_editions.properties ->> 'https://hash.ai/@h/types/property-type/shortname/' = 'h'
+    )
+
+INSERT INTO team (id, parent_id, name)
+SELECT
+    system_account.id,
+    system_web.id AS web_id,
+    'instance-admins' AS team_name
+FROM system_account, system_web
+WHERE system_account.id IS NOT NULL AND system_web.id IS NOT NULL;
+
+INSERT INTO team_hierarchy (parent_id, child_id, depth)
+SELECT
+    team.parent_id,
+    team.id,
+    1 AS depths
+FROM team;
+
+
+-- Create web administrator role
+INSERT INTO role (id, principal_type, actor_group_id, name)
+SELECT
+    gen_random_uuid() AS id,
+    'web_role' AS principal_type,
+    web.id AS actor_group_id,
+    'Administrator' AS role_name
+FROM web;
+
+-- The actors which has the same id as the web are the administrators
+INSERT INTO actor_role (actor_id, role_id)
+SELECT
+    actor.id AS actor_id,
+    role.id AS role_id
+FROM web
+INNER JOIN actor ON web.id = actor.id
+INNER JOIN role ON web.id = role.actor_group_id AND role.name = 'Administrator';
+
+INSERT INTO role (id, principal_type, actor_group_id, name)
+SELECT
+    gen_random_uuid() AS id,
+    'web_role' AS principal_type,
+    web.id AS actor_group_id,
+    'Member' AS role_name
+FROM web;
+
+-- All machines are members of their respective web, except the system account which
+-- is an administrator
+WITH
+    system_account AS (
+        SELECT (ontology_temporal_metadata.provenance ->> 'createdById')::UUID AS id
+        FROM ontology_temporal_metadata
+        ORDER BY ontology_temporal_metadata.transaction_time ASC
+        LIMIT 1
+    )
+
+INSERT INTO actor_role (actor_id, role_id)
+SELECT
+    machine_actor.id AS actor_id,
+    role.id AS role_id
+FROM machine_actor
+INNER JOIN entity_ids ON machine_actor.id = entity_ids.entity_uuid
+INNER JOIN
+    role ON entity_ids.web_id = role.actor_group_id
+AND role.name = CASE
+    WHEN machine_actor.id = (SELECT system_account.id FROM system_account) THEN 'Administrator'
+    ELSE 'Member'
+END;
+
+-- We need to assign the roles to the actors based on the is-member-of relationship
+-- This is done by selecting the actor and actor group from the is-member-of relationship
+-- and then assigning the role based on the createdById of the actor group
+WITH
+    assignments AS (
+        SELECT
+            entity_has_left_entity.left_entity_uuid AS actor_id,
+            entity_has_right_entity.right_entity_uuid AS actor_group_id,
+            CASE
+                WHEN
+                    (entity_ids_right.provenance ->> 'createdById')::UUID = entity_has_left_entity.left_entity_uuid
+                    THEN 'Administrator'
+                ELSE 'Member'
+            END AS role_name
+        FROM entity_temporal_metadata
+        INNER JOIN entity_is_of_type
+            ON entity_temporal_metadata.entity_edition_id = entity_is_of_type.entity_edition_id
+        INNER JOIN ontology_ids
+            ON entity_is_of_type.entity_type_ontology_id = ontology_ids.ontology_id
+            AND ontology_ids.base_url = 'https://hash.ai/@h/types/entity-type/is-member-of/'
+        INNER JOIN entity_has_left_entity
+            ON entity_temporal_metadata.entity_uuid = entity_has_left_entity.entity_uuid
+        INNER JOIN entity_has_right_entity
+            ON entity_has_left_entity.entity_uuid = entity_has_right_entity.entity_uuid
+        INNER JOIN entity_ids AS entity_ids_right
+            ON entity_has_right_entity.right_entity_uuid = entity_ids_right.entity_uuid
+        WHERE entity_temporal_metadata.decision_time @> now()
+            AND entity_temporal_metadata.transaction_time @> now()
+    )
+
+INSERT INTO actor_role (actor_id, role_id)
+SELECT
+    assignments.actor_id,
+    role.id
+FROM assignments
+INNER JOIN actor ON assignments.actor_id = actor.id
+INNER JOIN
+    role
+    ON assignments.role_name = role.name AND assignments.actor_group_id = role.actor_group_id;
+
+
+INSERT INTO role (id, principal_type, actor_group_id, name)
+SELECT
+    gen_random_uuid() AS id,
+    'team_role' AS principal_type,
+    team.id AS actor_group_id,
+    'Administrator' AS role_name
+FROM team;
+
+WITH
+    system_account AS (
+        SELECT (ontology_temporal_metadata.provenance ->> 'createdById')::UUID AS id
+        FROM ontology_temporal_metadata
+        ORDER BY ontology_temporal_metadata.transaction_time ASC
+        LIMIT 1
+    ),
+
+    team_role AS (
+        SELECT role.id
+        FROM role
+        WHERE role.principal_type = 'team_role' AND role.name = 'Administrator'
+    )
+
+INSERT INTO actor_role (actor_id, role_id)
+SELECT
+    system_account.id,
+    team_role.id AS role_id
+FROM system_account, team_role
+WHERE system_account.id IS NOT NULL AND team_role.id IS NOT NULL;
+
+INSERT INTO role (id, principal_type, actor_group_id, name)
+SELECT
+    gen_random_uuid() AS id,
+    'team_role' AS principal_type,
+    team.id AS actor_group_id,
+    'Member' AS role_name
+FROM team;
+
+-- Drop webs table as it is no longer needed
+ALTER TABLE entity_ids
+DROP CONSTRAINT entity_ids_web_id_fkey,
+ADD CONSTRAINT entity_ids_web_id_fkey FOREIGN KEY (web_id) REFERENCES web (id);
+
+ALTER TABLE ontology_owned_metadata
+DROP CONSTRAINT ontology_owned_metadata_web_id_fkey,
+ADD CONSTRAINT ontology_owned_metadata_web_id_fkey FOREIGN KEY (web_id) REFERENCES web (id);
+
+DROP TABLE webs;
+DROP TABLE accounts;
+DROP TABLE account_groups;

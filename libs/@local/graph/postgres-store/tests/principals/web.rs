@@ -19,13 +19,26 @@ async fn create_web() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
     let (mut client, actor_id) = db.seed([ActionName::All, ActionName::CreateWeb]).await?;
 
-    let web_id = client
-        .create_web(actor_id, CreateWebParameter { id: None })
+    let response = client
+        .create_web(
+            actor_id,
+            CreateWebParameter {
+                id: None,
+                administrator: actor_id,
+                shortname: None,
+                is_actor_web: false,
+            },
+        )
         .await?;
-    assert!(client.is_web(web_id).await?);
 
-    let retrieved = client.get_web(web_id).await?.expect("Web should exist");
-    assert_eq!(retrieved.id, web_id);
+    assert!(client.is_web(response.web_id).await?);
+    assert!(client.is_machine(response.machine_id).await?);
+
+    let retrieved = client
+        .get_web(response.web_id)
+        .await?
+        .expect("Web should exist");
+    assert_eq!(retrieved.id, response.web_id);
 
     Ok(())
 }
@@ -37,8 +50,17 @@ async fn create_web_with_id() -> Result<(), Box<dyn Error>> {
 
     let id = Uuid::new_v4();
     let web_id = client
-        .create_web(actor_id, CreateWebParameter { id: Some(id) })
-        .await?;
+        .create_web(
+            actor_id,
+            CreateWebParameter {
+                id: Some(id),
+                administrator: actor_id,
+                shortname: None,
+                is_actor_web: false,
+            },
+        )
+        .await?
+        .web_id;
     assert_eq!(web_id, WebId::new(id));
     assert!(client.is_web(web_id).await?);
 
@@ -51,8 +73,17 @@ async fn delete_web() -> Result<(), Box<dyn Error>> {
     let (mut client, actor_id) = db.seed([ActionName::All, ActionName::CreateWeb]).await?;
 
     let web_id = client
-        .create_web(actor_id, CreateWebParameter { id: None })
-        .await?;
+        .create_web(
+            actor_id,
+            CreateWebParameter {
+                id: None,
+                administrator: actor_id,
+                shortname: None,
+                is_actor_web: false,
+            },
+        )
+        .await?
+        .web_id;
     assert!(client.is_web(web_id).await?);
 
     client.delete_web(web_id).await?;
@@ -71,14 +102,21 @@ async fn create_web_with_duplicate_id() -> Result<(), Box<dyn Error>> {
             actor_id,
             CreateWebParameter {
                 id: Some(Uuid::new_v4()),
+                administrator: actor_id,
+                shortname: None,
+                is_actor_web: false,
             },
         )
-        .await?;
+        .await?
+        .web_id;
     let result = client
         .create_web(
             actor_id,
             CreateWebParameter {
                 id: Some(web_id.into()),
+                administrator: actor_id,
+                shortname: None,
+                is_actor_web: false,
             },
         )
         .await;

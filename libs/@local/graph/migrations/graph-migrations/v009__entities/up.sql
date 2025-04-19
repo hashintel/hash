@@ -1,5 +1,5 @@
 CREATE TABLE entity_ids (
-    web_id UUID NOT NULL REFERENCES webs,
+    web_id UUID NOT NULL REFERENCES web,
     entity_uuid UUID NOT NULL,
     provenance JSONB NOT NULL,
     PRIMARY KEY (web_id, entity_uuid)

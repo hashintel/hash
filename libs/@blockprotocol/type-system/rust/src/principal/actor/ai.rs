@@ -57,8 +57,12 @@ impl From<AiId> for Uuid {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Ai {
     pub id: AiId,
+    pub identifier: String,
     pub roles: HashSet<RoleId>,
 }

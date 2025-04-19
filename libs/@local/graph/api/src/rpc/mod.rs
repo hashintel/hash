@@ -17,7 +17,7 @@ use harpc_tower::{
     layer::{body_report::HandleBodyReportLayer, report::HandleReportLayer},
 };
 use harpc_types::subsystem::SubsystemId;
-use hash_graph_authorization::AuthorizationApiPool;
+use hash_graph_authorization::{AuthorizationApiPool, policies::store::PrincipalStore};
 use hash_graph_store::pool::StorePool;
 use hash_temporal_client::TemporalClient;
 
@@ -79,6 +79,7 @@ where
     S: StorePool + Send + Sync + 'static,
     A: AuthorizationApiPool + Send + Sync + 'static,
     C: ReportEncoder + ReportDecoder + Clone + Send + Sync + 'static,
+    for<'p, 'a> S::Store<'p, A::Api<'a>>: PrincipalStore,
 {
     let builder = RouterBuilder::new(dependencies.codec)
         .with_builder(|builder| {

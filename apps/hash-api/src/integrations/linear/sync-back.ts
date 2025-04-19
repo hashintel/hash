@@ -4,7 +4,7 @@ import {
   extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
 import { linearTypeMappings } from "@local/hash-backend-utils/linear-type-mappings";
-import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
+import { getMachineIdByIdentifier } from "@local/hash-backend-utils/machine-actors";
 import { createTemporalClient } from "@local/hash-backend-utils/temporal";
 import type { UpdateLinearDataWorkflow } from "@local/hash-backend-utils/temporal-integration-workflow-types";
 import { createVaultClient } from "@local/hash-backend-utils/vault";
@@ -52,7 +52,7 @@ export const processEntityChange = async (
     );
   }
 
-  const linearMachineActorId = await getMachineActorId(
+  const linearMachineActorId = await getMachineIdByIdentifier(
     { graphApi },
     { actorId: systemAccountId },
     { identifier: "linear" },

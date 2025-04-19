@@ -12,6 +12,11 @@ pub enum GetSystemAccountError {
     #[display("Creating system account failed")]
     CreateSystemAccountFailed,
 
+    #[display("Creating system web failed")]
+    CreatingSystemWebFailed,
+    #[display("Creating instance admin team failed")]
+    CreatingInstanceAdminTeamFailed,
+
     #[display("Store operation failed")]
     StoreError,
 }
@@ -39,9 +44,11 @@ pub enum WebCreationError {
     #[display("Permission to create web was denied")]
     NotAuthorized,
     #[display("Could not create web role")]
-    WebRoleCreationError,
+    RoleCreationError,
     #[display("Could not assign web role")]
-    WebRoleAssignmentError,
+    RoleAssignmentError,
+    #[display("Could not create web machine")]
+    MachineCreationError,
     #[display("Store operation failed")]
     StoreError,
 }
@@ -91,6 +98,14 @@ pub enum RoleAssignmentError {
     },
     #[display("Permission to add member to account group was denied")]
     PermissionDenied,
+    #[display(
+        "Actor with ID `{actor_id}` is already assigned to group `{group_id}` with role `{name}`"
+    )]
+    AlreadyAssigned {
+        actor_id: ActorId,
+        group_id: ActorGroupId,
+        name: RoleName,
+    },
     #[display("Store operation failed")]
     StoreError,
 }

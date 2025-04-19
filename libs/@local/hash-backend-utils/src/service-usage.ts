@@ -36,7 +36,7 @@ import type {
 } from "@local/hash-isomorphic-utils/system-types/usagerecord";
 import { backOff } from "exponential-backoff";
 
-import { getHashInstanceAdminAccountGroupId } from "./hash-instance.js";
+import { getInstanceAdminsTeam } from "./hash-instance.js";
 
 /**
  * Retrieve a web's service usage
@@ -200,7 +200,7 @@ export const createUsageRecord = async (
    */
   const authentication = { actorId: userAccountId };
 
-  const hashInstanceAdminGroupId = await getHashInstanceAdminAccountGroupId(
+  const { teamId: hashInstanceAdminGroupId } = await getInstanceAdminsTeam(
     context,
     authentication,
   );

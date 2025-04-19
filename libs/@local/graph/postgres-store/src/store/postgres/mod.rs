@@ -10,18 +10,14 @@ use alloc::sync::Arc;
 use core::{fmt::Debug, hash::Hash};
 use std::collections::HashMap;
 
-use error_stack::{Report, ResultExt as _};
-use futures::TryStreamExt as _;
+use error_stack::{Report, ReportSink, ResultExt as _};
 use hash_graph_authorization::{
     AuthorizationApi,
     backend::ModifyRelationshipOperation,
-    policies::{
-        Authorized, PartialResourceId, PolicySet, Request, RequestContext,
-        action::ActionName,
-        store::{
-            CreateWebParameter, PrincipalStore, RoleAssignmentStatus, RoleUnassignmentStatus,
-            error::{GetSystemAccountError, RoleAssignmentError, WebCreationError},
-        },
+    policies::store::{
+        CreateWebParameter, CreateWebResponse, PrincipalStore, RoleAssignmentStatus,
+        RoleUnassignmentStatus,
+        error::{GetSystemAccountError, RoleAssignmentError, WebCreationError},
     },
     schema::{
         AccountGroupAdministratorSubject, AccountGroupMemberSubject, AccountGroupPermission,
@@ -33,17 +29,18 @@ use hash_graph_authorization::{
 };
 use hash_graph_store::{
     account::{
-        AccountGroupInsertionError, AccountInsertionError, AccountStore,
-        InsertAccountGroupIdParams, InsertAccountIdParams, InsertWebIdParams, QueryWebError,
-        WebInsertionError,
+        AccountGroupInsertionError, AccountInsertionError, AccountStore, CreateAiActorParams,
+        CreateMachineActorParams, CreateOrgWebParams, CreateTeamParams, CreateUserActorParams,
+        CreateUserActorResponse, GetTeamResponse, GetWebResponse, QueryWebError,
+        TeamRetrievalError, WebInsertionError, WebRetrievalError,
     },
     error::{InsertionError, QueryError, UpdateError},
     query::ConflictBehavior,
 };
-use hash_graph_temporal_versioning::{LeftClosedTemporalInterval, Timestamp, TransactionTime};
+use hash_graph_temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
 use hash_status::StatusCode;
 use hash_temporal_client::TemporalClient;
-use postgres_types::{Json, ToSql};
+use postgres_types::Json;
 use time::OffsetDateTime;
 use tokio_postgres::{GenericClient as _, error::SqlState};
 use type_system::{
@@ -64,8 +61,9 @@ use type_system::{
         provenance::{OntologyEditionProvenance, OntologyOwnership, OntologyProvenance},
     },
     principal::{
-        actor::{ActorEntityUuid, ActorId, ActorType, MachineId},
-        actor_group::{ActorGroupEntityUuid, WebId},
+        PrincipalType,
+        actor::{ActorEntityUuid, ActorId, AiId, MachineId},
+        actor_group::{ActorGroupEntityUuid, ActorGroupId, TeamId, WebId},
         role::RoleName,
     },
 };
@@ -101,166 +99,316 @@ pub struct PostgresStore<C, A> {
     pub settings: PostgresStoreSettings,
 }
 
-impl<C, A> PostgresStore<C, A>
-where
-    C: AsClient,
-    A: Send + Sync,
-{
-    async fn search_existing_system_account(
-        &self,
-    ) -> Result<Option<MachineId>, Report<GetSystemAccountError>> {
-        let machine = self
-            .as_client()
-            .query_opt(
-                "
-                SELECT base_url, version, lower(transaction_time), CAST(provenance->>'createdById' AS UUID)
-                FROM ontology_temporal_metadata
-                JOIN ontology_ids ON ontology_temporal_metadata.ontology_id = ontology_ids.ontology_id
-                ORDER BY transaction_time ASC
-                LIMIT 1;
-                ",
-                &[],
-            )
-            .await
-            .change_context(GetSystemAccountError::StoreError)?
-            .map(|row| {
-                let ontology_type_id = VersionedUrl {
-                    base_url: row.get(0),
-                    version: row.get(1),
-                };
-                let transaction_time: Timestamp<TransactionTime> = row.get(2);
-                let system_account : MachineId = row.get(3);
-                tracing::info!(
-                    %system_account,
-                    "Found system account using ontology type `{ontology_type_id}` created at {transaction_time}"
-                );
-                system_account
-            });
-        if let Some(machine) = machine {
-            return Ok(Some(machine));
-        }
-
-        // We have not identified the machine, yet. We can check if there are more than one machine.
-        // If there is only one machine, it is the system account because it is the only machine
-        // which could create new machines.
-        let machines = self
-            .as_client()
-            .query_raw(
-                "SELECT account_id FROM accounts LIMIT 2",
-                [] as [&(dyn ToSql + Sync); 0],
-            )
-            .await
-            .change_context(GetSystemAccountError::StoreError)?
-            .map_ok(|row| row.get::<_, MachineId>(0))
-            .try_collect::<Vec<_>>()
-            .await
-            .change_context(GetSystemAccountError::StoreError)?;
-
-        if machines.len() == 1 {
-            tracing::info!(
-                system_account = %machines[0],
-                "Found system account due to only one machine"
-            );
-            return Ok(Some(machines[0]));
-        }
-
-        Ok(None)
-    }
-}
 impl<C, A> PrincipalStore for PostgresStore<C, A>
 where
     C: AsClient,
     A: AuthorizationApi + Send + Sync,
 {
-    async fn get_or_create_system_account(
+    async fn get_or_create_system_actor(
         &mut self,
+        identifier: &str,
     ) -> Result<MachineId, Report<GetSystemAccountError>> {
-        let machine_id = if let Some(machine) = self.search_existing_system_account().await? {
-            machine
-        } else {
-            // TODO: Create an actual machine once we have proper machine management in the
-            // database.
-            // let machine_id = self.create_machine(None)
-            //     .await
-            //     .change_context(GetSystemAccountError::CreateSystemAccountFailed)?
-
-            // Use the public NIL UUID as actor here as we don't have a valid one, yet.
-            let machine_id = ActorEntityUuid::new(Uuid::new_v4());
-            self.insert_account_id(
-                ActorEntityUuid::new(Uuid::nil()),
-                InsertAccountIdParams {
-                    account_type: ActorType::Machine,
-                    account_id: machine_id,
-                },
+        if let Some(system_machine_id) = self
+            .as_client()
+            .query_opt(
+                "SELECT id FROM machine_actor WHERE identifier = $1",
+                &[&identifier],
             )
             .await
-            .change_context(GetSystemAccountError::CreateSystemAccountFailed)?;
+            .change_context(GetSystemAccountError::StoreError)?
+            .map(|row| row.get::<_, MachineId>(0))
+        {
+            tracing::info!(
+                %system_machine_id,
+                "Found system account"
+            );
+
+            Ok(system_machine_id)
+        } else {
+            let mut transaction = self
+                .transaction()
+                .await
+                .change_context(GetSystemAccountError::StoreError)?;
+
+            let system_machine_id = transaction
+                .create_machine(None, identifier)
+                .await
+                .change_context(GetSystemAccountError::CreateSystemAccountFailed)?;
 
             tracing::info!(
-                system_account = %machine_id,
+                %system_machine_id,
+                %identifier,
                 "Created new system account"
             );
 
-            MachineId::new(machine_id)
-        };
+            let web_creation = transaction
+                .create_web(
+                    system_machine_id.into(),
+                    CreateWebParameter {
+                        id: None,
+                        administrator: system_machine_id.into(),
+                        shortname: Some(identifier.to_owned()),
+                        is_actor_web: false,
+                    },
+                )
+                .await
+                .change_context(GetSystemAccountError::CreateSystemAccountFailed)?;
 
-        Ok(machine_id)
+            tracing::info!(
+                %web_creation.web_id,
+                "Created new system web"
+            );
+
+            if identifier == "h" {
+                let instance_admin_team_id = transaction
+                    .create_team(
+                        system_machine_id.into(),
+                        CreateTeamParams {
+                            parent: web_creation.web_id.into(),
+                            name: "instance-admins".to_owned(),
+                        },
+                    )
+                    .await
+                    .change_context(GetSystemAccountError::CreatingInstanceAdminTeamFailed)?;
+
+                tracing::info!(
+                    %instance_admin_team_id,
+                    "Created new instance admin team"
+                );
+            }
+
+            transaction
+                .commit()
+                .await
+                .change_context(GetSystemAccountError::StoreError)?;
+
+            Ok(system_machine_id)
+        }
     }
 
+    #[expect(
+        clippy::too_many_lines,
+        reason = "The majority is SpiceDB and its error handling which will be removed soon"
+    )]
     async fn create_web(
         &mut self,
-        actor: ActorId,
+        _actor: ActorId,
         parameter: CreateWebParameter,
-    ) -> Result<WebId, Report<WebCreationError>> {
-        let context = self
-            .build_principal_context(actor)
-            .await
-            .change_context(WebCreationError::StoreError)?;
-        let policies = self
-            .get_policies_for_actor(actor)
-            .await
-            .change_context(WebCreationError::StoreError)?;
+    ) -> Result<CreateWebResponse, Report<WebCreationError>> {
+        // TODO: Implement this once we have implemented the new policy model.
+
+        // let context = self
+        //     .build_principal_context(actor)
+        //     .await
+        //     .change_context(WebCreationError::StoreError)?;
+        // let policies = self
+        //     .get_policies_for_actor(actor)
+        //     .await
+        //     .change_context(WebCreationError::StoreError)?;
 
         let web_id = WebId::new(parameter.id.unwrap_or_else(Uuid::new_v4));
 
-        let policy_set = PolicySet::default()
-            .with_policies(policies.values())
-            .change_context(WebCreationError::StoreError)?;
-        match policy_set
-            .evaluate(
-                &Request {
-                    actor,
-                    action: ActionName::CreateWeb,
-                    resource: Some(&PartialResourceId::Web(Some(web_id))),
-                    context: RequestContext::default(),
-                },
-                &context,
-            )
-            .change_context(WebCreationError::StoreError)?
-        {
-            Authorized::Always => {}
-            Authorized::Never => {
-                return Err(Report::new(WebCreationError::NotAuthorized))
-                    .attach_printable(StatusCode::PermissionDenied);
-            }
-            Authorized::Partial(_) => {
-                unimplemented!("Web creation is not supported for partial authorization");
-            }
-        }
+        // let policy_set = PolicySet::default()
+        //     .with_policies(policies.values())
+        //     .change_context(WebCreationError::StoreError)?;
+        // match policy_set
+        //     .evaluate(
+        //         &Request {
+        //             actor,
+        //             action: ActionName::CreateWeb,
+        //             resource: Some(&PartialResourceId::Web(Some(web_id))),
+        //             context: RequestContext::default(),
+        //         },
+        //         &context,
+        //     )
+        //     .change_context(WebCreationError::StoreError)?
+        // {
+        //     Authorized::Always => {}
+        //     Authorized::Never => {
+        //         return Err(Report::new(WebCreationError::NotAuthorized))
+        //             .attach_printable(StatusCode::PermissionDenied);
+        //     }
+        //     Authorized::Partial(_) => {
+        //         unimplemented!("Web creation is not supported for partial authorization");
+        //     }
+        // }
 
-        if let Err(error) = self
-            .as_mut_client()
-            .execute("INSERT INTO web (id) VALUES ($1)", &[&web_id])
+        let mut transaction = self
+            .transaction()
             .await
-        {
-            return if error.code() == Some(&SqlState::UNIQUE_VIOLATION) {
-                Err(error).change_context(WebCreationError::AlreadyExists { web_id })
-            } else {
-                Err(error).change_context(WebCreationError::StoreError)
-            };
+            .change_context(WebCreationError::StoreError)?;
+
+        transaction
+            .as_client()
+            .execute(
+                "INSERT INTO web (id, shortname) VALUES ($1, $2)",
+                &[&web_id, &parameter.shortname],
+            )
+            .await
+            .map_err(|error| match error.code() {
+                Some(&SqlState::UNIQUE_VIOLATION) => {
+                    Report::new(error).change_context(WebCreationError::AlreadyExists { web_id })
+                }
+                _ => Report::new(error).change_context(WebCreationError::StoreError),
+            })?;
+
+        let machine_id = transaction
+            .create_machine(None, &format!("system-{web_id}"))
+            .await
+            .change_context(WebCreationError::MachineCreationError)?;
+
+        let admin_role = transaction
+            .create_role(None, ActorGroupId::Web(web_id), RoleName::Administrator)
+            .await
+            .change_context(WebCreationError::RoleCreationError)?;
+
+        transaction
+            .assign_role_by_id(parameter.administrator, admin_role)
+            .await
+            .change_context(WebCreationError::RoleAssignmentError)?;
+
+        let member_role = transaction
+            .create_role(None, ActorGroupId::Web(web_id), RoleName::Member)
+            .await
+            .change_context(WebCreationError::RoleCreationError)?;
+
+        transaction
+            .assign_role_by_id(machine_id, member_role)
+            .await
+            .change_context(WebCreationError::RoleAssignmentError)?;
+
+        let owner = if parameter.is_actor_web {
+            // For user-webs we assign the administrator as the owner directly
+            WebOwnerSubject::Account {
+                id: parameter.administrator.into(),
+            }
+        } else {
+            // For non-user-webs we assign the administrator as the owner via the account group
+            transaction
+                .authorization_api
+                .modify_account_group_relations([(
+                    ModifyRelationshipOperation::Create,
+                    web_id.into(),
+                    AccountGroupRelationAndSubject::Administrator {
+                        subject: AccountGroupAdministratorSubject::Account {
+                            id: parameter.administrator.into(),
+                        },
+                        level: 0,
+                    },
+                )])
+                .await
+                .change_context(WebCreationError::RoleAssignmentError)?;
+
+            WebOwnerSubject::AccountGroup { id: web_id.into() }
+        };
+
+        let mut relationships = vec![
+            WebRelationAndSubject::Owner {
+                subject: owner,
+                level: 0,
+            },
+            WebRelationAndSubject::Owner {
+                subject: WebOwnerSubject::Account {
+                    id: machine_id.into(),
+                },
+                level: 0,
+            },
+            WebRelationAndSubject::EntityTypeViewer {
+                subject: WebEntityTypeViewerSubject::Public,
+                level: 0,
+            },
+            WebRelationAndSubject::PropertyTypeViewer {
+                subject: WebPropertyTypeViewerSubject::Public,
+                level: 0,
+            },
+            WebRelationAndSubject::DataTypeViewer {
+                subject: WebDataTypeViewerSubject::Public,
+                level: 0,
+            },
+        ];
+        if let WebOwnerSubject::AccountGroup { id } = owner {
+            relationships.extend([
+                WebRelationAndSubject::EntityCreator {
+                    subject: WebEntityCreatorSubject::AccountGroup {
+                        id,
+                        set: WebSubjectSet::Member,
+                    },
+                    level: 0,
+                },
+                WebRelationAndSubject::EntityEditor {
+                    subject: WebEntityEditorSubject::AccountGroup {
+                        id,
+                        set: WebSubjectSet::Member,
+                    },
+                    level: 0,
+                },
+                // TODO: Add ontology type creators
+            ]);
         }
 
-        Ok(web_id)
+        transaction
+            .authorization_api
+            .modify_web_relations(
+                relationships
+                    .clone()
+                    .into_iter()
+                    .map(|relation_and_subject| {
+                        (
+                            ModifyRelationshipOperation::Create,
+                            web_id,
+                            relation_and_subject,
+                        )
+                    }),
+            )
+            .await
+            .change_context(WebCreationError::RoleAssignmentError)?;
+
+        let response = CreateWebResponse { web_id, machine_id };
+
+        if let Err(error) = transaction
+            .commit()
+            .await
+            .change_context(WebCreationError::StoreError)
+        {
+            let mut sink = ReportSink::<WebCreationError>::new();
+            sink.capture(error);
+
+            sink.attempt(
+                self.authorization_api
+                    .modify_web_relations(relationships.into_iter().map(|relation_and_subject| {
+                        (
+                            ModifyRelationshipOperation::Delete,
+                            web_id,
+                            relation_and_subject,
+                        )
+                    }))
+                    .await
+                    .change_context(WebCreationError::RoleAssignmentError),
+            );
+
+            if !parameter.is_actor_web {
+                sink.attempt(
+                    self.authorization_api
+                        .modify_account_group_relations([(
+                            ModifyRelationshipOperation::Delete,
+                            web_id.into(),
+                            AccountGroupRelationAndSubject::Administrator {
+                                subject: AccountGroupAdministratorSubject::Account {
+                                    id: parameter.administrator.into(),
+                                },
+                                level: 0,
+                            },
+                        )])
+                        .await
+                        .change_context(WebCreationError::RoleAssignmentError),
+                );
+            }
+
+            sink.finish_ok(response)
+                .change_context(WebCreationError::RoleAssignmentError)
+        } else {
+            Ok(response)
+        }
     }
 
     async fn assign_role(
@@ -303,6 +451,20 @@ where
 
         if !has_permission {
             return Err(Report::new(RoleAssignmentError::PermissionDenied));
+        }
+
+        if let Some(already_assigned_role) = transaction
+            .is_assigned(actor_to_assign_id, actor_group_id)
+            .await?
+        {
+            if already_assigned_role == name {
+                return Ok(RoleAssignmentStatus::AlreadyAssigned);
+            }
+            return Err(Report::new(RoleAssignmentError::AlreadyAssigned {
+                actor_id: actor_to_assign_id,
+                group_id: actor_group_id,
+                name: already_assigned_role,
+            }));
         }
 
         let role = transaction
@@ -367,6 +529,26 @@ where
         } else {
             Ok(status)
         }
+    }
+
+    async fn is_assigned(
+        &mut self,
+        actor_id: ActorId,
+        actor_group_id: ActorGroupId,
+    ) -> Result<Option<RoleName>, Report<RoleAssignmentError>> {
+        Ok(self
+            .as_client()
+            .query_opt(
+                "SELECT role.name
+                FROM actor_role
+                JOIN role ON actor_role.role_id = role.id
+                WHERE actor_role.actor_id = $1 AND role.actor_group_id = $2
+                ",
+                &[&actor_id, &actor_group_id],
+            )
+            .await
+            .change_context(RoleAssignmentError::StoreError)?
+            .map(|row| row.get(0)))
     }
 
     async fn unassign_role(
@@ -1414,49 +1596,227 @@ where
 }
 
 impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
-    #[tracing::instrument(level = "info", skip(self))]
-    async fn insert_account_id(
+    async fn create_user_actor(
         &mut self,
         actor_id: ActorEntityUuid,
-        params: InsertAccountIdParams,
-    ) -> Result<(), Report<AccountInsertionError>> {
-        self.as_client()
-            .query(
-                "INSERT INTO accounts (account_id) VALUES ($1);",
-                &[&params.account_id],
+        params: CreateUserActorParams,
+    ) -> Result<CreateUserActorResponse, Report<AccountInsertionError>> {
+        let mut transaction = self
+            .transaction()
+            .await
+            .change_context(AccountInsertionError)?;
+
+        let actor_id = transaction
+            .determine_actor(actor_id)
+            .await
+            .change_context(AccountInsertionError)?;
+
+        let user_id = transaction
+            .create_user(None)
+            .await
+            .change_context(AccountInsertionError)?;
+
+        let machine_id = transaction
+            .create_web(
+                actor_id,
+                CreateWebParameter {
+                    id: Some(user_id.into()),
+                    administrator: if params.registration_complete {
+                        user_id.into()
+                    } else {
+                        actor_id
+                    },
+                    shortname: params.shortname,
+                    is_actor_web: true,
+                },
             )
             .await
+            .change_context(AccountInsertionError)?
+            .machine_id;
+
+        transaction
+            .commit()
+            .await
+            .change_context(AccountInsertionError)?;
+
+        Ok(CreateUserActorResponse {
+            user_id,
+            machine_id,
+        })
+    }
+
+    async fn create_machine_actor(
+        &mut self,
+        _actor_id: ActorEntityUuid,
+        params: CreateMachineActorParams,
+    ) -> Result<MachineId, Report<AccountInsertionError>> {
+        self.create_machine(None, &params.identifier)
+            .await
             .change_context(AccountInsertionError)
-            .attach_printable(params.account_id)?;
-        Ok(())
+    }
+
+    async fn create_ai_actor(
+        &mut self,
+        _actor_id: ActorEntityUuid,
+        params: CreateAiActorParams,
+    ) -> Result<AiId, Report<AccountInsertionError>> {
+        self.create_ai(None, &params.identifier)
+            .await
+            .change_context(AccountInsertionError)
     }
 
     #[tracing::instrument(level = "info", skip(self))]
-    async fn insert_account_group_id(
+    async fn create_org_web(
         &mut self,
         actor_id: ActorEntityUuid,
-        params: InsertAccountGroupIdParams,
-    ) -> Result<(), Report<AccountGroupInsertionError>> {
-        let transaction = self
+        params: CreateOrgWebParams,
+    ) -> Result<CreateWebResponse, Report<WebInsertionError>> {
+        let mut transaction = self.transaction().await.change_context(WebInsertionError)?;
+
+        let actor_id = transaction
+            .determine_actor(actor_id)
+            .await
+            .change_context(WebInsertionError)?;
+
+        let response = transaction
+            .create_web(
+                actor_id,
+                CreateWebParameter {
+                    id: None,
+                    shortname: Some(params.shortname),
+                    administrator: actor_id,
+                    is_actor_web: false,
+                },
+            )
+            .await
+            .change_context(WebInsertionError)?;
+
+        transaction
+            .commit()
+            .await
+            .change_context(WebInsertionError)?;
+
+        Ok(response)
+    }
+
+    async fn find_web(
+        &mut self,
+        _actor_id: ActorEntityUuid,
+        web_id: WebId,
+    ) -> Result<Option<GetWebResponse>, Report<WebRetrievalError>> {
+        let Some(shortname) = self
+            .as_client()
+            .query_opt("SELECT shortname FROM web WHERE id = $1", &[&web_id])
+            .await
+            .change_context(WebRetrievalError)?
+            .map(|row| row.get(0))
+        else {
+            return Ok(None);
+        };
+
+        let Some(machine_id) = self
+            .as_client()
+            .query_opt(
+                "SELECT id FROM machine_actor WHERE identifier = $1",
+                &[&format!("system-{web_id}")],
+            )
+            .await
+            .change_context(WebRetrievalError)?
+            .map(|row| row.get(0))
+        else {
+            return Ok(None);
+        };
+
+        tracing::info!("Found web with id {web_id} and machine id {machine_id}");
+
+        Ok(Some(GetWebResponse {
+            web_id,
+            machine_id,
+            shortname,
+        }))
+    }
+
+    async fn find_web_by_shortname(
+        &mut self,
+        _actor_id: ActorEntityUuid,
+        shortname: &str,
+    ) -> Result<Option<GetWebResponse>, Report<WebRetrievalError>> {
+        let Some(web_id) = self
+            .as_client()
+            .query_opt("SELECT id FROM web WHERE shortname = $1", &[&shortname])
+            .await
+            .change_context(WebRetrievalError)?
+            .map(|row| row.get(0))
+        else {
+            return Ok(None);
+        };
+
+        let Some(machine_id) = self
+            .as_client()
+            .query_opt(
+                "SELECT id FROM machine_actor WHERE identifier = $1",
+                &[&format!("system-{web_id}")],
+            )
+            .await
+            .change_context(WebRetrievalError)?
+            .map(|row| row.get(0))
+        else {
+            return Ok(None);
+        };
+
+        tracing::info!(
+            "Found web with id {web_id} and machine id {machine_id} for shortname {shortname}"
+        );
+
+        Ok(Some(GetWebResponse {
+            web_id,
+            machine_id,
+            shortname: Some(shortname.to_owned()),
+        }))
+    }
+
+    #[tracing::instrument(level = "info", skip(self))]
+    async fn create_team(
+        &mut self,
+        actor_id: ActorEntityUuid,
+        params: CreateTeamParams,
+    ) -> Result<TeamId, Report<AccountGroupInsertionError>> {
+        let mut transaction = self
             .transaction()
             .await
             .change_context(AccountGroupInsertionError)?;
 
+        let team_id = transaction
+            .insert_team(None, params.parent, &params.name)
+            .await
+            .change_context(AccountGroupInsertionError)?;
+
+        let admin_role = transaction
+            .create_role(None, ActorGroupId::Team(team_id), RoleName::Administrator)
+            .await
+            .change_context(AccountGroupInsertionError)?;
+
+        let _member_role = transaction
+            .create_role(None, ActorGroupId::Team(team_id), RoleName::Member)
+            .await
+            .change_context(AccountGroupInsertionError)?;
+
         transaction
-            .as_client()
-            .query(
-                "INSERT INTO account_groups (account_group_id) VALUES ($1);",
-                &[&params.account_group_id],
+            .assign_role_by_id(
+                transaction
+                    .determine_actor(actor_id)
+                    .await
+                    .change_context(AccountGroupInsertionError)?,
+                admin_role,
             )
             .await
-            .change_context(AccountGroupInsertionError)
-            .attach_printable(params.account_group_id)?;
+            .change_context(AccountGroupInsertionError)?;
 
         transaction
             .authorization_api
             .modify_account_group_relations([(
                 ModifyRelationshipOperation::Create,
-                params.account_group_id,
+                team_id.into(),
                 AccountGroupRelationAndSubject::Administrator {
                     subject: AccountGroupAdministratorSubject::Account { id: actor_id },
                     level: 0,
@@ -1476,7 +1836,7 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
                 .authorization_api
                 .modify_account_group_relations([(
                     ModifyRelationshipOperation::Delete,
-                    params.account_group_id,
+                    team_id.into(),
                     AccountGroupRelationAndSubject::Administrator {
                         subject: AccountGroupAdministratorSubject::Account { id: actor_id },
                         level: 0,
@@ -1490,102 +1850,35 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
 
             Err(error.change_context(AccountGroupInsertionError))
         } else {
-            Ok(())
+            Ok(team_id)
         }
     }
 
-    #[tracing::instrument(level = "info", skip(self))]
-    async fn insert_web_id(
+    async fn find_team_by_name(
         &mut self,
-        actor_id: ActorEntityUuid,
-        params: InsertWebIdParams,
-    ) -> Result<(), Report<WebInsertionError>> {
-        let transaction = self.transaction().await.change_context(WebInsertionError)?;
-
-        transaction
+        _actor_id: ActorEntityUuid,
+        name: &str,
+    ) -> Result<Option<GetTeamResponse>, Report<TeamRetrievalError>> {
+        Ok(self
             .as_client()
-            .query("INSERT INTO webs (web_id) VALUES ($1);", &[&params.web_id])
-            .await
-            .change_context(WebInsertionError)
-            .attach_printable(params.web_id)?;
-
-        let mut relationships = vec![
-            WebRelationAndSubject::Owner {
-                subject: params.owner,
-                level: 0,
-            },
-            WebRelationAndSubject::EntityTypeViewer {
-                subject: WebEntityTypeViewerSubject::Public,
-                level: 0,
-            },
-            WebRelationAndSubject::PropertyTypeViewer {
-                subject: WebPropertyTypeViewerSubject::Public,
-                level: 0,
-            },
-            WebRelationAndSubject::DataTypeViewer {
-                subject: WebDataTypeViewerSubject::Public,
-                level: 0,
-            },
-        ];
-        if let WebOwnerSubject::AccountGroup { id } = params.owner {
-            relationships.extend([
-                WebRelationAndSubject::EntityCreator {
-                    subject: WebEntityCreatorSubject::AccountGroup {
-                        id,
-                        set: WebSubjectSet::Member,
-                    },
-                    level: 0,
-                },
-                WebRelationAndSubject::EntityEditor {
-                    subject: WebEntityEditorSubject::AccountGroup {
-                        id,
-                        set: WebSubjectSet::Member,
-                    },
-                    level: 0,
-                },
-                // TODO: Add ontology type creators
-            ]);
-        }
-
-        transaction
-            .authorization_api
-            .modify_web_relations(
-                relationships
-                    .clone()
-                    .into_iter()
-                    .map(|relation_and_subject| {
-                        (
-                            ModifyRelationshipOperation::Create,
-                            params.web_id,
-                            relation_and_subject,
-                        )
-                    }),
+            .query_opt(
+                "
+                SELECT team.id, parent.principal_type, parent.id
+                FROM team
+                JOIN principal AS parent ON parent.id = team.parent_id
+                WHERE team.name = $1",
+                &[&name],
             )
             .await
-            .change_context(WebInsertionError)?;
-
-        if let Err(error) = transaction.commit().await.change_context(WebInsertionError) {
-            let mut error = error.expand();
-
-            if let Err(auth_error) = self
-                .authorization_api
-                .modify_web_relations(relationships.into_iter().map(|relation_and_subject| {
-                    (
-                        ModifyRelationshipOperation::Delete,
-                        params.web_id,
-                        relation_and_subject,
-                    )
-                }))
-                .await
-                .change_context(WebInsertionError)
-            {
-                error.push(auth_error);
-            }
-
-            Err(error.change_context(WebInsertionError))
-        } else {
-            Ok(())
-        }
+            .change_context(TeamRetrievalError)?
+            .map(|row| GetTeamResponse {
+                team_id: row.get(0),
+                parent_id: match row.get(1) {
+                    PrincipalType::Web => ActorGroupId::Web(row.get(2)),
+                    PrincipalType::Team => ActorGroupId::Team(row.get(2)),
+                    other => unreachable!("Unexpected actor group type: {other:?}"),
+                },
+            }))
     }
 
     #[tracing::instrument(level = "info", skip(self))]
@@ -1593,38 +1886,23 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
         &self,
         subject_id: EntityUuid,
     ) -> Result<WebOwnerSubject, Report<QueryWebError>> {
-        let row = self
-            .as_client()
-            .query_one(
-                "
-                    SELECT EXISTS (
-                        SELECT 1
-                        FROM accounts
-                        WHERE account_id = $1
-                    ), EXISTS (
-                        SELECT 1
-                        FROM account_groups
-                        WHERE account_group_id = $1
-                    );
-                ",
-                &[&subject_id],
-            )
+        let actor_uuid = ActorEntityUuid::new(subject_id);
+        if self
+            .is_actor(actor_uuid)
             .await
-            .change_context(QueryWebError)?;
-
-        match (row.get(0), row.get(1)) {
-            (false, false) => Err(Report::new(QueryWebError)
-                .attach_printable("Record does not exist")
-                .attach_printable(subject_id)),
-            (true, false) => Ok(WebOwnerSubject::Account {
-                id: ActorEntityUuid::new(subject_id),
-            }),
-            (false, true) => Ok(WebOwnerSubject::AccountGroup {
+            .change_context(QueryWebError)?
+        {
+            Ok(WebOwnerSubject::Account { id: actor_uuid })
+        } else if self
+            .is_web(WebId::new(subject_id))
+            .await
+            .change_context(QueryWebError)?
+        {
+            Ok(WebOwnerSubject::AccountGroup {
                 id: ActorGroupEntityUuid::new(subject_id),
-            }),
-            (true, true) => Err(Report::new(QueryWebError)
-                .attach_printable("Record exists in both accounts and account_groups")
-                .attach_printable(subject_id)),
+            })
+        } else {
+            Err(Report::new(QueryWebError).attach_printable(subject_id))
         }
     }
 }
@@ -1635,23 +1913,13 @@ where
     A: Send + Sync,
 {
     #[tracing::instrument(level = "trace", skip(self))]
-    pub async fn delete_accounts(
+    pub async fn delete_principals(
         &mut self,
         actor_id: ActorEntityUuid,
     ) -> Result<(), Report<DeletionError>> {
         self.as_client()
             .client()
-            .simple_query("DELETE FROM webs;")
-            .await
-            .change_context(DeletionError)?;
-        self.as_client()
-            .client()
-            .simple_query("DELETE FROM accounts;")
-            .await
-            .change_context(DeletionError)?;
-        self.as_client()
-            .client()
-            .simple_query("DELETE FROM account_groups;")
+            .simple_query("DELETE FROM principal;")
             .await
             .change_context(DeletionError)?;
 

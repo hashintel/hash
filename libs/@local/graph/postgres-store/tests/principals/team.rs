@@ -20,14 +20,25 @@ async fn create_team() -> Result<(), Box<dyn Error>> {
     let (mut client, actor_id) = db.seed([ActionName::All, ActionName::CreateWeb]).await?;
 
     let web_id = client
-        .create_web(actor_id, CreateWebParameter { id: None })
+        .create_web(
+            actor_id,
+            CreateWebParameter {
+                id: None,
+                administrator: actor_id,
+                shortname: Some("test-web".to_owned()),
+                is_actor_web: false,
+            },
+        )
+        .await?
+        .web_id;
+    let team_id = client
+        .insert_team(None, ActorGroupId::Web(web_id), "team")
         .await?;
-    let team_id = client.create_team(None, ActorGroupId::Web(web_id)).await?;
     assert!(client.is_team(team_id).await?);
 
     let team = client.get_team(team_id).await?.expect("Team should exist");
 
-    assert_eq!(team.parents, [ActorGroupId::Web(web_id)]);
+    assert_eq!(team.parent_id, ActorGroupId::Web(web_id));
 
     Ok(())
 }
@@ -38,11 +49,20 @@ async fn create_team_with_id() -> Result<(), Box<dyn Error>> {
     let (mut client, actor_id) = db.seed([ActionName::All, ActionName::CreateWeb]).await?;
 
     let web_id = client
-        .create_web(actor_id, CreateWebParameter { id: None })
-        .await?;
+        .create_web(
+            actor_id,
+            CreateWebParameter {
+                id: None,
+                administrator: actor_id,
+                shortname: Some("test-web".to_owned()),
+                is_actor_web: false,
+            },
+        )
+        .await?
+        .web_id;
     let id = Uuid::new_v4();
     let team_id = client
-        .create_team(Some(id), ActorGroupId::Web(web_id))
+        .insert_team(Some(id), ActorGroupId::Web(web_id), "team")
         .await?;
 
     assert_eq!(Uuid::from(team_id), id);
@@ -58,21 +78,28 @@ async fn delete_team_with_hierarchy() -> Result<(), Box<dyn Error>> {
 
     // Create a hierarchy: web -> mid_team -> bottom_team
     let web_id = client
-        .create_web(actor_id, CreateWebParameter { id: None })
+        .create_web(
+            actor_id,
+            CreateWebParameter {
+                id: None,
+                administrator: actor_id,
+                shortname: Some("test-web".to_owned()),
+                is_actor_web: false,
+            },
+        )
+        .await?
+        .web_id;
+    let mid_team_id = client
+        .insert_team(None, ActorGroupId::Web(web_id), "mid-team")
         .await?;
-    let mid_team_id = client.create_team(None, ActorGroupId::Web(web_id)).await?;
     let bottom_team_id = client
-        .create_team(None, ActorGroupId::Team(mid_team_id))
+        .insert_team(None, ActorGroupId::Team(mid_team_id), "bottom-team")
         .await?;
 
     // Verify hierarchy is correctly established
-    let team = client
-        .get_team(bottom_team_id)
-        .await?
-        .expect("Team should exist");
-
+    let parents = client.get_parent_actor_groups(bottom_team_id).await?;
     assert_eq!(
-        team.parents,
+        parents,
         [ActorGroupId::Team(mid_team_id), ActorGroupId::Web(web_id)]
     );
 
@@ -130,11 +157,22 @@ async fn can_delete_team_with_children() -> Result<(), Box<dyn Error>> {
 
     // Create a simple parent-child hierarchy
     let web_id = client
-        .create_web(actor_id, CreateWebParameter { id: None })
+        .create_web(
+            actor_id,
+            CreateWebParameter {
+                id: None,
+                administrator: actor_id,
+                shortname: Some("test-web".to_owned()),
+                is_actor_web: false,
+            },
+        )
+        .await?
+        .web_id;
+    let parent_team_id = client
+        .insert_team(None, ActorGroupId::Web(web_id), "parent")
         .await?;
-    let parent_team_id = client.create_team(None, ActorGroupId::Web(web_id)).await?;
     let child_team_id = client
-        .create_team(None, ActorGroupId::Team(parent_team_id))
+        .insert_team(None, ActorGroupId::Team(parent_team_id), "child")
         .await?;
 
     // Delete the parent team
@@ -154,24 +192,47 @@ async fn create_team_with_duplicate_id() -> Result<(), Box<dyn Error>> {
 
     // Create a parent team
     let web_id = client
-        .create_web(actor_id, CreateWebParameter { id: None })
-        .await?;
+        .create_web(
+            actor_id,
+            CreateWebParameter {
+                id: None,
+                administrator: actor_id,
+                shortname: Some("test-web".to_owned()),
+                is_actor_web: false,
+            },
+        )
+        .await?
+        .web_id;
 
     // Create a team with a specific ID
     let id = Uuid::new_v4();
     let team_id = client
-        .create_team(Some(id), ActorGroupId::Web(web_id))
+        .insert_team(Some(id), ActorGroupId::Web(web_id), "team")
         .await?;
 
     // Try to create another team with the same ID
     let result = client
-        .create_team(Some(id), ActorGroupId::Web(web_id))
+        .insert_team(Some(id), ActorGroupId::Web(web_id), "same-team")
         .await;
 
     // The implementation now returns a PrincipalAlreadyExists error
     assert_matches!(
         result.expect_err("Creating a team with duplicate ID should fail").current_context(),
         PrincipalError::PrincipalAlreadyExists { id: error_id } if *error_id == PrincipalId::ActorGroup(ActorGroupId::Team(team_id)),
+        "Error should indicate that team already exists"
+    );
+
+    // Try to create another team with the same name
+    let result = client
+        .insert_team(None, ActorGroupId::Web(web_id), "team")
+        .await;
+
+    // The implementation now returns a PrincipalAlreadyExists error
+    assert_matches!(
+        result
+            .expect_err("Creating a team with duplicate name should fail")
+            .current_context(),
+        PrincipalError::PrincipalAlreadyExists { id: _ },
         "Error should indicate that team already exists"
     );
 
@@ -191,9 +252,20 @@ async fn get_team() -> Result<(), Box<dyn Error>> {
 
     // Create a parent team and team
     let web_id = client
-        .create_web(actor_id, CreateWebParameter { id: None })
+        .create_web(
+            actor_id,
+            CreateWebParameter {
+                id: None,
+                administrator: actor_id,
+                shortname: Some("test-web".to_owned()),
+                is_actor_web: false,
+            },
+        )
+        .await?
+        .web_id;
+    let team_id = client
+        .insert_team(None, ActorGroupId::Web(web_id), "team")
         .await?;
-    let team_id = client.create_team(None, ActorGroupId::Web(web_id)).await?;
 
     // Get the team and verify it matches
     let retrieved = client.get_team(team_id).await?.expect("Team should exist");

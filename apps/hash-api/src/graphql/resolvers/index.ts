@@ -1,8 +1,8 @@
 import { JSONObjectResolver } from "graphql-scalars";
 
 import {
-  addAccountGroupMember,
-  removeAccountGroupMember,
+  addActorGroupMember,
+  removeActorGroupMember,
 } from "../../graph/account-permission-management";
 import type {
   EntityAuthorizationSubject,
@@ -233,14 +233,14 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     ),
 
     addAccountGroupMember: (_, { accountId, accountGroupId }, context) =>
-      addAccountGroupMember(context.dataSources, context.authentication, {
-        accountId,
-        accountGroupId,
+      addActorGroupMember(context.dataSources, context.authentication, {
+        actorId: accountId,
+        actorGroupId: accountGroupId,
       }),
     removeAccountGroupMember: (_, { accountId, accountGroupId }, context) =>
-      removeAccountGroupMember(context.dataSources, context.authentication, {
-        accountId,
-        accountGroupId,
+      removeActorGroupMember(context.dataSources, context.authentication, {
+        actorId: accountId,
+        actorGroupId: accountGroupId,
       }),
 
     // Integration

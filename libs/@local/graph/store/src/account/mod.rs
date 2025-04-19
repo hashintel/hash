@@ -1,22 +1,14 @@
 use error_stack::Report;
-use hash_graph_authorization::schema::WebOwnerSubject;
+use hash_graph_authorization::{policies::store::CreateWebResponse, schema::WebOwnerSubject};
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use type_system::{
     knowledge::entity::id::EntityUuid,
     principal::{
-        actor::{ActorEntityUuid, ActorType},
-        actor_group::{ActorGroupEntityUuid, WebId},
+        actor::{ActorEntityUuid, AiId, MachineId, UserId},
+        actor_group::{ActorGroupId, TeamId, WebId},
     },
 };
-
-fn random_account_id() -> ActorEntityUuid {
-    ActorEntityUuid::new(uuid::Uuid::new_v4())
-}
-
-fn random_account_group_entity_uuid() -> ActorGroupEntityUuid {
-    ActorGroupEntityUuid::new(uuid::Uuid::new_v4())
-}
 
 #[derive(Debug, Error)]
 #[error("Could not insert account")]
@@ -25,39 +17,80 @@ pub struct AccountInsertionError;
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct InsertAccountIdParams {
-    #[serde(default = "random_account_id")]
-    pub account_id: ActorEntityUuid,
-    pub account_type: ActorType,
+pub struct CreateUserActorParams {
+    pub shortname: Option<String>,
+    pub registration_complete: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CreateUserActorResponse {
+    pub user_id: UserId,
+    pub machine_id: MachineId,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CreateMachineActorParams {
+    pub identifier: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CreateAiActorParams {
+    pub identifier: String,
 }
 
 #[derive(Debug, Error)]
 #[error("Could not insert account group")]
 pub struct AccountGroupInsertionError;
 
-fn random_web_id() -> WebId {
-    WebId::new(uuid::Uuid::new_v4())
-}
-
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct InsertAccountGroupIdParams {
-    #[serde(default = "random_account_group_entity_uuid")]
-    pub account_group_id: ActorGroupEntityUuid,
+pub struct CreateTeamParams {
+    pub parent: ActorGroupId,
+    pub name: String,
 }
+
+#[derive(Debug, Error)]
+#[error("Could not retrieve team")]
+pub struct TeamRetrievalError;
+
+#[derive(Debug, Error)]
+#[error("Could not retrieve web")]
+pub struct WebRetrievalError;
 
 #[derive(Debug, Error)]
 #[error("Could not insert web")]
 pub struct WebInsertionError;
 
+#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct GetWebResponse {
+    pub web_id: WebId,
+    pub machine_id: MachineId,
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    pub shortname: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct GetTeamResponse {
+    pub team_id: TeamId,
+    pub parent_id: ActorGroupId,
+}
+
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct InsertWebIdParams {
-    #[serde(default = "random_web_id")]
-    pub web_id: WebId,
-    pub owner: WebOwnerSubject,
+pub struct CreateOrgWebParams {
+    pub shortname: String,
 }
 
 #[derive(Debug, Error)]
@@ -66,38 +99,93 @@ pub struct QueryWebError;
 
 /// Describes the API of a store implementation for accounts.
 pub trait AccountStore {
-    /// Inserts the specified [`ActorEntityUuid`] into the database.
+    /// Creates a user actor with the specified [`ActorEntityUuid`] in the database.
     ///
     /// # Errors
     ///
-    /// - if insertion failed, e.g. because the [`ActorEntityUuid`] already exists.
-    fn insert_account_id(
+    /// - if creation failed, e.g. because the [`ActorEntityUuid`] already exists.
+    fn create_user_actor(
         &mut self,
         actor_id: ActorEntityUuid,
-        params: InsertAccountIdParams,
-    ) -> impl Future<Output = Result<(), Report<AccountInsertionError>>> + Send;
+        params: CreateUserActorParams,
+    ) -> impl Future<Output = Result<CreateUserActorResponse, Report<AccountInsertionError>>> + Send;
 
-    /// Inserts the specified [`ActorGroupEntityUuid`] into the database.
+    /// Creates a machine actor with the specified [`ActorEntityUuid`] in the database.
     ///
     /// # Errors
     ///
-    /// - if insertion failed, e.g. because the [`ActorGroupEntityUuid`] already exists.
-    fn insert_account_group_id(
+    /// - if creation failed, e.g. because the [`ActorEntityUuid`] already exists.
+    fn create_machine_actor(
         &mut self,
         actor_id: ActorEntityUuid,
-        params: InsertAccountGroupIdParams,
-    ) -> impl Future<Output = Result<(), Report<AccountGroupInsertionError>>> + Send;
+        params: CreateMachineActorParams,
+    ) -> impl Future<Output = Result<MachineId, Report<AccountInsertionError>>> + Send;
+
+    /// Creates an AI actor with the specified [`ActorEntityUuid`] in the database.
+    ///
+    /// # Errors
+    ///
+    /// - if creation failed, e.g. because the [`ActorEntityUuid`] already exists.
+    fn create_ai_actor(
+        &mut self,
+        actor_id: ActorEntityUuid,
+        params: CreateAiActorParams,
+    ) -> impl Future<Output = Result<AiId, Report<AccountInsertionError>>> + Send;
+
+    /// Retrieves the web as specified by its [`WebId`].
+    ///
+    /// # Errors
+    ///
+    /// - If reading the web failed.
+    fn find_web(
+        &mut self,
+        actor_id: ActorEntityUuid,
+        web_id: WebId,
+    ) -> impl Future<Output = Result<Option<GetWebResponse>, Report<WebRetrievalError>>> + Send;
+
+    /// Retrieves the web as specified by the `shortname`.
+    ///
+    /// # Errors
+    ///
+    /// - If reading the web failed.
+    fn find_web_by_shortname(
+        &mut self,
+        actor_id: ActorEntityUuid,
+        shortname: &str,
+    ) -> impl Future<Output = Result<Option<GetWebResponse>, Report<WebRetrievalError>>> + Send;
 
     /// Inserts the specified [`WebId`] into the database.
     ///
     /// # Errors
     ///
     /// - if insertion failed, e.g. because the [`WebId`] already exists.
-    fn insert_web_id(
+    fn create_org_web(
         &mut self,
         actor_id: ActorEntityUuid,
-        params: InsertWebIdParams,
-    ) -> impl Future<Output = Result<(), Report<WebInsertionError>>> + Send;
+        params: CreateOrgWebParams,
+    ) -> impl Future<Output = Result<CreateWebResponse, Report<WebInsertionError>>> + Send;
+
+    /// Inserts the specified [`TeamId`] into the database.
+    ///
+    /// # Errors
+    ///
+    /// - if insertion failed, e.g. because the [`TeamId`] already exists.
+    fn create_team(
+        &mut self,
+        actor_id: ActorEntityUuid,
+        params: CreateTeamParams,
+    ) -> impl Future<Output = Result<TeamId, Report<AccountGroupInsertionError>>> + Send;
+
+    /// Retrieves the team as specified by the `name`.
+    ///
+    /// # Errors
+    ///
+    /// - If reading the team failed.
+    fn find_team_by_name(
+        &mut self,
+        actor_id: ActorEntityUuid,
+        name: &str,
+    ) -> impl Future<Output = Result<Option<GetTeamResponse>, Report<TeamRetrievalError>>> + Send;
 
     /// Returns either an [`Account`] or an [`AccountGroup`] for the specified
     /// [`WebId`].

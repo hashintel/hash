@@ -26,15 +26,15 @@ mod sorting;
 use alloc::borrow::Cow;
 use std::collections::HashMap;
 
-use error_stack::Report;
+use error_stack::{Report, ResultExt as _};
 use hash_graph_authorization::{
     AuthorizationApi, NoAuthorization,
+    policies::store::LocalPrincipalStore as _,
     schema::{
         DataTypeRelationAndSubject, DataTypeViewerSubject, EntityRelationAndSubject,
         EntityTypeInstantiatorSubject, EntityTypeRelationAndSubject, EntityTypeSetting,
         EntityTypeSettingSubject, EntityTypeViewerSubject, PropertyTypeRelationAndSubject,
         PropertyTypeSetting, PropertyTypeSettingSubject, PropertyTypeViewerSubject,
-        WebOwnerSubject,
     },
     zanzibar::Consistency,
 };
@@ -46,7 +46,7 @@ use hash_graph_postgres_store::{
     },
 };
 use hash_graph_store::{
-    account::{AccountStore as _, InsertAccountIdParams, InsertWebIdParams},
+    account::{AccountStore as _, CreateUserActorParams},
     data_type::{
         ArchiveDataTypeParams, CountDataTypesParams, CreateDataTypeParams, DataTypeStore,
         GetDataTypeConversionTargetsParams, GetDataTypeConversionTargetsResponse,
@@ -90,13 +90,9 @@ use type_system::{
         property_type::{PropertyType, PropertyTypeMetadata},
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
-    principal::{
-        actor::{ActorEntityUuid, ActorType},
-        actor_group::WebId,
-    },
+    principal::actor::{ActorEntityUuid, ActorType},
     provenance::{OriginProvenance, OriginType},
 };
-use uuid::Uuid;
 
 pub struct DatabaseTestWrapper<A: AuthorizationApi> {
     _pool: PostgresStorePool,
@@ -224,38 +220,32 @@ impl<A: AuthorizationApi> DatabaseTestWrapper<A> {
             .await
             .expect("could not start test transaction");
 
-        let account_id = ActorEntityUuid::new(Uuid::new_v4());
-        store
-            .insert_account_id(
-                account_id,
-                InsertAccountIdParams {
-                    account_id,
-                    account_type: ActorType::User,
+        let system_account_id = store
+            .get_or_create_system_actor("h")
+            .await
+            .change_context(InsertionError)?;
+        let user_id = store
+            .create_user_actor(
+                system_account_id.into(),
+                CreateUserActorParams {
+                    shortname: Some("bench-user".to_owned()),
+                    registration_complete: true,
                 },
             )
             .await
-            .expect("could not insert account id");
-        store
-            .insert_web_id(
-                account_id,
-                InsertWebIdParams {
-                    web_id: WebId::new(account_id),
-                    owner: WebOwnerSubject::Account { id: account_id },
-                },
-            )
-            .await
-            .expect("could not create web id");
+            .change_context(InsertionError)?
+            .user_id;
 
         store
             .create_data_types(
-                account_id,
+                user_id.into(),
                 data_types.into_iter().map(|data_type_str| {
                     let schema: DataType = serde_json::from_str(data_type_str)
                         .expect("could not parse data type representation");
                     CreateDataTypeParams {
                         schema,
                         ownership: OntologyOwnership::Local {
-                            web_id: WebId::new(account_id),
+                            web_id: user_id.into(),
                         },
                         relationships: data_type_relationships(),
                         conflict_behavior: ConflictBehavior::Skip,
@@ -272,14 +262,14 @@ impl<A: AuthorizationApi> DatabaseTestWrapper<A> {
 
         store
             .create_property_types(
-                account_id,
+                user_id.into(),
                 property_types.into_iter().map(|property_type_str| {
                     let schema: PropertyType = serde_json::from_str(property_type_str)
                         .expect("could not property data type representation");
                     CreatePropertyTypeParams {
                         schema,
                         ownership: OntologyOwnership::Local {
-                            web_id: WebId::new(account_id),
+                            web_id: user_id.into(),
                         },
                         relationships: property_type_relationships(),
                         conflict_behavior: ConflictBehavior::Skip,
@@ -295,14 +285,14 @@ impl<A: AuthorizationApi> DatabaseTestWrapper<A> {
 
         store
             .create_entity_types(
-                account_id,
+                user_id.into(),
                 entity_types.into_iter().map(|entity_type_str| {
                     let schema: EntityType = serde_json::from_str(entity_type_str)
                         .expect("could not entity data type representation");
                     CreateEntityTypeParams {
                         schema,
                         ownership: OntologyOwnership::Local {
-                            web_id: WebId::new(account_id),
+                            web_id: user_id.into(),
                         },
                         relationships: entity_type_relationships(),
                         conflict_behavior: ConflictBehavior::Skip,
@@ -316,7 +306,10 @@ impl<A: AuthorizationApi> DatabaseTestWrapper<A> {
             )
             .await?;
 
-        Ok(DatabaseApi { store, account_id })
+        Ok(DatabaseApi {
+            store,
+            account_id: user_id.into(),
+        })
     }
 }
 

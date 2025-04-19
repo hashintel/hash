@@ -1,13 +1,13 @@
-import type { ActorEntityUuid } from "@blockprotocol/type-system";
 import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import { getHashInstance } from "@local/hash-backend-utils/hash-instance";
 import {
-  createWebMachineActor,
-  getWebMachineActorId,
+  createMachineActorEntity,
+  getMachineIdByIdentifier,
 } from "@local/hash-backend-utils/machine-actors";
 
 import { logger } from "../../../../logger";
+import { findWeb } from "../../../account-permission-management";
 import { createHashInstance } from "../../../knowledge/system-types/hash-instance";
 import { systemAccountId } from "../../../system-account";
 import {
@@ -93,21 +93,32 @@ const migrate: MigrationFunction = async ({
       user.metadata.recordId.entityId,
     );
     try {
-      await getWebMachineActorId(context, authentication, {
-        webId: userAccountId,
+      await getMachineIdByIdentifier(context, authentication, {
+        identifier: `system-${userAccountId}`,
       });
     } catch (err) {
       if (err instanceof NotFoundError) {
-        await createWebMachineActor(
-          context,
-          // We have to use the user's authority to add the machine to their web
-          { actorId: userAccountId as ActorEntityUuid },
-          {
-            webId: userAccountId,
-            logger,
-            machineEntityTypeId: currentMachineEntityTypeId,
-          },
-        );
+        const { webId, machineId } = await findWeb(context, authentication, {
+          webId: userAccountId,
+        }).then((response) => {
+          if (!response) {
+            throw new NotFoundError(
+              `Critical: No web with id ${webId} found in the graph.`,
+            );
+          }
+          return response;
+        });
+
+        await createMachineActorEntity(context, {
+          identifier: `system-${webId}`,
+          logger,
+          machineId,
+          webId,
+          displayName: "HASH",
+          systemAccountId,
+          machineEntityTypeId: currentMachineEntityTypeId,
+        });
+
         logger.info(
           `Created missing machine web actor for user ${user.metadata.recordId.entityId}`,
         );
@@ -124,23 +135,32 @@ const migrate: MigrationFunction = async ({
       org.metadata.recordId.entityId,
     );
     try {
-      await getWebMachineActorId(context, authentication, {
-        webId: orgAccountGroupId,
+      await getMachineIdByIdentifier(context, authentication, {
+        identifier: `system-${orgAccountGroupId}`,
       });
     } catch (err) {
       if (err instanceof NotFoundError) {
-        const orgAdminAccountId = org.metadata.provenance.edition.createdById;
+        const { webId, machineId } = await findWeb(context, authentication, {
+          webId: orgAccountGroupId,
+        }).then((response) => {
+          if (!response) {
+            throw new NotFoundError(
+              `Critical: No web with id ${webId} found in the graph.`,
+            );
+          }
+          return response;
+        });
 
-        await createWebMachineActor(
-          context,
-          // We have to use an org admin's authority to add the machine to their web
-          { actorId: orgAdminAccountId },
-          {
-            webId: orgAccountGroupId,
-            logger,
-            machineEntityTypeId: currentMachineEntityTypeId,
-          },
-        );
+        await createMachineActorEntity(context, {
+          identifier: `system-${webId}`,
+          logger,
+          machineId,
+          webId,
+          displayName: "HASH",
+          systemAccountId,
+          machineEntityTypeId: currentMachineEntityTypeId,
+        });
+
         logger.info(
           `Created missing machine web actor for org ${org.metadata.recordId.entityId}`,
         );

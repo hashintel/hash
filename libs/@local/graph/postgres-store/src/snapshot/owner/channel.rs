@@ -15,7 +15,7 @@ use type_system::principal::actor_group::ActorGroupEntityUuid;
 
 use crate::snapshot::{
     SnapshotRestoreError,
-    owner::{AccountGroupRow, AccountRow, AccountRowBatch, Owner},
+    owner::{AccountRowBatch, Owner},
 };
 
 /// A sink to insert [`ActorEntityUuid`]s and [`ActorGroupEntityUuid`]s.
@@ -26,10 +26,7 @@ use crate::snapshot::{
 /// [`ActorEntityUuid`]: type_system::principal::actor::ActorEntityUuid
 /// [`ActorGroupEntityUuid`]: type_system::principal::actor_group::ActorGroupEntityUuid
 #[derive(Debug, Clone)]
-#[expect(clippy::struct_field_names)]
 pub struct OwnerSender {
-    account_id: Sender<AccountRow>,
-    account_group_id: Sender<AccountGroupRow>,
     account_group_relations: Sender<(ActorGroupEntityUuid, AccountGroupRelationAndSubject)>,
 }
 
@@ -42,12 +39,6 @@ impl Sink<Owner> for OwnerSender {
         mut self: Pin<&mut Self>,
         cx: &mut Context<'_>,
     ) -> Poll<StdResult<(), Self::Error>> {
-        ready!(self.account_id.poll_ready_unpin(cx))
-            .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not poll account sender")?;
-        ready!(self.account_group_id.poll_ready_unpin(cx))
-            .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not poll account group sender")?;
         ready!(self.account_group_relations.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not poll account group relations sender")?;
@@ -57,20 +48,7 @@ impl Sink<Owner> for OwnerSender {
 
     fn start_send(mut self: Pin<&mut Self>, item: Owner) -> StdResult<(), Self::Error> {
         match item {
-            Owner::Account(account) => self
-                .account_id
-                .start_send_unpin(AccountRow {
-                    account_id: account.id,
-                })
-                .change_context(SnapshotRestoreError::Read)
-                .attach_printable("could not send account"),
             Owner::AccountGroup(account_group) => {
-                self.account_group_id
-                    .start_send_unpin(AccountGroupRow {
-                        account_group_id: account_group.id,
-                    })
-                    .change_context(SnapshotRestoreError::Read)
-                    .attach_printable("could not send account group")?;
                 for relation in account_group.relations {
                     self.account_group_relations
                         .start_send_unpin((account_group.id, relation))
@@ -86,12 +64,6 @@ impl Sink<Owner> for OwnerSender {
         mut self: Pin<&mut Self>,
         cx: &mut Context<'_>,
     ) -> Poll<StdResult<(), Self::Error>> {
-        ready!(self.account_id.poll_flush_unpin(cx))
-            .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not flush account sender")?;
-        ready!(self.account_group_id.poll_flush_unpin(cx))
-            .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not flush account group sender")?;
         ready!(self.account_group_relations.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not flush account group relations sender")?;
@@ -103,12 +75,6 @@ impl Sink<Owner> for OwnerSender {
         mut self: Pin<&mut Self>,
         cx: &mut Context<'_>,
     ) -> Poll<StdResult<(), Self::Error>> {
-        ready!(self.account_id.poll_close_unpin(cx))
-            .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not close account sender")?;
-        ready!(self.account_group_id.poll_close_unpin(cx))
-            .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not close account group sender")?;
         ready!(self.account_group_relations.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not close account group relations sender")?;
@@ -139,31 +105,17 @@ impl Stream for OwnerReceiver {
 ///
 /// The `chunk_size` parameter determines the number of ids are sent in a single batch.
 pub fn channel(chunk_size: usize) -> (OwnerSender, OwnerReceiver) {
-    let (account_id_tx, account_id_rx) = mpsc::channel(chunk_size);
-    let (account_group_id_tx, account_group_id_rx) = mpsc::channel(chunk_size);
     let (account_group_relations_tx, account_group_relations_rx) = mpsc::channel(chunk_size);
 
     (
         OwnerSender {
-            account_id: account_id_tx,
-            account_group_id: account_group_id_tx,
             account_group_relations: account_group_relations_tx,
         },
         OwnerReceiver {
-            stream: select_all([
-                account_id_rx
-                    .ready_chunks(chunk_size)
-                    .map(AccountRowBatch::Accounts)
-                    .boxed(),
-                account_group_id_rx
-                    .ready_chunks(chunk_size)
-                    .map(AccountRowBatch::AccountGroups)
-                    .boxed(),
-                account_group_relations_rx
-                    .ready_chunks(chunk_size)
-                    .map(AccountRowBatch::AccountGroupAccountRelations)
-                    .boxed(),
-            ]),
+            stream: select_all([account_group_relations_rx
+                .ready_chunks(chunk_size)
+                .map(AccountRowBatch::AccountGroupAccountRelations)
+                .boxed()]),
         },
     )
 }

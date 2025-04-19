@@ -1,4 +1,8 @@
-import type { ActorEntityUuid, EntityId } from "@blockprotocol/type-system";
+import type {
+  ActorEntityUuid,
+  ActorGroupEntityUuid,
+  EntityId,
+} from "@blockprotocol/type-system";
 import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import type { HashLinkEntity } from "@local/hash-graph-sdk/entity";
@@ -6,6 +10,10 @@ import { createOrgMembershipAuthorizationRelationships } from "@local/hash-isomo
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { IsMemberOf } from "@local/hash-isomorphic-utils/system-types/shared";
 
+import {
+  addActorGroupMember,
+  removeActorGroupMember,
+} from "../../account-permission-management";
 import type {
   ImpureGraphFunction,
   PureGraphFunction,
@@ -60,14 +68,13 @@ export const createOrgMembership: ImpureGraphFunction<
   },
   Promise<OrgMembership>
 > = async (ctx, authentication, { userEntityId, orgEntityId }) => {
-  const userActorId = extractWebIdFromEntityId(userEntityId);
+  const userActorId = extractWebIdFromEntityId(userEntityId) as ActorEntityUuid;
   const orgWebId = extractWebIdFromEntityId(orgEntityId);
 
-  await ctx.graphApi.addAccountGroupMember(
-    authentication.actorId,
-    orgWebId,
-    userActorId,
-  );
+  await addActorGroupMember(ctx, authentication, {
+    actorId: userActorId,
+    actorGroupId: orgWebId as ActorGroupEntityUuid,
+  });
 
   let linkEntity;
   try {
@@ -80,15 +87,14 @@ export const createOrgMembership: ImpureGraphFunction<
       },
       entityTypeIds: [systemLinkEntityTypes.isMemberOf.linkEntityTypeId],
       relationships: createOrgMembershipAuthorizationRelationships({
-        memberAccountId: userActorId as ActorEntityUuid,
+        memberAccountId: userActorId,
       }),
     });
   } catch (error) {
-    await ctx.graphApi.removeAccountGroupMember(
-      authentication.actorId,
-      extractWebIdFromEntityId(orgEntityId),
-      extractWebIdFromEntityId(userEntityId),
-    );
+    await removeActorGroupMember(ctx, authentication, {
+      actorId: userActorId,
+      actorGroupId: orgWebId as ActorGroupEntityUuid,
+    });
 
     throw error;
   }

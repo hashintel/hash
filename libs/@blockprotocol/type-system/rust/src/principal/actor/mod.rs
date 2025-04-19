@@ -195,7 +195,10 @@ impl postgres_types::ToSql for ActorId {
 ///
 /// Represents the concrete implementation of an actor with its attributes and capabilities.
 /// Each variant corresponds to a specific [`ActorType`].
-#[derive(Debug, derive_more::From)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, derive_more::From)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(tag = "actorType", rename_all = "camelCase")]
 pub enum Actor {
     User(User),
     Machine(Machine),

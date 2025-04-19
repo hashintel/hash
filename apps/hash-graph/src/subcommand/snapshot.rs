@@ -23,17 +23,9 @@ use crate::error::GraphError;
 )]
 #[derive(Debug, Parser)]
 pub struct SnapshotDumpArgs {
-    /// Whether to skip dumping the webs.
+    /// Whether to skip dumping the principals.
     #[clap(long)]
-    pub no_webs: bool,
-
-    /// Whether to skip dumping the accounts.
-    #[clap(long)]
-    pub no_accounts: bool,
-
-    /// Whether to skip dumping the account groups.
-    #[clap(long)]
-    pub no_account_groups: bool,
+    pub no_principals: bool,
 
     /// Whether to skip dumping the entities.
     #[clap(long)]
@@ -155,9 +147,7 @@ pub async fn snapshot(args: SnapshotArgs) -> Result<(), Report<GraphError>> {
             );
             let settings = SnapshotDumpSettings {
                 chunk_size: 10_000,
-                dump_webs: !args.no_webs,
-                dump_accounts: !args.no_accounts,
-                dump_account_groups: !args.no_account_groups,
+                dump_principals: !args.no_principals,
                 dump_entities: !args.no_entities,
                 dump_entity_types: !args.no_entity_types,
                 dump_property_types: !args.no_property_types,

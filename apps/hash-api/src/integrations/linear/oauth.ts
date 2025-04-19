@@ -9,7 +9,7 @@ import type {
 } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { LinearClient } from "@linear/sdk";
-import { getMachineActorId } from "@local/hash-backend-utils/machine-actors";
+import { getMachineIdByIdentifier } from "@local/hash-backend-utils/machine-actors";
 import {
   apiOrigin,
   frontendUrl,
@@ -249,7 +249,7 @@ export const oAuthLinearCallback: RequestHandler<
   /**
    * Get the linear bot, which will be the only entity with edit access to the secret and the link to the secret
    */
-  const linearBotAccountId = await getMachineActorId(
+  const linearBotAccountId = await getMachineIdByIdentifier(
     req.context,
     authentication,
     { identifier: "linear" },

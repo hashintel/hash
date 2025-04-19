@@ -8,6 +8,7 @@ import {
   getOrgMembershipUser,
 } from "@apps/hash-api/src/graph/knowledge/system-types/org-membership";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
 import { Logger } from "@local/hash-backend-utils/logger";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -37,11 +38,11 @@ describe("OrgMembership", () => {
     await ensureSystemGraphIsInitialized({ logger, context: graphContext });
 
     testUser = await createTestUser(graphContext, "orgMembershipTest", logger);
-    authentication = { actorId: testUser.accountId };
+    authentication = { actorId: systemAccountId };
 
     testOrg = await createTestOrg(
       graphContext,
-      { actorId: testUser.accountId },
+      { actorId: systemAccountId },
       "orgMembershipTest",
     );
 

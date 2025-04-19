@@ -8,8 +8,8 @@ import {
   extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
 import {
-  getMachineActorId,
-  getWebMachineActorId,
+  getMachineIdByIdentifier,
+  getWebMachineId,
 } from "@local/hash-backend-utils/machine-actors";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
@@ -155,13 +155,13 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
 
       const webAccountId = extractEntityUuidFromEntityId(
         userOrOrganizationEntity.metadata.recordId.entityId,
-      ) as string as ActorEntityUuid;
+      ) as ActorEntityUuid;
 
       /**
        * Add the Linear machine user to the web,
        * if it doesn't already have permission to read and edit entities in it.
        */
-      const linearBotAccountId = await getMachineActorId(
+      const linearBotAccountId = await getMachineIdByIdentifier(
         dataSources,
         authentication,
         { identifier: "linear" },
@@ -172,7 +172,7 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
         .then((resp) => resp.data.has_permission);
 
       if (!linearBotHasPermission) {
-        const webMachineActorId = await getWebMachineActorId(
+        const webMachineActorId = await getWebMachineId(
           dataSources,
           authentication,
           {

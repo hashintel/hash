@@ -60,6 +60,17 @@ pub struct CreateUserParameter {
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct CreateWebParameter {
     pub id: Option<Uuid>,
+    pub administrator: ActorId,
+    pub shortname: Option<String>,
+    pub is_actor_web: bool,
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CreateWebResponse {
+    pub web_id: WebId,
+    pub machine_id: MachineId,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
@@ -91,8 +102,9 @@ pub trait LocalPrincipalStore {
     /// - [`StoreError`] if the underlying store returns an error
     ///
     /// [`StoreError`]: GetSystemAccountError::StoreError
-    async fn get_or_create_system_account(
+    async fn get_or_create_system_actor(
         &mut self,
+        identifier: &str,
     ) -> Result<MachineId, Report<GetSystemAccountError>>;
 
     /// Creates a new web and returns its ID.
@@ -108,7 +120,7 @@ pub trait LocalPrincipalStore {
         &mut self,
         actor: ActorId,
         parameter: CreateWebParameter,
-    ) -> Result<WebId, Report<WebCreationError>>;
+    ) -> Result<CreateWebResponse, Report<WebCreationError>>;
 
     /// Assigns an actor to a role.
     ///
@@ -128,6 +140,25 @@ pub trait LocalPrincipalStore {
         actor_group_id: ActorGroupEntityUuid,
         name: RoleName,
     ) -> Result<RoleAssignmentStatus, Report<RoleAssignmentError>>;
+
+    /// Checks if the actor is assigned to a role within the specified actor group.
+    ///
+    /// If the actor has a role assigned, the [`RoleName`] is returned.
+    ///
+    /// # Errors
+    ///
+    /// - [`ActorNotFound`] if the actor does not exist
+    /// - [`RoleNotFound`] if the role does not exist
+    /// - [`StoreError`] if the underlying store returns an error
+    ///
+    /// [`ActorNotFound`]: RoleAssignmentError::ActorNotFound
+    /// [`RoleNotFound`]: RoleAssignmentError::RoleNotFound
+    /// [`StoreError`]: RoleAssignmentError::StoreError
+    async fn is_assigned(
+        &mut self,
+        actor_id: ActorId,
+        actor_group_id: ActorGroupId,
+    ) -> Result<Option<RoleName>, Report<RoleAssignmentError>>;
 
     /// Unassigns an actor from a role.
     ///
@@ -170,7 +201,10 @@ pub trait PolicyStore {
     /// - [`StoreError`] if the underlying store returns an error
     ///
     /// [`StoreError`]: ActorCreationError::StoreError
-    fn create_machine(&mut self) -> Result<MachineId, Report<ActorCreationError>>;
+    fn create_machine(
+        &mut self,
+        identifier: String,
+    ) -> Result<MachineId, Report<ActorCreationError>>;
 
     /// Creates a new web and returns its ID.
     ///
@@ -179,7 +213,7 @@ pub trait PolicyStore {
     /// - [`StoreError`] if the underlying store returns an error
     ///
     /// [`StoreError`]: WebCreationError::StoreError
-    fn create_web(&mut self) -> Result<WebId, Report<WebCreationError>>;
+    fn create_web(&mut self, shortname: Option<String>) -> Result<WebId, Report<WebCreationError>>;
 
     /// Creates a new web role within the given web and returns its ID.
     ///
@@ -203,7 +237,11 @@ pub trait PolicyStore {
     /// - [`StoreError`] if the underlying store returns an error
     ///
     /// [`StoreError`]: TeamCreationError::StoreError
-    fn create_team(&mut self, parent: ActorGroupId) -> Result<TeamId, Report<TeamCreationError>>;
+    fn create_team(
+        &mut self,
+        parent_id: ActorGroupId,
+        name: String,
+    ) -> Result<TeamId, Report<TeamCreationError>>;
 
     /// Creates a new team role within the given team and returns its ID.
     ///
@@ -361,12 +399,16 @@ impl PolicyStore for MemoryPolicyStore {
         Ok(user_id)
     }
 
-    fn create_machine(&mut self) -> Result<MachineId, Report<ActorCreationError>> {
+    fn create_machine(
+        &mut self,
+        identifier: String,
+    ) -> Result<MachineId, Report<ActorCreationError>> {
         let machine_id = MachineId::new(Uuid::new_v4());
         self.actors.insert(
             ActorId::Machine(machine_id),
             Actor::Machine(Machine {
                 id: machine_id,
+                identifier,
                 roles: HashSet::new(),
             }),
         );
@@ -374,12 +416,13 @@ impl PolicyStore for MemoryPolicyStore {
         Ok(machine_id)
     }
 
-    fn create_web(&mut self) -> Result<WebId, Report<WebCreationError>> {
+    fn create_web(&mut self, shortname: Option<String>) -> Result<WebId, Report<WebCreationError>> {
         let web_id = WebId::new(Uuid::new_v4());
         self.teams.insert(
             ActorGroupId::Web(web_id),
             ActorGroup::Web(Web {
                 id: web_id,
+                shortname,
                 roles: HashSet::new(),
             }),
         );
@@ -411,14 +454,19 @@ impl PolicyStore for MemoryPolicyStore {
         Ok(role_id)
     }
 
-    fn create_team(&mut self, parent: ActorGroupId) -> Result<TeamId, Report<TeamCreationError>> {
+    fn create_team(
+        &mut self,
+        parent_id: ActorGroupId,
+        name: String,
+    ) -> Result<TeamId, Report<TeamCreationError>> {
         let team_id = TeamId::new(Uuid::new_v4());
         self.teams.insert(
             ActorGroupId::Team(team_id),
             ActorGroup::Team(Team {
                 id: team_id,
-                parents: vec![parent],
+                parent_id,
                 roles: HashSet::new(),
+                name,
             }),
         );
         Ok(team_id)
