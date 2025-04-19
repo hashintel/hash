@@ -702,6 +702,23 @@ mod test {
     }
 
     #[test]
+    fn meet_empty_empty_intersection() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        intersection!(env, a, []);
+        intersection!(env, b, []);
+
+        let mut lattice_env = LatticeEnvironment::new(&env);
+
+        assert_equiv!(
+            env,
+            a.meet(b, &mut lattice_env),
+            [instantiate(&env, TypeKind::Unknown)]
+        );
+    }
+
+    #[test]
     fn is_bottom_test() {
         let heap = Heap::new();
         let env = Environment::new(SpanId::SYNTHETIC, &heap);

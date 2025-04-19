@@ -91,9 +91,33 @@ macro_rules! assert_equiv {
     };
 }
 
+macro_rules! opaque {
+    ($env:expr, $name:expr, $repr:expr, $arguments:expr) => {{
+        let repr = $repr;
+        let name = $env.heap.intern_symbol($name);
+        let arguments = $env.intern_generic_arguments(&$arguments);
+
+        instantiate(
+            &$env,
+            TypeKind::Opaque(OpaqueType {
+                name,
+                repr,
+                arguments: GenericArguments::from_slice(arguments),
+            }),
+        )
+    }};
+
+    ($env:expr, $var_name:ident, $name:expr, $repr:expr, $arguments:expr) => {
+        let $var_name = opaque!($env, $name, $repr, $arguments);
+        let $var_name = $env.types[$var_name].copied();
+        let $var_name = $var_name.map(|kind| kind.opaque().expect("should be an opaque type"));
+    };
+}
+
 pub(crate) use assert_equiv;
 pub(crate) use assert_kind;
 pub(crate) use intersection;
+pub(crate) use opaque;
 pub(crate) use primitive;
 pub(crate) use tuple;
 pub(crate) use union;

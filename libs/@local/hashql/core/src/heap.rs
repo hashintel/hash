@@ -36,9 +36,13 @@
 //! - `heap::Vec<'heap, T>`: A vector allocated on the heap
 //! - `heap::VecDeque<'heap, T>`: A double-ended queue allocated on the heap
 //! - `heap::HashMap<'heap, K, V, S>`: A hash map allocated on the heap
-use core::alloc::Allocator;
+use core::{alloc::Allocator, ptr};
+use std::sync::Mutex;
 
 use bumpalo::Bump;
+use hashbrown::HashSet;
+
+use crate::symbol::InternedSymbol;
 
 /// A boxed value allocated on the `Heap`.
 ///
@@ -73,6 +77,9 @@ pub type HashMap<'heap, K, V, S = foldhash::fast::RandomState> =
 #[derive(Debug)]
 pub struct Heap {
     bump: Bump,
+    // `&'static str` here because they point in the actual arena. These strings are never dangling
+    // and are only ever available for the lifetime of the heap.
+    strings: Mutex<HashSet<&'static str, foldhash::fast::RandomState>>,
 }
 
 impl Heap {
@@ -82,7 +89,10 @@ impl Heap {
     /// when allocations are made.
     #[must_use]
     pub fn new() -> Self {
-        Self { bump: Bump::new() }
+        Self {
+            bump: Bump::new(),
+            strings: Mutex::default(),
+        }
     }
 
     /// Creates a new heap with the specified initial capacity.
@@ -94,13 +104,56 @@ impl Heap {
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
             bump: Bump::with_capacity(capacity),
+            strings: Mutex::default(),
         }
+    }
+
+    /// Resets the heap, clearing all allocations.
+    ///
+    /// # Panics
+    ///
+    /// This function will panic if the internal mutex is poisoned.
+    pub fn reset(&mut self) {
+        // It's important that we first clear the strings before resetting the bump allocator so
+        // that we don't have any dangling references.
+        self.strings
+            .lock()
+            .expect("lock should not be poisoned")
+            .clear();
+
+        self.bump.reset();
     }
 
     pub fn alloc<T>(&self, value: T) -> &mut T {
         const { assert!(!core::mem::needs_drop::<T>()) };
 
         self.bump.alloc(value)
+    }
+
+    /// Interns a string symbol, returning a reference to the interned value.
+    ///
+    /// # Panics
+    ///
+    /// This function will panic if the internal mutex is poisoned.
+    pub fn intern_symbol<'this>(&'this self, value: &str) -> InternedSymbol<'this> {
+        let mut strings = self.strings.lock().expect("lock should not be poisoned");
+
+        if let Some(string) = strings.get(value) {
+            return InternedSymbol::new_unchecked(string);
+        }
+
+        let string = &*self.bump.alloc_str(value);
+
+        // SAFETY: we can extend the arena allocation to `'static` because we
+        // only access these while the arena is still alive, and the container is cleared before the
+        // arena is reset.
+        #[expect(unsafe_code)]
+        let string: &'static str = unsafe { &*ptr::from_ref::<str>(string) };
+
+        strings.insert(string);
+        drop(strings);
+
+        InternedSymbol::new_unchecked(string)
     }
 
     pub fn slice<T>(&self, slice: &[T]) -> &mut [T]
@@ -127,16 +180,6 @@ impl Heap {
     pub fn transfer_vec<T>(&self, vec: alloc::vec::Vec<T>) -> Vec<T> {
         let mut target = Vec::with_capacity_in(vec.len(), self);
         target.extend(vec);
-
-        target
-    }
-
-    pub fn vec_from_slice<T>(&self, slice: &[T]) -> Vec<T>
-    where
-        T: Copy,
-    {
-        let mut target = Vec::with_capacity_in(slice.len(), self);
-        target.extend_from_slice(slice);
 
         target
     }
