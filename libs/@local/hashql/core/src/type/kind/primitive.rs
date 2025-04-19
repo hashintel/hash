@@ -67,6 +67,10 @@ impl<'heap> Lattice<'heap> for PrimitiveType {
         false
     }
 
+    fn is_concrete(self: Type<'heap, Self>, _: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+        true
+    }
+
     fn is_subtype_of(
         self: Type<'heap, Self>,
         supertype: Type<'heap, Self>,
@@ -651,5 +655,23 @@ mod test {
         primitive!(env, boolean, PrimitiveType::Boolean);
 
         assert_lattice_laws(&env, number.id, string.id, boolean.id);
+    }
+
+    #[test]
+    fn is_concrete_test() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // All primitive types should be concrete
+        primitive!(env, number, PrimitiveType::Number);
+        primitive!(env, string, PrimitiveType::String);
+        primitive!(env, boolean, PrimitiveType::Boolean);
+        primitive!(env, null, PrimitiveType::Null);
+
+        assert!(number.is_concrete(&mut analysis_env));
+        assert!(string.is_concrete(&mut analysis_env));
+        assert!(boolean.is_concrete(&mut analysis_env));
+        assert!(null.is_concrete(&mut analysis_env));
     }
 }

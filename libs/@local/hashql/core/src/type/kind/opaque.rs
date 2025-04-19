@@ -15,6 +15,26 @@ use crate::{
     },
 };
 
+/// Represents a nominal type with an encapsulated representation.
+///
+/// Opaque types capture the concept of nominal typing, where type identity is determined by name
+/// rather than structure. Two opaque types with different names are considered distinct types,
+/// even if their representations are identical. This contrasts with structural typing where
+/// compatibility is based on structure alone.
+///
+/// # Type System Design
+///
+/// This implementation uses a refined context-sensitive variance approach:
+/// - For concrete types or when inference is disabled: Opaque types are **invariant** with respect
+///   to their inner representation, enforcing strict nominal typing semantics
+/// - Only for non-concrete types during inference: Opaque types use a **covariant-like** approach
+///   that allows them to act as "carriers" for inference variables
+///
+/// This precise, context-sensitive approach provides several benefits:
+/// 1. Proper constraint propagation for types containing inference variables
+/// 2. Strict nominal type safety for all concrete types
+/// 3. Clear separation between inference and checking phases
+/// 4. Consistent variance behavior across the type system
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct OpaqueType<'heap> {
     pub name: InternedSymbol<'heap>,
@@ -24,6 +44,20 @@ pub struct OpaqueType<'heap> {
 }
 
 impl<'heap> OpaqueType<'heap> {
+    /// Helper method for processing the results of join/meet operations on inner representations.
+    ///
+    /// This method handles the creation of new opaque types based on the join/meet results of
+    /// their inner representations. It's a critical component of the "carrier" pattern used
+    /// for non-concrete types during inference:
+    ///
+    /// 1. If the result matches one of the original representations, we reuse the original opaque
+    ///    type
+    /// 2. Otherwise, we create new opaque types that preserve the name but use the new
+    ///    representations
+    ///
+    /// By preserving the opaque type's name while allowing its representation to evolve during
+    /// inference, we effectively defer the invariance check until inference variables are resolved.
+    /// This enables proper constraint propagation without compromising nominal type safety.
     fn postprocess_lattice(
         self: Type<'heap, Self>,
         other: Type<'heap, Self>,
@@ -66,6 +100,23 @@ impl<'heap> OpaqueType<'heap> {
 }
 
 impl<'heap> Lattice<'heap> for OpaqueType<'heap> {
+    /// Computes the join (least upper bound) of two opaque types.
+    ///
+    /// The join operation uses a refined context-sensitive approach:
+    ///
+    /// When inference is enabled AND at least one type contains inference variables:
+    /// - If types have different names: Return a union of both types
+    /// - If types have the same name: Join their inner representations, allowing the opaque type to
+    ///   act as a "carrier" for inference variables until they are resolved
+    ///
+    /// Otherwise (for concrete types or when inference is disabled):
+    /// - If types have different names: Return a union of both types
+    /// - If types have the same name but different representations: Return a union of both types
+    /// - If types have the same name and equivalent representations: Return the type itself
+    ///
+    /// This approach maintains invariant behavior for concrete types while allowing inference
+    /// variables to propagate constraints. It effectively defers the final invariance check until
+    /// after inference has completed.
     fn join(
         self: Type<'heap, Self>,
         other: Type<'heap, Self>,
@@ -75,16 +126,44 @@ impl<'heap> Lattice<'heap> for OpaqueType<'heap> {
             return SmallVec::from_slice(&[self.id, other.id]);
         }
 
-        let self_repr = env.types[self.kind.repr].copied();
-        let other_repr = env.types[other.kind.repr].copied();
+        if env.inference_enabled()
+            && (!env.is_concrete(self.kind.repr) || !env.is_concrete(other.kind.repr))
+        {
+            let self_repr = env.types[self.kind.repr].copied();
+            let other_repr = env.types[other.kind.repr].copied();
 
-        // We circumvent `env.join` here, by directly joining the representations. This is
-        // intentional, so that we can propagate the join result instead of having a `Union`.
-        let result = self_repr.join(other_repr, env);
+            // We circumvent `env.join` here, by directly joining the representations. This is
+            // intentional, so that we can propagate the join result instead of having a `Union`.
+            let result = self_repr.join(other_repr, env);
 
-        self.postprocess_lattice(other, result, env.environment)
+            // If any of the types aren't concrete, we effectively convert ourselves into a
+            // "carrier" to defer evaluation of the term, once inference is completed we'll simplify
+            // and postprocess the result.
+            self.postprocess_lattice(other, result, env.environment)
+        } else if env.is_equivalent(self.kind.repr, other.kind.repr) {
+            SmallVec::from_slice(&[self.id])
+        } else {
+            SmallVec::from_slice(&[self.id, other.id])
+        }
     }
 
+    /// Computes the meet (greatest lower bound) of two opaque types.
+    ///
+    /// The meet operation uses a refined context-sensitive approach:
+    ///
+    /// When inference is enabled AND at least one type contains inference variables:
+    /// - If types have different names: Return Never (empty set)
+    /// - If types have the same name: Meet their inner representations, allowing the opaque type to
+    ///   act as a "carrier" for inference variables until they are resolved
+    ///
+    /// Otherwise (for concrete types or when inference is disabled):
+    /// - If types have different names: Return Never (empty set)
+    /// - If types have the same name but different representations: Return Never (empty set)
+    /// - If types have the same name and equivalent representations: Return the type itself
+    ///
+    /// This approach prevents premature failure during inference while maintaining strict
+    /// nominal semantics once types are fully resolved. It allows constraint propagation while
+    /// preserving type safety.
     fn meet(
         self: Type<'heap, Self>,
         other: Type<'heap, Self>,
@@ -94,14 +173,26 @@ impl<'heap> Lattice<'heap> for OpaqueType<'heap> {
             return SmallVec::new();
         }
 
-        let self_repr = env.types[self.kind.repr].copied();
-        let other_repr = env.types[other.kind.repr].copied();
+        if env.inference_enabled()
+            && (!env.is_concrete(self.kind.repr) || !env.is_concrete(other.kind.repr))
+        {
+            let self_repr = env.types[self.kind.repr].copied();
+            let other_repr = env.types[other.kind.repr].copied();
 
-        // We circumvent `env.meet` here, by directly meeting the representations. This is
-        // intentional, so that we can propagate the meet result instead of having a `Intersection`.
-        let result = self_repr.meet(other_repr, env);
+            // We circumvent `env.meet` here, by directly meeting the representations. This is
+            // intentional, so that we can propagate the meet result instead of having a
+            // `Intersection`.
+            let result = self_repr.meet(other_repr, env);
 
-        self.postprocess_lattice(other, result, env.environment)
+            // If any of the types aren't concrete, we effectively convert ourselves into a
+            // "carrier" to defer evaluation of the term, once inference is completed we'll simplify
+            // and postprocess the result.
+            self.postprocess_lattice(other, result, env.environment)
+        } else if env.is_equivalent(self.kind.repr, other.kind.repr) {
+            SmallVec::from_slice(&[self.id])
+        } else {
+            SmallVec::new()
+        }
     }
 
     fn is_bottom(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
@@ -112,13 +203,23 @@ impl<'heap> Lattice<'heap> for OpaqueType<'heap> {
         env.is_top(self.kind.repr)
     }
 
+    fn is_concrete(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+        env.is_concrete(self.kind.repr)
+    }
+
+    /// Determines if one opaque type is a subtype of another.
+    ///
+    /// Implements invariant nominal typing semantics:
+    /// 1. Types with different names are always unrelated (neither is a subtype of the other)
+    /// 2. Types with the same name follow invariant rules for their inner representation (enforced
+    ///    via the `in_invariant` context)
     fn is_subtype_of(
         self: Type<'heap, Self>,
         supertype: Type<'heap, Self>,
         env: &mut TypeAnalysisEnvironment<'_, 'heap>,
     ) -> bool {
         self.kind.name == supertype.kind.name
-            && env.is_subtype_of(self.kind.repr, supertype.kind.repr)
+            && env.in_invariant(|env| env.is_subtype_of(self.kind.repr, supertype.kind.repr))
     }
 
     fn is_equivalent(
@@ -223,7 +324,7 @@ mod test {
 
         let mut lattice_env = LatticeEnvironment::new(&env);
 
-        assert_equiv!(env, a.join(b, &mut lattice_env), [a.id]);
+        assert_equiv!(env, a.join(b, &mut lattice_env), [a.id, b.id]);
     }
 
     #[test]
@@ -268,22 +369,7 @@ mod test {
 
         // Meeting should result in an opaque type with the same name but representation
         // that is the meet of the two representations (just Number in this case)
-        assert_equiv!(
-            env,
-            a.meet(b, &mut lattice_env),
-            [opaque!(
-                env,
-                "MyType",
-                union!(
-                    env,
-                    [
-                        primitive!(env, PrimitiveType::Number),
-                        instantiate(&env, TypeKind::Never)
-                    ]
-                ),
-                []
-            )]
-        );
+        assert_equiv!(env, a.meet(b, &mut lattice_env), []);
     }
 
     #[test]
@@ -305,7 +391,7 @@ mod test {
     }
 
     #[test]
-    fn is_subtype_of_test() {
+    fn is_subtype_of() {
         let heap = Heap::new();
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
@@ -329,8 +415,8 @@ mod test {
 
         let mut analysis_env = TypeAnalysisEnvironment::new(&env);
 
-        // a should be a subtype of b (Number is a subtype of Number|String)
-        assert!(a.is_subtype_of(b, &mut analysis_env));
+        // a should not be a subtype of b (invariant)
+        assert!(!a.is_subtype_of(b, &mut analysis_env));
 
         // b should not be a subtype of a (Number|String is not a subtype of Number)
         assert!(!b.is_subtype_of(a, &mut analysis_env));
@@ -458,5 +544,28 @@ mod test {
 
         // Test lattice laws on these opaque types
         assert_lattice_laws(&env, a, b, c);
+    }
+
+    #[test]
+    fn is_concrete_test() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // Concrete opaque type (with primitive representation)
+        let number_repr = primitive!(env, PrimitiveType::Number);
+        opaque!(env, concrete, "ConcreteType", number_repr, []);
+        assert!(concrete.is_concrete(&mut analysis_env));
+
+        // Non-concrete opaque type (with inference variable in its representation)
+        let infer_var = instantiate(&env, TypeKind::Infer);
+        opaque!(env, non_concrete_type, "NonConcreteType", infer_var, []);
+        assert!(!non_concrete_type.is_concrete(&mut analysis_env));
+
+        // Nested non-concrete type (opaque type containing another opaque type with an inference
+        // variable)
+        let nested_opaque = opaque!(env, "InnerType", infer_var, []);
+        opaque!(env, nested_non_concrete, "OuterType", nested_opaque, []);
+        assert!(!nested_non_concrete.is_concrete(&mut analysis_env));
     }
 }

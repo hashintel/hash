@@ -180,6 +180,29 @@ pub trait Lattice<'heap> {
     /// - Empty intersection types (intersections with no variants) are top types
     fn is_top(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool;
 
+    /// Determines if a type is concrete (fully resolved with no type variables or abstractions).
+    ///
+    /// A concrete type is one that is fully specified and does not contain any type variables,
+    /// wildcards, or other abstract components. Concrete types represent exactly one specific
+    /// type in the type system.
+    ///
+    /// This property is important for type checking and code generation, as concrete types
+    /// have fully determined memory layouts and behavior, while non-concrete types may require
+    /// further resolution or represent a family of possible types.
+    ///
+    /// # Examples
+    ///
+    /// Concrete types:
+    /// - Primitive types like `Number`, `String`, `Boolean`
+    /// - Specific struct/object types with concrete field types
+    /// - Union types composed entirely of concrete types
+    ///
+    /// Non-concrete types:
+    /// - Type variables (e.g., `T` in generic functions)
+    /// - Types with unresolved type parameters
+    /// - Inference types that need further resolution
+    fn is_concrete(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool;
+
     /// Determines if one type is a subtype of another.
     ///
     /// The subtyping relationship is fundamental to type systems, establishing when

@@ -35,14 +35,6 @@ pub(crate) fn instantiate<'heap>(env: &Environment<'heap>, kind: TypeKind<'heap>
     })
 }
 
-pub(crate) fn ident(value: &str) -> Ident {
-    Ident {
-        span: SpanId::SYNTHETIC,
-        value: Symbol::new(value),
-        kind: IdentKind::Lexical,
-    }
-}
-
 #[test]
 fn unify_never_types() {
     setup_analysis!(env);

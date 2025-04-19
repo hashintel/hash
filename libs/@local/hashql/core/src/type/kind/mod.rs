@@ -448,6 +448,20 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
         }
     }
 
+    fn is_concrete(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+        match self.kind {
+            TypeKind::Opaque(opaque_type) => self.with(opaque_type).is_concrete(env),
+            TypeKind::Primitive(primitive_type) => self.with(primitive_type).is_concrete(env),
+            TypeKind::Tuple(tuple_type) => self.with(tuple_type).is_concrete(env),
+            TypeKind::Union(union_type) => self.with(union_type).is_concrete(env),
+            TypeKind::Intersection(intersection_type) => {
+                self.with(intersection_type).is_concrete(env)
+            }
+            TypeKind::Never | TypeKind::Unknown => true,
+            TypeKind::Infer => env.substitution.infer(self.id).is_some(),
+        }
+    }
+
     fn is_equivalent(
         mut self: Type<'heap, Self>,
         mut other: Type<'heap, Self>,

@@ -263,6 +263,10 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
         self.kind.variants.is_empty()
     }
 
+    fn is_concrete(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+        self.kind.variants.iter().all(|&id| env.is_concrete(id))
+    }
+
     /// Checks if this intersection type is a subtype of the given supertype.
     ///
     /// In type theory, an intersection type `A & B` represents a type that has *all* the properties
@@ -1088,6 +1092,36 @@ mod test {
         // Test that intersection types satisfy lattice laws (associativity, commutativity,
         // absorption)
         assert_lattice_laws(&env, a, b, c);
+    }
+
+    #[test]
+    fn is_concrete_test() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // Concrete intersection (with all concrete variants)
+        let number = primitive!(env, PrimitiveType::Number);
+        let string = primitive!(env, PrimitiveType::String);
+        intersection!(env, concrete_intersection, [number, string]);
+        assert!(concrete_intersection.is_concrete(&mut analysis_env));
+
+        // Non-concrete intersection (with at least one non-concrete variant)
+        let infer_var = instantiate(&env, TypeKind::Infer);
+        intersection!(env, non_concrete_intersection, [number, infer_var]);
+        assert!(!non_concrete_intersection.is_concrete(&mut analysis_env));
+
+        // Empty intersection should be concrete
+        intersection!(env, empty_intersection, []);
+        assert!(empty_intersection.is_concrete(&mut analysis_env));
+
+        // Nested non-concrete intersection
+        intersection!(
+            env,
+            nested_intersection,
+            [concrete_intersection.id, non_concrete_intersection.id]
+        );
+        assert!(!nested_intersection.is_concrete(&mut analysis_env));
     }
 
     #[test]

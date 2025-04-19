@@ -102,26 +102,36 @@ impl<'env, 'heap> SimplifyEnvironment<'env, 'heap> {
         }
     }
 
+    #[inline]
     pub fn is_equivalent(&mut self, lhs: TypeId, rhs: TypeId) -> bool {
         self.analysis.is_equivalent(lhs, rhs)
     }
 
+    #[inline]
     pub fn is_subtype_of(&mut self, subtype: TypeId, supertype: TypeId) -> bool {
         self.analysis.is_subtype_of(subtype, supertype)
     }
 
     // Two types are disjoint if neither is a subtype of the other
     // This means they share no common values and their intersection is empty
+    #[inline]
     pub fn is_disjoint(&mut self, lhs: TypeId, rhs: TypeId) -> bool {
         self.analysis.is_disjoint(lhs, rhs)
     }
 
+    #[inline]
     pub fn is_bottom(&mut self, id: TypeId) -> bool {
         self.analysis.is_bottom(id)
     }
 
+    #[inline]
     pub fn is_top(&mut self, id: TypeId) -> bool {
         self.analysis.is_top(id)
+    }
+
+    #[inline]
+    pub fn is_concrete(&mut self, id: TypeId) -> bool {
+        self.analysis.is_concrete(id)
     }
 
     pub fn simplify(&mut self, id: TypeId) -> TypeId {
@@ -153,6 +163,7 @@ pub struct LatticeEnvironment<'env, 'heap> {
     boundary: RecursionBoundary,
     pub diagnostics: Diagnostics,
     simplify_lattice: bool,
+    inference: bool,
 
     simplify: SimplifyEnvironment<'env, 'heap>,
 }
@@ -164,6 +175,7 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
             boundary: RecursionBoundary::new(),
             diagnostics: Diagnostics::new(),
             simplify_lattice: true,
+            inference: false,
             simplify: SimplifyEnvironment::new(environment),
         }
     }
@@ -171,6 +183,15 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
     pub const fn without_simplify(&mut self) -> &mut Self {
         self.simplify_lattice = false;
         self
+    }
+
+    pub const fn enable_inference(&mut self) -> &mut Self {
+        self.inference = true;
+        self
+    }
+
+    pub(crate) const fn inference_enabled(&self) -> bool {
+        self.inference
     }
 
     /// Handling recursive type cycles during a join operation.
@@ -383,12 +404,24 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
         result
     }
 
+    #[inline]
     pub fn is_bottom(&mut self, id: TypeId) -> bool {
         self.simplify.is_bottom(id)
     }
 
+    #[inline]
     pub fn is_top(&mut self, id: TypeId) -> bool {
         self.simplify.is_top(id)
+    }
+
+    #[inline]
+    pub fn is_equivalent(&mut self, lhs: TypeId, rhs: TypeId) -> bool {
+        self.simplify.is_equivalent(lhs, rhs)
+    }
+
+    #[inline]
+    pub fn is_concrete(&mut self, id: TypeId) -> bool {
+        self.simplify.is_concrete(id)
     }
 }
 
@@ -469,6 +502,20 @@ impl<'env, 'heap> TypeAnalysisEnvironment<'env, 'heap> {
         let rhs = self.environment.types[rhs].copied();
 
         !lhs.is_subtype_of(rhs, self) && !rhs.is_subtype_of(lhs, self)
+    }
+
+    pub fn is_concrete(&mut self, id: TypeId) -> bool {
+        if !self.boundary.enter(id, id) {
+            // We have found a recursive type with no holes, therefore it must be concrete
+            return true;
+        }
+
+        let r#type = self.environment.types[id].copied();
+        let result = r#type.is_concrete(self);
+
+        self.boundary.exit(id, id);
+
+        result
     }
 
     #[must_use]

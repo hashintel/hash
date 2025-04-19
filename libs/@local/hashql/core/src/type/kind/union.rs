@@ -231,6 +231,10 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
         self.kind.variants.iter().any(|&id| env.is_top(id))
     }
 
+    fn is_concrete(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+        self.kind.variants.iter().all(|&id| env.is_concrete(id))
+    }
+
     /// Checks if this union type is a subtype of the given supertype.
     ///
     /// In type theory, a union type `A | B` represents a type that has *either* the properties
@@ -1098,6 +1102,36 @@ mod test {
 
         // Test that union types satisfy lattice laws (associativity, commutativity, absorption)
         assert_lattice_laws(&env, a, b, c);
+    }
+
+    #[test]
+    fn is_concrete_test() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // Concrete union (with all concrete variants)
+        let number = primitive!(env, PrimitiveType::Number);
+        let string = primitive!(env, PrimitiveType::String);
+        union!(env, concrete_union, [number, string]);
+        assert!(concrete_union.is_concrete(&mut analysis_env));
+
+        // Non-concrete union (with at least one non-concrete variant)
+        let infer_var = instantiate(&env, TypeKind::Infer);
+        union!(env, non_concrete_union, [number, infer_var]);
+        assert!(!non_concrete_union.is_concrete(&mut analysis_env));
+
+        // Empty union should be concrete
+        union!(env, empty_union, []);
+        assert!(empty_union.is_concrete(&mut analysis_env));
+
+        // Nested non-concrete union
+        union!(
+            env,
+            nested_union,
+            [concrete_union.id, non_concrete_union.id]
+        );
+        assert!(!nested_union.is_concrete(&mut analysis_env));
     }
 
     #[test]

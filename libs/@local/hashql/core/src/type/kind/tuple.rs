@@ -113,6 +113,10 @@ impl<'heap> Lattice<'heap> for TupleType<'heap> {
         false
     }
 
+    fn is_concrete(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+        self.kind.fields.iter().all(|&field| env.is_concrete(field))
+    }
+
     fn is_subtype_of(
         self: Type<'heap, Self>,
         supertype: Type<'heap, Self>,
@@ -273,7 +277,7 @@ mod test {
             },
             kind::{
                 TypeKind,
-                generic_argument::GenericArguments,
+                generic_argument::{GenericArgument, GenericArgumentId, GenericArguments},
                 intersection::IntersectionType,
                 primitive::PrimitiveType,
                 test::{assert_equiv, intersection, primitive, tuple, union},
@@ -735,6 +739,40 @@ mod test {
 
         // Test that tuple types satisfy lattice laws (associativity, commutativity, absorption)
         assert_lattice_laws(&env, a, b, c);
+    }
+
+    #[test]
+    fn is_concrete_test() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // Concrete tuple (with all concrete fields)
+        let number = primitive!(env, PrimitiveType::Number);
+        let string = primitive!(env, PrimitiveType::String);
+        tuple!(env, concrete_tuple, [], [number, string]);
+        assert!(concrete_tuple.is_concrete(&mut analysis_env));
+
+        // Non-concrete tuple (with at least one non-concrete field)
+        let infer_var = instantiate(&env, TypeKind::Infer);
+        tuple!(env, non_concrete_tuple, [], [number, infer_var]);
+        assert!(!non_concrete_tuple.is_concrete(&mut analysis_env));
+
+        // Empty tuple should be concrete
+        tuple!(env, empty_tuple, [], []);
+        assert!(empty_tuple.is_concrete(&mut analysis_env));
+
+        // Tuple with generic arguments should still be concrete if fields are concrete
+        tuple!(
+            env,
+            tuple_with_args,
+            [GenericArgument {
+                id: GenericArgumentId::new(0),
+                constraint: None
+            }],
+            [number, string]
+        );
+        assert!(tuple_with_args.is_concrete(&mut analysis_env));
     }
 
     #[test]
