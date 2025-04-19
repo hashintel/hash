@@ -43,6 +43,13 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
+import type { HASHInstance } from "@local/hash-isomorphic-utils/system-types/hashinstance";
+import type { Machine } from "@local/hash-isomorphic-utils/system-types/machine";
+import type {
+  Actor,
+  Organization,
+  User as UserEntity,
+} from "@local/hash-isomorphic-utils/system-types/shared";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
@@ -517,5 +524,160 @@ describe("Entity CRU", () => {
     expect(linkEntity.metadata.entityTypeIds).toContain(
       linkEntityTypeFriend.schema.$id,
     );
+  });
+
+  it("Cannot instantiate actor entity type", async () => {
+    const authentication = { actorId: testUser.accountId };
+
+    await expect(
+      createEntity<Actor>(graphContext, authentication, {
+        webId: testUser.accountId as WebId,
+        properties: {
+          value: {
+            "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
+              {
+                value: "Test-Actor",
+                metadata: {
+                  dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+                },
+              },
+          },
+        },
+        entityTypeIds: [systemEntityTypes.actor.entityTypeId],
+        relationships: createDefaultAuthorizationRelationships(authentication),
+      }),
+    ).rejects.toThrowError(`Could not insert into store`);
+  });
+
+  it("Cannot instantiate user entity type", async () => {
+    const authentication = { actorId: testUser.accountId };
+
+    await expect(
+      createEntity<UserEntity>(graphContext, authentication, {
+        webId: testUser.accountId as WebId,
+        properties: {
+          value: {
+            "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
+              {
+                value: "Test-User",
+                metadata: {
+                  dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+                },
+              },
+            "https://hash.ai/@h/types/property-type/email/": {
+              value: [],
+            },
+            "https://hash.ai/@h/types/property-type/kratos-identity-id/": {
+              value: "Not-kratos-identity-id",
+              metadata: {
+                dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+              },
+            },
+          },
+        },
+        entityTypeIds: [systemEntityTypes.user.entityTypeId],
+        relationships: createDefaultAuthorizationRelationships(authentication),
+      }),
+    ).rejects.toThrowError(`Could not insert into store`);
+  });
+
+  it("Cannot instantiate machine entity type", async () => {
+    const authentication = { actorId: testUser.accountId };
+
+    await expect(
+      createEntity<Machine>(graphContext, authentication, {
+        webId: testUser.accountId as WebId,
+        properties: {
+          value: {
+            "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/":
+              {
+                value: "Test-Machine",
+                metadata: {
+                  dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+                },
+              },
+            "https://hash.ai/@h/types/property-type/machine-identifier/": {
+              value: "Test-Machine",
+              metadata: {
+                dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+              },
+            },
+          },
+        },
+        entityTypeIds: [systemEntityTypes.machine.entityTypeId],
+        relationships: createDefaultAuthorizationRelationships(authentication),
+      }),
+    ).rejects.toThrowError(`Could not insert into store`);
+  });
+
+  it("Cannot instantiate organization entity type", async () => {
+    const authentication = { actorId: testUser.accountId };
+
+    await expect(
+      createEntity<Organization>(graphContext, authentication, {
+        webId: testUser.accountId as WebId,
+        properties: {
+          value: {
+            "https://hash.ai/@h/types/property-type/shortname/": {
+              value: "Test-Org",
+              metadata: {
+                dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+              },
+            },
+            "https://hash.ai/@h/types/property-type/organization-name/": {
+              value: "Test Org",
+              metadata: {
+                dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+              },
+            },
+          },
+        },
+        entityTypeIds: [systemEntityTypes.organization.entityTypeId],
+        relationships: createDefaultAuthorizationRelationships(authentication),
+      }),
+    ).rejects.toThrowError(`Could not insert into store`);
+  });
+
+  it("Cannot instantiate hash-instance entity type", async () => {
+    const authentication = { actorId: testUser.accountId };
+
+    await expect(
+      createEntity<HASHInstance>(graphContext, authentication, {
+        webId: testUser.accountId as WebId,
+        properties: {
+          value: {
+            "https://hash.ai/@h/types/property-type/org-self-registration-is-enabled/":
+              {
+                value: false,
+                metadata: {
+                  dataTypeId: blockProtocolDataTypes.boolean.dataTypeId,
+                },
+              },
+            "https://hash.ai/@h/types/property-type/pages-are-enabled/": {
+              value: false,
+              metadata: {
+                dataTypeId: blockProtocolDataTypes.boolean.dataTypeId,
+              },
+            },
+            "https://hash.ai/@h/types/property-type/user-registration-by-invitation-is-enabled/":
+              {
+                value: false,
+                metadata: {
+                  dataTypeId: blockProtocolDataTypes.boolean.dataTypeId,
+                },
+              },
+            "https://hash.ai/@h/types/property-type/user-self-registration-is-enabled/":
+              {
+                value: false,
+                metadata: {
+                  dataTypeId: blockProtocolDataTypes.boolean.dataTypeId,
+                },
+              },
+          },
+        },
+        entityTypeIds: [systemEntityTypes.hashInstance.entityTypeId],
+        relationships: createDefaultAuthorizationRelationships(authentication),
+      }),
+    ).rejects.toThrowError(`Could not insert into store`);
   });
 });
