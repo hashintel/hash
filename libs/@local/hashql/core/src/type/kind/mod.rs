@@ -199,7 +199,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 let lhs_variants = lhs.unnest(env);
                 let rhs_variants = [other.id];
 
-                UnionType::join_variants(&lhs_variants, &rhs_variants)
+                UnionType::join_variants(&lhs_variants, &rhs_variants, env)
             }
             (
                 TypeKind::Primitive(_) | TypeKind::Tuple(_) | TypeKind::Intersection(_),
@@ -208,7 +208,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 let lhs_variants = [self.id];
                 let rhs_variants = rhs.unnest(env);
 
-                UnionType::join_variants(&lhs_variants, &rhs_variants)
+                UnionType::join_variants(&lhs_variants, &rhs_variants, env)
             }
 
             (TypeKind::Intersection(lhs), TypeKind::Intersection(rhs)) => {

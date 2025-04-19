@@ -13,7 +13,7 @@ use crate::r#type::{
 };
 
 // TODO: in the future we should support refinements
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum PrimitiveType {
     Number,
     Integer,

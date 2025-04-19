@@ -126,7 +126,7 @@ where
     diagnostic.labels.push(
         Label::new(
             lhs.span,
-            format!("This is of type `{}`", lhs.kind.pretty_print(&env, 80)),
+            format!("This is of type `{}`", lhs.kind.pretty_print(env, 80)),
         )
         .with_order(1),
     );
@@ -134,7 +134,7 @@ where
     diagnostic.labels.push(
         Label::new(
             rhs.span,
-            format!("This is of type `{}`", rhs.kind.pretty_print(&env, 80)),
+            format!("This is of type `{}`", rhs.kind.pretty_print(env, 80)),
         )
         .with_order(2),
     );
@@ -205,7 +205,7 @@ where
     K: PrettyPrint,
 {
     let mut diagnostic =
-        Diagnostic::new(TypeCheckDiagnosticCategory::CircularType, Severity::ERROR);
+        Diagnostic::new(TypeCheckDiagnosticCategory::CircularType, Severity::WARNING);
 
     diagnostic.labels.push(
         Label::new(span, "Circular type reference detected in this expression").with_order(3),
@@ -250,7 +250,7 @@ where
             actual_type.span,
             format!(
                 "But it returns a value of type `{}`",
-                actual_type.kind.pretty_print(&env, 80)
+                actual_type.kind.pretty_print(env, 80)
             ),
         )
         .with_order(1),

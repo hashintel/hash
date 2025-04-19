@@ -1,5 +1,4 @@
 use core::ops::ControlFlow;
-use std::env::vars;
 
 use pretty::RcDoc;
 use smallvec::SmallVec;
@@ -9,6 +8,7 @@ use crate::{
     span::SpanId,
     r#type::{
         Type, TypeId,
+        collection::TypeIdSet,
         environment::{
             Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment,
         },
@@ -26,7 +26,7 @@ pub struct UnionType<'heap> {
 
 impl<'heap> UnionType<'heap> {
     pub(crate) fn unnest(&self, env: &Environment) -> SmallVec<TypeId, 16> {
-        let mut variants = SmallVec::with_capacity(self.variants.len());
+        let mut variants = TypeIdSet::with_capacity(env, self.variants.len());
 
         for &variant in self.variants {
             if let TypeKind::Union(union) = env.types[variant].copied().kind {
@@ -36,15 +36,13 @@ impl<'heap> UnionType<'heap> {
             }
         }
 
-        variants.sort_unstable();
-        variants.dedup();
-
-        variants
+        variants.finish()
     }
 
     pub(crate) fn join_variants(
         lhs_variants: &[TypeId],
         rhs_variants: &[TypeId],
+        env: &Environment,
     ) -> SmallVec<TypeId, 4> {
         if lhs_variants.is_empty() {
             return SmallVec::from_slice(rhs_variants);
@@ -54,15 +52,11 @@ impl<'heap> UnionType<'heap> {
             return SmallVec::from_slice(lhs_variants);
         }
 
-        let mut variants = SmallVec::with_capacity(lhs_variants.len() + rhs_variants.len());
+        let mut variants = TypeIdSet::with_capacity(env, lhs_variants.len() + rhs_variants.len());
         variants.extend_from_slice(lhs_variants);
         variants.extend_from_slice(rhs_variants);
 
-        // Order by the id, as a union is a set and therefore is irrespective of order
-        variants.sort_unstable();
-        variants.dedup();
-
-        variants
+        variants.finish()
     }
 
     pub(crate) fn meet_variants(
@@ -214,7 +208,7 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
         let lhs_variants = self.kind.unnest(env);
         let rhs_variants = other.kind.unnest(env);
 
-        Self::join_variants(&lhs_variants, &rhs_variants)
+        Self::join_variants(&lhs_variants, &rhs_variants, env)
     }
 
     fn meet(
@@ -275,7 +269,8 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
 
     fn simplify(self: Type<'heap, Self>, env: &mut SimplifyEnvironment<'_, 'heap>) -> TypeId {
         // Gather + flatten + simplify
-        let mut variants = Vec::with_capacity(self.kind.variants.len());
+        let mut variants =
+            TypeIdSet::<16>::with_capacity(env.environment, self.kind.variants.len());
         for &variant in self.kind.variants {
             let variant = env.simplify(variant);
 
@@ -287,9 +282,8 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
         }
 
         // Sort, dedupe, drop bottom
-        variants.sort_unstable();
-        variants.dedup();
-        variants.retain(|&variant| !env.is_bottom(variant));
+        let mut variants = variants.finish();
+        variants.retain(|&mut variant| !env.is_bottom(variant));
 
         // Propagate top type
         if variants.iter().any(|&variant| env.is_top(variant)) {
@@ -300,10 +294,8 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
             });
         }
 
-        // TODO: Test - what happens on `Number | Integer`, what happens on `Number | Number`
-        // Drop subtypes of other variants
         let backup = variants.clone();
-        variants.retain(|&subtype| {
+        variants.retain(|&mut subtype| {
             // keep v only if it is *not* a subtype of any other distinct u
             !backup
                 .iter()
@@ -352,6 +344,8 @@ impl PrettyPrint for UnionType<'_> {
 #[cfg(test)]
 mod test {
     #![expect(clippy::min_ident_chars)]
+    use core::assert_matches::assert_matches;
+
     use super::UnionType;
     use crate::{
         heap::Heap,
@@ -427,13 +421,10 @@ mod test {
         assert_equiv!(
             env,
             a.join(b, &mut lattice_env),
-            [union!(
-                env,
-                [
-                    primitive!(env, PrimitiveType::Number),
-                    primitive!(env, PrimitiveType::String)
-                ]
-            )]
+            [
+                primitive!(env, PrimitiveType::String),
+                primitive!(env, PrimitiveType::Number),
+            ]
         );
     }
 
@@ -467,10 +458,10 @@ mod test {
             env,
             a.join(b, &mut lattice_env),
             [
-                primitive!(env, PrimitiveType::Number),
-                primitive!(env, PrimitiveType::String),
+                primitive!(env, PrimitiveType::Null),
                 primitive!(env, PrimitiveType::Boolean),
-                primitive!(env, PrimitiveType::Null)
+                primitive!(env, PrimitiveType::String),
+                primitive!(env, PrimitiveType::Number),
             ]
         );
     }
@@ -487,7 +478,7 @@ mod test {
             non_empty,
             [
                 primitive!(env, PrimitiveType::Number),
-                primitive!(env, PrimitiveType::String)
+                primitive!(env, PrimitiveType::String),
             ]
         );
 
@@ -497,26 +488,20 @@ mod test {
         assert_equiv!(
             env,
             empty.join(non_empty, &mut lattice_env),
-            [union!(
-                env,
-                [
-                    primitive!(env, PrimitiveType::Number),
-                    primitive!(env, PrimitiveType::String)
-                ]
-            )]
+            [
+                primitive!(env, PrimitiveType::String),
+                primitive!(env, PrimitiveType::Number),
+            ]
         );
 
         // The reverse should also be true
         assert_equiv!(
             env,
             non_empty.join(empty, &mut lattice_env),
-            [union!(
-                env,
-                [
-                    primitive!(env, PrimitiveType::Number),
-                    primitive!(env, PrimitiveType::String)
-                ]
-            )]
+            [
+                primitive!(env, PrimitiveType::String),
+                primitive!(env, PrimitiveType::Number),
+            ]
         );
     }
 
@@ -545,14 +530,14 @@ mod test {
 
         let mut lattice_env = LatticeEnvironment::new(&env);
 
-        // Join should deduplicate the common variant
+        // Join without simplification should lead to a union with all variants
         assert_equiv!(
             env,
             a.join(b, &mut lattice_env),
             [
+                primitive!(env, PrimitiveType::Boolean),
                 primitive!(env, PrimitiveType::String),
                 primitive!(env, PrimitiveType::Number),
-                primitive!(env, PrimitiveType::Boolean)
             ]
         );
     }
@@ -657,7 +642,9 @@ mod test {
                 env,
                 [
                     primitive!(env, PrimitiveType::Number),
-                    primitive!(env, PrimitiveType::String)
+                    primitive!(env, PrimitiveType::String),
+                    instantiate(&env, TypeKind::Never),
+                    instantiate(&env, TypeKind::Never)
                 ]
             )]
         );
@@ -715,7 +702,15 @@ mod test {
         assert_equiv!(
             env,
             number_union.meet(integer_union, &mut lattice_env),
-            [union!(env, [integer, string])]
+            [union!(
+                env,
+                [
+                    integer,
+                    string,
+                    instantiate(&env, TypeKind::Never),
+                    instantiate(&env, TypeKind::Never)
+                ]
+            )]
         );
     }
 
@@ -940,8 +935,14 @@ mod test {
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         // Create a union with duplicate variants
-        let number = primitive!(env, PrimitiveType::Number);
-        union!(env, union_type, [number, number]);
+        union!(
+            env,
+            union_type,
+            [
+                primitive!(env, PrimitiveType::Number),
+                primitive!(env, PrimitiveType::Number)
+            ]
+        );
 
         let mut simplify_env = SimplifyEnvironment::new(&env);
 
@@ -949,11 +950,13 @@ mod test {
         let result = union_type.simplify(&mut simplify_env);
         let result_type = env.types[result].copied();
 
+        println!("{}", result_type.pretty_print(&env, 80));
+
         // Result should be just Number, not a union
-        assert!(matches!(
+        assert_matches!(
             *result_type.kind,
             TypeKind::Primitive(PrimitiveType::Number)
-        ));
+        );
     }
 
     #[test]
@@ -962,10 +965,12 @@ mod test {
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         // Create nested unions
-        let number = primitive!(env, PrimitiveType::Number);
-        let string = primitive!(env, PrimitiveType::String);
-        let nested = union!(env, [number]);
-        union!(env, union_type, [nested, string]);
+        let nested = union!(env, [primitive!(env, PrimitiveType::Number)]);
+        union!(
+            env,
+            union_type,
+            [nested, primitive!(env, PrimitiveType::String)]
+        );
 
         let mut simplify_env = SimplifyEnvironment::new(&env);
 
@@ -973,7 +978,13 @@ mod test {
         assert_equiv!(
             env,
             [union_type.simplify(&mut simplify_env)],
-            [union!(env, [number, string])]
+            [union!(
+                env,
+                [
+                    primitive!(env, PrimitiveType::Number),
+                    primitive!(env, PrimitiveType::String)
+                ]
+            )]
         );
     }
 
@@ -983,9 +994,14 @@ mod test {
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         // Create a union with a never type
-        let never = instantiate(&env, TypeKind::Never);
-        let number = primitive!(env, PrimitiveType::Number);
-        union!(env, union_type, [never, number]);
+        union!(
+            env,
+            union_type,
+            [
+                instantiate(&env, TypeKind::Never),
+                primitive!(env, PrimitiveType::Number)
+            ]
+        );
 
         let mut simplify_env = SimplifyEnvironment::new(&env);
 
@@ -1006,9 +1022,14 @@ mod test {
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         // Create a union with a top (Unknown) type
-        let unknown = instantiate(&env, TypeKind::Unknown);
-        let number = primitive!(env, PrimitiveType::Number);
-        union!(env, union_type, [unknown, number]);
+        union!(
+            env,
+            union_type,
+            [
+                instantiate(&env, TypeKind::Unknown),
+                primitive!(env, PrimitiveType::Number)
+            ]
+        );
 
         let mut simplify_env = SimplifyEnvironment::new(&env);
 

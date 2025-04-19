@@ -95,12 +95,16 @@ pub struct Interner<'heap> {
 }
 
 impl<'heap> Interner<'heap> {
-    pub fn new(heap: &'heap Heap) -> Self {
-        let this = Self {
+    pub(crate) fn new_empty(heap: &'heap Heap) -> Self {
+        Self {
             kinds: InternSet::new(heap),
             type_ids: InternSet::new(heap),
             generic_arguments: InternSet::new(heap),
-        };
+        }
+    }
+
+    pub fn new(heap: &'heap Heap) -> Self {
+        let this = Self::new_empty(heap);
 
         this.prefill();
 

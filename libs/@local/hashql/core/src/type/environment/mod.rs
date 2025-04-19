@@ -46,6 +46,20 @@ impl<'heap> Environment<'heap> {
         }
     }
 
+    #[must_use]
+    pub fn new_empty(source: SpanId, heap: &'heap Heap) -> Self {
+        Self {
+            source,
+
+            heap,
+            types: ConcurrentArena::new(),
+            interner: Interner::new_empty(heap),
+
+            auxiliary: AuxiliaryData::new(),
+            substitution: Substitution::new(),
+        }
+    }
+
     #[inline]
     pub fn alloc(&self, with: impl FnOnce(TypeId) -> Type<'heap>) -> TypeId {
         self.types.push_with(with)
@@ -71,7 +85,7 @@ impl<'heap> Environment<'heap> {
 }
 
 pub struct SimplifyEnvironment<'env, 'heap> {
-    environment: &'env Environment<'heap>,
+    pub environment: &'env Environment<'heap>,
     boundary: RecursionBoundary,
 
     // lattice: LatticeEnvironment<'env, 'heap>,
@@ -159,21 +173,63 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
         self
     }
 
+    fn join_recursive(&mut self, lhs: Type<'heap>, rhs: Type<'heap>) -> TypeId {
+        // We've encountered a recursive type cycle during a join operation.
+        //
+        // For recursive types, the join (least upper bound) requires careful handling.
+        // Subtyping and equivalence both use coinductive reasoning to resolve recursive types.
+        //
+        // Example:
+        // For `type A = (Integer, A)` and `type B = (Number, B)`:
+        // - `A <: B` (`Integer <: Number`)
+        // - `join(A, B)` should be `B`, since `B` is the supertype
+        //
+        // Returning Never (bottom) would be incorrect because:
+        // 1. In lattice theory, `join(x, y)` must be >= both `x` and `y`
+        // 2. The bottom type is <= every type, violating lattice properties
+        // 3. This contradicts our coinductive approach to recursive types
+        //
+        // Similarly, returning Unknown (top) would also be incorrect because:
+        // 1. The join should be the *least* upper bound of the types
+        // 2. Unknown is *always* an upper bound, but rarely the *least* upper bound
+        // 3. This would make nearly all joins between recursive types equivalent regardless of
+        //    their structure, losing precision in the type system
+        // 4. In our example with `A = (Integer, A)` and `B = (Number, B)`, the join should preserve
+        //    the relationship structure rather than collapsing to Unknown
+        //
+        // We determine the proper join based on subtyping relationships:
+        // - If one is a subtype of the other, the supertype is the join
+        // - Otherwise, we form a union type (standard lattice behavior)
+
+        // Record diagnostic for awareness but don't treat as fatal
+        self.diagnostics
+            .push(circular_type_reference(self.source, lhs, rhs));
+
+        // If one type is a subtype of the other, return the supertype
+        if self.simplify.is_subtype_of(lhs.id, rhs.id) {
+            return rhs.id;
+        } else if self.simplify.is_subtype_of(rhs.id, lhs.id) {
+            return lhs.id;
+        }
+
+        // If they aren't in a subtyping relationship, create a union type
+        let kind = self.environment.intern_kind(TypeKind::Union(UnionType {
+            variants: self.intern_type_ids(&[lhs.id, rhs.id]),
+        }));
+
+        self.environment.alloc(|id| Type {
+            id,
+            span: lhs.span,
+            kind,
+        })
+    }
+
     pub fn join(&mut self, lhs: TypeId, rhs: TypeId) -> TypeId {
         let lhs = self.environment.types[lhs].copied();
         let rhs = self.environment.types[rhs].copied();
 
         if !self.boundary.enter(lhs.id, rhs.id) {
-            // We have a recursive type, do not attempt to stop any join outside forcefully, instead
-            // return `Never` and record a fatal diagnostic.
-            self.diagnostics
-                .push(circular_type_reference(self.source, lhs, rhs));
-
-            return self.environment.alloc(|id| Type {
-                id,
-                span: lhs.span,
-                kind: self.environment.intern_kind(TypeKind::Never),
-            });
+            return self.join_recursive(lhs, rhs);
         }
 
         let variants = lhs.join(rhs, self);
@@ -216,21 +272,68 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
         result
     }
 
+    fn meet_recursive(&mut self, lhs: Type<'heap>, rhs: Type<'heap>) -> TypeId {
+        // We've encountered a recursive type cycle during a meet operation.
+        //
+        // For recursive types, the meet (greatest lower bound) requires careful handling.
+        // Subtyping and equivalence both use coinductive reasoning to resolve recursive types.
+        //
+        // Example:
+        // For `type A = (Integer, A)` and `type B = (Number, B)`:
+        // - `A <: B` (`Integer <: Number`)
+        // - `meet(A, B)` should be `A`, since `A` is the subtype
+        //
+        // Returning Unknown (top) would be incorrect because:
+        // 1. In lattice theory, `meet(x, y)` must be <= both `x` and `y`
+        // 2. The top type is >= every type, violating lattice properties
+        // 3. This contradicts our coinductive approach to recursive types
+        //
+        // Similarly, returning Never (bottom) would also be incorrect because:
+        // 1. The meet should be the *greatest* lower bound of the types
+        // 2. Never is *always* a lower bound, but rarely the *greatest* lower bound
+        // 3. This would make nearly all meets between recursive types equivalent regardless of
+        //    their structure, losing precision in the type system
+        // 4. In our example with `A = (Integer, A)` and `B = (Number, B)`, the meet should preserve
+        //    the relationship structure (resulting in `A`) rather than collapsing to `Never`, which
+        //    would discard the recursive relationship
+        // 5. Returning `Never` would only be correct if the types are truly disjoint, which cannot
+        //    be determined just by encountering recursion
+        //
+        // We determine the proper meet based on subtyping relationships:
+        // - If one is a subtype of the other, the subtype is the meet
+        // - Otherwise, we form an intersection type (standard lattice behavior)
+
+        // Record diagnostic for awareness but don't treat as fatal
+        self.diagnostics
+            .push(circular_type_reference(self.source, lhs, rhs));
+
+        // If one type is a subtype of the other, return the subtype
+        if self.simplify.is_subtype_of(lhs.id, rhs.id) {
+            return lhs.id;
+        } else if self.simplify.is_subtype_of(rhs.id, lhs.id) {
+            return rhs.id;
+        }
+
+        // If they aren't in a subtyping relationship, create an intersection type
+        let kind = self
+            .environment
+            .intern_kind(TypeKind::Intersection(IntersectionType {
+                variants: self.intern_type_ids(&[lhs.id, rhs.id]),
+            }));
+
+        self.environment.alloc(|id| Type {
+            id,
+            span: lhs.span,
+            kind,
+        })
+    }
+
     pub fn meet(&mut self, lhs: TypeId, rhs: TypeId) -> TypeId {
         let lhs = self.environment.types[lhs].copied();
         let rhs = self.environment.types[rhs].copied();
 
         if !self.boundary.enter(lhs.id, rhs.id) {
-            // We have detected a recursive type, do not attempt to join any other meet forcefully,
-            // instead return `Unknown` and record a diagnostic.
-            self.diagnostics
-                .push(circular_type_reference(self.source, lhs, rhs));
-
-            return self.environment.alloc(|id| Type {
-                id,
-                span: lhs.span,
-                kind: self.environment.intern_kind(TypeKind::Unknown),
-            });
+            return self.meet_recursive(lhs, rhs);
         }
 
         let variants = lhs.meet(rhs, self);
@@ -315,6 +418,10 @@ impl<'env, 'heap> TypeAnalysisEnvironment<'env, 'heap> {
         self.diagnostics
             .as_mut()
             .map_or_else(Vec::new, Diagnostics::take)
+    }
+
+    pub fn fatal_diagnostics(&self) -> usize {
+        self.diagnostics.as_ref().map_or(0, Diagnostics::fatal)
     }
 
     pub fn is_bottom(&mut self, id: TypeId) -> bool {
@@ -414,11 +521,29 @@ impl<'env, 'heap> TypeAnalysisEnvironment<'env, 'heap> {
         let supertype = self.environment.types[supertype].copied();
 
         if !self.boundary.enter(subtype.id, supertype.id) {
-            // We have discovered a recursive type
+            // We have discovered a recursive type cycle.
+            //
+            // For recursive types, we use coinductive reasoning when determining subtyping
+            // relationships. When we encounter the same subtyping check again during recursion,
+            // we should return true to maintain the coinductive assumption.
+            //
+            // Example:
+            // For `type A = (Integer, A)` and `type B = (Number, B)`,
+            // to check if A <: B, we need to check if (Integer, A) <: (Number, B)
+            // This involves checking:
+            //   1. Integer <: Number (true)
+            //   2. A <: B (the original question)
+            //
+            // When we reach step 2, we encounter the same check we started with.
+            // By returning true here, we complete the coinductive proof,
+            // confirming A <: B if their non-recursive parts satisfy the subtyping relation.
+            //
+            // Still issue a diagnostic to inform that a cycle was detected, but don't treat
+            // it as an error for subtyping.
             let _: ControlFlow<()> = self
                 .record_diagnostic(|env| circular_type_reference(env.source, subtype, supertype));
 
-            return false;
+            return true;
         }
 
         if let Some(result) = Self::is_quick_subtype(&subtype, &supertype) {
@@ -443,11 +568,29 @@ impl<'env, 'heap> TypeAnalysisEnvironment<'env, 'heap> {
         let rhs = self.environment.types[rhs].copied();
 
         if !self.boundary.enter(lhs.id, rhs.id) {
-            // A recursive type cannot be equivalent to another type
+            // We've encountered a recursive type cycle during an equivalence check.
+            //
+            // For recursive types, equivalence is also determined using coinductive reasoning.
+            // When checking if two recursive types are equivalent, we initially assume they
+            // might be equivalent and check their constituent parts.
+            //
+            // Example:
+            // For `type A = (Number, A)` and `type B = (Number, B)`,
+            // to check if A ≡ B, we check if (Number, A) ≡ (Number, B)
+            // This involves checking:
+            //   1. Number ≡ Number (true)
+            //   2. A ≡ B (the original question)
+            //
+            // When we reach step 2, we're back to our original question.
+            // By returning true here, we complete the coinductive proof,
+            // confirming A ≡ B if their non-recursive parts are equivalent.
+            //
+            // We still record a diagnostic to note the circular reference,
+            // but don't treat it as invalidating equivalence.
             let _: ControlFlow<()> =
                 self.record_diagnostic(|env| circular_type_reference(env.source, lhs, rhs));
 
-            return false;
+            return true;
         }
 
         if core::ptr::eq(lhs.kind, rhs.kind) {
