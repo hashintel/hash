@@ -72,7 +72,7 @@
     "next": "15.3.1",
     "react": "19.1.0",
     "rimraf": "6.0.1",
-    "typescript": "5.7.3",
+    "typescript": "5.8.3",
     "vitest": "3.1.1"
   }
 }
