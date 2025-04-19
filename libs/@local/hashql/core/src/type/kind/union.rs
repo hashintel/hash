@@ -68,8 +68,10 @@ impl<'heap> UnionType<'heap> {
         // `meet` over a union is a distribution, e.g.
         // (A ∪ B) ∧ (C ∪ D)
         // = (A ∧ C) ∪ (A ∧ D) ∪ (B ∧ C) ∪ (B ∧ D)
-        let mut variants =
-            SmallVec::<_, 16>::with_capacity(lhs_variants.len() * rhs_variants.len());
+        let mut variants = TypeIdSet::<16>::with_capacity(
+            env.environment,
+            lhs_variants.len() * rhs_variants.len(),
+        );
 
         for &lhs in lhs_variants {
             for &rhs in rhs_variants {
@@ -77,8 +79,7 @@ impl<'heap> UnionType<'heap> {
             }
         }
 
-        variants.sort_unstable();
-        variants.dedup();
+        let variants = variants.finish();
 
         // We need to wrap this in an explicit `Union`, as a `meet` with multiple returned values
         // turns into an intersection.
@@ -328,16 +329,20 @@ impl PrettyPrint for UnionType<'_> {
         env: &'env Environment,
         limit: RecursionDepthBoundary,
     ) -> pretty::RcDoc<'env, anstyle::Style> {
-        RcDoc::intersperse(
-            self.variants
-                .iter()
-                .map(|&variant| limit.pretty(env, variant)),
-            RcDoc::line()
-                .append(RcDoc::text("|"))
-                .append(RcDoc::space()),
-        )
-        .nest(1)
-        .group()
+        RcDoc::text("(")
+            .append(
+                RcDoc::intersperse(
+                    self.variants
+                        .iter()
+                        .map(|&variant| limit.pretty(env, variant)),
+                    RcDoc::line()
+                        .append(RcDoc::text("|"))
+                        .append(RcDoc::space()),
+                )
+                .nest(1)
+                .group(),
+            )
+            .append(RcDoc::text(")"))
     }
 }
 

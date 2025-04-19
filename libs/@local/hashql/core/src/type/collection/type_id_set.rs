@@ -28,7 +28,7 @@ fn ptr_eq<T: ?Sized>(lhs: *const T, rhs: *const T) -> bool {
 ///
 /// This collection uses `SmallVec` to avoid heap allocations for small sets
 /// (up to `CAPACITY` items).
-pub(crate) struct TypeIdSet<'env, 'heap, const CAPACITY: usize = 16> {
+pub(crate) struct TypeIdSet<'env, 'heap, const CAPACITY: usize> {
     env: &'env Environment<'heap>,
     items: SmallVec<TypeId, CAPACITY>,
 }
@@ -120,7 +120,7 @@ impl<'env, 'heap, const CAPACITY: usize> TypeIdSet<'env, 'heap, CAPACITY> {
     }
 }
 
-impl Extend<TypeId> for TypeIdSet<'_, '_> {
+impl<const CAPACITY: usize> Extend<TypeId> for TypeIdSet<'_, '_, CAPACITY> {
     fn extend<T: IntoIterator<Item = TypeId>>(&mut self, iter: T) {
         self.items.extend(iter);
     }

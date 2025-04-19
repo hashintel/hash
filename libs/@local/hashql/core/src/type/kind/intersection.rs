@@ -8,6 +8,7 @@ use crate::{
     span::SpanId,
     r#type::{
         Type, TypeId,
+        collection::TypeIdSet,
         environment::{
             Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment,
         },
@@ -25,7 +26,7 @@ pub struct IntersectionType<'heap> {
 
 impl<'heap> IntersectionType<'heap> {
     pub(crate) fn unnest(&self, env: &Environment) -> SmallVec<TypeId, 16> {
-        let mut variants = SmallVec::with_capacity(self.variants.len());
+        let mut variants = TypeIdSet::with_capacity(env, self.variants.len());
 
         for &variant in self.variants {
             if let TypeKind::Intersection(intersection) = env.types[variant].copied().kind {
@@ -35,10 +36,7 @@ impl<'heap> IntersectionType<'heap> {
             }
         }
 
-        variants.sort_unstable();
-        variants.dedup();
-
-        variants
+        variants.finish()
     }
 
     pub(crate) fn join_variants(
@@ -50,20 +48,27 @@ impl<'heap> IntersectionType<'heap> {
         // `join` over an intersection is a distribution, e.g.
         // (A ∩ B) ∨ (C ∩ D)
         // = (A ∨ C) ∩ (A ∨ D) ∩ (B ∨ C) ∩ (B ∨ D)
-        let mut variants =
-            SmallVec::<_, 16>::with_capacity(lhs_variants.len() * rhs_variants.len());
+        let mut variants = TypeIdSet::<16>::with_capacity(
+            env.environment,
+            lhs_variants.len() * rhs_variants.len(),
+        );
 
-        for &lhs in lhs_variants {
-            for &rhs in rhs_variants {
-                variants.push(env.join(lhs, rhs));
+        if lhs_variants.is_empty() {
+            variants.extend_from_slice(rhs_variants);
+        } else if rhs_variants.is_empty() {
+            variants.extend_from_slice(lhs_variants);
+        } else {
+            for &lhs in lhs_variants {
+                for &rhs in rhs_variants {
+                    variants.push(env.join(lhs, rhs));
+                }
             }
         }
 
-        variants.sort_unstable();
-        variants.dedup();
+        let variants = variants.finish();
 
-        // We need to wrap this in an explicit `Union`, as a `join` with multiple returned values
-        // turns into a union.
+        // We need to wrap this in an explicit `Intersection`, as a `join` with multiple returned
+        // values turns into a union.
         let id = env.alloc(|id| Type {
             id,
             span: lhs_span,
@@ -100,14 +105,12 @@ impl<'heap> IntersectionType<'heap> {
             return SmallVec::from_slice(lhs_variants);
         }
 
-        let mut variants = SmallVec::with_capacity(lhs_variants.len() + rhs_variants.len());
+        let mut variants =
+            TypeIdSet::with_capacity(env.environment, lhs_variants.len() + rhs_variants.len());
         variants.extend_from_slice(lhs_variants);
         variants.extend_from_slice(rhs_variants);
 
-        variants.sort_unstable();
-        variants.dedup();
-
-        variants
+        variants.finish()
     }
 
     pub(crate) fn is_subtype_of_variants<T, U>(
@@ -284,7 +287,8 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
 
     fn simplify(self: Type<'heap, Self>, env: &mut SimplifyEnvironment<'_, 'heap>) -> TypeId {
         // Gather + flatten + simplify
-        let mut variants = Vec::with_capacity(self.kind.variants.len());
+        let mut variants =
+            TypeIdSet::<16>::with_capacity(env.environment, self.kind.variants.len());
         for &variant in self.kind.variants {
             let variant = env.simplify(variant);
 
@@ -298,9 +302,8 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
         }
 
         // Sort, dedup, drop top
-        variants.sort_unstable();
-        variants.dedup();
-        variants.retain(|&variant| !env.is_top(variant));
+        let mut variants = variants.finish();
+        variants.retain(|&mut variant| !env.is_top(variant));
 
         // Propagate bottom type
         if variants.iter().any(|&variant| env.is_bottom(variant)) {
@@ -331,7 +334,7 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
 
         // Drop supertypes of other variants
         let backup = variants.clone();
-        variants.retain(|&supertype| {
+        variants.retain(|&mut supertype| {
             // keep `supertype` only if it is not a supertype of any other variant
             !backup
                 .iter()
@@ -363,15 +366,756 @@ impl PrettyPrint for IntersectionType<'_> {
         env: &'env Environment,
         limit: RecursionDepthBoundary,
     ) -> pretty::RcDoc<'env, anstyle::Style> {
-        RcDoc::intersperse(
-            self.variants
-                .iter()
-                .map(|&variant| limit.pretty(env, variant)),
-            RcDoc::line()
-                .append(RcDoc::text("&"))
-                .append(RcDoc::space()),
-        )
-        .nest(1)
-        .group()
+        RcDoc::text("(")
+            .append(
+                RcDoc::intersperse(
+                    self.variants
+                        .iter()
+                        .map(|&variant| limit.pretty(env, variant)),
+                    RcDoc::line()
+                        .append(RcDoc::text("&"))
+                        .append(RcDoc::space()),
+                )
+                .nest(1)
+                .group(),
+            )
+            .append(RcDoc::text(")"))
+    }
+}
+
+#[cfg(test)]
+mod test {
+    #![expect(clippy::min_ident_chars)]
+
+    use super::IntersectionType;
+    use crate::{
+        heap::Heap,
+        span::SpanId,
+        r#type::{
+            environment::{
+                Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment,
+            },
+            kind::{
+                TypeKind,
+                generic_argument::GenericArguments,
+                primitive::PrimitiveType,
+                test::{assert_equiv, intersection, primitive, tuple, union},
+                tuple::TupleType,
+                union::UnionType,
+            },
+            lattice::{Lattice as _, test::assert_lattice_laws},
+            pretty_print::PrettyPrint as _,
+            test::instantiate,
+        },
+    };
+
+    #[test]
+    fn unnest_flattens_nested_intersections() {
+        let heap = Heap::new();
+        let env = Environment::new_empty(SpanId::SYNTHETIC, &heap);
+
+        // Create an intersection type with a nested intersection
+        let number = primitive!(env, PrimitiveType::Number);
+        let string = primitive!(env, PrimitiveType::String);
+        let boolean = primitive!(env, PrimitiveType::Boolean);
+
+        // Create a nested intersection: (String & Boolean)
+        let nested_intersection = intersection!(env, [string, boolean]);
+
+        // Create an intersection that includes the nested intersection: Number & (String & Boolean)
+        intersection!(env, intersection_type, [number, nested_intersection]);
+
+        // Unnesting should flatten to: Number & String & Boolean
+        let unnested = intersection_type.kind.unnest(&env);
+
+        assert_eq!(unnested, [boolean, string, number]);
+    }
+
+    #[test]
+    fn join_identical_intersections() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        intersection!(
+            env,
+            a,
+            [
+                primitive!(env, PrimitiveType::Number),
+                primitive!(env, PrimitiveType::String)
+            ]
+        );
+        intersection!(
+            env,
+            b,
+            [
+                primitive!(env, PrimitiveType::Number),
+                primitive!(env, PrimitiveType::String)
+            ]
+        );
+
+        let mut lattice_env = LatticeEnvironment::new(&env);
+
+        // Join identical intersections should result in the same intersection
+        assert_equiv!(
+            env,
+            a.join(b, &mut lattice_env),
+            [intersection!(
+                env,
+                [
+                    primitive!(env, PrimitiveType::Number),
+                    primitive!(env, PrimitiveType::String),
+                    union!(
+                        env,
+                        [
+                            primitive!(env, PrimitiveType::Number),
+                            primitive!(env, PrimitiveType::String)
+                        ]
+                    ),
+                    union!(
+                        env,
+                        [
+                            primitive!(env, PrimitiveType::Number),
+                            primitive!(env, PrimitiveType::String)
+                        ]
+                    ),
+                ]
+            )]
+        );
+    }
+
+    #[test]
+    fn join_different_intersections() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create different intersection types
+        intersection!(
+            env,
+            a,
+            [
+                primitive!(env, PrimitiveType::Number),
+                primitive!(env, PrimitiveType::String)
+            ]
+        );
+        intersection!(
+            env,
+            b,
+            [
+                primitive!(env, PrimitiveType::Boolean),
+                primitive!(env, PrimitiveType::Null)
+            ]
+        );
+
+        let mut lattice_env = LatticeEnvironment::new(&env);
+        lattice_env.without_simplify();
+
+        // Join different intersections should create distributing cross-products
+        // (A & B) ∨ (C & D) = (A ∨ C) & (A ∨ D) & (B ∨ C) & (B ∨ D)
+        assert_equiv!(
+            env,
+            a.join(b, &mut lattice_env),
+            [intersection!(
+                env,
+                [
+                    union!(
+                        env,
+                        [
+                            primitive!(env, PrimitiveType::Number),
+                            primitive!(env, PrimitiveType::Boolean)
+                        ]
+                    ),
+                    union!(
+                        env,
+                        [
+                            primitive!(env, PrimitiveType::Number),
+                            primitive!(env, PrimitiveType::Null)
+                        ]
+                    ),
+                    union!(
+                        env,
+                        [
+                            primitive!(env, PrimitiveType::String),
+                            primitive!(env, PrimitiveType::Boolean)
+                        ]
+                    ),
+                    union!(
+                        env,
+                        [
+                            primitive!(env, PrimitiveType::String),
+                            primitive!(env, PrimitiveType::Null)
+                        ]
+                    )
+                ]
+            )]
+        );
+    }
+
+    #[test]
+    fn join_with_empty_intersection() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create an empty intersection (Unknown) and a non-empty intersection
+        intersection!(env, empty, []);
+        intersection!(
+            env,
+            non_empty,
+            [
+                primitive!(env, PrimitiveType::Number),
+                primitive!(env, PrimitiveType::String),
+            ]
+        );
+
+        let mut lattice_env = LatticeEnvironment::new(&env);
+
+        // Empty intersection (Unknown) joined with any intersection should be the other
+        // intersection
+        assert_equiv!(env, empty.join(non_empty, &mut lattice_env), [non_empty.id]);
+
+        // The reverse should also be true
+        assert_equiv!(env, non_empty.join(empty, &mut lattice_env), [non_empty.id]);
+    }
+
+    #[test]
+    fn meet_identical_intersections() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        intersection!(
+            env,
+            a,
+            [
+                primitive!(env, PrimitiveType::Number),
+                primitive!(env, PrimitiveType::String)
+            ]
+        );
+        intersection!(
+            env,
+            b,
+            [
+                primitive!(env, PrimitiveType::Number),
+                primitive!(env, PrimitiveType::String)
+            ]
+        );
+
+        let mut lattice_env = LatticeEnvironment::new(&env);
+
+        // Meet identical intersections should result in the same intersection
+        assert_equiv!(
+            env,
+            a.meet(b, &mut lattice_env),
+            [
+                primitive!(env, PrimitiveType::String),
+                primitive!(env, PrimitiveType::Number),
+            ]
+        );
+    }
+
+    #[test]
+    fn meet_different_intersections() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create different intersection types
+        intersection!(
+            env,
+            a,
+            [
+                primitive!(env, PrimitiveType::Number),
+                primitive!(env, PrimitiveType::String)
+            ]
+        );
+        intersection!(
+            env,
+            b,
+            [
+                primitive!(env, PrimitiveType::Boolean),
+                primitive!(env, PrimitiveType::Null)
+            ]
+        );
+
+        let mut lattice_env = LatticeEnvironment::new(&env);
+
+        // Meet should combine all variants
+        assert_equiv!(
+            env,
+            a.meet(b, &mut lattice_env),
+            [
+                primitive!(env, PrimitiveType::Null),
+                primitive!(env, PrimitiveType::Boolean),
+                primitive!(env, PrimitiveType::String),
+                primitive!(env, PrimitiveType::Number),
+            ]
+        );
+    }
+
+    #[test]
+    fn meet_with_empty_intersection() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create an empty intersection (Unknown/top type) and a non-empty intersection
+        intersection!(env, empty, []);
+        intersection!(
+            env,
+            non_empty,
+            [
+                primitive!(env, PrimitiveType::Number),
+                primitive!(env, PrimitiveType::String)
+            ]
+        );
+
+        let mut lattice_env = LatticeEnvironment::new(&env);
+
+        // Empty intersection (Unknown) met with any intersection should be that intersection
+        assert_equiv!(
+            env,
+            empty.meet(non_empty, &mut lattice_env),
+            [
+                primitive!(env, PrimitiveType::String),
+                primitive!(env, PrimitiveType::Number),
+            ]
+        );
+
+        // The reverse should also be true
+        assert_equiv!(
+            env,
+            non_empty.meet(empty, &mut lattice_env),
+            [
+                primitive!(env, PrimitiveType::String),
+                primitive!(env, PrimitiveType::Number),
+            ]
+        );
+    }
+
+    #[test]
+    fn is_bottom_test() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Intersection with Never type
+        let never = instantiate(&env, TypeKind::Never);
+        intersection!(
+            env,
+            with_never,
+            [never, primitive!(env, PrimitiveType::Number)]
+        );
+
+        // Regular intersection
+        intersection!(env, regular, [primitive!(env, PrimitiveType::Number)]);
+
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // Intersection with Never should be bottom
+        assert!(with_never.is_bottom(&mut analysis_env));
+
+        // Regular intersection should not be bottom
+        assert!(!regular.is_bottom(&mut analysis_env));
+    }
+
+    #[test]
+    fn is_top_test() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Empty intersection (Unknown)
+        intersection!(env, empty, []);
+
+        // Regular intersection
+        intersection!(env, regular, [primitive!(env, PrimitiveType::Number)]);
+
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // Empty intersection should be top
+        assert!(empty.is_top(&mut analysis_env));
+
+        // Regular intersection should not be top
+        assert!(!regular.is_top(&mut analysis_env));
+    }
+
+    #[test]
+    fn is_subtype_of_self() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create an intersection type
+        intersection!(
+            env,
+            intersection_type,
+            [
+                primitive!(env, PrimitiveType::Number),
+                primitive!(env, PrimitiveType::String)
+            ]
+        );
+
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // An intersection should be a subtype of itself (reflexivity)
+        assert!(intersection_type.is_subtype_of(intersection_type, &mut analysis_env));
+    }
+
+    #[test]
+    fn subtype_supertype_relation() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create intersections for testing subtype relationships
+        let number = primitive!(env, PrimitiveType::Number);
+        let integer = primitive!(env, PrimitiveType::Integer); // Integer is a subtype of Number
+        let string = primitive!(env, PrimitiveType::String);
+
+        // Number & String
+        intersection!(env, number_string, [number, string]);
+
+        // Number
+        intersection!(env, just_number, [number]);
+
+        // Number & Integer
+        intersection!(env, number_integer, [number, integer]);
+
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // Number & String <: Number
+        assert!(number_string.is_subtype_of(just_number, &mut analysis_env));
+
+        // Number ≮: Number & String
+        assert!(!just_number.is_subtype_of(number_string, &mut analysis_env));
+
+        // Number & Integer <: Number
+        assert!(number_integer.is_subtype_of(just_number, &mut analysis_env));
+    }
+
+    #[test]
+    fn empty_intersection_is_supertype_of_all() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Empty intersection (Unknown/top type)
+        intersection!(env, empty, []);
+
+        // Non-empty intersection
+        intersection!(env, non_empty, [primitive!(env, PrimitiveType::Number)]);
+
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // Any intersection should be a subtype of the empty intersection (Unknown)
+        assert!(non_empty.is_subtype_of(empty, &mut analysis_env));
+
+        // The inverse should not be true
+        assert!(!empty.is_subtype_of(non_empty, &mut analysis_env));
+    }
+
+    #[test]
+    fn is_equivalent_test() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create identical intersections (but at different type IDs)
+        intersection!(
+            env,
+            a,
+            [
+                primitive!(env, PrimitiveType::Number),
+                primitive!(env, PrimitiveType::String)
+            ]
+        );
+        intersection!(
+            env,
+            b,
+            [
+                primitive!(env, PrimitiveType::Number),
+                primitive!(env, PrimitiveType::String)
+            ]
+        );
+
+        // Create an intersection with same types in different order
+        intersection!(
+            env,
+            c,
+            [
+                primitive!(env, PrimitiveType::String),
+                primitive!(env, PrimitiveType::Number)
+            ]
+        );
+
+        // Create an intersection with different types
+        intersection!(
+            env,
+            d,
+            [
+                primitive!(env, PrimitiveType::Boolean),
+                primitive!(env, PrimitiveType::Number)
+            ]
+        );
+
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // Same intersections should be equivalent
+        assert!(a.is_equivalent(b, &mut analysis_env));
+
+        // Order shouldn't matter for equivalence
+        assert!(a.is_equivalent(c, &mut analysis_env));
+
+        // Different intersections should not be equivalent
+        assert!(!a.is_equivalent(d, &mut analysis_env));
+    }
+
+    #[test]
+    fn empty_intersection_equivalence() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create two empty intersections
+        intersection!(env, a, []);
+        intersection!(env, b, []);
+
+        // Create a non-empty intersection
+        intersection!(env, c, [primitive!(env, PrimitiveType::Number)]);
+
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // Empty intersections should be equivalent to each other
+        assert!(a.is_equivalent(b, &mut analysis_env));
+
+        // Empty intersection should not be equivalent to non-empty intersection
+        assert!(!a.is_equivalent(c, &mut analysis_env));
+    }
+
+    #[test]
+    fn simplify_identical_variants() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create an intersection with duplicate variants
+        intersection!(
+            env,
+            intersection_type,
+            [
+                primitive!(env, PrimitiveType::Number),
+                primitive!(env, PrimitiveType::Number)
+            ]
+        );
+
+        let mut simplify_env = SimplifyEnvironment::new(&env);
+
+        // Simplifying should collapse duplicates
+        assert_equiv!(
+            env,
+            [intersection_type.simplify(&mut simplify_env)],
+            [primitive!(env, PrimitiveType::Number)]
+        );
+    }
+
+    #[test]
+    fn simplify_nested_intersections() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create nested intersections
+        let nested = intersection!(env, [primitive!(env, PrimitiveType::Number)]);
+        intersection!(
+            env,
+            intersection_type,
+            [nested, primitive!(env, PrimitiveType::String)]
+        );
+
+        let mut simplify_env = SimplifyEnvironment::new(&env);
+
+        // Simplifying should flatten nested intersections
+        assert_equiv!(
+            env,
+            [intersection_type.simplify(&mut simplify_env)],
+            [intersection!(
+                env,
+                [
+                    primitive!(env, PrimitiveType::Number),
+                    primitive!(env, PrimitiveType::String)
+                ]
+            )]
+        );
+    }
+
+    #[test]
+    fn simplify_with_top() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create an intersection with a top (Unknown) type
+        intersection!(
+            env,
+            intersection_type,
+            [
+                instantiate(&env, TypeKind::Unknown),
+                primitive!(env, PrimitiveType::Number)
+            ]
+        );
+
+        let mut simplify_env = SimplifyEnvironment::new(&env);
+
+        // Simplifying should keep only the non-top type
+        assert_equiv!(
+            env,
+            [intersection_type.simplify(&mut simplify_env)],
+            [primitive!(env, PrimitiveType::Number)]
+        );
+    }
+
+    #[test]
+    fn simplify_with_bottom() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create an intersection with a never type
+        intersection!(
+            env,
+            intersection_type,
+            [
+                instantiate(&env, TypeKind::Never),
+                primitive!(env, PrimitiveType::Number)
+            ]
+        );
+
+        let mut simplify_env = SimplifyEnvironment::new(&env);
+
+        // Simplifying should collapse to Never
+        assert_equiv!(
+            env,
+            [intersection_type.simplify(&mut simplify_env)],
+            [instantiate(&env, TypeKind::Never)]
+        );
+    }
+
+    #[test]
+    fn simplify_empty_intersection() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create an empty intersection
+        intersection!(env, intersection_type, []);
+
+        let mut simplify_env = SimplifyEnvironment::new(&env);
+
+        // Simplifying empty intersection should result in Unknown
+        assert_equiv!(
+            env,
+            [intersection_type.simplify(&mut simplify_env)],
+            [instantiate(&env, TypeKind::Unknown)]
+        );
+    }
+
+    #[test]
+    fn simplify_with_supertypes() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create an intersection with a type and its supertype
+        let number = primitive!(env, PrimitiveType::Number);
+        let integer = primitive!(env, PrimitiveType::Integer); // Integer is a subtype of Number
+        intersection!(env, intersection_type, [number, integer]);
+
+        let mut simplify_env = SimplifyEnvironment::new(&env);
+
+        // Simplifying should keep only the subtype
+        assert_equiv!(
+            env,
+            [intersection_type.simplify(&mut simplify_env)],
+            [integer]
+        );
+    }
+
+    #[test]
+    fn lattice_laws() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create three distinct intersection types for testing lattice laws
+        let a = intersection!(env, [primitive!(env, PrimitiveType::Number)]);
+        let b = intersection!(env, [primitive!(env, PrimitiveType::String)]);
+        let c = intersection!(env, [primitive!(env, PrimitiveType::Boolean)]);
+
+        // Test that intersection types satisfy lattice laws (associativity, commutativity,
+        // absorption)
+        assert_lattice_laws(&env, a, b, c);
+    }
+
+    #[test]
+    fn disjoint_types_produce_never() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create an intersection of disjoint types (e.g., number & string)
+        intersection!(
+            env,
+            intersection_type,
+            [
+                primitive!(env, PrimitiveType::Number),
+                primitive!(env, PrimitiveType::String)
+            ]
+        );
+
+        let mut simplify_env = SimplifyEnvironment::new(&env);
+
+        // Check if simplification of disjoint types produces Never
+        assert_equiv!(
+            env,
+            [intersection_type.simplify(&mut simplify_env)],
+            [instantiate(&env, TypeKind::Never)]
+        );
+    }
+
+    #[test]
+    fn intersection_with_complex_types() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create tuple types
+        let tuple1 = tuple!(env, [], [primitive!(env, PrimitiveType::Number)]);
+        let tuple2 = tuple!(env, [], [primitive!(env, PrimitiveType::String)]);
+
+        // Create an intersection of tuple types
+        intersection!(env, intersection_type, [tuple1, tuple2]);
+
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // Intersection operations should work with non-primitive types
+        assert!(!intersection_type.is_top(&mut analysis_env));
+
+        // Test subtyping with tuples in intersections
+        let tuple3 = tuple!(env, [], [primitive!(env, PrimitiveType::Number)]);
+        intersection!(env, single_tuple, [tuple3]);
+
+        // tuple1 & tuple2 <: tuple1
+        assert!(intersection_type.is_subtype_of(single_tuple, &mut analysis_env));
+        // tuple1 ≮: tuple1 & tuple2
+        assert!(!single_tuple.is_subtype_of(intersection_type, &mut analysis_env));
+    }
+
+    #[test]
+    fn intersection_and_union_interaction() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let number = primitive!(env, PrimitiveType::Number);
+        let string = primitive!(env, PrimitiveType::String);
+        let boolean = primitive!(env, PrimitiveType::Boolean);
+
+        // A & (B | C)
+        let union_type = union!(env, [string, boolean]);
+        intersection!(env, intersection_with_union, [number, union_type]);
+
+        let mut simplify_env = SimplifyEnvironment::new(&env);
+
+        // This should simplify to (A & B) | (A & C)
+        assert_equiv!(
+            env,
+            [intersection_with_union.simplify(&mut simplify_env)],
+            [union!(
+                env,
+                [
+                    intersection!(env, [number, string]),
+                    intersection!(env, [number, boolean])
+                ]
+            )]
+        );
     }
 }

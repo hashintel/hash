@@ -65,10 +65,6 @@ impl<'heap> GenericArguments<'heap> {
         Self(slice)
     }
 
-    pub(crate) fn iter(&self) -> impl Iterator<Item = &GenericArgument> {
-        self.0.iter()
-    }
-
     #[must_use]
     pub fn merge(&self, other: &Self, env: &Environment<'heap>) -> Self {
         // We can merge without de-duplication, because every argument has a unique ID.
