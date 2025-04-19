@@ -17,7 +17,7 @@
 //! the memory region where they are allocated.
 //!
 //! ```
-//! use hashql_ast::heap::Heap;
+//! use hashql_core::heap::Heap;
 //!
 //! let heap = Heap::new();
 //! let vec = heap.vec::<u32>(Some(10));
@@ -36,13 +36,9 @@
 //! - `heap::Vec<'heap, T>`: A vector allocated on the heap
 //! - `heap::VecDeque<'heap, T>`: A double-ended queue allocated on the heap
 //! - `heap::HashMap<'heap, K, V, S>`: A hash map allocated on the heap
-pub mod list;
-
 use core::alloc::Allocator;
 
 use bumpalo::Bump;
-
-pub use self::list::List;
 
 /// A boxed value allocated on the `Heap`.
 ///
@@ -112,13 +108,6 @@ impl Heap {
         T: Copy,
     {
         self.bump.alloc_slice_copy(slice)
-    }
-
-    pub fn list<T, const N: usize>(&self, slice: &[T]) -> List<T, N>
-    where
-        T: Copy,
-    {
-        List::from_slice(slice, self)
     }
 
     /// Creates a new vector allocated on this heap.
