@@ -38,7 +38,7 @@
     "mock-block-dock": "0.0.38",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "typescript": "5.7.3"
+    "typescript": "5.8.3"
   },
   "peerDependencies": {
     "react": "^19.0.0",
