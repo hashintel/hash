@@ -153,6 +153,6 @@
     "sass": "1.86.3",
     "typescript": "5.7.3",
     "wait-on": "8.0.3",
-    "webpack": "5.99.5"
+    "webpack": "5.99.6"
   }
 }
