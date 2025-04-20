@@ -301,10 +301,28 @@ impl<'heap> Lattice<'heap> for StructType<'heap> {
 
     fn distribute_intersection(
         self: Type<'heap, Self>,
-        _: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16> {
-        // Struct is covariant over it's field so no distribution is needed
-        SmallVec::from_slice(&[self.id])
+        if self.kind.fields.is_empty() {
+            return SmallVec::from_slice(&[self.id]);
+        }
+
+        let fields: Vec<_> = self
+            .kind
+            .fields
+            .iter()
+            .map(|&field| {
+                env.distribute_intersection(field.value)
+                    .into_iter()
+                    .map(|value| StructField {
+                        name: field.name,
+                        value,
+                    })
+                    .collect()
+            })
+            .collect();
+
+        self.postprocess_distribution(&fields, env)
     }
 
     fn is_subtype_of(

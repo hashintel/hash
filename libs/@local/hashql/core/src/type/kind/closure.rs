@@ -1,523 +1,963 @@
-use core::ops::Index;
+use core::ops::ControlFlow;
 
-use ecow::EcoVec;
 use pretty::RcDoc;
+use smallvec::SmallVec;
 
-use super::generic_argument::GenericArguments;
-use crate::r#type::{
-    Type, TypeId,
-    environment::{EquivalenceEnvironment, UnificationEnvironment},
-    error::function_parameter_count_mismatch,
-    pretty_print::PrettyPrint,
-    recursion::RecursionDepthBoundary,
+use super::{TypeKind, generic_argument::GenericArguments};
+use crate::{
+    math::cartesian_product,
+    r#type::{
+        Type, TypeId,
+        environment::{
+            Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment,
+        },
+        error::function_parameter_count_mismatch,
+        lattice::Lattice,
+        pretty_print::PrettyPrint,
+        recursion::RecursionDepthBoundary,
+    },
 };
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct ClosureType {
-    pub params: EcoVec<TypeId>,
-    pub return_type: TypeId,
+/// Represents a function or closure type in the type system.
+///
+/// # Variance Properties
+///
+/// Closure types have specific variance characteristics that affect subtyping relationships:
+///
+/// - **Parameter count**: Invariant - two closure types must have exactly the same number of
+///   parameters to be comparable.
+///
+/// - **Parameter types**: Contravariant - if type `A` is a subtype of `B`, then a function
+///   accepting `B` is a subtype of a function accepting `A`.
+///
+/// - **Return type**: Covariant - if type `A` is a subtype of `B`, then a function returning `A` is
+///   a subtype of a function returning `B`.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct ClosureType<'heap> {
+    pub params: &'heap [TypeId],
+    pub returns: TypeId,
 
-    pub arguments: GenericArguments,
+    pub arguments: GenericArguments<'heap>,
 }
 
-impl ClosureType {
-    pub(crate) fn structurally_equivalent(
-        &self,
-        other: &Self,
-        env: &mut EquivalenceEnvironment,
+impl<'heap> ClosureType<'heap> {
+    fn postprocess_lattice(
+        self: Type<'heap, Self>,
+        other: Type<'heap, Self>,
+        env: &Environment<'heap>,
+        params: &[TypeId],
+        returns: TypeId,
+    ) -> SmallVec<TypeId, 4> {
+        // Try to re-use one of the closures
+        if *self.kind.params == *params && self.kind.returns == returns {
+            return SmallVec::from_slice(&[self.id]);
+        }
+
+        if *other.kind.params == *params && other.kind.returns == returns {
+            return SmallVec::from_slice(&[other.id]);
+        }
+
+        SmallVec::from_slice(&[env.alloc(|id| Type {
+            id,
+            span: self.span,
+            kind: env.intern_kind(TypeKind::Closure(Self {
+                params: env.intern_type_ids(params),
+                returns,
+                // merge the two arguments together, as some of the fields may refer to either
+                arguments: self.kind.arguments.merge(&other.kind.arguments, env),
+            })),
+        })])
+    }
+}
+
+impl<'heap> Lattice<'heap> for ClosureType<'heap> {
+    fn join(
+        self: Type<'heap, Self>,
+        other: Type<'heap, Self>,
+        env: &mut LatticeEnvironment<'_, 'heap>,
+    ) -> SmallVec<TypeId, 4> {
+        // invariant over width
+        if self.kind.params.len() != other.kind.params.len() {
+            return SmallVec::from_slice(&[self.id, other.id]);
+        }
+
+        let mut params = SmallVec::<_, 16>::new();
+        for (&lhs_param, &rhs_param) in self.kind.params.iter().zip(other.kind.params.iter()) {
+            // Important: Parameters are contravariant, therefore we switch the `join` to `meet`.
+            params.push(env.meet(lhs_param, rhs_param));
+        }
+
+        let returns = env.join(self.kind.returns, other.kind.returns);
+
+        self.postprocess_lattice(other, env, &params, returns)
+    }
+
+    fn meet(
+        self: Type<'heap, Self>,
+        other: Type<'heap, Self>,
+        env: &mut LatticeEnvironment<'_, 'heap>,
+    ) -> SmallVec<TypeId, 4> {
+        // invariant over width
+        if self.kind.params.len() != other.kind.params.len() {
+            return SmallVec::new();
+        }
+
+        let mut params = SmallVec::<_, 16>::new();
+        for (&lhs_param, &rhs_param) in self.kind.params.iter().zip(other.kind.params.iter()) {
+            // Important: Parameters are contravariant, therefore we switch the `meet` to `join`.
+            params.push(env.join(lhs_param, rhs_param));
+        }
+
+        let returns = env.meet(self.kind.returns, other.kind.returns);
+
+        self.postprocess_lattice(other, env, &params, returns)
+    }
+
+    fn is_bottom(self: Type<'heap, Self>, _: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+        // Never a bottom type, if params is `Never`, then that just means that the function cannot
+        // be invoked, but doesn't mean that it's uninhabited. The same applies to the return type.
+        false
+    }
+
+    fn is_top(self: Type<'heap, Self>, _: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+        false
+    }
+
+    fn is_concrete(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+        self.kind.params.iter().all(|&param| env.is_concrete(param))
+            && env.is_concrete(self.kind.returns)
+    }
+
+    fn distribute_union(
+        self: Type<'heap, Self>,
+        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+    ) -> SmallVec<TypeId, 16> {
+        let returns = env.distribute_union(self.kind.returns);
+
+        // Functions are contravariant over their params, therefore we switch from unions to
+        // intersections
+        let params: Vec<_> = self
+            .kind
+            .params
+            .iter()
+            .map(|&param| env.distribute_intersection(param))
+            .collect();
+
+        let params_variants = cartesian_product::<_, _, 16>(&params);
+
+        if params_variants.len() == 1 && returns.len() == 1 {
+            // Distributive laws: if there's only a single variant, then that variant must be us
+            return SmallVec::from_slice(&[self.id]);
+        }
+
+        returns
+            .iter()
+            .flat_map(|returns| params_variants.iter().map(move |params| (params, returns)))
+            .map(|(params, &returns)| {
+                env.alloc(|id| Type {
+                    id,
+                    span: self.span,
+                    kind: env.intern_kind(TypeKind::Closure(ClosureType {
+                        params: env.intern_type_ids(params),
+                        returns,
+                        arguments: self.kind.arguments,
+                    })),
+                })
+            })
+            .collect()
+    }
+
+    fn distribute_intersection(
+        self: Type<'heap, Self>,
+        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+    ) -> SmallVec<TypeId, 16> {
+        // Function types are a funny thing, we cannot distribute over them easily.
+
+        let returns = env.distribute_intersection(self.kind.returns);
+
+        // Functions are contravariant over the params, therefore we switch from intersection to
+        // union
+        let params: Vec<_> = self
+            .kind
+            .params
+            .iter()
+            .map(|&param| env.distribute_union(param))
+            .collect();
+
+        let params_variants = cartesian_product::<_, _, 16>(&params);
+
+        if params_variants.len() == 1 && returns.len() == 1 {
+            // Distributive laws: if there's only a single variant, then that variant must be us
+            return SmallVec::from_slice(&[self.id]);
+        }
+
+        returns
+            .iter()
+            .flat_map(|returns| params_variants.iter().map(move |params| (params, returns)))
+            .map(|(params, &returns)| {
+                env.alloc(|id| Type {
+                    id,
+                    span: self.span,
+                    kind: env.intern_kind(TypeKind::Closure(ClosureType {
+                        params: env.intern_type_ids(params),
+                        returns,
+                        arguments: self.kind.arguments,
+                    })),
+                })
+            })
+            .collect()
+    }
+
+    fn is_subtype_of(
+        self: Type<'heap, Self>,
+        supertype: Type<'heap, Self>,
+        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
     ) -> bool {
-        self.params.len() == other.params.len()
-            && self
-                .params
-                .iter()
-                .zip(other.params.iter())
-                .all(|(&lhs, &rhs)| env.semantically_equivalent(lhs, rhs))
-            && env.semantically_equivalent(self.return_type, other.return_type)
-            && self
-                .arguments
-                .semantically_equivalent(&other.arguments, env)
-    }
-}
+        // Functions are contravariant over the params and covariant over the return type
+        // This mirrors the behaviour of Rust.
 
-impl PrettyPrint for ClosureType {
-    fn pretty<'a>(
-        &'a self,
-        arena: &'a impl Index<TypeId, Output = Type>,
-        limit: RecursionDepthBoundary,
-    ) -> pretty::RcDoc<'a, anstyle::Style> {
-        self.arguments
-            .pretty(arena, limit)
-            .append(RcDoc::text("("))
-            .append(
-                RcDoc::intersperse(
-                    self.params
-                        .iter()
-                        .map(|&param| limit.pretty(&arena[param], arena)),
-                    RcDoc::text(",").append(RcDoc::line()),
+        // Invariant over the param-width
+        if self.kind.params.len() != supertype.kind.params.len() {
+            let _: ControlFlow<()> = env.record_diagnostic(|env| {
+                function_parameter_count_mismatch(
+                    env.source,
+                    self,
+                    supertype,
+                    self.kind.params.len(),
+                    supertype.kind.params.len(),
                 )
-                .nest(1)
-                .group(),
-            )
-            .append(RcDoc::text(")"))
-            .append(RcDoc::line())
-            .append(RcDoc::text("->"))
-            .append(RcDoc::line())
-            .append(limit.pretty(&arena[self.return_type], arena))
+            });
+
+            return false;
+        }
+
+        let mut compatible = true;
+
+        // Parameters are contravariant
+        for (&self_param, &super_param) in self.kind.params.iter().zip(supertype.kind.params.iter())
+        {
+            compatible &= env.in_contravariant(|env| env.is_subtype_of(self_param, super_param));
+
+            if !compatible && env.is_fail_fast() {
+                return false;
+            }
+        }
+
+        // Return type is covariant
+        compatible &=
+            env.in_covariant(|env| env.is_subtype_of(self.kind.returns, supertype.kind.returns));
+
+        compatible
+    }
+
+    fn simplify(self: Type<'heap, Self>, env: &mut SimplifyEnvironment<'_, 'heap>) -> TypeId {
+        let mut params = SmallVec::<_, 16>::with_capacity(16);
+        for &param in self.kind.params {
+            params.push(env.simplify(param));
+        }
+
+        let r#return = env.simplify(self.kind.returns);
+
+        // We can reuse the type if it's already simplified
+        if *params == *self.kind.params && r#return == self.kind.returns {
+            return self.id;
+        }
+
+        env.alloc(|id| Type {
+            id,
+            span: self.span,
+            kind: env.intern_kind(TypeKind::Closure(Self {
+                params: env.intern_type_ids(&params),
+                returns: r#return,
+                arguments: self.kind.arguments,
+            })),
+        })
     }
 }
 
-/// Unifies closure types, respecting variance without concern for backward compatibility.
-///
-/// In a covariant context (checking if `rhs <: lhs`):
-/// - Parameters are contravariant (checked with reversed subtyping relationship)
-/// - Return type is covariant (checked with standard subtyping relationship)
-/// - Parameter count must match exactly (invariant)
-///
-/// This follows standard function subtyping rules where:
-/// - A function is a subtype of another if it accepts a wider range of inputs
-/// - And produces a narrower range of outputs
-pub(crate) fn unify_closure(
-    env: &mut UnificationEnvironment,
-    lhs: &Type<ClosureType>,
-    rhs: &Type<ClosureType>,
-) {
-    // Function parameter count is invariant
-    if lhs.kind.params.len() != rhs.kind.params.len() {
-        let diagnostic = function_parameter_count_mismatch(
-            env.source,
-            lhs,
-            rhs,
-            lhs.kind.params.len(),
-            rhs.kind.params.len(),
-        );
-
-        env.record_diagnostic(diagnostic);
-        return;
+impl PrettyPrint for ClosureType<'_> {
+    fn pretty<'env>(
+        &self,
+        env: &'env Environment,
+        limit: RecursionDepthBoundary,
+    ) -> pretty::RcDoc<'env, anstyle::Style> {
+        RcDoc::text("fn")
+            .append(self.arguments.pretty(env, limit))
+            .append("(")
+            .append(RcDoc::intersperse(
+                self.params.iter().map(|&param| limit.pretty(env, param)),
+                RcDoc::text(",").append(RcDoc::line()),
+            ))
+            .append(")")
+            .append(RcDoc::line())
+            .append("->")
+            .append(RcDoc::line())
+            .append(limit.pretty(env, self.returns))
+            .group()
     }
-
-    // Enter generic argument scope for both closures
-    lhs.kind.arguments.enter_scope(env);
-    rhs.kind.arguments.enter_scope(env);
-
-    // Parameters are contravariant
-    // For a closure A to be a subtype of closure B:
-    //   B's parameters must be subtypes of A's parameters
-    //   (A can accept a wider range of inputs than B requires)
-    for (&lhs_param, &rhs_param) in lhs.kind.params.iter().zip(rhs.kind.params.iter()) {
-        env.in_contravariant(|env| {
-            env.unify_type(lhs_param, rhs_param);
-        });
-    }
-
-    // Return type is covariant
-    // For a closure A to be a subtype of closure B:
-    //   A's return type must be a subtype of B's return type
-    //   (A can return a more specific type than B requires)
-    env.in_covariant(|ctx| {
-        ctx.unify_type(lhs.kind.return_type, rhs.kind.return_type);
-    });
-
-    // Clean up generic argument scope
-    rhs.kind.arguments.exit_scope(env);
-    lhs.kind.arguments.exit_scope(env);
-
-    // We don't unify the body of the closure - that's handled elsewhere during type checking
-    // In a strictly variance-aware system, we do NOT modify the closure types
-    // Each closure maintains its original structure, preserving identity and subtyping
-    // relationships
 }
 
 #[cfg(test)]
-mod tests {
-    use core::assert_matches::assert_matches;
-
-    // Type hierarchy assumptions in these tests:
-    // - Integer <: Number (Integer is a subtype of Number)
-    // - Both are unrelated to String
-    use super::{ClosureType, unify_closure};
-    use crate::r#type::{
-        TypeId,
-        environment::Environment,
-        error::TypeCheckDiagnosticCategory,
-        kind::{
-            TypeKind,
-            generic_argument::{GenericArgument, GenericArgumentId, GenericArguments},
-            primitive::PrimitiveType,
+mod test {
+    #![expect(clippy::min_ident_chars)]
+    use super::ClosureType;
+    use crate::{
+        heap::Heap,
+        span::SpanId,
+        r#type::{
+            environment::{
+                Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment,
+            },
+            kind::{
+                TypeKind,
+                intersection::IntersectionType,
+                primitive::PrimitiveType,
+                test::{assert_equiv, closure, intersection, primitive, union},
+                union::UnionType,
+            },
+            lattice::{Lattice as _, test::assert_lattice_laws},
+            pretty_print::PrettyPrint as _,
+            test::instantiate,
         },
-        test::{ident, instantiate, setup_unify},
     };
 
-    fn create_closure_type(
-        env: &mut Environment,
-        params: impl IntoIterator<Item = TypeId>,
-        return_type: TypeId,
-        arguments: GenericArguments,
-    ) -> crate::r#type::Type<ClosureType> {
-        let id = env.arena.push_with(|id| crate::r#type::Type {
-            id,
-            span: crate::span::SpanId::SYNTHETIC,
-            kind: TypeKind::Closure(ClosureType {
-                params: params.into_iter().collect(),
-                return_type,
-                arguments,
-            }),
-        });
-
-        env.arena[id]
-            .clone()
-            .map(|kind| kind.into_closure().expect("should be closure type"))
-    }
-
     #[test]
-    fn identical_closures_unify() {
-        setup_unify!(env);
+    fn join_identical_closures() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
-        // Create two identical closures: (String) -> Number
-        let param_type = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::String));
-        let return_type = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number));
-
-        let lhs = create_closure_type(
-            &mut env,
-            [param_type],
-            return_type,
-            GenericArguments::default(),
+        // Create two identical closures: fn(Number) -> String
+        closure!(
+            env,
+            a,
+            [],
+            [primitive!(env, PrimitiveType::Number)],
+            primitive!(env, PrimitiveType::String)
         );
 
-        let param_type2 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::String));
-        let return_type2 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number));
-
-        let rhs = create_closure_type(
-            &mut env,
-            [param_type2],
-            return_type2,
-            GenericArguments::default(),
+        closure!(
+            env,
+            b,
+            [],
+            [primitive!(env, PrimitiveType::Number)],
+            primitive!(env, PrimitiveType::String)
         );
 
-        unify_closure(&mut env, &lhs, &rhs);
+        let mut lattice_env = LatticeEnvironment::new(&env);
 
-        assert!(
-            env.take_diagnostics().is_empty(),
-            "Failed to unify identical closures"
+        // Join identical closures should result in the same closure
+        assert_equiv!(
+            env,
+            a.join(b, &mut lattice_env),
+            [closure!(
+                env,
+                [],
+                [primitive!(env, PrimitiveType::Number)],
+                primitive!(env, PrimitiveType::String)
+            )]
         );
     }
 
     #[test]
-    fn parameter_contravariance() {
-        setup_unify!(env);
+    fn join_closures_with_different_param_types() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
-        // Test contravariance of parameters:
-        // lhs: (Integer) -> String    // More specific parameter
-        // rhs: (Number) -> String     // More general parameter
-        // This succeeds because:
-        // - In contravariant context, unify_type(ctx, Integer, Number).
-        // - This gets swapped to unify_type_covariant(ctx, Number, Integer).
-        // - Which checks if Integer <: Number
-        // - And Integer is indeed a subtype of Number
-        let lhs_param = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Integer));
-        let rhs_param = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number));
-
-        let return_type = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::String));
-
-        let lhs = create_closure_type(
-            &mut env,
-            [lhs_param],
-            return_type,
-            GenericArguments::default(),
+        // Create a closure accepting Integer: fn(Integer) -> String
+        closure!(
+            env,
+            a,
+            [],
+            [primitive!(env, PrimitiveType::Integer)],
+            primitive!(env, PrimitiveType::String)
         );
 
-        let return_type2 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::String));
-
-        let rhs = create_closure_type(
-            &mut env,
-            [rhs_param],
-            return_type2,
-            GenericArguments::default(),
+        // Create a closure accepting Number: fn(Number) -> String
+        closure!(
+            env,
+            b,
+            [],
+            [primitive!(env, PrimitiveType::Number)],
+            primitive!(env, PrimitiveType::String)
         );
 
-        unify_closure(&mut env, &lhs, &rhs);
+        let mut lattice_env = LatticeEnvironment::new(&env);
 
-        // Should succeed because after the contravariant swap, Integer <: Number
-        assert!(
-            env.take_diagnostics().is_empty(),
-            "Should succeed when parameter types respect contravariance"
+        // Join closures with different parameter types
+        // Parameter types are contravariant, so we use meet on them
+        // Since Integer <: Number, meet(Integer, Number) = Integer
+        assert_equiv!(
+            env,
+            a.join(b, &mut lattice_env),
+            [closure!(
+                env,
+                [],
+                [primitive!(env, PrimitiveType::Integer)],
+                primitive!(env, PrimitiveType::String)
+            )]
         );
     }
 
     #[test]
-    fn parameter_contravariance_failure() {
-        setup_unify!(env);
+    fn join_closures_with_different_return_types() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
-        // Test contravariance of parameters:
-        // lhs: (Number) -> String     // More general parameter
-        // rhs: (Integer) -> String    // More specific parameter
-        // This fails because:
-        // - In contravariant context, unify_type(ctx, Number, Integer).
-        // - This gets swapped to unify_type_covariant(ctx, Integer, Number).
-        // - Which checks if Number <: Integer
-        // - And Number is not a subtype of Integer
-        let lhs_param = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number));
-        let rhs_param = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Integer));
-
-        let return_type = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::String));
-
-        let lhs = create_closure_type(
-            &mut env,
-            [lhs_param],
-            return_type,
-            GenericArguments::default(),
+        // Create a closure returning Integer: fn(Number) -> Integer
+        closure!(
+            env,
+            a,
+            [],
+            [primitive!(env, PrimitiveType::Number)],
+            primitive!(env, PrimitiveType::Integer)
         );
 
-        let return_type2 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::String));
-
-        let rhs = create_closure_type(
-            &mut env,
-            [rhs_param],
-            return_type2,
-            GenericArguments::default(),
+        // Create a closure returning Number: fn(Number) -> Number
+        closure!(
+            env,
+            b,
+            [],
+            [primitive!(env, PrimitiveType::Number)],
+            primitive!(env, PrimitiveType::Number)
         );
 
-        unify_closure(&mut env, &lhs, &rhs);
+        let mut lattice_env = LatticeEnvironment::new(&env);
 
-        // Should fail because after the contravariant swap, Number is not <: Integer
-        assert!(
-            !env.take_diagnostics().is_empty(),
-            "Should fail when parameter types violate contravariance"
+        // Join closures with different return types
+        // Return types are covariant, so we use join on them
+        // Since Integer <: Number, join(Integer, Number) = Number
+        assert_equiv!(
+            env,
+            a.join(b, &mut lattice_env),
+            [closure!(
+                env,
+                [],
+                [primitive!(env, PrimitiveType::Number)],
+                primitive!(env, PrimitiveType::Number)
+            )]
         );
     }
 
     #[test]
-    fn return_type_covariance_success() {
-        setup_unify!(env);
+    fn join_closures_different_param_count() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
-        // Test covariance of return type
-        // lhs: (String) -> Number  // More general return type
-        // rhs: (String) -> Integer // More specific return type
-        // Should succeed because Integer <: Number (Integer is a subtype of Number)
-        let param_type = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::String));
-        let lhs_return = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number));
-        let rhs_return = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Integer));
-
-        let lhs = create_closure_type(
-            &mut env,
-            [param_type],
-            lhs_return,
-            GenericArguments::default(),
+        // Create closures with different parameter counts
+        closure!(
+            env,
+            a,
+            [],
+            [primitive!(env, PrimitiveType::Number)],
+            primitive!(env, PrimitiveType::String)
         );
 
-        let param_type2 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::String));
-        let rhs = create_closure_type(
-            &mut env,
-            [param_type2],
-            rhs_return,
-            GenericArguments::default(),
+        closure!(
+            env,
+            b,
+            [],
+            [
+                primitive!(env, PrimitiveType::Number),
+                primitive!(env, PrimitiveType::Boolean)
+            ],
+            primitive!(env, PrimitiveType::String)
         );
 
-        unify_closure(&mut env, &lhs, &rhs);
+        let mut lattice_env = LatticeEnvironment::new(&env);
 
-        assert!(
-            env.take_diagnostics().is_empty(),
-            "Should succeed when return types follow covariance (Integer <: Number)"
+        // Join closures with different parameter counts should return both types
+        // Since closures are invariant over parameter count
+        let result = a.join(b, &mut lattice_env);
+        assert_eq!(result.len(), 2);
+        assert!(result.contains(&a.id));
+        assert!(result.contains(&b.id));
+    }
+
+    #[test]
+    fn meet_identical_closures() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create two identical closures
+        closure!(
+            env,
+            a,
+            [],
+            [primitive!(env, PrimitiveType::Number)],
+            primitive!(env, PrimitiveType::String)
+        );
+
+        closure!(
+            env,
+            b,
+            [],
+            [primitive!(env, PrimitiveType::Number)],
+            primitive!(env, PrimitiveType::String)
+        );
+
+        let mut lattice_env = LatticeEnvironment::new(&env);
+
+        // Meet identical closures should result in the same closure
+        assert_equiv!(
+            env,
+            a.meet(b, &mut lattice_env),
+            [closure!(
+                env,
+                [],
+                [primitive!(env, PrimitiveType::Number)],
+                primitive!(env, PrimitiveType::String)
+            )]
         );
     }
 
     #[test]
-    fn return_type_covariance_failure() {
-        setup_unify!(env);
+    fn meet_closures_with_different_param_types() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
-        // Test covariance of return type
-        // lhs: (String) -> Integer
-        // rhs: (String) -> Number
-        // This should fail because in a covariant context, we require rhs.return <: lhs.return
-        // and Number is not a subtype of Integer
-        let param_type = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::String));
-        let lhs_return = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Integer));
-        let rhs_return = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number));
-
-        let lhs = create_closure_type(
-            &mut env,
-            [param_type],
-            lhs_return,
-            GenericArguments::default(),
+        // Create closures with different parameter types
+        closure!(
+            env,
+            a,
+            [],
+            [primitive!(env, PrimitiveType::Integer)],
+            primitive!(env, PrimitiveType::String)
         );
 
-        let param_type2 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::String));
-        let rhs = create_closure_type(
-            &mut env,
-            [param_type2],
-            rhs_return,
-            GenericArguments::default(),
+        closure!(
+            env,
+            b,
+            [],
+            [primitive!(env, PrimitiveType::Number)],
+            primitive!(env, PrimitiveType::String)
         );
 
-        unify_closure(&mut env, &lhs, &rhs);
+        let mut lattice_env = LatticeEnvironment::new(&env);
 
-        assert!(
-            !env.take_diagnostics().is_empty(),
-            "Should fail when return type violates covariance"
-        );
-    }
-
-    #[test]
-    fn parameter_count_mismatch() {
-        setup_unify!(env);
-
-        // Test parameter count mismatch
-        // lhs: (String) -> Number
-        // rhs: (String, Number) -> Number
-        let param1 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::String));
-        let return_type = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number));
-
-        let lhs = create_closure_type(&mut env, [param1], return_type, GenericArguments::default());
-
-        let param2_1 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::String));
-        let param2_2 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number));
-        let return_type2 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number));
-
-        let rhs = create_closure_type(
-            &mut env,
-            [param2_1, param2_2],
-            return_type2,
-            GenericArguments::default(),
-        );
-
-        unify_closure(&mut env, &lhs, &rhs);
-
-        let diagnostics = env.take_diagnostics();
-        assert_eq!(
-            diagnostics.len(),
-            1,
-            "Should produce parameter count mismatch error"
-        );
-
-        assert_matches!(
-            diagnostics[0].category,
-            TypeCheckDiagnosticCategory::FunctionParameterCountMismatch,
-            "Wrong error type for parameter count mismatch"
+        // Meet closures with different parameter types
+        // Parameters are contravariant, so we use join on them
+        // Since Integer <: Number, join(Integer, Number) = Number
+        assert_equiv!(
+            env,
+            a.meet(b, &mut lattice_env),
+            [closure!(
+                env,
+                [],
+                [primitive!(env, PrimitiveType::Number)],
+                primitive!(env, PrimitiveType::String)
+            )]
         );
     }
 
     #[test]
-    fn combined_variance_test_failure() {
-        setup_unify!(env);
+    fn meet_closures_with_different_return_types() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
-        // Tests both contravariance of parameters and covariance of return types:
-        // lhs: (Number) -> Number     // More general parameter, more general return.
-        // rhs: (Integer) -> Integer   // More specific parameter, more specific return.
-        // But this actually FAILS because:
-        // - For params (contravariant): In a contravariant position, Number <: Integer needs to be
-        //   true but it isn't - Number is a supertype of Integer, not a subtype.
-        // - For return (covariant): Integer <: Number is true, so this part is fine.
-
-        let lhs_param = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number));
-        let lhs_return = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number));
-
-        let rhs_param = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Integer));
-        let rhs_return = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Integer));
-
-        let lhs = create_closure_type(
-            &mut env,
-            [lhs_param],
-            lhs_return,
-            GenericArguments::default(),
+        // Create closures with different return types
+        closure!(
+            env,
+            a,
+            [],
+            [primitive!(env, PrimitiveType::Number)],
+            primitive!(env, PrimitiveType::Integer)
         );
 
-        let rhs = create_closure_type(
-            &mut env,
-            [rhs_param],
-            rhs_return,
-            GenericArguments::default(),
+        closure!(
+            env,
+            b,
+            [],
+            [primitive!(env, PrimitiveType::Number)],
+            primitive!(env, PrimitiveType::Number)
         );
 
-        unify_closure(&mut env, &lhs, &rhs);
+        let mut lattice_env = LatticeEnvironment::new(&env);
 
-        assert!(
-            !env.take_diagnostics().is_empty(),
-            "Should fail because parameter contravariance is violated (Number is not a subtype of \
-             Integer)"
+        // Meet closures with different return types
+        // Return types are covariant, so we use meet on them
+        // Since Integer <: Number, meet(Integer, Number) = Integer
+        assert_equiv!(
+            env,
+            a.meet(b, &mut lattice_env),
+            [closure!(
+                env,
+                [],
+                [primitive!(env, PrimitiveType::Number)],
+                primitive!(env, PrimitiveType::Integer)
+            )]
         );
     }
 
     #[test]
-    fn combined_variance_test_success() {
-        setup_unify!(env);
+    fn meet_closures_different_param_count() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
-        // Tests both contravariance of parameters and covariance of return types
-        // lhs: (Integer) -> Number     // More specific parameter, more general return
-        // rhs: (Number) -> Integer     // More general parameter, more specific return
-        // This should succeed because:
-        // - For params (contravariant): Integer <: Number is true.
-        // - For return (covariant): Integer <: Number is true.
-
-        let lhs_param = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Integer));
-        let lhs_return = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number));
-
-        let rhs_param = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number));
-        let rhs_return = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Integer));
-
-        let lhs = create_closure_type(
-            &mut env,
-            [lhs_param],
-            lhs_return,
-            GenericArguments::default(),
+        // Create closures with different parameter counts
+        closure!(
+            env,
+            a,
+            [],
+            [primitive!(env, PrimitiveType::Number)],
+            primitive!(env, PrimitiveType::String)
         );
 
-        let rhs = create_closure_type(
-            &mut env,
-            [rhs_param],
-            rhs_return,
-            GenericArguments::default(),
+        closure!(
+            env,
+            b,
+            [],
+            [
+                primitive!(env, PrimitiveType::Number),
+                primitive!(env, PrimitiveType::Boolean)
+            ],
+            primitive!(env, PrimitiveType::String)
         );
 
-        unify_closure(&mut env, &lhs, &rhs);
+        let mut lattice_env = LatticeEnvironment::new(&env);
 
-        assert!(
-            env.take_diagnostics().is_empty(),
-            "Should succeed when both parameter contravariance and return type covariance are \
-             satisfied"
+        // Meet closures with different parameter counts should return empty
+        // Since closures are invariant over parameter count
+        let result = a.meet(b, &mut lattice_env);
+        assert_eq!(result.len(), 0);
+    }
+
+    #[test]
+    fn is_bottom_and_is_top() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // Create a normal closure
+        closure!(
+            env,
+            normal_closure,
+            [],
+            [primitive!(env, PrimitiveType::Number)],
+            primitive!(env, PrimitiveType::String)
+        );
+
+        // Create a closure with Never parameter type
+        closure!(
+            env,
+            never_param_closure,
+            [],
+            [instantiate(&env, TypeKind::Never)],
+            primitive!(env, PrimitiveType::String)
+        );
+
+        // Create a closure with Never return type
+        closure!(
+            env,
+            never_return_closure,
+            [],
+            [primitive!(env, PrimitiveType::Number)],
+            instantiate(&env, TypeKind::Never)
+        );
+
+        // Closures are never bottom types, even with Never parameters or return type
+        assert!(!normal_closure.is_bottom(&mut analysis_env));
+        assert!(!never_param_closure.is_bottom(&mut analysis_env));
+        assert!(!never_return_closure.is_bottom(&mut analysis_env));
+
+        // Closures are never top types
+        assert!(!normal_closure.is_top(&mut analysis_env));
+    }
+
+    #[test]
+    fn is_concrete() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // Create a concrete closure
+        closure!(
+            env,
+            concrete_closure,
+            [],
+            [primitive!(env, PrimitiveType::Number)],
+            primitive!(env, PrimitiveType::String)
+        );
+
+        // Create a closure with a non-concrete parameter
+        let infer_var = instantiate(&env, TypeKind::Infer);
+        closure!(
+            env,
+            non_concrete_param,
+            [],
+            [infer_var],
+            primitive!(env, PrimitiveType::String)
+        );
+
+        // Create a closure with a non-concrete return type
+        closure!(
+            env,
+            non_concrete_return,
+            [],
+            [primitive!(env, PrimitiveType::Number)],
+            infer_var
+        );
+
+        // Concrete closure should be concrete
+        assert!(concrete_closure.is_concrete(&mut analysis_env));
+
+        // Closures with non-concrete parameters or returns should not be concrete
+        assert!(!non_concrete_param.is_concrete(&mut analysis_env));
+        assert!(!non_concrete_return.is_concrete(&mut analysis_env));
+    }
+
+    #[test]
+    fn subtype_relationship() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        let number = primitive!(env, PrimitiveType::Number);
+        let integer = primitive!(env, PrimitiveType::Integer);
+        let string = primitive!(env, PrimitiveType::String);
+
+        // Create various closures for testing subtyping
+        closure!(
+            env,
+            closure_a,
+            [],
+            [number], // fn(Number) -> Integer
+            integer
+        );
+
+        closure!(
+            env,
+            closure_b,
+            [],
+            [integer], // fn(Integer) -> Integer
+            integer
+        );
+
+        closure!(
+            env,
+            closure_c,
+            [],
+            [integer], // fn(Integer) -> Number
+            number
+        );
+
+        closure!(
+            env,
+            closure_d,
+            [],
+            [number], // fn(Number) -> Number
+            number
+        );
+
+        // Test parameter contravariance:
+        // fn(Number) -> Integer <: fn(Integer) -> Integer
+        // Because Number >: Integer (contravariant!)
+        assert!(closure_a.is_subtype_of(closure_b, &mut analysis_env));
+
+        // Test return type covariance:
+        // fn(Integer) -> Integer <: fn(Integer) -> Number
+        // Because Integer <: Number (covariant)
+        assert!(closure_b.is_subtype_of(closure_c, &mut analysis_env));
+
+        // Test combined effects:
+        // fn(Number) -> Integer <: fn(Integer) -> Number
+        // Parameter: Number >: Integer
+        // Return: Integer <: Number
+        assert!(closure_a.is_subtype_of(closure_c, &mut analysis_env));
+
+        // Test parameter contravariance (opposite direction):
+        // fn(Integer) -> Integer is NOT a subtype of fn(Number) -> Integer
+        // Because Integer <: Number (wrong direction for contravariance)
+        assert!(!closure_b.is_subtype_of(closure_a, &mut analysis_env));
+
+        // Subtyping with different parameter counts
+        closure!(
+            env,
+            closure_e,
+            [],
+            [number, string], // fn(Number, String) -> Integer
+            integer
+        );
+
+        // Different parameter count means they're not in a subtyping relationship
+        assert!(!closure_a.is_subtype_of(closure_e, &mut analysis_env));
+        assert!(!closure_e.is_subtype_of(closure_a, &mut analysis_env));
+
+        // Test return type covariance with same parameter types:
+        // fn(Number) -> Integer <: fn(Number) -> Number
+        // Because Integer <: Number (covariant return type)
+        assert!(closure_a.is_subtype_of(closure_d, &mut analysis_env));
+
+        // Test reflexivity: all closures are subtypes of themselves
+        assert!(closure_d.is_subtype_of(closure_d, &mut analysis_env));
+    }
+
+    #[test]
+    fn equivalence_relationship() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // Create identical closures semantically
+        closure!(
+            env,
+            a,
+            [],
+            [primitive!(env, PrimitiveType::Number)],
+            primitive!(env, PrimitiveType::String)
+        );
+
+        closure!(
+            env,
+            b,
+            [],
+            [primitive!(env, PrimitiveType::Number)],
+            primitive!(env, PrimitiveType::String)
+        );
+
+        // Create a closure with different return type
+        closure!(
+            env,
+            c,
+            [],
+            [primitive!(env, PrimitiveType::Number)],
+            primitive!(env, PrimitiveType::Boolean)
+        );
+
+        // Create a closure with different parameter type
+        closure!(
+            env,
+            d,
+            [],
+            [primitive!(env, PrimitiveType::Integer)],
+            primitive!(env, PrimitiveType::String)
+        );
+
+        // Test equivalence properties
+        assert!(a.is_equivalent(b, &mut analysis_env));
+        assert!(!a.is_equivalent(c, &mut analysis_env));
+        assert!(!a.is_equivalent(d, &mut analysis_env));
+
+        // Self-equivalence check
+        assert!(a.is_equivalent(a, &mut analysis_env));
+    }
+
+    #[test]
+    fn distribute_union() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // Create primitive types
+        let number = primitive!(env, PrimitiveType::Number);
+        let string = primitive!(env, PrimitiveType::String);
+        let boolean = primitive!(env, PrimitiveType::Boolean);
+
+        // Create a union type for the return type
+        let union_type = union!(env, [string, boolean]);
+
+        // Create a closure with union return type
+        closure!(env, closure_with_union_return, [], [number], union_type);
+
+        // Distribute union across the return type (covariant position)
+        let result = closure_with_union_return.distribute_union(&mut analysis_env);
+
+        // Should result in two closures with different return types
+        assert_equiv!(
+            env,
+            result,
+            [
+                closure!(env, [], [number], string),
+                closure!(env, [], [number], boolean)
+            ]
         );
     }
 
     #[test]
-    fn generic_closure_unification() {
-        setup_unify!(env);
+    fn distribute_intersection() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
 
-        // Create a generic type parameter T
-        let t_id = GenericArgumentId::new(0);
-        let t_type = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number));
-        let t_arg = GenericArgument {
-            id: t_id,
-            name: ident("T"),
-            constraint: None,
-            r#type: t_type,
-        };
+        // Create primitive types
+        let number = primitive!(env, PrimitiveType::Number);
+        let string = primitive!(env, PrimitiveType::String);
+        let integer = primitive!(env, PrimitiveType::Integer);
 
-        // Create closures with generic parameter:
-        // lhs: <T>(T) -> T
-        let param_type = t_type;
-        let return_type = t_type;
+        // Create an intersection type for parameter (contravariant position)
+        let intersect_type = intersection!(env, [number, string]);
 
-        let lhs = create_closure_type(
-            &mut env,
-            vec![param_type],
-            return_type,
-            GenericArguments::from_iter([t_arg]),
+        // Create a closure with intersection parameter
+        closure!(
+            env,
+            closure_with_intersect_param,
+            [],
+            [intersect_type],
+            integer
         );
 
-        // rhs: (Number) -> Number
-        let param_type2 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number));
-        let return_type2 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number));
+        // Distribute intersection across parameter (contravariant position)
+        let result = closure_with_intersect_param.distribute_intersection(&mut analysis_env);
 
-        let rhs = create_closure_type(
-            &mut env,
-            vec![param_type2],
-            return_type2,
-            GenericArguments::default(),
+        // Should result in two closures with different parameter types
+        assert_equiv!(
+            env,
+            result,
+            [
+                closure!(env, [], [number], integer),
+                closure!(env, [], [string], integer)
+            ]
+        );
+    }
+
+    #[test]
+    fn simplify_closure() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create a normal closure
+        closure!(
+            env,
+            normal_closure,
+            [],
+            [primitive!(env, PrimitiveType::Number)],
+            primitive!(env, PrimitiveType::String)
         );
 
-        unify_closure(&mut env, &lhs, &rhs);
+        let mut simplify_env = SimplifyEnvironment::new(&env);
 
-        assert!(
-            env.take_diagnostics().is_empty(),
-            "Failed to unify generic closure with concrete closure"
+        // Simplifying an already simplified closure should return the same closure
+        let result = normal_closure.simplify(&mut simplify_env);
+        assert_eq!(result, normal_closure.id);
+    }
+
+    #[test]
+    fn lattice_laws() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create three distinct closures for testing lattice laws
+        let a = closure!(
+            env,
+            [],
+            [primitive!(env, PrimitiveType::Number)],
+            primitive!(env, PrimitiveType::String)
         );
+
+        let b = closure!(
+            env,
+            [],
+            [primitive!(env, PrimitiveType::Integer)],
+            primitive!(env, PrimitiveType::Boolean)
+        );
+
+        let c = closure!(
+            env,
+            [],
+            [primitive!(env, PrimitiveType::String)],
+            primitive!(env, PrimitiveType::Number)
+        );
+
+        // Test lattice laws (commutativity, associativity, absorption, etc.)
+        assert_lattice_laws(&env, a, b, c);
     }
 }

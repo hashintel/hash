@@ -54,6 +54,30 @@ macro_rules! struct_field {
     };
 }
 
+macro_rules! closure {
+    ($env:expr, $arguments:expr, $params:expr, $returns:expr) => {{
+        let params = $env.intern_type_ids(&$params);
+
+        let mut arguments = $arguments;
+        let arguments = $env.intern_generic_arguments(&mut arguments);
+
+        instantiate(
+            &$env,
+            TypeKind::Closure(ClosureType {
+                params,
+                returns: $returns,
+                arguments,
+            }),
+        )
+    }};
+
+    ($env:expr, $name:ident, $arguments:expr, $params:expr, $returns:expr) => {
+        let $name = closure!($env, $arguments, $params, $returns);
+        let $name = $env.types[$name].copied();
+        let $name = $name.map(|kind| kind.closure().expect("should be a closure"));
+    };
+}
+
 macro_rules! union {
     ($env:expr, $variants:expr) => {{
         let variants = $env.intern_type_ids(&$variants);
@@ -186,6 +210,7 @@ macro_rules! dict {
 
 pub(crate) use assert_equiv;
 pub(crate) use assert_kind;
+pub(crate) use closure;
 pub(crate) use dict;
 pub(crate) use intersection;
 pub(crate) use list;

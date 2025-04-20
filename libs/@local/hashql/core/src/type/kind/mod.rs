@@ -1,3 +1,4 @@
+pub mod closure;
 pub mod generic_argument;
 pub mod intersection;
 pub mod intrinsic;
@@ -14,6 +15,7 @@ use core::{ops::ControlFlow, ptr};
 use pretty::RcDoc;
 use smallvec::SmallVec;
 
+use self::closure::ClosureType;
 pub use self::{
     intersection::IntersectionType, intrinsic::IntrinsicType, opaque::OpaqueType,
     primitive::PrimitiveType, r#struct::StructType, tuple::TupleType, union::UnionType,
@@ -39,7 +41,7 @@ pub enum TypeKind<'heap> {
     Union(UnionType<'heap>),
     Intersection(IntersectionType<'heap>),
 
-    // Closure(ClosureType),
+    Closure(ClosureType<'heap>),
 
     // Param(Param),
     Never,
@@ -88,12 +90,13 @@ impl<'heap> TypeKind<'heap> {
         }
     }
 
-    // pub fn closure(&self) -> Option<&ClosureType> {
-    //     match self {
-    //         Self::Closure(r#type) => Some(r#type),
-    //         _ => None,
-    //     }
-    // }
+    #[must_use]
+    pub const fn closure(&self) -> Option<&ClosureType> {
+        match self {
+            Self::Closure(r#type) => Some(r#type),
+            _ => None,
+        }
+    }
 
     #[must_use]
     pub const fn union(&self) -> Option<&UnionType> {
@@ -125,6 +128,7 @@ impl<'heap> TypeKind<'heap> {
             | Self::Intrinsic(_)
             | Self::Struct(_)
             | Self::Tuple(_)
+            | Self::Closure(_)
             | Self::Union(_)
             | Self::Intersection(_)
             | Self::Never
@@ -223,7 +227,11 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             (Self::Opaque(lhs), Self::Opaque(rhs)) => self.with(lhs).join(other.with(rhs), env),
             (
                 Self::Opaque(_),
-                Self::Primitive(_) | Self::Intrinsic(_) | Self::Struct(_) | Self::Tuple(_),
+                Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_)
+                | Self::Closure(_),
             ) => SmallVec::from_slice(&[self.id, other.id]),
 
             // Primitive ∨ _
@@ -232,7 +240,11 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             }
             (
                 Self::Primitive(_),
-                Self::Opaque(_) | Self::Intrinsic(_) | Self::Struct(_) | Self::Tuple(_),
+                Self::Opaque(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_)
+                | Self::Closure(_),
             ) => SmallVec::from_slice(&[self.id, other.id]),
 
             // Intrinsic ∨ _
@@ -241,21 +253,44 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             }
             (
                 Self::Intrinsic(_),
-                Self::Opaque(_) | Self::Primitive(_) | Self::Struct(_) | Self::Tuple(_),
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Struct(_)
+                | Self::Tuple(_)
+                | Self::Closure(_),
             ) => SmallVec::from_slice(&[self.id, other.id]),
 
             // Struct ∨ _
             (Self::Struct(lhs), Self::Struct(rhs)) => self.with(lhs).join(other.with(rhs), env),
             (
                 Self::Struct(_),
-                Self::Opaque(_) | Self::Primitive(_) | Self::Intrinsic(_) | Self::Tuple(_),
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Tuple(_)
+                | Self::Closure(_),
             ) => SmallVec::from_slice(&[self.id, other.id]),
 
             // Tuple ∨ _
             (Self::Tuple(lhs), Self::Tuple(rhs)) => self.with(lhs).join(other.with(rhs), env),
             (
                 Self::Tuple(_),
-                Self::Opaque(_) | Self::Primitive(_) | Self::Intrinsic(_) | Self::Struct(_),
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Closure(_),
+            ) => SmallVec::from_slice(&[self.id, other.id]),
+
+            // Closure ∨ _
+            (Self::Closure(lhs), Self::Closure(rhs)) => self.with(lhs).join(other.with(rhs), env),
+            (
+                Self::Closure(_),
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_),
             ) => SmallVec::from_slice(&[self.id, other.id]),
 
             // Union ∨ _
@@ -267,6 +302,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 | Self::Intrinsic(_)
                 | Self::Tuple(_)
                 | Self::Struct(_)
+                | Self::Closure(_)
                 | Self::Intersection(_),
             ) => {
                 let lhs_variants = lhs.unnest(env);
@@ -278,8 +314,9 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 Self::Opaque(_)
                 | Self::Primitive(_)
                 | Self::Intrinsic(_)
-                | Self::Tuple(_)
                 | Self::Struct(_)
+                | Self::Tuple(_)
+                | Self::Closure(_)
                 | Self::Intersection(_),
                 Self::Union(rhs),
             ) => {
@@ -299,7 +336,8 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 | Self::Primitive(_)
                 | Self::Intrinsic(_)
                 | Self::Struct(_)
-                | Self::Tuple(_),
+                | Self::Tuple(_)
+                | Self::Closure(_),
             ) => {
                 let lhs_variants = lhs.unnest(env);
                 let rhs_variants = [other.id];
@@ -311,7 +349,8 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 | Self::Primitive(_)
                 | Self::Intrinsic(_)
                 | Self::Struct(_)
-                | Self::Tuple(_),
+                | Self::Tuple(_)
+                | Self::Closure(_),
                 Self::Intersection(rhs),
             ) => {
                 let lhs_variants = [self.id];
@@ -410,7 +449,11 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             (Self::Opaque(lhs), Self::Opaque(rhs)) => self.with(lhs).meet(other.with(rhs), env),
             (
                 Self::Opaque(_),
-                Self::Primitive(_) | Self::Intrinsic(_) | Self::Struct(_) | Self::Tuple(_),
+                Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_)
+                | Self::Closure(_),
             ) => SmallVec::new(),
 
             // Primitive ∧ _
@@ -419,7 +462,11 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             }
             (
                 Self::Primitive(_),
-                Self::Opaque(_) | Self::Intrinsic(_) | Self::Struct(_) | Self::Tuple(_),
+                Self::Opaque(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_)
+                | Self::Closure(_),
             ) => SmallVec::new(),
 
             // Intrinsic ∧ _
@@ -428,21 +475,44 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             }
             (
                 Self::Intrinsic(_),
-                Self::Opaque(_) | Self::Primitive(_) | Self::Struct(_) | Self::Tuple(_),
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Struct(_)
+                | Self::Tuple(_)
+                | Self::Closure(_),
             ) => SmallVec::new(),
 
             // Struct ∧ _
             (Self::Struct(lhs), Self::Struct(rhs)) => self.with(lhs).meet(other.with(rhs), env),
             (
                 Self::Struct(_),
-                Self::Opaque(_) | Self::Primitive(_) | Self::Intrinsic(_) | Self::Tuple(_),
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Tuple(_)
+                | Self::Closure(_),
             ) => SmallVec::new(),
 
             // Tuple ∧ _
             (Self::Tuple(lhs), Self::Tuple(rhs)) => self.with(lhs).meet(other.with(rhs), env),
             (
                 Self::Tuple(_),
-                Self::Opaque(_) | Self::Primitive(_) | Self::Intrinsic(_) | Self::Struct(_),
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Closure(_),
+            ) => SmallVec::new(),
+
+            // Closure ∧ _
+            (Self::Closure(lhs), Self::Closure(rhs)) => self.with(lhs).meet(other.with(rhs), env),
+            (
+                Self::Closure(_),
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_),
             ) => SmallVec::new(),
 
             // Union ∧ _
@@ -454,6 +524,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 | Self::Intrinsic(_)
                 | Self::Struct(_)
                 | Self::Tuple(_)
+                | Self::Closure(_)
                 | Self::Intersection(_),
             ) => {
                 let lhs_variants = lhs.unnest(env);
@@ -467,6 +538,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 | Self::Intrinsic(_)
                 | Self::Struct(_)
                 | Self::Tuple(_)
+                | Self::Closure(_)
                 | Self::Intersection(_),
                 Self::Union(rhs),
             ) => {
@@ -486,6 +558,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 | Self::Primitive(_)
                 | Self::Intrinsic(_)
                 | Self::Struct(_)
+                | Self::Closure(_)
                 | Self::Tuple(_),
             ) => {
                 let lhs_variants = lhs.unnest(env);
@@ -498,6 +571,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 | Self::Primitive(_)
                 | Self::Intrinsic(_)
                 | Self::Struct(_)
+                | Self::Closure(_)
                 | Self::Tuple(_),
                 Self::Intersection(rhs),
             ) => {
@@ -516,6 +590,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             Self::Intrinsic(intrinsic_type) => self.with(intrinsic_type).is_bottom(env),
             Self::Struct(struct_type) => self.with(struct_type).is_bottom(env),
             Self::Tuple(tuple_type) => self.with(tuple_type).is_bottom(env),
+            Self::Closure(closure_type) => self.with(closure_type).is_bottom(env),
             Self::Union(union_type) => self.with(union_type).is_bottom(env),
             Self::Intersection(intersection_type) => self.with(intersection_type).is_bottom(env),
             Self::Never => true,
@@ -540,6 +615,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             Self::Intrinsic(intrinsic_type) => self.with(intrinsic_type).is_top(env),
             Self::Struct(struct_type) => self.with(struct_type).is_top(env),
             Self::Tuple(tuple_type) => self.with(tuple_type).is_top(env),
+            Self::Closure(closure_type) => self.with(closure_type).is_top(env),
             Self::Union(union_type) => self.with(union_type).is_top(env),
             Self::Intersection(intersection_type) => self.with(intersection_type).is_top(env),
             Self::Never => false,
@@ -564,6 +640,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             Self::Intrinsic(intrinsic_type) => self.with(intrinsic_type).is_concrete(env),
             Self::Struct(struct_type) => self.with(struct_type).is_concrete(env),
             Self::Tuple(tuple_type) => self.with(tuple_type).is_concrete(env),
+            Self::Closure(closure_type) => self.with(closure_type).is_concrete(env),
             Self::Union(union_type) => self.with(union_type).is_concrete(env),
             Self::Intersection(intersection_type) => self.with(intersection_type).is_concrete(env),
             Self::Never | Self::Unknown => true,
@@ -581,6 +658,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             Self::Intrinsic(intrinsic_type) => self.with(intrinsic_type).distribute_union(env),
             Self::Struct(struct_type) => self.with(struct_type).distribute_union(env),
             Self::Tuple(tuple_type) => self.with(tuple_type).distribute_union(env),
+            Self::Closure(closure_type) => self.with(closure_type).distribute_union(env),
             Self::Union(union_type) => self.with(union_type).distribute_union(env),
             Self::Intersection(intersection_type) => {
                 self.with(intersection_type).distribute_union(env)
@@ -603,6 +681,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             }
             Self::Struct(struct_type) => self.with(struct_type).distribute_intersection(env),
             Self::Tuple(tuple_type) => self.with(tuple_type).distribute_intersection(env),
+            Self::Closure(closure_type) => self.with(closure_type).distribute_intersection(env),
             Self::Union(union_type) => self.with(union_type).distribute_intersection(env),
             Self::Intersection(intersection_type) => {
                 self.with(intersection_type).distribute_intersection(env)
@@ -665,7 +744,11 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             }
             (
                 Self::Opaque(_),
-                Self::Primitive(_) | Self::Intrinsic(_) | Self::Struct(_) | Self::Tuple(_),
+                Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_)
+                | Self::Closure(_),
             ) => false,
 
             // Primitive ≡ _
@@ -674,7 +757,11 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             }
             (
                 Self::Primitive(_),
-                Self::Opaque(_) | Self::Intrinsic(_) | Self::Struct(_) | Self::Tuple(_),
+                Self::Opaque(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_)
+                | Self::Closure(_),
             ) => false,
 
             // Intrinsic ≡ _
@@ -683,7 +770,11 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             }
             (
                 Self::Intrinsic(_),
-                Self::Opaque(_) | Self::Primitive(_) | Self::Struct(_) | Self::Tuple(_),
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Struct(_)
+                | Self::Tuple(_)
+                | Self::Closure(_),
             ) => false,
 
             // Struct ≡ _
@@ -692,7 +783,11 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             }
             (
                 Self::Struct(_),
-                Self::Opaque(_) | Self::Primitive(_) | Self::Intrinsic(_) | Self::Tuple(_),
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Tuple(_)
+                | Self::Closure(_),
             ) => false,
 
             // Tuple ≡ _
@@ -701,7 +796,24 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             }
             (
                 Self::Tuple(_),
-                Self::Opaque(_) | Self::Primitive(_) | Self::Struct(_) | Self::Intrinsic(_),
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Struct(_)
+                | Self::Intrinsic(_)
+                | Self::Closure(_),
+            ) => false,
+
+            // Closure ≡ _
+            (Self::Closure(lhs), Self::Closure(rhs)) => {
+                self.with(lhs).is_equivalent(other.with(rhs), env)
+            }
+            (
+                Self::Closure(_),
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Struct(_)
+                | Self::Intrinsic(_)
+                | Self::Tuple(_),
             ) => false,
 
             // Union ≡ _
@@ -715,6 +827,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 | Self::Intrinsic(_)
                 | Self::Struct(_)
                 | Self::Tuple(_)
+                | Self::Closure(_)
                 | Self::Intersection(_),
             )
             | (
@@ -723,6 +836,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 | Self::Intrinsic(_)
                 | Self::Struct(_)
                 | Self::Tuple(_)
+                | Self::Closure(_)
                 | Self::Intersection(_),
                 Self::Union(_),
             ) => {
@@ -737,34 +851,25 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 self.with(lhs).is_equivalent(other.with(rhs), env)
             }
             (
-                Self::Intersection(lhs),
+                Self::Intersection(_),
                 Self::Opaque(_)
                 | Self::Primitive(_)
                 | Self::Intrinsic(_)
                 | Self::Struct(_)
-                | Self::Tuple(_),
-            ) => {
-                let lhs_variants = lhs.unnest(env);
-                let rhs_variants = [other.id];
-
-                IntersectionType::is_equivalent_variants(
-                    self,
-                    other,
-                    &lhs_variants,
-                    &rhs_variants,
-                    env,
-                )
-            }
-            (
+                | Self::Tuple(_)
+                | Self::Closure(_),
+            )
+            | (
                 Self::Opaque(_)
                 | Self::Primitive(_)
                 | Self::Intrinsic(_)
                 | Self::Struct(_)
-                | Self::Tuple(_),
-                Self::Intersection(rhs),
+                | Self::Tuple(_)
+                | Self::Closure(_),
+                Self::Intersection(_),
             ) => {
-                let lhs_variants = [self.id];
-                let rhs_variants = rhs.unnest(env);
+                let lhs_variants = self.distribute_intersection(env);
+                let rhs_variants = other.distribute_intersection(env);
 
                 IntersectionType::is_equivalent_variants(
                     self,
@@ -837,7 +942,11 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             }
             (
                 Self::Opaque(_),
-                Self::Primitive(_) | Self::Intrinsic(_) | Self::Struct(_) | Self::Tuple(_),
+                Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_)
+                | Self::Closure(_),
             ) => false,
 
             // Primitive <: _
@@ -846,7 +955,11 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             }
             (
                 Self::Primitive(_),
-                Self::Opaque(_) | Self::Intrinsic(_) | Self::Struct(_) | Self::Tuple(_),
+                Self::Opaque(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_)
+                | Self::Closure(_),
             ) => false,
 
             // Intrinsic <: _
@@ -855,7 +968,11 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             }
             (
                 Self::Intrinsic(_),
-                Self::Opaque(_) | Self::Primitive(_) | Self::Struct(_) | Self::Tuple(_),
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Struct(_)
+                | Self::Tuple(_)
+                | Self::Closure(_),
             ) => false,
 
             // Struct <: _
@@ -864,7 +981,11 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             }
             (
                 Self::Struct(_),
-                Self::Opaque(_) | Self::Primitive(_) | Self::Intrinsic(_) | Self::Tuple(_),
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Tuple(_)
+                | Self::Closure(_),
             ) => false,
 
             // Tuple <: _
@@ -873,7 +994,24 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             }
             (
                 Self::Tuple(_),
-                Self::Opaque(_) | Self::Primitive(_) | Self::Intrinsic(_) | Self::Struct(_),
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Closure(_),
+            ) => false,
+
+            // Closure <: _
+            (Self::Closure(lhs), Self::Closure(rhs)) => {
+                self.with(lhs).is_subtype_of(supertype.with(rhs), env)
+            }
+            (
+                Self::Closure(_),
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_),
             ) => false,
 
             // Union <: _
@@ -887,6 +1025,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 | Self::Intrinsic(_)
                 | Self::Struct(_)
                 | Self::Tuple(_)
+                | Self::Closure(_)
                 | Self::Intersection(_),
             )
             | (
@@ -895,6 +1034,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 | Self::Intrinsic(_)
                 | Self::Struct(_)
                 | Self::Tuple(_)
+                | Self::Closure(_)
                 | Self::Intersection(_),
                 Self::Union(_),
             ) => {
@@ -915,34 +1055,25 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 self.with(lhs).is_subtype_of(supertype.with(rhs), env)
             }
             (
-                Self::Intersection(lhs),
+                Self::Intersection(_),
                 Self::Opaque(_)
                 | Self::Primitive(_)
                 | Self::Intrinsic(_)
                 | Self::Struct(_)
-                | Self::Tuple(_),
-            ) => {
-                let self_variants = lhs.unnest(env);
-                let super_variants = [supertype.id];
-
-                IntersectionType::is_subtype_of_variants(
-                    self,
-                    supertype,
-                    &self_variants,
-                    &super_variants,
-                    env,
-                )
-            }
-            (
+                | Self::Tuple(_)
+                | Self::Closure(_),
+            )
+            | (
                 Self::Opaque(_)
                 | Self::Primitive(_)
                 | Self::Intrinsic(_)
                 | Self::Struct(_)
-                | Self::Tuple(_),
-                Self::Intersection(rhs),
+                | Self::Tuple(_)
+                | Self::Closure(_),
+                Self::Intersection(_),
             ) => {
-                let self_variants = [self.id];
-                let super_variants = rhs.unnest(env);
+                let self_variants = self.distribute_intersection(env);
+                let super_variants = supertype.distribute_intersection(env);
 
                 IntersectionType::is_subtype_of_variants(
                     self,
@@ -978,6 +1109,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             Self::Intrinsic(intrinsic_type) => self.with(intrinsic_type).simplify(env),
             Self::Struct(struct_type) => self.with(struct_type).simplify(env),
             Self::Tuple(tuple_type) => self.with(tuple_type).simplify(env),
+            Self::Closure(closure_type) => self.with(closure_type).simplify(env),
             Self::Union(union_type) => self.with(union_type).simplify(env),
             Self::Intersection(intersection_type) => self.with(intersection_type).simplify(env),
             Self::Never | Self::Unknown | Self::Infer => self.id,
@@ -997,6 +1129,7 @@ impl PrettyPrint for TypeKind<'_> {
             Self::Intrinsic(intrinsic_type) => intrinsic_type.pretty(env, limit),
             Self::Struct(struct_type) => struct_type.pretty(env, limit),
             Self::Tuple(tuple_type) => tuple_type.pretty(env, limit),
+            Self::Closure(closure_type) => closure_type.pretty(env, limit),
             Self::Union(union_type) => union_type.pretty(env, limit),
             Self::Intersection(intersection_type) => intersection_type.pretty(env, limit),
             Self::Never => RcDoc::text("!").annotate(CYAN),

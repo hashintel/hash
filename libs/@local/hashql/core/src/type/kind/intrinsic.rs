@@ -106,10 +106,27 @@ impl<'heap> Lattice<'heap> for ListType {
 
     fn distribute_intersection(
         self: Type<'heap, Self>,
-        _: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16> {
-        // List<T> is covariant over `T`, therefore no distribution is needed.
-        SmallVec::from_slice(&[self.id])
+        let elements = env.distribute_intersection(self.kind.element);
+
+        // Due to distribution rules, we know if there's a single element, it's the same as the
+        // original type.
+        if elements.len() == 1 {
+            return SmallVec::from_slice(&[self.id]);
+        }
+
+        elements
+            .into_iter()
+            .map(|element| {
+                env.alloc(|id| Type {
+                    id,
+                    span: self.span,
+                    kind: env
+                        .intern_kind(TypeKind::Intrinsic(IntrinsicType::List(Self { element }))),
+                })
+            })
+            .collect()
     }
 
     fn is_subtype_of(
@@ -348,10 +365,30 @@ impl<'heap> Lattice<'heap> for DictType {
 
     fn distribute_intersection(
         self: Type<'heap, Self>,
-        _: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16> {
-        // Dict<K, V> is covariant over V and invariant of K, so no distribution necessary
-        SmallVec::from_slice(&[self.id])
+        // The key is invariant, but the value is covariant, therefore we need to distribute over
+        // the value
+        let value = env.distribute_intersection(self.kind.value);
+
+        if value.len() == 1 {
+            // Distribution rules - if the returned value is a single type it must be the same type
+            return SmallVec::from_slice(&[self.id]);
+        }
+
+        value
+            .into_iter()
+            .map(|value| {
+                env.alloc(|id| Type {
+                    id,
+                    span: self.span,
+                    kind: env.intern_kind(TypeKind::Intrinsic(IntrinsicType::Dict(Self {
+                        key: self.kind.key,
+                        value,
+                    }))),
+                })
+            })
+            .collect()
     }
 
     fn is_subtype_of(

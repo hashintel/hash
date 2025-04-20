@@ -460,8 +460,10 @@ mod test {
             },
             kind::{
                 TypeKind,
+                closure::ClosureType,
+                intrinsic::{DictType, IntrinsicType},
                 primitive::PrimitiveType,
-                test::{assert_equiv, intersection, primitive, tuple, union},
+                test::{assert_equiv, closure, dict, intersection, primitive, tuple, union},
                 tuple::TupleType,
                 union::UnionType,
             },
@@ -1249,5 +1251,86 @@ mod test {
             [intersection_with_union.simplify(&mut simplify_env)],
             [instantiate(&env, TypeKind::Never)]
         );
+    }
+
+    #[test]
+    fn intersection_equivalence_covariance() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Dict<Number, Boolean>
+        let dict_number_boolean = dict!(
+            env,
+            primitive!(env, PrimitiveType::Number),
+            primitive!(env, PrimitiveType::Boolean)
+        );
+
+        // Dict<Number, String>
+        let dict_number_string = dict!(
+            env,
+            primitive!(env, PrimitiveType::Number),
+            primitive!(env, PrimitiveType::String)
+        );
+
+        // Dict<Number, Boolean & String>
+        let dict_number_boolean_string = dict!(
+            env,
+            primitive!(env, PrimitiveType::Number),
+            intersection!(
+                env,
+                [
+                    primitive!(env, PrimitiveType::Boolean),
+                    primitive!(env, PrimitiveType::String)
+                ]
+            )
+        );
+
+        // Create the two union types we want to compare:
+        // Type 1: Dict<Number, Boolean & String>
+        let type1 = dict_number_boolean_string;
+
+        // Type 2: Dict<Number, Boolean> & Dict<Number, String>
+        let type2 = intersection!(env, [dict_number_boolean, dict_number_string]);
+
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // These types should be equivalent despite having different variant counts
+        assert!(analysis_env.is_equivalent(type1, type2));
+        assert!(analysis_env.is_equivalent(type2, type1));
+    }
+
+    // This might seem a bit counterintuitive, but it's actually correct.
+    // see: https://arxiv.org/pdf/1809.01427 (2.8)
+    #[test]
+    fn intersection_equivalence_contravariance() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create basic types
+        let string = primitive!(env, PrimitiveType::String);
+        let number = primitive!(env, PrimitiveType::Number);
+        let null = primitive!(env, PrimitiveType::Null);
+
+        // Create various closures
+
+        // Type1: (String & Number) -> Null
+        closure!(env, type1, [], [intersection!(env, [string, number])], null);
+
+        // Type2: (String) -> Null | (Number) -> Null
+        union!(
+            env,
+            type2,
+            [
+                closure!(env, [], [string], null),
+                closure!(env, [], [number], null)
+            ]
+        );
+
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // These should be equivalent despite having different structures:
+        // ((String & Number) -> Null) ≡ (String) -> Null | (Number) -> Null
+        assert!(analysis_env.is_equivalent(type1.id, type2.id));
+        assert!(analysis_env.is_equivalent(type2.id, type1.id));
     }
 }
