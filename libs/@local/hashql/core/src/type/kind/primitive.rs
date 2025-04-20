@@ -71,6 +71,20 @@ impl<'heap> Lattice<'heap> for PrimitiveType {
         true
     }
 
+    fn distribute_union(
+        self: Type<'heap, Self>,
+        _: &mut TypeAnalysisEnvironment<'_, 'heap>,
+    ) -> SmallVec<TypeId, 16> {
+        SmallVec::from_slice(&[self.id])
+    }
+
+    fn distribute_intersection(
+        self: Type<'heap, Self>,
+        _: &mut TypeAnalysisEnvironment<'_, 'heap>,
+    ) -> SmallVec<TypeId, 16> {
+        SmallVec::from_slice(&[self.id])
+    }
+
     fn is_subtype_of(
         self: Type<'heap, Self>,
         supertype: Type<'heap, Self>,

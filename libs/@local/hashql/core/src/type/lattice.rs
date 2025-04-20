@@ -3,6 +3,7 @@ use smallvec::SmallVec;
 use super::{
     Type, TypeId,
     environment::{LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment},
+    kind::TypeKind,
 };
 
 /// A trait that implements properties of a mathematical lattice for types.
@@ -202,6 +203,15 @@ pub trait Lattice<'heap> {
     /// - Types with unresolved type parameters
     /// - Inference types that need further resolution
     fn is_concrete(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool;
+
+    fn distribute_union(
+        self: Type<'heap, Self>,
+        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+    ) -> SmallVec<TypeId, 16>;
+    fn distribute_intersection(
+        self: Type<'heap, Self>,
+        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+    ) -> SmallVec<TypeId, 16>;
 
     /// Determines if one type is a subtype of another.
     ///

@@ -507,6 +507,48 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
         }
     }
 
+    fn distribute_union(
+        self: Type<'heap, Self>,
+        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+    ) -> SmallVec<TypeId, 16> {
+        match self.kind {
+            TypeKind::Opaque(opaque_type) => self.with(opaque_type).distribute_union(env),
+            TypeKind::Primitive(primitive_type) => self.with(primitive_type).distribute_union(env),
+            TypeKind::Intrinsic(intrinsic_type) => self.with(intrinsic_type).distribute_union(env),
+            TypeKind::Tuple(tuple_type) => self.with(tuple_type).distribute_union(env),
+            TypeKind::Union(union_type) => self.with(union_type).distribute_union(env),
+            TypeKind::Intersection(intersection_type) => {
+                self.with(intersection_type).distribute_union(env)
+            }
+            TypeKind::Never | TypeKind::Unknown | TypeKind::Infer => {
+                SmallVec::from_slice(&[self.id])
+            }
+        }
+    }
+
+    fn distribute_intersection(
+        self: Type<'heap, Self>,
+        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+    ) -> SmallVec<TypeId, 16> {
+        match self.kind {
+            TypeKind::Opaque(opaque_type) => self.with(opaque_type).distribute_intersection(env),
+            TypeKind::Primitive(primitive_type) => {
+                self.with(primitive_type).distribute_intersection(env)
+            }
+            TypeKind::Intrinsic(intrinsic_type) => {
+                self.with(intrinsic_type).distribute_intersection(env)
+            }
+            TypeKind::Tuple(tuple_type) => self.with(tuple_type).distribute_intersection(env),
+            TypeKind::Union(union_type) => self.with(union_type).distribute_intersection(env),
+            TypeKind::Intersection(intersection_type) => {
+                self.with(intersection_type).distribute_intersection(env)
+            }
+            TypeKind::Never | TypeKind::Unknown | TypeKind::Infer => {
+                SmallVec::from_slice(&[self.id])
+            }
+        }
+    }
+
     #[expect(clippy::too_many_lines)]
     fn is_equivalent(
         mut self: Type<'heap, Self>,
@@ -589,28 +631,23 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 self.with(lhs).is_equivalent(other.with(rhs), env)
             }
             (
-                TypeKind::Union(lhs),
+                TypeKind::Union(_),
                 TypeKind::Opaque(_)
                 | TypeKind::Primitive(_)
                 | TypeKind::Intrinsic(_)
                 | TypeKind::Tuple(_)
                 | TypeKind::Intersection(_),
-            ) => {
-                let lhs_variants = lhs.unnest(env);
-                let rhs_variants = [other.id];
-
-                UnionType::is_equivalent_variants(self, other, &lhs_variants, &rhs_variants, env)
-            }
-            (
+            )
+            | (
                 TypeKind::Opaque(_)
                 | TypeKind::Primitive(_)
                 | TypeKind::Intrinsic(_)
                 | TypeKind::Tuple(_)
                 | TypeKind::Intersection(_),
-                TypeKind::Union(rhs),
+                TypeKind::Union(_),
             ) => {
-                let lhs_variants = [self.id];
-                let rhs_variants = rhs.unnest(env);
+                let lhs_variants = self.distribute_union(env);
+                let rhs_variants = other.distribute_union(env);
 
                 UnionType::is_equivalent_variants(self, other, &lhs_variants, &rhs_variants, env)
             }
@@ -747,34 +784,23 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 self.with(lhs).is_subtype_of(supertype.with(rhs), env)
             }
             (
-                TypeKind::Union(lhs),
+                TypeKind::Union(_),
                 TypeKind::Opaque(_)
                 | TypeKind::Primitive(_)
                 | TypeKind::Intrinsic(_)
                 | TypeKind::Tuple(_)
                 | TypeKind::Intersection(_),
-            ) => {
-                let self_variants = lhs.unnest(env);
-                let super_variants = [supertype.id];
-
-                UnionType::is_subtype_of_variants(
-                    self,
-                    supertype,
-                    &self_variants,
-                    &super_variants,
-                    env,
-                )
-            }
-            (
+            )
+            | (
                 TypeKind::Opaque(_)
                 | TypeKind::Primitive(_)
                 | TypeKind::Intrinsic(_)
                 | TypeKind::Tuple(_)
                 | TypeKind::Intersection(_),
-                TypeKind::Union(rhs),
+                TypeKind::Union(_),
             ) => {
-                let self_variants = [self.id];
-                let super_variants = rhs.unnest(env);
+                let self_variants = self.distribute_union(env);
+                let super_variants = supertype.distribute_union(env);
 
                 UnionType::is_subtype_of_variants(
                     self,

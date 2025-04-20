@@ -1,5 +1,6 @@
 use core::ops::ControlFlow;
 
+use bitvec::bitvec;
 use pretty::RcDoc;
 use smallvec::SmallVec;
 
@@ -175,15 +176,18 @@ impl<'heap> IntersectionType<'heap> {
         T: PrettyPrint,
         U: PrettyPrint,
     {
-        if lhs_variants.len() != rhs_variants.len() {
+        // Empty intersections are only equivalent to other empty intersections
+        // As an empty intersection corresponds to `Unknown`, therefore only `Unknown ≡ Unknown`
+        if lhs_variants.is_empty() && rhs_variants.is_empty() {
+            return true;
+        }
+
+        // Special case for empty intersections (Unknown type)
+        if lhs_variants.is_empty() || rhs_variants.is_empty() {
             // We always fail-fast here
             let _: ControlFlow<()> = env.record_diagnostic(|env| {
-                let help = if lhs_variants.is_empty() || rhs_variants.is_empty() {
-                    "The Unknown type (empty intersection) can only be equivalent to itself. A \
-                     non-empty intersection cannot be equivalent to Unknown."
-                } else {
-                    "Intersection types must have the same number of variants to be equivalent."
-                };
+                let help = "The Unknown type (empty intersection) can only be equivalent to \
+                            itself. A non-empty intersection cannot be equivalent to Unknown.";
 
                 type_mismatch(env, lhs, rhs, Some(help))
             });
@@ -191,17 +195,25 @@ impl<'heap> IntersectionType<'heap> {
             return false;
         }
 
-        let mut equivalent = true;
+        let mut lhs_compatible = true;
+        let mut rhs_compatible = true;
 
-        // For every variant x in lhs_variants, there exists a y in rhs_variants where x ≡ y
-        for &lhs_variant in lhs_variants {
-            let found = rhs_variants
-                .iter()
-                .any(|&rhs_variant| env.is_equivalent(lhs_variant, rhs_variant));
+        let mut lhs_matched = bitvec![0; lhs_variants.len()];
+        let mut rhs_matched = bitvec![0; rhs_variants.len()];
 
-            if found {
-                continue;
+        // Find all matching pairs
+        for (&lhs_variant, mut lhs_matched) in lhs_variants.iter().zip(lhs_matched.iter_mut()) {
+            for (&rhs_variant, rhs_matched) in rhs_variants.iter().zip(rhs_matched.iter_mut()) {
+                if env.is_equivalent(lhs_variant, rhs_variant) {
+                    *lhs_matched = true;
+                    rhs_matched.commit(true);
+                }
             }
+        }
+
+        // Check if there are any lhs variants which weren't matched
+        for index in lhs_matched.iter_zeros() {
+            let lhs_variant = lhs_variants[index];
 
             if env
                 .record_diagnostic(|env| {
@@ -212,10 +224,26 @@ impl<'heap> IntersectionType<'heap> {
                 return false;
             }
 
-            equivalent = false;
+            lhs_compatible = false;
         }
 
-        equivalent
+        // Check if there are any rhs variants which weren't matched
+        for index in rhs_matched.iter_zeros() {
+            let rhs_variant = rhs_variants[index];
+
+            if env
+                .record_diagnostic(|env| {
+                    intersection_variant_mismatch(env, env.types[rhs_variant].copied(), lhs)
+                })
+                .is_break()
+            {
+                return false;
+            }
+
+            rhs_compatible = false;
+        }
+
+        lhs_compatible && rhs_compatible
     }
 }
 
@@ -265,6 +293,24 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
 
     fn is_concrete(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
         self.kind.variants.iter().all(|&id| env.is_concrete(id))
+    }
+
+    fn distribute_union(
+        self: Type<'heap, Self>,
+        _: &mut TypeAnalysisEnvironment<'_, 'heap>,
+    ) -> SmallVec<TypeId, 16> {
+        SmallVec::from_slice(&[self.id])
+    }
+
+    fn distribute_intersection(
+        self: Type<'heap, Self>,
+        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+    ) -> SmallVec<TypeId, 16> {
+        self.kind
+            .variants
+            .iter()
+            .flat_map(|&variant| env.distribute_intersection(variant))
+            .collect()
     }
 
     /// Checks if this intersection type is a subtype of the given supertype.

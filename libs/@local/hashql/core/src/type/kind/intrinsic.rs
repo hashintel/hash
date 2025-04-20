@@ -79,6 +79,39 @@ impl<'heap> Lattice<'heap> for ListType {
         env.is_concrete(self.kind.element)
     }
 
+    fn distribute_union(
+        self: Type<'heap, Self>,
+        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+    ) -> SmallVec<TypeId, 16> {
+        let elements = env.distribute_union(self.kind.element);
+
+        // Due to distribution rules, we know if there's a single element, it's the same as the
+        // original type.
+        if elements.len() == 1 {
+            return SmallVec::from_slice(&[self.id]);
+        }
+
+        elements
+            .into_iter()
+            .map(|element| {
+                env.alloc(|id| Type {
+                    id,
+                    span: self.span,
+                    kind: env
+                        .intern_kind(TypeKind::Intrinsic(IntrinsicType::List(Self { element }))),
+                })
+            })
+            .collect()
+    }
+
+    fn distribute_intersection(
+        self: Type<'heap, Self>,
+        _: &mut TypeAnalysisEnvironment<'_, 'heap>,
+    ) -> SmallVec<TypeId, 16> {
+        // List<T> is covariant over `T`, therefore no distribution is needed.
+        SmallVec::from_slice(&[self.id])
+    }
+
     fn is_subtype_of(
         self: Type<'heap, Self>,
         supertype: Type<'heap, Self>,
@@ -285,6 +318,42 @@ impl<'heap> Lattice<'heap> for DictType {
         env.is_concrete(self.kind.key) && env.is_concrete(self.kind.value)
     }
 
+    fn distribute_union(
+        self: Type<'heap, Self>,
+        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+    ) -> SmallVec<TypeId, 16> {
+        // The key is invariant, but the value is covariant, therefore we need to distribute over
+        // the value
+        let value = env.distribute_union(self.kind.value);
+
+        if value.len() == 1 {
+            // Distribution rules - if the returned value is a single type it must be the same type
+            return SmallVec::from_slice(&[self.id]);
+        }
+
+        value
+            .into_iter()
+            .map(|value| {
+                env.alloc(|id| Type {
+                    id,
+                    span: self.span,
+                    kind: env.intern_kind(TypeKind::Intrinsic(IntrinsicType::Dict(Self {
+                        key: self.kind.key,
+                        value,
+                    }))),
+                })
+            })
+            .collect()
+    }
+
+    fn distribute_intersection(
+        self: Type<'heap, Self>,
+        _: &mut TypeAnalysisEnvironment<'_, 'heap>,
+    ) -> SmallVec<TypeId, 16> {
+        // Dict<K, V> is covariant over V and invariant of K, so no distribution necessary
+        SmallVec::from_slice(&[self.id])
+    }
+
     fn is_subtype_of(
         self: Type<'heap, Self>,
         supertype: Type<'heap, Self>,
@@ -439,6 +508,26 @@ impl<'heap> Lattice<'heap> for IntrinsicType {
         match self.kind {
             Self::List(inner) => self.with(inner).is_concrete(env),
             Self::Dict(inner) => self.with(inner).is_concrete(env),
+        }
+    }
+
+    fn distribute_union(
+        self: Type<'heap, Self>,
+        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+    ) -> SmallVec<TypeId, 16> {
+        match self.kind {
+            Self::List(list_type) => self.with(list_type).distribute_union(env),
+            Self::Dict(dict_type) => self.with(dict_type).distribute_union(env),
+        }
+    }
+
+    fn distribute_intersection(
+        self: Type<'heap, Self>,
+        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+    ) -> SmallVec<TypeId, 16> {
+        match self.kind {
+            Self::List(list_type) => self.with(list_type).distribute_intersection(env),
+            Self::Dict(dict_type) => self.with(dict_type).distribute_intersection(env),
         }
     }
 

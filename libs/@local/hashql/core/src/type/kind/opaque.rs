@@ -210,6 +210,22 @@ impl<'heap> Lattice<'heap> for OpaqueType<'heap> {
         env.is_concrete(self.kind.repr)
     }
 
+    fn distribute_union(
+        self: Type<'heap, Self>,
+        _: &mut TypeAnalysisEnvironment<'_, 'heap>,
+    ) -> SmallVec<TypeId, 16> {
+        // opaque type is invariant in regards to generic arguments, so we simply return ourselves
+        SmallVec::from_slice(&[self.id])
+    }
+
+    fn distribute_intersection(
+        self: Type<'heap, Self>,
+        _: &mut TypeAnalysisEnvironment<'_, 'heap>,
+    ) -> SmallVec<TypeId, 16> {
+        // opaque type is invariant in regards to generic arguments, so we simply return ourselves
+        SmallVec::from_slice(&[self.id])
+    }
+
     /// Determines if one opaque type is a subtype of another.
     ///
     /// Implements invariant nominal typing semantics:

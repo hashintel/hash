@@ -1,6 +1,6 @@
 use core::ops::ControlFlow;
 
-use bitvec::{bitvec, order::Lsb0};
+use bitvec::bitvec;
 use pretty::RcDoc;
 use smallvec::SmallVec;
 
@@ -158,6 +158,7 @@ impl<'heap> UnionType<'heap> {
         U: PrettyPrint,
     {
         // Empty unions are only equivalent to other empty unions
+        // As an empty union corresponds to the `Never` type, therefore only `Never ≡ Never`
         if lhs_variants.is_empty() && rhs_variants.is_empty() {
             return true;
         }
@@ -262,6 +263,24 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
         self.kind.variants.iter().all(|&id| env.is_concrete(id))
     }
 
+    fn distribute_union(
+        self: Type<'heap, Self>,
+        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+    ) -> SmallVec<TypeId, 16> {
+        self.kind
+            .variants
+            .iter()
+            .flat_map(|&variant| env.distribute_union(variant))
+            .collect()
+    }
+
+    fn distribute_intersection(
+        self: Type<'heap, Self>,
+        _: &mut TypeAnalysisEnvironment<'_, 'heap>,
+    ) -> SmallVec<TypeId, 16> {
+        SmallVec::from_slice(&[self.id])
+    }
+
     /// Checks if this union type is a subtype of the given supertype.
     ///
     /// In type theory, a union type `A | B` represents a type that has *either* the properties
@@ -282,8 +301,8 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
         supertype: Type<'heap, Self>,
         env: &mut TypeAnalysisEnvironment<'_, 'heap>,
     ) -> bool {
-        let self_variants = self.kind.unnest(env);
-        let super_variants = supertype.kind.unnest(env);
+        let self_variants = self.distribute_union(env);
+        let super_variants = supertype.distribute_union(env);
 
         Self::is_subtype_of_variants(self, supertype, &self_variants, &super_variants, env)
     }
@@ -293,8 +312,8 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
         other: Type<'heap, Self>,
         env: &mut TypeAnalysisEnvironment<'_, 'heap>,
     ) -> bool {
-        let lhs_variants = self.kind.unnest(env);
-        let rhs_variants = other.kind.unnest(env);
+        let lhs_variants = self.distribute_union(env);
+        let rhs_variants = other.distribute_union(env);
 
         Self::is_equivalent_variants(self, other, &lhs_variants, &rhs_variants, env)
     }
@@ -326,6 +345,10 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
             });
         }
 
+        // TODO: in the future we might want to consider collapse via constructor-merge, turning
+        // any: `List<T> | List<U>` into `List<T | U>`.
+
+        // Collapse via subsumption
         let backup = variants.clone();
         variants.retain(|&mut subtype| {
             // keep v only if it is *not* a subtype of any other distinct u
@@ -841,6 +864,85 @@ mod test {
 
         // Empty union should be a subtype of any other union
         assert!(empty.is_subtype_of(non_empty, &mut analysis_env));
+    }
+
+    #[test]
+    fn covariant_union_is_subtype() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Dict<String, Number>
+        dict!(
+            env,
+            dict_string_number,
+            primitive!(env, PrimitiveType::String),
+            primitive!(env, PrimitiveType::Number)
+        );
+
+        // Dict<String, Number | String>
+        dict!(
+            env,
+            dict_string_number_string,
+            primitive!(env, PrimitiveType::String),
+            union!(
+                env,
+                [
+                    primitive!(env, PrimitiveType::Number),
+                    primitive!(env, PrimitiveType::String)
+                ]
+            )
+        );
+
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // Dict<String, Number> <: Dict<String, Number | String>
+        assert!(dict_string_number.is_subtype_of(dict_string_number_string, &mut analysis_env));
+    }
+
+    #[test]
+    fn covariant_union_equivalence() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Dict<String, Number> | Dict<String, String>
+        let union_dict_string_number_string = union!(
+            env,
+            [
+                dict!(
+                    env,
+                    primitive!(env, PrimitiveType::String),
+                    primitive!(env, PrimitiveType::Number)
+                ),
+                dict!(
+                    env,
+                    primitive!(env, PrimitiveType::String),
+                    primitive!(env, PrimitiveType::String)
+                )
+            ]
+        );
+
+        // Dict<String, Number | String>
+        let dict_string_number_string = dict!(
+            env,
+            primitive!(env, PrimitiveType::String),
+            union!(
+                env,
+                [
+                    primitive!(env, PrimitiveType::Number),
+                    primitive!(env, PrimitiveType::String)
+                ]
+            )
+        );
+
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // Dict<String, Number> | Dict<String, Number> = Dict<String, Number | String>
+        assert!(
+            analysis_env.is_equivalent(union_dict_string_number_string, dict_string_number_string)
+        );
+        assert!(
+            analysis_env.is_equivalent(dict_string_number_string, union_dict_string_number_string)
+        );
     }
 
     #[test]

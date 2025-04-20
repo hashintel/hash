@@ -4,13 +4,18 @@ use pretty::RcDoc;
 use smallvec::SmallVec;
 
 use super::{TypeKind, generic_argument::GenericArguments};
-use crate::r#type::{
-    Type, TypeId,
-    environment::{Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment},
-    error::tuple_length_mismatch,
-    lattice::Lattice,
-    pretty_print::PrettyPrint,
-    recursion::RecursionDepthBoundary,
+use crate::{
+    math::cartesian_product,
+    r#type::{
+        Type, TypeId,
+        environment::{
+            Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment,
+        },
+        error::tuple_length_mismatch,
+        lattice::Lattice,
+        pretty_print::PrettyPrint,
+        recursion::RecursionDepthBoundary,
+    },
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -18,6 +23,42 @@ pub struct TupleType<'heap> {
     pub fields: &'heap [TypeId],
 
     pub arguments: GenericArguments<'heap>,
+}
+
+impl<'heap> TupleType<'heap> {
+    fn postprocess_distribution(
+        self: Type<'heap, Self>,
+
+        fields: &[SmallVec<TypeId, 16>],
+        env: &Environment<'heap>,
+    ) -> SmallVec<TypeId, 16> {
+        let variants = cartesian_product::<_, _, 16>(fields);
+
+        if variants.len() == 1 {
+            // Check if we can just be the substitution
+            let fields = &variants[0];
+            debug_assert_eq!(fields.len(), self.kind.fields.len());
+
+            // If we have a single variant, it's guaranteed that it's the same type, due to
+            // distribution rules
+            return SmallVec::from_slice(&[self.id]);
+        }
+
+        // Create a new type kind for each
+        variants
+            .into_iter()
+            .map(|fields| {
+                env.alloc(|id| Type {
+                    id,
+                    span: self.span,
+                    kind: env.intern_kind(TypeKind::Tuple(TupleType {
+                        fields: env.intern_type_ids(&fields),
+                        arguments: self.kind.arguments,
+                    })),
+                })
+            })
+            .collect()
+    }
 }
 
 impl<'heap> Lattice<'heap> for TupleType<'heap> {
@@ -115,6 +156,34 @@ impl<'heap> Lattice<'heap> for TupleType<'heap> {
 
     fn is_concrete(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
         self.kind.fields.iter().all(|&field| env.is_concrete(field))
+    }
+
+    // TODO: test
+    fn distribute_union(
+        self: Type<'heap, Self>,
+        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+    ) -> SmallVec<TypeId, 16> {
+        if self.kind.fields.is_empty() {
+            return SmallVec::from_slice(&[self.id]);
+        }
+
+        let fields: Vec<_> = self
+            .kind
+            .fields
+            .iter()
+            .map(|&field| env.distribute_union(field))
+            .collect();
+
+        self.postprocess_distribution(&fields, env)
+    }
+
+    // TODO: test
+    fn distribute_intersection(
+        self: Type<'heap, Self>,
+        _: &mut TypeAnalysisEnvironment<'_, 'heap>,
+    ) -> SmallVec<TypeId, 16> {
+        // Tuple is covariant over its fields so no distribution necessary
+        SmallVec::from_slice(&[self.id])
     }
 
     fn is_subtype_of(

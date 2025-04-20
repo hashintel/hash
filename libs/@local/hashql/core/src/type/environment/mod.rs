@@ -5,6 +5,8 @@ pub mod variance;
 
 use core::ops::{ControlFlow, Deref};
 
+use smallvec::SmallVec;
+
 use self::{
     auxiliary::AuxiliaryData, diagnostics::Diagnostics, substitution::Substitution,
     variance::Variance,
@@ -132,6 +134,16 @@ impl<'env, 'heap> SimplifyEnvironment<'env, 'heap> {
     #[inline]
     pub fn is_concrete(&mut self, id: TypeId) -> bool {
         self.analysis.is_concrete(id)
+    }
+
+    #[inline]
+    pub fn distribute_union(&mut self, id: TypeId) -> SmallVec<TypeId, 16> {
+        self.analysis.distribute_union(id)
+    }
+
+    #[inline]
+    pub fn distribute_intersection(&mut self, id: TypeId) -> SmallVec<TypeId, 16> {
+        self.analysis.distribute_intersection(id)
     }
 
     pub fn simplify(&mut self, id: TypeId) -> TypeId {
@@ -423,6 +435,16 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
     pub fn is_concrete(&mut self, id: TypeId) -> bool {
         self.simplify.is_concrete(id)
     }
+
+    #[inline]
+    pub fn distribute_union(&mut self, id: TypeId) -> SmallVec<TypeId, 16> {
+        self.simplify.distribute_union(id)
+    }
+
+    #[inline]
+    pub fn distribute_intersection(&mut self, id: TypeId) -> SmallVec<TypeId, 16> {
+        self.simplify.distribute_intersection(id)
+    }
 }
 
 // We usually try to avoid `Deref` and `DerefMut`, but it makes sense in this case.
@@ -512,6 +534,36 @@ impl<'env, 'heap> TypeAnalysisEnvironment<'env, 'heap> {
 
         let r#type = self.environment.types[id].copied();
         let result = r#type.is_concrete(self);
+
+        self.boundary.exit(id, id);
+
+        result
+    }
+
+    pub fn distribute_union(&mut self, id: TypeId) -> SmallVec<TypeId, 16> {
+        if !self.boundary.enter(id, id) {
+            // We have found a recursive type, due to coinductive reasoning, this means it can no
+            // longer be distributed
+            return SmallVec::from_slice(&[id]);
+        }
+
+        let r#type = self.environment.types[id].copied();
+        let result = r#type.distribute_union(self);
+
+        self.boundary.exit(id, id);
+
+        result
+    }
+
+    pub fn distribute_intersection(&mut self, id: TypeId) -> SmallVec<TypeId, 16> {
+        if !self.boundary.enter(id, id) {
+            // We have found a recursive type, due to coinductive reasoning, this means it can no
+            // longer be distributed
+            return SmallVec::from_slice(&[id]);
+        }
+
+        let r#type = self.environment.types[id].copied();
+        let result = r#type.distribute_intersection(self);
 
         self.boundary.exit(id, id);
 
