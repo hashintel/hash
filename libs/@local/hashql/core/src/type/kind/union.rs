@@ -417,7 +417,6 @@ mod test {
             },
             kind::{
                 TypeKind,
-                generic_argument::GenericArguments,
                 intersection::IntersectionType,
                 intrinsic::{DictType, IntrinsicType},
                 primitive::PrimitiveType,

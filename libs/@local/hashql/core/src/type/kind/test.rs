@@ -13,15 +13,10 @@ macro_rules! primitive {
 macro_rules! tuple {
     ($env:expr, $arguments:expr, $fields:expr) => {{
         let fields = $env.intern_type_ids(&$fields);
-        let arguments = $env.intern_generic_arguments(&$arguments);
+        let mut arguments = $arguments;
+        let arguments = $env.intern_generic_arguments(&mut arguments);
 
-        instantiate(
-            &$env,
-            TypeKind::Tuple(TupleType {
-                fields,
-                arguments: GenericArguments::from_slice(arguments),
-            }),
-        )
+        instantiate(&$env, TypeKind::Tuple(TupleType { fields, arguments }))
     }};
 
     ($env:expr, $name:ident, $fields:expr, $arguments:expr) => {
@@ -95,14 +90,16 @@ macro_rules! opaque {
     ($env:expr, $name:expr, $repr:expr, $arguments:expr) => {{
         let repr = $repr;
         let name = $env.heap.intern_symbol($name);
-        let arguments = $env.intern_generic_arguments(&$arguments);
+
+        let mut arguments = $arguments;
+        let arguments = $env.intern_generic_arguments(&mut arguments);
 
         instantiate(
             &$env,
             TypeKind::Opaque(OpaqueType {
                 name,
                 repr,
-                arguments: GenericArguments::from_slice(arguments),
+                arguments,
             }),
         )
     }};

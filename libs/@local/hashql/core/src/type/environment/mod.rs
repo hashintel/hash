@@ -15,7 +15,12 @@ use super::{
     Type, TypeId, TypeKind,
     error::{TypeCheckDiagnostic, circular_type_reference},
     intern::Interner,
-    kind::{generic_argument::GenericArgument, intersection::IntersectionType, union::UnionType},
+    kind::{
+        generic_argument::{GenericArgument, GenericArguments},
+        intersection::IntersectionType,
+        r#struct::{StructField, StructFields},
+        union::UnionType,
+    },
     lattice::Lattice as _,
     recursion::RecursionBoundary,
 };
@@ -80,9 +85,17 @@ impl<'heap> Environment<'heap> {
     #[inline]
     pub fn intern_generic_arguments(
         &self,
-        arguments: &[GenericArgument],
-    ) -> &'heap [GenericArgument] {
+        arguments: &mut [GenericArgument],
+    ) -> GenericArguments<'heap> {
         self.interner.intern_generic_arguments(arguments)
+    }
+
+    #[inline]
+    pub fn intern_struct_fields<'fields>(
+        &self,
+        fields: &'fields mut [StructField<'heap>],
+    ) -> Result<StructFields<'heap>, &'fields mut [StructField<'heap>]> {
+        self.interner.intern_struct_fields(fields)
     }
 }
 

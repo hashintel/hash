@@ -317,7 +317,6 @@ mod test {
             },
             kind::{
                 TypeKind,
-                generic_argument::GenericArguments,
                 primitive::PrimitiveType,
                 test::{assert_equiv, opaque, primitive, union},
                 union::UnionType,

@@ -35,6 +35,7 @@ pub(crate) struct TypeIdSet<'env, 'heap, const CAPACITY: usize> {
 
 impl<'env, 'heap, const CAPACITY: usize> TypeIdSet<'env, 'heap, CAPACITY> {
     /// Creates a new empty `TypeIdSet`.
+    #[cfg(test)]
     pub(crate) const fn new(env: &'env Environment<'heap>) -> Self {
         Self {
             env,

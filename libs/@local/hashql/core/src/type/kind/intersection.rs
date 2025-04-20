@@ -460,7 +460,6 @@ mod test {
             },
             kind::{
                 TypeKind,
-                generic_argument::GenericArguments,
                 primitive::PrimitiveType,
                 test::{assert_equiv, intersection, primitive, tuple, union},
                 tuple::TupleType,

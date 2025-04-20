@@ -314,6 +314,7 @@ impl PrettyPrint for TupleType<'_> {
             RcDoc::text("(")
                 .append(limit.pretty(env, self.fields[0]))
                 .append(RcDoc::text(",)"))
+                .group()
         } else {
             RcDoc::text("(")
                 .append(
@@ -325,6 +326,7 @@ impl PrettyPrint for TupleType<'_> {
                     .group(),
                 )
                 .append(RcDoc::text(")"))
+                .group()
         };
 
         self.arguments.pretty(env, limit).append(inner).group()
@@ -344,7 +346,7 @@ mod test {
             },
             kind::{
                 TypeKind,
-                generic_argument::{GenericArgument, GenericArgumentId, GenericArguments},
+                generic_argument::{GenericArgument, GenericArgumentId},
                 intersection::IntersectionType,
                 primitive::PrimitiveType,
                 test::{assert_equiv, intersection, primitive, tuple, union},

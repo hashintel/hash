@@ -17,6 +17,7 @@ use smallvec::SmallVec;
 /// assert_eq!(product[0], ['1', 'A', 'W']);
 /// assert_eq!(*product.last().unwrap(), ['2', 'C', 'Z']);
 /// ```
+#[expect(clippy::integer_division_remainder_used)]
 pub fn cartesian_product<T, U, const N: usize>(fields: &[U]) -> Vec<SmallVec<T, N>>
 where
     T: Clone,
@@ -56,7 +57,9 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    #![expect(clippy::min_ident_chars)]
+
+    use crate::math::cartesian_product;
 
     #[test]
     fn empty_fields_list() {

@@ -5,7 +5,12 @@ use scc::HashSet;
 
 use super::{
     TypeId,
-    kind::{TypeKind, generic_argument::GenericArgument, primitive::PrimitiveType},
+    kind::{
+        TypeKind,
+        generic_argument::{GenericArgument, GenericArguments},
+        primitive::PrimitiveType,
+        r#struct::{StructField, StructFields},
+    },
 };
 use crate::heap::Heap;
 
@@ -92,6 +97,7 @@ pub struct Interner<'heap> {
     kinds: InternSet<'heap, TypeKind<'heap>>,
     type_ids: InternSet<'heap, [TypeId]>,
     generic_arguments: InternSet<'heap, [GenericArgument]>,
+    struct_fields: InternSet<'heap, [StructField<'heap>]>,
 }
 
 impl<'heap> Interner<'heap> {
@@ -100,6 +106,7 @@ impl<'heap> Interner<'heap> {
             kinds: InternSet::new(heap),
             type_ids: InternSet::new(heap),
             generic_arguments: InternSet::new(heap),
+            struct_fields: InternSet::new(heap),
         }
     }
 
@@ -141,9 +148,33 @@ impl<'heap> Interner<'heap> {
     #[inline]
     pub fn intern_generic_arguments(
         &self,
-        arguments: &[GenericArgument],
-    ) -> &'heap [GenericArgument] {
-        self.generic_arguments.intern_slice(arguments)
+        arguments: &mut [GenericArgument],
+    ) -> GenericArguments<'heap> {
+        arguments.sort_unstable_by(|lhs, rhs| lhs.id.cmp(&rhs.id));
+        // Unlike `intern_struct_fields`, where we error out on duplicates, we simply remove them
+        // here, as any duplicate means they're the same argument and therefore not necessarily an
+        // error.
+        let (dedupe, _) = arguments.partition_dedup_by_key(|argument| argument.id);
+
+        GenericArguments::from_slice_unchecked(self.generic_arguments.intern_slice(dedupe))
+    }
+
+    #[inline]
+    pub fn intern_struct_fields<'fields>(
+        &self,
+        fields: &'fields mut [StructField<'heap>],
+    ) -> Result<StructFields<'heap>, &'fields mut [StructField<'heap>]> {
+        fields.sort_unstable_by(|lhs, rhs| lhs.key.cmp(&rhs.key));
+
+        let (dedup, duplicates) = fields.partition_dedup_by_key(|field| field.key);
+
+        if !duplicates.is_empty() {
+            return Err(duplicates);
+        }
+
+        Ok(StructFields::from_slice_unchecked(
+            self.struct_fields.intern_slice(dedup),
+        ))
     }
 }
 

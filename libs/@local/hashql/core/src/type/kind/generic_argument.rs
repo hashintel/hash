@@ -1,3 +1,5 @@
+use core::ops::Deref;
+
 use pretty::RcDoc;
 
 use crate::{
@@ -60,9 +62,18 @@ impl<'heap> GenericArguments<'heap> {
         Self(&[])
     }
 
+    /// Create a new `GenericArguments` from a slice of `GenericArgument`s.
+    ///
+    /// The caller must ensure that the slice is sorted by argument ID and contains no duplicates.
+    ///
+    /// You should probably use `Environment::intern_generic_arguments` instead.
     #[must_use]
-    pub const fn from_slice(slice: &'heap [GenericArgument]) -> Self {
+    pub const fn from_slice_unchecked(slice: &'heap [GenericArgument]) -> Self {
         Self(slice)
+    }
+
+    pub const fn as_slice(&self) -> &[GenericArgument] {
+        self.0
     }
 
     #[must_use]
@@ -74,10 +85,21 @@ impl<'heap> GenericArguments<'heap> {
         vec.extend_from_slice(self.0);
         vec.extend_from_slice(other.0);
 
-        vec.sort_by(|lhs, rhs| lhs.id.cmp(&rhs.id));
+        env.intern_generic_arguments(&mut vec)
+    }
+}
 
-        let arguments = env.intern_generic_arguments(&vec);
-        Self::from_slice(arguments)
+impl AsRef<[GenericArgument]> for GenericArguments<'_> {
+    fn as_ref(&self) -> &[GenericArgument] {
+        self.0
+    }
+}
+
+impl Deref for GenericArguments<'_> {
+    type Target = [GenericArgument];
+
+    fn deref(&self) -> &Self::Target {
+        self.0
     }
 }
 

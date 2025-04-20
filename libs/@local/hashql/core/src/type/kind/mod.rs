@@ -3,6 +3,7 @@ pub mod intersection;
 pub mod intrinsic;
 pub mod opaque;
 pub mod primitive;
+pub mod r#struct;
 #[cfg(test)]
 pub(crate) mod test;
 pub mod tuple;
@@ -13,9 +14,9 @@ use core::{ops::ControlFlow, ptr};
 use pretty::RcDoc;
 use smallvec::SmallVec;
 
-use self::{
+pub use self::{
     intersection::IntersectionType, intrinsic::IntrinsicType, opaque::OpaqueType,
-    primitive::PrimitiveType, tuple::TupleType, union::UnionType,
+    primitive::PrimitiveType, r#struct::StructType, tuple::TupleType, union::UnionType,
 };
 use super::{
     Type, TypeId,
@@ -32,7 +33,7 @@ pub enum TypeKind<'heap> {
     Primitive(PrimitiveType),
     Intrinsic(IntrinsicType),
 
-    // Struct(StructType),
+    Struct(StructType<'heap>),
     Tuple(TupleType<'heap>),
 
     Union(UnionType<'heap>),
@@ -71,12 +72,13 @@ impl<'heap> TypeKind<'heap> {
         }
     }
 
-    // pub fn r#struct(&self) -> Option<&StructType> {
-    //     match self {
-    //         Self::Struct(r#type) => Some(r#type),
-    //         _ => None,
-    //     }
-    // }
+    #[must_use]
+    pub const fn r#struct(&self) -> Option<&StructType> {
+        match self {
+            Self::Struct(r#type) => Some(r#type),
+            _ => None,
+        }
+    }
 
     #[must_use]
     pub const fn tuple(&self) -> Option<&TupleType> {
@@ -118,15 +120,16 @@ impl<'heap> TypeKind<'heap> {
 
     pub fn resolve(self: Type<'heap, Self>, env: &Environment<'heap>) -> Option<Type<'heap, Self>> {
         match self.kind {
-            TypeKind::Opaque(_)
-            | TypeKind::Primitive(_)
-            | TypeKind::Intrinsic(_)
-            | TypeKind::Tuple(_)
-            | TypeKind::Union(_)
-            | TypeKind::Intersection(_)
-            | TypeKind::Never
-            | TypeKind::Unknown => Some(self),
-            TypeKind::Infer => {
+            Self::Opaque(_)
+            | Self::Primitive(_)
+            | Self::Intrinsic(_)
+            | Self::Struct(_)
+            | Self::Tuple(_)
+            | Self::Union(_)
+            | Self::Intersection(_)
+            | Self::Never
+            | Self::Unknown => Some(self),
+            Self::Infer => {
                 let infer = env.substitution.infer(self.id)?;
 
                 Some(env.types[infer].copied())
@@ -178,82 +181,93 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             return SmallVec::from_slice(&[self.id]);
         }
 
-        #[expect(clippy::match_same_arms)]
+        #[expect(
+            clippy::match_same_arms,
+            reason = "The match arms are explicitely written out to make reasoning over them \
+                      easier."
+        )]
         match (self.kind, other.kind) {
             // T ∨ Never <=> T
-            (_, TypeKind::Never) => SmallVec::from_slice(&[self.id]),
+            (_, Self::Never) => SmallVec::from_slice(&[self.id]),
             // Never ∨ T <=> T
-            (TypeKind::Never, _) => SmallVec::from_slice(&[other.id]),
+            (Self::Never, _) => SmallVec::from_slice(&[other.id]),
             // T ∨ Never <=> T (slow)
             (_, _) if env.is_bottom(other.id) => SmallVec::from_slice(&[self.id]),
             // Never ∨ T <=> T (slow)
             (_, _) if env.is_bottom(self.id) => SmallVec::from_slice(&[other.id]),
 
             // T ∨ Unknown <=> Unknown
-            (_, TypeKind::Unknown) => SmallVec::from_slice(&[other.id]),
+            (_, Self::Unknown) => SmallVec::from_slice(&[other.id]),
             // Unknown ∨ T <=> Unknown
-            (TypeKind::Unknown, _) => SmallVec::from_slice(&[self.id]),
+            (Self::Unknown, _) => SmallVec::from_slice(&[self.id]),
             // T ∨ Unknown <=> Unknown (slow)
             (_, _) if env.is_top(other.id) => SmallVec::from_slice(&[env.alloc(|id| Type {
                 id,
                 span: other.span,
-                kind: env.intern_kind(TypeKind::Unknown),
+                kind: env.intern_kind(Self::Unknown),
             })]),
             // Unknown ∨ T <=> Unknown (slow)
             (_, _) if env.is_top(self.id) => SmallVec::from_slice(&[env.alloc(|id| Type {
                 id,
                 span: other.span,
-                kind: env.intern_kind(TypeKind::Unknown),
+                kind: env.intern_kind(Self::Unknown),
             })]),
 
             // Infer ∨ _ <=> unreachable!()
             // _ ∨ Infer <=> unreachable!()
-            (TypeKind::Infer, _) | (_, TypeKind::Infer) => {
+            (Self::Infer, _) | (_, Self::Infer) => {
                 unreachable!("infer should've been resolved prior to this")
             }
 
-            (TypeKind::Opaque(lhs), TypeKind::Opaque(rhs)) => {
-                self.with(lhs).join(other.with(rhs), env)
-            }
+            // Opaque ∨ _
+            (Self::Opaque(lhs), Self::Opaque(rhs)) => self.with(lhs).join(other.with(rhs), env),
             (
-                TypeKind::Opaque(_),
-                TypeKind::Primitive(_) | TypeKind::Intrinsic(_) | TypeKind::Tuple(_),
+                Self::Opaque(_),
+                Self::Primitive(_) | Self::Intrinsic(_) | Self::Struct(_) | Self::Tuple(_),
             ) => SmallVec::from_slice(&[self.id, other.id]),
 
-            (TypeKind::Primitive(lhs), TypeKind::Primitive(rhs)) => {
+            // Primitive ∨ _
+            (Self::Primitive(lhs), Self::Primitive(rhs)) => {
                 self.with(lhs).join(other.with(rhs), env)
             }
             (
-                TypeKind::Primitive(_),
-                TypeKind::Opaque(_) | TypeKind::Intrinsic(_) | TypeKind::Tuple(_),
+                Self::Primitive(_),
+                Self::Opaque(_) | Self::Intrinsic(_) | Self::Struct(_) | Self::Tuple(_),
             ) => SmallVec::from_slice(&[self.id, other.id]),
 
-            (TypeKind::Intrinsic(lhs), TypeKind::Intrinsic(rhs)) => {
+            // Intrinsic ∨ _
+            (Self::Intrinsic(lhs), Self::Intrinsic(rhs)) => {
                 self.with(lhs).join(other.with(rhs), env)
             }
             (
-                TypeKind::Intrinsic(_),
-                TypeKind::Opaque(_) | TypeKind::Primitive(_) | TypeKind::Tuple(_),
+                Self::Intrinsic(_),
+                Self::Opaque(_) | Self::Primitive(_) | Self::Struct(_) | Self::Tuple(_),
             ) => SmallVec::from_slice(&[self.id, other.id]),
 
-            (TypeKind::Tuple(lhs), TypeKind::Tuple(rhs)) => {
-                self.with(lhs).join(other.with(rhs), env)
-            }
+            // Struct ∨ _
+            (Self::Struct(lhs), Self::Struct(rhs)) => self.with(lhs).join(other.with(rhs), env),
             (
-                TypeKind::Tuple(_),
-                TypeKind::Opaque(_) | TypeKind::Primitive(_) | TypeKind::Intrinsic(_),
+                Self::Struct(_),
+                Self::Opaque(_) | Self::Primitive(_) | Self::Intrinsic(_) | Self::Tuple(_),
             ) => SmallVec::from_slice(&[self.id, other.id]),
 
-            (TypeKind::Union(lhs), TypeKind::Union(rhs)) => {
-                self.with(lhs).join(other.with(rhs), env)
-            }
+            // Tuple ∨ _
+            (Self::Tuple(lhs), Self::Tuple(rhs)) => self.with(lhs).join(other.with(rhs), env),
             (
-                TypeKind::Union(lhs),
-                TypeKind::Opaque(_)
-                | TypeKind::Primitive(_)
-                | TypeKind::Intrinsic(_)
-                | TypeKind::Tuple(_)
-                | TypeKind::Intersection(_),
+                Self::Tuple(_),
+                Self::Opaque(_) | Self::Primitive(_) | Self::Intrinsic(_) | Self::Struct(_),
+            ) => SmallVec::from_slice(&[self.id, other.id]),
+
+            // Union ∨ _
+            (Self::Union(lhs), Self::Union(rhs)) => self.with(lhs).join(other.with(rhs), env),
+            (
+                Self::Union(lhs),
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Tuple(_)
+                | Self::Struct(_)
+                | Self::Intersection(_),
             ) => {
                 let lhs_variants = lhs.unnest(env);
                 let rhs_variants = [other.id];
@@ -261,12 +275,13 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 UnionType::join_variants(&lhs_variants, &rhs_variants, env)
             }
             (
-                TypeKind::Opaque(_)
-                | TypeKind::Primitive(_)
-                | TypeKind::Intrinsic(_)
-                | TypeKind::Tuple(_)
-                | TypeKind::Intersection(_),
-                TypeKind::Union(rhs),
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Tuple(_)
+                | Self::Struct(_)
+                | Self::Intersection(_),
+                Self::Union(rhs),
             ) => {
                 let lhs_variants = [self.id];
                 let rhs_variants = rhs.unnest(env);
@@ -274,15 +289,17 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 UnionType::join_variants(&lhs_variants, &rhs_variants, env)
             }
 
-            (TypeKind::Intersection(lhs), TypeKind::Intersection(rhs)) => {
+            // Intersection ∨ _
+            (Self::Intersection(lhs), Self::Intersection(rhs)) => {
                 self.map(|_| lhs).join(other.map(|_| rhs), env)
             }
             (
-                TypeKind::Intersection(lhs),
-                TypeKind::Opaque(_)
-                | TypeKind::Primitive(_)
-                | TypeKind::Intrinsic(_)
-                | TypeKind::Tuple(_),
+                Self::Intersection(lhs),
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_),
             ) => {
                 let lhs_variants = lhs.unnest(env);
                 let rhs_variants = [other.id];
@@ -290,11 +307,12 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 IntersectionType::join_variants(self.span, &lhs_variants, &rhs_variants, env)
             }
             (
-                TypeKind::Opaque(_)
-                | TypeKind::Primitive(_)
-                | TypeKind::Intrinsic(_)
-                | TypeKind::Tuple(_),
-                TypeKind::Intersection(rhs),
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_),
+                Self::Intersection(rhs),
             ) => {
                 let lhs_variants = [self.id];
                 let rhs_variants = rhs.unnest(env);
@@ -323,7 +341,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             return SmallVec::from_slice(&[env.alloc(|id| Type {
                 id,
                 span: self.span,
-                kind: env.intern_kind(TypeKind::Never),
+                kind: env.intern_kind(Self::Never),
             })]);
         };
 
@@ -357,79 +375,86 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
         #[expect(clippy::match_same_arms)]
         match (self.kind, other.kind) {
             // T ∧ Never <=> Never
-            (_, TypeKind::Never) => SmallVec::from_slice(&[other.id]),
+            (_, Self::Never) => SmallVec::from_slice(&[other.id]),
             // Never ∧ T <=> Never
-            (TypeKind::Never, _) => SmallVec::from_slice(&[self.id]),
+            (Self::Never, _) => SmallVec::from_slice(&[self.id]),
             // T ∧ Never <=> Never (slow)
             (_, _) if env.is_bottom(other.id) => SmallVec::from_slice(&[env.alloc(|id| Type {
                 id,
                 span: other.span,
-                kind: env.intern_kind(TypeKind::Never),
+                kind: env.intern_kind(Self::Never),
             })]),
             // Never ∧ T <=> Never (slow)
             (_, _) if env.is_bottom(self.id) => SmallVec::from_slice(&[env.alloc(|id| Type {
                 id,
                 span: self.span,
-                kind: env.intern_kind(TypeKind::Never),
+                kind: env.intern_kind(Self::Never),
             })]),
 
             // T ∧ Unknown <=> T
-            (_, TypeKind::Unknown) => SmallVec::from_slice(&[self.id]),
+            (_, Self::Unknown) => SmallVec::from_slice(&[self.id]),
             // Unknown ∧ T <=> T
-            (TypeKind::Unknown, _) => SmallVec::from_slice(&[other.id]),
+            (Self::Unknown, _) => SmallVec::from_slice(&[other.id]),
             // T ∧ Unknown <=> T (slow)
             (_, _) if env.is_top(other.id) => SmallVec::from_slice(&[self.id]),
             // Unknown ∧ T <=> T (slow)
             (_, _) if env.is_top(self.id) => SmallVec::from_slice(&[other.id]),
 
-            // Infer ∨ _ <=> unreachable!()
-            // _ ∨ Infer <=> unreachable!()
-            (TypeKind::Infer, _) | (_, TypeKind::Infer) => {
+            // Infer ∧ _ <=> unreachable!()
+            // _ ∧ Infer <=> unreachable!()
+            (Self::Infer, _) | (_, Self::Infer) => {
                 unreachable!("infer should've been resolved prior to this")
             }
 
-            (TypeKind::Opaque(lhs), TypeKind::Opaque(rhs)) => {
-                self.with(lhs).meet(other.with(rhs), env)
-            }
+            // Opaque ∧ _
+            (Self::Opaque(lhs), Self::Opaque(rhs)) => self.with(lhs).meet(other.with(rhs), env),
             (
-                TypeKind::Opaque(_),
-                TypeKind::Primitive(_) | TypeKind::Intrinsic(_) | TypeKind::Tuple(_),
+                Self::Opaque(_),
+                Self::Primitive(_) | Self::Intrinsic(_) | Self::Struct(_) | Self::Tuple(_),
             ) => SmallVec::new(),
 
-            (TypeKind::Primitive(lhs), TypeKind::Primitive(rhs)) => {
+            // Primitive ∧ _
+            (Self::Primitive(lhs), Self::Primitive(rhs)) => {
                 self.with(lhs).meet(other.with(rhs), env)
             }
             (
-                TypeKind::Primitive(_),
-                TypeKind::Opaque(_) | TypeKind::Intrinsic(_) | TypeKind::Tuple(_),
+                Self::Primitive(_),
+                Self::Opaque(_) | Self::Intrinsic(_) | Self::Struct(_) | Self::Tuple(_),
             ) => SmallVec::new(),
 
-            (TypeKind::Intrinsic(lhs), TypeKind::Intrinsic(rhs)) => {
+            // Intrinsic ∧ _
+            (Self::Intrinsic(lhs), Self::Intrinsic(rhs)) => {
                 self.with(lhs).meet(other.with(rhs), env)
             }
             (
-                TypeKind::Intrinsic(_),
-                TypeKind::Opaque(_) | TypeKind::Primitive(_) | TypeKind::Tuple(_),
+                Self::Intrinsic(_),
+                Self::Opaque(_) | Self::Primitive(_) | Self::Struct(_) | Self::Tuple(_),
             ) => SmallVec::new(),
 
-            (TypeKind::Tuple(lhs), TypeKind::Tuple(rhs)) => {
-                self.with(lhs).meet(other.with(rhs), env)
-            }
+            // Struct ∧ _
+            (Self::Struct(lhs), Self::Struct(rhs)) => self.with(lhs).meet(other.with(rhs), env),
             (
-                TypeKind::Tuple(_),
-                TypeKind::Opaque(_) | TypeKind::Primitive(_) | TypeKind::Intrinsic(_),
+                Self::Struct(_),
+                Self::Opaque(_) | Self::Primitive(_) | Self::Intrinsic(_) | Self::Tuple(_),
             ) => SmallVec::new(),
 
-            (TypeKind::Union(lhs), TypeKind::Union(rhs)) => {
-                self.with(lhs).meet(other.with(rhs), env)
-            }
+            // Tuple ∧ _
+            (Self::Tuple(lhs), Self::Tuple(rhs)) => self.with(lhs).meet(other.with(rhs), env),
             (
-                TypeKind::Union(lhs),
-                TypeKind::Opaque(_)
-                | TypeKind::Primitive(_)
-                | TypeKind::Intrinsic(_)
-                | TypeKind::Tuple(_)
-                | TypeKind::Intersection(_),
+                Self::Tuple(_),
+                Self::Opaque(_) | Self::Primitive(_) | Self::Intrinsic(_) | Self::Struct(_),
+            ) => SmallVec::new(),
+
+            // Union ∧ _
+            (Self::Union(lhs), Self::Union(rhs)) => self.with(lhs).meet(other.with(rhs), env),
+            (
+                Self::Union(lhs),
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_)
+                | Self::Intersection(_),
             ) => {
                 let lhs_variants = lhs.unnest(env);
                 let rhs_variants = [other.id];
@@ -437,12 +462,13 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 UnionType::meet_variants(self.span, &lhs_variants, &rhs_variants, env)
             }
             (
-                TypeKind::Opaque(_)
-                | TypeKind::Primitive(_)
-                | TypeKind::Intrinsic(_)
-                | TypeKind::Tuple(_)
-                | TypeKind::Intersection(_),
-                TypeKind::Union(rhs),
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_)
+                | Self::Intersection(_),
+                Self::Union(rhs),
             ) => {
                 let lhs_variants = [self.id];
                 let rhs_variants = rhs.unnest(env);
@@ -450,15 +476,17 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 UnionType::meet_variants(self.span, &lhs_variants, &rhs_variants, env)
             }
 
-            (TypeKind::Intersection(lhs), TypeKind::Intersection(rhs)) => {
+            // Intersection ∧ _
+            (Self::Intersection(lhs), Self::Intersection(rhs)) => {
                 self.with(lhs).meet(other.with(rhs), env)
             }
             (
-                TypeKind::Intersection(lhs),
-                TypeKind::Opaque(_)
-                | TypeKind::Primitive(_)
-                | TypeKind::Intrinsic(_)
-                | TypeKind::Tuple(_),
+                Self::Intersection(lhs),
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_),
             ) => {
                 let lhs_variants = lhs.unnest(env);
                 let rhs_variants = [other.id];
@@ -466,11 +494,12 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 IntersectionType::meet_variants(self.span, &lhs_variants, &rhs_variants, env)
             }
             (
-                TypeKind::Opaque(_)
-                | TypeKind::Primitive(_)
-                | TypeKind::Intrinsic(_)
-                | TypeKind::Tuple(_),
-                TypeKind::Intersection(rhs),
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_),
+                Self::Intersection(rhs),
             ) => {
                 let lhs_variants = [self.id];
                 let rhs_variants = rhs.unnest(env);
@@ -482,17 +511,16 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
 
     fn is_bottom(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
         match self.kind {
-            TypeKind::Opaque(opaque_type) => self.with(opaque_type).is_bottom(env),
-            TypeKind::Primitive(primitive_type) => self.with(primitive_type).is_bottom(env),
-            TypeKind::Intrinsic(intrinsic_type) => self.with(intrinsic_type).is_bottom(env),
-            TypeKind::Tuple(tuple_type) => self.with(tuple_type).is_bottom(env),
-            TypeKind::Union(union_type) => self.with(union_type).is_bottom(env),
-            TypeKind::Intersection(intersection_type) => {
-                self.with(intersection_type).is_bottom(env)
-            }
-            TypeKind::Never => true,
-            TypeKind::Unknown => false,
-            TypeKind::Infer => {
+            Self::Opaque(opaque_type) => self.with(opaque_type).is_bottom(env),
+            Self::Primitive(primitive_type) => self.with(primitive_type).is_bottom(env),
+            Self::Intrinsic(intrinsic_type) => self.with(intrinsic_type).is_bottom(env),
+            Self::Struct(struct_type) => self.with(struct_type).is_bottom(env),
+            Self::Tuple(tuple_type) => self.with(tuple_type).is_bottom(env),
+            Self::Union(union_type) => self.with(union_type).is_bottom(env),
+            Self::Intersection(intersection_type) => self.with(intersection_type).is_bottom(env),
+            Self::Never => true,
+            Self::Unknown => false,
+            Self::Infer => {
                 let Some(substitution) = env.substitution.infer(self.id) else {
                     let _: ControlFlow<()> =
                         env.record_diagnostic(|env| no_type_inference(env, self));
@@ -507,15 +535,16 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
 
     fn is_top(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
         match self.kind {
-            TypeKind::Opaque(opaque_type) => self.with(opaque_type).is_top(env),
-            TypeKind::Primitive(primitive_type) => self.with(primitive_type).is_top(env),
-            TypeKind::Intrinsic(intrinsic_type) => self.with(intrinsic_type).is_top(env),
-            TypeKind::Tuple(tuple_type) => self.with(tuple_type).is_top(env),
-            TypeKind::Union(union_type) => self.with(union_type).is_top(env),
-            TypeKind::Intersection(intersection_type) => self.with(intersection_type).is_top(env),
-            TypeKind::Never => false,
-            TypeKind::Unknown => true,
-            TypeKind::Infer => {
+            Self::Opaque(opaque_type) => self.with(opaque_type).is_top(env),
+            Self::Primitive(primitive_type) => self.with(primitive_type).is_top(env),
+            Self::Intrinsic(intrinsic_type) => self.with(intrinsic_type).is_top(env),
+            Self::Struct(struct_type) => self.with(struct_type).is_top(env),
+            Self::Tuple(tuple_type) => self.with(tuple_type).is_top(env),
+            Self::Union(union_type) => self.with(union_type).is_top(env),
+            Self::Intersection(intersection_type) => self.with(intersection_type).is_top(env),
+            Self::Never => false,
+            Self::Unknown => true,
+            Self::Infer => {
                 let Some(substitution) = env.substitution.infer(self.id) else {
                     let _: ControlFlow<()> =
                         env.record_diagnostic(|env| no_type_inference(env, self));
@@ -530,16 +559,15 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
 
     fn is_concrete(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
         match self.kind {
-            TypeKind::Opaque(opaque_type) => self.with(opaque_type).is_concrete(env),
-            TypeKind::Primitive(primitive_type) => self.with(primitive_type).is_concrete(env),
-            TypeKind::Intrinsic(intrinsic_type) => self.with(intrinsic_type).is_concrete(env),
-            TypeKind::Tuple(tuple_type) => self.with(tuple_type).is_concrete(env),
-            TypeKind::Union(union_type) => self.with(union_type).is_concrete(env),
-            TypeKind::Intersection(intersection_type) => {
-                self.with(intersection_type).is_concrete(env)
-            }
-            TypeKind::Never | TypeKind::Unknown => true,
-            TypeKind::Infer => env.substitution.infer(self.id).is_some(),
+            Self::Opaque(opaque_type) => self.with(opaque_type).is_concrete(env),
+            Self::Primitive(primitive_type) => self.with(primitive_type).is_concrete(env),
+            Self::Intrinsic(intrinsic_type) => self.with(intrinsic_type).is_concrete(env),
+            Self::Struct(struct_type) => self.with(struct_type).is_concrete(env),
+            Self::Tuple(tuple_type) => self.with(tuple_type).is_concrete(env),
+            Self::Union(union_type) => self.with(union_type).is_concrete(env),
+            Self::Intersection(intersection_type) => self.with(intersection_type).is_concrete(env),
+            Self::Never | Self::Unknown => true,
+            Self::Infer => env.substitution.infer(self.id).is_some(),
         }
     }
 
@@ -548,17 +576,16 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
         env: &mut TypeAnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16> {
         match self.kind {
-            TypeKind::Opaque(opaque_type) => self.with(opaque_type).distribute_union(env),
-            TypeKind::Primitive(primitive_type) => self.with(primitive_type).distribute_union(env),
-            TypeKind::Intrinsic(intrinsic_type) => self.with(intrinsic_type).distribute_union(env),
-            TypeKind::Tuple(tuple_type) => self.with(tuple_type).distribute_union(env),
-            TypeKind::Union(union_type) => self.with(union_type).distribute_union(env),
-            TypeKind::Intersection(intersection_type) => {
+            Self::Opaque(opaque_type) => self.with(opaque_type).distribute_union(env),
+            Self::Primitive(primitive_type) => self.with(primitive_type).distribute_union(env),
+            Self::Intrinsic(intrinsic_type) => self.with(intrinsic_type).distribute_union(env),
+            Self::Struct(struct_type) => self.with(struct_type).distribute_union(env),
+            Self::Tuple(tuple_type) => self.with(tuple_type).distribute_union(env),
+            Self::Union(union_type) => self.with(union_type).distribute_union(env),
+            Self::Intersection(intersection_type) => {
                 self.with(intersection_type).distribute_union(env)
             }
-            TypeKind::Never | TypeKind::Unknown | TypeKind::Infer => {
-                SmallVec::from_slice(&[self.id])
-            }
+            Self::Never | Self::Unknown | Self::Infer => SmallVec::from_slice(&[self.id]),
         }
     }
 
@@ -567,21 +594,20 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
         env: &mut TypeAnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16> {
         match self.kind {
-            TypeKind::Opaque(opaque_type) => self.with(opaque_type).distribute_intersection(env),
-            TypeKind::Primitive(primitive_type) => {
+            Self::Opaque(opaque_type) => self.with(opaque_type).distribute_intersection(env),
+            Self::Primitive(primitive_type) => {
                 self.with(primitive_type).distribute_intersection(env)
             }
-            TypeKind::Intrinsic(intrinsic_type) => {
+            Self::Intrinsic(intrinsic_type) => {
                 self.with(intrinsic_type).distribute_intersection(env)
             }
-            TypeKind::Tuple(tuple_type) => self.with(tuple_type).distribute_intersection(env),
-            TypeKind::Union(union_type) => self.with(union_type).distribute_intersection(env),
-            TypeKind::Intersection(intersection_type) => {
+            Self::Struct(struct_type) => self.with(struct_type).distribute_intersection(env),
+            Self::Tuple(tuple_type) => self.with(tuple_type).distribute_intersection(env),
+            Self::Union(union_type) => self.with(union_type).distribute_intersection(env),
+            Self::Intersection(intersection_type) => {
                 self.with(intersection_type).distribute_intersection(env)
             }
-            TypeKind::Never | TypeKind::Unknown | TypeKind::Infer => {
-                SmallVec::from_slice(&[self.id])
-            }
+            Self::Never | Self::Unknown | Self::Infer => SmallVec::from_slice(&[self.id]),
         }
     }
 
@@ -615,72 +641,90 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
 
         #[expect(clippy::match_same_arms)]
         match (self.kind, other.kind) {
-            // Infer == _ <=> unreachable!()
-            // _ == Infer <=> unreachable!()
-            (TypeKind::Infer, _) | (_, TypeKind::Infer) => {
+            // Infer ≡ _ <=> unreachable!()
+            // _ ≡ Infer <=> unreachable!()
+            (Self::Infer, _) | (_, Self::Infer) => {
                 unreachable!("infer should've been resolved prior to this")
             }
 
-            (TypeKind::Never, TypeKind::Never) => true,
-            (TypeKind::Never, _) => env.is_bottom(other.id),
-            (_, TypeKind::Never) => env.is_bottom(self.id),
+            // Never ≡ _
+            (Self::Never, Self::Never) => true,
+            (Self::Never, _) => env.is_bottom(other.id),
+            (_, Self::Never) => env.is_bottom(self.id),
             (_, _) if env.is_bottom(self.id) && env.is_bottom(other.id) => true,
 
-            (TypeKind::Unknown, TypeKind::Unknown) => true,
-            (TypeKind::Unknown, _) => env.is_top(other.id),
-            (_, TypeKind::Unknown) => env.is_top(self.id),
+            // Unknown ≡ _
+            (Self::Unknown, Self::Unknown) => true,
+            (Self::Unknown, _) => env.is_top(other.id),
+            (_, Self::Unknown) => env.is_top(self.id),
             (_, _) if env.is_top(self.id) && env.is_top(other.id) => true,
 
-            (TypeKind::Opaque(lhs), TypeKind::Opaque(rhs)) => {
+            // Opaque ≡ _
+            (Self::Opaque(lhs), Self::Opaque(rhs)) => {
                 self.with(lhs).is_equivalent(other.with(rhs), env)
             }
             (
-                TypeKind::Opaque(_),
-                TypeKind::Primitive(_) | TypeKind::Intrinsic(_) | TypeKind::Tuple(_),
+                Self::Opaque(_),
+                Self::Primitive(_) | Self::Intrinsic(_) | Self::Struct(_) | Self::Tuple(_),
             ) => false,
 
-            (TypeKind::Primitive(lhs), TypeKind::Primitive(rhs)) => {
+            // Primitive ≡ _
+            (Self::Primitive(lhs), Self::Primitive(rhs)) => {
                 self.with(lhs).is_equivalent(other.with(rhs), env)
             }
             (
-                TypeKind::Primitive(_),
-                TypeKind::Opaque(_) | TypeKind::Intrinsic(_) | TypeKind::Tuple(_),
+                Self::Primitive(_),
+                Self::Opaque(_) | Self::Intrinsic(_) | Self::Struct(_) | Self::Tuple(_),
             ) => false,
 
-            (TypeKind::Intrinsic(lhs), TypeKind::Intrinsic(rhs)) => {
+            // Intrinsic ≡ _
+            (Self::Intrinsic(lhs), Self::Intrinsic(rhs)) => {
                 self.with(lhs).is_equivalent(other.with(rhs), env)
             }
             (
-                TypeKind::Intrinsic(_),
-                TypeKind::Opaque(_) | TypeKind::Primitive(_) | TypeKind::Tuple(_),
+                Self::Intrinsic(_),
+                Self::Opaque(_) | Self::Primitive(_) | Self::Struct(_) | Self::Tuple(_),
             ) => false,
 
-            (TypeKind::Tuple(lhs), TypeKind::Tuple(rhs)) => {
+            // Struct ≡ _
+            (Self::Struct(lhs), Self::Struct(rhs)) => {
                 self.with(lhs).is_equivalent(other.with(rhs), env)
             }
             (
-                TypeKind::Tuple(_),
-                TypeKind::Opaque(_) | TypeKind::Primitive(_) | TypeKind::Intrinsic(_),
+                Self::Struct(_),
+                Self::Opaque(_) | Self::Primitive(_) | Self::Intrinsic(_) | Self::Tuple(_),
             ) => false,
 
-            (TypeKind::Union(lhs), TypeKind::Union(rhs)) => {
+            // Tuple ≡ _
+            (Self::Tuple(lhs), Self::Tuple(rhs)) => {
                 self.with(lhs).is_equivalent(other.with(rhs), env)
             }
             (
-                TypeKind::Union(_),
-                TypeKind::Opaque(_)
-                | TypeKind::Primitive(_)
-                | TypeKind::Intrinsic(_)
-                | TypeKind::Tuple(_)
-                | TypeKind::Intersection(_),
+                Self::Tuple(_),
+                Self::Opaque(_) | Self::Primitive(_) | Self::Struct(_) | Self::Intrinsic(_),
+            ) => false,
+
+            // Union ≡ _
+            (Self::Union(lhs), Self::Union(rhs)) => {
+                self.with(lhs).is_equivalent(other.with(rhs), env)
+            }
+            (
+                Self::Union(_),
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_)
+                | Self::Intersection(_),
             )
             | (
-                TypeKind::Opaque(_)
-                | TypeKind::Primitive(_)
-                | TypeKind::Intrinsic(_)
-                | TypeKind::Tuple(_)
-                | TypeKind::Intersection(_),
-                TypeKind::Union(_),
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_)
+                | Self::Intersection(_),
+                Self::Union(_),
             ) => {
                 let lhs_variants = self.distribute_union(env);
                 let rhs_variants = other.distribute_union(env);
@@ -688,15 +732,17 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 UnionType::is_equivalent_variants(self, other, &lhs_variants, &rhs_variants, env)
             }
 
-            (TypeKind::Intersection(lhs), TypeKind::Intersection(rhs)) => {
+            // Intersection ≡ _
+            (Self::Intersection(lhs), Self::Intersection(rhs)) => {
                 self.with(lhs).is_equivalent(other.with(rhs), env)
             }
             (
-                TypeKind::Intersection(lhs),
-                TypeKind::Opaque(_)
-                | TypeKind::Primitive(_)
-                | TypeKind::Intrinsic(_)
-                | TypeKind::Tuple(_),
+                Self::Intersection(lhs),
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_),
             ) => {
                 let lhs_variants = lhs.unnest(env);
                 let rhs_variants = [other.id];
@@ -710,11 +756,12 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 )
             }
             (
-                TypeKind::Opaque(_)
-                | TypeKind::Primitive(_)
-                | TypeKind::Intrinsic(_)
-                | TypeKind::Tuple(_),
-                TypeKind::Intersection(rhs),
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_),
+                Self::Intersection(rhs),
             ) => {
                 let lhs_variants = [self.id];
                 let rhs_variants = rhs.unnest(env);
@@ -762,78 +809,94 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
         match (self.kind, supertype.kind) {
             // Infer <: _ <=> unreachable!()
             // _ <: Infer <=> unreachable!()
-            (TypeKind::Infer, _) | (_, TypeKind::Infer) => {
+            (Self::Infer, _) | (_, Self::Infer) => {
                 unreachable!("infer should've been resolved prior to this")
             }
 
             // `Never <: _`
-            (TypeKind::Never, _) => true,
+            (Self::Never, _) => true,
             // `_ ≮: Never`
-            (_, TypeKind::Never) => false,
+            (_, Self::Never) => false,
             // `Never <: _` (slow)
             (_, _) if env.is_bottom(self.id) => true,
             // `_ ≮: Never` (slow)
             (_, _) if env.is_bottom(supertype.id) => false,
 
             // `_ <: Unknown`
-            (_, TypeKind::Unknown) => true,
+            (_, Self::Unknown) => true,
             // `Unknown ≮: _`
-            (TypeKind::Unknown, _) => false,
+            (Self::Unknown, _) => false,
             // `_ <: Unknown` (slow)
             (_, _) if env.is_top(supertype.id) => true,
             // `Unknown ≮: _` (slow)
             (_, _) if env.is_top(self.id) => false,
 
-            (TypeKind::Opaque(lhs), TypeKind::Opaque(rhs)) => {
+            // Opaque <: _
+            (Self::Opaque(lhs), Self::Opaque(rhs)) => {
                 self.with(lhs).is_subtype_of(supertype.with(rhs), env)
             }
             (
-                TypeKind::Opaque(_),
-                TypeKind::Primitive(_) | TypeKind::Intrinsic(_) | TypeKind::Tuple(_),
+                Self::Opaque(_),
+                Self::Primitive(_) | Self::Intrinsic(_) | Self::Struct(_) | Self::Tuple(_),
             ) => false,
 
-            (TypeKind::Primitive(lhs), TypeKind::Primitive(rhs)) => {
+            // Primitive <: _
+            (Self::Primitive(lhs), Self::Primitive(rhs)) => {
                 self.with(lhs).is_subtype_of(supertype.with(rhs), env)
             }
             (
-                TypeKind::Primitive(_),
-                TypeKind::Opaque(_) | TypeKind::Intrinsic(_) | TypeKind::Tuple(_),
+                Self::Primitive(_),
+                Self::Opaque(_) | Self::Intrinsic(_) | Self::Struct(_) | Self::Tuple(_),
             ) => false,
 
-            (TypeKind::Intrinsic(lhs), TypeKind::Intrinsic(rhs)) => {
+            // Intrinsic <: _
+            (Self::Intrinsic(lhs), Self::Intrinsic(rhs)) => {
                 self.with(lhs).is_subtype_of(supertype.with(rhs), env)
             }
             (
-                TypeKind::Intrinsic(_),
-                TypeKind::Opaque(_) | TypeKind::Primitive(_) | TypeKind::Tuple(_),
+                Self::Intrinsic(_),
+                Self::Opaque(_) | Self::Primitive(_) | Self::Struct(_) | Self::Tuple(_),
             ) => false,
 
-            (TypeKind::Tuple(lhs), TypeKind::Tuple(rhs)) => {
+            // Struct <: _
+            (Self::Struct(lhs), Self::Struct(rhs)) => {
                 self.with(lhs).is_subtype_of(supertype.with(rhs), env)
             }
             (
-                TypeKind::Tuple(_),
-                TypeKind::Opaque(_) | TypeKind::Primitive(_) | TypeKind::Intrinsic(_),
+                Self::Struct(_),
+                Self::Opaque(_) | Self::Primitive(_) | Self::Intrinsic(_) | Self::Tuple(_),
             ) => false,
 
-            (TypeKind::Union(lhs), TypeKind::Union(rhs)) => {
+            // Tuple <: _
+            (Self::Tuple(lhs), Self::Tuple(rhs)) => {
                 self.with(lhs).is_subtype_of(supertype.with(rhs), env)
             }
             (
-                TypeKind::Union(_),
-                TypeKind::Opaque(_)
-                | TypeKind::Primitive(_)
-                | TypeKind::Intrinsic(_)
-                | TypeKind::Tuple(_)
-                | TypeKind::Intersection(_),
+                Self::Tuple(_),
+                Self::Opaque(_) | Self::Primitive(_) | Self::Intrinsic(_) | Self::Struct(_),
+            ) => false,
+
+            // Union <: _
+            (Self::Union(lhs), Self::Union(rhs)) => {
+                self.with(lhs).is_subtype_of(supertype.with(rhs), env)
+            }
+            (
+                Self::Union(_),
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_)
+                | Self::Intersection(_),
             )
             | (
-                TypeKind::Opaque(_)
-                | TypeKind::Primitive(_)
-                | TypeKind::Intrinsic(_)
-                | TypeKind::Tuple(_)
-                | TypeKind::Intersection(_),
-                TypeKind::Union(_),
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_)
+                | Self::Intersection(_),
+                Self::Union(_),
             ) => {
                 let self_variants = self.distribute_union(env);
                 let super_variants = supertype.distribute_union(env);
@@ -847,15 +910,17 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 )
             }
 
-            (TypeKind::Intersection(lhs), TypeKind::Intersection(rhs)) => {
+            // Intersection <: _
+            (Self::Intersection(lhs), Self::Intersection(rhs)) => {
                 self.with(lhs).is_subtype_of(supertype.with(rhs), env)
             }
             (
-                TypeKind::Intersection(lhs),
-                TypeKind::Opaque(_)
-                | TypeKind::Primitive(_)
-                | TypeKind::Intrinsic(_)
-                | TypeKind::Tuple(_),
+                Self::Intersection(lhs),
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_),
             ) => {
                 let self_variants = lhs.unnest(env);
                 let super_variants = [supertype.id];
@@ -869,11 +934,12 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 )
             }
             (
-                TypeKind::Opaque(_)
-                | TypeKind::Primitive(_)
-                | TypeKind::Intrinsic(_)
-                | TypeKind::Tuple(_),
-                TypeKind::Intersection(rhs),
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_),
+                Self::Intersection(rhs),
             ) => {
                 let self_variants = [self.id];
                 let super_variants = rhs.unnest(env);
@@ -907,13 +973,14 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
         }
 
         match self.kind {
-            TypeKind::Opaque(opaque_type) => self.with(opaque_type).simplify(env),
-            TypeKind::Primitive(primitive_type) => self.with(primitive_type).simplify(env),
-            TypeKind::Intrinsic(intrinsic_type) => self.with(intrinsic_type).simplify(env),
-            TypeKind::Tuple(tuple_type) => self.with(tuple_type).simplify(env),
-            TypeKind::Union(union_type) => self.with(union_type).simplify(env),
-            TypeKind::Intersection(intersection_type) => self.with(intersection_type).simplify(env),
-            TypeKind::Never | TypeKind::Unknown | TypeKind::Infer => self.id,
+            Self::Opaque(opaque_type) => self.with(opaque_type).simplify(env),
+            Self::Primitive(primitive_type) => self.with(primitive_type).simplify(env),
+            Self::Intrinsic(intrinsic_type) => self.with(intrinsic_type).simplify(env),
+            Self::Struct(struct_type) => self.with(struct_type).simplify(env),
+            Self::Tuple(tuple_type) => self.with(tuple_type).simplify(env),
+            Self::Union(union_type) => self.with(union_type).simplify(env),
+            Self::Intersection(intersection_type) => self.with(intersection_type).simplify(env),
+            Self::Never | Self::Unknown | Self::Infer => self.id,
         }
     }
 }
@@ -928,6 +995,7 @@ impl PrettyPrint for TypeKind<'_> {
             Self::Opaque(opaque_type) => opaque_type.pretty(env, limit),
             Self::Primitive(primitive_type) => primitive_type.pretty(env, limit),
             Self::Intrinsic(intrinsic_type) => intrinsic_type.pretty(env, limit),
+            Self::Struct(struct_type) => struct_type.pretty(env, limit),
             Self::Tuple(tuple_type) => tuple_type.pretty(env, limit),
             Self::Union(union_type) => union_type.pretty(env, limit),
             Self::Intersection(intersection_type) => intersection_type.pretty(env, limit),

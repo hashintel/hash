@@ -8,8 +8,7 @@
     assert_matches,
     arbitrary_self_types,
     allocator_api,
-    maybe_uninit_uninit_array_transpose,
-    maybe_uninit_slice
+    slice_partition_dedup
 )]
 #![cfg_attr(test, feature(custom_test_frameworks))]
 
