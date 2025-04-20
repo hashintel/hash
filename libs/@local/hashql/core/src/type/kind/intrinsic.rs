@@ -1262,12 +1262,10 @@ mod tests {
 
         list!(env, list_with_intersection, intersection_type);
 
-        // Distribute the intersection (should just return the original list since lists are
-        // covariant)
         assert_equiv!(
             env,
             list_with_intersection.distribute_intersection(&mut analysis_env),
-            [list_with_intersection.id]
+            [list!(env, number), list!(env, string)]
         );
     }
 
@@ -1334,7 +1332,7 @@ mod tests {
         assert_equiv!(
             env,
             dict_with_intersection.distribute_intersection(&mut analysis_env),
-            [dict_with_intersection.id]
+            [dict!(env, string, number), dict!(env, string, string)]
         );
     }
 

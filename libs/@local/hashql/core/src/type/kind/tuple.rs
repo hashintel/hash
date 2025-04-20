@@ -1098,10 +1098,15 @@ mod test {
         let intersect_type = intersection!(env, [number, string]);
         tuple!(env, tuple_with_intersection, [], [intersect_type]);
 
-        // Distribute intersection (should just return the original tuple)
         let result = tuple_with_intersection.distribute_intersection(&mut analysis_env);
 
-        // Should return the original tuple since tuples are covariant over their fields
-        assert_equiv!(env, result, [tuple_with_intersection.id]);
+        assert_equiv!(
+            env,
+            result,
+            [
+                tuple!(env, [], [primitive!(env, PrimitiveType::Number)]),
+                tuple!(env, [], [primitive!(env, PrimitiveType::String)])
+            ]
+        );
     }
 }

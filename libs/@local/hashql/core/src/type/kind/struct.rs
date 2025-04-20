@@ -1249,11 +1249,16 @@ mod test {
             [struct_field!(env, "value", intersect_type)]
         );
 
-        // Distribute intersection (should just return the original struct)
         let result = struct_with_intersection.distribute_intersection(&mut analysis_env);
 
-        // Should return the original struct since structs are covariant over their fields
-        assert_equiv!(env, result, [struct_with_intersection.id]);
+        assert_equiv!(
+            env,
+            result,
+            [
+                r#struct!(env, [], [struct_field!(env, "value", number)]),
+                r#struct!(env, [], [struct_field!(env, "value", string)])
+            ]
+        );
     }
 
     #[test]

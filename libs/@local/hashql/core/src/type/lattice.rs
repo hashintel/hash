@@ -216,11 +216,26 @@ pub trait Lattice<'heap> {
     /// # Distribution Rules
     ///
     /// Distribution follows these key principles:
-    /// * **For covariant positions**: Unions distribute outward (e.g., `Array<A | B>` becomes
-    ///   `Array<A> | Array<B>`).
-    /// * **For contravariant positions**: Unions typically remain as-is without distribution.
+    /// * **For covariant positions**:
+    ///   - For covariant type constructor F<T>, we can prove that `F<A | B> ≡ F<A> | F<B>`
+    ///     (complete equivalence)
+    ///   - This makes distribution of unions in covariant positions both valid and useful for type
+    ///     normalization.
+    /// * **For contravariant positions**:
+    ///   - For contravariant type constructor G<T>, we can prove that `G<A | B> <: G<A> & G<B>`,
+    ///     but not necessarily the reverse without additional assumptions
+    ///   - This means that it is generally unsafe to distribute unions in contravariant positions
+    ///     without further analysis.
     /// * **For invariant positions**: No distribution occurs; invariant parameters must match
     ///   exactly.
+    ///
+    /// # Closures
+    ///
+    /// In theory, we could distribute over closures of type `(A | B) -> R` to `(A -> R) & (B ->
+    /// R)`, which is logically sound (a function that handles either `A` or `B` must be both a
+    /// function that handles `A` and a function that handles `B`). However, as this is
+    /// counter-intuitive and can break function selection, we don't implement this distribution
+    /// for closures.
     ///
     /// # Return Value
     ///
@@ -231,9 +246,9 @@ pub trait Lattice<'heap> {
     ///
     /// # Examples in Mathematical Notation
     ///
-    /// - `distribute_union(Tuple<A | B, C>)` → `Tuple<A, C> | Tuple<B, C>` (covariant first
-    ///   parameter)
-    /// - `distribute_union(List<A | B>)` → `List<A> | List<B>` (covariant position)
+    /// - Covariant position: `distribute_union(List<A | B>)` → `List<A> | List<B>`
+    /// - Contravariant position: `distribute_union((A | B) -> R)` → `(A -> R) & (B -> R)` (not
+    ///   implemented)
     fn distribute_union(
         self: Type<'heap, Self>,
         env: &mut TypeAnalysisEnvironment<'_, 'heap>,
@@ -253,9 +268,19 @@ pub trait Lattice<'heap> {
     /// # Distribution Rules
     ///
     /// Distribution follows these key principles:
-    /// * **For covariant positions**: Intersections typically remain as-is without distribution.
-    /// * **For contravariant positions**: Intersections distribute outward (e.g., `Fn<A & B>`
-    ///   becomes `Fn<A> & Fn<B>` in parameter positions).
+    /// * **For covariant positions**:
+    ///   - For covariant type constructor F<T>, we can prove that `F<A & B> ≡ F<A> & F<B>`
+    ///     (complete equivalence)
+    ///   - This makes distribution of intersections in covariant positions both valid and useful
+    ///     for type normalization.
+    /// * **For contravariant positions**:
+    ///   - For contravariant type constructor G<T>, we cannot prove complete equivalence between
+    ///     `G<A & B>` and `G<A> | G<B>`. We can only prove that `G<A> | G<B> <: G<A & B>`, but not
+    ///     the reverse.
+    ///   - This means for function types, `(A & B) -> R` is not necessarily equivalent to `(A -> R)
+    ///     | (B -> R)`.
+    ///   - Because we can only prove one direction of this relationship, distribution is not valid
+    ///     for intersections in contravariant positions.
     /// * **For invariant positions**: No distribution occurs; invariant parameters must match
     ///   exactly.
     ///
@@ -269,11 +294,10 @@ pub trait Lattice<'heap> {
     ///
     /// # Examples in Mathematical Notation
     ///
-    /// - `distribute_intersection(Fn<A & B, C>)` → `Fn<A, C> & Fn<B, C>` (contravariant parameter)
-    /// - `distribute_intersection(Consumer<A & B>)` → `Consumer<A> & Consumer<B>` (contravariant
-    ///   position)
-    /// - `distribute_intersection(Callback<A & B, C>)` → `Callback<A, C> & Callback<B, C>`
-    ///   (contravariant first parameter)
+    /// - Covariant position: `distribute_intersection(Array<A & B>)` → `Array<A> & Array<B>`
+    /// - Contravariant position: For contravariant type constructor G<T>, we can prove that `G<A &
+    ///   B> <: G<A> | G<B>`, but not the reverse without additional assumptions. This means `(A &
+    ///   B) -> R <: (A -> R) | (B -> R)`, but not necessarily vice versa.
     fn distribute_intersection(
         self: Type<'heap, Self>,
         env: &mut TypeAnalysisEnvironment<'_, 'heap>,

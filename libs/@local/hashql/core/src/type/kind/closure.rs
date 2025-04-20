@@ -4,18 +4,13 @@ use pretty::RcDoc;
 use smallvec::SmallVec;
 
 use super::{TypeKind, generic_argument::GenericArguments};
-use crate::{
-    math::cartesian_product,
-    r#type::{
-        Type, TypeId,
-        environment::{
-            Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment,
-        },
-        error::function_parameter_count_mismatch,
-        lattice::Lattice,
-        pretty_print::PrettyPrint,
-        recursion::RecursionDepthBoundary,
-    },
+use crate::r#type::{
+    Type, TypeId,
+    environment::{Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment},
+    error::function_parameter_count_mismatch,
+    lattice::Lattice,
+    pretty_print::PrettyPrint,
+    recursion::RecursionDepthBoundary,
 };
 
 /// Represents a function or closure type in the type system.
@@ -130,82 +125,29 @@ impl<'heap> Lattice<'heap> for ClosureType<'heap> {
 
     fn distribute_union(
         self: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        _: &mut TypeAnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16> {
-        let returns = env.distribute_union(self.kind.returns);
-
-        // Functions are contravariant over their params, therefore we switch from unions to
-        // intersections
-        let params: Vec<_> = self
-            .kind
-            .params
-            .iter()
-            .map(|&param| env.distribute_intersection(param))
-            .collect();
-
-        let params_variants = cartesian_product::<_, _, 16>(&params);
-
-        if params_variants.len() == 1 && returns.len() == 1 {
-            // Distributive laws: if there's only a single variant, then that variant must be us
-            return SmallVec::from_slice(&[self.id]);
-        }
-
-        returns
-            .iter()
-            .flat_map(|returns| params_variants.iter().map(move |params| (params, returns)))
-            .map(|(params, &returns)| {
-                env.alloc(|id| Type {
-                    id,
-                    span: self.span,
-                    kind: env.intern_kind(TypeKind::Closure(ClosureType {
-                        params: env.intern_type_ids(params),
-                        returns,
-                        arguments: self.kind.arguments,
-                    })),
-                })
-            })
-            .collect()
+        SmallVec::from_slice(&[self.id])
     }
 
     fn distribute_intersection(
         self: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        _: &mut TypeAnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16> {
-        // Function types are a funny thing, we cannot distribute over them easily.
-
-        let returns = env.distribute_intersection(self.kind.returns);
-
-        // Functions are contravariant over the params, therefore we switch from intersection to
-        // union
-        let params: Vec<_> = self
-            .kind
-            .params
-            .iter()
-            .map(|&param| env.distribute_union(param))
-            .collect();
-
-        let params_variants = cartesian_product::<_, _, 16>(&params);
-
-        if params_variants.len() == 1 && returns.len() == 1 {
-            // Distributive laws: if there's only a single variant, then that variant must be us
-            return SmallVec::from_slice(&[self.id]);
-        }
-
-        returns
-            .iter()
-            .flat_map(|returns| params_variants.iter().map(move |params| (params, returns)))
-            .map(|(params, &returns)| {
-                env.alloc(|id| Type {
-                    id,
-                    span: self.span,
-                    kind: env.intern_kind(TypeKind::Closure(ClosureType {
-                        params: env.intern_type_ids(params),
-                        returns,
-                        arguments: self.kind.arguments,
-                    })),
-                })
-            })
-            .collect()
+        // We do not distribute over closures, as we cannot show that `(A & B) -> R` is equivalent
+        // to `(A -> R) | (B -> R)`. In general distribution only works with covariant arguments,
+        // not with contravariant arguments, as we can only prove one direction, but not
+        // necessarily the other. For example, we can prove that `(a: A) & (a: B)` is
+        // equivalent to `(a: A & B)`, and vice-verse, as it is covariant, this is not
+        // necessarily the case for contravariant arguments.
+        //
+        // In *theory* one can distribute over closures that are of type `(A | B) -> R` to `(A -> R)
+        // & (B -> R)`, this makes logically sense, as a function that handles either `A` or `B`
+        // must be a function that handles `A` and one that handles `B`.
+        //
+        // As this is quite counter intuitive and breaks function selection down the line, we do not
+        // distribute over closures.
+        SmallVec::from_slice(&[self.id])
     }
 
     fn is_subtype_of(
@@ -861,15 +803,8 @@ mod test {
         // Distribute union across the return type (covariant position)
         let result = closure_with_union_return.distribute_union(&mut analysis_env);
 
-        // Should result in two closures with different return types
-        assert_equiv!(
-            env,
-            result,
-            [
-                closure!(env, [], [number], string),
-                closure!(env, [], [number], boolean)
-            ]
-        );
+        // Should result in the same type
+        assert_equiv!(env, result, [closure_with_union_return.id]);
     }
 
     #[test]
@@ -895,18 +830,10 @@ mod test {
             integer
         );
 
-        // Distribute intersection across parameter (contravariant position)
         let result = closure_with_intersect_param.distribute_intersection(&mut analysis_env);
 
-        // Should result in two closures with different parameter types
-        assert_equiv!(
-            env,
-            result,
-            [
-                closure!(env, [], [number], integer),
-                closure!(env, [], [string], integer)
-            ]
-        );
+        // Should result in no change
+        assert_equiv!(env, result, [closure_with_intersect_param.id]);
     }
 
     #[test]
