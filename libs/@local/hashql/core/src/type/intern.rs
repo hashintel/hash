@@ -164,9 +164,9 @@ impl<'heap> Interner<'heap> {
         &self,
         fields: &'fields mut [StructField<'heap>],
     ) -> Result<StructFields<'heap>, &'fields mut [StructField<'heap>]> {
-        fields.sort_unstable_by(|lhs, rhs| lhs.key.cmp(&rhs.key));
+        fields.sort_unstable_by(|lhs, rhs| lhs.name.cmp(&rhs.name));
 
-        let (dedup, duplicates) = fields.partition_dedup_by_key(|field| field.key);
+        let (dedup, duplicates) = fields.partition_dedup_by_key(|field| field.name);
 
         if !duplicates.is_empty() {
             return Err(duplicates);

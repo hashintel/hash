@@ -35,7 +35,6 @@ impl<'heap> TupleType<'heap> {
         let variants = cartesian_product::<_, _, 16>(fields);
 
         if variants.len() == 1 {
-            // Check if we can just be the substitution
             let fields = &variants[0];
             debug_assert_eq!(fields.len(), self.kind.fields.len());
 
@@ -51,13 +50,44 @@ impl<'heap> TupleType<'heap> {
                 env.alloc(|id| Type {
                     id,
                     span: self.span,
-                    kind: env.intern_kind(TypeKind::Tuple(TupleType {
+                    kind: env.intern_kind(TypeKind::Tuple(Self {
                         fields: env.intern_type_ids(&fields),
                         arguments: self.kind.arguments,
                     })),
                 })
             })
             .collect()
+    }
+
+    fn postprocess_lattice(
+        self: Type<'heap, Self>,
+        other: Type<'heap, Self>,
+        env: &Environment<'heap>,
+        fields: &[TypeId],
+    ) -> SmallVec<TypeId, 4> {
+        // Check if we can opt-out into allocating a new type
+        if *self.kind.fields == *fields {
+            return SmallVec::from_slice(&[self.id]);
+        }
+
+        if *other.kind.fields == *fields {
+            return SmallVec::from_slice(&[other.id]);
+        }
+
+        // ... we can't so we need to allocate a new type
+        let kind = env.intern_kind(TypeKind::Tuple(Self {
+            fields: env.intern_type_ids(fields),
+            // merge the two arguments together, as some of the fields may refer to either
+            arguments: self.kind.arguments.merge(&other.kind.arguments, env),
+        }));
+
+        let id = env.alloc(|id| Type {
+            id,
+            span: self.span,
+            kind,
+        });
+
+        SmallVec::from_slice(&[id])
     }
 }
 
@@ -72,37 +102,12 @@ impl<'heap> Lattice<'heap> for TupleType<'heap> {
         }
 
         // join pointwise
-        let mut fields = Vec::with_capacity(self.kind.fields.len());
+        let mut fields = SmallVec::<_, 16>::with_capacity(self.kind.fields.len());
         for (&lhs, &rhs) in self.kind.fields.iter().zip(other.kind.fields.iter()) {
             fields.push(env.join(lhs, rhs));
         }
 
-        // Check if we can opt-out into allocating a new type
-        if self.kind.fields == fields {
-            return SmallVec::from_slice(&[self.id]);
-        }
-
-        if other.kind.fields == fields {
-            return SmallVec::from_slice(&[other.id]);
-        }
-
-        // ... we can't so we need to allocate a new type
-        let kind = env.intern_kind(TypeKind::Tuple(Self {
-            fields: env.intern_type_ids(&fields),
-            // merge the two arguments together, as some of the fields may refer to either
-            arguments: self
-                .kind
-                .arguments
-                .merge(&other.kind.arguments, env.environment),
-        }));
-
-        let id = env.alloc(|id| Type {
-            id,
-            span: self.span,
-            kind,
-        });
-
-        SmallVec::from_slice(&[id])
+        self.postprocess_lattice(other, env, &fields)
     }
 
     fn meet(
@@ -120,29 +125,7 @@ impl<'heap> Lattice<'heap> for TupleType<'heap> {
             fields.push(env.meet(lhs, rhs));
         }
 
-        // Check if we can opt-out into allocating a new type
-        if self.kind.fields == fields {
-            return SmallVec::from_slice(&[self.id]);
-        }
-
-        if other.kind.fields == fields {
-            return SmallVec::from_slice(&[other.id]);
-        }
-
-        // ... we can't so we need to allocate a new type
-        let kind = env.intern_kind(TypeKind::Tuple(Self {
-            fields: env.intern_type_ids(&fields),
-            // merge the two arguments together, as some of the fields may refer to either
-            arguments: self.kind.arguments.merge(&other.kind.arguments, env),
-        }));
-
-        let id = env.alloc(|id| Type {
-            id,
-            span: self.span,
-            kind,
-        });
-
-        SmallVec::from_slice(&[id])
+        self.postprocess_lattice(other, env, &fields)
     }
 
     fn is_bottom(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
@@ -189,7 +172,7 @@ impl<'heap> Lattice<'heap> for TupleType<'heap> {
         supertype: Type<'heap, Self>,
         env: &mut TypeAnalysisEnvironment<'_, 'heap>,
     ) -> bool {
-        // Tuples must have the same number of fields for subtyping to be possible
+        // Tuples are width invariant
         if self.kind.fields.len() != supertype.kind.fields.len() {
             // We always fail-fast here
             let _: ControlFlow<()> = env.record_diagnostic(|env| {
@@ -244,7 +227,7 @@ impl<'heap> Lattice<'heap> for TupleType<'heap> {
 
         let mut equivalent = true;
 
-        // Each field in the subtype must be a subtype of the corresponding field in the supertype
+        // Each field must be equivalent to the corresponding field in the other tuple
         // Unify corresponding fields in each tuple
         for (&lhs_field, &rhs_field) in self.kind.fields.iter().zip(other.kind.fields.iter()) {
             // Fields are covariant
@@ -259,7 +242,7 @@ impl<'heap> Lattice<'heap> for TupleType<'heap> {
     }
 
     fn simplify(self: Type<'heap, Self>, env: &mut SimplifyEnvironment<'_, 'heap>) -> TypeId {
-        let mut fields = Vec::with_capacity(self.kind.fields.len());
+        let mut fields = SmallVec::<_, 16>::with_capacity(self.kind.fields.len());
 
         for &field in self.kind.fields {
             fields.push(env.simplify(field));
@@ -288,16 +271,13 @@ impl<'heap> Lattice<'heap> for TupleType<'heap> {
             });
         }
 
-        let kind = env.intern_kind(TypeKind::Tuple(Self {
-            fields: env.intern_type_ids(&fields),
-            arguments: self.kind.arguments,
-        }));
-
-        // ... we can't so we need to allocate a new type
         env.alloc(|id| Type {
             id,
             span: self.span,
-            kind,
+            kind: env.intern_kind(TypeKind::Tuple(Self {
+                fields: env.intern_type_ids(&fields),
+                arguments: self.kind.arguments,
+            })),
         })
     }
 }
