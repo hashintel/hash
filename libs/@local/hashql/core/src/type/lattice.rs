@@ -280,7 +280,6 @@ pub(crate) mod test {
         pretty_print::PrettyPrint as _,
     };
 
-    #[track_caller]
     fn assert_idempotence(env: &Environment<'_>, a: TypeId) {
         let mut lattice = LatticeEnvironment::new(env);
 
@@ -305,7 +304,6 @@ pub(crate) mod test {
         );
     }
 
-    #[track_caller]
     fn assert_commutativity(env: &Environment<'_>, a: TypeId, b: TypeId) {
         let mut lattice = LatticeEnvironment::new(env);
 
@@ -332,7 +330,6 @@ pub(crate) mod test {
         );
     }
 
-    #[track_caller]
     fn assert_associativity(env: &Environment<'_>, a: TypeId, b: TypeId, c: TypeId) {
         let mut lattice = LatticeEnvironment::new(env);
 
@@ -365,7 +362,6 @@ pub(crate) mod test {
         );
     }
 
-    #[track_caller]
     fn assert_absorption(env: &Environment<'_>, a: TypeId, b: TypeId) {
         let mut lattice = LatticeEnvironment::new(env);
 

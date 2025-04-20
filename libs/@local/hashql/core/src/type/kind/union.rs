@@ -1,5 +1,6 @@
 use core::ops::ControlFlow;
 
+use bitvec::{bitvec, order::Lsb0};
 use pretty::RcDoc;
 use smallvec::SmallVec;
 
@@ -156,15 +157,17 @@ impl<'heap> UnionType<'heap> {
         T: PrettyPrint,
         U: PrettyPrint,
     {
-        if lhs_variants.len() != rhs_variants.len() {
+        // Empty unions are only equivalent to other empty unions
+        if lhs_variants.is_empty() && rhs_variants.is_empty() {
+            return true;
+        }
+
+        // Special case for empty unions (Never type)
+        if lhs_variants.is_empty() || rhs_variants.is_empty() {
             // We always fail-fast here
             let _: ControlFlow<()> = env.record_diagnostic(|env| {
-                let help = if lhs_variants.is_empty() || rhs_variants.is_empty() {
-                    "The Never type (empty union) can only be equivalent to itself. A non-empty \
-                     union cannot be equivalent to Never."
-                } else {
-                    "Union types must have the same number of variants to be equivalent."
-                };
+                let help = "The Never type (empty union) can only be equivalent to itself. A \
+                            non-empty union cannot be equivalent to Never.";
 
                 type_mismatch(env, lhs, rhs, Some(help))
             });
@@ -172,17 +175,25 @@ impl<'heap> UnionType<'heap> {
             return false;
         }
 
-        let mut equivalent = true;
+        let mut lhs_compatible = true;
+        let mut rhs_compatible = true;
 
-        // For every variant x in lhs_variants, there exists a y in rhs_variants where x ≡ y
-        for &lhs_variant in lhs_variants {
-            let found = rhs_variants
-                .iter()
-                .any(|&rhs_variant| env.is_equivalent(lhs_variant, rhs_variant));
+        let mut lhs_matched = bitvec![0; lhs_variants.len()];
+        let mut rhs_matched = bitvec![0; rhs_variants.len()];
 
-            if found {
-                continue;
+        // Find all matching pairs
+        for (&lhs_variant, mut lhs_matched) in lhs_variants.iter().zip(lhs_matched.iter_mut()) {
+            for (&rhs_variant, rhs_matched) in rhs_variants.iter().zip(rhs_matched.iter_mut()) {
+                if env.is_equivalent(lhs_variant, rhs_variant) {
+                    *lhs_matched = true;
+                    rhs_matched.commit(true);
+                }
             }
+        }
+
+        // Check if there are any lhs variants which weren't matched
+        for index in lhs_matched.iter_zeros() {
+            let lhs_variant = lhs_variants[index];
 
             if env
                 .record_diagnostic(|env| {
@@ -193,10 +204,26 @@ impl<'heap> UnionType<'heap> {
                 return false;
             }
 
-            equivalent = false;
+            lhs_compatible = false;
         }
 
-        equivalent
+        // Check if there are any rhs variants which weren't matched
+        for index in rhs_matched.iter_zeros() {
+            let rhs_variant = rhs_variants[index];
+
+            if env
+                .record_diagnostic(|env| {
+                    union_variant_mismatch(env, env.types[rhs_variant].copied(), lhs)
+                })
+                .is_break()
+            {
+                return false;
+            }
+
+            rhs_compatible = false;
+        }
+
+        lhs_compatible && rhs_compatible
     }
 }
 
@@ -353,6 +380,8 @@ impl PrettyPrint for UnionType<'_> {
 #[cfg(test)]
 mod test {
     #![expect(clippy::min_ident_chars)]
+
+    // Tests for the fixed union equivalence functionality with different variant counts
     use core::assert_matches::assert_matches;
 
     use super::UnionType;
@@ -367,8 +396,9 @@ mod test {
                 TypeKind,
                 generic_argument::GenericArguments,
                 intersection::IntersectionType,
+                intrinsic::{DictType, IntrinsicType},
                 primitive::PrimitiveType,
-                test::{assert_equiv, intersection, primitive, tuple, union},
+                test::{assert_equiv, dict, intersection, primitive, tuple, union},
                 tuple::TupleType,
             },
             lattice::{Lattice as _, test::assert_lattice_laws},
@@ -811,6 +841,98 @@ mod test {
 
         // Empty union should be a subtype of any other union
         assert!(empty.is_subtype_of(non_empty, &mut analysis_env));
+    }
+
+    #[test]
+    fn union_equivalence_with_different_variant_counts() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Dict<String, Boolean>
+        let dict_string_boolean = dict!(
+            env,
+            primitive!(env, PrimitiveType::String),
+            primitive!(env, PrimitiveType::Boolean)
+        );
+
+        // Dict<Number, Boolean>
+        let dict_number_boolean = dict!(
+            env,
+            primitive!(env, PrimitiveType::Number),
+            primitive!(env, PrimitiveType::Boolean)
+        );
+
+        // Dict<Number, String>
+        let dict_number_string = dict!(
+            env,
+            primitive!(env, PrimitiveType::Number),
+            primitive!(env, PrimitiveType::String)
+        );
+
+        // Dict<Number, Boolean | String>
+        let dict_number_boolean_string = dict!(
+            env,
+            primitive!(env, PrimitiveType::Number),
+            union!(
+                env,
+                [
+                    primitive!(env, PrimitiveType::Boolean),
+                    primitive!(env, PrimitiveType::String)
+                ]
+            )
+        );
+
+        // Create the two union types we want to compare:
+        // Type 1: Dict<String, Boolean> | Dict<Number, Boolean | String>
+        union!(
+            env,
+            type1,
+            [dict_string_boolean, dict_number_boolean_string]
+        );
+
+        // Type 2: Dict<String, Boolean> | Dict<Number, Boolean> | Dict<Number, String>
+        union!(
+            env,
+            type2,
+            [dict_string_boolean, dict_number_boolean, dict_number_string]
+        );
+
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // These types should be equivalent despite having different variant counts
+        assert!(type1.is_equivalent(type2, &mut analysis_env));
+        assert!(type2.is_equivalent(type1, &mut analysis_env));
+    }
+
+    #[test]
+    fn union_equivalence_non_equivalent_different_counts() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create some basic types
+        let number = primitive!(env, PrimitiveType::Number);
+        let string = primitive!(env, PrimitiveType::String);
+        let boolean = primitive!(env, PrimitiveType::Boolean);
+        let null = primitive!(env, PrimitiveType::Null);
+
+        // Create a union with 2 variants
+        union!(env, type1, [number, string]);
+
+        // Create a union with 3 variants, adding a type not covered by type1
+        union!(env, type2, [number, string, boolean]);
+
+        // Create another union with 3 variants but equivalent to type1 + a null type
+        union!(env, type3, [number, string, null]);
+
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // These should not be equivalent (boolean is not covered by type1)
+        assert!(!type1.is_equivalent(type2, &mut analysis_env));
+        assert!(!type2.is_equivalent(type1, &mut analysis_env));
+
+        // These should also not be equivalent (null is not covered by type1)
+        assert!(!type1.is_equivalent(type3, &mut analysis_env));
+        assert!(!type3.is_equivalent(type1, &mut analysis_env));
     }
 
     #[test]
