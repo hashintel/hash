@@ -59,6 +59,21 @@ const INTERSECTION_VARIANT_MISMATCH: TerminalDiagnosticCategory = TerminalDiagno
     name: "Intersection variant mismatch",
 };
 
+const STRUCT_FIELD_MISMATCH: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "struct-field-mismatch",
+    name: "Struct field mismatch",
+};
+
+const DUPLICATE_STRUCT_FIELD: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "duplicate-struct-field",
+    name: "Duplicate struct field",
+};
+
+const MISSING_STRUCT_FIELD: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "missing-struct-field",
+    name: "Missing struct field",
+};
+
 const NO_TYPE_INFERENCE: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "no-type-inference",
     name: "No type inference substitution",
@@ -75,6 +90,9 @@ pub enum TypeCheckDiagnosticCategory {
     UnionVariantMismatch,
     FunctionParameterCountMismatch,
     IntersectionVariantMismatch,
+    StructFieldMismatch,
+    DuplicateStructField,
+    MissingStructField,
     NoTypeInference,
 }
 
@@ -98,6 +116,9 @@ impl DiagnosticCategory for TypeCheckDiagnosticCategory {
             Self::UnionVariantMismatch => Some(&UNION_VARIANT_MISMATCH),
             Self::FunctionParameterCountMismatch => Some(&FUNCTION_PARAMETER_COUNT_MISMATCH),
             Self::IntersectionVariantMismatch => Some(&INTERSECTION_VARIANT_MISMATCH),
+            Self::StructFieldMismatch => Some(&STRUCT_FIELD_MISMATCH),
+            Self::DuplicateStructField => Some(&DUPLICATE_STRUCT_FIELD),
+            Self::MissingStructField => Some(&MISSING_STRUCT_FIELD),
             Self::NoTypeInference => Some(&NO_TYPE_INFERENCE),
         }
     }
@@ -650,6 +671,141 @@ where
         expected_intersection.kind.pretty_print(env, 80),
         variant.kind.pretty_print(env, 80),
     )));
+
+    diagnostic
+}
+
+/// Creates a diagnostic for when structs have different field names or keys
+///
+/// This is used when two structs being compared have different fields,
+/// which violates structural equivalence requirements.
+pub(crate) fn struct_field_mismatch<K>(
+    span: SpanId,
+    lhs: Type<K>,
+    rhs: Type<K>,
+) -> TypeCheckDiagnostic
+where
+    K: PrettyPrint,
+{
+    let mut diagnostic = Diagnostic::new(
+        TypeCheckDiagnosticCategory::StructFieldMismatch,
+        Severity::ERROR,
+    );
+
+    diagnostic
+        .labels
+        .push(Label::new(span, "Structs have different field names").with_order(3));
+
+    diagnostic
+        .labels
+        .push(Label::new(lhs.span, "This struct has a different set of fields").with_order(1));
+
+    diagnostic
+        .labels
+        .push(Label::new(rhs.span, "... than this struct").with_order(2));
+
+    diagnostic.help = Some(Help::new(
+        "For structs to be equivalent, they must have exactly the same field names. Check that \
+         both structs define the same set of fields.",
+    ));
+
+    diagnostic.note = Some(Note::new(
+        "When comparing structs for equivalence, they must have the exact same field names. \
+         Subtyping allows a struct with more fields to be a subtype of one with fewer fields, but \
+         for equivalence they must match exactly.",
+    ));
+
+    diagnostic
+}
+
+/// Creates a diagnostic for when a struct has duplicate field names
+///
+/// This is used when a struct declaration contains multiple fields with the same name,
+/// which is not allowed in the type system.
+pub(crate) fn duplicate_struct_field<K>(
+    span: SpanId,
+    struct_type: Type<K>,
+    field_name: InternedSymbol,
+) -> TypeCheckDiagnostic
+where
+    K: PrettyPrint,
+{
+    let mut diagnostic = Diagnostic::new(
+        TypeCheckDiagnosticCategory::DuplicateStructField,
+        Severity::ERROR,
+    );
+
+    diagnostic.labels.push(
+        Label::new(
+            span,
+            format!("Duplicate field name '{field_name}' in struct"),
+        )
+        .with_order(2),
+    );
+
+    diagnostic.labels.push(
+        Label::new(
+            struct_type.span,
+            "Field appears multiple times in this struct type",
+        )
+        .with_order(1),
+    );
+
+    diagnostic.help = Some(Help::new(
+        "Each field in a struct must have a unique name. Remove or rename duplicate fields.",
+    ));
+
+    diagnostic.note = Some(Note::new(
+        "Structs cannot have multiple fields with the same name, as this would make field access \
+         ambiguous. Each field name must be unique within a struct.",
+    ));
+
+    diagnostic
+}
+
+/// Creates a diagnostic for when a struct is missing a required field for subtyping
+///
+/// This is used when a struct being checked for subtyping relationship is missing
+/// a field that is present in the supertype, violating the subtyping requirements.
+pub(crate) fn missing_struct_field<K>(
+    span: SpanId,
+    subtype: Type<K>,
+    supertype: Type<K>,
+    field_name: InternedSymbol,
+) -> TypeCheckDiagnostic
+where
+    K: PrettyPrint,
+{
+    let mut diagnostic = Diagnostic::new(
+        TypeCheckDiagnosticCategory::MissingStructField,
+        Severity::ERROR,
+    );
+
+    diagnostic
+        .labels
+        .push(Label::new(span, format!("Missing required field '{field_name}'")).with_order(3));
+
+    diagnostic
+        .labels
+        .push(Label::new(subtype.span, "This struct is missing a required field").with_order(1));
+
+    diagnostic.labels.push(
+        Label::new(
+            supertype.span,
+            format!("The field '{field_name}' is required by this type"),
+        )
+        .with_order(2),
+    );
+
+    diagnostic.help = Some(Help::new(
+        "For a struct to be a subtype of another, it must contain all fields from the supertype. \
+         Add the missing field to fix this error.",
+    ));
+
+    diagnostic.note = Some(Note::new(
+        "In structural subtyping, a subtype can have more fields than its supertype (width \
+         subtyping), but it must include all fields from the supertype with compatible types.",
+    ));
 
     diagnostic
 }

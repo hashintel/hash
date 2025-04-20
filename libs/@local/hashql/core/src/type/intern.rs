@@ -159,6 +159,11 @@ impl<'heap> Interner<'heap> {
         GenericArguments::from_slice_unchecked(self.generic_arguments.intern_slice(dedupe))
     }
 
+    /// Interns a slice of struct fields, sorting them by name and checking for duplicates.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error containing the duplicate fields if any field names are duplicated.
     #[inline]
     pub fn intern_struct_fields<'fields>(
         &self,

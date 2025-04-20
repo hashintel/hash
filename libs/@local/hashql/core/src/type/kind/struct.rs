@@ -13,6 +13,7 @@ use crate::{
         environment::{
             Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment,
         },
+        error::{missing_struct_field, struct_field_mismatch},
         lattice::Lattice,
         pretty_print::PrettyPrint,
         recursion::RecursionDepthBoundary,
@@ -325,7 +326,17 @@ impl<'heap> Lattice<'heap> for StructType<'heap> {
 
         for &super_field in &*supertype.kind.fields {
             let Some(self_field) = self_fields_by_key.get(&super_field.name) else {
-                return false;
+                if env
+                    .record_diagnostic(|env| {
+                        missing_struct_field(env.source, self, supertype, super_field.name)
+                    })
+                    .is_break()
+                {
+                    return false;
+                }
+
+                compatible = false;
+                continue;
             };
 
             compatible &=
@@ -347,14 +358,16 @@ impl<'heap> Lattice<'heap> for StructType<'heap> {
         // Structs have the same number of fields for equivalence
         if self.kind.fields.len() != other.kind.fields.len() {
             // We always fail-fast here
-            let _: ControlFlow<()> = env.record_diagnostic(|_| panic!("create diagnostic"));
+            let _: ControlFlow<()> =
+                env.record_diagnostic(|env| struct_field_mismatch(env.source, self, other));
 
             return false;
         }
 
         if self.is_disjoint_by_keys(other) {
             // We always fail-fast here
-            let _: ControlFlow<()> = env.record_diagnostic(|_| panic!("create diagnostic"));
+            let _: ControlFlow<()> =
+                env.record_diagnostic(|env| struct_field_mismatch(env.source, self, other));
 
             return false;
         }
@@ -885,6 +898,55 @@ mod test {
 
         // Structs with different field names should not be equivalent
         assert!(!a.is_equivalent(d, &mut analysis_env));
+    }
+
+    #[test]
+    fn equivalence_different_length_structs() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create structs with different numbers of fields
+        r#struct!(
+            env,
+            a,
+            [],
+            [
+                struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
+                struct_field!(env, "value", primitive!(env, PrimitiveType::Number))
+            ]
+        );
+
+        r#struct!(
+            env,
+            b,
+            [],
+            [
+                struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
+                struct_field!(env, "value", primitive!(env, PrimitiveType::Number)),
+                struct_field!(env, "active", primitive!(env, PrimitiveType::Boolean))
+            ]
+        );
+
+        // Both structs have all fields that are semantically equivalent, but different counts
+        // Struct a has 2 fields, struct b has 3 fields
+
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // Structs with different numbers of fields should not be equivalent
+        // Even though the overlapping fields have the same types
+        assert!(!a.is_equivalent(b, &mut analysis_env));
+        assert!(!b.is_equivalent(a, &mut analysis_env));
+
+        // Verify subtyping relationship to understand why:
+
+        // The struct with more fields (b) should be a subtype of the struct with fewer fields (a)
+        assert!(b.is_subtype_of(a, &mut analysis_env));
+
+        // But the struct with fewer fields (a) is not a subtype of the struct with more fields (b)
+        assert!(!a.is_subtype_of(b, &mut analysis_env));
+
+        // For equivalence, both would need to be subtypes of each other
+        // This demonstrates why width subtyping prevents equivalence for different-length structs
     }
 
     #[test]

@@ -90,6 +90,12 @@ impl<'heap> Environment<'heap> {
         self.interner.intern_generic_arguments(arguments)
     }
 
+    /// Interns a slice of struct fields.
+    ///
+    /// # Errors
+    ///
+    /// Returns the original fields slice as an error if the interning process fails,
+    /// such as when field names are not unique or other validation constraints are not met.
     #[inline]
     pub fn intern_struct_fields<'fields>(
         &self,
