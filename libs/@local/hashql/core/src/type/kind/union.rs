@@ -288,7 +288,7 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
     /// component types.
     ///
     /// Unions decompose in the following way:
-    /// ```ignore
+    /// ```text
     /// (A | B) <: (C | D)
     ///   <=> A <: (C | D) ∧ B <: (C | D)
     ///   <=> (A <: C ∨ A <: D) ∧ (B <: C ∨ B <: D)

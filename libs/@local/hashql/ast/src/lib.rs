@@ -26,8 +26,9 @@
 //!
 //! ## Core Modules
 //!
-//! - [`heap`]: Provides memory management utilities for the AST
 //! - [`node`]: Defines the AST node types that represent language constructs
+//! - [`lowering`]: Defines the lowering process for AST nodes, converting them into a more
+//!   optimized form suitable for conversion into the HIR.
 //!
 //! ## Special Forms
 //!
@@ -39,6 +40,8 @@
 //! - `fn` for closure definitions
 //! - `use` for module imports
 //! - Field and index access expressions
+//!
+//! [`heap`]: hashql_core::heap
 //!
 //! ## Workspace dependencies
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]

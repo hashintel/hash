@@ -217,12 +217,12 @@ pub trait Lattice<'heap> {
     ///
     /// Distribution follows these key principles:
     /// * **For covariant positions**:
-    ///   - For covariant type constructor F<T>, we can prove that `F<A | B> ≡ F<A> | F<B>`
+    ///   - For covariant type constructor `F<T>`, we can prove that `F<A | B> ≡ F<A> | F<B>`
     ///     (complete equivalence)
     ///   - This makes distribution of unions in covariant positions both valid and useful for type
     ///     normalization.
     /// * **For contravariant positions**:
-    ///   - For contravariant type constructor G<T>, we can prove that `G<A | B> <: G<A> & G<B>`,
+    ///   - For contravariant type constructor `G<T>`, we can prove that `G<A | B> <: G<A> & G<B>`,
     ///     but not necessarily the reverse without additional assumptions
     ///   - This means that it is generally unsafe to distribute unions in contravariant positions
     ///     without further analysis.
@@ -269,12 +269,12 @@ pub trait Lattice<'heap> {
     ///
     /// Distribution follows these key principles:
     /// * **For covariant positions**:
-    ///   - For covariant type constructor F<T>, we can prove that `F<A & B> ≡ F<A> & F<B>`
+    ///   - For covariant type constructor `F<T>`, we can prove that `F<A & B> ≡ F<A> & F<B>`
     ///     (complete equivalence)
     ///   - This makes distribution of intersections in covariant positions both valid and useful
     ///     for type normalization.
     /// * **For contravariant positions**:
-    ///   - For contravariant type constructor G<T>, we cannot prove complete equivalence between
+    ///   - For contravariant type constructor `G<T>`, we cannot prove complete equivalence between
     ///     `G<A & B>` and `G<A> | G<B>`. We can only prove that `G<A> | G<B> <: G<A & B>`, but not
     ///     the reverse.
     ///   - This means for function types, `(A & B) -> R` is not necessarily equivalent to `(A -> R)
@@ -295,8 +295,8 @@ pub trait Lattice<'heap> {
     /// # Examples in Mathematical Notation
     ///
     /// - Covariant position: `distribute_intersection(Array<A & B>)` → `Array<A> & Array<B>`
-    /// - Contravariant position: For contravariant type constructor G<T>, we can prove that `G<A &
-    ///   B> <: G<A> | G<B>`, but not the reverse without additional assumptions. This means `(A &
+    /// - Contravariant position: For contravariant type constructor `G<T>`, we can prove that `G<A
+    ///   & B> <: G<A> | G<B>`, but not the reverse without additional assumptions. This means `(A &
     ///   B) -> R <: (A -> R) | (B -> R)`, but not necessarily vice versa.
     fn distribute_intersection(
         self: Type<'heap, Self>,
