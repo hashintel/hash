@@ -274,6 +274,12 @@ impl AsRef<str> for InternedSymbol<'_> {
     }
 }
 
+impl Display for InternedSymbol<'_> {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+        Display::fmt(self.0, fmt)
+    }
+}
+
 /// The classification of an identifier in HashQL.
 ///
 /// HashQL supports different categories of identifiers, each with distinct

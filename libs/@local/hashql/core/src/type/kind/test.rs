@@ -114,9 +114,56 @@ macro_rules! opaque {
     };
 }
 
+macro_rules! list {
+    ($env:expr, $element:expr) => {{
+        let element = $element;
+
+        instantiate(
+            &$env,
+            TypeKind::Intrinsic(IntrinsicType::List(ListType { element })),
+        )
+    }};
+
+    ($env:expr, $name:ident, $element:expr) => {
+        let $name = list!($env, $element);
+        let $name = $env.types[$name].copied();
+        let $name = $name.map(|kind| {
+            kind.intrinsic()
+                .expect("should be an intrinsic type")
+                .list()
+                .expect("should be a list type")
+        });
+    };
+}
+
+macro_rules! dict {
+    ($env:expr, $key:expr, $value:expr) => {{
+        let key = $key;
+        let value = $value;
+
+        instantiate(
+            &$env,
+            TypeKind::Intrinsic(IntrinsicType::Dict(DictType { key, value })),
+        )
+    }};
+
+    ($env:expr, $name:ident, $key:expr, $value:expr) => {
+        let $name = dict!($env, $key, $value);
+        let $name = $env.types[$name].copied();
+        let $name = $name.map(|kind| {
+            kind.intrinsic()
+                .expect("should be an intrinsic type")
+                .dict()
+                .expect("should be a dict type")
+        });
+    };
+}
+
 pub(crate) use assert_equiv;
 pub(crate) use assert_kind;
+pub(crate) use dict;
 pub(crate) use intersection;
+pub(crate) use list;
 pub(crate) use opaque;
 pub(crate) use primitive;
 pub(crate) use tuple;

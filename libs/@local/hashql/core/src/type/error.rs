@@ -10,7 +10,7 @@ use hashql_diagnostics::{
 };
 
 use super::{Type, environment::Environment, pretty_print::PrettyPrint};
-use crate::span::SpanId;
+use crate::{span::SpanId, symbol::InternedSymbol};
 
 pub type TypeCheckDiagnostic = Diagnostic<TypeCheckDiagnosticCategory, SpanId>;
 
@@ -336,8 +336,8 @@ pub(crate) fn opaque_type_name_mismatch<K>(
     lhs: Type<K>,
     rhs: Type<K>,
 
-    lhs_name: &str,
-    rhs_name: &str,
+    lhs_name: InternedSymbol,
+    rhs_name: InternedSymbol,
 ) -> TypeCheckDiagnostic
 where
     K: PrettyPrint,

@@ -1,19 +1,12 @@
-// pub mod closure;
-// pub mod generic_argument;
-// pub mod intersection;
-// pub mod intrinsic;
-// pub mod opaque;
-pub mod primitive;
-// pub mod r#struct;
 pub mod generic_argument;
 pub mod intersection;
 pub mod intrinsic;
 pub mod opaque;
+pub mod primitive;
 #[cfg(test)]
 pub(crate) mod test;
 pub mod tuple;
 pub mod union;
-// pub mod union;
 
 use core::{ops::ControlFlow, ptr};
 

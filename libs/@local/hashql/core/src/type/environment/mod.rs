@@ -185,8 +185,8 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
         self
     }
 
-    pub const fn enable_inference(&mut self) -> &mut Self {
-        self.inference = true;
+    pub const fn set_inference_enabled(&mut self, enabled: bool) -> &mut Self {
+        self.inference = enabled;
         self
     }
 

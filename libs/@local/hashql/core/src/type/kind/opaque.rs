@@ -1,3 +1,5 @@
+use core::ops::ControlFlow;
+
 use pretty::RcDoc;
 use smallvec::SmallVec;
 
@@ -9,6 +11,7 @@ use crate::{
         environment::{
             Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment,
         },
+        error::opaque_type_name_mismatch,
         lattice::Lattice,
         pretty_print::PrettyPrint,
         recursion::RecursionDepthBoundary,
@@ -26,9 +29,9 @@ use crate::{
 ///
 /// This implementation uses a refined context-sensitive variance approach:
 /// - For concrete types or when inference is disabled: Opaque types are **invariant** with respect
-///   to their inner representation, enforcing strict nominal typing semantics
+///   to their inner representation, enforcing strict nominal typing semantics.
 /// - Only for non-concrete types during inference: Opaque types use a **covariant-like** approach
-///   that allows them to act as "carriers" for inference variables
+///   that allows them to act as "carriers" for inference variables.
 ///
 /// This precise, context-sensitive approach provides several benefits:
 /// 1. Proper constraint propagation for types containing inference variables
@@ -105,14 +108,14 @@ impl<'heap> Lattice<'heap> for OpaqueType<'heap> {
     /// The join operation uses a refined context-sensitive approach:
     ///
     /// When inference is enabled AND at least one type contains inference variables:
-    /// - If types have different names: Return a union of both types
+    /// - If types have different names: Return a union of both types.
     /// - If types have the same name: Join their inner representations, allowing the opaque type to
-    ///   act as a "carrier" for inference variables until they are resolved
+    ///   act as a "carrier" for inference variables until they are resolved.
     ///
     /// Otherwise (for concrete types or when inference is disabled):
-    /// - If types have different names: Return a union of both types
-    /// - If types have the same name but different representations: Return a union of both types
-    /// - If types have the same name and equivalent representations: Return the type itself
+    /// - If types have different names: Return a union of both types.
+    /// - If types have the same name but different representations: Return a union of both types.
+    /// - If types have the same name and equivalent representations: Return the type itself.
     ///
     /// This approach maintains invariant behavior for concrete types while allowing inference
     /// variables to propagate constraints. It effectively defers the final invariance check until
@@ -152,14 +155,14 @@ impl<'heap> Lattice<'heap> for OpaqueType<'heap> {
     /// The meet operation uses a refined context-sensitive approach:
     ///
     /// When inference is enabled AND at least one type contains inference variables:
-    /// - If types have different names: Return Never (empty set)
+    /// - If types have different names: Return Never (empty set).
     /// - If types have the same name: Meet their inner representations, allowing the opaque type to
-    ///   act as a "carrier" for inference variables until they are resolved
+    ///   act as a "carrier" for inference variables until they are resolved.
     ///
     /// Otherwise (for concrete types or when inference is disabled):
-    /// - If types have different names: Return Never (empty set)
-    /// - If types have the same name but different representations: Return Never (empty set)
-    /// - If types have the same name and equivalent representations: Return the type itself
+    /// - If types have different names: Return Never (empty set).
+    /// - If types have the same name but different representations: Return Never (empty set).
+    /// - If types have the same name and equivalent representations: Return the type itself.
     ///
     /// This approach prevents premature failure during inference while maintaining strict
     /// nominal semantics once types are fully resolved. It allows constraint propagation while
@@ -218,8 +221,21 @@ impl<'heap> Lattice<'heap> for OpaqueType<'heap> {
         supertype: Type<'heap, Self>,
         env: &mut TypeAnalysisEnvironment<'_, 'heap>,
     ) -> bool {
-        self.kind.name == supertype.kind.name
-            && env.in_invariant(|env| env.is_subtype_of(self.kind.repr, supertype.kind.repr))
+        if self.kind.name != supertype.kind.name {
+            let _: ControlFlow<()> = env.record_diagnostic(|env| {
+                opaque_type_name_mismatch(
+                    env.source,
+                    self,
+                    supertype,
+                    self.kind.name,
+                    supertype.kind.name,
+                )
+            });
+
+            return false;
+        }
+
+        env.in_invariant(|env| env.is_subtype_of(self.kind.repr, supertype.kind.repr))
     }
 
     fn is_equivalent(
@@ -227,7 +243,15 @@ impl<'heap> Lattice<'heap> for OpaqueType<'heap> {
         other: Type<'heap, Self>,
         env: &mut TypeAnalysisEnvironment<'_, 'heap>,
     ) -> bool {
-        self.kind.name == other.kind.name && env.is_equivalent(self.kind.repr, other.kind.repr)
+        if self.kind.name != other.kind.name {
+            let _: ControlFlow<()> = env.record_diagnostic(|env| {
+                opaque_type_name_mismatch(env.source, self, other, self.kind.name, other.kind.name)
+            });
+
+            return false;
+        }
+
+        env.is_equivalent(self.kind.repr, other.kind.repr)
     }
 
     fn simplify(self: Type<'heap, Self>, env: &mut SimplifyEnvironment<'_, 'heap>) -> TypeId {
