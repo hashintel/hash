@@ -143,17 +143,31 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
         env: &mut LatticeEnvironment<'_, 'heap>,
     ) -> smallvec::SmallVec<TypeId, 4> {
         let Some(resolved) = self.resolve(env) else {
-            env.diagnostics.push(no_type_inference(env, self));
+            if env.is_inference_enabled() {
+                // We cannot determine the join of an inferred type with another type, therefore we
+                // "delay" the join until the inferred type is resolved.
+                return SmallVec::from_slice(&[self.id, other.id]);
+            }
 
-            return SmallVec::new();
+            // When inference is disabled, an unresolved type is considered as `Never` and an error
+            // will be reported. Therefore if `Never`, the rule is: `Never ∨ T <=> T`
+            env.diagnostics.push(no_type_inference(env, self));
+            return SmallVec::from_slice(&[other.id]);
         };
 
         self = resolved;
 
         let Some(resolved) = other.resolve(env) else {
-            env.diagnostics.push(no_type_inference(env, other));
+            if env.is_inference_enabled() {
+                // We cannot determine the join of an inferred type with another type, therefore we
+                // "delay" the join until the inferred type is resolved.
+                return SmallVec::from_slice(&[self.id, other.id]);
+            }
 
-            return SmallVec::new();
+            // When inference is disabled, an unresolved type is considered as `Never` and an error
+            // will be reported. Therefore if `Never`, the rule is: `T ∨ Never <=> T`
+            env.diagnostics.push(no_type_inference(env, other));
+            return SmallVec::from_slice(&[self.id]);
         };
 
         other = resolved;
@@ -297,17 +311,39 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
         env: &mut LatticeEnvironment<'_, 'heap>,
     ) -> smallvec::SmallVec<TypeId, 4> {
         let Some(resolved) = self.resolve(env) else {
-            env.diagnostics.push(no_type_inference(env, self));
+            if env.is_inference_enabled() {
+                // When inference is enabled, the unresolved type is "propagated" as part of the
+                // meet until resolved
+                return SmallVec::from_slice(&[self.id, other.id]);
+            }
 
-            return SmallVec::new();
+            // When inference is disabled, an unresolved type is considered as `Never` and an error
+            // will be reported. Therefore if `Never`, the rule is: `T ∧ Never <=> Never`
+            env.diagnostics.push(no_type_inference(env, self));
+            return SmallVec::from_slice(&[env.alloc(|id| Type {
+                id,
+                span: self.span,
+                kind: env.intern_kind(TypeKind::Never),
+            })]);
         };
 
         self = resolved;
 
         let Some(resolved) = other.resolve(env) else {
-            env.diagnostics.push(no_type_inference(env, other));
+            if env.is_inference_enabled() {
+                // When inference is enabled, the unresolved type is "propagated" as part of the
+                // meet until resolved
+                return SmallVec::from_slice(&[self.id, other.id]);
+            }
 
-            return SmallVec::new();
+            // When inference is disabled, an unresolved type is considered as `Never` and an error
+            // will be reported. Therefore if `Never`, the rule is: `T ∧ Never <=> Never`
+            env.diagnostics.push(no_type_inference(env, other));
+            return SmallVec::from_slice(&[env.alloc(|id| Type {
+                id,
+                span: other.span,
+                kind: env.intern_kind(TypeKind::Never),
+            })]);
         };
 
         other = resolved;

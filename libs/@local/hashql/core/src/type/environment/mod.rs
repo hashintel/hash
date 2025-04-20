@@ -202,7 +202,7 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
         self
     }
 
-    pub(crate) const fn inference_enabled(&self) -> bool {
+    pub(crate) const fn is_inference_enabled(&self) -> bool {
         self.inference
     }
 

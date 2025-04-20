@@ -222,7 +222,7 @@ impl<'heap> Lattice<'heap> for DictType {
         other: Type<'heap, Self>,
         env: &mut LatticeEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 4> {
-        let defer = env.inference_enabled()
+        let defer = env.is_inference_enabled()
             && (!env.is_concrete(self.kind.key) || !env.is_concrete(other.kind.key));
 
         if defer {
@@ -266,7 +266,7 @@ impl<'heap> Lattice<'heap> for DictType {
         other: Type<'heap, Self>,
         env: &mut LatticeEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 4> {
-        let defer = env.inference_enabled()
+        let defer = env.is_inference_enabled()
             && (!env.is_concrete(self.kind.key) || !env.is_concrete(other.kind.key));
 
         if defer {

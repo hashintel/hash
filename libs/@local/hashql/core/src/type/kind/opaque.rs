@@ -129,7 +129,7 @@ impl<'heap> Lattice<'heap> for OpaqueType<'heap> {
             return SmallVec::from_slice(&[self.id, other.id]);
         }
 
-        if env.inference_enabled()
+        if env.is_inference_enabled()
             && (!env.is_concrete(self.kind.repr) || !env.is_concrete(other.kind.repr))
         {
             let self_repr = env.types[self.kind.repr].copied();
@@ -176,7 +176,7 @@ impl<'heap> Lattice<'heap> for OpaqueType<'heap> {
             return SmallVec::new();
         }
 
-        if env.inference_enabled()
+        if env.is_inference_enabled()
             && (!env.is_concrete(self.kind.repr) || !env.is_concrete(other.kind.repr))
         {
             let self_repr = env.types[self.kind.repr].copied();

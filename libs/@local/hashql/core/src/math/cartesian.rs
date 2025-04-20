@@ -7,13 +7,15 @@ use smallvec::SmallVec;
 /// # Example
 ///
 /// ```
+/// # use hashql_core::math::cartesian_product;
+/// #
 /// let a = vec!['1', '2'];
 /// let b = vec!['A', 'B', 'C'];
 /// let c = vec!['W', 'X', 'Y', 'Z'];
-/// let product = cartesian_product(&[&a, &b, &c]);
+/// let product = cartesian_product::<_, _, 3>(&[&a, &b, &c]);
 /// assert_eq!(product.len(), 2 * 3 * 4);
 /// assert_eq!(product[0], ['1', 'A', 'W']);
-/// assert_eq!(product.last().unwrap(), ['2', 'C', 'Z']);
+/// assert_eq!(*product.last().unwrap(), ['2', 'C', 'Z']);
 /// ```
 pub fn cartesian_product<T, U, const N: usize>(fields: &[U]) -> Vec<SmallVec<T, N>>
 where
