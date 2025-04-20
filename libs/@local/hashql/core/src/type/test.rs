@@ -1,3 +1,4 @@
+#![expect(clippy::min_ident_chars)]
 use core::assert_matches::assert_matches;
 
 use super::{
@@ -7,7 +8,6 @@ use super::{
 use crate::{
     heap::Heap,
     span::SpanId,
-    symbol::{Ident, IdentKind, Symbol},
     r#type::{
         environment::LatticeEnvironment,
         kind::{

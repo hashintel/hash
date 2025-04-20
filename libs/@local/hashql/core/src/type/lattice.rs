@@ -3,7 +3,6 @@ use smallvec::SmallVec;
 use super::{
     Type, TypeId,
     environment::{LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment},
-    kind::TypeKind,
 };
 
 /// A trait that implements properties of a mathematical lattice for types.
@@ -204,10 +203,77 @@ pub trait Lattice<'heap> {
     /// - Inference types that need further resolution
     fn is_concrete(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool;
 
+    /// Applies distribution laws to expressions containing union types in covariant positions.
+    ///
+    /// This function handles union distribution in type expressions, focusing primarily on
+    /// covariant positions where unions can distribute outward. It transforms expressions by
+    /// "pushing" union types outward through other type constructors, which is essential for
+    /// normalizing and simplifying types.
+    ///
+    /// For example, when a union appears inside a covariant type constructor like `Array<A | B>`,
+    /// this function distributes it to `Array<A> | Array<B>`.
+    ///
+    /// # Distribution Rules
+    ///
+    /// Distribution follows these key principles:
+    /// * **For covariant positions**: Unions distribute outward (e.g., `Array<A | B>` becomes
+    ///   `Array<A> | Array<B>`).
+    /// * **For contravariant positions**: Unions typically remain as-is without distribution.
+    /// * **For invariant positions**: No distribution occurs; invariant parameters must match
+    ///   exactly.
+    ///
+    /// # Return Value
+    ///
+    /// A `SmallVec` of type IDs representing the distributed form:
+    /// * Multiple elements: A union of the distributed types.
+    /// * Single element: The identity case - no distribution was necessary.
+    /// * Empty vector: The distributed form is `Never` (uninhabited type).
+    ///
+    /// # Examples in Mathematical Notation
+    ///
+    /// - `distribute_union(Tuple<A | B, C>)` → `Tuple<A, C> | Tuple<B, C>` (covariant first
+    ///   parameter)
+    /// - `distribute_union(List<A | B>)` → `List<A> | List<B>` (covariant position)
     fn distribute_union(
         self: Type<'heap, Self>,
         env: &mut TypeAnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16>;
+
+    /// Applies distribution laws to expressions containing intersection types in contravariant
+    /// positions.
+    ///
+    /// This function handles intersection distribution in type expressions, focusing primarily on
+    /// contravariant positions where intersections can distribute outward. It transforms
+    /// expressions by "pushing" intersection types outward through contravariant type
+    /// constructors, which is essential for normalizing and simplifying types.
+    ///
+    /// For example, when an intersection appears in a contravariant position like function
+    /// parameters, this function distributes it outward appropriately.
+    ///
+    /// # Distribution Rules
+    ///
+    /// Distribution follows these key principles:
+    /// * **For covariant positions**: Intersections typically remain as-is without distribution.
+    /// * **For contravariant positions**: Intersections distribute outward (e.g., `Fn<A & B>`
+    ///   becomes `Fn<A> & Fn<B>` in parameter positions).
+    /// * **For invariant positions**: No distribution occurs; invariant parameters must match
+    ///   exactly.
+    ///
+    /// # Return Value
+    ///
+    /// A `SmallVec` of type IDs representing the distributed form:
+    /// * Multiple elements: An intersection of the distributed types.
+    /// * Single element: The identity case - no distribution was necessary or the result simplified
+    ///   to one type.
+    /// * Empty vector: The distributed form is `Unknown` (top type).
+    ///
+    /// # Examples in Mathematical Notation
+    ///
+    /// - `distribute_intersection(Fn<A & B, C>)` → `Fn<A, C> & Fn<B, C>` (contravariant parameter)
+    /// - `distribute_intersection(Consumer<A & B>)` → `Consumer<A> & Consumer<B>` (contravariant
+    ///   position)
+    /// - `distribute_intersection(Callback<A & B, C>)` → `Callback<A, C> & Callback<B, C>`
+    ///   (contravariant first parameter)
     fn distribute_intersection(
         self: Type<'heap, Self>,
         env: &mut TypeAnalysisEnvironment<'_, 'heap>,
