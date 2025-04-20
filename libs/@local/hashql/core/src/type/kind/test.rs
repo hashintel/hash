@@ -26,6 +26,34 @@ macro_rules! tuple {
     };
 }
 
+macro_rules! r#struct {
+    ($env:expr, $arguments:expr, $fields:expr) => {{
+        let mut fields = $fields;
+        let fields = $env
+            .intern_struct_fields(&mut fields)
+            .expect("should not have any duplicate fields");
+        let mut arguments = $arguments;
+        let arguments = $env.intern_generic_arguments(&mut arguments);
+
+        instantiate(&$env, TypeKind::Struct(StructType { fields, arguments }))
+    }};
+
+    ($env:expr, $name:ident, $fields:expr, $arguments:expr) => {
+        let $name = r#struct!($env, $fields, $arguments);
+        let $name = $env.types[$name].copied();
+        let $name = $name.map(|kind| kind.r#struct().expect("should be a struct"));
+    };
+}
+
+macro_rules! struct_field {
+    ($env:expr, $name:expr, $value:expr) => {
+        StructField {
+            name: $env.heap.intern_symbol($name),
+            value: $value,
+        }
+    };
+}
+
 macro_rules! union {
     ($env:expr, $variants:expr) => {{
         let variants = $env.intern_type_ids(&$variants);
@@ -163,5 +191,7 @@ pub(crate) use intersection;
 pub(crate) use list;
 pub(crate) use opaque;
 pub(crate) use primitive;
+pub(crate) use r#struct;
+pub(crate) use struct_field;
 pub(crate) use tuple;
 pub(crate) use union;

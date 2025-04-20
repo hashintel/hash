@@ -72,6 +72,7 @@ impl<'heap> GenericArguments<'heap> {
         Self(slice)
     }
 
+    #[must_use]
     pub const fn as_slice(&self) -> &[GenericArgument] {
         self.0
     }

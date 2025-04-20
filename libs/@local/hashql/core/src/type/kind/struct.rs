@@ -187,22 +187,33 @@ impl<'heap> Lattice<'heap> for StructType<'heap> {
         other: Type<'heap, Self>,
         env: &mut LatticeEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 4> {
-        // TODO: this isn't if we're covariant to width
-        if self.kind.fields.len() != other.kind.fields.len() {
-            return SmallVec::from_slice(&[self.id, other.id]);
-        }
+        // As we're covariant in respect to width, we join in the following way:
+        // fields that are present in both structs are joined point-wise
+        // fields that are only present in one struct are added as is
+        let mut other_lookup: HashMap<_, _, foldhash::fast::RandomState> = other
+            .kind
+            .fields
+            .iter()
+            .map(|field| (field.name, field))
+            .collect();
 
-        if self.is_disjoint_by_keys(other) {
-            return SmallVec::from_slice(&[self.id, other.id]);
-        }
-
-        // join point-wise
         let mut fields = SmallVec::<_, 16>::with_capacity(self.kind.fields.len());
-        for (lhs, rhs) in self.kind.fields.iter().zip(other.kind.fields.iter()) {
-            fields.push(StructField {
-                name: lhs.name,
-                value: env.join(lhs.value, rhs.value),
-            });
+
+        for &self_field in &*self.kind.fields {
+            // We can safely remove by name, as we assume that the struct is well-formed and has no
+            // duplicate fields
+            if let Some(&other_field) = other_lookup.remove(&self_field.name) {
+                fields.push(StructField {
+                    name: self_field.name,
+                    value: env.join(self_field.value, other_field.value),
+                });
+            } else {
+                fields.push(self_field);
+            }
+        }
+
+        for (_, &other_field) in other_lookup {
+            fields.push(other_field);
         }
 
         self.postprocess_lattice(other, env, &mut fields)
@@ -213,21 +224,29 @@ impl<'heap> Lattice<'heap> for StructType<'heap> {
         other: Type<'heap, Self>,
         env: &mut LatticeEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 4> {
-        // TODO: this isn't correct if we're covariant to width
-        if self.kind.fields.len() != other.kind.fields.len() {
-            return SmallVec::from_slice(&[]);
-        }
+        // As we're covariant in respect to width, we meet the following way:
+        // fields that are present in both structs are met point-wise
+        // fields that are present in only one struct are discarded
+        let mut other_lookup: HashMap<_, _, foldhash::fast::RandomState> = other
+            .kind
+            .fields
+            .iter()
+            .map(|field| (field.name, field))
+            .collect();
 
-        if self.is_disjoint_by_keys(other) {
-            return SmallVec::from_slice(&[]);
-        }
+        let mut fields = SmallVec::<_, 16>::with_capacity(usize::min(
+            self.kind.fields.len(),
+            other.kind.fields.len(),
+        ));
 
-        // meet point-wise
-        let mut fields = SmallVec::<_, 16>::with_capacity(self.kind.fields.len());
-        for (lhs, rhs) in self.kind.fields.iter().zip(other.kind.fields.iter()) {
+        for &self_field in &*self.kind.fields {
+            let Some(other_field) = other_lookup.remove(&self_field.name) else {
+                continue;
+            };
+
             fields.push(StructField {
-                name: lhs.name,
-                value: env.meet(lhs.value, rhs.value),
+                name: self_field.name,
+                value: env.meet(self_field.value, other_field.value),
             });
         }
 
@@ -414,5 +433,858 @@ impl PrettyPrint for StructType<'_> {
                     .group(),
             )
             .group()
+    }
+}
+
+#[cfg(test)]
+mod test {
+    #![expect(clippy::min_ident_chars)]
+    use super::{StructField, StructType};
+    use crate::{
+        heap::Heap,
+        span::SpanId,
+        r#type::{
+            environment::{
+                Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment,
+            },
+            kind::{
+                TypeKind,
+                generic_argument::{GenericArgument, GenericArgumentId},
+                intersection::IntersectionType,
+                primitive::PrimitiveType,
+                test::{assert_equiv, intersection, primitive, r#struct, struct_field, union},
+                union::UnionType,
+            },
+            lattice::{Lattice as _, test::assert_lattice_laws},
+            pretty_print::PrettyPrint as _,
+            test::instantiate,
+        },
+    };
+
+    #[test]
+    fn join_identical_structs() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        r#struct!(
+            env,
+            a,
+            [],
+            [
+                struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
+                struct_field!(env, "age", primitive!(env, PrimitiveType::Number))
+            ]
+        );
+
+        r#struct!(
+            env,
+            b,
+            [],
+            [
+                struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
+                struct_field!(env, "age", primitive!(env, PrimitiveType::Number))
+            ]
+        );
+
+        let mut lattice_env = LatticeEnvironment::new(&env);
+
+        // Join identical structs should result in the same struct
+        assert_equiv!(
+            env,
+            a.join(b, &mut lattice_env),
+            [r#struct!(
+                env,
+                [],
+                [
+                    struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
+                    struct_field!(env, "age", primitive!(env, PrimitiveType::Number))
+                ]
+            )]
+        );
+    }
+
+    #[test]
+    fn join_structs_with_different_fields() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        r#struct!(
+            env,
+            a,
+            [],
+            [
+                struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
+                struct_field!(env, "age", primitive!(env, PrimitiveType::Number))
+            ]
+        );
+
+        r#struct!(
+            env,
+            b,
+            [],
+            [
+                struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
+                struct_field!(env, "active", primitive!(env, PrimitiveType::Boolean))
+            ]
+        );
+
+        let mut lattice_env = LatticeEnvironment::new(&env);
+
+        // Join structs with different fields should include all fields
+        assert_equiv!(
+            env,
+            a.join(b, &mut lattice_env),
+            [r#struct!(
+                env,
+                [],
+                [
+                    struct_field!(env, "active", primitive!(env, PrimitiveType::Boolean)),
+                    struct_field!(env, "age", primitive!(env, PrimitiveType::Number)),
+                    struct_field!(env, "name", primitive!(env, PrimitiveType::String))
+                ]
+            )]
+        );
+    }
+
+    #[test]
+    fn join_structs_with_overlapping_fields() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        r#struct!(
+            env,
+            a,
+            [],
+            [
+                struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
+                struct_field!(env, "value", primitive!(env, PrimitiveType::Integer))
+            ]
+        );
+
+        r#struct!(
+            env,
+            b,
+            [],
+            [
+                struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
+                struct_field!(env, "value", primitive!(env, PrimitiveType::Number))
+            ]
+        );
+
+        let mut lattice_env = LatticeEnvironment::new(&env);
+
+        // Join structs with overlapping fields should join those fields
+        assert_equiv!(
+            env,
+            a.join(b, &mut lattice_env),
+            [r#struct!(
+                env,
+                [],
+                [
+                    struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
+                    struct_field!(env, "value", primitive!(env, PrimitiveType::Number))
+                ]
+            )]
+        );
+    }
+
+    #[test]
+    fn meet_identical_structs() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        r#struct!(
+            env,
+            a,
+            [],
+            [
+                struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
+                struct_field!(env, "age", primitive!(env, PrimitiveType::Number))
+            ]
+        );
+
+        r#struct!(
+            env,
+            b,
+            [],
+            [
+                struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
+                struct_field!(env, "age", primitive!(env, PrimitiveType::Number))
+            ]
+        );
+
+        let mut lattice_env = LatticeEnvironment::new(&env);
+
+        // Meet identical structs should result in the same struct
+        assert_equiv!(
+            env,
+            a.meet(b, &mut lattice_env),
+            [r#struct!(
+                env,
+                [],
+                [
+                    struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
+                    struct_field!(env, "age", primitive!(env, PrimitiveType::Number))
+                ]
+            )]
+        );
+    }
+
+    #[test]
+    fn meet_structs_with_different_fields() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        r#struct!(
+            env,
+            a,
+            [],
+            [
+                struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
+                struct_field!(env, "age", primitive!(env, PrimitiveType::Number))
+            ]
+        );
+
+        r#struct!(
+            env,
+            b,
+            [],
+            [
+                struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
+                struct_field!(env, "active", primitive!(env, PrimitiveType::Boolean))
+            ]
+        );
+
+        let mut lattice_env = LatticeEnvironment::new(&env);
+
+        // Meet structs with different fields should include only common fields
+        assert_equiv!(
+            env,
+            a.meet(b, &mut lattice_env),
+            [r#struct!(
+                env,
+                [],
+                [struct_field!(
+                    env,
+                    "name",
+                    primitive!(env, PrimitiveType::String)
+                )]
+            )]
+        );
+    }
+
+    #[test]
+    fn meet_structs_with_overlapping_fields() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        r#struct!(
+            env,
+            a,
+            [],
+            [
+                struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
+                struct_field!(env, "value", primitive!(env, PrimitiveType::Number))
+            ]
+        );
+
+        r#struct!(
+            env,
+            b,
+            [],
+            [
+                struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
+                struct_field!(env, "value", primitive!(env, PrimitiveType::Integer))
+            ]
+        );
+
+        let mut lattice_env = LatticeEnvironment::new(&env);
+
+        // Meet structs with overlapping fields should meet those fields
+        assert_equiv!(
+            env,
+            a.meet(b, &mut lattice_env),
+            [r#struct!(
+                env,
+                [],
+                [
+                    struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
+                    struct_field!(env, "value", primitive!(env, PrimitiveType::Integer))
+                ]
+            )]
+        );
+    }
+
+    #[test]
+    fn uninhabited_structs() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create a normal struct with inhabited types
+        r#struct!(
+            env,
+            normal_struct,
+            [],
+            [
+                struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
+                struct_field!(env, "age", primitive!(env, PrimitiveType::Number))
+            ]
+        );
+
+        // Create an empty struct (which is considered inhabited)
+        r#struct!(env, empty_struct, [], []);
+
+        // Create a struct with an uninhabited field
+        r#struct!(
+            env,
+            never_struct,
+            [],
+            [
+                struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
+                struct_field!(env, "error", instantiate(&env, TypeKind::Never))
+            ]
+        );
+
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // Empty struct should be inhabited (not uninhabited)
+        assert!(!empty_struct.is_bottom(&mut analysis_env));
+
+        // Normal struct should be inhabited (not uninhabited)
+        assert!(!normal_struct.is_bottom(&mut analysis_env));
+
+        // Struct with a never field should be uninhabited
+        assert!(never_struct.is_bottom(&mut analysis_env));
+    }
+
+    #[test]
+    fn subtype_relationship() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create struct types for testing
+        let number = primitive!(env, PrimitiveType::Number);
+        let integer = primitive!(env, PrimitiveType::Integer);
+        let string = primitive!(env, PrimitiveType::String);
+
+        // Basic structs with same fields
+        r#struct!(
+            env,
+            struct_a,
+            [],
+            [
+                struct_field!(env, "name", string),
+                struct_field!(env, "value", number)
+            ]
+        );
+
+        r#struct!(
+            env,
+            struct_b,
+            [],
+            [
+                struct_field!(env, "name", string),
+                struct_field!(env, "value", integer)
+            ]
+        );
+
+        // Struct with more fields
+        r#struct!(
+            env,
+            struct_c,
+            [],
+            [
+                struct_field!(env, "name", string),
+                struct_field!(env, "value", integer),
+                struct_field!(env, "active", primitive!(env, PrimitiveType::Boolean))
+            ]
+        );
+
+        // Struct with fewer fields
+        r#struct!(env, struct_d, [], [struct_field!(env, "name", string)]);
+
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // Reflexivity: Every struct is a subtype of itself
+        assert!(struct_a.is_subtype_of(struct_a, &mut analysis_env));
+        assert!(struct_b.is_subtype_of(struct_b, &mut analysis_env));
+
+        // Structs with the same fields but different field types
+        // Since Integer <: Number, (name: String, value: Integer) <: (name: String, value: Number)
+        assert!(struct_b.is_subtype_of(struct_a, &mut analysis_env));
+
+        // But (name: String, value: Number) is not a subtype of (name: String, value: Integer)
+        assert!(!struct_a.is_subtype_of(struct_b, &mut analysis_env));
+
+        // Width subtyping: a struct with more fields is a subtype of a struct with fewer fields
+        // (name, value, active) <: (name, value)
+        assert!(struct_c.is_subtype_of(struct_b, &mut analysis_env));
+
+        // (name) is not a subtype of (name, value)
+        assert!(!struct_d.is_subtype_of(struct_a, &mut analysis_env));
+
+        // (name, value) is a subtype of (name)
+        assert!(struct_a.is_subtype_of(struct_d, &mut analysis_env));
+    }
+
+    #[test]
+    fn equivalence_relationship() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create structs with same structure but different TypeIds
+        r#struct!(
+            env,
+            a,
+            [],
+            [
+                struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
+                struct_field!(env, "value", primitive!(env, PrimitiveType::Number))
+            ]
+        );
+
+        r#struct!(
+            env,
+            b,
+            [],
+            [
+                struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
+                struct_field!(env, "value", primitive!(env, PrimitiveType::Number))
+            ]
+        );
+
+        // Create a struct with different field types
+        r#struct!(
+            env,
+            c,
+            [],
+            [
+                struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
+                struct_field!(env, "value", primitive!(env, PrimitiveType::Boolean))
+            ]
+        );
+
+        // Create a struct with different fields
+        r#struct!(
+            env,
+            d,
+            [],
+            [
+                struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
+                struct_field!(env, "age", primitive!(env, PrimitiveType::Number))
+            ]
+        );
+
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // Structs with semantically equivalent fields should be equivalent
+        assert!(a.is_equivalent(b, &mut analysis_env));
+
+        // Structs with different field types should not be equivalent
+        assert!(!a.is_equivalent(c, &mut analysis_env));
+
+        // Structs with different field names should not be equivalent
+        assert!(!a.is_equivalent(d, &mut analysis_env));
+    }
+
+    #[test]
+    fn simplify_struct() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create a struct with fields
+        r#struct!(
+            env,
+            normal_struct,
+            [],
+            [
+                struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
+                struct_field!(env, "age", primitive!(env, PrimitiveType::Number))
+            ]
+        );
+
+        // Create a struct with an uninhabited field
+        r#struct!(
+            env,
+            never_struct,
+            [],
+            [
+                struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
+                struct_field!(env, "error", instantiate(&env, TypeKind::Never))
+            ]
+        );
+
+        let mut simplify_env = SimplifyEnvironment::new(&env);
+
+        // Simplifying a struct with already simplified fields should return the same struct
+        let result = normal_struct.simplify(&mut simplify_env);
+        assert_eq!(
+            result, normal_struct.id,
+            "Simplifying a struct with already simple fields should return the same struct"
+        );
+
+        // Simplifying a struct with a Never field should result in Never
+        let result = never_struct.simplify(&mut simplify_env);
+        let result_type = env.types[result].copied();
+        assert!(
+            matches!(result_type.kind, TypeKind::Never),
+            "Expected Never, got {:?}",
+            result_type.kind
+        );
+    }
+
+    #[test]
+    fn lattice_laws() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create three distinct structs for testing lattice laws
+        // We need these to have different field structures for proper lattice testing
+        let a = r#struct!(
+            env,
+            [],
+            [
+                struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
+                struct_field!(env, "value", primitive!(env, PrimitiveType::Number))
+            ]
+        );
+
+        let b = r#struct!(
+            env,
+            [],
+            [
+                struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
+                struct_field!(env, "age", primitive!(env, PrimitiveType::Integer))
+            ]
+        );
+
+        let c = r#struct!(
+            env,
+            [],
+            [
+                struct_field!(env, "id", primitive!(env, PrimitiveType::String)),
+                struct_field!(env, "active", primitive!(env, PrimitiveType::Boolean))
+            ]
+        );
+
+        // Test that struct types satisfy lattice laws (associativity, commutativity, absorption)
+        assert_lattice_laws(&env, a, b, c);
+    }
+
+    #[test]
+    fn is_concrete() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // Concrete struct (with all concrete fields)
+        let number = primitive!(env, PrimitiveType::Number);
+        let string = primitive!(env, PrimitiveType::String);
+
+        r#struct!(
+            env,
+            concrete_struct,
+            [],
+            [
+                struct_field!(env, "name", string),
+                struct_field!(env, "value", number)
+            ]
+        );
+        assert!(concrete_struct.is_concrete(&mut analysis_env));
+
+        // Non-concrete struct (with at least one non-concrete field)
+        let infer_var = instantiate(&env, TypeKind::Infer);
+
+        r#struct!(
+            env,
+            non_concrete_struct,
+            [],
+            [
+                struct_field!(env, "name", string),
+                struct_field!(env, "value", infer_var)
+            ]
+        );
+        assert!(!non_concrete_struct.is_concrete(&mut analysis_env));
+
+        // Empty struct should be concrete
+        r#struct!(env, empty_struct, [], []);
+        assert!(empty_struct.is_concrete(&mut analysis_env));
+
+        // Struct with generic arguments should still be concrete if fields are concrete
+        r#struct!(
+            env,
+            struct_with_args,
+            [GenericArgument {
+                id: GenericArgumentId::new(0),
+                constraint: None
+            }],
+            [
+                struct_field!(env, "name", string),
+                struct_field!(env, "value", number)
+            ]
+        );
+        assert!(struct_with_args.is_concrete(&mut analysis_env));
+    }
+
+    #[test]
+    fn distribute_union() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // Create primitive types
+        let string = primitive!(env, PrimitiveType::String);
+        let boolean = primitive!(env, PrimitiveType::Boolean);
+
+        // Create a union type
+        let union_type = union!(env, [string, boolean]);
+
+        // Create a struct with a union field
+        r#struct!(
+            env,
+            struct_with_union,
+            [],
+            [
+                struct_field!(env, "name", string),
+                struct_field!(env, "value", union_type)
+            ]
+        );
+
+        // Distribute the union across the struct
+        let result = struct_with_union.distribute_union(&mut analysis_env);
+
+        // Should result in two structs: one with string value, one with boolean value
+        assert_equiv!(
+            env,
+            result,
+            [
+                r#struct!(
+                    env,
+                    [],
+                    [
+                        struct_field!(env, "name", string),
+                        struct_field!(env, "value", string)
+                    ]
+                ),
+                r#struct!(
+                    env,
+                    [],
+                    [
+                        struct_field!(env, "name", string),
+                        struct_field!(env, "value", boolean)
+                    ]
+                )
+            ]
+        );
+    }
+
+    #[test]
+    fn distribute_union_multiple_fields() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // Create primitive types
+        let number = primitive!(env, PrimitiveType::Number);
+        let integer = primitive!(env, PrimitiveType::Integer);
+        let string = primitive!(env, PrimitiveType::String);
+        let boolean = primitive!(env, PrimitiveType::Boolean);
+
+        // Create union types
+        let union_type1 = union!(env, [number, integer]);
+        let union_type2 = union!(env, [string, boolean]);
+
+        // Create a struct with multiple union fields
+        r#struct!(
+            env,
+            struct_with_unions,
+            [],
+            [
+                struct_field!(env, "type", union_type1),
+                struct_field!(env, "value", union_type2)
+            ]
+        );
+
+        // Distribute the unions across the struct
+        let result = struct_with_unions.distribute_union(&mut analysis_env);
+
+        // Should result in four structs: all combinations of the union fields
+        assert_equiv!(
+            env,
+            result,
+            [
+                r#struct!(
+                    env,
+                    [],
+                    [
+                        struct_field!(env, "type", number),
+                        struct_field!(env, "value", string)
+                    ]
+                ),
+                r#struct!(
+                    env,
+                    [],
+                    [
+                        struct_field!(env, "type", integer),
+                        struct_field!(env, "value", string)
+                    ]
+                ),
+                r#struct!(
+                    env,
+                    [],
+                    [
+                        struct_field!(env, "type", number),
+                        struct_field!(env, "value", boolean)
+                    ]
+                ),
+                r#struct!(
+                    env,
+                    [],
+                    [
+                        struct_field!(env, "type", integer),
+                        struct_field!(env, "value", boolean)
+                    ]
+                )
+            ]
+        );
+    }
+
+    #[test]
+    fn distribute_intersection() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // Create primitive types
+        let number = primitive!(env, PrimitiveType::Number);
+        let string = primitive!(env, PrimitiveType::String);
+
+        // Create a struct with an intersection field
+        let intersect_type = intersection!(env, [number, string]);
+
+        r#struct!(
+            env,
+            struct_with_intersection,
+            [],
+            [struct_field!(env, "value", intersect_type)]
+        );
+
+        // Distribute intersection (should just return the original struct)
+        let result = struct_with_intersection.distribute_intersection(&mut analysis_env);
+
+        // Should return the original struct since structs are covariant over their fields
+        assert_equiv!(env, result, [struct_with_intersection.id]);
+    }
+
+    #[test]
+    fn nested_structs() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create inner structs
+        r#struct!(
+            env,
+            inner1,
+            [],
+            [struct_field!(
+                env,
+                "value",
+                primitive!(env, PrimitiveType::Number)
+            )]
+        );
+
+        r#struct!(
+            env,
+            inner2,
+            [],
+            [struct_field!(
+                env,
+                "value",
+                primitive!(env, PrimitiveType::Integer)
+            )]
+        );
+
+        // Create outer structs using inner structs as field types
+        r#struct!(
+            env,
+            outer1,
+            [],
+            [
+                struct_field!(env, "nested", inner1.id),
+                struct_field!(env, "name", primitive!(env, PrimitiveType::String))
+            ]
+        );
+
+        r#struct!(
+            env,
+            outer2,
+            [],
+            [
+                struct_field!(env, "nested", inner2.id),
+                struct_field!(env, "name", primitive!(env, PrimitiveType::String))
+            ]
+        );
+
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // Test subtyping with nested structs
+        // Since inner2 (with Integer) is a subtype of inner1 (with Number),
+        // outer2 should be a subtype of outer1
+        assert!(inner2.is_subtype_of(inner1, &mut analysis_env));
+        assert!(outer2.is_subtype_of(outer1, &mut analysis_env));
+    }
+
+    #[test]
+    fn disjoint_fields() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create structs with completely different fields
+        r#struct!(
+            env,
+            a,
+            [],
+            [
+                struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
+                struct_field!(env, "age", primitive!(env, PrimitiveType::Number))
+            ]
+        );
+
+        r#struct!(
+            env,
+            b,
+            [],
+            [
+                struct_field!(env, "id", primitive!(env, PrimitiveType::String)),
+                struct_field!(env, "active", primitive!(env, PrimitiveType::Boolean))
+            ]
+        );
+
+        let mut lattice_env = LatticeEnvironment::new(&env);
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // Join of disjoint structs should have all fields from both
+        assert_equiv!(
+            env,
+            a.join(b, &mut lattice_env),
+            [r#struct!(
+                env,
+                [],
+                [
+                    struct_field!(env, "active", primitive!(env, PrimitiveType::Boolean)),
+                    struct_field!(env, "age", primitive!(env, PrimitiveType::Number)),
+                    struct_field!(env, "id", primitive!(env, PrimitiveType::String)),
+                    struct_field!(env, "name", primitive!(env, PrimitiveType::String))
+                ]
+            )]
+        );
+
+        // Meet of disjoint structs should have no fields
+        let meet_result = a.meet(b, &mut lattice_env);
+        assert_equiv!(env, meet_result, [r#struct!(env, [], [])]);
+
+        // Test the is_disjoint_by_keys method indirectly through is_equivalent
+        // Disjoint structs should not be equivalent
+        assert!(!a.is_equivalent(b, &mut analysis_env));
     }
 }

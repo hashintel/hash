@@ -138,7 +138,7 @@ impl Heap {
     pub fn intern_symbol<'this>(&'this self, value: &str) -> InternedSymbol<'this> {
         let mut strings = self.strings.lock().expect("lock should not be poisoned");
 
-        if let Some(string) = strings.get(value) {
+        if let Some(&string) = strings.get(value) {
             return InternedSymbol::new_unchecked(string);
         }
 

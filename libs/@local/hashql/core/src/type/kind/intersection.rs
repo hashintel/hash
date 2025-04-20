@@ -768,7 +768,7 @@ mod test {
     }
 
     #[test]
-    fn is_bottom_test() {
+    fn is_bottom() {
         let heap = Heap::new();
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
@@ -793,7 +793,7 @@ mod test {
     }
 
     #[test]
-    fn is_top_test() {
+    fn is_top() {
         let heap = Heap::new();
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
@@ -910,7 +910,7 @@ mod test {
     }
 
     #[test]
-    fn is_equivalent_test() {
+    fn is_equivalent() {
         let heap = Heap::new();
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
@@ -1140,7 +1140,7 @@ mod test {
     }
 
     #[test]
-    fn is_concrete_test() {
+    fn is_concrete() {
         let heap = Heap::new();
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
         let mut analysis_env = TypeAnalysisEnvironment::new(&env);

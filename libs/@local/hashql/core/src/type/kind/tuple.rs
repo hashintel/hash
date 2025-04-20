@@ -791,7 +791,7 @@ mod test {
     }
 
     #[test]
-    fn is_concrete_test() {
+    fn is_concrete() {
         let heap = Heap::new();
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
         let mut analysis_env = TypeAnalysisEnvironment::new(&env);
