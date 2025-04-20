@@ -605,8 +605,9 @@ mod tests {
             },
             kind::{
                 TypeKind,
+                intersection::IntersectionType,
                 primitive::PrimitiveType,
-                test::{assert_equiv, dict, list, primitive, union},
+                test::{assert_equiv, dict, intersection, list, primitive, union},
                 union::UnionType,
             },
             lattice::{Lattice as _, test::assert_lattice_laws},
@@ -1176,5 +1177,164 @@ mod tests {
             .copied()
             .meet(env.types[dict_b].copied(), &mut lattice_env);
         assert!(met_no_inference.is_empty());
+    }
+
+    #[test]
+    fn list_distribute_union() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // Create primitive types
+        let number = primitive!(env, PrimitiveType::Number);
+        let string = primitive!(env, PrimitiveType::String);
+        let boolean = primitive!(env, PrimitiveType::Boolean);
+
+        // Create a list with a normal element type
+        list!(env, list_normal, number);
+
+        // Should return the original list since there's no union to distribute
+        assert_equiv!(
+            env,
+            list_normal.distribute_union(&mut analysis_env),
+            [list_normal.id]
+        );
+
+        // Create a list with a union element type
+        let union_type = union!(env, [string, boolean]);
+        list!(env, list_with_union, union_type);
+
+        // Should result in two separate lists, one for each variant in the union
+        assert_equiv!(
+            env,
+            list_with_union.distribute_union(&mut analysis_env),
+            [list!(env, string), list!(env, boolean)]
+        );
+    }
+
+    #[test]
+    fn list_distribute_intersection() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // Create a list with an intersection element type
+        let number = primitive!(env, PrimitiveType::Number);
+        let string = primitive!(env, PrimitiveType::String);
+        let intersection_type = intersection!(env, [number, string]);
+
+        list!(env, list_with_intersection, intersection_type);
+
+        // Distribute the intersection (should just return the original list since lists are
+        // covariant)
+        assert_equiv!(
+            env,
+            list_with_intersection.distribute_intersection(&mut analysis_env),
+            [list_with_intersection.id]
+        );
+    }
+
+    #[test]
+    fn dict_distribute_union() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // Create primitive types
+        let number = primitive!(env, PrimitiveType::Number);
+        let string = primitive!(env, PrimitiveType::String);
+        let boolean = primitive!(env, PrimitiveType::Boolean);
+
+        // Create a dict with a normal value type
+        dict!(env, dict_normal, string, number);
+
+        // Should return the original dict since there's no union to distribute
+        assert_equiv!(
+            env,
+            dict_normal.distribute_union(&mut analysis_env),
+            [dict_normal.id]
+        );
+
+        // Create a dict with a union value type
+        let union_type = union!(env, [number, boolean]);
+        dict!(env, dict_with_union, string, union_type);
+
+        // Should result in two separate dicts, one for each variant in the value union
+        assert_equiv!(
+            env,
+            dict_with_union.distribute_union(&mut analysis_env),
+            [dict!(env, string, number), dict!(env, string, boolean)]
+        );
+
+        // Create a dict with a union key type
+        let key_union = union!(env, [string, number]);
+        dict!(env, dict_with_union_key, key_union, boolean);
+
+        // Distribute the union on the key - this should NOT distribute since keys are invariant
+        // Should return the original dict, as Dict<K, V> only distributes unions in its value type
+        assert_equiv!(
+            env,
+            dict_with_union_key.distribute_union(&mut analysis_env),
+            [dict_with_union_key.id]
+        );
+    }
+
+    #[test]
+    fn dict_distribute_intersection() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // Create a dict with an intersection value type
+        let number = primitive!(env, PrimitiveType::Number);
+        let string = primitive!(env, PrimitiveType::String);
+        let intersection_type = intersection!(env, [number, string]);
+
+        dict!(env, dict_with_intersection, string, intersection_type);
+
+        // Distribute the intersection
+        // Should return the original dict (no distribution necessary)
+        assert_equiv!(
+            env,
+            dict_with_intersection.distribute_intersection(&mut analysis_env),
+            [dict_with_intersection.id]
+        );
+    }
+
+    #[test]
+    fn intrinsic_type_distribute_delegation() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // Create primitive types
+        let number = primitive!(env, PrimitiveType::Number);
+        let string = primitive!(env, PrimitiveType::String);
+        let boolean = primitive!(env, PrimitiveType::Boolean);
+
+        // Create union types
+        let union_type = union!(env, [number, boolean]);
+
+        // Test that IntrinsicType::List correctly delegates to ListType
+        list!(env, list_with_union, union_type);
+
+        // Distribute the union
+        // Should result in two separate lists
+        assert_equiv!(
+            env,
+            list_with_union.distribute_union(&mut analysis_env),
+            [list!(env, number), list!(env, boolean)]
+        );
+
+        // Test that IntrinsicType::Dict correctly delegates to DictType
+        dict!(env, dict_with_union, string, union_type);
+
+        // Distribute the union
+        // Should result in two separate dicts
+        assert_equiv!(
+            env,
+            dict_with_union.distribute_union(&mut analysis_env),
+            [dict!(env, string, number), dict!(env, string, boolean)]
+        );
     }
 }

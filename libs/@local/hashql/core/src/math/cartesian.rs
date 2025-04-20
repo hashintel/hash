@@ -2,7 +2,7 @@ use smallvec::SmallVec;
 
 /// Compute the Cartesian product of `fields`,
 /// where each `fields[k]` is a slice of variants for the kᵗʰ position.
-/// Returns a Vec of SmallVecs, each of length = fields.len().
+/// Returns a Vec of `SmallVec`s, each of `length = fields.len()`.
 ///
 /// # Example
 ///
@@ -102,6 +102,7 @@ mod tests {
         );
     }
 
+    #[expect(clippy::non_ascii_literal)]
     #[test]
     fn three_fields_strings() {
         // 2 × 2 × 2 = 8 combinations
@@ -114,12 +115,12 @@ mod tests {
             result,
             [
                 ["foo", "α", "🍎"],
-                ["foo", "α", "🍌"],
-                ["foo", "β", "🍎"],
-                ["foo", "β", "🍌"],
                 ["bar", "α", "🍎"],
-                ["bar", "α", "🍌"],
+                ["foo", "β", "🍎"],
                 ["bar", "β", "🍎"],
+                ["foo", "α", "🍌"],
+                ["bar", "α", "🍌"],
+                ["foo", "β", "🍌"],
                 ["bar", "β", "🍌"],
             ]
         );

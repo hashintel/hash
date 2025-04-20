@@ -158,7 +158,6 @@ impl<'heap> Lattice<'heap> for TupleType<'heap> {
         self.kind.fields.iter().all(|&field| env.is_concrete(field))
     }
 
-    // TODO: test
     fn distribute_union(
         self: Type<'heap, Self>,
         env: &mut TypeAnalysisEnvironment<'_, 'heap>,
@@ -177,7 +176,6 @@ impl<'heap> Lattice<'heap> for TupleType<'heap> {
         self.postprocess_distribution(&fields, env)
     }
 
-    // TODO: test
     fn distribute_intersection(
         self: Type<'heap, Self>,
         _: &mut TypeAnalysisEnvironment<'_, 'heap>,
@@ -977,5 +975,141 @@ mod test {
             "Expected Never, got {:?}",
             result_type.kind
         );
+    }
+
+    #[test]
+    fn distribute_union_empty_tuple() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // Create an empty tuple
+        tuple!(env, empty_tuple, [], []);
+
+        // Distribution should just return the original tuple since it's empty
+        let result = empty_tuple.distribute_union(&mut analysis_env);
+        assert_equiv!(env, result, [empty_tuple.id]);
+    }
+
+    #[test]
+    fn distribute_union_single_field() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // Create primitive types
+        let number = primitive!(env, PrimitiveType::Number);
+        let string = primitive!(env, PrimitiveType::String);
+        let boolean = primitive!(env, PrimitiveType::Boolean);
+
+        // Create a union type
+        let union_type = union!(env, [string, boolean]);
+
+        // Create a tuple with a union field
+        tuple!(env, tuple_with_union, [], [number, union_type]);
+
+        // Distribute the union across the tuple
+        let result = tuple_with_union.distribute_union(&mut analysis_env);
+
+        // Should result in two tuples: (number, string) and (number, boolean)
+        assert_equiv!(
+            env,
+            result,
+            [
+                tuple!(env, [], [number, string]),
+                tuple!(env, [], [number, boolean])
+            ]
+        );
+    }
+
+    #[test]
+    fn distribute_union_multiple_fields() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // Create primitive types
+        let number = primitive!(env, PrimitiveType::Number);
+        let integer = primitive!(env, PrimitiveType::Integer);
+        let string = primitive!(env, PrimitiveType::String);
+        let boolean = primitive!(env, PrimitiveType::Boolean);
+
+        // Create union types
+        let union_type1 = union!(env, [number, integer]);
+        let union_type2 = union!(env, [string, boolean]);
+
+        // Create a tuple with multiple union fields
+        tuple!(env, tuple_with_unions, [], [union_type1, union_type2]);
+
+        // Distribute the unions across the tuple
+        let result = tuple_with_unions.distribute_union(&mut analysis_env);
+
+        // Should result in four tuples: all combinations of the union fields
+        assert_equiv!(
+            env,
+            result,
+            [
+                tuple!(env, [], [number, string]),
+                tuple!(env, [], [integer, string]),
+                tuple!(env, [], [number, boolean]),
+                tuple!(env, [], [integer, boolean])
+            ]
+        );
+    }
+
+    #[test]
+    fn distribute_union_nested_tuples() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // Create primitive types
+        let number = primitive!(env, PrimitiveType::Number);
+        let string = primitive!(env, PrimitiveType::String);
+        let boolean = primitive!(env, PrimitiveType::Boolean);
+
+        // Create a union type
+        let union_type = union!(env, [string, boolean]);
+
+        // Create an inner tuple with a union field
+        tuple!(env, inner_tuple, [], [number, union_type]);
+
+        // Create an outer tuple containing the inner tuple
+        tuple!(env, outer_tuple, [], [inner_tuple.id]);
+
+        // Distribute the unions across both tuples
+        let result = outer_tuple.distribute_union(&mut analysis_env);
+
+        // Should result in two tuples: (number, string) and (number, boolean)
+        // wrapped in outer tuples
+        assert_equiv!(
+            env,
+            result,
+            [
+                tuple!(env, [], [tuple!(env, [], [number, string])]),
+                tuple!(env, [], [tuple!(env, [], [number, boolean])])
+            ]
+        );
+    }
+
+    #[test]
+    fn distribute_intersection() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+
+        // Create primitive types
+        let number = primitive!(env, PrimitiveType::Number);
+        let string = primitive!(env, PrimitiveType::String);
+
+        // Create a tuple with an intersection field
+        let intersect_type = intersection!(env, [number, string]);
+        tuple!(env, tuple_with_intersection, [], [intersect_type]);
+
+        // Distribute intersection (should just return the original tuple)
+        let result = tuple_with_intersection.distribute_intersection(&mut analysis_env);
+
+        // Should return the original tuple since tuples are covariant over their fields
+        assert_equiv!(env, result, [tuple_with_intersection.id]);
     }
 }
