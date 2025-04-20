@@ -24,11 +24,6 @@ const CIRCULAR_TYPE: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     name: "Circular type reference",
 };
 
-const EXPECTED_NEVER: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
-    id: "expected-never",
-    name: "Expected uninhabited type",
-};
-
 const TUPLE_LENGTH_MISMATCH: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "tuple-length-mismatch",
     name: "Tuple length mismatch",
@@ -37,11 +32,6 @@ const TUPLE_LENGTH_MISMATCH: TerminalDiagnosticCategory = TerminalDiagnosticCate
 const OPAQUE_TYPE_NAME_MISMATCH: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "opaque-type-name-mismatch",
     name: "Opaque type name mismatch",
-};
-
-const GENERIC_ARGUMENT_NOT_FOUND: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
-    id: "generic-argument-not-found",
-    name: "Generic argument not found",
 };
 
 const FUNCTION_PARAMETER_COUNT_MISMATCH: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
@@ -83,10 +73,8 @@ const NO_TYPE_INFERENCE: TerminalDiagnosticCategory = TerminalDiagnosticCategory
 pub enum TypeCheckDiagnosticCategory {
     TypeMismatch,
     CircularType,
-    ExpectedNever,
     TupleLengthMismatch,
     OpaqueTypeNameMismatch,
-    GenericArgumentNotFound,
     UnionVariantMismatch,
     FunctionParameterCountMismatch,
     IntersectionVariantMismatch,
@@ -109,10 +97,8 @@ impl DiagnosticCategory for TypeCheckDiagnosticCategory {
         match self {
             Self::TypeMismatch => Some(&TYPE_MISMATCH),
             Self::CircularType => Some(&CIRCULAR_TYPE),
-            Self::ExpectedNever => Some(&EXPECTED_NEVER),
             Self::TupleLengthMismatch => Some(&TUPLE_LENGTH_MISMATCH),
             Self::OpaqueTypeNameMismatch => Some(&OPAQUE_TYPE_NAME_MISMATCH),
-            Self::GenericArgumentNotFound => Some(&GENERIC_ARGUMENT_NOT_FOUND),
             Self::UnionVariantMismatch => Some(&UNION_VARIANT_MISMATCH),
             Self::FunctionParameterCountMismatch => Some(&FUNCTION_PARAMETER_COUNT_MISMATCH),
             Self::IntersectionVariantMismatch => Some(&INTERSECTION_VARIANT_MISMATCH),
@@ -358,48 +344,6 @@ where
     diagnostic.note = Some(Note::new(
         "This distinction prevents accidentally mixing up different types that happen to have the \
          same internal structure, helping catch logical errors in your code.",
-    ));
-
-    diagnostic
-}
-
-/// Creates a diagnostic for when a generic argument is not found in the current scope
-pub(crate) fn generic_argument_not_found<K>(
-    span: SpanId,
-    param_type: Type<K>,
-    // argument_id: GenericArgumentId,
-) -> TypeCheckDiagnostic
-where
-    K: PrettyPrint,
-{
-    let argument_id = 12;
-    let mut diagnostic = Diagnostic::new(
-        TypeCheckDiagnosticCategory::GenericArgumentNotFound,
-        Severity::ERROR,
-    );
-
-    diagnostic
-        .labels
-        .push(Label::new(span, "Generic argument not found in this context").with_order(2));
-
-    diagnostic.labels.push(
-        Label::new(
-            param_type.span,
-            format!("This parameter refers to an undefined generic argument ID {argument_id}"),
-        )
-        .with_order(1),
-    );
-
-    diagnostic.help = Some(Help::new(
-        "This error occurs when a type parameter references a generic argument that is not in \
-         scope. Make sure all generic arguments are properly defined and in scope before using \
-         them.",
-    ));
-
-    diagnostic.note = Some(Note::new(
-        "Generic arguments must be entered into scope before they can be referenced. This \
-         typically happens during instantiation of generic types or when entering function bodies \
-         with generic parameters.",
     ));
 
     diagnostic

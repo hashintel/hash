@@ -46,6 +46,8 @@ impl<T> Index<T::Id> for ConcurrentArena<T>
 where
     T: HasId,
 {
+    // I'd like to avoid exposing `orx_concurrent_vec` here, but there's sadly no other way to do
+    // this.
     type Output = ConcurrentElement<T>;
 
     fn index(&self, index: T::Id) -> &Self::Output {

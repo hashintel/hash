@@ -15,10 +15,10 @@ use core::{ops::ControlFlow, ptr};
 use pretty::RcDoc;
 use smallvec::SmallVec;
 
-use self::closure::ClosureType;
 pub use self::{
-    intersection::IntersectionType, intrinsic::IntrinsicType, opaque::OpaqueType,
-    primitive::PrimitiveType, r#struct::StructType, tuple::TupleType, union::UnionType,
+    closure::ClosureType, generic_argument::Param, intersection::IntersectionType,
+    intrinsic::IntrinsicType, opaque::OpaqueType, primitive::PrimitiveType, r#struct::StructType,
+    tuple::TupleType, union::UnionType,
 };
 use super::{
     Type, TypeId,
@@ -43,7 +43,8 @@ pub enum TypeKind<'heap> {
 
     Closure(ClosureType<'heap>),
 
-    // Param(Param),
+    Param(Param),
+
     Never,
     Unknown,
     Infer,
@@ -114,12 +115,13 @@ impl<'heap> TypeKind<'heap> {
         }
     }
 
-    // pub fn param(&self) -> Option<&Param> {
-    //     match self {
-    //         Self::Param(r#type) => Some(r#type),
-    //         _ => None,
-    //     }
-    // }
+    #[must_use]
+    pub const fn param(&self) -> Option<&Param> {
+        match self {
+            Self::Param(r#type) => Some(r#type),
+            _ => None,
+        }
+    }
 
     pub fn resolve(self: Type<'heap, Self>, env: &Environment<'heap>) -> Option<Type<'heap, Self>> {
         match self.kind {
@@ -133,6 +135,11 @@ impl<'heap> TypeKind<'heap> {
             | Self::Intersection(_)
             | Self::Never
             | Self::Unknown => Some(self),
+            &Self::Param(Param { argument }) => {
+                let argument = env.substitution.argument(argument)?;
+
+                Some(env.types[argument].copied())
+            }
             Self::Infer => {
                 let infer = env.substitution.infer(self.id)?;
 
@@ -191,6 +198,18 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                       easier."
         )]
         match (self.kind, other.kind) {
+            // Infer ∨ _ <=> unreachable!()
+            // _ ∨ Infer <=> unreachable!()
+            (Self::Infer, _) | (_, Self::Infer) => {
+                unreachable!("infer should've been resolved prior to this")
+            }
+
+            // Param ∨ _ <=> unreachable!()
+            // _ ∨ Param <=> unreachable!()
+            (Self::Param(_), _) | (_, Self::Param(_)) => {
+                unreachable!("parameter should've been resolved prior to this")
+            }
+
             // T ∨ Never <=> T
             (_, Self::Never) => SmallVec::from_slice(&[self.id]),
             // Never ∨ T <=> T
@@ -216,12 +235,6 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 span: other.span,
                 kind: env.intern_kind(Self::Unknown),
             })]),
-
-            // Infer ∨ _ <=> unreachable!()
-            // _ ∨ Infer <=> unreachable!()
-            (Self::Infer, _) | (_, Self::Infer) => {
-                unreachable!("infer should've been resolved prior to this")
-            }
 
             // Opaque ∨ _
             (Self::Opaque(lhs), Self::Opaque(rhs)) => self.with(lhs).join(other.with(rhs), env),
@@ -413,6 +426,18 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
 
         #[expect(clippy::match_same_arms)]
         match (self.kind, other.kind) {
+            // Infer ∧ _ <=> unreachable!()
+            // _ ∧ Infer <=> unreachable!()
+            (Self::Infer, _) | (_, Self::Infer) => {
+                unreachable!("infer should've been resolved prior to this")
+            }
+
+            // Param ∧ _ <=> unreachable!()
+            // _ ∧ Param <=> unreachable!()
+            (Self::Param(_), _) | (_, Self::Param(_)) => {
+                unreachable!("parameter should've been resolved prior to this")
+            }
+
             // T ∧ Never <=> Never
             (_, Self::Never) => SmallVec::from_slice(&[other.id]),
             // Never ∧ T <=> Never
@@ -438,12 +463,6 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             (_, _) if env.is_top(other.id) => SmallVec::from_slice(&[self.id]),
             // Unknown ∧ T <=> T (slow)
             (_, _) if env.is_top(self.id) => SmallVec::from_slice(&[other.id]),
-
-            // Infer ∧ _ <=> unreachable!()
-            // _ ∧ Infer <=> unreachable!()
-            (Self::Infer, _) | (_, Self::Infer) => {
-                unreachable!("infer should've been resolved prior to this")
-            }
 
             // Opaque ∧ _
             (Self::Opaque(lhs), Self::Opaque(rhs)) => self.with(lhs).meet(other.with(rhs), env),
@@ -593,6 +612,16 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             Self::Closure(closure_type) => self.with(closure_type).is_bottom(env),
             Self::Union(union_type) => self.with(union_type).is_bottom(env),
             Self::Intersection(intersection_type) => self.with(intersection_type).is_bottom(env),
+            &Self::Param(Param { argument }) => {
+                let Some(substitution) = env.substitution.argument(argument) else {
+                    let _: ControlFlow<()> =
+                        env.record_diagnostic(|env| no_type_inference(env, self));
+
+                    return false;
+                };
+
+                env.is_bottom(substitution)
+            }
             Self::Never => true,
             Self::Unknown => false,
             Self::Infer => {
@@ -618,6 +647,16 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             Self::Closure(closure_type) => self.with(closure_type).is_top(env),
             Self::Union(union_type) => self.with(union_type).is_top(env),
             Self::Intersection(intersection_type) => self.with(intersection_type).is_top(env),
+            &Self::Param(Param { argument }) => {
+                let Some(substitution) = env.substitution.argument(argument) else {
+                    let _: ControlFlow<()> =
+                        env.record_diagnostic(|env| no_type_inference(env, self));
+
+                    return false;
+                };
+
+                env.is_top(substitution)
+            }
             Self::Never => false,
             Self::Unknown => true,
             Self::Infer => {
@@ -643,6 +682,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             Self::Closure(closure_type) => self.with(closure_type).is_concrete(env),
             Self::Union(union_type) => self.with(union_type).is_concrete(env),
             Self::Intersection(intersection_type) => self.with(intersection_type).is_concrete(env),
+            &Self::Param(Param { argument }) => env.substitution.argument(argument).is_some(),
             Self::Never | Self::Unknown => true,
             Self::Infer => env.substitution.infer(self.id).is_some(),
         }
@@ -663,6 +703,10 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             Self::Intersection(intersection_type) => {
                 self.with(intersection_type).distribute_union(env)
             }
+            &Self::Param(Param { argument }) => env.substitution.argument(argument).map_or_else(
+                || SmallVec::from_slice(&[self.id]),
+                |substitution| env.distribute_union(substitution),
+            ),
             Self::Never | Self::Unknown | Self::Infer => SmallVec::from_slice(&[self.id]),
         }
     }
@@ -686,6 +730,10 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             Self::Intersection(intersection_type) => {
                 self.with(intersection_type).distribute_intersection(env)
             }
+            &Self::Param(Param { argument }) => env.substitution.argument(argument).map_or_else(
+                || SmallVec::from_slice(&[self.id]),
+                |substitution| env.distribute_intersection(substitution),
+            ),
             Self::Never | Self::Unknown | Self::Infer => SmallVec::from_slice(&[self.id]),
         }
     }
@@ -725,6 +773,12 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             // _ ≡ Infer <=> unreachable!()
             (Self::Infer, _) | (_, Self::Infer) => {
                 unreachable!("infer should've been resolved prior to this")
+            }
+
+            // Param ≡ _ <=> unreachable!()
+            // _ ≡ Param <=> unreachable!()
+            (Self::Param(_), _) | (_, Self::Param(_)) => {
+                unreachable!("param should've been resolved prior to this")
             }
 
             // Never ≡ _
@@ -974,6 +1028,12 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 unreachable!("infer should've been resolved prior to this")
             }
 
+            // Param <: _ <=> unreachable!()
+            // _ <: Param <=> unreachable!()
+            (Self::Param(_), _) | (_, Self::Param(_)) => {
+                unreachable!("param should've been resolved prior to this")
+            }
+
             // `Never <: _`
             (Self::Never, _) => true,
             // `_ ≮: Never`
@@ -1211,7 +1271,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             Self::Closure(closure_type) => self.with(closure_type).simplify(env),
             Self::Union(union_type) => self.with(union_type).simplify(env),
             Self::Intersection(intersection_type) => self.with(intersection_type).simplify(env),
-            Self::Never | Self::Unknown | Self::Infer => self.id,
+            Self::Param(_) | Self::Never | Self::Unknown | Self::Infer => self.id,
         }
     }
 }
@@ -1231,6 +1291,7 @@ impl PrettyPrint for TypeKind<'_> {
             Self::Closure(closure_type) => closure_type.pretty(env, limit),
             Self::Union(union_type) => union_type.pretty(env, limit),
             Self::Intersection(intersection_type) => intersection_type.pretty(env, limit),
+            Self::Param(param_type) => param_type.pretty(env, limit),
             Self::Never => RcDoc::text("!").annotate(CYAN),
             Self::Unknown => RcDoc::text("?").annotate(CYAN),
             Self::Infer => RcDoc::text("_").annotate(GRAY),
