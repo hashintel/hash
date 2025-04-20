@@ -165,7 +165,10 @@ where
     }
 
     diagnostic.note = Some(Note::new(
-        "Types in expressions must be compatible according to the language's type system",
+        "This type system uses a combination of nominal and structural typing. Types are \
+         compatible when they have the same structure (same fields/elements with compatible \
+         types) or when they represent the same named type. Union types must have at least one \
+         compatible variant, and intersection types require all constraints to be satisfied.",
     ));
 
     diagnostic
@@ -241,55 +244,17 @@ where
         .push(Label::new(rhs.span, "... through this reference").with_order(2));
 
     diagnostic.help = Some(Help::new(
-        "Recursive types are not allowed in this context. Break the dependency cycle by \
-         introducing an indirect reference or reorganizing your type definitions.",
+        "While circular type references are allowed, they can lead to infinite type expansion and \
+         potential issues with type checking and serialization. Consider removing the circular \
+         dependency.",
     ));
 
     diagnostic.note = Some(Note::new(
-        "Circular type references cannot be resolved because they would create an infinitely \
-         nested type. Certain language constructs like recursive functions are supported, but \
-         direct recursion in type definitions is not.",
+        "Circular type references create types that can expand infinitely. This may lead to \
+         unpredictable behavior in some contexts like serialization, code generation, or when \
+         working with external systems. While supported, use circular types with caution and \
+         ensure you understand their implications.",
     ));
-
-    diagnostic
-}
-
-/// Creates a diagnostic for when a value has a non-Never type but a Never type is expected
-pub(crate) fn expected_never<K>(env: &Environment, actual_type: &Type<K>) -> TypeCheckDiagnostic
-where
-    K: PrettyPrint,
-{
-    let mut diagnostic =
-        Diagnostic::new(TypeCheckDiagnosticCategory::ExpectedNever, Severity::ERROR);
-
-    diagnostic
-        .labels
-        .push(Label::new(env.source, "This expression should not return a value").with_order(2));
-
-    diagnostic.labels.push(
-        Label::new(
-            actual_type.span,
-            format!(
-                "But it returns a value of type `{}`",
-                actual_type.kind.pretty_print(env, 80)
-            ),
-        )
-        .with_order(1),
-    );
-
-    diagnostic.help = Some(Help::new(
-        "This code path expects an uninhabited type (Never), meaning it should not produce a \
-         value. This typically happens in code paths that should never be reached, or in branches \
-         that must terminate execution (e.g., by returning early, throwing an error, or entering \
-         an infinite loop).",
-    ));
-
-    diagnostic.note = Some(Note::new(
-        "The Never type represents computations that do not produce a value, such as infinite \
-         loops, unreachable code paths, or code that always throws an error. When a Never type is \
-         expected, your code must not return any value.",
-    ));
-
     diagnostic
 }
 
@@ -722,7 +687,8 @@ where
 ///
 /// This is used when a struct declaration contains multiple fields with the same name,
 /// which is not allowed in the type system.
-pub(crate) fn duplicate_struct_field<K>(
+#[must_use]
+pub fn duplicate_struct_field<K>(
     span: SpanId,
     struct_type: Type<K>,
     field_name: InternedSymbol,

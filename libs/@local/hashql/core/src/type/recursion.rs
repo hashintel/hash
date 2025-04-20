@@ -4,13 +4,13 @@ use pretty::RcDoc;
 use super::{TypeId, environment::Environment, pretty_print::PrettyPrint as _};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub(crate) struct RecursionDepthBoundary {
+pub struct RecursionDepthBoundary {
     pub depth: usize,
     pub limit: usize,
 }
 
 impl RecursionDepthBoundary {
-    pub(crate) fn pretty<'this>(
+    pub fn pretty<'this>(
         self,
         env: &'this Environment,
         id: TypeId,

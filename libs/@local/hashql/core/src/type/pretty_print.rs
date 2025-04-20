@@ -65,7 +65,7 @@ where
     }
 }
 
-pub(crate) trait PrettyPrint {
+pub trait PrettyPrint {
     fn pretty<'env>(
         &self,
         env: &'env Environment,

@@ -23,7 +23,7 @@ pub use self::{
 use super::{
     Type, TypeId,
     environment::{Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment},
-    error::no_type_inference,
+    error::{no_type_inference, type_mismatch},
     lattice::Lattice,
     pretty_print::{CYAN, GRAY, PrettyPrint},
     recursion::RecursionDepthBoundary,
@@ -718,8 +718,9 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             return true;
         }
 
+        // We use returns here, so that we don't double emit diagnostics on failures
         #[expect(clippy::match_same_arms)]
-        match (self.kind, other.kind) {
+        let result = match (self.kind, other.kind) {
             // Infer ≡ _ <=> unreachable!()
             // _ ≡ Infer <=> unreachable!()
             (Self::Infer, _) | (_, Self::Infer) => {
@@ -740,7 +741,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
 
             // Opaque ≡ _
             (Self::Opaque(lhs), Self::Opaque(rhs)) => {
-                self.with(lhs).is_equivalent(other.with(rhs), env)
+                return self.with(lhs).is_equivalent(other.with(rhs), env);
             }
             (
                 Self::Opaque(_),
@@ -753,7 +754,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
 
             // Primitive ≡ _
             (Self::Primitive(lhs), Self::Primitive(rhs)) => {
-                self.with(lhs).is_equivalent(other.with(rhs), env)
+                return self.with(lhs).is_equivalent(other.with(rhs), env);
             }
             (
                 Self::Primitive(_),
@@ -766,7 +767,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
 
             // Intrinsic ≡ _
             (Self::Intrinsic(lhs), Self::Intrinsic(rhs)) => {
-                self.with(lhs).is_equivalent(other.with(rhs), env)
+                return self.with(lhs).is_equivalent(other.with(rhs), env);
             }
             (
                 Self::Intrinsic(_),
@@ -779,7 +780,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
 
             // Struct ≡ _
             (Self::Struct(lhs), Self::Struct(rhs)) => {
-                self.with(lhs).is_equivalent(other.with(rhs), env)
+                return self.with(lhs).is_equivalent(other.with(rhs), env);
             }
             (
                 Self::Struct(_),
@@ -792,7 +793,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
 
             // Tuple ≡ _
             (Self::Tuple(lhs), Self::Tuple(rhs)) => {
-                self.with(lhs).is_equivalent(other.with(rhs), env)
+                return self.with(lhs).is_equivalent(other.with(rhs), env);
             }
             (
                 Self::Tuple(_),
@@ -805,7 +806,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
 
             // Closure ≡ _
             (Self::Closure(lhs), Self::Closure(rhs)) => {
-                self.with(lhs).is_equivalent(other.with(rhs), env)
+                return self.with(lhs).is_equivalent(other.with(rhs), env);
             }
             (
                 Self::Closure(_),
@@ -818,7 +819,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
 
             // Union ≡ _
             (Self::Union(lhs), Self::Union(rhs)) => {
-                self.with(lhs).is_equivalent(other.with(rhs), env)
+                return self.with(lhs).is_equivalent(other.with(rhs), env);
             }
             (
                 Self::Union(_),
@@ -843,12 +844,18 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 let lhs_variants = self.distribute_union(env);
                 let rhs_variants = other.distribute_union(env);
 
-                UnionType::is_equivalent_variants(self, other, &lhs_variants, &rhs_variants, env)
+                return UnionType::is_equivalent_variants(
+                    self,
+                    other,
+                    &lhs_variants,
+                    &rhs_variants,
+                    env,
+                );
             }
 
             // Intersection ≡ _
             (Self::Intersection(lhs), Self::Intersection(rhs)) => {
-                self.with(lhs).is_equivalent(other.with(rhs), env)
+                return self.with(lhs).is_equivalent(other.with(rhs), env);
             }
             (
                 Self::Intersection(_),
@@ -871,15 +878,63 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 let lhs_variants = self.distribute_intersection(env);
                 let rhs_variants = other.distribute_intersection(env);
 
-                IntersectionType::is_equivalent_variants(
+                return IntersectionType::is_equivalent_variants(
                     self,
                     other,
                     &lhs_variants,
                     &rhs_variants,
                     env,
-                )
+                );
             }
+        };
+
+        if !result {
+            let _: ControlFlow<()> = env.record_diagnostic(|env| {
+                let help_message = match (&self.kind, &other.kind) {
+                    (TypeKind::Opaque(_), _) | (_, TypeKind::Opaque(_)) => {
+                        // Special case for opaque types mixed with other types
+                        // Opaque types use nominal typing rather than structural typing
+                        "Cannot mix nominal types (Opaque) with structural types. Opaque types are \
+                         only equivalent to other opaque types of the same name."
+                    }
+                    (TypeKind::Never, _) | (_, TypeKind::Never) => {
+                        "The 'Never' type represents computations that don't return. It's a \
+                         subtype of all types but no type is a subtype of it (except itself)."
+                    }
+                    (TypeKind::Unknown, _) | (_, TypeKind::Unknown) => {
+                        "The 'Unknown' type represents an unresolved or ambiguous type. It's a \
+                         supertype of all types but not a subtype of any type (except itself)."
+                    }
+                    (TypeKind::Primitive(_), _) | (_, TypeKind::Primitive(_)) => {
+                        "Primitive types cannot be equivalent to non-primitive types. Primitives \
+                         represent atomic values that are fundamentally different from composite \
+                         types."
+                    }
+                    (TypeKind::Intrinsic(_), _) | (_, TypeKind::Intrinsic(_)) => {
+                        "Intrinsic types cannot be equivalent to non-intrinsic types. They \
+                         represent special language constructs with unique behavior."
+                    }
+                    (TypeKind::Struct(_), _) | (_, TypeKind::Struct(_)) => {
+                        "Struct types cannot be equivalent to non-struct types. Consider using \
+                         type conversions or creating wrapper types if you need interoperability."
+                    }
+                    (TypeKind::Tuple(_), _) | (_, TypeKind::Tuple(_)) => {
+                        "Tuple types cannot be equivalent to non-tuple types. Consider \
+                         destructuring and reconstructing if you need to convert between different \
+                         collection types."
+                    }
+                    (TypeKind::Closure(_), _) | (_, TypeKind::Closure(_)) => {
+                        "Function/closure types cannot be equivalent to non-function types. \
+                         Functions are first-class values with unique behavior."
+                    }
+                    _ => "These types are fundamentally incompatible and are not equivalent.",
+                };
+
+                type_mismatch(env, self, other, Some(help_message))
+            });
         }
+
+        result
     }
 
     #[expect(clippy::too_many_lines)]
@@ -910,8 +965,9 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             return true;
         }
 
+        // We use returns here, so that we don't double emit diagnostics on failures
         #[expect(clippy::match_same_arms)]
-        match (self.kind, supertype.kind) {
+        let result = match (self.kind, supertype.kind) {
             // Infer <: _ <=> unreachable!()
             // _ <: Infer <=> unreachable!()
             (Self::Infer, _) | (_, Self::Infer) => {
@@ -938,7 +994,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
 
             // Opaque <: _
             (Self::Opaque(lhs), Self::Opaque(rhs)) => {
-                self.with(lhs).is_subtype_of(supertype.with(rhs), env)
+                return self.with(lhs).is_subtype_of(supertype.with(rhs), env);
             }
             (
                 Self::Opaque(_),
@@ -951,7 +1007,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
 
             // Primitive <: _
             (Self::Primitive(lhs), Self::Primitive(rhs)) => {
-                self.with(lhs).is_subtype_of(supertype.with(rhs), env)
+                return self.with(lhs).is_subtype_of(supertype.with(rhs), env);
             }
             (
                 Self::Primitive(_),
@@ -964,7 +1020,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
 
             // Intrinsic <: _
             (Self::Intrinsic(lhs), Self::Intrinsic(rhs)) => {
-                self.with(lhs).is_subtype_of(supertype.with(rhs), env)
+                return self.with(lhs).is_subtype_of(supertype.with(rhs), env);
             }
             (
                 Self::Intrinsic(_),
@@ -977,7 +1033,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
 
             // Struct <: _
             (Self::Struct(lhs), Self::Struct(rhs)) => {
-                self.with(lhs).is_subtype_of(supertype.with(rhs), env)
+                return self.with(lhs).is_subtype_of(supertype.with(rhs), env);
             }
             (
                 Self::Struct(_),
@@ -990,7 +1046,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
 
             // Tuple <: _
             (Self::Tuple(lhs), Self::Tuple(rhs)) => {
-                self.with(lhs).is_subtype_of(supertype.with(rhs), env)
+                return self.with(lhs).is_subtype_of(supertype.with(rhs), env);
             }
             (
                 Self::Tuple(_),
@@ -1003,7 +1059,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
 
             // Closure <: _
             (Self::Closure(lhs), Self::Closure(rhs)) => {
-                self.with(lhs).is_subtype_of(supertype.with(rhs), env)
+                return self.with(lhs).is_subtype_of(supertype.with(rhs), env);
             }
             (
                 Self::Closure(_),
@@ -1016,7 +1072,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
 
             // Union <: _
             (Self::Union(lhs), Self::Union(rhs)) => {
-                self.with(lhs).is_subtype_of(supertype.with(rhs), env)
+                return self.with(lhs).is_subtype_of(supertype.with(rhs), env);
             }
             (
                 Self::Union(_),
@@ -1041,18 +1097,18 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 let self_variants = self.distribute_union(env);
                 let super_variants = supertype.distribute_union(env);
 
-                UnionType::is_subtype_of_variants(
+                return UnionType::is_subtype_of_variants(
                     self,
                     supertype,
                     &self_variants,
                     &super_variants,
                     env,
-                )
+                );
             }
 
             // Intersection <: _
             (Self::Intersection(lhs), Self::Intersection(rhs)) => {
-                self.with(lhs).is_subtype_of(supertype.with(rhs), env)
+                return self.with(lhs).is_subtype_of(supertype.with(rhs), env);
             }
             (
                 Self::Intersection(_),
@@ -1075,15 +1131,58 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 let self_variants = self.distribute_intersection(env);
                 let super_variants = supertype.distribute_intersection(env);
 
-                IntersectionType::is_subtype_of_variants(
+                return IntersectionType::is_subtype_of_variants(
                     self,
                     supertype,
                     &self_variants,
                     &super_variants,
                     env,
-                )
+                );
             }
+        };
+
+        if !result {
+            let _: ControlFlow<()> = env.record_diagnostic(|env| {
+                let help_message = match (&self.kind, &supertype.kind) {
+                    (TypeKind::Opaque(_), _) | (_, TypeKind::Opaque(_)) => {
+                        // Special case for opaque types mixed with other types
+                        // Opaque types use nominal typing rather than structural typing
+                        "Cannot mix nominal types (Opaque) with structural types. Opaque types are \
+                         only subtypes of other opaque types of the same name."
+                    }
+                    (TypeKind::Never, _) | (_, TypeKind::Never) => {
+                        "The 'Never' type represents computations that don't return. It's a \
+                         subtype of all types but no type is a subtype of it (except itself)."
+                    }
+                    (TypeKind::Unknown, _) | (_, TypeKind::Unknown) => {
+                        "The 'Unknown' type represents an unresolved or ambiguous type. It's a \
+                         supertype of all types but not a subtype of any type (except itself)."
+                    }
+                    (TypeKind::Primitive(_), _) => {
+                        "Primitive types cannot be subtypes of non-primitive types. The type \
+                         system uses nominal typing for primitives rather than structural \
+                         relationships."
+                    }
+                    (TypeKind::Struct(_), _) => {
+                        "Struct types cannot be subtypes of non-struct types. Subtyping for \
+                         structs is based on field compatibility, which doesn't apply across \
+                         different type categories."
+                    }
+                    (TypeKind::Closure(_), _) => {
+                        "Function types can only be subtypes of other function types. Function \
+                         subtyping is based on parameter and return type compatibility."
+                    }
+                    _ => {
+                        "These types are fundamentally incompatible and are therefore not subtypes \
+                         of each other."
+                    }
+                };
+
+                type_mismatch(env, self, supertype, Some(help_message))
+            });
         }
+
+        result
     }
 
     fn simplify(self: Type<'heap, Self>, env: &mut SimplifyEnvironment<'_, 'heap>) -> TypeId {
