@@ -271,7 +271,7 @@ __metadata:
     "@blockprotocol/graph": "npm:0.4.0-canary.0"
     "@blockprotocol/type-system": "npm:0.1.2-canary.0"
     "@google-cloud/storage": "npm:7.16.0"
-    "@google-cloud/vertexai": "npm:1.9.3"
+    "@google-cloud/vertexai": "npm:1.10.0"
     "@local/advanced-types": "npm:0.0.0-private"
     "@local/eslint": "npm:0.0.0-private"
     "@local/hash-backend-utils": "npm:0.0.0-private"
@@ -6059,21 +6059,21 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@google-cloud/vertexai@npm:1.10.0":
+  version: 1.10.0
+  resolution: "@google-cloud/vertexai@npm:1.10.0"
+  dependencies:
+    google-auth-library: "npm:^9.1.0"
+  checksum: 10c0/67563e48154382d1b8b727dca5b131a0cd7a79042e004174b760623d8f79772bfcb9872a45333b71eff4cffe2bf3b8792d90b5b082650c224baf088198d2230b
+  languageName: node
+  linkType: hard
+
 "@google-cloud/vertexai@npm:1.9.0":
   version: 1.9.0
   resolution: "@google-cloud/vertexai@npm:1.9.0"
   dependencies:
     google-auth-library: "npm:^9.1.0"
   checksum: 10c0/6568fa105a180b4d27be31be92e6c71b9f8d018bb432631d63e0bb37cc299811895dbf237b9c560a1558de4f87b18882bdbb8e976ce43bf75bf80d998f395d76
-  languageName: node
-  linkType: hard
-
-"@google-cloud/vertexai@npm:1.9.3":
-  version: 1.9.3
-  resolution: "@google-cloud/vertexai@npm:1.9.3"
-  dependencies:
-    google-auth-library: "npm:^9.1.0"
-  checksum: 10c0/c90626781a7c7e6f2fafcb2272ffa21abcf5e1e1be04d338a45d873901f9b0c4be24805a97ff24639eb1895061830690fae47b9d6b2bca10909ec7106340b787
   languageName: node
   linkType: hard
 
