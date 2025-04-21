@@ -28705,7 +28705,7 @@ __metadata:
     "@changesets/changelog-github": "npm:0.5.1"
     "@changesets/cli": "patch:@changesets/cli@npm%3A2.26.0#~/.yarn/patches/@changesets-cli-npm-2.26.0-49d5c5f72d.patch"
     "@yarnpkg/types": "npm:^4.0.0"
-    lefthook: "npm:1.11.10"
+    lefthook: "npm:1.11.11"
     npm-run-all2: "npm:7.0.2"
   languageName: unknown
   linkType: soft
@@ -31890,90 +31890,90 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lefthook-darwin-arm64@npm:1.11.10":
-  version: 1.11.10
-  resolution: "lefthook-darwin-arm64@npm:1.11.10"
+"lefthook-darwin-arm64@npm:1.11.11":
+  version: 1.11.11
+  resolution: "lefthook-darwin-arm64@npm:1.11.11"
   conditions: os=darwin & cpu=arm64
   languageName: node
   linkType: hard
 
-"lefthook-darwin-x64@npm:1.11.10":
-  version: 1.11.10
-  resolution: "lefthook-darwin-x64@npm:1.11.10"
+"lefthook-darwin-x64@npm:1.11.11":
+  version: 1.11.11
+  resolution: "lefthook-darwin-x64@npm:1.11.11"
   conditions: os=darwin & cpu=x64
   languageName: node
   linkType: hard
 
-"lefthook-freebsd-arm64@npm:1.11.10":
-  version: 1.11.10
-  resolution: "lefthook-freebsd-arm64@npm:1.11.10"
+"lefthook-freebsd-arm64@npm:1.11.11":
+  version: 1.11.11
+  resolution: "lefthook-freebsd-arm64@npm:1.11.11"
   conditions: os=freebsd & cpu=arm64
   languageName: node
   linkType: hard
 
-"lefthook-freebsd-x64@npm:1.11.10":
-  version: 1.11.10
-  resolution: "lefthook-freebsd-x64@npm:1.11.10"
+"lefthook-freebsd-x64@npm:1.11.11":
+  version: 1.11.11
+  resolution: "lefthook-freebsd-x64@npm:1.11.11"
   conditions: os=freebsd & cpu=x64
   languageName: node
   linkType: hard
 
-"lefthook-linux-arm64@npm:1.11.10":
-  version: 1.11.10
-  resolution: "lefthook-linux-arm64@npm:1.11.10"
+"lefthook-linux-arm64@npm:1.11.11":
+  version: 1.11.11
+  resolution: "lefthook-linux-arm64@npm:1.11.11"
   conditions: os=linux & cpu=arm64
   languageName: node
   linkType: hard
 
-"lefthook-linux-x64@npm:1.11.10":
-  version: 1.11.10
-  resolution: "lefthook-linux-x64@npm:1.11.10"
+"lefthook-linux-x64@npm:1.11.11":
+  version: 1.11.11
+  resolution: "lefthook-linux-x64@npm:1.11.11"
   conditions: os=linux & cpu=x64
   languageName: node
   linkType: hard
 
-"lefthook-openbsd-arm64@npm:1.11.10":
-  version: 1.11.10
-  resolution: "lefthook-openbsd-arm64@npm:1.11.10"
+"lefthook-openbsd-arm64@npm:1.11.11":
+  version: 1.11.11
+  resolution: "lefthook-openbsd-arm64@npm:1.11.11"
   conditions: os=openbsd & cpu=arm64
   languageName: node
   linkType: hard
 
-"lefthook-openbsd-x64@npm:1.11.10":
-  version: 1.11.10
-  resolution: "lefthook-openbsd-x64@npm:1.11.10"
+"lefthook-openbsd-x64@npm:1.11.11":
+  version: 1.11.11
+  resolution: "lefthook-openbsd-x64@npm:1.11.11"
   conditions: os=openbsd & cpu=x64
   languageName: node
   linkType: hard
 
-"lefthook-windows-arm64@npm:1.11.10":
-  version: 1.11.10
-  resolution: "lefthook-windows-arm64@npm:1.11.10"
+"lefthook-windows-arm64@npm:1.11.11":
+  version: 1.11.11
+  resolution: "lefthook-windows-arm64@npm:1.11.11"
   conditions: os=win32 & cpu=arm64
   languageName: node
   linkType: hard
 
-"lefthook-windows-x64@npm:1.11.10":
-  version: 1.11.10
-  resolution: "lefthook-windows-x64@npm:1.11.10"
+"lefthook-windows-x64@npm:1.11.11":
+  version: 1.11.11
+  resolution: "lefthook-windows-x64@npm:1.11.11"
   conditions: os=win32 & cpu=x64
   languageName: node
   linkType: hard
 
-"lefthook@npm:1.11.10":
-  version: 1.11.10
-  resolution: "lefthook@npm:1.11.10"
+"lefthook@npm:1.11.11":
+  version: 1.11.11
+  resolution: "lefthook@npm:1.11.11"
   dependencies:
-    lefthook-darwin-arm64: "npm:1.11.10"
-    lefthook-darwin-x64: "npm:1.11.10"
-    lefthook-freebsd-arm64: "npm:1.11.10"
-    lefthook-freebsd-x64: "npm:1.11.10"
-    lefthook-linux-arm64: "npm:1.11.10"
-    lefthook-linux-x64: "npm:1.11.10"
-    lefthook-openbsd-arm64: "npm:1.11.10"
-    lefthook-openbsd-x64: "npm:1.11.10"
-    lefthook-windows-arm64: "npm:1.11.10"
-    lefthook-windows-x64: "npm:1.11.10"
+    lefthook-darwin-arm64: "npm:1.11.11"
+    lefthook-darwin-x64: "npm:1.11.11"
+    lefthook-freebsd-arm64: "npm:1.11.11"
+    lefthook-freebsd-x64: "npm:1.11.11"
+    lefthook-linux-arm64: "npm:1.11.11"
+    lefthook-linux-x64: "npm:1.11.11"
+    lefthook-openbsd-arm64: "npm:1.11.11"
+    lefthook-openbsd-x64: "npm:1.11.11"
+    lefthook-windows-arm64: "npm:1.11.11"
+    lefthook-windows-x64: "npm:1.11.11"
   dependenciesMeta:
     lefthook-darwin-arm64:
       optional: true
@@ -31997,7 +31997,7 @@ __metadata:
       optional: true
   bin:
     lefthook: bin/index.js
-  checksum: 10c0/bac4ba35c9cf9d738ce70e01c8c0d20fb07bfa36776d694c25ab240fbe91551104879d0dabd58fccf1520619ffa9a905dd4c40064e9c6fc9a6acc0534fe3dfb8
+  checksum: 10c0/e7c4ecca522dc4701c5170fd58e5291cd0e13cdf628b091bf1ed6052bf9a26168aec79cd053418bc99eb35c45f32f2d69dba594e4e1436e014a9a41477194549
   languageName: node
   linkType: hard
 
