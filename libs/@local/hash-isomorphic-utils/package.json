@@ -35,7 +35,7 @@
     "@sentry/browser": "7.120.3",
     "@sindresorhus/slugify": "1.1.2",
     "apollo-server-express": "3.9.0",
-    "big.js": "6.2.2",
+    "big.js": "7.0.1",
     "fix-esm-import-path": "1.10.1",
     "fractional-indexing": "2.1.0",
     "immer": "9.0.21",
