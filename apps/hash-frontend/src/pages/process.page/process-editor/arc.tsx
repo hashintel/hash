@@ -4,7 +4,6 @@ import { getBezierPath, type Position } from "reactflow";
 
 import { useEditorContext } from "./editor-context";
 import { useSimulation } from "./simulation-context";
-import { tokenAnimationTimeMs } from "./styling";
 import { type TokenType } from "./types";
 
 type AnimatingToken = {
@@ -167,15 +166,15 @@ export const Arc = ({
 
             return (
               <g key={tokenTypeId} transform={`translate(0, ${yOffset})`}>
-                <circle cx="0" cy="0" r="8" fill={tokenType.color} />
+                <circle cx="0" cy="0" r="10" fill={tokenType.color} />
                 <text
                   x="0"
                   y="0"
                   textAnchor="middle"
                   dominantBaseline="middle"
                   style={{
-                    fontSize: "10px",
-                    fontWeight: "bold",
+                    fontSize: 12,
+                    fontWeight: 600,
                     fill: "white",
                     pointerEvents: "none",
                   }}

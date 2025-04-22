@@ -9,7 +9,7 @@ export const nodeDimensions = {
 export const placeStyling: (theme: Theme) => SystemStyleObject<Theme> = ({
   palette,
 }) => ({
-  padding: 1,
+  padding: 1.5,
   borderRadius: "50%",
   width: nodeDimensions.place.width,
   height: nodeDimensions.place.height,
@@ -18,17 +18,18 @@ export const placeStyling: (theme: Theme) => SystemStyleObject<Theme> = ({
   alignItems: "center",
   background: palette.gray[10],
   border: `2px solid ${palette.gray[50]}`,
-  fontSize: "1rem",
+  fontSize: 15,
   boxSizing: "border-box",
   position: "relative",
   textAlign: "center",
+  lineHeight: 1.3,
 });
 
 export const transitionStyling: (theme: Theme) => SystemStyleObject<Theme> = ({
   palette,
 }) => ({
-  padding: 1,
-  borderRadius: 0,
+  padding: 1.5,
+  borderRadius: 2,
   width: nodeDimensions.transition.width,
   height: nodeDimensions.transition.height,
   display: "flex",
@@ -37,7 +38,7 @@ export const transitionStyling: (theme: Theme) => SystemStyleObject<Theme> = ({
   alignItems: "center",
   background: palette.gray[20],
   border: `2px solid ${palette.gray[50]}`,
-  fontSize: "1rem",
+  fontSize: 15,
   boxSizing: "border-box",
   position: "relative",
 });

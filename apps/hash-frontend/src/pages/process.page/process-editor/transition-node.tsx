@@ -1,7 +1,7 @@
 import { Box, Typography } from "@mui/material";
 import { Handle, type NodeProps, Position } from "reactflow";
 
-import { nodeDimensions, transitionStyling } from "./styling";
+import { transitionStyling } from "./styling";
 import type { TransitionNodeData } from "./types";
 
 export const TransitionNode = ({

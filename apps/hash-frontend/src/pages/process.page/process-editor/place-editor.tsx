@@ -2,11 +2,11 @@ import { TextField } from "@hashintel/design-system";
 import { Box, Card, Stack, Typography } from "@mui/material";
 
 import { Button } from "../../../shared/ui";
+import { nodeDimensions } from "./styling";
 import type { PlaceNodeType, TokenCounts, TokenType } from "./types";
 
 export type PlaceEditorProps = {
   selectedPlace: PlaceNodeType;
-  position: { x: number; y: number };
   tokenTypes: TokenType[];
   onClose: () => void;
   onUpdateTokens: (nodeId: string, tokenCounts: TokenCounts) => void;
@@ -15,13 +15,12 @@ export type PlaceEditorProps = {
 
 export const PlaceEditor = ({
   selectedPlace,
-  position,
   tokenTypes,
   onClose,
   onUpdateTokens,
   onUpdateNodeLabel,
 }: PlaceEditorProps) => {
-  const { data, id: placeId } = selectedPlace;
+  const { data, id: placeId, position } = selectedPlace;
   const { label: nodeName, tokenCounts } = data;
 
   const handleTokenCountChange = (tokenTypeId: string, value: string) => {
@@ -51,17 +50,20 @@ export const PlaceEditor = ({
     <Card
       sx={{
         position: "absolute",
-        left: position.x,
+        left: position.x + nodeDimensions.place.width,
         top: position.y,
         zIndex: 1000,
-        width: 300,
-        padding: 2,
+        px: 2,
+        pt: 1,
+        pb: 1.5,
         boxShadow: 3,
       }}
     >
       <Stack spacing={2}>
-        <Box>
-          <Typography fontWeight="bold">Node Name</Typography>
+        <Box component="label">
+          <Typography variant="smallCaps" sx={{ fontWeight: 600 }}>
+            Name
+          </Typography>
           <TextField
             value={nodeName}
             onChange={handleNodeNameChange}
@@ -74,7 +76,9 @@ export const PlaceEditor = ({
 
         {tokenTypes.length > 0 && (
           <Box>
-            <Typography fontWeight="bold">Tokens</Typography>
+            <Typography variant="smallCaps" sx={{ fontWeight: 600 }}>
+              Tokens
+            </Typography>
             <Stack spacing={1}>
               {tokenTypes.map((tokenType) => (
                 <Box
@@ -88,13 +92,15 @@ export const PlaceEditor = ({
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                     <Box
                       sx={{
-                        width: 16,
-                        height: 16,
+                        width: 14,
+                        height: 14,
                         borderRadius: "50%",
                         backgroundColor: tokenType.color,
                       }}
                     />
-                    <Typography>{tokenType.name}</Typography>
+                    <Typography variant="smallTextLabels">
+                      {tokenType.name}
+                    </Typography>
                   </Box>
                   <TextField
                     type="number"
@@ -103,10 +109,7 @@ export const PlaceEditor = ({
                       handleTokenCountChange(tokenType.id, event.target.value)
                     }
                     size="small"
-                    inputProps={{
-                      min: 0,
-                      style: { textAlign: "center", width: "60px" },
-                    }}
+                    sx={{ width: 80 }}
                   />
                 </Box>
               ))}
@@ -115,7 +118,9 @@ export const PlaceEditor = ({
         )}
 
         <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-          <Button onClick={onClose}>Close</Button>
+          <Button onClick={onClose} size="small">
+            Close
+          </Button>
         </Box>
       </Stack>
     </Card>

@@ -1,4 +1,10 @@
-import { createContext, useContext, useMemo } from "react";
+import {
+  createContext,
+  type Dispatch,
+  type SetStateAction,
+  useContext,
+  useMemo,
+} from "react";
 import { useLocalstorageState } from "rooks";
 
 import { defaultTokenTypes } from "./token-type-editor";
@@ -6,11 +12,11 @@ import type { ArcType, NodeType, TokenType } from "./types";
 
 type EditorContextValue = {
   nodes: NodeType[];
-  setNodes: (nodes: NodeType[]) => void;
+  setNodes: Dispatch<SetStateAction<NodeType[]>>;
   arcs: ArcType[];
-  setArcs: (arcs: ArcType[]) => void;
+  setArcs: Dispatch<SetStateAction<ArcType[]>>;
   tokenTypes: TokenType[];
-  setTokenTypes: (tokenTypes: TokenType[]) => void;
+  setTokenTypes: Dispatch<SetStateAction<TokenType[]>>;
 };
 
 const EditorContext = createContext<EditorContextValue | undefined>(undefined);

@@ -21,8 +21,9 @@ export const Sidebar = () => {
       component="aside"
       gap={2}
       sx={{
+        background: ({ palette }) => palette.gray[5],
         p: 2,
-        borderRight: "1px solid #ccc",
+        borderRight: ({ palette }) => `1px solid ${palette.gray[30]}`,
       }}
     >
       <Box

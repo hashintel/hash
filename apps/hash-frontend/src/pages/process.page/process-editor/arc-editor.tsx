@@ -72,8 +72,8 @@ export const ArcEditor = ({
         minWidth: 200,
       }}
     >
-      <Stack spacing={2}>
-        <Typography fontWeight="bold">
+      <Stack spacing={1}>
+        <Typography variant="smallCaps" sx={{ fontWeight: 600 }}>
           {direction === "in" ? "Tokens Required" : "Tokens Produced"}
         </Typography>
         <Stack spacing={1}>
@@ -96,7 +96,9 @@ export const ArcEditor = ({
                     backgroundColor: tokenType.color,
                   }}
                 />
-                <Typography>{tokenType.name}</Typography>
+                <Typography variant="smallTextLabels">
+                  {tokenType.name}
+                </Typography>
               </Box>
               <TextField
                 type="number"
@@ -105,10 +107,7 @@ export const ArcEditor = ({
                   handleWeightChange(tokenType.id, event.target.value)
                 }
                 size="small"
-                inputProps={{
-                  min: 0,
-                  style: { textAlign: "center", width: "60px" },
-                }}
+                sx={{ width: 80 }}
               />
             </Box>
           ))}

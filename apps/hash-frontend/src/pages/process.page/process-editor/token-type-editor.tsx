@@ -71,7 +71,11 @@ export const TokenTypeEditor = ({ open, onClose }: TokenTypeEditorProps) => {
       <DialogContent>
         <Stack spacing={3}>
           <Box>
-            <Typography fontWeight="bold" sx={{ marginBottom: 1 }}>
+            <Typography
+              component="div"
+              variant="smallCaps"
+              sx={{ fontWeight: 600, mb: 1 }}
+            >
               Token Types
             </Typography>
             <Stack spacing={1}>
@@ -150,8 +154,12 @@ export const TokenTypeEditor = ({ open, onClose }: TokenTypeEditorProps) => {
             </Stack>
           </Box>
           <Box>
-            <Typography fontWeight="bold" sx={{ marginBottom: 1 }}>
-              Add New Token Type
+            <Typography
+              component="div"
+              variant="smallCaps"
+              sx={{ fontWeight: 600, mb: 1 }}
+            >
+              Add New
             </Typography>
             <Stack direction="row" spacing={1} alignItems="center">
               <TextField
@@ -159,7 +167,6 @@ export const TokenTypeEditor = ({ open, onClose }: TokenTypeEditorProps) => {
                 onChange={(event) => setNewTokenName(event.target.value)}
                 placeholder="Token name"
                 size="small"
-                sx={{ flex: 1 }}
               />
               <Box sx={{ position: "relative", width: 36, height: 36 }}>
                 <Box

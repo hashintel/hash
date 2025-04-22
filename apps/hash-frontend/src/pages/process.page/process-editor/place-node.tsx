@@ -2,13 +2,32 @@ import { Box } from "@mui/material";
 import { Handle, type NodeProps, Position } from "reactflow";
 
 import { useEditorContext } from "./editor-context";
-import { placeStyling } from "./styling";
+import { nodeDimensions, placeStyling } from "./styling";
 import type { TokenCounts } from "./types";
+
+const tokenSize = 22;
+const halfTokenSize = tokenSize / 2;
+
+const getTokenPosition = (index: number) => {
+  // Calculate the angle for this token (in radians), starting from top (-π/2), distributed to fit 16 tokens evenly around the place border
+  const angle = (index * 2 * Math.PI) / 16 - Math.PI / 2;
+
+  const radius = nodeDimensions.place.width / 2;
+
+  return {
+    left: `calc(50% + ${radius * Math.cos(angle)}px - ${halfTokenSize}px)`,
+    top: `calc(50% + ${radius * Math.sin(angle)}px - ${halfTokenSize}px + 1px)`,
+  };
+};
 
 export const PlaceNode = ({ data, isConnectable }: NodeProps) => {
   const tokenCounts: TokenCounts = data.tokenCounts || {};
 
   const { tokenTypes } = useEditorContext();
+
+  const nonZeroTokens = Object.entries(tokenCounts).filter(
+    ([_, count]) => count > 0,
+  );
 
   return (
     <div>
@@ -21,21 +40,9 @@ export const PlaceNode = ({ data, isConnectable }: NodeProps) => {
       <Box sx={placeStyling}>
         {data.label}
 
-        {/* Token counts in different positions */}
-        {Object.entries(tokenCounts).map(([tokenTypeId, count], index) => {
-          if (count === 0) {
-            return null;
-          }
-
-          const positions = [
-            { top: "0", left: "50%", transform: "translateX(-50%)" }, // Top
-            { top: "50%", right: "0", transform: "translateY(-50%)" }, // Right
-            { bottom: "0", left: "50%", transform: "translateX(-50%)" }, // Bottom
-            { top: "50%", left: "0", transform: "translateY(-50%)" }, // Left
-          ] as const;
-
-          const position = positions[index % positions.length];
+        {nonZeroTokens.map(([tokenTypeId, count], index) => {
           const tokenType = tokenTypes.find((tt) => tt.id === tokenTypeId);
+          const position = getTokenPosition(index);
 
           return (
             <Box
@@ -46,14 +53,15 @@ export const PlaceNode = ({ data, isConnectable }: NodeProps) => {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                minWidth: "24px",
-                height: "24px",
-                borderRadius: "12px",
+                width: tokenSize,
+                height: tokenSize,
+                borderRadius: tokenSize / 2,
                 backgroundColor: tokenType?.color ?? "#3498db",
-                color: "#fff",
-                fontSize: "0.875rem",
+                color: ({ palette }) => palette.common.white,
+                fontSize: 12,
                 fontWeight: "bold",
                 padding: "0 4px",
+                zIndex: 3,
               }}
             >
               {count}

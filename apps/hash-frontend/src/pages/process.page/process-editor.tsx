@@ -28,6 +28,7 @@ import {
   useEditorContext,
 } from "./process-editor/editor-context";
 import { exampleCPN } from "./process-editor/examples";
+import { LogPane } from "./process-editor/log-pane";
 import { PlaceEditor } from "./process-editor/place-editor";
 import { PlaceNode } from "./process-editor/place-node";
 import { Sidebar } from "./process-editor/sidebar";
@@ -61,11 +62,6 @@ const FlowCanvas = () => {
   const [tokenTypeEditorOpen, setTokenTypeEditorOpen] = useState(false);
 
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
-  const [tokenMenuPosition, setTokenMenuPosition] = useState<{
-    x: number;
-    y: number;
-  } | null>(null);
-
   const [selectedTransition, setSelectedTransition] = useState<string | null>(
     null,
   );
@@ -169,13 +165,11 @@ const FlowCanvas = () => {
 
       const { width, height } = nodeDimensions[nodeType];
 
-      // Compute drop position inside the canvas
       const position = reactFlowInstance.project({
         x: event.clientX - reactFlowBounds.left - width / 2,
         y: event.clientY - reactFlowBounds.top - height / 2,
       });
 
-      // Create a new node with appropriate default data
       const newNode: Node = {
         id: `${nodeType}_${nodes.length}`,
         type: nodeType,
@@ -197,41 +191,23 @@ const FlowCanvas = () => {
   );
 
   const onNodeClick = useCallback(
-    (event: React.MouseEvent, node: Node) => {
+    (_event: React.MouseEvent, node: Node) => {
       if (selectedPlaceId && selectedPlaceId === node.id) {
         return;
       }
 
       setSelectedPlaceId(null);
-      setTokenMenuPosition(null);
       setSelectedArc(null);
 
       if (node.type === "place") {
-        // Get the node's DOM element
-        const nodeElement = event.target as HTMLElement;
-        const nodeBounds = nodeElement
-          .closest(".react-flow__node")
-          ?.getBoundingClientRect();
-
-        if (nodeBounds) {
-          // Position the menu to the right of the node
-          const menuPosition = {
-            x: nodeBounds.right + 10, // 10px offset from the node
-            y: nodeBounds.top, // Align with the top of the node
-          };
-
-          setSelectedPlaceId(node.id);
-          setTokenMenuPosition(menuPosition);
-        }
+        setSelectedPlaceId(node.id);
       } else if (node.type === "transition") {
-        // Open transition editor for transition nodes
         setSelectedTransition(node.id);
       }
     },
     [selectedPlaceId],
   );
 
-  // Update token counts for a node
   const handleUpdateTokens = useCallback(
     (nodeId: string, tokenCounts: TokenCounts) => {
       setNodes((currentNodes) =>
@@ -253,7 +229,6 @@ const FlowCanvas = () => {
     [tokenTypes, setNodes],
   );
 
-  // Update node label
   const handleUpdateNodeLabel = useCallback(
     (nodeId: string, label: string) => {
       setNodes((currentNodes) =>
@@ -276,10 +251,8 @@ const FlowCanvas = () => {
 
   const handleCloseTokenMenu = useCallback(() => {
     setSelectedPlaceId(null);
-    setTokenMenuPosition(null);
   }, []);
 
-  // Handle edge click
   const onEdgeClick = useCallback((event: React.MouseEvent, edge: ArcType) => {
     event.stopPropagation();
 
@@ -289,7 +262,6 @@ const FlowCanvas = () => {
     });
   }, []);
 
-  // Handle edge weight update
   const handleUpdateEdgeWeight = useCallback(
     (
       edgeId: string,
@@ -312,20 +284,17 @@ const FlowCanvas = () => {
     setSelectedArc(null);
   }, []);
 
-  const { resetSimulation, simulationLogs } = useSimulation();
+  const { resetSimulation } = useSimulation();
 
-  // Reset everything (clear nodes and edges)
   const handleResetAll = useCallback(() => {
     setNodes([]);
     setArcs([]);
     resetSimulation();
   }, [setNodes, setArcs, resetSimulation]);
 
-  // Add load example button
   const handleLoadExample = useCallback(() => {
     setTokenTypes(exampleCPN.tokenTypes);
 
-    // Add initialTokenCounts to each place node in the example
     const nodesWithInitialCounts = exampleCPN.nodes.map((node) => {
       if (node.data.type === "place") {
         return {
@@ -341,38 +310,24 @@ const FlowCanvas = () => {
 
     setNodes(nodesWithInitialCounts);
     setArcs(exampleCPN.arcs);
-    // Reset the global clock
     resetSimulation();
   }, [setTokenTypes, setNodes, setArcs, resetSimulation]);
 
-  // Add a new reset button that preserves the network but resets tokens and clock
   const handleReset = useCallback(() => {
-    // Reset tokens to their initial state (this requires storing initial token counts)
     setNodes((currentNodes) =>
       currentNodes.map((node) => {
-        if (node.type === "place") {
-          // Reset to initial state or empty if no initial state
-          const initialCounts = node.data.initialTokenCounts || {};
+        if (node.data.type === "place") {
+          const initialCounts = node.data.initialTokenCounts ?? {};
+
           return {
             ...node,
             data: {
               ...node.data,
               tokenCounts: { ...initialCounts },
-              tokenTimestamps: {},
             },
           };
         } else if (node.type === "transition") {
-          // Reset any in-progress transitions
-          return {
-            ...node,
-            data: {
-              ...node.data,
-              inProgress: false,
-              progress: 0,
-              startTime: null,
-              duration: null,
-            },
-          };
+          return node;
         }
         return node;
       }),
@@ -381,25 +336,6 @@ const FlowCanvas = () => {
     resetSimulation();
   }, [setNodes, resetSimulation]);
 
-  // Store initial token counts when nodes are created or loaded
-  useEffect(() => {
-    setNodes((currentNodes) =>
-      currentNodes.map((node) => {
-        if (node.data.type === "place" && !node.data.initialTokenCounts) {
-          return {
-            ...node,
-            data: {
-              ...node.data,
-              initialTokenCounts: { ...node.data.tokenCounts },
-            },
-          };
-        }
-        return node;
-      }),
-    );
-  }, [setNodes]);
-
-  // Handle updating transition properties
   const handleUpdateTransition = useCallback(
     (
       transitionId: string,
@@ -461,7 +397,6 @@ const FlowCanvas = () => {
           width: "100%",
         }}
       >
-        {/* Token Type Key/Legend */}
         <Box
           sx={{
             alignItems: "center",
@@ -511,10 +446,10 @@ const FlowCanvas = () => {
 
       <Stack
         direction="row"
-        spacing={2}
+        spacing={1.5}
         sx={{ position: "absolute", bottom: 16, left: 16, zIndex: 100 }}
       >
-        <Button onClick={handleLoadExample} size="xs">
+        <Button onClick={handleLoadExample} size="xs" variant="tertiary">
           Load Example
         </Button>
         <Button onClick={handleResetAll} size="xs">
@@ -527,7 +462,6 @@ const FlowCanvas = () => {
         onClose={() => setTokenTypeEditorOpen(false)}
       />
 
-      {/* Transition Editor Dialog */}
       {selectedTransition && (
         <TransitionEditor
           open
@@ -538,7 +472,6 @@ const FlowCanvas = () => {
               label: "",
             }
           }
-          tokenTypes={tokenTypes}
           outgoingEdges={arcs
             .filter((edge) => edge.source === selectedTransition)
             .map((edge) => {
@@ -555,10 +488,9 @@ const FlowCanvas = () => {
         />
       )}
 
-      {selectedPlace && tokenMenuPosition && (
+      {selectedPlace && (
         <PlaceEditor
           selectedPlace={selectedPlace}
-          position={tokenMenuPosition}
           tokenTypes={tokenTypes}
           onClose={handleCloseTokenMenu}
           onUpdateTokens={handleUpdateTokens}
@@ -594,48 +526,12 @@ const FlowCanvas = () => {
         snapToGrid
         snapGrid={[15, 15]}
         connectionLineType={ConnectionLineType.SmoothStep}
+        proOptions={{ hideAttribution: true }}
       >
         <Background gap={15} size={1} />
       </ReactFlow>
 
-      {/* {simulationLogs.length > 0 && (
-        <Box
-          sx={{
-            position: "absolute",
-            bottom: 16,
-            right: 16,
-            zIndex: 100,
-            width: 350,
-            maxHeight: 200,
-            overflow: "auto",
-            p: 2,
-            borderRadius: 1,
-            bgcolor: "background.paper",
-            boxShadow: 1,
-            border: "1px solid",
-            borderColor: "divider",
-          }}
-        >
-          <Typography fontWeight="bold" sx={{ mb: 1 }}>
-            Simulation Logs
-          </Typography>
-          <Stack spacing={0.5}>
-            {simulationLogs.map((log) => (
-              <Typography
-                key={log.id}
-                sx={{
-                  fontSize: "0.75rem",
-                  fontFamily: "monospace",
-                  whiteSpace: "pre-wrap",
-                  wordBreak: "break-word",
-                }}
-              >
-                {log.text}
-              </Typography>
-            ))}
-          </Stack>
-        </Box>
-      )} */}
+      <LogPane />
     </Box>
   );
 };

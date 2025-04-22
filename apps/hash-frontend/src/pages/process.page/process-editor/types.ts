@@ -10,6 +10,7 @@ export type ArcType = Edge<ArcData>;
 
 export type PlaceNodeData = {
   label: string;
+  initialTokenCounts?: TokenCounts;
   tokenCounts: TokenCounts;
   type: "place";
 };
