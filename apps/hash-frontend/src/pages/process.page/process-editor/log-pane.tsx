@@ -1,13 +1,22 @@
 import { CaretDownSolidIcon, IconButton } from "@hashintel/design-system";
 import { Box, Collapse, Stack, Typography } from "@mui/material";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useSimulation } from "./simulation-context";
 
 export const LogPane = () => {
   const { simulationLogs } = useSimulation();
-
+  const logsContainerRef = useRef<HTMLDivElement>(null);
   const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    if (expanded && logsContainerRef.current) {
+      logsContainerRef.current.scrollTo({
+        top: logsContainerRef.current.scrollHeight,
+        behavior: "smooth",
+      });
+    }
+  }, [simulationLogs, expanded]);
 
   if (simulationLogs.length === 0) {
     return null;
@@ -72,6 +81,7 @@ export const LogPane = () => {
       </IconButton>
       <Collapse in={expanded}>
         <Stack
+          ref={logsContainerRef}
           spacing={0.5}
           sx={{ maxHeight: 200, overflow: "auto", pr: 1.5, mt: 1 }}
         >
