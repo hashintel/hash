@@ -82,7 +82,7 @@ use hash_tracing::logging::env_filter;
 use time::Duration;
 use tokio_postgres::{NoTls, Transaction};
 use type_system::{
-    knowledge::entity::{Entity, EntityId, id::EntityUuid},
+    knowledge::entity::{Entity, EntityId},
     ontology::{
         OntologyTemporalMetadata, VersionedUrl,
         data_type::{DataType, DataTypeMetadata},
@@ -90,8 +90,11 @@ use type_system::{
         property_type::{PropertyType, PropertyTypeMetadata},
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
-    provenance::{ActorEntityUuid, ActorType, OriginProvenance, OriginType},
-    web::WebId,
+    principal::{
+        actor::{ActorEntityUuid, ActorType},
+        actor_group::WebId,
+    },
+    provenance::{OriginProvenance, OriginType},
 };
 use uuid::Uuid;
 
@@ -221,7 +224,7 @@ impl<A: AuthorizationApi> DatabaseTestWrapper<A> {
             .await
             .expect("could not start test transaction");
 
-        let account_id = ActorEntityUuid::new(EntityUuid::new(Uuid::new_v4()));
+        let account_id = ActorEntityUuid::new(Uuid::new_v4());
         store
             .insert_account_id(
                 account_id,
@@ -236,7 +239,7 @@ impl<A: AuthorizationApi> DatabaseTestWrapper<A> {
             .insert_web_id(
                 account_id,
                 InsertWebIdParams {
-                    web_id: WebId::new(account_id.into_uuid()),
+                    web_id: WebId::new(account_id),
                     owner: WebOwnerSubject::Account { id: account_id },
                 },
             )
@@ -252,7 +255,7 @@ impl<A: AuthorizationApi> DatabaseTestWrapper<A> {
                     CreateDataTypeParams {
                         schema,
                         ownership: OntologyOwnership::Local {
-                            web_id: WebId::new(account_id.into_uuid()),
+                            web_id: WebId::new(account_id),
                         },
                         relationships: data_type_relationships(),
                         conflict_behavior: ConflictBehavior::Skip,
@@ -276,7 +279,7 @@ impl<A: AuthorizationApi> DatabaseTestWrapper<A> {
                     CreatePropertyTypeParams {
                         schema,
                         ownership: OntologyOwnership::Local {
-                            web_id: WebId::new(account_id.into_uuid()),
+                            web_id: WebId::new(account_id),
                         },
                         relationships: property_type_relationships(),
                         conflict_behavior: ConflictBehavior::Skip,
@@ -299,7 +302,7 @@ impl<A: AuthorizationApi> DatabaseTestWrapper<A> {
                     CreateEntityTypeParams {
                         schema,
                         ownership: OntologyOwnership::Local {
-                            web_id: WebId::new(account_id.into_uuid()),
+                            web_id: WebId::new(account_id),
                         },
                         relationships: entity_type_relationships(),
                         conflict_behavior: ConflictBehavior::Skip,

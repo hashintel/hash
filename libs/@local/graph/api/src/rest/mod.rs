@@ -72,7 +72,7 @@ use sentry::integrations::tower::{NewSentryLayer, SentryHttpLayer};
 use serde::{Deserialize, Serialize};
 use serde_json::{Number as JsonNumber, Value as JsonValue};
 use type_system::{
-    knowledge::entity::{EntityId, id::EntityUuid},
+    knowledge::entity::EntityId,
     ontology::{
         OntologyTemporalMetadata, OntologyTypeMetadata, OntologyTypeReference,
         data_type::DataTypeMetadata,
@@ -84,8 +84,10 @@ use type_system::{
             OntologyEditionProvenance, OntologyProvenance, ProvidedOntologyEditionProvenance,
         },
     },
-    provenance::ActorEntityUuid,
-    web::{ActorGroupId, WebId},
+    principal::{
+        actor::ActorEntityUuid,
+        actor_group::{ActorGroupEntityUuid, WebId},
+    },
 };
 use utoipa::{
     Modify, OpenApi, ToSchema,
@@ -123,7 +125,7 @@ impl<S> FromRequestParts<S> for AuthenticatedUserHeader {
                 .map_err(|error| (StatusCode::BAD_REQUEST, Cow::Owned(error.to_string())))?;
             let uuid = Uuid::from_str(header_string)
                 .map_err(|error| (StatusCode::BAD_REQUEST, Cow::Owned(error.to_string())))?;
-            Ok(Self(ActorEntityUuid::new(EntityUuid::new(uuid))))
+            Ok(Self(ActorEntityUuid::new(uuid)))
         } else {
             Err((
                 StatusCode::BAD_REQUEST,
@@ -286,11 +288,11 @@ impl QueryLogger {
 #[serde(tag = "endpoint", content = "query", rename_all = "camelCase")]
 pub enum OpenApiQuery<'a> {
     CheckAccountGroupPermission {
-        account_group_id: ActorGroupId,
+        account_group_id: ActorGroupEntityUuid,
         permission: AccountGroupPermission,
     },
     GetAccountGroupRelations {
-        account_group_id: ActorGroupId,
+        account_group_id: ActorGroupEntityUuid,
     },
     GetDataTypes(&'a JsonValue),
     GetDataTypeSubgraph(&'a JsonValue),

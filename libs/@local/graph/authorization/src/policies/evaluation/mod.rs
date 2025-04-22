@@ -6,14 +6,14 @@ use error_stack::{Report, ResultExt as _};
 use type_system::{
     knowledge::entity::id::EntityUuid,
     ontology::{BaseUrl, VersionedUrl, id::OntologyTypeVersion},
-    web::WebId,
+    principal::actor_group::WebId,
 };
 
 use super::{
     PartialResourceId,
     cedar::{
-        BaseUrlVisitor, CedarEntityId as _, CedarExpressionVisitor, EntityTypeIdVisitor,
-        EntityUuidVisitor, OntologyTypeVersionVisitor, WebIdVisitor, walk_expr,
+        BaseUrlVisitor, CedarExpressionVisitor, EntityTypeIdVisitor, EntityUuidVisitor,
+        FromCedarEntityId as _, OntologyTypeVersionVisitor, WebIdVisitor, walk_expr,
     },
     resource::{EntityTypeId, ResourceVariableVisitor},
 };

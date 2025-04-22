@@ -1,4 +1,3 @@
-import type { WebId } from "@blockprotocol/type-system";
 import type { Logger } from "@local/hash-backend-utils/logger";
 
 import type { ImpureGraphContext } from "../graph/context-types";
@@ -54,12 +53,7 @@ const seedOrg = async (params: {
     },
   ];
 
-  await seedPages(
-    authentication,
-    pageTitles,
-    sharedOrg.accountGroupId as WebId,
-    params,
-  );
+  await seedPages(authentication, pageTitles, sharedOrg.webId, params);
 
   logger.info(
     `Development Org with shortname = "${sharedOrg.shortname}" now has seeded pages.`,
@@ -123,7 +117,7 @@ export const seedOrgsAndUsers = async (params: {
       await seedPages(
         { actorId: user.accountId },
         pageTitles,
-        user.accountId as WebId,
+        user.accountId,
         params,
       );
       logger.info(

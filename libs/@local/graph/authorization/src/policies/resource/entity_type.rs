@@ -7,11 +7,12 @@ use error_stack::{Report, ResultExt as _};
 use smol_str::SmolStr;
 use type_system::{
     ontology::id::{BaseUrl, OntologyTypeVersion, ParseVersionedUrlError, VersionedUrl},
-    web::WebId,
+    principal::actor_group::WebId,
 };
 
 use crate::policies::cedar::{
-    CedarEntityId, CedarExpressionParseError, FromCedarExpr, PolicyExpressionTree, ToCedarExpr,
+    CedarExpressionParseError, FromCedarEntityId, FromCedarExpr, PolicyExpressionTree,
+    ToCedarEntityId, ToCedarExpr,
 };
 
 #[derive(
@@ -163,7 +164,7 @@ impl FromCedarExpr for EntityTypeResourceFilter {
     }
 }
 
-impl CedarEntityId for EntityTypeId {
+impl FromCedarEntityId for EntityTypeId {
     type Error = Report<ParseVersionedUrlError>;
 
     fn entity_type() -> &'static Arc<ast::EntityType> {
@@ -172,12 +173,18 @@ impl CedarEntityId for EntityTypeId {
         &ENTITY_TYPE
     }
 
-    fn to_eid(&self) -> ast::Eid {
-        ast::Eid::new(self.as_url().to_string())
-    }
-
     fn from_eid(eid: &ast::Eid) -> Result<Self, Self::Error> {
         Ok(Self::new(VersionedUrl::from_str(eid.as_ref())?))
+    }
+}
+
+impl ToCedarEntityId for EntityTypeId {
+    fn to_cedar_entity_type(&self) -> &'static Arc<ast::EntityType> {
+        Self::entity_type()
+    }
+
+    fn to_eid(&self) -> ast::Eid {
+        ast::Eid::new(self.as_url().to_string())
     }
 }
 
@@ -235,7 +242,9 @@ mod tests {
     use core::{error::Error, str::FromStr as _};
 
     use serde_json::json;
-    use type_system::{knowledge::entity::id::EntityUuid, ontology::VersionedUrl, web::WebId};
+    use type_system::{
+        knowledge::entity::id::EntityUuid, ontology::VersionedUrl, principal::actor_group::WebId,
+    };
     use uuid::Uuid;
 
     use super::{EntityTypeId, EntityTypeResourceConstraint, EntityTypeResourceFilter};

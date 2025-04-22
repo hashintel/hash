@@ -23,12 +23,15 @@ use tokio::runtime::Runtime;
 use type_system::{
     knowledge::{
         Entity,
-        entity::{LinkData, id::EntityUuid, provenance::ProvidedEntityEditionProvenance},
+        entity::{LinkData, provenance::ProvidedEntityEditionProvenance},
         property::{PropertyObject, PropertyObjectWithMetadata, metadata::PropertyProvenance},
     },
     ontology::entity_type::EntityType,
-    provenance::{ActorEntityUuid, ActorType, OriginProvenance, OriginType},
-    web::WebId,
+    principal::{
+        actor::{ActorEntityUuid, ActorType},
+        actor_group::WebId,
+    },
+    provenance::{OriginProvenance, OriginType},
 };
 use uuid::Uuid;
 
@@ -77,7 +80,7 @@ async fn seed_db<A: AuthorizationApi>(
         .insert_web_id(
             account_id,
             InsertWebIdParams {
-                web_id: WebId::new(account_id.into_uuid()),
+                web_id: WebId::new(account_id),
                 owner: WebOwnerSubject::Account { id: account_id },
             },
         )
@@ -121,7 +124,7 @@ async fn seed_db<A: AuthorizationApi>(
     let link_type: EntityType =
         serde_json::from_str(entity_type::link::FRIEND_OF_V1).expect("could not parse entity type");
 
-    let web_id = WebId::new(account_id.into_uuid());
+    let web_id = WebId::new(account_id);
 
     let entity_list = transaction
         .create_entities(
@@ -274,9 +277,9 @@ fn bench_scaling_read_entity_zero_depths(crit: &mut Criterion) {
 
     // We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
     // parameter argument to criterion and get comparison analysis
-    let account_id = ActorEntityUuid::new(EntityUuid::new(
+    let account_id = ActorEntityUuid::new(
         Uuid::from_str("bf5a9ef5-dc3b-43cf-a291-6210c0321eba").expect("invalid uuid"),
-    ));
+    );
 
     for size in [1, 5, 10, 25, 50] {
         // TODO: reuse the database if it already exists like we do for representative_read
@@ -327,9 +330,9 @@ fn bench_scaling_read_entity_one_depth(crit: &mut Criterion) {
 
     // We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
     // parameter argument to criterion and get comparison analysis
-    let account_id = ActorEntityUuid::new(EntityUuid::new(
+    let account_id = ActorEntityUuid::new(
         Uuid::from_str("bf5a9ef5-dc3b-43cf-a291-6210c0321eba").expect("invalid uuid"),
-    ));
+    );
 
     for size in [1, 5, 10, 25, 50] {
         // TODO: reuse the database if it already exists like we do for representative_read

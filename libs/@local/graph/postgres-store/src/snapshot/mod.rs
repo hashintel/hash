@@ -60,8 +60,10 @@ use type_system::{
         entity_type::{EntityTypeUuid, EntityTypeWithMetadata},
         property_type::{PropertyTypeUuid, PropertyTypeWithMetadata},
     },
-    provenance::ActorEntityUuid,
-    web::{ActorGroupId, WebId},
+    principal::{
+        actor::ActorEntityUuid,
+        actor_group::{ActorGroupEntityUuid, WebId},
+    },
 };
 
 use crate::{
@@ -76,7 +78,7 @@ pub struct Account {
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct AccountGroup {
-    pub id: ActorGroupId,
+    pub id: ActorGroupEntityUuid,
     pub relations: Vec<AccountGroupRelationAndSubject>,
 }
 
@@ -319,11 +321,11 @@ impl PostgresStorePool {
             .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Query))?
             .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Read))
             .and_then(move |row| async move {
-                let id: ActorGroupId = row.get(0);
+                let id: ActorGroupEntityUuid = row.get(0);
                 Ok(AccountGroup {
                     id,
                     relations: authorization_api
-                        .read_relations::<(ActorGroupId, AccountGroupRelationAndSubject)>(
+                        .read_relations::<(ActorGroupEntityUuid, AccountGroupRelationAndSubject)>(
                             RelationshipFilter::from_resource(id),
                             Consistency::FullyConsistent,
                         )
@@ -354,7 +356,7 @@ impl PostgresStorePool {
             .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Query))?
             .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Read))
             .and_then(move |row| async move {
-                let id = WebId::new(row.get(0));
+                let id = row.get(0);
                 Ok(Web {
                     id,
                     relations: authorization_api

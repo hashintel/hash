@@ -31,7 +31,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 
 > {%
     client.test("status", function() {
-        client.assert(response.status === 204, "Response status is not 204");
+        client.assert(response.status === 200, "Response status is not 200");
     });
 %}
 

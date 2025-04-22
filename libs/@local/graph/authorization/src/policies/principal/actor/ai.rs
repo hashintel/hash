@@ -1,50 +1,47 @@
 use alloc::sync::Arc;
 use core::{iter, str::FromStr as _};
-use std::{collections::HashSet, sync::LazyLock};
+use std::sync::LazyLock;
 
 use cedar_policy_core::{ast, extensions::Extensions};
 use error_stack::Report;
-use type_system::{
-    knowledge::entity::id::EntityUuid,
-    provenance::{ActorEntityUuid, AiId},
+use type_system::principal::{
+    actor::{Ai, AiId},
+    role::RoleId,
 };
 use uuid::Uuid;
 
-use crate::policies::{cedar::CedarEntityId, principal::role::RoleId};
+use crate::policies::cedar::{FromCedarEntityId, ToCedarEntity, ToCedarEntityId};
 
-impl CedarEntityId for AiId {
+impl FromCedarEntityId for AiId {
     type Error = Report<uuid::Error>;
 
     fn entity_type() -> &'static Arc<ast::EntityType> {
-        static ENTITY_TYPE: LazyLock<Arc<ast::EntityType>> =
+        pub(crate) static ENTITY_TYPE: LazyLock<Arc<ast::EntityType>> =
             LazyLock::new(|| crate::policies::cedar_resource_type(["Ai"]));
         &ENTITY_TYPE
     }
 
-    fn to_eid(&self) -> ast::Eid {
-        ast::Eid::new(self.as_uuid().to_string())
-    }
-
     fn from_eid(eid: &ast::Eid) -> Result<Self, Self::Error> {
-        Ok(Self::new(ActorEntityUuid::new(EntityUuid::new(
-            Uuid::from_str(eid.as_ref())?,
-        ))))
+        Ok(Self::new(Uuid::from_str(eid.as_ref())?))
     }
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct Ai {
-    pub id: AiId,
-    pub roles: HashSet<RoleId>,
+impl ToCedarEntityId for AiId {
+    fn to_cedar_entity_type(&self) -> &'static Arc<ast::EntityType> {
+        Self::entity_type()
+    }
+
+    fn to_eid(&self) -> ast::Eid {
+        ast::Eid::new(self.to_string())
+    }
 }
 
-impl Ai {
-    pub(crate) fn to_cedar_entity(&self) -> ast::Entity {
+impl ToCedarEntity for Ai {
+    fn to_cedar_entity(&self) -> ast::Entity {
         ast::Entity::new(
             self.id.to_euid(),
             iter::empty(),
-            self.roles.iter().copied().map(RoleId::to_euid).collect(),
+            self.roles.iter().map(RoleId::to_euid).collect(),
             iter::empty(),
             Extensions::none(),
         )
@@ -57,23 +54,16 @@ mod tests {
     use core::error::Error;
 
     use serde_json::json;
-    use type_system::{
-        knowledge::entity::id::EntityUuid,
-        provenance::{ActorEntityUuid, ActorId, ActorType},
-        web::WebId,
+    use type_system::principal::{
+        actor::{ActorId, ActorType},
+        actor_group::{ActorGroupId, TeamId, WebId},
+        role::{RoleId, TeamRoleId, WebRoleId},
     };
     use uuid::Uuid;
 
     use super::AiId;
     use crate::{
-        policies::{
-            PrincipalConstraint,
-            principal::{
-                group::{ActorGroupId, TeamId},
-                role::{RoleId, TeamRoleId, WebRoleId},
-                tests::check_principal,
-            },
-        },
+        policies::{PrincipalConstraint, principal::tests::check_principal},
         test_utils::check_deserialization_error,
     };
 
@@ -95,7 +85,7 @@ mod tests {
 
     #[test]
     fn exact() -> Result<(), Box<dyn Error>> {
-        let ai_id = AiId::new(ActorEntityUuid::new(EntityUuid::new(Uuid::new_v4())));
+        let ai_id = AiId::new(Uuid::new_v4());
         check_principal(
             PrincipalConstraint::Actor {
                 actor: ActorId::Ai(ai_id),

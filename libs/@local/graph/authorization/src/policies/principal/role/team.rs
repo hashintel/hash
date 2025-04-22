@@ -4,53 +4,18 @@ use std::{collections::HashSet, sync::LazyLock};
 
 use cedar_policy_core::{ast, extensions::Extensions};
 use error_stack::Report;
+use type_system::principal::role::{TeamRole, TeamRoleId};
 use uuid::Uuid;
 
-use crate::policies::{cedar::CedarEntityId, principal::group::TeamId};
+use crate::policies::cedar::{FromCedarEntityId, ToCedarEntity, ToCedarEntityId};
 
-#[derive(
-    Debug,
-    Copy,
-    Clone,
-    PartialEq,
-    Eq,
-    Hash,
-    serde::Serialize,
-    serde::Deserialize,
-    derive_more::Display,
-)]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[repr(transparent)]
-pub struct TeamRoleId(Uuid);
-
-impl TeamRoleId {
-    #[must_use]
-    pub const fn new(uuid: Uuid) -> Self {
-        Self(uuid)
-    }
-
-    #[must_use]
-    pub const fn into_uuid(self) -> Uuid {
-        self.0
-    }
-
-    #[must_use]
-    pub const fn as_uuid(&self) -> &Uuid {
-        &self.0
-    }
-}
-
-impl CedarEntityId for TeamRoleId {
+impl FromCedarEntityId for TeamRoleId {
     type Error = Report<uuid::Error>;
 
     fn entity_type() -> &'static Arc<ast::EntityType> {
-        static ENTITY_TYPE: LazyLock<Arc<ast::EntityType>> =
+        pub(crate) static ENTITY_TYPE: LazyLock<Arc<ast::EntityType>> =
             LazyLock::new(|| crate::policies::cedar_resource_type(["Team", "Role"]));
         &ENTITY_TYPE
-    }
-
-    fn to_eid(&self) -> ast::Eid {
-        ast::Eid::new(self.0.to_string())
     }
 
     fn from_eid(eid: &ast::Eid) -> Result<Self, Self::Error> {
@@ -58,14 +23,18 @@ impl CedarEntityId for TeamRoleId {
     }
 }
 
-#[derive(Debug)]
-pub struct TeamRole {
-    pub id: TeamRoleId,
-    pub team_id: TeamId,
+impl ToCedarEntityId for TeamRoleId {
+    fn to_cedar_entity_type(&self) -> &'static Arc<ast::EntityType> {
+        Self::entity_type()
+    }
+
+    fn to_eid(&self) -> ast::Eid {
+        ast::Eid::new(self.to_string())
+    }
 }
 
-impl TeamRole {
-    pub(crate) fn to_cedar_entity(&self) -> ast::Entity {
+impl ToCedarEntity for TeamRole {
+    fn to_cedar_entity(&self) -> ast::Entity {
         ast::Entity::new(
             self.id.to_euid(),
             iter::empty(),
@@ -73,7 +42,7 @@ impl TeamRole {
             iter::empty(),
             Extensions::none(),
         )
-        .expect("team role should be a valid Cedar entity")
+        .expect("Team role should be a valid Cedar entity")
     }
 }
 
@@ -82,14 +51,11 @@ mod tests {
     use core::error::Error;
 
     use serde_json::json;
+    use type_system::principal::role::{RoleId, TeamRoleId};
     use uuid::Uuid;
 
-    use super::TeamRoleId;
     use crate::{
-        policies::{
-            PrincipalConstraint,
-            principal::{role::RoleId, tests::check_principal},
-        },
+        policies::{PrincipalConstraint, principal::tests::check_principal},
         test_utils::check_deserialization_error,
     };
     #[test]

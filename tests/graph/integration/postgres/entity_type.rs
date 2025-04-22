@@ -15,8 +15,8 @@ use type_system::{
         entity_type::EntityType,
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
-    provenance::{ActorType, OriginProvenance, OriginType},
-    web::WebId,
+    principal::{actor::ActorType, actor_group::WebId},
+    provenance::{OriginProvenance, OriginType},
 };
 
 use crate::{DatabaseTestWrapper, entity_type_relationships};
@@ -56,7 +56,7 @@ async fn insert() {
         CreateEntityTypeParams {
             schema: person_et,
             ownership: OntologyOwnership::Local {
-                web_id: WebId::new(api.account_id.into_uuid()),
+                web_id: WebId::new(api.account_id),
             },
             relationships: entity_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,
@@ -91,7 +91,7 @@ async fn query() {
         CreateEntityTypeParams {
             schema: organization_et.clone(),
             ownership: OntologyOwnership::Local {
-                web_id: WebId::new(api.account_id.into_uuid()),
+                web_id: WebId::new(api.account_id),
             },
             relationships: entity_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,
@@ -179,7 +179,7 @@ async fn update() {
         CreateEntityTypeParams {
             schema: page_et_v1.clone(),
             ownership: OntologyOwnership::Local {
-                web_id: WebId::new(api.account_id.into_uuid()),
+                web_id: WebId::new(api.account_id),
             },
             relationships: entity_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,

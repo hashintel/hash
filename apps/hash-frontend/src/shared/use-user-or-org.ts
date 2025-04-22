@@ -7,7 +7,7 @@ import type {
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import type {
   ActorEntityUuid,
-  ActorGroupId,
+  ActorGroupEntityUuid,
   Entity,
 } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
@@ -39,7 +39,7 @@ export const useUserOrOrg = (
     temporalAxes?: QueryTemporalAxesUnresolved;
   } & (
     | { shortname?: string }
-    | { accountOrAccountGroupId?: ActorEntityUuid | ActorGroupId }
+    | { accountOrAccountGroupId?: ActorEntityUuid | ActorGroupEntityUuid }
   ),
 ) => {
   const { data, loading, refetch } = useQuery<

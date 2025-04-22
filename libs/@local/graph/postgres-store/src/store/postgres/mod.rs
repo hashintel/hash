@@ -19,15 +19,17 @@ use hash_graph_authorization::{
         Authorized, PartialResourceId, PolicySet, Request, RequestContext,
         action::ActionName,
         store::{
-            CreateWebParameter, PrincipalStore,
-            error::{GetSystemAccountError, WebCreationError},
+            CreateWebParameter, PrincipalStore, RoleAssignmentStatus, RoleUnassignmentStatus,
+            error::{GetSystemAccountError, RoleAssignmentError, WebCreationError},
         },
     },
     schema::{
-        AccountGroupAdministratorSubject, AccountGroupRelationAndSubject, WebDataTypeViewerSubject,
-        WebEntityCreatorSubject, WebEntityEditorSubject, WebEntityTypeViewerSubject,
-        WebOwnerSubject, WebPropertyTypeViewerSubject, WebRelationAndSubject, WebSubjectSet,
+        AccountGroupAdministratorSubject, AccountGroupMemberSubject, AccountGroupPermission,
+        AccountGroupRelationAndSubject, WebDataTypeViewerSubject, WebEntityCreatorSubject,
+        WebEntityEditorSubject, WebEntityTypeViewerSubject, WebOwnerSubject,
+        WebPropertyTypeViewerSubject, WebRelationAndSubject, WebSubjectSet,
     },
+    zanzibar::Consistency,
 };
 use hash_graph_store::{
     account::{
@@ -61,8 +63,11 @@ use type_system::{
         property_type::{PropertyType, schema::PropertyTypeReference},
         provenance::{OntologyEditionProvenance, OntologyOwnership, OntologyProvenance},
     },
-    provenance::{ActorEntityUuid, ActorId, ActorType, MachineId},
-    web::{ActorGroupId, WebId},
+    principal::{
+        actor::{ActorEntityUuid, ActorId, ActorType, MachineId},
+        actor_group::{ActorGroupEntityUuid, WebId},
+        role::RoleName,
+    },
 };
 use uuid::Uuid;
 
@@ -124,7 +129,7 @@ where
                     version: row.get(1),
                 };
                 let transaction_time: Timestamp<TransactionTime> = row.get(2);
-                let system_account = MachineId::new(row.get(3));
+                let system_account : MachineId = row.get(3);
                 tracing::info!(
                     %system_account,
                     "Found system account using ontology type `{ontology_type_id}` created at {transaction_time}"
@@ -146,7 +151,7 @@ where
             )
             .await
             .change_context(GetSystemAccountError::StoreError)?
-            .map_ok(|row| MachineId::new(row.get(0)))
+            .map_ok(|row| row.get::<_, MachineId>(0))
             .try_collect::<Vec<_>>()
             .await
             .change_context(GetSystemAccountError::StoreError)?;
@@ -175,14 +180,14 @@ where
         } else {
             // TODO: Create an actual machine once we have proper machine management in the
             // database.
-            // self.create_machine(None)
+            // let machine_id = self.create_machine(None)
             //     .await
             //     .change_context(GetSystemAccountError::CreateSystemAccountFailed)?
 
             // Use the public NIL UUID as actor here as we don't have a valid one, yet.
-            let machine_id = ActorEntityUuid::new(EntityUuid::new(Uuid::new_v4()));
+            let machine_id = ActorEntityUuid::new(Uuid::new_v4());
             self.insert_account_id(
-                ActorEntityUuid::new(EntityUuid::new(Uuid::nil())),
+                ActorEntityUuid::new(Uuid::nil()),
                 InsertAccountIdParams {
                     account_type: ActorType::Machine,
                     account_id: machine_id,
@@ -245,7 +250,7 @@ where
 
         if let Err(error) = self
             .as_mut_client()
-            .execute("INSERT INTO web (id) VALUES ($1)", &[web_id.as_uuid()])
+            .execute("INSERT INTO web (id) VALUES ($1)", &[&web_id])
             .await
         {
             return if error.code() == Some(&SqlState::UNIQUE_VIOLATION) {
@@ -256,6 +261,219 @@ where
         }
 
         Ok(web_id)
+    }
+
+    async fn assign_role(
+        &mut self,
+        actor: ActorEntityUuid,
+        actor_to_assign: ActorEntityUuid,
+        actor_group_id: ActorGroupEntityUuid,
+        name: RoleName,
+    ) -> Result<RoleAssignmentStatus, Report<RoleAssignmentError>> {
+        let mut transaction = self
+            .transaction()
+            .await
+            .change_context(RoleAssignmentError::StoreError)?;
+
+        // We don't know what kind of actor and group we're dealing with, so we need to determine
+        // the actor and group IDs.
+        let actor_to_assign_id = transaction
+            .determine_actor(actor_to_assign)
+            .await
+            .change_context(RoleAssignmentError::StoreError)?;
+        let actor_group_id = transaction
+            .determine_actor_group(actor_group_id)
+            .await
+            .change_context(RoleAssignmentError::StoreError)?;
+
+        // As long as we use SpiceDB as the authorization backend, we need to check if the actor
+        // has permission to add a member to the account group. Also, we need to update the
+        // relationship in SpiceDB.
+        let has_permission = transaction
+            .authorization_api
+            .check_account_group_permission(
+                actor,
+                AccountGroupPermission::AddMember,
+                actor_group_id.into(),
+                Consistency::FullyConsistent,
+            )
+            .await
+            .change_context(RoleAssignmentError::StoreError)?
+            .has_permission;
+
+        if !has_permission {
+            return Err(Report::new(RoleAssignmentError::PermissionDenied));
+        }
+
+        let role = transaction
+            .get_role(actor_group_id, name)
+            .await
+            .change_context(RoleAssignmentError::StoreError)?
+            .ok_or(RoleAssignmentError::RoleNotFound {
+                actor_group_id,
+                name,
+            })?;
+
+        let status = transaction
+            .assign_role_by_id(actor_to_assign_id, role.id())
+            .await
+            .change_context(RoleAssignmentError::StoreError)?;
+
+        let permission_relation = match name {
+            RoleName::Administrator => AccountGroupRelationAndSubject::Administrator {
+                subject: AccountGroupAdministratorSubject::Account {
+                    id: actor_to_assign,
+                },
+                level: 0,
+            },
+            RoleName::Member => AccountGroupRelationAndSubject::Member {
+                subject: AccountGroupMemberSubject::Account {
+                    id: actor_to_assign,
+                },
+                level: 0,
+            },
+        };
+        transaction
+            .authorization_api
+            .modify_account_group_relations([(
+                ModifyRelationshipOperation::Create,
+                actor_group_id.into(),
+                permission_relation,
+            )])
+            .await
+            .change_context(RoleAssignmentError::StoreError)?;
+
+        if let Err(error) = transaction
+            .commit()
+            .await
+            .change_context(RoleAssignmentError::StoreError)
+        {
+            let mut error = error.expand();
+
+            if let Err(auth_error) = self
+                .authorization_api
+                .modify_account_group_relations([(
+                    ModifyRelationshipOperation::Delete,
+                    actor_group_id.into(),
+                    permission_relation,
+                )])
+                .await
+                .change_context(RoleAssignmentError::StoreError)
+            {
+                error.push(auth_error);
+            }
+
+            Err(error.change_context(RoleAssignmentError::StoreError))
+        } else {
+            Ok(status)
+        }
+    }
+
+    async fn unassign_role(
+        &mut self,
+        actor: ActorEntityUuid,
+        actor_to_unassign: ActorEntityUuid,
+        actor_group_id: ActorGroupEntityUuid,
+        name: RoleName,
+    ) -> Result<RoleUnassignmentStatus, Report<RoleAssignmentError>> {
+        let mut transaction = self
+            .transaction()
+            .await
+            .change_context(RoleAssignmentError::StoreError)?;
+
+        // We don't know what kind of actor and group we're dealing with, so we need to determine
+        // the actor and group IDs.
+        let actor_to_unassign_id = transaction
+            .determine_actor(actor_to_unassign)
+            .await
+            .change_context(RoleAssignmentError::StoreError)?;
+        let actor_group_id = transaction
+            .determine_actor_group(actor_group_id)
+            .await
+            .change_context(RoleAssignmentError::StoreError)?;
+
+        // As long as we use SpiceDB as the authorization backend, we need to check if the actor
+        // has permission to add a member to the account group. Also, we need to update the
+        // relationship in SpiceDB.
+        let has_permission = transaction
+            .authorization_api
+            .check_account_group_permission(
+                actor,
+                AccountGroupPermission::RemoveMember,
+                actor_group_id.into(),
+                Consistency::FullyConsistent,
+            )
+            .await
+            .change_context(RoleAssignmentError::StoreError)?
+            .has_permission;
+
+        if !has_permission {
+            return Err(Report::new(RoleAssignmentError::PermissionDenied)
+                .attach(StatusCode::PermissionDenied));
+        }
+
+        let role = transaction
+            .get_role(actor_group_id, name)
+            .await
+            .change_context(RoleAssignmentError::StoreError)?
+            .ok_or(RoleAssignmentError::RoleNotFound {
+                actor_group_id,
+                name,
+            })?;
+
+        let status = transaction
+            .unassign_role_by_id(actor_to_unassign_id, role.id())
+            .await
+            .change_context(RoleAssignmentError::StoreError)?;
+
+        let permission_relation = match name {
+            RoleName::Administrator => AccountGroupRelationAndSubject::Administrator {
+                subject: AccountGroupAdministratorSubject::Account {
+                    id: actor_to_unassign,
+                },
+                level: 0,
+            },
+            RoleName::Member => AccountGroupRelationAndSubject::Member {
+                subject: AccountGroupMemberSubject::Account {
+                    id: actor_to_unassign,
+                },
+                level: 0,
+            },
+        };
+        transaction
+            .authorization_api
+            .modify_account_group_relations([(
+                ModifyRelationshipOperation::Delete,
+                actor_group_id.into(),
+                permission_relation,
+            )])
+            .await
+            .change_context(RoleAssignmentError::StoreError)?;
+
+        if let Err(error) = transaction
+            .commit()
+            .await
+            .change_context(RoleAssignmentError::StoreError)
+        {
+            let mut error = error.expand();
+
+            if let Err(auth_error) = self
+                .authorization_api
+                .modify_account_group_relations([(
+                    ModifyRelationshipOperation::Touch,
+                    actor_group_id.into(),
+                    permission_relation,
+                )])
+                .await
+                .change_context(RoleAssignmentError::StoreError)
+            {
+                error.push(auth_error);
+            }
+
+            Err(error.change_context(RoleAssignmentError::StoreError))
+        } else {
+            Ok(status)
+        }
     }
 }
 
@@ -1371,9 +1589,9 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
     }
 
     #[tracing::instrument(level = "info", skip(self))]
-    async fn identify_web_id(
+    async fn identify_subject_id(
         &self,
-        web_id: WebId,
+        subject_id: EntityUuid,
     ) -> Result<WebOwnerSubject, Report<QueryWebError>> {
         let row = self
             .as_client()
@@ -1389,7 +1607,7 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
                         WHERE account_group_id = $1
                     );
                 ",
-                &[&web_id],
+                &[&subject_id],
             )
             .await
             .change_context(QueryWebError)?;
@@ -1397,16 +1615,16 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
         match (row.get(0), row.get(1)) {
             (false, false) => Err(Report::new(QueryWebError)
                 .attach_printable("Record does not exist")
-                .attach_printable(web_id)),
+                .attach_printable(subject_id)),
             (true, false) => Ok(WebOwnerSubject::Account {
-                id: ActorEntityUuid::new(EntityUuid::new(web_id.into_uuid())),
+                id: ActorEntityUuid::new(subject_id),
             }),
             (false, true) => Ok(WebOwnerSubject::AccountGroup {
-                id: ActorGroupId::new(web_id.into_uuid()),
+                id: ActorGroupEntityUuid::new(subject_id),
             }),
             (true, true) => Err(Report::new(QueryWebError)
                 .attach_printable("Record exists in both accounts and account_groups")
-                .attach_printable(web_id)),
+                .attach_printable(subject_id)),
         }
     }
 }

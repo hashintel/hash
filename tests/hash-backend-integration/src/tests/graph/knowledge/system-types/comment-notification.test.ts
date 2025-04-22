@@ -11,7 +11,6 @@ import {
 } from "@apps/hash-api/src/graph/knowledge/system-types/page";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { joinOrg } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import type { WebId } from "@blockprotocol/type-system";
 import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
@@ -86,13 +85,13 @@ describe("Comment Notification", () => {
       graphContext,
       { actorId: recipientUser.accountId },
       {
-        webId: testOrg.accountGroupId as WebId,
+        webId: testOrg.webId,
         componentId: "text",
         blockData: await createEntity<Text>(
           graphContext,
           { actorId: recipientUser.accountId },
           {
-            webId: testOrg.accountGroupId as WebId,
+            webId: testOrg.webId,
             entityTypeIds: [systemEntityTypes.text.entityTypeId],
             properties: {
               value: {
@@ -114,7 +113,7 @@ describe("Comment Notification", () => {
       {
         initialBlocks: [initialBlock],
         title: "Test Page",
-        webId: testOrg.accountGroupId as WebId,
+        webId: testOrg.webId,
         type: "document",
       },
     );
@@ -173,13 +172,13 @@ describe("Comment Notification", () => {
       graphContext,
       { actorId: triggerUser.accountId },
       {
-        webId: testOrg.accountGroupId as WebId,
+        webId: testOrg.webId,
         componentId: "text",
         blockData: await createEntity<Text>(
           graphContext,
           { actorId: triggerUser.accountId },
           {
-            webId: testOrg.accountGroupId as WebId,
+            webId: testOrg.webId,
             entityTypeIds: [systemEntityTypes.text.entityTypeId],
             properties: {
               value: {
@@ -201,7 +200,7 @@ describe("Comment Notification", () => {
       {
         initialBlocks: [initialBlock],
         title: "Test Page",
-        webId: testOrg.accountGroupId as WebId,
+        webId: testOrg.webId,
         type: "document",
       },
     );

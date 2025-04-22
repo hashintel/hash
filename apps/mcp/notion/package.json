@@ -19,11 +19,11 @@
   "dependencies": {
     "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@modelcontextprotocol/sdk": "1.9.0",
+    "@modelcontextprotocol/sdk": "1.10.1",
     "@notionhq/client": "2.3.0",
     "dotenv-flow": "3.3.0",
-    "notion-to-md": "3.1.7",
-    "zod": "3.24.2",
+    "notion-to-md": "3.1.8",
+    "zod": "3.24.3",
     "zod-to-json-schema": "3.24.5"
   },
   "devDependencies": {

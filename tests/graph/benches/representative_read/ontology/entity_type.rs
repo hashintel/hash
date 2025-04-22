@@ -10,7 +10,7 @@ use hash_graph_store::{
 use hash_graph_temporal_versioning::TemporalBound;
 use rand::{prelude::IteratorRandom as _, rng};
 use tokio::runtime::Runtime;
-use type_system::{ontology::VersionedUrl, provenance::ActorEntityUuid};
+use type_system::{ontology::VersionedUrl, principal::actor::ActorEntityUuid};
 
 use crate::util::Store;
 

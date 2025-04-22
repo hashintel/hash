@@ -1,3 +1,4 @@
+import type { ActorGroupEntityUuid } from "@blockprotocol/type-system";
 import { faLocationDot } from "@fortawesome/free-solid-svg-icons";
 import {
   Avatar,
@@ -241,7 +242,7 @@ export const ProfilePageInfo: FunctionComponent<{
   const { orgs: webs } = useOrgsWithLinks({
     orgAccountGroupIds:
       profile?.kind === "user"
-        ? profile.memberOf.map(({ org }) => org.accountGroupId)
+        ? profile.memberOf.map(({ org }) => org.webId as ActorGroupEntityUuid)
         : [],
   });
 

@@ -82,10 +82,11 @@ use type_system::{
         value::{ValueMetadata, metadata::ValueProvenance},
     },
     ontology::VersionedUrl,
-    provenance::{
-        ActorEntityUuid, ActorType, Location, OriginProvenance, SourceProvenance, SourceType,
+    principal::{
+        actor::{ActorEntityUuid, ActorType},
+        actor_group::WebId,
     },
-    web::WebId,
+    provenance::{Location, OriginProvenance, SourceProvenance, SourceType},
 };
 use utoipa::{OpenApi, ToSchema};
 
@@ -261,12 +262,12 @@ impl EntityResource {
                             get(get_entity_authorization_relationships::<A>),
                         )
                         .route(
-                            "/administrators/:administrator",
+                            "/administrators/:subject_id",
                             post(add_entity_administrator::<A, S>)
                                 .delete(remove_entity_administrator::<A, S>),
                         )
                         .route(
-                            "/editors/:editor",
+                            "/editors/:subject_id",
                             post(add_entity_editor::<A, S>).delete(remove_entity_editor::<A, S>),
                         )
                         .route(
@@ -1293,12 +1294,12 @@ where
 
 #[utoipa::path(
     post,
-    path = "/entities/{entity_id}/administrators/{administrator}",
+    path = "/entities/{entity_id}/administrators/{subject_id}",
     tag = "Entity",
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
         ("entity_id" = EntityId, Path, description = "The Entity to add the administrator to"),
-        ("administrator" = WebId, Path, description = "The administrator to add to the entity"),
+        ("subject_id" = EntityUuid, Path, description = "The administrator to add to the entity"),
     ),
     responses(
         (status = 204, description = "The administrator was added to the entity"),
@@ -1312,8 +1313,8 @@ where
 )]
 async fn add_entity_administrator<A, S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    Path((entity_id, web_id)): Path<(EntityId, WebId)>,
     store_pool: Extension<Arc<S>>,
+    Path((entity_id, subject_id)): Path<(EntityId, EntityUuid)>,
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
 ) -> Result<StatusCode, StatusCode>
@@ -1354,7 +1355,7 @@ where
             tracing::error!(error=?report, "Could not acquire store");
             StatusCode::INTERNAL_SERVER_ERROR
         })?
-        .identify_web_id(web_id)
+        .identify_subject_id(subject_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not identify account or account group");
@@ -1389,12 +1390,12 @@ where
 
 #[utoipa::path(
     delete,
-    path = "/entities/{entity_id}/administrators/{administrator}",
+    path = "/entities/{entity_id}/administrators/{subject_id}",
     tag = "Entity",
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
         ("entity_id" = EntityId, Path, description = "The Entity to remove the administrator from"),
-        ("administrator" = WebId, Path, description = "The administrator to remove from the entity"),
+        ("subject_id" = EntityUuid, Path, description = "The administrator to remove from the entity"),
     ),
     responses(
         (status = 204, description = "The administrator was removed from the entity"),
@@ -1408,7 +1409,7 @@ where
 )]
 async fn remove_entity_administrator<A, S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    Path((entity_id, web_id)): Path<(EntityId, WebId)>,
+    Path((entity_id, subject_id)): Path<(EntityId, EntityUuid)>,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
@@ -1450,7 +1451,7 @@ where
             tracing::error!(error=?report, "Could not acquire store");
             StatusCode::INTERNAL_SERVER_ERROR
         })?
-        .identify_web_id(web_id)
+        .identify_subject_id(subject_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not identify account or account group");
@@ -1485,12 +1486,12 @@ where
 
 #[utoipa::path(
     post,
-    path = "/entities/{entity_id}/editors/{editor}",
+    path = "/entities/{entity_id}/editors/{subject_id}",
     tag = "Entity",
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
         ("entity_id" = EntityId, Path, description = "The Entity to add the editor to"),
-        ("editor" = WebId, Path, description = "The editor to add to the entity"),
+        ("subject_id" = EntityUuid, Path, description = "The editor to add to the entity"),
     ),
     responses(
         (status = 204, description = "The editor was added to the entity"),
@@ -1504,7 +1505,7 @@ where
 )]
 async fn add_entity_editor<A, S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    Path((entity_id, editor)): Path<(EntityId, WebId)>,
+    Path((entity_id, subject_id)): Path<(EntityId, EntityUuid)>,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
@@ -1543,7 +1544,7 @@ where
             tracing::error!(error=?report, "Could not acquire store");
             StatusCode::INTERNAL_SERVER_ERROR
         })?
-        .identify_web_id(editor)
+        .identify_subject_id(subject_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not identify account or account group");
@@ -1575,12 +1576,12 @@ where
 
 #[utoipa::path(
     delete,
-    path = "/entities/{entity_id}/editors/{editor}",
+    path = "/entities/{entity_id}/editors/{subject_id}",
     tag = "Entity",
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
         ("entity_id" = EntityId, Path, description = "The Entity to remove the editor from"),
-        ("editor" = WebId, Path, description = "The editor to remove from the entity"),
+        ("subject_id" = EntityUuid, Path, description = "The editor to remove from the entity"),
     ),
     responses(
         (status = 204, description = "The editor was removed from the entity"),
@@ -1594,7 +1595,7 @@ where
 )]
 async fn remove_entity_editor<A, S>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    Path((entity_id, editor)): Path<(EntityId, WebId)>,
+    Path((entity_id, subject_id)): Path<(EntityId, EntityUuid)>,
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
@@ -1636,7 +1637,7 @@ where
             tracing::error!(error=?report, "Could not acquire store");
             StatusCode::INTERNAL_SERVER_ERROR
         })?
-        .identify_web_id(editor)
+        .identify_subject_id(subject_id)
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not identify account or account group");

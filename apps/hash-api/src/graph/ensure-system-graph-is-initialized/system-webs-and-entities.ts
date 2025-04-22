@@ -1,10 +1,10 @@
-import {
-  type ActorEntityUuid,
-  type ActorGroupId,
-  componentsFromVersionedUrl,
-  type VersionedUrl,
-  type WebId,
+import type {
+  ActorEntityUuid,
+  ActorGroupEntityUuid,
+  VersionedUrl,
+  WebId,
 } from "@blockprotocol/type-system";
+import { componentsFromVersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import {
@@ -20,6 +20,7 @@ import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 import { enabledIntegrations } from "../../integrations/enabled-integrations";
 import { logger } from "../../logger";
 import {
+  addAccountGroupMember,
   createAccount,
   createAccountGroup,
   createWeb,
@@ -32,7 +33,7 @@ export const owningWebs: Record<
   SystemTypeWebShortname,
   {
     machineActorAccountId?: ActorEntityUuid;
-    accountGroupId?: ActorGroupId;
+    webId?: WebId;
     enabled: boolean;
     name: string;
     websiteUrl: string;
@@ -55,22 +56,22 @@ export const owningWebs: Record<
   },
 };
 
-export const getOrCreateOwningAccountGroupId = async (
+export const getOrCreateOwningWebId = async (
   context: ImpureGraphContext,
   webShortname: SystemTypeWebShortname,
 ): Promise<{
-  accountGroupId: ActorGroupId;
+  webId: WebId;
   machineActorId: ActorEntityUuid;
 }> => {
   // We only need to resolve this once for each shortname during the seeding process
-  const resolvedAccountGroupId = owningWebs[webShortname].accountGroupId;
+  const resolvedWebId = owningWebs[webShortname].webId;
   const resolvedMachineActorAccountId =
     owningWebs[webShortname].machineActorAccountId;
 
   // After this function has been run once, these should exist
-  if (resolvedAccountGroupId && resolvedMachineActorAccountId) {
+  if (resolvedWebId && resolvedMachineActorAccountId) {
     return {
-      accountGroupId: resolvedAccountGroupId,
+      webId: resolvedWebId,
       machineActorId: resolvedMachineActorAccountId,
     };
   }
@@ -92,13 +93,13 @@ export const getOrCreateOwningAccountGroupId = async (
         foundOrg.entity.metadata.provenance.edition.createdById;
 
       logger.debug(
-        `Found org entity with shortname ${webShortname}, accountGroupId: ${foundOrg.accountGroupId}, machine actor accountId: ${machineActorIdForWeb}`,
+        `Found org entity with shortname ${webShortname}, webId: ${foundOrg.webId}, machine actor accountId: ${machineActorIdForWeb}`,
       );
-      owningWebs[webShortname].accountGroupId = foundOrg.accountGroupId;
+      owningWebs[webShortname].webId = foundOrg.webId;
       owningWebs[webShortname].machineActorAccountId = machineActorIdForWeb;
 
       return {
-        accountGroupId: foundOrg.accountGroupId,
+        webId: foundOrg.webId,
         machineActorId: machineActorIdForWeb,
       };
     }
@@ -119,26 +120,26 @@ export const getOrCreateOwningAccountGroupId = async (
 
   const authentication = { actorId: machineActorIdForWeb };
 
-  const accountGroupId = await createAccountGroup(
+  const webId = (await createAccountGroup(
     context,
     { actorId: machineActorIdForWeb },
     {},
-  );
+  )) as WebId;
 
   await createWeb(context, authentication, {
-    webId: accountGroupId as WebId,
-    owner: { kind: "accountGroup", subjectId: accountGroupId },
+    webId,
+    owner: { kind: "accountGroup", subjectId: webId },
   });
 
   logger.info(
-    `Created accountGroup for web with shortname ${webShortname}, accountGroupId: ${accountGroupId}`,
+    `Created accountGroup for web with shortname ${webShortname}, webId: ${webId}`,
   );
 
-  owningWebs[webShortname].accountGroupId = accountGroupId;
+  owningWebs[webShortname].webId = webId;
   owningWebs[webShortname].machineActorAccountId = machineActorIdForWeb;
 
   return {
-    accountGroupId,
+    webId,
     machineActorId: machineActorIdForWeb,
   };
 };
@@ -158,8 +159,8 @@ export const ensureSystemWebEntitiesExist = async ({
   machineEntityTypeId?: VersionedUrl;
   organizationEntityTypeId?: VersionedUrl;
 }) => {
-  const { accountGroupId, machineActorId: machineActorAccountId } =
-    await getOrCreateOwningAccountGroupId(context, webShortname);
+  const { webId, machineActorId: machineActorAccountId } =
+    await getOrCreateOwningWebId(context, webShortname);
 
   const authentication = { actorId: machineActorAccountId };
 
@@ -200,7 +201,7 @@ export const ensureSystemWebEntitiesExist = async ({
         machineAccountId: machineActorAccountId,
         identifier: webShortname,
         logger,
-        webId: accountGroupId as WebId,
+        webId,
         displayName,
         systemAccountId,
         machineEntityTypeId,
@@ -221,7 +222,7 @@ export const ensureSystemWebEntitiesExist = async ({
     if (!foundOrg) {
       await createOrg(context, authentication, {
         bypassShortnameValidation: true,
-        orgAccountGroupId: accountGroupId,
+        webId,
         shortname: webShortname,
         name,
         websiteUrl,
@@ -268,15 +269,15 @@ export const ensureSystemEntitiesExist = async (params: {
       websiteUrl,
     });
 
-    const { accountGroupId, machineActorId: machineActorAccountId } =
-      await getOrCreateOwningAccountGroupId(context, webShortname);
+    const { webId, machineActorId: machineActorAccountId } =
+      await getOrCreateOwningWebId(context, webShortname);
 
     try {
       await getWebMachineActorId(
         context,
         { actorId: machineActorAccountId },
         {
-          webId: accountGroupId as WebId,
+          webId,
         },
       );
     } catch (err) {
@@ -286,7 +287,7 @@ export const ensureSystemEntitiesExist = async (params: {
           // We have to use an org admin's authority to add the machine to their web
           { actorId: machineActorAccountId },
           {
-            webId: accountGroupId as WebId,
+            webId,
             logger,
           },
         );
@@ -309,10 +310,10 @@ export const ensureSystemEntitiesExist = async (params: {
     });
   } catch (error) {
     if (error instanceof NotFoundError) {
-      const hashAccountGroupId = owningWebs.h.accountGroupId;
-      if (!hashAccountGroupId) {
+      const hashWebId = owningWebs.h.webId;
+      if (!hashWebId) {
         throw new Error(
-          `Somehow reached the point of creating the HASH AI machine actor without a hash accountGroupId`,
+          `Somehow reached the point of creating the HASH AI machine actor without a hash webId`,
         );
       }
 
@@ -324,12 +325,16 @@ export const ensureSystemEntitiesExist = async (params: {
         },
       );
 
+      await addAccountGroupMember(context, authentication, {
+        accountId: aiAssistantAccountId,
+        accountGroupId: hashWebId as ActorGroupEntityUuid,
+      });
       await context.graphApi.modifyWebAuthorizationRelationships(
         systemAccountId,
         [
           {
             operation: "create",
-            resource: hashAccountGroupId,
+            resource: hashWebId,
             relationAndSubject: {
               subject: {
                 kind: "account",
@@ -340,7 +345,7 @@ export const ensureSystemEntitiesExist = async (params: {
           },
           {
             operation: "create",
-            resource: hashAccountGroupId,
+            resource: hashWebId,
             relationAndSubject: {
               subject: {
                 kind: "account",
@@ -356,7 +361,7 @@ export const ensureSystemEntitiesExist = async (params: {
         identifier: "hash-ai",
         logger,
         machineAccountId: aiAssistantAccountId,
-        webId: hashAccountGroupId as WebId,
+        webId: hashWebId,
         displayName: "HASH AI",
         systemAccountId,
       });

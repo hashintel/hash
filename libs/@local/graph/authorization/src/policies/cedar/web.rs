@@ -2,9 +2,9 @@ use core::fmt;
 
 use cedar_policy_core::ast;
 use error_stack::Report;
-use type_system::web::WebId;
+use type_system::principal::actor_group::WebId;
 
-use super::{CedarEntityId as _, CedarExpressionVisitor};
+use super::{CedarExpressionVisitor, FromCedarEntityId as _};
 
 pub(crate) struct WebIdVisitor;
 

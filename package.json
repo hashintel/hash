@@ -87,7 +87,7 @@
     "@tldraw/editor@npm:2.0.0-alpha.12": "patch:@tldraw/editor@npm%3A2.0.0-alpha.12#~/.yarn/patches/@tldraw-editor-npm-2.0.0-alpha.12-ba59bf001c.patch",
     "@tldraw/tlschema@npm:2.0.0-alpha.12": "patch:@tldraw/tlschema@npm%3A2.0.0-alpha.12#~/.yarn/patches/@tldraw-tlschema-npm-2.0.0-alpha.12-13bf88407b.patch",
     "@types/express": "4.17.21",
-    "@types/react": "19.1.1",
+    "@types/react": "19.1.2",
     "blockprotocol@npm:0.0.10": "patch:blockprotocol@npm%3A0.0.12#~/.yarn/patches/blockprotocol-npm-0.0.12-2558a31f0a.patch",
     "prosemirror-model@npm:>=1.0.0": "patch:prosemirror-model@npm%3A1.18.2#~/.yarn/patches/prosemirror-model-npm-1.18.2-479d845b52.patch",
     "prosemirror-model@npm:^1.0.0": "patch:prosemirror-model@npm%3A1.18.2#~/.yarn/patches/prosemirror-model-npm-1.18.2-479d845b52.patch",
@@ -103,10 +103,10 @@
     "@changesets/changelog-github": "0.5.1",
     "@changesets/cli": "patch:@changesets/cli@npm%3A2.26.0#~/.yarn/patches/@changesets-cli-npm-2.26.0-49d5c5f72d.patch",
     "@yarnpkg/types": "^4.0.0",
-    "lefthook": "1.11.9",
+    "lefthook": "1.11.11",
     "npm-run-all2": "7.0.2"
   },
-  "packageManager": "yarn@4.9.0",
+  "packageManager": "yarn@4.9.1",
   "engines": {
     "node": ">= v22"
   }

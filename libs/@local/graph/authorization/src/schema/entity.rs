@@ -3,10 +3,11 @@ use core::error::Error;
 use serde::{Deserialize, Serialize};
 use type_system::{
     knowledge::entity::id::EntityUuid,
-    provenance::ActorEntityUuid,
-    web::{ActorGroupId, WebId},
+    principal::{
+        actor::ActorEntityUuid,
+        actor_group::{ActorGroupEntityUuid, WebId},
+    },
 };
-use uuid::Uuid;
 
 use crate::{
     schema::{
@@ -84,7 +85,7 @@ pub enum EntitySubject {
     Web(WebId),
     Public,
     Account(ActorEntityUuid),
-    AccountGroup(ActorGroupId),
+    AccountGroup(ActorGroupEntityUuid),
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -113,7 +114,7 @@ pub enum EntitySubjectNamespace {
 #[serde(untagged)]
 pub enum EntitySubjectId {
     Setting(EntitySetting),
-    Uuid(Uuid),
+    Uuid(EntityUuid),
     Asteriks(PublicAccess),
 }
 
@@ -132,11 +133,11 @@ impl Resource for EntitySubject {
             (EntitySubjectNamespace::Account, EntitySubjectId::Asteriks(PublicAccess::Public)) => {
                 Self::Public
             }
-            (EntitySubjectNamespace::Account, EntitySubjectId::Uuid(id)) => {
-                Self::Account(ActorEntityUuid::new(EntityUuid::new(id)))
+            (EntitySubjectNamespace::Account, EntitySubjectId::Uuid(uuid)) => {
+                Self::Account(ActorEntityUuid::new(uuid))
             }
-            (EntitySubjectNamespace::AccountGroup, EntitySubjectId::Uuid(id)) => {
-                Self::AccountGroup(ActorGroupId::new(id))
+            (EntitySubjectNamespace::AccountGroup, EntitySubjectId::Uuid(uuid)) => {
+                Self::AccountGroup(ActorGroupEntityUuid::new(uuid))
             }
             (
                 EntitySubjectNamespace::Web | EntitySubjectNamespace::AccountGroup,
@@ -160,7 +161,7 @@ impl Resource for EntitySubject {
             ),
             Self::Web(web_id) => (
                 EntitySubjectNamespace::Web,
-                EntitySubjectId::Uuid(web_id.into_uuid()),
+                EntitySubjectId::Uuid(web_id.into()),
             ),
             Self::Public => (
                 EntitySubjectNamespace::Account,
@@ -168,11 +169,11 @@ impl Resource for EntitySubject {
             ),
             Self::Account(id) => (
                 EntitySubjectNamespace::Account,
-                EntitySubjectId::Uuid(id.into_uuid()),
+                EntitySubjectId::Uuid(id.into()),
             ),
             Self::AccountGroup(id) => (
                 EntitySubjectNamespace::AccountGroup,
-                EntitySubjectId::Uuid(id.into_uuid()),
+                EntitySubjectId::Uuid(id.into()),
             ),
         }
     }
@@ -212,7 +213,7 @@ pub enum EntityAdministratorSubject {
     },
     AccountGroup {
         #[serde(rename = "subjectId")]
-        id: ActorGroupId,
+        id: ActorGroupEntityUuid,
         #[serde(rename = "subjectSet")]
         set: EntitySubjectSet,
     },
@@ -228,7 +229,7 @@ pub enum EntityEditorSubject {
     },
     AccountGroup {
         #[serde(rename = "subjectId")]
-        id: ActorGroupId,
+        id: ActorGroupEntityUuid,
         #[serde(rename = "subjectSet")]
         set: EntitySubjectSet,
     },
@@ -245,7 +246,7 @@ pub enum EntityViewerSubject {
     },
     AccountGroup {
         #[serde(rename = "subjectId")]
-        id: ActorGroupId,
+        id: ActorGroupEntityUuid,
         #[serde(rename = "subjectSet")]
         set: EntitySubjectSet,
     },

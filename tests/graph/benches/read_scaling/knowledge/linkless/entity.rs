@@ -19,12 +19,15 @@ use tokio::runtime::Runtime;
 use type_system::{
     knowledge::{
         Entity,
-        entity::{id::EntityUuid, provenance::ProvidedEntityEditionProvenance},
+        entity::provenance::ProvidedEntityEditionProvenance,
         property::{PropertyObject, PropertyObjectWithMetadata},
     },
     ontology::entity_type::EntityType,
-    provenance::{ActorEntityUuid, ActorType, OriginProvenance, OriginType},
-    web::WebId,
+    principal::{
+        actor::{ActorEntityUuid, ActorType},
+        actor_group::WebId,
+    },
+    provenance::{OriginProvenance, OriginType},
 };
 use uuid::Uuid;
 
@@ -64,7 +67,7 @@ async fn seed_db<A: AuthorizationApi>(
         .insert_web_id(
             account_id,
             InsertWebIdParams {
-                web_id: WebId::new(account_id.into_uuid()),
+                web_id: WebId::new(account_id),
                 owner: WebOwnerSubject::Account { id: account_id },
             },
         )
@@ -111,7 +114,7 @@ async fn seed_db<A: AuthorizationApi>(
             account_id,
             repeat_n(
                 CreateEntityParams {
-                    web_id: WebId::new(account_id.into_uuid()),
+                    web_id: WebId::new(account_id),
                     entity_uuid: None,
                     decision_time: None,
                     entity_type_ids: HashSet::from([entity_type_id]),
@@ -208,9 +211,9 @@ fn bench_scaling_read_entity(crit: &mut Criterion) {
     let mut group = crit.benchmark_group(group_id);
     // We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
     // parameter argument to criterion and get comparison analysis
-    let account_id = ActorEntityUuid::new(EntityUuid::new(
+    let account_id = ActorEntityUuid::new(
         Uuid::from_str("bf5a9ef5-dc3b-43cf-a291-6210c0321eba").expect("invalid uuid"),
-    ));
+    );
 
     for size in [1, 10, 100, 1_000, 10_000] {
         let (runtime, mut store_wrapper) = setup(DB_NAME, true, true, account_id, NoAuthorization);

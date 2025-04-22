@@ -354,7 +354,7 @@ const WorkersPageContent = () => {
             };
           } else {
             const org = authenticatedUser.memberOf.find(
-              (memberOf) => memberOf.org.accountGroupId === webId,
+              (memberOf) => memberOf.org.webId === webId,
             )?.org;
             if (!org) {
               throw new Error(`Could not find org with id ${webId}`);

@@ -1,14 +1,6 @@
--- Drop indexes (except those referenced by foreign keys)
-DROP INDEX idx_actor_role_role_id;
-DROP INDEX idx_actor_role_actor_id;
-DROP INDEX idx_role_actor_group_id;
-DROP INDEX idx_actor_group_hierarchy_child;
-DROP INDEX idx_actor_group_hierarchy_parent;
-DROP INDEX idx_actor_group_hierarchy_single_parent;
-
 -- Drop relationship tables first
 DROP TABLE actor_role;
-DROP TABLE actor_group_hierarchy;
+DROP TABLE team_hierarchy;
 
 -- Now it's safe to drop the remaining indexes
 DROP INDEX idx_role_id;
@@ -19,20 +11,20 @@ DROP TRIGGER role_register_trigger ON role;
 DROP FUNCTION register_role();
 DROP TABLE role;
 
-DROP TRIGGER machine_delete_trigger ON machine;
-DROP TRIGGER machine_register_trigger ON machine;
-DROP FUNCTION register_machine();
-DROP TABLE machine;
+DROP TRIGGER machine_actor_delete_trigger ON machine_actor;
+DROP TRIGGER machine_actor_register_trigger ON machine_actor;
+DROP FUNCTION register_machine_actor();
+DROP TABLE machine_actor;
 
-DROP TRIGGER ai_delete_trigger ON ai;
-DROP TRIGGER ai_register_trigger ON ai;
-DROP FUNCTION register_ai();
-DROP TABLE ai;
+DROP TRIGGER ai_actor_delete_trigger ON ai_actor;
+DROP TRIGGER ai_actor_register_trigger ON ai_actor;
+DROP FUNCTION register_ai_actor();
+DROP TABLE ai_actor;
 
-DROP TRIGGER user_delete_trigger ON "user";
-DROP TRIGGER user_register_trigger ON "user";
-DROP FUNCTION register_user();
-DROP TABLE "user";
+DROP TRIGGER user_actor_delete_trigger ON user_actor;
+DROP TRIGGER user_actor_register_trigger ON user_actor;
+DROP FUNCTION register_user_actor();
+DROP TABLE user_actor;
 
 -- Drop specialized actor group tables
 DROP TRIGGER team_prevent_delete_trigger ON team;

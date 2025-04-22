@@ -34,7 +34,7 @@ export const useGetOwnerForEntity = () => {
 
       const owner =
         users.find((user) => webId === user.accountId) ??
-        orgs.find((org) => webId === org.accountGroupId);
+        orgs.find((org) => webId === org.webId);
 
       if (!owner) {
         Sentry.captureException(

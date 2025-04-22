@@ -12,8 +12,8 @@
 -- 4. Trigger-based integrity: To maintain relationships between entities
 --
 -- Major hierarchies:
--- 1. Group Hierarchy: actor_group → web/team + actor_group_hierarchy relationships
--- 2. Principal Hierarchy: principal → actor/group, actor → user/machine, principal → role
+-- 1. Group Hierarchy: actor_group → web/team + team_hierarchy relationships
+-- 2. Principal Hierarchy: principal → actor/group, actor → user/machine/ai, principal → role
 --
 -- NOTE: All groups are also principals, allowing them to be subjects in authorization
 
@@ -45,7 +45,8 @@ $$ LANGUAGE plpgsql;
 -- ==========================================
 
 -- Principal is the abstract base type for all security principals
--- It has concrete subtypes: user, machine, ai, team, role
+-- It has concrete subtypes: user_actor, machine_actor, ai_actor, web, team, role.
+-- The principal type is used to determine the type of the principal.
 CREATE TYPE principal_type AS ENUM (
     'user', 'machine', 'ai', 'web', 'team', 'web_role', 'team_role'
 );
@@ -67,13 +68,16 @@ EXECUTE FUNCTION prevent_direct_modification();
 -- ==========================================
 
 -- Actor is a subtype of principal that represents entities that can perform actions
--- It's the parent table for user, machine, and ai concrete types
+-- It's the parent table for user_actor, machine_actor, and ai_actor concrete types
 CREATE TABLE actor (
     id UUID PRIMARY KEY,
     principal_type PRINCIPAL_TYPE NOT NULL,
     FOREIGN KEY (id, principal_type) REFERENCES principal (id, principal_type) ON DELETE CASCADE,
     CHECK (principal_type IN ('user', 'machine', 'ai'))
 );
+
+CREATE UNIQUE INDEX idx_actor_id ON actor (id);
+
 
 -- Prevent direct operations on actor (abstract) table
 CREATE TRIGGER prevent_actor_modification
@@ -182,6 +186,8 @@ CREATE TABLE team (
     parent_id UUID NOT NULL REFERENCES actor_group (id) ON DELETE CASCADE
 );
 
+CREATE UNIQUE INDEX idx_team_id ON team (id);
+
 -- Team registration trigger - creates actor group record when team is created
 CREATE FUNCTION register_team()
 RETURNS TRIGGER AS $$
@@ -208,7 +214,7 @@ EXECUTE FUNCTION prevent_direct_delete_from_concrete();
 
 -- Team hierarchy represents parent-child relationships between teams
 -- This allows teams to have multiple parents, forming a directed acyclic graph
-CREATE TABLE actor_group_hierarchy (
+CREATE TABLE team_hierarchy (
     parent_id UUID NOT NULL REFERENCES actor_group (id) ON DELETE CASCADE,
     child_id UUID NOT NULL REFERENCES team (id) ON DELETE CASCADE,
     depth INTEGER NOT NULL DEFAULT 1,
@@ -217,7 +223,7 @@ CREATE TABLE actor_group_hierarchy (
 );
 
 -- Create an index to efficiently find the primary parent (depth=1) for each team
-CREATE UNIQUE INDEX idx_actor_group_hierarchy_single_parent ON actor_group_hierarchy (
+CREATE UNIQUE INDEX idx_team_hierarchy_single_parent ON team_hierarchy (
     child_id
 ) WHERE (depth = 1);
 
@@ -226,17 +232,16 @@ CREATE UNIQUE INDEX idx_actor_group_hierarchy_single_parent ON actor_group_hiera
 -- ==========================================
 
 -- ---------------
--- User
+-- user_actor
 -- ---------------
--- User is a concrete principal and actor
--- The relationship chain: user → actor → principal
-CREATE TABLE "user" (
+-- A concrete principal and actor
+-- The relationship chain: user_actor → actor → principal
+CREATE TABLE user_actor (
     id UUID PRIMARY KEY REFERENCES actor (id) ON DELETE CASCADE
-    -- User-specific fields can be added here
 );
 
--- User registration trigger - creates actor record when user is created
-CREATE FUNCTION register_user()
+-- user_actor registration trigger - creates actor record when user_actor is created
+CREATE FUNCTION register_user_actor()
 RETURNS TRIGGER AS $$
 BEGIN
     -- Create intermediate actor record with the same ID
@@ -247,28 +252,27 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER user_register_trigger
-BEFORE INSERT ON "user"
-FOR EACH ROW EXECUTE FUNCTION register_user();
+CREATE TRIGGER user_actor_register_trigger
+BEFORE INSERT ON user_actor
+FOR EACH ROW EXECUTE FUNCTION register_user_actor();
 
--- User deletion trigger - prevents direct deletion from user table
-CREATE TRIGGER user_delete_trigger
-BEFORE DELETE ON "user"
+-- user_actor deletion trigger - prevents direct deletion from user_actor table
+CREATE TRIGGER user_actor_delete_trigger
+BEFORE DELETE ON user_actor
 FOR EACH ROW WHEN (pg_trigger_depth() = 0)  -- Only prevent direct deletions, allow cascaded ones
 EXECUTE FUNCTION prevent_direct_delete_from_concrete();
 
 -- ---------------
--- Machine
+-- machine_actor
 -- ---------------
--- Machine is a concrete principal and actor
--- The relationship chain: machine → actor → principal
-CREATE TABLE machine (
+-- A concrete principal and actor
+-- The relationship chain: machine_actor → actor → principal
+CREATE TABLE machine_actor (
     id UUID PRIMARY KEY REFERENCES actor (id) ON DELETE CASCADE
-    -- Machine-specific fields can be added here
 );
 
--- Machine registration trigger - creates actor record when machine is created
-CREATE FUNCTION register_machine()
+-- machine_actor registration trigger - creates actor record when machine_actor is created
+CREATE FUNCTION register_machine_actor()
 RETURNS TRIGGER AS $$
 BEGIN
     -- Create intermediate actor record with the same ID
@@ -278,28 +282,27 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER machine_register_trigger
-BEFORE INSERT ON machine
-FOR EACH ROW EXECUTE FUNCTION register_machine();
+CREATE TRIGGER machine_actor_register_trigger
+BEFORE INSERT ON machine_actor
+FOR EACH ROW EXECUTE FUNCTION register_machine_actor();
 
--- Machine deletion trigger - prevents direct deletion from machine table
-CREATE TRIGGER machine_delete_trigger
-BEFORE DELETE ON machine
+-- machine_actor deletion trigger - prevents direct deletion from machine_actor table
+CREATE TRIGGER machine_actor_delete_trigger
+BEFORE DELETE ON machine_actor
 FOR EACH ROW WHEN (pg_trigger_depth() = 0)  -- Only prevent direct deletions, allow cascaded ones
 EXECUTE FUNCTION prevent_direct_delete_from_concrete();
 
 -- ---------------
 -- AI
 -- ---------------
--- AI is a concrete principal and actor
--- The relationship chain: ai → actor → principal
-CREATE TABLE ai (
+-- A concrete principal and actor
+-- The relationship chain: ai_actor → actor → principal
+CREATE TABLE ai_actor (
     id UUID PRIMARY KEY REFERENCES actor (id) ON DELETE CASCADE
-    -- AI-specific fields can be added here
 );
 
--- AI registration trigger - creates actor record when ai is created
-CREATE FUNCTION register_ai()
+-- ai_actor registration trigger - creates actor record when ai_actor is created
+CREATE FUNCTION register_ai_actor()
 RETURNS TRIGGER AS $$
 BEGIN
     -- Create intermediate actor record with the same ID
@@ -309,13 +312,13 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER ai_register_trigger
-BEFORE INSERT ON ai
-FOR EACH ROW EXECUTE FUNCTION register_ai();
+CREATE TRIGGER ai_actor_register_trigger
+BEFORE INSERT ON ai_actor
+FOR EACH ROW EXECUTE FUNCTION register_ai_actor();
 
--- AI deletion trigger - prevents direct deletion from ai table
-CREATE TRIGGER ai_delete_trigger
-BEFORE DELETE ON ai
+-- ai_actor deletion trigger - prevents direct deletion from ai_actor table
+CREATE TRIGGER ai_actor_delete_trigger
+BEFORE DELETE ON ai_actor
 FOR EACH ROW WHEN (pg_trigger_depth() = 0)  -- Only prevent direct deletions, allow cascaded ones
 EXECUTE FUNCTION prevent_direct_delete_from_concrete();
 
@@ -328,6 +331,7 @@ CREATE TABLE role (
     id UUID NOT NULL,
     principal_type PRINCIPAL_TYPE NOT NULL,
     actor_group_id UUID NOT NULL REFERENCES actor_group (id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
     PRIMARY KEY (id, principal_type),
     FOREIGN KEY (id, principal_type) REFERENCES principal (id, principal_type) ON DELETE CASCADE,
     CHECK (principal_type IN ('web_role', 'team_role'))
@@ -367,17 +371,3 @@ CREATE TABLE actor_role (
     role_id UUID NOT NULL REFERENCES role (id) ON DELETE CASCADE,
     PRIMARY KEY (actor_id, role_id)
 );
-
--- ==========================================
--- INDEXES
--- ==========================================
-
--- Indexes for actor group hierarchy queries
--- These improve performance when looking up relationships
-CREATE INDEX idx_actor_group_hierarchy_parent ON actor_group_hierarchy (parent_id);
-CREATE INDEX idx_actor_group_hierarchy_child ON actor_group_hierarchy (child_id);
-
--- Indexes for roles and role assignments
-CREATE INDEX idx_role_actor_group_id ON role (actor_group_id);
-CREATE INDEX idx_actor_role_actor_id ON actor_role (actor_id);
-CREATE INDEX idx_actor_role_role_id ON actor_role (role_id);

@@ -250,7 +250,7 @@ mod tests {
     use type_system::{
         knowledge::entity::id::{EntityId, EntityUuid},
         ontology::id::{BaseUrl, OntologyTypeVersion},
-        web::WebId,
+        principal::actor_group::WebId,
     };
     use uuid::Uuid;
 

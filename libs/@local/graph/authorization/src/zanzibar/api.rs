@@ -8,8 +8,10 @@ use type_system::{
     ontology::{
         data_type::DataTypeUuid, entity_type::EntityTypeUuid, property_type::PropertyTypeUuid,
     },
-    provenance::ActorEntityUuid,
-    web::{ActorGroupId, WebId},
+    principal::{
+        actor::ActorEntityUuid,
+        actor_group::{ActorGroupEntityUuid, WebId},
+    },
 };
 
 use crate::{
@@ -97,7 +99,7 @@ where
         &self,
         actor: ActorEntityUuid,
         permission: AccountGroupPermission,
-        account_group: ActorGroupId,
+        account_group: ActorGroupEntityUuid,
         consistency: Consistency<'_>,
     ) -> Result<CheckResponse, Report<CheckError>> {
         self.backend
@@ -108,11 +110,11 @@ where
     #[tracing::instrument(level = "info", skip(self))]
     async fn get_account_group_relations(
         &self,
-        account_group: ActorGroupId,
+        account_group: ActorGroupEntityUuid,
         consistency: Consistency<'_>,
     ) -> Result<Vec<AccountGroupRelationAndSubject>, Report<ReadError>> {
         self.backend
-            .read_relations::<(ActorGroupId, AccountGroupRelationAndSubject)>(
+            .read_relations::<(ActorGroupEntityUuid, AccountGroupRelationAndSubject)>(
                 RelationshipFilter::from_resource(account_group),
                 consistency,
             )
@@ -129,7 +131,7 @@ where
         relationships: impl IntoIterator<
             Item = (
                 ModifyRelationshipOperation,
-                ActorGroupId,
+                ActorGroupEntityUuid,
                 AccountGroupRelationAndSubject,
             ),
             IntoIter: Send,

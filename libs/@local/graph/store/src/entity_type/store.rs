@@ -17,8 +17,7 @@ use type_system::{
         property_type::PropertyType,
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
-    provenance::ActorEntityUuid,
-    web::WebId,
+    principal::{actor::ActorEntityUuid, actor_group::WebId},
 };
 
 use crate::{

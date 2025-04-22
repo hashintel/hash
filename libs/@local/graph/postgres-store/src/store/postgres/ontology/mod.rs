@@ -24,7 +24,7 @@ use type_system::{
         id::{BaseUrl, OntologyTypeUuid, VersionedUrl},
         provenance::OntologyOwnership,
     },
-    web::WebId,
+    principal::actor_group::WebId,
 };
 
 use crate::store::{

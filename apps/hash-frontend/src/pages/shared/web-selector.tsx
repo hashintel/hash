@@ -80,7 +80,7 @@ export const WebSelector = ({
         value: authenticatedUser.accountId as WebId,
       },
       ...authenticatedUser.memberOf.map(
-        ({ org: { accountGroupId, name, hasAvatar } }) => ({
+        ({ org: { webId, name, hasAvatar } }) => ({
           avatarComponent: (
             <Avatar
               size={avatarSize ?? 26}
@@ -95,7 +95,7 @@ export const WebSelector = ({
             />
           ),
           label: name,
-          value: accountGroupId as WebId,
+          value: webId,
         }),
       ),
     ];

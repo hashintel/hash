@@ -195,7 +195,7 @@ export const TypesTable: FunctionComponent<{
   const internalWebIds = useMemo(() => {
     return [
       authenticatedUser.accountId,
-      ...authenticatedUser.memberOf.map(({ org }) => org.accountGroupId),
+      ...authenticatedUser.memberOf.map(({ org }) => org.webId),
     ];
   }, [authenticatedUser]);
 

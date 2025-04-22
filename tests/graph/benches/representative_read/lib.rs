@@ -48,7 +48,7 @@ use hash_graph_authorization::NoAuthorization;
 use hash_graph_store::subgraph::edges::{
     EdgeResolveDepths, GraphResolveDepths, OutgoingEdgeResolveDepth,
 };
-use type_system::{knowledge::entity::id::EntityUuid, provenance::ActorEntityUuid};
+use type_system::principal::actor::ActorEntityUuid;
 use uuid::Uuid;
 
 use self::seed::setup_and_extract_samples;
@@ -60,9 +60,9 @@ const DB_NAME: &str = "representative_read";
 fn bench_representative_read_entity(crit: &mut Criterion) {
     // We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
     // parameter argument to criterion and get comparison analysis
-    let account_id = ActorEntityUuid::new(EntityUuid::new(
+    let account_id = ActorEntityUuid::new(
         Uuid::from_str("bf5a9ef5-dc3b-43cf-a291-6210c0321eba").expect("invalid uuid"),
-    ));
+    );
 
     let group_id = "representative_read_entity";
     let mut group = crit.benchmark_group(group_id);
@@ -98,9 +98,9 @@ fn bench_representative_read_entity(crit: &mut Criterion) {
 fn bench_representative_read_multiple_entities(crit: &mut Criterion) {
     // We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
     // parameter argument to criterion and get comparison analysis
-    let account_id = ActorEntityUuid::new(EntityUuid::new(
+    let account_id = ActorEntityUuid::new(
         Uuid::from_str("bf5a9ef5-dc3b-43cf-a291-6210c0321eba").expect("invalid uuid"),
-    ));
+    );
 
     let group_id = "representative_read_multiple_entities";
     let mut group = crit.benchmark_group(group_id);
@@ -395,9 +395,9 @@ fn bench_representative_read_multiple_entities(crit: &mut Criterion) {
 fn bench_representative_read_entity_type(crit: &mut Criterion) {
     // We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
     // parameter argument to criterion and get comparison analysis
-    let account_id = ActorEntityUuid::new(EntityUuid::new(
+    let account_id = ActorEntityUuid::new(
         Uuid::from_str("bf5a9ef5-dc3b-43cf-a291-6210c0321eba").expect("invalid uuid"),
-    ));
+    );
 
     let group_id = "representative_read_entity_type";
     let mut group = crit.benchmark_group(group_id);

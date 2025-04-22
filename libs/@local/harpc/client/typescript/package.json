@@ -23,33 +23,33 @@
     "test:unit": "vitest --run"
   },
   "dependencies": {
-    "@chainsafe/libp2p-noise": "16.1.0",
+    "@chainsafe/libp2p-noise": "16.1.2",
     "@chainsafe/libp2p-yamux": "7.0.1",
-    "@libp2p/crypto": "5.1.0",
-    "@libp2p/identify": "3.0.28",
-    "@libp2p/interface": "2.8.0",
-    "@libp2p/ping": "2.0.28",
-    "@libp2p/tcp": "10.1.9",
+    "@libp2p/crypto": "5.1.1",
+    "@libp2p/identify": "3.0.29",
+    "@libp2p/interface": "2.9.0",
+    "@libp2p/ping": "2.0.29",
+    "@libp2p/tcp": "10.1.10",
     "@multiformats/dns": "1.0.6",
     "@multiformats/multiaddr": "12.4.0",
     "effect": "3.13.11",
     "it-stream-types": "2.0.2",
-    "libp2p": "2.8.3",
+    "libp2p": "2.8.5",
     "multiformats": "13.3.2",
     "uint8arraylist": "2.4.8"
   },
   "devDependencies": {
     "@effect/platform": "0.79.2",
     "@effect/platform-node": "0.75.2",
-    "@effect/vitest": "0.20.8",
+    "@effect/vitest": "0.20.11",
     "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@rust/harpc-wire-protocol": "0.0.0-private",
     "@types/node": "22.14.1",
-    "@vitest/coverage-istanbul": "3.1.1",
+    "@vitest/coverage-istanbul": "3.1.2",
     "eslint": "9.20.1",
     "rimraf": "6.0.1",
     "typescript": "5.7.3",
-    "vitest": "3.1.1"
+    "vitest": "3.1.2"
   }
 }

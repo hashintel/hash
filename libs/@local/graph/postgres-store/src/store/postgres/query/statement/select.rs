@@ -1206,7 +1206,7 @@ mod tests {
         use type_system::{
             knowledge::entity::id::{EntityId, EntityUuid},
             ontology::id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
-            web::WebId,
+            principal::actor_group::WebId,
         };
 
         use super::*;
@@ -1272,8 +1272,8 @@ mod tests {
                 &[
                     &pinned_timestamp,
                     &temporal_axes.variable_interval(),
-                    &entity_id.web_id.as_uuid(),
-                    &entity_id.entity_uuid.as_uuid(),
+                    &Uuid::from(entity_id.web_id),
+                    &Uuid::from(entity_id.entity_uuid),
                 ],
             );
         }

@@ -4,6 +4,7 @@ import {
   type EntityTypeWithMetadata,
   extractWebIdFromEntityId,
   type PropertyTypeWithMetadata,
+  type WebId,
 } from "@blockprotocol/type-system";
 import { CaretDownSolidIcon, Chip } from "@hashintel/design-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
@@ -120,14 +121,14 @@ export const BulkActionsDropdown: FunctionComponent<{
     () =>
       selectedItems.filter((item) => {
         const itemWebId = isType(item)
-          ? item.metadata.provenance.edition.createdById
+          ? (item.metadata.provenance.edition.createdById as WebId)
           : extractWebIdFromEntityId(item.metadata.recordId.entityId);
 
         // The item has to be owned by the user or an org the user is a member of
         if (
           ![
             authenticatedUser.accountId,
-            ...authenticatedUser.memberOf.map(({ org }) => org.accountGroupId),
+            ...authenticatedUser.memberOf.map(({ org }) => org.webId),
           ].includes(itemWebId)
         ) {
           /**

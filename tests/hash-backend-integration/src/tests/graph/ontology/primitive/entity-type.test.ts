@@ -256,7 +256,7 @@ describe("Entity type CRU", () => {
     const authentication = { actorId: testUser.accountId };
 
     createdEntityType = await createEntityType(graphContext, authentication, {
-      webId: testOrg.accountGroupId as WebId,
+      webId: testOrg.webId,
       schema: entityTypeSchema,
       relationships: [
         {

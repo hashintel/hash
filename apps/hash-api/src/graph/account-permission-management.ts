@@ -1,6 +1,6 @@
 import type {
   ActorEntityUuid,
-  ActorGroupId,
+  ActorGroupEntityUuid,
   WebId,
 } from "@blockprotocol/type-system";
 import type {
@@ -12,7 +12,7 @@ import type {
 import type { ImpureGraphFunction } from "./context-types";
 
 export const addAccountGroupMember: ImpureGraphFunction<
-  { accountId: ActorEntityUuid; accountGroupId: ActorGroupId },
+  { accountId: ActorEntityUuid; accountGroupId: ActorGroupEntityUuid },
   Promise<boolean>
 > = async ({ graphApi }, { actorId }, params) => {
   await graphApi.addAccountGroupMember(
@@ -25,7 +25,7 @@ export const addAccountGroupMember: ImpureGraphFunction<
 };
 
 export const removeAccountGroupMember: ImpureGraphFunction<
-  { accountId: ActorEntityUuid; accountGroupId: ActorGroupId },
+  { accountId: ActorEntityUuid; accountGroupId: ActorGroupEntityUuid },
   Promise<boolean>
 > = async ({ graphApi }, { actorId }, params) => {
   await graphApi.removeAccountGroupMember(
@@ -47,15 +47,14 @@ export const createAccount: ImpureGraphFunction<
 
 export const createAccountGroup: ImpureGraphFunction<
   InsertAccountGroupIdParams,
-  Promise<ActorGroupId>
+  Promise<ActorGroupEntityUuid>
 > = async ({ graphApi }, { actorId }, params) =>
   graphApi
     .createAccountGroup(actorId, params)
-    .then(({ data }) => data as ActorGroupId);
+    .then(({ data }) => data as ActorGroupEntityUuid);
 
 export const createWeb: ImpureGraphFunction<
-  { webId: WebId; owner: WebOwnerSubject },
-  Promise<void>
-> = async ({ graphApi }, { actorId }, params) => {
-  await graphApi.createWeb(actorId, params);
-};
+  { webId?: WebId; owner: WebOwnerSubject },
+  Promise<WebId>
+> = async ({ graphApi }, { actorId }, params) =>
+  graphApi.createWeb(actorId, params).then(({ data }) => data as WebId);

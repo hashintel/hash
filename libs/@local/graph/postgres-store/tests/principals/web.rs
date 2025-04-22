@@ -2,12 +2,14 @@ use core::{assert_matches::assert_matches, error::Error};
 
 use hash_graph_authorization::policies::{
     action::ActionName,
-    principal::{PrincipalId, group::ActorGroupId},
     store::{CreateWebParameter, PrincipalStore as _, error::WebCreationError},
 };
 use hash_graph_postgres_store::permissions::PrincipalError;
 use pretty_assertions::assert_eq;
-use type_system::web::WebId;
+use type_system::principal::{
+    PrincipalId,
+    actor_group::{ActorGroupId, WebId},
+};
 use uuid::Uuid;
 
 use crate::DatabaseTestWrapper;
@@ -76,7 +78,7 @@ async fn create_web_with_duplicate_id() -> Result<(), Box<dyn Error>> {
         .create_web(
             actor_id,
             CreateWebParameter {
-                id: Some(web_id.into_uuid()),
+                id: Some(web_id.into()),
             },
         )
         .await;

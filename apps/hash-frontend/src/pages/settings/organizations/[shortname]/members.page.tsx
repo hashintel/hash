@@ -1,3 +1,4 @@
+import type { ActorGroupEntityUuid } from "@blockprotocol/type-system";
 import {
   styled,
   TableBody,
@@ -86,7 +87,7 @@ const OrgMembersPage: NextPageWithLayout = () => {
               )
               .map((membership) => (
                 <MemberRow
-                  accountGroupId={org.accountGroupId}
+                  accountGroupId={org.webId as ActorGroupEntityUuid}
                   key={membership.linkEntity.metadata.recordId.entityId}
                   membership={membership}
                   self={

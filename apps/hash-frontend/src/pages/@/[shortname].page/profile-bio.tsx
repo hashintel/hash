@@ -36,7 +36,7 @@ export const ProfileBio: FunctionComponent<{
   isEditable: boolean;
 }> = ({ profile, refetchProfile, isEditable }) => {
   const webId = (
-    profile.kind === "user" ? profile.accountId : profile.accountGroupId
+    profile.kind === "user" ? profile.accountId : profile.webId
   ) as WebId;
 
   const { data, loading, refetch } = useQuery<

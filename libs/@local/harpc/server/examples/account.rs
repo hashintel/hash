@@ -48,9 +48,8 @@ use harpc_types::{
     procedure::ProcedureId, response_kind::ResponseKind, subsystem::SubsystemId, version::Version,
 };
 use multiaddr::multiaddr;
-use type_system::{knowledge::entity::id::EntityUuid, provenance::ActorEntityUuid};
+use type_system::principal::actor::ActorEntityUuid;
 use uuid::Uuid;
-
 #[derive(Debug, Copy, Clone)]
 enum System {
     Account,
@@ -160,7 +159,7 @@ where
         scope: Self::ExecutionScope,
         payload: CreateAccount,
     ) -> Result<ActorEntityUuid, Report<AccountError>> {
-        Ok(ActorEntityUuid::new(EntityUuid::new(Uuid::new_v4())))
+        Ok(ActorEntityUuid::new(Uuid::new_v4()))
     }
 }
 

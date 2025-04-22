@@ -19,9 +19,7 @@ export const useUpdateProfileAvatar = (props: {
   const existingAvatarImageEntity = profile?.hasAvatar?.imageEntity;
 
   const webId =
-    profile?.kind === "user"
-      ? (profile.accountId as WebId)
-      : (profile?.accountGroupId as WebId);
+    profile?.kind === "user" ? (profile.accountId as WebId) : profile?.webId;
 
   const { uploadFile } = useFileUploads();
   const { refetch: refetchUserAndOrgs } = useAuthInfo();

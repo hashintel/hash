@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 use type_system::{
-    knowledge::entity::id::EntityUuid, provenance::ActorEntityUuid, web::ActorGroupId,
+    knowledge::entity::id::EntityUuid,
+    principal::{actor::ActorEntityUuid, actor_group::ActorGroupEntityUuid},
 };
-use uuid::Uuid;
 
 use crate::zanzibar::{
     Permission, Relation,
@@ -15,7 +15,7 @@ pub enum AccountGroupNamespace {
     AccountGroup,
 }
 
-impl Resource for ActorGroupId {
+impl Resource for ActorGroupEntityUuid {
     type Id = Self;
     type Kind = AccountGroupNamespace;
 
@@ -42,7 +42,7 @@ pub enum AccountGroupResourceRelation {
     Member,
 }
 
-impl Relation<ActorGroupId> for AccountGroupResourceRelation {}
+impl Relation<ActorGroupEntityUuid> for AccountGroupResourceRelation {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
@@ -52,7 +52,7 @@ pub enum AccountGroupPermission {
     RemoveMember,
 }
 
-impl Permission<ActorGroupId> for AccountGroupPermission {}
+impl Permission<ActorGroupEntityUuid> for AccountGroupPermission {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", tag = "type", content = "id")]
@@ -69,7 +69,7 @@ pub enum AccountGroupSubjectNamespace {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum AccountGroupSubjectId {
-    Uuid(Uuid),
+    Uuid(EntityUuid),
 }
 
 impl Resource for AccountGroupSubject {
@@ -79,8 +79,8 @@ impl Resource for AccountGroupSubject {
     #[expect(refining_impl_trait)]
     fn from_parts(kind: Self::Kind, id: Self::Id) -> Result<Self, !> {
         Ok(match (kind, id) {
-            (AccountGroupSubjectNamespace::Account, AccountGroupSubjectId::Uuid(id)) => {
-                Self::Account(ActorEntityUuid::new(EntityUuid::new(id)))
+            (AccountGroupSubjectNamespace::Account, AccountGroupSubjectId::Uuid(uuid)) => {
+                Self::Account(ActorEntityUuid::new(uuid))
             }
         })
     }
@@ -89,7 +89,7 @@ impl Resource for AccountGroupSubject {
         match self {
             Self::Account(id) => (
                 AccountGroupSubjectNamespace::Account,
-                AccountGroupSubjectId::Uuid(id.into_uuid()),
+                AccountGroupSubjectId::Uuid(id.into()),
             ),
         }
     }
@@ -135,9 +135,9 @@ pub enum AccountGroupRelationAndSubject {
     },
 }
 
-impl Relationship for (ActorGroupId, AccountGroupRelationAndSubject) {
+impl Relationship for (ActorGroupEntityUuid, AccountGroupRelationAndSubject) {
     type Relation = AccountGroupResourceRelation;
-    type Resource = ActorGroupId;
+    type Resource = ActorGroupEntityUuid;
     type Subject = AccountGroupSubject;
     type SubjectSet = !;
 

@@ -76,8 +76,7 @@ use type_system::{
         },
         id::{BaseUrl, OntologyTypeUuid, OntologyTypeVersion, VersionedUrl},
     },
-    provenance::ActorEntityUuid,
-    web::WebId,
+    principal::{actor::ActorEntityUuid, actor_group::WebId},
 };
 use uuid::Uuid;
 
@@ -853,7 +852,7 @@ where
                 draft_id: params.draft.then(|| DraftId::new(Uuid::new_v4())),
             };
 
-            if entity_id.entity_uuid.as_uuid() != entity_id.web_id.as_uuid() {
+            if entity_id.entity_uuid != entity_id.web_id.into() {
                 checked_web_ids.insert(entity_id.web_id);
             }
 

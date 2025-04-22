@@ -14,18 +14,17 @@ use std::sync::LazyLock;
 use hash_graph_authorization::policies::{
     Authorized, ContextBuilder, PartialResourceId, PolicySet, Request, RequestContext,
     action::ActionName,
-    principal::{
-        group::ActorGroupId,
-        role::{RoleId, WebRoleId},
-    },
     resource::{EntityResource, EntityTypeId, EntityTypeResource},
     store::{MemoryPolicyStore, PolicyStore},
 };
 use type_system::{
     knowledge::entity::id::EntityUuid,
     ontology::VersionedUrl,
-    provenance::{ActorId, MachineId, UserId},
-    web::WebId,
+    principal::{
+        actor::{ActorId, MachineId, UserId},
+        actor_group::{ActorGroupId, WebId},
+        role::{RoleId, RoleName, WebRoleId},
+    },
 };
 use uuid::Uuid;
 
@@ -48,12 +47,16 @@ impl TestWeb {
         context: &mut ContextBuilder,
     ) -> Result<Self, Box<dyn Error>> {
         let web_id = policy_store.create_web()?;
-        let admin_role = policy_store.create_web_role(web_id)?;
-        let member_role = policy_store.create_web_role(web_id)?;
+        let admin_role = policy_store.create_web_role(web_id, RoleName::Administrator)?;
+        let member_role = policy_store.create_web_role(web_id, RoleName::Member)?;
 
         let machine = TestMachine::generate(web_id, policy_store, context)?;
         policy_store
-            .assign_role(ActorId::Machine(machine.id), RoleId::Web(member_role))
+            .assign_role(
+                ActorId::Machine(machine.id),
+                ActorGroupId::Web(web_id),
+                RoleName::Member,
+            )
             .expect("should be able to assign role");
 
         for policy in permit_admin_web(web_id, admin_role) {
@@ -96,13 +99,17 @@ impl TestUser {
         let web = TestWeb::generate(policy_store, context)?;
         let id = policy_store.create_user(web.id)?;
         let entity = EntityResource {
-            id: EntityUuid::new(id.into_uuid()),
+            id: id.into(),
             web_id: web.id,
             entity_type: Cow::Borrowed(ENTITY_TYPES.as_slice()),
         };
 
         policy_store
-            .assign_role(ActorId::User(id), RoleId::Web(web.admin_role))
+            .assign_role(
+                ActorId::User(id),
+                ActorGroupId::Web(web.id),
+                RoleName::Administrator,
+            )
             .expect("should be able to assign role");
         context.add_entity(&entity);
 
@@ -133,7 +140,7 @@ impl TestMachine {
 
         let id = policy_store.create_machine()?;
         let entity = EntityResource {
-            id: EntityUuid::new(id.into_uuid()),
+            id: id.into(),
             web_id,
             entity_type: Cow::Borrowed(ENTITY_TYPES.as_slice()),
         };
@@ -170,7 +177,11 @@ impl TestSystem {
         }
 
         let machine = TestMachine::generate(web.id, policy_store, context)?;
-        policy_store.assign_role(ActorId::Machine(machine.id), RoleId::Web(web.admin_role))?;
+        policy_store.assign_role(
+            ActorId::Machine(machine.id),
+            ActorGroupId::Web(web.id),
+            RoleName::Administrator,
+        )?;
         for policy in permit_instantiate(machine.id) {
             policy_store.store_policy(policy)?;
         }
@@ -179,14 +190,15 @@ impl TestSystem {
 
         let hash_instance_admins = policy_store.create_team(ActorGroupId::Web(web.id))?;
         let hash_instance_admins_admin_role =
-            policy_store.create_team_role(hash_instance_admins)?;
+            policy_store.create_team_role(hash_instance_admins, RoleName::Administrator)?;
         let hash_instance_admins_member_role =
-            policy_store.create_team_role(hash_instance_admins)?;
+            policy_store.create_team_role(hash_instance_admins, RoleName::Member)?;
 
         policy_store
             .assign_role(
                 ActorId::Machine(hash_ai_machine.id),
-                RoleId::Team(hash_instance_admins_admin_role),
+                ActorGroupId::Team(hash_instance_admins),
+                RoleName::Administrator,
             )
             .expect("should be able to assign role");
         let hash_instance_entity = EntityResource {
@@ -504,11 +516,16 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
     let org_machine_id = policy_store.create_machine()?;
     policy_store.assign_role(
         ActorId::Machine(org_machine_id),
-        RoleId::Web(org_web.admin_role),
+        ActorGroupId::Web(org_web.id),
+        RoleName::Administrator,
     )?;
 
     let user = TestUser::generate(&mut policy_store, &mut context)?;
-    policy_store.assign_role(ActorId::User(user.id), RoleId::Web(org_web.admin_role))?;
+    policy_store.assign_role(
+        ActorId::User(user.id),
+        ActorGroupId::Web(org_web.id),
+        RoleName::Administrator,
+    )?;
 
     let web_type = EntityTypeResource {
         web_id: org_web.id,
@@ -551,9 +568,7 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
             &Request {
                 actor: ActorId::Machine(org_web.machine.id),
                 action: ActionName::View,
-                resource: Some(&PartialResourceId::Entity(Some(EntityUuid::new(
-                    user.web.machine.id.into_uuid()
-                )))),
+                resource: Some(&PartialResourceId::Entity(Some(user.web.machine.id.into()))),
                 context: RequestContext::default(),
             },
             &context,
@@ -721,7 +736,8 @@ fn instance_admin_with_access_permissions() -> Result<(), Box<dyn Error>> {
     let user = TestUser::generate(&mut policy_store, &mut context)?;
     policy_store.assign_role(
         ActorId::User(user.id),
-        system.hash_instance_admins_admin_role,
+        system.hash_instance_admins,
+        RoleName::Administrator,
     )?;
 
     policy_store.extend_context(&mut context, ActorId::User(user.id))?;
@@ -773,7 +789,8 @@ fn partial_resource_evaluation() -> Result<(), Box<dyn Error>> {
     let user = TestUser::generate(&mut policy_store, &mut context)?;
     policy_store.assign_role(
         ActorId::User(user.id),
-        system.hash_instance_admins_admin_role,
+        system.hash_instance_admins,
+        RoleName::Administrator,
     )?;
 
     policy_store.extend_context(&mut context, ActorId::User(user.id))?;

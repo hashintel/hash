@@ -252,7 +252,7 @@ impl<'p> Filter<'p, Entity> {
                 path: EntityQueryPath::WebId,
             }),
             Some(FilterExpression::Parameter {
-                parameter: Parameter::Uuid(entity_id.web_id.into_uuid()),
+                parameter: Parameter::Uuid(entity_id.web_id.into()),
                 convert: None,
             }),
         );
@@ -261,7 +261,7 @@ impl<'p> Filter<'p, Entity> {
                 path: EntityQueryPath::Uuid,
             }),
             Some(FilterExpression::Parameter {
-                parameter: Parameter::Uuid(entity_id.entity_uuid.into_uuid()),
+                parameter: Parameter::Uuid(entity_id.entity_uuid.into()),
                 convert: None,
             }),
         );
@@ -275,7 +275,7 @@ impl<'p> Filter<'p, Entity> {
                         path: EntityQueryPath::DraftId,
                     }),
                     Some(FilterExpression::Parameter {
-                        parameter: Parameter::Uuid(draft_id.into_uuid()),
+                        parameter: Parameter::Uuid(draft_id.into()),
                         convert: None,
                     }),
                 ),
@@ -522,7 +522,7 @@ impl TryFrom<PolicyExpressionTree> for Filter<'_, Entity> {
                         path: EntityQueryPath::Uuid,
                     }),
                     Some(FilterExpression::Parameter {
-                        parameter: Parameter::Uuid(entity_uuid.into_uuid()),
+                        parameter: Parameter::Uuid(entity_uuid.into()),
                         convert: None,
                     }),
                 ))
@@ -533,7 +533,7 @@ impl TryFrom<PolicyExpressionTree> for Filter<'_, Entity> {
                     path: EntityQueryPath::WebId,
                 }),
                 Some(FilterExpression::Parameter {
-                    parameter: Parameter::Uuid(web_id.into_uuid()),
+                    parameter: Parameter::Uuid(web_id.into()),
                     convert: None,
                 }),
             )),
@@ -597,7 +597,7 @@ impl TryFrom<PolicyExpressionTree> for Filter<'_, EntityTypeWithMetadata> {
                     path: EntityTypeQueryPath::WebId,
                 }),
                 Some(FilterExpression::Parameter {
-                    parameter: Parameter::Uuid(web_id.into_uuid()),
+                    parameter: Parameter::Uuid(web_id.into()),
                     convert: None,
                 }),
             )),
@@ -687,7 +687,7 @@ mod tests {
     use type_system::{
         knowledge::entity::id::{DraftId, EntityUuid},
         ontology::data_type::{ClosedDataType, ConversionExpression},
-        web::WebId,
+        principal::actor_group::WebId,
     };
     use uuid::Uuid;
 

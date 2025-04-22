@@ -11,7 +11,7 @@ use harpc_server::{
 use harpc_system::delegate::SubsystemDelegate;
 use harpc_tower::{body::Body, request::Request, response::Response};
 use harpc_types::response_kind::ResponseKind;
-use type_system::provenance::ActorEntityUuid;
+use type_system::principal::actor::ActorEntityUuid;
 
 use super::session::Account;
 

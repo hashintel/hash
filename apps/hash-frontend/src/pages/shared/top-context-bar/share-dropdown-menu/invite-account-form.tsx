@@ -1,4 +1,7 @@
-import type { ActorEntityUuid, ActorGroupId } from "@blockprotocol/type-system";
+import type {
+  ActorEntityUuid,
+  ActorGroupEntityUuid,
+} from "@blockprotocol/type-system";
 import { Autocomplete, Avatar } from "@hashintel/design-system";
 import {
   autocompleteClasses,
@@ -23,7 +26,7 @@ import { Button } from "../../../../shared/ui";
 import { getImageUrlFromEntityProperties } from "../../get-file-properties";
 
 export const InviteAccountForm: FunctionComponent<{
-  excludeAccountIds?: (ActorEntityUuid | ActorGroupId)[];
+  excludeAccountIds?: (ActorEntityUuid | ActorGroupEntityUuid)[];
   onInviteAccount: (account: MinimalOrg | MinimalUser) => void;
 }> = ({ onInviteAccount, excludeAccountIds }) => {
   const [selectedAccount, setSelectedAccount] = useState<
@@ -37,7 +40,9 @@ export const InviteAccountForm: FunctionComponent<{
   const { orgs: minimalOrgs } = useOrgs();
 
   const { orgs } = useOrgsWithLinks({
-    orgAccountGroupIds: minimalOrgs?.map((org) => org.accountGroupId),
+    orgAccountGroupIds: minimalOrgs?.map(
+      (org) => org.webId as ActorGroupEntityUuid,
+    ),
   });
   const { users } = useUsersWithLinks({
     userAccountIds: minimalUsers?.map((user) => user.accountId),
@@ -51,7 +56,7 @@ export const InviteAccountForm: FunctionComponent<{
           !excludeAccountIds.includes(
             account.kind === "user"
               ? account.accountId
-              : account.accountGroupId,
+              : (account.webId as ActorGroupEntityUuid),
           ),
       ),
     [excludeAccountIds, orgs, minimalOrgs, users, minimalUsers],

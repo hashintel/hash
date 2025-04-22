@@ -2,56 +2,17 @@ use alloc::sync::Arc;
 
 use cedar_policy_core::ast;
 use error_stack::{Report, ResultExt as _, bail};
-use type_system::{
-    provenance::{ActorId, ActorType, AiId, MachineId, UserId},
-    web::WebId,
+use type_system::principal::{
+    actor::{ActorId, ActorType, AiId, MachineId, UserId},
+    actor_group::{ActorGroupId, TeamId, WebId},
+    role::{RoleId, TeamRoleId, WebRoleId},
 };
-use uuid::Uuid;
 
-pub use self::actor::Actor;
-use self::{
-    group::{ActorGroup, ActorGroupId, TeamId},
-    role::{Role, RoleId, TeamRoleId, WebRoleId},
-};
-use super::cedar::CedarEntityId as _;
+use super::cedar::{FromCedarEntityId as _, ToCedarEntityId as _};
 
 pub mod actor;
 pub mod group;
 pub mod role;
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, derive_more::Display)]
-pub enum PrincipalId {
-    Actor(ActorId),
-    ActorGroup(ActorGroupId),
-    Role(RoleId),
-}
-
-impl PrincipalId {
-    #[must_use]
-    pub const fn as_uuid(&self) -> &Uuid {
-        match self {
-            Self::Actor(actor_id) => actor_id.as_uuid(),
-            Self::ActorGroup(team_id) => team_id.as_uuid(),
-            Self::Role(role_id) => role_id.as_uuid(),
-        }
-    }
-
-    #[must_use]
-    pub const fn into_uuid(self) -> Uuid {
-        match self {
-            Self::Actor(actor_id) => actor_id.into_uuid(),
-            Self::ActorGroup(team_id) => team_id.into_uuid(),
-            Self::Role(role_id) => role_id.into_uuid(),
-        }
-    }
-}
-
-#[derive(Debug)]
-pub enum Principal {
-    Actor(Actor),
-    Team(ActorGroup),
-    Role(Role),
-}
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(
@@ -233,36 +194,28 @@ impl PrincipalConstraint {
             Self::ActorType { actor_type } => ast::PrincipalConstraint::is_entity_type(Arc::clone(
                 actor_type_to_cedar(*actor_type),
             )),
-            Self::Actor { actor } => ast::PrincipalConstraint::is_eq(Arc::new(match actor {
-                ActorId::User(user) => user.to_euid(),
-                ActorId::Machine(machine) => machine.to_euid(),
-                ActorId::Ai(ai) => ai.to_euid(),
-            })),
+            Self::Actor { actor } => ast::PrincipalConstraint::is_eq(Arc::new(actor.to_euid())),
             Self::ActorGroup {
                 actor_group: team,
                 actor_type,
-            } => {
-                let euid = Arc::new(team.to_euid());
-                if let Some(actor_type) = actor_type {
+            } => actor_type.as_ref().map_or_else(
+                || ast::PrincipalConstraint::is_in(Arc::new(team.to_euid())),
+                |actor_type| {
                     ast::PrincipalConstraint::is_entity_type_in(
                         Arc::clone(actor_type_to_cedar(*actor_type)),
-                        euid,
+                        Arc::new(team.to_euid()),
                     )
-                } else {
-                    ast::PrincipalConstraint::is_in(euid)
-                }
-            }
-            Self::Role { role, actor_type } => {
-                let euid = Arc::new(role.to_euid());
-                if let Some(actor_type) = actor_type {
+                },
+            ),
+            Self::Role { role, actor_type } => actor_type.as_ref().map_or_else(
+                || ast::PrincipalConstraint::is_in(Arc::new(role.to_euid())),
+                |actor_type| {
                     ast::PrincipalConstraint::is_entity_type_in(
                         Arc::clone(actor_type_to_cedar(*actor_type)),
-                        euid,
+                        Arc::new(role.to_euid()),
                     )
-                } else {
-                    ast::PrincipalConstraint::is_in(euid)
-                }
-            }
+                },
+            ),
         }
     }
 }

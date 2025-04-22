@@ -27,7 +27,7 @@ use hash_graph_store::{
 };
 use hash_temporal_client::TemporalClient;
 use serde::Deserialize;
-use type_system::web::WebId;
+use type_system::principal::actor_group::WebId;
 use utoipa::{OpenApi, ToSchema};
 
 use crate::rest::{AuthenticatedUserHeader, PermissionResponse, status::report_to_response};
@@ -100,7 +100,7 @@ impl WebResource {
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
-        (status = 204, content_type = "application/json", description = "The web was created successfully"),
+        (status = 200, content_type = "application/json", description = "The web was created successfully", body = WebId),
 
         (status = 500, description = "Store error occurred"),
     )
@@ -115,24 +115,21 @@ async fn create_web<S, A>(
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
     Json(params): Json<InsertWebIdParams>,
-) -> Result<StatusCode, StatusCode>
+) -> Result<Json<WebId>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
     for<'p, 'a> S::Store<'p, A::Api<'a>>: PrincipalStore,
 {
-    let authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
-        tracing::error!(?error, "Could not acquire access to the authorization API");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
+    let authorization_api = authorization_api_pool
+        .acquire()
+        .await
+        .map_err(report_to_response)?;
 
     let mut store = store_pool
         .acquire(authorization_api, temporal_client.0)
         .await
-        .map_err(|report| {
-            tracing::error!(error=?report, "Could not acquire store");
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?;
+        .map_err(report_to_response)?;
 
     // TODO: Uncomment this once we use the new principals
     // store
@@ -149,16 +146,13 @@ where
     //         StatusCode::INTERNAL_SERVER_ERROR
     //     })?;
 
+    let web_id = params.web_id;
     store
         .insert_web_id(actor_id, params)
         .await
-        .map_err(|report| {
-            tracing::error!(error=?report, "Could not create web id");
+        .map_err(report_to_response)?;
 
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?;
-
-    Ok(StatusCode::NO_CONTENT)
+    Ok(Json(web_id))
 }
 
 #[utoipa::path(

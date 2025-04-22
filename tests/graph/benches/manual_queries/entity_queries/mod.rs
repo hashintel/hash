@@ -22,7 +22,8 @@ use serde::{Deserialize as _, Serialize as _};
 use serde_json::Value as JsonValue;
 use tokio::runtime::Runtime;
 use tokio_postgres::NoTls;
-use type_system::provenance::ActorEntityUuid;
+use type_system::principal::actor::ActorEntityUuid;
+use uuid::Uuid;
 use walkdir::WalkDir;
 
 use crate::util::setup_subscriber;
@@ -141,7 +142,7 @@ impl GetEntitiesQuery<'_, '_, '_> {
 
         let actor_id = iter::once(self.actor_id)
             .chain(mem::take(&mut self.settings.parameters.actor_id))
-            .sorted_by_key(|actor_id| actor_id.into_uuid())
+            .sorted_by_key(|actor_id| Uuid::from(*actor_id))
             .dedup();
         let limit = iter::once(self.request.limit)
             .chain(
@@ -235,7 +236,7 @@ impl GetEntitySubgraphQuery<'_, '_, '_> {
 
         let actor_id = iter::once(self.actor_id)
             .chain(mem::take(&mut self.settings.parameters.actor_id))
-            .sorted_by_key(|actor_id| actor_id.into_uuid())
+            .sorted_by_key(|actor_id| Uuid::from(*actor_id))
             .dedup();
         let limit = iter::once(self.request.limit)
             .chain(

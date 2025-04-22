@@ -9,11 +9,10 @@ import {
   intervalForTimestamp,
 } from "@blockprotocol/graph/stdlib";
 import type {
-  ActorEntityUuid,
-  ActorGroupId,
   BaseUrl,
   Entity,
   LinkEntity,
+  UserId,
   WebId,
 } from "@blockprotocol/type-system";
 import {
@@ -50,9 +49,7 @@ export const constructMinimalOrg = (params: {
   return {
     kind: "org",
     entity: orgEntity,
-    accountGroupId: extractWebIdFromEntityId(
-      orgEntity.metadata.recordId.entityId,
-    ) as ActorGroupId,
+    webId: extractWebIdFromEntityId(orgEntity.metadata.recordId.entityId),
     name: organizationName,
     ...(pinnedEntityTypeBaseUrl !== undefined
       ? {
@@ -66,7 +63,7 @@ export const constructMinimalOrg = (params: {
 export type MinimalUser = {
   kind: "user";
   entity: Entity<UserEntity>;
-  accountId: ActorEntityUuid;
+  accountId: UserId;
   accountSignupComplete: boolean;
   enabledFeatureFlags: FeatureFlag[];
   pinnedEntityTypeBaseUrls?: BaseUrl[];
@@ -99,10 +96,10 @@ export const constructMinimalUser = (params: {
   return {
     kind: "user",
     entity: userEntity,
-    // Cast reason: The WebId of a User's baseId is an ActorEntityUuid
+    // Cast reason: A user web's `WebId` is also their `UserId`
     accountId: extractWebIdFromEntityId(
       userEntity.metadata.recordId.entityId,
-    ) as ActorEntityUuid,
+    ) as UserId,
     accountSignupComplete,
     ...simpleProperties,
     enabledFeatureFlags,
@@ -500,8 +497,8 @@ export const constructUser = (params: {
 
 export type MinimalOrg = {
   kind: "org";
-  entity: Entity<Organization>;
-  accountGroupId: ActorGroupId;
+  entity: Entity;
+  webId: WebId;
   pinnedEntityTypeBaseUrls?: BaseUrl[];
   description?: string;
   location?: string;
@@ -519,6 +516,4 @@ export const isOrg = (
 ): userOrOrg is MinimalOrg => "accountGroupId" in userOrOrg;
 
 export const extractWebId = (userOrOrg: MinimalUser | MinimalOrg): WebId =>
-  isUser(userOrOrg)
-    ? (userOrOrg.accountId as WebId)
-    : (userOrOrg.accountGroupId as WebId);
+  isUser(userOrOrg) ? userOrOrg.accountId : userOrOrg.webId;

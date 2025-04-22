@@ -116,9 +116,7 @@ export const useGetEntityTypeDependents = (): {
   const userWebs = useMemo<WebId[]>(() => {
     return [
       authenticatedUser.accountId as WebId,
-      ...authenticatedUser.memberOf.map(
-        ({ org }) => org.accountGroupId as WebId,
-      ),
+      ...authenticatedUser.memberOf.map(({ org }) => org.webId),
     ];
   }, [authenticatedUser]);
 

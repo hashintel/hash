@@ -4,7 +4,7 @@ use cedar_policy_core::ast;
 use error_stack::Report;
 use type_system::knowledge::entity::id::EntityUuid;
 
-use super::{CedarEntityId as _, CedarExpressionVisitor};
+use super::{CedarExpressionVisitor, FromCedarEntityId as _};
 
 pub(crate) struct EntityUuidVisitor;
 

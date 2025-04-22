@@ -61,18 +61,18 @@ export const createOrgMembership: ImpureGraphFunction<
   Promise<OrgMembership>
 > = async (ctx, authentication, { userEntityId, orgEntityId }) => {
   const userActorId = extractWebIdFromEntityId(userEntityId);
-  const orgActorGroupId = extractWebIdFromEntityId(orgEntityId);
+  const orgWebId = extractWebIdFromEntityId(orgEntityId);
 
   await ctx.graphApi.addAccountGroupMember(
     authentication.actorId,
-    orgActorGroupId,
+    orgWebId,
     userActorId,
   );
 
   let linkEntity;
   try {
     linkEntity = await createLinkEntity<IsMemberOf>(ctx, authentication, {
-      webId: orgActorGroupId,
+      webId: orgWebId,
       properties: { value: {} },
       linkData: {
         leftEntityId: userEntityId,

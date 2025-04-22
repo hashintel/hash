@@ -21,8 +21,7 @@ use type_system::{
         },
     },
     ontology::{VersionedUrl, entity_type::ClosedMultiEntityType},
-    provenance::ActorEntityUuid,
-    web::WebId,
+    principal::{actor::ActorEntityUuid, actor_group::WebId},
 };
 #[cfg(feature = "utoipa")]
 use utoipa::{

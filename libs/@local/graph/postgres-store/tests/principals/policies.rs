@@ -5,20 +5,16 @@ use hash_graph_authorization::{
     policies::{
         Effect, Policy, PolicyId,
         action::ActionName,
-        principal::{
-            PrincipalConstraint,
-            group::{ActorGroupId, TeamId},
-            role::RoleId,
-        },
+        principal::PrincipalConstraint,
         resource::{EntityResourceConstraint, EntityResourceFilter, ResourceConstraint},
         store::{CreateWebParameter, PrincipalStore as _},
     },
 };
 use hash_graph_postgres_store::store::{AsClient, PostgresStore};
-use type_system::{
-    knowledge::entity::id::EntityUuid,
-    provenance::{ActorEntityUuid, ActorId, ActorType, AiId, MachineId, UserId},
-    web::WebId,
+use type_system::principal::{
+    actor::{ActorId, ActorType, AiId, MachineId, UserId},
+    actor_group::{ActorGroupId, TeamId, WebId},
+    role::{RoleId, RoleName},
 };
 use uuid::Uuid;
 
@@ -134,16 +130,24 @@ async fn setup_policy_test_environment(
         .await?;
 
     // Create roles for each team
-    let web_1_role_id = client.create_role(None, ActorGroupId::Web(web1_id)).await?;
-    let web_2_role_id = client.create_role(None, ActorGroupId::Web(web2_id)).await?;
+    let web_1_role_id = client
+        .create_role(None, ActorGroupId::Web(web1_id), RoleName::Administrator)
+        .await?;
+    let web_2_role_id = client
+        .create_role(None, ActorGroupId::Web(web2_id), RoleName::Administrator)
+        .await?;
     let team1_role_id = client
-        .create_role(None, ActorGroupId::Team(team_1_id))
+        .create_role(None, ActorGroupId::Team(team_1_id), RoleName::Administrator)
         .await?;
     let team2_role_id = client
-        .create_role(None, ActorGroupId::Team(team_2_id))
+        .create_role(None, ActorGroupId::Team(team_2_id), RoleName::Administrator)
         .await?;
     let nested_team_role_id = client
-        .create_role(None, ActorGroupId::Team(nested_team_id))
+        .create_role(
+            None,
+            ActorGroupId::Team(nested_team_id),
+            RoleName::Administrator,
+        )
         .await?;
 
     // Create actors of different types
@@ -154,19 +158,19 @@ async fn setup_policy_test_environment(
 
     // Assign roles to actors in different combinations
     client
-        .assign_role_to_actor(ActorId::User(user1_id), web_1_role_id)
+        .assign_role_by_id(ActorId::User(user1_id), web_1_role_id)
         .await?;
     client
-        .assign_role_to_actor(ActorId::User(user2_id), team1_role_id)
+        .assign_role_by_id(ActorId::User(user2_id), team1_role_id)
         .await?;
     client
-        .assign_role_to_actor(ActorId::User(user2_id), web_2_role_id)
+        .assign_role_by_id(ActorId::User(user2_id), web_2_role_id)
         .await?;
     client
-        .assign_role_to_actor(ActorId::Machine(machine_id), team2_role_id)
+        .assign_role_by_id(ActorId::Machine(machine_id), team2_role_id)
         .await?;
     client
-        .assign_role_to_actor(ActorId::Ai(ai_id), nested_team_role_id)
+        .assign_role_by_id(ActorId::Ai(ai_id), nested_team_role_id)
         .await?;
 
     // Create policies of various types
@@ -339,9 +343,7 @@ async fn global_policies() -> Result<(), Box<dyn Error>> {
         .get_policies_for_actor(ActorId::Ai(env.ai_id))
         .await?;
     let nonexisting_policies = client
-        .get_policies_for_actor(ActorId::User(UserId::new(ActorEntityUuid::new(
-            EntityUuid::new(Uuid::new_v4()),
-        ))))
+        .get_policies_for_actor(ActorId::User(UserId::new(Uuid::new_v4())))
         .await?;
 
     // All actors should have the global policy
@@ -387,9 +389,7 @@ async fn actor_type_policies() -> Result<(), Box<dyn Error>> {
         .get_policies_for_actor(ActorId::Machine(env.machine_id))
         .await?;
     let nonexisting_machine_policies = client
-        .get_policies_for_actor(ActorId::Machine(MachineId::new(ActorEntityUuid::new(
-            EntityUuid::new(Uuid::new_v4()),
-        ))))
+        .get_policies_for_actor(ActorId::Machine(MachineId::new(Uuid::new_v4())))
         .await?;
 
     // Users should have user type policies, machines should not
@@ -446,9 +446,7 @@ async fn specific_actor_policies() -> Result<(), Box<dyn Error>> {
         .get_policies_for_actor(ActorId::User(env.user2))
         .await?;
     let nonexisting_user_policies = client
-        .get_policies_for_actor(ActorId::User(UserId::new(ActorEntityUuid::new(
-            EntityUuid::new(Uuid::new_v4()),
-        ))))
+        .get_policies_for_actor(ActorId::User(UserId::new(Uuid::new_v4())))
         .await?;
 
     // User1 should have its specific policy, user2 should not
@@ -498,10 +496,10 @@ async fn role_based_policies() -> Result<(), Box<dyn Error>> {
     // Create a machine with web1_role to test actor type constraints
     let special_machine_id = client.create_machine(None).await?;
     client
-        .assign_role_to_actor(ActorId::Machine(special_machine_id), env.web1_role)
+        .assign_role_by_id(ActorId::Machine(special_machine_id), env.web1_role)
         .await?;
     client
-        .assign_role_to_actor(ActorId::Machine(special_machine_id), env.web2_role)
+        .assign_role_by_id(ActorId::Machine(special_machine_id), env.web2_role)
         .await?;
 
     let machine_policies = client
@@ -560,7 +558,7 @@ async fn policy_count_and_content() -> Result<(), Box<dyn Error>> {
 
     let env = setup_policy_test_environment(&mut client, actor_id).await?;
 
-    let nonexistent_id = UserId::new(ActorEntityUuid::new(EntityUuid::new(Uuid::new_v4())));
+    let nonexistent_id = UserId::new(Uuid::new_v4());
 
     let user1_policies = client
         .get_policies_for_actor(ActorId::User(env.user1))
@@ -628,7 +626,7 @@ async fn role_assignment_changes() -> Result<(), Box<dyn Error>> {
 
     // Remove web2_role from user2
     client
-        .unassign_role_from_actor(ActorId::User(env.user2), env.web2_role)
+        .unassign_role_by_id(ActorId::User(env.user2), env.web2_role)
         .await?;
 
     // Should have fewer policies now
@@ -646,7 +644,7 @@ async fn role_assignment_changes() -> Result<(), Box<dyn Error>> {
 
     // Add a different role (web1_role)
     client
-        .assign_role_to_actor(ActorId::User(env.user2), env.web1_role)
+        .assign_role_by_id(ActorId::User(env.user2), env.web1_role)
         .await?;
 
     // Should have different policies now after adding a new role
@@ -730,20 +728,26 @@ async fn multiple_actor_roles() -> Result<(), Box<dyn Error>> {
     let web_id = client
         .create_web(actor_id, CreateWebParameter { id: None })
         .await?;
-    let role1_id = client.create_role(None, ActorGroupId::Web(web_id)).await?;
-    let role2_id = client.create_role(None, ActorGroupId::Web(web_id)).await?;
-    let role3_id = client.create_role(None, ActorGroupId::Web(web_id)).await?;
+    let role1_id = client
+        .create_role(None, ActorGroupId::Web(web_id), RoleName::Administrator)
+        .await?;
+    let role2_id = client
+        .create_role(None, ActorGroupId::Web(web_id), RoleName::Administrator)
+        .await?;
+    let role3_id = client
+        .create_role(None, ActorGroupId::Web(web_id), RoleName::Administrator)
+        .await?;
 
     // Create user with multiple roles
     let user_id = client.create_user(None).await?;
     client
-        .assign_role_to_actor(ActorId::User(user_id), role1_id)
+        .assign_role_by_id(ActorId::User(user_id), role1_id)
         .await?;
     client
-        .assign_role_to_actor(ActorId::User(user_id), role2_id)
+        .assign_role_by_id(ActorId::User(user_id), role2_id)
         .await?;
     client
-        .assign_role_to_actor(ActorId::User(user_id), role3_id)
+        .assign_role_by_id(ActorId::User(user_id), role3_id)
         .await?;
 
     // Create policies for each role
@@ -839,13 +843,13 @@ async fn deep_team_hierarchy() -> Result<(), Box<dyn Error>> {
 
     // Create roles
     let team5_role_id = client
-        .create_role(None, ActorGroupId::Team(team5_id))
+        .create_role(None, ActorGroupId::Team(team5_id), RoleName::Administrator)
         .await?;
 
     // Create user assigned to the deepest role
     let user_id = client.create_user(None).await?;
     client
-        .assign_role_to_actor(ActorId::User(user_id), team5_role_id)
+        .assign_role_by_id(ActorId::User(user_id), team5_role_id)
         .await?;
 
     // Create policies

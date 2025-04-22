@@ -4,16 +4,18 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 use type_system::{
     knowledge::entity::id::EntityUuid,
-    provenance::{ActorEntityUuid, ActorType},
-    web::{ActorGroupId, WebId},
+    principal::{
+        actor::{ActorEntityUuid, ActorType},
+        actor_group::{ActorGroupEntityUuid, WebId},
+    },
 };
 
 fn random_account_id() -> ActorEntityUuid {
-    ActorEntityUuid::new(EntityUuid::new(uuid::Uuid::new_v4()))
+    ActorEntityUuid::new(uuid::Uuid::new_v4())
 }
 
-fn random_account_group_id() -> ActorGroupId {
-    ActorGroupId::new(uuid::Uuid::new_v4())
+fn random_account_group_entity_uuid() -> ActorGroupEntityUuid {
+    ActorGroupEntityUuid::new(uuid::Uuid::new_v4())
 }
 
 #[derive(Debug, Error)]
@@ -33,12 +35,16 @@ pub struct InsertAccountIdParams {
 #[error("Could not insert account group")]
 pub struct AccountGroupInsertionError;
 
+fn random_web_id() -> WebId {
+    WebId::new(uuid::Uuid::new_v4())
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct InsertAccountGroupIdParams {
-    #[serde(default = "random_account_group_id")]
-    pub account_group_id: ActorGroupId,
+    #[serde(default = "random_account_group_entity_uuid")]
+    pub account_group_id: ActorGroupEntityUuid,
 }
 
 #[derive(Debug, Error)]
@@ -49,6 +55,7 @@ pub struct WebInsertionError;
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct InsertWebIdParams {
+    #[serde(default = "random_web_id")]
     pub web_id: WebId,
     pub owner: WebOwnerSubject,
 }
@@ -70,11 +77,11 @@ pub trait AccountStore {
         params: InsertAccountIdParams,
     ) -> impl Future<Output = Result<(), Report<AccountInsertionError>>> + Send;
 
-    /// Inserts the specified [`ActorGroupId`] into the database.
+    /// Inserts the specified [`ActorGroupEntityUuid`] into the database.
     ///
     /// # Errors
     ///
-    /// - if insertion failed, e.g. because the [`ActorGroupId`] already exists.
+    /// - if insertion failed, e.g. because the [`ActorGroupEntityUuid`] already exists.
     fn insert_account_group_id(
         &mut self,
         actor_id: ActorEntityUuid,
@@ -92,15 +99,17 @@ pub trait AccountStore {
         params: InsertWebIdParams,
     ) -> impl Future<Output = Result<(), Report<WebInsertionError>>> + Send;
 
-    /// Returns either an [`ActorEntityUuid`] or an [`ActorGroupId`] for the specified
+    /// Returns either an [`Account`] or an [`AccountGroup`] for the specified
     /// [`WebId`].
+    ///
+    /// [`Account`]: WebOwnerSubject::Account
+    /// [`AccountGroup`]: WebOwnerSubject::AccountGroup
     ///
     /// # Errors
     ///
     /// - if the [`WebId`] does not exist
-    /// - if the [`WebId`] exists but is both, an [`ActorEntityUuid`] and an [`ActorGroupId`]
-    fn identify_web_id(
+    fn identify_subject_id(
         &self,
-        web_id: WebId,
+        subject_id: EntityUuid,
     ) -> impl Future<Output = Result<WebOwnerSubject, Report<QueryWebError>>> + Send;
 }

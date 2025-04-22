@@ -34,7 +34,7 @@ use hash_graph_type_defs::error::{ErrorInfo, StatusPayloads};
 use hash_status::{Status, StatusCode};
 use tokio::io;
 use tokio_util::{codec::FramedRead, io::StreamReader};
-use type_system::{knowledge::entity::id::EntityUuid, provenance::ActorEntityUuid};
+use type_system::principal::actor::ActorEntityUuid;
 use uuid::Uuid;
 
 /// Create routes for interacting with entities.
@@ -160,7 +160,7 @@ where
     pool.acquire(authorization_api, None)
         .await
         .map_err(store_acquisition_error)?
-        .delete_accounts(ActorEntityUuid::new(EntityUuid::new(Uuid::nil())))
+        .delete_accounts(ActorEntityUuid::new(Uuid::nil()))
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not delete accounts");

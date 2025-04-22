@@ -205,9 +205,7 @@ export const EntitiesVisualizer: FunctionComponent<{
     () => {
       return [
         authenticatedUser.accountId as WebId,
-        ...authenticatedUser.memberOf.map(
-          ({ org }) => org.accountGroupId as WebId,
-        ),
+        ...authenticatedUser.memberOf.map(({ org }) => org.webId),
       ];
     },
     [authenticatedUser],

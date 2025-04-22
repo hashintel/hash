@@ -9,7 +9,7 @@ use temporal_sdk_core_protos::{
 use type_system::{
     knowledge::Entity,
     ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
-    provenance::ActorEntityUuid,
+    principal::actor::ActorEntityUuid,
 };
 use uuid::Uuid;
 

@@ -52,7 +52,7 @@ use type_system::{
         json_schema::{DomainValidator, JsonSchemaValueType, ValidateOntologyType as _},
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
-    web::WebId,
+    principal::actor_group::WebId,
 };
 use utoipa::{OpenApi, ToSchema};
 

@@ -141,7 +141,7 @@ export const AddMemberForm = ({ org }: { org: Org }) => {
       }),
       addMemberPermission({
         variables: {
-          accountGroupId: org.accountGroupId,
+          accountGroupId: org.webId,
           accountId: extractWebIdFromEntityId(
             user.metadata.recordId.entityId,
           ) as ActorEntityUuid,

@@ -83,7 +83,7 @@ pub enum PropertyTypeQueryPath<'p> {
     /// ```
     ///
     /// [`PropertyType`]: type_system::ontology::property_type::PropertyType
-    /// [`WebId`]: type_system::web::WebId
+    /// [`WebId`]: type_system::principal::actor_group::WebId
     /// [`PropertyTypeMetadata`]: type_system::ontology::property_type::PropertyTypeMetadata
     WebId,
     /// Corresponds to [`PropertyType::title()`].

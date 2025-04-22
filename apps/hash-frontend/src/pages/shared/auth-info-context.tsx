@@ -5,7 +5,7 @@ import {
   getRoots,
   intervalForTimestamp,
 } from "@blockprotocol/graph/stdlib";
-import type { ActorGroupId } from "@blockprotocol/type-system";
+import type { ActorGroupEntityUuid } from "@blockprotocol/type-system";
 import {
   currentTimestamp,
   extractEntityUuidFromEntityId,
@@ -89,7 +89,7 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
         (link) =>
           extractEntityUuidFromEntityId(
             link.linkData.rightEntityId,
-          ) as string as ActorGroupId,
+          ) as string as ActorGroupEntityUuid,
       ) ?? [],
   });
 

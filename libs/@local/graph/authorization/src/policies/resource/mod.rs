@@ -6,7 +6,9 @@ use core::{error::Error, fmt, str::FromStr as _};
 
 use cedar_policy_core::ast;
 use error_stack::{Report, ResultExt as _, bail};
-use type_system::{knowledge::entity::id::EntityUuid, ontology::VersionedUrl, web::WebId};
+use type_system::{
+    knowledge::entity::id::EntityUuid, ontology::VersionedUrl, principal::actor_group::WebId,
+};
 use uuid::Uuid;
 
 pub use self::{
@@ -16,8 +18,8 @@ pub use self::{
         EntityTypeResourceConstraints, EntityTypeResourceFilter,
     },
 };
-use super::cedar::{CedarExpressionVisitor, FromCedarExpr as _};
-use crate::policies::cedar::CedarEntityId as _;
+use super::cedar::{CedarExpressionVisitor, FromCedarExpr as _, ToCedarEntityId as _};
+use crate::policies::cedar::FromCedarEntityId as _;
 
 pub(crate) struct ResourceVariableVisitor;
 
@@ -224,7 +226,7 @@ mod tests {
     use indoc::formatdoc;
     use pretty_assertions::assert_eq;
     use serde_json::{Value as JsonValue, json};
-    use type_system::web::WebId;
+    use type_system::principal::actor_group::WebId;
     use uuid::Uuid;
 
     use super::ResourceConstraint;

@@ -41,7 +41,7 @@ export const getUserSimpleWebs = async (
     ...orgs.map((org) => ({
       type: "Organization" as const,
       name: org.shortname,
-      uuid: org.accountGroupId,
+      uuid: org.webId,
     })),
   ];
 };

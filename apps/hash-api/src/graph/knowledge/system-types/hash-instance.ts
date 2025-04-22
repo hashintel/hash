@@ -1,4 +1,4 @@
-import type { ActorEntityUuid, WebId } from "@blockprotocol/type-system";
+import type { ActorEntityUuid } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import type { HashInstance } from "@local/hash-backend-utils/hash-instance";
 import {
@@ -69,7 +69,7 @@ export const createHashInstance: ImpureGraphFunction<
   );
 
   const entity = await createEntity<HashInstanceEntity>(ctx, authentication, {
-    webId: hashOrg.accountGroupId as WebId,
+    webId: hashOrg.webId,
     properties: {
       value: {
         "https://hash.ai/@h/types/property-type/pages-are-enabled/": {
