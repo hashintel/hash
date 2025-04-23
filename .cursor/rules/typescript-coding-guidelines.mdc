@@ -62,7 +62,8 @@ alwaysApply: false
 
 - When exports from a module are only used in one other file, they should be created in a subfolder named after the importing file.
   e.g.
-```
+
+```md
 - page.tsx
 - page/header.tsx
 - page/header/header-button.tsx
@@ -70,7 +71,8 @@ alwaysApply: false
 ```
 
 - If a module is used by multiple other files, it should be in a `shared` folder at the highest point at which it is needed in the file tree. e.g.
-```
+
+```md
 - page.tsx
 - api.tsx
 - shared/types.ts // types is used by both page and api
