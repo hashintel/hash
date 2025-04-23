@@ -25,7 +25,7 @@ serde_with     = { workspace = true, optional = true, features = ["std", "macros
 simple-mermaid = { workspace = true }
 
 [dev-dependencies]
-jsonptr    = "0.7.0"
+jsonptr    = { workspace = true, features = ["json"] }
 serde_json = { workspace = true }
 
 [features]

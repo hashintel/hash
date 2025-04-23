@@ -94,6 +94,7 @@ hashql-syntax-jexpr.path            = "libs/@local/hashql/syntax-jexpr"
 type-system.path                    = "libs/@blockprotocol/type-system/rust"
 
 # External dependencies
+ada-url                  = { version = "=3.2.1", default-features = false }
 ahash                    = { version = "=0.8.11", default-features = false }
 ansi-to-html             = { version = "=0.2.2", default-features = false }
 anstyle                  = { version = "=1.0.10", default-features = false }
@@ -115,9 +116,11 @@ bytes-utils              = { version = "=0.1.4", default-features = false }
 cargo_metadata           = { version = "=0.19.2", default-features = false }
 cedar-policy-core        = { version = "=4.3.3", default-features = false }
 cedar-policy-validator   = { version = "=4.3.3", default-features = false }
+circular-buffer          = { version = "=1.1.0", default-features = false }
 clap                     = { version = "=4.5.37", features = ["color", "error-context", "help", "std", "suggestions", "usage"] }
 clap_builder             = { version = "=4.5.37", default-features = false, features = ["std"] }
 clap_complete            = { version = "=4.5.47", default-features = false }
+console_error_panic_hook = { version = "=0.1.7", default-features = false }
 convert_case             = { version = "=0.8.0", default-features = false }
 criterion                = { version = "=0.5.1" }
 criterion-macro          = { version = "=0.4.0", default-features = false }
@@ -251,10 +254,14 @@ trait-variant            = { version = "=0.1.2", default-features = false }
 trybuild                 = { version = "=1.0.104", default-features = false }
 tsify-next               = { version = "=0.5.6", default-features = false }
 unicode-ident            = { version = "=1.0.18", default-features = false }
+unicode-normalization    = { version = "=0.1.24", default-features = false }
+unicode-properties       = { version = "=0.1.3", default-features = false }
 url                      = { version = "=2.5.4", default-features = false }
 utoipa                   = { version = "=4.2.3", default-features = false }
 uuid                     = { version = "=1.16.0", default-features = false }
 walkdir                  = { version = "=2.5.0", default-features = false }
+wasm-bindgen             = { version = "=0.2.100", default-features = false }
+wasm-bindgen-test        = { version = "=0.3.50", default-features = false }
 winnow                   = { version = "=0.7.6", default-features = false }
 
 [profile.dev]

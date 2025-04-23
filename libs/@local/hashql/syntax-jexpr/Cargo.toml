@@ -19,18 +19,18 @@ text-size = { workspace = true, public = true }
 # Private workspace dependencies
 
 # Private third-party dependencies
-ada-url                 = "3.1.0"
-circular-buffer         = "1.1.0"
-ecow                    = { workspace = true }
-hifijson                = { workspace = true, features = ["alloc"] }
-json-number             = { workspace = true }
-justjson                = { workspace = true, features = ["nightly"] }
-logos                   = { workspace = true, features = ["export_derive"] }
-simple-mermaid          = { workspace = true }
-unicode-ident.workspace = true
-unicode-normalization   = "0.1.24"
-unicode-properties      = "0.1.3"
-winnow                  = { workspace = true, features = ["std"] }
+ada-url               = { workspace = true }
+circular-buffer       = { workspace = true }
+ecow                  = { workspace = true }
+hifijson              = { workspace = true, features = ["alloc"] }
+json-number           = { workspace = true }
+justjson              = { workspace = true, features = ["nightly"] }
+logos                 = { workspace = true, features = ["export_derive"] }
+simple-mermaid        = { workspace = true }
+unicode-ident         = { workspace = true }
+unicode-normalization = { workspace = true }
+unicode-properties    = { workspace = true }
+winnow                = { workspace = true, features = ["std"] }
 
 [lints]
 workspace = true
