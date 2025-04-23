@@ -53,7 +53,7 @@ export const createHashInstance: ImpureGraphFunction<
   const { teamId, webId } = await getInstanceAdminsTeam(ctx, authentication);
 
   logger.info(
-    `Created account group for hash instance admins with id: ${teamId}`,
+    `Retrieved account group for hash instance admins with id: ${teamId}`,
   );
 
   const entity = await createEntity<HashInstanceEntity>(ctx, authentication, {
@@ -158,26 +158,11 @@ export const getHashInstanceGroupMembers: ImpureGraphFunction<
   Record<string, never>,
   Promise<ActorEntityUuid[]>
 > = async (ctx, authentication) => {
-  const hashInstance = await getHashInstance(ctx, authentication);
-
-  const entityPermissions = await ctx.graphApi
-    .getEntityAuthorizationRelationships(
-      authentication.actorId,
-      hashInstance.entity.metadata.recordId.entityId,
-    )
-    .then((resp) => resp.data);
-
-  const entityAdmin = entityPermissions.find(
-    (permission) => permission.relation === "administrator",
-  )?.subject;
-
-  if (!entityAdmin || !("subjectId" in entityAdmin)) {
-    throw new Error("No administrator role over HASH Instance entity.");
-  }
+  const { teamId } = await getInstanceAdminsTeam(ctx, authentication);
 
   const { data: relations } = await ctx.graphApi.getActorGroupRelations(
     authentication.actorId,
-    entityAdmin.subjectId,
+    teamId,
   );
 
   return relations.map(

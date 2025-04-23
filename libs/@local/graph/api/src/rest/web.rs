@@ -25,18 +25,20 @@ use hash_graph_store::{
     account::{AccountStore as _, CreateOrgWebParams, GetWebResponse},
     pool::StorePool,
 };
+use hash_status::Status;
 use hash_temporal_client::TemporalClient;
 use serde::Deserialize;
 use type_system::principal::actor_group::WebId;
 use utoipa::{OpenApi, ToSchema};
 
+use super::status::status_to_response;
 use crate::rest::{AuthenticatedUserHeader, PermissionResponse, status::report_to_response};
 
 #[derive(OpenApi)]
 #[openapi(
     paths(
-        find_web,
-        find_web_by_shortname,
+        get_web,
+        get_web_by_shortname,
         create_org_web,
         check_web_permission,
         modify_web_authorization_relationships,
@@ -82,8 +84,8 @@ impl WebResource {
                     post(modify_web_authorization_relationships::<A>),
                 )
                 .route("/", post(create_org_web::<S, A>))
-                .route("/:web_id", get(find_web::<S, A>))
-                .route("/shortname/:shortname", get(find_web_by_shortname::<S, A>))
+                .route("/:web_id", get(get_web::<S, A>))
+                .route("/shortname/:shortname", get(get_web_by_shortname::<S, A>))
                 .nest(
                     "/:web_id",
                     Router::new()
@@ -106,7 +108,8 @@ impl WebResource {
         ("web_id" = WebId, Path, description = "The ID of the web to retrieve"),
     ),
     responses(
-        (status = 200, content_type = "application/json", description = "The web was retrieved successfully", body = Option<GetWebResponse>),
+        (status = 200, content_type = "application/json", description = "The web was retrieved successfully", body = GetWebResponse),
+        (status = 404, content_type = "application/json", description = "The web was not found"),
 
         (status = 500, description = "Store error occurred"),
     )
@@ -115,13 +118,13 @@ impl WebResource {
     level = "info",
     skip(store_pool, authorization_api_pool, temporal_client)
 )]
-async fn find_web<S, A>(
+async fn get_web<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     Path(web_id): Path<WebId>,
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
-) -> Result<Json<Option<GetWebResponse>>, Response>
+) -> Result<Json<GetWebResponse>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
@@ -140,8 +143,15 @@ where
     store
         .find_web(actor_id, web_id)
         .await
+        .map_err(report_to_response)?
+        .ok_or_else(|| {
+            status_to_response(Status::new(
+                hash_status::StatusCode::NotFound,
+                None,
+                Vec::<()>::new(),
+            ))
+        })
         .map(Json)
-        .map_err(report_to_response)
 }
 
 #[utoipa::path(
@@ -153,7 +163,8 @@ where
         ("shortname" = String, Path, description = "The shortname of the web to retrieve"),
     ),
     responses(
-        (status = 200, content_type = "application/json", description = "The web was retrieved successfully", body = Option<GetWebResponse>),
+        (status = 200, content_type = "application/json", description = "The web was retrieved successfully", body = GetWebResponse),
+        (status = 404, content_type = "application/json", description = "The web was not found"),
 
         (status = 500, description = "Store error occurred"),
     )
@@ -162,13 +173,13 @@ where
     level = "info",
     skip(store_pool, authorization_api_pool, temporal_client)
 )]
-async fn find_web_by_shortname<S, A>(
+async fn get_web_by_shortname<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     Path(shortname): Path<String>,
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
-) -> Result<Json<Option<GetWebResponse>>, Response>
+) -> Result<Json<GetWebResponse>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
@@ -187,8 +198,15 @@ where
     store
         .find_web_by_shortname(actor_id, &shortname)
         .await
+        .map_err(report_to_response)?
+        .ok_or_else(|| {
+            status_to_response(Status::new(
+                hash_status::StatusCode::NotFound,
+                None,
+                Vec::<()>::new(),
+            ))
+        })
         .map(Json)
-        .map_err(report_to_response)
 }
 
 #[utoipa::path(

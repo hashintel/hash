@@ -139,17 +139,8 @@ export const getInstanceAdminsTeam = async (
   authentication: { actorId: ActorEntityUuid },
 ): Promise<{ teamId: TeamId; webId: WebId }> =>
   ctx.graphApi
-    .findInstanceAdminsTeam(authentication.actorId)
-    .then(({ data }) => {
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      if (!data) {
-        throw new Error("No team found for instance admins");
-      }
-      if (data.parentId.actorGroupType !== "web") {
-        throw new Error("Parent ID is not a web");
-      }
-      return {
-        teamId: data.teamId as TeamId,
-        webId: data.parentId.id as WebId,
-      };
-    });
+    .getInstanceAdminsTeam(authentication.actorId)
+    .then(({ data }) => ({
+      teamId: data.teamId as TeamId,
+      webId: data.parentId.id as WebId,
+    }));

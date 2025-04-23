@@ -5,6 +5,7 @@ import {
 } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import { getInstanceAdminsTeam } from "@local/hash-backend-utils/hash-instance";
+import { createWebMachineActorEntity } from "@local/hash-backend-utils/machine-actors";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
 import {
@@ -25,6 +26,7 @@ import type {
   KratosUserIdentityTraits,
 } from "../../../auth/ory-kratos";
 import { kratosIdentityApi } from "../../../auth/ory-kratos";
+import { logger } from "../../../logger";
 import { createUserActor } from "../../account-permission-management";
 import type {
   ImpureGraphFunction,
@@ -281,9 +283,18 @@ export const createUser: ImpureGraphFunction<
     }
   }
 
+  const userShouldHavePermissionsOnWeb = !!shortname && !!displayName;
+
   const { userId, machineId } = await createUserActor(ctx, authentication, {
     shortname,
-    registrationComplete: !!shortname && !!displayName,
+    registrationComplete: userShouldHavePermissionsOnWeb,
+  });
+
+  await createWebMachineActorEntity(ctx, {
+    systemAccountId,
+    webId: userId,
+    machineId,
+    logger,
   });
 
   const properties: UserEntity["propertiesWithMetadata"] = {

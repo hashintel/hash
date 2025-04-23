@@ -25,6 +25,7 @@ use hash_graph_store::{
     },
     pool::StorePool,
 };
+use hash_status::Status;
 use hash_temporal_client::TemporalClient;
 use type_system::principal::{
     actor::{ActorEntityUuid, ActorId, ActorType, AiId, MachineId, UserId},
@@ -33,6 +34,7 @@ use type_system::principal::{
 };
 use utoipa::OpenApi;
 
+use super::status::status_to_response;
 use crate::rest::{
     AuthenticatedUserHeader, OpenApiQuery, PermissionResponse, QueryLogger, json::Json,
     status::report_to_response,
@@ -44,7 +46,7 @@ use crate::rest::{
         create_user_actor,
         create_ai_actor,
         get_or_create_system_actor,
-        find_instance_admins_team,
+        get_instance_admins_team,
 
         check_account_group_permission,
         assign_actor_group_role,
@@ -99,7 +101,7 @@ impl ActorResource {
                         "/actor/:identifier",
                         get(get_or_create_system_actor::<S, A>),
                     )
-                    .route("/instance-admins", get(find_instance_admins_team::<S, A>)),
+                    .route("/instance-admins", get(get_instance_admins_team::<S, A>)),
             )
             .nest(
                 "/actors",
@@ -270,7 +272,8 @@ where
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
-        (status = 200, content_type = "application/json", description = "The web was retrieved successfully", body = Option<GetTeamResponse>),
+        (status = 200, content_type = "application/json", description = "The team was retrieved successfully", body = GetTeamResponse),
+        (status = 404, content_type = "application/json", description = "The team was not found"),
 
         (status = 500, description = "Store error occurred"),
     )
@@ -279,12 +282,12 @@ where
     level = "info",
     skip(store_pool, authorization_api_pool, temporal_client)
 )]
-async fn find_instance_admins_team<S, A>(
+async fn get_instance_admins_team<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
-) -> Result<Json<Option<GetTeamResponse>>, Response>
+) -> Result<Json<GetTeamResponse>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
@@ -303,8 +306,15 @@ where
     store
         .find_team_by_name(actor_id, "instance-admins")
         .await
+        .map_err(report_to_response)?
+        .ok_or_else(|| {
+            status_to_response(Status::new(
+                hash_status::StatusCode::NotFound,
+                None,
+                Vec::<()>::new(),
+            ))
+        })
         .map(Json)
-        .map_err(report_to_response)
 }
 
 #[utoipa::path(

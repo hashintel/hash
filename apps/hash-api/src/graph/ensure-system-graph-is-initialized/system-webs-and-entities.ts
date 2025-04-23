@@ -28,7 +28,7 @@ import { systemAccountId } from "../system-account";
 export const owningWebs: Record<
   SystemTypeWebShortname,
   {
-    machineId?: MachineId;
+    systemActorMachineId?: MachineId;
     webId?: WebId;
     enabled: boolean;
     name: string;
@@ -57,24 +57,25 @@ export const getOrCreateOwningWebId = async (
   webShortname: SystemTypeWebShortname,
 ): Promise<{
   webId: WebId;
-  machineId: MachineId;
+  systemActorMachineId: MachineId;
 }> => {
   // We only need to resolve this once for each shortname during the seeding process
   const resolvedWebId = owningWebs[webShortname].webId;
-  const resolvedMachineId = owningWebs[webShortname].machineId;
+  const resolvedSystemActorMachineId =
+    owningWebs[webShortname].systemActorMachineId;
 
   // After this function has been run once, these should exist
-  if (resolvedWebId && resolvedMachineId) {
+  if (resolvedWebId && resolvedSystemActorMachineId) {
     return {
       webId: resolvedWebId,
-      machineId: resolvedMachineId,
+      systemActorMachineId: resolvedSystemActorMachineId,
     };
   }
 
   /**
    *  If this function is used again after the initial seeding, it's possible that we've created the org in the past.
    */
-  const machineId = await context.graphApi
+  const systemActorMachineId = await context.graphApi
     .getOrCreateSystemActor(webShortname)
     .then(({ data }) => data as MachineId);
   const foundWeb = await findWebByShortname(
@@ -86,14 +87,14 @@ export const getOrCreateOwningWebId = async (
   );
 
   logger.debug(
-    `Found org entity with shortname ${webShortname}, webId: ${foundWeb.webId}, machine actor accountId: ${machineId}`,
+    `Found org entity with shortname ${webShortname}, webId: ${foundWeb.webId}, machine actor accountId: ${systemActorMachineId}`,
   );
   owningWebs[webShortname].webId = foundWeb.webId;
-  owningWebs[webShortname].machineId = machineId;
+  owningWebs[webShortname].systemActorMachineId = systemActorMachineId;
 
   return {
     webId: foundWeb.webId,
-    machineId,
+    systemActorMachineId,
   };
 };
 
@@ -112,12 +113,12 @@ export const ensureSystemWebEntitiesExist = async ({
   machineEntityTypeId?: VersionedUrl;
   organizationEntityTypeId?: VersionedUrl;
 }) => {
-  const { webId, machineId } = await getOrCreateOwningWebId(
+  const { webId, systemActorMachineId } = await getOrCreateOwningWebId(
     context,
     webShortname,
   );
 
-  const authentication = { actorId: machineId };
+  const authentication = { actorId: systemActorMachineId };
 
   try {
     await getMachineIdByIdentifier(context, authentication, {
@@ -153,7 +154,7 @@ export const ensureSystemWebEntitiesExist = async ({
        * Linear actions
        */
       await createMachineActorEntity(context, {
-        machineId,
+        machineId: systemActorMachineId,
         identifier: webShortname,
         logger,
         webId,
@@ -243,12 +244,12 @@ export const ensureSystemEntitiesExist = async (params: {
         );
       }
 
-      const ai_identifier = "hash-ai";
+      const aiIdentifier = "hash-ai";
       const aiAssistantAccountId = await createAiActor(
         context,
         authentication,
         {
-          identifier: ai_identifier,
+          identifier: aiIdentifier,
         },
       );
 
@@ -285,7 +286,7 @@ export const ensureSystemEntitiesExist = async (params: {
       );
 
       await createMachineActorEntity(context, {
-        identifier: ai_identifier,
+        identifier: aiIdentifier,
         logger,
         machineId: aiAssistantAccountId,
         webId: hashWebId,

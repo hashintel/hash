@@ -3113,7 +3113,7 @@
           "Graph",
           "Web"
         ],
-        "operationId": "find_instance_admins_team",
+        "operationId": "get_instance_admins_team",
         "parameters": [
           {
             "name": "X-Authenticated-User-Actor-Id",
@@ -3127,19 +3127,17 @@
         ],
         "responses": {
           "200": {
-            "description": "The web was retrieved successfully",
+            "description": "The team was retrieved successfully",
             "content": {
               "application/json": {
                 "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/GetTeamResponse"
-                    }
-                  ],
-                  "nullable": true
+                  "$ref": "#/components/schemas/GetTeamResponse"
                 }
               }
             }
+          },
+          "404": {
+            "description": "The team was not found"
           },
           "500": {
             "description": "Store error occurred"
@@ -3239,7 +3237,7 @@
           "Graph",
           "Web"
         ],
-        "operationId": "find_web_by_shortname",
+        "operationId": "get_web_by_shortname",
         "parameters": [
           {
             "name": "X-Authenticated-User-Actor-Id",
@@ -3266,15 +3264,13 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/GetWebResponse"
-                    }
-                  ],
-                  "nullable": true
+                  "$ref": "#/components/schemas/GetWebResponse"
                 }
               }
             }
+          },
+          "404": {
+            "description": "The web was not found"
           },
           "500": {
             "description": "Store error occurred"
@@ -3288,7 +3284,7 @@
           "Graph",
           "Web"
         ],
-        "operationId": "find_web",
+        "operationId": "get_web",
         "parameters": [
           {
             "name": "X-Authenticated-User-Actor-Id",
@@ -3315,15 +3311,13 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/GetWebResponse"
-                    }
-                  ],
-                  "nullable": true
+                  "$ref": "#/components/schemas/GetWebResponse"
                 }
               }
             }
+          },
+          "404": {
+            "description": "The web was not found"
           },
           "500": {
             "description": "Store error occurred"

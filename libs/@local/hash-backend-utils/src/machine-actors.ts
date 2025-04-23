@@ -38,15 +38,9 @@ export const getWebMachineId = async (
     webId: WebId;
   },
 ): Promise<MachineId> =>
-  context.graphApi.findWeb(authentication.actorId, webId).then(({ data }) => {
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    if (!data) {
-      throw new NotFoundError(
-        `Critical: No web entity with id ${webId} found in the graph.`,
-      );
-    }
-    return data.machineId as MachineId;
-  });
+  context.graphApi
+    .getWeb(authentication.actorId, webId)
+    .then(({ data }) => data.machineId as MachineId);
 
 /**
  * Retrieve a machine actor's accountId by its unique identifier
@@ -239,6 +233,32 @@ export const createMachineActorEntity = async (
   );
 };
 
+export const createWebMachineActorEntity = async (
+  context: { graphApi: GraphApi },
+  {
+    systemAccountId,
+    webId,
+    machineId,
+    machineEntityTypeId,
+    logger,
+  }: {
+    systemAccountId: MachineId;
+    webId: WebId;
+    machineId: MachineId;
+    machineEntityTypeId?: VersionedUrl;
+    logger: Logger;
+  },
+): Promise<void> =>
+  createMachineActorEntity(context, {
+    identifier: `system-${webId}`,
+    displayName: "HASH",
+    systemAccountId,
+    webId,
+    machineId,
+    machineEntityTypeId,
+    logger,
+  });
+
 /**
  * 1. Creates an account for a machine and grants it ownership permissions for the specified web
  * 2. Grants it the permissions to create some special system types
@@ -264,28 +284,18 @@ export const createWebMachineActor = async (
     .then(({ data }) => data as MachineId);
 
   const { webId, machineId } = await graphApi
-    .findWebByShortname(authentication.actorId, shortname)
-    .then(({ data }) => {
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-      if (!data) {
-        throw new NotFoundError(
-          `Critical: No web entity with shortname ${shortname} found in the graph.`,
-        );
-      }
-      return {
-        webId: data.webId as WebId,
-        machineId: data.machineId as MachineId,
-      };
-    });
+    .getWebByShortname(authentication.actorId, shortname)
+    .then(({ data }) => ({
+      webId: data.webId as WebId,
+      machineId: data.machineId as MachineId,
+    }));
 
-  await createMachineActorEntity(context, {
-    identifier: `system-${webId}`,
-    logger,
-    machineId,
-    webId,
-    displayName: "HASH",
+  await createWebMachineActorEntity(context, {
     systemAccountId,
+    webId,
+    machineId,
     machineEntityTypeId,
+    logger,
   });
 
   return machineId;

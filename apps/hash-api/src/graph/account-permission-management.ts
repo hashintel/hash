@@ -6,6 +6,7 @@ import type {
   UserId,
   WebId,
 } from "@blockprotocol/type-system";
+import { NotFoundError } from "@local/hash-backend-utils/error";
 
 import type { ImpureGraphFunction } from "./context-types";
 
@@ -57,41 +58,51 @@ export const createAiActor: ImpureGraphFunction<
 > = async ({ graphApi }, { actorId }, params) =>
   graphApi.createAiActor(actorId, params).then(({ data }) => data as AiId);
 
-export const findWeb: ImpureGraphFunction<
+export const getWeb: ImpureGraphFunction<
   {
     webId: WebId;
   },
-  Promise<{ webId: WebId; machineId: MachineId; shortname?: string } | null>
-> = async ({ graphApi }, { actorId }, params) => {
-  const { data } = await graphApi.findWeb(actorId, params.webId);
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  if (!data) {
-    throw new Error(`No web found for id "${params.webId}"`);
-  }
-  return {
-    webId: params.webId,
-    machineId: data.machineId as MachineId,
-    shortname: data.shortname,
-  };
-};
+  Promise<{ webId: WebId; machineId: MachineId; shortname?: string }>
+> = async ({ graphApi }, { actorId }, params) =>
+  graphApi
+    .getWeb(actorId, params.webId)
+    .then(({ data }) => ({
+      webId: params.webId,
+      machineId: data.machineId as MachineId,
+      shortname: data.shortname,
+    }))
+    .catch((error) => {
+      if (error.response?.status === 404) {
+        throw new NotFoundError(
+          `No web with id ${params.webId} found in the graph.`,
+        );
+      } else {
+        throw error;
+      }
+    });
 
 export const findWebByShortname: ImpureGraphFunction<
   {
     shortname: string;
   },
   Promise<{ webId: WebId; machineId: MachineId; shortname: string }>
-> = async ({ graphApi }, { actorId }, params) => {
-  const { data } = await graphApi.findWebByShortname(actorId, params.shortname);
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-  if (!data) {
-    throw new Error(`No web found for the shortname "${params.shortname}"`);
-  }
-  return {
-    webId: data.webId as WebId,
-    machineId: data.machineId as MachineId,
-    shortname: params.shortname,
-  };
-};
+> = async ({ graphApi }, { actorId }, params) =>
+  graphApi
+    .getWebByShortname(actorId, params.shortname)
+    .then(({ data }) => ({
+      webId: data.webId as WebId,
+      machineId: data.machineId as MachineId,
+      shortname: params.shortname,
+    }))
+    .catch((error) => {
+      if (error.response?.status === 404) {
+        throw new NotFoundError(
+          `No web with shortname ${params.shortname} found in the graph.`,
+        );
+      } else {
+        throw error;
+      }
+    });
 
 export const createOrgWeb: ImpureGraphFunction<
   {

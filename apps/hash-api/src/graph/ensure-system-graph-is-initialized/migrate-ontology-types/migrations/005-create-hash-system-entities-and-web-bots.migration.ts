@@ -7,7 +7,7 @@ import {
 } from "@local/hash-backend-utils/machine-actors";
 
 import { logger } from "../../../../logger";
-import { findWeb } from "../../../account-permission-management";
+import { getWeb } from "../../../account-permission-management";
 import { createHashInstance } from "../../../knowledge/system-types/hash-instance";
 import { systemAccountId } from "../../../system-account";
 import {
@@ -98,15 +98,8 @@ const migrate: MigrationFunction = async ({
       });
     } catch (err) {
       if (err instanceof NotFoundError) {
-        const { webId, machineId } = await findWeb(context, authentication, {
+        const { webId, machineId } = await getWeb(context, authentication, {
           webId: userAccountId,
-        }).then((response) => {
-          if (!response) {
-            throw new NotFoundError(
-              `Critical: No web with id ${webId} found in the graph.`,
-            );
-          }
-          return response;
         });
 
         await createMachineActorEntity(context, {
@@ -140,15 +133,8 @@ const migrate: MigrationFunction = async ({
       });
     } catch (err) {
       if (err instanceof NotFoundError) {
-        const { webId, machineId } = await findWeb(context, authentication, {
+        const { webId, machineId } = await getWeb(context, authentication, {
           webId: orgAccountGroupId,
-        }).then((response) => {
-          if (!response) {
-            throw new NotFoundError(
-              `Critical: No web with id ${webId} found in the graph.`,
-            );
-          }
-          return response;
         });
 
         await createMachineActorEntity(context, {

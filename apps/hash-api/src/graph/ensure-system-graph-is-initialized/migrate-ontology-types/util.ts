@@ -250,7 +250,7 @@ export const createSystemDataTypeIfNotExists: ImpureGraphFunction<
     dataTypeId,
   });
 
-  const { webId, machineId } = await getOrCreateOwningWebId(
+  const { webId, systemActorMachineId } = await getOrCreateOwningWebId(
     context,
     webShortname,
   );
@@ -269,7 +269,7 @@ export const createSystemDataTypeIfNotExists: ImpureGraphFunction<
      * If this is a self-hosted instance, the system types will be created as external types that don't belong to an in-instance web,
      * although they will be created by a machine actor associated with an equivalently named web.
      */
-    await context.graphApi.loadExternalDataType(machineId, {
+    await context.graphApi.loadExternalDataType(systemActorMachineId, {
       // Specify the schema so that self-hosted instances don't need network access to hash.ai
       schema: dataTypeSchema,
       relationships,
@@ -284,7 +284,7 @@ export const createSystemDataTypeIfNotExists: ImpureGraphFunction<
     // If this is NOT a self-hosted instance, i.e. it's the 'main' HASH, we need a web for system types to belong to
     const createdDataType = await createDataType(
       context,
-      { actorId: machineId },
+      { actorId: systemActorMachineId },
       {
         webId,
         schema: dataTypeSchema,
@@ -344,7 +344,7 @@ export const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<
     propertyTypeId,
   });
 
-  const { webId, machineId } = await getOrCreateOwningWebId(
+  const { webId, systemActorMachineId } = await getOrCreateOwningWebId(
     context,
     webShortname,
   );
@@ -354,7 +354,7 @@ export const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<
       relation: "editor",
       subject: {
         kind: "account",
-        subjectId: machineId,
+        subjectId: systemActorMachineId,
       },
     },
     {
@@ -370,7 +370,7 @@ export const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<
      * If this is a self-hosted instance, the system types will be created as external types that don't belong to an
      * in-instance web, although they will be created by a machine actor associated with an equivalently named web.
      */
-    await context.graphApi.loadExternalPropertyType(machineId, {
+    await context.graphApi.loadExternalPropertyType(systemActorMachineId, {
       // Specify the schema so that self-hosted instances don't need network access to hash.ai
       schema: propertyTypeSchema,
       relationships,
@@ -384,7 +384,7 @@ export const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<
     // If this is NOT a self-hosted instance, i.e. it's the 'main' HASH, we need a web for system types to belong to
     const createdPropertyType = await createPropertyType(
       context,
-      { actorId: machineId },
+      { actorId: systemActorMachineId },
       {
         webId,
         schema: propertyTypeSchema,
@@ -567,7 +567,7 @@ export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
     entityTypeId,
   });
 
-  const { webId, machineId } = await getOrCreateOwningWebId(
+  const { webId, systemActorMachineId } = await getOrCreateOwningWebId(
     context,
     webShortname,
   );
@@ -577,7 +577,7 @@ export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
       relation: "editor",
       subject: {
         kind: "account",
-        subjectId: machineId,
+        subjectId: systemActorMachineId,
       },
     },
     {
@@ -601,7 +601,7 @@ export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
      * If this is a self-hosted instance, the system types will be created as external types that don't belong to an in-instance web,
      * although they will be created by a machine actor associated with an equivalently named web.
      */
-    await context.graphApi.loadExternalEntityType(machineId, {
+    await context.graphApi.loadExternalEntityType(systemActorMachineId, {
       // Specify the schema so that self-hosted instances don't need network access to hash.ai
       schema: entityTypeSchema,
       relationships,
@@ -615,7 +615,7 @@ export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
     // If this is NOT a self-hosted instance, i.e. it's the 'main' HASH, we create the system types in a web
     const createdEntityType = await createEntityType(
       context,
-      { actorId: machineId },
+      { actorId: systemActorMachineId },
       {
         webId,
         schema: entityTypeSchema,

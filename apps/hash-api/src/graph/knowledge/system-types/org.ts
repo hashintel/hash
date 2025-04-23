@@ -1,10 +1,11 @@
-import type { EntityId, WebId } from "@blockprotocol/type-system";
+import type { EntityId, MachineId, WebId } from "@blockprotocol/type-system";
 import {
   extractBaseUrl,
   extractWebIdFromEntityId,
   versionedUrlFromComponents,
 } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
+import { createWebMachineActorEntity } from "@local/hash-backend-utils/machine-actors";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
@@ -19,7 +20,8 @@ import type {
   OrganizationPropertiesWithMetadata,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 
-import { createOrgWeb } from "../../account-permission-management";
+import { logger } from "../../../logger";
+import { createOrgWeb, getWeb } from "../../account-permission-management";
 import type {
   ImpureGraphFunction,
   PureGraphFunction,
@@ -125,13 +127,27 @@ export const createOrg: ImpureGraphFunction<
   }
 
   let orgWebId: WebId;
+  let orgWebMachineId: MachineId;
   if (params.webId) {
     orgWebId = params.webId;
+    const { machineId } = await getWeb(ctx, authentication, {
+      webId: orgWebId,
+    });
+    orgWebMachineId = machineId;
   } else {
-    orgWebId = await createOrgWeb(ctx, authentication, {
+    const { webId, machineId } = await createOrgWeb(ctx, authentication, {
       shortname,
-    }).then(({ webId }) => webId);
+    });
+    orgWebId = webId;
+    orgWebMachineId = machineId;
   }
+
+  await createWebMachineActorEntity(ctx, {
+    systemAccountId,
+    webId: orgWebId,
+    machineId: orgWebMachineId,
+    logger,
+  });
 
   const properties: OrganizationPropertiesWithMetadata = {
     value: {
