@@ -57,7 +57,6 @@ const StackSlide = ({
       container={slideContainerRef?.current ?? undefined}
       in={open && !animateOut}
       direction="left"
-      onClick={(event) => event.stopPropagation()}
     >
       <Box
         ref={slideRef}
@@ -149,8 +148,14 @@ export const SlideStack: FunctionComponent<{
   return (
     <Portal container={slideContainerRef?.current ?? undefined}>
       <Backdrop
+        onClick={(event) => {
+          if (
+            !items[currentIndex]?.ref.current?.contains(event.target as Node)
+          ) {
+            handleClose();
+          }
+        }}
         open={items.length > 0 && !animateOut}
-        onClick={handleClose}
         sx={{ zIndex: ({ zIndex }) => zIndex.drawer + 2 }}
       >
         {items.slice(0, currentIndex + 1).map(({ item, ref }, index) => (
