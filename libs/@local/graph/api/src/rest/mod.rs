@@ -3,13 +3,13 @@
 //! Handler methods are grouped by routes that make up the REST API.
 
 pub mod actor;
+pub mod actor_group;
 pub mod data_type;
 pub mod entity;
 pub mod entity_type;
 pub mod middleware;
 pub mod property_type;
 pub mod status;
-pub mod web;
 
 mod json;
 mod utoipa_typedef;
@@ -205,7 +205,7 @@ where
         property_type::PropertyTypeResource::routes::<S, A>(),
         entity_type::EntityTypeResource::routes::<S, A>(),
         entity::EntityResource::routes::<S, A>(),
-        web::WebResource::routes::<S, A>(),
+        actor_group::ActorGroupResource::routes::<S, A>(),
     ]
 }
 
@@ -216,7 +216,7 @@ fn api_documentation() -> Vec<openapi::OpenApi> {
         property_type::PropertyTypeResource::openapi(),
         entity_type::EntityTypeResource::openapi(),
         entity::EntityResource::openapi(),
-        web::WebResource::openapi(),
+        actor_group::ActorGroupResource::openapi(),
     ]
 }
 

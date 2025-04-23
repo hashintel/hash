@@ -84,7 +84,7 @@ use type_system::{
     },
     principal::{
         actor::{ActorEntityUuid, ActorId, ActorType, AiId, MachineId},
-        actor_group::{ActorGroupEntityUuid, ActorGroupId, TeamId, WebId},
+        actor_group::{ActorGroupEntityUuid, TeamId, WebId},
         role::RoleName,
     },
     provenance::{OriginProvenance, OriginType},
@@ -204,33 +204,41 @@ where
 
     async fn assign_role(
         &mut self,
-        actor: ActorEntityUuid,
+        actor_id: ActorEntityUuid,
         actor_to_assign: ActorEntityUuid,
         actor_group_id: ActorGroupEntityUuid,
         name: RoleName,
     ) -> Result<RoleAssignmentStatus, Report<RoleAssignmentError>> {
         self.store
-            .assign_role(actor, actor_to_assign, actor_group_id, name)
+            .assign_role(actor_id, actor_to_assign, actor_group_id, name)
             .await
     }
 
     async fn is_assigned(
         &mut self,
-        actor_id: ActorId,
-        actor_group_id: ActorGroupId,
+        actor_id: ActorEntityUuid,
+        actor_group_id: ActorGroupEntityUuid,
     ) -> Result<Option<RoleName>, Report<RoleAssignmentError>> {
         self.store.is_assigned(actor_id, actor_group_id).await
     }
 
+    async fn get_role_assignments(
+        &mut self,
+        actor_group_id: ActorGroupEntityUuid,
+        role: RoleName,
+    ) -> Result<Vec<ActorEntityUuid>, Report<RoleAssignmentError>> {
+        self.store.get_role_assignments(actor_group_id, role).await
+    }
+
     async fn unassign_role(
         &mut self,
-        actor: ActorEntityUuid,
+        actor_id: ActorEntityUuid,
         actor_to_unassign: ActorEntityUuid,
         actor_group_id: ActorGroupEntityUuid,
         name: RoleName,
     ) -> Result<RoleUnassignmentStatus, Report<RoleAssignmentError>> {
         self.store
-            .unassign_role(actor, actor_to_unassign, actor_group_id, name)
+            .unassign_role(actor_id, actor_to_unassign, actor_group_id, name)
             .await
     }
 }

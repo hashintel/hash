@@ -27,7 +27,10 @@ import type {
 } from "../../../auth/ory-kratos";
 import { kratosIdentityApi } from "../../../auth/ory-kratos";
 import { logger } from "../../../logger";
-import { createUserActor } from "../../account-permission-management";
+import {
+  addActorGroupMember,
+  createUserActor,
+} from "../../account-permission-management";
 import type {
   ImpureGraphFunction,
   PureGraphFunction,
@@ -43,7 +46,6 @@ import {
   shortnameIsRestricted,
   shortnameIsTaken,
 } from "./account.fields";
-import { addHashInstanceAdmin } from "./hash-instance";
 import type { OrgMembership } from "./org-membership";
 import {
   createOrgMembership,
@@ -429,7 +431,11 @@ export const createUser: ImpureGraphFunction<
   const user = getUserFromEntity({ entity });
 
   if (isInstanceAdmin) {
-    await addHashInstanceAdmin(ctx, authentication, { user });
+    const instanceAdmins = await getInstanceAdminsTeam(ctx, authentication);
+    await addActorGroupMember(ctx, authentication, {
+      actorGroupId: instanceAdmins.teamId,
+      actorId: user.accountId,
+    });
   }
 
   return user;

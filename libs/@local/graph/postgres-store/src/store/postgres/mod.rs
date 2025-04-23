@@ -11,6 +11,7 @@ use core::{fmt::Debug, hash::Hash};
 use std::collections::HashMap;
 
 use error_stack::{Report, ReportSink, ResultExt as _};
+use futures::TryStreamExt as _;
 use hash_graph_authorization::{
     AuthorizationApi,
     backend::ModifyRelationshipOperation,
@@ -49,7 +50,7 @@ use hash_graph_store::{
 use hash_graph_temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
 use hash_status::StatusCode;
 use hash_temporal_client::TemporalClient;
-use postgres_types::Json;
+use postgres_types::{Json, ToSql};
 use time::OffsetDateTime;
 use tokio_postgres::{GenericClient as _, error::SqlState};
 use type_system::{
@@ -488,7 +489,7 @@ where
 
     async fn assign_role(
         &mut self,
-        actor: ActorEntityUuid,
+        actor_id: ActorEntityUuid,
         actor_to_assign: ActorEntityUuid,
         actor_group_id: ActorGroupEntityUuid,
         name: RoleName,
@@ -515,7 +516,7 @@ where
         let has_permission = transaction
             .authorization_api
             .check_account_group_permission(
-                actor,
+                actor_id,
                 AccountGroupPermission::AddMember,
                 actor_group_id.into(),
                 Consistency::FullyConsistent,
@@ -529,7 +530,7 @@ where
         }
 
         if let Some(already_assigned_role) = transaction
-            .is_assigned(actor_to_assign_id, actor_group_id)
+            .is_assigned(actor_to_assign_id.into(), actor_group_id.into())
             .await?
         {
             if already_assigned_role == name {
@@ -608,8 +609,8 @@ where
 
     async fn is_assigned(
         &mut self,
-        actor_id: ActorId,
-        actor_group_id: ActorGroupId,
+        actor_id: ActorEntityUuid,
+        actor_group_id: ActorGroupEntityUuid,
     ) -> Result<Option<RoleName>, Report<RoleAssignmentError>> {
         Ok(self
             .as_client()
@@ -626,9 +627,30 @@ where
             .map(|row| row.get(0)))
     }
 
+    async fn get_role_assignments(
+        &mut self,
+        actor_group_id: ActorGroupEntityUuid,
+        role: RoleName,
+    ) -> Result<Vec<ActorEntityUuid>, Report<RoleAssignmentError>> {
+        self.as_client()
+            .query_raw(
+                "SELECT actor_role.actor_id
+                 FROM actor_role
+                 JOIN role ON actor_role.role_id = role.id
+                 WHERE role.actor_group_id = $1 AND role.name = $2",
+                [&actor_group_id as &(dyn ToSql + Sync), &role],
+            )
+            .await
+            .change_context(RoleAssignmentError::StoreError)?
+            .map_ok(|row| row.get::<_, ActorEntityUuid>(0))
+            .try_collect()
+            .await
+            .change_context(RoleAssignmentError::StoreError)
+    }
+
     async fn unassign_role(
         &mut self,
-        actor: ActorEntityUuid,
+        actor_id: ActorEntityUuid,
         actor_to_unassign: ActorEntityUuid,
         actor_group_id: ActorGroupEntityUuid,
         name: RoleName,
@@ -655,7 +677,7 @@ where
         let has_permission = transaction
             .authorization_api
             .check_account_group_permission(
-                actor,
+                actor_id,
                 AccountGroupPermission::RemoveMember,
                 actor_group_id.into(),
                 Consistency::FullyConsistent,

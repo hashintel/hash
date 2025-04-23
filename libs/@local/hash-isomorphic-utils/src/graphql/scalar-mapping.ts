@@ -108,6 +108,9 @@ export const scalars = {
   StepInput: "@local/hash-isomorphic-utils/flows/types#StepInput",
   StepRunOutput: "@local/hash-isomorphic-utils/flows/types#StepRunOutput",
   StepProgressLog: "@local/hash-isomorphic-utils/flows/types#StepProgressLog",
+
+  RoleAssignmentStatus: "@local/hash-graph-client#RoleAssignmentStatus",
+  RoleUnassignmentStatus: "@local/hash-graph-client#RoleUnassignmentStatus",
 };
 
 export const _localRelativeScalars = Object.fromEntries(

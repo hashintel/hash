@@ -11,31 +11,24 @@ use axum::{
 use error_stack::ResultExt as _;
 use hash_graph_authorization::{
     AuthorizationApi as _, AuthorizationApiPool,
-    policies::store::{PrincipalStore, RoleAssignmentStatus, RoleUnassignmentStatus},
-    schema::{
-        AccountGroupAdministratorSubject, AccountGroupMemberSubject, AccountGroupPermission,
-        AccountGroupRelationAndSubject,
-    },
+    policies::store::PrincipalStore,
+    schema::{AccountGroupPermission, AccountGroupRelationAndSubject},
     zanzibar::Consistency,
 };
 use hash_graph_store::{
     account::{
         AccountStore as _, CreateAiActorParams, CreateUserActorParams, CreateUserActorResponse,
-        GetTeamResponse,
     },
     pool::StorePool,
 };
-use hash_status::Status;
 use hash_temporal_client::TemporalClient;
 use http::StatusCode;
 use type_system::principal::{
     actor::{ActorEntityUuid, ActorId, ActorType, AiId, MachineId, UserId},
-    actor_group::{ActorGroupEntityUuid, ActorGroupId, TeamId, WebId},
-    role::RoleName,
+    actor_group::ActorGroupEntityUuid,
 };
 use utoipa::OpenApi;
 
-use super::status::status_to_response;
 use crate::rest::{
     AuthenticatedUserHeader, OpenApiQuery, PermissionResponse, QueryLogger, json::Json,
     status::report_to_response,
@@ -47,12 +40,9 @@ use crate::rest::{
         create_user_actor,
         create_ai_actor,
         get_or_create_system_actor,
-        get_instance_admins_team,
         ensure_system_policies,
 
         check_account_group_permission,
-        assign_actor_group_role,
-        unassign_actor_group_role,
         get_actor_group_relations,
     ),
     components(
@@ -63,18 +53,6 @@ use crate::rest::{
             UserId,
             AiId,
             ActorEntityUuid,
-            ActorGroupEntityUuid,
-            TeamId,
-            GetTeamResponse,
-            WebId,
-            ActorGroupId,
-            RoleName,
-            RoleAssignmentStatus,
-            RoleUnassignmentStatus,
-            AccountGroupPermission,
-            AccountGroupRelationAndSubject,
-            AccountGroupMemberSubject,
-            AccountGroupAdministratorSubject,
             CreateUserActorParams,
             CreateUserActorResponse,
             CreateAiActorParams,
@@ -103,8 +81,7 @@ impl ActorResource {
                         "/actor/:identifier",
                         get(get_or_create_system_actor::<S, A>),
                     )
-                    .route("/policies/seed", get(ensure_system_policies::<S, A>))
-                    .route("/instance-admins", get(get_instance_admins_team::<S, A>)),
+                    .route("/policies/seed", get(ensure_system_policies::<S, A>)),
             )
             .nest(
                 "/actors",
@@ -121,12 +98,7 @@ impl ActorResource {
                             "/permissions/:permission",
                             get(check_account_group_permission::<A>),
                         )
-                        .route("/relations", get(get_actor_group_relations::<A>))
-                        .route(
-                            "/:role/:actor_id",
-                            post(assign_actor_group_role::<S, A>)
-                                .delete(unassign_actor_group_role::<S, A>),
-                        ),
+                        .route("/relations", get(get_actor_group_relations::<A>)),
                 ),
             )
     }
@@ -309,59 +281,6 @@ where
 
 #[utoipa::path(
     get,
-    path = "/system/instance-admins",
-    tag = "Web",
-    params(
-        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
-    ),
-    responses(
-        (status = 200, content_type = "application/json", description = "The team was retrieved successfully", body = GetTeamResponse),
-        (status = 404, content_type = "application/json", description = "The team was not found"),
-
-        (status = 500, description = "Store error occurred"),
-    )
-)]
-#[tracing::instrument(
-    level = "info",
-    skip(store_pool, authorization_api_pool, temporal_client)
-)]
-async fn get_instance_admins_team<S, A>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    authorization_api_pool: Extension<Arc<A>>,
-    temporal_client: Extension<Option<Arc<TemporalClient>>>,
-    store_pool: Extension<Arc<S>>,
-) -> Result<Json<GetTeamResponse>, Response>
-where
-    S: StorePool + Send + Sync,
-    A: AuthorizationApiPool + Send + Sync,
-    for<'p, 'a> S::Store<'p, A::Api<'a>>: PrincipalStore,
-{
-    let authorization_api = authorization_api_pool
-        .acquire()
-        .await
-        .map_err(report_to_response)?;
-
-    let mut store = store_pool
-        .acquire(authorization_api, temporal_client.0)
-        .await
-        .map_err(report_to_response)?;
-
-    store
-        .find_team_by_name(actor_id, "instance-admins")
-        .await
-        .map_err(report_to_response)?
-        .ok_or_else(|| {
-            status_to_response(Status::new(
-                hash_status::StatusCode::NotFound,
-                None,
-                Vec::<()>::new(),
-            ))
-        })
-        .map(Json)
-}
-
-#[utoipa::path(
-    get,
     path = "/actor_groups/{actor_group_id}/permissions/{permission}",
     tag = "Actor Group",
     params(
@@ -418,112 +337,6 @@ where
         query_logger.send().await.map_err(report_to_response)?;
     }
     response
-}
-
-#[utoipa::path(
-    post,
-    path = "/actor_groups/{actor_group_id}/{role}/{actor_id}",
-    tag = "Actor Group",
-    params(
-        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
-        ("actor_group_id" = ActorGroupEntityUuid, Path, description = "The ID of the actor group to add the member to"),
-        ("role" = RoleName, Path, description = "The role to assign to the actor"),
-        ("actor_id" = ActorEntityUuid, Path, description = "The ID of the actor to add to the group"),
-    ),
-    responses(
-        (status = 200, body = RoleAssignmentStatus, description = "The actor group member was added"),
-
-        (status = 403, description = "Permission denied"),
-        (status = 500, description = "Store error occurred"),
-    )
-)]
-#[tracing::instrument(
-    level = "info",
-    skip(store_pool, authorization_api_pool, temporal_client)
-)]
-async fn assign_actor_group_role<S, A>(
-    AuthenticatedUserHeader(actor): AuthenticatedUserHeader,
-    Path((actor_group_id, role_name, actor_id)): Path<(
-        ActorGroupEntityUuid,
-        RoleName,
-        ActorEntityUuid,
-    )>,
-    temporal_client: Extension<Option<Arc<TemporalClient>>>,
-    store_pool: Extension<Arc<S>>,
-    authorization_api_pool: Extension<Arc<A>>,
-) -> Result<Json<RoleAssignmentStatus>, Response>
-where
-    S: StorePool + Send + Sync,
-    A: AuthorizationApiPool + Send + Sync,
-    for<'p, 'a> S::Store<'p, A::Api<'a>>: PrincipalStore,
-{
-    store_pool
-        .acquire(
-            authorization_api_pool
-                .acquire()
-                .await
-                .map_err(report_to_response)?,
-            temporal_client.0,
-        )
-        .await
-        .map_err(report_to_response)?
-        .assign_role(actor, actor_id, actor_group_id, role_name)
-        .await
-        .map(Json)
-        .map_err(report_to_response)
-}
-
-#[utoipa::path(
-    delete,
-    path = "/actor_groups/{actor_group_id}/{role}/{actor_id}",
-    tag = "Actor Group",
-    params(
-        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
-        ("actor_group_id" = ActorGroupEntityUuid, Path, description = "The ID of the actor group to remove the member from"),
-        ("role" = RoleName, Path, description = "The role to remove from the actor"),
-        ("actor_id" = ActorEntityUuid, Path, description = "The ID of the actor to remove from the group")
-    ),
-    responses(
-        (status = 200, body = RoleUnassignmentStatus, description = "The actor group member was removed"),
-
-        (status = 403, description = "Permission denied"),
-        (status = 500, description = "Store error occurred"),
-    )
-)]
-#[tracing::instrument(
-    level = "info",
-    skip(store_pool, authorization_api_pool, temporal_client)
-)]
-async fn unassign_actor_group_role<S, A>(
-    AuthenticatedUserHeader(actor): AuthenticatedUserHeader,
-    Path((actor_group_id, role_name, actor_id)): Path<(
-        ActorGroupEntityUuid,
-        RoleName,
-        ActorEntityUuid,
-    )>,
-    temporal_client: Extension<Option<Arc<TemporalClient>>>,
-    store_pool: Extension<Arc<S>>,
-    authorization_api_pool: Extension<Arc<A>>,
-) -> Result<Json<RoleUnassignmentStatus>, Response>
-where
-    S: StorePool + Send + Sync,
-    A: AuthorizationApiPool + Send + Sync,
-    for<'p, 'a> S::Store<'p, A::Api<'a>>: PrincipalStore,
-{
-    store_pool
-        .acquire(
-            authorization_api_pool
-                .acquire()
-                .await
-                .map_err(report_to_response)?,
-            temporal_client.0,
-        )
-        .await
-        .map_err(report_to_response)?
-        .unassign_role(actor, actor_id, actor_group_id, role_name)
-        .await
-        .map(Json)
-        .map_err(report_to_response)
 }
 
 #[utoipa::path(

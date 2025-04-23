@@ -26,6 +26,17 @@ export type HashInstance = {
   entity: HashEntity<HASHInstance>;
 } & SimpleProperties<HASHInstanceProperties>;
 
+export const getInstanceAdminsTeam = async (
+  ctx: { graphApi: GraphApi },
+  authentication: { actorId: ActorEntityUuid },
+): Promise<{ teamId: TeamId; webId: WebId }> =>
+  ctx.graphApi
+    .getInstanceAdminsTeam(authentication.actorId)
+    .then(({ data }) => ({
+      teamId: data.teamId as TeamId,
+      webId: data.parentId.id as WebId,
+    }));
+
 export const getHashInstanceFromEntity = ({
   entity,
 }: {
@@ -101,46 +112,14 @@ export const isUserHashInstanceAdmin = async (
   ctx: { graphApi: GraphApi },
   authentication: { actorId: ActorEntityUuid },
   { userAccountId }: { userAccountId: ActorEntityUuid },
-) => {
-  // console.info(`[${userAccountId}] Fetching HASH Instance entity`);
-  const hashInstance = await getHashInstance(ctx, authentication).catch(
-    (err) => {
-      // eslint-disable-next-line no-console
-      console.error(
-        `[${userAccountId}] ERROR Fetching HASH Instance entity: ${err}`,
-      );
-      throw err;
-    },
+): Promise<boolean> =>
+  getInstanceAdminsTeam(ctx, authentication).then((team) =>
+    ctx.graphApi
+      .hasActorGroupRole(
+        authentication.actorId,
+        team.teamId,
+        "member",
+        userAccountId,
+      )
+      .then(({ data }) => data),
   );
-  // console.info(`[${userAccountId}] SUCCESS Fetching HASH Instance entity`);
-  // console.info(`[${userAccountId}] Checking permission on instance`);
-  return ctx.graphApi
-    .checkEntityPermission(
-      userAccountId,
-      hashInstance.entity.metadata.recordId.entityId,
-      "update",
-    )
-    .then(({ data }) => {
-      // console.info(
-      //   `[${userAccountId}] SUCCESS Checking permission on instance`,
-      // );
-      return data.has_permission;
-    })
-    .catch((err) => {
-      // console.error(
-      //   `[${userAccountId}] ERROR Checking permission on instance: ${err}`,
-      // );
-      throw err;
-    });
-};
-
-export const getInstanceAdminsTeam = async (
-  ctx: { graphApi: GraphApi },
-  authentication: { actorId: ActorEntityUuid },
-): Promise<{ teamId: TeamId; webId: WebId }> =>
-  ctx.graphApi
-    .getInstanceAdminsTeam(authentication.actorId)
-    .then(({ data }) => ({
-      teamId: data.teamId as TeamId,
-      webId: data.parentId.id as WebId,
-    }));

@@ -12,6 +12,574 @@
     "version": "0.0.0"
   },
   "paths": {
+    "/actor-groups/teams/instance-admins": {
+      "get": {
+        "tags": [
+          "Graph",
+          "Team"
+        ],
+        "operationId": "get_instance_admins_team",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The team was retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetTeamResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The team was not found"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
+    "/actor-groups/webs": {
+      "post": {
+        "tags": [
+          "Graph",
+          "Web"
+        ],
+        "operationId": "create_org_web",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOrgWebParams"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The web was created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateWebResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
+    "/actor-groups/webs/relationships": {
+      "post": {
+        "tags": [
+          "Graph",
+          "Web"
+        ],
+        "operationId": "modify_web_authorization_relationships",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ModifyWebAuthorizationRelationship"
+                }
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "The relationship was modified for the web"
+          },
+          "403": {
+            "description": "Permission denied"
+          }
+        }
+      }
+    },
+    "/actor-groups/webs/shortname/{shortname}": {
+      "get": {
+        "tags": [
+          "Graph",
+          "Web"
+        ],
+        "operationId": "get_web_by_shortname",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          },
+          {
+            "name": "shortname",
+            "in": "path",
+            "description": "The shortname of the web to retrieve",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The web was retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetWebResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The web was not found"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
+    "/actor-groups/webs/{web_id}": {
+      "get": {
+        "tags": [
+          "Graph",
+          "Web"
+        ],
+        "operationId": "get_web",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          },
+          {
+            "name": "web_id",
+            "in": "path",
+            "description": "The ID of the web to retrieve",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/WebId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The web was retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetWebResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The web was not found"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
+    "/actor-groups/webs/{web_id}/permissions/{permission}": {
+      "get": {
+        "tags": [
+          "Graph",
+          "Web"
+        ],
+        "operationId": "check_web_permission",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          },
+          {
+            "name": "web_id",
+            "in": "path",
+            "description": "The web ID to check if the actor has the permission",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/EntityId"
+            }
+          },
+          {
+            "name": "permission",
+            "in": "path",
+            "description": "The permission to check for",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/WebPermission"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Information if the actor has the permission for the web",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error occurred"
+          }
+        }
+      }
+    },
+    "/actor-groups/webs/{web_id}/relationships": {
+      "get": {
+        "tags": [
+          "Graph",
+          "Web"
+        ],
+        "operationId": "get_web_authorization_relationships",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          },
+          {
+            "name": "web_id",
+            "in": "path",
+            "description": "The web to read the relations for",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/WebId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The relations of the web",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WebRelationAndSubject"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied"
+          }
+        }
+      }
+    },
+    "/actor-groups/{actor_group_id}/roles/{role_name}/actors": {
+      "get": {
+        "tags": [
+          "Graph",
+          "ActorGroup"
+        ],
+        "operationId": "get_actor_group_role_assignments",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          },
+          {
+            "name": "actor_group_id",
+            "in": "path",
+            "description": "The ID of the actor group to get the assignments for",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorGroupEntityUuid"
+            }
+          },
+          {
+            "name": "role_name",
+            "in": "path",
+            "description": "The role to be checked",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/RoleName"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Whether the actor is assigned the role",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ActorEntityUuid"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The team was not found"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
+    "/actor-groups/{actor_group_id}/roles/{role_name}/actors/{actor_id}": {
+      "get": {
+        "tags": [
+          "Graph",
+          "ActorGroup"
+        ],
+        "operationId": "has_actor_group_role",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          },
+          {
+            "name": "actor_group_id",
+            "in": "path",
+            "description": "The ID of the actor group to check the role against",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorGroupEntityUuid"
+            }
+          },
+          {
+            "name": "role_name",
+            "in": "path",
+            "description": "The role to be checked",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/RoleName"
+            }
+          },
+          {
+            "name": "actor_id",
+            "in": "path",
+            "description": "The ID of the actor to be checked",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Whether the actor is assigned the role",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The team was not found"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Graph",
+          "ActorGroup"
+        ],
+        "operationId": "assign_actor_group_role",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          },
+          {
+            "name": "actor_group_id",
+            "in": "path",
+            "description": "The ID of the actor group to add the member to",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorGroupEntityUuid"
+            }
+          },
+          {
+            "name": "role_name",
+            "in": "path",
+            "description": "The role to assign to the actor",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/RoleName"
+            }
+          },
+          {
+            "name": "actor_id",
+            "in": "path",
+            "description": "The ID of the actor to add to the group",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The actor group member was added",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleAssignmentStatus"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Graph",
+          "ActorGroup"
+        ],
+        "operationId": "unassign_actor_group_role",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          },
+          {
+            "name": "actor_group_id",
+            "in": "path",
+            "description": "The ID of the actor group to remove the member from",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorGroupEntityUuid"
+            }
+          },
+          {
+            "name": "role_name",
+            "in": "path",
+            "description": "The role to remove from the actor",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/RoleName"
+            }
+          },
+          {
+            "name": "actor_id",
+            "in": "path",
+            "description": "The ID of the actor to remove from the group",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The actor group member was removed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleUnassignmentStatus"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
     "/actor_groups/{actor_group_id}/permissions/{permission}": {
       "get": {
         "tags": [
@@ -111,134 +679,6 @@
           },
           "500": {
             "description": "Internal error occurred"
-          }
-        }
-      }
-    },
-    "/actor_groups/{actor_group_id}/{role}/{actor_id}": {
-      "post": {
-        "tags": [
-          "Graph",
-          "Actor Group"
-        ],
-        "operationId": "assign_actor_group_role",
-        "parameters": [
-          {
-            "name": "X-Authenticated-User-Actor-Id",
-            "in": "header",
-            "description": "The ID of the actor which is used to authorize the request",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ActorEntityUuid"
-            }
-          },
-          {
-            "name": "actor_group_id",
-            "in": "path",
-            "description": "The ID of the actor group to add the member to",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ActorGroupEntityUuid"
-            }
-          },
-          {
-            "name": "role",
-            "in": "path",
-            "description": "The role to assign to the actor",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/RoleName"
-            }
-          },
-          {
-            "name": "actor_id",
-            "in": "path",
-            "description": "The ID of the actor to add to the group",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ActorEntityUuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "The actor group member was added",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RoleAssignmentStatus"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Permission denied"
-          },
-          "500": {
-            "description": "Store error occurred"
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "Graph",
-          "Actor Group"
-        ],
-        "operationId": "unassign_actor_group_role",
-        "parameters": [
-          {
-            "name": "X-Authenticated-User-Actor-Id",
-            "in": "header",
-            "description": "The ID of the actor which is used to authorize the request",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ActorEntityUuid"
-            }
-          },
-          {
-            "name": "actor_group_id",
-            "in": "path",
-            "description": "The ID of the actor group to remove the member from",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ActorGroupEntityUuid"
-            }
-          },
-          {
-            "name": "role",
-            "in": "path",
-            "description": "The role to remove from the actor",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/RoleName"
-            }
-          },
-          {
-            "name": "actor_id",
-            "in": "path",
-            "description": "The ID of the actor to remove from the group",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ActorEntityUuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "The actor group member was removed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RoleUnassignmentStatus"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Permission denied"
-          },
-          "500": {
-            "description": "Store error occurred"
           }
         }
       }
@@ -3107,44 +3547,6 @@
         }
       }
     },
-    "/system/instance-admins": {
-      "get": {
-        "tags": [
-          "Graph",
-          "Web"
-        ],
-        "operationId": "get_instance_admins_team",
-        "parameters": [
-          {
-            "name": "X-Authenticated-User-Actor-Id",
-            "in": "header",
-            "description": "The ID of the actor which is used to authorize the request",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ActorEntityUuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "The team was retrieved successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GetTeamResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "The team was not found"
-          },
-          "500": {
-            "description": "Store error occurred"
-          }
-        }
-      }
-    },
     "/system/policies/seed": {
       "get": {
         "tags": [
@@ -3158,286 +3560,6 @@
           },
           "500": {
             "description": "Store error occurred"
-          }
-        }
-      }
-    },
-    "/webs": {
-      "post": {
-        "tags": [
-          "Graph",
-          "Web"
-        ],
-        "operationId": "create_org_web",
-        "parameters": [
-          {
-            "name": "X-Authenticated-User-Actor-Id",
-            "in": "header",
-            "description": "The ID of the actor which is used to authorize the request",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ActorEntityUuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateOrgWebParams"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "The web was created successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CreateWebResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Store error occurred"
-          }
-        }
-      }
-    },
-    "/webs/relationships": {
-      "post": {
-        "tags": [
-          "Graph",
-          "Web"
-        ],
-        "operationId": "modify_web_authorization_relationships",
-        "parameters": [
-          {
-            "name": "X-Authenticated-User-Actor-Id",
-            "in": "header",
-            "description": "The ID of the actor which is used to authorize the request",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ActorEntityUuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/ModifyWebAuthorizationRelationship"
-                }
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "204": {
-            "description": "The relationship was modified for the web"
-          },
-          "403": {
-            "description": "Permission denied"
-          }
-        }
-      }
-    },
-    "/webs/shortname/{shortname}": {
-      "get": {
-        "tags": [
-          "Graph",
-          "Web"
-        ],
-        "operationId": "get_web_by_shortname",
-        "parameters": [
-          {
-            "name": "X-Authenticated-User-Actor-Id",
-            "in": "header",
-            "description": "The ID of the actor which is used to authorize the request",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ActorEntityUuid"
-            }
-          },
-          {
-            "name": "shortname",
-            "in": "path",
-            "description": "The shortname of the web to retrieve",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "The web was retrieved successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GetWebResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "The web was not found"
-          },
-          "500": {
-            "description": "Store error occurred"
-          }
-        }
-      }
-    },
-    "/webs/{web_id}": {
-      "get": {
-        "tags": [
-          "Graph",
-          "Web"
-        ],
-        "operationId": "get_web",
-        "parameters": [
-          {
-            "name": "X-Authenticated-User-Actor-Id",
-            "in": "header",
-            "description": "The ID of the actor which is used to authorize the request",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ActorEntityUuid"
-            }
-          },
-          {
-            "name": "web_id",
-            "in": "path",
-            "description": "The ID of the web to retrieve",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/WebId"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "The web was retrieved successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GetWebResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "The web was not found"
-          },
-          "500": {
-            "description": "Store error occurred"
-          }
-        }
-      }
-    },
-    "/webs/{web_id}/permissions/{permission}": {
-      "get": {
-        "tags": [
-          "Graph",
-          "Web"
-        ],
-        "operationId": "check_web_permission",
-        "parameters": [
-          {
-            "name": "X-Authenticated-User-Actor-Id",
-            "in": "header",
-            "description": "The ID of the actor which is used to authorize the request",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ActorEntityUuid"
-            }
-          },
-          {
-            "name": "web_id",
-            "in": "path",
-            "description": "The web ID to check if the actor has the permission",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/EntityId"
-            }
-          },
-          {
-            "name": "permission",
-            "in": "path",
-            "description": "The permission to check for",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/WebPermission"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Information if the actor has the permission for the web",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PermissionResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal error occurred"
-          }
-        }
-      }
-    },
-    "/webs/{web_id}/relationships": {
-      "get": {
-        "tags": [
-          "Graph",
-          "Web"
-        ],
-        "operationId": "get_web_authorization_relationships",
-        "parameters": [
-          {
-            "name": "X-Authenticated-User-Actor-Id",
-            "in": "header",
-            "description": "The ID of the actor which is used to authorize the request",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ActorEntityUuid"
-            }
-          },
-          {
-            "name": "web_id",
-            "in": "path",
-            "description": "The web to read the relations for",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/WebId"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "The relations of the web",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/WebRelationAndSubject"
-                  }
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Permission denied"
           }
         }
       }
@@ -11115,8 +11237,8 @@
       "description": "entity management API"
     },
     {
-      "name": "Web",
-      "description": "Web management API"
+      "name": "ActorGroup",
+      "description": "ActorGroup management API"
     }
   ]
 }
