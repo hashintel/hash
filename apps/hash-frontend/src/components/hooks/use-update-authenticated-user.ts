@@ -100,7 +100,10 @@ export const useUpdateAuthenticatedUser = () => {
           preferredPronouns,
           applicationPreferences,
         })) {
-          if (typeof value !== "undefined") {
+          if (
+            typeof value !== "undefined" &&
+            !(key === "websiteUrl" && !value)
+          ) {
             propertyPatches.push({
               path: [
                 key === "displayName"
@@ -114,7 +117,9 @@ export const useUpdateAuthenticatedUser = () => {
                   dataTypeId:
                     key === "applicationPreferences"
                       ? "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1"
-                      : "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                      : key === "websiteUrl"
+                        ? "https://hash.ai/@h/types/property-type/uri/v/1"
+                        : "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
                 },
               },
             });
