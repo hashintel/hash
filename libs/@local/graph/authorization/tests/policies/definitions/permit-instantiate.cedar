@@ -5,6 +5,7 @@ permit (
 )
 unless
 {
+  resource.base_url == "https://hash.ai/@h/types/entity-type/actor/" ||
   resource.base_url == "https://hash.ai/@h/types/entity-type/machine/" ||
   resource.base_url == "https://hash.ai/@h/types/entity-type/user/" ||
   resource.base_url == "https://hash.ai/@h/types/entity-type/organization/" ||

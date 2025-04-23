@@ -203,7 +203,7 @@ export const systemEntityTypes = {
       "https://hash.ai/@h/types/entity-type/spreadsheet-file/" as BaseUrl,
   },
   studyRecord: {
-    entityTypeId: "https://hash.ai/@hash/types/entity-type/study-record/v/1",
+    entityTypeId: "https://hash.ai/@h/types/entity-type/study-record/v/1",
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/study-record/" as BaseUrl,
   },

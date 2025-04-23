@@ -86,7 +86,7 @@
     "marked": "4.3.0",
     "material-ui-popup-state": "4.1.0",
     "millify": "6.1.0",
-    "next": "15.3.0",
+    "next": "15.3.1",
     "next-seo": "6.6.0",
     "nextjs-progressbar": "0.0.16",
     "notistack": "2.0.8",
@@ -106,7 +106,7 @@
     "react-dom": "19.1.0",
     "react-dropzone": "14.3.8",
     "react-full-screen": "1.1.1",
-    "react-hook-form": "7.55.0",
+    "react-hook-form": "7.56.0",
     "react-markdown": "9.1.0",
     "react-pdf": "9.2.1",
     "react-responsive-carousel": "3.2.23",
@@ -132,7 +132,7 @@
     "@graphql-codegen/typescript-operations": "2.5.13",
     "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@next/bundle-analyzer": "15.3.0",
+    "@next/bundle-analyzer": "15.3.1",
     "@types/dotenv-flow": "3.3.3",
     "@types/gapi": "0.0.47",
     "@types/google.accounts": "0.0.15",
@@ -141,7 +141,7 @@
     "@types/jsonpath": "0.2.4",
     "@types/lodash": "4.17.16",
     "@types/papaparse": "5.3.15",
-    "@types/react": "19.1.1",
+    "@types/react": "19.1.2",
     "@types/react-beautiful-dnd": "13.1.8",
     "@types/react-dom": "19.1.2",
     "@types/react-window": "1.8.8",
@@ -150,9 +150,9 @@
     "eslint": "9.20.1",
     "graphology-types": "0.24.8",
     "rimraf": "6.0.1",
-    "sass": "1.86.3",
+    "sass": "1.87.0",
     "typescript": "5.7.3",
     "wait-on": "8.0.3",
-    "webpack": "5.99.5"
+    "webpack": "5.99.6"
   }
 }
