@@ -182,7 +182,10 @@ export const ensureSystemWebEntitiesExist = async ({
         shortname: webShortname,
         name,
         websiteUrl,
-        entityTypeVersion: organizationEntityTypeId
+        machineEntityTypeVersion: machineEntityTypeId
+          ? componentsFromVersionedUrl(machineEntityTypeId).version
+          : undefined,
+        orgEntityTypeVersion: organizationEntityTypeId
           ? componentsFromVersionedUrl(organizationEntityTypeId).version
           : undefined,
       });

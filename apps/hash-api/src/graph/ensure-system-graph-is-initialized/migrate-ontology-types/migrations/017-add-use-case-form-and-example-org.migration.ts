@@ -149,9 +149,13 @@ const migrate: MigrationFunction = async ({
       shortname: "example",
       name: "Example",
       websiteUrl: "https://example.com",
-      entityTypeVersion:
+      orgEntityTypeVersion:
         migrationState.entityTypeVersions[
           systemEntityTypes.organization.entityTypeBaseUrl
+        ],
+      machineEntityTypeVersion:
+        migrationState.entityTypeVersions[
+          systemEntityTypes.machine.entityTypeBaseUrl
         ],
     });
     logger.info("Created @example org");

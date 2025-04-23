@@ -100,7 +100,8 @@ export const createOrg: ImpureGraphFunction<
     name: string;
     webId?: WebId;
     websiteUrl?: string | null;
-    entityTypeVersion?: number;
+    machineEntityTypeVersion?: number;
+    orgEntityTypeVersion?: number;
     bypassShortnameValidation?: boolean;
   },
   Promise<Org>
@@ -110,7 +111,8 @@ export const createOrg: ImpureGraphFunction<
     shortname,
     name,
     websiteUrl,
-    entityTypeVersion,
+    machineEntityTypeVersion,
+    orgEntityTypeVersion,
   } = params;
 
   if (!bypassShortnameValidation && shortnameIsInvalid({ shortname })) {
@@ -142,10 +144,19 @@ export const createOrg: ImpureGraphFunction<
     orgWebMachineId = machineId;
   }
 
+  const machineEntityTypeId =
+    typeof machineEntityTypeVersion === "undefined"
+      ? systemEntityTypes.machine.entityTypeId
+      : versionedUrlFromComponents(
+          systemEntityTypes.machine.entityTypeBaseUrl,
+          machineEntityTypeVersion,
+        );
+
   await createWebMachineActorEntity(ctx, {
     systemAccountId,
     webId: orgWebId,
     machineId: orgWebMachineId,
+    machineEntityTypeId,
     logger,
   });
 
@@ -178,12 +189,12 @@ export const createOrg: ImpureGraphFunction<
     },
   };
 
-  const entityTypeId =
-    typeof entityTypeVersion === "undefined"
+  const orgEntityTypeId =
+    typeof orgEntityTypeVersion === "undefined"
       ? systemEntityTypes.organization.entityTypeId
       : versionedUrlFromComponents(
           systemEntityTypes.organization.entityTypeBaseUrl,
-          entityTypeVersion,
+          orgEntityTypeVersion,
         );
 
   try {
@@ -201,7 +212,7 @@ export const createOrg: ImpureGraphFunction<
             },
             resource: {
               kind: "entityType",
-              resourceId: entityTypeId,
+              resourceId: orgEntityTypeId,
             },
           },
         },
@@ -211,7 +222,7 @@ export const createOrg: ImpureGraphFunction<
     const entity = await createEntity(ctx, authentication, {
       webId: orgWebId,
       properties,
-      entityTypeIds: [entityTypeId],
+      entityTypeIds: [orgEntityTypeId],
       entityUuid: orgWebId,
       relationships: [
         {
@@ -232,7 +243,7 @@ export const createOrg: ImpureGraphFunction<
 
     return getOrgFromEntity({
       entity,
-      permitOlderVersions: entityTypeVersion !== undefined,
+      permitOlderVersions: orgEntityTypeVersion !== undefined,
     });
   } finally {
     if (authentication.actorId !== systemAccountId) {
@@ -250,7 +261,7 @@ export const createOrg: ImpureGraphFunction<
               },
               resource: {
                 kind: "entityType",
-                resourceId: entityTypeId,
+                resourceId: orgEntityTypeId,
               },
             },
           },

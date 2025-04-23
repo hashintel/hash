@@ -367,7 +367,7 @@ const migrate: MigrationFunction = async ({
   });
   if (!hashOrg) {
     throw new Error(
-      "Org with shortname 'hash' does not exist by migration 007, but it should.",
+      "Org with shortname 'h' does not exist by migration 007, but it should.",
     );
   }
   const hashWebId = hashOrg.webId;
