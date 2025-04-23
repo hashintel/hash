@@ -19,6 +19,8 @@ import type {
   OrganizationPropertiesWithMetadata,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 
+import { createWebMachineActorEntity } from "@local/hash-backend-utils/machine-actors";
+import { logger } from "../../../logger";
 import { createOrgWeb, getWeb } from "../../account-permission-management";
 import type {
   ImpureGraphFunction,
