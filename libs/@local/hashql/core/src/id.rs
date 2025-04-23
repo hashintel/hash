@@ -139,7 +139,7 @@ macro_rules! newtype {
 
     ($(#[$attr:meta])* $vis:vis struct $name:ident(u32 is $min:literal..=$max:literal)) => {
         $(#[$attr])*
-        #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+        #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
         $vis struct $name(u32);
 
         impl $name {

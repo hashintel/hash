@@ -1,7 +1,6 @@
-use hashql_core::{span::SpanId, symbol::Ident};
+use hashql_core::{heap, span::SpanId, symbol::Ident};
 
 use super::{generic::GenericArgument, id::NodeId};
-use crate::heap;
 
 /// A segment in a path expression.
 ///

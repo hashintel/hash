@@ -19,7 +19,10 @@
 
 use core::{
     borrow::Borrow,
+    cmp::Ordering,
     fmt::{self, Display, Formatter},
+    hash::{Hash, Hasher},
+    ptr,
 };
 
 use ecow::EcoString;
@@ -190,6 +193,90 @@ impl fmt::Write for Symbol {
     #[inline]
     fn write_char(&mut self, char: char) -> fmt::Result {
         EcoString::write_char(&mut self.0, char)
+    }
+}
+
+/// A string-like value used throughout the HashQL compiler.
+///
+/// Symbols represent string data that appears in source code and persists throughout
+/// compilation, they are read-only and immutable.
+///
+/// This type is deliberately opaque to hide its internal representation,
+/// allowing for future optimizations like string interning without changing
+/// the public API. Symbols are designed to be efficient for long-lived objects
+/// that are frequently compared, hashed, and referenced during compilation.
+///
+/// The caller must ensure that the string is unique and interned. The types correctness requires
+/// relies on these *but it does not enforce it*.
+///
+/// This type is the next generation of symbols, and scheduled to replace the current
+/// implementation.
+#[derive(Debug, Copy, Clone)]
+pub struct InternedSymbol<'heap>(&'heap str);
+
+impl<'heap> InternedSymbol<'heap> {
+    /// Creates a new interned symbol from a string slice.
+    ///
+    /// The caller must ensure that the string is unique and interned.
+    pub(crate) const fn new_unchecked(string: &'heap str) -> Self {
+        Self(string)
+    }
+
+    #[must_use]
+    pub const fn as_str(&self) -> &str {
+        self.0
+    }
+}
+
+impl PartialEq for InternedSymbol<'_> {
+    fn eq(&self, other: &Self) -> bool {
+        // Pointer equality implies string equality (due to the unique contents assumption)
+        ptr::eq(self.0, other.0)
+    }
+}
+
+impl Eq for InternedSymbol<'_> {}
+
+impl PartialOrd for InternedSymbol<'_> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for InternedSymbol<'_> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        // Pointer equality implies string equality (due to the unique contents assumption), but if
+        // not the same the contents must be compared.
+        if self == other {
+            Ordering::Equal
+        } else {
+            self.0.cmp(other.0)
+        }
+    }
+}
+
+impl Hash for InternedSymbol<'_> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        // Pointer hashing is sufficient (due to the unique contents assumption)
+        ptr::hash(self.0, state);
+    }
+}
+
+impl Borrow<str> for InternedSymbol<'_> {
+    fn borrow(&self) -> &str {
+        self.0
+    }
+}
+
+impl AsRef<str> for InternedSymbol<'_> {
+    fn as_ref(&self) -> &str {
+        self.0
+    }
+}
+
+impl Display for InternedSymbol<'_> {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+        Display::fmt(self.0, fmt)
     }
 }
 

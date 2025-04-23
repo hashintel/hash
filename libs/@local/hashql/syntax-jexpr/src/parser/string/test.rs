@@ -1,7 +1,9 @@
 use core::fmt::Debug;
 
-use hashql_ast::heap::Heap;
-use hashql_core::span::{TextRange, storage::SpanStorage};
+use hashql_core::{
+    heap::Heap,
+    span::{TextRange, storage::SpanStorage},
+};
 use text_size::TextSize;
 use winnow::{LocatingSlice, Parser as _, Stateful, error::ContextError};
 

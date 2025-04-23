@@ -1,10 +1,7 @@
-use hashql_core::span::SpanId;
+use hashql_core::{heap, span::SpanId};
 
 use super::Expr;
-use crate::{
-    heap,
-    node::{id::NodeId, r#type::Type},
-};
+use crate::node::{id::NodeId, r#type::Type};
 
 /// A key-value entry in a dictionary.
 ///

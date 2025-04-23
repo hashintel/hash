@@ -38,6 +38,13 @@ pub struct Severity {
 // the impl is split into multiple blocks because of rustfmt reordering. The severity values are
 // always descending.
 impl Severity {
+    pub const COMPILER_BUG: Self = Self {
+        id: Cow::Borrowed("compiler_bug"),
+        code: 600,
+
+        name: Cow::Borrowed("Compiler Bug"),
+        color: Color::Ansi(AnsiColor::Red),
+    };
     pub const CRITICAL: Self = Self {
         id: Cow::Borrowed("critical"),
         code: 500,

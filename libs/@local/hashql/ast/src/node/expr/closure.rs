@@ -1,10 +1,7 @@
-use hashql_core::{span::SpanId, symbol::Ident};
+use hashql_core::{heap, span::SpanId, symbol::Ident};
 
 use super::Expr;
-use crate::{
-    heap,
-    node::{generic::Generics, id::NodeId, r#type::Type},
-};
+use crate::node::{generic::Generics, id::NodeId, r#type::Type};
 
 /// A parameter declaration for a closure.
 ///

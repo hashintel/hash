@@ -92,10 +92,12 @@ use core::mem;
 
 use foldhash::fast::RandomState;
 use hashbrown::HashMap;
-use hashql_core::symbol::{Ident, Symbol};
+use hashql_core::{
+    heap::Heap,
+    symbol::{Ident, Symbol},
+};
 
 use crate::{
-    heap::Heap,
     lowering::macros::mapping,
     node::{
         expr::{CallExpr, ExprKind},

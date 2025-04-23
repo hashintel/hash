@@ -1,8 +1,10 @@
 use alloc::sync::Arc;
 
 use circular_buffer::CircularBuffer;
-use hashql_ast::heap::Heap;
-use hashql_core::span::{SpanId, storage::SpanStorage};
+use hashql_core::{
+    heap::Heap,
+    span::{SpanId, storage::SpanStorage},
+};
 use text_size::TextRange;
 
 use super::error::{ParserDiagnostic, ParserDiagnosticCategory, expected_eof};

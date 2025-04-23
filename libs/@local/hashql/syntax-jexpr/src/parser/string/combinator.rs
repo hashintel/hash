@@ -1,4 +1,4 @@
-use hashql_ast::heap::{self, Heap};
+use hashql_core::heap::{self, Heap};
 use winnow::{
     Parser,
     ascii::multispace0,

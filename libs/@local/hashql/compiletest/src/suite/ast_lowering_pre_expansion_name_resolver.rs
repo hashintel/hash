@@ -1,8 +1,8 @@
 use hashql_ast::{
-    format::SyntaxDump as _, heap::Heap,
-    lowering::pre_expansion_name_resolver::PreExpansionNameResolver, node::expr::Expr,
-    visit::Visitor as _,
+    format::SyntaxDump as _, lowering::pre_expansion_name_resolver::PreExpansionNameResolver,
+    node::expr::Expr, visit::Visitor as _,
 };
+use hashql_core::heap::Heap;
 
 use super::{Suite, SuiteDiagnostic};
 

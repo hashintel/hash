@@ -2,13 +2,10 @@ pub mod float;
 pub mod integer;
 pub mod string;
 
-use hashql_core::span::SpanId;
+use hashql_core::{heap, span::SpanId};
 
 pub use self::{float::FloatLiteral, integer::IntegerLiteral, string::StringLiteral};
-use crate::{
-    heap,
-    node::{id::NodeId, r#type::Type},
-};
+use crate::node::{id::NodeId, r#type::Type};
 
 /// Represents the different kinds of literal values in the language.
 ///

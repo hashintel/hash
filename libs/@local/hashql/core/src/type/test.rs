@@ -1,804 +1,470 @@
+#![expect(clippy::min_ident_chars)]
 use core::assert_matches::assert_matches;
 
 use super::{
     Type, TypeId, TypeKind,
-    environment::{Environment, UnificationEnvironment},
+    environment::{Environment, TypeAnalysisEnvironment},
 };
 use crate::{
-    arena::transaction::TransactionalArena,
+    heap::Heap,
     span::SpanId,
-    symbol::{Ident, IdentKind, Symbol},
     r#type::{
-        generic_argument::{GenericArgument, GenericArgumentId, GenericArguments},
-        intersection_type,
-        opaque::OpaqueType,
-        primitive::PrimitiveType,
-        r#struct::{StructField, StructType},
-        union::UnionType,
+        environment::LatticeEnvironment,
+        kind::{
+            generic_argument::GenericArguments, intersection::IntersectionType,
+            primitive::PrimitiveType, tuple::TupleType, union::UnionType,
+        },
     },
 };
 
-pub(crate) macro setup_unify($name:ident) {
-    let mut environment = Environment::new(SpanId::SYNTHETIC, TransactionalArena::new());
+pub(crate) macro setup_analysis($name:ident) {
+    let heap = Heap::new();
+    let environment = Environment::new(SpanId::SYNTHETIC, &heap);
 
-    let mut $name = UnificationEnvironment::new(&mut environment);
+    let mut $name = TypeAnalysisEnvironment::new(&environment);
+    $name.with_diagnostics();
 }
 
-pub(crate) fn instantiate(env: &mut Environment, kind: TypeKind) -> TypeId {
-    env.arena.push_with(|id| Type {
+pub(crate) fn instantiate<'heap>(env: &Environment<'heap>, kind: TypeKind<'heap>) -> TypeId {
+    let kind = env.intern_kind(kind);
+
+    env.alloc(|id| Type {
         id,
         span: SpanId::SYNTHETIC,
         kind,
     })
 }
 
-pub(crate) fn ident(value: &str) -> Ident {
-    Ident {
-        span: SpanId::SYNTHETIC,
-        value: Symbol::new(value),
-        kind: IdentKind::Lexical,
-    }
-}
-
 #[test]
 fn unify_never_types() {
-    setup_unify!(env);
+    setup_analysis!(env);
 
-    let never1 = instantiate(&mut env, TypeKind::Never);
-    let never2 = instantiate(&mut env, TypeKind::Never);
+    let never1 = instantiate(&env, TypeKind::Never);
+    let never2 = instantiate(&env, TypeKind::Never);
 
-    env.unify_type(never1, never2);
+    env.is_subtype_of(never1, never2);
 
-    assert!(matches!(env.arena[never1].kind, TypeKind::Never));
-    assert!(matches!(env.arena[never2].kind, TypeKind::Never));
+    assert_matches!(env.types[never1].copied().kind, TypeKind::Never);
+    assert_matches!(env.types[never2].copied().kind, TypeKind::Never);
 }
 
 #[test]
 fn never_with_other_type() {
-    setup_unify!(env);
+    setup_analysis!(env);
 
-    let never = instantiate(&mut env, TypeKind::Never);
-    let other = instantiate(&mut env, TypeKind::Unknown);
+    let never = instantiate(&env, TypeKind::Never);
+    let other = instantiate(&env, TypeKind::Unknown);
 
-    env.unify_type(never, other);
+    env.is_subtype_of(never, other);
 
     assert!(
-        !env.take_diagnostics().is_empty(),
-        "There should be an error during unification"
+        env.take_diagnostics().is_empty(),
+        "There should be an no error during unification"
     );
 
-    assert!(matches!(env.arena[never].kind, TypeKind::Never));
-    assert!(matches!(env.arena[other].kind, TypeKind::Unknown));
+    assert_matches!(env.types[never].copied().kind, TypeKind::Never);
+    assert_matches!(env.types[other].copied().kind, TypeKind::Unknown);
 }
 
 #[test]
 fn unify_unknown_types() {
-    setup_unify!(env);
+    setup_analysis!(env);
 
-    let unknown1 = instantiate(&mut env, TypeKind::Unknown);
-    let unknown2 = instantiate(&mut env, TypeKind::Unknown);
+    let unknown1 = instantiate(&env, TypeKind::Unknown);
+    let unknown2 = instantiate(&env, TypeKind::Unknown);
 
-    env.unify_type(unknown1, unknown2);
+    env.is_subtype_of(unknown1, unknown2);
 
-    assert!(matches!(env.arena[unknown1].kind, TypeKind::Unknown));
-    assert!(matches!(env.arena[unknown2].kind, TypeKind::Unknown));
+    assert_matches!(env.types[unknown1].copied().kind, TypeKind::Unknown);
+    assert_matches!(env.types[unknown2].copied().kind, TypeKind::Unknown);
 }
 
 #[test]
 fn unknown_with_other_type() {
-    setup_unify!(env);
+    setup_analysis!(env);
 
-    let unknown = instantiate(&mut env, TypeKind::Unknown);
-    let never = instantiate(&mut env, TypeKind::Never);
+    let unknown = instantiate(&env, TypeKind::Unknown);
+    let never = instantiate(&env, TypeKind::Never);
 
-    env.unify_type(unknown, never);
-
-    assert!(env.take_diagnostics().is_empty());
-
-    assert!(matches!(env.arena[unknown].kind, TypeKind::Unknown));
-}
-
-#[test]
-fn unify_infer_types() {
-    setup_unify!(env);
-
-    let infer1 = instantiate(&mut env, TypeKind::Infer);
-    let infer2 = instantiate(&mut env, TypeKind::Infer);
-
-    env.unify_type(infer1, infer2);
-
-    // One should link to the other
-    if let TypeKind::Link(target) = env.arena[infer1].kind {
-        assert_eq!(target, infer2);
-    } else {
-        panic!("Expected infer1 to link to infer2");
-    }
-}
-
-#[test]
-fn infer_with_concrete_type() {
-    setup_unify!(env);
-
-    let infer = instantiate(&mut env, TypeKind::Infer);
-    let never = instantiate(&mut env, TypeKind::Never);
-
-    env.unify_type(infer, never);
-
-    // Infer should become the concrete type
-    assert_matches!(env.arena[infer].kind, TypeKind::Never);
-}
-
-#[test]
-fn link_resolves_to_target() {
-    setup_unify!(env);
-
-    // Create a chain: link1 -> link2 -> unknown
-    let unknown = instantiate(&mut env, TypeKind::Unknown);
-    let link2 = instantiate(&mut env, TypeKind::Link(unknown));
-    let link1 = instantiate(&mut env, TypeKind::Link(link2));
-
-    let number = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number));
-
-    env.unify_type(link1, number);
+    env.is_subtype_of(unknown, never);
 
     assert!(env.take_diagnostics().is_empty());
 
-    // Unknown should not narrow it's type
-    assert_matches!(env.arena[unknown].kind, TypeKind::Unknown);
-    assert_matches!(
-        env.arena[number].kind,
-        TypeKind::Primitive(PrimitiveType::Number)
-    );
-}
-
-#[test]
-fn complex_link_chain_resolution() {
-    setup_unify!(env);
-
-    // Create a complex chain with multiple links
-    let concrete = instantiate(&mut env, TypeKind::Unknown);
-    let link1 = instantiate(&mut env, TypeKind::Link(concrete));
-    let link2 = instantiate(&mut env, TypeKind::Link(link1));
-    let link3 = instantiate(&mut env, TypeKind::Link(link2));
-
-    // Create another chain
-    let other_concrete = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number));
-    let other_link = instantiate(&mut env, TypeKind::Link(other_concrete));
-
-    // Unify the heads of both chains
-    env.unify_type(link3, other_link);
-
-    assert!(env.take_diagnostics().is_empty());
-
-    // The full chain should still resolve to Unknown
-    assert!(matches!(env.arena[concrete].kind, TypeKind::Unknown));
-
-    // Links should still point in the same direction
-    if let TypeKind::Link(target) = env.arena[link3].kind {
-        assert_eq!(target, link2);
-    } else {
-        panic!("Expected link3 to still be a Link");
-    }
-}
-
-#[test]
-fn unknown_and_infer_interaction() {
-    setup_unify!(env);
-
-    // Test interaction between Unknown and Infer
-    let unknown = instantiate(&mut env, TypeKind::Unknown);
-    let infer = instantiate(&mut env, TypeKind::Infer);
-
-    env.unify_type(unknown, infer);
-
-    // Infer should become Unknown (top type)
-    assert!(matches!(env.arena[infer].kind, TypeKind::Unknown));
-}
-
-#[test]
-fn never_and_infer_interaction() {
-    setup_unify!(env);
-
-    // Test interaction between Never and Infer
-    let never = instantiate(&mut env, TypeKind::Never);
-    let infer = instantiate(&mut env, TypeKind::Infer);
-
-    env.unify_type(never, infer);
-
-    // Infer should become Never (bottom type)
-    assert!(matches!(env.arena[infer].kind, TypeKind::Never));
-}
-
-#[test]
-fn mixed_special_types_unification() {
-    setup_unify!(env);
-
-    // Create a complex scenario with multiple special types
-    let unknown = instantiate(&mut env, TypeKind::Unknown);
-    let infer1 = instantiate(&mut env, TypeKind::Infer);
-    let infer2 = instantiate(&mut env, TypeKind::Infer);
-    let never = instantiate(&mut env, TypeKind::Never);
-
-    // First unify infer1 and infer2 to create a link
-    env.unify_type(infer1, infer2);
-
-    // Then unify the link with Unknown
-    env.unify_type(infer2, unknown);
-
-    // Finally unify with Never
-    env.unify_type(infer1, never);
-
-    // Check the final state
-    assert!(
-        matches!(env.arena[infer1].kind, TypeKind::Unknown)
-            || matches!(env.arena[infer1].kind, TypeKind::Link(_))
-    );
-    assert_matches!(env.arena[infer2].kind, TypeKind::Unknown);
-    assert_matches!(env.arena[unknown].kind, TypeKind::Unknown);
-    assert_matches!(env.arena[never].kind, TypeKind::Never);
-}
-
-#[test]
-fn link_to_self_detection() {
-    setup_unify!(env);
-
-    // Create a type that would link to itself
-    let id = instantiate(&mut env, TypeKind::Infer);
-
-    // Create a Link that would point to itself
-    env.arena.update(Type {
-        id,
-        span: SpanId::SYNTHETIC,
-        kind: TypeKind::Link(id),
-    });
-
-    // Create a concrete type to unify with
-    let concrete = instantiate(&mut env, TypeKind::Unknown);
-
-    // This should detect the circular link
-    env.unify_type(id, concrete);
-
-    // The system should handle this gracefully (not crash)
-    // Either by propagating an error or breaking the cycle
-    // But at minimum it shouldn't panic or overflow stack
+    assert_matches!(env.types[unknown].copied().kind, TypeKind::Unknown);
 }
 
 #[test]
 fn direct_circular_reference() {
-    setup_unify!(env);
+    setup_analysis!(env);
 
-    // Create two types that refer to each other
-    let id1 = instantiate(&mut env, TypeKind::Infer);
-    let id2 = instantiate(&mut env, TypeKind::Infer);
-
-    // Make them refer to each other
-    env.arena.update(Type {
-        id: id1,
+    let a = env.alloc(|tuple_id| Type {
+        id: tuple_id,
         span: SpanId::SYNTHETIC,
-        kind: TypeKind::Link(id2),
+        kind: env.intern_kind(TypeKind::Tuple(TupleType {
+            fields: env.intern_type_ids(&[tuple_id]),
+            arguments: GenericArguments::empty(),
+        })),
     });
 
-    env.arena.update(Type {
-        id: id2,
+    let b = env.alloc(|id| Type {
+        id,
         span: SpanId::SYNTHETIC,
-        kind: TypeKind::Link(id1),
+        kind: env.intern_kind(TypeKind::Tuple(TupleType {
+            fields: env.intern_type_ids(&[id]),
+            arguments: GenericArguments::empty(),
+        })),
     });
 
-    // Try to unify with a concrete type
-    let concrete = instantiate(&mut env, TypeKind::Unknown);
-    env.unify_type(id1, concrete);
+    // Test subtyping with the circular type
+    assert!(env.is_subtype_of(a, b));
+    assert!(env.is_subtype_of(b, a));
 
-    // Check if this was detected as circular
-    assert!(
-        !env.take_diagnostics().is_empty(),
-        "Circular reference not detected"
-    );
+    // Ensure should be an error reported
+    assert_eq!(env.fatal_diagnostics(), 0);
+
+    // Verify the tuple structure is preserved
+    if let TypeKind::Tuple(tuple) = env.types[a].copied().kind {
+        assert_eq!(tuple.fields.len(), 1);
+    } else {
+        panic!("Expected a tuple type");
+    }
 }
 
 #[test]
 fn indirect_circular_reference() {
-    setup_unify!(env);
+    setup_analysis!(env);
 
     // Create a cycle: A → B → C → A
-    let id_a = instantiate(&mut env, TypeKind::Infer);
-    let id_b = instantiate(&mut env, TypeKind::Infer);
-    let id_c = instantiate(&mut env, TypeKind::Infer);
-
-    env.arena.update(Type {
-        id: id_a,
+    let mut c = None;
+    let mut b = None;
+    let a = env.alloc(|a_id| Type {
+        id: a_id,
         span: SpanId::SYNTHETIC,
-        kind: TypeKind::Link(id_b),
+        kind: env.intern_kind(TypeKind::Tuple(TupleType {
+            fields: env.intern_type_ids(&[env.alloc(|b_id| {
+                b = Some(b_id);
+
+                Type {
+                    id: b_id,
+                    span: SpanId::SYNTHETIC,
+                    kind: env.intern_kind(TypeKind::Tuple(TupleType {
+                        fields: env.intern_type_ids(&[env.alloc(|c_id| {
+                            c = Some(c_id);
+
+                            Type {
+                                id: c_id,
+                                span: SpanId::SYNTHETIC,
+                                kind: env.intern_kind(TypeKind::Tuple(TupleType {
+                                    fields: env.intern_type_ids(&[a_id]),
+                                    arguments: GenericArguments::empty(),
+                                })),
+                            }
+                        })]),
+                        arguments: GenericArguments::empty(),
+                    })),
+                }
+            })]),
+            arguments: GenericArguments::empty(),
+        })),
     });
+    let b = b.expect("b should be Some");
+    let c = c.expect("c should be Some");
 
-    env.arena.update(Type {
-        id: id_b,
-        span: SpanId::SYNTHETIC,
-        kind: TypeKind::Link(id_c),
-    });
+    // Test subtyping with circular references
+    assert!(env.is_subtype_of(a, b));
+    assert!(env.is_subtype_of(b, c));
+    assert!(env.is_subtype_of(c, a));
 
-    env.arena.update(Type {
-        id: id_c,
-        span: SpanId::SYNTHETIC,
-        kind: TypeKind::Link(id_a),
-    });
+    assert_eq!(env.fatal_diagnostics(), 0);
 
-    // Try to unify with a concrete type
-    let concrete = instantiate(&mut env, TypeKind::Unknown);
-    env.unify_type(id_a, concrete);
+    // Verify the structure of the types
+    if let TypeKind::Tuple(tuple) = env.types[a].copied().kind {
+        assert_eq!(tuple.fields.len(), 1);
+    } else {
+        panic!("Expected a tuple type for A");
+    }
 
-    // Check if this more complex cycle was detected
-    assert!(
-        !env.take_diagnostics().is_empty(),
-        "Indirect circular reference not detected"
-    );
+    if let TypeKind::Tuple(tuple) = env.types[b].copied().kind {
+        assert_eq!(tuple.fields.len(), 1);
+    } else {
+        panic!("Expected a tuple type for B");
+    }
+
+    if let TypeKind::Tuple(tuple) = env.types[c].copied().kind {
+        assert_eq!(tuple.fields.len(), 1);
+    } else {
+        panic!("Expected a tuple type for C");
+    }
 }
 
 #[test]
 fn alternating_direction_cycle() {
-    setup_unify!(env);
+    setup_analysis!(env);
 
     // Create types that will form a cycle but with alternating directions
-    let id_a = instantiate(&mut env, TypeKind::Infer);
-    let id_b = instantiate(&mut env, TypeKind::Infer);
-    let id_c = instantiate(&mut env, TypeKind::Infer);
+    // We'll use union and intersection types to create the alternating pattern
 
-    // Create initial links
-    env.arena.update(Type {
-        id: id_a,
+    // Create base types
+    let number = instantiate(&env, TypeKind::Primitive(PrimitiveType::Number));
+    let string = instantiate(&env, TypeKind::Primitive(PrimitiveType::String));
+    let boolean = instantiate(&env, TypeKind::Primitive(PrimitiveType::Boolean));
+
+    // Create a cycle with alternating directions:
+    // Union (A) -> Intersection (B) -> Union (A)
+    let mut intersection_id = None;
+    let union_id = env.alloc(|union_id| Type {
+        id: union_id,
         span: SpanId::SYNTHETIC,
-        kind: TypeKind::Link(id_b),
+        kind: env.intern_kind(TypeKind::Union(UnionType {
+            variants: env.intern_type_ids(&[
+                number,
+                env.alloc(|intersection_id_inner| {
+                    intersection_id = Some(intersection_id_inner);
+
+                    Type {
+                        id: intersection_id_inner,
+                        span: SpanId::SYNTHETIC,
+                        kind: env.intern_kind(TypeKind::Intersection(IntersectionType {
+                            variants: env.intern_type_ids(&[string, boolean, union_id]),
+                        })),
+                    }
+                }),
+            ]),
+        })),
     });
+    let intersection_id = intersection_id.expect("intersection_id should be Some");
 
-    // Unify B with C
-    env.unify_type(id_b, id_c);
+    // Test the cycle with subtyping - these should succeed with recursive handling
+    assert!(env.is_subtype_of(union_id, union_id));
+    assert!(env.is_subtype_of(intersection_id, intersection_id));
 
-    // Now make C link back to A, completing the cycle
-    env.arena.update(Type {
-        id: id_c,
-        span: SpanId::SYNTHETIC,
-        kind: TypeKind::Link(id_a),
-    });
+    // Ensure no errors occurred during subtyping
+    assert_eq!(env.fatal_diagnostics(), 0);
 
-    // Try to resolve the whole chain
-    let concrete = instantiate(&mut env, TypeKind::Unknown);
-    env.unify_type(id_a, concrete);
+    // Verify the structure of the types is preserved
+    if let TypeKind::Union(union) = env.types[union_id].copied().kind {
+        assert_eq!(union.variants.len(), 2);
+    } else {
+        panic!("Expected a union type");
+    }
 
-    // Check if this directionally varied cycle was detected
-    // This is the test most likely to expose if the approach is too conservative
-    assert!(
-        !env.take_diagnostics().is_empty(),
-        "Alternating direction cycle not detected"
-    );
-}
-
-#[test]
-fn primitive_equivalence() {
-    setup_unify!(env);
-    let type1 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number));
-    let type2 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number));
-
-    assert!(
-        env.structurally_equivalent(type1, type2),
-        "Identical primitive types should be structurally equivalent"
-    );
-
-    // Test different primitive types
-    let bool_type = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Boolean));
-    assert!(
-        !env.structurally_equivalent(type1, bool_type),
-        "Different primitive types should not be structurally equivalent"
-    );
-}
-
-#[test]
-fn struct_equivalence() {
-    setup_unify!(env);
-
-    // Create two identical struct types
-    let fields1 = [
-        StructField {
-            key: ident("name"),
-            value: instantiate(&mut env, TypeKind::Primitive(PrimitiveType::String)),
-        },
-        StructField {
-            key: ident("age"),
-            value: instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number)),
-        },
-    ];
-
-    let fields2 = [
-        StructField {
-            key: ident("name"),
-            value: instantiate(&mut env, TypeKind::Primitive(PrimitiveType::String)),
-        },
-        StructField {
-            key: ident("age"),
-            value: instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number)),
-        },
-    ];
-
-    let struct1 = instantiate(
-        &mut env,
-        TypeKind::Struct(StructType::new(fields1, GenericArguments::new())),
-    );
-
-    let struct2 = instantiate(
-        &mut env,
-        TypeKind::Struct(StructType::new(fields2, GenericArguments::new())),
-    );
-
-    assert!(
-        env.structurally_equivalent(struct1, struct2),
-        "Identical struct types should be structurally equivalent"
-    );
-
-    // Test different field names
-    let fields3 = [
-        StructField {
-            key: ident("firstName"), // Different field name
-            value: instantiate(&mut env, TypeKind::Primitive(PrimitiveType::String)),
-        },
-        StructField {
-            key: ident("age"),
-            value: instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number)),
-        },
-    ];
-
-    let struct3 = instantiate(
-        &mut env,
-        TypeKind::Struct(StructType::new(fields3, GenericArguments::new())),
-    );
-
-    assert!(
-        !env.structurally_equivalent(struct1, struct3),
-        "Structs with different field names should not be structurally equivalent"
-    );
+    if let TypeKind::Intersection(intersection) = env.types[intersection_id].copied().kind {
+        assert_eq!(intersection.variants.len(), 3);
+    } else {
+        panic!("Expected an intersection type");
+    }
 }
 
 #[test]
 fn recursive_type_equivalence() {
-    setup_unify!(env);
+    setup_analysis!(env);
 
-    // Create two recursive types (e.g., linked list nodes)
-    let node1_value = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number));
-    let node2_value = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number));
+    // Create two structurally equivalent recursive types (linked list nodes)
+    let number = instantiate(&env, TypeKind::Primitive(PrimitiveType::Number));
 
-    let node1_id = env.arena.push_with(|id| Type {
-        id,
-        span: SpanId::SYNTHETIC,
-        kind: TypeKind::Struct(StructType::new(
-            vec![
-                StructField {
-                    key: ident("value"),
-                    value: node1_value,
-                },
-                StructField {
-                    key: ident("next"),
-                    value: id, // Self-reference
-                },
-            ],
-            GenericArguments::new(),
-        )),
+    // First recursive type - A tuple that contains a Number and a reference to itself
+    let list1_id = env.alloc(|id| {
+        Type {
+            id,
+            span: SpanId::SYNTHETIC,
+            kind: env.intern_kind(TypeKind::Tuple(TupleType {
+                arguments: GenericArguments::empty(),
+                fields: env.intern_type_ids(&[number, id]), // [value, next]
+            })),
+        }
     });
 
-    let node2_id = env.arena.push_with(|id| Type {
-        id,
-        span: SpanId::SYNTHETIC,
-        kind: TypeKind::Struct(StructType::new(
-            vec![
-                StructField {
-                    key: ident("value"),
-                    value: node2_value,
-                },
-                StructField {
-                    key: ident("next"),
-                    value: id, // Self-reference
-                },
-            ],
-            GenericArguments::new(),
-        )),
+    // Second recursive type - A structurally identical tuple
+    let list2_id = env.alloc(|id| {
+        Type {
+            id,
+            span: SpanId::SYNTHETIC,
+            kind: env.intern_kind(TypeKind::Tuple(TupleType {
+                arguments: GenericArguments::empty(),
+                fields: env.intern_type_ids(&[number, id]), // [value, next]
+            })),
+        }
     });
 
-    assert!(
-        env.structurally_equivalent(node1_id, node2_id),
-        "Recursive types with same structure should be structurally equivalent"
-    );
+    // Test that the two recursive types are structurally equivalent
+    assert!(env.is_equivalent(list1_id, list2_id));
+
+    // Ensure no errors occurred
+    assert_eq!(env.fatal_diagnostics(), 0);
+
+    // Verify that both types have the correct structure
+    if let TypeKind::Tuple(tuple) = env.types[list1_id].copied().kind {
+        assert_eq!(tuple.fields.len(), 2);
+    } else {
+        panic!("Expected a tuple type for list1");
+    }
+
+    if let TypeKind::Tuple(tuple) = env.types[list2_id].copied().kind {
+        assert_eq!(tuple.fields.len(), 2);
+    } else {
+        panic!("Expected a tuple type for list2");
+    }
 }
 
 #[test]
-fn union_type_equivalence() {
-    setup_unify!(env);
+fn recursive_subtyping() {
+    setup_analysis!(env);
 
-    // Create two union types: String | Number
-    let str1 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::String));
-    let num1 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number));
-    let union1 = instantiate(
-        &mut env,
-        TypeKind::Union(UnionType {
-            variants: vec![str1, num1].into(),
-        }),
-    );
+    // Example:
+    // type A = (Integer, A)
+    // type B = (Number, B)
+    // A <: B should be true according to coinductive subtyping
 
-    let str2 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::String));
-    let num2 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number));
-    let union2 = instantiate(
-        &mut env,
-        TypeKind::Union(UnionType {
-            variants: vec![str2, num2].into(),
-        }),
-    );
+    // Create the primitive types
+    let integer = instantiate(&env, TypeKind::Primitive(PrimitiveType::Integer));
+    let number = instantiate(&env, TypeKind::Primitive(PrimitiveType::Number));
 
+    // Create type A = (Integer, A)
+    let type_a = env.alloc(|id| {
+        Type {
+            id,
+            span: SpanId::SYNTHETIC,
+            kind: env.intern_kind(TypeKind::Tuple(TupleType {
+                arguments: GenericArguments::empty(),
+                fields: env.intern_type_ids(&[integer, id]), // [Integer, self]
+            })),
+        }
+    });
+
+    // Create type B = (Number, B)
+    let type_b = env.alloc(|id| {
+        Type {
+            id,
+            span: SpanId::SYNTHETIC,
+            kind: env.intern_kind(TypeKind::Tuple(TupleType {
+                arguments: GenericArguments::empty(),
+                fields: env.intern_type_ids(&[number, id]), // [Number, self]
+            })),
+        }
+    });
+
+    // Test subtyping relationship A <: B
+    // Since Integer <: Number, and we use coinductive reasoning for the recursive part,
+    // A <: B should be true
     assert!(
-        env.structurally_equivalent(union1, union2),
-        "Union types with same variants should be structurally equivalent"
+        env.is_subtype_of(type_a, type_b),
+        "A should be a subtype of B"
     );
 
-    // Test different variant order
-    let union3 = instantiate(
-        &mut env,
-        TypeKind::Union(UnionType {
-            variants: vec![num2, str2].into(), // Different order
-        }),
-    );
-
+    // The reverse should not be true: B </: A
+    // Since Number </: Integer
     assert!(
-        env.structurally_equivalent(union1, union3),
-        "Union types with same variants in different order should be structurally equivalent"
+        !env.is_subtype_of(type_b, type_a),
+        "B should not be a subtype of A"
     );
+
+    assert_eq!(env.fatal_diagnostics(), 1);
 }
 
 #[test]
-fn opaque_type_equivalence() {
-    setup_unify!(env);
+fn recursive_join_operation() {
+    setup_analysis!(env);
 
-    // Create two opaque types with same name but different underlying types
-    let type1 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number));
-    let type2 = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::String));
+    // Test the join (least upper bound) operation with recursive types
+    // Create the primitive types
+    let integer = instantiate(&env, TypeKind::Primitive(PrimitiveType::Integer));
+    let number = instantiate(&env, TypeKind::Primitive(PrimitiveType::Number));
 
-    let opaque1 = instantiate(
-        &mut env,
-        TypeKind::Opaque(OpaqueType {
-            name: "UserId".into(),
-            r#type: type1,
-            arguments: GenericArguments::default(),
-        }),
-    );
+    // Create type A = (Integer, A)
+    let type_a = env.alloc(|id| {
+        Type {
+            id,
+            span: SpanId::SYNTHETIC,
+            kind: env.intern_kind(TypeKind::Tuple(TupleType {
+                arguments: GenericArguments::empty(),
+                fields: env.intern_type_ids(&[integer, id]), // [Integer, self]
+            })),
+        }
+    });
 
-    let opaque2 = instantiate(
-        &mut env,
-        TypeKind::Opaque(OpaqueType {
-            name: "UserId".into(),
-            r#type: type2, // Different underlying type
-            arguments: GenericArguments::default(),
-        }),
-    );
+    // Create type B = (Number, B)
+    let type_b = env.alloc(|id| {
+        Type {
+            id,
+            span: SpanId::SYNTHETIC,
+            kind: env.intern_kind(TypeKind::Tuple(TupleType {
+                arguments: GenericArguments::empty(),
+                fields: env.intern_type_ids(&[number, id]), // [Number, self]
+            })),
+        }
+    });
 
+    // First check subtyping relationships to confirm our premise
     assert!(
-        env.structurally_equivalent(opaque1, opaque2),
-        "Opaque types with same name should be structurally equivalent regardless of underlying \
-         type"
+        env.is_subtype_of(type_a, type_b),
+        "A should be a subtype of B"
     );
 
-    // Test opaque types with different names but same underlying type
-    let opaque3 = instantiate(
-        &mut env,
-        TypeKind::Opaque(OpaqueType {
-            name: "PostId".into(), // Different name
-            r#type: type1,         // Same as opaque1
-            arguments: GenericArguments::default(),
-        }),
-    );
+    let mut lattice_env = LatticeEnvironment::new(&env);
 
+    // Since A <: B, join(A, B) should be B
+    let joined = lattice_env.join(type_a, type_b);
+
+    // Create a new analysis environment to check equivalence
+    let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+    analysis_env.with_diagnostics();
+
+    // The join should produce something that acts like B (in this case, it should be a supertype of
+    // A)
     assert!(
-        !env.structurally_equivalent(opaque1, opaque3),
-        "Opaque types with different names should not be structurally equivalent even with same \
-         underlying type"
+        analysis_env.is_subtype_of(type_a, joined),
+        "type_a should be a subtype of join result"
     );
 
-    // Test opaque types with generic arguments
-    let t_id = GenericArgumentId::new(0);
-    let t_type = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number));
-    let t_arg = GenericArgument {
-        id: t_id,
-        name: ident("T"),
-        constraint: None,
-        r#type: t_type,
-    };
-
-    let opaque4 = instantiate(
-        &mut env,
-        TypeKind::Opaque(OpaqueType {
-            name: "Box".into(),
-            r#type: t_type,
-            arguments: GenericArguments::from_iter([t_arg.clone()]),
-        }),
-    );
-
-    let opaque5 = instantiate(
-        &mut env,
-        TypeKind::Opaque(OpaqueType {
-            name: "Box".into(),
-            r#type: t_type,
-            arguments: GenericArguments::from_iter([t_arg]),
-        }),
-    );
-
-    assert!(
-        env.structurally_equivalent(opaque4, opaque5),
-        "Opaque types with same name and generic arguments should be structurally equivalent"
-    );
-
-    // Test opaque types with different generic arguments
-    let u_id = GenericArgumentId::new(1);
-    let u_arg = GenericArgument {
-        id: u_id,
-        name: ident("U"),
-        constraint: None,
-        r#type: t_type,
-    };
-
-    let opaque6 = instantiate(
-        &mut env,
-        TypeKind::Opaque(OpaqueType {
-            name: "Box".into(),
-            r#type: t_type,
-            arguments: GenericArguments::from_iter([u_arg]), // Different generic argument
-        }),
-    );
-
-    assert!(
-        !env.structurally_equivalent(opaque4, opaque6),
-        "Opaque types with same name but different generic arguments should not be structurally \
-         equivalent"
-    );
+    // Ensure the join implementation didn't produce errors
+    assert_eq!(lattice_env.diagnostics.fatal(), 0);
 }
 
 #[test]
-fn identical_types_intersection() {
-    setup_unify!(env);
+fn recursive_meet_operation() {
+    setup_analysis!(env);
 
-    // Create a simple Number type
-    let num_id = instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number));
+    // Test the meet (greatest lower bound) operation with recursive types
+    // Create the primitive types
+    let integer = instantiate(&env, TypeKind::Primitive(PrimitiveType::Integer));
+    let number = instantiate(&env, TypeKind::Primitive(PrimitiveType::Number));
 
-    // Intersect with itself
-    let result = intersection_type(&mut env, num_id, num_id);
-
-    // Should be the same type
-    assert_eq!(result, num_id);
-    assert_matches!(
-        env.arena[result].kind,
-        TypeKind::Primitive(PrimitiveType::Number)
-    );
-}
-
-#[test]
-fn struct_intersection() {
-    setup_unify!(env);
-
-    // Create a struct with a 'name' field
-    let name_field = StructField {
-        key: ident("name"),
-        value: instantiate(&mut env, TypeKind::Primitive(PrimitiveType::String)),
-    };
-    let struct1_id = instantiate(
-        &mut env,
-        TypeKind::Struct(StructType::new([name_field], GenericArguments::new())),
-    );
-
-    // Create a struct with an 'age' field
-    let age_field = StructField {
-        key: ident("age"),
-        value: instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number)),
-    };
-    let struct2_id = instantiate(
-        &mut env,
-        TypeKind::Struct(StructType::new([age_field], GenericArguments::new())),
-    );
-
-    // Intersect the two structs
-    let result = intersection_type(&mut env, struct1_id, struct2_id);
-
-    // Result should be a struct with both fields
-    let TypeKind::Struct(result_struct) = &env.arena[result].kind else {
-        panic!("Expected struct type, got {:?}", env.arena[result].kind);
-    };
-
-    assert_eq!(result_struct.fields().len(), 2);
-
-    // Check for name field
-    let has_name = result_struct.fields().iter().any(|field| {
-        field.key.value.as_str() == "name"
-            && matches!(
-                env.arena[field.value].kind,
-                TypeKind::Primitive(PrimitiveType::String)
-            )
+    // Create type A = (Integer, A)
+    let type_a = env.alloc(|id| {
+        Type {
+            id,
+            span: SpanId::SYNTHETIC,
+            kind: env.intern_kind(TypeKind::Tuple(TupleType {
+                arguments: GenericArguments::empty(),
+                fields: env.intern_type_ids(&[integer, id]), // [Integer, self]
+            })),
+        }
     });
-    assert!(has_name, "Result should have 'name' field with String type");
 
-    // Check for age field
-    let has_age = result_struct.fields().iter().any(|field| {
-        field.key.value.as_str() == "age"
-            && matches!(
-                env.arena[field.value].kind,
-                TypeKind::Primitive(PrimitiveType::Number)
-            )
+    // Create type B = (Number, B)
+    let type_b = env.alloc(|id| {
+        Type {
+            id,
+            span: SpanId::SYNTHETIC,
+            kind: env.intern_kind(TypeKind::Tuple(TupleType {
+                arguments: GenericArguments::empty(),
+                fields: env.intern_type_ids(&[number, id]), // [Number, self]
+            })),
+        }
     });
-    assert!(has_age, "Result should have 'age' field with Number type");
-}
 
-#[test]
-fn struct_intersection_with_common_field() {
-    setup_unify!(env);
+    // Create a lattice environment to perform meet operation
+    let mut lattice_env = LatticeEnvironment::new(&env);
 
-    // Create a struct with fields 'name: String' and 'id: Number'
-    let struct1_fields = [
-        StructField {
-            key: ident("name"),
-            value: instantiate(&mut env, TypeKind::Primitive(PrimitiveType::String)),
-        },
-        StructField {
-            key: ident("id"),
-            value: instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number)),
-        },
-    ];
-    let struct1_id = instantiate(
-        &mut env,
-        TypeKind::Struct(StructType::new(struct1_fields, GenericArguments::new())),
+    // Since A <: B, meet(A, B) should be A
+    let met = lattice_env.meet(type_a, type_b);
+
+    // Ensure the meet implementation didn't produce errors
+    assert_eq!(lattice_env.diagnostics.fatal(), 0);
+
+    // The meet should produce something equivalent to A
+    assert!(
+        env.is_equivalent(met, type_a),
+        "meet(A, B) should be equivalent to A"
     );
-
-    // Create a struct with fields 'name: String' and 'age: Number'
-    let struct2_fields = [
-        StructField {
-            key: ident("name"),
-            value: instantiate(&mut env, TypeKind::Primitive(PrimitiveType::String)),
-        },
-        StructField {
-            key: ident("age"),
-            value: instantiate(&mut env, TypeKind::Primitive(PrimitiveType::Number)),
-        },
-    ];
-    let struct2_id = instantiate(
-        &mut env,
-        TypeKind::Struct(StructType::new(struct2_fields, GenericArguments::new())),
-    );
-
-    // Intersect the two structs
-    let result = intersection_type(&mut env, struct1_id, struct2_id);
-
-    // Result should be a struct with all three fields
-    let TypeKind::Struct(result_struct) = &env.arena[result].kind else {
-        panic!("Expected struct type, got {:?}", env.arena[result].kind);
-    };
-
-    assert_eq!(result_struct.fields().len(), 3);
-
-    // Check for name field (common in both)
-    let has_name = result_struct.fields().iter().any(|field| {
-        field.key.value.as_str() == "name"
-            && matches!(
-                env.arena[field.value].kind,
-                TypeKind::Primitive(PrimitiveType::String)
-            )
-    });
-    assert!(has_name, "Result should have 'name' field with String type");
-
-    // Check for age field (from struct2)
-    let has_age = result_struct.fields().iter().any(|field| {
-        field.key.value.as_str() == "age"
-            && matches!(
-                env.arena[field.value].kind,
-                TypeKind::Primitive(PrimitiveType::Number)
-            )
-    });
-    assert!(has_age, "Result should have 'age' field with Number type");
-
-    // Check for id field (from struct1)
-    let has_id = result_struct.fields().iter().any(|field| {
-        field.key.value.as_str() == "id"
-            && matches!(
-                env.arena[field.value].kind,
-                TypeKind::Primitive(PrimitiveType::Number)
-            )
-    });
-    assert!(has_id, "Result should have 'id' field with Number type");
 }

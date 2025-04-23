@@ -1,7 +1,7 @@
 use alloc::sync::Arc;
 
-use hashql_ast::{format::SyntaxDump as _, heap::Heap};
-use hashql_core::span::storage::SpanStorage;
+use hashql_ast::format::SyntaxDump as _;
+use hashql_core::{heap::Heap, span::storage::SpanStorage};
 
 use crate::{lexer::Lexer, parser::state::ParserState, span::Span, test::render_diagnostic};
 

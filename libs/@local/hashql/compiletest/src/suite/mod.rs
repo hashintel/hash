@@ -5,8 +5,8 @@ mod ast_lowering_special_form_expander;
 pub(crate) mod common;
 mod parse_syntax_dump;
 
-use hashql_ast::{heap::Heap, node::expr::Expr};
-use hashql_core::span::SpanId;
+use hashql_ast::node::expr::Expr;
+use hashql_core::{heap::Heap, span::SpanId};
 use hashql_diagnostics::{Diagnostic, category::DiagnosticCategory, span::AbsoluteDiagnosticSpan};
 
 use self::{

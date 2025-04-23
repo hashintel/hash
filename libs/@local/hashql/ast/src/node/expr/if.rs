@@ -1,7 +1,7 @@
-use hashql_core::span::SpanId;
+use hashql_core::{heap, span::SpanId};
 
 use super::Expr;
-use crate::{heap, node::id::NodeId};
+use crate::node::id::NodeId;
 
 /// A conditional expression in the HashQL Abstract Syntax Tree.
 ///

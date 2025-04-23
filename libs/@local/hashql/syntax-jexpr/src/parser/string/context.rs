@@ -1,7 +1,9 @@
 use core::ops::Range;
 
-use hashql_ast::heap::Heap;
-use hashql_core::span::{SpanId, TextRange, TextSize, storage::SpanStorage};
+use hashql_core::{
+    heap::Heap,
+    span::{SpanId, TextRange, TextSize, storage::SpanStorage},
+};
 use winnow::{LocatingSlice, Stateful};
 
 use crate::span::Span;

@@ -1,6 +1,5 @@
 use hashql_ast::{
     format::SyntaxDump as _,
-    heap::Heap,
     lowering::{
         name_mangler::NameMangler, pre_expansion_name_resolver::PreExpansionNameResolver,
         special_form_expander::SpecialFormExpander,
@@ -8,6 +7,7 @@ use hashql_ast::{
     node::expr::Expr,
     visit::Visitor as _,
 };
+use hashql_core::heap::Heap;
 
 use super::{Suite, SuiteDiagnostic, common::process_diagnostics};
 

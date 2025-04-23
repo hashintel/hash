@@ -11,23 +11,35 @@ authors.workspace = true
 hashql-diagnostics = { workspace = true, public = true }
 
 # Public third-party dependencies
-ecow      = { workspace = true, public = true }
-text-size = { workspace = true, public = true }
+anstyle            = { workspace = true, public = true }
+ecow               = { workspace = true, public = true }
+foldhash           = { workspace = true, public = true }
+hashbrown          = { workspace = true, features = ["nightly"], public = true }
+orx-concurrent-vec = { workspace = true, public = true }
+pretty             = { workspace = true, public = true }
+smallvec           = { version = "2.0.0-alpha.11", public = true }
+text-size          = { workspace = true, public = true }
 
 # Private workspace dependencies
 
 # Private third-party dependencies
-anstyle            = { workspace = true }
-archery            = { workspace = true }
-foldhash           = { workspace = true }
-orx-concurrent-vec = { workspace = true }
-pretty             = { workspace = true }
-rpds               = { workspace = true }
-serde              = { workspace = true, optional = true, features = ["alloc", "derive"] }
-simple-mermaid     = { workspace = true }
+archery        = { workspace = true }
+bitvec         = { workspace = true, features = ["alloc"] }
+bumpalo        = { workspace = true, features = ["allocator_api"] }
+derive_more    = { workspace = true, features = ["debug"] }
+ena            = { workspace = true }
+rpds           = { workspace = true }
+scc            = { workspace = true }
+serde          = { workspace = true, optional = true, features = ["alloc", "derive"] }
+simple-mermaid = { workspace = true }
+tracing        = { workspace = true }
+
 
 [features]
 serde = ["dep:serde", "text-size/serde"]
 
 [lints]
 workspace = true
+
+[dev-dependencies]
+test-case = "3.3.1"

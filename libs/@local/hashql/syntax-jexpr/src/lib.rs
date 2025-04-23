@@ -18,8 +18,8 @@ extern crate alloc;
 
 use alloc::sync::Arc;
 
-use hashql_ast::{heap::Heap, node::expr::Expr};
-use hashql_core::span::storage::SpanStorage;
+use hashql_ast::node::expr::Expr;
+use hashql_core::{heap::Heap, span::storage::SpanStorage};
 
 use self::{
     error::{JExprDiagnostic, JExprDiagnosticCategory, ResultExt as _},
@@ -74,8 +74,8 @@ impl<'heap> Parser<'heap> {
 mod tests {
     use alloc::sync::Arc;
 
-    use hashql_ast::{format::SyntaxDump as _, heap::Heap};
-    use hashql_core::span::storage::SpanStorage;
+    use hashql_ast::format::SyntaxDump as _;
+    use hashql_core::{heap::Heap, span::storage::SpanStorage};
     use insta::{assert_snapshot, with_settings};
 
     use crate::{Parser, test::render_diagnostic};
