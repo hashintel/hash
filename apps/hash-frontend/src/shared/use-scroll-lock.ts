@@ -28,9 +28,7 @@ const useLastScrollbarSize = (element: HTMLElement) => {
           ? element.offsetWidth - element.clientWidth - horizontalBorderWidth
           : getScrollbarSizeOfDocument();
 
-      if (scrollbarSize > 0) {
-        setLastScrollbarSize(scrollbarSize);
-      }
+      setLastScrollbarSize(scrollbarSize);
     });
 
     observerRef.current.observe(element);
@@ -76,6 +74,7 @@ export const useScrollLock = (
     return () => {
       if (madeChangesRequiringRemoval.current) {
         removeStylesFromElement(elementToLock);
+        madeChangesRequiringRemoval.current = false;
       }
     };
   }, [active, scrollbarSize, elementToLock]);
