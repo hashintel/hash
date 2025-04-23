@@ -5,7 +5,7 @@ import type {
   RefObject,
   SetStateAction,
 } from "react";
-import { createRef, useCallback, useMemo, useState } from "react";
+import { createRef, useCallback, useMemo, useRef, useState } from "react";
 
 import { useScrollLock } from "../../shared/use-scroll-lock";
 import { SlideStackContext } from "./slide-stack/context";
@@ -122,6 +122,8 @@ export const SlideStack: FunctionComponent<{
 
   useScrollLock(items.length > 0);
 
+  const backdropRef = useRef<HTMLDivElement>(null);
+
   const handleBack = useCallback(() => {
     setItems((prev) => ({
       currentIndex: Math.max(prev.currentIndex - 1, 0),
@@ -149,12 +151,11 @@ export const SlideStack: FunctionComponent<{
     <Portal container={slideContainerRef?.current ?? undefined}>
       <Backdrop
         onClick={(event) => {
-          if (
-            !items[currentIndex]?.ref.current?.contains(event.target as Node)
-          ) {
+          if (event.target === backdropRef.current) {
             handleClose();
           }
         }}
+        ref={backdropRef}
         open={items.length > 0 && !animateOut}
         sx={{ zIndex: ({ zIndex }) => zIndex.drawer + 2 }}
       >
