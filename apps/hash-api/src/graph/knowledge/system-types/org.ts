@@ -5,6 +5,7 @@ import {
   versionedUrlFromComponents,
 } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
+import { createWebMachineActorEntity } from "@local/hash-backend-utils/machine-actors";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
@@ -19,7 +20,6 @@ import type {
   OrganizationPropertiesWithMetadata,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 
-import { createWebMachineActorEntity } from "@local/hash-backend-utils/machine-actors";
 import { logger } from "../../../logger";
 import { createOrgWeb, getWeb } from "../../account-permission-management";
 import type {
