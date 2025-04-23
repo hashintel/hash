@@ -149,9 +149,9 @@ export const EntityTypeHeader = ({
                   );
                 }}
               />
-              <Box position="relative" ml={2}>
+              <Stack alignItems="flex-start" direction="row" gap={1}>
                 <Tooltip
-                  placement="top"
+                  placement="top-start"
                   componentsProps={{
                     popper: {
                       container: slideContainerRef?.current,
@@ -179,19 +179,16 @@ export const EntityTypeHeader = ({
                     variant="h1"
                     fontWeight="bold"
                     ref={entityTypeNameTextRef}
+                    sx={{ width: entityTypeNameWidth, ml: 1.5 }}
                   >
                     {entityTypeSchema.title}
                   </Typography>
                 </Tooltip>
-                {isInSlide && entityTypeNameWidth !== null && (
+                {isInSlide && (
                   <Link
                     href={generateLinkParameters(entityTypeSchema.$id).href}
+                    sx={{ ml: 1.2, mt: 1 }}
                     target="_blank"
-                    sx={{
-                      position: "absolute",
-                      left: entityTypeNameWidth + 10,
-                      top: 10,
-                    }}
                   >
                     <ArrowUpRightFromSquareRegularIcon
                       sx={{
@@ -204,12 +201,12 @@ export const EntityTypeHeader = ({
                     />
                   </Link>
                 )}
-              </Box>
+              </Stack>
             </Box>
             <Stack
-              direction="row"
+              direction="column"
               alignItems="flex-start"
-              gap={1}
+              gap={1.5}
               sx={{ position: "relative", top: 5 }}
             >
               <EntityTypePlural isLinkType={isLink} readonly={isReadonly} />
@@ -222,7 +219,7 @@ export const EntityTypeHeader = ({
               variant="secondary"
               size="small"
             >
-              Extend type <ArrowUpRightIcon sx={{ fontSize: 16, ml: 1.5 }} />
+              Extend <ArrowUpRightIcon sx={{ fontSize: 16, ml: 1.5 }} />
             </Button>
           ) : null}
         </Stack>

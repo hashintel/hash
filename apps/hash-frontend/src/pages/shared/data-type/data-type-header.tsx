@@ -152,7 +152,7 @@ export const DataTypeHeader = ({
               variant="secondary"
               size="small"
             >
-              Extend type <ArrowUpRightIcon sx={{ fontSize: 16, ml: 1.5 }} />
+              Extend <ArrowUpRightIcon sx={{ fontSize: 16, ml: 1.5 }} />
             </Button>
           ) : null}
         </Stack>
