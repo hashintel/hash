@@ -23,11 +23,10 @@ use crate::{
         AuthorizationRelation, SnapshotEntry, SnapshotMetadata, SnapshotRestoreError,
         entity::{self, EntitySender},
         ontology::{self, DataTypeSender, EntityTypeSender, PropertyTypeSender},
-        owner,
-        owner::{Owner, OwnerSender},
+        owner::{self, Owner, OwnerSender},
+        principal::{self, PrincipalSender},
         restore::batch::SnapshotRecordBatch,
-        web,
-        web::WebSender,
+        web::{self, WebSender},
     },
     store::postgres::query::rows::{
         DataTypeEmbeddingRow, EntityEmbeddingRow, EntityTypeEmbeddingRow, PropertyTypeEmbeddingRow,
@@ -38,6 +37,7 @@ use crate::{
 pub struct SnapshotRecordSender {
     metadata: UnboundedSender<SnapshotMetadata>,
     owner: OwnerSender,
+    principal: PrincipalSender,
     webs: WebSender,
     data_type: DataTypeSender,
     data_type_embedding: Sender<DataTypeEmbeddingRow<'static>>,
@@ -61,6 +61,8 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not poll metadata sender")?;
         ready!(self.owner.poll_ready_unpin(cx)).attach_printable("could not poll owner sender")?;
+        ready!(self.principal.poll_ready_unpin(cx))
+            .attach_printable("could not poll principal sender")?;
         ready!(self.webs.poll_ready_unpin(cx))
             .attach_printable("could not poll web sender")
             .change_context(SnapshotRestoreError::Read)?;
@@ -98,10 +100,10 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
                 .start_send_unpin(snapshot)
                 .change_context(SnapshotRestoreError::Read)
                 .attach_printable("could not send snapshot metadata"),
-            SnapshotEntry::Account(account) => self
-                .owner
-                .start_send_unpin(Owner::Account(account))
-                .attach_printable("could not send account"),
+            SnapshotEntry::Principal(principal) => self
+                .principal
+                .start_send_unpin(principal)
+                .attach_printable("could not send principal"),
             SnapshotEntry::Web(web) => self
                 .webs
                 .start_send_unpin(web)
@@ -189,6 +191,8 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
         ready!(self.webs.poll_flush_unpin(cx))
             .attach_printable("could not flush web sender")
             .change_context(SnapshotRestoreError::Read)?;
+        ready!(self.principal.poll_flush_unpin(cx))
+            .attach_printable("could not flush principal sender")?;
         ready!(self.data_type.poll_flush_unpin(cx))
             .attach_printable("could not flush data type sender")?;
         ready!(self.data_type_embedding.poll_flush_unpin(cx))
@@ -227,6 +231,8 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
         ready!(self.webs.poll_close_unpin(cx))
             .attach_printable("could not close web sender")
             .change_context(SnapshotRestoreError::Read)?;
+        ready!(self.principal.poll_close_unpin(cx))
+            .attach_printable("could not close principal sender")?;
         ready!(self.data_type.poll_close_unpin(cx))
             .attach_printable("could not close data type sender")?;
         ready!(self.data_type_embedding.poll_close_unpin(cx))
@@ -276,6 +282,7 @@ pub(crate) fn channel(
 ) {
     let (metadata_tx, metadata_rx) = mpsc::unbounded();
     let (owner_tx, owner_rx) = owner::channel(chunk_size);
+    let (principal_tx, principal_rx) = principal::channel(chunk_size);
     let (web_tx, web_rx) = web::channel(chunk_size);
     let (ontology_metadata_tx, ontology_metadata_rx) =
         ontology::ontology_metadata_channel(chunk_size);
@@ -302,6 +309,7 @@ pub(crate) fn channel(
     (
         SnapshotRecordSender {
             owner: owner_tx,
+            principal: principal_tx,
             metadata: metadata_tx,
             webs: web_tx,
             data_type: data_type_tx,
@@ -317,6 +325,7 @@ pub(crate) fn channel(
         SnapshotRecordReceiver {
             stream: select_all(vec![
                 owner_rx.map(SnapshotRecordBatch::Accounts).boxed(),
+                principal_rx.map(SnapshotRecordBatch::Principals).boxed(),
                 web_rx.map(SnapshotRecordBatch::Webs).boxed(),
                 ontology_metadata_rx
                     .map(SnapshotRecordBatch::OntologyTypes)

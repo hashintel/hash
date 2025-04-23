@@ -120,7 +120,8 @@ where
         Ok(())
     }
 
-    /// Creates a new user with the given ID, or generates a new UUID if none is provided.
+    /// Creates a new user with the given ID, or generates a new UUID if none
+    /// is provided.
     ///
     /// # Errors
     ///
@@ -291,11 +292,15 @@ where
     pub async fn create_machine(
         &mut self,
         id: Option<Uuid>,
+        identifier: &str,
     ) -> Result<MachineId, Report<PrincipalError>> {
         let id = MachineId::new(id.unwrap_or_else(Uuid::new_v4));
         if let Err(error) = self
             .as_mut_client()
-            .execute("INSERT INTO machine_actor (id) VALUES ($1)", &[&id])
+            .execute(
+                "INSERT INTO machine_actor (id, identifier) VALUES ($1, $2)",
+                &[&id, &identifier],
+            )
             .await
         {
             return if error.code() == Some(&SqlState::UNIQUE_VIOLATION) {
@@ -341,24 +346,26 @@ where
             .query_opt(
                 "
                 SELECT machine_actor.id,
+                       machine_actor.identifier,
                        array_agg(role.id) FILTER (WHERE role.id IS NOT NULL),
                        array_agg(role.principal_type) FILTER (WHERE role.id IS NOT NULL)
                 FROM machine_actor
                 LEFT OUTER JOIN actor_role ON machine_actor.id = actor_role.actor_id
                 LEFT OUTER JOIN role ON actor_role.role_id = role.id
                 WHERE machine_actor.id = $1
-                GROUP BY machine_actor.id",
+                GROUP BY machine_actor.id, machine_actor.identifier",
                 &[&id],
             )
             .await
             .change_context(PrincipalError::StoreError)?
             .map(|row| {
-                let role_ids = row.get::<_, Option<Vec<Uuid>>>(1).unwrap_or_default();
+                let role_ids = row.get::<_, Option<Vec<Uuid>>>(2).unwrap_or_default();
                 let principal_types = row
-                    .get::<_, Option<Vec<PrincipalType>>>(2)
+                    .get::<_, Option<Vec<PrincipalType>>>(3)
                     .unwrap_or_default();
                 Machine {
                     id: row.get(0),
+                    identifier: row.get(1),
                     roles: role_ids
                         .into_iter()
                         .zip(principal_types)
@@ -395,11 +402,18 @@ where
     ///
     /// [`PrincipalAlreadyExists`]: PrincipalError::PrincipalAlreadyExists
     /// [`StoreError`]: PrincipalError::StoreError
-    pub async fn create_ai(&mut self, id: Option<Uuid>) -> Result<AiId, Report<PrincipalError>> {
+    pub async fn create_ai(
+        &mut self,
+        id: Option<Uuid>,
+        identifier: &str,
+    ) -> Result<AiId, Report<PrincipalError>> {
         let ai_id = AiId::new(id.unwrap_or_else(Uuid::new_v4));
         if let Err(error) = self
             .as_mut_client()
-            .execute("INSERT INTO ai_actor (id) VALUES ($1)", &[&ai_id])
+            .execute(
+                "INSERT INTO ai_actor (id, identifier) VALUES ($1, $2)",
+                &[&ai_id, &identifier],
+            )
             .await
         {
             return if error.code() == Some(&SqlState::UNIQUE_VIOLATION) {
@@ -437,25 +451,28 @@ where
             .as_client()
             .query_opt(
                 "
-                SELECT ai_actor.id,
-                       array_agg(role.id) FILTER (WHERE role.id IS NOT NULL),
-                       array_agg(role.principal_type) FILTER (WHERE role.id IS NOT NULL)
+                SELECT
+                    ai_actor.id,
+                    ai_actor.identifier,
+                    array_agg(role.id) FILTER (WHERE role.id IS NOT NULL),
+                    array_agg(role.principal_type) FILTER (WHERE role.id IS NOT NULL)
                 FROM ai_actor
                 LEFT OUTER JOIN actor_role ON ai_actor.id = actor_role.actor_id
                 LEFT OUTER JOIN role ON actor_role.role_id = role.id
                 WHERE ai_actor.id = $1
-                GROUP BY ai_actor.id",
+                GROUP BY ai_actor.id, ai_actor.identifier",
                 &[&id],
             )
             .await
             .change_context(PrincipalError::StoreError)?
             .map(|row| {
-                let role_ids = row.get::<_, Option<Vec<Uuid>>>(1).unwrap_or_default();
+                let role_ids = row.get::<_, Option<Vec<Uuid>>>(2).unwrap_or_default();
                 let principal_types = row
-                    .get::<_, Option<Vec<PrincipalType>>>(2)
+                    .get::<_, Option<Vec<PrincipalType>>>(3)
                     .unwrap_or_default();
                 Ai {
                     id: row.get(0),
+                    identifier: row.get(1),
                     roles: role_ids
                         .into_iter()
                         .zip(principal_types)
@@ -530,12 +547,26 @@ where
     pub async fn get_web(&self, id: WebId) -> Result<Option<Web>, Report<PrincipalError>> {
         Ok(self
             .as_client()
-            .query_opt("SELECT id FROM web WHERE id = $1", &[&id])
+            .query_opt(
+                "SELECT
+                    web.id,
+                    shortname,
+                    array_agg(role.id) FILTER (WHERE role.id IS NOT NULL)
+                FROM web
+                LEFT OUTER JOIN role ON web.id = role.actor_group_id
+                WHERE web.id = $1
+                GROUP BY web.id, web.shortname",
+                &[&id],
+            )
             .await
             .change_context(PrincipalError::StoreError)?
-            .map(|row| Web {
-                id: row.get(0),
-                roles: HashSet::new(),
+            .map(|row| {
+                let role_ids = row.get::<_, Option<Vec<WebRoleId>>>(2).unwrap_or_default();
+                Web {
+                    id: row.get(0),
+                    shortname: row.get(1),
+                    roles: role_ids.into_iter().collect(),
+                }
             }))
     }
 
@@ -563,10 +594,11 @@ where
     ///
     /// [`PrincipalAlreadyExists`]: PrincipalError::PrincipalAlreadyExists
     /// [`StoreError`]: PrincipalError::StoreError
-    pub async fn create_team(
+    pub async fn insert_team(
         &mut self,
         id: Option<Uuid>,
         parent_id: ActorGroupId,
+        name: &str,
     ) -> Result<TeamId, Report<PrincipalError>> {
         let id = id.unwrap_or_else(Uuid::new_v4);
         let transaction = self
@@ -578,8 +610,8 @@ where
         // First create the team
         transaction
             .execute(
-                "INSERT INTO team (id, parent_id) VALUES ($1, $2)",
-                &[&id, &parent_id],
+                "INSERT INTO team (id, parent_id, name) VALUES ($1, $2, $3)",
+                &[&id, &parent_id, &name],
             )
             .await
             .map_err(Report::new)
@@ -641,37 +673,75 @@ where
     ///
     /// [`StoreError`]: PrincipalError::StoreError
     pub async fn get_team(&self, id: TeamId) -> Result<Option<Team>, Report<PrincipalError>> {
-        let parents = self
+        Ok(self
             .as_client()
-            .query_raw(
-                "
-                    SELECT parent_id, principal_type
-                      FROM team_hierarchy
-                      JOIN principal ON principal.id = team_hierarchy.parent_id
-                     WHERE child_id = $1
-                     ORDER BY depth",
+            .query_opt(
+                "SELECT
+                    team.id,
+                    parent.principal_type,
+                    parent.id,
+                    team.name,
+                    array_agg(role.id) FILTER (WHERE role.id IS NOT NULL)
+                FROM team
+                JOIN actor_group AS parent ON parent.id = parent_id
+                LEFT OUTER JOIN role ON team.id = role.actor_group_id
+                WHERE team.id = $1
+                GROUP BY team.id, parent.principal_type, parent.id, team.name",
                 &[&id],
             )
             .await
             .change_context(PrincipalError::StoreError)?
-            .map_ok(|row| match row.get(1) {
-                PrincipalType::Web => ActorGroupId::Web(row.get(0)),
-                PrincipalType::Team => ActorGroupId::Team(row.get(0)),
-                other => unreachable!("Unexpected actor group type: {other:?}"),
-            })
-            .try_collect::<Vec<_>>()
+            .map(|row| {
+                let role_ids = row.get::<_, Option<Vec<TeamRoleId>>>(4).unwrap_or_default();
+                Team {
+                    id: row.get(0),
+                    parent_id: match row.get(1) {
+                        PrincipalType::Web => ActorGroupId::Web(row.get(2)),
+                        PrincipalType::Team => ActorGroupId::Team(row.get(2)),
+                        principal_type => {
+                            unreachable!("Unexpected principal type {principal_type}")
+                        }
+                    },
+                    name: row.get(3),
+                    roles: role_ids.into_iter().collect(),
+                }
+            }))
+    }
+
+    /// Gets all parent actor groups for the given team.
+    ///
+    /// # Errors
+    ///
+    /// - [`StoreError`] if a database error occurs
+    ///
+    /// [`StoreError`]: PrincipalError::StoreError
+    pub async fn get_parent_actor_groups(
+        &self,
+        id: TeamId,
+    ) -> Result<Vec<ActorGroupId>, Report<PrincipalError>> {
+        self.as_client()
+            .query_raw(
+                "SELECT
+                    parent.principal_type,
+                    parent.id
+                FROM team_hierarchy
+                JOIN actor_group AS parent ON parent.id = parent_id
+                WHERE child_id = $1
+                ORDER BY depth ASC",
+                &[&id],
+            )
             .await
-            .change_context(PrincipalError::StoreError)?;
-
-        if parents.is_empty() {
-            return Ok(None);
-        }
-
-        Ok(Some(Team {
-            id,
-            parents,
-            roles: HashSet::new(),
-        }))
+            .change_context(PrincipalError::StoreError)?
+            .map_ok(|row| match row.get(0) {
+                PrincipalType::Web => ActorGroupId::Web(row.get(1)),
+                PrincipalType::Team => ActorGroupId::Team(row.get(1)),
+                principal_type => {
+                    unreachable!("Unexpected principal type {principal_type}")
+                }
+            })
+            .try_collect()
+            .await
+            .change_context(PrincipalError::StoreError)
     }
 
     /// Deletes a team from the system.
@@ -719,15 +789,7 @@ where
             .execute(
                 "INSERT INTO role (id, principal_type, actor_group_id, name)
                 VALUES ($1, $2, $3, $4)",
-                &[
-                    &role_id,
-                    &principal_type,
-                    &actor_group_id,
-                    match name {
-                        RoleName::Administrator => &"Administrator",
-                        RoleName::Member => &"Member",
-                    },
-                ],
+                &[&role_id, &principal_type, &actor_group_id, &name],
             )
             .await
             .map_err(|error| match error.code() {
@@ -773,14 +835,15 @@ where
         Ok(self
             .as_client()
             .query_opt(
-                "SELECT id FROM role
-                WHERE actor_group_id = $1 AND name = $2 AND principal_type = $3",
+                "SELECT
+                    id
+                FROM role
+                WHERE actor_group_id = $1
+                  AND name = $2
+                  AND principal_type = $3",
                 &[
                     &actor_group_id,
-                    match name {
-                        RoleName::Administrator => &"Administrator",
-                        RoleName::Member => &"Member",
-                    },
+                    &name,
                     match actor_group_id {
                         ActorGroupId::Web(_) => &PrincipalType::WebRole,
                         ActorGroupId::Team(_) => &PrincipalType::TeamRole,
@@ -827,9 +890,10 @@ where
     /// [`StoreError`]: PrincipalError::StoreError
     pub async fn assign_role_by_id(
         &mut self,
-        actor_id: ActorId,
+        actor_id: impl Into<ActorId>,
         role_id: RoleId,
     ) -> Result<RoleAssignmentStatus, Report<PrincipalError>> {
+        let actor_id = actor_id.into();
         // Check if the actor exists
         if !self.is_actor(actor_id).await? {
             return Err(Report::new(PrincipalError::PrincipalNotFound {
@@ -870,9 +934,10 @@ where
     /// [`StoreError`]: PrincipalError::StoreError
     pub async fn unassign_role_by_id(
         &mut self,
-        actor_id: ActorId,
+        actor_id: impl Into<ActorId>,
         role_id: RoleId,
     ) -> Result<RoleUnassignmentStatus, Report<PrincipalError>> {
+        let actor_id = actor_id.into();
         let num_deleted = self
             .as_mut_client()
             .execute(
@@ -921,31 +986,24 @@ where
             .change_context(PrincipalError::StoreError)?
             .map_ok(|row| {
                 let role_id: Uuid = row.get(0);
-                let principal_type: PrincipalType = row.get(1);
-                let actor_group_id: Uuid = row.get(2);
-                let name = match row.get(3) {
-                    "Administrator" => RoleName::Administrator,
-                    "Member" => RoleName::Member,
-                    other => unreachable!("Unexpected role name: {other:?}"),
-                };
-                match principal_type {
+                match row.get(1) {
                     PrincipalType::WebRole => (
                         RoleId::Web(WebRoleId::new(role_id)),
                         Role::Web(WebRole {
                             id: WebRoleId::new(role_id),
-                            web_id: WebId::new(actor_group_id),
-                            name,
+                            web_id: row.get(2),
+                            name: row.get(3),
                         }),
                     ),
                     PrincipalType::TeamRole => (
                         RoleId::Team(TeamRoleId::new(role_id)),
                         Role::Team(TeamRole {
                             id: TeamRoleId::new(role_id),
-                            team_id: TeamId::new(actor_group_id),
-                            name,
+                            team_id: row.get(2),
+                            name: row.get(3),
                         }),
                     ),
-                    _ => unreachable!("Unexpected role type: {principal_type:?}"),
+                    principal_type => unreachable!("Unexpected role type: {principal_type:?}"),
                 }
             })
             .try_collect()
@@ -1297,6 +1355,7 @@ where
                 SELECT
                     'team'::PRINCIPAL_TYPE,
                     team.id,
+                    team.name,
                     parent.principal_type,
                     parent.id
                  FROM team
@@ -1308,6 +1367,7 @@ where
                  SELECT
                     'web'::PRINCIPAL_TYPE,
                     web.id,
+                    web.shortname,
                     NULL,
                     NULL
                  FROM web
@@ -1320,17 +1380,19 @@ where
             .map_ok(|row| match row.get(0) {
                 PrincipalType::Web => ActorGroup::Web(Web {
                     id: row.get(1),
+                    shortname: row.get(2),
                     roles: HashSet::new(),
                 }),
                 PrincipalType::Team => ActorGroup::Team(Team {
                     id: row.get(1),
-                    parents: vec![match row.get(2) {
-                        PrincipalType::Web => ActorGroupId::Web(row.get(3)),
-                        PrincipalType::Team => ActorGroupId::Team(row.get(3)),
+                    name: row.get(2),
+                    parent_id: match row.get(3) {
+                        PrincipalType::Web => ActorGroupId::Web(row.get(4)),
+                        PrincipalType::Team => ActorGroupId::Team(row.get(4)),
                         actor_group_type => {
                             unreachable!("Unexpected actor group type: {actor_group_type:?}")
                         }
-                    }],
+                    },
                     roles: HashSet::new(),
                 }),
                 actor_group_type => {

@@ -28,6 +28,43 @@ pub enum RoleName {
     Member,
 }
 
+#[cfg(feature = "postgres")]
+impl postgres_types::ToSql for RoleName {
+    postgres_types::accepts!(TEXT);
+
+    postgres_types::to_sql_checked!();
+
+    fn to_sql(
+        &self,
+        ty: &postgres_types::Type,
+        out: &mut bytes::BytesMut,
+    ) -> Result<postgres_types::IsNull, Box<dyn core::error::Error + Sync + Send>>
+    where
+        Self: Sized,
+    {
+        match self {
+            Self::Administrator => "Administrator".to_sql(ty, out),
+            Self::Member => "Member".to_sql(ty, out),
+        }
+    }
+}
+
+#[cfg(feature = "postgres")]
+impl<'a> postgres_types::FromSql<'a> for RoleName {
+    postgres_types::accepts!(TEXT);
+
+    fn from_sql(
+        ty: &postgres_types::Type,
+        raw: &'a [u8],
+    ) -> Result<Self, Box<dyn core::error::Error + Sync + Send>> {
+        match <&str>::from_sql(ty, raw)? {
+            "Administrator" => Ok(Self::Administrator),
+            "Member" => Ok(Self::Member),
+            unknown => Err(format!("Unknown RoleName variant: {unknown}").into()),
+        }
+    }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
@@ -104,7 +141,10 @@ impl postgres_types::ToSql for RoleId {
     }
 }
 
-#[derive(Debug, derive_more::From)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, derive_more::From)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(tag = "roleType", rename_all = "camelCase")]
 pub enum Role {
     Web(WebRole),
     Team(TeamRole),

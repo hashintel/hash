@@ -3,9 +3,11 @@ use std::collections::HashSet;
 
 use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion};
 use criterion_macro::criterion;
-use hash_graph_authorization::{AuthorizationApi, NoAuthorization, schema::WebOwnerSubject};
+use hash_graph_authorization::{
+    AuthorizationApi, NoAuthorization,
+    policies::store::{CreateWebParameter, LocalPrincipalStore as _},
+};
 use hash_graph_store::{
-    account::{AccountStore as _, InsertAccountIdParams, InsertWebIdParams},
     entity::{CreateEntityParams, EntityQuerySorting, EntityStore as _, GetEntitiesParams},
     filter::Filter,
     subgraph::temporal_axes::{
@@ -24,7 +26,7 @@ use type_system::{
     },
     ontology::entity_type::EntityType,
     principal::{
-        actor::{ActorEntityUuid, ActorType},
+        actor::{ActorEntityUuid, ActorId, ActorType},
         actor_group::WebId,
     },
     provenance::{OriginProvenance, OriginType},
@@ -53,26 +55,28 @@ async fn seed_db<A: AuthorizationApi>(
     let now = std::time::SystemTime::now();
     eprintln!("Seeding database: {}", store_wrapper.bench_db_name);
 
+    let system_account_id = transaction
+        .get_or_create_system_actor("h")
+        .await
+        .expect("could not read system account");
+
+    let user_id = transaction
+        .create_user(Some(account_id.into()))
+        .await
+        .expect("could not create user");
+
     transaction
-        .insert_account_id(
-            account_id,
-            InsertAccountIdParams {
-                account_id,
-                account_type: ActorType::Machine,
+        .create_web(
+            ActorId::from(system_account_id),
+            CreateWebParameter {
+                id: Some(user_id.into()),
+                administrator: user_id.into(),
+                shortname: Some("alice".to_owned()),
+                is_actor_web: true,
             },
         )
         .await
-        .expect("could not insert account id");
-    transaction
-        .insert_web_id(
-            account_id,
-            InsertWebIdParams {
-                web_id: WebId::new(account_id),
-                owner: WebOwnerSubject::Account { id: account_id },
-            },
-        )
-        .await
-        .expect("could not create web id");
+        .expect("could not create web");
 
     seed(
         &mut transaction,

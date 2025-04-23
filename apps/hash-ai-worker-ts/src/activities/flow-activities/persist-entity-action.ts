@@ -1,6 +1,6 @@
 import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
-import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
+import { getWebMachineId } from "@local/hash-backend-utils/machine-actors";
 import type { CreateEntityParameters } from "@local/hash-graph-sdk/entity";
 import {
   HashEntity,
@@ -96,7 +96,7 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
         graphApiClient,
         grantCreatePermissionForWeb: webId,
       })
-    : await getWebMachineActorId(
+    : await getWebMachineId(
         { graphApi: graphApiClient },
         { actorId },
         { webId },

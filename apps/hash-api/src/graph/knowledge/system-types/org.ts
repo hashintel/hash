@@ -1,11 +1,11 @@
-import type { EntityId, WebId } from "@blockprotocol/type-system";
+import type { EntityId, MachineId, WebId } from "@blockprotocol/type-system";
 import {
   extractBaseUrl,
   extractWebIdFromEntityId,
   versionedUrlFromComponents,
 } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
-import { createWebMachineActor } from "@local/hash-backend-utils/machine-actors";
+import { createWebMachineActorEntity } from "@local/hash-backend-utils/machine-actors";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
@@ -21,10 +21,7 @@ import type {
 } from "@local/hash-isomorphic-utils/system-types/shared";
 
 import { logger } from "../../../logger";
-import {
-  createAccountGroup,
-  createWeb,
-} from "../../account-permission-management";
+import { createOrgWeb, getWeb } from "../../account-permission-management";
 import type {
   ImpureGraphFunction,
   PureGraphFunction,
@@ -103,7 +100,8 @@ export const createOrg: ImpureGraphFunction<
     name: string;
     webId?: WebId;
     websiteUrl?: string | null;
-    entityTypeVersion?: number;
+    machineEntityTypeVersion?: number;
+    orgEntityTypeVersion?: number;
     bypassShortnameValidation?: boolean;
   },
   Promise<Org>
@@ -113,7 +111,8 @@ export const createOrg: ImpureGraphFunction<
     shortname,
     name,
     websiteUrl,
-    entityTypeVersion,
+    machineEntityTypeVersion,
+    orgEntityTypeVersion,
   } = params;
 
   if (!bypassShortnameValidation && shortnameIsInvalid({ shortname })) {
@@ -130,21 +129,36 @@ export const createOrg: ImpureGraphFunction<
   }
 
   let orgWebId: WebId;
+  let orgWebMachineId: MachineId;
   if (params.webId) {
     orgWebId = params.webId;
+    const { machineId } = await getWeb(ctx, authentication, {
+      webId: orgWebId,
+    });
+    orgWebMachineId = machineId;
   } else {
-    orgWebId = (await createAccountGroup(ctx, authentication, {})) as WebId;
-
-    await createWeb(ctx, authentication, {
-      webId: orgWebId,
-      owner: { kind: "accountGroup", subjectId: orgWebId },
+    const { webId, machineId } = await createOrgWeb(ctx, authentication, {
+      shortname,
     });
-
-    await createWebMachineActor(ctx, authentication, {
-      webId: orgWebId,
-      logger,
-    });
+    orgWebId = webId;
+    orgWebMachineId = machineId;
   }
+
+  const machineEntityTypeId =
+    typeof machineEntityTypeVersion === "undefined"
+      ? systemEntityTypes.machine.entityTypeId
+      : versionedUrlFromComponents(
+          systemEntityTypes.machine.entityTypeBaseUrl,
+          machineEntityTypeVersion,
+        );
+
+  await createWebMachineActorEntity(ctx, {
+    systemAccountId,
+    webId: orgWebId,
+    machineId: orgWebMachineId,
+    machineEntityTypeId,
+    logger,
+  });
 
   const properties: OrganizationPropertiesWithMetadata = {
     value: {
@@ -162,7 +176,7 @@ export const createOrg: ImpureGraphFunction<
             "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
         },
       },
-      ...(websiteUrl !== undefined && websiteUrl !== null
+      ...(websiteUrl
         ? {
             "https://hash.ai/@h/types/property-type/website-url/": {
               value: websiteUrl,
@@ -175,12 +189,12 @@ export const createOrg: ImpureGraphFunction<
     },
   };
 
-  const entityTypeId =
-    typeof entityTypeVersion === "undefined"
+  const orgEntityTypeId =
+    typeof orgEntityTypeVersion === "undefined"
       ? systemEntityTypes.organization.entityTypeId
       : versionedUrlFromComponents(
           systemEntityTypes.organization.entityTypeBaseUrl,
-          entityTypeVersion,
+          orgEntityTypeVersion,
         );
 
   try {
@@ -198,7 +212,7 @@ export const createOrg: ImpureGraphFunction<
             },
             resource: {
               kind: "entityType",
-              resourceId: entityTypeId,
+              resourceId: orgEntityTypeId,
             },
           },
         },
@@ -208,7 +222,7 @@ export const createOrg: ImpureGraphFunction<
     const entity = await createEntity(ctx, authentication, {
       webId: orgWebId,
       properties,
-      entityTypeIds: [entityTypeId],
+      entityTypeIds: [orgEntityTypeId],
       entityUuid: orgWebId,
       relationships: [
         {
@@ -229,7 +243,7 @@ export const createOrg: ImpureGraphFunction<
 
     return getOrgFromEntity({
       entity,
-      permitOlderVersions: entityTypeVersion !== undefined,
+      permitOlderVersions: orgEntityTypeVersion !== undefined,
     });
   } finally {
     if (authentication.actorId !== systemAccountId) {
@@ -247,7 +261,7 @@ export const createOrg: ImpureGraphFunction<
               },
               resource: {
                 kind: "entityType",
-                resourceId: entityTypeId,
+                resourceId: orgEntityTypeId,
               },
             },
           },

@@ -1,3 +1,4 @@
+import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
 import type { Logger } from "@local/hash-backend-utils/logger";
 
 import type { ImpureGraphContext } from "../graph/context-types";
@@ -78,15 +79,20 @@ export const seedOrgsAndUsers = async (params: {
     const sharedOrg = await seedOrg({ ...params, owner: orgOwner });
 
     for (const user of createdUsers) {
-      await joinOrg(
-        context,
-        /** Only the org owner has permission to add members to the organizations */
-        { actorId: orgOwner.accountId },
-        {
-          userEntityId: user.entity.metadata.recordId.entityId,
-          orgEntityId: sharedOrg.entity.metadata.recordId.entityId,
-        },
-      );
+      if (
+        extractWebIdFromEntityId(user.entity.metadata.recordId.entityId) !==
+        orgOwner.accountId
+      ) {
+        await joinOrg(
+          context,
+          /** Only the org owner has permission to add members to the organizations */
+          { actorId: orgOwner.accountId },
+          {
+            userEntityId: user.entity.metadata.recordId.entityId,
+            orgEntityId: sharedOrg.entity.metadata.recordId.entityId,
+          },
+        );
+      }
 
       logger.info(
         `User with shortname = "${user.shortname}" joined org with shortname = '${sharedOrg.shortname}'`,

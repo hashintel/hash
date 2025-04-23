@@ -99,7 +99,7 @@ impl DatabaseTestWrapper<NoAuthorization> {
         let mut transaction = self.connection.transaction().await?;
         let actor = ActorId::Machine(
             transaction
-                .create_machine(None)
+                .create_machine(None, "test-root-machine")
                 .await
                 .change_context(StoreError)?,
         );

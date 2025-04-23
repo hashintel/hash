@@ -12,7 +12,7 @@ use type_system::principal::{
     PrincipalId,
     actor::{ActorId, UserId},
     actor_group::{ActorGroupId, WebId},
-    role::{Role, RoleId, RoleName, WebRoleId},
+    role::{Role, RoleId, RoleName, TeamRoleId, WebRoleId},
 };
 use uuid::Uuid;
 
@@ -23,24 +23,35 @@ async fn create_role() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
     let (mut client, actor_id) = db.seed([ActionName::All, ActionName::CreateWeb]).await?;
 
-    // First create a team to associate the role with
+    // First create a web to associate the role with
     let web_id = client
-        .create_web(actor_id, CreateWebParameter { id: None })
-        .await?;
+        .create_web(
+            actor_id,
+            CreateWebParameter {
+                id: None,
+                administrator: actor_id,
+                shortname: Some("test-web".to_owned()),
+                is_actor_web: false,
+            },
+        )
+        .await?
+        .web_id;
+
+    let team_id = client.insert_team(None, web_id.into(), "team").await?;
 
     // Then create a role associated with the team
     let role_id = client
-        .create_role(None, ActorGroupId::Web(web_id), RoleName::Administrator)
+        .create_role(None, ActorGroupId::Team(team_id), RoleName::Administrator)
         .await?;
     assert!(client.is_role(role_id).await?);
 
-    let Some(Role::Web(role)) = client
-        .get_role(ActorGroupId::Web(web_id), RoleName::Administrator)
+    let Some(Role::Team(role)) = client
+        .get_role(ActorGroupId::Team(team_id), RoleName::Administrator)
         .await?
     else {
         panic!("Role should exist");
     };
-    assert_eq!(RoleId::Web(role.id), role_id);
+    assert_eq!(RoleId::Team(role.id), role_id);
 
     Ok(())
 }
@@ -50,26 +61,39 @@ async fn create_role_with_id() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
     let (mut client, actor_id) = db.seed([ActionName::All, ActionName::CreateWeb]).await?;
 
-    // First create a team to associate the role with
+    // First create a web to associate the role with
     let web_id = client
-        .create_web(actor_id, CreateWebParameter { id: None })
-        .await?;
+        .create_web(
+            actor_id,
+            CreateWebParameter {
+                id: None,
+                administrator: actor_id,
+                shortname: Some("test-web".to_owned()),
+                is_actor_web: false,
+            },
+        )
+        .await?
+        .web_id;
+
+    let team_id = client.insert_team(None, web_id.into(), "team").await?;
 
     // Then create a role with a specific ID
     let id = Uuid::new_v4();
     let role_id = client
-        .create_role(Some(id), ActorGroupId::Web(web_id), RoleName::Member)
+        .create_role(Some(id), ActorGroupId::Team(team_id), RoleName::Member)
         .await?;
-    assert_eq!(role_id, RoleId::Web(WebRoleId::new(id)));
+
+    // Then create a role with a specific ID
+    assert_eq!(role_id, RoleId::Team(TeamRoleId::new(id)));
     assert!(client.is_role(role_id).await?);
 
-    let Some(Role::Web(role)) = client
-        .get_role(ActorGroupId::Web(web_id), RoleName::Member)
+    let Some(Role::Team(role)) = client
+        .get_role(ActorGroupId::Team(team_id), RoleName::Member)
         .await?
     else {
         panic!("Role should exist");
     };
-    assert_eq!(RoleId::Web(role.id), role_id);
+    assert_eq!(RoleId::Team(role.id), role_id);
 
     Ok(())
 }
@@ -98,15 +122,19 @@ async fn get_role() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
     let (mut client, actor_id) = db.seed([ActionName::All, ActionName::CreateWeb]).await?;
 
-    // First create a team to associate the role with
+    // First create a web to associate the role with
     let web_id = client
-        .create_web(actor_id, CreateWebParameter { id: None })
-        .await?;
-
-    // Then create a role associated with the team
-    let role_id = client
-        .create_role(None, ActorGroupId::Web(web_id), RoleName::Administrator)
-        .await?;
+        .create_web(
+            actor_id,
+            CreateWebParameter {
+                id: None,
+                administrator: actor_id,
+                shortname: Some("test-web".to_owned()),
+                is_actor_web: false,
+            },
+        )
+        .await?
+        .web_id;
 
     // Get the role and verify its details
     let role = client
@@ -115,8 +143,8 @@ async fn get_role() -> Result<(), Box<dyn Error>> {
         .expect("Role should exist");
     match role {
         Role::Web(role) => {
-            assert_eq!(RoleId::Web(role.id), role_id);
             assert_eq!(ActorGroupId::Web(role.web_id), ActorGroupId::Web(web_id));
+            assert_eq!(role.name, RoleName::Administrator);
         }
         Role::Team(_) => panic!("Role should be a web role"),
     }
@@ -129,16 +157,25 @@ async fn delete_role() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
     let (mut client, actor_id) = db.seed([ActionName::All, ActionName::CreateWeb]).await?;
 
-    // First create a team to associate the role with
+    // First create a web to associate the role with
     let web_id = client
-        .create_web(actor_id, CreateWebParameter { id: None })
-        .await?;
+        .create_web(
+            actor_id,
+            CreateWebParameter {
+                id: None,
+                administrator: actor_id,
+                shortname: Some("test-web".to_owned()),
+                is_actor_web: false,
+            },
+        )
+        .await?
+        .web_id;
 
-    // Then create a role associated with the team
     let role_id = client
-        .create_role(None, ActorGroupId::Web(web_id), RoleName::Administrator)
-        .await?;
-    assert!(client.is_role(role_id).await?);
+        .get_role(web_id.into(), RoleName::Administrator)
+        .await?
+        .expect("admin role should exist")
+        .id();
 
     // Delete the role
     client.delete_role(role_id).await?;
@@ -171,11 +208,23 @@ async fn assign_role_to_actor() -> Result<(), Box<dyn Error>> {
 
     // Create a team, role, and user
     let web_id = client
-        .create_web(actor_id, CreateWebParameter { id: None })
-        .await?;
+        .create_web(
+            actor_id,
+            CreateWebParameter {
+                id: None,
+                administrator: actor_id,
+                shortname: Some("test-web".to_owned()),
+                is_actor_web: false,
+            },
+        )
+        .await?
+        .web_id;
+
     let role_id = client
-        .create_role(None, ActorGroupId::Web(web_id), RoleName::Administrator)
-        .await?;
+        .get_role(web_id.into(), RoleName::Administrator)
+        .await?
+        .expect("admin role should exist")
+        .id();
     let user_id = client.create_user(None).await?;
 
     // Assign the role to the user
@@ -212,11 +261,22 @@ async fn assign_role_to_nonexistent_actor() -> Result<(), Box<dyn Error>> {
 
     // Create a team and role
     let web_id = client
-        .create_web(actor_id, CreateWebParameter { id: None })
-        .await?;
+        .create_web(
+            actor_id,
+            CreateWebParameter {
+                id: None,
+                administrator: actor_id,
+                shortname: Some("test-web".to_owned()),
+                is_actor_web: false,
+            },
+        )
+        .await?
+        .web_id;
     let role_id = client
-        .create_role(None, ActorGroupId::Web(web_id), RoleName::Administrator)
-        .await?;
+        .get_role(web_id.into(), RoleName::Administrator)
+        .await?
+        .expect("admin role should exist")
+        .id();
 
     // Try to assign the role to a non-existent user
     let non_existent_user_id = UserId::new(Uuid::new_v4());
@@ -261,11 +321,22 @@ async fn unassign_role_from_actor() -> Result<(), Box<dyn Error>> {
 
     // Create a team, role, and user
     let web_id = client
-        .create_web(actor_id, CreateWebParameter { id: None })
-        .await?;
+        .create_web(
+            actor_id,
+            CreateWebParameter {
+                id: None,
+                administrator: actor_id,
+                shortname: Some("test-web".to_owned()),
+                is_actor_web: false,
+            },
+        )
+        .await?
+        .web_id;
     let role_id = client
-        .create_role(None, ActorGroupId::Web(web_id), RoleName::Administrator)
-        .await?;
+        .get_role(web_id.into(), RoleName::Administrator)
+        .await?
+        .expect("admin role should exist")
+        .id();
     let user_id = client.create_user(None).await?;
 
     // Assign the role to the user
@@ -324,12 +395,23 @@ async fn get_role_actors_empty() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
     let (mut client, actor_id) = db.seed([ActionName::All, ActionName::CreateWeb]).await?;
 
-    // Create a team and role
+    // First create a web to associate the role with
     let web_id = client
-        .create_web(actor_id, CreateWebParameter { id: None })
-        .await?;
+        .create_web(
+            actor_id,
+            CreateWebParameter {
+                id: None,
+                administrator: actor_id,
+                shortname: Some("test-web".to_owned()),
+                is_actor_web: false,
+            },
+        )
+        .await?
+        .web_id;
+
+    let team_id = client.insert_team(None, web_id.into(), "team").await?;
     let role_id = client
-        .create_role(None, ActorGroupId::Web(web_id), RoleName::Administrator)
+        .create_role(None, ActorGroupId::Team(team_id), RoleName::Administrator)
         .await?;
 
     // Get the role's actors (should be empty)
@@ -346,13 +428,23 @@ async fn create_web_team_role() -> Result<(), Box<dyn Error>> {
 
     // Create a web team
     let web_id = client
-        .create_web(actor_id, CreateWebParameter { id: None })
-        .await?;
+        .create_web(
+            actor_id,
+            CreateWebParameter {
+                id: None,
+                administrator: actor_id,
+                shortname: Some("test-web".to_owned()),
+                is_actor_web: false,
+            },
+        )
+        .await?
+        .web_id;
 
-    // Create a role for the web team
     let role_id = client
-        .create_role(None, ActorGroupId::Web(web_id), RoleName::Administrator)
-        .await?;
+        .get_role(web_id.into(), RoleName::Administrator)
+        .await?
+        .expect("admin role should exist")
+        .id();
 
     // Verify the role was created properly
     let Some(Role::Web(role)) = client
@@ -367,48 +459,29 @@ async fn create_web_team_role() -> Result<(), Box<dyn Error>> {
 }
 
 #[tokio::test]
-async fn create_team_role() -> Result<(), Box<dyn Error>> {
-    let mut db = DatabaseTestWrapper::new().await;
-    let (mut client, actor_id) = db.seed([ActionName::All, ActionName::CreateWeb]).await?;
-
-    // First create a parent team
-    let web_id = client
-        .create_web(actor_id, CreateWebParameter { id: None })
-        .await?;
-
-    // Create a team
-    let team_id = client.create_team(None, ActorGroupId::Web(web_id)).await?;
-
-    // Create a role for the team
-    let role_id = client
-        .create_role(None, ActorGroupId::Team(team_id), RoleName::Member)
-        .await?;
-
-    // Verify the role was created properly
-    let Some(Role::Team(role)) = client
-        .get_role(ActorGroupId::Team(team_id), RoleName::Member)
-        .await?
-    else {
-        panic!("Role should exist");
-    };
-    assert_eq!(RoleId::Team(role.id), role_id);
-
-    Ok(())
-}
-
-#[tokio::test]
 async fn assign_role_to_machine() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
     let (mut client, actor_id) = db.seed([ActionName::All, ActionName::CreateWeb]).await?;
 
     // Create a web team, role, and machine
     let web_id = client
-        .create_web(actor_id, CreateWebParameter { id: None })
-        .await?;
+        .create_web(
+            actor_id,
+            CreateWebParameter {
+                id: None,
+                administrator: actor_id,
+                shortname: Some("test-web".to_owned()),
+                is_actor_web: false,
+            },
+        )
+        .await?
+        .web_id;
     let role_id = client
-        .create_role(None, ActorGroupId::Web(web_id), RoleName::Administrator)
-        .await?;
-    let machine_id = client.create_machine(None).await?;
+        .get_role(web_id.into(), RoleName::Administrator)
+        .await?
+        .expect("admin role should exist")
+        .id();
+    let machine_id = client.create_machine(None, "test-machine").await?;
 
     // Assign the role to the machine
     client

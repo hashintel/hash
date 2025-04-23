@@ -1,10 +1,10 @@
 use alloc::sync::Arc;
 use core::{iter, str::FromStr as _};
-use std::sync::LazyLock;
+use std::{collections::HashSet, sync::LazyLock};
 
 use cedar_policy_core::{ast, extensions::Extensions};
 use error_stack::Report;
-use type_system::principal::actor_group::{ActorGroupId, Team, TeamId};
+use type_system::principal::actor_group::{Team, TeamId};
 use uuid::Uuid;
 
 use crate::policies::cedar::{FromCedarEntityId, ToCedarEntity, ToCedarEntityId};
@@ -38,7 +38,7 @@ impl ToCedarEntity for Team {
         ast::Entity::new(
             self.id.to_euid(),
             iter::empty(),
-            self.parents.iter().map(ActorGroupId::to_euid).collect(),
+            HashSet::from([self.parent_id.to_euid()]),
             iter::empty(),
             Extensions::none(),
         )

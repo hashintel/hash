@@ -1,16 +1,11 @@
-import type {
-  EntityId,
-  EntityUuid,
-  UserId,
-  WebId,
-} from "@blockprotocol/type-system";
+import type { EntityId, EntityUuid, UserId } from "@blockprotocol/type-system";
 import {
   extractEntityUuidFromEntityId,
   extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
-import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
-import { createWebMachineActor } from "@local/hash-backend-utils/machine-actors";
+import { getInstanceAdminsTeam } from "@local/hash-backend-utils/hash-instance";
+import { createWebMachineActorEntity } from "@local/hash-backend-utils/machine-actors";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
 import {
@@ -32,7 +27,7 @@ import type {
 } from "../../../auth/ory-kratos";
 import { kratosIdentityApi } from "../../../auth/ory-kratos";
 import { logger } from "../../../logger";
-import { createAccount, createWeb } from "../../account-permission-management";
+import { createUserActor } from "../../account-permission-management";
 import type {
   ImpureGraphFunction,
   PureGraphFunction,
@@ -288,42 +283,19 @@ export const createUser: ImpureGraphFunction<
     }
   }
 
-  const userShouldHavePermissionsOnWeb = shortname && displayName;
+  const userShouldHavePermissionsOnWeb = !!shortname && !!displayName;
 
-  const userAccountId = (await createAccount(ctx, authentication, {
-    accountType: "user",
-  })) as UserId;
+  const { userId, machineId } = await createUserActor(ctx, authentication, {
+    shortname,
+    registrationComplete: userShouldHavePermissionsOnWeb,
+  });
 
-  await createWeb(
-    ctx,
-    { actorId: systemAccountId },
-    {
-      webId: userAccountId,
-      owner: {
-        kind: "account",
-        /**
-         * Creating a web allows users to create further entities in it
-         * – we don't want them to do that until they've completed signup (have a shortname and display name)
-         * - the web is created with the system account as the owner and will be updated to the user account as the
-         *   owner once the user has completed signup
-         */
-        subjectId: userShouldHavePermissionsOnWeb
-          ? userAccountId
-          : systemAccountId,
-      },
-    },
-  );
-
-  const userWebMachineActorId = await createWebMachineActor(
-    ctx,
-    {
-      actorId: userShouldHavePermissionsOnWeb ? userAccountId : systemAccountId,
-    },
-    {
-      webId: userAccountId as WebId,
-      logger,
-    },
-  );
+  await createWebMachineActorEntity(ctx, {
+    systemAccountId,
+    webId: userId,
+    machineId,
+    logger,
+  });
 
   const properties: UserEntity["propertiesWithMetadata"] = {
     value: {
@@ -391,7 +363,7 @@ export const createUser: ImpureGraphFunction<
         relationAndSubject: {
           subject: {
             kind: "account",
-            subjectId: userWebMachineActorId,
+            subjectId: machineId,
           },
           relation: "instantiator",
         },
@@ -399,17 +371,17 @@ export const createUser: ImpureGraphFunction<
     ],
   );
 
-  const hashInstanceAdminsAccountGroupId =
-    await getHashInstanceAdminAccountGroupId(ctx, authentication);
+  const { teamId: hashInstanceAdminsAccountGroupId } =
+    await getInstanceAdminsTeam(ctx, authentication);
 
   const entity = await createEntity<UserEntity>(
     ctx,
-    { actorId: userWebMachineActorId },
+    { actorId: machineId },
     {
-      webId: userAccountId as WebId,
+      webId: userId,
       properties,
       entityTypeIds: [systemEntityTypes.user.entityTypeId],
-      entityUuid: userAccountId as string as EntityUuid,
+      entityUuid: userId,
       relationships: [
         {
           relation: "administrator",
@@ -446,7 +418,7 @@ export const createUser: ImpureGraphFunction<
         relationAndSubject: {
           subject: {
             kind: "account",
-            subjectId: userWebMachineActorId,
+            subjectId: machineId,
           },
           relation: "instantiator",
         },

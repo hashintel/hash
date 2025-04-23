@@ -25,7 +25,7 @@ import {
   getEntityTypeIdForMimeType,
 } from "@local/hash-backend-utils/file-storage";
 import { AwsS3StorageProvider } from "@local/hash-backend-utils/file-storage/aws-s3-storage-provider";
-import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
+import { getWebMachineId } from "@local/hash-backend-utils/machine-actors";
 import {
   HashEntity,
   mergePropertyObjectAndMetadata,
@@ -220,7 +220,7 @@ export const createFileEntityFromUrl = async (params: {
         graphApiClient,
         grantCreatePermissionForWeb: webId,
       })
-    : await getWebMachineActorId(
+    : await getWebMachineId(
         { graphApi: graphApiClient },
         { actorId: userAuthentication.actorId },
         { webId },

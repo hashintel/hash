@@ -1,5 +1,5 @@
 import type { WebId } from "@blockprotocol/type-system";
-import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
+import { getInstanceAdminsTeam } from "@local/hash-backend-utils/hash-instance";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { ProspectiveUser } from "@local/hash-isomorphic-utils/system-types/prospectiveuser";
@@ -22,10 +22,9 @@ export const submitEarlyAccessFormResolver: ResolverFn<
   const { user } = graphQLContext;
   const context = graphQLContextToImpureGraphContext(graphQLContext);
 
-  const adminAccountGroupId = await getHashInstanceAdminAccountGroupId(
-    context,
-    { actorId: systemAccountId },
-  );
+  const { teamId: adminAccountGroupId } = await getInstanceAdminsTeam(context, {
+    actorId: systemAccountId,
+  });
 
   await createEntity<ProspectiveUser>(
     context,
