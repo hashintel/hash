@@ -13,7 +13,7 @@ import {
 import type { EntityTypeEditorFormData } from "@hashintel/type-editor";
 import { useEntityTypeFormContext } from "@hashintel/type-editor";
 import { Box, Stack, Tooltip, Typography } from "@mui/material";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Controller } from "react-hook-form";
 
 import { EditEmojiIconButton } from "../../../../shared/edit-emoji-icon-button";
@@ -22,6 +22,7 @@ import { Button, Link, Modal } from "../../../../shared/ui";
 import { CopyableOntologyChip } from "../../copyable-ontology-chip";
 import { CreateEntityTypeForm } from "../../create-entity-type-form";
 import { useSlideStack } from "../../slide-stack";
+import { useTextWidth } from "../../use-text-width";
 import { EntityTypeDescription } from "../entity-type-description";
 import { EntityTypeInverse } from "../entity-type-inverse";
 import { EntityTypePlural } from "../entity-type-plural";
@@ -58,6 +59,10 @@ export const EntityTypeHeader = ({
   const { control } = useEntityTypeFormContext<EntityTypeEditorFormData>();
 
   const { slideContainerRef, pushToSlideStack } = useSlideStack();
+
+  const entityTypeNameTextRef = useRef<HTMLHeadingElement | null>(null);
+
+  const entityTypeNameWidth = useTextWidth(entityTypeNameTextRef);
 
   return (
     <>
@@ -144,52 +149,62 @@ export const EntityTypeHeader = ({
                   );
                 }}
               />
-              <Tooltip
-                placement="top"
-                componentsProps={{
-                  popper: {
-                    container: slideContainerRef?.current,
-                  },
-                  tooltip: {
-                    sx: {
-                      background: "transparent",
-                      marginBottom: "5px !important",
-                      maxWidth: "unset",
-                      p: 0,
+              <Box position="relative" ml={2}>
+                <Tooltip
+                  placement="top"
+                  componentsProps={{
+                    popper: {
+                      container: slideContainerRef?.current,
                     },
-                  },
-                }}
-                title={
-                  <CopyableOntologyChip
-                    hideOpenInNew
-                    versionedUrl={versionedUrlFromComponents(
-                      extractBaseUrl(entityTypeSchema.$id),
-                      currentVersion,
-                    )}
-                  />
-                }
-              >
-                <Typography variant="h1" fontWeight="bold" marginLeft={2}>
-                  {entityTypeSchema.title}
-                </Typography>
-              </Tooltip>
-              {isInSlide && (
-                <Link
-                  href={generateLinkParameters(entityTypeSchema.$id).href}
-                  target="_blank"
-                >
-                  <ArrowUpRightFromSquareRegularIcon
-                    sx={{
-                      fill: ({ palette }) => palette.blue[50],
-                      fontSize: 24,
-                      "&:hover": {
-                        fill: ({ palette }) => palette.blue[70],
+                    tooltip: {
+                      sx: {
+                        background: "transparent",
+                        marginBottom: "5px !important",
+                        maxWidth: "unset",
+                        p: 0,
                       },
-                      ml: 1.2,
+                    },
+                  }}
+                  title={
+                    <CopyableOntologyChip
+                      hideOpenInNew
+                      versionedUrl={versionedUrlFromComponents(
+                        extractBaseUrl(entityTypeSchema.$id),
+                        currentVersion,
+                      )}
+                    />
+                  }
+                >
+                  <Typography
+                    variant="h1"
+                    fontWeight="bold"
+                    ref={entityTypeNameTextRef}
+                  >
+                    {entityTypeSchema.title}
+                  </Typography>
+                </Tooltip>
+                {isInSlide && entityTypeNameWidth !== null && (
+                  <Link
+                    href={generateLinkParameters(entityTypeSchema.$id).href}
+                    target="_blank"
+                    sx={{
+                      position: "absolute",
+                      left: entityTypeNameWidth + 10,
+                      top: 10,
                     }}
-                  />
-                </Link>
-              )}
+                  >
+                    <ArrowUpRightFromSquareRegularIcon
+                      sx={{
+                        fill: ({ palette }) => palette.blue[50],
+                        fontSize: 24,
+                        "&:hover": {
+                          fill: ({ palette }) => palette.blue[70],
+                        },
+                      }}
+                    />
+                  </Link>
+                )}
+              </Box>
             </Box>
             <Stack
               direction="row"

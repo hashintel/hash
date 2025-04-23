@@ -13,13 +13,14 @@ import { getDisplayFieldsForClosedEntityType } from "@local/hash-graph-sdk/entit
 import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
 import { Box, Collapse, Stack, Typography } from "@mui/material";
 import { Container } from "@mui/system";
-import type { ReactNode } from "react";
+import { type ReactNode, useRef } from "react";
 
 import { useUserOrOrgShortnameByWebId } from "../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
 import { isItemArchived } from "../../../shared/is-archived";
 import { Link } from "../../../shared/ui";
 import { inSlideContainerStyles } from "../shared/slide-styles";
 import { TopContextBar } from "../top-context-bar";
+import { useTextWidth } from "../use-text-width";
 import { DraftEntityBanner } from "./draft-entity-banner";
 import { EntityEditorTabs } from "./shared/entity-editor-tabs";
 
@@ -64,6 +65,10 @@ export const EntityHeader = ({
   const icon = closedMultiEntityType
     ? getDisplayFieldsForClosedEntityType(closedMultiEntityType).icon
     : null;
+
+  const entityNameTextRef = useRef<HTMLHeadingElement | null>(null);
+
+  const entityNameWidth = useTextWidth(entityNameTextRef);
 
   const entityPath =
     entity && shortname
@@ -142,30 +147,42 @@ export const EntityHeader = ({
               isLink={!!entity?.linkData}
               fontSize={40}
             />
-            <Typography
-              variant="h1"
-              fontWeight="bold"
-              sx={{
-                lineHeight: 1.2,
-                ml: 2.5,
-              }}
-            >
-              {entityLabel}
-            </Typography>
-            {entityPath && isInSlide && !hideOpenInNew && (
-              <Link href={entityPath} target="_blank">
-                <ArrowUpRightFromSquareRegularIcon
-                  sx={{
-                    fill: ({ palette }) => palette.blue[50],
-                    fontSize: 24,
-                    "&:hover": {
-                      fill: ({ palette }) => palette.blue[70],
-                    },
-                    ml: 1.2,
-                  }}
-                />
-              </Link>
-            )}
+            <Box position="relative" ml={1.5}>
+              <Typography
+                variant="h1"
+                fontWeight="bold"
+                ref={entityNameTextRef}
+                sx={{
+                  lineHeight: 1.2,
+                }}
+              >
+                {entityLabel}
+              </Typography>
+              {entityPath &&
+                isInSlide &&
+                !hideOpenInNew &&
+                entityNameWidth !== null && (
+                  <Link
+                    href={entityPath}
+                    target="_blank"
+                    sx={{
+                      position: "absolute",
+                      left: entityNameWidth + 10,
+                      top: 10,
+                    }}
+                  >
+                    <ArrowUpRightFromSquareRegularIcon
+                      sx={{
+                        fill: ({ palette }) => palette.blue[50],
+                        fontSize: 24,
+                        "&:hover": {
+                          fill: ({ palette }) => palette.blue[70],
+                        },
+                      }}
+                    />
+                  </Link>
+                )}
+            </Box>
           </Stack>
           {showTabs && entityPath && (
             <Box mt={7.5}>
