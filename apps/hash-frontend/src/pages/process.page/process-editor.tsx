@@ -447,7 +447,7 @@ const FlowCanvas = () => {
       <Stack
         direction="row"
         spacing={1.5}
-        sx={{ position: "absolute", bottom: 16, left: 16, zIndex: 100 }}
+        sx={{ position: "absolute", bottom: 16, right: 16, zIndex: 100 }}
       >
         <Button onClick={handleLoadExample} size="xs" variant="tertiary">
           Load Example

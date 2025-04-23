@@ -27,7 +27,7 @@ export const LogPane = () => {
       sx={{
         position: "absolute",
         bottom: 16,
-        right: 16,
+        left: 16,
         zIndex: 100,
         width: 350,
         py: 1.2,
