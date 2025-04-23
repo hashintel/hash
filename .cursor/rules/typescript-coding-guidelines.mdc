@@ -8,10 +8,26 @@ alwaysApply: false
 - Prefer 'const myFunc = () => {}' over function declarations.
 - Parallelize async calls where appropriate via `Promise.all` instead of sequential fetches in a `for` loop.
 - No `any` allowed. If the input type is genuinely unknown, use `unknown` and write appropriate logic to narrow the type.
+- Prefer `??` over `||`
+- No unchecked index access (`array[0]` might be `undefined`). Optional chain or check and throw and error (depending on whether it is acceptable for the result to be undefined or not).
 - Don't make formatting corrections to lines you aren't already modifying. Auto-fixing will handle it.
+- Avoid single-letter variable names. e.g. `event`, not `e`. Exception: in `for` loops (e.g. `i` is fine).
+- Variable names are all in `camelCase`. No `SCREAMING_SNAKE_CASE`.
 - Check function and type signatures carefully to understand APIs and what fields are available.
   For external libraries, these should be available in a type declaration file.
   Don't guess APIs! Check the signatures.
+
+# Avoid these!
+
+- Don't make changes unrelated to the user's requests. You can suggest further changes at the end of your work.
+- Don't get stuck fixing linting errors – stop and ask for help sooner.
+- Don't attempt to run the app. Let the user handle testing.
+
+# Workspaces
+
+- The project uses yarn workspaces.
+- If you want to install a dependency, you need to do it in the relevant workspace. e.g. `hash/apps/hash-frontend`.
+- The project
 
 # Frontend
 
@@ -19,7 +35,7 @@ alwaysApply: false
 - Use MUI components for all HTML elements (import from `@mui/material`)
   - Style using the `sx` prop
   - Flex boxes should use the `Stack` component
-- Use ApolloClient hooks for fetching from the API (e.g. `useQuery`)  
+- Use ApolloClient hooks for fetching from the API (e.g. `useQuery`)
 
 # Entities
 
@@ -41,3 +57,23 @@ alwaysApply: false
 ## Linked entities
 
 - A 'subgraph' will contain details of entities and entities linked to it.
+
+# File organization
+
+- When exports from a module are only used in one other file, they should be created in a subfolder named after the importing file.
+  e.g.
+
+```md
+- page.tsx
+- page/header.tsx
+- page/header/header-button.tsx
+- page/sidebar.tsx
+```
+
+- If a module is used by multiple other files, it should be in a `shared` folder at the highest point at which it is needed in the file tree. e.g.
+
+```md
+- page.tsx
+- api.tsx
+- shared/types.ts // types is used by both page and api
+```
