@@ -20,7 +20,7 @@ import { isItemArchived } from "../../../shared/is-archived";
 import { Link } from "../../../shared/ui";
 import { inSlideContainerStyles } from "../shared/slide-styles";
 import { TopContextBar } from "../top-context-bar";
-import { useTextWidth } from "../use-text-width";
+import { useTextSize } from "../use-text-size";
 import { DraftEntityBanner } from "./draft-entity-banner";
 import { EntityEditorTabs } from "./shared/entity-editor-tabs";
 
@@ -68,7 +68,7 @@ export const EntityHeader = ({
 
   const entityNameTextRef = useRef<HTMLHeadingElement | null>(null);
 
-  const entityNameWidth = useTextWidth(entityNameTextRef);
+  const entityNameTextSize = useTextSize(entityNameTextRef);
 
   const entityPath =
     entity && shortname
@@ -137,17 +137,22 @@ export const EntityHeader = ({
         <Container sx={{ ...(isInSlide ? inSlideContainerStyles : {}) }}>
           <Stack
             direction="row"
-            alignItems="center"
             sx={{ color: lightTitle ? "gray.50" : "gray.90", mt: 1 }}
           >
-            <EntityOrTypeIcon
-              entity={entity ?? null}
-              fill={({ palette }) => palette.gray[50]}
-              icon={icon}
-              isLink={!!entity?.linkData}
-              fontSize={40}
-            />
-            <Box position="relative" ml={1.5}>
+            {entityNameTextSize !== null && (
+              <EntityOrTypeIcon
+                entity={entity ?? null}
+                fill={({ palette }) => palette.gray[50]}
+                icon={icon}
+                isLink={!!entity?.linkData}
+                fontSize={40}
+                sx={{
+                  position: "relative",
+                  top: entityNameTextSize.lineHeight / 2 - 20,
+                }}
+              />
+            )}
+            <Box position="relative" ml={2.5}>
               <Typography
                 variant="h1"
                 fontWeight="bold"
@@ -161,14 +166,19 @@ export const EntityHeader = ({
               {entityPath &&
                 isInSlide &&
                 !hideOpenInNew &&
-                entityNameWidth !== null && (
+                entityNameTextSize !== null && (
                   <Link
                     href={entityPath}
                     target="_blank"
                     sx={{
                       position: "absolute",
-                      left: entityNameWidth + 10,
-                      top: 10,
+                      left: entityNameTextSize.lastLineWidth + 20,
+                      top:
+                        entityNameTextSize.lastLineTop +
+                        /**
+                         * The vertical center of the text plus offset half the icon size
+                         */
+                        (entityNameTextSize.lineHeight / 2 - 12),
                     }}
                   >
                     <ArrowUpRightFromSquareRegularIcon

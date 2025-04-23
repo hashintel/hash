@@ -16,7 +16,7 @@ import { Button, Link, Modal } from "../../../shared/ui";
 import { CopyableOntologyChip } from "../copyable-ontology-chip";
 import { CreateDataTypeForm } from "../create-data-type-form";
 import { useSlideStack } from "../slide-stack";
-import { useTextWidth } from "../use-text-width";
+import { useTextSize } from "../use-text-size";
 import { DataTypeDescription } from "./data-type-header/data-type-description";
 
 interface DataTypeHeaderProps {
@@ -50,7 +50,7 @@ export const DataTypeHeader = ({
 
   const dataTypeTitleTextRef = useRef<HTMLHeadingElement | null>(null);
 
-  const dataTypeTitleWidth = useTextWidth(dataTypeTitleTextRef);
+  const dataTypeTitleSize = useTextSize(dataTypeTitleTextRef);
 
   return (
     <>
@@ -87,7 +87,7 @@ export const DataTypeHeader = ({
           justifyContent="space-between"
         >
           <Stack direction="row" alignItems="center" gap={5}>
-            <Stack direction="row" alignItems="center" mt={1} mb={3}>
+            <Stack direction="row" mt={1} mb={3}>
               <Box position="relative">
                 <Tooltip
                   placement="top"
@@ -118,17 +118,26 @@ export const DataTypeHeader = ({
                     variant="h1"
                     fontWeight="bold"
                     ref={dataTypeTitleTextRef}
+                    sx={{
+                      lineHeight: 1.2,
+                    }}
                   >
                     {dataTypeSchema.title}
                   </Typography>
                 </Tooltip>
-                {isInSlide && dataTypeTitleWidth !== null && (
+                {isInSlide && dataTypeTitleSize !== null && (
                   <Link
                     href={generateLinkParameters(dataTypeSchema.$id).href}
                     sx={{
                       position: "absolute",
-                      left: dataTypeTitleWidth + 10,
-                      top: 10,
+                      left: dataTypeTitleSize.lastLineWidth + 20,
+                      /**
+                       * The vertical center of the text plus offset half the icon size
+                       */
+                      top:
+                        dataTypeTitleSize.lastLineTop +
+                        dataTypeTitleSize.lineHeight / 2 -
+                        12,
                     }}
                     target="_blank"
                   >
