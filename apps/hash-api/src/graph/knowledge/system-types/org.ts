@@ -176,7 +176,7 @@ export const createOrg: ImpureGraphFunction<
             "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
         },
       },
-      ...(websiteUrl !== undefined && websiteUrl !== null
+      ...(websiteUrl
         ? {
             "https://hash.ai/@h/types/property-type/website-url/": {
               value: websiteUrl,
