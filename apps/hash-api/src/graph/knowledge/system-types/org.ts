@@ -137,9 +137,14 @@ export const createOrg: ImpureGraphFunction<
     });
     orgWebMachineId = machineId;
   } else {
-    const { webId, machineId } = await createOrgWeb(ctx, authentication, {
-      shortname,
-    });
+    const { webId, machineId } = await createOrgWeb(
+      ctx,
+      { actorId: systemAccountId },
+      {
+        shortname,
+        administrator: authentication.actorId,
+      },
+    );
     orgWebId = webId;
     orgWebMachineId = machineId;
   }

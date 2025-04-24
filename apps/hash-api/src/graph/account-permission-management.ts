@@ -107,6 +107,7 @@ export const findWebByShortname: ImpureGraphFunction<
 export const createOrgWeb: ImpureGraphFunction<
   {
     shortname: string;
+    administrator: ActorEntityUuid;
   },
   Promise<{ webId: WebId; machineId: MachineId }>
 > = async ({ graphApi }, { actorId }, params) =>

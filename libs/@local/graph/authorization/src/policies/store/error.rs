@@ -24,6 +24,24 @@ pub enum GetSystemAccountError {
 impl Error for GetSystemAccountError {}
 
 #[derive(Debug, derive_more::Display)]
+#[display("Could not ensure system policies: {_variant}")]
+pub enum EnsureSystemPoliciesError {
+    #[display("Creating system machine failed")]
+    CreatingSystemMachineFailed,
+
+    #[display("Synchronizing actions failed")]
+    SynchronizeActions,
+    #[display("Reading policies failed")]
+    ReadPoliciesFailed,
+    #[display("Adding required policies failed")]
+    AddRequiredPoliciesFailed,
+    #[display("Removing old policy failed")]
+    RemoveOldPolicyFailed,
+}
+
+impl Error for EnsureSystemPoliciesError {}
+
+#[derive(Debug, derive_more::Display)]
 #[display("Could not create actor: {_variant}")]
 pub enum ActorCreationError {
     #[display("Web with ID `{web_id}` does not exist")]

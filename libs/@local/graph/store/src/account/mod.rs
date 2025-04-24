@@ -91,6 +91,7 @@ pub struct GetTeamResponse {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct CreateOrgWebParams {
     pub shortname: String,
+    pub administrator: Option<ActorEntityUuid>,
 }
 
 #[derive(Debug, Error)]
