@@ -38,13 +38,17 @@ import {
 } from "./process-editor/simulation-context";
 import { SimulationControls } from "./process-editor/simulation-controls";
 import { nodeDimensions } from "./process-editor/styling";
-import { TokenTypeEditor } from "./process-editor/token-type-editor";
+import {
+  defaultTokenTypes,
+  TokenTypeEditor,
+} from "./process-editor/token-type-editor";
 import { TransitionEditor } from "./process-editor/transition-editor";
 import { TransitionNode } from "./process-editor/transition-node";
 import {
   type ArcData,
   type ArcType,
   type NodeData,
+  type NodeType,
   type PlaceNodeType,
   type TokenCounts,
 } from "./process-editor/types";
@@ -172,7 +176,7 @@ const FlowCanvas = () => {
         y: event.clientY - reactFlowBounds.top - height / 2,
       });
 
-      const newNode: Node = {
+      const newNode: NodeType = {
         id: `${nodeType}_${nodes.length}`,
         type: nodeType,
         position,
@@ -180,10 +184,11 @@ const FlowCanvas = () => {
           label: `${nodeType} ${nodes.length + 1}`,
           ...(nodeType === "place"
             ? {
+                type: "place",
                 tokenCounts: {},
                 tokenTypes,
               }
-            : {}),
+            : { type: "transition" }),
         },
       };
 
@@ -291,8 +296,9 @@ const FlowCanvas = () => {
   const handleResetAll = useCallback(() => {
     setNodes([]);
     setArcs([]);
+    setTokenTypes(defaultTokenTypes);
     resetSimulation();
-  }, [setNodes, setArcs, resetSimulation]);
+  }, [setNodes, setArcs, setTokenTypes, resetSimulation]);
 
   const handleLoadExample = useCallback(() => {
     setTokenTypes(exampleCPN.tokenTypes);
@@ -500,7 +506,9 @@ const FlowCanvas = () => {
         spacing={1}
         sx={{ position: "absolute", bottom: 16, right: 16, zIndex: 100 }}
       >
-        {" "}
+        <Button onClick={handleLoadExample} size="xs" variant="tertiary">
+          Load Example
+        </Button>
         <input
           type="file"
           ref={fileInputRef}
@@ -511,14 +519,11 @@ const FlowCanvas = () => {
         <Button onClick={handleImportClick} size="xs" variant="tertiary">
           Import
         </Button>
-        <Button onClick={handleLoadExample} size="xs" variant="tertiary">
-          Load Example
-        </Button>
         <Button onClick={handleExport} size="xs" variant="tertiary">
           Export
         </Button>
-        <Button onClick={handleResetAll} size="xs" variant="tertiary">
-          New
+        <Button onClick={handleResetAll} size="xs" variant="danger">
+          Clear
         </Button>
       </Stack>
 
