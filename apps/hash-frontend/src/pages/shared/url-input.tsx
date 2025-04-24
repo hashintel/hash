@@ -109,7 +109,9 @@ export const UrlInput = ({
              */
             onChange("");
           } else {
-            const newProtocol = maybeProtocol ? (maybeProtocol as Protocol) : protocol;
+            const newProtocol = maybeProtocol
+              ? (maybeProtocol as Protocol)
+              : protocol;
             onChange(`${newProtocol}://${domain}`);
           }
         }}
