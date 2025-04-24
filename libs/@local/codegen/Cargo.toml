@@ -11,7 +11,7 @@ authors.workspace = true
 
 # Public third-party dependencies
 facet      = { workspace = true, public = true }
-facet_core = { workspace = true, public = true }
+facet-core = { workspace = true, public = true }
 
 # Private workspace dependencies
 

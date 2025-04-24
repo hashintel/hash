@@ -3237,6 +3237,7 @@ name = "hash-codegen"
 version = "0.0.0"
 dependencies = [
  "facet",
+ "facet-core",
  "simple-mermaid",
 ]
 
