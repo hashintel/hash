@@ -1,0 +1,22 @@
+[package]
+name              = "hash-codegen"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+authors.workspace = true
+
+[dependencies]
+# Public workspace dependencies
+
+# Public third-party dependencies
+facet      = { workspace = true, public = true }
+facet-core = { workspace = true, public = true }
+
+# Private workspace dependencies
+
+# Private third-party dependencies
+simple-mermaid = { workspace = true }
+
+[lints]
+workspace = true
