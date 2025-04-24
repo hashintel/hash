@@ -4,14 +4,18 @@ use bitvec::bitvec;
 use pretty::RcDoc;
 use smallvec::SmallVec;
 
-use super::TypeKind;
+use super::{Param, TypeKind};
 use crate::{
     span::SpanId,
     r#type::{
         Type, TypeId,
         collection::TypeIdSet,
-        environment::{AnalysisEnvironment, Environment, LatticeEnvironment, SimplifyEnvironment},
+        environment::{
+            AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
+            SimplifyEnvironment,
+        },
         error::{cannot_be_subtype_of_never, type_mismatch, union_variant_mismatch},
+        infer::{Constraint, Variable},
         lattice::Lattice,
         pretty_print::PrettyPrint,
         recursion::RecursionDepthBoundary,
@@ -223,6 +227,47 @@ impl<'heap> UnionType<'heap> {
         }
 
         lhs_compatible && rhs_compatible
+    }
+
+    pub(crate) fn collect_constraints_variants(
+        supertype: Type<'heap>,
+        self_variants: &[TypeId],
+        super_variants: &[TypeId],
+        env: &mut InferenceEnvironment<'_, 'heap>,
+    ) {
+        // (A | B) <: (C | D)
+        // ≡ (A | B) <: C ∨ (A | B) <: D
+        // ≡ (A <: C ∧ B <: C) ∨ (A <: D ∧ B <: D)
+        // ≡ A <: (C | D) ∧ B <: (C | D)
+        // ≡ (A <: C ∨ B <: C) ∧ (A <: D ∨ B <: D)
+
+        // To prevent recursion, if we're in the case of `A <: (B | C)`, we simply record an upper
+        // bound.
+        if let &[self_variant] = self_variants {
+            let variable = match env.types[self_variant].copied().kind {
+                TypeKind::Infer => Variable::Type(self_variant),
+                &TypeKind::Param(Param { argument }) => Variable::Generic(argument),
+                _ => return,
+            };
+
+            // To be able to support recursing down, we would need a fully fledged inference engine
+            // that can handle backtracking.
+            env.add_constraint(Constraint::UpperBound {
+                variable,
+                bound: supertype.id,
+            });
+
+            return;
+        }
+
+        for &self_variant in self_variants {
+            if let &[super_variant] = super_variants {
+                env.in_covariant(|env| env.collect_constraints(self_variant, super_variant));
+            } else {
+                // This is a disjunctive union, therefore we check if against the union of variants
+                Self::collect_constraints_variants(supertype, &[self_variant], super_variants, env);
+            }
+        }
     }
 }
 

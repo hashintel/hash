@@ -10,7 +10,10 @@ use crate::{
     r#type::{
         Type, TypeId,
         collection::TypeIdSet,
-        environment::{AnalysisEnvironment, Environment, LatticeEnvironment, SimplifyEnvironment},
+        environment::{
+            AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
+            SimplifyEnvironment,
+        },
         error::{cannot_be_supertype_of_unknown, intersection_variant_mismatch, type_mismatch},
         lattice::Lattice,
         pretty_print::PrettyPrint,
@@ -242,6 +245,23 @@ impl<'heap> IntersectionType<'heap> {
         }
 
         lhs_compatible && rhs_compatible
+    }
+
+    pub(crate) fn collect_constraints_variants(
+        self_variants: &[TypeId],
+        super_variants: &[TypeId],
+        env: &mut InferenceEnvironment,
+    ) {
+        // (A & B) <: (C & D)
+        // ≡ (A & B) <: C ∧ (A & B) <: D
+        // ≡ (A <: C) ∧ (B <: C) ∧ (A <: D) ∧ (B <: D)
+        // Therefore this simplifies down to a cartesian product
+
+        for &self_variant in self_variants {
+            for &super_variant in super_variants {
+                env.in_covariant(|env| env.collect_constraints(self_variant, super_variant));
+            }
+        }
     }
 }
 

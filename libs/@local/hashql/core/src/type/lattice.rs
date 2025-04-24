@@ -92,7 +92,6 @@ pub trait Lattice<'heap> {
     ///
     /// - `join(Number, Number | String) = Number | String`
     ///   - Joining with a union type creates the least supertype that contains all components
-    // TODO: test join(Number, Number | String)
     fn join(
         self: Type<'heap, Self>,
         other: Type<'heap, Self>,
