@@ -375,6 +375,24 @@ mod test {
     }
 
     #[test]
+    fn join_same_name_inference() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let hole = HoleId::new(0);
+        let infer = instantiate_infer(&env, hole);
+
+        opaque!(env, a, "MyType", primitive!(env, PrimitiveType::Number), []);
+        opaque!(env, b, "MyType", infer, []);
+
+        let mut lattice_env = LatticeEnvironment::new(&env);
+        lattice_env.set_inference_enabled(true);
+
+        // If inference is enabled, we assume that the primitive type is the inferred variable
+        assert_equiv!(env, a.join(b, &mut lattice_env), [a.id, b.id]);
+    }
+
+    #[test]
     fn join_same_name_subtype() {
         let heap = Heap::new();
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
@@ -436,6 +454,24 @@ mod test {
         // Meeting should result in an opaque type with the same name but representation
         // that is the meet of the two representations (just Number in this case)
         assert_equiv!(env, a.meet(b, &mut lattice_env), []);
+    }
+
+    #[test]
+    fn meet_same_name_inference() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let hole = HoleId::new(0);
+        let infer = instantiate_infer(&env, hole);
+
+        opaque!(env, a, "MyType", primitive!(env, PrimitiveType::Number), []);
+        opaque!(env, b, "MyType", infer, []);
+
+        let mut lattice_env = LatticeEnvironment::new(&env);
+        lattice_env.set_inference_enabled(true);
+
+        // If inference is enabled, we assume that the primitive type is the inferred variable
+        assert_equiv!(env, a.meet(b, &mut lattice_env), [a.id, b.id]);
     }
 
     #[test]

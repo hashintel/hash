@@ -1435,6 +1435,7 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
 
                 UnionType::collect_constraints_variants(
                     supertype.id,
+                    supertype.span,
                     &self_variants,
                     &super_variants,
                     env,
@@ -1455,6 +1456,7 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
 
                 UnionType::collect_constraints_variants(
                     supertype.id,
+                    supertype.span,
                     &self_variants,
                     &super_variants,
                     env,

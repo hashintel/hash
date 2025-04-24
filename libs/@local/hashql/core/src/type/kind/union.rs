@@ -231,6 +231,7 @@ impl<'heap> UnionType<'heap> {
 
     pub(crate) fn collect_constraints_variants(
         supertype: TypeId,
+        super_span: SpanId,
         self_variants: &[TypeId],
         super_variants: &[TypeId],
         env: &mut InferenceEnvironment<'_, 'heap>,
@@ -241,7 +242,26 @@ impl<'heap> UnionType<'heap> {
         // ≡ A <: (C | D) ∧ B <: (C | D)
         // ≡ (A <: C ∨ B <: C) ∧ (A <: D ∨ B <: D)
 
+        #[expect(clippy::match_same_arms, reason = "readability")]
         match (self_variants, super_variants) {
+            ([], []) => {
+                // Both sides are never
+            }
+            ([], _) => {
+                // We do not record anything here, as `Never <: Union` trivially holds, and the case
+                // would either way never emit a constraint.
+            }
+            (self_variants, []) => {
+                let never = env.alloc(|id| Type {
+                    id,
+                    span: super_span,
+                    kind: env.intern_kind(TypeKind::Never),
+                });
+
+                for &self_variant in self_variants {
+                    env.in_covariant(|env| env.collect_constraints(self_variant, never));
+                }
+            }
             (&[self_variant], &[super_variant]) => {
                 // Not a union, proceed
                 env.in_covariant(|env| env.collect_constraints(self_variant, super_variant));
@@ -280,6 +300,7 @@ impl<'heap> UnionType<'heap> {
                 for &self_variant in self_variants {
                     Self::collect_constraints_variants(
                         supertype,
+                        super_span,
                         &[self_variant],
                         super_variants,
                         env,
@@ -448,7 +469,13 @@ impl<'heap> Inference<'heap> for UnionType<'heap> {
         let self_variants = self.kind.unnest(env);
         let super_variants = supertype.kind.unnest(env);
 
-        Self::collect_constraints_variants(supertype.id, &self_variants, &super_variants, env);
+        Self::collect_constraints_variants(
+            supertype.id,
+            supertype.span,
+            &self_variants,
+            &super_variants,
+            env,
+        );
     }
 
     fn instantiate(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> TypeId {
@@ -492,10 +519,14 @@ mod test {
         span::SpanId,
         r#type::{
             environment::{
-                AnalysisEnvironment, Environment, LatticeEnvironment, SimplifyEnvironment,
+                AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
+                SimplifyEnvironment,
             },
+            infer::{Constraint, Inference as _, Variable},
             kind::{
                 TypeKind,
+                generic_argument::GenericArgumentId,
+                infer::HoleId,
                 intersection::IntersectionType,
                 intrinsic::{DictType, IntrinsicType},
                 primitive::PrimitiveType,
@@ -504,7 +535,7 @@ mod test {
             },
             lattice::{Lattice as _, test::assert_lattice_laws},
             pretty_print::PrettyPrint as _,
-            test::{instantiate, instantiate_infer},
+            test::{instantiate, instantiate_infer, instantiate_param},
         },
     };
 
@@ -1508,5 +1539,381 @@ mod test {
 
         assert!(subtype_union.is_subtype_of(union_type, &mut analysis_env));
         assert!(!union_type.is_subtype_of(subtype_union, &mut analysis_env));
+    }
+
+    #[test]
+    fn collect_constraints_empty_empty() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create two empty unions (Never type)
+        union!(env, empty_a, []);
+        union!(env, empty_b, []);
+
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // Never <: Never
+        empty_a.collect_constraints(empty_b, &mut inference_env);
+
+        // No constraints should be generated for this trivial case
+        let constraints = inference_env.take_constraints();
+        assert!(constraints.is_empty());
+    }
+
+    #[test]
+    fn collect_constraints_empty_subtype() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Empty union (Never) as subtype
+        union!(env, empty, []);
+
+        // Some concrete union as supertype
+        let hole = HoleId::new(0);
+        let infer = instantiate_infer(&env, hole);
+        union!(env, concrete, [infer]);
+
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // Never <: Number
+        empty.collect_constraints(concrete, &mut inference_env);
+
+        // No constraints should be generated as Never is subtype of everything
+        let constraints = inference_env.take_constraints();
+        assert!(constraints.is_empty());
+    }
+
+    #[test]
+    fn collect_constraints_empty_supertype() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Some concrete union as subtype
+        let hole = HoleId::new(0);
+        let infer = instantiate_infer(&env, hole);
+        union!(env, concrete, [infer]);
+
+        // Empty union (Never) as supertype
+        union!(env, empty, []);
+
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // Number <: Never
+        concrete.collect_constraints(empty, &mut inference_env);
+
+        // Should generate constraint: Number <: Never
+        let constraints = inference_env.take_constraints();
+        assert_eq!(constraints.len(), 1);
+        assert_matches!(
+            &constraints[0],
+            Constraint::UpperBound { variable: Variable::Hole(bound_hole), bound } if {
+                let bound_type = env.types[*bound].copied().kind;
+                matches!(bound_type, TypeKind::Never) && *bound_hole == hole
+            }
+        );
+    }
+
+    #[test]
+    fn collect_constraints_inference_variable_subtype() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create an inference variable
+        let hole = HoleId::new(0);
+        let infer_var = instantiate_infer(&env, hole);
+
+        // Union with inference variable as subtype
+        union!(env, infer_union, [infer_var]);
+
+        // Concrete union as supertype
+        let number = primitive!(env, PrimitiveType::Number);
+        let string = primitive!(env, PrimitiveType::String);
+        union!(env, concrete_union, [number, string]);
+
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // ?T <: (Number | String)
+        infer_union.collect_constraints(concrete_union, &mut inference_env);
+
+        // Should generate an upper bound constraint
+        let constraints = inference_env.take_constraints();
+        assert_eq!(constraints.len(), 1);
+        assert_matches!(
+            &constraints[0],
+            Constraint::UpperBound {
+                variable: Variable::Hole(h),
+                bound
+            } if *h == hole && *bound == concrete_union.id
+        );
+    }
+
+    #[test]
+    fn collect_constraints_inference_variable_supertype() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create an inference variable
+        let hole = HoleId::new(0);
+        let infer_var = instantiate_infer(&env, hole);
+
+        // Concrete union as subtype
+        let number = primitive!(env, PrimitiveType::Number);
+        union!(env, concrete_union, [number]);
+
+        // Union with inference variable as supertype
+        union!(env, infer_union, [infer_var]);
+
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // Number <: ?T
+        concrete_union.collect_constraints(infer_union, &mut inference_env);
+
+        // Should generate a constraint for Number <: ?T
+        let constraints = inference_env.take_constraints();
+        assert_eq!(constraints.len(), 1);
+        assert_matches!(
+            &constraints[0],
+            Constraint::LowerBound {
+                variable: Variable::Hole(h),
+                bound
+            } if *h == hole && *bound == number
+        );
+    }
+
+    #[test]
+    fn collect_constraints_multiple_variants_subtype() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create inference variables
+        let hole_a = HoleId::new(0);
+        let infer_a = instantiate_infer(&env, hole_a);
+        let hole_b = HoleId::new(1);
+        let infer_b = instantiate_infer(&env, hole_b);
+
+        // Create concrete type
+        let number = primitive!(env, PrimitiveType::Number);
+
+        // Create union with multiple inference variables
+        union!(env, infer_union, [infer_a, infer_b]);
+
+        // Create single-variant union
+        union!(env, concrete_union, [number]);
+
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // (?T0 | ?T1) <: Number
+        infer_union.collect_constraints(concrete_union, &mut inference_env);
+
+        // Both variables should have an upper bound of Number
+        let constraints = inference_env.take_constraints();
+        assert_eq!(constraints.len(), 2);
+
+        let constraints_contain =
+            |var, bound| {
+                constraints.iter().any(|c| matches!(
+                c,
+                Constraint::UpperBound { variable, bound: b } if *variable == var && *b == bound
+            ))
+            };
+
+        assert!(constraints_contain(Variable::Hole(hole_a), number));
+        assert!(constraints_contain(Variable::Hole(hole_b), number));
+    }
+
+    #[test]
+    fn collect_constraints_multiple_variants_supertype() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create inference variable
+        let hole = HoleId::new(0);
+        let infer_var = instantiate_infer(&env, hole);
+
+        // Create single-variant union with inference variable
+        union!(env, infer_union, [infer_var]);
+
+        // Create concrete union with multiple variants
+        let number = primitive!(env, PrimitiveType::Number);
+        let string = primitive!(env, PrimitiveType::String);
+        union!(env, concrete_union, [number, string]);
+
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // ?T <: (Number | String)
+        infer_union.collect_constraints(concrete_union, &mut inference_env);
+
+        // Should generate a constraint ?T <: (Number | String)
+        let constraints = inference_env.take_constraints();
+        assert_eq!(constraints.len(), 1);
+        assert_matches!(
+            &constraints[0],
+            Constraint::UpperBound {
+                variable: Variable::Hole(h),
+                bound
+            } if *h == hole && *bound == concrete_union.id
+        );
+    }
+
+    #[test]
+    fn collect_constraints_nested_union() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create inference variable
+        let hole = HoleId::new(0);
+        let infer_var = instantiate_infer(&env, hole);
+
+        // Create a nested union with inference variable
+        let inner_infer = union!(env, [infer_var]);
+        union!(env, nested_infer, [inner_infer]);
+
+        // Create a concrete nested union
+        let number = primitive!(env, PrimitiveType::Number);
+        let inner_concrete = union!(env, [number]);
+        union!(env, nested_concrete, [inner_concrete]);
+
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // The nested union should unnest during constraint collection
+        nested_infer.collect_constraints(nested_concrete, &mut inference_env);
+
+        // Should generate constraint between infer_var and number
+        let constraints = inference_env.take_constraints();
+        assert_eq!(constraints.len(), 1);
+        assert_matches!(
+            &constraints[0],
+            Constraint::UpperBound {
+                variable: Variable::Hole(h),
+                bound
+            } if *h == hole && *bound == number
+        );
+    }
+
+    #[test]
+    fn collect_constraints_generic_params() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Set up generic arguments
+        let arg1 = GenericArgumentId::new(0);
+        let arg2 = GenericArgumentId::new(1);
+
+        // Create generic parameter types
+        let param1 = instantiate_param(&env, arg1);
+        let param2 = instantiate_param(&env, arg2);
+
+        // Create unions with generic parameters
+        union!(env, generic_a, [param1]);
+        union!(env, generic_b, [param2]);
+
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // Collect constraints between generic unions
+        generic_a.collect_constraints(generic_b, &mut inference_env);
+
+        // Should generate an ordering constraint
+        let constraints = inference_env.take_constraints();
+        assert_eq!(constraints.len(), 1);
+        assert_matches!(
+            &constraints[0],
+            Constraint::Ordering {
+                lower: Variable::Generic(l),
+                upper: Variable::Generic(u),
+            } if *l == arg1 && *u == arg2
+        );
+    }
+
+    #[test]
+    fn collect_constraints_concrete_types_only() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create concrete types
+        let number = primitive!(env, PrimitiveType::Number);
+        let integer = primitive!(env, PrimitiveType::Integer);
+
+        // Create unions with only concrete types
+        union!(env, concrete_a, [integer]);
+        union!(env, concrete_b, [number]);
+
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // Collect constraints between concrete unions
+        concrete_a.collect_constraints(concrete_b, &mut inference_env);
+
+        // No variable constraints should be generated for concrete types
+        assert!(inference_env.take_constraints().is_empty());
+    }
+
+    #[test]
+    fn collect_constraints_mixed_variants() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create concrete type and inference variable
+        let number = primitive!(env, PrimitiveType::Number);
+        let hole = HoleId::new(0);
+        let infer_var = instantiate_infer(&env, hole);
+
+        // Create a union with mixed concrete and inference vars
+        union!(env, mixed_union, [number, infer_var]);
+
+        // Create concrete union as supertype
+        let string = primitive!(env, PrimitiveType::String);
+        let boolean = primitive!(env, PrimitiveType::Boolean);
+        union!(env, concrete_union, [string, boolean]);
+
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // (Number | ?T) <: (String | Boolean)
+        mixed_union.collect_constraints(concrete_union, &mut inference_env);
+
+        // Should generate constraints for both Number and ?T
+        let constraints = inference_env.take_constraints();
+
+        // The ?T should get constrained to (String | Boolean)
+        assert!(constraints.iter().any(|c| matches!(
+            c,
+            Constraint::UpperBound {
+                variable: Variable::Hole(h),
+                bound
+            } if *h == hole && *bound == concrete_union.id
+        )));
+    }
+
+    #[test]
+    fn collect_constraints_with_intersection() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create an inference variable
+        let hole = HoleId::new(0);
+        let infer_var = instantiate_infer(&env, hole);
+
+        // Create a union with an inference var
+        union!(env, union_with_infer, [infer_var]);
+
+        // Create an intersection of concrete types as supertype
+        let number = primitive!(env, PrimitiveType::Number);
+        let string = primitive!(env, PrimitiveType::String);
+        let intersection_type = intersection!(env, [number, string]);
+        union!(env, union_with_intersection, [intersection_type]);
+
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // ?T <: (Number & String)
+        union_with_infer.collect_constraints(union_with_intersection, &mut inference_env);
+
+        // Should generate a constraint from the inference var to the intersection
+        let constraints = inference_env.take_constraints();
+        assert_eq!(constraints.len(), 1);
+        assert_matches!(
+            &constraints[0],
+            Constraint::UpperBound {
+                variable: Variable::Hole(h),
+                bound
+            } if *h == hole && *bound == intersection_type
+        );
     }
 }

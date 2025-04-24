@@ -604,7 +604,6 @@ impl<'heap> Lattice<'heap> for IntrinsicType {
         }
     }
 
-    // TODO: we need proper error messages for the `TypeKind` change (or at least a `type_mismatch`)
     fn is_subtype_of(
         self: Type<'heap, Self>,
         supertype: Type<'heap, Self>,

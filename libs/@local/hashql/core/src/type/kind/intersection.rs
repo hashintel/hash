@@ -1048,6 +1048,28 @@ mod test {
     }
 
     #[test]
+    fn is_equivalent_side() {
+        // Check that we both check the left and the right sides for equivalence
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        intersection!(env, a, [primitive!(env, PrimitiveType::Boolean)]);
+        intersection!(
+            env,
+            b,
+            [
+                primitive!(env, PrimitiveType::Boolean),
+                primitive!(env, PrimitiveType::Number)
+            ]
+        );
+
+        let mut analysis_env = AnalysisEnvironment::new(&env);
+
+        assert!(!a.is_equivalent(b, &mut analysis_env));
+        assert!(!b.is_equivalent(a, &mut analysis_env));
+    }
+
+    #[test]
     fn empty_intersection_equivalence() {
         let heap = Heap::new();
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
