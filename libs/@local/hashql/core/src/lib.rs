@@ -8,7 +8,8 @@
     assert_matches,
     arbitrary_self_types,
     allocator_api,
-    slice_partition_dedup
+    slice_partition_dedup,
+    let_chains
 )]
 #![cfg_attr(test, feature(custom_test_frameworks))]
 

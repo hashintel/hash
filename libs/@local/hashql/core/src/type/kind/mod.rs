@@ -22,8 +22,12 @@ pub use self::{
 };
 use super::{
     Type, TypeId,
-    environment::{AnalysisEnvironment, Environment, LatticeEnvironment, SimplifyEnvironment},
+    environment::{
+        AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
+        SimplifyEnvironment,
+    },
     error::{no_type_inference, type_mismatch},
+    infer::{Constraint, Inference, Variable},
     lattice::Lattice,
     pretty_print::{CYAN, GRAY, PrettyPrint},
     recursion::RecursionDepthBoundary,
@@ -1273,6 +1277,222 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             Self::Intersection(intersection_type) => self.with(intersection_type).simplify(env),
             Self::Param(_) | Self::Never | Self::Unknown | Self::Infer => self.id,
         }
+    }
+}
+
+impl<'heap> Inference<'heap> for TypeKind<'heap> {
+    #[expect(clippy::too_many_lines)]
+    fn collect_constraints(
+        self: Type<'heap, Self>,
+        supertype: Type<'heap, Self>,
+        env: &mut InferenceEnvironment<'_, 'heap>,
+    ) {
+        #[expect(clippy::match_same_arms)]
+        match (self.kind, supertype.kind) {
+            // Infer <: Infer
+            (Self::Infer, Self::Infer) => {
+                env.add_constraint(Constraint::Ordering {
+                    lower: Variable::Type(self.id),
+                    upper: Variable::Type(supertype.id),
+                });
+            }
+
+            // Param <: Param
+            (&Self::Param(Param { argument: left }), &Self::Param(Param { argument: right })) => {
+                env.add_constraint(Constraint::Ordering {
+                    lower: Variable::Generic(left),
+                    upper: Variable::Generic(right),
+                });
+            }
+
+            // Infer <: Param
+            (Self::Infer, &Self::Param(Param { argument })) => {
+                env.add_constraint(Constraint::Ordering {
+                    lower: Variable::Type(self.id),
+                    upper: Variable::Generic(argument),
+                });
+            }
+
+            // Param <: Infer
+            (&Self::Param(Param { argument }), Self::Infer) => {
+                env.add_constraint(Constraint::Ordering {
+                    lower: Variable::Generic(argument),
+                    upper: Variable::Type(supertype.id),
+                });
+            }
+
+            // Opaque <: _
+            (Self::Opaque(lhs), Self::Opaque(rhs)) => {
+                todo!("opaque")
+            }
+            (
+                Self::Opaque(_),
+                Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_)
+                | Self::Closure(_),
+            ) => {}
+
+            // Primitive <: _
+            (Self::Primitive(lhs), Self::Primitive(rhs)) => {
+                todo!("primitive")
+            }
+            (
+                Self::Primitive(_),
+                Self::Opaque(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_)
+                | Self::Closure(_),
+            ) => {}
+
+            // Intrinsic <: _
+            (Self::Intrinsic(lhs), Self::Intrinsic(rhs)) => {
+                todo!("intrinsic")
+            }
+            (
+                Self::Intrinsic(_),
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Struct(_)
+                | Self::Tuple(_)
+                | Self::Closure(_),
+            ) => {}
+
+            // Struct <: _
+            (Self::Struct(lhs), Self::Struct(rhs)) => {
+                todo!("struct")
+            }
+            (
+                Self::Struct(_),
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Tuple(_)
+                | Self::Closure(_),
+            ) => {}
+
+            // Tuple <: _
+            (Self::Tuple(lhs), Self::Tuple(rhs)) => {
+                todo!("tuple")
+            }
+            (
+                Self::Tuple(_),
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Closure(_),
+            ) => {}
+
+            // Closure <: _
+            (Self::Closure(lhs), Self::Closure(rhs)) => {
+                todo!("closure")
+            }
+            (
+                Self::Closure(_),
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_),
+            ) => {}
+
+            // Union <: _
+            (Self::Union(lhs), Self::Union(rhs)) => {
+                todo!("union")
+            }
+            (
+                Self::Union(_),
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_)
+                | Self::Closure(_)
+                | Self::Intersection(_),
+            )
+            | (
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_)
+                | Self::Closure(_)
+                | Self::Intersection(_),
+                Self::Union(_),
+            ) => {
+                todo!("union")
+            }
+
+            // Intersection <: _
+            (Self::Intersection(lhs), Self::Intersection(rhs)) => {
+                todo!("intersection")
+            }
+            (
+                Self::Intersection(_),
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_)
+                | Self::Closure(_),
+            )
+            | (
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_)
+                | Self::Closure(_),
+                Self::Intersection(_),
+            ) => {
+                todo!("intersection")
+            }
+
+            // Infer <: _
+            (Self::Infer, _) => {
+                env.add_constraint(Constraint::UpperBound {
+                    variable: Variable::Type(self.id),
+                    bound: supertype.id,
+                });
+            }
+
+            // _ <: Infer
+            (_, Self::Infer) => {
+                env.add_constraint(Constraint::LowerBound {
+                    variable: Variable::Type(supertype.id),
+                    bound: self.id,
+                });
+            }
+
+            // Param <: _
+            (&Self::Param(Param { argument }), _) => {
+                env.add_constraint(Constraint::Ordering {
+                    lower: Variable::Generic(argument),
+                    upper: Variable::Type(supertype.id),
+                });
+            }
+
+            // _ <: Param
+            (_, &Self::Param(Param { argument })) => {
+                env.add_constraint(Constraint::Ordering {
+                    lower: Variable::Type(supertype.id),
+                    upper: Variable::Generic(argument),
+                });
+            }
+
+            // `Never <: _` | `_ <: Never`
+            (Self::Never, _) | (_, Self::Never) => {}
+
+            // `_ <: Unknown` | `Unknown <: _`
+            (_, Self::Unknown) | (Self::Unknown, _) => {}
+        }
+    }
+
+    fn instantiate(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> TypeId {
+        unimplemented!("See H-4384 for more details")
     }
 }
 

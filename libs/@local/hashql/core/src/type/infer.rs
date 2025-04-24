@@ -1,5 +1,9 @@
+use ena::unify::UnifyKey;
+
 use super::{
-    Type, TypeId, environment::AnalysisEnvironment, kind::generic_argument::GenericArgumentId,
+    Type, TypeId,
+    environment::{AnalysisEnvironment, InferenceEnvironment},
+    kind::generic_argument::GenericArgumentId,
 };
 
 /// Represents an inference variable in the type system.
@@ -39,6 +43,22 @@ pub enum Constraint {
     Ordering { lower: Variable, upper: Variable },
 }
 
+impl Constraint {
+    pub(crate) fn variables(self) -> impl IntoIterator<Item = Variable> {
+        let array = match self {
+            Constraint::UpperBound { variable, bound: _ } => [Some(variable), None],
+            Constraint::LowerBound { variable, bound: _ } => [Some(variable), None],
+            Constraint::Equals {
+                variable,
+                r#type: _,
+            } => [Some(variable), None],
+            Constraint::Ordering { lower, upper } => [Some(lower), Some(upper)],
+        };
+
+        array.into_iter().flatten()
+    }
+}
+
 /// A trait for types that can participate in type inference.
 ///
 /// This trait defines operations specific to constraint-based type inference,
@@ -51,8 +71,8 @@ pub trait Inference<'heap> {
     /// are then used to solve for unknown types in the program.
     fn collect_constraints(
         self: Type<'heap, Self>,
-        other: Type<'heap, Self>,
-        env: &mut AnalysisEnvironment<'_, 'heap>,
+        supertype: Type<'heap, Self>,
+        env: &mut InferenceEnvironment<'_, 'heap>,
     );
 
     /// Creates a fresh instance of a polymorphic type with new inference variables.

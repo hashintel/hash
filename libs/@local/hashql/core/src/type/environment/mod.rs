@@ -1,5 +1,6 @@
 pub mod analysis;
 pub mod context;
+pub mod infer;
 pub mod lattice;
 pub mod simplify;
 
@@ -9,6 +10,7 @@ pub use self::{
         auxiliary::AuxiliaryData, diagnostics::Diagnostics, substitution::Substitution,
         variance::Variance,
     },
+    infer::InferenceEnvironment,
     lattice::LatticeEnvironment,
     simplify::SimplifyEnvironment,
 };
