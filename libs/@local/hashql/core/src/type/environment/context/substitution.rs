@@ -1,12 +1,15 @@
 use hashbrown::HashMap;
 
-use crate::r#type::{TypeId, kind::generic_argument::GenericArgumentId};
+use crate::r#type::{
+    TypeId,
+    kind::{generic_argument::GenericArgumentId, infer::HoleId},
+};
 
 // The result post inference step (to be implemented)
 #[derive(Debug)]
 pub struct Substitution {
     arguments: HashMap<GenericArgumentId, TypeId, foldhash::fast::RandomState>,
-    inference: HashMap<TypeId, TypeId, foldhash::fast::RandomState>,
+    inference: HashMap<HoleId, TypeId, foldhash::fast::RandomState>,
 }
 
 impl Substitution {
@@ -24,7 +27,7 @@ impl Substitution {
     }
 
     #[must_use]
-    pub fn infer(&self, id: TypeId) -> Option<TypeId> {
+    pub fn infer(&self, id: HoleId) -> Option<TypeId> {
         self.inference.get(&id).copied()
     }
 }

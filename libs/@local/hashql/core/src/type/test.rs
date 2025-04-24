@@ -4,7 +4,7 @@ use core::{assert_matches::assert_matches, fmt::Debug};
 use super::{
     Type, TypeId, TypeKind,
     environment::{AnalysisEnvironment, Environment},
-    kind::{Param, generic_argument::GenericArgumentId},
+    kind::{Infer, Param, generic_argument::GenericArgumentId, infer::HoleId},
 };
 use crate::{
     heap::Heap,
@@ -42,6 +42,17 @@ pub(crate) fn instantiate_param(
 ) -> TypeId {
     let kind = TypeKind::Param(Param {
         argument: argument.try_into().expect("Should be valid argument"),
+    });
+
+    instantiate(env, kind)
+}
+
+pub(crate) fn instantiate_infer(
+    env: &Environment<'_>,
+    hole: impl TryInto<HoleId, Error: Debug>,
+) -> TypeId {
+    let kind = TypeKind::Infer(Infer {
+        hole: hole.try_into().expect("Should be valid argument"),
     });
 
     instantiate(env, kind)

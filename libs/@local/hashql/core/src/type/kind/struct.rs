@@ -515,6 +515,7 @@ mod test {
             kind::{
                 TypeKind,
                 generic_argument::{GenericArgument, GenericArgumentId},
+                infer::HoleId,
                 intersection::IntersectionType,
                 primitive::PrimitiveType,
                 test::{assert_equiv, intersection, primitive, r#struct, struct_field, union},
@@ -522,7 +523,7 @@ mod test {
             },
             lattice::{Lattice as _, test::assert_lattice_laws},
             pretty_print::PrettyPrint as _,
-            test::{instantiate, instantiate_param},
+            test::{instantiate, instantiate_infer, instantiate_param},
         },
     };
 
@@ -1107,7 +1108,8 @@ mod test {
         assert!(concrete_struct.is_concrete(&mut analysis_env));
 
         // Non-concrete struct (with at least one non-concrete field)
-        let infer_var = instantiate(&env, TypeKind::Infer);
+        let hole = HoleId::new(0);
+        let infer_var = instantiate_infer(&env, hole);
 
         r#struct!(
             env,
@@ -1425,7 +1427,8 @@ mod test {
         );
 
         // Create a supertype struct with concrete types
-        let infer_var = instantiate(&env, TypeKind::Infer);
+        let hole = HoleId::new(0);
+        let infer_var = instantiate_infer(&env, hole);
         r#struct!(
             env,
             supertype,
@@ -1446,7 +1449,7 @@ mod test {
         assert_eq!(
             constraints,
             [Constraint::LowerBound {
-                variable: Variable::Type(infer_var),
+                variable: Variable::Hole(hole),
                 bound: number
             }]
         );
@@ -1458,7 +1461,8 @@ mod test {
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         // Create a subtype struct with more fields
-        let infer_var = instantiate(&env, TypeKind::Infer);
+        let hole = HoleId::new(0);
+        let infer_var = instantiate_infer(&env, hole);
         r#struct!(
             env,
             subtype,
@@ -1495,7 +1499,7 @@ mod test {
         assert_eq!(
             constraints,
             [Constraint::UpperBound {
-                variable: Variable::Type(infer_var),
+                variable: Variable::Hole(hole),
                 bound: number
             }]
         );
@@ -1521,7 +1525,8 @@ mod test {
         );
 
         // Create a supertype struct with more fields
-        let infer_var = instantiate(&env, TypeKind::Infer);
+        let hole = HoleId::new(0);
+        let infer_var = instantiate_infer(&env, hole);
         r#struct!(
             env,
             supertype,
@@ -1548,7 +1553,8 @@ mod test {
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         // Create a nested structure with inference variable
-        let infer_var = instantiate(&env, TypeKind::Infer);
+        let hole = HoleId::new(0);
+        let infer_var = instantiate_infer(&env, hole);
 
         // Subtype
         r#struct!(
@@ -1584,7 +1590,7 @@ mod test {
         assert_eq!(
             constraints,
             [Constraint::UpperBound {
-                variable: Variable::Type(infer_var),
+                variable: Variable::Hole(hole),
                 bound: number
             }]
         );

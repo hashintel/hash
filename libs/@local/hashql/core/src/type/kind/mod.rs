@@ -1,5 +1,6 @@
 pub mod closure;
 pub mod generic_argument;
+pub mod infer;
 pub mod intersection;
 pub mod intrinsic;
 pub mod opaque;
@@ -16,7 +17,7 @@ use pretty::RcDoc;
 use smallvec::SmallVec;
 
 pub use self::{
-    closure::ClosureType, generic_argument::Param, intersection::IntersectionType,
+    closure::ClosureType, generic_argument::Param, infer::Infer, intersection::IntersectionType,
     intrinsic::IntrinsicType, opaque::OpaqueType, primitive::PrimitiveType, r#struct::StructType,
     tuple::TupleType, union::UnionType,
 };
@@ -48,10 +49,10 @@ pub enum TypeKind<'heap> {
     Closure(ClosureType<'heap>),
 
     Param(Param),
+    Infer(Infer),
 
     Never,
     Unknown,
-    Infer,
 }
 
 impl<'heap> TypeKind<'heap> {
@@ -127,6 +128,14 @@ impl<'heap> TypeKind<'heap> {
         }
     }
 
+    pub(crate) const fn into_variable(self: Type<'heap, Self>) -> Option<Variable> {
+        match *self.kind {
+            Self::Infer(Infer { hole }) => Some(Variable::Hole(hole)),
+            Self::Param(Param { argument }) => Some(Variable::Generic(argument)),
+            _ => None,
+        }
+    }
+
     pub fn resolve(self: Type<'heap, Self>, env: &Environment<'heap>) -> Option<Type<'heap, Self>> {
         match self.kind {
             Self::Opaque(_)
@@ -144,8 +153,8 @@ impl<'heap> TypeKind<'heap> {
 
                 Some(env.types[argument].copied())
             }
-            Self::Infer => {
-                let infer = env.substitution.infer(self.id)?;
+            &Self::Infer(Infer { hole }) => {
+                let infer = env.substitution.infer(hole)?;
 
                 Some(env.types[infer].copied())
             }
@@ -204,7 +213,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
         match (self.kind, other.kind) {
             // Infer ∨ _ <=> unreachable!()
             // _ ∨ Infer <=> unreachable!()
-            (Self::Infer, _) | (_, Self::Infer) => {
+            (Self::Infer(_), _) | (_, Self::Infer(_)) => {
                 unreachable!("infer should've been resolved prior to this")
             }
 
@@ -432,7 +441,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
         match (self.kind, other.kind) {
             // Infer ∧ _ <=> unreachable!()
             // _ ∧ Infer <=> unreachable!()
-            (Self::Infer, _) | (_, Self::Infer) => {
+            (Self::Infer(_), _) | (_, Self::Infer(_)) => {
                 unreachable!("infer should've been resolved prior to this")
             }
 
@@ -626,10 +635,8 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
 
                 env.is_bottom(substitution)
             }
-            Self::Never => true,
-            Self::Unknown => false,
-            Self::Infer => {
-                let Some(substitution) = env.substitution.infer(self.id) else {
+            &Self::Infer(Infer { hole }) => {
+                let Some(substitution) = env.substitution.infer(hole) else {
                     let _: ControlFlow<()> =
                         env.record_diagnostic(|env| no_type_inference(env, self));
 
@@ -638,6 +645,8 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
 
                 env.is_bottom(substitution)
             }
+            Self::Never => true,
+            Self::Unknown => false,
         }
     }
 
@@ -661,10 +670,8 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
 
                 env.is_top(substitution)
             }
-            Self::Never => false,
-            Self::Unknown => true,
-            Self::Infer => {
-                let Some(substitution) = env.substitution.infer(self.id) else {
+            &Self::Infer(Infer { hole }) => {
+                let Some(substitution) = env.substitution.infer(hole) else {
                     let _: ControlFlow<()> =
                         env.record_diagnostic(|env| no_type_inference(env, self));
 
@@ -673,6 +680,8 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
 
                 env.is_top(substitution)
             }
+            Self::Never => false,
+            Self::Unknown => true,
         }
     }
 
@@ -687,8 +696,8 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             Self::Union(union_type) => self.with(union_type).is_concrete(env),
             Self::Intersection(intersection_type) => self.with(intersection_type).is_concrete(env),
             &Self::Param(Param { argument }) => env.substitution.argument(argument).is_some(),
+            &Self::Infer(Infer { hole }) => env.substitution.infer(hole).is_some(),
             Self::Never | Self::Unknown => true,
-            Self::Infer => env.substitution.infer(self.id).is_some(),
         }
     }
 
@@ -711,7 +720,11 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 || SmallVec::from_slice(&[self.id]),
                 |substitution| env.distribute_union(substitution),
             ),
-            Self::Never | Self::Unknown | Self::Infer => SmallVec::from_slice(&[self.id]),
+            &Self::Infer(Infer { hole }) => env.substitution.infer(hole).map_or_else(
+                || SmallVec::from_slice(&[self.id]),
+                |substitution| env.distribute_union(substitution),
+            ),
+            Self::Never | Self::Unknown => SmallVec::from_slice(&[self.id]),
         }
     }
 
@@ -738,7 +751,11 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 || SmallVec::from_slice(&[self.id]),
                 |substitution| env.distribute_intersection(substitution),
             ),
-            Self::Never | Self::Unknown | Self::Infer => SmallVec::from_slice(&[self.id]),
+            &Self::Infer(Infer { hole }) => env.substitution.infer(hole).map_or_else(
+                || SmallVec::from_slice(&[self.id]),
+                |substitution| env.distribute_intersection(substitution),
+            ),
+            Self::Never | Self::Unknown => SmallVec::from_slice(&[self.id]),
         }
     }
 
@@ -775,7 +792,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
         let result = match (self.kind, other.kind) {
             // Infer ≡ _ <=> unreachable!()
             // _ ≡ Infer <=> unreachable!()
-            (Self::Infer, _) | (_, Self::Infer) => {
+            (Self::Infer(_), _) | (_, Self::Infer(_)) => {
                 unreachable!("infer should've been resolved prior to this")
             }
 
@@ -1028,7 +1045,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
         let result = match (self.kind, supertype.kind) {
             // Infer <: _ <=> unreachable!()
             // _ <: Infer <=> unreachable!()
-            (Self::Infer, _) | (_, Self::Infer) => {
+            (Self::Infer(_), _) | (_, Self::Infer(_)) => {
                 unreachable!("infer should've been resolved prior to this")
             }
 
@@ -1275,7 +1292,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             Self::Closure(closure_type) => self.with(closure_type).simplify(env),
             Self::Union(union_type) => self.with(union_type).simplify(env),
             Self::Intersection(intersection_type) => self.with(intersection_type).simplify(env),
-            Self::Param(_) | Self::Never | Self::Unknown | Self::Infer => self.id,
+            Self::Param(_) | Self::Never | Self::Unknown | Self::Infer(_) => self.id,
         }
     }
 }
@@ -1290,10 +1307,10 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
         #[expect(clippy::match_same_arms)]
         match (self.kind, supertype.kind) {
             // Infer <: Infer
-            (Self::Infer, Self::Infer) => {
+            (&Self::Infer(Infer { hole: self_id }), &Self::Infer(Infer { hole: supertype_id })) => {
                 env.add_constraint(Constraint::Ordering {
-                    lower: Variable::Type(self.id),
-                    upper: Variable::Type(supertype.id),
+                    lower: Variable::Hole(self_id),
+                    upper: Variable::Hole(supertype_id),
                 });
             }
 
@@ -1306,18 +1323,18 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
             }
 
             // Infer <: Param
-            (Self::Infer, &Self::Param(Param { argument })) => {
+            (&Self::Infer(Infer { hole: self_id }), &Self::Param(Param { argument })) => {
                 env.add_constraint(Constraint::Ordering {
-                    lower: Variable::Type(self.id),
+                    lower: Variable::Hole(self_id),
                     upper: Variable::Generic(argument),
                 });
             }
 
             // Param <: Infer
-            (&Self::Param(Param { argument }), Self::Infer) => {
+            (&Self::Param(Param { argument }), &Self::Infer(Infer { hole: supertype_id })) => {
                 env.add_constraint(Constraint::Ordering {
                     lower: Variable::Generic(argument),
-                    upper: Variable::Type(supertype.id),
+                    upper: Variable::Hole(supertype_id),
                 });
             }
 
@@ -1401,10 +1418,10 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
 
             // Union <: _
             (Self::Union(lhs), Self::Union(rhs)) => {
-                todo!("union")
+                self.with(lhs).collect_constraints(supertype.with(rhs), env);
             }
             (
-                Self::Union(_),
+                Self::Union(lhs),
                 Self::Opaque(_)
                 | Self::Primitive(_)
                 | Self::Intrinsic(_)
@@ -1412,74 +1429,112 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 | Self::Tuple(_)
                 | Self::Closure(_)
                 | Self::Intersection(_),
-            )
-            | (
-                Self::Opaque(_)
-                | Self::Primitive(_)
-                | Self::Intrinsic(_)
-                | Self::Struct(_)
-                | Self::Tuple(_)
-                | Self::Closure(_)
-                | Self::Intersection(_),
-                Self::Union(_),
             ) => {
-                todo!("union")
+                let self_variants = lhs.unnest(env);
+                let super_variants = [supertype.id];
+
+                UnionType::collect_constraints_variants(
+                    supertype.id,
+                    &self_variants,
+                    &super_variants,
+                    env,
+                );
+            }
+            (
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_)
+                | Self::Closure(_)
+                | Self::Intersection(_),
+                Self::Union(rhs),
+            ) => {
+                let self_variants = [self.id];
+                let super_variants = rhs.unnest(env);
+
+                UnionType::collect_constraints_variants(
+                    supertype.id,
+                    &self_variants,
+                    &super_variants,
+                    env,
+                );
             }
 
             // Intersection <: _
             (Self::Intersection(lhs), Self::Intersection(rhs)) => {
-                todo!("intersection")
+                self.with(lhs).collect_constraints(supertype.with(rhs), env);
             }
             (
-                Self::Intersection(_),
+                Self::Intersection(lhs),
                 Self::Opaque(_)
                 | Self::Primitive(_)
                 | Self::Intrinsic(_)
                 | Self::Struct(_)
                 | Self::Tuple(_)
                 | Self::Closure(_),
-            )
-            | (
-                Self::Opaque(_)
-                | Self::Primitive(_)
-                | Self::Intrinsic(_)
-                | Self::Struct(_)
-                | Self::Tuple(_)
-                | Self::Closure(_),
-                Self::Intersection(_),
             ) => {
-                todo!("intersection")
+                let self_variants = lhs.unnest(env);
+                let super_variants = [supertype.id];
+
+                IntersectionType::collect_constraints_variants(
+                    self.span,
+                    supertype.span,
+                    &self_variants,
+                    &super_variants,
+                    env,
+                );
+            }
+            (
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_)
+                | Self::Closure(_),
+                Self::Intersection(rhs),
+            ) => {
+                let self_variants = [self.id];
+                let super_variants = rhs.unnest(env);
+
+                IntersectionType::collect_constraints_variants(
+                    self.span,
+                    supertype.span,
+                    &self_variants,
+                    &super_variants,
+                    env,
+                );
             }
 
             // Infer <: _
-            (Self::Infer, _) => {
+            (&Self::Infer(Infer { hole: self_id }), _) => {
                 env.add_constraint(Constraint::UpperBound {
-                    variable: Variable::Type(self.id),
+                    variable: Variable::Hole(self_id),
                     bound: supertype.id,
                 });
             }
 
             // _ <: Infer
-            (_, Self::Infer) => {
+            (_, &Self::Infer(Infer { hole: supertype_id })) => {
                 env.add_constraint(Constraint::LowerBound {
-                    variable: Variable::Type(supertype.id),
+                    variable: Variable::Hole(supertype_id),
                     bound: self.id,
                 });
             }
 
             // Param <: _
             (&Self::Param(Param { argument }), _) => {
-                env.add_constraint(Constraint::Ordering {
-                    lower: Variable::Generic(argument),
-                    upper: Variable::Type(supertype.id),
+                env.add_constraint(Constraint::UpperBound {
+                    variable: Variable::Generic(argument),
+                    bound: supertype.id,
                 });
             }
 
             // _ <: Param
             (_, &Self::Param(Param { argument })) => {
-                env.add_constraint(Constraint::Ordering {
-                    lower: Variable::Type(supertype.id),
-                    upper: Variable::Generic(argument),
+                env.add_constraint(Constraint::LowerBound {
+                    variable: Variable::Generic(argument),
+                    bound: self.id,
                 });
             }
 
@@ -1512,9 +1567,9 @@ impl PrettyPrint for TypeKind<'_> {
             Self::Union(union_type) => union_type.pretty(env, limit),
             Self::Intersection(intersection_type) => intersection_type.pretty(env, limit),
             Self::Param(param_type) => param_type.pretty(env, limit),
+            Self::Infer(_) => RcDoc::text("_").annotate(GRAY),
             Self::Never => RcDoc::text("!").annotate(CYAN),
             Self::Unknown => RcDoc::text("?").annotate(CYAN),
-            Self::Infer => RcDoc::text("_").annotate(GRAY),
         }
     }
 }

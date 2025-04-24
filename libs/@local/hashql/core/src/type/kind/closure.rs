@@ -283,6 +283,7 @@ mod test {
             kind::{
                 TypeKind,
                 generic_argument::{GenericArgument, GenericArgumentId},
+                infer::HoleId,
                 intersection::IntersectionType,
                 primitive::PrimitiveType,
                 test::{assert_equiv, closure, intersection, primitive, union},
@@ -290,7 +291,7 @@ mod test {
             },
             lattice::{Lattice as _, test::assert_lattice_laws},
             pretty_print::PrettyPrint as _,
-            test::{instantiate, instantiate_param},
+            test::{instantiate, instantiate_infer, instantiate_param},
         },
     };
 
@@ -652,7 +653,7 @@ mod test {
         );
 
         // Create a closure with a non-concrete parameter
-        let infer_var = instantiate(&env, TypeKind::Infer);
+        let infer_var = instantiate_infer(&env, 0_u32);
         closure!(
             env,
             non_concrete_param,
@@ -925,7 +926,8 @@ mod test {
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         // Create function types with an inference variable as parameter
-        let infer_var = instantiate(&env, TypeKind::Infer);
+        let hole = HoleId::new(0);
+        let infer_var = instantiate_infer(&env, hole);
         let string = primitive!(env, PrimitiveType::String);
 
         // fn(?T) -> String
@@ -946,7 +948,7 @@ mod test {
         assert_eq!(
             constraints,
             [Constraint::UpperBound {
-                variable: Variable::Type(infer_var),
+                variable: Variable::Hole(hole),
                 bound: number
             }]
         );
@@ -961,7 +963,7 @@ mod test {
         assert_eq!(
             constraints,
             [Constraint::LowerBound {
-                variable: Variable::Type(infer_var),
+                variable: Variable::Hole(hole),
                 bound: number
             }]
         );
@@ -973,7 +975,8 @@ mod test {
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         // Create function types with an inference variable as return type
-        let infer_var = instantiate(&env, TypeKind::Infer);
+        let hole = HoleId::new(0);
+        let infer_var = instantiate_infer(&env, hole);
         let number = primitive!(env, PrimitiveType::Number);
 
         // fn(Number) -> ?T
@@ -994,7 +997,7 @@ mod test {
         assert_eq!(
             constraints,
             [Constraint::UpperBound {
-                variable: Variable::Type(infer_var),
+                variable: Variable::Hole(hole),
                 bound: string
             }]
         );
@@ -1009,7 +1012,7 @@ mod test {
         assert_eq!(
             constraints,
             [Constraint::LowerBound {
-                variable: Variable::Type(infer_var),
+                variable: Variable::Hole(hole),
                 bound: string
             }]
         );
@@ -1021,8 +1024,10 @@ mod test {
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         // Create inference variables
-        let infer_param = instantiate(&env, TypeKind::Infer);
-        let infer_return = instantiate(&env, TypeKind::Infer);
+        let hole_param = HoleId::new(0);
+        let infer_param = instantiate_infer(&env, hole_param);
+        let hole_return = HoleId::new(1);
+        let infer_return = instantiate_infer(&env, hole_return);
 
         // fn(?P) -> ?R
         closure!(env, infer_fn, [], [infer_param], infer_return);
@@ -1045,11 +1050,11 @@ mod test {
             constraints,
             [
                 Constraint::LowerBound {
-                    variable: Variable::Type(infer_param),
+                    variable: Variable::Hole(hole_param),
                     bound: number,
                 },
                 Constraint::UpperBound {
-                    variable: Variable::Type(infer_return),
+                    variable: Variable::Hole(hole_return),
                     bound: string,
                 },
             ]
@@ -1062,8 +1067,10 @@ mod test {
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         // Create a function with multiple parameters, some inference variables
-        let infer1 = instantiate(&env, TypeKind::Infer);
-        let infer2 = instantiate(&env, TypeKind::Infer);
+        let hole1 = HoleId::new(0);
+        let infer1 = instantiate_infer(&env, hole1);
+        let hole2 = HoleId::new(1);
+        let infer2 = instantiate_infer(&env, hole2);
         let string = primitive!(env, PrimitiveType::String);
 
         // fn(?T1, ?T2, String) -> String
@@ -1092,11 +1099,11 @@ mod test {
             constraints,
             [
                 Constraint::LowerBound {
-                    variable: Variable::Type(infer1),
+                    variable: Variable::Hole(hole1),
                     bound: number,
                 },
                 Constraint::LowerBound {
-                    variable: Variable::Type(infer2),
+                    variable: Variable::Hole(hole2),
                     bound: boolean,
                 },
             ]
@@ -1109,7 +1116,8 @@ mod test {
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         // Create functions with different parameter counts
-        let infer_var = instantiate(&env, TypeKind::Infer);
+        let hole = HoleId::new(0);
+        let infer_var = instantiate_infer(&env, hole);
         let number = primitive!(env, PrimitiveType::Number);
         let string = primitive!(env, PrimitiveType::String);
 
@@ -1130,20 +1138,30 @@ mod test {
         assert!(constraints.is_empty());
 
         // Now test with inference variable in the common parameter
-        let infer_first = instantiate(&env, TypeKind::Infer);
+        let hole_first = HoleId::new(1);
+        let infer_first = instantiate_infer(&env, hole_first);
+
+        let hole_second = HoleId::new(2);
+        let infer_second = instantiate_infer(&env, hole_second);
 
         // fn(?T, String) -> Number
         closure!(env, infer_first_param, [], [infer_first, string], number);
 
         // fn(?T) -> Number
-        closure!(env, infer_only_param, [], [infer_first], number);
+        closure!(env, infer_only_param, [], [infer_second], number);
 
         inference_env = InferenceEnvironment::new(&env);
         infer_first_param.collect_constraints(infer_only_param, &mut inference_env);
 
         // Should have a constraint for the common first parameter
         let constraints = inference_env.take_constraints();
-        assert_eq!(constraints.len(), 1);
+        assert_eq!(
+            constraints,
+            [Constraint::Ordering {
+                lower: Variable::Hole(hole_second),
+                upper: Variable::Hole(hole_first),
+            }]
+        );
     }
 
     #[test]
@@ -1152,7 +1170,8 @@ mod test {
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         // Create a nested closure with inference variable
-        let infer_var = instantiate(&env, TypeKind::Infer);
+        let hole = HoleId::new(0);
+        let infer_var = instantiate_infer(&env, hole);
         let number = primitive!(env, PrimitiveType::Number);
         let string = primitive!(env, PrimitiveType::String);
 
@@ -1181,7 +1200,7 @@ mod test {
         assert_eq!(
             constraints,
             [Constraint::UpperBound {
-                variable: Variable::Type(infer_var),
+                variable: Variable::Hole(hole),
                 bound: boolean
             }]
         );

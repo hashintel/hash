@@ -362,6 +362,7 @@ mod test {
             kind::{
                 TypeKind,
                 generic_argument::{GenericArgument, GenericArgumentId},
+                infer::HoleId,
                 intersection::IntersectionType,
                 primitive::PrimitiveType,
                 test::{assert_equiv, intersection, primitive, tuple, union},
@@ -369,7 +370,7 @@ mod test {
             },
             lattice::{Lattice as _, test::assert_lattice_laws},
             pretty_print::PrettyPrint as _,
-            test::{instantiate, instantiate_param},
+            test::{instantiate, instantiate_infer, instantiate_param},
         },
     };
 
@@ -838,7 +839,7 @@ mod test {
         assert!(concrete_tuple.is_concrete(&mut analysis_env));
 
         // Non-concrete tuple (with at least one non-concrete field)
-        let infer_var = instantiate(&env, TypeKind::Infer);
+        let infer_var = instantiate_infer(&env, 0_u32);
         tuple!(env, non_concrete_tuple, [], [number, infer_var]);
         assert!(!non_concrete_tuple.is_concrete(&mut analysis_env));
 
@@ -1145,7 +1146,8 @@ mod test {
         tuple!(env, concrete_tuple, [], [number]);
 
         // Create a tuple with an inference variable
-        let infer_var = instantiate(&env, TypeKind::Infer);
+        let hole = HoleId::new(0);
+        let infer_var = instantiate_infer(&env, hole);
         tuple!(env, infer_tuple, [], [infer_var]);
 
         // Create an inference environment to collect constraints
@@ -1158,7 +1160,7 @@ mod test {
         assert_eq!(
             constraints,
             [Constraint::LowerBound {
-                variable: Variable::Type(infer_var),
+                variable: Variable::Hole(hole),
                 bound: number
             }]
         );
@@ -1175,7 +1177,8 @@ mod test {
         // prefix of tuples with different lengths.
 
         // Create a tuple with more elements
-        let infer_var = instantiate(&env, TypeKind::Infer);
+        let hole = HoleId::new(0);
+        let infer_var = instantiate_infer(&env, hole);
         let boolean = primitive!(env, PrimitiveType::Boolean);
         let string = primitive!(env, PrimitiveType::String);
         tuple!(env, longer_tuple, [], [string, infer_var, boolean]);
@@ -1196,7 +1199,7 @@ mod test {
         assert_eq!(
             constraints,
             [Constraint::UpperBound {
-                variable: Variable::Type(infer_var),
+                variable: Variable::Hole(hole),
                 bound: number
             }]
         );
@@ -1214,7 +1217,8 @@ mod test {
         tuple!(env, shorter_tuple, [], [string]);
 
         // Create a longer tuple with two elements
-        let infer_var = instantiate(&env, TypeKind::Infer);
+        let hole = HoleId::new(0);
+        let infer_var = instantiate_infer(&env, hole);
         tuple!(env, longer_tuple, [], [string, infer_var]);
 
         let mut inference_env = InferenceEnvironment::new(&env);
@@ -1235,7 +1239,8 @@ mod test {
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         // Create a nested tuple with inference variable
-        let infer_var = instantiate(&env, TypeKind::Infer);
+        let hole = HoleId::new(0);
+        let infer_var = instantiate_infer(&env, hole);
 
         // First tuple with nested inference variable
         let inner_tuple_a = tuple!(env, [], [infer_var]);
@@ -1255,7 +1260,7 @@ mod test {
         assert_eq!(
             constraints,
             [Constraint::UpperBound {
-                variable: Variable::Type(infer_var),
+                variable: Variable::Hole(hole),
                 bound: number
             }]
         );

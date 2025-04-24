@@ -709,6 +709,7 @@ mod tests {
             infer::{Constraint, Inference as _, Variable},
             kind::{
                 TypeKind,
+                infer::HoleId,
                 intersection::IntersectionType,
                 primitive::PrimitiveType,
                 test::{assert_equiv, dict, intersection, list, primitive, union},
@@ -716,7 +717,7 @@ mod tests {
             },
             lattice::{Lattice as _, test::assert_lattice_laws},
             pretty_print::PrettyPrint as _,
-            test::instantiate,
+            test::{instantiate, instantiate_infer},
         },
     };
 
@@ -882,7 +883,7 @@ mod tests {
         assert!(concrete_list.is_concrete(&mut analysis_env));
 
         // A list with a non-concrete element type should not be concrete
-        list!(env, non_concrete_list, instantiate(&env, TypeKind::Infer));
+        list!(env, non_concrete_list, instantiate_infer(&env, 0_u32));
 
         assert!(!non_concrete_list.is_concrete(&mut analysis_env));
     }
@@ -1152,7 +1153,7 @@ mod tests {
         dict!(
             env,
             non_concrete_key_dict,
-            instantiate(&env, TypeKind::Infer),
+            instantiate_infer(&env, 0_u32),
             primitive!(env, PrimitiveType::Number)
         );
         assert!(!non_concrete_key_dict.is_concrete(&mut analysis_env));
@@ -1162,7 +1163,7 @@ mod tests {
             env,
             non_concrete_value_dict,
             primitive!(env, PrimitiveType::String),
-            instantiate(&env, TypeKind::Infer)
+            instantiate_infer(&env, 0_u32)
         );
         assert!(!non_concrete_value_dict.is_concrete(&mut analysis_env));
     }
@@ -1246,7 +1247,7 @@ mod tests {
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         // Create a dict with an inference variable as key
-        let infer_var = instantiate(&env, TypeKind::Infer);
+        let infer_var = instantiate_infer(&env, 0_u32);
         let number_type = primitive!(env, PrimitiveType::Number);
         let string_type = primitive!(env, PrimitiveType::String);
 
@@ -1450,7 +1451,8 @@ mod tests {
         list!(env, concrete_list, number);
 
         // Create a list with an inference variable
-        let infer_var = instantiate(&env, TypeKind::Infer);
+        let hole = HoleId::new(0);
+        let infer_var = instantiate_infer(&env, hole);
         list!(env, infer_list, infer_var);
 
         // Create an inference environment to collect constraints
@@ -1464,7 +1466,7 @@ mod tests {
         assert_eq!(
             constraints,
             [Constraint::LowerBound {
-                variable: Variable::Type(infer_var),
+                variable: Variable::Hole(hole),
                 bound: number
             }]
         );
@@ -1480,7 +1482,8 @@ mod tests {
         list!(env, concrete_list, number);
 
         // Create a list with an inference variable
-        let infer_var = instantiate(&env, TypeKind::Infer);
+        let hole = HoleId::new(0);
+        let infer_var = instantiate_infer(&env, hole);
         list!(env, infer_list, infer_var);
 
         // Create an inference environment to collect constraints
@@ -1493,7 +1496,7 @@ mod tests {
         assert_eq!(
             constraints,
             [Constraint::UpperBound {
-                variable: Variable::Type(infer_var),
+                variable: Variable::Hole(hole),
                 bound: number
             }]
         );
@@ -1505,7 +1508,8 @@ mod tests {
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         // Create a nested list with inference variable
-        let infer_var = instantiate(&env, TypeKind::Infer);
+        let hole = HoleId::new(0);
+        let infer_var = instantiate_infer(&env, hole);
         let inner_list_a = list!(env, infer_var);
         list!(env, list_a, inner_list_a);
 
@@ -1523,7 +1527,7 @@ mod tests {
         assert_eq!(
             constraints,
             [Constraint::UpperBound {
-                variable: Variable::Type(infer_var),
+                variable: Variable::Hole(hole),
                 bound: number
             }]
         );
@@ -1536,7 +1540,8 @@ mod tests {
 
         // Create a dict with a concrete key and an inference variable as value
         let string = primitive!(env, PrimitiveType::String);
-        let infer_var = instantiate(&env, TypeKind::Infer);
+        let hole = HoleId::new(0);
+        let infer_var = instantiate_infer(&env, hole);
         dict!(env, dict_a, string, infer_var);
 
         // Create a dict with a concrete key and concrete value
@@ -1552,7 +1557,7 @@ mod tests {
         assert_eq!(
             constraints,
             [Constraint::UpperBound {
-                variable: Variable::Type(infer_var),
+                variable: Variable::Hole(hole),
                 bound: number
             }]
         );
@@ -1564,7 +1569,8 @@ mod tests {
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         // Create a dict with an inference variable as key
-        let infer_key = instantiate(&env, TypeKind::Infer);
+        let hole = HoleId::new(0);
+        let infer_key = instantiate_infer(&env, hole);
         let number = primitive!(env, PrimitiveType::Number);
         dict!(env, dict_a, infer_key, number);
 
@@ -1581,7 +1587,7 @@ mod tests {
         assert_eq!(
             constraints,
             [Constraint::Equals {
-                variable: Variable::Type(infer_key),
+                variable: Variable::Hole(hole),
                 r#type: string
             }]
         );
@@ -1593,8 +1599,10 @@ mod tests {
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         // Create a dict with inference variables for both key and value
-        let infer_key = instantiate(&env, TypeKind::Infer);
-        let infer_value = instantiate(&env, TypeKind::Infer);
+        let hole_key = HoleId::new(0);
+        let infer_key = instantiate_infer(&env, hole_key);
+        let hole_value = HoleId::new(1);
+        let infer_value = instantiate_infer(&env, hole_value);
         dict!(env, dict_a, infer_key, infer_value);
 
         // Create a dict with concrete types
@@ -1615,11 +1623,11 @@ mod tests {
             constraints,
             [
                 Constraint::Equals {
-                    variable: Variable::Type(infer_key),
+                    variable: Variable::Hole(hole_key),
                     r#type: string,
                 },
                 Constraint::UpperBound {
-                    variable: Variable::Type(infer_value),
+                    variable: Variable::Hole(hole_value),
                     bound: number,
                 }
             ]

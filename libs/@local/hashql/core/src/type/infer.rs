@@ -1,7 +1,7 @@
 use super::{
     Type, TypeId,
     environment::{AnalysisEnvironment, InferenceEnvironment},
-    kind::generic_argument::GenericArgumentId,
+    kind::{generic_argument::GenericArgumentId, infer::HoleId},
 };
 
 /// Represents an inference variable in the type system.
@@ -12,7 +12,7 @@ use super::{
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Variable {
     /// A type variable that needs to be solved through constraint satisfaction.
-    Type(TypeId),
+    Hole(HoleId),
 
     /// A generic argument variable, typically from a generic parameter.
     Generic(GenericArgumentId),

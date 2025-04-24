@@ -343,13 +343,14 @@ mod test {
             kind::{
                 TypeKind,
                 generic_argument::{GenericArgument, GenericArgumentId},
+                infer::HoleId,
                 primitive::PrimitiveType,
                 test::{assert_equiv, opaque, primitive, union},
                 union::UnionType,
             },
             lattice::{Lattice as _, test::assert_lattice_laws},
             pretty_print::PrettyPrint as _,
-            test::{instantiate, instantiate_param},
+            test::{instantiate, instantiate_infer, instantiate_param},
         },
     };
 
@@ -623,7 +624,8 @@ mod test {
         assert!(concrete.is_concrete(&mut analysis_env));
 
         // Non-concrete opaque type (with inference variable in its representation)
-        let infer_var = instantiate(&env, TypeKind::Infer);
+        let hole = HoleId::new(0);
+        let infer_var = instantiate_infer(&env, hole);
         opaque!(env, non_concrete_type, "NonConcreteType", infer_var, []);
         assert!(!non_concrete_type.is_concrete(&mut analysis_env));
 
@@ -644,7 +646,8 @@ mod test {
         opaque!(env, number_opaque, "TypeName", number, []);
 
         // Create another opaque type with the same name but an inference variable
-        let infer_var = instantiate(&env, TypeKind::Infer);
+        let hole = HoleId::new(0);
+        let infer_var = instantiate_infer(&env, hole);
         opaque!(env, infer_opaque, "TypeName", infer_var, []);
 
         // Create an inference environment to collect constraints
@@ -659,7 +662,7 @@ mod test {
         assert_eq!(
             constraints,
             [Constraint::Equals {
-                variable: Variable::Type(infer_var),
+                variable: Variable::Hole(hole),
                 r#type: number
             }]
         );
@@ -675,7 +678,8 @@ mod test {
         opaque!(env, type_a, "TypeA", number, []);
 
         // Create another opaque type with a different name and an inference variable
-        let infer_var = instantiate(&env, TypeKind::Infer);
+        let hole = HoleId::new(0);
+        let infer_var = instantiate_infer(&env, hole);
         opaque!(env, type_b, "TypeB", infer_var, []);
 
         // Create an inference environment to collect constraints
@@ -696,7 +700,8 @@ mod test {
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         // Create a nested opaque type with an inference variable
-        let infer_var = instantiate(&env, TypeKind::Infer);
+        let hole = HoleId::new(0);
+        let infer_var = instantiate_infer(&env, hole);
         opaque!(
             env,
             outer_a,
@@ -720,7 +725,7 @@ mod test {
         assert_eq!(
             constraints,
             [Constraint::Equals {
-                variable: Variable::Type(infer_var),
+                variable: Variable::Hole(hole),
                 r#type: number
             }]
         );
@@ -804,11 +809,13 @@ mod test {
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         // Create an opaque type with an inference variable
-        let infer_var1 = instantiate(&env, TypeKind::Infer);
+        let hole_var1 = HoleId::new(0);
+        let infer_var1 = instantiate_infer(&env, hole_var1);
         opaque!(env, opaque_a, "Type", infer_var1, []);
 
         // Create another opaque type with another inference variable
-        let infer_var2 = instantiate(&env, TypeKind::Infer);
+        let hole_var2 = HoleId::new(1);
+        let infer_var2 = instantiate_infer(&env, hole_var2);
         opaque!(env, opaque_b, "Type", infer_var2, []);
 
         // Create an inference environment to collect constraints
@@ -820,7 +827,7 @@ mod test {
         // Due to invariance, we should get an equality constraint between the inference variables
         let constraints = inference_env.take_constraints();
         assert!(constraints.is_empty());
-        assert!(inference_env.is_unioned(Variable::Type(infer_var1), Variable::Type(infer_var2)));
+        assert!(inference_env.is_unioned(Variable::Hole(hole_var1), Variable::Hole(hole_var2)));
     }
 
     #[test]
@@ -829,7 +836,8 @@ mod test {
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         // Create an opaque type with an inference variable
-        let infer_var1 = instantiate(&env, TypeKind::Infer);
+        let hole_var1 = HoleId::new(0);
+        let infer_var1 = instantiate_infer(&env, hole_var1);
         opaque!(env, opaque_a, "Type", infer_var1, []);
 
         // Create another opaque type with a generic variable
@@ -846,6 +854,6 @@ mod test {
         // and the generic variable
         let constraints = inference_env.take_constraints();
         assert!(constraints.is_empty());
-        assert!(inference_env.is_unioned(Variable::Type(infer_var1), Variable::Generic(arg)));
+        assert!(inference_env.is_unioned(Variable::Hole(hole_var1), Variable::Generic(arg)));
     }
 }

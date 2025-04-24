@@ -1,10 +1,10 @@
-use core::ops::ControlFlow;
+use core::{assert_matches::debug_assert_matches, ops::ControlFlow};
 
 use bitvec::bitvec;
 use pretty::RcDoc;
 use smallvec::SmallVec;
 
-use super::{Param, TypeKind};
+use super::TypeKind;
 use crate::{
     span::SpanId,
     r#type::{
@@ -15,7 +15,7 @@ use crate::{
             SimplifyEnvironment,
         },
         error::{cannot_be_subtype_of_never, type_mismatch, union_variant_mismatch},
-        infer::{Constraint, Variable},
+        infer::{Constraint, Inference},
         lattice::Lattice,
         pretty_print::PrettyPrint,
         recursion::RecursionDepthBoundary,
@@ -230,7 +230,7 @@ impl<'heap> UnionType<'heap> {
     }
 
     pub(crate) fn collect_constraints_variants(
-        supertype: Type<'heap>,
+        supertype: TypeId,
         self_variants: &[TypeId],
         super_variants: &[TypeId],
         env: &mut InferenceEnvironment<'_, 'heap>,
@@ -241,31 +241,50 @@ impl<'heap> UnionType<'heap> {
         // ≡ A <: (C | D) ∧ B <: (C | D)
         // ≡ (A <: C ∨ B <: C) ∧ (A <: D ∨ B <: D)
 
-        // To prevent recursion, if we're in the case of `A <: (B | C)`, we simply record an upper
-        // bound.
-        if let &[self_variant] = self_variants {
-            let variable = match env.types[self_variant].copied().kind {
-                TypeKind::Infer => Variable::Type(self_variant),
-                &TypeKind::Param(Param { argument }) => Variable::Generic(argument),
-                _ => return,
-            };
-
-            // To be able to support recursing down, we would need a fully fledged inference engine
-            // that can handle backtracking.
-            env.add_constraint(Constraint::UpperBound {
-                variable,
-                bound: supertype.id,
-            });
-
-            return;
-        }
-
-        for &self_variant in self_variants {
-            if let &[super_variant] = super_variants {
+        match (self_variants, super_variants) {
+            (&[self_variant], &[super_variant]) => {
+                // Not a union, proceed
                 env.in_covariant(|env| env.collect_constraints(self_variant, super_variant));
-            } else {
-                // This is a disjunctive union, therefore we check if against the union of variants
-                Self::collect_constraints_variants(supertype, &[self_variant], super_variants, env);
+            }
+            (&[self_variant], _) => {
+                // To be able to support recursing down union-right, we would need a fully fledged
+                // inference engine that handles backtracking. In reality most inference engines do
+                // not support this.
+                // The downside of this approach is that the type generated is potentially less
+                // precise than it could be (but still correct). This also means that inference on
+                // the right side (the supertype) is not continued. Meaning that any inference
+                // variable on the right side won't be constrained to the left side (the subtype).
+                // This is deemed acceptable, as any type that isn't constrained enough on the right
+                // side will be caught during type checking.
+                let Some(variable) = env.types[self_variant].copied().into_variable() else {
+                    // There's no variable on the left, so nothing to constrain.
+                    return;
+                };
+
+                // There are multiple variables, therefore the right side is guaranteed to be a
+                // union
+                debug_assert_matches!(env.types[supertype].copied().kind, TypeKind::Union(_));
+
+                env.add_constraint(Constraint::UpperBound {
+                    variable,
+                    bound: supertype,
+                });
+            }
+            (self_variants, &[super_variant]) => {
+                // Single constraint, means we can actually recurse down
+                for &self_variant in self_variants {
+                    env.in_covariant(|env| env.collect_constraints(self_variant, super_variant));
+                }
+            }
+            (self_variants, super_variants) => {
+                for &self_variant in self_variants {
+                    Self::collect_constraints_variants(
+                        supertype,
+                        &[self_variant],
+                        super_variants,
+                        env,
+                    );
+                }
             }
         }
     }
@@ -420,6 +439,23 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
     }
 }
 
+impl<'heap> Inference<'heap> for UnionType<'heap> {
+    fn collect_constraints(
+        self: Type<'heap, Self>,
+        supertype: Type<'heap, Self>,
+        env: &mut InferenceEnvironment<'_, 'heap>,
+    ) {
+        let self_variants = self.kind.unnest(env);
+        let super_variants = supertype.kind.unnest(env);
+
+        Self::collect_constraints_variants(supertype.id, &self_variants, &super_variants, env);
+    }
+
+    fn instantiate(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> TypeId {
+        unimplemented!("See H-4384 for more details")
+    }
+}
+
 impl PrettyPrint for UnionType<'_> {
     fn pretty<'env>(
         &self,
@@ -468,7 +504,7 @@ mod test {
             },
             lattice::{Lattice as _, test::assert_lattice_laws},
             pretty_print::PrettyPrint as _,
-            test::instantiate,
+            test::{instantiate, instantiate_infer},
         },
     };
 
@@ -1383,7 +1419,7 @@ mod test {
         assert!(concrete_union.is_concrete(&mut analysis_env));
 
         // Non-concrete union (with at least one non-concrete variant)
-        let infer_var = instantiate(&env, TypeKind::Infer);
+        let infer_var = instantiate_infer(&env, 0_u32);
         union!(env, non_concrete_union, [number, infer_var]);
         assert!(!non_concrete_union.is_concrete(&mut analysis_env));
 
