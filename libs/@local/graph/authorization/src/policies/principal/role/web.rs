@@ -38,6 +38,7 @@ impl ToCedarEntity for WebRole {
         ast::Entity::new(
             self.id.to_euid(),
             iter::empty(),
+            HashSet::new(),
             HashSet::from([self.web_id.to_euid()]),
             iter::empty(),
             Extensions::none(),

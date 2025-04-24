@@ -1,6 +1,6 @@
 use alloc::sync::Arc;
 use core::{iter, str::FromStr as _};
-use std::sync::LazyLock;
+use std::{collections::HashSet, sync::LazyLock};
 
 use cedar_policy_core::{ast, extensions::Extensions};
 use error_stack::Report;
@@ -41,6 +41,7 @@ impl ToCedarEntity for Ai {
         ast::Entity::new(
             self.id.to_euid(),
             iter::empty(),
+            HashaSet::new(),
             self.roles.iter().map(RoleId::to_euid).collect(),
             iter::empty(),
             Extensions::none(),

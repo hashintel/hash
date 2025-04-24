@@ -1,6 +1,6 @@
 use alloc::{borrow::Cow, sync::Arc};
 use core::{error::Error, fmt, iter, str::FromStr as _};
-use std::sync::LazyLock;
+use std::{collections::HashSet, sync::LazyLock};
 
 use cedar_policy_core::{ast, extensions::Extensions};
 use error_stack::{Report, ResultExt as _};
@@ -65,6 +65,7 @@ impl EntityTypeResource<'_> {
                     ast::RestrictedExpr::val(i64::from(self.id.as_url().version.inner())),
                 ),
             ],
+            HashSet::new(),
             iter::once(self.web_id.to_euid()).collect(),
             iter::empty(),
             Extensions::none(),
