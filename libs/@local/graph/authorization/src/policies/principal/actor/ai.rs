@@ -41,7 +41,7 @@ impl ToCedarEntity for Ai {
         ast::Entity::new(
             self.id.to_euid(),
             iter::empty(),
-            HashaSet::new(),
+            HashSet::new(),
             self.roles.iter().map(RoleId::to_euid).collect(),
             iter::empty(),
             Extensions::none(),
