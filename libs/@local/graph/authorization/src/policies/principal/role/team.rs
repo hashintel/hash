@@ -38,6 +38,7 @@ impl ToCedarEntity for TeamRole {
         ast::Entity::new(
             self.id.to_euid(),
             iter::empty(),
+            HashSet::new(),
             HashSet::from([self.team_id.to_euid()]),
             iter::empty(),
             Extensions::none(),

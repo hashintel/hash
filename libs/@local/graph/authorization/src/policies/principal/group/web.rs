@@ -39,6 +39,7 @@ impl ToCedarEntity for Web {
             self.id.to_euid(),
             iter::empty(),
             HashSet::new(),
+            HashSet::new(),
             iter::empty(),
             Extensions::none(),
         )
