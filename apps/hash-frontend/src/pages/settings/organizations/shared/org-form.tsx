@@ -13,6 +13,7 @@ import type { Org } from "../../../../lib/user-and-org";
 import { useFileUploads } from "../../../../shared/file-upload-context";
 import { Button } from "../../../../shared/ui/button";
 import { useAuthInfo } from "../../../shared/auth-info-context";
+import { UrlInput } from "../../../shared/url-input";
 import { ImageField } from "../../shared/image-field";
 
 const Label = ({
@@ -104,6 +105,8 @@ export const OrgForm = ({
     handleSubmit,
     register,
     reset,
+    setValue,
+    watch,
   } = useForm<OrgFormData>({
     mode: "all",
     defaultValues: {
@@ -314,18 +317,15 @@ export const OrgForm = ({
           hint="Provide a link to help others identify your org"
           htmlFor="websiteUrl"
         />
-        <TextField
-          id="websiteUrl"
+        <UrlInput
+          autoFocus={false}
           disabled={readonly}
-          placeholder="https://acme.com"
-          sx={{ width: 400 }}
-          inputProps={{
-            pattern: "http(s?)://.*",
-            title:
-              "Please enter a valid URL, starting with https:// or http://",
-            type: "url",
+          placeholder="acme.com"
+          value={watch("websiteUrl") ?? ""}
+          onChange={(value) => {
+            setValue("websiteUrl", value, { shouldDirty: true });
           }}
-          {...register("websiteUrl", { required: false })}
+          width={190}
         />
       </InputGroup>
       {initialOrg && (

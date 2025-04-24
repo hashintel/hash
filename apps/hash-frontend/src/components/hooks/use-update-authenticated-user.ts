@@ -101,6 +101,18 @@ export const useUpdateAuthenticatedUser = () => {
           applicationPreferences,
         })) {
           if (typeof value !== "undefined") {
+            if (key === "websiteUrl" && !value) {
+              /**
+               * We need to explicitly remove the websiteUrl property if it is an empty string,
+               * because an empty string won't pass the URL validation regex.
+               */
+              propertyPatches.push({
+                path: [systemPropertyTypes.websiteUrl.propertyTypeBaseUrl],
+                op: "remove",
+              });
+              continue;
+            }
+
             propertyPatches.push({
               path: [
                 key === "displayName"
@@ -114,7 +126,9 @@ export const useUpdateAuthenticatedUser = () => {
                   dataTypeId:
                     key === "applicationPreferences"
                       ? "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1"
-                      : "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                      : key === "websiteUrl"
+                        ? "https://hash.ai/@h/types/data-type/uri/v/1"
+                        : "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
                 },
               },
             });
