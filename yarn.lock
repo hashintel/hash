@@ -12610,6 +12610,12 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@rust/hash-codegen@workspace:libs/@local/codegen":
+  version: 0.0.0-use.local
+  resolution: "@rust/hash-codegen@workspace:libs/@local/codegen"
+  languageName: unknown
+  linkType: soft
+
 "@rust/hash-graph-api@npm:0.0.0-private, @rust/hash-graph-api@workspace:libs/@local/graph/api":
   version: 0.0.0-use.local
   resolution: "@rust/hash-graph-api@workspace:libs/@local/graph/api"

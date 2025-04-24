@@ -1,0 +1,12 @@
+graph TD
+    linkStyle default stroke-width:1.5px
+    classDef default stroke-width:1px
+    classDef root stroke-width:3px
+    classDef dev stroke-width:1px
+    classDef build stroke-width:1px
+    %% Legend
+    %% --> : Normal dependency
+    %% -.-> : Dev dependency
+    %% ---> : Build dependency
+    0[hash-codegen]
+    class 0 root
