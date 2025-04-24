@@ -1,6 +1,43 @@
-use super::{Type, TypeId, environment::AnalysisEnvironment};
+use super::{
+    Type, TypeId, environment::AnalysisEnvironment, kind::generic_argument::GenericArgumentId,
+};
 
-pub enum Constraint {}
+/// Represents an inference variable in the type system.
+///
+/// During type inference, the system works with both concrete types and variables that
+/// need to be solved through constraint satisfaction. These variables can represent
+/// either unknown types or generic parameters.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum Variable {
+    /// A type variable that needs to be solved through constraint satisfaction.
+    Type(TypeId),
+
+    /// A generic argument variable, typically from a generic parameter.
+    Generic(GenericArgumentId),
+}
+
+/// Represents a constraint between types in the type inference system.
+///
+/// During type checking, constraints are collected to determine if types are compatible
+/// and to infer unknown types. These constraints form a system of equations that the
+/// inference engine solves to determine concrete types for all variables.
+///
+/// The subtyping relation (`<:`) indicates that the left type is a subtype of the right type,
+/// meaning the left type can be used wherever the right type is expected.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum Constraint {
+    /// Constraints a variable with an upper bound (`variable <: bound`)
+    UpperBound { variable: Variable, bound: TypeId },
+
+    /// Constraints a variable with a lower bound (`bound <: variable`)
+    LowerBound { variable: Variable, bound: TypeId },
+
+    /// Constraints a variable to be equal to another type (`variable ≡ type`)
+    Equals { variable: Variable, r#type: TypeId },
+
+    /// Establishes an ordering between two variables (`lower <: upper`)
+    Ordering { lower: Variable, upper: Variable },
+}
 
 /// A trait for types that can participate in type inference.
 ///
