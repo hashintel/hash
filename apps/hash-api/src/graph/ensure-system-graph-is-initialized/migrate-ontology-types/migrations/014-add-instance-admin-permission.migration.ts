@@ -1,4 +1,4 @@
-import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
+import { getInstanceAdminsTeam } from "@local/hash-backend-utils/hash-instance";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
@@ -17,8 +17,8 @@ const migrate: MigrationFunction = async ({
    * Step 1. Ensure the `hashInstanceAdmins` account group has the `editor` permission on all user entities
    */
 
-  const hashInstanceAdminsAccountGroupId =
-    await getHashInstanceAdminAccountGroupId(context, authentication);
+  const { teamId: hashInstanceAdminsAccountGroupId } =
+    await getInstanceAdminsTeam(context, authentication);
 
   const userEntities = await getEntities(context, authentication, {
     filter: {

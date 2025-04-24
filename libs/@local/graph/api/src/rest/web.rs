@@ -13,7 +13,7 @@ use error_stack::Report;
 use hash_graph_authorization::{
     AuthorizationApi as _, AuthorizationApiPool,
     backend::{ModifyRelationshipOperation, PermissionAssertion},
-    policies::store::PrincipalStore,
+    policies::store::{CreateWebResponse, PrincipalStore},
     schema::{
         WebDataTypeViewerSubject, WebEntityCreatorSubject, WebEntityEditorSubject,
         WebEntityTypeViewerSubject, WebEntityViewerSubject, WebOwnerSubject, WebPermission,
@@ -22,27 +22,33 @@ use hash_graph_authorization::{
     zanzibar::Consistency,
 };
 use hash_graph_store::{
-    account::{AccountStore as _, InsertWebIdParams},
+    account::{AccountStore as _, CreateOrgWebParams, GetWebResponse},
     pool::StorePool,
 };
+use hash_status::Status;
 use hash_temporal_client::TemporalClient;
 use serde::Deserialize;
 use type_system::principal::actor_group::WebId;
 use utoipa::{OpenApi, ToSchema};
 
+use super::status::status_to_response;
 use crate::rest::{AuthenticatedUserHeader, PermissionResponse, status::report_to_response};
 
 #[derive(OpenApi)]
 #[openapi(
     paths(
-        create_web,
+        get_web,
+        get_web_by_shortname,
+        create_org_web,
         check_web_permission,
         modify_web_authorization_relationships,
         get_web_authorization_relationships,
     ),
     components(
         schemas(
-            InsertWebIdParams,
+            GetWebResponse,
+            CreateOrgWebParams,
+            CreateWebResponse,
 
             WebRelationAndSubject,
             WebPermission,
@@ -77,7 +83,9 @@ impl WebResource {
                     "/relationships",
                     post(modify_web_authorization_relationships::<A>),
                 )
-                .route("/", post(create_web::<S, A>))
+                .route("/", post(create_org_web::<S, A>))
+                .route("/:web_id", get(get_web::<S, A>))
+                .route("/shortname/:shortname", get(get_web_by_shortname::<S, A>))
                 .nest(
                     "/:web_id",
                     Router::new()
@@ -92,15 +100,16 @@ impl WebResource {
 }
 
 #[utoipa::path(
-    post,
-    path = "/webs",
-    request_body = InsertWebIdParams,
+    get,
+    path = "/webs/{web_id}",
     tag = "Web",
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("web_id" = WebId, Path, description = "The ID of the web to retrieve"),
     ),
     responses(
-        (status = 200, content_type = "application/json", description = "The web was created successfully", body = WebId),
+        (status = 200, content_type = "application/json", description = "The web was retrieved successfully", body = GetWebResponse),
+        (status = 404, content_type = "application/json", description = "The web was not found"),
 
         (status = 500, description = "Store error occurred"),
     )
@@ -109,13 +118,13 @@ impl WebResource {
     level = "info",
     skip(store_pool, authorization_api_pool, temporal_client)
 )]
-async fn create_web<S, A>(
+async fn get_web<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    Path(web_id): Path<WebId>,
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
-    Json(params): Json<InsertWebIdParams>,
-) -> Result<Json<WebId>, Response>
+) -> Result<Json<GetWebResponse>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
@@ -131,28 +140,120 @@ where
         .await
         .map_err(report_to_response)?;
 
-    // TODO: Uncomment this once we use the new principals
-    // store
-    //     .create_web(
-    //         ActorId::User(UserId::new(actor_id)),
-    //         CreateWebParameter {
-    //             id: Some(params.web_id.into_uuid()),
-    //         },
-    //     )
-    //     .await
-    //     .map_err(|report| {
-    //         tracing::error!(error=?report, "Could not create web id");
-
-    //         StatusCode::INTERNAL_SERVER_ERROR
-    //     })?;
-
-    let web_id = params.web_id;
     store
-        .insert_web_id(actor_id, params)
+        .find_web(actor_id, web_id)
+        .await
+        .map_err(report_to_response)?
+        .ok_or_else(|| {
+            status_to_response(Status::new(
+                hash_status::StatusCode::NotFound,
+                None,
+                Vec::<()>::new(),
+            ))
+        })
+        .map(Json)
+}
+
+#[utoipa::path(
+    get,
+    path = "/webs/shortname/{shortname}",
+    tag = "Web",
+    params(
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("shortname" = String, Path, description = "The shortname of the web to retrieve"),
+    ),
+    responses(
+        (status = 200, content_type = "application/json", description = "The web was retrieved successfully", body = GetWebResponse),
+        (status = 404, content_type = "application/json", description = "The web was not found"),
+
+        (status = 500, description = "Store error occurred"),
+    )
+)]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client)
+)]
+async fn get_web_by_shortname<S, A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    Path(shortname): Path<String>,
+    authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    store_pool: Extension<Arc<S>>,
+) -> Result<Json<GetWebResponse>, Response>
+where
+    S: StorePool + Send + Sync,
+    A: AuthorizationApiPool + Send + Sync,
+    for<'p, 'a> S::Store<'p, A::Api<'a>>: PrincipalStore,
+{
+    let authorization_api = authorization_api_pool
+        .acquire()
         .await
         .map_err(report_to_response)?;
 
-    Ok(Json(web_id))
+    let mut store = store_pool
+        .acquire(authorization_api, temporal_client.0)
+        .await
+        .map_err(report_to_response)?;
+
+    store
+        .find_web_by_shortname(actor_id, &shortname)
+        .await
+        .map_err(report_to_response)?
+        .ok_or_else(|| {
+            status_to_response(Status::new(
+                hash_status::StatusCode::NotFound,
+                None,
+                Vec::<()>::new(),
+            ))
+        })
+        .map(Json)
+}
+
+#[utoipa::path(
+    post,
+    path = "/webs",
+    request_body = CreateOrgWebParams,
+    tag = "Web",
+    params(
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
+    responses(
+        (status = 200, content_type = "application/json", description = "The web was created successfully", body = CreateWebResponse),
+
+        (status = 500, description = "Store error occurred"),
+    )
+)]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client)
+)]
+async fn create_org_web<S, A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    store_pool: Extension<Arc<S>>,
+    Json(params): Json<CreateOrgWebParams>,
+) -> Result<Json<CreateWebResponse>, Response>
+where
+    S: StorePool + Send + Sync,
+    A: AuthorizationApiPool + Send + Sync,
+    for<'p, 'a> S::Store<'p, A::Api<'a>>: PrincipalStore,
+{
+    let authorization_api = authorization_api_pool
+        .acquire()
+        .await
+        .map_err(report_to_response)?;
+
+    let mut store = store_pool
+        .acquire(authorization_api, temporal_client.0)
+        .await
+        .map_err(report_to_response)?;
+
+    store
+        .create_org_web(actor_id, params)
+        .await
+        .map(Json)
+        .map_err(report_to_response)
 }
 
 #[utoipa::path(

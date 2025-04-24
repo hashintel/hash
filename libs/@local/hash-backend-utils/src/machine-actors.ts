@@ -1,6 +1,7 @@
 import type {
   ActorEntityUuid,
-  EntityUuid,
+  AiId,
+  MachineId,
   ProvidedEntityEditionProvenance,
   VersionedUrl,
   WebId,
@@ -28,10 +29,23 @@ export type MachineActorIdentifier =
   | GlobalMachineActorIdentifier
   | WebMachineActorIdentifier;
 
+export const getWebMachineId = async (
+  context: { graphApi: GraphApi },
+  authentication: { actorId: ActorEntityUuid },
+  {
+    webId,
+  }: {
+    webId: WebId;
+  },
+): Promise<MachineId> =>
+  context.graphApi
+    .getWeb(authentication.actorId, webId)
+    .then(({ data }) => data.machineId as MachineId);
+
 /**
  * Retrieve a machine actor's accountId by its unique identifier
  */
-export const getMachineActorId = async (
+export const getMachineIdByIdentifier = async (
   context: { graphApi: GraphApi },
   authentication: { actorId: ActorEntityUuid },
   { identifier }: { identifier: MachineActorIdentifier },
@@ -103,7 +117,7 @@ export const createMachineActorEntity = async (
   {
     identifier,
     logger,
-    machineAccountId,
+    machineId,
     webId,
     displayName,
     systemAccountId,
@@ -114,13 +128,13 @@ export const createMachineActorEntity = async (
     // A logger instance
     logger: Logger;
     // An existing accountId for the machine actor, which will also be used to authenticate the request
-    machineAccountId: ActorEntityUuid;
+    machineId: MachineId | AiId;
     // The WebId of the web the actor's entity will belong to
     webId: WebId;
     // A display name for the machine actor, to display to users
     displayName: string;
     // The accountId of the system account, used to grant the machine actor permissions to instantiate system types
-    systemAccountId: ActorEntityUuid;
+    systemAccountId: MachineId;
     machineEntityTypeId?: VersionedUrl;
   },
 ): Promise<void> => {
@@ -134,7 +148,7 @@ export const createMachineActorEntity = async (
         relationAndSubject: {
           subject: {
             kind: "account",
-            subjectId: machineAccountId,
+            subjectId: machineId,
           },
           relation: "instantiator",
         },
@@ -151,10 +165,10 @@ export const createMachineActorEntity = async (
 
   await HashEntity.create<Machine>(
     context.graphApi,
-    { actorId: machineAccountId },
+    { actorId: machineId },
     {
       draft: false,
-      entityUuid: machineAccountId.toString() as EntityUuid,
+      entityUuid: machineId,
       entityTypeIds: machineEntityTypeId
         ? ([machineEntityTypeId] as Machine["entityTypeIds"])
         : [systemEntityTypes.machine.entityTypeId],
@@ -184,7 +198,7 @@ export const createMachineActorEntity = async (
           relation: "administrator",
           subject: {
             kind: "account",
-            subjectId: machineAccountId,
+            subjectId: machineId,
           },
         },
         {
@@ -198,7 +212,7 @@ export const createMachineActorEntity = async (
   );
 
   logger.info(
-    `Created machine actor entity with identifier '${identifier}' with accountId: ${machineAccountId}, in web ${webId}`,
+    `Created machine actor entity with identifier '${identifier}' with accountId: ${machineId}, in web ${webId}`,
   );
 
   await context.graphApi.modifyEntityTypeAuthorizationRelationships(
@@ -210,7 +224,7 @@ export const createMachineActorEntity = async (
         relationAndSubject: {
           subject: {
             kind: "account",
-            subjectId: machineAccountId,
+            subjectId: machineId,
           },
           relation: "instantiator",
         },
@@ -218,6 +232,32 @@ export const createMachineActorEntity = async (
     ],
   );
 };
+
+export const createWebMachineActorEntity = async (
+  context: { graphApi: GraphApi },
+  {
+    systemAccountId,
+    webId,
+    machineId,
+    machineEntityTypeId,
+    logger,
+  }: {
+    systemAccountId: MachineId;
+    webId: WebId;
+    machineId: MachineId;
+    machineEntityTypeId?: VersionedUrl;
+    logger: Logger;
+  },
+): Promise<void> =>
+  createMachineActorEntity(context, {
+    identifier: `system-${webId}`,
+    displayName: "HASH",
+    systemAccountId,
+    webId,
+    machineId,
+    machineEntityTypeId,
+    logger,
+  });
 
 /**
  * 1. Creates an account for a machine and grants it ownership permissions for the specified web
@@ -228,64 +268,35 @@ export const createWebMachineActor = async (
   context: { graphApi: GraphApi },
   authentication: { actorId: ActorEntityUuid },
   {
-    webId,
+    shortname,
     logger,
     machineEntityTypeId,
   }: {
-    webId: WebId;
+    shortname: string;
     logger: Logger;
     machineEntityTypeId?: VersionedUrl;
   },
 ): Promise<ActorEntityUuid> => {
   const { graphApi } = context;
 
-  const machineAccountId = await graphApi
-    .createAccount(authentication.actorId, {
-      accountType: "machine",
-    })
-    .then((resp) => resp.data.id as ActorEntityUuid);
+  const systemAccountId = await graphApi
+    .getOrCreateSystemActor("h")
+    .then(({ data }) => data as MachineId);
 
-  await graphApi.modifyWebAuthorizationRelationships(authentication.actorId, [
-    {
-      operation: "create",
-      resource: webId,
-      relationAndSubject: {
-        subject: {
-          kind: "account",
-          subjectId: machineAccountId,
-        },
-        relation: "owner",
-      },
-    },
-  ]);
+  const { webId, machineId } = await graphApi
+    .getWebByShortname(authentication.actorId, shortname)
+    .then(({ data }) => ({
+      webId: data.webId as WebId,
+      machineId: data.machineId as MachineId,
+    }));
 
-  const systemAccountId = await getMachineActorId(context, authentication, {
-    identifier: "h",
-  });
-
-  await createMachineActorEntity(context, {
-    identifier: `system-${webId}`,
-    logger,
-    machineAccountId,
-    webId,
-    displayName: "HASH",
+  await createWebMachineActorEntity(context, {
     systemAccountId,
-    machineEntityTypeId,
-  });
-
-  return machineAccountId;
-};
-
-export const getWebMachineActorId = async (
-  context: { graphApi: GraphApi },
-  authentication: { actorId: ActorEntityUuid },
-  {
     webId,
-  }: {
-    webId: WebId;
-  },
-): Promise<ActorEntityUuid> => {
-  return getMachineActorId(context, authentication, {
-    identifier: `system-${webId}`,
+    machineId,
+    machineEntityTypeId,
+    logger,
   });
+
+  return machineId;
 };

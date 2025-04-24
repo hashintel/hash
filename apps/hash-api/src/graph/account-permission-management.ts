@@ -1,60 +1,116 @@
 import type {
   ActorEntityUuid,
   ActorGroupEntityUuid,
+  AiId,
+  MachineId,
+  UserId,
   WebId,
 } from "@blockprotocol/type-system";
-import type {
-  InsertAccountGroupIdParams,
-  InsertAccountIdParams,
-  WebOwnerSubject,
-} from "@local/hash-graph-client";
+import { NotFoundError } from "@local/hash-backend-utils/error";
 
 import type { ImpureGraphFunction } from "./context-types";
 
-export const addAccountGroupMember: ImpureGraphFunction<
-  { accountId: ActorEntityUuid; accountGroupId: ActorGroupEntityUuid },
+export const addActorGroupMember: ImpureGraphFunction<
+  { actorId: ActorEntityUuid; actorGroupId: ActorGroupEntityUuid },
   Promise<boolean>
 > = async ({ graphApi }, { actorId }, params) => {
-  await graphApi.addAccountGroupMember(
+  await graphApi.assignActorGroupRole(
     actorId,
-    params.accountGroupId,
-    params.accountId,
+    params.actorGroupId,
+    "member",
+    params.actorId,
   );
 
   return true;
 };
 
-export const removeAccountGroupMember: ImpureGraphFunction<
-  { accountId: ActorEntityUuid; accountGroupId: ActorGroupEntityUuid },
+export const removeActorGroupMember: ImpureGraphFunction<
+  { actorId: ActorEntityUuid; actorGroupId: ActorGroupEntityUuid },
   Promise<boolean>
 > = async ({ graphApi }, { actorId }, params) => {
-  await graphApi.removeAccountGroupMember(
+  await graphApi.unassignActorGroupRole(
     actorId,
-    params.accountGroupId,
-    params.accountId,
+    params.actorGroupId,
+    "member",
+    params.actorId,
   );
 
   return true;
 };
 
-export const createAccount: ImpureGraphFunction<
-  InsertAccountIdParams,
-  Promise<ActorEntityUuid>
+export const createUserActor: ImpureGraphFunction<
+  {
+    shortname?: string;
+    registrationComplete: boolean;
+  },
+  Promise<{ userId: UserId; machineId: MachineId }>
+> = async ({ graphApi }, { actorId }, params) =>
+  graphApi.createUserActor(actorId, params).then(({ data }) => ({
+    userId: data.userId as UserId,
+    machineId: data.machineId as MachineId,
+  }));
+
+export const createAiActor: ImpureGraphFunction<
+  {
+    identifier: string;
+  },
+  Promise<AiId>
+> = async ({ graphApi }, { actorId }, params) =>
+  graphApi.createAiActor(actorId, params).then(({ data }) => data as AiId);
+
+export const getWeb: ImpureGraphFunction<
+  {
+    webId: WebId;
+  },
+  Promise<{ webId: WebId; machineId: MachineId; shortname?: string }>
 > = async ({ graphApi }, { actorId }, params) =>
   graphApi
-    .createAccount(actorId, params)
-    .then(({ data }) => data.id as ActorEntityUuid);
+    .getWeb(actorId, params.webId)
+    .then(({ data }) => ({
+      webId: params.webId,
+      machineId: data.machineId as MachineId,
+      shortname: data.shortname,
+    }))
+    .catch((error) => {
+      if (error.response?.status === 404) {
+        throw new NotFoundError(
+          `No web with id ${params.webId} found in the graph.`,
+        );
+      } else {
+        throw error;
+      }
+    });
 
-export const createAccountGroup: ImpureGraphFunction<
-  InsertAccountGroupIdParams,
-  Promise<ActorGroupEntityUuid>
+export const findWebByShortname: ImpureGraphFunction<
+  {
+    shortname: string;
+  },
+  Promise<{ webId: WebId; machineId: MachineId; shortname: string }>
 > = async ({ graphApi }, { actorId }, params) =>
   graphApi
-    .createAccountGroup(actorId, params)
-    .then(({ data }) => data as ActorGroupEntityUuid);
+    .getWebByShortname(actorId, params.shortname)
+    .then(({ data }) => ({
+      webId: data.webId as WebId,
+      machineId: data.machineId as MachineId,
+      shortname: params.shortname,
+    }))
+    .catch((error) => {
+      if (error.response?.status === 404) {
+        throw new NotFoundError(
+          `No web with shortname ${params.shortname} found in the graph.`,
+        );
+      } else {
+        throw error;
+      }
+    });
 
-export const createWeb: ImpureGraphFunction<
-  { webId?: WebId; owner: WebOwnerSubject },
-  Promise<WebId>
+export const createOrgWeb: ImpureGraphFunction<
+  {
+    shortname: string;
+  },
+  Promise<{ webId: WebId; machineId: MachineId }>
 > = async ({ graphApi }, { actorId }, params) =>
-  graphApi.createWeb(actorId, params).then(({ data }) => data as WebId);
+  graphApi.createOrgWeb(actorId, params).then(({ data }) => ({
+    webId: data.webId as WebId,
+    machineId: data.machineId as MachineId,
+  }));

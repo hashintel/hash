@@ -1,6 +1,7 @@
 import type {
   ActorEntityUuid,
-  ActorGroupEntityUuid,
+  TeamId,
+  WebId,
 } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
@@ -20,7 +21,6 @@ import type {
 import { backOff } from "exponential-backoff";
 
 import { EntityTypeMismatchError, NotFoundError } from "./error.js";
-import { getMachineActorId } from "./machine-actors.js";
 
 export type HashInstance = {
   entity: HashEntity<HASHInstance>;
@@ -134,41 +134,13 @@ export const isUserHashInstanceAdmin = async (
     });
 };
 
-/**
- * Retrieves the accountGroupId of the instance admin account group.
- */
-export const getHashInstanceAdminAccountGroupId = async (
+export const getInstanceAdminsTeam = async (
   ctx: { graphApi: GraphApi },
   authentication: { actorId: ActorEntityUuid },
-): Promise<ActorGroupEntityUuid> => {
-  const hashInstance = await getHashInstance(ctx, authentication);
-
-  const systemAccountId = await getMachineActorId(
-    { graphApi: ctx.graphApi },
-    authentication,
-    { identifier: "h" },
-  );
-
-  const entityPermissions = await ctx.graphApi
-    .getEntityAuthorizationRelationships(
-      systemAccountId,
-      hashInstance.entity.metadata.recordId.entityId,
-    )
-    .then((resp) => resp.data);
-
-  const entityAdmin = entityPermissions.find(
-    (permission) => permission.relation === "administrator",
-  )?.subject;
-
-  if (!entityAdmin || !("subjectId" in entityAdmin)) {
-    throw new Error("No administrator role over HASH Instance entity.");
-  }
-
-  if (entityAdmin.kind !== "accountGroup") {
-    throw new Error(
-      `HASH Instance entity administrator is a ${entityAdmin.kind}, expected accountGroup`,
-    );
-  }
-
-  return entityAdmin.subjectId as ActorGroupEntityUuid;
-};
+): Promise<{ teamId: TeamId; webId: WebId }> =>
+  ctx.graphApi
+    .getInstanceAdminsTeam(authentication.actorId)
+    .then(({ data }) => ({
+      teamId: data.teamId as TeamId,
+      webId: data.parentId.id as WebId,
+    }));

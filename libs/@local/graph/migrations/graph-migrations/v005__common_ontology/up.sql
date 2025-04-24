@@ -11,7 +11,7 @@ CREATE TABLE ontology_ids (
 
 CREATE TABLE ontology_owned_metadata (
     ontology_id UUID PRIMARY KEY REFERENCES ontology_ids,
-    web_id UUID NOT NULL REFERENCES webs
+    web_id UUID NOT NULL REFERENCES web
 );
 
 CREATE TABLE ontology_external_metadata (

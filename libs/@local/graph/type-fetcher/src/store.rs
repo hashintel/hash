@@ -6,7 +6,8 @@ use error_stack::{Report, ResultExt as _};
 use hash_graph_authorization::{
     AuthorizationApi,
     policies::store::{
-        CreateWebParameter, PrincipalStore, RoleAssignmentStatus, RoleUnassignmentStatus,
+        CreateWebParameter, CreateWebResponse, PrincipalStore, RoleAssignmentStatus,
+        RoleUnassignmentStatus,
         error::{GetSystemAccountError, RoleAssignmentError, WebCreationError},
     },
     schema::{
@@ -18,9 +19,10 @@ use hash_graph_authorization::{
 };
 use hash_graph_store::{
     account::{
-        AccountGroupInsertionError, AccountInsertionError, AccountStore,
-        InsertAccountGroupIdParams, InsertAccountIdParams, InsertWebIdParams, QueryWebError,
-        WebInsertionError,
+        AccountGroupInsertionError, AccountInsertionError, AccountStore, CreateAiActorParams,
+        CreateMachineActorParams, CreateOrgWebParams, CreateTeamParams, CreateUserActorParams,
+        CreateUserActorResponse, GetTeamResponse, GetWebResponse, QueryWebError,
+        TeamRetrievalError, WebInsertionError, WebRetrievalError,
     },
     data_type::{
         ArchiveDataTypeParams, CountDataTypesParams, CreateDataTypeParams, DataTypeStore,
@@ -79,8 +81,8 @@ use type_system::{
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
     principal::{
-        actor::{ActorEntityUuid, ActorId, ActorType, MachineId},
-        actor_group::{ActorGroupEntityUuid, WebId},
+        actor::{ActorEntityUuid, ActorId, ActorType, AiId, MachineId},
+        actor_group::{ActorGroupEntityUuid, ActorGroupId, TeamId, WebId},
         role::RoleName,
     },
     provenance::{OriginProvenance, OriginType},
@@ -179,17 +181,18 @@ where
     S: PrincipalStore + Send,
     A: Send,
 {
-    async fn get_or_create_system_account(
+    async fn get_or_create_system_actor(
         &mut self,
+        identifier: &str,
     ) -> Result<MachineId, Report<GetSystemAccountError>> {
-        self.store.get_or_create_system_account().await
+        self.store.get_or_create_system_actor(identifier).await
     }
 
     async fn create_web(
         &mut self,
         actor: ActorId,
         parameter: CreateWebParameter,
-    ) -> Result<WebId, Report<WebCreationError>> {
+    ) -> Result<CreateWebResponse, Report<WebCreationError>> {
         self.store.create_web(actor, parameter).await
     }
 
@@ -203,6 +206,14 @@ where
         self.store
             .assign_role(actor, actor_to_assign, actor_group_id, name)
             .await
+    }
+
+    async fn is_assigned(
+        &mut self,
+        actor_id: ActorId,
+        actor_group_id: ActorGroupId,
+    ) -> Result<Option<RoleName>, Report<RoleAssignmentError>> {
+        self.store.is_assigned(actor_id, actor_group_id).await
     }
 
     async fn unassign_role(
@@ -855,28 +866,68 @@ where
     S: AccountStore + Send + Sync,
     A: Send + Sync,
 {
-    async fn insert_account_id(
+    async fn create_user_actor(
         &mut self,
         actor_id: ActorEntityUuid,
-        params: InsertAccountIdParams,
-    ) -> Result<(), Report<AccountInsertionError>> {
-        self.store.insert_account_id(actor_id, params).await
+        params: CreateUserActorParams,
+    ) -> Result<CreateUserActorResponse, Report<AccountInsertionError>> {
+        self.store.create_user_actor(actor_id, params).await
     }
 
-    async fn insert_account_group_id(
+    async fn create_machine_actor(
         &mut self,
         actor_id: ActorEntityUuid,
-        params: InsertAccountGroupIdParams,
-    ) -> Result<(), Report<AccountGroupInsertionError>> {
-        self.store.insert_account_group_id(actor_id, params).await
+        params: CreateMachineActorParams,
+    ) -> Result<MachineId, Report<AccountInsertionError>> {
+        self.store.create_machine_actor(actor_id, params).await
     }
 
-    async fn insert_web_id(
+    async fn create_ai_actor(
         &mut self,
         actor_id: ActorEntityUuid,
-        params: InsertWebIdParams,
-    ) -> Result<(), Report<WebInsertionError>> {
-        self.store.insert_web_id(actor_id, params).await
+        params: CreateAiActorParams,
+    ) -> Result<AiId, Report<AccountInsertionError>> {
+        self.store.create_ai_actor(actor_id, params).await
+    }
+
+    async fn find_web(
+        &mut self,
+        actor_id: ActorEntityUuid,
+        web_id: WebId,
+    ) -> Result<Option<GetWebResponse>, Report<WebRetrievalError>> {
+        self.store.find_web(actor_id, web_id).await
+    }
+
+    async fn find_web_by_shortname(
+        &mut self,
+        actor_id: ActorEntityUuid,
+        shortname: &str,
+    ) -> Result<Option<GetWebResponse>, Report<WebRetrievalError>> {
+        self.store.find_web_by_shortname(actor_id, shortname).await
+    }
+
+    async fn create_org_web(
+        &mut self,
+        actor_id: ActorEntityUuid,
+        params: CreateOrgWebParams,
+    ) -> Result<CreateWebResponse, Report<WebInsertionError>> {
+        self.store.create_org_web(actor_id, params).await
+    }
+
+    async fn create_team(
+        &mut self,
+        actor_id: ActorEntityUuid,
+        params: CreateTeamParams,
+    ) -> Result<TeamId, Report<AccountGroupInsertionError>> {
+        self.store.create_team(actor_id, params).await
+    }
+
+    async fn find_team_by_name(
+        &mut self,
+        actor_id: ActorEntityUuid,
+        name: &str,
+    ) -> Result<Option<GetTeamResponse>, Report<TeamRetrievalError>> {
+        self.store.find_team_by_name(actor_id, name).await
     }
 
     async fn identify_subject_id(

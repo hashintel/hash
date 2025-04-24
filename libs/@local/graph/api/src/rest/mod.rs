@@ -2,7 +2,7 @@
 //!
 //! Handler methods are grouped by routes that make up the REST API.
 
-pub mod account;
+pub mod actor;
 pub mod data_type;
 pub mod entity;
 pub mod entity_type;
@@ -200,7 +200,7 @@ where
     for<'pool, 'api> S::Store<'pool, A::Api<'api>>: RestApiStore + PrincipalStore,
 {
     vec![
-        account::AccountResource::routes::<S, A>(),
+        actor::ActorResource::routes::<S, A>(),
         data_type::DataTypeResource::routes::<S, A>(),
         property_type::PropertyTypeResource::routes::<S, A>(),
         entity_type::EntityTypeResource::routes::<S, A>(),
@@ -211,7 +211,7 @@ where
 
 fn api_documentation() -> Vec<openapi::OpenApi> {
     vec![
-        account::AccountResource::openapi(),
+        actor::ActorResource::openapi(),
         data_type::DataTypeResource::openapi(),
         property_type::PropertyTypeResource::openapi(),
         entity_type::EntityTypeResource::openapi(),
@@ -288,11 +288,11 @@ impl QueryLogger {
 #[serde(tag = "endpoint", content = "query", rename_all = "camelCase")]
 pub enum OpenApiQuery<'a> {
     CheckAccountGroupPermission {
-        account_group_id: ActorGroupEntityUuid,
+        actor_group_id: ActorGroupEntityUuid,
         permission: AccountGroupPermission,
     },
-    GetAccountGroupRelations {
-        account_group_id: ActorGroupEntityUuid,
+    GetActorGroupRelations {
+        actor_group_id: ActorGroupEntityUuid,
     },
     GetDataTypes(&'a JsonValue),
     GetDataTypeSubgraph(&'a JsonValue),

@@ -57,8 +57,12 @@ impl From<WebId> for Uuid {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Web {
     pub id: WebId,
+    pub shortname: Option<String>,
     pub roles: HashSet<WebRoleId>,
 }

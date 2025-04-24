@@ -1,48 +1,42 @@
 # This file either runs with JetBrains' http requests or using httpYac (https://httpyac.github.io).
 
-### Create account
-POST http://127.0.0.1:4000/accounts
+### Get system user
+GET http://127.0.0.1:4000/system/actor/h
 Content-Type: application/json
-X-Authenticated-User-Actor-Id: 00000000-0000-0000-0000-000000000000
-
-{
-  "accountType": "machine"
-}
 
 > {%
-    client.test("status", function() {
-        client.assert(response.status === 200, "Response status is not 200");
-    });
-    client.global.set("account_id", response.body.id);
+  client.test("status", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+  });
+  client.global.set("system_machine_id", response.body);
 %}
 
-### Create account web
-POST http://127.0.0.1:4000/webs
+
+### Create account
+POST http://127.0.0.1:4000/actors/user
 Content-Type: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{system_machine_id}}
 
 {
-   "webId": "{{account_id}}",
-   "owner": {
-       "kind": "account",
-       "subjectId": "{{account_id}}"
-    }
+  "shortname": "test-user",
+  "registrationComplete": true
 }
 
 > {%
-    client.test("status", function() {
-        client.assert(response.status === 200, "Response status is not 200");
-    });
+  client.test("status", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+  });
+  client.global.set("user_id", response.body.userId);
 %}
 
 ### Insert entity types
 POST http://127.0.0.1:4000/entity-types
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
-  "webId": "{{account_id}}",
+  "webId": "{{user_id}}",
   "schema": [{
     "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
     "kind": "entityType",
@@ -177,7 +171,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       "relation": "instantiator",
       "subject": {
         "kind": "account",
-        "subjectId": "{{account_id}}"
+        "subjectId": "{{user_id}}"
       }
   }]
 }
@@ -192,10 +186,10 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
-  "webId": "{{account_id}}",
+  "webId": "{{user_id}}",
   "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/left1/v/1"],
   "draft": false,
@@ -225,10 +219,10 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
-  "webId": "{{account_id}}",
+  "webId": "{{user_id}}",
   "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/left2/v/1"],
   "draft": false,
@@ -258,10 +252,10 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
-  "webId": "{{account_id}}",
+  "webId": "{{user_id}}",
   "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/left3/v/1"],
   "draft": false,
@@ -291,10 +285,10 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
-  "webId": "{{account_id}}",
+  "webId": "{{user_id}}",
   "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/right1/v/1"],
   "draft": false,
@@ -324,10 +318,10 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
-  "webId": "{{account_id}}",
+  "webId": "{{user_id}}",
   "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/right2/v/1"],
   "draft": false,
@@ -357,10 +351,10 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
-  "webId": "{{account_id}}",
+  "webId": "{{user_id}}",
   "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/right3/v/1"],
   "draft": false,
@@ -390,10 +384,10 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
-  "webId": "{{account_id}}",
+  "webId": "{{user_id}}",
   "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link1/v/1"],
   "linkData": {
@@ -426,10 +420,10 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
-  "webId": "{{account_id}}",
+  "webId": "{{user_id}}",
   "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link1/v/1"],
   "linkData": {
@@ -462,10 +456,10 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
-  "webId": "{{account_id}}",
+  "webId": "{{user_id}}",
   "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link1/v/1"],
   "linkData": {
@@ -498,10 +492,10 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
-  "webId": "{{account_id}}",
+  "webId": "{{user_id}}",
   "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link1/v/1"],
   "linkData": {
@@ -534,10 +528,10 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
-  "webId": "{{account_id}}",
+  "webId": "{{user_id}}",
   "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link1/v/1"],
   "linkData": {
@@ -570,10 +564,10 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
-  "webId": "{{account_id}}",
+  "webId": "{{user_id}}",
   "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link1/v/1"],
   "linkData": {
@@ -606,10 +600,10 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
-  "webId": "{{account_id}}",
+  "webId": "{{user_id}}",
   "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link1/v/1"],
   "linkData": {
@@ -642,10 +636,10 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
-  "webId": "{{account_id}}",
+  "webId": "{{user_id}}",
   "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link1/v/1"],
   "linkData": {
@@ -678,10 +672,10 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
-  "webId": "{{account_id}}",
+  "webId": "{{user_id}}",
   "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link1/v/1"],
   "linkData": {
@@ -714,10 +708,10 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
-  "webId": "{{account_id}}",
+  "webId": "{{user_id}}",
   "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link2/v/1"],
   "linkData": {
@@ -750,10 +744,10 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
-  "webId": "{{account_id}}",
+  "webId": "{{user_id}}",
   "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link2/v/1"],
   "linkData": {
@@ -786,10 +780,10 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
-  "webId": "{{account_id}}",
+  "webId": "{{user_id}}",
   "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link2/v/1"],
   "linkData": {
@@ -822,10 +816,10 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
-  "webId": "{{account_id}}",
+  "webId": "{{user_id}}",
   "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link2/v/1"],
   "linkData": {
@@ -858,10 +852,10 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
-  "webId": "{{account_id}}",
+  "webId": "{{user_id}}",
   "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link2/v/1"],
   "linkData": {
@@ -894,10 +888,10 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
-  "webId": "{{account_id}}",
+  "webId": "{{user_id}}",
   "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link2/v/1"],
   "linkData": {
@@ -930,10 +924,10 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
-  "webId": "{{account_id}}",
+  "webId": "{{user_id}}",
   "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link2/v/1"],
   "linkData": {
@@ -966,10 +960,10 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
-  "webId": "{{account_id}}",
+  "webId": "{{user_id}}",
   "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link2/v/1"],
   "linkData": {
@@ -1002,10 +996,10 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
-  "webId": "{{account_id}}",
+  "webId": "{{user_id}}",
   "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link2/v/1"],
   "linkData": {
@@ -1038,10 +1032,10 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
-  "webId": "{{account_id}}",
+  "webId": "{{user_id}}",
   "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link3/v/1"],
   "linkData": {
@@ -1074,10 +1068,10 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
-  "webId": "{{account_id}}",
+  "webId": "{{user_id}}",
   "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link3/v/1"],
   "linkData": {
@@ -1110,10 +1104,10 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
-  "webId": "{{account_id}}",
+  "webId": "{{user_id}}",
   "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link3/v/1"],
   "linkData": {
@@ -1146,10 +1140,10 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
-  "webId": "{{account_id}}",
+  "webId": "{{user_id}}",
   "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link3/v/1"],
   "linkData": {
@@ -1182,10 +1176,10 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
-  "webId": "{{account_id}}",
+  "webId": "{{user_id}}",
   "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link3/v/1"],
   "linkData": {
@@ -1218,10 +1212,10 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
-  "webId": "{{account_id}}",
+  "webId": "{{user_id}}",
   "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link3/v/1"],
   "linkData": {
@@ -1254,10 +1248,10 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
-  "webId": "{{account_id}}",
+  "webId": "{{user_id}}",
   "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link3/v/1"],
   "linkData": {
@@ -1290,10 +1284,10 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
-  "webId": "{{account_id}}",
+  "webId": "{{user_id}}",
   "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link3/v/1"],
   "linkData": {
@@ -1326,10 +1320,10 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 POST http://127.0.0.1:4000/entities
 Content-Type: application/json
 Accept: application/json
-X-Authenticated-User-Actor-Id: {{account_id}}
+X-Authenticated-User-Actor-Id: {{user_id}}
 
 {
-  "webId": "{{account_id}}",
+  "webId": "{{user_id}}",
   "properties": { "value": {} },
   "entityTypeIds": ["http://localhost:3000/@snapshot/types/entity-type/link3/v/1"],
   "linkData": {

@@ -1,12 +1,12 @@
 use core::{iter::repeat_n, str::FromStr as _};
 use std::collections::{HashMap, HashSet, hash_map::Entry};
 
-use hash_graph_authorization::{AuthorizationApi, schema::WebOwnerSubject};
-use hash_graph_postgres_store::store::AsClient as _;
-use hash_graph_store::{
-    account::{AccountStore as _, InsertAccountIdParams, InsertWebIdParams},
-    entity::{CreateEntityParams, EntityStore as _},
+use hash_graph_authorization::{
+    AuthorizationApi,
+    policies::store::{CreateWebParameter, LocalPrincipalStore as _},
 };
+use hash_graph_postgres_store::store::AsClient as _;
+use hash_graph_store::entity::{CreateEntityParams, EntityStore as _};
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
 use type_system::{
     knowledge::{
@@ -15,7 +15,7 @@ use type_system::{
     },
     ontology::{VersionedUrl, entity_type::EntityType},
     principal::{
-        actor::{ActorEntityUuid, ActorType},
+        actor::{ActorEntityUuid, ActorId, ActorType},
         actor_group::WebId,
     },
     provenance::{OriginProvenance, OriginType},
@@ -140,26 +140,34 @@ async fn seed_db<A: AuthorizationApi>(
     let now = std::time::SystemTime::now();
     eprintln!("Seeding database: {}", store_wrapper.bench_db_name);
 
-    transaction
-        .insert_account_id(
-            account_id,
-            InsertAccountIdParams {
-                account_id,
-                account_type: ActorType::Machine,
-            },
-        )
+    if !transaction
+        .is_web(account_id)
         .await
-        .expect("could not insert account id");
-    transaction
-        .insert_web_id(
-            account_id,
-            InsertWebIdParams {
-                web_id: WebId::new(account_id),
-                owner: WebOwnerSubject::Account { id: account_id },
-            },
-        )
-        .await
-        .expect("could not create web id");
+        .expect("Should be able to check actor")
+    {
+        let system_account_id = transaction
+            .get_or_create_system_actor("h")
+            .await
+            .expect("could not read system account");
+
+        let user_id = transaction
+            .create_user(Some(account_id.into()))
+            .await
+            .expect("could not create user");
+
+        transaction
+            .create_web(
+                ActorId::from(system_account_id),
+                CreateWebParameter {
+                    id: Some(user_id.into()),
+                    administrator: user_id.into(),
+                    shortname: Some("alice".to_owned()),
+                    is_actor_web: true,
+                },
+            )
+            .await
+            .expect("could not create web");
+    }
 
     seed(
         &mut transaction,
@@ -363,7 +371,7 @@ pub async fn setup_and_extract_samples<A: AuthorizationApi>(
         .as_client()
         .query_one(
             "
-            SELECT EXISTS(SELECT 1 FROM accounts WHERE account_id=$1)
+            SELECT EXISTS(SELECT 1 FROM web WHERE id=$1)
             ",
             &[&account_id],
         )
@@ -371,7 +379,7 @@ pub async fn setup_and_extract_samples<A: AuthorizationApi>(
         .expect("failed to check if account id exists")
         .get(0);
 
-    if !(already_seeded) {
+    if !already_seeded {
         seed_db(account_id, store_wrapper).await;
     }
 

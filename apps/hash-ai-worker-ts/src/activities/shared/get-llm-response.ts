@@ -5,7 +5,7 @@ import type {
   ProvidedEntityEditionProvenance,
   WebId,
 } from "@blockprotocol/type-system";
-import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
+import { getInstanceAdminsTeam } from "@local/hash-backend-utils/hash-instance";
 import { createUsageRecord } from "@local/hash-backend-utils/service-usage";
 import type { GraphApi } from "@local/hash-graph-client";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
@@ -190,7 +190,7 @@ export const getLlmResponse = async <T extends LlmParams>(
     const { incurredInEntities } = usageTrackingParams;
 
     if (incurredInEntities.length > 0) {
-      const hashInstanceAdminGroupId = await getHashInstanceAdminAccountGroupId(
+      const { teamId: hashInstanceAdminGroupId } = await getInstanceAdminsTeam(
         { graphApi: graphApiClient },
         { actorId: aiAssistantAccountId },
       );

@@ -17,7 +17,7 @@ import type {
   OccurredInEntity,
 } from "@local/hash-isomorphic-utils/system-types/graphchangenotification";
 
-import { getWebMachineActorId } from "./machine-actors.js";
+import { getWebMachineId } from "./machine-actors.js";
 
 export const createNotificationEntityPermissions = ({
   machineActorId,
@@ -88,11 +88,9 @@ export const createGraphChangeNotification = async (
 
   const userAuthentication = { actorId: notifiedUserAccountId };
 
-  const webMachineActorId = await getWebMachineActorId(
-    context,
-    userAuthentication,
-    { webId: notifiedUserAccountId as WebId },
-  );
+  const webMachineActorId = await getWebMachineId(context, userAuthentication, {
+    webId: notifiedUserAccountId as WebId,
+  });
 
   const { linkEntityRelationships, notificationEntityRelationships } =
     createNotificationEntityPermissions({
