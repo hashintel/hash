@@ -55,7 +55,7 @@ export const UrlInput = ({
 
           setProtocol(newProtocol);
 
-          if (rest) {
+          if (rest.trim()) {
             onChange(`${newProtocol}://${rest}`);
           } else {
             /**
