@@ -48,6 +48,8 @@ import {
   type PlaceNodeType,
   type TokenCounts,
 } from "./process-editor/types";
+import { useConvertToPnml } from "./process-editor/use-convert-to-pnml";
+import { useLoadFromPnml } from "./process-editor/use-load-from-pnml";
 
 const FlowCanvas = () => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
@@ -381,6 +383,55 @@ const FlowCanvas = () => {
     return place;
   }, [nodes, selectedPlaceId]);
 
+  const convertToPnml = useConvertToPnml();
+
+  const handleExport = () => {
+    const pnml = convertToPnml();
+
+    const blob = new Blob([pnml], { type: "application/xml" });
+
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "process.pnml";
+
+    document.body.appendChild(a);
+    a.click();
+
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 0);
+  };
+
+  const loadFromPnml = useLoadFromPnml();
+
+  const handleLoadFromPnml = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (!file) {
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (readerEvent) => {
+        const contents = readerEvent.target?.result;
+        if (typeof contents === "string") {
+          loadFromPnml(contents);
+        }
+      };
+      reader.readAsText(file);
+    },
+    [loadFromPnml],
+  );
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
   return (
     <Box
       sx={{ flex: 1, height: "100%", position: "relative" }}
@@ -446,13 +497,27 @@ const FlowCanvas = () => {
 
       <Stack
         direction="row"
-        spacing={1.5}
+        spacing={1}
         sx={{ position: "absolute", bottom: 16, right: 16, zIndex: 100 }}
       >
+        {" "}
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleLoadFromPnml}
+          accept=".pnml,.xml"
+          style={{ display: "none" }}
+        />
+        <Button onClick={handleImportClick} size="xs" variant="tertiary">
+          Import
+        </Button>
         <Button onClick={handleLoadExample} size="xs" variant="tertiary">
           Load Example
         </Button>
-        <Button onClick={handleResetAll} size="xs">
+        <Button onClick={handleExport} size="xs" variant="tertiary">
+          Export
+        </Button>
+        <Button onClick={handleResetAll} size="xs" variant="tertiary">
           New
         </Button>
       </Stack>
