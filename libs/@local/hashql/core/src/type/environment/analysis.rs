@@ -1,0 +1,351 @@
+use core::ops::{ControlFlow, Deref};
+
+use smallvec::SmallVec;
+
+use super::{Diagnostics, Environment, Variance};
+use crate::r#type::{
+    Type, TypeId,
+    error::{TypeCheckDiagnostic, circular_type_reference},
+    kind::TypeKind,
+    lattice::Lattice as _,
+    recursion::RecursionBoundary,
+};
+
+pub struct TypeAnalysisEnvironment<'env, 'heap> {
+    environment: &'env Environment<'heap>,
+    boundary: RecursionBoundary,
+    diagnostics: Option<Diagnostics>,
+    variance: Variance,
+}
+
+impl<'env, 'heap> TypeAnalysisEnvironment<'env, 'heap> {
+    #[must_use]
+    pub fn new(environment: &'env Environment<'heap>) -> Self {
+        Self {
+            environment,
+            boundary: RecursionBoundary::new(),
+            diagnostics: None,
+            variance: Variance::Covariant,
+        }
+    }
+
+    pub fn with_diagnostics(&mut self) -> &mut Self {
+        self.diagnostics = Some(Diagnostics::new());
+
+        self
+    }
+
+    pub fn take_diagnostics(&mut self) -> Vec<TypeCheckDiagnostic> {
+        self.diagnostics
+            .as_mut()
+            .map_or_else(Vec::new, Diagnostics::take)
+    }
+
+    pub fn fatal_diagnostics(&self) -> usize {
+        self.diagnostics.as_ref().map_or(0, Diagnostics::fatal)
+    }
+
+    pub fn is_bottom(&mut self, id: TypeId) -> bool {
+        if !self.boundary.enter(id, id) {
+            // We have found a recursive type, meaning it can't be bottom
+            return false;
+        }
+
+        let r#type = self.environment.types[id].copied();
+        let result = r#type.is_bottom(self);
+
+        self.boundary.exit(id, id);
+
+        result
+    }
+
+    pub fn is_top(&mut self, id: TypeId) -> bool {
+        if !self.boundary.enter(id, id) {
+            // We have found a recursive type, meaning it can't be top
+            return false;
+        }
+
+        let r#type = self.environment.types[id].copied();
+        let result = r#type.is_top(self);
+
+        self.boundary.exit(id, id);
+
+        result
+    }
+
+    pub fn is_disjoint(&mut self, lhs: TypeId, rhs: TypeId) -> bool {
+        let lhs = self.environment.types[lhs].copied();
+        let rhs = self.environment.types[rhs].copied();
+
+        !lhs.is_subtype_of(rhs, self) && !rhs.is_subtype_of(lhs, self)
+    }
+
+    pub fn is_concrete(&mut self, id: TypeId) -> bool {
+        if !self.boundary.enter(id, id) {
+            // We have found a recursive type with no holes, therefore it must be concrete
+            return true;
+        }
+
+        let r#type = self.environment.types[id].copied();
+        let result = r#type.is_concrete(self);
+
+        self.boundary.exit(id, id);
+
+        result
+    }
+
+    pub fn distribute_union(&mut self, id: TypeId) -> SmallVec<TypeId, 16> {
+        if !self.boundary.enter(id, id) {
+            // We have found a recursive type, due to coinductive reasoning, this means it can no
+            // longer be distributed
+            return SmallVec::from_slice(&[id]);
+        }
+
+        let r#type = self.environment.types[id].copied();
+        let result = r#type.distribute_union(self);
+
+        self.boundary.exit(id, id);
+
+        result
+    }
+
+    pub fn distribute_intersection(&mut self, id: TypeId) -> SmallVec<TypeId, 16> {
+        if !self.boundary.enter(id, id) {
+            // We have found a recursive type, due to coinductive reasoning, this means it can no
+            // longer be distributed
+            return SmallVec::from_slice(&[id]);
+        }
+
+        let r#type = self.environment.types[id].copied();
+        let result = r#type.distribute_intersection(self);
+
+        self.boundary.exit(id, id);
+
+        result
+    }
+
+    #[must_use]
+    pub const fn is_fail_fast(&self) -> bool {
+        self.diagnostics.is_none()
+    }
+
+    pub fn record_diagnostic(
+        &mut self,
+        diagnostic: impl FnOnce(&Environment<'heap>) -> TypeCheckDiagnostic,
+    ) -> ControlFlow<()> {
+        let Some(diagnostics) = self.diagnostics.as_mut() else {
+            // Fail-fast mode: No diagnostics storage available
+            // (typical for equivalence checks where we just need a yes/no answer)
+            return ControlFlow::Break(());
+        };
+
+        // Record the diagnostic in fail-slow mode
+        diagnostics.push(diagnostic(self.environment));
+
+        // Return indication to continue processing
+        // (used in type checking/unification to collect multiple errors)
+        ControlFlow::Continue(())
+    }
+
+    fn is_quick_subtype(subtype: &Type<'heap>, supertype: &Type<'heap>) -> Option<bool> {
+        if subtype.id == supertype.id {
+            return Some(true);
+        }
+
+        if core::ptr::eq(subtype.kind, supertype.kind) {
+            return Some(true);
+        }
+
+        if *subtype.kind == TypeKind::Never {
+            return Some(true);
+        }
+
+        if *supertype.kind == TypeKind::Never {
+            return Some(false);
+        }
+
+        if *subtype.kind == TypeKind::Unknown {
+            return Some(true);
+        }
+
+        if *supertype.kind == TypeKind::Unknown {
+            return Some(false);
+        }
+
+        None
+    }
+
+    /// Handling of recursive types on subtype checks
+    ///
+    /// For recursive types, we use coinductive reasoning when determining subtyping
+    /// relationships. When we encounter the same subtyping check again during recursion,
+    /// we should return true to maintain the coinductive assumption.
+    ///
+    /// Example:
+    /// For `type A = (Integer, A)` and `type B = (Number, B)`,
+    /// to check if A <: B, we need to check if (Integer, A) <: (Number, B)
+    /// This involves checking:
+    ///   1. Integer <: Number (true)
+    ///   2. A <: B (the original question)
+    ///
+    /// When we reach step 2, we encounter the same check we started with.
+    /// By returning true here, we complete the coinductive proof,
+    /// confirming A <: B if their non-recursive parts satisfy the subtyping relation.
+    ///
+    /// This implementation adheres to two fundamental coinductive principles:
+    ///
+    /// 1. **F-closure**: We assume the recursive subtype relationship holds, adding it to our
+    ///    relation. This means if (A,B) is in our relation, then all structurally derived pairs
+    ///    should also be in the relation.
+    ///
+    /// 2. **F-consistency**: For each subtyping pair in our assumed relation, we verify it can be
+    ///    justified by the subtyping rules applied to other pairs. We check all non-recursive
+    ///    components to ensure they maintain the expected relationship.
+    ///
+    /// By returning `true` upon cycle detection, we're allowing the coinductive hypothesis to
+    /// stand if no contradictions are found in the non-recursive parts, which matches formal
+    /// coinductive definitions of subtyping for recursive types.
+    ///
+    /// See <https://en.wikipedia.org/wiki/Coinduction> and
+    /// Chapter 21.1 of "Types and Programming Languages" by Benjamin C. Pierce
+    #[inline]
+    fn is_subtype_of_recursive(&mut self, subtype: Type<'heap>, supertype: Type<'heap>) -> bool {
+        // Issue a non-fatal diagnostic to inform that a cycle was detected, but don't treat
+        // it as an error for subtyping.
+        let _: ControlFlow<()> =
+            self.record_diagnostic(|env| circular_type_reference(env.source, subtype, supertype));
+
+        true
+    }
+
+    pub fn is_subtype_of(&mut self, subtype: TypeId, supertype: TypeId) -> bool {
+        let (subtype, supertype) = match self.variance {
+            Variance::Covariant => (subtype, supertype),
+            Variance::Contravariant => (supertype, subtype),
+            Variance::Invariant => return self.is_equivalent(subtype, supertype),
+        };
+
+        let subtype = self.environment.types[subtype].copied();
+        let supertype = self.environment.types[supertype].copied();
+
+        if !self.boundary.enter(subtype.id, supertype.id) {
+            return self.is_subtype_of_recursive(subtype, supertype);
+        }
+
+        if let Some(result) = Self::is_quick_subtype(&subtype, &supertype) {
+            self.boundary.exit(subtype.id, supertype.id);
+
+            return result;
+        }
+
+        let result = subtype.is_subtype_of(supertype, self);
+
+        self.boundary.exit(subtype.id, supertype.id);
+
+        result
+    }
+
+    /// Handling recursive type cycles during equivalence checks.
+    ///
+    /// For recursive types, equivalence is also determined using coinductive reasoning.
+    /// When checking if two recursive types are equivalent, we initially assume they
+    /// might be equivalent and check their constituent parts.
+    ///
+    /// Example:
+    /// For `type A = (Number, A)` and `type B = (Number, B)`,
+    /// to check if A ≡ B, we check if (Number, A) ≡ (Number, B)
+    /// This involves checking:
+    ///   1. Number ≡ Number (true)
+    ///   2. A ≡ B (the original question)
+    ///
+    /// When we reach step 2, we're back to our original question.
+    /// By returning true here, we complete the coinductive proof,
+    /// confirming A ≡ B if their non-recursive parts are equivalent.
+    ///
+    /// This implementation adheres to two fundamental coinductive principles:
+    ///
+    /// 1. **F-closure**: We assume the recursive equivalence relationship holds, adding it to our
+    ///    relation. This means if (A,B) is in our relation, then all structurally derived pairs
+    ///    should also be in the relation.
+    ///
+    /// 2. **F-consistency**: For each equivalence pair in our assumed relation, we verify it can be
+    ///    justified by applying equivalence rules to other pairs. We check all non-recursive
+    ///    components to ensure they maintain the expected equivalence.
+    ///
+    /// By returning `true` upon cycle detection, we're allowing the coinductive hypothesis to
+    /// stand if no contradictions are found in the non-recursive parts, which matches formal
+    /// coinductive definitions of type equivalence for recursive types.
+    ///
+    /// See <https://en.wikipedia.org/wiki/Coinduction> and
+    /// Chapter 21.1 of "Types and Programming Languages" by Benjamin C. Pierce
+    #[inline]
+    fn is_equivalent_recursive(&mut self, lhs: Type<'heap>, rhs: Type<'heap>) -> bool {
+        // Issue a non-fatal diagnostic to inform that a cycle was detected, but don't treat
+        // it as an error for subtyping.
+        let _: ControlFlow<()> =
+            self.record_diagnostic(|env| circular_type_reference(env.source, lhs, rhs));
+
+        true
+    }
+
+    pub fn is_equivalent(&mut self, lhs: TypeId, rhs: TypeId) -> bool {
+        if lhs == rhs {
+            return true;
+        }
+
+        let lhs = self.environment.types[lhs].copied();
+        let rhs = self.environment.types[rhs].copied();
+
+        if !self.boundary.enter(lhs.id, rhs.id) {
+            return self.is_equivalent_recursive(lhs, rhs);
+        }
+
+        if core::ptr::eq(lhs.kind, rhs.kind) {
+            self.boundary.exit(lhs.id, rhs.id);
+
+            return true;
+        }
+
+        let result = lhs.is_equivalent(rhs, self);
+
+        self.boundary.exit(lhs.id, rhs.id);
+
+        result
+    }
+
+    pub(crate) fn with_variance<T>(
+        &mut self,
+        variance: Variance,
+        closure: impl FnOnce(&mut Self) -> T,
+    ) -> T {
+        let old_variance = self.variance;
+
+        self.variance = old_variance.transition(variance);
+
+        let result = closure(self);
+        self.variance = old_variance;
+        result
+    }
+
+    pub(crate) fn in_contravariant<T>(&mut self, closure: impl FnOnce(&mut Self) -> T) -> T {
+        self.with_variance(Variance::Contravariant, closure)
+    }
+
+    pub(crate) fn in_covariant<T>(&mut self, closure: impl FnOnce(&mut Self) -> T) -> T {
+        self.with_variance(Variance::Covariant, closure)
+    }
+
+    pub(crate) fn in_invariant<T>(&mut self, closure: impl FnOnce(&mut Self) -> T) -> T {
+        self.with_variance(Variance::Invariant, closure)
+    }
+}
+
+// We usually try to avoid `Deref` and `DerefMut`, but it makes sense in this case.
+// As the unification environment is just a wrapper around the environment with an additional guard.
+impl<'heap> Deref for TypeAnalysisEnvironment<'_, 'heap> {
+    type Target = Environment<'heap>;
+
+    fn deref(&self) -> &Self::Target {
+        self.environment
+    }
+}
