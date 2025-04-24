@@ -102,7 +102,7 @@ export const UrlInput = ({
 
           const domain = maybeRest?.replace(/\/$/, "") ?? event.target.value;
 
-          if (!domain) {
+          if (!domain.trim()) {
             /**
              * Wipe the entire string if the domain is empty, because it's not yet a valid URL.
              * We will still have captured any protocol if one is pasted in (i.e. user pastes in 'https://' or 'http://')
