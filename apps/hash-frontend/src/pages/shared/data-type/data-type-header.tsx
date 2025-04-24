@@ -9,13 +9,14 @@ import {
   ArrowUpRightIcon,
 } from "@hashintel/design-system";
 import { Box, Stack, Tooltip, Typography } from "@mui/material";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { generateLinkParameters } from "../../../shared/generate-link-parameters";
 import { Button, Link, Modal } from "../../../shared/ui";
 import { CopyableOntologyChip } from "../copyable-ontology-chip";
 import { CreateDataTypeForm } from "../create-data-type-form";
 import { useSlideStack } from "../slide-stack";
+import { useTextSize } from "../use-text-size";
 import { DataTypeDescription } from "./data-type-header/data-type-description";
 
 interface DataTypeHeaderProps {
@@ -46,6 +47,10 @@ export const DataTypeHeader = ({
   );
 
   const { slideContainerRef, pushToSlideStack } = useSlideStack();
+
+  const dataTypeTitleTextRef = useRef<HTMLHeadingElement | null>(null);
+
+  const dataTypeTitleSize = useTextSize(dataTypeTitleTextRef);
 
   return (
     <>
@@ -82,53 +87,72 @@ export const DataTypeHeader = ({
           justifyContent="space-between"
         >
           <Stack direction="row" alignItems="center" gap={5}>
-            <Stack direction="row" alignItems="center" mt={1} mb={3}>
-              <Tooltip
-                placement="top"
-                componentsProps={{
-                  popper: {
-                    container: slideContainerRef?.current,
-                  },
-                  tooltip: {
-                    sx: {
-                      background: "transparent",
-                      marginBottom: "5px !important",
-                      maxWidth: "unset",
-                      p: 0,
+            <Stack direction="row" mt={1} mb={3}>
+              <Box position="relative">
+                <Tooltip
+                  placement="top"
+                  componentsProps={{
+                    popper: {
+                      container: slideContainerRef?.current,
                     },
-                  },
-                }}
-                title={
-                  <CopyableOntologyChip
-                    hideOpenInNew
-                    versionedUrl={versionedUrlFromComponents(
-                      extractBaseUrl(dataTypeSchema.$id),
-                      currentVersion,
-                    )}
-                  />
-                }
-              >
-                <Typography variant="h1" fontWeight="bold">
-                  {dataTypeSchema.title}
-                </Typography>
-              </Tooltip>
-              {isInSlide && (
-                <Link
-                  href={generateLinkParameters(dataTypeSchema.$id).href}
-                  target="_blank"
-                >
-                  <ArrowUpRightFromSquareRegularIcon
-                    sx={{
-                      fill: ({ palette }) => palette.blue[50],
-                      fontSize: 24,
-                      "&:hover": {
-                        fill: ({ palette }) => palette.blue[70],
+                    tooltip: {
+                      sx: {
+                        background: "transparent",
+                        marginBottom: "5px !important",
+                        maxWidth: "unset",
+                        p: 0,
                       },
-                      ml: 1.2,
+                    },
+                  }}
+                  title={
+                    <CopyableOntologyChip
+                      hideOpenInNew
+                      versionedUrl={versionedUrlFromComponents(
+                        extractBaseUrl(dataTypeSchema.$id),
+                        currentVersion,
+                      )}
+                    />
+                  }
+                >
+                  <Typography
+                    variant="h1"
+                    fontWeight="bold"
+                    ref={dataTypeTitleTextRef}
+                    sx={{
+                      lineHeight: 1.2,
                     }}
-                  />
-                </Link>
-              )}
+                  >
+                    {dataTypeSchema.title}
+                  </Typography>
+                </Tooltip>
+                {isInSlide && dataTypeTitleSize !== null && (
+                  <Link
+                    href={generateLinkParameters(dataTypeSchema.$id).href}
+                    sx={{
+                      position: "absolute",
+                      left: dataTypeTitleSize.lastLineWidth + 20,
+                      /**
+                       * The vertical center of the text plus offset half the icon size
+                       */
+                      top:
+                        dataTypeTitleSize.lastLineTop +
+                        dataTypeTitleSize.lineHeight / 2 -
+                        12,
+                    }}
+                    target="_blank"
+                  >
+                    <ArrowUpRightFromSquareRegularIcon
+                      sx={{
+                        fill: ({ palette }) => palette.blue[50],
+                        fontSize: 24,
+                        "&:hover": {
+                          fill: ({ palette }) => palette.blue[70],
+                        },
+                      }}
+                    />
+                  </Link>
+                )}
+              </Box>
             </Stack>
           </Stack>
           {!isDraft ? (
@@ -137,7 +161,7 @@ export const DataTypeHeader = ({
               variant="secondary"
               size="small"
             >
-              Extend type <ArrowUpRightIcon sx={{ fontSize: 16, ml: 1.5 }} />
+              Extend <ArrowUpRightIcon sx={{ fontSize: 16, ml: 1.5 }} />
             </Button>
           ) : null}
         </Stack>

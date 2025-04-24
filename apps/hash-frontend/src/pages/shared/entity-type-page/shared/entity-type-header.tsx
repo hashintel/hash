@@ -13,7 +13,7 @@ import {
 import type { EntityTypeEditorFormData } from "@hashintel/type-editor";
 import { useEntityTypeFormContext } from "@hashintel/type-editor";
 import { Box, Stack, Tooltip, Typography } from "@mui/material";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Controller } from "react-hook-form";
 
 import { EditEmojiIconButton } from "../../../../shared/edit-emoji-icon-button";
@@ -22,6 +22,7 @@ import { Button, Link, Modal } from "../../../../shared/ui";
 import { CopyableOntologyChip } from "../../copyable-ontology-chip";
 import { CreateEntityTypeForm } from "../../create-entity-type-form";
 import { useSlideStack } from "../../slide-stack";
+import { useTextSize } from "../../use-text-size";
 import { EntityTypeDescription } from "../entity-type-description";
 import { EntityTypeInverse } from "../entity-type-inverse";
 import { EntityTypePlural } from "../entity-type-plural";
@@ -59,6 +60,10 @@ export const EntityTypeHeader = ({
 
   const { slideContainerRef, pushToSlideStack } = useSlideStack();
 
+  const entityTypeNameTextRef = useRef<HTMLHeadingElement | null>(null);
+
+  const entityTypeNameSize = useTextSize(entityTypeNameTextRef);
+
   return (
     <>
       <Box>
@@ -94,107 +99,133 @@ export const EntityTypeHeader = ({
           justifyContent="space-between"
         >
           <Stack direction="row" alignItems="center" gap={5}>
-            <Box display="flex" alignItems="center" mt={1} mb={3}>
-              <Controller
-                control={control}
-                name="icon"
-                render={({ field }) => {
-                  const iconImgUrl = field.value?.startsWith("/")
-                    ? new URL(field.value, window.location.origin).href
-                    : field.value;
+            <Stack direction="row" alignItems="flex-start" mt={1} mb={3}>
+              {entityTypeNameSize !== null && (
+                <Controller
+                  control={control}
+                  name="icon"
+                  render={({ field }) => {
+                    const iconImgUrl = field.value?.startsWith("/")
+                      ? new URL(field.value, window.location.origin).href
+                      : field.value;
 
-                  /**
-                   * @todo allow uploading new SVG icons
-                   */
-                  if (iconImgUrl?.startsWith("http")) {
+                    /**
+                     * @todo allow uploading new SVG icons
+                     */
+                    if (iconImgUrl?.startsWith("http")) {
+                      return (
+                        <Box
+                          sx={({ palette }) => ({
+                            backgroundColor: palette.gray[50],
+                            webkitMask: `url(${iconImgUrl}) no-repeat center / contain`,
+                            mask: `url(${iconImgUrl}) no-repeat center / contain`,
+                            width: 40,
+                            height: 40,
+                            position: "relative",
+                            top: entityTypeNameSize.lineHeight / 2 - 20,
+                          })}
+                        />
+                      );
+                    }
+
                     return (
-                      <Box
-                        sx={({ palette }) => ({
-                          backgroundColor: palette.gray[50],
-                          webkitMask: `url(${iconImgUrl}) no-repeat center / contain`,
-                          mask: `url(${iconImgUrl}) no-repeat center / contain`,
-                          width: 40,
-                          height: 40,
-                        })}
+                      <EditEmojiIconButton
+                        icon={field.value}
+                        disabled={isReadonly}
+                        onChange={(updatedIcon) => field.onChange(updatedIcon)}
+                        defaultIcon={
+                          isLink ? (
+                            <LinkTypeIcon
+                              sx={({ palette }) => ({
+                                stroke: palette.gray[50],
+                              })}
+                            />
+                          ) : (
+                            <EntityTypeIcon
+                              sx={({ palette }) => ({
+                                fill: palette.gray[50],
+                              })}
+                            />
+                          )
+                        }
+                        sx={{
+                          position: "relative",
+                          top: entityTypeNameSize.lineHeight / 2 - 22,
+                        }}
                       />
                     );
-                  }
-
-                  return (
-                    <EditEmojiIconButton
-                      icon={field.value}
-                      disabled={isReadonly}
-                      onChange={(updatedIcon) => field.onChange(updatedIcon)}
-                      defaultIcon={
-                        isLink ? (
-                          <LinkTypeIcon
-                            sx={({ palette }) => ({
-                              stroke: palette.gray[50],
-                            })}
-                          />
-                        ) : (
-                          <EntityTypeIcon
-                            sx={({ palette }) => ({
-                              fill: palette.gray[50],
-                            })}
-                          />
-                        )
-                      }
-                    />
-                  );
-                }}
-              />
-              <Tooltip
-                placement="top"
-                componentsProps={{
-                  popper: {
-                    container: slideContainerRef?.current,
-                  },
-                  tooltip: {
-                    sx: {
-                      background: "transparent",
-                      marginBottom: "5px !important",
-                      maxWidth: "unset",
-                      p: 0,
-                    },
-                  },
-                }}
-                title={
-                  <CopyableOntologyChip
-                    hideOpenInNew
-                    versionedUrl={versionedUrlFromComponents(
-                      extractBaseUrl(entityTypeSchema.$id),
-                      currentVersion,
-                    )}
-                  />
-                }
-              >
-                <Typography variant="h1" fontWeight="bold" marginLeft={2}>
-                  {entityTypeSchema.title}
-                </Typography>
-              </Tooltip>
-              {isInSlide && (
-                <Link
-                  href={generateLinkParameters(entityTypeSchema.$id).href}
-                  target="_blank"
-                >
-                  <ArrowUpRightFromSquareRegularIcon
-                    sx={{
-                      fill: ({ palette }) => palette.blue[50],
-                      fontSize: 24,
-                      "&:hover": {
-                        fill: ({ palette }) => palette.blue[70],
-                      },
-                      ml: 1.2,
-                    }}
-                  />
-                </Link>
+                  }}
+                />
               )}
-            </Box>
+              <Box sx={{ position: "relative", ml: 2.5 }}>
+                <Tooltip
+                  placement="top-start"
+                  componentsProps={{
+                    popper: {
+                      container: slideContainerRef?.current,
+                    },
+                    tooltip: {
+                      sx: {
+                        background: "transparent",
+                        marginBottom: "5px !important",
+                        maxWidth: "unset",
+                        p: 0,
+                      },
+                    },
+                  }}
+                  title={
+                    <CopyableOntologyChip
+                      hideOpenInNew
+                      versionedUrl={versionedUrlFromComponents(
+                        extractBaseUrl(entityTypeSchema.$id),
+                        currentVersion,
+                      )}
+                    />
+                  }
+                >
+                  <Typography
+                    variant="h1"
+                    fontWeight="bold"
+                    ref={entityTypeNameTextRef}
+                    sx={{
+                      lineHeight: 1.2,
+                    }}
+                  >
+                    {entityTypeSchema.title}
+                  </Typography>
+                </Tooltip>
+                {isInSlide && entityTypeNameSize !== null && (
+                  <Link
+                    href={generateLinkParameters(entityTypeSchema.$id).href}
+                    sx={{
+                      position: "absolute",
+                      left: entityTypeNameSize.lastLineWidth + 20,
+                      /**
+                       * The vertical center of the text plus offset half the icon size
+                       */
+                      top:
+                        entityTypeNameSize.lastLineTop +
+                        (entityTypeNameSize.lineHeight / 2 - 12),
+                    }}
+                    target="_blank"
+                  >
+                    <ArrowUpRightFromSquareRegularIcon
+                      sx={{
+                        fill: ({ palette }) => palette.blue[50],
+                        fontSize: 24,
+                        "&:hover": {
+                          fill: ({ palette }) => palette.blue[70],
+                        },
+                      }}
+                    />
+                  </Link>
+                )}
+              </Box>
+            </Stack>
             <Stack
-              direction="row"
+              direction="column"
               alignItems="flex-start"
-              gap={1}
+              gap={1.5}
               sx={{ position: "relative", top: 5 }}
             >
               <EntityTypePlural isLinkType={isLink} readonly={isReadonly} />
@@ -207,7 +238,7 @@ export const EntityTypeHeader = ({
               variant="secondary"
               size="small"
             >
-              Extend type <ArrowUpRightIcon sx={{ fontSize: 16, ml: 1.5 }} />
+              Extend <ArrowUpRightIcon sx={{ fontSize: 16, ml: 1.5 }} />
             </Button>
           ) : null}
         </Stack>
