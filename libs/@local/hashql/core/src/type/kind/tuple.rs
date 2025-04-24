@@ -8,8 +8,12 @@ use crate::{
     math::cartesian_product,
     r#type::{
         Type, TypeId,
-        environment::{AnalysisEnvironment, Environment, LatticeEnvironment, SimplifyEnvironment},
+        environment::{
+            AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
+            SimplifyEnvironment,
+        },
         error::tuple_length_mismatch,
+        infer::Inference,
         lattice::Lattice,
         pretty_print::PrettyPrint,
         recursion::RecursionDepthBoundary,
@@ -290,6 +294,27 @@ impl<'heap> Lattice<'heap> for TupleType<'heap> {
     }
 }
 
+impl<'heap> Inference<'heap> for TupleType<'heap> {
+    fn collect_constraints(
+        self: Type<'heap, Self>,
+        supertype: Type<'heap, Self>,
+        env: &mut InferenceEnvironment<'_, 'heap>,
+    ) {
+        // During constraint collection we try to be as lax as possible, therefore even if we have a
+        // mismatch in the number of parameters, we still try to collect constraints.
+        // Further checks will fail, but at least we'll be able to guide the user better towards the
+        // root cause.
+        for (&field, &supertype_field) in self.kind.fields.iter().zip(supertype.kind.fields.iter())
+        {
+            env.in_covariant(|env| env.collect_constraints(field, supertype_field));
+        }
+    }
+
+    fn instantiate(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> TypeId {
+        unimplemented!("See H-4384 for more details")
+    }
+}
+
 impl PrettyPrint for TupleType<'_> {
     fn pretty<'env>(
         &self,
@@ -330,8 +355,10 @@ mod test {
         span::SpanId,
         r#type::{
             environment::{
-                AnalysisEnvironment, Environment, LatticeEnvironment, SimplifyEnvironment,
+                AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
+                SimplifyEnvironment,
             },
+            infer::{Constraint, Inference as _, Variable},
             kind::{
                 TypeKind,
                 generic_argument::{GenericArgument, GenericArgumentId},
@@ -342,7 +369,7 @@ mod test {
             },
             lattice::{Lattice as _, test::assert_lattice_laws},
             pretty_print::PrettyPrint as _,
-            test::instantiate,
+            test::{instantiate, instantiate_param},
         },
     };
 
@@ -1106,5 +1133,206 @@ mod test {
                 tuple!(env, [], [primitive!(env, PrimitiveType::String)])
             ]
         );
+    }
+
+    #[test]
+    fn collect_constraints_lower_bound() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create a tuple type with an element containing a concrete type
+        let number = primitive!(env, PrimitiveType::Number);
+        tuple!(env, concrete_tuple, [], [number]);
+
+        // Create a tuple with an inference variable
+        let infer_var = instantiate(&env, TypeKind::Infer);
+        tuple!(env, infer_tuple, [], [infer_var]);
+
+        // Create an inference environment to collect constraints
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // Collect constraints between the two tuple types
+        concrete_tuple.collect_constraints(infer_tuple, &mut inference_env);
+
+        let constraints = inference_env.take_constraints();
+        assert_eq!(
+            constraints,
+            [Constraint::LowerBound {
+                variable: Variable::Type(infer_var),
+                bound: number
+            }]
+        );
+    }
+
+    #[test]
+    fn collect_constraints_different_length_tuples() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Note: Tuples are actually width invariant in the type system,
+        // but during constraint collection we check common elements to provide better error
+        // messages. This test verifies that constraint collection works on the common
+        // prefix of tuples with different lengths.
+
+        // Create a tuple with more elements
+        let infer_var = instantiate(&env, TypeKind::Infer);
+        let boolean = primitive!(env, PrimitiveType::Boolean);
+        let string = primitive!(env, PrimitiveType::String);
+        tuple!(env, longer_tuple, [], [string, infer_var, boolean]);
+
+        // Create a tuple with fewer elements
+        let number = primitive!(env, PrimitiveType::Number);
+        tuple!(env, shorter_tuple, [], [string, number]);
+
+        // Create an inference environment to collect constraints
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // Collect constraints between the two tuple types
+        longer_tuple.collect_constraints(shorter_tuple, &mut inference_env);
+
+        // Should only have constraints for the common elements
+        // We expect one constraint: infer_var <: Number
+        let constraints = inference_env.take_constraints();
+        assert_eq!(
+            constraints,
+            [Constraint::UpperBound {
+                variable: Variable::Type(infer_var),
+                bound: number
+            }]
+        );
+
+        // No constraints should be generated for the "extra" element
+    }
+
+    #[test]
+    fn collect_constraints_missing_element() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create a shorter tuple with one element
+        let string = primitive!(env, PrimitiveType::String);
+        tuple!(env, shorter_tuple, [], [string]);
+
+        // Create a longer tuple with two elements
+        let infer_var = instantiate(&env, TypeKind::Infer);
+        tuple!(env, longer_tuple, [], [string, infer_var]);
+
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // Note: Tuples are width invariant in the type system, but during constraint collection
+        // we just collect what we can and leave the width check to is_subtype_of
+        shorter_tuple.collect_constraints(longer_tuple, &mut inference_env);
+
+        // This should not generate constraints since the element at index 1 is missing in the first
+        // tuple During constraint collection this is ignored, and the error would be
+        // reported in is_subtype_of instead
+        assert!(inference_env.take_constraints().is_empty());
+    }
+
+    #[test]
+    fn collect_constraints_nested() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create a nested tuple with inference variable
+        let infer_var = instantiate(&env, TypeKind::Infer);
+
+        // First tuple with nested inference variable
+        let inner_tuple_a = tuple!(env, [], [infer_var]);
+        tuple!(env, tuple_a, [], [inner_tuple_a]);
+
+        let number = primitive!(env, PrimitiveType::Number);
+
+        // Second tuple with nested concrete type
+        let inner_tuple_b = tuple!(env, [], [number]);
+        tuple!(env, tuple_b, [], [inner_tuple_b]);
+
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        tuple_a.collect_constraints(tuple_b, &mut inference_env);
+
+        let constraints = inference_env.take_constraints();
+        assert_eq!(
+            constraints,
+            [Constraint::UpperBound {
+                variable: Variable::Type(infer_var),
+                bound: number
+            }]
+        );
+    }
+
+    #[test]
+    fn collect_constraints_generic_params() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let arg1 = GenericArgumentId::new(0);
+        let arg2 = GenericArgumentId::new(1);
+
+        // Create generic parameter types
+        let param1 = instantiate_param(&env, arg1);
+        let param2 = instantiate_param(&env, arg2);
+
+        // Create tuples with generic parameters
+        tuple!(
+            env,
+            tuple_a,
+            [GenericArgument {
+                id: arg1,
+                constraint: None
+            }],
+            [param1]
+        );
+
+        tuple!(
+            env,
+            tuple_b,
+            [GenericArgument {
+                id: arg2,
+                constraint: None
+            }],
+            [param2]
+        );
+
+        // Create an inference environment to collect constraints
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // Collect constraints between the generic tuples
+        tuple_a.collect_constraints(tuple_b, &mut inference_env);
+
+        let constraints = inference_env.take_constraints();
+        assert_eq!(
+            constraints,
+            [Constraint::Ordering {
+                lower: Variable::Generic(arg1),
+                upper: Variable::Generic(arg2)
+            }]
+        );
+    }
+
+    #[test]
+    fn collect_constraints_concrete() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let integer = primitive!(env, PrimitiveType::Integer);
+        let number = primitive!(env, PrimitiveType::Number);
+
+        // Create tuples with a covariant relationship in the element types
+        // Integer is a subtype of Number in this type system
+        tuple!(env, integer_tuple, [], [integer]);
+        tuple!(env, number_tuple, [], [number]);
+
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // In a non-constraint-collection scenario, we would expect:
+        // (Integer,) <: (Number,)
+        // but during constraint collection, no explicit constraints are added
+        // since there are no inference variables
+        integer_tuple.collect_constraints(number_tuple, &mut inference_env);
+
+        // No constraints should have been generated since both types are concrete
+        // and constraints are only generated for inference variables
+        assert!(inference_env.take_constraints().is_empty());
     }
 }

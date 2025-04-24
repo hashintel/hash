@@ -48,7 +48,7 @@ impl Variance {
     /// # Examples
     ///
     /// ```
-    /// # use crate::type::environment::context::Variance;
+    /// # use hashql_core::r#type::environment::Variance;
     /// // Covariant to contravariant transitions to contravariant
     /// assert_eq!(
     ///     Variance::Covariant.transition(Variance::Contravariant),

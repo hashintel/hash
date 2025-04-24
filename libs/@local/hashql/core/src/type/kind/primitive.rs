@@ -5,8 +5,12 @@ use smallvec::SmallVec;
 
 use crate::r#type::{
     Type, TypeId,
-    environment::{AnalysisEnvironment, Environment, LatticeEnvironment, SimplifyEnvironment},
+    environment::{
+        AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
+        SimplifyEnvironment,
+    },
     error::type_mismatch,
+    infer::Inference,
     lattice::Lattice,
     pretty_print::{BLUE, PrettyPrint},
     recursion::RecursionDepthBoundary,
@@ -171,6 +175,19 @@ impl<'heap> Lattice<'heap> for PrimitiveType {
     }
 
     fn simplify(self: Type<'heap, Self>, _: &mut SimplifyEnvironment<'_, 'heap>) -> TypeId {
+        self.id
+    }
+}
+
+impl<'heap> Inference<'heap> for PrimitiveType {
+    fn collect_constraints(
+        self: Type<'heap, Self>,
+        _: Type<'heap, Self>,
+        _: &mut InferenceEnvironment<'_, 'heap>,
+    ) {
+    }
+
+    fn instantiate(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> TypeId {
         self.id
     }
 }

@@ -1323,7 +1323,7 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
 
             // Opaque <: _
             (Self::Opaque(lhs), Self::Opaque(rhs)) => {
-                todo!("opaque")
+                self.with(lhs).collect_constraints(supertype.with(rhs), env);
             }
             (
                 Self::Opaque(_),
@@ -1336,7 +1336,7 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
 
             // Primitive <: _
             (Self::Primitive(lhs), Self::Primitive(rhs)) => {
-                todo!("primitive")
+                self.with(lhs).collect_constraints(supertype.with(rhs), env);
             }
             (
                 Self::Primitive(_),
@@ -1349,7 +1349,7 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
 
             // Intrinsic <: _
             (Self::Intrinsic(lhs), Self::Intrinsic(rhs)) => {
-                todo!("intrinsic")
+                self.with(lhs).collect_constraints(supertype.with(rhs), env);
             }
             (
                 Self::Intrinsic(_),
@@ -1362,7 +1362,7 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
 
             // Struct <: _
             (Self::Struct(lhs), Self::Struct(rhs)) => {
-                todo!("struct")
+                self.with(lhs).collect_constraints(supertype.with(rhs), env);
             }
             (
                 Self::Struct(_),
@@ -1375,7 +1375,7 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
 
             // Tuple <: _
             (Self::Tuple(lhs), Self::Tuple(rhs)) => {
-                todo!("tuple")
+                self.with(lhs).collect_constraints(supertype.with(rhs), env);
             }
             (
                 Self::Tuple(_),
@@ -1388,7 +1388,7 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
 
             // Closure <: _
             (Self::Closure(lhs), Self::Closure(rhs)) => {
-                todo!("closure")
+                self.with(lhs).collect_constraints(supertype.with(rhs), env);
             }
             (
                 Self::Closure(_),

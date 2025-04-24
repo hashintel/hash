@@ -1,5 +1,3 @@
-use ena::unify::UnifyKey;
-
 use super::{
     Type, TypeId,
     environment::{AnalysisEnvironment, InferenceEnvironment},
@@ -46,13 +44,13 @@ pub enum Constraint {
 impl Constraint {
     pub(crate) fn variables(self) -> impl IntoIterator<Item = Variable> {
         let array = match self {
-            Constraint::UpperBound { variable, bound: _ } => [Some(variable), None],
-            Constraint::LowerBound { variable, bound: _ } => [Some(variable), None],
-            Constraint::Equals {
+            Self::LowerBound { variable, bound: _ }
+            | Self::UpperBound { variable, bound: _ }
+            | Self::Equals {
                 variable,
                 r#type: _,
             } => [Some(variable), None],
-            Constraint::Ordering { lower, upper } => [Some(lower), Some(upper)],
+            Self::Ordering { lower, upper } => [Some(lower), Some(upper)],
         };
 
         array.into_iter().flatten()
