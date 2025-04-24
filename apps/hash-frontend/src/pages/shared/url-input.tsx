@@ -109,7 +109,8 @@ export const UrlInput = ({
              */
             onChange("");
           } else {
-            onChange(`${protocol}://${domain}`);
+            const newProtocol = maybeProtocol ? (maybeProtocol as Protocol) : protocol;
+            onChange(`${newProtocol}://${domain}`);
           }
         }}
         placeholder={placeholder}
