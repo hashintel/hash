@@ -8,7 +8,7 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { ProfileURLPropertyValueWithMetadata } from "@local/hash-isomorphic-utils/system-types/shared";
-import { Box } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import type { FunctionComponent } from "react";
 import { useCallback, useState } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
@@ -27,8 +27,8 @@ import type {
   UserServiceAccount,
 } from "../../../../lib/user-and-org";
 import { Button, MenuItem } from "../../../../shared/ui";
+import { UrlInput } from "../../../shared/url-input";
 import { ServiceAccountsInput } from "./service-accounts-input";
-import { urlRegex } from "./util";
 
 export type UserProfileFormServiceAccount = {
   existingLinkEntity?: HashLinkEntity;
@@ -89,6 +89,8 @@ export const UserProfileInfoForm: FunctionComponent<{
     handleSubmit,
     reset,
     formState: { errors, dirtyFields, touchedFields },
+    watch,
+    setValue,
   } = formMethods;
 
   const removeServiceAccount = useCallback(
@@ -323,18 +325,23 @@ export const UserProfileInfoForm: FunctionComponent<{
           placeholder="Enter your current city/location"
           {...register("location")}
         />
-        <TextField
-          fullWidth
-          label="Website URL"
-          placeholder="Enter a website, e.g. https://example.com/"
-          error={touchedFields.websiteUrl && !!errors.websiteUrl}
-          {...register("websiteUrl", {
-            pattern: {
-              value: urlRegex,
-              message: "Please enter a valid URL",
-            },
-          })}
-        />
+        <Box component="label" sx={{ display: "block" }}>
+          <Typography
+            variant="smallTextLabels"
+            sx={{ color: ({ palette }) => palette.gray[70], fontWeight: 500 }}
+          >
+            Website
+          </Typography>
+          <UrlInput
+            autoFocus={false}
+            placeholder="example.com"
+            value={watch("websiteUrl") ?? ""}
+            onChange={(value) => {
+              setValue("websiteUrl", value, { shouldDirty: true });
+            }}
+          />
+        </Box>
+
         <Controller
           control={control}
           name="preferredPronouns"
