@@ -3,7 +3,7 @@ use core::assert_matches::assert_matches;
 
 use super::{
     Type, TypeId, TypeKind,
-    environment::{Environment, TypeAnalysisEnvironment},
+    environment::{AnalysisEnvironment, Environment},
 };
 use crate::{
     heap::Heap,
@@ -406,7 +406,7 @@ fn recursive_join_operation() {
     let joined = lattice_env.join(type_a, type_b);
 
     // Create a new analysis environment to check equivalence
-    let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+    let mut analysis_env = AnalysisEnvironment::new(&env);
     analysis_env.with_diagnostics();
 
     // The join should produce something that acts like B (in this case, it should be a supertype of

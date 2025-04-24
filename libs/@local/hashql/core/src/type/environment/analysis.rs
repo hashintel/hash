@@ -11,14 +11,14 @@ use crate::r#type::{
     recursion::RecursionBoundary,
 };
 
-pub struct TypeAnalysisEnvironment<'env, 'heap> {
+pub struct AnalysisEnvironment<'env, 'heap> {
     environment: &'env Environment<'heap>,
     boundary: RecursionBoundary,
     diagnostics: Option<Diagnostics>,
     variance: Variance,
 }
 
-impl<'env, 'heap> TypeAnalysisEnvironment<'env, 'heap> {
+impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
     #[must_use]
     pub fn new(environment: &'env Environment<'heap>) -> Self {
         Self {
@@ -342,7 +342,7 @@ impl<'env, 'heap> TypeAnalysisEnvironment<'env, 'heap> {
 
 // We usually try to avoid `Deref` and `DerefMut`, but it makes sense in this case.
 // As the unification environment is just a wrapper around the environment with an additional guard.
-impl<'heap> Deref for TypeAnalysisEnvironment<'_, 'heap> {
+impl<'heap> Deref for AnalysisEnvironment<'_, 'heap> {
     type Target = Environment<'heap>;
 
     fn deref(&self) -> &Self::Target {

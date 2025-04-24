@@ -4,7 +4,7 @@ pub mod lattice;
 pub mod simplify;
 
 pub use self::{
-    analysis::TypeAnalysisEnvironment,
+    analysis::AnalysisEnvironment,
     context::{
         auxiliary::AuxiliaryData, diagnostics::Diagnostics, substitution::Substitution,
         variance::Variance,

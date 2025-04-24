@@ -8,9 +8,7 @@ use crate::{
     math::cartesian_product,
     r#type::{
         Type, TypeId,
-        environment::{
-            Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment,
-        },
+        environment::{AnalysisEnvironment, Environment, LatticeEnvironment, SimplifyEnvironment},
         error::tuple_length_mismatch,
         lattice::Lattice,
         pretty_print::PrettyPrint,
@@ -128,22 +126,22 @@ impl<'heap> Lattice<'heap> for TupleType<'heap> {
         self.postprocess_lattice(other, env, &fields)
     }
 
-    fn is_bottom(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+    fn is_bottom(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
         // uninhabited if any of the fields are uninhabited
         self.kind.fields.iter().any(|&field| env.is_bottom(field))
     }
 
-    fn is_top(self: Type<'heap, Self>, _: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+    fn is_top(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
         false
     }
 
-    fn is_concrete(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+    fn is_concrete(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
         self.kind.fields.iter().all(|&field| env.is_concrete(field))
     }
 
     fn distribute_union(
         self: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16> {
         if self.kind.fields.is_empty() {
             return SmallVec::from_slice(&[self.id]);
@@ -161,7 +159,7 @@ impl<'heap> Lattice<'heap> for TupleType<'heap> {
 
     fn distribute_intersection(
         self: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16> {
         if self.kind.fields.is_empty() {
             return SmallVec::from_slice(&[self.id]);
@@ -180,7 +178,7 @@ impl<'heap> Lattice<'heap> for TupleType<'heap> {
     fn is_subtype_of(
         self: Type<'heap, Self>,
         supertype: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool {
         // Tuples are width invariant
         if self.kind.fields.len() != supertype.kind.fields.len() {
@@ -217,7 +215,7 @@ impl<'heap> Lattice<'heap> for TupleType<'heap> {
     fn is_equivalent(
         self: Type<'heap, Self>,
         other: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool {
         // Tuples must have the same number of fields for equivalence
         if self.kind.fields.len() != other.kind.fields.len() {
@@ -332,7 +330,7 @@ mod test {
         span::SpanId,
         r#type::{
             environment::{
-                Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment,
+                AnalysisEnvironment, Environment, LatticeEnvironment, SimplifyEnvironment,
             },
             kind::{
                 TypeKind,
@@ -659,7 +657,7 @@ mod test {
             ]
         );
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Empty tuple should be inhabited (not uninhabited)
         assert!(!empty_tuple.is_bottom(&mut analysis_env));
@@ -686,7 +684,7 @@ mod test {
         tuple!(env, tuple_number_number, [], [number, number]);
         tuple!(env, tuple_different_length, [], [number, string, number]);
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Reflexivity: Every tuple is a subtype of itself
         assert!(tuple_number_string.is_subtype_of(tuple_number_string, &mut analysis_env));
@@ -747,7 +745,7 @@ mod test {
         // Create a tuple with different length
         tuple!(env, d, [], [primitive!(env, PrimitiveType::Number)]);
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Tuples with semantically equivalent fields should be equivalent
         assert!(a.is_equivalent(b, &mut analysis_env));
@@ -804,7 +802,7 @@ mod test {
     fn is_concrete() {
         let heap = Heap::new();
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Concrete tuple (with all concrete fields)
         let number = primitive!(env, PrimitiveType::Number);
@@ -888,7 +886,7 @@ mod test {
             [inner2.id, primitive!(env, PrimitiveType::String)]
         );
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Test subtyping: since Integer <: Number,
         // (Integer) <: (Number) and ((Integer), String) <: ((Number), String)
@@ -973,7 +971,7 @@ mod test {
     fn distribute_union_empty_tuple() {
         let heap = Heap::new();
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Create an empty tuple
         tuple!(env, empty_tuple, [], []);
@@ -987,7 +985,7 @@ mod test {
     fn distribute_union_single_field() {
         let heap = Heap::new();
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Create primitive types
         let number = primitive!(env, PrimitiveType::Number);
@@ -1018,7 +1016,7 @@ mod test {
     fn distribute_union_multiple_fields() {
         let heap = Heap::new();
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Create primitive types
         let number = primitive!(env, PrimitiveType::Number);
@@ -1053,7 +1051,7 @@ mod test {
     fn distribute_union_nested_tuples() {
         let heap = Heap::new();
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Create primitive types
         let number = primitive!(env, PrimitiveType::Number);
@@ -1088,7 +1086,7 @@ mod test {
     fn distribute_intersection() {
         let heap = Heap::new();
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Create primitive types
         let number = primitive!(env, PrimitiveType::Number);

@@ -2,14 +2,14 @@ use core::ops::Deref;
 
 use smallvec::SmallVec;
 
-use super::{Environment, TypeAnalysisEnvironment};
+use super::{AnalysisEnvironment, Environment};
 use crate::r#type::{TypeId, lattice::Lattice as _, recursion::RecursionBoundary};
 
 pub struct SimplifyEnvironment<'env, 'heap> {
     pub environment: &'env Environment<'heap>,
     boundary: RecursionBoundary,
 
-    analysis: TypeAnalysisEnvironment<'env, 'heap>,
+    analysis: AnalysisEnvironment<'env, 'heap>,
 }
 
 impl<'env, 'heap> SimplifyEnvironment<'env, 'heap> {
@@ -17,7 +17,7 @@ impl<'env, 'heap> SimplifyEnvironment<'env, 'heap> {
         Self {
             environment,
             boundary: RecursionBoundary::new(),
-            analysis: TypeAnalysisEnvironment::new(environment),
+            analysis: AnalysisEnvironment::new(environment),
         }
     }
 

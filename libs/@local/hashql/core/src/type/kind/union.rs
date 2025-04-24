@@ -10,9 +10,7 @@ use crate::{
     r#type::{
         Type, TypeId,
         collection::TypeIdSet,
-        environment::{
-            Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment,
-        },
+        environment::{AnalysisEnvironment, Environment, LatticeEnvironment, SimplifyEnvironment},
         error::{cannot_be_subtype_of_never, type_mismatch, union_variant_mismatch},
         lattice::Lattice,
         pretty_print::PrettyPrint,
@@ -100,7 +98,7 @@ impl<'heap> UnionType<'heap> {
         expected: Type<'heap, U>,
         self_variants: &[TypeId],
         super_variants: &[TypeId],
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool
     where
         T: PrettyPrint,
@@ -151,7 +149,7 @@ impl<'heap> UnionType<'heap> {
         rhs: Type<'heap, U>,
         lhs_variants: &[TypeId],
         rhs_variants: &[TypeId],
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool
     where
         T: PrettyPrint,
@@ -251,21 +249,21 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
         Self::meet_variants(self.span, &lhs_variants, &rhs_variants, env)
     }
 
-    fn is_bottom(self: Type<'heap, Self>, _: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+    fn is_bottom(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
         self.kind.variants.is_empty()
     }
 
-    fn is_top(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+    fn is_top(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
         self.kind.variants.iter().any(|&id| env.is_top(id))
     }
 
-    fn is_concrete(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+    fn is_concrete(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
         self.kind.variants.iter().all(|&id| env.is_concrete(id))
     }
 
     fn distribute_union(
         self: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16> {
         self.kind
             .variants
@@ -276,7 +274,7 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
 
     fn distribute_intersection(
         self: Type<'heap, Self>,
-        _: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        _: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16> {
         SmallVec::from_slice(&[self.id])
     }
@@ -299,7 +297,7 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
     fn is_subtype_of(
         self: Type<'heap, Self>,
         supertype: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool {
         let self_variants = self.distribute_union(env);
         let super_variants = supertype.distribute_union(env);
@@ -310,7 +308,7 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
     fn is_equivalent(
         self: Type<'heap, Self>,
         other: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool {
         let lhs_variants = self.distribute_union(env);
         let rhs_variants = other.distribute_union(env);
@@ -413,7 +411,7 @@ mod test {
         span::SpanId,
         r#type::{
             environment::{
-                Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment,
+                AnalysisEnvironment, Environment, LatticeEnvironment, SimplifyEnvironment,
             },
             kind::{
                 TypeKind,
@@ -786,7 +784,7 @@ mod test {
         // Non-empty union
         union!(env, non_empty, [primitive!(env, PrimitiveType::Number)]);
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Empty union should be bottom (uninhabited)
         assert!(empty.is_bottom(&mut analysis_env));
@@ -818,7 +816,7 @@ mod test {
             [unknown, primitive!(env, PrimitiveType::String)]
         );
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Regular union should not be top
         assert!(!regular.is_top(&mut analysis_env));
@@ -842,7 +840,7 @@ mod test {
             ]
         );
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // A union should be a subtype of itself (reflexivity)
         assert!(union_type.is_subtype_of(union_type, &mut analysis_env));
@@ -859,7 +857,7 @@ mod test {
         // Non-empty union
         union!(env, non_empty, [primitive!(env, PrimitiveType::Number)]);
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Empty union should be a subtype of any other union
         assert!(empty.is_subtype_of(non_empty, &mut analysis_env));
@@ -892,7 +890,7 @@ mod test {
             )
         );
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Dict<String, Number> <: Dict<String, Number | String>
         assert!(dict_string_number.is_subtype_of(dict_string_number_string, &mut analysis_env));
@@ -933,7 +931,7 @@ mod test {
             )
         );
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Dict<String, Number> | Dict<String, Number> = Dict<String, Number | String>
         assert!(
@@ -998,7 +996,7 @@ mod test {
             [dict_string_boolean, dict_number_boolean, dict_number_string]
         );
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // These types should be equivalent despite having different variant counts
         assert!(type1.is_equivalent(type2, &mut analysis_env));
@@ -1025,7 +1023,7 @@ mod test {
         // Create another union with 3 variants but equivalent to type1 + a null type
         union!(env, type3, [number, string, null]);
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // These should not be equivalent (boolean is not covered by type1)
         assert!(!type1.is_equivalent(type2, &mut analysis_env));
@@ -1047,7 +1045,7 @@ mod test {
         // Non-empty union
         union!(env, non_empty, [primitive!(env, PrimitiveType::Number)]);
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Non-empty union should not be a subtype of empty union
         assert!(!non_empty.is_subtype_of(empty, &mut analysis_env));
@@ -1070,7 +1068,7 @@ mod test {
         // Create a union with just Number
         union!(env, just_number, [number]);
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Integer | String should be a subtype of Number | String
         assert!(integer_string.is_subtype_of(number_string, &mut analysis_env));
@@ -1128,7 +1126,7 @@ mod test {
             ]
         );
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Same unions should be equivalent
         assert!(a.is_equivalent(b, &mut analysis_env));
@@ -1152,7 +1150,7 @@ mod test {
         // Create a non-empty union
         union!(env, c, [primitive!(env, PrimitiveType::Number)]);
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Empty unions should be equivalent to each other
         assert!(a.is_equivalent(b, &mut analysis_env));
@@ -1331,7 +1329,7 @@ mod test {
     fn is_concrete() {
         let heap = Heap::new();
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Concrete union (with all concrete variants)
         let number = primitive!(env, PrimitiveType::Number);
@@ -1380,7 +1378,7 @@ mod test {
         // Number | Integer
         union!(env, number_integer, [number, integer]);
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Integer | String <: Number | String (because Integer <: Number)
         assert!(integer_string.is_subtype_of(number_string, &mut analysis_env));
@@ -1417,7 +1415,7 @@ mod test {
         // Create a union of tuple types
         union!(env, union_type, [tuple1, tuple2]);
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Union operations should work with non-primitive types as well
         assert!(!union_type.is_bottom(&mut analysis_env));

@@ -8,9 +8,7 @@ use crate::{
     symbol::InternedSymbol,
     r#type::{
         Type, TypeId,
-        environment::{
-            Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment,
-        },
+        environment::{AnalysisEnvironment, Environment, LatticeEnvironment, SimplifyEnvironment},
         error::opaque_type_name_mismatch,
         lattice::Lattice,
         pretty_print::PrettyPrint,
@@ -198,21 +196,21 @@ impl<'heap> Lattice<'heap> for OpaqueType<'heap> {
         }
     }
 
-    fn is_bottom(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+    fn is_bottom(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
         env.is_bottom(self.kind.repr)
     }
 
-    fn is_top(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+    fn is_top(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
         env.is_top(self.kind.repr)
     }
 
-    fn is_concrete(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+    fn is_concrete(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
         env.is_concrete(self.kind.repr)
     }
 
     fn distribute_union(
         self: Type<'heap, Self>,
-        _: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        _: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16> {
         // opaque type is invariant in regards to generic arguments, so we simply return ourselves
         SmallVec::from_slice(&[self.id])
@@ -220,7 +218,7 @@ impl<'heap> Lattice<'heap> for OpaqueType<'heap> {
 
     fn distribute_intersection(
         self: Type<'heap, Self>,
-        _: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        _: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16> {
         // opaque type is invariant in regards to generic arguments, so we simply return ourselves
         SmallVec::from_slice(&[self.id])
@@ -235,7 +233,7 @@ impl<'heap> Lattice<'heap> for OpaqueType<'heap> {
     fn is_subtype_of(
         self: Type<'heap, Self>,
         supertype: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool {
         if self.kind.name != supertype.kind.name {
             let _: ControlFlow<()> = env.record_diagnostic(|env| {
@@ -257,7 +255,7 @@ impl<'heap> Lattice<'heap> for OpaqueType<'heap> {
     fn is_equivalent(
         self: Type<'heap, Self>,
         other: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool {
         if self.kind.name != other.kind.name {
             let _: ControlFlow<()> = env.record_diagnostic(|env| {
@@ -313,7 +311,7 @@ mod test {
         span::SpanId,
         r#type::{
             environment::{
-                Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment,
+                AnalysisEnvironment, Environment, LatticeEnvironment, SimplifyEnvironment,
             },
             kind::{
                 TypeKind,
@@ -452,7 +450,7 @@ mod test {
         // Different name with same representation
         opaque!(env, c, "DifferentType", a_repr, []);
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // a should not be a subtype of b (invariant)
         assert!(!a.is_subtype_of(b, &mut analysis_env));
@@ -482,7 +480,7 @@ mod test {
         // Same name but different representation
         opaque!(env, d, "MyType", primitive!(env, PrimitiveType::String), []);
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // a and b should be equivalent (same name, equivalent representations)
         assert!(a.is_equivalent(b, &mut analysis_env));
@@ -589,7 +587,7 @@ mod test {
     fn is_concrete() {
         let heap = Heap::new();
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Concrete opaque type (with primitive representation)
         let number_repr = primitive!(env, PrimitiveType::Number);

@@ -22,7 +22,7 @@ pub use self::{
 };
 use super::{
     Type, TypeId,
-    environment::{Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment},
+    environment::{AnalysisEnvironment, Environment, LatticeEnvironment, SimplifyEnvironment},
     error::{no_type_inference, type_mismatch},
     lattice::Lattice,
     pretty_print::{CYAN, GRAY, PrettyPrint},
@@ -602,7 +602,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
         }
     }
 
-    fn is_bottom(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+    fn is_bottom(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
         match self.kind {
             Self::Opaque(opaque_type) => self.with(opaque_type).is_bottom(env),
             Self::Primitive(primitive_type) => self.with(primitive_type).is_bottom(env),
@@ -637,7 +637,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
         }
     }
 
-    fn is_top(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+    fn is_top(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
         match self.kind {
             Self::Opaque(opaque_type) => self.with(opaque_type).is_top(env),
             Self::Primitive(primitive_type) => self.with(primitive_type).is_top(env),
@@ -672,7 +672,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
         }
     }
 
-    fn is_concrete(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+    fn is_concrete(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
         match self.kind {
             Self::Opaque(opaque_type) => self.with(opaque_type).is_concrete(env),
             Self::Primitive(primitive_type) => self.with(primitive_type).is_concrete(env),
@@ -690,7 +690,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
 
     fn distribute_union(
         self: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16> {
         match self.kind {
             Self::Opaque(opaque_type) => self.with(opaque_type).distribute_union(env),
@@ -713,7 +713,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
 
     fn distribute_intersection(
         self: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16> {
         match self.kind {
             Self::Opaque(opaque_type) => self.with(opaque_type).distribute_intersection(env),
@@ -742,7 +742,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
     fn is_equivalent(
         mut self: Type<'heap, Self>,
         mut other: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool {
         let Some(resolved) = self.resolve(env) else {
             let _: ControlFlow<()> = env.record_diagnostic(|env| no_type_inference(env, self));
@@ -995,7 +995,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
     fn is_subtype_of(
         mut self: Type<'heap, Self>,
         mut supertype: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool {
         let Some(resolved) = self.resolve(env) else {
             let _: ControlFlow<()> = env.record_diagnostic(|env| no_type_inference(env, self));

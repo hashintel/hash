@@ -124,7 +124,7 @@ macro_rules! assert_equiv {
 
         assert_eq!(actual.len(), expected.len());
 
-        let mut equiv_env = TypeAnalysisEnvironment::new(&$env);
+        let mut equiv_env = AnalysisEnvironment::new(&$env);
 
         for (&actual, &expected) in actual.iter().zip(expected.iter()) {
             let actual_repr = &$env.types[actual].copied().pretty_print(&equiv_env, 80);

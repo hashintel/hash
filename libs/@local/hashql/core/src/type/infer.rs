@@ -1,3 +1,5 @@
+use super::{Type, TypeId, environment::AnalysisEnvironment};
+
 pub enum Constraint {}
 
 /// A trait for types that can participate in type inference.
@@ -13,7 +15,7 @@ pub trait Inference<'heap> {
     fn collect_constraints(
         self: Type<'heap, Self>,
         other: Type<'heap, Self>,
-        env: &mut InferenceEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
     );
 
     /// Creates a fresh instance of a polymorphic type with new inference variables.
@@ -25,5 +27,5 @@ pub trait Inference<'heap> {
     /// # Returns
     ///
     /// A new type ID representing the instantiated type.
-    fn instantiate(self: Type<'heap, Self>, env: &mut InferenceEnvironment<'_, 'heap>) -> TypeId;
+    fn instantiate(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> TypeId;
 }

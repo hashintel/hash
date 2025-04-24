@@ -10,9 +10,7 @@ use crate::{
     r#type::{
         Type, TypeId,
         collection::TypeIdSet,
-        environment::{
-            Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment,
-        },
+        environment::{AnalysisEnvironment, Environment, LatticeEnvironment, SimplifyEnvironment},
         error::{cannot_be_supertype_of_unknown, intersection_variant_mismatch, type_mismatch},
         lattice::Lattice,
         pretty_print::PrettyPrint,
@@ -119,7 +117,7 @@ impl<'heap> IntersectionType<'heap> {
         expected: Type<'heap, U>,
         self_variants: &[TypeId],
         supertype_variants: &[TypeId],
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool
     where
         T: PrettyPrint,
@@ -170,7 +168,7 @@ impl<'heap> IntersectionType<'heap> {
         rhs: Type<'heap, U>,
         lhs_variants: &[TypeId],
         rhs_variants: &[TypeId],
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool
     where
         T: PrettyPrint,
@@ -270,7 +268,7 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
         Self::meet_variants(self.span, &lhs_variants, &rhs_variants, env)
     }
 
-    fn is_bottom(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+    fn is_bottom(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
         if self.kind.variants.iter().any(|&id| env.is_bottom(id)) {
             return true;
         }
@@ -287,24 +285,24 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
         false
     }
 
-    fn is_top(self: Type<'heap, Self>, _: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+    fn is_top(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
         self.kind.variants.is_empty()
     }
 
-    fn is_concrete(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+    fn is_concrete(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
         self.kind.variants.iter().all(|&id| env.is_concrete(id))
     }
 
     fn distribute_union(
         self: Type<'heap, Self>,
-        _: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        _: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16> {
         SmallVec::from_slice(&[self.id])
     }
 
     fn distribute_intersection(
         self: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16> {
         self.kind
             .variants
@@ -329,7 +327,7 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
     fn is_subtype_of(
         self: Type<'heap, Self>,
         supertype: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool {
         let self_variants = self.kind.unnest(env);
         let supertype_variants = supertype.kind.unnest(env);
@@ -340,7 +338,7 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
     fn is_equivalent(
         self: Type<'heap, Self>,
         other: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool {
         let lhs_variants = self.kind.unnest(env);
         let rhs_variants = other.kind.unnest(env);
@@ -456,7 +454,7 @@ mod test {
         span::SpanId,
         r#type::{
             environment::{
-                Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment,
+                AnalysisEnvironment, Environment, LatticeEnvironment, SimplifyEnvironment,
             },
             kind::{
                 TypeKind,
@@ -784,7 +782,7 @@ mod test {
         // Regular intersection
         intersection!(env, regular, [primitive!(env, PrimitiveType::Number)]);
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Intersection with Never should be bottom
         assert!(with_never.is_bottom(&mut analysis_env));
@@ -804,7 +802,7 @@ mod test {
         // Regular intersection
         intersection!(env, regular, [primitive!(env, PrimitiveType::Number)]);
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Empty intersection should be top
         assert!(empty.is_top(&mut analysis_env));
@@ -837,7 +835,7 @@ mod test {
             ]
         );
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // An intersection should be a subtype of itself (reflexivity)
         //
@@ -875,7 +873,7 @@ mod test {
         // Number & Integer
         intersection!(env, number_integer, [number, integer]);
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Number & String <: Number
         // see is_subtype_of_self for an in-depth explanation
@@ -901,7 +899,7 @@ mod test {
         // Non-empty intersection
         intersection!(env, non_empty, [primitive!(env, PrimitiveType::Number)]);
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Any intersection should be a subtype of the empty intersection (Unknown)
         assert!(non_empty.is_subtype_of(empty, &mut analysis_env));
@@ -953,7 +951,7 @@ mod test {
             ]
         );
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Same intersections should be equivalent
         assert!(a.is_equivalent(b, &mut analysis_env));
@@ -977,7 +975,7 @@ mod test {
         // Create a non-empty intersection
         intersection!(env, c, [primitive!(env, PrimitiveType::Number)]);
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Empty intersections should be equivalent to each other
         assert!(a.is_equivalent(b, &mut analysis_env));
@@ -1144,7 +1142,7 @@ mod test {
     fn is_concrete() {
         let heap = Heap::new();
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Concrete intersection (with all concrete variants)
         let number = primitive!(env, PrimitiveType::Number);
@@ -1207,7 +1205,7 @@ mod test {
         // Create an intersection of tuple types
         intersection!(env, intersection_type, [tuple1, tuple2]);
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Intersection operations should work with non-primitive types
         assert!(!intersection_type.is_top(&mut analysis_env));
@@ -1291,7 +1289,7 @@ mod test {
         // Type 2: Dict<Number, Boolean> & Dict<Number, String>
         let type2 = intersection!(env, [dict_number_boolean, dict_number_string]);
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // These types should be equivalent despite having different variant counts
         assert!(analysis_env.is_equivalent(type1, type2));

@@ -65,7 +65,8 @@ impl Variance {
     ///     Variance::Invariant
     /// );
     /// ```
-    pub fn transition(self, next: Variance) -> Self {
+    #[must_use]
+    pub const fn transition(self, next: Self) -> Self {
         match (self, next) {
             // When going from covariant to contravariant context or vice versa, flip to
             // contravariant

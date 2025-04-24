@@ -6,7 +6,7 @@ use smallvec::SmallVec;
 use super::{TypeKind, generic_argument::GenericArguments};
 use crate::r#type::{
     Type, TypeId,
-    environment::{Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment},
+    environment::{AnalysisEnvironment, Environment, LatticeEnvironment, SimplifyEnvironment},
     error::function_parameter_count_mismatch,
     lattice::Lattice,
     pretty_print::PrettyPrint,
@@ -108,31 +108,31 @@ impl<'heap> Lattice<'heap> for ClosureType<'heap> {
         self.postprocess_lattice(other, env, &params, returns)
     }
 
-    fn is_bottom(self: Type<'heap, Self>, _: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+    fn is_bottom(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
         // Never a bottom type, if params is `Never`, then that just means that the function cannot
         // be invoked, but doesn't mean that it's uninhabited. The same applies to the return type.
         false
     }
 
-    fn is_top(self: Type<'heap, Self>, _: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+    fn is_top(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
         false
     }
 
-    fn is_concrete(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+    fn is_concrete(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
         self.kind.params.iter().all(|&param| env.is_concrete(param))
             && env.is_concrete(self.kind.returns)
     }
 
     fn distribute_union(
         self: Type<'heap, Self>,
-        _: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        _: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16> {
         SmallVec::from_slice(&[self.id])
     }
 
     fn distribute_intersection(
         self: Type<'heap, Self>,
-        _: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        _: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16> {
         // We do not distribute over closures, as we cannot show that `(A & B) -> R` is equivalent
         // to `(A -> R) | (B -> R)`. In general distribution only works with covariant arguments,
@@ -153,7 +153,7 @@ impl<'heap> Lattice<'heap> for ClosureType<'heap> {
     fn is_subtype_of(
         self: Type<'heap, Self>,
         supertype: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool {
         // Functions are contravariant over the params and covariant over the return type
         // This mirrors the behaviour of Rust.
@@ -248,7 +248,7 @@ mod test {
         span::SpanId,
         r#type::{
             environment::{
-                Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment,
+                AnalysisEnvironment, Environment, LatticeEnvironment, SimplifyEnvironment,
             },
             kind::{
                 TypeKind,
@@ -567,7 +567,7 @@ mod test {
     fn is_bottom_and_is_top() {
         let heap = Heap::new();
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Create a normal closure
         closure!(
@@ -609,7 +609,7 @@ mod test {
     fn is_concrete() {
         let heap = Heap::new();
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Create a concrete closure
         closure!(
@@ -651,7 +651,7 @@ mod test {
     fn subtype_relationship() {
         let heap = Heap::new();
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         let number = primitive!(env, PrimitiveType::Number);
         let integer = primitive!(env, PrimitiveType::Integer);
@@ -737,7 +737,7 @@ mod test {
     fn equivalence_relationship() {
         let heap = Heap::new();
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Create identical closures semantically
         closure!(
@@ -787,7 +787,7 @@ mod test {
     fn distribute_union() {
         let heap = Heap::new();
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Create primitive types
         let number = primitive!(env, PrimitiveType::Number);
@@ -811,7 +811,7 @@ mod test {
     fn distribute_intersection() {
         let heap = Heap::new();
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Create primitive types
         let number = primitive!(env, PrimitiveType::Number);

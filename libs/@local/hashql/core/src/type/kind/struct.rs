@@ -10,9 +10,7 @@ use crate::{
     symbol::InternedSymbol,
     r#type::{
         Type, TypeId,
-        environment::{
-            Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment,
-        },
+        environment::{AnalysisEnvironment, Environment, LatticeEnvironment, SimplifyEnvironment},
         error::{missing_struct_field, struct_field_mismatch},
         lattice::Lattice,
         pretty_print::PrettyPrint,
@@ -254,7 +252,7 @@ impl<'heap> Lattice<'heap> for StructType<'heap> {
         self.postprocess_lattice(other, env, &mut fields)
     }
 
-    fn is_bottom(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+    fn is_bottom(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
         // bottom if any of the fields are bottom
         self.kind
             .fields
@@ -262,11 +260,11 @@ impl<'heap> Lattice<'heap> for StructType<'heap> {
             .any(|field| env.is_bottom(field.value))
     }
 
-    fn is_top(self: Type<'heap, Self>, _: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+    fn is_top(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
         false
     }
 
-    fn is_concrete(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+    fn is_concrete(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
         self.kind
             .fields
             .iter()
@@ -275,7 +273,7 @@ impl<'heap> Lattice<'heap> for StructType<'heap> {
 
     fn distribute_union(
         self: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16> {
         if self.kind.fields.is_empty() {
             return SmallVec::from_slice(&[self.id]);
@@ -301,7 +299,7 @@ impl<'heap> Lattice<'heap> for StructType<'heap> {
 
     fn distribute_intersection(
         self: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16> {
         if self.kind.fields.is_empty() {
             return SmallVec::from_slice(&[self.id]);
@@ -328,7 +326,7 @@ impl<'heap> Lattice<'heap> for StructType<'heap> {
     fn is_subtype_of(
         self: Type<'heap, Self>,
         supertype: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool {
         // Structs are width covariant
         // This means that a struct with more types is a subtype of a struct with less types
@@ -371,7 +369,7 @@ impl<'heap> Lattice<'heap> for StructType<'heap> {
     fn is_equivalent(
         self: Type<'heap, Self>,
         other: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool {
         // Structs have the same number of fields for equivalence
         if self.kind.fields.len() != other.kind.fields.len() {
@@ -476,7 +474,7 @@ mod test {
         span::SpanId,
         r#type::{
             environment::{
-                Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment,
+                AnalysisEnvironment, Environment, LatticeEnvironment, SimplifyEnvironment,
             },
             kind::{
                 TypeKind,
@@ -776,7 +774,7 @@ mod test {
             ]
         );
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Empty struct should be inhabited (not uninhabited)
         assert!(!empty_struct.is_bottom(&mut analysis_env));
@@ -834,7 +832,7 @@ mod test {
         // Struct with fewer fields
         r#struct!(env, struct_d, [], [struct_field!(env, "name", string)]);
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Reflexivity: Every struct is a subtype of itself
         assert!(struct_a.is_subtype_of(struct_a, &mut analysis_env));
@@ -906,7 +904,7 @@ mod test {
             ]
         );
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Structs with semantically equivalent fields should be equivalent
         assert!(a.is_equivalent(b, &mut analysis_env));
@@ -948,7 +946,7 @@ mod test {
         // Both structs have all fields that are semantically equivalent, but different counts
         // Struct a has 2 fields, struct b has 3 fields
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Structs with different numbers of fields should not be equivalent
         // Even though the overlapping fields have the same types
@@ -1055,7 +1053,7 @@ mod test {
     fn is_concrete() {
         let heap = Heap::new();
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Concrete struct (with all concrete fields)
         let number = primitive!(env, PrimitiveType::Number);
@@ -1110,7 +1108,7 @@ mod test {
     fn distribute_union() {
         let heap = Heap::new();
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Create primitive types
         let string = primitive!(env, PrimitiveType::String);
@@ -1162,7 +1160,7 @@ mod test {
     fn distribute_union_multiple_fields() {
         let heap = Heap::new();
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Create primitive types
         let number = primitive!(env, PrimitiveType::Number);
@@ -1233,7 +1231,7 @@ mod test {
     fn distribute_intersection() {
         let heap = Heap::new();
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Create primitive types
         let number = primitive!(env, PrimitiveType::Number);
@@ -1310,7 +1308,7 @@ mod test {
             ]
         );
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Test subtyping with nested structs
         // Since inner2 (with Integer) is a subtype of inner1 (with Number),
@@ -1346,7 +1344,7 @@ mod test {
         );
 
         let mut lattice_env = LatticeEnvironment::new(&env);
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Join of disjoint structs should have all fields from both
         assert_equiv!(
