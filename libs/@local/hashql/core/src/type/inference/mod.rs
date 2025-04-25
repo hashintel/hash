@@ -1,27 +1,12 @@
 pub(crate) mod solver;
 mod tarjan;
+mod variable;
 
-use ena::unify::UnifyKey;
-
+pub use self::{solver::InferenceSolver, variable::Variable};
 use super::{
     Type, TypeId,
     environment::{AnalysisEnvironment, InferenceEnvironment},
-    kind::{generic_argument::GenericArgumentId, infer::HoleId},
 };
-
-/// Represents an inference variable in the type system.
-///
-/// During type inference, the system works with both concrete types and variables that
-/// need to be solved through constraint satisfaction. These variables can represent
-/// either unknown types or generic parameters.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum Variable {
-    /// A type variable that needs to be solved through constraint satisfaction.
-    Hole(HoleId),
-
-    /// A generic argument variable, typically from a generic parameter.
-    Generic(GenericArgumentId),
-}
 
 /// Represents a constraint between types in the type inference system.
 ///
@@ -88,24 +73,4 @@ pub trait Inference<'heap> {
     ///
     /// A new type ID representing the instantiated type.
     fn instantiate(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> TypeId;
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub(crate) struct VariableId(u32);
-
-impl UnifyKey for VariableId {
-    type Value = ();
-
-    fn index(&self) -> u32 {
-        self.0
-    }
-
-    #[expect(clippy::renamed_function_params)]
-    fn from_index(index: u32) -> Self {
-        Self(index)
-    }
-
-    fn tag() -> &'static str {
-        "VariableId"
-    }
 }

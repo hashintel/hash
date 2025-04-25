@@ -1,23 +1,22 @@
-use hashbrown::HashMap;
-
 use crate::r#type::{
     TypeId,
+    collection::FastHashMap,
     kind::{generic_argument::GenericArgumentId, infer::HoleId},
 };
 
 // The result post inference step (to be implemented)
 #[derive(Debug)]
 pub struct Substitution {
-    arguments: HashMap<GenericArgumentId, TypeId, foldhash::fast::RandomState>,
-    inference: HashMap<HoleId, TypeId, foldhash::fast::RandomState>,
+    arguments: FastHashMap<GenericArgumentId, TypeId>,
+    inference: FastHashMap<HoleId, TypeId>,
 }
 
 impl Substitution {
     #[must_use]
     pub fn new() -> Self {
         Self {
-            arguments: HashMap::default(),
-            inference: HashMap::default(),
+            arguments: FastHashMap::default(),
+            inference: FastHashMap::default(),
         }
     }
 

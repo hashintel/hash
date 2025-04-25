@@ -34,7 +34,7 @@ use super::{
     recursion::RecursionDepthBoundary,
 };
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum TypeKind<'heap> {
     Opaque(OpaqueType<'heap>),
     Primitive(PrimitiveType),
@@ -128,8 +128,8 @@ impl<'heap> TypeKind<'heap> {
         }
     }
 
-    pub(crate) const fn into_variable(self: Type<'heap, Self>) -> Option<Variable> {
-        match *self.kind {
+    pub(crate) const fn into_variable(self) -> Option<Variable> {
+        match self {
             Self::Infer(Infer { hole }) => Some(Variable::Hole(hole)),
             Self::Param(Param { argument }) => Some(Variable::Generic(argument)),
             _ => None,

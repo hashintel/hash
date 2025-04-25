@@ -1,17 +1,18 @@
-use hashbrown::HashMap;
-
-use crate::r#type::kind::generic_argument::{GenericArgumentData, GenericArgumentId};
+use crate::r#type::{
+    collection::FastHashMap,
+    kind::generic_argument::{GenericArgumentData, GenericArgumentId},
+};
 
 #[derive(Debug)]
 pub struct AuxiliaryData {
-    pub arguments: HashMap<GenericArgumentId, GenericArgumentData, foldhash::fast::RandomState>,
+    pub arguments: FastHashMap<GenericArgumentId, GenericArgumentData>,
 }
 
 impl AuxiliaryData {
     #[must_use]
     pub fn new() -> Self {
         Self {
-            arguments: HashMap::default(),
+            arguments: FastHashMap::default(),
         }
     }
 }

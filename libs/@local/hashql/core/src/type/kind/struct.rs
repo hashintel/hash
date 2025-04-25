@@ -1,5 +1,4 @@
 use core::ops::{ControlFlow, Deref};
-use std::collections::HashMap;
 
 use pretty::RcDoc;
 use smallvec::SmallVec;
@@ -10,6 +9,7 @@ use crate::{
     symbol::InternedSymbol,
     r#type::{
         Type, TypeId,
+        collection::FastHashMap,
         environment::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
             SimplifyEnvironment,
@@ -193,7 +193,7 @@ impl<'heap> Lattice<'heap> for StructType<'heap> {
         // As we're covariant in respect to width, we join in the following way:
         // fields that are present in both structs are joined point-wise
         // fields that are only present in one struct are added as is
-        let mut other_lookup: HashMap<_, _, foldhash::fast::RandomState> = other
+        let mut other_lookup: FastHashMap<_, _> = other
             .kind
             .fields
             .iter()
@@ -230,7 +230,7 @@ impl<'heap> Lattice<'heap> for StructType<'heap> {
         // As we're covariant in respect to width, we meet the following way:
         // fields that are present in both structs are met point-wise
         // fields that are present in only one struct are discarded
-        let mut other_lookup: HashMap<_, _, foldhash::fast::RandomState> = other
+        let mut other_lookup: FastHashMap<_, _> = other
             .kind
             .fields
             .iter()
@@ -334,7 +334,7 @@ impl<'heap> Lattice<'heap> for StructType<'heap> {
     ) -> bool {
         // Structs are width covariant
         // This means that a struct with more types is a subtype of a struct with less types
-        let self_fields_by_key: HashMap<_, _, foldhash::fast::RandomState> = self
+        let self_fields_by_key: FastHashMap<_, _> = self
             .kind
             .fields
             .iter()
@@ -458,7 +458,7 @@ impl<'heap> Inference<'heap> for StructType<'heap> {
     ) {
         // Structs are width covariant
         // This means that a struct with more types is a subtype of a struct with less types
-        let self_fields_by_key: HashMap<_, _, foldhash::fast::RandomState> = self
+        let self_fields_by_key: FastHashMap<_, _> = self
             .kind
             .fields
             .iter()

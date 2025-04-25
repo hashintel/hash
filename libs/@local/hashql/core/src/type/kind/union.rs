@@ -276,7 +276,7 @@ impl<'heap> UnionType<'heap> {
                 // variable on the right side won't be constrained to the left side (the subtype).
                 // This is deemed acceptable, as any type that isn't constrained enough on the right
                 // side will be caught during type checking.
-                let Some(variable) = env.types[self_variant].copied().into_variable() else {
+                let Some(variable) = env.types[self_variant].copied().kind.into_variable() else {
                     // There's no variable on the left, so nothing to constrain.
                     return;
                 };

@@ -20,7 +20,7 @@ use crate::{
     },
 };
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct TupleType<'heap> {
     pub fields: &'heap [TypeId],
 

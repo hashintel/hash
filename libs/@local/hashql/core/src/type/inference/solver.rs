@@ -1,18 +1,18 @@
 use bitvec::bitbox;
 use ena::unify::{InPlaceUnificationTable, NoError};
-use hashbrown::HashMap;
 
-use super::{Constraint, Variable, VariableId, tarjan::Tarjan};
+use super::{Constraint, Variable, tarjan::Tarjan, variable::VariableId};
 use crate::r#type::{
     TypeId,
-    environment::{AnalysisEnvironment, Environment, LatticeEnvironment, Substitution},
+    collection::FastHashMap,
+    environment::{LatticeEnvironment, Substitution},
 };
 
 pub(crate) struct Unification {
     table: InPlaceUnificationTable<VariableId>,
 
     variables: Vec<Variable>,
-    lookup: HashMap<Variable, VariableId, foldhash::fast::RandomState>,
+    lookup: FastHashMap<Variable, VariableId>,
 }
 
 impl Unification {
@@ -20,14 +20,14 @@ impl Unification {
         Self {
             table: InPlaceUnificationTable::new(),
             variables: Vec::new(),
-            lookup: HashMap::default(),
+            lookup: FastHashMap::default(),
         }
     }
 
     pub(crate) fn upsert_variable(&mut self, variable: Variable) -> VariableId {
         *self.lookup.entry(variable).or_insert_with_key(|&key| {
             let id = self.table.new_key(());
-            debug_assert_eq!(id.0 as usize, self.variables.len());
+            debug_assert_eq!(id.into_usize(), self.variables.len());
 
             self.variables.push(key);
             id
@@ -59,7 +59,7 @@ impl Unification {
     fn root(&mut self, variable: Variable) -> Variable {
         let id = self.root_id(variable);
 
-        self.variables[id.0 as usize]
+        self.variables[id.into_usize()]
     }
 }
 
@@ -70,8 +70,7 @@ struct VariableConstraint {
     upper: Option<TypeId>,
 }
 
-struct InferenceSolver<'env, 'heap> {
-    environment: &'env Environment<'heap>,
+pub struct InferenceSolver<'env, 'heap> {
     lattice: LatticeEnvironment<'env, 'heap>,
 
     constraints: Vec<Constraint>,
@@ -106,7 +105,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
             // otherwise we might not catch every strongly connected component.
             let lower = self.unification.root_id(lower);
             let upper = self.unification.root_id(upper);
-            graph[lower.0 as usize].set(upper.0 as usize, true);
+            graph[lower.into_usize()].set(upper.into_usize(), true);
         }
 
         let tarjan = Tarjan::new(&graph);
@@ -121,10 +120,8 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         }
     }
 
-    fn apply_constraints(
-        &mut self,
-    ) -> HashMap<Variable, VariableConstraint, foldhash::fast::RandomState> {
-        let mut constraints = HashMap::default();
+    fn apply_constraints(&mut self) -> FastHashMap<Variable, VariableConstraint> {
+        let mut constraints = FastHashMap::default();
 
         for &constraint in &self.constraints {
             match constraint {
@@ -178,9 +175,9 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
 
     fn solve_constraints(
         &mut self,
-        constraints: HashMap<Variable, VariableConstraint, foldhash::fast::RandomState>,
-    ) -> HashMap<Variable, TypeId, foldhash::fast::RandomState> {
-        let mut substitutions = HashMap::default();
+        constraints: FastHashMap<Variable, VariableConstraint>,
+    ) -> FastHashMap<Variable, TypeId> {
+        let mut substitutions = FastHashMap::default();
 
         for (variable, constraint) in constraints {
             if let VariableConstraint {
@@ -257,6 +254,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         substitutions
     }
 
+    #[must_use]
     pub fn solve(mut self) -> Substitution {
         self.solve_anti_symmetry();
 
