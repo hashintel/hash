@@ -33,7 +33,7 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
     }
 
     pub fn is_unioned(&mut self, lhs: Variable, rhs: Variable) -> bool {
-        self.unification.is_unionied(lhs, rhs)
+        self.unification.is_unioned(lhs, rhs)
     }
 
     pub fn add_constraint(&mut self, mut constraint: Constraint) {

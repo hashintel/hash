@@ -1,7 +1,7 @@
 use alloc::rc::Rc;
 
-use bitvec::bitbox;
 use ena::unify::{InPlaceUnificationTable, NoError, UnifyKey as _};
+use roaring::RoaringBitmap;
 
 use super::{
     Constraint, Substitution, Variable,
@@ -49,7 +49,7 @@ impl Unification {
             .unwrap_or_else(|_: NoError| unreachable!());
     }
 
-    pub(crate) fn is_unionied(&mut self, lhs: Variable, rhs: Variable) -> bool {
+    pub(crate) fn is_unioned(&mut self, lhs: Variable, rhs: Variable) -> bool {
         let lhs = self.upsert_variable(lhs);
         let rhs = self.upsert_variable(rhs);
 
@@ -132,8 +132,9 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
 
         // Our graph is a simple adjacency list, where each slot corresponds to a variable,
         // variables that have been already been unified simply have no connections.
+
         let mut graph = Vec::with_capacity(variables);
-        graph.resize(variables, bitbox![0; variables]);
+        graph.resize(variables, RoaringBitmap::new());
 
         for &constraint in &self.constraints {
             let Constraint::Ordering { lower, upper } = constraint else {
@@ -149,15 +150,15 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
             // otherwise we might not catch every strongly connected component.
             let lower = self.unification.root_id(lower);
             let upper = self.unification.root_id(upper);
-            graph[lower.into_usize()].set(upper.into_usize(), true);
+            graph[lower.into_usize()].insert(upper.index());
         }
 
         let tarjan = Tarjan::new(&graph);
 
         for scc in tarjan.compute() {
-            for [lhs, rhs] in scc.iter_ones().map_windows(|values: &[_; 2]| *values) {
-                let lhs = self.unification.variables[lhs];
-                let rhs = self.unification.variables[rhs];
+            for [lhs, rhs] in scc.iter().map_windows(|values: &[_; 2]| *values) {
+                let lhs = self.unification.variables[lhs as usize];
+                let rhs = self.unification.variables[rhs as usize];
 
                 self.unification.unify(lhs, rhs);
             }
@@ -291,8 +292,6 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                     substitutions.insert(variable, lower);
                 }
             }
-
-            todo!()
         }
 
         substitutions
