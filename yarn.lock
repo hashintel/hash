@@ -562,7 +562,7 @@ __metadata:
     react-dom: "npm:19.1.0"
     react-dropzone: "npm:14.3.8"
     react-full-screen: "npm:1.1.1"
-    react-hook-form: "npm:7.56.0"
+    react-hook-form: "npm:7.56.1"
     react-markdown: "npm:9.1.0"
     react-pdf: "npm:9.2.1"
     react-responsive-carousel: "npm:3.2.23"
@@ -7100,14 +7100,14 @@ __metadata:
     eslint-plugin-storybook: "npm:0.11.3"
     react: "npm:19.1.0"
     react-dom: "npm:19.1.0"
-    react-hook-form: "npm:7.56.0"
+    react-hook-form: "npm:7.56.1"
     typescript: "npm:5.7.3"
   peerDependencies:
     "@mui/material": ^5.14.0
     "@mui/system": ^5.14.0
     react: ^19.0.0
     react-dom: ^19.0.0
-    react-hook-form: 7.56.0
+    react-hook-form: 7.56.1
   languageName: unknown
   linkType: soft
 
@@ -7134,7 +7134,7 @@ __metadata:
     material-ui-popup-state: "npm:4.1.0"
     react: "npm:19.1.0"
     react-dom: "npm:19.1.0"
-    react-hook-form: "npm:7.56.0"
+    react-hook-form: "npm:7.56.1"
     rooks: "npm:7.14.1"
     setimmediate: "npm:1.0.5"
     typescript: "npm:5.7.3"
@@ -7143,7 +7143,7 @@ __metadata:
     "@mui/system": ^5.14.0
     react: ^19.0.0
     react-dom: ^19.0.0
-    react-hook-form: 7.56.0
+    react-hook-form: 7.56.1
   languageName: unknown
   linkType: soft
 
@@ -38152,12 +38152,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-hook-form@npm:7.56.0":
-  version: 7.56.0
-  resolution: "react-hook-form@npm:7.56.0"
+"react-hook-form@npm:7.56.1":
+  version: 7.56.1
+  resolution: "react-hook-form@npm:7.56.1"
   peerDependencies:
     react: ^16.8.0 || ^17 || ^18 || ^19
-  checksum: 10c0/707b5939e5aede9deafd781c832bc6eed4086bb64f39697b038b702b6698b367fac0aa8dc4e2ed3f6d235a37b991af8d3c0d4968eae82529946a30558a10967d
+  checksum: 10c0/26eafd54bf47167628e34c2f22ea27ea7bdd5b4231a56af5be31ccedfb2a721708b308026ea4a17f2fb15c7b5fff83c0feb4acc7aa07bd6faa8506e917810cab
   languageName: node
   linkType: hard
 
