@@ -14,30 +14,37 @@ impl Diagnostics {
         }
     }
 
-    pub fn take(&mut self) -> Vec<TypeCheckDiagnostic> {
-        core::mem::take(&mut self.inner)
-    }
-
-    pub fn replace(&mut self, diagnostics: Vec<TypeCheckDiagnostic>) {
-        self.fatal = diagnostics
-            .iter()
-            .filter(|diagnostic| diagnostic.severity.is_fatal())
-            .count();
-
-        self.inner = diagnostics;
-    }
-
     #[must_use]
     pub const fn fatal(&self) -> usize {
         self.fatal
     }
 
-    pub fn push(&mut self, diagnostic: TypeCheckDiagnostic) {
+    #[must_use]
+    pub const fn len(&self) -> usize {
+        self.inner.len()
+    }
+
+    #[must_use]
+    pub const fn is_empty(&self) -> bool {
+        self.inner.is_empty()
+    }
+
+    pub(crate) fn push(&mut self, diagnostic: TypeCheckDiagnostic) {
         if diagnostic.severity.is_fatal() {
             self.fatal += 1;
         }
 
         self.inner.push(diagnostic);
+    }
+
+    pub fn merge(&mut self, other: Self) {
+        self.fatal += other.fatal;
+        self.inner.extend(other.inner);
+    }
+
+    #[must_use]
+    pub fn into_vec(self) -> Vec<TypeCheckDiagnostic> {
+        self.inner
     }
 }
 

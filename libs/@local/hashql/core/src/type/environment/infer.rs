@@ -3,7 +3,7 @@ use core::ops::Deref;
 use super::{Environment, Variance};
 use crate::r#type::{
     TypeId,
-    inference::{Constraint, Inference as _, Variable, solver::Unification},
+    inference::{Constraint, Inference as _, InferenceSolver, Variable, solver::Unification},
     recursion::RecursionBoundary,
 };
 
@@ -113,6 +113,11 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
 
     pub(crate) fn in_invariant<T>(&mut self, closure: impl FnOnce(&mut Self) -> T) -> T {
         self.with_variance(Variance::Invariant, closure)
+    }
+
+    #[must_use]
+    pub fn into_solver(self) -> InferenceSolver<'env, 'heap> {
+        InferenceSolver::new(self.environment, self.unification, self.constraints)
     }
 }
 

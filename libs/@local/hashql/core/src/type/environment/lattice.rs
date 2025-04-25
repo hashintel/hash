@@ -6,6 +6,7 @@ use super::{Diagnostics, Environment, SimplifyEnvironment};
 use crate::r#type::{
     Type, TypeId,
     error::circular_type_reference,
+    inference::VariableLookup,
     kind::{IntersectionType, TypeKind, UnionType},
     lattice::Lattice as _,
     recursion::RecursionBoundary,
@@ -33,9 +34,25 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
         }
     }
 
+    #[inline]
+    pub(crate) fn set_variables(&mut self, variables: VariableLookup) {
+        self.simplify.set_variables(variables);
+    }
+
     pub const fn without_simplify(&mut self) -> &mut Self {
         self.simplify_lattice = false;
         self
+    }
+
+    pub fn take_diagnostics(&mut self) -> Diagnostics {
+        let mut this = core::mem::take(&mut self.diagnostics);
+        let simplify = self.simplify.take_diagnostics();
+
+        if let Some(simplify) = simplify {
+            this.merge(simplify);
+        }
+
+        this
     }
 
     pub const fn set_inference_enabled(&mut self, enabled: bool) -> &mut Self {
@@ -45,6 +62,11 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
 
     pub(crate) const fn is_inference_enabled(&self) -> bool {
         self.inference
+    }
+
+    #[inline]
+    pub(crate) fn resolve_type(&self, r#type: Type<'heap>) -> Option<Type<'heap>> {
+        self.simplify.resolve_type(r#type)
     }
 
     /// Handling recursive type cycles during a join operation.

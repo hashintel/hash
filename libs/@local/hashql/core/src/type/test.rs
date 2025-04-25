@@ -81,7 +81,9 @@ fn never_with_other_type() {
     env.is_subtype_of(never, other);
 
     assert!(
-        env.take_diagnostics().is_empty(),
+        env.take_diagnostics()
+            .expect("should have diagnostics enabled")
+            .is_empty(),
         "There should be an no error during unification"
     );
 
@@ -111,7 +113,11 @@ fn unknown_with_other_type() {
 
     env.is_subtype_of(unknown, never);
 
-    assert!(env.take_diagnostics().is_empty());
+    assert!(
+        env.take_diagnostics()
+            .expect("should have diagnostics enabled")
+            .is_empty()
+    );
 
     assert_matches!(env.types[unknown].copied().kind, TypeKind::Unknown);
 }

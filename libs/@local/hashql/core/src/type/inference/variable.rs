@@ -1,3 +1,6 @@
+use alloc::rc::Rc;
+use core::ops::Index;
+
 use ena::unify::UnifyKey;
 
 use crate::r#type::{
@@ -45,6 +48,23 @@ impl UnifyKey for VariableId {
     }
 }
 
-pub(crate) struct VariableLookup(FastHashMap<Variable, Variable>);
+#[derive(Debug, Clone, Default)]
+pub(crate) struct VariableLookup(Rc<FastHashMap<Variable, Variable>>);
 
-impl VariableLookup {}
+impl VariableLookup {
+    pub(crate) fn new(lookup: FastHashMap<Variable, Variable>) -> Self {
+        Self(Rc::new(lookup))
+    }
+
+    pub(crate) fn get(&self, key: Variable) -> Option<Variable> {
+        self.0.get(&key).copied()
+    }
+}
+
+impl Index<Variable> for VariableLookup {
+    type Output = Variable;
+
+    fn index(&self, index: Variable) -> &Self::Output {
+        &self.0[&index]
+    }
+}

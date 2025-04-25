@@ -6,16 +6,14 @@ pub mod simplify;
 
 pub use self::{
     analysis::AnalysisEnvironment,
-    context::{
-        auxiliary::AuxiliaryData, diagnostics::Diagnostics, substitution::Substitution,
-        variance::Variance,
-    },
+    context::{auxiliary::AuxiliaryData, diagnostics::Diagnostics, variance::Variance},
     infer::InferenceEnvironment,
     lattice::LatticeEnvironment,
     simplify::SimplifyEnvironment,
 };
 use super::{
     Type, TypeId, TypeKind,
+    inference::Substitution,
     intern::Interner,
     kind::{
         generic_argument::{GenericArgument, GenericArguments},
@@ -47,7 +45,7 @@ impl<'heap> Environment<'heap> {
             interner: Interner::new(heap),
 
             auxiliary: AuxiliaryData::new(),
-            substitution: Substitution::new(),
+            substitution: Substitution::default(),
         }
     }
 
@@ -61,7 +59,7 @@ impl<'heap> Environment<'heap> {
             interner: Interner::new_empty(heap),
 
             auxiliary: AuxiliaryData::new(),
-            substitution: Substitution::new(),
+            substitution: Substitution::default(),
         }
     }
 

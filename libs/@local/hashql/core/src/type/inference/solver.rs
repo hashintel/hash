@@ -1,11 +1,17 @@
-use bitvec::bitbox;
-use ena::unify::{InPlaceUnificationTable, NoError};
+use alloc::rc::Rc;
 
-use super::{Constraint, Variable, tarjan::Tarjan, variable::VariableId};
+use bitvec::bitbox;
+use ena::unify::{InPlaceUnificationTable, NoError, UnifyKey as _};
+
+use super::{
+    Constraint, Substitution, Variable,
+    tarjan::Tarjan,
+    variable::{VariableId, VariableLookup},
+};
 use crate::r#type::{
     TypeId,
     collection::FastHashMap,
-    environment::{LatticeEnvironment, Substitution},
+    environment::{Diagnostics, Environment, LatticeEnvironment, SimplifyEnvironment},
 };
 
 pub(crate) struct Unification {
@@ -61,6 +67,21 @@ impl Unification {
 
         self.variables[id.into_usize()]
     }
+
+    #[expect(clippy::cast_possible_truncation)]
+    fn lookup(&mut self) -> VariableLookup {
+        let mut lookup = FastHashMap::with_capacity_and_hasher(
+            self.table.len(),
+            foldhash::fast::RandomState::default(),
+        );
+
+        for (index, &variable) in self.variables.iter().enumerate() {
+            let root = self.table.find(VariableId::from_index(index as u32));
+            lookup.insert(variable, self.variables[root.into_usize()]);
+        }
+
+        VariableLookup::new(lookup)
+    }
 }
 
 #[derive(Debug, Default)]
@@ -72,12 +93,35 @@ struct VariableConstraint {
 
 pub struct InferenceSolver<'env, 'heap> {
     lattice: LatticeEnvironment<'env, 'heap>,
+    simplify: SimplifyEnvironment<'env, 'heap>,
+
+    diagnostics: Diagnostics,
 
     constraints: Vec<Constraint>,
     unification: Unification,
 }
 
 impl<'env, 'heap> InferenceSolver<'env, 'heap> {
+    pub(crate) fn new(
+        env: &'env Environment<'heap>,
+        unification: Unification,
+        constraints: Vec<Constraint>,
+    ) -> Self {
+        let mut lattice = LatticeEnvironment::new(env);
+        lattice.without_simplify();
+        lattice.set_inference_enabled(true);
+
+        Self {
+            lattice,
+            simplify: SimplifyEnvironment::new(env),
+
+            diagnostics: Diagnostics::new(),
+
+            constraints,
+            unification,
+        }
+    }
+
     fn solve_anti_symmetry(&mut self) {
         // We first create a graph of all the inference variables, that's then used to see if there
         // are any variables that can be equalized.
@@ -254,13 +298,47 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         substitutions
     }
 
+    fn simplify_substitutions(
+        &mut self,
+        lookup: VariableLookup,
+        substitutions: &Rc<FastHashMap<Variable, TypeId>>,
+    ) -> FastHashMap<Variable, TypeId> {
+        // Now that everything is solved, go over each substitution and simplify it
+        let mut simplified_substitutions = FastHashMap::default();
+
+        // Make the simplifier aware of the substitutions
+        self.simplify
+            .set_substitution(Substitution::new(lookup, Rc::clone(substitutions)));
+
+        for (&variable, &type_id) in &**substitutions {
+            simplified_substitutions.insert(variable, self.simplify.simplify(type_id));
+        }
+
+        simplified_substitutions
+    }
+
     #[must_use]
-    pub fn solve(mut self) -> Substitution {
+    pub fn solve(mut self) -> (Substitution, Diagnostics) {
         self.solve_anti_symmetry();
 
-        let constraints = self.apply_constraints();
-        let substitutions = self.solve_constraints(constraints);
+        let lookup = self.unification.lookup();
+        // Set the variable substitutions in the lattice, this makes sure that `equal` constraints
+        // are more lax when comparing equal values.
+        self.lattice.set_variables(lookup.clone());
 
-        todo!()
+        let constraints = self.apply_constraints();
+        let substitution = self.solve_constraints(constraints);
+        let substitution = Rc::new(substitution);
+
+        let substitution = self.simplify_substitutions(lookup.clone(), &substitution);
+        let substitution = Substitution::new(lookup, Rc::new(substitution));
+
+        let mut diagnostics = self.diagnostics;
+        diagnostics.merge(self.lattice.take_diagnostics());
+        if let Some(simplify) = self.simplify.take_diagnostics() {
+            diagnostics.merge(simplify);
+        }
+
+        (substitution, diagnostics)
     }
 }

@@ -2,10 +2,15 @@ pub(crate) mod solver;
 mod tarjan;
 mod variable;
 
+use alloc::rc::Rc;
+
+pub(crate) use self::variable::VariableLookup;
 pub use self::{solver::InferenceSolver, variable::Variable};
 use super::{
     Type, TypeId,
+    collection::FastHashMap,
     environment::{AnalysisEnvironment, InferenceEnvironment},
+    kind::{generic_argument::GenericArgumentId, infer::HoleId},
 };
 
 /// Represents a constraint between types in the type inference system.
@@ -44,6 +49,39 @@ impl Constraint {
         };
 
         array.into_iter().flatten()
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct Substitution {
+    variables: VariableLookup,
+    substitutions: Rc<FastHashMap<Variable, TypeId>>,
+}
+
+impl Substitution {
+    #[must_use]
+    pub(crate) const fn new(
+        variables: VariableLookup,
+        substitutions: Rc<FastHashMap<Variable, TypeId>>,
+    ) -> Self {
+        Self {
+            variables,
+            substitutions,
+        }
+    }
+
+    #[must_use]
+    pub fn argument(&self, id: GenericArgumentId) -> Option<TypeId> {
+        let root = self.variables.get(Variable::Generic(id))?;
+
+        self.substitutions.get(&root).copied()
+    }
+
+    #[must_use]
+    pub fn infer(&self, id: HoleId) -> Option<TypeId> {
+        let root = self.variables.get(Variable::Hole(id))?;
+
+        self.substitutions.get(&root).copied()
     }
 }
 

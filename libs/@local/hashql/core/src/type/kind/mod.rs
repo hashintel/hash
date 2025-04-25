@@ -55,7 +55,7 @@ pub enum TypeKind<'heap> {
     Unknown,
 }
 
-impl<'heap> TypeKind<'heap> {
+impl TypeKind<'_> {
     #[must_use]
     pub const fn opaque(&self) -> Option<&OpaqueType> {
         match self {
@@ -135,31 +135,6 @@ impl<'heap> TypeKind<'heap> {
             _ => None,
         }
     }
-
-    pub fn resolve(self: Type<'heap, Self>, env: &Environment<'heap>) -> Option<Type<'heap, Self>> {
-        match self.kind {
-            Self::Opaque(_)
-            | Self::Primitive(_)
-            | Self::Intrinsic(_)
-            | Self::Struct(_)
-            | Self::Tuple(_)
-            | Self::Closure(_)
-            | Self::Union(_)
-            | Self::Intersection(_)
-            | Self::Never
-            | Self::Unknown => Some(self),
-            &Self::Param(Param { argument }) => {
-                let argument = env.substitution.argument(argument)?;
-
-                Some(env.types[argument].copied())
-            }
-            &Self::Infer(Infer { hole }) => {
-                let infer = env.substitution.infer(hole)?;
-
-                Some(env.types[infer].copied())
-            }
-        }
-    }
 }
 
 impl<'heap> Lattice<'heap> for TypeKind<'heap> {
@@ -169,7 +144,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
         mut other: Type<'heap, Self>,
         env: &mut LatticeEnvironment<'_, 'heap>,
     ) -> smallvec::SmallVec<TypeId, 4> {
-        let Some(resolved) = self.resolve(env) else {
+        let Some(resolved) = env.resolve_type(self) else {
             if env.is_inference_enabled() {
                 // We cannot determine the join of an inferred type with another type, therefore we
                 // "delay" the join until the inferred type is resolved.
@@ -184,7 +159,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
 
         self = resolved;
 
-        let Some(resolved) = other.resolve(env) else {
+        let Some(resolved) = env.resolve_type(other) else {
             if env.is_inference_enabled() {
                 // We cannot determine the join of an inferred type with another type, therefore we
                 // "delay" the join until the inferred type is resolved.
@@ -393,7 +368,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
         mut other: Type<'heap, Self>,
         env: &mut LatticeEnvironment<'_, 'heap>,
     ) -> smallvec::SmallVec<TypeId, 4> {
-        let Some(resolved) = self.resolve(env) else {
+        let Some(resolved) = env.resolve_type(self) else {
             if env.is_inference_enabled() {
                 // When inference is enabled, the unresolved type is "propagated" as part of the
                 // meet until resolved
@@ -412,7 +387,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
 
         self = resolved;
 
-        let Some(resolved) = other.resolve(env) else {
+        let Some(resolved) = env.resolve_type(other) else {
             if env.is_inference_enabled() {
                 // When inference is enabled, the unresolved type is "propagated" as part of the
                 // meet until resolved
@@ -765,7 +740,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
         mut other: Type<'heap, Self>,
         env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool {
-        let Some(resolved) = self.resolve(env) else {
+        let Some(resolved) = env.resolve_type(self) else {
             let _: ControlFlow<()> = env.record_diagnostic(|env| no_type_inference(env, self));
 
             return false;
@@ -773,7 +748,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
 
         self = resolved;
 
-        let Some(resolved) = other.resolve(env) else {
+        let Some(resolved) = env.resolve_type(other) else {
             let _: ControlFlow<()> = env.record_diagnostic(|env| no_type_inference(env, other));
 
             return false;
@@ -1018,7 +993,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
         mut supertype: Type<'heap, Self>,
         env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool {
-        let Some(resolved) = self.resolve(env) else {
+        let Some(resolved) = env.resolve_type(self) else {
             let _: ControlFlow<()> = env.record_diagnostic(|env| no_type_inference(env, self));
 
             return false;
@@ -1026,7 +1001,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
 
         self = resolved;
 
-        let Some(resolved) = supertype.resolve(env) else {
+        let Some(resolved) = env.resolve_type(supertype) else {
             let _: ControlFlow<()> = env.record_diagnostic(|env| no_type_inference(env, supertype));
 
             return false;

@@ -2,8 +2,13 @@ use core::ops::Deref;
 
 use smallvec::SmallVec;
 
-use super::{AnalysisEnvironment, Environment};
-use crate::r#type::{TypeId, lattice::Lattice as _, recursion::RecursionBoundary};
+use super::{AnalysisEnvironment, Diagnostics, Environment};
+use crate::r#type::{
+    Type, TypeId,
+    inference::{Substitution, VariableLookup},
+    lattice::Lattice as _,
+    recursion::RecursionBoundary,
+};
 
 pub struct SimplifyEnvironment<'env, 'heap> {
     pub environment: &'env Environment<'heap>,
@@ -19,6 +24,25 @@ impl<'env, 'heap> SimplifyEnvironment<'env, 'heap> {
             boundary: RecursionBoundary::new(),
             analysis: AnalysisEnvironment::new(environment),
         }
+    }
+
+    #[inline]
+    pub(crate) fn set_variables(&mut self, variables: VariableLookup) {
+        self.analysis.set_variables(variables);
+    }
+
+    #[inline]
+    pub(crate) fn set_substitution(&mut self, substitution: Substitution) {
+        self.analysis.set_substitution(substitution);
+    }
+
+    pub(crate) fn take_diagnostics(&mut self) -> Option<Diagnostics> {
+        self.analysis.take_diagnostics()
+    }
+
+    #[inline]
+    pub(crate) fn resolve_type(&self, r#type: Type<'heap>) -> Option<Type<'heap>> {
+        self.analysis.resolve_type(r#type)
     }
 
     #[inline]
