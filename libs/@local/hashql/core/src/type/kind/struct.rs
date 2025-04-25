@@ -511,7 +511,7 @@ mod test {
                 AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
                 SimplifyEnvironment,
             },
-            inference::{Constraint, Inference as _, Variable},
+            inference::{Constraint, Inference as _, Variable, VariableKind},
             kind::{
                 TypeKind,
                 generic_argument::{GenericArgument, GenericArgumentId},
@@ -1449,7 +1449,7 @@ mod test {
         assert_eq!(
             constraints,
             [Constraint::LowerBound {
-                variable: Variable::Hole(hole),
+                variable: Variable::synthetic(VariableKind::Hole(hole)),
                 bound: number
             }]
         );
@@ -1499,7 +1499,7 @@ mod test {
         assert_eq!(
             constraints,
             [Constraint::UpperBound {
-                variable: Variable::Hole(hole),
+                variable: Variable::synthetic(VariableKind::Hole(hole)),
                 bound: number
             }]
         );
@@ -1590,7 +1590,7 @@ mod test {
         assert_eq!(
             constraints,
             [Constraint::UpperBound {
-                variable: Variable::Hole(hole),
+                variable: Variable::synthetic(VariableKind::Hole(hole)),
                 bound: number
             }]
         );
@@ -1639,8 +1639,8 @@ mod test {
         assert_eq!(
             constraints,
             [Constraint::Ordering {
-                lower: Variable::Generic(arg1),
-                upper: Variable::Generic(arg2)
+                lower: Variable::synthetic(VariableKind::Generic(arg1)),
+                upper: Variable::synthetic(VariableKind::Generic(arg2))
             }]
         );
     }

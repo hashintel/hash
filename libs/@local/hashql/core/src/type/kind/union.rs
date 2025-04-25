@@ -15,7 +15,7 @@ use crate::{
             SimplifyEnvironment,
         },
         error::{cannot_be_subtype_of_never, type_mismatch, union_variant_mismatch},
-        inference::{Constraint, Inference},
+        inference::{Constraint, Inference, Variable},
         lattice::Lattice,
         pretty_print::PrettyPrint,
         recursion::RecursionDepthBoundary,
@@ -276,7 +276,8 @@ impl<'heap> UnionType<'heap> {
                 // variable on the right side won't be constrained to the left side (the subtype).
                 // This is deemed acceptable, as any type that isn't constrained enough on the right
                 // side will be caught during type checking.
-                let Some(variable) = env.types[self_variant].copied().kind.into_variable() else {
+                let self_variant = env.types[self_variant].copied();
+                let Some(variable) = self_variant.kind.into_variable() else {
                     // There's no variable on the left, so nothing to constrain.
                     return;
                 };
@@ -286,7 +287,10 @@ impl<'heap> UnionType<'heap> {
                 debug_assert_matches!(env.types[supertype].copied().kind, TypeKind::Union(_));
 
                 env.add_constraint(Constraint::UpperBound {
-                    variable,
+                    variable: Variable {
+                        span: self_variant.span,
+                        kind: variable,
+                    },
                     bound: supertype,
                 });
             }
@@ -522,7 +526,7 @@ mod test {
                 AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
                 SimplifyEnvironment,
             },
-            inference::{Constraint, Inference as _, Variable},
+            inference::{Constraint, Inference as _, Variable, VariableKind},
             kind::{
                 TypeKind,
                 generic_argument::GenericArgumentId,
@@ -1606,7 +1610,7 @@ mod test {
         assert_eq!(constraints.len(), 1);
         assert_matches!(
             &constraints[0],
-            Constraint::UpperBound { variable: Variable::Hole(bound_hole), bound } if {
+            Constraint::UpperBound { variable: Variable { span: SpanId::SYNTHETIC, kind: VariableKind::Hole(bound_hole) }, bound } if {
                 let bound_type = env.types[*bound].copied().kind;
                 matches!(bound_type, TypeKind::Never) && *bound_hole == hole
             }
@@ -1641,7 +1645,7 @@ mod test {
         assert_matches!(
             &constraints[0],
             Constraint::UpperBound {
-                variable: Variable::Hole(h),
+                variable: Variable {span: SpanId::SYNTHETIC, kind: VariableKind::Hole(h)},
                 bound
             } if *h == hole && *bound == concrete_union.id
         );
@@ -1674,7 +1678,7 @@ mod test {
         assert_matches!(
             &constraints[0],
             Constraint::LowerBound {
-                variable: Variable::Hole(h),
+                variable: Variable {span: SpanId::SYNTHETIC, kind: VariableKind::Hole(h)},
                 bound
             } if *h == hole && *bound == number
         );
@@ -1709,16 +1713,21 @@ mod test {
         let constraints = inference_env.take_constraints();
         assert_eq!(constraints.len(), 2);
 
-        let constraints_contain =
-            |var, bound| {
-                constraints.iter().any(|c| matches!(
+        let constraints_contain = |expected, bound| {
+            constraints.iter().any(|c| matches!(
                     c,
-                    Constraint::UpperBound { variable, bound: b } if *variable == var && *b == bound
+                    Constraint::UpperBound { variable, bound: b } if *variable == expected && *b == bound
                 ))
-            };
+        };
 
-        assert!(constraints_contain(Variable::Hole(hole_a), number));
-        assert!(constraints_contain(Variable::Hole(hole_b), number));
+        assert!(constraints_contain(
+            Variable::synthetic(VariableKind::Hole(hole_a)),
+            number
+        ));
+        assert!(constraints_contain(
+            Variable::synthetic(VariableKind::Hole(hole_b)),
+            number
+        ));
     }
 
     #[test]
@@ -1749,7 +1758,7 @@ mod test {
         assert_matches!(
             &constraints[0],
             Constraint::UpperBound {
-                variable: Variable::Hole(h),
+                variable: Variable { span: SpanId::SYNTHETIC, kind: VariableKind::Hole(h) },
                 bound
             } if *h == hole && *bound == concrete_union.id
         );
@@ -1784,7 +1793,7 @@ mod test {
         assert_matches!(
             &constraints[0],
             Constraint::UpperBound {
-                variable: Variable::Hole(h),
+                variable: Variable { span: SpanId::SYNTHETIC, kind: VariableKind::Hole(h) },
                 bound
             } if *h == hole && *bound == number
         );
@@ -1818,8 +1827,8 @@ mod test {
         assert_matches!(
             &constraints[0],
             Constraint::Ordering {
-                lower: Variable::Generic(l),
-                upper: Variable::Generic(u),
+                lower: Variable { span: SpanId::SYNTHETIC, kind: VariableKind::Generic(l) },
+                upper: Variable { span: SpanId::SYNTHETIC, kind: VariableKind::Generic(u) },
             } if *l == arg1 && *u == arg2
         );
     }
@@ -1877,7 +1886,7 @@ mod test {
         assert!(constraints.iter().any(|c| matches!(
             c,
             Constraint::UpperBound {
-                variable: Variable::Hole(h),
+                variable: Variable { span: SpanId::SYNTHETIC, kind: VariableKind::Hole(h) },
                 bound
             } if *h == hole && *bound == concrete_union.id
         )));
@@ -1912,7 +1921,7 @@ mod test {
         assert_matches!(
             &constraints[0],
             Constraint::UpperBound {
-                variable: Variable::Hole(h),
+                variable: Variable { span: SpanId::SYNTHETIC, kind: VariableKind::Hole(h) },
                 bound
             } if *h == hole && *bound == intersection_type
         );

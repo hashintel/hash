@@ -3,7 +3,7 @@ use core::ops::Deref;
 use super::{Environment, Variance};
 use crate::r#type::{
     TypeId,
-    inference::{Constraint, Inference as _, InferenceSolver, Variable, solver::Unification},
+    inference::{Constraint, Inference as _, InferenceSolver, VariableKind, solver::Unification},
     recursion::RecursionBoundary,
 };
 
@@ -32,14 +32,14 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
         core::mem::take(&mut self.constraints)
     }
 
-    pub fn is_unioned(&mut self, lhs: Variable, rhs: Variable) -> bool {
+    pub fn is_unioned(&mut self, lhs: VariableKind, rhs: VariableKind) -> bool {
         self.unification.is_unioned(lhs, rhs)
     }
 
     pub fn add_constraint(&mut self, mut constraint: Constraint) {
         for variable in constraint.variables() {
             // Ensure that each mentioned variable is registered in the unification table
-            self.unification.upsert_variable(variable);
+            self.unification.upsert_variable(variable.kind);
         }
 
         if self.variance == Variance::Invariant {
@@ -54,7 +54,7 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
                     r#type: _,
                 } => constraint,
                 Constraint::Ordering { lower, upper } => {
-                    self.unification.unify(lower, upper);
+                    self.unification.unify(lower.kind, upper.kind);
                     return;
                 }
             };

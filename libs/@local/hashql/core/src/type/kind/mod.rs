@@ -28,7 +28,7 @@ use super::{
         SimplifyEnvironment,
     },
     error::{no_type_inference, type_mismatch},
-    inference::{Constraint, Inference, Variable},
+    inference::{Constraint, Inference, Variable, VariableKind},
     lattice::Lattice,
     pretty_print::{CYAN, GRAY, PrettyPrint},
     recursion::RecursionDepthBoundary,
@@ -128,10 +128,10 @@ impl TypeKind<'_> {
         }
     }
 
-    pub(crate) const fn into_variable(self) -> Option<Variable> {
+    pub(crate) const fn into_variable(self) -> Option<VariableKind> {
         match self {
-            Self::Infer(Infer { hole }) => Some(Variable::Hole(hole)),
-            Self::Param(Param { argument }) => Some(Variable::Generic(argument)),
+            Self::Infer(Infer { hole }) => Some(VariableKind::Hole(hole)),
+            Self::Param(Param { argument }) => Some(VariableKind::Generic(argument)),
             _ => None,
         }
     }
@@ -1284,32 +1284,56 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
             // Infer <: Infer
             (&Self::Infer(Infer { hole: self_id }), &Self::Infer(Infer { hole: supertype_id })) => {
                 env.add_constraint(Constraint::Ordering {
-                    lower: Variable::Hole(self_id),
-                    upper: Variable::Hole(supertype_id),
+                    lower: Variable {
+                        span: self.span,
+                        kind: VariableKind::Hole(self_id),
+                    },
+                    upper: Variable {
+                        span: supertype.span,
+                        kind: VariableKind::Hole(supertype_id),
+                    },
                 });
             }
 
             // Param <: Param
             (&Self::Param(Param { argument: left }), &Self::Param(Param { argument: right })) => {
                 env.add_constraint(Constraint::Ordering {
-                    lower: Variable::Generic(left),
-                    upper: Variable::Generic(right),
+                    lower: Variable {
+                        span: self.span,
+                        kind: VariableKind::Generic(left),
+                    },
+                    upper: Variable {
+                        span: supertype.span,
+                        kind: VariableKind::Generic(right),
+                    },
                 });
             }
 
             // Infer <: Param
             (&Self::Infer(Infer { hole: self_id }), &Self::Param(Param { argument })) => {
                 env.add_constraint(Constraint::Ordering {
-                    lower: Variable::Hole(self_id),
-                    upper: Variable::Generic(argument),
+                    lower: Variable {
+                        span: self.span,
+                        kind: VariableKind::Hole(self_id),
+                    },
+                    upper: Variable {
+                        span: supertype.span,
+                        kind: VariableKind::Generic(argument),
+                    },
                 });
             }
 
             // Param <: Infer
             (&Self::Param(Param { argument }), &Self::Infer(Infer { hole: supertype_id })) => {
                 env.add_constraint(Constraint::Ordering {
-                    lower: Variable::Generic(argument),
-                    upper: Variable::Hole(supertype_id),
+                    lower: Variable {
+                        span: self.span,
+                        kind: VariableKind::Generic(argument),
+                    },
+                    upper: Variable {
+                        span: supertype.span,
+                        kind: VariableKind::Hole(supertype_id),
+                    },
                 });
             }
 
@@ -1486,7 +1510,10 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
             // Infer <: _
             (&Self::Infer(Infer { hole: self_id }), _) => {
                 env.add_constraint(Constraint::UpperBound {
-                    variable: Variable::Hole(self_id),
+                    variable: Variable {
+                        span: self.span,
+                        kind: VariableKind::Hole(self_id),
+                    },
                     bound: supertype.id,
                 });
             }
@@ -1494,7 +1521,10 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
             // _ <: Infer
             (_, &Self::Infer(Infer { hole: supertype_id })) => {
                 env.add_constraint(Constraint::LowerBound {
-                    variable: Variable::Hole(supertype_id),
+                    variable: Variable {
+                        span: supertype.span,
+                        kind: VariableKind::Hole(supertype_id),
+                    },
                     bound: self.id,
                 });
             }
@@ -1502,7 +1532,10 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
             // Param <: _
             (&Self::Param(Param { argument }), _) => {
                 env.add_constraint(Constraint::UpperBound {
-                    variable: Variable::Generic(argument),
+                    variable: Variable {
+                        span: self.span,
+                        kind: VariableKind::Generic(argument),
+                    },
                     bound: supertype.id,
                 });
             }
@@ -1510,7 +1543,10 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
             // _ <: Param
             (_, &Self::Param(Param { argument })) => {
                 env.add_constraint(Constraint::LowerBound {
-                    variable: Variable::Generic(argument),
+                    variable: Variable {
+                        span: supertype.span,
+                        kind: VariableKind::Generic(argument),
+                    },
                     bound: self.id,
                 });
             }

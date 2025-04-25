@@ -705,7 +705,7 @@ mod tests {
                 AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
                 SimplifyEnvironment,
             },
-            inference::{Constraint, Inference as _, Variable},
+            inference::{Constraint, Inference as _, Variable, VariableKind},
             kind::{
                 TypeKind,
                 infer::HoleId,
@@ -1465,7 +1465,7 @@ mod tests {
         assert_eq!(
             constraints,
             [Constraint::LowerBound {
-                variable: Variable::Hole(hole),
+                variable: Variable::synthetic(VariableKind::Hole(hole)),
                 bound: number
             }]
         );
@@ -1495,7 +1495,7 @@ mod tests {
         assert_eq!(
             constraints,
             [Constraint::UpperBound {
-                variable: Variable::Hole(hole),
+                variable: Variable::synthetic(VariableKind::Hole(hole)),
                 bound: number
             }]
         );
@@ -1526,7 +1526,7 @@ mod tests {
         assert_eq!(
             constraints,
             [Constraint::UpperBound {
-                variable: Variable::Hole(hole),
+                variable: Variable::synthetic(VariableKind::Hole(hole)),
                 bound: number
             }]
         );
@@ -1556,7 +1556,7 @@ mod tests {
         assert_eq!(
             constraints,
             [Constraint::UpperBound {
-                variable: Variable::Hole(hole),
+                variable: Variable::synthetic(VariableKind::Hole(hole)),
                 bound: number
             }]
         );
@@ -1586,7 +1586,7 @@ mod tests {
         assert_eq!(
             constraints,
             [Constraint::Equals {
-                variable: Variable::Hole(hole),
+                variable: Variable::synthetic(VariableKind::Hole(hole)),
                 r#type: string
             }]
         );
@@ -1622,11 +1622,11 @@ mod tests {
             constraints,
             [
                 Constraint::Equals {
-                    variable: Variable::Hole(hole_key),
+                    variable: Variable::synthetic(VariableKind::Hole(hole_key)),
                     r#type: string,
                 },
                 Constraint::UpperBound {
-                    variable: Variable::Hole(hole_value),
+                    variable: Variable::synthetic(VariableKind::Hole(hole_value)),
                     bound: number,
                 }
             ]

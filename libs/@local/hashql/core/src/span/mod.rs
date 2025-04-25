@@ -52,7 +52,7 @@ use self::storage::SpanStorage;
 /// Implementating a similar approach is left up to a future iteration of the library.
 ///
 /// [`SpanStorage`]: self::storage::SpanStorage
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SpanId(u32);
 

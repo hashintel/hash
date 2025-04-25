@@ -9,7 +9,7 @@ use hashql_diagnostics::{
     severity::Severity,
 };
 
-use super::{Type, environment::Environment, pretty_print::PrettyPrint};
+use super::{Type, environment::Environment, inference::Variable, pretty_print::PrettyPrint};
 use crate::{span::SpanId, symbol::InternedSymbol};
 
 pub type TypeCheckDiagnostic = Diagnostic<TypeCheckDiagnosticCategory, SpanId>;
@@ -69,6 +69,33 @@ const NO_TYPE_INFERENCE: TerminalDiagnosticCategory = TerminalDiagnosticCategory
     name: "No type inference substitution",
 };
 
+const BOUND_CONSTRAINT_VIOLATION: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "bound-constraint-violation",
+    name: "Type bound constraint violation",
+};
+
+const UNCONSTRAINED_TYPE_VARIABLE: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "unconstrained-type-variable",
+    name: "Unconstrained type variable",
+};
+
+const INCOMPATIBLE_LOWER_EQUAL_CONSTRAINT: TerminalDiagnosticCategory =
+    TerminalDiagnosticCategory {
+        id: "incompatible-lower-equal-constraint",
+        name: "Incompatible lower bound and equality constraint",
+    };
+
+const INCOMPATIBLE_UPPER_EQUAL_CONSTRAINT: TerminalDiagnosticCategory =
+    TerminalDiagnosticCategory {
+        id: "incompatible-upper-equal-constraint",
+        name: "Incompatible upper bound and equality constraint",
+    };
+
+const CONFLICTING_EQUALITY_CONSTRAINTS: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "conflicting-equality-constraints",
+    name: "Conflicting equality constraints",
+};
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum TypeCheckDiagnosticCategory {
     TypeMismatch,
@@ -82,6 +109,11 @@ pub enum TypeCheckDiagnosticCategory {
     DuplicateStructField,
     MissingStructField,
     NoTypeInference,
+    BoundConstraintViolation,
+    UnconstrainedTypeVariable,
+    IncompatibleLowerEqualConstraint,
+    IncompatibleUpperEqualConstraint,
+    ConflictingEqualityConstraints,
 }
 
 impl DiagnosticCategory for TypeCheckDiagnosticCategory {
@@ -106,6 +138,11 @@ impl DiagnosticCategory for TypeCheckDiagnosticCategory {
             Self::DuplicateStructField => Some(&DUPLICATE_STRUCT_FIELD),
             Self::MissingStructField => Some(&MISSING_STRUCT_FIELD),
             Self::NoTypeInference => Some(&NO_TYPE_INFERENCE),
+            Self::BoundConstraintViolation => Some(&BOUND_CONSTRAINT_VIOLATION),
+            Self::UnconstrainedTypeVariable => Some(&UNCONSTRAINED_TYPE_VARIABLE),
+            Self::IncompatibleLowerEqualConstraint => Some(&INCOMPATIBLE_LOWER_EQUAL_CONSTRAINT),
+            Self::IncompatibleUpperEqualConstraint => Some(&INCOMPATIBLE_UPPER_EQUAL_CONSTRAINT),
+            Self::ConflictingEqualityConstraints => Some(&CONFLICTING_EQUALITY_CONSTRAINTS),
         }
     }
 }
@@ -715,6 +752,303 @@ where
     diagnostic.note = Some(Note::new(
         "In structural subtyping, a subtype can have more fields than its supertype (width \
          subtyping), but it must include all fields from the supertype with compatible types.",
+    ));
+
+    diagnostic
+}
+
+/// Creates a diagnostic for when a type variable has no constraints, making inference impossible
+pub(crate) fn unconstrained_type_variable(variable: Variable) -> TypeCheckDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        TypeCheckDiagnosticCategory::UnconstrainedTypeVariable,
+        Severity::ERROR,
+    );
+
+    // Point to the variable's location
+    diagnostic.labels.push(
+        Label::new(
+            variable.span,
+            "Cannot infer type for this variable - no usage constraints available",
+        )
+        .with_order(1),
+    );
+
+    diagnostic.help = Some(Help::new(
+        "Add an explicit type annotation to provide the necessary context. For example:\n- Change \
+         `let x = ...` to `let x: Type = ...`\n- Provide type parameters like `function<T: \
+         SomeType>(...)`\n- Use the value in a way that constrains its type",
+    ));
+
+    diagnostic.note = Some(Note::new(
+        "Type inference needs constraints that come from how variables are used. When a variable \
+         lacks both usage context and explicit annotations, the type system cannot determine an \
+         appropriate type. This commonly occurs with empty collections, unused variables, or \
+         generic functions without type annotations.",
+    ));
+
+    diagnostic
+}
+
+/// Creates a diagnostic for when a lower bound is incompatible with an equality constraint
+pub(crate) fn incompatible_lower_equal_constraint<K>(
+    env: &Environment,
+    variable: Variable,
+    lower_bound: Type<K>,
+    equals: Type<K>,
+) -> TypeCheckDiagnostic
+where
+    K: PrettyPrint,
+{
+    let mut diagnostic = Diagnostic::new(
+        TypeCheckDiagnosticCategory::IncompatibleLowerEqualConstraint,
+        Severity::ERROR,
+    );
+
+    // Primary label - point to the variable's location
+    diagnostic.labels.push(
+        Label::new(
+            variable.span,
+            "Type variable has incompatible lower bound and equality constraints",
+        )
+        .with_order(1),
+    );
+
+    // Label for the equality constraint
+    diagnostic.labels.push(
+        Label::new(
+            equals.span,
+            format!("Required to be exactly `{}`", equals.pretty_print(env, 80)),
+        )
+        .with_order(2),
+    );
+
+    // Label for the lower bound
+    diagnostic.labels.push(
+        Label::new(
+            lower_bound.span,
+            format!(
+                "But this lower bound `{}` is not a subtype of the equality constraint",
+                lower_bound.pretty_print(env, 80)
+            ),
+        )
+        .with_order(3),
+    );
+
+    // Provide actionable help message
+    diagnostic.help = Some(Help::new(format!(
+        "Resolve this type conflict by either:\n1. Changing the equality constraint to be \
+         compatible with `{}`\n2. Modifying the lower bound type to be a subtype of `{}`\n3. \
+         Ensuring both types are compatible in the type hierarchy",
+        lower_bound.pretty_print(env, 60),
+        equals.pretty_print(env, 60)
+    )));
+
+    diagnostic.note = Some(Note::new(
+        "When a type variable has both lower bound and equality constraints, the lower bound must \
+         be a subtype of the equality type (lower <: equal). This ensures the variable can \
+         satisfy both constraints simultaneously. Check for inconsistent type annotations or \
+         contradictory usage patterns.",
+    ));
+
+    diagnostic
+}
+
+/// Creates a diagnostic for when an upper bound is incompatible with an equality constraint
+pub(crate) fn incompatible_upper_equal_constraint<K>(
+    env: &Environment,
+    variable: Variable,
+    equal: Type<K>,
+    upper: Type<K>,
+) -> TypeCheckDiagnostic
+where
+    K: PrettyPrint,
+{
+    let mut diagnostic = Diagnostic::new(
+        TypeCheckDiagnosticCategory::IncompatibleUpperEqualConstraint,
+        Severity::ERROR,
+    );
+
+    // Primary label - point to the variable's location
+    diagnostic.labels.push(
+        Label::new(
+            variable.span,
+            "Type variable has incompatible equality and upper bound constraints",
+        )
+        .with_order(1),
+    );
+
+    // Label for the equality constraint
+    diagnostic.labels.push(
+        Label::new(
+            equal.span,
+            format!("Required to be exactly `{}`", equal.pretty_print(env, 80)),
+        )
+        .with_order(2),
+    );
+
+    // Label for the upper bound
+    diagnostic.labels.push(
+        Label::new(
+            upper.span,
+            format!(
+                "But this upper bound `{}` is not a supertype of the equality constraint",
+                upper.pretty_print(env, 80)
+            ),
+        )
+        .with_order(3),
+    );
+
+    // Provide actionable help message
+    diagnostic.help = Some(Help::new(format!(
+        "To fix this conflict, you can:\n1. Change the equality constraint `{}` to be a subtype \
+         of the upper bound\n2. Adjust the upper bound `{}` to be a supertype of the equality \
+         constraint\n3. Review your type annotations to ensure they're consistent",
+        equal.pretty_print(env, 60),
+        upper.pretty_print(env, 60)
+    )));
+
+    diagnostic.note = Some(Note::new(
+        "Type inference requires that when a variable has both an equality constraint and an \
+         upper bound, the equality type must be a subtype of the upper bound (equal <: upper). \
+         This error indicates your code has contradictory requirements for the same type variable.",
+    ));
+
+    diagnostic
+}
+
+/// Creates a diagnostic for when a lower bound is not a subtype of an upper bound in a constraint
+pub(crate) fn bound_constraint_violation<K>(
+    env: &Environment,
+    variable: Variable,
+    lower_bound: Type<K>,
+    upper_bound: Type<K>,
+) -> TypeCheckDiagnostic
+where
+    K: PrettyPrint,
+{
+    let mut diagnostic = Diagnostic::new(
+        TypeCheckDiagnosticCategory::BoundConstraintViolation,
+        Severity::ERROR,
+    );
+
+    // Primary label - point to the variable's location
+    diagnostic.labels.push(
+        Label::new(
+            variable.span,
+            "Type variable has incompatible upper and lower bounds",
+        )
+        .with_order(1),
+    );
+
+    // Label for the lower bound
+    diagnostic.labels.push(
+        Label::new(
+            lower_bound.span,
+            format!(
+                "Lower bound `{}` must be a subtype of the upper bound",
+                lower_bound.kind.pretty_print(env, 80)
+            ),
+        )
+        .with_order(2),
+    );
+
+    // Label for the upper bound
+    diagnostic.labels.push(
+        Label::new(
+            upper_bound.span,
+            format!(
+                "Upper bound `{}` is not a supertype of the lower bound",
+                upper_bound.kind.pretty_print(env, 80)
+            ),
+        )
+        .with_order(3),
+    );
+
+    // Provide actionable help
+    diagnostic.help = Some(Help::new(format!(
+        "These type bounds create an impossible constraint. To fix this:\n1. Modify `{}` to be a \
+         proper subtype of `{}`\n2. Or adjust `{}` to be a supertype of `{}`\n3. Or check your \
+         code for contradictory type assertions",
+        lower_bound.kind.pretty_print(env, 60),
+        upper_bound.kind.pretty_print(env, 60),
+        upper_bound.kind.pretty_print(env, 60),
+        lower_bound.kind.pretty_print(env, 60)
+    )));
+
+    diagnostic.note = Some(Note::new(
+        "During type inference, when a variable has both upper and lower bounds, the relationship \
+         'lower <: upper' must hold. This ensures a valid solution exists in the type system. \
+         When this relationship is violated, it means your code is requiring contradictory types \
+         for the same variable.",
+    ));
+
+    diagnostic
+}
+
+/// Creates a diagnostic for when a type variable has incompatible equality constraints
+pub(crate) fn conflicting_equality_constraints<K>(
+    env: &Environment,
+    variable: Variable,
+    existing: Type<K>,
+    new_type: Type<K>,
+) -> TypeCheckDiagnostic
+where
+    K: PrettyPrint,
+{
+    let mut diagnostic = Diagnostic::new(
+        TypeCheckDiagnosticCategory::ConflictingEqualityConstraints,
+        Severity::ERROR,
+    );
+
+    // Primary label - point to the variable's location
+    diagnostic.labels.push(
+        Label::new(
+            variable.span,
+            "Type variable has conflicting equality constraints",
+        )
+        .with_order(1),
+    );
+
+    // Label for the first equality constraint
+    diagnostic.labels.push(
+        Label::new(
+            existing.span,
+            format!(
+                "Previously constrained to be exactly `{}`",
+                existing.kind.pretty_print(env, 80)
+            ),
+        )
+        .with_order(2),
+    );
+
+    // Label for the second equality constraint
+    diagnostic.labels.push(
+        Label::new(
+            new_type.span,
+            format!(
+                "But here constrained to be exactly `{}`",
+                new_type.kind.pretty_print(env, 80)
+            ),
+        )
+        .with_order(3),
+    );
+
+    // Provide actionable help message
+    diagnostic.help = Some(Help::new(format!(
+        "A type variable can only be equal to one concrete type at a time. This variable has \
+         multiple conflicting equality constraints.\nTo fix this issue:\n1. Ensure consistent \
+         type usage - either use `{}` everywhere\n2. Or use `{}` everywhere\n3. Add explicit type \
+         conversions where needed\n4. Check type annotations for contradictory requirements",
+        existing.kind.pretty_print(env, 60),
+        new_type.kind.pretty_print(env, 60)
+    )));
+
+    diagnostic.note = Some(Note::new(
+        "During type inference, all constraints on a type variable must be satisfied \
+         simultaneously. When equality constraints conflict (e.g., T = String and T = Number), no \
+         valid solution exists. This typically occurs when you've specified different types for \
+         the same variable in different parts of your code, either explicitly through annotations \
+         or implicitly through usage.",
     ));
 
     diagnostic

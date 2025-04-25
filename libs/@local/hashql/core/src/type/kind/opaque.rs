@@ -339,7 +339,7 @@ mod test {
                 AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
                 SimplifyEnvironment,
             },
-            inference::{Constraint, Inference as _, Variable},
+            inference::{Constraint, Inference as _, Variable, VariableKind},
             kind::{
                 TypeKind,
                 generic_argument::{GenericArgument, GenericArgumentId},
@@ -698,7 +698,7 @@ mod test {
         assert_eq!(
             constraints,
             [Constraint::Equals {
-                variable: Variable::Hole(hole),
+                variable: Variable::synthetic(VariableKind::Hole(hole)),
                 r#type: number
             }]
         );
@@ -761,7 +761,7 @@ mod test {
         assert_eq!(
             constraints,
             [Constraint::Equals {
-                variable: Variable::Hole(hole),
+                variable: Variable::synthetic(VariableKind::Hole(hole)),
                 r#type: number
             }]
         );
@@ -836,7 +836,7 @@ mod test {
         // Due to invariance, we should get an equality constraint between the generic parameters
         let constraints = inference_env.take_constraints();
         assert!(constraints.is_empty());
-        assert!(inference_env.is_unioned(Variable::Generic(arg1), Variable::Generic(arg2)));
+        assert!(inference_env.is_unioned(VariableKind::Generic(arg1), VariableKind::Generic(arg2)));
     }
 
     #[test]
@@ -863,7 +863,9 @@ mod test {
         // Due to invariance, we should get an equality constraint between the inference variables
         let constraints = inference_env.take_constraints();
         assert!(constraints.is_empty());
-        assert!(inference_env.is_unioned(Variable::Hole(hole_var1), Variable::Hole(hole_var2)));
+        assert!(
+            inference_env.is_unioned(VariableKind::Hole(hole_var1), VariableKind::Hole(hole_var2))
+        );
     }
 
     #[test]
@@ -890,6 +892,8 @@ mod test {
         // and the generic variable
         let constraints = inference_env.take_constraints();
         assert!(constraints.is_empty());
-        assert!(inference_env.is_unioned(Variable::Hole(hole_var1), Variable::Generic(arg)));
+        assert!(
+            inference_env.is_unioned(VariableKind::Hole(hole_var1), VariableKind::Generic(arg))
+        );
     }
 }

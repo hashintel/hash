@@ -4,7 +4,7 @@ use ena::unify::{InPlaceUnificationTable, NoError, UnifyKey as _};
 use roaring::RoaringBitmap;
 
 use super::{
-    Constraint, Substitution, Variable,
+    Constraint, Substitution, Variable, VariableKind,
     tarjan::Tarjan,
     variable::{VariableId, VariableLookup},
 };
@@ -12,13 +12,18 @@ use crate::r#type::{
     TypeId,
     collection::FastHashMap,
     environment::{Diagnostics, Environment, LatticeEnvironment, SimplifyEnvironment},
+    error::{
+        bound_constraint_violation, conflicting_equality_constraints,
+        incompatible_lower_equal_constraint, incompatible_upper_equal_constraint,
+        unconstrained_type_variable,
+    },
 };
 
 pub(crate) struct Unification {
     table: InPlaceUnificationTable<VariableId>,
 
-    variables: Vec<Variable>,
-    lookup: FastHashMap<Variable, VariableId>,
+    variables: Vec<VariableKind>,
+    lookup: FastHashMap<VariableKind, VariableId>,
 }
 
 impl Unification {
@@ -30,7 +35,7 @@ impl Unification {
         }
     }
 
-    pub(crate) fn upsert_variable(&mut self, variable: Variable) -> VariableId {
+    pub(crate) fn upsert_variable(&mut self, variable: VariableKind) -> VariableId {
         *self.lookup.entry(variable).or_insert_with_key(|&key| {
             let id = self.table.new_key(());
             debug_assert_eq!(id.into_usize(), self.variables.len());
@@ -40,7 +45,7 @@ impl Unification {
         })
     }
 
-    pub(crate) fn unify(&mut self, lhs: Variable, rhs: Variable) {
+    pub(crate) fn unify(&mut self, lhs: VariableKind, rhs: VariableKind) {
         let lhs = self.upsert_variable(lhs);
         let rhs = self.upsert_variable(rhs);
 
@@ -49,20 +54,20 @@ impl Unification {
             .unwrap_or_else(|_: NoError| unreachable!());
     }
 
-    pub(crate) fn is_unioned(&mut self, lhs: Variable, rhs: Variable) -> bool {
+    pub(crate) fn is_unioned(&mut self, lhs: VariableKind, rhs: VariableKind) -> bool {
         let lhs = self.upsert_variable(lhs);
         let rhs = self.upsert_variable(rhs);
 
         self.table.unioned(lhs, rhs)
     }
 
-    fn root_id(&mut self, variable: Variable) -> VariableId {
+    fn root_id(&mut self, variable: VariableKind) -> VariableId {
         let id = self.upsert_variable(variable);
 
         self.table.find(id)
     }
 
-    fn root(&mut self, variable: Variable) -> Variable {
+    fn root(&mut self, variable: VariableKind) -> VariableKind {
         let id = self.root_id(variable);
 
         self.variables[id.into_usize()]
@@ -148,8 +153,8 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
 
             // We also need to make sure that we only use the root keys from the variables,
             // otherwise we might not catch every strongly connected component.
-            let lower = self.unification.root_id(lower);
-            let upper = self.unification.root_id(upper);
+            let lower = self.unification.root_id(lower.kind);
+            let upper = self.unification.root_id(upper.kind);
             graph[lower.into_usize()].insert(upper.index());
         }
 
@@ -165,49 +170,61 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         }
     }
 
-    fn apply_constraints(&mut self) -> FastHashMap<Variable, VariableConstraint> {
-        let mut constraints = FastHashMap::default();
+    fn apply_constraints(&mut self) -> FastHashMap<VariableKind, (Variable, VariableConstraint)> {
+        let mut constraints: FastHashMap<VariableKind, (Variable, VariableConstraint)> =
+            FastHashMap::default();
 
         for &constraint in &self.constraints {
             match constraint {
                 Constraint::UpperBound { variable, bound } => {
-                    let root = self.unification.root(variable);
-                    let entry: &mut VariableConstraint = constraints.entry(root).or_default();
+                    let root = self.unification.root(variable.kind);
+                    let (_, constraint) = constraints
+                        .entry(root)
+                        .or_insert_with(|| (variable, VariableConstraint::default()));
 
-                    match entry.upper {
+                    match constraint.upper {
                         None => {
-                            entry.upper = Some(bound);
+                            constraint.upper = Some(bound);
                         }
-                        Some(existing) => entry.upper = Some(self.lattice.join(existing, bound)),
+                        Some(existing) => {
+                            constraint.upper = Some(self.lattice.join(existing, bound));
+                        }
                     }
                 }
                 Constraint::LowerBound { variable, bound } => {
-                    let root = self.unification.root(variable);
-                    let entry = constraints.entry(root).or_default();
+                    let root = self.unification.root(variable.kind);
+                    let (_, constraint) = constraints
+                        .entry(root)
+                        .or_insert_with(|| (variable, VariableConstraint::default()));
 
-                    match entry.lower {
+                    match constraint.lower {
                         None => {
-                            entry.lower = Some(bound);
+                            constraint.lower = Some(bound);
                         }
-                        Some(existing) => entry.lower = Some(self.lattice.meet(existing, bound)),
+                        Some(existing) => {
+                            constraint.lower = Some(self.lattice.meet(existing, bound));
+                        }
                     }
                 }
                 Constraint::Equals { variable, r#type } => {
-                    // TODO: in the is_equivalent check we need to check if they are equal, as in
-                    // they refer to the same variable
-                    let root = self.unification.root(variable);
-                    let entry = constraints.entry(root).or_default();
+                    let root = self.unification.root(variable.kind);
+                    let (_, constraint) = constraints
+                        .entry(root)
+                        .or_insert_with(|| (variable, VariableConstraint::default()));
 
-                    match entry.equal {
+                    match constraint.equal {
                         None => {
-                            entry.equal = Some(r#type);
+                            constraint.equal = Some(r#type);
                         }
                         Some(existing) if self.lattice.is_equivalent(existing, r#type) => {
                             // do nothing, this is fine
                         }
-                        Some(_) => {
-                            todo!("issue diagnostic");
-                        }
+                        Some(existing) => self.diagnostics.push(conflicting_equality_constraints(
+                            &self.lattice,
+                            variable,
+                            self.lattice.types[existing].copied(),
+                            self.lattice.types[r#type].copied(),
+                        )),
                     }
                 }
                 // solved prior in anti-symmetry pass
@@ -220,11 +237,11 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
 
     fn solve_constraints(
         &mut self,
-        constraints: FastHashMap<Variable, VariableConstraint>,
-    ) -> FastHashMap<Variable, TypeId> {
+        constraints: FastHashMap<VariableKind, (Variable, VariableConstraint)>,
+    ) -> FastHashMap<VariableKind, TypeId> {
         let mut substitutions = FastHashMap::default();
 
-        for (variable, constraint) in constraints {
+        for (kind, (variable, constraint)) in constraints {
             if let VariableConstraint {
                 equal: _,
                 lower: Some(lower),
@@ -232,7 +249,14 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
             } = constraint
                 && !self.lattice.is_subtype_of(lower, upper)
             {
-                todo!("issue diagnostic")
+                self.diagnostics.push(bound_constraint_violation(
+                    &self.lattice,
+                    variable,
+                    self.lattice.types[lower].copied(),
+                    self.lattice.types[upper].copied(),
+                ));
+
+                continue;
             }
 
             match constraint {
@@ -242,7 +266,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                     lower: None,
                     upper: None,
                 } => {
-                    todo!("issue diagnostic")
+                    self.diagnostics.push(unconstrained_type_variable(variable));
                 }
                 // in case there's a single constraint we can simply just use that type
                 VariableConstraint {
@@ -260,7 +284,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                     lower: None,
                     upper: Some(constraint),
                 } => {
-                    substitutions.insert(variable, constraint);
+                    substitutions.insert(kind, constraint);
                 }
                 VariableConstraint {
                     equal: Some(equal),
@@ -272,16 +296,30 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                     if let Some(lower) = lower
                         && !self.lattice.is_subtype_of(lower, equal)
                     {
-                        todo!("issue diagnostic")
+                        self.diagnostics.push(incompatible_lower_equal_constraint(
+                            &self.lattice,
+                            variable,
+                            self.lattice.types[lower].copied(),
+                            self.lattice.types[equal].copied(),
+                        ));
+
+                        continue;
                     }
 
                     if let Some(upper) = upper
                         && !self.lattice.is_subtype_of(equal, upper)
                     {
-                        todo!("issue diagnostic")
+                        self.diagnostics.push(incompatible_upper_equal_constraint(
+                            &self.lattice,
+                            variable,
+                            self.lattice.types[equal].copied(),
+                            self.lattice.types[upper].copied(),
+                        ));
+
+                        continue;
                     }
 
-                    substitutions.insert(variable, equal);
+                    substitutions.insert(kind, equal);
                 }
                 VariableConstraint {
                     equal: None,
@@ -289,7 +327,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                     upper: Some(_),
                 } => {
                     // We prefer to set the lower bound before the upper bound, even if both exist
-                    substitutions.insert(variable, lower);
+                    substitutions.insert(kind, lower);
                 }
             }
         }
@@ -300,8 +338,8 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     fn simplify_substitutions(
         &mut self,
         lookup: VariableLookup,
-        substitutions: &Rc<FastHashMap<Variable, TypeId>>,
-    ) -> FastHashMap<Variable, TypeId> {
+        substitutions: &Rc<FastHashMap<VariableKind, TypeId>>,
+    ) -> FastHashMap<VariableKind, TypeId> {
         // Now that everything is solved, go over each substitution and simplify it
         let mut simplified_substitutions = FastHashMap::default();
 

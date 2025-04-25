@@ -5,7 +5,10 @@ mod variable;
 use alloc::rc::Rc;
 
 pub(crate) use self::variable::VariableLookup;
-pub use self::{solver::InferenceSolver, variable::Variable};
+pub use self::{
+    solver::InferenceSolver,
+    variable::{Variable, VariableKind},
+};
 use super::{
     Type, TypeId,
     collection::FastHashMap,
@@ -55,14 +58,14 @@ impl Constraint {
 #[derive(Debug, Default)]
 pub struct Substitution {
     variables: VariableLookup,
-    substitutions: Rc<FastHashMap<Variable, TypeId>>,
+    substitutions: Rc<FastHashMap<VariableKind, TypeId>>,
 }
 
 impl Substitution {
     #[must_use]
     pub(crate) const fn new(
         variables: VariableLookup,
-        substitutions: Rc<FastHashMap<Variable, TypeId>>,
+        substitutions: Rc<FastHashMap<VariableKind, TypeId>>,
     ) -> Self {
         Self {
             variables,
@@ -72,14 +75,14 @@ impl Substitution {
 
     #[must_use]
     pub fn argument(&self, id: GenericArgumentId) -> Option<TypeId> {
-        let root = self.variables.get(Variable::Generic(id))?;
+        let root = self.variables.get(VariableKind::Generic(id))?;
 
         self.substitutions.get(&root).copied()
     }
 
     #[must_use]
     pub fn infer(&self, id: HoleId) -> Option<TypeId> {
-        let root = self.variables.get(Variable::Hole(id))?;
+        let root = self.variables.get(VariableKind::Hole(id))?;
 
         self.substitutions.get(&root).copied()
     }

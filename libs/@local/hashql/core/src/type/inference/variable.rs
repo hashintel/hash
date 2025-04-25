@@ -3,10 +3,29 @@ use core::ops::Index;
 
 use ena::unify::UnifyKey;
 
-use crate::r#type::{
-    collection::FastHashMap,
-    kind::{generic_argument::GenericArgumentId, infer::HoleId},
+use crate::{
+    span::SpanId,
+    r#type::{
+        collection::FastHashMap,
+        kind::{generic_argument::GenericArgumentId, infer::HoleId},
+    },
 };
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Variable {
+    pub span: SpanId,
+    pub kind: VariableKind,
+}
+
+impl Variable {
+    #[cfg(test)]
+    pub(crate) const fn synthetic(kind: VariableKind) -> Self {
+        Self {
+            span: SpanId::SYNTHETIC,
+            kind,
+        }
+    }
+}
 
 /// Represents an inference variable in the type system.
 ///
@@ -14,7 +33,7 @@ use crate::r#type::{
 /// need to be solved through constraint satisfaction. These variables can represent
 /// either unknown types or generic parameters.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum Variable {
+pub enum VariableKind {
     /// A type variable that needs to be solved through constraint satisfaction.
     Hole(HoleId),
 
@@ -49,22 +68,22 @@ impl UnifyKey for VariableId {
 }
 
 #[derive(Debug, Clone, Default)]
-pub(crate) struct VariableLookup(Rc<FastHashMap<Variable, Variable>>);
+pub(crate) struct VariableLookup(Rc<FastHashMap<VariableKind, VariableKind>>);
 
 impl VariableLookup {
-    pub(crate) fn new(lookup: FastHashMap<Variable, Variable>) -> Self {
+    pub(crate) fn new(lookup: FastHashMap<VariableKind, VariableKind>) -> Self {
         Self(Rc::new(lookup))
     }
 
-    pub(crate) fn get(&self, key: Variable) -> Option<Variable> {
+    pub(crate) fn get(&self, key: VariableKind) -> Option<VariableKind> {
         self.0.get(&key).copied()
     }
 }
 
-impl Index<Variable> for VariableLookup {
-    type Output = Variable;
+impl Index<VariableKind> for VariableLookup {
+    type Output = VariableKind;
 
-    fn index(&self, index: Variable) -> &Self::Output {
+    fn index(&self, index: VariableKind) -> &Self::Output {
         &self.0[&index]
     }
 }
