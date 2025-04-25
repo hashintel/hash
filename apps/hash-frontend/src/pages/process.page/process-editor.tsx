@@ -1,6 +1,6 @@
 import "reactflow/dist/style.css";
 
-import { Box, Stack, Typography } from "@mui/material";
+import { Box, Stack } from "@mui/material";
 import type { DragEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
@@ -38,10 +38,7 @@ import {
 } from "./process-editor/simulation-context";
 import { SimulationControls } from "./process-editor/simulation-controls";
 import { nodeDimensions } from "./process-editor/styling";
-import {
-  defaultTokenTypes,
-  TokenTypeEditor,
-} from "./process-editor/token-type-editor";
+import { defaultTokenTypes, TokenTypes } from "./process-editor/token-types";
 import { TransitionEditor } from "./process-editor/transition-editor";
 import { TransitionNode } from "./process-editor/transition-node";
 import {
@@ -55,17 +52,16 @@ import {
 import { useConvertToPnml } from "./process-editor/use-convert-to-pnml";
 import { useLoadFromPnml } from "./process-editor/use-load-from-pnml";
 
-const FlowCanvas = () => {
-  const reactFlowWrapper = useRef<HTMLDivElement>(null);
+const ProcessEditorContent = () => {
+  const canvasContainer = useRef<HTMLDivElement>(null);
+
   const [reactFlowInstance, setReactFlowInstance] = useState<ReactFlowInstance<
     NodeData,
     ArcData
   > | null>(null);
 
-  const { nodes, setNodes, arcs, setArcs, tokenTypes, setTokenTypes } =
+  const { nodes, setNodes, arcs, setArcs, tokenTypes, setGraph } =
     useEditorContext();
-
-  const [tokenTypeEditorOpen, setTokenTypeEditorOpen] = useState(false);
 
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
   const [selectedTransition, setSelectedTransition] = useState<string | null>(
@@ -160,11 +156,11 @@ const FlowCanvas = () => {
     (event: DragEvent<HTMLDivElement>) => {
       event.preventDefault();
 
-      if (!reactFlowInstance || !reactFlowWrapper.current) {
+      if (!reactFlowInstance || !canvasContainer.current) {
         return;
       }
 
-      const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect();
+      const reactFlowBounds = canvasContainer.current.getBoundingClientRect();
       const nodeType = event.dataTransfer.getData("application/reactflow") as
         | "place"
         | "transition";
@@ -256,10 +252,6 @@ const FlowCanvas = () => {
     [setNodes],
   );
 
-  const handleCloseTokenMenu = useCallback(() => {
-    setSelectedPlaceId(null);
-  }, []);
-
   const onEdgeClick = useCallback((event: React.MouseEvent, edge: ArcType) => {
     event.stopPropagation();
 
@@ -294,15 +286,16 @@ const FlowCanvas = () => {
   const { resetSimulation } = useSimulation();
 
   const handleResetAll = useCallback(() => {
-    setNodes([]);
-    setArcs([]);
-    setTokenTypes(defaultTokenTypes);
+    setGraph({
+      nodes: [],
+      arcs: [],
+      tokenTypes: defaultTokenTypes,
+    });
+
     resetSimulation();
-  }, [setNodes, setArcs, setTokenTypes, resetSimulation]);
+  }, [setGraph, resetSimulation]);
 
   const handleLoadExample = useCallback(() => {
-    setTokenTypes(exampleCPN.tokenTypes);
-
     const nodesWithInitialCounts = exampleCPN.nodes.map((node) => {
       if (node.data.type === "place") {
         return {
@@ -316,10 +309,14 @@ const FlowCanvas = () => {
       return node;
     });
 
-    setNodes(nodesWithInitialCounts);
-    setArcs(exampleCPN.arcs);
+    setGraph({
+      nodes: nodesWithInitialCounts,
+      arcs: exampleCPN.arcs,
+      tokenTypes: exampleCPN.tokenTypes,
+    });
+
     resetSimulation();
-  }, [setTokenTypes, setNodes, setArcs, resetSimulation]);
+  }, [setGraph, resetSimulation]);
 
   const handleReset = useCallback(() => {
     setNodes((currentNodes) =>
@@ -439,169 +436,129 @@ const FlowCanvas = () => {
   };
 
   return (
-    <Box
-      sx={{ flex: 1, height: "100%", position: "relative" }}
-      ref={reactFlowWrapper}
-    >
-      <Stack
-        direction="row"
-        justifyContent="space-between"
-        sx={{
-          alignItems: "flex-start",
-          position: "absolute",
-          p: 2,
-          zIndex: 100,
-          width: "100%",
-        }}
+    <Box sx={{ display: "flex", height: "100%" }}>
+      <Sidebar />
+
+      <Box
+        sx={{ flex: 1, height: "100%", position: "relative" }}
+        ref={canvasContainer}
       >
-        <Box
+        <Stack
+          direction="row"
+          justifyContent="space-between"
           sx={{
-            alignItems: "center",
-            display: "flex",
-            flexDirection: "row",
-            gap: 2,
-            p: 1,
-            borderRadius: 1,
-            bgcolor: "background.paper",
-            boxShadow: 1,
+            alignItems: "flex-start",
+            position: "absolute",
+            top: 0,
+            left: 0,
+            p: 2,
+            zIndex: 100,
+            width: "100%",
           }}
         >
-          {tokenTypes.map((token) => (
-            <Stack
-              key={token.id}
-              direction="row"
-              spacing={0.5}
-              alignItems="center"
-              sx={{
-                cursor: "pointer",
-                borderRadius: 1,
-              }}
-            >
-              <Box
-                sx={{
-                  width: 16,
-                  height: 16,
-                  borderRadius: "50%",
-                  bgcolor: token.color,
-                  border: "1px solid",
-                  borderColor: "divider",
-                }}
-              />
-              <Typography sx={{ fontSize: "0.875rem" }}>
-                {token.name}
-              </Typography>
-            </Stack>
-          ))}
+          <TokenTypes />
+          <SimulationControls onReset={handleReset} />
+        </Stack>
 
-          <Button size="xs" onClick={() => setTokenTypeEditorOpen(true)}>
-            Edit Types
+        <Stack
+          direction="row"
+          spacing={1}
+          sx={{ position: "absolute", bottom: 16, right: 16, zIndex: 100 }}
+        >
+          <Button onClick={handleLoadExample} size="xs" variant="tertiary">
+            Load Example
           </Button>
-        </Box>
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleLoadFromPnml}
+            accept=".pnml,.xml"
+            style={{ display: "none" }}
+          />
+          <Button onClick={handleImportClick} size="xs" variant="tertiary">
+            Import
+          </Button>
+          <Button onClick={handleExport} size="xs" variant="tertiary">
+            Export
+          </Button>
+          <Button onClick={handleResetAll} size="xs" variant="danger">
+            Clear
+          </Button>
+        </Stack>
 
-        <SimulationControls onReset={handleReset} />
-      </Stack>
-
-      <Stack
-        direction="row"
-        spacing={1}
-        sx={{ position: "absolute", bottom: 16, right: 16, zIndex: 100 }}
-      >
-        <Button onClick={handleLoadExample} size="xs" variant="tertiary">
-          Load Example
-        </Button>
-        <input
-          type="file"
-          ref={fileInputRef}
-          onChange={handleLoadFromPnml}
-          accept=".pnml,.xml"
-          style={{ display: "none" }}
-        />
-        <Button onClick={handleImportClick} size="xs" variant="tertiary">
-          Import
-        </Button>
-        <Button onClick={handleExport} size="xs" variant="tertiary">
-          Export
-        </Button>
-        <Button onClick={handleResetAll} size="xs" variant="danger">
-          Clear
-        </Button>
-      </Stack>
-
-      <TokenTypeEditor
-        open={tokenTypeEditorOpen}
-        onClose={() => setTokenTypeEditorOpen(false)}
-      />
-
-      {selectedTransition && (
-        <TransitionEditor
-          open
-          onClose={() => setSelectedTransition(null)}
-          transitionId={selectedTransition}
-          transitionData={
-            nodes.find((node) => node.id === selectedTransition)?.data ?? {
-              label: "",
+        {selectedTransition && (
+          <TransitionEditor
+            open
+            onClose={() => setSelectedTransition(null)}
+            transitionId={selectedTransition}
+            transitionData={
+              nodes.find((node) => node.id === selectedTransition)?.data ?? {
+                label: "",
+              }
             }
-          }
-          outgoingEdges={arcs
-            .filter((edge) => edge.source === selectedTransition)
-            .map((edge) => {
-              const targetNode = nodes.find((node) => node.id === edge.target);
-              return {
-                id: edge.id,
-                source: edge.source,
-                target: edge.target,
-                targetLabel: targetNode?.data.label ?? "Unknown",
-                tokenWeights: edge.data?.tokenWeights ?? {},
-              };
-            })}
-          onUpdateTransition={handleUpdateTransition}
-        />
-      )}
+            outgoingEdges={arcs
+              .filter((edge) => edge.source === selectedTransition)
+              .map((edge) => {
+                const targetNode = nodes.find(
+                  (node) => node.id === edge.target,
+                );
+                return {
+                  id: edge.id,
+                  source: edge.source,
+                  target: edge.target,
+                  targetLabel: targetNode?.data.label ?? "Unknown",
+                  tokenWeights: edge.data?.tokenWeights ?? {},
+                };
+              })}
+            onUpdateTransition={handleUpdateTransition}
+          />
+        )}
 
-      {selectedPlace && (
-        <PlaceEditor
-          selectedPlace={selectedPlace}
-          tokenTypes={tokenTypes}
-          onClose={handleCloseTokenMenu}
-          onUpdateTokens={handleUpdateTokens}
-          onUpdateNodeLabel={handleUpdateNodeLabel}
-        />
-      )}
+        {selectedPlace && (
+          <PlaceEditor
+            selectedPlace={selectedPlace}
+            tokenTypes={tokenTypes}
+            onClose={() => setSelectedPlaceId(null)}
+            onUpdateTokens={handleUpdateTokens}
+            onUpdateNodeLabel={handleUpdateNodeLabel}
+          />
+        )}
 
-      {selectedArc && (
-        <ArcEditor
-          arcId={selectedArc.id}
-          tokenWeights={selectedArc.data?.tokenWeights ?? {}}
-          position={selectedArc.position}
-          onClose={() => setSelectedArc(null)}
-          onUpdateWeights={handleUpdateEdgeWeight}
-        />
-      )}
+        {selectedArc && (
+          <ArcEditor
+            arcId={selectedArc.id}
+            tokenWeights={selectedArc.data?.tokenWeights ?? {}}
+            position={selectedArc.position}
+            onClose={() => setSelectedArc(null)}
+            onUpdateWeights={handleUpdateEdgeWeight}
+          />
+        )}
 
-      <ReactFlow
-        nodes={nodes}
-        edges={arcs}
-        nodeTypes={nodeTypes}
-        edgeTypes={edgeTypes}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onConnect={onConnect}
-        onInit={onInit}
-        onDrop={onDrop}
-        onDragOver={onDragOver}
-        onNodeClick={onNodeClick}
-        onEdgeClick={onEdgeClick}
-        onPaneClick={handlePaneClick}
-        defaultViewport={{ x: 0, y: 0, zoom: 1 }}
-        snapToGrid
-        snapGrid={[15, 15]}
-        connectionLineType={ConnectionLineType.SmoothStep}
-        proOptions={{ hideAttribution: true }}
-      >
-        <Background gap={15} size={1} />
-      </ReactFlow>
+        <ReactFlow
+          nodes={nodes}
+          edges={arcs}
+          nodeTypes={nodeTypes}
+          edgeTypes={edgeTypes}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onConnect={onConnect}
+          onInit={onInit}
+          onDrop={onDrop}
+          onDragOver={onDragOver}
+          onNodeClick={onNodeClick}
+          onEdgeClick={onEdgeClick}
+          onPaneClick={handlePaneClick}
+          defaultViewport={{ x: 0, y: 0, zoom: 1 }}
+          snapToGrid
+          snapGrid={[15, 15]}
+          connectionLineType={ConnectionLineType.SmoothStep}
+          proOptions={{ hideAttribution: true }}
+        >
+          <Background gap={15} size={1} />
+        </ReactFlow>
 
-      <LogPane />
+        <LogPane />
+      </Box>
     </Box>
   );
 };
@@ -611,10 +568,7 @@ export const ProcessEditor = () => {
     <ReactFlowProvider>
       <EditorContextProvider>
         <SimulationContextProvider>
-          <Box sx={{ display: "flex", height: "100%" }}>
-            <Sidebar />
-            <FlowCanvas />
-          </Box>
+          <ProcessEditorContent />
         </SimulationContextProvider>
       </EditorContextProvider>
     </ReactFlowProvider>

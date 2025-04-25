@@ -9,9 +9,9 @@ import {
 } from "@mui/material";
 import { useEffect, useState } from "react";
 
-import { Button } from "../../../shared/ui";
-import { useEditorContext } from "./editor-context";
-import type { TokenType } from "./types";
+import { Button } from "../../../../shared/ui";
+import { useEditorContext } from "../editor-context";
+import type { TokenType } from "../types";
 
 export const defaultTokenTypes: TokenType[] = [
   { id: "default", name: "Default", color: "#3498db" },

@@ -1,7 +1,7 @@
 import { Box, Typography } from "@mui/material";
 import { Handle, type NodeProps, Position } from "reactflow";
 
-import { transitionStyling } from "./styling";
+import { handleStyling, transitionStyling } from "./styling";
 import type { TransitionNodeData } from "./types";
 
 export const TransitionNode = ({
@@ -19,7 +19,7 @@ export const TransitionNode = ({
         type="target"
         position={Position.Left}
         isConnectable={isConnectable}
-        style={{ background: "#555" }}
+        style={handleStyling}
       />
       <Box sx={transitionStyling}>
         {data.label}
@@ -41,7 +41,7 @@ export const TransitionNode = ({
         type="source"
         position={Position.Right}
         isConnectable={isConnectable}
-        style={{ background: "#555" }}
+        style={handleStyling}
       />
     </div>
   );

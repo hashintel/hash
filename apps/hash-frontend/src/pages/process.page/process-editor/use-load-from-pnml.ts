@@ -164,20 +164,18 @@ const parsePnml = (
 };
 
 export const useLoadFromPnml = () => {
-  const { setNodes, setArcs, setTokenTypes } = useEditorContext();
+  const { setGraph } = useEditorContext();
   const { resetSimulation } = useSimulation();
 
   const load = useCallback(
     (xml: string) => {
       const { nodes, arcs, tokenTypes } = parsePnml(xml);
 
-      setNodes(nodes);
-      setArcs(arcs);
-      setTokenTypes(tokenTypes);
+      setGraph({ nodes, arcs, tokenTypes });
 
       resetSimulation();
     },
-    [resetSimulation, setArcs, setNodes, setTokenTypes],
+    [resetSimulation, setGraph],
   );
 
   return load;

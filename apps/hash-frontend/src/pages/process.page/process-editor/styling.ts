@@ -1,3 +1,4 @@
+import { customColors } from "@hashintel/design-system/theme";
 import type { Theme } from "@mui/material";
 import type { SystemStyleObject } from "@mui/system";
 
@@ -42,3 +43,11 @@ export const transitionStyling: (theme: Theme) => SystemStyleObject<Theme> = ({
   boxSizing: "border-box",
   position: "relative",
 });
+
+export const handleStyling = {
+  background: customColors.gray[60],
+  width: 10,
+  height: 10,
+  borderRadius: "50%",
+  zIndex: 3,
+};
