@@ -6,8 +6,9 @@ use scc::HashSet;
 use super::{
     TypeId,
     kind::{
-        TypeKind,
-        generic_argument::{GenericArgument, GenericArguments},
+        Infer, Param, TypeKind,
+        generic_argument::{GenericArgument, GenericArgumentId, GenericArguments},
+        infer::HoleId,
         primitive::PrimitiveType,
         r#struct::{StructField, StructFields},
     },
@@ -122,7 +123,6 @@ impl<'heap> Interner<'heap> {
     fn prefill(&self) {
         self.kinds.intern(TypeKind::Never);
         self.kinds.intern(TypeKind::Unknown);
-        self.kinds.intern(TypeKind::Infer);
 
         self.kinds
             .intern(TypeKind::Primitive(PrimitiveType::Number));
@@ -133,6 +133,16 @@ impl<'heap> Interner<'heap> {
         self.kinds
             .intern(TypeKind::Primitive(PrimitiveType::Boolean));
         self.kinds.intern(TypeKind::Primitive(PrimitiveType::Null));
+
+        // Intern the first 256 infer and params, we're unlikely to need more than this
+        for index in 0..=u8::MAX {
+            self.kinds.intern(TypeKind::Infer(Infer {
+                hole: HoleId::new(u32::from(index)),
+            }));
+            self.kinds.intern(TypeKind::Param(Param {
+                argument: GenericArgumentId::new(u32::from(index)),
+            }));
+        }
     }
 
     #[inline]

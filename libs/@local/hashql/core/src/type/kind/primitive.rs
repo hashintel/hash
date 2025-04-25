@@ -5,8 +5,12 @@ use smallvec::SmallVec;
 
 use crate::r#type::{
     Type, TypeId,
-    environment::{Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment},
+    environment::{
+        AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
+        SimplifyEnvironment,
+    },
     error::type_mismatch,
+    infer::Inference,
     lattice::Lattice,
     pretty_print::{BLUE, PrettyPrint},
     recursion::RecursionDepthBoundary,
@@ -59,28 +63,28 @@ impl<'heap> Lattice<'heap> for PrimitiveType {
         }
     }
 
-    fn is_bottom(self: Type<'heap, Self>, _: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+    fn is_bottom(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
         false
     }
 
-    fn is_top(self: Type<'heap, Self>, _: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+    fn is_top(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
         false
     }
 
-    fn is_concrete(self: Type<'heap, Self>, _: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+    fn is_concrete(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
         true
     }
 
     fn distribute_union(
         self: Type<'heap, Self>,
-        _: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        _: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16> {
         SmallVec::from_slice(&[self.id])
     }
 
     fn distribute_intersection(
         self: Type<'heap, Self>,
-        _: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        _: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16> {
         SmallVec::from_slice(&[self.id])
     }
@@ -88,7 +92,7 @@ impl<'heap> Lattice<'heap> for PrimitiveType {
     fn is_subtype_of(
         self: Type<'heap, Self>,
         supertype: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool {
         // If types are identical, they are always subtypes of each other
         if self.kind == supertype.kind {
@@ -165,12 +169,25 @@ impl<'heap> Lattice<'heap> for PrimitiveType {
     fn is_equivalent(
         self: Type<'heap, Self>,
         other: Type<'heap, Self>,
-        _: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        _: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool {
         self.kind == other.kind
     }
 
     fn simplify(self: Type<'heap, Self>, _: &mut SimplifyEnvironment<'_, 'heap>) -> TypeId {
+        self.id
+    }
+}
+
+impl<'heap> Inference<'heap> for PrimitiveType {
+    fn collect_constraints(
+        self: Type<'heap, Self>,
+        _: Type<'heap, Self>,
+        _: &mut InferenceEnvironment<'_, 'heap>,
+    ) {
+    }
+
+    fn instantiate(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> TypeId {
         self.id
     }
 }
@@ -208,7 +225,7 @@ mod test {
         span::SpanId,
         r#type::{
             environment::{
-                Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment,
+                AnalysisEnvironment, Environment, LatticeEnvironment, SimplifyEnvironment,
             },
             kind::{
                 TypeKind,
@@ -410,7 +427,7 @@ mod test {
         primitive!(env, null, PrimitiveType::Null);
         primitive!(env, integer, PrimitiveType::Integer);
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // No primitive types are uninhabited
         assert!(!number.is_bottom(&mut analysis_env));
@@ -431,7 +448,7 @@ mod test {
         primitive!(env, null, PrimitiveType::Null);
         primitive!(env, integer, PrimitiveType::Integer);
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // No primitive types are uninhabited
         assert!(!number.is_top(&mut analysis_env));
@@ -453,7 +470,7 @@ mod test {
         primitive!(env, null, PrimitiveType::Null);
         primitive!(env, integer, PrimitiveType::Integer);
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Same primitive types should be equivalent
         assert!(number.is_equivalent(number2, &mut analysis_env));
@@ -477,7 +494,7 @@ mod test {
         primitive!(env, boolean, PrimitiveType::Boolean);
         primitive!(env, null, PrimitiveType::Null);
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Every type is a subtype of itself (reflexivity)
         assert!(number.is_subtype_of(number, &mut analysis_env));
@@ -675,7 +692,7 @@ mod test {
     fn is_concrete() {
         let heap = Heap::new();
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // All primitive types should be concrete
         primitive!(env, number, PrimitiveType::Number);

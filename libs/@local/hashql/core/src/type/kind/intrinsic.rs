@@ -6,8 +6,12 @@ use smallvec::SmallVec;
 use super::TypeKind;
 use crate::r#type::{
     Type, TypeId,
-    environment::{Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment},
+    environment::{
+        AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
+        SimplifyEnvironment,
+    },
     error::type_mismatch,
+    infer::Inference,
     lattice::Lattice,
     pretty_print::PrettyPrint,
     recursion::RecursionDepthBoundary,
@@ -66,22 +70,22 @@ impl<'heap> Lattice<'heap> for ListType {
         })])
     }
 
-    fn is_bottom(self: Type<'heap, Self>, _: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+    fn is_bottom(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
         // Never bottom, even if the inner element is bottom, as a list can always be empty.
         false
     }
 
-    fn is_top(self: Type<'heap, Self>, _: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+    fn is_top(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
         false
     }
 
-    fn is_concrete(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+    fn is_concrete(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
         env.is_concrete(self.kind.element)
     }
 
     fn distribute_union(
         self: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16> {
         let elements = env.distribute_union(self.kind.element);
 
@@ -106,7 +110,7 @@ impl<'heap> Lattice<'heap> for ListType {
 
     fn distribute_intersection(
         self: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16> {
         let elements = env.distribute_intersection(self.kind.element);
 
@@ -132,7 +136,7 @@ impl<'heap> Lattice<'heap> for ListType {
     fn is_subtype_of(
         self: Type<'heap, Self>,
         supertype: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool {
         env.in_covariant(|env| env.is_subtype_of(self.kind.element, supertype.kind.element))
     }
@@ -140,7 +144,7 @@ impl<'heap> Lattice<'heap> for ListType {
     fn is_equivalent(
         self: Type<'heap, Self>,
         other: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool {
         env.in_covariant(|env| env.is_equivalent(self.kind.element, other.kind.element))
     }
@@ -157,6 +161,22 @@ impl<'heap> Lattice<'heap> for ListType {
             span: self.span,
             kind: env.intern_kind(TypeKind::Intrinsic(IntrinsicType::List(Self { element }))),
         })
+    }
+}
+
+impl<'heap> Inference<'heap> for ListType {
+    fn collect_constraints(
+        self: Type<'heap, Self>,
+        supertype: Type<'heap, Self>,
+        env: &mut InferenceEnvironment<'_, 'heap>,
+    ) {
+        env.in_covariant(|env| {
+            env.collect_constraints(self.kind.element, supertype.kind.element);
+        });
+    }
+
+    fn instantiate(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> TypeId {
+        todo!("https://linear.app/hash/issue/H-4384/hashql-type-instantiation")
     }
 }
 
@@ -322,22 +342,22 @@ impl<'heap> Lattice<'heap> for DictType {
         }
     }
 
-    fn is_bottom(self: Type<'heap, Self>, _: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+    fn is_bottom(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
         // Never bottom, as even with a `!` key or value a dict can be empty
         false
     }
 
-    fn is_top(self: Type<'heap, Self>, _: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+    fn is_top(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
         false
     }
 
-    fn is_concrete(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+    fn is_concrete(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
         env.is_concrete(self.kind.key) && env.is_concrete(self.kind.value)
     }
 
     fn distribute_union(
         self: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16> {
         // The key is invariant, but the value is covariant, therefore we need to distribute over
         // the value
@@ -365,7 +385,7 @@ impl<'heap> Lattice<'heap> for DictType {
 
     fn distribute_intersection(
         self: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16> {
         // The key is invariant, but the value is covariant, therefore we need to distribute over
         // the value
@@ -394,7 +414,7 @@ impl<'heap> Lattice<'heap> for DictType {
     fn is_subtype_of(
         self: Type<'heap, Self>,
         supertype: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool {
         env.in_invariant(|env| env.is_subtype_of(self.kind.key, supertype.kind.key))
             && env.in_covariant(|env| env.is_subtype_of(self.kind.value, supertype.kind.value))
@@ -403,7 +423,7 @@ impl<'heap> Lattice<'heap> for DictType {
     fn is_equivalent(
         self: Type<'heap, Self>,
         other: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool {
         env.is_equivalent(self.kind.key, other.kind.key)
             && env.is_equivalent(self.kind.value, other.kind.value)
@@ -425,6 +445,22 @@ impl<'heap> Lattice<'heap> for DictType {
                 value,
             }))),
         })
+    }
+}
+
+impl<'heap> Inference<'heap> for DictType {
+    fn collect_constraints(
+        self: Type<'heap, Self>,
+        supertype: Type<'heap, Self>,
+        env: &mut InferenceEnvironment<'_, 'heap>,
+    ) {
+        // Key is invariant, Value is covariant
+        env.in_invariant(|env| env.collect_constraints(self.kind.key, supertype.kind.key));
+        env.in_covariant(|env| env.collect_constraints(self.kind.value, supertype.kind.value));
+    }
+
+    fn instantiate(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> TypeId {
+        todo!("https://linear.app/hash/issue/H-4384/hashql-type-instantiation")
     }
 }
 
@@ -478,7 +514,7 @@ impl IntrinsicType {
     fn record_type_mismatch<'heap>(
         self: Type<'heap, Self>,
         other: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
     ) {
         let _: ControlFlow<()> = env.record_diagnostic(|env| {
             // Provide helpful conversion suggestions
@@ -527,21 +563,21 @@ impl<'heap> Lattice<'heap> for IntrinsicType {
         }
     }
 
-    fn is_bottom(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+    fn is_bottom(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
         match self.kind {
             Self::List(inner) => self.with(inner).is_bottom(env),
             Self::Dict(inner) => self.with(inner).is_bottom(env),
         }
     }
 
-    fn is_top(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+    fn is_top(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
         match self.kind {
             Self::List(inner) => self.with(inner).is_top(env),
             Self::Dict(inner) => self.with(inner).is_top(env),
         }
     }
 
-    fn is_concrete(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+    fn is_concrete(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
         match self.kind {
             Self::List(inner) => self.with(inner).is_concrete(env),
             Self::Dict(inner) => self.with(inner).is_concrete(env),
@@ -550,7 +586,7 @@ impl<'heap> Lattice<'heap> for IntrinsicType {
 
     fn distribute_union(
         self: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16> {
         match self.kind {
             Self::List(list_type) => self.with(list_type).distribute_union(env),
@@ -560,7 +596,7 @@ impl<'heap> Lattice<'heap> for IntrinsicType {
 
     fn distribute_intersection(
         self: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16> {
         match self.kind {
             Self::List(list_type) => self.with(list_type).distribute_intersection(env),
@@ -568,11 +604,10 @@ impl<'heap> Lattice<'heap> for IntrinsicType {
         }
     }
 
-    // TODO: we need proper error messages for the `TypeKind` change (or at least a `type_mismatch`)
     fn is_subtype_of(
         self: Type<'heap, Self>,
         supertype: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool {
         match (self.kind, supertype.kind) {
             (Self::List(lhs), Self::List(rhs)) => {
@@ -592,7 +627,7 @@ impl<'heap> Lattice<'heap> for IntrinsicType {
     fn is_equivalent(
         self: Type<'heap, Self>,
         other: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool {
         match (self.kind, other.kind) {
             (Self::List(lhs), Self::List(rhs)) => {
@@ -613,6 +648,35 @@ impl<'heap> Lattice<'heap> for IntrinsicType {
         match self.kind {
             Self::List(list) => self.with(list).simplify(env),
             Self::Dict(dict) => self.with(dict).simplify(env),
+        }
+    }
+}
+
+impl<'heap> Inference<'heap> for IntrinsicType {
+    fn collect_constraints(
+        self: Type<'heap, Self>,
+        supertype: Type<'heap, Self>,
+        env: &mut InferenceEnvironment<'_, 'heap>,
+    ) {
+        match (self.kind, supertype.kind) {
+            (Self::List(lhs), Self::List(rhs)) => {
+                self.with(lhs).collect_constraints(supertype.with(rhs), env);
+            }
+            (Self::Dict(inner), Self::Dict(rhs)) => {
+                self.with(inner)
+                    .collect_constraints(supertype.with(rhs), env);
+            }
+            _ => {
+                // During constraint collection we ignore any errors, as these will be caught during
+                // `is_subtype_of` checking later
+            }
+        }
+    }
+
+    fn instantiate(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> TypeId {
+        match self.kind {
+            Self::List(list) => self.with(list).instantiate(env),
+            Self::Dict(dict) => self.with(dict).instantiate(env),
         }
     }
 }
@@ -638,10 +702,13 @@ mod tests {
         span::SpanId,
         r#type::{
             environment::{
-                Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment,
+                AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
+                SimplifyEnvironment,
             },
+            infer::{Constraint, Inference as _, Variable},
             kind::{
                 TypeKind,
+                infer::HoleId,
                 intersection::IntersectionType,
                 primitive::PrimitiveType,
                 test::{assert_equiv, dict, intersection, list, primitive, union},
@@ -649,7 +716,7 @@ mod tests {
             },
             lattice::{Lattice as _, test::assert_lattice_laws},
             pretty_print::PrettyPrint as _,
-            test::instantiate,
+            test::{instantiate, instantiate_infer},
         },
     };
 
@@ -746,7 +813,7 @@ mod tests {
         list!(env, list_number, primitive!(env, PrimitiveType::Number));
         list!(env, list_integer, primitive!(env, PrimitiveType::Integer));
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // List<Integer> should be a subtype of List<Number> (covariance)
         assert!(list_integer.is_subtype_of(list_number, &mut analysis_env));
@@ -764,7 +831,7 @@ mod tests {
         list!(env, list_a, primitive!(env, PrimitiveType::Number));
         list!(env, list_b, primitive!(env, PrimitiveType::Number));
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Lists with equivalent element types should be equivalent
         assert!(list_a.is_equivalent(list_b, &mut analysis_env));
@@ -807,7 +874,7 @@ mod tests {
     fn list_concrete_check() {
         let heap = Heap::new();
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // A list with a concrete element type should be concrete
         list!(env, concrete_list, primitive!(env, PrimitiveType::Number));
@@ -815,7 +882,7 @@ mod tests {
         assert!(concrete_list.is_concrete(&mut analysis_env));
 
         // A list with a non-concrete element type should not be concrete
-        list!(env, non_concrete_list, instantiate(&env, TypeKind::Infer));
+        list!(env, non_concrete_list, instantiate_infer(&env, 0_u32));
 
         assert!(!non_concrete_list.is_concrete(&mut analysis_env));
     }
@@ -979,7 +1046,7 @@ mod tests {
             primitive!(env, PrimitiveType::Number)
         );
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Dict<String, Integer> should be a subtype of Dict<String, Number> (covariant values)
         assert!(dict_string_integer.is_subtype_of(dict_string_number, &mut analysis_env));
@@ -1018,7 +1085,7 @@ mod tests {
             primitive!(env, PrimitiveType::Number)
         );
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Dicts with equivalent key and value types should be equivalent
         assert!(dict_a.is_equivalent(dict_b, &mut analysis_env));
@@ -1070,7 +1137,7 @@ mod tests {
     fn dict_concrete_check() {
         let heap = Heap::new();
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // A dict with concrete key and value types should be concrete
         dict!(
@@ -1085,7 +1152,7 @@ mod tests {
         dict!(
             env,
             non_concrete_key_dict,
-            instantiate(&env, TypeKind::Infer),
+            instantiate_infer(&env, 0_u32),
             primitive!(env, PrimitiveType::Number)
         );
         assert!(!non_concrete_key_dict.is_concrete(&mut analysis_env));
@@ -1095,7 +1162,7 @@ mod tests {
             env,
             non_concrete_value_dict,
             primitive!(env, PrimitiveType::String),
-            instantiate(&env, TypeKind::Infer)
+            instantiate_infer(&env, 0_u32)
         );
         assert!(!non_concrete_value_dict.is_concrete(&mut analysis_env));
     }
@@ -1179,7 +1246,7 @@ mod tests {
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         // Create a dict with an inference variable as key
-        let infer_var = instantiate(&env, TypeKind::Infer);
+        let infer_var = instantiate_infer(&env, 0_u32);
         let number_type = primitive!(env, PrimitiveType::Number);
         let string_type = primitive!(env, PrimitiveType::String);
 
@@ -1220,7 +1287,7 @@ mod tests {
     fn list_distribute_union() {
         let heap = Heap::new();
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Create primitive types
         let number = primitive!(env, PrimitiveType::Number);
@@ -1253,7 +1320,7 @@ mod tests {
     fn list_distribute_intersection() {
         let heap = Heap::new();
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Create a list with an intersection element type
         let number = primitive!(env, PrimitiveType::Number);
@@ -1273,7 +1340,7 @@ mod tests {
     fn dict_distribute_union() {
         let heap = Heap::new();
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Create primitive types
         let number = primitive!(env, PrimitiveType::Number);
@@ -1318,7 +1385,7 @@ mod tests {
     fn dict_distribute_intersection() {
         let heap = Heap::new();
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Create a dict with an intersection value type
         let number = primitive!(env, PrimitiveType::Number);
@@ -1340,7 +1407,7 @@ mod tests {
     fn intrinsic_type_distribute_delegation() {
         let heap = Heap::new();
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Create primitive types
         let number = primitive!(env, PrimitiveType::Number);
@@ -1371,5 +1438,230 @@ mod tests {
             dict_with_union.distribute_union(&mut analysis_env),
             [dict!(env, string, number), dict!(env, string, boolean)]
         );
+    }
+
+    #[test]
+    fn collect_constraints_list_lower_bound() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create a list with a concrete type
+        let number = primitive!(env, PrimitiveType::Number);
+        list!(env, concrete_list, number);
+
+        // Create a list with an inference variable
+        let hole = HoleId::new(0);
+        let infer_var = instantiate_infer(&env, hole);
+        list!(env, infer_list, infer_var);
+
+        // Create an inference environment to collect constraints
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // List is covariant in its element type, so the element type of the subtype
+        // must be a subtype of the element type of the supertype
+        concrete_list.collect_constraints(infer_list, &mut inference_env);
+
+        let constraints = inference_env.take_constraints();
+        assert_eq!(
+            constraints,
+            [Constraint::LowerBound {
+                variable: Variable::Hole(hole),
+                bound: number
+            }]
+        );
+    }
+
+    #[test]
+    fn collect_constraints_list_upper_bound() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create a list with a concrete type
+        let number = primitive!(env, PrimitiveType::Number);
+        list!(env, concrete_list, number);
+
+        // Create a list with an inference variable
+        let hole = HoleId::new(0);
+        let infer_var = instantiate_infer(&env, hole);
+        list!(env, infer_list, infer_var);
+
+        // Create an inference environment to collect constraints
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // Collect constraints in the other direction
+        infer_list.collect_constraints(concrete_list, &mut inference_env);
+
+        let constraints = inference_env.take_constraints();
+        assert_eq!(
+            constraints,
+            [Constraint::UpperBound {
+                variable: Variable::Hole(hole),
+                bound: number
+            }]
+        );
+    }
+
+    #[test]
+    fn collect_constraints_nested_list() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create a nested list with inference variable
+        let hole = HoleId::new(0);
+        let infer_var = instantiate_infer(&env, hole);
+        let inner_list_a = list!(env, infer_var);
+        list!(env, list_a, inner_list_a);
+
+        // Create a nested list with concrete type
+        let number = primitive!(env, PrimitiveType::Number);
+        let inner_list_b = list!(env, number);
+        list!(env, list_b, inner_list_b);
+
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // Collect constraints between nested lists
+        list_a.collect_constraints(list_b, &mut inference_env);
+
+        let constraints = inference_env.take_constraints();
+        assert_eq!(
+            constraints,
+            [Constraint::UpperBound {
+                variable: Variable::Hole(hole),
+                bound: number
+            }]
+        );
+    }
+
+    #[test]
+    fn collect_constraints_dict_key_invariant() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create a dict with a concrete key and an inference variable as value
+        let string = primitive!(env, PrimitiveType::String);
+        let hole = HoleId::new(0);
+        let infer_var = instantiate_infer(&env, hole);
+        dict!(env, dict_a, string, infer_var);
+
+        // Create a dict with a concrete key and concrete value
+        let number = primitive!(env, PrimitiveType::Number);
+        dict!(env, dict_b, string, number);
+
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // Collect constraints between the two dictionary types
+        dict_a.collect_constraints(dict_b, &mut inference_env);
+
+        let constraints = inference_env.take_constraints();
+        assert_eq!(
+            constraints,
+            [Constraint::UpperBound {
+                variable: Variable::Hole(hole),
+                bound: number
+            }]
+        );
+    }
+
+    #[test]
+    fn collect_constraints_dict_key_variable() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create a dict with an inference variable as key
+        let hole = HoleId::new(0);
+        let infer_key = instantiate_infer(&env, hole);
+        let number = primitive!(env, PrimitiveType::Number);
+        dict!(env, dict_a, infer_key, number);
+
+        // Create a dict with a concrete key
+        let string = primitive!(env, PrimitiveType::String);
+        dict!(env, dict_b, string, number);
+
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // Collect constraints between the two dictionary types
+        dict_a.collect_constraints(dict_b, &mut inference_env);
+
+        let constraints = inference_env.take_constraints();
+        assert_eq!(
+            constraints,
+            [Constraint::Equals {
+                variable: Variable::Hole(hole),
+                r#type: string
+            }]
+        );
+    }
+
+    #[test]
+    fn collect_constraints_dict_bidirectional() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create a dict with inference variables for both key and value
+        let hole_key = HoleId::new(0);
+        let infer_key = instantiate_infer(&env, hole_key);
+        let hole_value = HoleId::new(1);
+        let infer_value = instantiate_infer(&env, hole_value);
+        dict!(env, dict_a, infer_key, infer_value);
+
+        // Create a dict with concrete types
+        let string = primitive!(env, PrimitiveType::String);
+        let number = primitive!(env, PrimitiveType::Number);
+        dict!(env, dict_b, string, number);
+
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // Collect constraints between the two dictionary types
+        dict_a.collect_constraints(dict_b, &mut inference_env);
+
+        let constraints = inference_env.take_constraints();
+        // We expect two constraints:
+        // 1. infer_key = string (keys are invariant)
+        // 2. infer_value <: number (values are covariant)
+        assert_eq!(
+            constraints,
+            [
+                Constraint::Equals {
+                    variable: Variable::Hole(hole_key),
+                    r#type: string,
+                },
+                Constraint::UpperBound {
+                    variable: Variable::Hole(hole_value),
+                    bound: number,
+                }
+            ]
+        );
+    }
+
+    #[test]
+    fn collect_constraints_concrete_intrinsics() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create concrete lists and dicts
+        let integer = primitive!(env, PrimitiveType::Integer);
+        let number = primitive!(env, PrimitiveType::Number);
+        let string = primitive!(env, PrimitiveType::String);
+
+        // Integer <: Number
+        list!(env, integer_list, integer);
+        list!(env, number_list, number);
+
+        dict!(env, dict_a, string, integer);
+        dict!(env, dict_b, string, number);
+
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // Collect constraints for concrete lists
+        integer_list.collect_constraints(number_list, &mut inference_env);
+
+        // No constraints should be generated for concrete types
+        assert!(inference_env.take_constraints().is_empty());
+
+        // Collect constraints for concrete dicts
+        dict_a.collect_constraints(dict_b, &mut inference_env);
+
+        // No constraints should be generated for concrete types
+        assert!(inference_env.take_constraints().is_empty());
     }
 }

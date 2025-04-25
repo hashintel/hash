@@ -1,9 +1,10 @@
 #![expect(clippy::min_ident_chars)]
-use core::assert_matches::assert_matches;
+use core::{assert_matches::assert_matches, fmt::Debug};
 
 use super::{
     Type, TypeId, TypeKind,
-    environment::{Environment, TypeAnalysisEnvironment},
+    environment::{AnalysisEnvironment, Environment},
+    kind::{Infer, Param, generic_argument::GenericArgumentId, infer::HoleId},
 };
 use crate::{
     heap::Heap,
@@ -21,7 +22,7 @@ pub(crate) macro setup_analysis($name:ident) {
     let heap = Heap::new();
     let environment = Environment::new(SpanId::SYNTHETIC, &heap);
 
-    let mut $name = TypeAnalysisEnvironment::new(&environment);
+    let mut $name = AnalysisEnvironment::new(&environment);
     $name.with_diagnostics();
 }
 
@@ -33,6 +34,28 @@ pub(crate) fn instantiate<'heap>(env: &Environment<'heap>, kind: TypeKind<'heap>
         span: SpanId::SYNTHETIC,
         kind,
     })
+}
+
+pub(crate) fn instantiate_param(
+    env: &Environment<'_>,
+    argument: impl TryInto<GenericArgumentId, Error: Debug>,
+) -> TypeId {
+    let kind = TypeKind::Param(Param {
+        argument: argument.try_into().expect("Should be valid argument"),
+    });
+
+    instantiate(env, kind)
+}
+
+pub(crate) fn instantiate_infer(
+    env: &Environment<'_>,
+    hole: impl TryInto<HoleId, Error: Debug>,
+) -> TypeId {
+    let kind = TypeKind::Infer(Infer {
+        hole: hole.try_into().expect("Should be valid argument"),
+    });
+
+    instantiate(env, kind)
 }
 
 #[test]
@@ -406,7 +429,7 @@ fn recursive_join_operation() {
     let joined = lattice_env.join(type_a, type_b);
 
     // Create a new analysis environment to check equivalence
-    let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+    let mut analysis_env = AnalysisEnvironment::new(&env);
     analysis_env.with_diagnostics();
 
     // The join should produce something that acts like B (in this case, it should be a supertype of

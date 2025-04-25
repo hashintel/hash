@@ -11,9 +11,11 @@ use crate::{
     r#type::{
         Type, TypeId,
         environment::{
-            Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment,
+            AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
+            SimplifyEnvironment,
         },
         error::{missing_struct_field, struct_field_mismatch},
+        infer::Inference,
         lattice::Lattice,
         pretty_print::PrettyPrint,
         recursion::RecursionDepthBoundary,
@@ -254,7 +256,7 @@ impl<'heap> Lattice<'heap> for StructType<'heap> {
         self.postprocess_lattice(other, env, &mut fields)
     }
 
-    fn is_bottom(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+    fn is_bottom(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
         // bottom if any of the fields are bottom
         self.kind
             .fields
@@ -262,11 +264,11 @@ impl<'heap> Lattice<'heap> for StructType<'heap> {
             .any(|field| env.is_bottom(field.value))
     }
 
-    fn is_top(self: Type<'heap, Self>, _: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+    fn is_top(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
         false
     }
 
-    fn is_concrete(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+    fn is_concrete(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
         self.kind
             .fields
             .iter()
@@ -275,7 +277,7 @@ impl<'heap> Lattice<'heap> for StructType<'heap> {
 
     fn distribute_union(
         self: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16> {
         if self.kind.fields.is_empty() {
             return SmallVec::from_slice(&[self.id]);
@@ -301,7 +303,7 @@ impl<'heap> Lattice<'heap> for StructType<'heap> {
 
     fn distribute_intersection(
         self: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16> {
         if self.kind.fields.is_empty() {
             return SmallVec::from_slice(&[self.id]);
@@ -328,11 +330,10 @@ impl<'heap> Lattice<'heap> for StructType<'heap> {
     fn is_subtype_of(
         self: Type<'heap, Self>,
         supertype: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool {
         // Structs are width covariant
         // This means that a struct with more types is a subtype of a struct with less types
-
         let self_fields_by_key: HashMap<_, _, foldhash::fast::RandomState> = self
             .kind
             .fields
@@ -371,7 +372,7 @@ impl<'heap> Lattice<'heap> for StructType<'heap> {
     fn is_equivalent(
         self: Type<'heap, Self>,
         other: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool {
         // Structs have the same number of fields for equivalence
         if self.kind.fields.len() != other.kind.fields.len() {
@@ -449,6 +450,37 @@ impl<'heap> Lattice<'heap> for StructType<'heap> {
     }
 }
 
+impl<'heap> Inference<'heap> for StructType<'heap> {
+    fn collect_constraints(
+        self: Type<'heap, Self>,
+        supertype: Type<'heap, Self>,
+        env: &mut InferenceEnvironment<'_, 'heap>,
+    ) {
+        // Structs are width covariant
+        // This means that a struct with more types is a subtype of a struct with less types
+        let self_fields_by_key: HashMap<_, _, foldhash::fast::RandomState> = self
+            .kind
+            .fields
+            .iter()
+            .map(|field| (field.name, field))
+            .collect();
+
+        for &super_field in &*supertype.kind.fields {
+            let Some(self_field) = self_fields_by_key.get(&super_field.name) else {
+                // During constraint collection we ignore any errors, as these will be caught during
+                // `is_subtype_of` checking later
+                continue;
+            };
+
+            env.in_covariant(|env| env.collect_constraints(self_field.value, super_field.value));
+        }
+    }
+
+    fn instantiate(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> TypeId {
+        todo!("https://linear.app/hash/issue/H-4384/hashql-type-instantiation")
+    }
+}
+
 impl PrettyPrint for StructType<'_> {
     fn pretty<'env>(
         &self,
@@ -476,11 +508,14 @@ mod test {
         span::SpanId,
         r#type::{
             environment::{
-                Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment,
+                AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
+                SimplifyEnvironment,
             },
+            infer::{Constraint, Inference as _, Variable},
             kind::{
                 TypeKind,
                 generic_argument::{GenericArgument, GenericArgumentId},
+                infer::HoleId,
                 intersection::IntersectionType,
                 primitive::PrimitiveType,
                 test::{assert_equiv, intersection, primitive, r#struct, struct_field, union},
@@ -488,7 +523,7 @@ mod test {
             },
             lattice::{Lattice as _, test::assert_lattice_laws},
             pretty_print::PrettyPrint as _,
-            test::instantiate,
+            test::{instantiate, instantiate_infer, instantiate_param},
         },
     };
 
@@ -776,7 +811,7 @@ mod test {
             ]
         );
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Empty struct should be inhabited (not uninhabited)
         assert!(!empty_struct.is_bottom(&mut analysis_env));
@@ -834,7 +869,7 @@ mod test {
         // Struct with fewer fields
         r#struct!(env, struct_d, [], [struct_field!(env, "name", string)]);
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Reflexivity: Every struct is a subtype of itself
         assert!(struct_a.is_subtype_of(struct_a, &mut analysis_env));
@@ -906,7 +941,7 @@ mod test {
             ]
         );
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Structs with semantically equivalent fields should be equivalent
         assert!(a.is_equivalent(b, &mut analysis_env));
@@ -948,7 +983,7 @@ mod test {
         // Both structs have all fields that are semantically equivalent, but different counts
         // Struct a has 2 fields, struct b has 3 fields
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Structs with different numbers of fields should not be equivalent
         // Even though the overlapping fields have the same types
@@ -1055,7 +1090,7 @@ mod test {
     fn is_concrete() {
         let heap = Heap::new();
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Concrete struct (with all concrete fields)
         let number = primitive!(env, PrimitiveType::Number);
@@ -1073,7 +1108,8 @@ mod test {
         assert!(concrete_struct.is_concrete(&mut analysis_env));
 
         // Non-concrete struct (with at least one non-concrete field)
-        let infer_var = instantiate(&env, TypeKind::Infer);
+        let hole = HoleId::new(0);
+        let infer_var = instantiate_infer(&env, hole);
 
         r#struct!(
             env,
@@ -1110,7 +1146,7 @@ mod test {
     fn distribute_union() {
         let heap = Heap::new();
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Create primitive types
         let string = primitive!(env, PrimitiveType::String);
@@ -1162,7 +1198,7 @@ mod test {
     fn distribute_union_multiple_fields() {
         let heap = Heap::new();
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Create primitive types
         let number = primitive!(env, PrimitiveType::Number);
@@ -1233,7 +1269,7 @@ mod test {
     fn distribute_intersection() {
         let heap = Heap::new();
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Create primitive types
         let number = primitive!(env, PrimitiveType::Number);
@@ -1310,7 +1346,7 @@ mod test {
             ]
         );
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Test subtyping with nested structs
         // Since inner2 (with Integer) is a subtype of inner1 (with Number),
@@ -1346,7 +1382,7 @@ mod test {
         );
 
         let mut lattice_env = LatticeEnvironment::new(&env);
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Join of disjoint structs should have all fields from both
         assert_equiv!(
@@ -1371,5 +1407,267 @@ mod test {
         // Test the is_disjoint_by_keys method indirectly through is_equivalent
         // Disjoint structs should not be equivalent
         assert!(!a.is_equivalent(b, &mut analysis_env));
+    }
+
+    #[test]
+    fn collect_constraints_lower_bound() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create a struct type with a field containing an inference variable
+        let number = primitive!(env, PrimitiveType::Number);
+        r#struct!(
+            env,
+            subtype,
+            [],
+            [
+                struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
+                struct_field!(env, "value", number)
+            ]
+        );
+
+        // Create a supertype struct with concrete types
+        let hole = HoleId::new(0);
+        let infer_var = instantiate_infer(&env, hole);
+        r#struct!(
+            env,
+            supertype,
+            [],
+            [
+                struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
+                struct_field!(env, "value", infer_var)
+            ]
+        );
+
+        // Create an inference environment to collect constraints
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // Collect constraints between the two struct types
+        subtype.collect_constraints(supertype, &mut inference_env);
+
+        let constraints = inference_env.take_constraints();
+        assert_eq!(
+            constraints,
+            [Constraint::LowerBound {
+                variable: Variable::Hole(hole),
+                bound: number
+            }]
+        );
+    }
+
+    #[test]
+    fn collect_constraints_width_covariance() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create a subtype struct with more fields
+        let hole = HoleId::new(0);
+        let infer_var = instantiate_infer(&env, hole);
+        r#struct!(
+            env,
+            subtype,
+            [],
+            [
+                struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
+                struct_field!(env, "value", infer_var),
+                struct_field!(env, "extra", primitive!(env, PrimitiveType::Boolean))
+            ]
+        );
+
+        let number = primitive!(env, PrimitiveType::Number);
+
+        // Create a supertype struct with fewer fields
+        r#struct!(
+            env,
+            supertype,
+            [],
+            [
+                struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
+                struct_field!(env, "value", number)
+            ]
+        );
+
+        // Create an inference environment to collect constraints
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // Collect constraints between the two struct types
+        subtype.collect_constraints(supertype, &mut inference_env);
+
+        // Should only have constraints for the common fields
+        // We expect one constraint: infer_var <: Number
+        let constraints = inference_env.take_constraints();
+        assert_eq!(
+            constraints,
+            [Constraint::UpperBound {
+                variable: Variable::Hole(hole),
+                bound: number
+            }]
+        );
+
+        // No constraints should be generated for the "extra" field
+    }
+
+    #[test]
+    fn collect_constraints_missing_field() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create a subtype struct with fewer fields
+        r#struct!(
+            env,
+            subtype,
+            [],
+            [struct_field!(
+                env,
+                "name",
+                primitive!(env, PrimitiveType::String)
+            )]
+        );
+
+        // Create a supertype struct with more fields
+        let hole = HoleId::new(0);
+        let infer_var = instantiate_infer(&env, hole);
+        r#struct!(
+            env,
+            supertype,
+            [],
+            [
+                struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
+                struct_field!(env, "value", infer_var)
+            ]
+        );
+
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        subtype.collect_constraints(supertype, &mut inference_env);
+
+        // This should not generate constraints since the subtype is missing a field
+        // During constraint collection this is ignored, and the error would be reported
+        // in is_subtype_of instead
+        assert!(inference_env.take_constraints().is_empty());
+    }
+
+    #[test]
+    fn collect_constraints_nested() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create a nested structure with inference variable
+        let hole = HoleId::new(0);
+        let infer_var = instantiate_infer(&env, hole);
+
+        // Subtype
+        r#struct!(
+            env,
+            a,
+            [],
+            [struct_field!(
+                env,
+                "nested",
+                r#struct!(env, [], [struct_field!(env, "data", infer_var)])
+            )]
+        );
+
+        let number = primitive!(env, PrimitiveType::Number);
+
+        // Supertype
+        r#struct!(
+            env,
+            b,
+            [],
+            [struct_field!(
+                env,
+                "nested",
+                r#struct!(env, [], [struct_field!(env, "data", number)])
+            )]
+        );
+
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        a.collect_constraints(b, &mut inference_env);
+
+        let constraints = inference_env.take_constraints();
+        assert_eq!(
+            constraints,
+            [Constraint::UpperBound {
+                variable: Variable::Hole(hole),
+                bound: number
+            }]
+        );
+    }
+
+    #[test]
+    fn collect_constraints_generic_params() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let arg1 = GenericArgumentId::new(0);
+        let arg2 = GenericArgumentId::new(1);
+
+        // Create generic parameter types
+        let param1 = instantiate_param(&env, arg1);
+        let param2 = instantiate_param(&env, arg2);
+
+        // Create structs with generic parameters
+        r#struct!(
+            env,
+            subtype,
+            [GenericArgument {
+                id: arg1,
+                constraint: None
+            }],
+            [struct_field!(env, "value", param1)]
+        );
+
+        r#struct!(
+            env,
+            supertype,
+            [GenericArgument {
+                id: arg2,
+                constraint: None
+            }],
+            [struct_field!(env, "value", param2)]
+        );
+
+        // Create an inference environment to collect constraints
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // Collect constraints between the generic structs
+        subtype.collect_constraints(supertype, &mut inference_env);
+
+        let constraints = inference_env.take_constraints();
+        assert_eq!(
+            constraints,
+            [Constraint::Ordering {
+                lower: Variable::Generic(arg1),
+                upper: Variable::Generic(arg2)
+            }]
+        );
+    }
+
+    #[test]
+    fn collect_constraints_concrete() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let integer = primitive!(env, PrimitiveType::Integer);
+        let number = primitive!(env, PrimitiveType::Number);
+
+        // Create structs with a covariant relationship in the field types
+        r#struct!(env, subtype, [], [struct_field!(env, "value", integer)]);
+
+        r#struct!(env, supertype, [], [struct_field!(env, "value", number)]);
+
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // In a non-constraint-collection scenario, we would expect:
+        // (value: Integer) <: (value: Number)
+        // but during constraint collection, no explicit constraints are added
+        // since there are no inference variables
+        subtype.collect_constraints(supertype, &mut inference_env);
+
+        // No constraints should have been generated since both types are concrete
+        // and constraints are only generated for inference variables
+        assert!(inference_env.take_constraints().is_empty());
     }
 }

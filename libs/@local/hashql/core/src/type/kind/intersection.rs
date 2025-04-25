@@ -11,9 +11,11 @@ use crate::{
         Type, TypeId,
         collection::TypeIdSet,
         environment::{
-            Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment,
+            AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
+            SimplifyEnvironment,
         },
         error::{cannot_be_supertype_of_unknown, intersection_variant_mismatch, type_mismatch},
+        infer::Inference,
         lattice::Lattice,
         pretty_print::PrettyPrint,
         recursion::RecursionDepthBoundary,
@@ -119,7 +121,7 @@ impl<'heap> IntersectionType<'heap> {
         expected: Type<'heap, U>,
         self_variants: &[TypeId],
         supertype_variants: &[TypeId],
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool
     where
         T: PrettyPrint,
@@ -170,7 +172,7 @@ impl<'heap> IntersectionType<'heap> {
         rhs: Type<'heap, U>,
         lhs_variants: &[TypeId],
         rhs_variants: &[TypeId],
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool
     where
         T: PrettyPrint,
@@ -245,6 +247,57 @@ impl<'heap> IntersectionType<'heap> {
 
         lhs_compatible && rhs_compatible
     }
+
+    pub(crate) fn collect_constraints_variants(
+        self_span: SpanId,
+        super_span: SpanId,
+        self_variants: &[TypeId],
+        super_variants: &[TypeId],
+        env: &mut InferenceEnvironment,
+    ) {
+        // (A & B) <: (C & D)
+        // ≡ (A & B) <: C ∧ (A & B) <: D
+        // ≡ (A <: C) ∧ (B <: C) ∧ (A <: D) ∧ (B <: D)
+        // Therefore this simplifies down to a cartesian product
+
+        match (self_variants, super_variants) {
+            ([], []) => {}
+            ([], _) => {
+                // The left-hand side is empty, and therefore is `Unknown`
+                let this = env.alloc(|id| Type {
+                    id,
+                    span: self_span,
+                    kind: env.intern_kind(TypeKind::Unknown),
+                });
+
+                for &super_variant in super_variants {
+                    env.in_covariant(|env| env.collect_constraints(this, super_variant));
+                }
+            }
+            (_, []) => {
+                // The right-hand side is empty, and therefore is `Unknown`. The bound trivially
+                // holds, but we still need to push it in case downstream relies on it.
+                let supertype = env.alloc(|id| Type {
+                    id,
+                    span: super_span,
+                    kind: env.intern_kind(TypeKind::Unknown),
+                });
+
+                for &self_variant in self_variants {
+                    env.in_covariant(|env| env.collect_constraints(self_variant, supertype));
+                }
+            }
+            (_, _) => {
+                for &self_variant in self_variants {
+                    for &super_variant in super_variants {
+                        env.in_covariant(|env| {
+                            env.collect_constraints(self_variant, super_variant);
+                        });
+                    }
+                }
+            }
+        }
+    }
 }
 
 impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
@@ -270,7 +323,7 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
         Self::meet_variants(self.span, &lhs_variants, &rhs_variants, env)
     }
 
-    fn is_bottom(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+    fn is_bottom(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
         if self.kind.variants.iter().any(|&id| env.is_bottom(id)) {
             return true;
         }
@@ -287,24 +340,24 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
         false
     }
 
-    fn is_top(self: Type<'heap, Self>, _: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+    fn is_top(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
         self.kind.variants.is_empty()
     }
 
-    fn is_concrete(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+    fn is_concrete(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
         self.kind.variants.iter().all(|&id| env.is_concrete(id))
     }
 
     fn distribute_union(
         self: Type<'heap, Self>,
-        _: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        _: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16> {
         SmallVec::from_slice(&[self.id])
     }
 
     fn distribute_intersection(
         self: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16> {
         self.kind
             .variants
@@ -329,7 +382,7 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
     fn is_subtype_of(
         self: Type<'heap, Self>,
         supertype: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool {
         let self_variants = self.kind.unnest(env);
         let supertype_variants = supertype.kind.unnest(env);
@@ -340,7 +393,7 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
     fn is_equivalent(
         self: Type<'heap, Self>,
         other: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool {
         let lhs_variants = self.kind.unnest(env);
         let rhs_variants = other.kind.unnest(env);
@@ -423,6 +476,29 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
     }
 }
 
+impl<'heap> Inference<'heap> for IntersectionType<'heap> {
+    fn collect_constraints(
+        self: Type<'heap, Self>,
+        supertype: Type<'heap, Self>,
+        env: &mut InferenceEnvironment<'_, 'heap>,
+    ) {
+        let self_variants = self.kind.unnest(env);
+        let super_variants = supertype.kind.unnest(env);
+
+        Self::collect_constraints_variants(
+            self.span,
+            supertype.span,
+            &self_variants,
+            &super_variants,
+            env,
+        );
+    }
+
+    fn instantiate(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> TypeId {
+        todo!("https://linear.app/hash/issue/H-4384/hashql-type-instantiation")
+    }
+}
+
 impl PrettyPrint for IntersectionType<'_> {
     fn pretty<'env>(
         &self,
@@ -450,16 +526,22 @@ impl PrettyPrint for IntersectionType<'_> {
 mod test {
     #![expect(clippy::min_ident_chars)]
 
+    use core::assert_matches::assert_matches;
+
     use super::IntersectionType;
     use crate::{
         heap::Heap,
         span::SpanId,
         r#type::{
             environment::{
-                Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment,
+                AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
+                SimplifyEnvironment,
             },
+            infer::{Constraint, Inference as _, Variable},
             kind::{
                 TypeKind,
+                generic_argument::GenericArgumentId,
+                infer::HoleId,
                 intrinsic::{DictType, IntrinsicType},
                 primitive::PrimitiveType,
                 test::{assert_equiv, dict, intersection, primitive, tuple, union},
@@ -468,7 +550,7 @@ mod test {
             },
             lattice::{Lattice as _, test::assert_lattice_laws},
             pretty_print::PrettyPrint as _,
-            test::instantiate,
+            test::{instantiate, instantiate_infer, instantiate_param},
         },
     };
 
@@ -784,7 +866,7 @@ mod test {
         // Regular intersection
         intersection!(env, regular, [primitive!(env, PrimitiveType::Number)]);
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Intersection with Never should be bottom
         assert!(with_never.is_bottom(&mut analysis_env));
@@ -804,7 +886,7 @@ mod test {
         // Regular intersection
         intersection!(env, regular, [primitive!(env, PrimitiveType::Number)]);
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Empty intersection should be top
         assert!(empty.is_top(&mut analysis_env));
@@ -837,7 +919,7 @@ mod test {
             ]
         );
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // An intersection should be a subtype of itself (reflexivity)
         //
@@ -875,7 +957,7 @@ mod test {
         // Number & Integer
         intersection!(env, number_integer, [number, integer]);
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Number & String <: Number
         // see is_subtype_of_self for an in-depth explanation
@@ -901,7 +983,7 @@ mod test {
         // Non-empty intersection
         intersection!(env, non_empty, [primitive!(env, PrimitiveType::Number)]);
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Any intersection should be a subtype of the empty intersection (Unknown)
         assert!(non_empty.is_subtype_of(empty, &mut analysis_env));
@@ -953,7 +1035,7 @@ mod test {
             ]
         );
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Same intersections should be equivalent
         assert!(a.is_equivalent(b, &mut analysis_env));
@@ -963,6 +1045,28 @@ mod test {
 
         // Different intersections should not be equivalent
         assert!(!a.is_equivalent(d, &mut analysis_env));
+    }
+
+    #[test]
+    fn is_equivalent_side() {
+        // Check that we both check the left and the right sides for equivalence
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        intersection!(env, a, [primitive!(env, PrimitiveType::Boolean)]);
+        intersection!(
+            env,
+            b,
+            [
+                primitive!(env, PrimitiveType::Boolean),
+                primitive!(env, PrimitiveType::Number)
+            ]
+        );
+
+        let mut analysis_env = AnalysisEnvironment::new(&env);
+
+        assert!(!a.is_equivalent(b, &mut analysis_env));
+        assert!(!b.is_equivalent(a, &mut analysis_env));
     }
 
     #[test]
@@ -977,7 +1081,7 @@ mod test {
         // Create a non-empty intersection
         intersection!(env, c, [primitive!(env, PrimitiveType::Number)]);
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Empty intersections should be equivalent to each other
         assert!(a.is_equivalent(b, &mut analysis_env));
@@ -1144,7 +1248,7 @@ mod test {
     fn is_concrete() {
         let heap = Heap::new();
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Concrete intersection (with all concrete variants)
         let number = primitive!(env, PrimitiveType::Number);
@@ -1153,7 +1257,7 @@ mod test {
         assert!(concrete_intersection.is_concrete(&mut analysis_env));
 
         // Non-concrete intersection (with at least one non-concrete variant)
-        let infer_var = instantiate(&env, TypeKind::Infer);
+        let infer_var = instantiate_infer(&env, HoleId::new(0));
         intersection!(env, non_concrete_intersection, [number, infer_var]);
         assert!(!non_concrete_intersection.is_concrete(&mut analysis_env));
 
@@ -1207,7 +1311,7 @@ mod test {
         // Create an intersection of tuple types
         intersection!(env, intersection_type, [tuple1, tuple2]);
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Intersection operations should work with non-primitive types
         assert!(!intersection_type.is_top(&mut analysis_env));
@@ -1291,10 +1395,286 @@ mod test {
         // Type 2: Dict<Number, Boolean> & Dict<Number, String>
         let type2 = intersection!(env, [dict_number_boolean, dict_number_string]);
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // These types should be equivalent despite having different variant counts
         assert!(analysis_env.is_equivalent(type1, type2));
         assert!(analysis_env.is_equivalent(type2, type1));
+    }
+
+    #[test]
+    fn collect_constraints_empty() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create two empty intersections (Unknown type)
+        intersection!(env, empty_a, []);
+        intersection!(env, empty_b, []);
+
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // Unknown <: Unknown
+        empty_a.collect_constraints(empty_b, &mut inference_env);
+
+        // No constraints should be generated for this trivial case
+        let constraints = inference_env.take_constraints();
+        assert!(constraints.is_empty());
+    }
+
+    #[test]
+    fn collect_constraints_empty_subtype() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Empty intersection (Unknown) as subtype
+        intersection!(env, empty, []);
+
+        let hole = HoleId::new(0);
+        let infer = instantiate_infer(&env, hole);
+        intersection!(env, concrete, [infer]);
+
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        empty.collect_constraints(concrete, &mut inference_env);
+
+        let constraints = inference_env.take_constraints();
+        assert_matches!(
+            &*constraints,
+            [Constraint::LowerBound {
+                variable: Variable::Hole(var),
+                bound
+            }] if *env.types[*bound].copied().kind == TypeKind::Unknown && *var == hole
+        );
+    }
+
+    #[test]
+    fn collect_constraints_empty_supertype() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let hole = HoleId::new(0);
+        let infer = instantiate_infer(&env, hole);
+        intersection!(env, concrete, [infer]);
+
+        // Empty intersection (Unknown) as supertype
+        intersection!(env, empty, []);
+
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        concrete.collect_constraints(empty, &mut inference_env);
+
+        let constraints = inference_env.take_constraints();
+        assert_matches!(
+            &*constraints,
+            [Constraint::UpperBound {
+                variable: Variable::Hole(var),
+                bound
+            }] if *env.types[*bound].copied().kind == TypeKind::Unknown && *var == hole
+        );
+    }
+
+    #[test]
+    fn collect_constraints_inference_variable_subtype() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create an inference variable
+        let hole = HoleId::new(0);
+        let infer_var = instantiate_infer(&env, hole);
+
+        // Intersection with inference variable as subtype
+        intersection!(env, infer_intersection, [infer_var]);
+
+        // Concrete intersection as supertype
+        let number = primitive!(env, PrimitiveType::Number);
+        intersection!(env, concrete_intersection, [number]);
+
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // ?T <: Number
+        infer_intersection.collect_constraints(concrete_intersection, &mut inference_env);
+
+        // Should generate an upper bound constraint
+        let constraints = inference_env.take_constraints();
+        assert_eq!(
+            constraints,
+            [Constraint::UpperBound {
+                variable: Variable::Hole(hole),
+                bound: number
+            }]
+        );
+    }
+
+    #[test]
+    fn collect_constraints_inference_variable_supertype() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create an inference variable
+        let hole = HoleId::new(0);
+        let infer_var = instantiate_infer(&env, hole);
+
+        // Concrete intersection as subtype
+        let number = primitive!(env, PrimitiveType::Number);
+        intersection!(env, concrete_intersection, [number]);
+
+        // Intersection with inference variable as supertype
+        intersection!(env, infer_intersection, [infer_var]);
+
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // Number <: ?T
+        concrete_intersection.collect_constraints(infer_intersection, &mut inference_env);
+
+        // Should generate a lower bound constraint
+        let constraints = inference_env.take_constraints();
+        assert_eq!(
+            constraints,
+            [Constraint::LowerBound {
+                variable: Variable::Hole(hole),
+                bound: number
+            }]
+        );
+    }
+
+    #[test]
+    fn collect_constraints_multiple_variants() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create inference variables
+        let hole_a = HoleId::new(0);
+        let infer_a = instantiate_infer(&env, hole_a);
+        let hole_b = HoleId::new(1);
+        let infer_b = instantiate_infer(&env, hole_b);
+
+        // Create concrete types
+        let number = primitive!(env, PrimitiveType::Number);
+        let string = primitive!(env, PrimitiveType::String);
+
+        // Create intersection with multiple inference variables
+        intersection!(env, infer_intersection, [infer_a, infer_b]);
+
+        // Create intersection with multiple concrete types
+        intersection!(env, concrete_intersection, [number, string]);
+
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // (infer_a & infer_b) <: (Number & String)
+        infer_intersection.collect_constraints(concrete_intersection, &mut inference_env);
+
+        // Should collect constraints in a cartesian product
+        let constraints = inference_env.take_constraints();
+        assert_eq!(
+            constraints,
+            [
+                Constraint::UpperBound {
+                    variable: Variable::Hole(hole_a),
+                    bound: string,
+                },
+                Constraint::UpperBound {
+                    variable: Variable::Hole(hole_a),
+                    bound: number,
+                },
+                Constraint::UpperBound {
+                    variable: Variable::Hole(hole_b),
+                    bound: string,
+                },
+                Constraint::UpperBound {
+                    variable: Variable::Hole(hole_b),
+                    bound: number,
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn collect_constraints_nested_intersection() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create inference variable
+        let hole = HoleId::new(0);
+        let infer_var = instantiate_infer(&env, hole);
+
+        // Create a nested intersection with inference variable
+        let inner_infer = intersection!(env, [infer_var]);
+        intersection!(env, nested_infer, [inner_infer]);
+
+        // Create a concrete nested intersection
+        let number = primitive!(env, PrimitiveType::Number);
+        let inner_concrete = intersection!(env, [number]);
+        intersection!(env, nested_concrete, [inner_concrete]);
+
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // The nested intersection should unnest during constraint collection
+        nested_infer.collect_constraints(nested_concrete, &mut inference_env);
+
+        // Should generate constraints between infer_var and number
+        let constraints = inference_env.take_constraints();
+        assert_eq!(
+            constraints,
+            [Constraint::UpperBound {
+                variable: Variable::Hole(hole),
+                bound: number
+            }]
+        );
+    }
+
+    #[test]
+    fn collect_constraints_generic_params() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Set up generic arguments
+        let arg1 = GenericArgumentId::new(0);
+        let arg2 = GenericArgumentId::new(1);
+
+        // Create generic parameter types
+        let param1 = instantiate_param(&env, arg1);
+        let param2 = instantiate_param(&env, arg2);
+
+        // Create intersections with generic parameters
+        intersection!(env, generic_a, [param1]);
+
+        intersection!(env, generic_b, [param2]);
+
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // Collect constraints between generic intersections
+        generic_a.collect_constraints(generic_b, &mut inference_env);
+
+        // Should generate an ordering constraint
+        let constraints = inference_env.take_constraints();
+        assert_eq!(
+            constraints,
+            [Constraint::Ordering {
+                lower: Variable::Generic(arg1),
+                upper: Variable::Generic(arg2)
+            }]
+        );
+    }
+
+    #[test]
+    fn collect_constraints_concrete_types_only() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create concrete types
+        let number = primitive!(env, PrimitiveType::Number);
+        let integer = primitive!(env, PrimitiveType::Integer);
+
+        // Create intersections with only concrete types
+        intersection!(env, concrete_a, [integer]);
+        intersection!(env, concrete_b, [number]);
+
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // Collect constraints between concrete intersections
+        concrete_a.collect_constraints(concrete_b, &mut inference_env);
+
+        // No variable constraints should be generated for concrete types
+        assert!(inference_env.take_constraints().is_empty());
     }
 }

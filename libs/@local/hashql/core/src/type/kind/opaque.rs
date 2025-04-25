@@ -9,9 +9,11 @@ use crate::{
     r#type::{
         Type, TypeId,
         environment::{
-            Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment,
+            AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
+            SimplifyEnvironment,
         },
         error::opaque_type_name_mismatch,
+        infer::Inference,
         lattice::Lattice,
         pretty_print::PrettyPrint,
         recursion::RecursionDepthBoundary,
@@ -198,21 +200,21 @@ impl<'heap> Lattice<'heap> for OpaqueType<'heap> {
         }
     }
 
-    fn is_bottom(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+    fn is_bottom(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
         env.is_bottom(self.kind.repr)
     }
 
-    fn is_top(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+    fn is_top(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
         env.is_top(self.kind.repr)
     }
 
-    fn is_concrete(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool {
+    fn is_concrete(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
         env.is_concrete(self.kind.repr)
     }
 
     fn distribute_union(
         self: Type<'heap, Self>,
-        _: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        _: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16> {
         // opaque type is invariant in regards to generic arguments, so we simply return ourselves
         SmallVec::from_slice(&[self.id])
@@ -220,7 +222,7 @@ impl<'heap> Lattice<'heap> for OpaqueType<'heap> {
 
     fn distribute_intersection(
         self: Type<'heap, Self>,
-        _: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        _: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16> {
         // opaque type is invariant in regards to generic arguments, so we simply return ourselves
         SmallVec::from_slice(&[self.id])
@@ -235,7 +237,7 @@ impl<'heap> Lattice<'heap> for OpaqueType<'heap> {
     fn is_subtype_of(
         self: Type<'heap, Self>,
         supertype: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool {
         if self.kind.name != supertype.kind.name {
             let _: ControlFlow<()> = env.record_diagnostic(|env| {
@@ -257,7 +259,7 @@ impl<'heap> Lattice<'heap> for OpaqueType<'heap> {
     fn is_equivalent(
         self: Type<'heap, Self>,
         other: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool {
         if self.kind.name != other.kind.name {
             let _: ControlFlow<()> = env.record_diagnostic(|env| {
@@ -289,6 +291,27 @@ impl<'heap> Lattice<'heap> for OpaqueType<'heap> {
     }
 }
 
+impl<'heap> Inference<'heap> for OpaqueType<'heap> {
+    fn collect_constraints(
+        self: Type<'heap, Self>,
+        supertype: Type<'heap, Self>,
+        env: &mut InferenceEnvironment<'_, 'heap>,
+    ) {
+        if self.kind.name != supertype.kind.name {
+            // During constraint collection we ignore any errors, as these will be caught during
+            // `is_subtype_of` checking later
+            return;
+        }
+
+        // Opaque types are invariant in regards to their arguments
+        env.in_invariant(|env| env.collect_constraints(self.kind.repr, supertype.kind.repr));
+    }
+
+    fn instantiate(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> TypeId {
+        todo!("https://linear.app/hash/issue/H-4384/hashql-type-instantiation")
+    }
+}
+
 impl PrettyPrint for OpaqueType<'_> {
     fn pretty<'env>(
         &self,
@@ -313,17 +336,21 @@ mod test {
         span::SpanId,
         r#type::{
             environment::{
-                Environment, LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment,
+                AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
+                SimplifyEnvironment,
             },
+            infer::{Constraint, Inference as _, Variable},
             kind::{
                 TypeKind,
+                generic_argument::{GenericArgument, GenericArgumentId},
+                infer::HoleId,
                 primitive::PrimitiveType,
                 test::{assert_equiv, opaque, primitive, union},
                 union::UnionType,
             },
             lattice::{Lattice as _, test::assert_lattice_laws},
             pretty_print::PrettyPrint as _,
-            test::instantiate,
+            test::{instantiate, instantiate_infer, instantiate_param},
         },
     };
 
@@ -344,6 +371,24 @@ mod test {
         // Joining should result in an opaque type with the same name but representation
         // that is the join of the two representations (a union in this case)
         // Should have two variants: number and string
+        assert_equiv!(env, a.join(b, &mut lattice_env), [a.id, b.id]);
+    }
+
+    #[test]
+    fn join_same_name_inference() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let hole = HoleId::new(0);
+        let infer = instantiate_infer(&env, hole);
+
+        opaque!(env, a, "MyType", primitive!(env, PrimitiveType::Number), []);
+        opaque!(env, b, "MyType", infer, []);
+
+        let mut lattice_env = LatticeEnvironment::new(&env);
+        lattice_env.set_inference_enabled(true);
+
+        // If inference is enabled, we assume that the primitive type is the inferred variable
         assert_equiv!(env, a.join(b, &mut lattice_env), [a.id, b.id]);
     }
 
@@ -412,6 +457,24 @@ mod test {
     }
 
     #[test]
+    fn meet_same_name_inference() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let hole = HoleId::new(0);
+        let infer = instantiate_infer(&env, hole);
+
+        opaque!(env, a, "MyType", primitive!(env, PrimitiveType::Number), []);
+        opaque!(env, b, "MyType", infer, []);
+
+        let mut lattice_env = LatticeEnvironment::new(&env);
+        lattice_env.set_inference_enabled(true);
+
+        // If inference is enabled, we assume that the primitive type is the inferred variable
+        assert_equiv!(env, a.meet(b, &mut lattice_env), [a.id, b.id]);
+    }
+
+    #[test]
     fn meet_different_names() {
         let heap = Heap::new();
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
@@ -452,7 +515,7 @@ mod test {
         // Different name with same representation
         opaque!(env, c, "DifferentType", a_repr, []);
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // a should not be a subtype of b (invariant)
         assert!(!a.is_subtype_of(b, &mut analysis_env));
@@ -482,7 +545,7 @@ mod test {
         // Same name but different representation
         opaque!(env, d, "MyType", primitive!(env, PrimitiveType::String), []);
 
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // a and b should be equivalent (same name, equivalent representations)
         assert!(a.is_equivalent(b, &mut analysis_env));
@@ -589,7 +652,7 @@ mod test {
     fn is_concrete() {
         let heap = Heap::new();
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
-        let mut analysis_env = TypeAnalysisEnvironment::new(&env);
+        let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Concrete opaque type (with primitive representation)
         let number_repr = primitive!(env, PrimitiveType::Number);
@@ -597,7 +660,8 @@ mod test {
         assert!(concrete.is_concrete(&mut analysis_env));
 
         // Non-concrete opaque type (with inference variable in its representation)
-        let infer_var = instantiate(&env, TypeKind::Infer);
+        let hole = HoleId::new(0);
+        let infer_var = instantiate_infer(&env, hole);
         opaque!(env, non_concrete_type, "NonConcreteType", infer_var, []);
         assert!(!non_concrete_type.is_concrete(&mut analysis_env));
 
@@ -606,5 +670,226 @@ mod test {
         let nested_opaque = opaque!(env, "InnerType", infer_var, []);
         opaque!(env, nested_non_concrete, "OuterType", nested_opaque, []);
         assert!(!nested_non_concrete.is_concrete(&mut analysis_env));
+    }
+
+    #[test]
+    fn collect_constraints_same_name() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create an opaque type with a concrete representation
+        let number = primitive!(env, PrimitiveType::Number);
+        opaque!(env, number_opaque, "TypeName", number, []);
+
+        // Create another opaque type with the same name but an inference variable
+        let hole = HoleId::new(0);
+        let infer_var = instantiate_infer(&env, hole);
+        opaque!(env, infer_opaque, "TypeName", infer_var, []);
+
+        // Create an inference environment to collect constraints
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // Collect constraints between the two opaque types
+        number_opaque.collect_constraints(infer_opaque, &mut inference_env);
+
+        // Since opaque types are invariant, we should get an equality constraint
+        // rather than just an upper or lower bound
+        let constraints = inference_env.take_constraints();
+        assert_eq!(
+            constraints,
+            [Constraint::Equals {
+                variable: Variable::Hole(hole),
+                r#type: number
+            }]
+        );
+    }
+
+    #[test]
+    fn collect_constraints_different_names() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create an opaque type with a concrete representation
+        let number = primitive!(env, PrimitiveType::Number);
+        opaque!(env, type_a, "TypeA", number, []);
+
+        // Create another opaque type with a different name and an inference variable
+        let hole = HoleId::new(0);
+        let infer_var = instantiate_infer(&env, hole);
+        opaque!(env, type_b, "TypeB", infer_var, []);
+
+        // Create an inference environment to collect constraints
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // Collect constraints between the two opaque types
+        type_a.collect_constraints(type_b, &mut inference_env);
+
+        // No constraints should be generated since the names are different
+        // This is important for nominal typing - different named types don't interact
+        let constraints = inference_env.take_constraints();
+        assert!(constraints.is_empty());
+    }
+
+    #[test]
+    fn collect_constraints_nested() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create a nested opaque type with an inference variable
+        let hole = HoleId::new(0);
+        let infer_var = instantiate_infer(&env, hole);
+        opaque!(
+            env,
+            outer_a,
+            "Outer",
+            opaque!(env, "Inner", infer_var, []),
+            []
+        );
+
+        // Create another nested opaque type with a concrete representation
+        let number = primitive!(env, PrimitiveType::Number);
+        opaque!(env, outer_b, "Outer", opaque!(env, "Inner", number, []), []);
+
+        // Create an inference environment to collect constraints
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // Collect constraints between the two nested opaque types
+        outer_a.collect_constraints(outer_b, &mut inference_env);
+
+        // Due to invariance through the chain, we should get an equality constraint
+        let constraints = inference_env.take_constraints();
+        assert_eq!(
+            constraints,
+            [Constraint::Equals {
+                variable: Variable::Hole(hole),
+                r#type: number
+            }]
+        );
+    }
+
+    #[test]
+    fn collect_constraints_concrete() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create two opaque types with concrete but different representations
+        let number = primitive!(env, PrimitiveType::Number);
+        let string = primitive!(env, PrimitiveType::String);
+
+        opaque!(env, number_opaque, "Type", number, []);
+        opaque!(env, string_opaque, "Type", string, []);
+
+        // Create an inference environment to collect constraints
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // Collect constraints between the two opaque types
+        number_opaque.collect_constraints(string_opaque, &mut inference_env);
+
+        // No constraints should be generated since both types are concrete
+        // The invariance check would fail during is_subtype_of, but we don't handle
+        // that during constraint collection
+        let constraints = inference_env.take_constraints();
+        assert!(constraints.is_empty());
+    }
+
+    #[test]
+    fn collect_constraints_generic_params() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let arg1 = GenericArgumentId::new(0);
+        let arg2 = GenericArgumentId::new(1);
+
+        // Create generic parameter types
+        let param1 = instantiate_param(&env, arg1);
+        let param2 = instantiate_param(&env, arg2);
+
+        // Create opaque types with generic parameters
+        opaque!(
+            env,
+            opaque_a,
+            "Type",
+            param1,
+            [GenericArgument {
+                id: arg1,
+                constraint: None
+            }]
+        );
+
+        opaque!(
+            env,
+            opaque_b,
+            "Type",
+            param2,
+            [GenericArgument {
+                id: arg2,
+                constraint: None
+            }]
+        );
+
+        // Create an inference environment to collect constraints
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // Collect constraints between the two opaque types with generic parameters
+        opaque_a.collect_constraints(opaque_b, &mut inference_env);
+
+        // Due to invariance, we should get an equality constraint between the generic parameters
+        let constraints = inference_env.take_constraints();
+        assert!(constraints.is_empty());
+        assert!(inference_env.is_unioned(Variable::Generic(arg1), Variable::Generic(arg2)));
+    }
+
+    #[test]
+    fn collect_constraints_multiple_infer_vars() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create an opaque type with an inference variable
+        let hole_var1 = HoleId::new(0);
+        let infer_var1 = instantiate_infer(&env, hole_var1);
+        opaque!(env, opaque_a, "Type", infer_var1, []);
+
+        // Create another opaque type with another inference variable
+        let hole_var2 = HoleId::new(1);
+        let infer_var2 = instantiate_infer(&env, hole_var2);
+        opaque!(env, opaque_b, "Type", infer_var2, []);
+
+        // Create an inference environment to collect constraints
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // Collect constraints between the two opaque types
+        opaque_a.collect_constraints(opaque_b, &mut inference_env);
+
+        // Due to invariance, we should get an equality constraint between the inference variables
+        let constraints = inference_env.take_constraints();
+        assert!(constraints.is_empty());
+        assert!(inference_env.is_unioned(Variable::Hole(hole_var1), Variable::Hole(hole_var2)));
+    }
+
+    #[test]
+    fn collect_constraints_infer_and_generic_var() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create an opaque type with an inference variable
+        let hole_var1 = HoleId::new(0);
+        let infer_var1 = instantiate_infer(&env, hole_var1);
+        opaque!(env, opaque_a, "Type", infer_var1, []);
+
+        // Create another opaque type with a generic variable
+        let arg = GenericArgumentId::new(0);
+        opaque!(env, opaque_b, "Type", instantiate_param(&env, arg), []);
+
+        // Create an inference environment to collect constraints
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // Collect constraints between the two opaque types
+        opaque_a.collect_constraints(opaque_b, &mut inference_env);
+
+        // Due to invariance, we should get an equality constraint between the inference variable
+        // and the generic variable
+        let constraints = inference_env.take_constraints();
+        assert!(constraints.is_empty());
+        assert!(inference_env.is_unioned(Variable::Hole(hole_var1), Variable::Generic(arg)));
     }
 }

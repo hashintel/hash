@@ -2,7 +2,7 @@ use smallvec::SmallVec;
 
 use super::{
     Type, TypeId,
-    environment::{LatticeEnvironment, SimplifyEnvironment, TypeAnalysisEnvironment},
+    environment::{AnalysisEnvironment, LatticeEnvironment, SimplifyEnvironment},
 };
 
 /// A trait that implements properties of a mathematical lattice for types.
@@ -92,7 +92,6 @@ pub trait Lattice<'heap> {
     ///
     /// - `join(Number, Number | String) = Number | String`
     ///   - Joining with a union type creates the least supertype that contains all components
-    // TODO: test join(Number, Number | String)
     fn join(
         self: Type<'heap, Self>,
         other: Type<'heap, Self>,
@@ -163,7 +162,7 @@ pub trait Lattice<'heap> {
     /// - The `Never` type in Rust is a bottom type
     /// - Empty union types (unions with no variants) are bottom types
     /// - Contradictory intersection types (like `number & string`) are bottom types
-    fn is_bottom(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool;
+    fn is_bottom(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool;
 
     /// Determines if a type is a top type (encompasses all possible values).
     ///
@@ -178,7 +177,7 @@ pub trait Lattice<'heap> {
     /// - The `any` type in TypeScript is a top type
     /// - Any union type with the `Unknown` type as a variant is a top type
     /// - Empty intersection types (intersections with no variants) are top types
-    fn is_top(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool;
+    fn is_top(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool;
 
     /// Determines if a type is concrete (fully resolved with no type variables or abstractions).
     ///
@@ -201,7 +200,7 @@ pub trait Lattice<'heap> {
     /// - Type variables (e.g., `T` in generic functions)
     /// - Types with unresolved type parameters
     /// - Inference types that need further resolution
-    fn is_concrete(self: Type<'heap, Self>, env: &mut TypeAnalysisEnvironment<'_, 'heap>) -> bool;
+    fn is_concrete(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool;
 
     /// Applies distribution laws to expressions containing union types in covariant positions.
     ///
@@ -251,7 +250,7 @@ pub trait Lattice<'heap> {
     ///   implemented)
     fn distribute_union(
         self: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16>;
 
     /// Applies distribution laws to expressions containing intersection types in contravariant
@@ -300,7 +299,7 @@ pub trait Lattice<'heap> {
     ///   B) -> R <: (A -> R) | (B -> R)`, but not necessarily vice versa.
     fn distribute_intersection(
         self: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16>;
 
     /// Determines if one type is a subtype of another.
@@ -319,7 +318,7 @@ pub trait Lattice<'heap> {
     fn is_subtype_of(
         self: Type<'heap, Self>,
         supertype: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool;
 
     /// Determines if two types are equivalent under the subtyping relation.
@@ -336,7 +335,7 @@ pub trait Lattice<'heap> {
     fn is_equivalent(
         self: Type<'heap, Self>,
         other: Type<'heap, Self>,
-        env: &mut TypeAnalysisEnvironment<'_, 'heap>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool {
         self.is_subtype_of(other, env) && other.is_subtype_of(self, env)
     }
@@ -376,14 +375,14 @@ pub(crate) mod test {
     #![expect(clippy::min_ident_chars)]
     use crate::r#type::{
         TypeId,
-        environment::{Environment, LatticeEnvironment, TypeAnalysisEnvironment},
+        environment::{AnalysisEnvironment, Environment, LatticeEnvironment},
         pretty_print::PrettyPrint as _,
     };
 
     fn assert_idempotence(env: &Environment<'_>, a: TypeId) {
         let mut lattice = LatticeEnvironment::new(env);
 
-        let mut analysis = TypeAnalysisEnvironment::new(env);
+        let mut analysis = AnalysisEnvironment::new(env);
 
         let join1 = lattice.join(a, a);
 
@@ -407,7 +406,7 @@ pub(crate) mod test {
     fn assert_commutativity(env: &Environment<'_>, a: TypeId, b: TypeId) {
         let mut lattice = LatticeEnvironment::new(env);
 
-        let mut analysis = TypeAnalysisEnvironment::new(env);
+        let mut analysis = AnalysisEnvironment::new(env);
 
         let join1 = lattice.join(a, b);
         let join2 = lattice.join(b, a);
@@ -433,7 +432,7 @@ pub(crate) mod test {
     fn assert_associativity(env: &Environment<'_>, a: TypeId, b: TypeId, c: TypeId) {
         let mut lattice = LatticeEnvironment::new(env);
 
-        let mut analysis = TypeAnalysisEnvironment::new(env);
+        let mut analysis = AnalysisEnvironment::new(env);
 
         let join1_bc = lattice.join(b, c);
         let join1 = lattice.join(a, join1_bc);
@@ -465,7 +464,7 @@ pub(crate) mod test {
     fn assert_absorption(env: &Environment<'_>, a: TypeId, b: TypeId) {
         let mut lattice = LatticeEnvironment::new(env);
 
-        let mut analysis = TypeAnalysisEnvironment::new(env);
+        let mut analysis = AnalysisEnvironment::new(env);
 
         let meet1 = lattice.meet(a, b); // String and Integer => Never
         let join1 = lattice.join(a, meet1); // Number or Never => Number
@@ -492,7 +491,7 @@ pub(crate) mod test {
     /// different.
     #[track_caller]
     pub(crate) fn assert_lattice_laws(env: &Environment<'_>, a: TypeId, b: TypeId, c: TypeId) {
-        let mut equiv = TypeAnalysisEnvironment::new(env);
+        let mut equiv = AnalysisEnvironment::new(env);
 
         assert!(!equiv.is_equivalent(a, b));
         assert!(!equiv.is_equivalent(b, c));
