@@ -17,7 +17,7 @@ use bitvec::{bitbox, boxed::BitBox};
 /// - Tarjan, R. E. (1972). Depth-first search and linear graph algorithms. SIAM Journal on
 ///   Computing, 1(2), 146-160.
 #[derive(Debug, Clone)]
-struct Tarjan<'graph> {
+pub(crate) struct Tarjan<'graph> {
     /// The directed graph represented as adjacency lists using bit vectors.
     /// Each `BitBox` represents the outgoing edges from a node, where a set bit indicates an edge.
     graph: &'graph [BitBox],
