@@ -15,7 +15,7 @@ use crate::{
             SimplifyEnvironment,
         },
         error::{cannot_be_supertype_of_unknown, intersection_variant_mismatch, type_mismatch},
-        infer::Inference,
+        inference::Inference,
         lattice::Lattice,
         pretty_print::PrettyPrint,
         recursion::RecursionDepthBoundary,
@@ -537,14 +537,16 @@ mod test {
                 AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
                 SimplifyEnvironment,
             },
-            infer::{Constraint, Inference as _, Variable},
+            inference::{Constraint, Inference as _, Variable},
             kind::{
                 TypeKind,
                 generic_argument::GenericArgumentId,
                 infer::HoleId,
                 intrinsic::{DictType, IntrinsicType},
                 primitive::PrimitiveType,
-                test::{assert_equiv, dict, intersection, primitive, tuple, union},
+                test::{
+                    assert_equiv, assert_sorted_eq, dict, intersection, primitive, tuple, union,
+                },
                 tuple::TupleType,
                 union::UnionType,
             },
@@ -1496,7 +1498,7 @@ mod test {
 
         // Should generate an upper bound constraint
         let constraints = inference_env.take_constraints();
-        assert_eq!(
+        assert_sorted_eq!(
             constraints,
             [Constraint::UpperBound {
                 variable: Variable::Hole(hole),
@@ -1528,7 +1530,7 @@ mod test {
 
         // Should generate a lower bound constraint
         let constraints = inference_env.take_constraints();
-        assert_eq!(
+        assert_sorted_eq!(
             constraints,
             [Constraint::LowerBound {
                 variable: Variable::Hole(hole),
@@ -1565,7 +1567,7 @@ mod test {
 
         // Should collect constraints in a cartesian product
         let constraints = inference_env.take_constraints();
-        assert_eq!(
+        assert_sorted_eq!(
             constraints,
             [
                 Constraint::UpperBound {
@@ -1613,7 +1615,7 @@ mod test {
 
         // Should generate constraints between infer_var and number
         let constraints = inference_env.take_constraints();
-        assert_eq!(
+        assert_sorted_eq!(
             constraints,
             [Constraint::UpperBound {
                 variable: Variable::Hole(hole),

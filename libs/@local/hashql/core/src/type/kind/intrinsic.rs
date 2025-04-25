@@ -11,7 +11,7 @@ use crate::r#type::{
         SimplifyEnvironment,
     },
     error::type_mismatch,
-    infer::Inference,
+    inference::Inference,
     lattice::Lattice,
     pretty_print::PrettyPrint,
     recursion::RecursionDepthBoundary,
@@ -705,7 +705,7 @@ mod tests {
                 AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
                 SimplifyEnvironment,
             },
-            infer::{Constraint, Inference as _, Variable},
+            inference::{Constraint, Inference as _, Variable},
             kind::{
                 TypeKind,
                 infer::HoleId,

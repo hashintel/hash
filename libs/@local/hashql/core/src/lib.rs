@@ -9,7 +9,8 @@
     arbitrary_self_types,
     allocator_api,
     slice_partition_dedup,
-    let_chains
+    let_chains,
+    generic_arg_infer
 )]
 #![cfg_attr(test, feature(custom_test_frameworks))]
 #![expect(clippy::todo)]

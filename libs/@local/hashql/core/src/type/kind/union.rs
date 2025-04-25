@@ -15,7 +15,7 @@ use crate::{
             SimplifyEnvironment,
         },
         error::{cannot_be_subtype_of_never, type_mismatch, union_variant_mismatch},
-        infer::{Constraint, Inference},
+        inference::{Constraint, Inference},
         lattice::Lattice,
         pretty_print::PrettyPrint,
         recursion::RecursionDepthBoundary,
@@ -522,7 +522,7 @@ mod test {
                 AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
                 SimplifyEnvironment,
             },
-            infer::{Constraint, Inference as _, Variable},
+            inference::{Constraint, Inference as _, Variable},
             kind::{
                 TypeKind,
                 generic_argument::GenericArgumentId,
@@ -1712,9 +1712,9 @@ mod test {
         let constraints_contain =
             |var, bound| {
                 constraints.iter().any(|c| matches!(
-                c,
-                Constraint::UpperBound { variable, bound: b } if *variable == var && *b == bound
-            ))
+                    c,
+                    Constraint::UpperBound { variable, bound: b } if *variable == var && *b == bound
+                ))
             };
 
         assert!(constraints_contain(Variable::Hole(hole_a), number));
@@ -1871,6 +1871,7 @@ mod test {
 
         // Should generate constraints for both Number and ?T
         let constraints = inference_env.take_constraints();
+        assert_eq!(constraints.len(), 1);
 
         // The ?T should get constrained to (String | Boolean)
         assert!(constraints.iter().any(|c| matches!(

@@ -208,8 +208,21 @@ macro_rules! dict {
     };
 }
 
+macro_rules! assert_sorted_eq {
+    ($left:expr, $right:expr $(, $message:expr)?) => {{
+        let mut left = $left;
+        let mut right = $right;
+
+        left.sort();
+        right.sort();
+
+        assert_eq!(left, right, $($message)?);
+    }};
+}
+
 pub(crate) use assert_equiv;
 pub(crate) use assert_kind;
+pub(crate) use assert_sorted_eq;
 pub(crate) use closure;
 pub(crate) use dict;
 pub(crate) use intersection;

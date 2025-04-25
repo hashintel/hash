@@ -28,7 +28,7 @@ use super::{
         SimplifyEnvironment,
     },
     error::{no_type_inference, type_mismatch},
-    infer::{Constraint, Inference, Variable},
+    inference::{Constraint, Inference, Variable},
     lattice::Lattice,
     pretty_print::{CYAN, GRAY, PrettyPrint},
     recursion::RecursionDepthBoundary,

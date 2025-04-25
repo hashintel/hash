@@ -1,3 +1,8 @@
+pub(crate) mod solver;
+mod tarjan;
+
+use ena::unify::UnifyKey;
+
 use super::{
     Type, TypeId,
     environment::{AnalysisEnvironment, InferenceEnvironment},
@@ -9,7 +14,7 @@ use super::{
 /// During type inference, the system works with both concrete types and variables that
 /// need to be solved through constraint satisfaction. These variables can represent
 /// either unknown types or generic parameters.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Variable {
     /// A type variable that needs to be solved through constraint satisfaction.
     Hole(HoleId),
@@ -26,7 +31,7 @@ pub enum Variable {
 ///
 /// The subtyping relation (`<:`) indicates that the left type is a subtype of the right type,
 /// meaning the left type can be used wherever the right type is expected.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Constraint {
     /// Constraints a variable with an upper bound (`variable <: bound`)
     UpperBound { variable: Variable, bound: TypeId },
@@ -83,4 +88,24 @@ pub trait Inference<'heap> {
     ///
     /// A new type ID representing the instantiated type.
     fn instantiate(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> TypeId;
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub(crate) struct VariableId(u32);
+
+impl UnifyKey for VariableId {
+    type Value = ();
+
+    fn index(&self) -> u32 {
+        self.0
+    }
+
+    #[expect(clippy::renamed_function_params)]
+    fn from_index(index: u32) -> Self {
+        Self(index)
+    }
+
+    fn tag() -> &'static str {
+        "VariableId"
+    }
 }

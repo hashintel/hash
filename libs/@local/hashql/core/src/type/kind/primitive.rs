@@ -10,7 +10,7 @@ use crate::r#type::{
         SimplifyEnvironment,
     },
     error::type_mismatch,
-    infer::Inference,
+    inference::Inference,
     lattice::Lattice,
     pretty_print::{BLUE, PrettyPrint},
     recursion::RecursionDepthBoundary,

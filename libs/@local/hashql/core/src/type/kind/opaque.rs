@@ -13,7 +13,7 @@ use crate::{
             SimplifyEnvironment,
         },
         error::opaque_type_name_mismatch,
-        infer::Inference,
+        inference::Inference,
         lattice::Lattice,
         pretty_print::PrettyPrint,
         recursion::RecursionDepthBoundary,
@@ -339,7 +339,7 @@ mod test {
                 AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
                 SimplifyEnvironment,
             },
-            infer::{Constraint, Inference as _, Variable},
+            inference::{Constraint, Inference as _, Variable},
             kind::{
                 TypeKind,
                 generic_argument::{GenericArgument, GenericArgumentId},
