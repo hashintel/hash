@@ -12,6 +12,7 @@
     let_chains
 )]
 #![cfg_attr(test, feature(custom_test_frameworks))]
+#![expect(clippy::todo)]
 
 extern crate alloc;
 

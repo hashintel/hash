@@ -176,7 +176,7 @@ impl<'heap> Inference<'heap> for ListType {
     }
 
     fn instantiate(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> TypeId {
-        unimplemented!("See H-4384 for more details")
+        todo!("https://linear.app/hash/issue/H-4384/hashql-type-instantiation")
     }
 }
 
@@ -460,7 +460,7 @@ impl<'heap> Inference<'heap> for DictType {
     }
 
     fn instantiate(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> TypeId {
-        unimplemented!("See H-4384 for more details")
+        todo!("https://linear.app/hash/issue/H-4384/hashql-type-instantiation")
     }
 }
 
