@@ -224,20 +224,24 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
             return Some(true);
         }
 
+        // `Never <: T` always holds
         if *subtype.kind == TypeKind::Never {
             return Some(true);
         }
 
+        // `T <: Never` never holds
         if *supertype.kind == TypeKind::Never {
             return Some(false);
         }
 
+        // `Unknown <: T` never holds
         if *subtype.kind == TypeKind::Unknown {
-            return Some(true);
+            return Some(false);
         }
 
+        // `T <: Unknown` always holds
         if *supertype.kind == TypeKind::Unknown {
-            return Some(false);
+            return Some(true);
         }
 
         if self.is_equivalent_inference(subtype, supertype) {

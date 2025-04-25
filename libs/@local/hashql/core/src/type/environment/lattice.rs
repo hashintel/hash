@@ -290,8 +290,8 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
     }
 
     #[inline]
-    pub fn is_subtype_of(&mut self, lhs: TypeId, rhs: TypeId) -> bool {
-        self.simplify.is_subtype_of(lhs, rhs)
+    pub fn is_subtype_of(&mut self, subtype: TypeId, supertype: TypeId) -> bool {
+        self.simplify.is_subtype_of(subtype, supertype)
     }
 
     #[inline]

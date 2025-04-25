@@ -668,7 +668,6 @@ where
 ///
 /// This is used when a struct declaration contains multiple fields with the same name,
 /// which is not allowed in the type system.
-#[must_use]
 pub fn duplicate_struct_field<K>(
     span: SpanId,
     struct_type: Type<K>,
@@ -752,6 +751,39 @@ where
     diagnostic.note = Some(Note::new(
         "In structural subtyping, a subtype can have more fields than its supertype (width \
          subtyping), but it must include all fields from the supertype with compatible types.",
+    ));
+
+    diagnostic
+}
+
+pub(crate) fn unconstrained_type_variable_floating(env: &Environment) -> TypeCheckDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        TypeCheckDiagnosticCategory::UnconstrainedTypeVariable,
+        Severity::COMPILER_BUG,
+    );
+
+    // We don't have a specific span, so we have to report this as a general error
+    diagnostic.labels.push(
+        Label::new(
+            env.source,
+            "Found unconstrained type variable with no source location information",
+        )
+        .with_order(1),
+    );
+
+    diagnostic.help = Some(Help::new(
+        "This is an internal compiler error, not a problem with your code. The type system \
+         encountered a variable that has no constraints, but also lacks source location \
+         information to properly report the error. Please report this issue to the HashQL team \
+         with a minimal reproduction case.",
+    ));
+
+    diagnostic.note = Some(Note::new(
+        "During type inference, the compiler manages variables that represent unknown types. \
+         These variables should either be resolved to concrete types or be reported with specific \
+         source locations when unconstrained. This error indicates a bug in the type inference \
+         system where a variable was neither resolved nor properly tracked back to its source \
+         location.",
     ));
 
     diagnostic

@@ -1,5 +1,6 @@
 use crate::r#type::error::TypeCheckDiagnostic;
 
+#[derive(Debug)]
 pub struct Diagnostics {
     inner: Vec<TypeCheckDiagnostic>,
     fatal: usize,

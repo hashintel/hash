@@ -1,3 +1,6 @@
+#[cfg(test)]
+mod test;
+
 use alloc::rc::Rc;
 
 use ena::unify::{InPlaceUnificationTable, NoError, UnifyKey as _};
@@ -15,7 +18,7 @@ use crate::r#type::{
     error::{
         bound_constraint_violation, conflicting_equality_constraints,
         incompatible_lower_equal_constraint, incompatible_upper_equal_constraint,
-        unconstrained_type_variable,
+        unconstrained_type_variable, unconstrained_type_variable_floating,
     },
 };
 
@@ -89,7 +92,7 @@ impl Unification {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, PartialEq, Eq, Default)]
 struct VariableConstraint {
     equal: Option<TypeId>,
     lower: Option<TypeId>,
@@ -124,6 +127,14 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
 
             constraints,
             unification,
+        }
+    }
+
+    fn upsert_variables(&mut self) {
+        for constraint in &self.constraints {
+            for variable in constraint.variables() {
+                self.unification.upsert_variable(variable.kind);
+            }
         }
     }
 
@@ -227,8 +238,17 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                         )),
                     }
                 }
-                // solved prior in anti-symmetry pass
-                Constraint::Ordering { .. } => {}
+                // Solved prior in anti-symmetry pass, we still insert them into the constraints
+                // map, so that we can report proper errors in `solve_constraints`
+                Constraint::Ordering { lower, upper } => {
+                    let lower_root = self.unification.root(lower.kind);
+                    let _: Result<_, _> =
+                        constraints.try_insert(lower_root, (lower, VariableConstraint::default()));
+
+                    let upper_root = self.unification.root(upper.kind);
+                    let _: Result<_, _> =
+                        constraints.try_insert(upper_root, (upper, VariableConstraint::default()));
+                }
             }
         }
 
@@ -335,6 +355,20 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         substitutions
     }
 
+    fn verify_constrained(
+        &mut self,
+        lookup: &VariableLookup,
+        substitution: &FastHashMap<VariableKind, TypeId>,
+    ) {
+        for &variable in &self.unification.variables {
+            let root = lookup[variable];
+            if !substitution.contains_key(&root) {
+                self.diagnostics
+                    .push(unconstrained_type_variable_floating(&self.lattice));
+            }
+        }
+    }
+
     fn simplify_substitutions(
         &mut self,
         lookup: VariableLookup,
@@ -356,6 +390,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
 
     #[must_use]
     pub fn solve(mut self) -> (Substitution, Diagnostics) {
+        self.upsert_variables();
         self.solve_anti_symmetry();
 
         let lookup = self.unification.lookup();
@@ -367,8 +402,13 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         let substitution = self.solve_constraints(constraints);
         let substitution = Rc::new(substitution);
 
+        self.verify_constrained(&lookup, &substitution);
+
         let substitution = self.simplify_substitutions(lookup.clone(), &substitution);
         let substitution = Substitution::new(lookup, Rc::new(substitution));
+
+        // TODO: check if there are any variables that have no constraints and therefore need to
+        // error out
 
         let mut diagnostics = self.diagnostics;
         diagnostics.merge(self.lattice.take_diagnostics());
