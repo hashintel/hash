@@ -2,12 +2,15 @@ import {
   createContext,
   type Dispatch,
   type SetStateAction,
+  useCallback,
   useContext,
   useMemo,
 } from "react";
+import { flushSync } from "react-dom";
+import { useReactFlow } from "reactflow";
 import { useLocalstorageState } from "rooks";
 
-import { defaultTokenTypes } from "./token-type-editor";
+import { defaultTokenTypes } from "./token-types";
 import type { ArcType, NodeType, TokenType } from "./types";
 
 type EditorContextValue = {
@@ -17,6 +20,11 @@ type EditorContextValue = {
   setArcs: Dispatch<SetStateAction<ArcType[]>>;
   tokenTypes: TokenType[];
   setTokenTypes: Dispatch<SetStateAction<TokenType[]>>;
+  setGraph: (params: {
+    nodes: NodeType[];
+    arcs: ArcType[];
+    tokenTypes: TokenType[];
+  }) => void;
 };
 
 const EditorContext = createContext<EditorContextValue | undefined>(undefined);
@@ -30,6 +38,7 @@ export const EditorContextProvider = ({
     "petri-net-nodes",
     [],
   );
+
   const [arcs, setArcs] = useLocalstorageState<ArcType[]>("petri-net-arcs", []);
 
   const [tokenTypes, setTokenTypes] = useLocalstorageState<TokenType[]>(
@@ -37,9 +46,39 @@ export const EditorContextProvider = ({
     defaultTokenTypes,
   );
 
-  const value = useMemo(
-    () => ({ nodes, setNodes, arcs, setArcs, tokenTypes, setTokenTypes }),
-    [nodes, setNodes, arcs, setArcs, tokenTypes, setTokenTypes],
+  const { fitView } = useReactFlow();
+
+  const setGraph: EditorContextValue["setGraph"] = useCallback(
+    ({ nodes: newNodes, arcs: newArcs, tokenTypes: newTokenTypes }) => {
+      /**
+       * We flush this update first because reactflow seems to take an extra render to clear the nodes and edges,
+       * and there's a crash if the token types are cleared in the same cycle as the nodes/arcs (which depend on the types).
+       */
+      flushSync(() => {
+        setNodes(newNodes);
+        setArcs(newArcs);
+      });
+
+      setTokenTypes(newTokenTypes);
+
+      setTimeout(() => {
+        fitView({ duration: 200, padding: 0.03, maxZoom: 1 });
+      }, 100);
+    },
+    [setNodes, setArcs, setTokenTypes, fitView],
+  );
+
+  const value: EditorContextValue = useMemo(
+    () => ({
+      setGraph,
+      nodes,
+      setNodes,
+      arcs,
+      setArcs,
+      tokenTypes,
+      setTokenTypes,
+    }),
+    [setGraph, nodes, arcs, tokenTypes, setTokenTypes, setNodes, setArcs],
   );
 
   return (

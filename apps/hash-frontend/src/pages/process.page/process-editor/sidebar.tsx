@@ -2,7 +2,10 @@ import { Box, Stack } from "@mui/material";
 import type { DragEvent } from "react";
 import { useCallback } from "react";
 
+import { Button } from "../../../shared/ui";
+import { useEditorContext } from "./editor-context";
 import { placeStyling, transitionStyling } from "./styling";
+import { useLayoutGraph } from "./use-layout-graph";
 
 export const Sidebar = () => {
   const onDragStart = useCallback(
@@ -15,6 +18,10 @@ export const Sidebar = () => {
     [],
   );
 
+  const { nodes, arcs, setNodes } = useEditorContext();
+
+  const layoutGraph = useLayoutGraph({ setNodes });
+
   return (
     <Stack
       alignItems="center"
@@ -26,36 +33,56 @@ export const Sidebar = () => {
         borderRight: ({ palette }) => `1px solid ${palette.gray[30]}`,
       }}
     >
+      <Stack alignItems="center" gap={2}>
+        <Box
+          sx={[
+            placeStyling,
+            {
+              cursor: "grab",
+              width: 80,
+              height: 80,
+              fontSize: 14,
+            },
+          ]}
+          draggable
+          onDragStart={(event) => onDragStart(event, "place")}
+        >
+          Place
+        </Box>
+        <Box
+          sx={[
+            transitionStyling,
+            {
+              cursor: "grab",
+              width: 100,
+              height: 50,
+              fontSize: 14,
+            },
+          ]}
+          draggable
+          onDragStart={(event) => onDragStart(event, "transition")}
+        >
+          Transition
+        </Box>
+      </Stack>
       <Box
-        sx={[
-          placeStyling,
-          {
-            cursor: "grab",
-            width: 80,
-            height: 80,
-            fontSize: 14,
-          },
-        ]}
-        draggable
-        onDragStart={(event) => onDragStart(event, "place")}
-      >
-        Place
-      </Box>
-      <Box
-        sx={[
-          transitionStyling,
-          {
-            cursor: "grab",
-            width: 100,
-            height: 50,
-            fontSize: 14,
-          },
-        ]}
-        draggable
-        onDragStart={(event) => onDragStart(event, "transition")}
-      >
-        Transition
-      </Box>
+        sx={{
+          background: ({ palette }) => palette.gray[30],
+          height: "1px",
+          width: "100%",
+          my: 2,
+        }}
+      />
+      <Stack alignItems="center" gap={2}>
+        <Button
+          onClick={() => layoutGraph({ nodes, arcs, animationDuration: 200 })}
+          size="xs"
+          variant="tertiary"
+          sx={{ display: "block", fontWeight: 400 }}
+        >
+          Layout
+        </Button>
+      </Stack>
     </Stack>
   );
 };

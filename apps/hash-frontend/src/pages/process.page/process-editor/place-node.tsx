@@ -2,7 +2,7 @@ import { Box } from "@mui/material";
 import { Handle, type NodeProps, Position } from "reactflow";
 
 import { useEditorContext } from "./editor-context";
-import { nodeDimensions, placeStyling } from "./styling";
+import { handleStyling, nodeDimensions, placeStyling } from "./styling";
 import type { TokenCounts } from "./types";
 
 const tokenSize = 22;
@@ -35,7 +35,7 @@ export const PlaceNode = ({ data, isConnectable }: NodeProps) => {
         type="target"
         position={Position.Left}
         isConnectable={isConnectable}
-        style={{ background: "#555" }}
+        style={handleStyling}
       />
       <Box sx={placeStyling}>
         {data.label}
@@ -73,7 +73,7 @@ export const PlaceNode = ({ data, isConnectable }: NodeProps) => {
         type="source"
         position={Position.Right}
         isConnectable={isConnectable}
-        style={{ background: "#555" }}
+        style={handleStyling}
       />
     </div>
   );
