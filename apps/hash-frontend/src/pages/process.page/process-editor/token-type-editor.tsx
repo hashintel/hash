@@ -7,7 +7,7 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Button } from "../../../shared/ui";
 import { useEditorContext } from "./editor-context";
@@ -27,6 +27,10 @@ export const TokenTypeEditor = ({ open, onClose }: TokenTypeEditorProps) => {
 
   const [localTokenTypes, setLocalTokenTypes] =
     useState<TokenType[]>(tokenTypes);
+
+  useEffect(() => {
+    setLocalTokenTypes(tokenTypes);
+  }, [tokenTypes]);
 
   const [newTokenName, setNewTokenName] = useState("");
   const [newTokenColor, setNewTokenColor] = useState("#3498db");

@@ -38,16 +38,22 @@ import {
 } from "./process-editor/simulation-context";
 import { SimulationControls } from "./process-editor/simulation-controls";
 import { nodeDimensions } from "./process-editor/styling";
-import { TokenTypeEditor } from "./process-editor/token-type-editor";
+import {
+  defaultTokenTypes,
+  TokenTypeEditor,
+} from "./process-editor/token-type-editor";
 import { TransitionEditor } from "./process-editor/transition-editor";
 import { TransitionNode } from "./process-editor/transition-node";
 import {
   type ArcData,
   type ArcType,
   type NodeData,
+  type NodeType,
   type PlaceNodeType,
   type TokenCounts,
 } from "./process-editor/types";
+import { useConvertToPnml } from "./process-editor/use-convert-to-pnml";
+import { useLoadFromPnml } from "./process-editor/use-load-from-pnml";
 
 const FlowCanvas = () => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
@@ -170,7 +176,7 @@ const FlowCanvas = () => {
         y: event.clientY - reactFlowBounds.top - height / 2,
       });
 
-      const newNode: Node = {
+      const newNode: NodeType = {
         id: `${nodeType}_${nodes.length}`,
         type: nodeType,
         position,
@@ -178,10 +184,11 @@ const FlowCanvas = () => {
           label: `${nodeType} ${nodes.length + 1}`,
           ...(nodeType === "place"
             ? {
+                type: "place",
                 tokenCounts: {},
                 tokenTypes,
               }
-            : {}),
+            : { type: "transition" }),
         },
       };
 
@@ -289,8 +296,9 @@ const FlowCanvas = () => {
   const handleResetAll = useCallback(() => {
     setNodes([]);
     setArcs([]);
+    setTokenTypes(defaultTokenTypes);
     resetSimulation();
-  }, [setNodes, setArcs, resetSimulation]);
+  }, [setNodes, setArcs, setTokenTypes, resetSimulation]);
 
   const handleLoadExample = useCallback(() => {
     setTokenTypes(exampleCPN.tokenTypes);
@@ -381,6 +389,55 @@ const FlowCanvas = () => {
     return place;
   }, [nodes, selectedPlaceId]);
 
+  const convertToPnml = useConvertToPnml();
+
+  const handleExport = () => {
+    const pnml = convertToPnml();
+
+    const blob = new Blob([pnml], { type: "application/xml" });
+
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "process.pnml";
+
+    document.body.appendChild(a);
+    a.click();
+
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 0);
+  };
+
+  const loadFromPnml = useLoadFromPnml();
+
+  const handleLoadFromPnml = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (!file) {
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (readerEvent) => {
+        const contents = readerEvent.target?.result;
+        if (typeof contents === "string") {
+          loadFromPnml(contents);
+        }
+      };
+      reader.readAsText(file);
+    },
+    [loadFromPnml],
+  );
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
   return (
     <Box
       sx={{ flex: 1, height: "100%", position: "relative" }}
@@ -446,14 +503,27 @@ const FlowCanvas = () => {
 
       <Stack
         direction="row"
-        spacing={1.5}
+        spacing={1}
         sx={{ position: "absolute", bottom: 16, right: 16, zIndex: 100 }}
       >
         <Button onClick={handleLoadExample} size="xs" variant="tertiary">
           Load Example
         </Button>
-        <Button onClick={handleResetAll} size="xs">
-          New
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleLoadFromPnml}
+          accept=".pnml,.xml"
+          style={{ display: "none" }}
+        />
+        <Button onClick={handleImportClick} size="xs" variant="tertiary">
+          Import
+        </Button>
+        <Button onClick={handleExport} size="xs" variant="tertiary">
+          Export
+        </Button>
+        <Button onClick={handleResetAll} size="xs" variant="danger">
+          Clear
         </Button>
       </Stack>
 

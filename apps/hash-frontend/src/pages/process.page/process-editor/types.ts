@@ -27,8 +27,8 @@ export type Condition = {
 export type TransitionNodeData = {
   conditions?: Condition[];
   label: string;
-  delay: number | undefined;
-  description: string;
+  delay?: number;
+  description?: string;
   /**
    * Although a reactflow {@link Node} has a 'type' field, the library types don't discriminate on this field in all methods,
    * so we add our own discriminating field here to make it easier to narrow between Transition and Place nodes.
