@@ -36,6 +36,16 @@ impl<'env, 'heap> SimplifyEnvironment<'env, 'heap> {
         self.analysis.set_substitution(substitution);
     }
 
+    #[inline]
+    pub(crate) fn clear_substitution(&mut self) {
+        self.analysis.clear_substitution();
+    }
+
+    #[inline]
+    pub(crate) const fn substitution_mut(&mut self) -> Option<&mut Substitution> {
+        self.analysis.substitution_mut()
+    }
+
     pub(crate) fn take_diagnostics(&mut self) -> Option<Diagnostics> {
         self.analysis.take_diagnostics()
     }

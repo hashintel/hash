@@ -1,4 +1,4 @@
-use super::{Constraint, InferenceSolver, Variable, VariableConstraint, VariableKind};
+use super::{Constraint, InferenceSolver, VariableConstraint};
 use crate::{
     heap::Heap,
     span::SpanId,
@@ -6,7 +6,7 @@ use crate::{
         collection::FastHashMap,
         environment::{AnalysisEnvironment, Environment},
         error::TypeCheckDiagnosticCategory,
-        inference::solver::Unification,
+        inference::{Variable, VariableKind, solver::Unification},
         kind::{
             PrimitiveType, TypeKind,
             infer::HoleId,
@@ -437,7 +437,7 @@ fn simplify_substitutions() {
     let lookup = solver.unification.lookup();
 
     // Call simplify_substitutions
-    let simplified = solver.simplify_substitutions(lookup, &alloc::rc::Rc::new(substitutions));
+    let simplified = solver.simplify_substitutions(lookup, substitutions);
 
     // The simplification might not actually change anything in this simple case,
     // but we can verify it contains the right data

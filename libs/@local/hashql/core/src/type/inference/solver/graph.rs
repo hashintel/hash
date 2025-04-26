@@ -104,6 +104,10 @@ impl Graph {
         self.roots.iter().copied()
     }
 
+    pub(crate) fn node(&self, index: usize) -> VariableId {
+        self.roots[index]
+    }
+
     pub(crate) const fn node_count(&self) -> usize {
         self.roots.len()
     }
@@ -114,10 +118,6 @@ impl Graph {
         debug_assert_ne!(index, Self::SENTINEL);
 
         index
-    }
-
-    pub(crate) fn outgoing_edges(&self, node: VariableId) -> impl Iterator<Item = usize> {
-        self.outgoing_edges_by_index(self.lookup_id(node))
     }
 
     #[expect(clippy::cast_possible_truncation)]

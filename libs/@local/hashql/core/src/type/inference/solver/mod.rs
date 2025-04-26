@@ -4,17 +4,15 @@ mod tarjan;
 mod test;
 mod topo;
 
-use alloc::rc::Rc;
-
 use ena::unify::{InPlaceUnificationTable, NoError, UnifyKey as _};
 
-use self::{graph::Graph, tarjan::Tarjan};
+use self::{graph::Graph, tarjan::Tarjan, topo::topological_sort};
 use super::{
     Constraint, Substitution, Variable, VariableKind,
     variable::{VariableId, VariableLookup},
 };
 use crate::r#type::{
-    TypeId,
+    Type, TypeId,
     collection::FastHashMap,
     environment::{Diagnostics, Environment, LatticeEnvironment, SimplifyEnvironment},
     error::{
@@ -94,12 +92,36 @@ impl Unification {
     }
 }
 
-#[derive(Debug, PartialEq, Eq, Default)]
-struct VariableConstraint {
-    equal: Option<TypeId>,
-    lower: Option<TypeId>,
-    upper: Option<TypeId>,
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+enum Bound {
+    Upper,
+    Lower,
 }
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+struct ResolvedVariable {
+    origin: Variable,
+
+    id: VariableId,
+    kind: VariableKind,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+struct VariableOrdering {
+    lower: ResolvedVariable,
+    upper: ResolvedVariable,
+}
+
+#[derive(Debug, PartialEq, Eq, Default)]
+struct VariableConstraint<L, R> {
+    equal: Option<TypeId>,
+    lower: L,
+    upper: R,
+}
+
+type UnresolvedVariableConstraint = VariableConstraint<Vec<TypeId>, Vec<TypeId>>;
+type LowerResolvedVariableConstraint = VariableConstraint<Option<TypeId>, Vec<TypeId>>;
+type ResolvedVariableConstraint = VariableConstraint<Option<TypeId>, Option<TypeId>>;
 
 pub struct InferenceSolver<'env, 'heap> {
     lattice: LatticeEnvironment<'env, 'heap>,
@@ -180,9 +202,14 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         }
     }
 
-    fn apply_constraints(&mut self) -> FastHashMap<VariableKind, (Variable, VariableConstraint)> {
-        let mut constraints: FastHashMap<VariableKind, (Variable, VariableConstraint)> =
-            FastHashMap::default();
+    fn collect_constraints(
+        &mut self,
+    ) -> FastHashMap<VariableKind, (Variable, UnresolvedVariableConstraint)> {
+        let mut constraints: FastHashMap<VariableKind, (Variable, UnresolvedVariableConstraint)> =
+            FastHashMap::with_capacity_and_hasher(
+                self.unification.variables.len(),
+                foldhash::fast::RandomState::default(),
+            );
 
         for &constraint in &self.constraints {
             match constraint {
@@ -192,14 +219,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                         .entry(root)
                         .or_insert_with(|| (variable, VariableConstraint::default()));
 
-                    match constraint.upper {
-                        None => {
-                            constraint.upper = Some(bound);
-                        }
-                        Some(existing) => {
-                            constraint.upper = Some(self.lattice.join(existing, bound));
-                        }
-                    }
+                    constraint.upper.push(bound);
                 }
                 Constraint::LowerBound { variable, bound } => {
                     let root = self.unification.root(variable.kind);
@@ -207,14 +227,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                         .entry(root)
                         .or_insert_with(|| (variable, VariableConstraint::default()));
 
-                    match constraint.lower {
-                        None => {
-                            constraint.lower = Some(bound);
-                        }
-                        Some(existing) => {
-                            constraint.lower = Some(self.lattice.meet(existing, bound));
-                        }
-                    }
+                    constraint.lower.push(bound);
                 }
                 Constraint::Equals { variable, r#type } => {
                     let root = self.unification.root(variable.kind);
@@ -263,12 +276,274 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         constraints
     }
 
-    // TODO: we need to do a two-pass, the first pass will solve all the constraints that have at
-    // least one Some. The second pass then will solve all the constraints that have none, but takes
-    // into account the solved constraints as bounds.
+    fn apply_constraints_prepare_substitution<L, H>(
+        &mut self,
+        graph: &Graph,
+        variables: &FastHashMap<VariableKind, (Variable, VariableConstraint<L, H>)>,
+    ) -> Substitution {
+        // Into the substitution map, insert any equal substitutions, which we know - if they are
+        // valid - the type is supposed to always be this type.
+        //
+        // This assumption is then verified in a later pass.
+        let mut substitution = Substitution::new(
+            self.unification.lookup(),
+            FastHashMap::with_capacity_and_hasher(
+                variables.len(),
+                foldhash::fast::RandomState::default(),
+            ),
+        );
+
+        for node in graph.nodes() {
+            let kind = self.unification.variables[node.into_usize()];
+            let (_, variable_constraint) = &variables[&kind];
+
+            if let Some(equal) = variable_constraint.equal {
+                substitution.insert(kind, equal);
+            }
+        }
+
+        substitution
+    }
+
+    fn apply_constraints_prepare_constraints(
+        &mut self,
+        lookup_by: Bound,
+    ) -> FastHashMap<VariableId, Vec<VariableOrdering>> {
+        let mut lookup: FastHashMap<VariableId, Vec<VariableOrdering>> =
+            FastHashMap::with_capacity_and_hasher(
+                self.unification.variables.len(),
+                foldhash::fast::RandomState::default(),
+            );
+
+        for &constraint in &self.constraints {
+            let Constraint::Ordering { lower, upper } = constraint else {
+                continue;
+            };
+
+            let lower_kind = self.unification.root(lower.kind);
+            let upper_kind = self.unification.root(upper.kind);
+
+            let lower_id = self.unification.lookup[&lower_kind];
+            let upper_id = self.unification.lookup[&upper_kind];
+
+            let entry = lookup
+                .entry(match lookup_by {
+                    Bound::Lower => lower_id,
+                    Bound::Upper => upper_id,
+                })
+                .or_default();
+
+            entry.push(VariableOrdering {
+                lower: ResolvedVariable {
+                    origin: lower,
+                    id: lower_id,
+                    kind: lower_kind,
+                },
+                upper: ResolvedVariable {
+                    origin: upper,
+                    id: upper_id,
+                    kind: upper_kind,
+                },
+            });
+        }
+
+        lookup
+    }
+
+    fn apply_constraints_forwards(
+        &mut self,
+        graph: &Graph,
+        mut variables: FastHashMap<VariableKind, (Variable, UnresolvedVariableConstraint)>,
+    ) -> FastHashMap<VariableKind, (Variable, LowerResolvedVariableConstraint)> {
+        let mut constraints = FastHashMap::with_capacity_and_hasher(
+            variables.len(),
+            foldhash::fast::RandomState::default(),
+        );
+
+        let substitution = self.apply_constraints_prepare_substitution(graph, &variables);
+        self.lattice.set_substitution(substitution);
+
+        // We're currently looking through `lower`, therefore, look for any variables for which
+        // `a <: b`, where `b` is the current node.
+        let lookup = self.apply_constraints_prepare_constraints(Bound::Upper);
+
+        // Does a forwards pass over the graph to apply any lower constraints in order
+        let topo = topological_sort(graph).expect("expected dag after anti-symmetry run");
+
+        for index in topo {
+            let id = graph.node(index);
+            let kind = self.unification.variables[id.into_usize()];
+
+            let (variable, mut variable_constraint) =
+                variables.remove(&kind).expect("variable should exist");
+
+            let Some(transitive_constraints) = lookup.get(&id) else {
+                continue;
+            };
+
+            for &VariableOrdering { lower, upper: _ } in transitive_constraints {
+                // this bound applies to us
+                variable_constraint
+                    .lower
+                    .push(self.lattice.alloc(|id| Type {
+                        id,
+                        span: lower.origin.span,
+                        kind: self.lattice.intern_kind(lower.kind.into_type_kind()),
+                    }));
+            }
+
+            // Now that we have all bounds, unify them
+            let VariableConstraint {
+                equal,
+                lower,
+                upper,
+            } = variable_constraint;
+
+            let lower = lower
+                .into_iter()
+                .reduce(|lhs, rhs| self.lattice.meet(lhs, rhs));
+
+            if equal.is_none()
+                && let Some(lower) = lower
+            {
+                // insert into substitution map
+                let substitution = self
+                    .lattice
+                    .substitution_mut()
+                    .expect("substition should have been set previously");
+
+                substitution.insert(kind, lower);
+            }
+
+            constraints.insert(
+                kind,
+                (
+                    variable,
+                    VariableConstraint {
+                        equal,
+                        lower,
+                        upper,
+                    },
+                ),
+            );
+        }
+
+        self.lattice.clear_substitution();
+
+        constraints
+    }
+
+    fn apply_constraints_backwards(
+        &mut self,
+        graph: &Graph,
+        mut variables: FastHashMap<VariableKind, (Variable, LowerResolvedVariableConstraint)>,
+    ) -> FastHashMap<VariableKind, (Variable, ResolvedVariableConstraint)> {
+        let mut constraints = FastHashMap::with_capacity_and_hasher(
+            variables.len(),
+            foldhash::fast::RandomState::default(),
+        );
+
+        let substitution = self.apply_constraints_prepare_substitution(graph, &variables);
+        self.lattice.set_substitution(substitution);
+
+        // We're currently looking through `upper`, therefore, look for any variables for which
+        // `a <: b`, where `a` is the current node.
+        let lookup = self.apply_constraints_prepare_constraints(Bound::Lower);
+
+        // We do a backwards pass over the graph to apply any upper constraints in order
+        let topo = topological_sort(graph).expect("expected dag after anti-symmetry run");
+
+        for index in topo.into_iter().rev() {
+            let id = graph.node(index);
+            let kind = self.unification.variables[id.into_usize()];
+
+            let (variable, mut variable_constraint) =
+                variables.remove(&kind).expect("variable should exist");
+
+            let Some(transitive_constraints) = lookup.get(&id) else {
+                continue;
+            };
+
+            for &VariableOrdering { lower: _, upper } in transitive_constraints {
+                // this bound applies to us
+                variable_constraint
+                    .upper
+                    .push(self.lattice.alloc(|id| Type {
+                        id,
+                        span: upper.origin.span,
+                        kind: self.lattice.intern_kind(upper.kind.into_type_kind()),
+                    }));
+            }
+
+            // Now that we have all bounds, unify them
+            let VariableConstraint {
+                equal,
+                lower,
+                upper,
+            } = variable_constraint;
+
+            let upper = upper
+                .into_iter()
+                .reduce(|lhs, rhs| self.lattice.join(lhs, rhs));
+
+            if equal.is_none()
+                && let Some(upper) = upper
+            {
+                // insert into substitution map, so that future resolvers can use it can use it
+                let substitution = self
+                    .lattice
+                    .substitution_mut()
+                    .expect("substition should have been set previously");
+
+                substitution.insert(kind, upper);
+            }
+
+            constraints.insert(
+                kind,
+                (
+                    variable,
+                    VariableConstraint {
+                        equal,
+                        lower,
+                        upper,
+                    },
+                ),
+            );
+        }
+
+        self.lattice.clear_substitution();
+
+        constraints
+    }
+
+    fn apply_constraints(
+        &mut self,
+    ) -> FastHashMap<VariableKind, (Variable, ResolvedVariableConstraint)> {
+        let mut graph = Graph::new(&mut self.unification);
+
+        // build the graph over the constraints
+        for &constraint in &self.constraints {
+            let (source, target) = match constraint {
+                Constraint::Ordering { lower, upper } => (lower, upper),
+                Constraint::StructuralEdge { source, target } => (source, target),
+                _ => continue,
+            };
+
+            graph.insert_edge(
+                self.unification.lookup[&source.kind],
+                self.unification.lookup[&target.kind],
+            );
+        }
+
+        let constraints = self.collect_constraints();
+        let constraints = self.apply_constraints_forwards(&graph, constraints);
+
+        self.apply_constraints_backwards(&graph, constraints)
+    }
+
     fn solve_constraints(
         &mut self,
-        constraints: FastHashMap<VariableKind, (Variable, VariableConstraint)>,
+        constraints: FastHashMap<VariableKind, (Variable, ResolvedVariableConstraint)>,
     ) -> FastHashMap<VariableKind, TypeId> {
         let mut substitutions = FastHashMap::default();
 
@@ -387,16 +662,16 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     fn simplify_substitutions(
         &mut self,
         lookup: VariableLookup,
-        substitutions: &Rc<FastHashMap<VariableKind, TypeId>>,
+        substitutions: FastHashMap<VariableKind, TypeId>,
     ) -> FastHashMap<VariableKind, TypeId> {
         // Now that everything is solved, go over each substitution and simplify it
         let mut simplified_substitutions = FastHashMap::default();
 
         // Make the simplifier aware of the substitutions
         self.simplify
-            .set_substitution(Substitution::new(lookup, Rc::clone(substitutions)));
+            .set_substitution(Substitution::new(lookup, substitutions.clone()));
 
-        for (&variable, &type_id) in &**substitutions {
+        for (variable, type_id) in substitutions {
             simplified_substitutions.insert(variable, self.simplify.simplify(type_id));
         }
 
@@ -415,15 +690,11 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
 
         let constraints = self.apply_constraints();
         let substitution = self.solve_constraints(constraints);
-        let substitution = Rc::new(substitution);
 
         self.verify_constrained(&lookup, &substitution);
 
-        let substitution = self.simplify_substitutions(lookup.clone(), &substitution);
-        let substitution = Substitution::new(lookup, Rc::new(substitution));
-
-        // TODO: check if there are any variables that have no constraints and therefore need to
-        // error out
+        let substitution = self.simplify_substitutions(lookup.clone(), substitution.clone());
+        let substitution = Substitution::new(lookup, substitution);
 
         let mut diagnostics = self.diagnostics;
         diagnostics.merge(self.lattice.take_diagnostics());

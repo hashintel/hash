@@ -42,6 +42,14 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
         self.substitution = Some(substitution);
     }
 
+    pub(crate) fn clear_substitution(&mut self) {
+        self.substitution = None;
+    }
+
+    pub(crate) const fn substitution_mut(&mut self) -> Option<&mut Substitution> {
+        self.substitution.as_mut()
+    }
+
     pub fn with_diagnostics(&mut self) -> &mut Self {
         self.diagnostics = Some(Diagnostics::new());
 

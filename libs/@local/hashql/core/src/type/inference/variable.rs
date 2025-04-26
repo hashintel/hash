@@ -7,7 +7,7 @@ use crate::{
     span::SpanId,
     r#type::{
         collection::FastHashMap,
-        kind::{generic_argument::GenericArgumentId, infer::HoleId},
+        kind::{Infer, Param, TypeKind, generic_argument::GenericArgumentId, infer::HoleId},
     },
 };
 
@@ -39,6 +39,16 @@ pub enum VariableKind {
 
     /// A generic argument variable, typically from a generic parameter.
     Generic(GenericArgumentId),
+}
+
+impl VariableKind {
+    #[must_use]
+    pub const fn into_type_kind<'heap>(self) -> TypeKind<'heap> {
+        match self {
+            Self::Hole(hole) => TypeKind::Infer(Infer { hole }),
+            Self::Generic(argument) => TypeKind::Param(Param { argument }),
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]

@@ -1,8 +1,6 @@
 pub(crate) mod solver;
 mod variable;
 
-use alloc::rc::Rc;
-
 pub(crate) use self::variable::VariableLookup;
 pub use self::{
     solver::InferenceSolver,
@@ -90,19 +88,23 @@ impl Constraint {
 #[derive(Debug, Default)]
 pub struct Substitution {
     variables: VariableLookup,
-    substitutions: Rc<FastHashMap<VariableKind, TypeId>>,
+    substitutions: FastHashMap<VariableKind, TypeId>,
 }
 
 impl Substitution {
     #[must_use]
     pub(crate) const fn new(
         variables: VariableLookup,
-        substitutions: Rc<FastHashMap<VariableKind, TypeId>>,
+        substitutions: FastHashMap<VariableKind, TypeId>,
     ) -> Self {
         Self {
             variables,
             substitutions,
         }
+    }
+
+    pub(crate) fn insert(&mut self, key: VariableKind, value: TypeId) {
+        self.substitutions.insert(key, value);
     }
 
     #[must_use]
