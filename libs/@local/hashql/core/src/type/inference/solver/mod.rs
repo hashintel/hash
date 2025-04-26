@@ -6,9 +6,8 @@ mod test;
 use alloc::rc::Rc;
 
 use ena::unify::{InPlaceUnificationTable, NoError, UnifyKey as _};
-use roaring::RoaringBitmap;
 
-use self::tarjan::Tarjan;
+use self::{graph::Graph, tarjan::Tarjan};
 use super::{
     Constraint, Substitution, Variable, VariableKind,
     variable::{VariableId, VariableLookup},
@@ -146,29 +145,22 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         // We can do this because our type lattice is a partially ordered set, this we can make use
         // of it's anti-symmetric properties.
         // Given `A <: B`, and `B <: A`, we can infer that `A ≡ B`.
-        let variables = self.unification.variables.len();
 
-        // Our graph is a simple adjacency list, where each slot corresponds to a variable,
-        // variables that have been already been unified simply have no connections.
-
-        let mut graph = Vec::with_capacity(variables);
-        graph.resize(variables, RoaringBitmap::new());
+        // We don't really care in which direction we record the constraints (as they're only
+        // used to find the connected component) but they should be consistent. In
+        // our case, we record the subtype relationship, e.g. `lower is a subtype of upper`,
+        // therefore `lower -> upper`.
+        let mut graph = Graph::new(&mut self.unification);
 
         for &constraint in &self.constraints {
             let Constraint::Ordering { lower, upper } = constraint else {
                 continue;
             };
 
-            // We don't really care in which direction we record the constraints (as they're only
-            // used to find the connected component) but they should be consistent. In
-            // our case, we record the subtype relationship, e.g. `lower is a subtype of upper`,
-            // therefore `lower -> upper`.
+            let lower = self.unification.lookup[&lower.kind];
+            let upper = self.unification.lookup[&upper.kind];
 
-            // We also need to make sure that we only use the root keys from the variables,
-            // otherwise we might not catch every strongly connected component.
-            let lower = self.unification.root_id(lower.kind);
-            let upper = self.unification.root_id(upper.kind);
-            graph[lower.into_usize()].insert(upper.index());
+            graph.insert_edge(lower, upper);
         }
 
         let tarjan = Tarjan::new(&graph);

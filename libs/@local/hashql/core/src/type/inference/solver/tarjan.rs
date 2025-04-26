@@ -1,6 +1,8 @@
 use bitvec::{bitbox, boxed::BitBox};
 use roaring::RoaringBitmap;
 
+use super::graph::Graph;
+
 /// Implementation of Tarjan's algorithm for finding strongly connected components (SCCs) in a
 /// directed graph.
 ///
@@ -9,9 +11,9 @@ use roaring::RoaringBitmap;
 /// time, where V is the number of vertices and E is the number of edges in the graph.
 ///
 /// The algorithm uses several data structures to track the state of the search:
-/// - Discovery indices to track when each node was first visited
-/// - Lowlink values to track the oldest node reachable from each node
-/// - A stack to track the current DFS path
+/// - Discovery indices to track when each node was first visited.
+/// - Lowlink values to track the oldest node reachable from each node.
+/// - A stack to track the current DFS path.
 ///
 /// # References
 ///
@@ -19,10 +21,8 @@ use roaring::RoaringBitmap;
 ///   Computing, 1(2), 146-160.
 #[derive(Debug, Clone)]
 pub(crate) struct Tarjan<'graph> {
-    /// The directed graph represented as adjacency lists using bit vectors.
-    /// Each `RoaringBitmap` represents the outgoing edges from a node, where a set bit indicates
-    /// an edge.
-    graph: &'graph [RoaringBitmap],
+    /// The directed graph
+    graph: &'graph Graph,
 
     /// Next discovery index to assign to newly visited nodes.
     /// Each node gets a unique index in the order it's first visited.
@@ -66,8 +66,9 @@ impl<'graph> Tarjan<'graph> {
     /// * `graph` - The directed graph represented as a slice of `BitBoxe`s where each `BitBox`
     ///   represents the outgoing edges from a node.
     #[expect(clippy::integer_division, clippy::integer_division_remainder_used)]
-    pub(crate) fn new(graph: &'graph [RoaringBitmap]) -> Self {
-        let node_count = graph.len();
+    pub(crate) fn new(graph: &'graph Graph) -> Self {
+        let node_count = graph.node_count();
+
         Tarjan {
             graph,
             next_discovery_index: 0,
@@ -97,7 +98,7 @@ impl<'graph> Tarjan<'graph> {
     /// * Time: O(V + E) where V is the number of vertices and E is the number of edges
     /// * Space: O(V) additional space beyond the input graph
     pub(crate) fn compute(mut self) -> Vec<RoaringBitmap> {
-        let total_nodes = self.graph.len();
+        let total_nodes = self.graph.node_count();
 
         for node in 0..total_nodes {
             if !self.visited[node] {
@@ -141,20 +142,19 @@ impl<'graph> Tarjan<'graph> {
         self.visited.set(node, true);
 
         // 2) Explore all outbound neighbors and update lowlink values
-        #[expect(clippy::explicit_iter_loop, reason = "false positive")]
-        for neighbour in self.graph[node].iter() {
-            if !self.visited[neighbour as usize] {
+        for neighbour in self.graph.outgoing_edges_by_index(node) {
+            if !self.visited[neighbour] {
                 // Tree edge: Neighbor hasn't been visited yet, so recursively process it
 
-                self.visit_node(neighbour as usize);
+                self.visit_node(neighbour);
                 // Update the current node's lowlink based on the neighbor's lowlink
                 // This propagates the information about reachable nodes upstream
-                self.lowlink[node] = self.lowlink[node].min(self.lowlink[neighbour as usize]);
-            } else if self.on_node_stack[neighbour as usize] {
+                self.lowlink[node] = self.lowlink[node].min(self.lowlink[neighbour]);
+            } else if self.on_node_stack[neighbour] {
                 // Back edge: Neighbor is already on the stack, which means we've found a cycle
                 // Update the lowlink to potentially include the neighbor in the current SCC
 
-                let neighbor_discovery = self.discovery_time[neighbour as usize];
+                let neighbor_discovery = self.discovery_time[neighbour];
                 self.lowlink[node] = self.lowlink[node].min(neighbor_discovery);
             }
 
@@ -188,28 +188,13 @@ impl<'graph> Tarjan<'graph> {
 mod test {
     use roaring::RoaringBitmap;
 
-    use crate::r#type::inference::solver::tarjan::Tarjan;
+    use crate::r#type::inference::solver::{graph::Graph, tarjan::Tarjan};
 
     /// Helper function to create a directed graph from an adjacency list
     fn create_graph(
         adjacency_list: impl IntoIterator<Item: AsRef<[u32]>, IntoIter: ExactSizeIterator>,
-    ) -> Vec<RoaringBitmap> {
-        let adjacency_list = adjacency_list.into_iter();
-        let node_count = adjacency_list.len();
-
-        let mut graph = Vec::with_capacity(node_count);
-
-        for neighbors in adjacency_list {
-            let mut bitbox = RoaringBitmap::new();
-
-            for &neighbour in neighbors.as_ref() {
-                bitbox.insert(neighbour);
-            }
-
-            graph.push(bitbox);
-        }
-
-        graph
+    ) -> Graph {
+        Graph::from_edges(adjacency_list)
     }
 
     /// Helper function to compare SCCs regardless of their order
@@ -265,7 +250,7 @@ mod test {
 
     #[test]
     fn empty_graph() {
-        let graph = Vec::new();
+        let graph = create_graph([] as [&[u32]; 0]);
         let sccs = Tarjan::new(&graph).compute();
         assert_eq!(sccs.len(), 0);
     }
