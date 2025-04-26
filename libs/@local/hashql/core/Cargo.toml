@@ -28,7 +28,7 @@ bitvec         = { workspace = true, features = ["alloc"] }
 bumpalo        = { workspace = true, features = ["allocator_api"] }
 derive_more    = { workspace = true, features = ["debug"] }
 ena            = { workspace = true }
-roaring        = { version = "0.10.12", features = ["simd"] }
+roaring        = { workspace = true, features = ["std", "simd"] }
 rpds           = { workspace = true }
 scc            = { workspace = true }
 serde          = { workspace = true, optional = true, features = ["alloc", "derive"] }
