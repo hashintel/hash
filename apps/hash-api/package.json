@@ -81,7 +81,7 @@
     "express-rate-limit": "7.5.0",
     "fractional-indexing": "2.1.0",
     "googleapis": "133.0.0",
-    "graphql": "16.10.0",
+    "graphql": "16.11.0",
     "graphql-parse-resolve-info": "4.13.0",
     "graphql-scalars": "1.24.2",
     "helmet": "4.6.0",

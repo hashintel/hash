@@ -412,7 +412,7 @@ __metadata:
     express-rate-limit: "npm:7.5.0"
     fractional-indexing: "npm:2.1.0"
     googleapis: "npm:133.0.0"
-    graphql: "npm:16.10.0"
+    graphql: "npm:16.11.0"
     graphql-parse-resolve-info: "npm:4.13.0"
     graphql-scalars: "npm:1.24.2"
     helmet: "npm:4.6.0"
@@ -534,7 +534,7 @@ __metadata:
     graphology-shortest-path: "npm:2.1.0"
     graphology-simple-path: "npm:0.2.0"
     graphology-types: "npm:0.24.8"
-    graphql: "npm:16.10.0"
+    graphql: "npm:16.11.0"
     iframe-resizer: "npm:4.4.5"
     immer: "npm:9.0.21"
     jsonpath: "npm:1.1.1"
@@ -796,7 +796,7 @@ __metadata:
     file-loader: "npm:6.2.0"
     fractional-indexing: "npm:2.1.0"
     fs-extra: "npm:11.3.0"
-    graphql: "npm:16.10.0"
+    graphql: "npm:16.11.0"
     html-loader: "npm:4.2.0"
     html-webpack-plugin: "npm:5.6.3"
     lodash.debounce: "npm:4.0.8"
@@ -8993,7 +8993,7 @@ __metadata:
     eslint: "npm:9.20.1"
     fix-esm-import-path: "npm:1.10.1"
     fractional-indexing: "npm:2.1.0"
-    graphql: "npm:16.10.0"
+    graphql: "npm:16.11.0"
     immer: "npm:9.0.21"
     jsonschema: "npm:1.5.0"
     lodash-es: "npm:4.17.21"
@@ -16617,7 +16617,7 @@ __metadata:
     eslint: "npm:9.20.1"
     execa: "npm:5.1.1"
     fractional-indexing: "npm:2.1.0"
-    graphql: "npm:16.10.0"
+    graphql: "npm:16.11.0"
     graphql-request: "npm:3.7.0"
     node-fetch: "npm:2.7.0"
     rimraf: "npm:6.0.1"
@@ -16679,7 +16679,7 @@ __metadata:
     "@playwright/test": "npm:1.52.0"
     eslint: "npm:9.20.1"
     execa: "npm:5.1.1"
-    graphql: "npm:16.10.0"
+    graphql: "npm:16.11.0"
     js-yaml: "npm:4.1.0"
     rimraf: "npm:6.0.1"
     typescript: "npm:5.7.3"
@@ -28514,10 +28514,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"graphql@npm:16.10.0, graphql@npm:^16.9.0":
-  version: 16.10.0
-  resolution: "graphql@npm:16.10.0"
-  checksum: 10c0/303730675538c8bd6c76b447dc6f03e61242e2d2596b408c34759666ec4877409e5593a7a0467d590ac5407b8c663b093b599556a77f24f281abea69ddc53de6
+"graphql@npm:16.11.0, graphql@npm:^16.9.0":
+  version: 16.11.0
+  resolution: "graphql@npm:16.11.0"
+  checksum: 10c0/124da7860a2292e9acf2fed0c71fc0f6a9b9ca865d390d112bdd563c1f474357141501c12891f4164fe984315764736ad67f705219c62f7580681d431a85db88
   languageName: node
   linkType: hard
 
