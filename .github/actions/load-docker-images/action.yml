@@ -48,28 +48,28 @@ runs:
 
     - name: Download hash-graph image
       if: inputs.hash-graph == 'true'
-      uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
+      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
       with:
         name: hash-graph
         path: /tmp
 
     - name: Download hash-ai-worker-ts image
       if: inputs.hash-ai-worker-ts == 'true'
-      uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
+      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
       with:
         name: hash-ai-worker-ts
         path: /tmp
 
     - name: Download hash-integration-worker image
       if: inputs.hash-integration-worker == 'true'
-      uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
+      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
       with:
         name: hash-integration-worker
         path: /tmp
 
     - name: Download hash-api image
       if: inputs.hash-api == 'true'
-      uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e # v4.2.1
+      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
       with:
         name: hash-api
         path: /tmp
