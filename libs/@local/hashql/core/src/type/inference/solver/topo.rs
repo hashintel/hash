@@ -4,21 +4,54 @@ use roaring::RoaringBitmap;
 
 use super::graph::Graph;
 
-/// Performs a topological sort on the graph.
+/// Performs a topological sort on a directed graph using Kahn's algorithm.
 ///
-/// If the graph is acyclic, returns a vector of nodes in topological order
-/// (where dependencies come before dependents).
+/// # Algorithm
 ///
-/// If the graph contains cycles, returns the nodes involved in a cycle.
+/// Kahn's algorithm works by repeatedly removing nodes that have no incoming edges
+/// (no dependencies) and adding them to the result order. As nodes are removed, their
+/// outgoing edges are also removed, potentially creating new nodes with no dependencies.
+///
+/// 1. Calculate the in-degree (number of incoming edges) for each node
+/// 2. Identify nodes with zero in-degree (no dependencies) and add them to a queue
+/// 3. While the queue is not empty:
+///    1. Remove a node from the queue and add it to the result order.
+///    2. For each neighbor of the removed node, decrement its in-degree.
+///    3. If any neighbor's in-degree becomes zero, add it to the queue.
+/// 4. If all nodes are processed, return the order
+/// 5. Otherwise, there must be a cycle, so identify and return nodes in the cycle
+///
+/// # Performance
+///
+/// Given that `V` is the number of vertices (nodes) and `E` is the number of edges in the graph:
+///
+/// * Time Complexity `O(V + E)`
+/// * Space Complexity `O(V)`
+///
+/// # Returns
+///
+/// - `Ok(Vec<usize>)` - A vector of node indices in topological order if the graph is acyclic.
+///   Nodes with no dependencies appear before nodes that depend on them.
+///
+/// - `Err(RoaringBitmap)` - A bitmap containing the indices of nodes involved in cycles if the
+///   graph contains one or more cycles.
+///
+/// # Reference
+///
+/// Kahn, A. B. (1962). "Topological sorting of large networks".
+/// Communications of the ACM, 5(11), 558–562.
+/// DOI: [10.1145/368996.369025](https://doi.org/10.1145/368996.369025)
 #[expect(clippy::cast_possible_truncation)]
 pub(crate) fn topological_sort(graph: &Graph) -> Result<Vec<usize>, RoaringBitmap> {
-    let mut indegree = vec![0; graph.node_count()];
+    // Calculate in-degree (number of incoming edges) for each node
+    let mut indegree = vec![0_u32; graph.node_count()];
     for source in 0..graph.node_count() {
         for target in graph.outgoing_edges_by_index(source) {
             indegree[target] += 1;
         }
     }
 
+    // Initialize queue with nodes that have no dependencies (in-degree = 0)
     let mut queue = VecDeque::new();
     for (node, &degree) in indegree.iter().enumerate() {
         if degree == 0 {
@@ -26,19 +59,23 @@ pub(crate) fn topological_sort(graph: &Graph) -> Result<Vec<usize>, RoaringBitma
         }
     }
 
+    // Process nodes in order of zero in-degree
     let mut order = Vec::with_capacity(graph.node_count());
     while let Some(source) = queue.pop_front() {
         order.push(source);
 
+        // For each outgoing edge, decrement the in-degree of the target
         for target in graph.outgoing_edges_by_index(source) {
             indegree[target] -= 1;
 
+            // If target now has zero in-degree, add to queue
             if indegree[target] == 0 {
                 queue.push_back(target);
             }
         }
     }
 
+    // If we processed all nodes, the graph is acyclic
     if order.len() == graph.node_count() {
         return Ok(order);
     }
