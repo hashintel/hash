@@ -1,7 +1,9 @@
 use hashbrown::HashSet;
 use pretty::RcDoc;
 
-use super::{TypeId, environment::Environment, pretty_print::PrettyPrint as _};
+use super::{
+    TypeId, collection::FastHashSet, environment::Environment, pretty_print::PrettyPrint as _,
+};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct RecursionDepthBoundary {
@@ -32,7 +34,7 @@ impl RecursionDepthBoundary {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct RecursionBoundary {
-    inner: HashSet<(TypeId, TypeId), foldhash::fast::RandomState>,
+    inner: FastHashSet<(TypeId, TypeId)>,
 }
 
 impl RecursionBoundary {

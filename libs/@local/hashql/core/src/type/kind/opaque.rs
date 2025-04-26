@@ -13,7 +13,7 @@ use crate::{
             SimplifyEnvironment,
         },
         error::opaque_type_name_mismatch,
-        infer::Inference,
+        inference::{Inference, PartialStructuralEdge},
         lattice::Lattice,
         pretty_print::PrettyPrint,
         recursion::RecursionDepthBoundary,
@@ -307,6 +307,15 @@ impl<'heap> Inference<'heap> for OpaqueType<'heap> {
         env.in_invariant(|env| env.collect_constraints(self.kind.repr, supertype.kind.repr));
     }
 
+    fn collect_structural_edges(
+        self: Type<'heap, Self>,
+        variable: PartialStructuralEdge,
+        env: &mut InferenceEnvironment<'_, 'heap>,
+    ) {
+        // Opaque types are invariant in regards to their arguments
+        env.in_invariant(|env| env.collect_structural_edges(self.kind.repr, variable));
+    }
+
     fn instantiate(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> TypeId {
         todo!("https://linear.app/hash/issue/H-4384/hashql-type-instantiation")
     }
@@ -339,7 +348,9 @@ mod test {
                 AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
                 SimplifyEnvironment,
             },
-            infer::{Constraint, Inference as _, Variable},
+            inference::{
+                Constraint, Inference as _, PartialStructuralEdge, Variable, VariableKind,
+            },
             kind::{
                 TypeKind,
                 generic_argument::{GenericArgument, GenericArgumentId},
@@ -698,7 +709,7 @@ mod test {
         assert_eq!(
             constraints,
             [Constraint::Equals {
-                variable: Variable::Hole(hole),
+                variable: Variable::synthetic(VariableKind::Hole(hole)),
                 r#type: number
             }]
         );
@@ -761,7 +772,7 @@ mod test {
         assert_eq!(
             constraints,
             [Constraint::Equals {
-                variable: Variable::Hole(hole),
+                variable: Variable::synthetic(VariableKind::Hole(hole)),
                 r#type: number
             }]
         );
@@ -836,7 +847,7 @@ mod test {
         // Due to invariance, we should get an equality constraint between the generic parameters
         let constraints = inference_env.take_constraints();
         assert!(constraints.is_empty());
-        assert!(inference_env.is_unioned(Variable::Generic(arg1), Variable::Generic(arg2)));
+        assert!(inference_env.is_unioned(VariableKind::Generic(arg1), VariableKind::Generic(arg2)));
     }
 
     #[test]
@@ -863,7 +874,9 @@ mod test {
         // Due to invariance, we should get an equality constraint between the inference variables
         let constraints = inference_env.take_constraints();
         assert!(constraints.is_empty());
-        assert!(inference_env.is_unioned(Variable::Hole(hole_var1), Variable::Hole(hole_var2)));
+        assert!(
+            inference_env.is_unioned(VariableKind::Hole(hole_var1), VariableKind::Hole(hole_var2))
+        );
     }
 
     #[test]
@@ -890,6 +903,51 @@ mod test {
         // and the generic variable
         let constraints = inference_env.take_constraints();
         assert!(constraints.is_empty());
-        assert!(inference_env.is_unioned(Variable::Hole(hole_var1), Variable::Generic(arg)));
+        assert!(
+            inference_env.is_unioned(VariableKind::Hole(hole_var1), VariableKind::Generic(arg))
+        );
+    }
+
+    #[test]
+    fn collect_structural_edges_opaque_invariant_behavior() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create an inference variable
+        let hole = HoleId::new(0);
+        let infer_var = instantiate_infer(&env, hole);
+
+        // Create an opaque type with an inference variable: MyType[_0]
+        opaque!(env, opaque_type, "MyType", infer_var, []);
+
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // Create variables for testing both source and target edges
+        let edge_var = Variable::synthetic(VariableKind::Hole(HoleId::new(1)));
+        let source_edge = PartialStructuralEdge::Source(edge_var);
+        let target_edge = PartialStructuralEdge::Target(edge_var);
+
+        // Test in default (covariant) context with source edge
+        opaque_type.collect_structural_edges(source_edge, &mut inference_env);
+        assert!(
+            inference_env.take_constraints().is_empty(),
+            "Opaque type should block structural edges due to invariance (source edge)"
+        );
+
+        // Test with target edge
+        opaque_type.collect_structural_edges(target_edge, &mut inference_env);
+        assert!(
+            inference_env.take_constraints().is_empty(),
+            "Opaque type should block structural edges due to invariance (target edge)"
+        );
+
+        // Test in contravariant context
+        inference_env.in_contravariant(|env| {
+            opaque_type.collect_structural_edges(source_edge, env);
+        });
+        assert!(
+            inference_env.take_constraints().is_empty(),
+            "Opaque type should block structural edges even in contravariant context"
+        );
     }
 }

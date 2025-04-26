@@ -118,13 +118,14 @@ macro_rules! assert_kind {
 }
 
 macro_rules! assert_equiv {
-    ($env:expr, $actual:expr, $expected:expr) => {
+    ($env:expr, $actual:expr, $expected:expr $(, $substitution:expr)?) => {
         let actual = $actual;
         let expected = $expected;
 
         assert_eq!(actual.len(), expected.len());
 
         let mut equiv_env = AnalysisEnvironment::new(&$env);
+        $(equiv_env.set_substitution($substitution);)?
 
         for (&actual, &expected) in actual.iter().zip(expected.iter()) {
             let actual_repr = &$env.types[actual].copied().pretty_print(&equiv_env, 80);
@@ -208,8 +209,21 @@ macro_rules! dict {
     };
 }
 
+macro_rules! assert_sorted_eq {
+    ($left:expr, $right:expr $(, $message:expr)?) => {{
+        let mut left = $left;
+        let mut right = $right;
+
+        left.sort();
+        right.sort();
+
+        assert_eq!(left, right, $($message)?);
+    }};
+}
+
 pub(crate) use assert_equiv;
 pub(crate) use assert_kind;
+pub(crate) use assert_sorted_eq;
 pub(crate) use closure;
 pub(crate) use dict;
 pub(crate) use intersection;

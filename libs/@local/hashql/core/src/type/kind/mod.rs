@@ -28,13 +28,13 @@ use super::{
         SimplifyEnvironment,
     },
     error::{no_type_inference, type_mismatch},
-    infer::{Constraint, Inference, Variable},
+    inference::{Constraint, Inference, PartialStructuralEdge, Variable, VariableKind},
     lattice::Lattice,
     pretty_print::{CYAN, GRAY, PrettyPrint},
     recursion::RecursionDepthBoundary,
 };
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum TypeKind<'heap> {
     Opaque(OpaqueType<'heap>),
     Primitive(PrimitiveType),
@@ -55,7 +55,7 @@ pub enum TypeKind<'heap> {
     Unknown,
 }
 
-impl<'heap> TypeKind<'heap> {
+impl TypeKind<'_> {
     #[must_use]
     pub const fn opaque(&self) -> Option<&OpaqueType> {
         match self {
@@ -128,36 +128,11 @@ impl<'heap> TypeKind<'heap> {
         }
     }
 
-    pub(crate) const fn into_variable(self: Type<'heap, Self>) -> Option<Variable> {
-        match *self.kind {
-            Self::Infer(Infer { hole }) => Some(Variable::Hole(hole)),
-            Self::Param(Param { argument }) => Some(Variable::Generic(argument)),
+    pub(crate) const fn into_variable(self) -> Option<VariableKind> {
+        match self {
+            Self::Infer(Infer { hole }) => Some(VariableKind::Hole(hole)),
+            Self::Param(Param { argument }) => Some(VariableKind::Generic(argument)),
             _ => None,
-        }
-    }
-
-    pub fn resolve(self: Type<'heap, Self>, env: &Environment<'heap>) -> Option<Type<'heap, Self>> {
-        match self.kind {
-            Self::Opaque(_)
-            | Self::Primitive(_)
-            | Self::Intrinsic(_)
-            | Self::Struct(_)
-            | Self::Tuple(_)
-            | Self::Closure(_)
-            | Self::Union(_)
-            | Self::Intersection(_)
-            | Self::Never
-            | Self::Unknown => Some(self),
-            &Self::Param(Param { argument }) => {
-                let argument = env.substitution.argument(argument)?;
-
-                Some(env.types[argument].copied())
-            }
-            &Self::Infer(Infer { hole }) => {
-                let infer = env.substitution.infer(hole)?;
-
-                Some(env.types[infer].copied())
-            }
         }
     }
 }
@@ -169,7 +144,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
         mut other: Type<'heap, Self>,
         env: &mut LatticeEnvironment<'_, 'heap>,
     ) -> smallvec::SmallVec<TypeId, 4> {
-        let Some(resolved) = self.resolve(env) else {
+        let Some(resolved) = env.resolve_type(self) else {
             if env.is_inference_enabled() {
                 // We cannot determine the join of an inferred type with another type, therefore we
                 // "delay" the join until the inferred type is resolved.
@@ -184,7 +159,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
 
         self = resolved;
 
-        let Some(resolved) = other.resolve(env) else {
+        let Some(resolved) = env.resolve_type(other) else {
             if env.is_inference_enabled() {
                 // We cannot determine the join of an inferred type with another type, therefore we
                 // "delay" the join until the inferred type is resolved.
@@ -393,7 +368,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
         mut other: Type<'heap, Self>,
         env: &mut LatticeEnvironment<'_, 'heap>,
     ) -> smallvec::SmallVec<TypeId, 4> {
-        let Some(resolved) = self.resolve(env) else {
+        let Some(resolved) = env.resolve_type(self) else {
             if env.is_inference_enabled() {
                 // When inference is enabled, the unresolved type is "propagated" as part of the
                 // meet until resolved
@@ -412,7 +387,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
 
         self = resolved;
 
-        let Some(resolved) = other.resolve(env) else {
+        let Some(resolved) = env.resolve_type(other) else {
             if env.is_inference_enabled() {
                 // When inference is enabled, the unresolved type is "propagated" as part of the
                 // meet until resolved
@@ -765,7 +740,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
         mut other: Type<'heap, Self>,
         env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool {
-        let Some(resolved) = self.resolve(env) else {
+        let Some(resolved) = env.resolve_type(self) else {
             let _: ControlFlow<()> = env.record_diagnostic(|env| no_type_inference(env, self));
 
             return false;
@@ -773,7 +748,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
 
         self = resolved;
 
-        let Some(resolved) = other.resolve(env) else {
+        let Some(resolved) = env.resolve_type(other) else {
             let _: ControlFlow<()> = env.record_diagnostic(|env| no_type_inference(env, other));
 
             return false;
@@ -1018,7 +993,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
         mut supertype: Type<'heap, Self>,
         env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool {
-        let Some(resolved) = self.resolve(env) else {
+        let Some(resolved) = env.resolve_type(self) else {
             let _: ControlFlow<()> = env.record_diagnostic(|env| no_type_inference(env, self));
 
             return false;
@@ -1026,7 +1001,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
 
         self = resolved;
 
-        let Some(resolved) = supertype.resolve(env) else {
+        let Some(resolved) = env.resolve_type(supertype) else {
             let _: ControlFlow<()> = env.record_diagnostic(|env| no_type_inference(env, supertype));
 
             return false;
@@ -1309,32 +1284,56 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
             // Infer <: Infer
             (&Self::Infer(Infer { hole: self_id }), &Self::Infer(Infer { hole: supertype_id })) => {
                 env.add_constraint(Constraint::Ordering {
-                    lower: Variable::Hole(self_id),
-                    upper: Variable::Hole(supertype_id),
+                    lower: Variable {
+                        span: self.span,
+                        kind: VariableKind::Hole(self_id),
+                    },
+                    upper: Variable {
+                        span: supertype.span,
+                        kind: VariableKind::Hole(supertype_id),
+                    },
                 });
             }
 
             // Param <: Param
             (&Self::Param(Param { argument: left }), &Self::Param(Param { argument: right })) => {
                 env.add_constraint(Constraint::Ordering {
-                    lower: Variable::Generic(left),
-                    upper: Variable::Generic(right),
+                    lower: Variable {
+                        span: self.span,
+                        kind: VariableKind::Generic(left),
+                    },
+                    upper: Variable {
+                        span: supertype.span,
+                        kind: VariableKind::Generic(right),
+                    },
                 });
             }
 
             // Infer <: Param
             (&Self::Infer(Infer { hole: self_id }), &Self::Param(Param { argument })) => {
                 env.add_constraint(Constraint::Ordering {
-                    lower: Variable::Hole(self_id),
-                    upper: Variable::Generic(argument),
+                    lower: Variable {
+                        span: self.span,
+                        kind: VariableKind::Hole(self_id),
+                    },
+                    upper: Variable {
+                        span: supertype.span,
+                        kind: VariableKind::Generic(argument),
+                    },
                 });
             }
 
             // Param <: Infer
             (&Self::Param(Param { argument }), &Self::Infer(Infer { hole: supertype_id })) => {
                 env.add_constraint(Constraint::Ordering {
-                    lower: Variable::Generic(argument),
-                    upper: Variable::Hole(supertype_id),
+                    lower: Variable {
+                        span: self.span,
+                        kind: VariableKind::Generic(argument),
+                    },
+                    upper: Variable {
+                        span: supertype.span,
+                        kind: VariableKind::Hole(supertype_id),
+                    },
                 });
             }
 
@@ -1510,34 +1509,62 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
 
             // Infer <: _
             (&Self::Infer(Infer { hole: self_id }), _) => {
+                let variable = Variable {
+                    span: self.span,
+                    kind: VariableKind::Hole(self_id),
+                };
+
                 env.add_constraint(Constraint::UpperBound {
-                    variable: Variable::Hole(self_id),
+                    variable,
                     bound: supertype.id,
                 });
+
+                env.collect_structural_edges(supertype.id, PartialStructuralEdge::Source(variable));
             }
 
             // _ <: Infer
             (_, &Self::Infer(Infer { hole: supertype_id })) => {
+                let variable = Variable {
+                    span: supertype.span,
+                    kind: VariableKind::Hole(supertype_id),
+                };
+
                 env.add_constraint(Constraint::LowerBound {
-                    variable: Variable::Hole(supertype_id),
+                    variable,
                     bound: self.id,
                 });
+
+                env.collect_structural_edges(self.id, PartialStructuralEdge::Target(variable));
             }
 
             // Param <: _
             (&Self::Param(Param { argument }), _) => {
+                let variable = Variable {
+                    span: self.span,
+                    kind: VariableKind::Generic(argument),
+                };
+
                 env.add_constraint(Constraint::UpperBound {
-                    variable: Variable::Generic(argument),
+                    variable,
                     bound: supertype.id,
                 });
+
+                env.collect_structural_edges(supertype.id, PartialStructuralEdge::Source(variable));
             }
 
             // _ <: Param
             (_, &Self::Param(Param { argument })) => {
+                let variable = Variable {
+                    span: supertype.span,
+                    kind: VariableKind::Generic(argument),
+                };
+
                 env.add_constraint(Constraint::LowerBound {
-                    variable: Variable::Generic(argument),
+                    variable,
                     bound: self.id,
                 });
+
+                env.collect_structural_edges(self.id, PartialStructuralEdge::Target(variable));
             }
 
             // `Never <: _` | `_ <: Never`
@@ -1545,6 +1572,56 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
 
             // `_ <: Unknown` | `Unknown <: _`
             (_, Self::Unknown) | (Self::Unknown, _) => {}
+        }
+    }
+
+    fn collect_structural_edges(
+        self: Type<'heap, Self>,
+        variable: PartialStructuralEdge,
+        env: &mut InferenceEnvironment<'_, 'heap>,
+    ) {
+        #[expect(clippy::match_same_arms)]
+        match self.kind {
+            TypeKind::Opaque(opaque_type) => self
+                .with(opaque_type)
+                .collect_structural_edges(variable, env),
+            TypeKind::Primitive(primitive_type) => self
+                .with(primitive_type)
+                .collect_structural_edges(variable, env),
+            TypeKind::Intrinsic(intrinsic_type) => self
+                .with(intrinsic_type)
+                .collect_structural_edges(variable, env),
+            TypeKind::Struct(struct_type) => self
+                .with(struct_type)
+                .collect_structural_edges(variable, env),
+            TypeKind::Tuple(tuple_type) => self
+                .with(tuple_type)
+                .collect_structural_edges(variable, env),
+            TypeKind::Union(union_type) => self
+                .with(union_type)
+                .collect_structural_edges(variable, env),
+            TypeKind::Intersection(intersection_type) => self
+                .with(intersection_type)
+                .collect_structural_edges(variable, env),
+            TypeKind::Closure(closure_type) => self
+                .with(closure_type)
+                .collect_structural_edges(variable, env),
+            &TypeKind::Param(Param { argument }) => env.add_structural_edge(
+                variable,
+                Variable {
+                    span: self.span,
+                    kind: VariableKind::Generic(argument),
+                },
+            ),
+            &TypeKind::Infer(Infer { hole }) => env.add_structural_edge(
+                variable,
+                Variable {
+                    span: self.span,
+                    kind: VariableKind::Hole(hole),
+                },
+            ),
+            TypeKind::Never => {}
+            TypeKind::Unknown => {}
         }
     }
 

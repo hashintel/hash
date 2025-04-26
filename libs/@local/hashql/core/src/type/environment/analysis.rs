@@ -6,7 +6,8 @@ use super::{Diagnostics, Environment, Variance};
 use crate::r#type::{
     Type, TypeId,
     error::{TypeCheckDiagnostic, circular_type_reference},
-    kind::TypeKind,
+    inference::{Substitution, VariableKind, VariableLookup},
+    kind::{Infer, Param, TypeKind},
     lattice::Lattice as _,
     recursion::RecursionBoundary,
 };
@@ -16,6 +17,8 @@ pub struct AnalysisEnvironment<'env, 'heap> {
     boundary: RecursionBoundary,
     diagnostics: Option<Diagnostics>,
     variance: Variance,
+    variables: Option<VariableLookup>,
+    substitution: Option<Substitution>,
 }
 
 impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
@@ -26,7 +29,34 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
             boundary: RecursionBoundary::new(),
             diagnostics: None,
             variance: Variance::Covariant,
+            variables: None,
+            substitution: None,
         }
+    }
+
+    pub(crate) fn set_variables(&mut self, variables: VariableLookup) {
+        self.variables = Some(variables);
+    }
+
+    pub(crate) fn set_substitution(&mut self, substitution: Substitution) {
+        self.substitution = Some(substitution);
+    }
+
+    pub(crate) fn clear_substitution(&mut self) {
+        self.substitution = None;
+    }
+
+    pub(crate) fn contains_substitution(&self, kind: VariableKind) -> bool {
+        let substitution = self
+            .substitution
+            .as_ref()
+            .unwrap_or(&self.environment.substitution);
+
+        substitution.contains(kind)
+    }
+
+    pub(crate) const fn substitution_mut(&mut self) -> Option<&mut Substitution> {
+        self.substitution.as_mut()
     }
 
     pub fn with_diagnostics(&mut self) -> &mut Self {
@@ -35,14 +65,42 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
         self
     }
 
-    pub fn take_diagnostics(&mut self) -> Vec<TypeCheckDiagnostic> {
-        self.diagnostics
-            .as_mut()
-            .map_or_else(Vec::new, Diagnostics::take)
+    pub fn take_diagnostics(&mut self) -> Option<Diagnostics> {
+        core::mem::take(&mut self.diagnostics)
     }
 
     pub fn fatal_diagnostics(&self) -> usize {
         self.diagnostics.as_ref().map_or(0, Diagnostics::fatal)
+    }
+
+    pub(crate) fn resolve_type(&self, r#type: Type<'heap>) -> Option<Type<'heap>> {
+        let substitution = self
+            .substitution
+            .as_ref()
+            .unwrap_or(&self.environment.substitution);
+
+        match r#type.kind {
+            TypeKind::Opaque(_)
+            | TypeKind::Primitive(_)
+            | TypeKind::Intrinsic(_)
+            | TypeKind::Struct(_)
+            | TypeKind::Tuple(_)
+            | TypeKind::Closure(_)
+            | TypeKind::Union(_)
+            | TypeKind::Intersection(_)
+            | TypeKind::Never
+            | TypeKind::Unknown => Some(r#type),
+            &TypeKind::Param(Param { argument }) => {
+                let argument = substitution.argument(argument)?;
+
+                Some(self.environment.types[argument].copied())
+            }
+            &TypeKind::Infer(Infer { hole }) => {
+                let infer = substitution.infer(hole)?;
+
+                Some(self.environment.types[infer].copied())
+            }
+        }
     }
 
     pub fn is_bottom(&mut self, id: TypeId) -> bool {
@@ -147,7 +205,34 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
         ControlFlow::Continue(())
     }
 
-    fn is_quick_subtype(subtype: &Type<'heap>, supertype: &Type<'heap>) -> Option<bool> {
+    // Check if two types refer to the same variable, and must therefore be equivalent, this takes
+    // into account any unification that was applied
+    fn is_equivalent_inference(&self, left: &Type<'heap>, right: &Type<'heap>) -> bool {
+        let Some(left) = left.kind.into_variable() else {
+            return false;
+        };
+
+        let Some(right) = right.kind.into_variable() else {
+            return false;
+        };
+
+        // We don't need to check the lookup table for the root, if they are the same variable
+        if left == right {
+            return true;
+        }
+
+        // Try to extract out the "root" variable from either side, if applicable
+        if let Some(lookup) = &self.variables
+            && let Some(left) = lookup.get(left)
+            && let Some(right) = lookup.get(right)
+        {
+            left == right
+        } else {
+            false
+        }
+    }
+
+    fn is_quick_subtype(&self, subtype: &Type<'heap>, supertype: &Type<'heap>) -> Option<bool> {
         if subtype.id == supertype.id {
             return Some(true);
         }
@@ -156,20 +241,28 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
             return Some(true);
         }
 
+        // `Never <: T` always holds
         if *subtype.kind == TypeKind::Never {
             return Some(true);
         }
 
+        // `T <: Never` never holds
         if *supertype.kind == TypeKind::Never {
             return Some(false);
         }
 
+        // `Unknown <: T` never holds
         if *subtype.kind == TypeKind::Unknown {
+            return Some(false);
+        }
+
+        // `T <: Unknown` always holds
+        if *supertype.kind == TypeKind::Unknown {
             return Some(true);
         }
 
-        if *supertype.kind == TypeKind::Unknown {
-            return Some(false);
+        if self.is_equivalent_inference(subtype, supertype) {
+            return Some(true);
         }
 
         None
@@ -232,7 +325,7 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
             return self.is_subtype_of_recursive(subtype, supertype);
         }
 
-        if let Some(result) = Self::is_quick_subtype(&subtype, &supertype) {
+        if let Some(result) = self.is_quick_subtype(&subtype, &supertype) {
             self.boundary.exit(subtype.id, supertype.id);
 
             return result;
@@ -243,6 +336,22 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
         self.boundary.exit(subtype.id, supertype.id);
 
         result
+    }
+
+    fn is_quick_equivalent(&self, lhs: &Type<'heap>, rhs: &Type<'heap>) -> Option<bool> {
+        if lhs.id == rhs.id {
+            return Some(true);
+        }
+
+        if core::ptr::eq(lhs.kind, rhs.kind) {
+            return Some(true);
+        }
+
+        if self.is_equivalent_inference(lhs, rhs) {
+            return Some(true);
+        }
+
+        None
     }
 
     /// Handling recursive type cycles during equivalence checks.
@@ -289,10 +398,6 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
     }
 
     pub fn is_equivalent(&mut self, lhs: TypeId, rhs: TypeId) -> bool {
-        if lhs == rhs {
-            return true;
-        }
-
         let lhs = self.environment.types[lhs].copied();
         let rhs = self.environment.types[rhs].copied();
 
@@ -300,10 +405,8 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
             return self.is_equivalent_recursive(lhs, rhs);
         }
 
-        if core::ptr::eq(lhs.kind, rhs.kind) {
-            self.boundary.exit(lhs.id, rhs.id);
-
-            return true;
+        if let Some(result) = self.is_quick_equivalent(&lhs, &rhs) {
+            return result;
         }
 
         let result = lhs.is_equivalent(rhs, self);

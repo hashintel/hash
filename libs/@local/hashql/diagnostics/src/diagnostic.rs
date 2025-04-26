@@ -25,6 +25,7 @@ pub type AbsoluteDiagnostic<C> = Diagnostic<C, AbsoluteDiagnosticSpan>;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[must_use = "A diagnostic must be reported"]
 pub struct Diagnostic<C, S> {
     pub category: C,
     pub severity: Box<Severity>,
@@ -37,7 +38,6 @@ pub struct Diagnostic<C, S> {
 }
 
 impl<C, S> Diagnostic<C, S> {
-    #[must_use]
     pub fn new(category: impl Into<C>, severity: impl Into<Box<Severity>>) -> Self {
         Self {
             category: category.into(),

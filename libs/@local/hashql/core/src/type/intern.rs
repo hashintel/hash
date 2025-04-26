@@ -1,10 +1,9 @@
 #![expect(clippy::type_repetition_in_bounds)]
 use core::{fmt::Debug, hash::Hash};
 
-use scc::HashSet;
-
 use super::{
     TypeId,
+    collection::ConcurrentHashSet,
     kind::{
         Infer, Param, TypeKind,
         generic_argument::{GenericArgument, GenericArgumentId, GenericArguments},
@@ -18,14 +17,14 @@ use crate::heap::Heap;
 #[derive(derive_more::Debug)]
 #[debug(bound(T: Eq))]
 struct InternSet<'heap, T: ?Sized> {
-    inner: HashSet<&'heap T, foldhash::fast::RandomState>,
+    inner: ConcurrentHashSet<&'heap T>,
     heap: &'heap Heap,
 }
 
 impl<'heap, T: ?Sized> InternSet<'heap, T> {
     fn new(heap: &'heap Heap) -> Self {
         Self {
-            inner: HashSet::with_hasher(foldhash::fast::RandomState::default()),
+            inner: ConcurrentHashSet::default(),
             heap,
         }
     }

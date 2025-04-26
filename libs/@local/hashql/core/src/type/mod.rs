@@ -3,7 +3,7 @@
 mod collection;
 pub mod environment;
 pub mod error;
-pub mod infer;
+pub mod inference;
 pub mod intern;
 pub mod kind;
 pub mod lattice;

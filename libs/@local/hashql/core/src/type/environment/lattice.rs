@@ -6,6 +6,7 @@ use super::{Diagnostics, Environment, SimplifyEnvironment};
 use crate::r#type::{
     Type, TypeId,
     error::circular_type_reference,
+    inference::{Substitution, VariableKind, VariableLookup},
     kind::{IntersectionType, TypeKind, UnionType},
     lattice::Lattice as _,
     recursion::RecursionBoundary,
@@ -33,9 +34,45 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
         }
     }
 
+    #[inline]
+    pub(crate) fn set_variables(&mut self, variables: VariableLookup) {
+        self.simplify.set_variables(variables);
+    }
+
+    #[inline]
+    pub(crate) fn set_substitution(&mut self, substitution: Substitution) {
+        self.simplify.set_substitution(substitution);
+    }
+
+    #[inline]
+    pub(crate) fn clear_substitution(&mut self) {
+        self.simplify.clear_substitution();
+    }
+
+    #[inline]
+    pub(crate) const fn substitution_mut(&mut self) -> Option<&mut Substitution> {
+        self.simplify.substitution_mut()
+    }
+
+    #[inline]
+    pub(crate) fn contains_substitution(&self, kind: VariableKind) -> bool {
+        self.simplify.contains_substitution(kind)
+    }
+
     pub const fn without_simplify(&mut self) -> &mut Self {
         self.simplify_lattice = false;
         self
+    }
+
+    pub fn take_diagnostics(&mut self) -> Diagnostics {
+        let mut this = core::mem::take(&mut self.diagnostics);
+        let simplify = self.simplify.take_diagnostics();
+
+        if let Some(simplify) = simplify {
+            this.merge(simplify);
+        }
+
+        this
     }
 
     pub const fn set_inference_enabled(&mut self, enabled: bool) -> &mut Self {
@@ -45,6 +82,11 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
 
     pub(crate) const fn is_inference_enabled(&self) -> bool {
         self.inference
+    }
+
+    #[inline]
+    pub(crate) fn resolve_type(&self, r#type: Type<'heap>) -> Option<Type<'heap>> {
+        self.simplify.resolve_type(r#type)
     }
 
     /// Handling recursive type cycles during a join operation.
@@ -265,6 +307,11 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
     #[inline]
     pub fn is_top(&mut self, id: TypeId) -> bool {
         self.simplify.is_top(id)
+    }
+
+    #[inline]
+    pub fn is_subtype_of(&mut self, subtype: TypeId, supertype: TypeId) -> bool {
+        self.simplify.is_subtype_of(subtype, supertype)
     }
 
     #[inline]
