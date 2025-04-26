@@ -2499,19 +2499,29 @@ dependencies = [
 
 [[package]]
 name = "facet"
-version = "0.16.0"
+version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "29bbf04fadc9ad262179a8b1e1ef368f4912a1744cddd146df99ba354217aa7d"
+checksum = "6c3e394701a8864e869bfef6213a52a938ab487c9e7bb3496e694b47295f1460"
 dependencies = [
- "facet-core",
+ "facet-core 0.18.0",
  "facet-derive",
 ]
 
 [[package]]
 name = "facet-core"
-version = "0.16.0"
+version = "0.17.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c86ff34a7b0065464ab851d5a367236e812a6ae0e67c719f624837c51cf0e40d"
+checksum = "737410c2be3f59a8ce3d9e166e2882f5873e2661cffff881b95a23fe8e5d6343"
+dependencies = [
+ "bitflags 2.9.0",
+ "impls",
+]
+
+[[package]]
+name = "facet-core"
+version = "0.18.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2da20db61ed207ec46b3f093b9a59ea7af76979dbe288c64df8fc3781bc2c925"
 dependencies = [
  "bitflags 2.9.0",
  "impls",
@@ -2519,28 +2529,28 @@ dependencies = [
 
 [[package]]
 name = "facet-derive"
-version = "0.16.0"
+version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2f8521a1c38b4718eea9e1669773e675fb06fd5dced2f1133bdca69b3986f590"
+checksum = "782cb843198aaa2bfb5651ae46f6f9ec89ccfe51ebc17fba524bdb9de7d68abe"
 dependencies = [
- "facet-core",
+ "facet-core 0.18.0",
  "facet-derive-emit",
 ]
 
 [[package]]
 name = "facet-derive-emit"
-version = "0.16.0"
+version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "62caecedfc704e191898c1ef7c5ef64c2b399d439634c0f8fb1692dfe15bc274"
+checksum = "6057ae71e4f43b99ac6cce8bbc65e11e3426837ecb2bc470fe3a154d1e6310f0"
 dependencies = [
  "facet-derive-parse",
 ]
 
 [[package]]
 name = "facet-derive-parse"
-version = "0.16.0"
+version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6cfe6687ea07b1aefbece076e69e3d258a994845e0d790472974e71914c2866e"
+checksum = "0f2e855c7694d0b7d34bdf89756867099267f0d08292047b3feaa16ccba49ae1"
 dependencies = [
  "unsynn",
 ]
@@ -3232,7 +3242,7 @@ name = "hash-codegen"
 version = "0.0.0"
 dependencies = [
  "facet",
- "facet-core",
+ "facet-core 0.17.0",
  "simple-mermaid",
 ]
 
