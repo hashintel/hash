@@ -417,6 +417,41 @@ fn solve_constraints_with_incompatible_equality() {
 }
 
 #[test]
+fn solve_constraints_with_incompatible_upper_equal_constraint() {
+    let heap = Heap::new();
+    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+    let hole = HoleId::new(0);
+    let string = primitive!(env, PrimitiveType::String);
+    let number = primitive!(env, PrimitiveType::Number);
+
+    let var = Variable::synthetic(VariableKind::Hole(hole));
+
+    // Create constraints where the equality is not a subtype of the upper bound
+    // String is not a subtype of Number, so this should fail
+    let mut applied_constraints = FastHashMap::default();
+    let vc = VariableConstraint {
+        equal: Some(string),
+        lower: None,
+        upper: Some(number),
+    };
+    applied_constraints.insert(var.kind, (var, vc));
+
+    let mut solver = InferenceSolver::new(&env, Unification::new(), vec![]);
+
+    // This should exercise lines 916-929
+    solver.solve_constraints(applied_constraints);
+
+    // Should have a diagnostic for incompatible upper equal constraint
+    let diagnostics = solver.diagnostics.into_vec();
+    assert_eq!(diagnostics.len(), 1);
+    assert_eq!(
+        diagnostics[0].category,
+        TypeCheckDiagnosticCategory::IncompatibleUpperEqualConstraint
+    );
+}
+
+#[test]
 fn simplify_substitutions() {
     let heap = Heap::new();
     let env = Environment::new(SpanId::SYNTHETIC, &heap);
@@ -551,6 +586,54 @@ fn cyclic_ordering_constraints() {
 }
 
 #[test]
+fn cyclic_structural_edges_constraints() {
+    let heap = Heap::new();
+    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+    let hole1 = HoleId::new(1);
+    let hole2 = HoleId::new(2);
+    let hole3 = HoleId::new(3);
+
+    let variable1 = Variable::synthetic(VariableKind::Hole(hole1));
+    let variable2 = Variable::synthetic(VariableKind::Hole(hole2));
+    let variable3 = Variable::synthetic(VariableKind::Hole(hole3));
+
+    // Create a cycle
+    let constraints = vec![
+        Constraint::StructuralEdge {
+            source: variable1,
+            target: variable2,
+        },
+        Constraint::StructuralEdge {
+            source: variable2,
+            target: variable3,
+        },
+        Constraint::StructuralEdge {
+            source: variable3,
+            target: variable1,
+        },
+    ];
+
+    let mut solver = InferenceSolver::new(&env, Unification::new(), constraints);
+
+    // Directly call the anti-symmetry solver
+    solver.upsert_variables();
+    solver.solve_anti_symmetry();
+
+    // Verify all variables are unified
+    assert!(
+        solver
+            .unification
+            .is_unioned(variable1.kind, variable2.kind)
+    );
+    assert!(
+        solver
+            .unification
+            .is_unioned(variable2.kind, variable3.kind)
+    );
+}
+
+#[test]
 fn bounds_at_lattice_extremes() {
     let heap = Heap::new();
     let env = Environment::new(SpanId::SYNTHETIC, &heap);
@@ -589,6 +672,44 @@ fn bounds_at_lattice_extremes() {
 
     // The variable should be inferred to the lower bound (Never)
     assert_eq!(substitutions[&variable.kind], never);
+}
+
+#[test]
+fn collect_constraints_with_structural_edge() {
+    let heap = Heap::new();
+    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+    let hole1 = HoleId::new(1);
+    let hole2 = HoleId::new(2);
+
+    let variable1 = Variable::synthetic(VariableKind::Hole(hole1));
+    let variable2 = Variable::synthetic(VariableKind::Hole(hole2));
+
+    // Create a structural edge constraint
+    let constraints = vec![Constraint::StructuralEdge {
+        source: variable1,
+        target: variable2,
+    }];
+
+    let mut solver = InferenceSolver::new(&env, Unification::new(), constraints);
+
+    // This should exercise lines 410-418
+    let collected = solver.collect_constraints();
+
+    // Both variables should be in the map even though they don't have direct bounds
+    assert!(collected.contains_key(&variable1.kind));
+    assert!(collected.contains_key(&variable2.kind));
+
+    // They should have default constraint values (all None/empty)
+    let (_, var1_constraints) = &collected[&variable1.kind];
+    assert!(var1_constraints.equal.is_none());
+    assert!(var1_constraints.lower.is_empty());
+    assert!(var1_constraints.upper.is_empty());
+
+    let (_, var2_constraints) = &collected[&variable2.kind];
+    assert!(var2_constraints.equal.is_none());
+    assert!(var2_constraints.lower.is_empty());
+    assert!(var2_constraints.upper.is_empty());
 }
 
 // =============== INTEGRATION TESTS ===============
