@@ -1509,46 +1509,62 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
 
             // Infer <: _
             (&Self::Infer(Infer { hole: self_id }), _) => {
+                let variable = Variable {
+                    span: self.span,
+                    kind: VariableKind::Hole(self_id),
+                };
+
                 env.add_constraint(Constraint::UpperBound {
-                    variable: Variable {
-                        span: self.span,
-                        kind: VariableKind::Hole(self_id),
-                    },
+                    variable,
                     bound: supertype.id,
                 });
+
+                env.collect_structural_edges(supertype.id, PartialStructuralEdge::Source(variable));
             }
 
             // _ <: Infer
             (_, &Self::Infer(Infer { hole: supertype_id })) => {
+                let variable = Variable {
+                    span: supertype.span,
+                    kind: VariableKind::Hole(supertype_id),
+                };
+
                 env.add_constraint(Constraint::LowerBound {
-                    variable: Variable {
-                        span: supertype.span,
-                        kind: VariableKind::Hole(supertype_id),
-                    },
+                    variable,
                     bound: self.id,
                 });
+
+                env.collect_structural_edges(self.id, PartialStructuralEdge::Target(variable));
             }
 
             // Param <: _
             (&Self::Param(Param { argument }), _) => {
+                let variable = Variable {
+                    span: self.span,
+                    kind: VariableKind::Generic(argument),
+                };
+
                 env.add_constraint(Constraint::UpperBound {
-                    variable: Variable {
-                        span: self.span,
-                        kind: VariableKind::Generic(argument),
-                    },
+                    variable,
                     bound: supertype.id,
                 });
+
+                env.collect_structural_edges(supertype.id, PartialStructuralEdge::Source(variable));
             }
 
             // _ <: Param
             (_, &Self::Param(Param { argument })) => {
+                let variable = Variable {
+                    span: supertype.span,
+                    kind: VariableKind::Generic(argument),
+                };
+
                 env.add_constraint(Constraint::LowerBound {
-                    variable: Variable {
-                        span: supertype.span,
-                        kind: VariableKind::Generic(argument),
-                    },
+                    variable,
                     bound: self.id,
                 });
+
+                env.collect_structural_edges(self.id, PartialStructuralEdge::Target(variable));
             }
 
             // `Never <: _` | `_ <: Never`
