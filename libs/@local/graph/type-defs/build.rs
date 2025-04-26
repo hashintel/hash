@@ -36,32 +36,30 @@ fn main() {
     println!("cargo:rerun-if-changed={}", codegen_package_path.display());
     println!("cargo:rerun-if-changed={}", type_defs_path.display());
 
-    if !std::process::Command::new(
-        "/Users/bmahmoud/.local/share/mise/installs/node/22.14.0/bin/yarn",
-    )
-    .args([
-        "tsx",
-        &codegen_script_path.to_string_lossy(),
-        &type_defs_path.to_string_lossy(),
-        "--rust-out-dir",
-        &out_dir,
-        // Uncomment this to generate JSON Schema definitions in the `OUT_DIR` as well
-        // Be aware that when re-generating the JSON Schema definitions, you will need to do
-        // some manual work, to make sure it's compliant with OpenAPI 3.0
-        // This includes:
-        //  * remove `$schema` and `$comment`,
-        //  * rename `Record<string, any>` to `Object`,
-        //  * move `definitions` to `status_definitions.json` (under the `definitions` key),
-        //  * make sure all refs in `status.json` point to it
-        // This is a chore (I know), but otherwise openapi-generator-cli will fail to generate
-        // the client :/
-        // "--json-schema-out-dir",
-        // &out_dir,
-    ])
-    .current_dir(crate_dir)
-    .status()
-    .expect("Failed to run codegen")
-    .success()
+    if !std::process::Command::new("yarn")
+        .args([
+            "tsx",
+            &codegen_script_path.to_string_lossy(),
+            &type_defs_path.to_string_lossy(),
+            "--rust-out-dir",
+            &out_dir,
+            // Uncomment this to generate JSON Schema definitions in the `OUT_DIR` as well
+            // Be aware that when re-generating the JSON Schema definitions, you will need to do
+            // some manual work, to make sure it's compliant with OpenAPI 3.0
+            // This includes:
+            //  * remove `$schema` and `$comment`,
+            //  * rename `Record<string, any>` to `Object`,
+            //  * move `definitions` to `status_definitions.json` (under the `definitions` key),
+            //  * make sure all refs in `status.json` point to it
+            // This is a chore (I know), but otherwise openapi-generator-cli will fail to generate
+            // the client :/
+            // "--json-schema-out-dir",
+            // &out_dir,
+        ])
+        .current_dir(crate_dir)
+        .status()
+        .expect("Failed to run codegen")
+        .success()
     {
         panic!("Failed to run codegen");
     }
