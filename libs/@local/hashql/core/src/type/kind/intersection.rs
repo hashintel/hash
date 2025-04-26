@@ -494,6 +494,16 @@ impl<'heap> Inference<'heap> for IntersectionType<'heap> {
         );
     }
 
+    fn collect_structural_edges(
+        self: Type<'heap, Self>,
+        variable: crate::r#type::inference::PartialStructuralEdge,
+        env: &mut InferenceEnvironment<'_, 'heap>,
+    ) {
+        for &variant in self.kind.variants {
+            env.in_covariant(|env| env.collect_structural_edges(variant, variable));
+        }
+    }
+
     fn instantiate(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> TypeId {
         todo!("https://linear.app/hash/issue/H-4384/hashql-type-instantiation")
     }
@@ -537,7 +547,9 @@ mod test {
                 AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
                 SimplifyEnvironment,
             },
-            inference::{Constraint, Inference as _, Variable, VariableKind},
+            inference::{
+                Constraint, Inference as _, PartialStructuralEdge, Variable, VariableKind,
+            },
             kind::{
                 TypeKind,
                 generic_argument::GenericArgumentId,
@@ -1678,5 +1690,307 @@ mod test {
 
         // No variable constraints should be generated for concrete types
         assert!(inference_env.take_constraints().is_empty());
+    }
+
+    #[test]
+    fn collect_structural_edges_basic() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create an inference variable
+        let hole = HoleId::new(0);
+        let infer_var = instantiate_infer(&env, hole);
+
+        // Create an intersection with an inference variable: infer_var & Number
+        intersection!(
+            env,
+            basic_intersection,
+            [infer_var, primitive!(env, PrimitiveType::Number)]
+        );
+
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // Create a variable to use as the source in a structural edge
+        let source_var = Variable::synthetic(VariableKind::Hole(HoleId::new(1)));
+        let partial_edge = PartialStructuralEdge::Source(source_var);
+
+        // Collect structural edges
+        basic_intersection.collect_structural_edges(partial_edge, &mut inference_env);
+
+        // Since intersections are covariant in all their variants, the flow is preserved
+        // We expect source (_1) flowing to the infer_var (_0) within the intersection
+        let constraints = inference_env.take_constraints();
+        assert_eq!(
+            constraints,
+            [Constraint::StructuralEdge {
+                source: source_var,
+                target: Variable::synthetic(VariableKind::Hole(hole)),
+            }]
+        );
+    }
+
+    #[test]
+    fn collect_structural_edges_target() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create an inference variable
+        let hole = HoleId::new(0);
+        let infer_var = instantiate_infer(&env, hole);
+
+        // Create an intersection with an inference variable: infer_var & String
+        intersection!(
+            env,
+            intersection_type,
+            [infer_var, primitive!(env, PrimitiveType::String)]
+        );
+
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // Create a variable to use as the target in a structural edge
+        let target_var = Variable::synthetic(VariableKind::Hole(HoleId::new(1)));
+        let partial_edge = PartialStructuralEdge::Target(target_var);
+
+        // Collect structural edges
+        intersection_type.collect_structural_edges(partial_edge, &mut inference_env);
+
+        // Since intersections are covariant in all their variants, the flow is from the infer var
+        // to target We expect the infer_var (_0) flowing to the target (_1)
+        let constraints = inference_env.take_constraints();
+        assert_eq!(
+            constraints,
+            [Constraint::StructuralEdge {
+                source: Variable::synthetic(VariableKind::Hole(hole)),
+                target: target_var,
+            }]
+        );
+    }
+
+    #[test]
+    fn collect_structural_edges_multiple_infer_vars() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create multiple inference variables
+        let hole1 = HoleId::new(0);
+        let infer_var1 = instantiate_infer(&env, hole1);
+        let hole2 = HoleId::new(1);
+        let infer_var2 = instantiate_infer(&env, hole2);
+
+        // Create an intersection with multiple inference variables: infer_var1 & infer_var2
+        intersection!(env, multi_infer_intersection, [infer_var1, infer_var2]);
+
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // Create a variable for the edge
+        let edge_var = Variable::synthetic(VariableKind::Hole(HoleId::new(3)));
+        let partial_edge = PartialStructuralEdge::Source(edge_var);
+
+        // Collect structural edges
+        multi_infer_intersection.collect_structural_edges(partial_edge, &mut inference_env);
+
+        // Since intersections are covariant, the source should flow to both variables
+        // We expect:
+        // 1. _3 -> _0
+        // 2. _3 -> _1
+        let constraints = inference_env.take_constraints();
+        assert_eq!(
+            constraints,
+            [
+                Constraint::StructuralEdge {
+                    source: edge_var,
+                    target: Variable::synthetic(VariableKind::Hole(hole1)),
+                },
+                Constraint::StructuralEdge {
+                    source: edge_var,
+                    target: Variable::synthetic(VariableKind::Hole(hole2)),
+                }
+            ]
+        );
+    }
+
+    #[test]
+    fn collect_structural_edges_nested_intersection() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create inference variables
+        let hole_inner = HoleId::new(0);
+        let infer_inner = instantiate_infer(&env, hole_inner);
+        let hole_outer = HoleId::new(1);
+        let infer_outer = instantiate_infer(&env, hole_outer);
+
+        // Create an inner intersection: infer_inner & Number
+        let inner_intersection =
+            intersection!(env, [infer_inner, primitive!(env, PrimitiveType::Number)]);
+
+        // Create an outer intersection: infer_outer & inner_intersection
+        intersection!(env, outer_intersection, [infer_outer, inner_intersection]);
+
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // Edge variable
+        let edge_var = Variable::synthetic(VariableKind::Hole(HoleId::new(2)));
+        let partial_edge = PartialStructuralEdge::Source(edge_var);
+
+        // Collect structural edges for the outer intersection
+        outer_intersection.collect_structural_edges(partial_edge, &mut inference_env);
+
+        // We expect:
+        // 1. _2 -> _1 (source flows to outer infer var)
+        // 2. _2 -> _0 (source flows to inner infer var through nested intersection)
+        let constraints = inference_env.take_constraints();
+        assert_eq!(
+            constraints,
+            [
+                Constraint::StructuralEdge {
+                    source: edge_var,
+                    target: Variable::synthetic(VariableKind::Hole(hole_outer)),
+                },
+                Constraint::StructuralEdge {
+                    source: edge_var,
+                    target: Variable::synthetic(VariableKind::Hole(hole_inner)),
+                }
+            ]
+        );
+    }
+
+    #[test]
+    fn collect_structural_edges_contravariant_context() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create an inference variable
+        let hole = HoleId::new(0);
+        let infer_var = instantiate_infer(&env, hole);
+
+        // Create an intersection with an inference variable
+        intersection!(
+            env,
+            intersection_type,
+            [infer_var, primitive!(env, PrimitiveType::Number)]
+        );
+
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // Edge variable
+        let edge_var = Variable::synthetic(VariableKind::Hole(HoleId::new(1)));
+        let partial_edge = PartialStructuralEdge::Source(edge_var);
+
+        // Collect structural edges in a contravariant context
+        inference_env.in_contravariant(|env| {
+            intersection_type.collect_structural_edges(partial_edge, env);
+        });
+
+        // In a contravariant context, the edge direction is inverted
+        // We expect infer_var (_0) flows to source (_1)
+        let constraints = inference_env.take_constraints();
+        assert_eq!(
+            constraints,
+            [Constraint::StructuralEdge {
+                source: Variable::synthetic(VariableKind::Hole(hole)),
+                target: edge_var,
+            }]
+        );
+    }
+
+    #[test]
+    fn collect_structural_edges_invariant_context() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create an inference variable
+        let hole = HoleId::new(0);
+        let infer_var = instantiate_infer(&env, hole);
+
+        // Create an intersection with an inference variable
+        intersection!(
+            env,
+            intersection_type,
+            [infer_var, primitive!(env, PrimitiveType::Number)]
+        );
+
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // Edge variable
+        let edge_var = Variable::synthetic(VariableKind::Hole(HoleId::new(1)));
+        let partial_edge = PartialStructuralEdge::Source(edge_var);
+
+        // Collect structural edges in an invariant context
+        inference_env.in_invariant(|env| {
+            intersection_type.collect_structural_edges(partial_edge, env);
+        });
+
+        // In invariant context, no structural edges should be collected
+        let constraints = inference_env.take_constraints();
+        assert!(constraints.is_empty());
+    }
+
+    #[test]
+    fn collect_structural_edges_empty_intersection() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create an empty intersection (Unknown type)
+        intersection!(env, empty_intersection, []);
+
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // Edge variable
+        let edge_var = Variable::synthetic(VariableKind::Hole(HoleId::new(0)));
+        let partial_edge = PartialStructuralEdge::Source(edge_var);
+
+        // Collect structural edges for an empty intersection
+        empty_intersection.collect_structural_edges(partial_edge, &mut inference_env);
+
+        // Empty intersection has no variants, so no edges should be collected
+        let constraints = inference_env.take_constraints();
+        assert!(constraints.is_empty());
+    }
+
+    #[test]
+    fn collect_structural_edges_mixed_types() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create inference variables
+        let hole1 = HoleId::new(0);
+        let infer_var1 = instantiate_infer(&env, hole1);
+        let hole2 = HoleId::new(1);
+        let infer_var2 = instantiate_infer(&env, hole2);
+
+        // Create a tuple with an inference variable
+        let tuple_type = tuple!(env, [], [infer_var1]);
+
+        // Create an intersection with mixed types: tuple & infer_var2
+        intersection!(env, mixed_intersection, [tuple_type, infer_var2]);
+
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // Edge variable
+        let edge_var = Variable::synthetic(VariableKind::Hole(HoleId::new(3)));
+        let partial_edge = PartialStructuralEdge::Source(edge_var);
+
+        // Collect structural edges
+        mixed_intersection.collect_structural_edges(partial_edge, &mut inference_env);
+
+        // Edges should be collected for all inference variables
+        // We expect:
+        // 1. _3 -> _0 (through the tuple)
+        // 2. _3 -> _1 (direct to the second infer var)
+        let constraints = inference_env.take_constraints();
+        assert_eq!(
+            constraints,
+            [
+                Constraint::StructuralEdge {
+                    source: edge_var,
+                    target: Variable::synthetic(VariableKind::Hole(hole1)),
+                },
+                Constraint::StructuralEdge {
+                    source: edge_var,
+                    target: Variable::synthetic(VariableKind::Hole(hole2)),
+                }
+            ]
+        );
     }
 }

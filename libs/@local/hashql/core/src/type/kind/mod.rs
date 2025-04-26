@@ -28,7 +28,7 @@ use super::{
         SimplifyEnvironment,
     },
     error::{no_type_inference, type_mismatch},
-    inference::{Constraint, Inference, Variable, VariableKind},
+    inference::{Constraint, Inference, PartialStructuralEdge, Variable, VariableKind},
     lattice::Lattice,
     pretty_print::{CYAN, GRAY, PrettyPrint},
     recursion::RecursionDepthBoundary,
@@ -1556,6 +1556,56 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
 
             // `_ <: Unknown` | `Unknown <: _`
             (_, Self::Unknown) | (Self::Unknown, _) => {}
+        }
+    }
+
+    fn collect_structural_edges(
+        self: Type<'heap, Self>,
+        variable: PartialStructuralEdge,
+        env: &mut InferenceEnvironment<'_, 'heap>,
+    ) {
+        #[expect(clippy::match_same_arms)]
+        match self.kind {
+            TypeKind::Opaque(opaque_type) => self
+                .with(opaque_type)
+                .collect_structural_edges(variable, env),
+            TypeKind::Primitive(primitive_type) => self
+                .with(primitive_type)
+                .collect_structural_edges(variable, env),
+            TypeKind::Intrinsic(intrinsic_type) => self
+                .with(intrinsic_type)
+                .collect_structural_edges(variable, env),
+            TypeKind::Struct(struct_type) => self
+                .with(struct_type)
+                .collect_structural_edges(variable, env),
+            TypeKind::Tuple(tuple_type) => self
+                .with(tuple_type)
+                .collect_structural_edges(variable, env),
+            TypeKind::Union(union_type) => self
+                .with(union_type)
+                .collect_structural_edges(variable, env),
+            TypeKind::Intersection(intersection_type) => self
+                .with(intersection_type)
+                .collect_structural_edges(variable, env),
+            TypeKind::Closure(closure_type) => self
+                .with(closure_type)
+                .collect_structural_edges(variable, env),
+            &TypeKind::Param(Param { argument }) => env.add_structural_edge(
+                variable,
+                Variable {
+                    span: self.span,
+                    kind: VariableKind::Generic(argument),
+                },
+            ),
+            &TypeKind::Infer(Infer { hole }) => env.add_structural_edge(
+                variable,
+                Variable {
+                    span: self.span,
+                    kind: VariableKind::Hole(hole),
+                },
+            ),
+            TypeKind::Never => {}
+            TypeKind::Unknown => {}
         }
     }
 

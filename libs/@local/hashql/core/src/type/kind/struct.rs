@@ -15,7 +15,7 @@ use crate::{
             SimplifyEnvironment,
         },
         error::{missing_struct_field, struct_field_mismatch},
-        inference::Inference,
+        inference::{Inference, PartialStructuralEdge},
         lattice::Lattice,
         pretty_print::PrettyPrint,
         recursion::RecursionDepthBoundary,
@@ -476,6 +476,16 @@ impl<'heap> Inference<'heap> for StructType<'heap> {
         }
     }
 
+    fn collect_structural_edges(
+        self: Type<'heap, Self>,
+        variable: PartialStructuralEdge,
+        env: &mut InferenceEnvironment<'_, 'heap>,
+    ) {
+        for field in &*self.kind.fields {
+            env.in_covariant(|env| env.collect_structural_edges(field.value, variable));
+        }
+    }
+
     fn instantiate(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> TypeId {
         todo!("https://linear.app/hash/issue/H-4384/hashql-type-instantiation")
     }
@@ -511,7 +521,9 @@ mod test {
                 AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
                 SimplifyEnvironment,
             },
-            inference::{Constraint, Inference as _, Variable, VariableKind},
+            inference::{
+                Constraint, Inference as _, PartialStructuralEdge, Variable, VariableKind,
+            },
             kind::{
                 TypeKind,
                 generic_argument::{GenericArgument, GenericArgumentId},
@@ -1669,5 +1681,239 @@ mod test {
         // No constraints should have been generated since both types are concrete
         // and constraints are only generated for inference variables
         assert!(inference_env.take_constraints().is_empty());
+    }
+
+    #[test]
+    fn collect_structural_edges_struct_basic() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create an inference variable
+        let hole = HoleId::new(0);
+        let infer_var = instantiate_infer(&env, hole);
+
+        // Create a struct with a field containing an inference variable: { value: _0 }
+        r#struct!(
+            env,
+            struct_type,
+            [],
+            [struct_field!(env, "value", infer_var)]
+        );
+
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // Create a variable to use as the source in a structural edge
+        let edge_var = Variable::synthetic(VariableKind::Hole(HoleId::new(1)));
+        let partial_edge = PartialStructuralEdge::Source(edge_var);
+
+        // Collect structural edges
+        struct_type.collect_structural_edges(partial_edge, &mut inference_env);
+
+        // Struct fields are covariant, so the source should flow to the field inference variable
+        // We expect: _1 -> _0
+        let constraints = inference_env.take_constraints();
+        assert_eq!(
+            constraints,
+            [Constraint::StructuralEdge {
+                source: edge_var,
+                target: Variable::synthetic(VariableKind::Hole(hole)),
+            }]
+        );
+    }
+
+    #[test]
+    fn collect_structural_edges_struct_multiple_fields() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create inference variables for multiple fields
+        let hole1 = HoleId::new(0);
+        let infer_var1 = instantiate_infer(&env, hole1);
+        let hole2 = HoleId::new(1);
+        let infer_var2 = instantiate_infer(&env, hole2);
+
+        // Create a struct with multiple fields containing inference variables: { x: _0, y: _1 }
+        r#struct!(
+            env,
+            struct_type,
+            [],
+            [
+                struct_field!(env, "x", infer_var1),
+                struct_field!(env, "y", infer_var2)
+            ]
+        );
+
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // Create a variable to use as the target in a structural edge
+        let edge_var = Variable::synthetic(VariableKind::Hole(HoleId::new(2)));
+        let partial_edge = PartialStructuralEdge::Target(edge_var);
+
+        // Collect structural edges
+        struct_type.collect_structural_edges(partial_edge, &mut inference_env);
+
+        // Struct fields are covariant, so the field inference variables should flow to the target
+        // We expect: _0 -> _2 and _1 -> _2
+        let constraints = inference_env.take_constraints();
+        assert_eq!(
+            constraints,
+            [
+                Constraint::StructuralEdge {
+                    source: Variable::synthetic(VariableKind::Hole(hole1)),
+                    target: edge_var,
+                },
+                Constraint::StructuralEdge {
+                    source: Variable::synthetic(VariableKind::Hole(hole2)),
+                    target: edge_var,
+                }
+            ]
+        );
+    }
+
+    #[test]
+    fn collect_structural_edges_nested_struct() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create an inference variable
+        let hole = HoleId::new(0);
+        let infer_var = instantiate_infer(&env, hole);
+
+        // Create a nested struct: { outer: { inner: _0 } }
+        let inner_struct = r#struct!(env, [], [struct_field!(env, "inner", infer_var)]);
+
+        r#struct!(
+            env,
+            outer_struct,
+            [],
+            [struct_field!(env, "outer", inner_struct)]
+        );
+
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // Create a variable to use as the source in a structural edge
+        let edge_var = Variable::synthetic(VariableKind::Hole(HoleId::new(1)));
+        let partial_edge = PartialStructuralEdge::Source(edge_var);
+
+        // Collect structural edges
+        outer_struct.collect_structural_edges(partial_edge, &mut inference_env);
+
+        // All struct fields are covariant, so the source should flow through to the innermost field
+        // We expect: _1 -> _0
+        let constraints = inference_env.take_constraints();
+        assert_eq!(
+            constraints,
+            [Constraint::StructuralEdge {
+                source: edge_var,
+                target: Variable::synthetic(VariableKind::Hole(hole)),
+            }]
+        );
+    }
+
+    #[test]
+    fn collect_structural_edges_contravariant_context() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create an inference variable
+        let hole = HoleId::new(0);
+        let infer_var = instantiate_infer(&env, hole);
+
+        // Create a struct with a field containing an inference variable
+        r#struct!(
+            env,
+            struct_type,
+            [],
+            [struct_field!(env, "value", infer_var)]
+        );
+
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // Create a variable to use as the source in a structural edge
+        let edge_var = Variable::synthetic(VariableKind::Hole(HoleId::new(1)));
+        let partial_edge = PartialStructuralEdge::Source(edge_var);
+
+        // Collect structural edges in a contravariant context
+        inference_env.in_contravariant(|env| {
+            struct_type.collect_structural_edges(partial_edge, env);
+        });
+
+        // In a contravariant context, the flow direction is inverted
+        // We expect: _0 -> _1
+        let constraints = inference_env.take_constraints();
+        assert_eq!(
+            constraints,
+            [Constraint::StructuralEdge {
+                source: Variable::synthetic(VariableKind::Hole(hole)),
+                target: edge_var,
+            }]
+        );
+    }
+
+    #[test]
+    fn collect_structural_edges_empty_struct() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create an empty struct: {}
+        r#struct!(env, empty_struct, [], []);
+
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // Create a variable to use as the source in a structural edge
+        let edge_var = Variable::synthetic(VariableKind::Hole(HoleId::new(0)));
+        let partial_edge = PartialStructuralEdge::Source(edge_var);
+
+        // Collect structural edges
+        empty_struct.collect_structural_edges(partial_edge, &mut inference_env);
+
+        // Empty struct has no inference variables, so no edges should be collected
+        let constraints = inference_env.take_constraints();
+        assert!(
+            constraints.is_empty(),
+            "Empty struct should not produce any structural edges"
+        );
+    }
+
+    #[test]
+    fn collect_structural_edges_mixed_concrete_and_infer() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create an inference variable
+        let hole = HoleId::new(0);
+        let infer_var = instantiate_infer(&env, hole);
+        let string = primitive!(env, PrimitiveType::String);
+
+        // Create a struct with mixed concrete and inference variable fields
+        r#struct!(
+            env,
+            mixed_struct,
+            [],
+            [
+                struct_field!(env, "concrete", string),
+                struct_field!(env, "inferred", infer_var)
+            ]
+        );
+
+        let mut inference_env = InferenceEnvironment::new(&env);
+
+        // Create a variable to use as the source in a structural edge
+        let edge_var = Variable::synthetic(VariableKind::Hole(HoleId::new(1)));
+        let partial_edge = PartialStructuralEdge::Source(edge_var);
+
+        // Collect structural edges
+        mixed_struct.collect_structural_edges(partial_edge, &mut inference_env);
+
+        // Only the inference variable field should produce a structural edge
+        // We expect: _1 -> _0
+        let constraints = inference_env.take_constraints();
+        assert_eq!(
+            constraints,
+            [Constraint::StructuralEdge {
+                source: edge_var,
+                target: Variable::synthetic(VariableKind::Hole(hole)),
+            }]
+        );
     }
 }

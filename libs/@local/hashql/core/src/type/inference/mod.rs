@@ -16,6 +16,32 @@ use super::{
     kind::{generic_argument::GenericArgumentId, infer::HoleId},
 };
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum PartialStructuralEdge {
+    Source(Variable),
+    Target(Variable),
+}
+
+impl PartialStructuralEdge {
+    #[must_use]
+    pub const fn invert(self) -> Self {
+        match self {
+            Self::Source(variable) => Self::Target(variable),
+            Self::Target(variable) => Self::Source(variable),
+        }
+    }
+
+    #[must_use]
+    pub const fn is_source(&self) -> bool {
+        matches!(self, Self::Source(_))
+    }
+
+    #[must_use]
+    pub const fn is_target(&self) -> bool {
+        matches!(self, Self::Target(_))
+    }
+}
+
 /// Represents a constraint between types in the type inference system.
 ///
 /// During type checking, constraints are collected to determine if types are compatible
@@ -37,6 +63,12 @@ pub enum Constraint {
 
     /// Establishes an ordering between two variables (`lower <: upper`)
     Ordering { lower: Variable, upper: Variable },
+
+    /// Establishes a structural edge between two variables (`source -> target`)
+    ///
+    /// A structural edge is an edge, which explains that `source` flows into `target`, for example
+    /// given: `_1 <: (name: _2)`, `_1` flows into `_2`.
+    StructuralEdge { source: Variable, target: Variable },
 }
 
 impl Constraint {
@@ -49,6 +81,7 @@ impl Constraint {
                 r#type: _,
             } => [Some(variable), None],
             Self::Ordering { lower, upper } => [Some(lower), Some(upper)],
+            Self::StructuralEdge { source, target } => [Some(source), Some(target)],
         };
 
         array.into_iter().flatten()
@@ -101,6 +134,12 @@ pub trait Inference<'heap> {
     fn collect_constraints(
         self: Type<'heap, Self>,
         supertype: Type<'heap, Self>,
+        env: &mut InferenceEnvironment<'_, 'heap>,
+    );
+
+    fn collect_structural_edges(
+        self: Type<'heap, Self>,
+        variable: PartialStructuralEdge,
         env: &mut InferenceEnvironment<'_, 'heap>,
     );
 

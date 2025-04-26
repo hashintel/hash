@@ -3,7 +3,10 @@ use core::ops::Deref;
 use super::{Environment, Variance};
 use crate::r#type::{
     TypeId,
-    inference::{Constraint, Inference as _, InferenceSolver, VariableKind, solver::Unification},
+    inference::{
+        Constraint, Inference as _, InferenceSolver, PartialStructuralEdge, Variable, VariableKind,
+        solver::Unification,
+    },
     recursion::RecursionBoundary,
 };
 
@@ -57,8 +60,32 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
                     self.unification.unify(lower.kind, upper.kind);
                     return;
                 }
+                Constraint::StructuralEdge {
+                    source: _,
+                    target: _,
+                } => {
+                    // Do not install any structural edges, as they would violate the invariant
+                    // variance.
+                    // `(name: _2) = _1` does not mean that `_2` is equal to `_1`.
+                    return;
+                }
             };
         }
+
+        self.constraints.push(constraint);
+    }
+
+    pub fn add_structural_edge(&mut self, variable: PartialStructuralEdge, other: Variable) {
+        let constraint = match variable {
+            PartialStructuralEdge::Source(source) => Constraint::StructuralEdge {
+                source,
+                target: other,
+            },
+            PartialStructuralEdge::Target(target) => Constraint::StructuralEdge {
+                source: other,
+                target,
+            },
+        };
 
         self.constraints.push(constraint);
     }
@@ -87,6 +114,27 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
         subtype.collect_constraints(supertype, self);
 
         self.boundary.exit(subtype.id, supertype.id);
+    }
+
+    pub fn collect_structural_edges(&mut self, id: TypeId, variable: PartialStructuralEdge) {
+        if !self.boundary.enter(id, id) {
+            // In a recursive type, we've already collected the constraints once, so can simply
+            // terminate
+            return;
+        }
+
+        let variable = match self.variance {
+            Variance::Covariant => variable,
+            Variance::Contravariant => variable.invert(),
+            // We cannot safely collect structural edges for invariant types
+            Variance::Invariant => return,
+        };
+
+        let r#type = self.environment.types[id].copied();
+
+        r#type.collect_structural_edges(variable, self);
+
+        self.boundary.exit(id, id);
     }
 
     pub(crate) fn with_variance<T>(

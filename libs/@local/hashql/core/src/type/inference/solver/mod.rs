@@ -249,6 +249,15 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                     let _: Result<_, _> =
                         constraints.try_insert(upper_root, (upper, VariableConstraint::default()));
                 }
+                Constraint::StructuralEdge { source, target } => {
+                    let source_root = self.unification.root(source.kind);
+                    let _: Result<_, _> = constraints
+                        .try_insert(source_root, (source, VariableConstraint::default()));
+
+                    let target_root = self.unification.root(target.kind);
+                    let _: Result<_, _> = constraints
+                        .try_insert(target_root, (target, VariableConstraint::default()));
+                }
             }
         }
 

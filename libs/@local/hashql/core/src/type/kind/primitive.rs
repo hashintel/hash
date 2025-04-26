@@ -10,7 +10,7 @@ use crate::r#type::{
         SimplifyEnvironment,
     },
     error::type_mismatch,
-    inference::Inference,
+    inference::{Inference, PartialStructuralEdge},
     lattice::Lattice,
     pretty_print::{BLUE, PrettyPrint},
     recursion::RecursionDepthBoundary,
@@ -183,6 +183,13 @@ impl<'heap> Inference<'heap> for PrimitiveType {
     fn collect_constraints(
         self: Type<'heap, Self>,
         _: Type<'heap, Self>,
+        _: &mut InferenceEnvironment<'_, 'heap>,
+    ) {
+    }
+
+    fn collect_structural_edges(
+        self: Type<'heap, Self>,
+        _: PartialStructuralEdge,
         _: &mut InferenceEnvironment<'_, 'heap>,
     ) {
     }
@@ -526,135 +533,6 @@ mod test {
         assert!(!null.is_subtype_of(string, &mut analysis_env));
         assert!(!null.is_subtype_of(boolean, &mut analysis_env));
     }
-
-    // #[test_case(PrimitiveType::Number)]
-    // #[test_case(PrimitiveType::Integer)]
-    // #[test_case(PrimitiveType::String)]
-    // #[test_case(PrimitiveType::Boolean)]
-    // #[test_case(PrimitiveType::Null)]
-    // fn unification_same_type(primitive: PrimitiveType) {
-    //     let heap = Heap::new();
-    //     let env = Environment::new(SpanId::SYNTHETIC, &heap);
-
-    //     primitive!(env, a, primitive);
-    //     primitive!(env, b, primitive);
-
-    //     let mut unif_env = UnificationEnvironment::new(&env);
-
-    //     // Unifying same types should succeed without errors
-    //     a.unify(b, &mut unif_env);
-    //     assert!(unif_env.diagnostics.take().is_empty());
-    // }
-
-    // #[test]
-    // fn unification_integer_number() {
-    //     let heap = Heap::new();
-    //     let env = Environment::new(SpanId::SYNTHETIC, &heap);
-
-    //     primitive!(env, number, PrimitiveType::Number);
-    //     primitive!(env, integer, PrimitiveType::Integer);
-
-    //     let mut unif_env = UnificationEnvironment::new(&env);
-
-    //     number.unify(integer, &mut unif_env);
-    //     assert!(
-    //         unif_env.diagnostics.take().is_empty(),
-    //         "Number <-- Integer should succeed"
-    //     );
-    // }
-
-    // #[test]
-    // fn unification_number_integer() {
-    //     let heap = Heap::new();
-    //     let env = Environment::new(SpanId::SYNTHETIC, &heap);
-
-    //     primitive!(env, integer, PrimitiveType::Integer);
-    //     primitive!(env, number, PrimitiveType::Number);
-
-    //     let mut unif_env = UnificationEnvironment::new(&env);
-
-    //     integer.unify(number, &mut unif_env);
-
-    //     let diagnostics = unif_env.diagnostics.take();
-
-    //     assert!(!diagnostics.is_empty(), "Integer <-- Number should fail");
-
-    //     // Verify error contains helpful message
-    //     let diagnostic = &diagnostics[0];
-    //     assert_eq!(
-    //         diagnostic.help.as_ref().map(Help::message),
-    //         Some(
-    //             "Expected an Integer but found a Number. While all Integers are Numbers, not all
-    // \              Numbers are Integers (e.g., decimals like 3.14)."
-    //         )
-    //     );
-    // }
-
-    // #[test_case(
-    //     PrimitiveType::Number,
-    //     PrimitiveType::String;
-    //     "convert the number to a string"
-    // )]
-    // #[test_case(
-    //     PrimitiveType::String,
-    //     PrimitiveType::Number;
-    //     "convert the string to a number"
-    // )]
-    // #[test_case(
-    //     PrimitiveType::String,
-    //     PrimitiveType::Boolean;
-    //     "convert the string to a boolean"
-    // )]
-    // #[test_case(
-    //     PrimitiveType::Boolean,
-    //     PrimitiveType::String;
-    //     "convert the boolean to a string"
-    // )]
-    // #[test_case(
-    //     PrimitiveType::Boolean,
-    //     PrimitiveType::Number;
-    //     "convert the boolean to a number"
-    // )]
-    // #[test_case(
-    //     PrimitiveType::Number,
-    //     PrimitiveType::Boolean;
-    //     "convert the number to a boolean"
-    // )]
-    // #[test_case(
-    //     PrimitiveType::Null,
-    //     PrimitiveType::String;
-    //     "convert the null to a string"
-    // )]
-    // #[test_case(
-    //     PrimitiveType::String,
-    //     PrimitiveType::Null;
-    //     "convert the string to a null"
-    // )]
-    // #[test_case(
-    //     PrimitiveType::Null,
-    //     PrimitiveType::Number;
-    //     "convert the null to a number"
-    // )]
-    // #[test_case(
-    //     PrimitiveType::Number,
-    //     PrimitiveType::Null;
-    //     "convert the number to a null"
-    // )]
-    // fn unification_unrelated_types(lhs: PrimitiveType, rhs: PrimitiveType) {
-    //     let heap = Heap::new();
-    //     let env = Environment::new(SpanId::SYNTHETIC, &heap);
-
-    //     primitive!(env, lhs, lhs);
-    //     primitive!(env, rhs, rhs);
-
-    //     let mut unif_env = UnificationEnvironment::new(&env);
-
-    //     lhs.unify(rhs, &mut unif_env);
-
-    //     let diagnostics = unif_env.diagnostics.take();
-
-    //     assert!(!diagnostics.is_empty(), "Unification should fail");
-    // }
 
     #[test_case(PrimitiveType::Number)]
     #[test_case(PrimitiveType::Integer)]
