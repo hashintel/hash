@@ -96,7 +96,7 @@ hashql-syntax-jexpr.path            = "libs/@local/hashql/syntax-jexpr"
 type-system.path                    = "libs/@blockprotocol/type-system/rust"
 
 # External dependencies
-ada-url                  = { version = "=3.2.1", default-features = false }
+ada-url                  = { version = "=3.2.3", default-features = false }
 ahash                    = { version = "=0.8.11", default-features = false }
 ansi-to-html             = { version = "=0.2.2", default-features = false }
 anstyle                  = { version = "=1.0.10", default-features = false }
