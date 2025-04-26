@@ -2,6 +2,7 @@ mod graph;
 mod tarjan;
 #[cfg(test)]
 mod test;
+mod topo;
 
 use alloc::rc::Rc;
 
@@ -150,17 +151,21 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         // used to find the connected component) but they should be consistent. In
         // our case, we record the subtype relationship, e.g. `lower is a subtype of upper`,
         // therefore `lower -> upper`.
+        // We also take into account any of the structural relationships, for example given: `_1 <:
+        // (name: _2)`, and then `_2 <: 1`, this means that the following must hold: `_1 ≡ _2`.
         let mut graph = Graph::new(&mut self.unification);
 
         for &constraint in &self.constraints {
-            let Constraint::Ordering { lower, upper } = constraint else {
-                continue;
+            let (source, target) = match constraint {
+                Constraint::Ordering { lower, upper } => (lower, upper),
+                Constraint::StructuralEdge { source, target } => (source, target),
+                _ => continue,
             };
 
-            let lower = self.unification.lookup[&lower.kind];
-            let upper = self.unification.lookup[&upper.kind];
+            let source = self.unification.lookup[&source.kind];
+            let target = self.unification.lookup[&target.kind];
 
-            graph.insert_edge(lower, upper);
+            graph.insert_edge(source, target);
         }
 
         let tarjan = Tarjan::new(&graph);
