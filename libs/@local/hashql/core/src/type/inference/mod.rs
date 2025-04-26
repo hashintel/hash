@@ -142,6 +142,20 @@ pub trait Inference<'heap> {
         env: &mut InferenceEnvironment<'_, 'heap>,
     );
 
+    /// Collects structural edges between this type and inference variables.
+    ///
+    /// This method tracks the propagation of type information through structural
+    /// relationships in types. It establishes directed flow connections between
+    /// types and their constituent parts, allowing the inference engine to
+    /// understand how type information should flow through complex nested structures.
+    ///
+    /// For example, when processing a record type with fields, this method would
+    /// track the relationship between the record variable and its field variables,
+    /// creating appropriate edges to represent these structural dependencies.
+    ///
+    /// The `variable` parameter specifies whether this type is the source or target
+    /// of the structural relationship, determining the direction of type flow during
+    /// inference.
     fn collect_structural_edges(
         self: Type<'heap, Self>,
         variable: PartialStructuralEdge,
