@@ -188,7 +188,7 @@ impl<'graph> Tarjan<'graph> {
 mod test {
     use roaring::RoaringBitmap;
 
-    use crate::r#type::inference::tarjan::Tarjan;
+    use crate::r#type::inference::solver::tarjan::Tarjan;
 
     /// Helper function to create a directed graph from an adjacency list
     fn create_graph(

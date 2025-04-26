@@ -1,3 +1,4 @@
+mod tarjan;
 #[cfg(test)]
 mod test;
 
@@ -6,9 +7,9 @@ use alloc::rc::Rc;
 use ena::unify::{InPlaceUnificationTable, NoError, UnifyKey as _};
 use roaring::RoaringBitmap;
 
+use self::tarjan::Tarjan;
 use super::{
     Constraint, Substitution, Variable, VariableKind,
-    tarjan::Tarjan,
     variable::{VariableId, VariableLookup},
 };
 use crate::r#type::{

@@ -1,5 +1,4 @@
 pub(crate) mod solver;
-mod tarjan;
 mod variable;
 
 use alloc::rc::Rc;
