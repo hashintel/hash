@@ -738,8 +738,8 @@ fn disconnected_constraint_graphs() {
     let type2 = substitution
         .infer(hole2)
         .expect("should have inferred type for hole2");
-    assert_equiv!(env, [type1], [string]);
-    assert_equiv!(env, [type2], [string]);
+    assert_equiv!(env, [type1], [string], substitution.clone());
+    assert_equiv!(env, [type2], [string], substitution.clone());
 
     // Group 2 should be resolved to number
     let type3 = substitution
@@ -748,6 +748,6 @@ fn disconnected_constraint_graphs() {
     let type4 = substitution
         .infer(hole4)
         .expect("should have inferred type for hole4");
-    assert_equiv!(env, [type3], [number]);
-    assert_equiv!(env, [type4], [number]);
+    assert_equiv!(env, [type3], [number], substitution.clone());
+    assert_equiv!(env, [type4], [number], substitution);
 }

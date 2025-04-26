@@ -85,7 +85,7 @@ impl Constraint {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct Substitution {
     variables: VariableLookup,
     substitutions: FastHashMap<VariableKind, TypeId>,

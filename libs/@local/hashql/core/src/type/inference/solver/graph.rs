@@ -128,6 +128,11 @@ impl Graph {
         debug_assert_ne!(source_index, Self::SENTINEL);
         debug_assert_ne!(target_index, Self::SENTINEL);
 
+        if source_index == target_index {
+            // We do not support self-loops.
+            return;
+        }
+
         self.edges[source_index].insert(target_index as u32);
     }
 

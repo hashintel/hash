@@ -295,7 +295,11 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
 
         for node in graph.nodes() {
             let kind = self.unification.variables[node.into_usize()];
-            let (_, variable_constraint) = &variables[&kind];
+
+            let Some((_, variable_constraint)) = variables.get(&kind) else {
+                tracing::warn!(?kind, "variable is unconstrained");
+                continue;
+            };
 
             if let Some(equal) = variable_constraint.equal {
                 substitution.insert(kind, equal);
@@ -374,22 +378,24 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
             let id = graph.node(index);
             let kind = self.unification.variables[id.into_usize()];
 
-            let (variable, mut variable_constraint) =
-                variables.remove(&kind).expect("variable should exist");
-
-            let Some(transitive_constraints) = lookup.get(&id) else {
+            let Some((variable, mut variable_constraint)) = variables.remove(&kind) else {
+                tracing::warn!(?kind, "variable is unconstrained");
                 continue;
             };
 
-            for &VariableOrdering { lower, upper: _ } in transitive_constraints {
-                // this bound applies to us
-                variable_constraint
-                    .lower
-                    .push(self.lattice.alloc(|id| Type {
-                        id,
-                        span: lower.origin.span,
-                        kind: self.lattice.intern_kind(lower.kind.into_type_kind()),
-                    }));
+            if let Some(transitive_constraints) = lookup.get(&id)
+                && variable_constraint.equal.is_none()
+            {
+                for &VariableOrdering { lower, upper: _ } in transitive_constraints {
+                    // this bound applies to us
+                    variable_constraint
+                        .lower
+                        .push(self.lattice.alloc(|id| Type {
+                            id,
+                            span: lower.origin.span,
+                            kind: self.lattice.intern_kind(lower.kind.into_type_kind()),
+                        }));
+                }
             }
 
             // Now that we have all bounds, unify them
@@ -457,22 +463,24 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
             let id = graph.node(index);
             let kind = self.unification.variables[id.into_usize()];
 
-            let (variable, mut variable_constraint) =
-                variables.remove(&kind).expect("variable should exist");
-
-            let Some(transitive_constraints) = lookup.get(&id) else {
+            let Some((variable, mut variable_constraint)) = variables.remove(&kind) else {
+                tracing::warn!(?kind, "variable is unconstrained");
                 continue;
             };
 
-            for &VariableOrdering { lower: _, upper } in transitive_constraints {
-                // this bound applies to us
-                variable_constraint
-                    .upper
-                    .push(self.lattice.alloc(|id| Type {
-                        id,
-                        span: upper.origin.span,
-                        kind: self.lattice.intern_kind(upper.kind.into_type_kind()),
-                    }));
+            if let Some(transitive_constraints) = lookup.get(&id)
+                && variable_constraint.equal.is_none()
+            {
+                for &VariableOrdering { lower: _, upper } in transitive_constraints {
+                    // this bound applies to us
+                    variable_constraint
+                        .upper
+                        .push(self.lattice.alloc(|id| Type {
+                            id,
+                            span: upper.origin.span,
+                            kind: self.lattice.intern_kind(upper.kind.into_type_kind()),
+                        }));
+                }
             }
 
             // Now that we have all bounds, unify them
@@ -489,7 +497,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
             if equal.is_none()
                 && let Some(upper) = upper
             {
-                // insert into substitution map, so that future resolvers can use it can use it
+                // Insert into substitution map, so that future resolvers can use it
                 let substitution = self
                     .lattice
                     .substitution_mut()
@@ -519,9 +527,11 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     fn apply_constraints(
         &mut self,
     ) -> FastHashMap<VariableKind, (Variable, ResolvedVariableConstraint)> {
+        let constraints = self.collect_constraints();
+
         let mut graph = Graph::new(&mut self.unification);
 
-        // build the graph over the constraints
+        // Build the graph over the constraints
         for &constraint in &self.constraints {
             let (source, target) = match constraint {
                 Constraint::Ordering { lower, upper } => (lower, upper),
@@ -535,7 +545,6 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
             );
         }
 
-        let constraints = self.collect_constraints();
         let constraints = self.apply_constraints_forwards(&graph, constraints);
 
         self.apply_constraints_backwards(&graph, constraints)
@@ -546,6 +555,22 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         constraints: FastHashMap<VariableKind, (Variable, ResolvedVariableConstraint)>,
     ) -> FastHashMap<VariableKind, TypeId> {
         let mut substitutions = FastHashMap::default();
+
+        let mut substitution = Substitution::new(
+            self.unification.lookup(),
+            FastHashMap::with_capacity_and_hasher(
+                constraints.len(),
+                foldhash::fast::RandomState::default(),
+            ),
+        );
+
+        for (&kind, (_, constraint)) in &constraints {
+            if let Some(constraint) = constraint.equal {
+                substitution.insert(kind, constraint);
+            }
+        }
+
+        self.lattice.set_substitution(substitution);
 
         for (kind, (variable, constraint)) in constraints {
             if let VariableConstraint {
@@ -572,10 +597,6 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                     lower: None,
                     upper: None,
                 } => {
-                    // TODO: remove this in favour of a second pass, that looks at all the parents
-                    // and children to see if there are any that can be the upper/lower bound
-                    // instead (this would then need to be `meet`/`join`ed)
-
                     self.diagnostics.push(unconstrained_type_variable(variable));
                 }
                 // in case there's a single constraint we can simply just use that type
@@ -641,6 +662,8 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                 }
             }
         }
+
+        self.lattice.clear_substitution();
 
         substitutions
     }
