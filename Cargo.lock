@@ -2503,18 +2503,8 @@ version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6c3e394701a8864e869bfef6213a52a938ab487c9e7bb3496e694b47295f1460"
 dependencies = [
- "facet-core 0.18.0",
+ "facet-core",
  "facet-derive",
-]
-
-[[package]]
-name = "facet-core"
-version = "0.17.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "737410c2be3f59a8ce3d9e166e2882f5873e2661cffff881b95a23fe8e5d6343"
-dependencies = [
- "bitflags 2.9.0",
- "impls",
 ]
 
 [[package]]
@@ -2533,7 +2523,7 @@ version = "0.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "782cb843198aaa2bfb5651ae46f6f9ec89ccfe51ebc17fba524bdb9de7d68abe"
 dependencies = [
- "facet-core 0.18.0",
+ "facet-core",
  "facet-derive-emit",
 ]
 
@@ -3242,7 +3232,7 @@ name = "hash-codegen"
 version = "0.0.0"
 dependencies = [
  "facet",
- "facet-core 0.17.0",
+ "facet-core",
  "simple-mermaid",
 ]
 
