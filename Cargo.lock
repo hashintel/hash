@@ -1932,7 +1932,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8d162beedaa69905488a8da94f5ac3edb4dd4788b732fadb7bd120b2625c1976"
 dependencies = [
  "data-encoding",
- "syn 1.0.109",
+ "syn 2.0.100",
 ]
 
 [[package]]
@@ -2499,11 +2499,11 @@ dependencies = [
 
 [[package]]
 name = "facet"
-version = "0.9.8"
+version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "36b55e98a6cc63c843db91f6db4be9f47067b9bd07d93560da0ba4c0f55f20fd"
+checksum = "29bbf04fadc9ad262179a8b1e1ef368f4912a1744cddd146df99ba354217aa7d"
 dependencies = [
- "facet-core",
+ "facet-core 0.16.0",
  "facet-derive",
 ]
 
@@ -2518,29 +2518,39 @@ dependencies = [
 ]
 
 [[package]]
-name = "facet-derive"
-version = "0.9.8"
+name = "facet-core"
+version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9982f286c2121f36d6921c7ecedde49158a5ba8eef622a4fd777ff502c1348e3"
+checksum = "c86ff34a7b0065464ab851d5a367236e812a6ae0e67c719f624837c51cf0e40d"
 dependencies = [
- "facet-core",
+ "bitflags 2.9.0",
+ "impls",
+]
+
+[[package]]
+name = "facet-derive"
+version = "0.16.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2f8521a1c38b4718eea9e1669773e675fb06fd5dced2f1133bdca69b3986f590"
+dependencies = [
+ "facet-core 0.16.0",
  "facet-derive-emit",
 ]
 
 [[package]]
 name = "facet-derive-emit"
-version = "0.15.0"
+version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2ed20e29f8aa502cf1263eb040e3442ef84636e89a88ee8dffcda336a1152a38"
+checksum = "62caecedfc704e191898c1ef7c5ef64c2b399d439634c0f8fb1692dfe15bc274"
 dependencies = [
  "facet-derive-parse",
 ]
 
 [[package]]
 name = "facet-derive-parse"
-version = "0.15.0"
+version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "71ea122ff95ac65c86bf18d0ba7f04f087ef5dd20f7dc76cb5bd69cbb14bd8ad"
+checksum = "6cfe6687ea07b1aefbece076e69e3d258a994845e0d790472974e71914c2866e"
 dependencies = [
  "unsynn",
 ]
@@ -3232,7 +3242,7 @@ name = "hash-codegen"
 version = "0.0.0"
 dependencies = [
  "facet",
- "facet-core",
+ "facet-core 0.12.0",
  "simple-mermaid",
 ]
 
@@ -8137,7 +8147,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "72b64191b275b66ffe2469e8af2c1cfe3bafa67b529ead792a6d0160888b4237"
 dependencies = [
  "proc-macro2",
- "quote",
  "unicode-ident",
 ]
 
