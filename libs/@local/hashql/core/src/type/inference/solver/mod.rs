@@ -573,6 +573,13 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                 && variable_constraint.equal.is_none()
             {
                 for &VariableOrdering { lower, upper: _ } in transitive_constraints {
+                    if !self.lattice.contains_substitution(lower.kind) {
+                        // This is a type that hasn't contributed to the lattice, meaning it's not
+                        // relevant to our current inference process / has no lower bound that we
+                        // can apply.
+                        continue;
+                    }
+
                     // this bound applies to us
                     variable_constraint
                         .lower
@@ -688,6 +695,13 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                 && variable_constraint.equal.is_none()
             {
                 for &VariableOrdering { lower: _, upper } in transitive_constraints {
+                    if !self.lattice.contains_substitution(upper.kind) {
+                        // This is a type that hasn't contributed to the lattice, meaning it's not
+                        // relevant to our current inference process / has no upper bound that we
+                        // can apply.
+                        continue;
+                    }
+
                     // this bound applies to us
                     variable_constraint
                         .upper

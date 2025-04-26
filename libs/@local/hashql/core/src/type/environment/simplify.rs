@@ -5,7 +5,7 @@ use smallvec::SmallVec;
 use super::{AnalysisEnvironment, Diagnostics, Environment};
 use crate::r#type::{
     Type, TypeId,
-    inference::{Substitution, VariableLookup},
+    inference::{Substitution, VariableKind, VariableLookup},
     lattice::Lattice as _,
     recursion::RecursionBoundary,
 };
@@ -44,6 +44,11 @@ impl<'env, 'heap> SimplifyEnvironment<'env, 'heap> {
     #[inline]
     pub(crate) const fn substitution_mut(&mut self) -> Option<&mut Substitution> {
         self.analysis.substitution_mut()
+    }
+
+    #[inline]
+    pub(crate) fn contains_substitution(&self, kind: VariableKind) -> bool {
+        self.analysis.contains_substitution(kind)
     }
 
     pub(crate) fn take_diagnostics(&mut self) -> Option<Diagnostics> {

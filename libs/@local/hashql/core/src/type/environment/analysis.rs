@@ -6,7 +6,7 @@ use super::{Diagnostics, Environment, Variance};
 use crate::r#type::{
     Type, TypeId,
     error::{TypeCheckDiagnostic, circular_type_reference},
-    inference::{Substitution, VariableLookup},
+    inference::{Substitution, VariableKind, VariableLookup},
     kind::{Infer, Param, TypeKind},
     lattice::Lattice as _,
     recursion::RecursionBoundary,
@@ -44,6 +44,15 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
 
     pub(crate) fn clear_substitution(&mut self) {
         self.substitution = None;
+    }
+
+    pub(crate) fn contains_substitution(&self, kind: VariableKind) -> bool {
+        let substitution = self
+            .substitution
+            .as_ref()
+            .unwrap_or(&self.environment.substitution);
+
+        substitution.contains(kind)
     }
 
     pub(crate) const fn substitution_mut(&mut self) -> Option<&mut Substitution> {

@@ -6,7 +6,7 @@ use super::{Diagnostics, Environment, SimplifyEnvironment};
 use crate::r#type::{
     Type, TypeId,
     error::circular_type_reference,
-    inference::{Substitution, VariableLookup},
+    inference::{Substitution, VariableKind, VariableLookup},
     kind::{IntersectionType, TypeKind, UnionType},
     lattice::Lattice as _,
     recursion::RecursionBoundary,
@@ -52,6 +52,11 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
     #[inline]
     pub(crate) const fn substitution_mut(&mut self) -> Option<&mut Substitution> {
         self.simplify.substitution_mut()
+    }
+
+    #[inline]
+    pub(crate) fn contains_substitution(&self, kind: VariableKind) -> bool {
+        self.simplify.contains_substitution(kind)
     }
 
     pub const fn without_simplify(&mut self) -> &mut Self {

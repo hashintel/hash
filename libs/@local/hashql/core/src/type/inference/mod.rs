@@ -107,6 +107,10 @@ impl Substitution {
         self.substitutions.insert(key, value);
     }
 
+    pub(crate) fn contains(&self, kind: VariableKind) -> bool {
+        self.substitutions.contains_key(&kind)
+    }
+
     #[must_use]
     pub fn argument(&self, id: GenericArgumentId) -> Option<TypeId> {
         let root = self.variables.get(VariableKind::Generic(id))?;

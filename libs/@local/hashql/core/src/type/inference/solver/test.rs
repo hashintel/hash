@@ -3,17 +3,19 @@ use crate::{
     heap::Heap,
     span::SpanId,
     r#type::{
+        Type,
         collection::FastHashMap,
         environment::{AnalysisEnvironment, Environment},
         error::TypeCheckDiagnosticCategory,
         inference::{Variable, VariableKind, solver::Unification},
         kind::{
-            PrimitiveType, TypeKind,
+            PrimitiveType, StructType, TypeKind,
             infer::HoleId,
-            test::{assert_equiv, primitive},
+            r#struct::StructField,
+            test::{assert_equiv, primitive, r#struct, struct_field},
         },
         pretty_print::PrettyPrint as _,
-        test::instantiate,
+        test::{instantiate, instantiate_infer},
     },
 };
 
@@ -750,4 +752,130 @@ fn disconnected_constraint_graphs() {
         .expect("should have inferred type for hole4");
     assert_equiv!(env, [type3], [number], substitution.clone());
     assert_equiv!(env, [type4], [number], substitution);
+}
+
+#[test]
+fn propagate() {
+    let heap = Heap::new();
+    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+    let hole1 = HoleId::new(1);
+    let hole2 = HoleId::new(2);
+    let hole3 = HoleId::new(3);
+    let hole4 = HoleId::new(4);
+
+    let string = primitive!(env, PrimitiveType::String);
+    let number = primitive!(env, PrimitiveType::Number);
+
+    let variable1 = Variable::synthetic(VariableKind::Hole(hole1));
+    let variable2 = Variable::synthetic(VariableKind::Hole(hole2));
+    let variable3 = Variable::synthetic(VariableKind::Hole(hole3));
+    let variable4 = Variable::synthetic(VariableKind::Hole(hole4));
+
+    let constraints = vec![
+        // Group 1: holes 1 and 2
+        Constraint::Ordering {
+            lower: variable1,
+            upper: variable2,
+        },
+        Constraint::UpperBound {
+            variable: variable2,
+            bound: string,
+        },
+        // Group 2: holes 3 and 4
+        Constraint::Ordering {
+            lower: variable3,
+            upper: variable4,
+        },
+        Constraint::LowerBound {
+            variable: variable3,
+            bound: number,
+        },
+    ];
+
+    let solver = InferenceSolver::new(&env, Unification::new(), constraints);
+    let (substitution, diagnostics) = solver.solve();
+    assert!(diagnostics.is_empty());
+
+    // Group 1 should be resolved to string
+    let type1 = substitution
+        .infer(hole1)
+        .expect("should have inferred type for hole1");
+    let type2 = substitution
+        .infer(hole2)
+        .expect("should have inferred type for hole2");
+    assert_equiv!(env, [type1], [string], substitution.clone());
+    assert_equiv!(env, [type2], [string], substitution.clone());
+
+    // Group 2 should be resolved to number
+    let type3 = substitution
+        .infer(hole3)
+        .expect("should have inferred type for hole3");
+    let type4 = substitution
+        .infer(hole4)
+        .expect("should have inferred type for hole4");
+    assert_equiv!(env, [type3], [number], substitution.clone());
+    assert_equiv!(env, [type4], [number], substitution);
+}
+
+#[test]
+fn contract() {
+    let heap = Heap::new();
+    let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+    // check if `_1 <: (name: _2)`, `_2 <: (name: _1)` yields `_1 = (name: _1)`
+    let hole1 = HoleId::new(1);
+    let hole2 = HoleId::new(2);
+
+    let variable1 = Variable::synthetic(VariableKind::Hole(hole1));
+    let variable2 = Variable::synthetic(VariableKind::Hole(hole2));
+
+    let person1 = r#struct!(
+        env,
+        [],
+        [struct_field!(env, "name", instantiate_infer(&env, hole2))]
+    );
+
+    let person2 = r#struct!(
+        env,
+        [],
+        [struct_field!(env, "name", instantiate_infer(&env, hole1))]
+    );
+
+    let constraints = vec![
+        Constraint::UpperBound {
+            variable: variable1,
+            bound: person1,
+        },
+        Constraint::UpperBound {
+            variable: variable2,
+            bound: person2,
+        },
+    ];
+
+    let solver = InferenceSolver::new(&env, Unification::new(), constraints);
+    let (substitution, diagnostics) = solver.solve();
+    assert!(diagnostics.is_empty());
+
+    env.substitution = substitution.clone();
+
+    let expected = env.alloc(|id| Type {
+        id,
+        span: SpanId::SYNTHETIC,
+        kind: env.intern_kind(TypeKind::Struct(StructType {
+            fields: env
+                .intern_struct_fields(&mut [StructField {
+                    name: env.heap.intern_symbol("name"),
+                    value: id,
+                }])
+                .expect("should be uniq"),
+            arguments: env.intern_generic_arguments(&mut []),
+        })),
+    });
+
+    let actual = substitution
+        .infer(hole1)
+        .expect("should have unified hole 1");
+
+    assert_equiv!(env, [actual], [expected], substitution);
 }
