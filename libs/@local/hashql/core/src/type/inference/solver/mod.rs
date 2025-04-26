@@ -1,3 +1,4 @@
+mod graph;
 mod tarjan;
 #[cfg(test)]
 mod test;
