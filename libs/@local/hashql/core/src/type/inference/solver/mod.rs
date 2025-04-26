@@ -255,6 +255,9 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         constraints
     }
 
+    // TODO: we need to do a two-pass, the first pass will solve all the constraints that have at
+    // least one Some. The second pass then will solve all the constraints that have none, but takes
+    // into account the solved constraints as bounds.
     fn solve_constraints(
         &mut self,
         constraints: FastHashMap<VariableKind, (Variable, VariableConstraint)>,
@@ -286,6 +289,10 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                     lower: None,
                     upper: None,
                 } => {
+                    // TODO: remove this in favour of a second pass, that looks at all the parents
+                    // and children to see if there are any that can be the upper/lower bound
+                    // instead (this would then need to be `meet`/`join`ed)
+
                     self.diagnostics.push(unconstrained_type_variable(variable));
                 }
                 // in case there's a single constraint we can simply just use that type

@@ -17,28 +17,6 @@ use crate::{
     },
 };
 
-// #[test]
-// fn simple_equality_constraint() {
-//     let heap = Heap::new();
-//     let env = Environment::new(SpanId::SYNTHETIC, &heap);
-
-//     let hole = HoleId::new(0);
-
-//     let string = primitive!(env, PrimitiveType::String);
-
-//     let constraints = vec![Constraint::Equals {
-//         variable: Variable::synthetic(VariableKind::Hole(hole)),
-//         r#type: string,
-//     }];
-
-//     let solver = InferenceSolver::new(&env, Unification::new(), constraints);
-//     let (substitution, diagnostics) = solver.solve();
-//     assert!(diagnostics.is_empty());
-
-//     let inferred_type = substitution.infer(hole).expect("should have inferred type");
-//     assert_equiv!(env, [inferred_type], [string]);
-// }
-
 #[test]
 fn unification_upsert_variable() {
     let mut unification = Unification::new();
