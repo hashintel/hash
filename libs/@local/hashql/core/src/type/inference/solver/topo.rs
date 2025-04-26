@@ -1,53 +1,8 @@
-use bitvec::{bitbox, boxed::BitBox, field::BitField as _, slice::BitSlice};
+use alloc::collections::VecDeque;
+
 use roaring::RoaringBitmap;
 
 use super::graph::Graph;
-
-struct VisitStateBuffer(BitBox);
-
-impl VisitStateBuffer {
-    fn new(length: usize) -> Self {
-        Self(bitbox![0; length * 2])
-    }
-
-    fn get(&self, index: usize) -> VisitState {
-        let offset = index * 2;
-        let slice = &self.0[offset..offset + 2];
-
-        VisitState::from_slice(slice)
-    }
-
-    fn set(&mut self, index: usize, state: VisitState) {
-        let offset = index * 2;
-        let slice = &mut self.0[offset..offset + 2];
-
-        slice.store(state as u8);
-    }
-}
-
-/// A node's visit state during topological sort
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-enum VisitState {
-    /// Node has not been visited yet
-    Unvisited,
-    /// Node is currently being visited (in current DFS path)
-    Visiting,
-    /// Node has been completely visited
-    Visited,
-}
-
-impl VisitState {
-    fn from_slice(slice: &BitSlice) -> Self {
-        let bytes = slice.load::<u8>();
-
-        match bytes {
-            0 => Self::Unvisited,
-            1 => Self::Visiting,
-            2 => Self::Visited,
-            _ => panic!("Invalid visit state"),
-        }
-    }
-}
 
 /// Performs a topological sort on the graph.
 ///
@@ -55,86 +10,48 @@ impl VisitState {
 /// (where dependencies come before dependents).
 ///
 /// If the graph contains cycles, returns the nodes involved in a cycle.
+#[expect(clippy::cast_possible_truncation)]
 pub(crate) fn topological_sort(graph: &Graph) -> Result<Vec<usize>, RoaringBitmap> {
-    let node_count = graph.node_count();
-
-    // Early return for empty graphs
-    if node_count == 0 {
-        return Ok(Vec::new());
-    }
-
-    // Track visit state for each node
-    let mut states = VisitStateBuffer::new(node_count);
-    // Result vector in reverse order (to avoid O(n) prepends)
-    let mut sorted = Vec::with_capacity(node_count);
-    // Track the current path for cycle detection
-    let mut path = Vec::new();
-
-    // Process each node
-    for start in 0..node_count {
-        let state = states.get(start);
-        if state != VisitState::Unvisited {
-            continue;
+    let mut indegree = vec![0; graph.node_count()];
+    for source in 0..graph.node_count() {
+        for target in graph.outgoing_edges_by_index(source) {
+            indegree[target] += 1;
         }
-
-        // Try to visit this node, return if we detect a cycle
-        visit_node(graph, start, &mut states, &mut sorted, &mut path)?;
     }
 
-    // Reverse to get correct topological order (dependencies before dependents)
-    sorted.reverse();
+    let mut queue = VecDeque::new();
+    for (node, &degree) in indegree.iter().enumerate() {
+        if degree == 0 {
+            queue.push_back(node);
+        }
+    }
 
-    Ok(sorted)
-}
+    let mut order = Vec::with_capacity(graph.node_count());
+    while let Some(source) = queue.pop_front() {
+        order.push(source);
 
-/// Helper function for depth-first search during topological sort
-fn visit_node(
-    graph: &Graph,
-    node: usize,
-    states: &mut VisitStateBuffer,
-    sorted: &mut Vec<usize>,
-    path: &mut Vec<usize>,
-) -> Result<(), RoaringBitmap> {
-    // Mark as being visited
-    states.set(node, VisitState::Visiting);
-    path.push(node);
+        for target in graph.outgoing_edges_by_index(source) {
+            indegree[target] -= 1;
 
-    // Visit all dependencies
-    for neighbour in graph.outgoing_edges_by_index(node) {
-        let state = states.get(neighbour);
-        match state {
-            VisitState::Unvisited => {
-                // Recursively visit unvisited neighbors
-                visit_node(graph, neighbour, states, sorted, path)?;
-            }
-            VisitState::Visiting => {
-                // Found a cycle, extract the nodes in the cycle
-                let cycle_start = path
-                    .iter()
-                    .position(|&node| node == neighbour)
-                    .expect("Node should be part of the path");
-
-                let cycle_nodes = path[cycle_start..]
-                    .iter()
-                    .map(|&node| node as u32)
-                    .collect();
-
-                return Err(cycle_nodes);
-            }
-            VisitState::Visited => {
-                // Node already processed, nothing to do
+            if indegree[target] == 0 {
+                queue.push_back(target);
             }
         }
     }
 
-    // Remove from current path
-    path.pop();
+    if order.len() == graph.node_count() {
+        return Ok(order);
+    }
 
-    // Mark as fully visited and add to result
-    states.set(node, VisitState::Visited);
-    sorted.push(node);
+    // Any node still with indegree>0 is in a cycle
+    let cycle = indegree
+        .into_iter()
+        .enumerate()
+        .filter(|&(_, degree)| degree > 0)
+        .map(|(index, _)| index as u32)
+        .collect();
 
-    Ok(())
+    Err(cycle)
 }
 
 #[cfg(test)]
@@ -143,7 +60,7 @@ mod tests {
     use crate::r#type::inference::solver::graph::Graph;
 
     #[test]
-    fn test_empty_graph() {
+    fn empty_graph() {
         let graph = Graph::from_edges([] as [&[_]; 0]);
 
         let result = topological_sort(&graph).expect("empty graph should not have cycles");
@@ -151,7 +68,7 @@ mod tests {
     }
 
     #[test]
-    fn test_single_node() {
+    fn single_node() {
         let graph = Graph::from_edges([&[]]);
 
         let result = topological_sort(&graph).expect("single node graph should not have cycles");
@@ -159,7 +76,7 @@ mod tests {
     }
 
     #[test]
-    fn test_dag() {
+    fn dag() {
         // 0 --> 1 --> 3
         // |     ^
         // v     |
@@ -176,7 +93,7 @@ mod tests {
     }
 
     #[test]
-    fn test_cycle() {
+    fn cycle() {
         // 0 --> 1 --> 2 -->
         // ^               |
         // |               v
@@ -191,5 +108,19 @@ mod tests {
 
         let result = topological_sort(&graph).expect_err("should have detected a cycle");
         assert_eq!(result.iter().collect::<Vec<_>>(), [0, 1, 2, 3, 4]);
+    }
+
+    #[test]
+    fn disjoint_cycle() {
+        // 0 -> 1 -> 0, 2 -> 3 -> 2
+        let graph = Graph::from_edges([
+            [1_u32], // Node 0 points to 1
+            [0],     // Node 1 points to 0
+            [3],     // Node 2 points to 3
+            [2],     // Node 3 points to 2
+        ]);
+
+        let result = topological_sort(&graph).expect_err("should have detected a cycle");
+        assert_eq!(result.iter().collect::<Vec<_>>(), [0, 1, 2, 3]);
     }
 }
