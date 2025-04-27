@@ -5,6 +5,7 @@ use smallvec::SmallVec;
 
 use super::{TypeKind, generic_argument::GenericArguments};
 use crate::{
+    intern::Interned,
     math::cartesian_product,
     r#type::{
         Type, TypeId,
@@ -22,7 +23,7 @@ use crate::{
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct TupleType<'heap> {
-    pub fields: &'heap [TypeId],
+    pub fields: Interned<'heap, [TypeId]>,
 
     pub arguments: GenericArguments<'heap>,
 }

@@ -19,8 +19,10 @@
 extern crate alloc;
 
 pub mod arena;
+pub mod collection;
 pub mod heap;
 pub mod id;
+pub mod intern;
 pub mod math;
 pub mod span;
 pub mod symbol;

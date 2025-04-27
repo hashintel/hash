@@ -1,9 +1,8 @@
 use hashbrown::HashSet;
 use pretty::RcDoc;
 
-use super::{
-    TypeId, collection::FastHashSet, environment::Environment, pretty_print::PrettyPrint as _,
-};
+use super::{TypeId, environment::Environment, pretty_print::PrettyPrint as _};
+use crate::collection::FastHashSet;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct RecursionDepthBoundary {

@@ -11,14 +11,16 @@ use super::{
     Constraint, Substitution, Variable, VariableKind,
     variable::{VariableId, VariableLookup},
 };
-use crate::r#type::{
-    Type, TypeId,
+use crate::{
     collection::FastHashMap,
-    environment::{Diagnostics, Environment, LatticeEnvironment, SimplifyEnvironment},
-    error::{
-        bound_constraint_violation, conflicting_equality_constraints,
-        incompatible_lower_equal_constraint, incompatible_upper_equal_constraint,
-        unconstrained_type_variable, unconstrained_type_variable_floating,
+    r#type::{
+        Type, TypeId,
+        environment::{Diagnostics, Environment, LatticeEnvironment, SimplifyEnvironment},
+        error::{
+            bound_constraint_violation, conflicting_equality_constraints,
+            incompatible_lower_equal_constraint, incompatible_upper_equal_constraint,
+            unconstrained_type_variable, unconstrained_type_variable_floating,
+        },
     },
 };
 

@@ -1,10 +1,10 @@
 use super::{Constraint, InferenceSolver, VariableConstraint};
 use crate::{
+    collection::FastHashMap,
     heap::Heap,
     span::SpanId,
     r#type::{
         Type,
-        collection::FastHashMap,
         environment::{AnalysisEnvironment, Environment, InferenceEnvironment},
         error::TypeCheckDiagnosticCategory,
         inference::{Variable, VariableKind, solver::Unification},

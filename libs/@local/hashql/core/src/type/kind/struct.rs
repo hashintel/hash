@@ -5,11 +5,12 @@ use smallvec::SmallVec;
 
 use super::{TypeKind, generic_argument::GenericArguments};
 use crate::{
+    collection::FastHashMap,
+    intern::Interned,
     math::cartesian_product,
     symbol::InternedSymbol,
     r#type::{
         Type, TypeId,
-        collection::FastHashMap,
         environment::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
             SimplifyEnvironment,
@@ -43,12 +44,11 @@ impl PrettyPrint for StructField<'_> {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct StructFields<'heap>(&'heap [StructField<'heap>]);
+pub struct StructFields<'heap>(Option<Interned<'heap, [StructField<'heap>]>>);
 
 impl<'heap> StructFields<'heap> {
-    #[must_use]
-    pub const fn empty() -> Self {
-        Self(&[])
+    pub const fn new() -> Self {
+        Self(None)
     }
 
     /// Create a new `StructFields` from a slice of `StructField`s.
@@ -57,19 +57,36 @@ impl<'heap> StructFields<'heap> {
     ///
     /// You should probably use `Environment::intern_struct_fields` instead.
     #[must_use]
-    pub const fn from_slice_unchecked(slice: &'heap [StructField<'heap>]) -> Self {
-        Self(slice)
+    pub const fn from_slice_unchecked(slice: Interned<'heap, [StructField<'heap>]>) -> Self {
+        Self(Some(slice))
     }
 
     #[must_use]
     pub const fn as_slice(&self) -> &[StructField<'heap>] {
-        self.0
+        match self.0 {
+            Some(Interned(slice, _)) => slice,
+            None => &[],
+        }
+    }
+
+    pub const fn len(&self) -> usize {
+        match self.0 {
+            Some(Interned(slice, _)) => slice.len(),
+            None => 0,
+        }
+    }
+
+    pub const fn is_empty(&self) -> bool {
+        match self.0 {
+            Some(Interned(slice, _)) => slice.is_empty(),
+            None => true,
+        }
     }
 }
 
 impl<'heap> AsRef<[StructField<'heap>]> for StructFields<'heap> {
     fn as_ref(&self) -> &[StructField<'heap>] {
-        self.0
+        self.as_slice()
     }
 }
 
@@ -77,7 +94,7 @@ impl<'heap> Deref for StructFields<'heap> {
     type Target = [StructField<'heap>];
 
     fn deref(&self) -> &Self::Target {
-        self.0
+        self.as_slice()
     }
 }
 
@@ -87,15 +104,14 @@ impl PrettyPrint for StructFields<'_> {
         env: &'env Environment,
         limit: RecursionDepthBoundary,
     ) -> RcDoc<'env, anstyle::Style> {
-        if self.0.is_empty() {
-            RcDoc::text(":")
-        } else {
-            RcDoc::intersperse(
-                self.0.iter().map(|field| field.pretty(env, limit)),
+        match self.0 {
+            Some(Interned([], _)) | None => RcDoc::text(":"),
+            Some(Interned(fields, _)) => RcDoc::intersperse(
+                fields.iter().map(|field| field.pretty(env, limit)),
                 RcDoc::text(",").append(RcDoc::line()),
             )
             .nest(1)
-            .group()
+            .group(),
         }
     }
 }

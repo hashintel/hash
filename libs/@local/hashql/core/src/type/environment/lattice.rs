@@ -4,7 +4,7 @@ use smallvec::SmallVec;
 
 use super::{Diagnostics, Environment, SimplifyEnvironment};
 use crate::r#type::{
-    Type, TypeId,
+    PartialType, Type, TypeId,
     error::circular_type_reference,
     inference::{Substitution, VariableKind, VariableLookup},
     kind::{IntersectionType, TypeKind, UnionType},
@@ -135,11 +135,12 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
             variants: self.intern_type_ids(&[lhs.id, rhs.id]),
         }));
 
-        self.environment.alloc(|id| Type {
-            id,
-            span: lhs.span,
-            kind,
-        })
+        self.environment
+            .intern_type(PartialType {
+                span: lhs.span,
+                kind,
+            })
+            .id
     }
 
     pub fn join(&mut self, lhs: TypeId, rhs: TypeId) -> TypeId {
