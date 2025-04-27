@@ -1,6 +1,18 @@
+//! Module system for HashQL language.
+//!
+//! This module provides the core functionality for defining and resolving modules,
+//! managing imports, and maintaining the global registry of available items.
+//!
+//! Key components:
+//!
+//! - `ModuleRegistry`: The central registry for all modules and items
+//! - `Module`: A container for related items
+//! - `Namespace`: A collection of imports that define the available names in a scope
+//! - `Import`: An individual imported item with its name and metadata
 // TODO: This might move into the HIR instead, if required
 pub mod import;
 pub mod item;
+pub mod namespace;
 mod std_lib;
 
 use std::sync::Mutex;
@@ -18,6 +30,10 @@ use crate::{
 
 newtype!(pub struct ModuleId(u32 is 0..=0xFFFF_FF00));
 
+/// The central registry for all modules and items in a HashQL program.
+///
+/// The `ModuleRegistry` serves as the global namespace for module resolution.
+/// It tracks all available modules and their exported items.
 #[derive(Debug)]
 pub struct ModuleRegistry<'heap> {
     heap: &'heap Heap,
@@ -32,6 +48,7 @@ pub struct ModuleRegistry<'heap> {
 }
 
 impl<'heap> ModuleRegistry<'heap> {
+    /// Creates an empty module registry using the given heap.
     pub fn empty(heap: &'heap Heap) -> Self {
         Self {
             heap,
@@ -41,6 +58,10 @@ impl<'heap> ModuleRegistry<'heap> {
         }
     }
 
+    /// Creates a new module registry with the standard library pre-loaded.
+    ///
+    /// This initializes the registry with all the standard modules and items
+    /// defined in the HashQL standard library.
     pub fn new(env: &Environment<'heap>) -> Self {
         let this = Self::empty(env.heap);
 
@@ -112,6 +133,11 @@ impl<'heap> ModuleRegistry<'heap> {
     }
 }
 
+/// A module in the HashQL language.
+///
+/// A module represents a namespace containing items such as types, values,
+/// and other modules. It forms part of the hierarchical structure of a
+/// HashQL program.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Module<'heap> {
     pub id: ModuleId,
@@ -120,6 +146,7 @@ pub struct Module<'heap> {
 }
 
 impl<'heap> Module<'heap> {
+    /// Finds an item within this module by name.
     pub fn find(
         &self,
         registry: &ModuleRegistry<'heap>,
