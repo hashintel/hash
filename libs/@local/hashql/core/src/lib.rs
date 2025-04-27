@@ -25,6 +25,7 @@ pub mod heap;
 pub mod id;
 pub mod intern;
 pub mod math;
+pub mod module;
 pub mod span;
 pub mod symbol;
 pub mod r#type;
