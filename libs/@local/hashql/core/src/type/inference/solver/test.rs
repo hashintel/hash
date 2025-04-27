@@ -5,14 +5,14 @@ use crate::{
     r#type::{
         Type,
         collection::FastHashMap,
-        environment::{AnalysisEnvironment, Environment},
+        environment::{AnalysisEnvironment, Environment, InferenceEnvironment},
         error::TypeCheckDiagnosticCategory,
         inference::{Variable, VariableKind, solver::Unification},
         kind::{
-            PrimitiveType, StructType, TypeKind,
+            PrimitiveType, StructType, TypeKind, UnionType,
             infer::HoleId,
             r#struct::StructField,
-            test::{assert_equiv, primitive, r#struct, struct_field},
+            test::{assert_equiv, primitive, r#struct, struct_field, union},
         },
         pretty_print::PrettyPrint as _,
         test::{instantiate, instantiate_infer},
@@ -470,16 +470,14 @@ fn simplify_substitutions() {
 
     // Create a substitution map
     let mut substitutions = FastHashMap::default();
-    substitutions.insert(var_kind, string);
+    substitutions.insert(var_kind, union!(env, [string, string]));
     let lookup = solver.unification.lookup();
 
     // Call simplify_substitutions
-    let simplified = solver.simplify_substitutions(lookup, substitutions);
+    solver.simplify_substitutions(lookup, &mut substitutions);
 
-    // The simplification might not actually change anything in this simple case,
-    // but we can verify it contains the right data
-    assert_eq!(simplified.len(), 1);
-    assert_eq!(simplified[&var_kind], string);
+    assert_eq!(substitutions.len(), 1);
+    assert_eq!(substitutions[&var_kind], string);
 }
 
 // =============== EDGE CASES ===============
@@ -999,4 +997,71 @@ fn contract() {
         .expect("should have unified hole 1");
 
     assert_equiv!(env, [actual], [expected], substitution);
+}
+
+#[test]
+fn do_not_double_emit_on_unconstrained_variables() {
+    let heap = Heap::new();
+    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+    let hole1 = HoleId::new(1);
+    let hole2 = HoleId::new(2);
+
+    let variable1 = Variable::synthetic(VariableKind::Hole(hole1));
+    let variable2 = Variable::synthetic(VariableKind::Hole(hole2));
+
+    let constraints = vec![Constraint::Ordering {
+        lower: variable1,
+        upper: variable2,
+    }];
+
+    let solver = InferenceSolver::new(&env, Unification::new(), constraints);
+    let (_, diagnostics) = solver.solve();
+    let diagnostics = diagnostics.into_vec();
+
+    assert_eq!(diagnostics.len(), 2);
+
+    assert_eq!(
+        diagnostics[0].category,
+        TypeCheckDiagnosticCategory::UnconstrainedTypeVariable
+    );
+    assert_eq!(
+        diagnostics[1].category,
+        TypeCheckDiagnosticCategory::UnconstrainedTypeVariable
+    );
+}
+
+#[test]
+fn pipeline_environment_to_solver() {
+    // (_1 | String) <: Number
+
+    let heap = Heap::new();
+    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+    let hole1 = HoleId::new(1);
+
+    let union = union!(
+        env,
+        [
+            instantiate_infer(&env, hole1),
+            primitive!(env, PrimitiveType::String)
+        ]
+    );
+
+    let number = primitive!(env, PrimitiveType::Number);
+
+    let mut environment = InferenceEnvironment::new(&env);
+    environment.collect_constraints(union, number);
+
+    let solver = environment.into_solver();
+    let (substitution, diagnostics) = solver.solve();
+    assert!(diagnostics.is_empty());
+
+    assert_equiv!(
+        env,
+        [substitution
+            .infer(hole1)
+            .expect("should have inferred hole")],
+        [number]
+    );
 }

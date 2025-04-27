@@ -954,14 +954,14 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     /// Any error that is encountered during this process is deemed a compiler bug, as we have no
     /// span to associate with the error. This should usually never happen, as step 1 ensures every
     /// variable is registered.
-    fn verify_constrained(
+    fn verify_constrained<L, U>(
         &mut self,
         lookup: &VariableLookup,
-        substitution: &FastHashMap<VariableKind, TypeId>,
+        constraints: &FastHashMap<VariableKind, (Variable, VariableConstraint<L, U>)>,
     ) {
         for &variable in &self.unification.variables {
             let root = lookup[variable];
-            if !substitution.contains_key(&root) {
+            if !constraints.contains_key(&root) {
                 self.diagnostics
                     .push(unconstrained_type_variable_floating(&self.lattice));
             }
@@ -980,20 +980,16 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     fn simplify_substitutions(
         &mut self,
         lookup: VariableLookup,
-        substitutions: FastHashMap<VariableKind, TypeId>,
-    ) -> FastHashMap<VariableKind, TypeId> {
+        substitutions: &mut FastHashMap<VariableKind, TypeId>,
+    ) {
         // Now that everything is solved, go over each substitution and simplify it
-        let mut simplified_substitutions = FastHashMap::default();
-
         // Make the simplifier aware of the substitutions
         self.simplify
             .set_substitution(Substitution::new(lookup, substitutions.clone()));
 
-        for (variable, type_id) in substitutions {
-            simplified_substitutions.insert(variable, self.simplify.simplify(type_id));
+        for type_id in substitutions.values_mut() {
+            *type_id = self.simplify.simplify(*type_id);
         }
-
-        simplified_substitutions
     }
 
     /// Solves type inference constraints and produces a type substitution.
@@ -1005,8 +1001,8 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     /// 2. Solves anti-symmetry constraints to identify variables that must be equal
     /// 3. Sets up variable substitutions in the lattice environment
     /// 4. Applies constraints through forward and backward passes
-    /// 5. Validates constraints and computes substitutions
-    /// 6. Verifies that all variables are constrained
+    /// 5. Verifies that all variables are constrained
+    /// 6. Validates constraints and computes substitutions
     /// 7. Simplifies the final substitutions for better readability
     /// 8. Collects any diagnostics generated during solving
     ///
@@ -1031,14 +1027,14 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         // Step 3 & 4: Apply constraints through forward and backward passes
         let constraints = self.apply_constraints();
 
-        // Step 5: Validate constraints and determine final types
-        let substitution = self.solve_constraints(constraints);
+        // Step 5: Verify that all variables have been constrained
+        self.verify_constrained(&lookup, &constraints);
 
-        // Step 6: Verify that all variables have been constrained
-        self.verify_constrained(&lookup, &substitution);
+        // Step 6: Validate constraints and determine final types
+        let mut substitution = self.solve_constraints(constraints);
 
         // Step 7: Simplify the final substitutions
-        let substitution = self.simplify_substitutions(lookup.clone(), substitution.clone());
+        self.simplify_substitutions(lookup.clone(), &mut substitution);
         let substitution = Substitution::new(lookup, substitution);
 
         // Step 8: Collect all diagnostics from the solving process
