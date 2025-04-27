@@ -6,7 +6,7 @@ use core::{
 };
 use std::sync::Mutex;
 
-use orx_concurrent_vec::ConcurrentVec;
+use orx_concurrent_vec::{ConcurrentElement, ConcurrentVec};
 
 // TODO: This might move into the HIR instead, if required
 use self::item::Item;
@@ -39,61 +39,47 @@ pub struct ModuleRegistry<'heap> {
 
     producer: ModuleIdProducer,
 
-    tree: ConcurrentVec<ModuleId>,
+    tree: Mutex<Vec<&'heap Module<'heap>>>,
 }
 
 impl<'heap> ModuleRegistry<'heap> {
-    pub fn new(heap: &'heap Heap) -> Self {
+    pub const fn new(heap: &'heap Heap) -> Self {
         Self {
             heap,
             producer: ModuleIdProducer::new(),
-            tree: ConcurrentVec::new(),
+            tree: Mutex::new(Vec::new()),
         }
     }
 
-    /// Returns the module with the given ID, if it exists.
-    ///
-    /// # Panics
-    ///
-    /// This function will panic if the modules mutex is poisoned.
-    pub fn get(&self, id: ModuleId) -> Option<&'heap Module<'heap>> {
-        self.modules
-            .lock()
-            .expect("failed to lock modules")
-            .get(id.as_usize())
-            .copied()
-    }
-
-    /// Returns the module with the given ID.
-    ///
-    /// # Panics
-    ///
-    /// This function will panic if the modules mutex is poisoned or if the module with the given ID
-    /// does not exist.
-    pub fn get_by_id(&self, id: ModuleId) -> &'heap Module<'heap> {
-        self.modules.lock().expect("failed to lock modules")[id.as_usize()]
-    }
-
-    /// Creates a new module using the provided closure and returns a reference to it.
-    ///
-    /// # Panics
-    ///
-    /// This function will panic if the modules mutex is poisoned.
-    pub fn intern_module(
+    pub fn alloc_module(
         &self,
         closure: impl FnOnce(ModuleId) -> Module<'heap>,
     ) -> &'heap Module<'heap> {
         let id = self.producer.next();
         let module = closure(id);
 
-        let module = &*self.heap.alloc(module);
+        self.heap.alloc(module)
+    }
 
-        self.modules
-            .lock()
-            .expect("failed to lock modules")
-            .push(module);
+    pub fn alloc_items(&self, items: &[Item<'heap>]) -> &'heap [Item<'heap>] {
+        self.heap.slice(items)
+    }
 
-        module
+    #[inline]
+    fn lock_tree<T>(&self, closure: impl FnOnce(&mut Vec<&'heap Module<'heap>>) -> T) -> T {
+        closure(&mut self.tree.lock().expect("lock should not be poisoned"))
+    }
+
+    pub fn register_module(&self, module: &'heap Module<'heap>) {
+        self.lock_tree(|modules| modules.push(module));
+    }
+
+    pub fn find_by_name(&self, name: &str) -> Option<&'heap Module<'heap>> {
+        self.lock_tree(|modules| modules.iter().find(|module| module.name == *name).copied())
+    }
+
+    pub fn find_by_id(&self, id: ModuleId) -> Option<&'heap Module<'heap>> {
+        self.lock_tree(|modules| modules.iter().find(|module| module.id == id).copied())
     }
 }
 

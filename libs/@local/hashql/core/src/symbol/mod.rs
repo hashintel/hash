@@ -235,6 +235,12 @@ impl PartialEq for InternedSymbol<'_> {
     }
 }
 
+impl PartialEq<str> for InternedSymbol<'_> {
+    fn eq(&self, other: &str) -> bool {
+        self.0 == other
+    }
+}
+
 impl Eq for InternedSymbol<'_> {}
 
 impl PartialOrd for InternedSymbol<'_> {
