@@ -1,4 +1,4 @@
-use super::ModuleId;
+use super::{ModuleId, ModuleRegistry};
 use crate::{id::HasId, newtype, symbol::InternedSymbol, r#type::TypeId};
 
 newtype!(pub struct ItemId(u32 is 0..=0xFFFF_FF00));
@@ -38,12 +38,34 @@ impl ItemKind {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Item<'heap> {
     pub id: ItemId,
-    pub parent: ModuleId,
+    pub parent: Option<ModuleId>,
 
     // TODO: move to Ident once Copy
     //  see: https://linear.app/hash/issue/H-4414/hashql-move-from-symbol-to-internedsymbol
     pub name: InternedSymbol<'heap>,
     pub kind: ItemKind,
+}
+
+impl<'heap> Item<'heap> {
+    pub fn search(
+        &self,
+        registry: &ModuleRegistry<'heap>,
+        query: impl IntoIterator<Item = InternedSymbol<'heap>>,
+    ) -> Option<Self> {
+        let mut query = query.into_iter();
+        let Some(name) = query.next() else {
+            return Some(*self);
+        };
+
+        let ItemKind::Module(module) = self.kind else {
+            return None;
+        };
+
+        let module = registry.modules[module].copied();
+
+        let item = module.find(registry, name)?;
+        item.search(registry, query)
+    }
 }
 
 impl HasId for Item<'_> {
