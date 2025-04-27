@@ -987,7 +987,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         self.simplify
             .set_substitution(Substitution::new(lookup, substitutions.clone()));
 
-        for (_, type_id) in substitutions {
+        for type_id in substitutions.values_mut() {
             *type_id = self.simplify.simplify(*type_id);
         }
     }
