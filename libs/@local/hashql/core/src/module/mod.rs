@@ -1,16 +1,11 @@
+// TODO: This might move into the HIR instead, if required
 pub mod item;
 
-use core::{
-    ops::Index,
-    sync::atomic::{self, AtomicU32},
-};
+use core::sync::atomic::{self, AtomicU32};
 use std::sync::Mutex;
 
-use orx_concurrent_vec::{ConcurrentElement, ConcurrentVec};
-
-// TODO: This might move into the HIR instead, if required
 use self::item::Item;
-use crate::{heap::Heap, id::Id, newtype, symbol::InternedSymbol};
+use crate::{heap::Heap, newtype, symbol::InternedSymbol};
 
 newtype!(
     pub struct ModuleId(u32 is 0..=0xFFFF_FF00)
