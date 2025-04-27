@@ -6,63 +6,55 @@ use std::sync::Mutex;
 
 use hashbrown::HashMap;
 
-use self::item::{IntrinsicItem, Item, ItemId, ItemIdProducer, ItemKind, Universe};
+use self::item::{IntrinsicItem, Item, ItemId, ItemKind, Universe};
 use crate::{
+    arena::concurrent::ConcurrentArena,
     heap::Heap,
-    newtype, newtype_producer,
+    id::HasId,
+    newtype,
     span::SpanId,
     symbol::InternedSymbol,
     r#type::{
         Type, TypeId,
         environment::Environment,
         kind::{
-            IntrinsicType, OpaqueType, Param, PrimitiveType, TypeKind, UnionType,
+            OpaqueType, Param, PrimitiveType, TypeKind, UnionType,
             generic_argument::{GenericArgument, GenericArguments},
-            intrinsic::{DictType, ListType},
         },
     },
 };
 
 newtype!(pub struct ModuleId(u32 is 0..=0xFFFF_FF00));
-newtype_producer!(struct ModuleIdProducer(ModuleId));
 
 pub struct ModuleRegistry<'heap> {
     heap: &'heap Heap,
 
-    module_id: ModuleIdProducer,
-    item_id: ItemIdProducer,
+    // TODO: intern instead
+    modules: ConcurrentArena<Module<'heap>>,
+    items: ConcurrentArena<Item<'heap>>,
 
-    tree: Mutex<HashMap<InternedSymbol<'heap>, &'heap Module<'heap>, foldhash::fast::RandomState>>,
+    tree: Mutex<HashMap<InternedSymbol<'heap>, ModuleId, foldhash::fast::RandomState>>,
 }
 
 impl<'heap> ModuleRegistry<'heap> {
     pub fn new(heap: &'heap Heap) -> Self {
         Self {
             heap,
-            module_id: ModuleIdProducer::new(),
-            item_id: ItemIdProducer::new(),
+            modules: ConcurrentArena::new(),
+            items: ConcurrentArena::new(),
             tree: Mutex::new(HashMap::default()),
         }
     }
 
-    pub fn alloc_module(
-        &self,
-        closure: impl FnOnce(ModuleId) -> Module<'heap>,
-    ) -> &'heap Module<'heap> {
-        let id = self.module_id.next();
-        let module = closure(id);
-
-        self.heap.alloc(module)
+    pub fn alloc_module(&self, closure: impl FnOnce(ModuleId) -> Module<'heap>) -> ModuleId {
+        self.modules.push_with(closure)
     }
 
-    pub fn alloc_item(&self, closure: impl FnOnce(ItemId) -> Item<'heap>) -> &'heap Item<'heap> {
-        let id = self.item_id.next();
-        let item = closure(id);
-
-        self.heap.alloc(item)
+    pub fn alloc_item(&self, closure: impl FnOnce(ItemId) -> Item<'heap>) -> ItemId {
+        self.items.push_with(closure)
     }
 
-    pub fn alloc_items(&self, items: &[&'heap Item<'heap>]) -> &'heap [&'heap Item<'heap>] {
+    pub fn alloc_items(&self, items: &[ItemId]) -> &'heap [ItemId] {
         self.heap.slice(items)
     }
 
@@ -70,22 +62,30 @@ impl<'heap> ModuleRegistry<'heap> {
     fn lock_tree<T>(
         &self,
         closure: impl FnOnce(
-            &mut HashMap<InternedSymbol<'heap>, &'heap Module<'heap>, foldhash::fast::RandomState>,
+            &mut HashMap<InternedSymbol<'heap>, ModuleId, foldhash::fast::RandomState>,
         ) -> T,
     ) -> T {
         closure(&mut self.tree.lock().expect("lock should not be poisoned"))
     }
 
-    pub fn register_module(&self, name: InternedSymbol<'heap>, module: &'heap Module<'heap>) {
+    pub fn register_module(&self, name: InternedSymbol<'heap>, module: ModuleId) {
         self.lock_tree(|modules| modules.insert(name, module));
     }
 
-    pub fn find_by_name(&self, name: &str) -> Option<&'heap Module<'heap>> {
-        self.lock_tree(|modules| modules.get(name).copied())
+    pub fn find_by_name(&self, name: &str) -> Option<Module<'heap>> {
+        let id = self.lock_tree(|modules| modules.get(name).copied())?;
+
+        Some(self.modules[id].copied())
     }
 
-    pub fn find_by_id(&self, id: ModuleId) -> Option<&'heap Module<'heap>> {
-        self.lock_tree(|modules| modules.values().find(|module| module.id == id).copied())
+    pub fn find_by_id(&self, id: ModuleId) -> Option<Module<'heap>> {
+        self.lock_tree(|modules| {
+            modules.values().find_map(|&module_id| {
+                let module = self.modules[module_id].copied();
+
+                (module.id == id).then_some(module)
+            })
+        })
     }
 }
 
@@ -93,7 +93,15 @@ impl<'heap> ModuleRegistry<'heap> {
 pub struct Module<'heap> {
     pub id: ModuleId,
 
-    pub items: &'heap [&'heap Item<'heap>],
+    pub items: &'heap [ItemId],
+}
+
+impl HasId for Module<'_> {
+    type Id = ModuleId;
+
+    fn id(&self) -> Self::Id {
+        self.id
+    }
 }
 
 pub struct StandardLibrary<'env, 'heap> {
@@ -119,7 +127,7 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
         parent: ModuleId,
         name: &'static str,
         alias: Option<&str>,
-    ) -> &'heap Item<'heap> {
+    ) -> ItemId {
         let ident =
             alias.unwrap_or_else(|| name.rsplit_once("::").expect("path should be non-empty").1);
         let ident = self.heap.intern_symbol(ident);
@@ -140,7 +148,7 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
         parent: ModuleId,
         name: &'static str,
         alias: Option<&str>,
-    ) -> &'heap Item<'heap> {
+    ) -> ItemId {
         let ident =
             alias.unwrap_or_else(|| name.rsplit_once("::").expect("path should be non-empty").1);
         let ident = self.heap.intern_symbol(ident);
@@ -164,12 +172,7 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
         })
     }
 
-    fn alloc_type_item(
-        &self,
-        parent: ModuleId,
-        name: &'static str,
-        kind: TypeId,
-    ) -> &'heap Item<'heap> {
+    fn alloc_type_item(&self, parent: ModuleId, name: &'static str, kind: TypeId) -> ItemId {
         self.registry.alloc_item(|id| Item {
             id,
             parent,
@@ -178,7 +181,7 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
         })
     }
 
-    fn kernel_special_form_module(&self) -> &'heap Module<'heap> {
+    fn kernel_special_form_module(&self) -> ModuleId {
         self.registry.alloc_module(|id| {
             let items = [
                 self.alloc_intrinsic_value(id, "::kernel::special_form::if", None),
@@ -202,7 +205,7 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
         })
     }
 
-    fn kernel_type_module_primitives(&self, parent: ModuleId, items: &mut Vec<&'heap Item<'heap>>) {
+    fn kernel_type_module_primitives(&self, parent: ModuleId, items: &mut Vec<ItemId>) {
         items.extend_from_slice(&[
             self.alloc_type_item(
                 parent,
@@ -233,7 +236,7 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
         ]);
     }
 
-    fn kernel_type_module_boundary(&self, parent: ModuleId, items: &mut Vec<&'heap Item<'heap>>) {
+    fn kernel_type_module_boundary(&self, parent: ModuleId, items: &mut Vec<ItemId>) {
         items.extend_from_slice(&[
             self.alloc_type_item(parent, "Unknown", self.alloc_type(TypeKind::Unknown)),
             self.alloc_type_item(parent, "Never", self.alloc_type(TypeKind::Never)),
@@ -242,7 +245,7 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
         ]);
     }
 
-    fn kernel_type_module_intrinsics(&self, parent: ModuleId, items: &mut Vec<&'heap Item<'heap>>) {
+    fn kernel_type_module_intrinsics(&self, parent: ModuleId, items: &mut Vec<ItemId>) {
         // Union/Intersection/Struct/Tuple are purposefully excluded, as they are
         // fundamental types and do not have any meaningful value constructors.
         items.extend_from_slice(&[
@@ -253,7 +256,7 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
         ]);
     }
 
-    fn kernel_type_module_opaque(&self, parent: ModuleId, items: &mut Vec<&'heap Item<'heap>>) {
+    fn kernel_type_module_opaque(&self, parent: ModuleId, items: &mut Vec<ItemId>) {
         let url = self.alloc_type(TypeKind::Opaque(OpaqueType {
             name: self.heap.intern_symbol("::kernel::type::Url"),
             repr: self.env.alloc(|id| Type {
@@ -286,7 +289,7 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
         ]);
     }
 
-    fn kernel_type_module_option(&self, parent: ModuleId, items: &mut Vec<&'heap Item<'heap>>) {
+    fn kernel_type_module_option(&self, parent: ModuleId, items: &mut Vec<ItemId>) {
         // Option is simply a union between two opaque types, when the constructor only takes a
         // `Null` the constructor automatically allows for no-value.
         let some_generic = self.env.counter.generic_argument.next();
@@ -304,6 +307,7 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
             })),
             arguments: self.env.intern_generic_arguments(&mut [GenericArgument {
                 id: some_generic,
+                name: self.heap.intern_symbol("T"),
                 constraint: None,
             }]),
         }));
@@ -318,29 +322,67 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
 
         items.extend_from_slice(&[
             self.alloc_type_item(parent, "None", none),
+            self.alloc_intrinsic_value(parent, "::kernel::type::None", None),
             self.alloc_type_item(parent, "Some", some),
+            self.alloc_intrinsic_value(parent, "::kernel::type::Some", None),
             self.alloc_type_item(parent, "Option", option),
-        ])
+        ]);
     }
 
-    #[expect(clippy::too_many_lines)]
-    fn kernel_type_module(&self) -> &'heap Module<'heap> {
-        let option_value = self.env.counter.generic_argument.next();
-        let result_value = self.env.counter.generic_argument.next();
-        let result_error = self.env.counter.generic_argument.next();
+    fn kernel_type_module_result(&self, parent: ModuleId, items: &mut Vec<ItemId>) {
+        let value_generic = self.env.counter.generic_argument.next();
+        let error_generic = self.env.counter.generic_argument.next();
 
+        let ok = self.alloc_type(TypeKind::Opaque(OpaqueType {
+            name: self.heap.intern_symbol("::kernel::type::Ok"),
+            repr: self.alloc_type(TypeKind::Param(Param {
+                argument: value_generic,
+            })),
+            arguments: self.env.intern_generic_arguments(&mut [GenericArgument {
+                id: value_generic,
+                name: self.heap.intern_symbol("T"),
+                constraint: None,
+            }]),
+        }));
+
+        let err = self.alloc_type(TypeKind::Opaque(OpaqueType {
+            name: self.heap.intern_symbol("::kernel::type::Err"),
+            repr: self.alloc_type(TypeKind::Param(Param {
+                argument: error_generic,
+            })),
+            arguments: self.env.intern_generic_arguments(&mut [GenericArgument {
+                id: error_generic,
+                name: self.heap.intern_symbol("E"),
+                constraint: None,
+            }]),
+        }));
+
+        let result = self.env.alloc(|id| Type {
+            id,
+            span: SpanId::SYNTHETIC,
+            kind: self.env.intern_kind(TypeKind::Union(UnionType {
+                variants: self.env.intern_type_ids(&[ok, err]),
+            })),
+        });
+
+        items.extend_from_slice(&[
+            self.alloc_type_item(parent, "Ok", ok),
+            self.alloc_intrinsic_value(parent, "::kernel::type::Ok", None),
+            self.alloc_type_item(parent, "Err", err),
+            self.alloc_intrinsic_value(parent, "::kernel::type::Err", None),
+            self.alloc_type_item(parent, "Result", result),
+        ]);
+    }
+
+    fn kernel_type_module(&self) -> ModuleId {
         self.registry.alloc_module(|id| {
             let mut items = Vec::with_capacity(64);
             self.kernel_type_module_primitives(id, &mut items);
             self.kernel_type_module_boundary(id, &mut items);
             self.kernel_type_module_intrinsics(id, &mut items);
             self.kernel_type_module_opaque(id, &mut items);
-
-            let items = [
-                // == Option ==
-                // Option is simply a union of two opaque types: Some and None
-                self.alloc_type_item(id, "Some", kind),
-            ];
+            self.kernel_type_module_option(id, &mut items);
+            self.kernel_type_module_result(id, &mut items);
 
             Module {
                 id,
@@ -349,7 +391,28 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
         })
     }
 
-    fn populate_kernel(&self) {}
+    fn kernel_module(&self) -> ModuleId {
+        self.registry.alloc_module(|id| Module {
+            id,
+            items: self.registry.alloc_items(&[
+                self.registry.alloc_item(|item_id| Item {
+                    id: item_id,
+                    parent: id,
+                    name: self.heap.intern_symbol("special_form"),
+                    kind: ItemKind::Module(self.kernel_special_form_module()),
+                }),
+                self.registry.alloc_item(|item_id| Item {
+                    id: item_id,
+                    parent: id,
+                    name: self.heap.intern_symbol("type"),
+                    kind: ItemKind::Module(self.kernel_type_module()),
+                }),
+            ]),
+        })
+    }
 
-    pub fn populate(&self) {}
+    pub fn populate(&self) {
+        self.registry
+            .register_module(self.heap.intern_symbol("kernel"), self.kernel_module());
+    }
 }

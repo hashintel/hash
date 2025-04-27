@@ -90,7 +90,7 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
             | TypeKind::Intersection(_)
             | TypeKind::Never
             | TypeKind::Unknown => Some(r#type),
-            &TypeKind::Param(Param { name: _, argument }) => {
+            &TypeKind::Param(Param { argument }) => {
                 let argument = substitution.argument(argument)?;
 
                 Some(self.environment.r#type(argument))

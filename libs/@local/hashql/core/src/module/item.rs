@@ -1,8 +1,7 @@
-use super::{Module, ModuleId};
-use crate::{newtype, newtype_producer, symbol::InternedSymbol, r#type::TypeId};
+use super::ModuleId;
+use crate::{id::HasId, newtype, symbol::InternedSymbol, r#type::TypeId};
 
 newtype!(pub struct ItemId(u32 is 0..=0xFFFF_FF00));
-newtype_producer!(pub(super) struct ItemIdProducer(ItemId));
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Universe {
@@ -17,21 +16,21 @@ pub struct IntrinsicItem {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum ItemKind<'heap> {
-    Module(&'heap Module<'heap>),
+pub enum ItemKind {
+    Module(ModuleId),
     // In the future we'll also need to export values (like closures)
     // this would be done via a `DefId`/`ValueId` or similar
     Type(TypeId),
     Intrinsic(IntrinsicItem),
 }
 
-impl ItemKind<'_> {
+impl ItemKind {
     #[must_use]
     pub const fn universe(&self) -> Option<Universe> {
         match self {
-            ItemKind::Module(_) => None,
-            ItemKind::Type(_) => Some(Universe::Type),
-            ItemKind::Intrinsic(IntrinsicItem { universe, .. }) => Some(*universe),
+            Self::Module(_) => None,
+            Self::Type(_) => Some(Universe::Type),
+            Self::Intrinsic(IntrinsicItem { universe, .. }) => Some(*universe),
         }
     }
 }
@@ -44,5 +43,13 @@ pub struct Item<'heap> {
     // TODO: move to Ident once Copy
     //  see: https://linear.app/hash/issue/H-4414/hashql-move-from-symbol-to-internedsymbol
     pub name: InternedSymbol<'heap>,
-    pub kind: ItemKind<'heap>,
+    pub kind: ItemKind,
+}
+
+impl HasId for Item<'_> {
+    type Id = ItemId;
+
+    fn id(&self) -> Self::Id {
+        self.id
+    }
 }

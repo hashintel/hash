@@ -5,7 +5,7 @@ use pretty::RcDoc;
 use crate::{
     intern::Interned,
     newtype, newtype_producer,
-    symbol::{InternedSymbol, Symbol},
+    symbol::InternedSymbol,
     r#type::{
         TypeId,
         environment::Environment,
@@ -19,11 +19,6 @@ newtype!(
 );
 
 newtype_producer!(pub struct GenericArgumentIdProducer(GenericArgumentId));
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct GenericArgumentData {
-    pub name: Symbol,
-}
 
 // The name is stored in the environment, to allow for `!Drop`
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -142,17 +137,16 @@ impl PrettyPrint for GenericArguments<'_> {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct Param<'heap> {
-    pub name: InternedSymbol<'heap>,
+pub struct Param {
     pub argument: GenericArgumentId,
 }
 
-impl PrettyPrint for Param<'_> {
+impl PrettyPrint for Param {
     fn pretty<'env>(
         &self,
         _: &'env Environment,
         _: RecursionDepthBoundary,
     ) -> RcDoc<'env, anstyle::Style> {
-        RcDoc::text(self.name.as_str().to_owned())
+        RcDoc::text(self.argument.to_string())
     }
 }
