@@ -22,7 +22,7 @@ use crate::r#type::{
 /// List types maintain an element type that is **covariant**.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct ListType {
-    element: TypeId,
+    pub element: TypeId,
 }
 
 impl<'heap> Lattice<'heap> for ListType {

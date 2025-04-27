@@ -4,8 +4,8 @@ use pretty::RcDoc;
 
 use crate::{
     intern::Interned,
-    newtype,
-    symbol::Symbol,
+    newtype, newtype_producer,
+    symbol::{InternedSymbol, Symbol},
     r#type::{
         TypeId,
         environment::Environment,
@@ -18,6 +18,8 @@ newtype!(
     pub struct GenericArgumentId(u32 is 0..=0xFFFF_FF00)
 );
 
+newtype_producer!(pub struct GenericArgumentIdProducer(GenericArgumentId));
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct GenericArgumentData {
     pub name: Symbol,
@@ -25,22 +27,21 @@ pub struct GenericArgumentData {
 
 // The name is stored in the environment, to allow for `!Drop`
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct GenericArgument {
+pub struct GenericArgument<'heap> {
     pub id: GenericArgumentId,
+    pub name: InternedSymbol<'heap>,
 
     // The initial type constraint (if present)
     pub constraint: Option<TypeId>,
 }
 
-impl PrettyPrint for GenericArgument {
+impl PrettyPrint for GenericArgument<'_> {
     fn pretty<'env>(
         &self,
         env: &'env Environment,
         limit: RecursionDepthBoundary,
     ) -> RcDoc<'env, anstyle::Style> {
-        let name = &env.auxiliary.arguments[&self.id].name;
-
-        let mut doc = RcDoc::text(name.as_str()).annotate(ORANGE);
+        let mut doc = RcDoc::text(self.name.as_str().to_owned()).annotate(ORANGE);
 
         if let Some(constraint) = self.constraint {
             doc = doc.append(
@@ -55,7 +56,7 @@ impl PrettyPrint for GenericArgument {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct GenericArguments<'heap>(Option<Interned<'heap, [GenericArgument]>>);
+pub struct GenericArguments<'heap>(Option<Interned<'heap, [GenericArgument<'heap>]>>);
 
 impl<'heap> GenericArguments<'heap> {
     #[must_use]
@@ -69,15 +70,15 @@ impl<'heap> GenericArguments<'heap> {
     ///
     /// You should probably use `Environment::intern_generic_arguments` instead.
     #[must_use]
-    pub const fn from_slice_unchecked(slice: Interned<'heap, [GenericArgument]>) -> Self {
+    pub const fn from_slice_unchecked(slice: Interned<'heap, [GenericArgument<'heap>]>) -> Self {
         Self(Some(slice))
     }
 
     #[must_use]
-    pub const fn as_slice(&self) -> &[GenericArgument] {
+    pub const fn as_slice(&self) -> &[GenericArgument<'heap>] {
         match self.0 {
             Some(Interned(slice, _)) => slice,
-            None => &[] as &[GenericArgument],
+            None => &[] as &[GenericArgument<'heap>],
         }
     }
 
@@ -104,14 +105,14 @@ impl<'heap> GenericArguments<'heap> {
     }
 }
 
-impl AsRef<[GenericArgument]> for GenericArguments<'_> {
+impl AsRef<[GenericArgument<'heap>]> for GenericArguments<'_> {
     fn as_ref(&self) -> &[GenericArgument] {
         self.as_slice()
     }
 }
 
-impl Deref for GenericArguments<'_> {
-    type Target = [GenericArgument];
+impl<'heap> Deref for GenericArguments<'heap> {
+    type Target = [GenericArgument<'heap>];
 
     fn deref(&self) -> &Self::Target {
         self.as_slice()
@@ -141,18 +142,17 @@ impl PrettyPrint for GenericArguments<'_> {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct Param {
+pub struct Param<'heap> {
+    pub name: InternedSymbol<'heap>,
     pub argument: GenericArgumentId,
 }
 
-impl PrettyPrint for Param {
+impl PrettyPrint for Param<'_> {
     fn pretty<'env>(
         &self,
-        env: &'env Environment,
+        _: &'env Environment,
         _: RecursionDepthBoundary,
     ) -> RcDoc<'env, anstyle::Style> {
-        let name = &env.auxiliary.arguments[&self.argument].name;
-
-        RcDoc::text(name.as_str())
+        RcDoc::text(self.name.as_str().to_owned())
     }
 }

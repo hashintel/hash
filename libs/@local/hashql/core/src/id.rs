@@ -274,6 +274,34 @@ macro_rules! newtype {
     };
 }
 
+#[macro_export]
+macro_rules! newtype_producer {
+    ($vis:vis struct $name:ident($id:ty)) => {
+        #[derive(Debug)]
+        $vis struct $name(::core::sync::atomic::AtomicU32);
+
+        impl $name {
+            #[must_use]
+            $vis const fn new() -> Self {
+                Self(::core::sync::atomic::AtomicU32::new(0))
+            }
+
+            $vis fn next(&self) -> $id {
+                // Relaxed ordering is sufficient, as this is the only place where interact with the atomic
+                // counter and ordering is of no concern.
+                <$id>::new(self.0.fetch_add(1, ::core::sync::atomic::Ordering::Relaxed))
+            }
+        }
+
+        impl ::core::default::Default for $name {
+            fn default() -> Self {
+                Self::new()
+            }
+        }
+    };
+}
+
 // TODO: we might want a macro that also defines type aliases to e.g. `HashMap` and such
 
 pub use newtype;
+pub use newtype_producer;

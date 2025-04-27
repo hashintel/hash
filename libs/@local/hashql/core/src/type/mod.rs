@@ -27,10 +27,10 @@ newtype!(
 
 #[derive(Debug, PartialEq, Eq, Hash)]
 pub struct Type<'heap, K: ?Sized = TypeKind<'heap>> {
-    id: TypeId,
-    span: SpanId,
+    pub id: TypeId,
+    pub span: SpanId,
 
-    kind: &'heap K,
+    pub kind: &'heap K,
 }
 
 impl<K: ?Sized> Copy for Type<'_, K> {}

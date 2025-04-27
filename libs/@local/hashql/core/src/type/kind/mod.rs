@@ -48,7 +48,7 @@ pub enum TypeKind<'heap> {
 
     Closure(ClosureType<'heap>),
 
-    Param(Param),
+    Param(Param<'heap>),
     Infer(Infer),
 
     Never,
@@ -131,7 +131,7 @@ impl TypeKind<'_> {
     pub(crate) const fn into_variable(self) -> Option<VariableKind> {
         match self {
             Self::Infer(Infer { hole }) => Some(VariableKind::Hole(hole)),
-            Self::Param(Param { argument }) => Some(VariableKind::Generic(argument)),
+            Self::Param(Param { name: _, argument }) => Some(VariableKind::Generic(argument)),
             _ => None,
         }
     }
@@ -602,7 +602,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             Self::Closure(closure_type) => self.with(closure_type).is_bottom(env),
             Self::Union(union_type) => self.with(union_type).is_bottom(env),
             Self::Intersection(intersection_type) => self.with(intersection_type).is_bottom(env),
-            &Self::Param(Param { argument }) => {
+            &Self::Param(Param { name: _, argument }) => {
                 let Some(substitution) = env.substitution.argument(argument) else {
                     let _: ControlFlow<()> =
                         env.record_diagnostic(|env| no_type_inference(env, self));
@@ -637,7 +637,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             Self::Closure(closure_type) => self.with(closure_type).is_top(env),
             Self::Union(union_type) => self.with(union_type).is_top(env),
             Self::Intersection(intersection_type) => self.with(intersection_type).is_top(env),
-            &Self::Param(Param { argument }) => {
+            &Self::Param(Param { name: _, argument }) => {
                 let Some(substitution) = env.substitution.argument(argument) else {
                     let _: ControlFlow<()> =
                         env.record_diagnostic(|env| no_type_inference(env, self));
@@ -672,7 +672,9 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             Self::Closure(closure_type) => self.with(closure_type).is_concrete(env),
             Self::Union(union_type) => self.with(union_type).is_concrete(env),
             Self::Intersection(intersection_type) => self.with(intersection_type).is_concrete(env),
-            &Self::Param(Param { argument }) => env.substitution.argument(argument).is_some(),
+            &Self::Param(Param { name: _, argument }) => {
+                env.substitution.argument(argument).is_some()
+            }
             &Self::Infer(Infer { hole }) => env.substitution.infer(hole).is_some(),
             Self::Never | Self::Unknown => true,
         }
@@ -693,10 +695,12 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             Self::Intersection(intersection_type) => {
                 self.with(intersection_type).distribute_union(env)
             }
-            &Self::Param(Param { argument }) => env.substitution.argument(argument).map_or_else(
-                || SmallVec::from_slice(&[self.id]),
-                |substitution| env.distribute_union(substitution),
-            ),
+            &Self::Param(Param { name: _, argument }) => {
+                env.substitution.argument(argument).map_or_else(
+                    || SmallVec::from_slice(&[self.id]),
+                    |substitution| env.distribute_union(substitution),
+                )
+            }
             &Self::Infer(Infer { hole }) => env.substitution.infer(hole).map_or_else(
                 || SmallVec::from_slice(&[self.id]),
                 |substitution| env.distribute_union(substitution),
@@ -724,10 +728,12 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             Self::Intersection(intersection_type) => {
                 self.with(intersection_type).distribute_intersection(env)
             }
-            &Self::Param(Param { argument }) => env.substitution.argument(argument).map_or_else(
-                || SmallVec::from_slice(&[self.id]),
-                |substitution| env.distribute_intersection(substitution),
-            ),
+            &Self::Param(Param { name: _, argument }) => {
+                env.substitution.argument(argument).map_or_else(
+                    || SmallVec::from_slice(&[self.id]),
+                    |substitution| env.distribute_intersection(substitution),
+                )
+            }
             &Self::Infer(Infer { hole }) => env.substitution.infer(hole).map_or_else(
                 || SmallVec::from_slice(&[self.id]),
                 |substitution| env.distribute_intersection(substitution),
@@ -1296,7 +1302,16 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
             }
 
             // Param <: Param
-            (&Self::Param(Param { argument: left }), &Self::Param(Param { argument: right })) => {
+            (
+                &Self::Param(Param {
+                    name: _,
+                    argument: left,
+                }),
+                &Self::Param(Param {
+                    name: _,
+                    argument: right,
+                }),
+            ) => {
                 env.add_constraint(Constraint::Ordering {
                     lower: Variable {
                         span: self.span,
@@ -1310,7 +1325,7 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
             }
 
             // Infer <: Param
-            (&Self::Infer(Infer { hole: self_id }), &Self::Param(Param { argument })) => {
+            (&Self::Infer(Infer { hole: self_id }), &Self::Param(Param { name: _, argument })) => {
                 env.add_constraint(Constraint::Ordering {
                     lower: Variable {
                         span: self.span,
@@ -1324,7 +1339,10 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
             }
 
             // Param <: Infer
-            (&Self::Param(Param { argument }), &Self::Infer(Infer { hole: supertype_id })) => {
+            (
+                &Self::Param(Param { name: _, argument }),
+                &Self::Infer(Infer { hole: supertype_id }),
+            ) => {
                 env.add_constraint(Constraint::Ordering {
                     lower: Variable {
                         span: self.span,
@@ -1538,7 +1556,7 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
             }
 
             // Param <: _
-            (&Self::Param(Param { argument }), _) => {
+            (&Self::Param(Param { name: _, argument }), _) => {
                 let variable = Variable {
                     span: self.span,
                     kind: VariableKind::Generic(argument),
@@ -1553,7 +1571,7 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
             }
 
             // _ <: Param
-            (_, &Self::Param(Param { argument })) => {
+            (_, &Self::Param(Param { name: _, argument })) => {
                 let variable = Variable {
                     span: supertype.span,
                     kind: VariableKind::Generic(argument),
@@ -1606,7 +1624,7 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
             TypeKind::Closure(closure_type) => self
                 .with(closure_type)
                 .collect_structural_edges(variable, env),
-            &TypeKind::Param(Param { argument }) => env.add_structural_edge(
+            &TypeKind::Param(Param { name: _, argument }) => env.add_structural_edge(
                 variable,
                 Variable {
                     span: self.span,

@@ -40,6 +40,7 @@ pub(crate) fn instantiate_param(
     argument: impl TryInto<GenericArgumentId, Error: Debug>,
 ) -> TypeId {
     let kind = TypeKind::Param(Param {
+        name: env.heap.intern_symbol("T"),
         argument: argument.try_into().expect("Should be valid argument"),
     });
 

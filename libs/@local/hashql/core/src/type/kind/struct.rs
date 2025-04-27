@@ -1153,6 +1153,7 @@ mod test {
             struct_with_args,
             [GenericArgument {
                 id: GenericArgumentId::new(0),
+                name: heap.intern_symbol("T"),
                 constraint: None
             }],
             [
@@ -1635,6 +1636,7 @@ mod test {
             subtype,
             [GenericArgument {
                 id: arg1,
+                name: heap.intern_symbol("T"),
                 constraint: None
             }],
             [struct_field!(env, "value", param1)]
@@ -1645,6 +1647,7 @@ mod test {
             supertype,
             [GenericArgument {
                 id: arg2,
+                name: heap.intern_symbol("U"),
                 constraint: None
             }],
             [struct_field!(env, "value", param2)]
