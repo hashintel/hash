@@ -411,8 +411,70 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
         })
     }
 
+    fn math_module(&self) -> ModuleId {
+        self.registry.alloc_module(|id| Module {
+            id,
+            items: self.registry.alloc_items(&[
+                // Addition
+                self.alloc_intrinsic_value(id, "::math::add", None),
+                self.alloc_intrinsic_value(id, "::math::add", Some("+")),
+                // Subtraction
+                self.alloc_intrinsic_value(id, "::math::sub", None),
+                self.alloc_intrinsic_value(id, "::math::sub", Some("-")),
+                // Multiplication
+                self.alloc_intrinsic_value(id, "::math::mul", None),
+                self.alloc_intrinsic_value(id, "::math::mul", Some("*")),
+                // Division
+                self.alloc_intrinsic_value(id, "::math::div", None),
+                self.alloc_intrinsic_value(id, "::math::div", Some("/")),
+                // Modulo
+                self.alloc_intrinsic_value(id, "::math::mod", None),
+                self.alloc_intrinsic_value(id, "::math::mod", Some("%")),
+                // Power
+                self.alloc_intrinsic_value(id, "::math::pow", None),
+                self.alloc_intrinsic_value(id, "::math::pow", Some("^")),
+                // Bitwise operations
+                self.alloc_intrinsic_value(id, "::math::bit_and", None),
+                self.alloc_intrinsic_value(id, "::math::bit_and", Some("&")),
+                self.alloc_intrinsic_value(id, "::math::bit_or", None),
+                self.alloc_intrinsic_value(id, "::math::bit_or", Some("|")),
+                self.alloc_intrinsic_value(id, "::math::bit_not", None),
+                self.alloc_intrinsic_value(id, "::math::bit_not", Some("~")),
+                self.alloc_intrinsic_value(id, "::math::lshift", None),
+                self.alloc_intrinsic_value(id, "::math::lshift", Some("<<")),
+                self.alloc_intrinsic_value(id, "::math::rshift", None),
+                self.alloc_intrinsic_value(id, "::math::rshift", Some(">>")),
+                // Comparison operations
+                self.alloc_intrinsic_value(id, "::math::gt", None),
+                self.alloc_intrinsic_value(id, "::math::gt", Some(">")),
+                self.alloc_intrinsic_value(id, "::math::lt", None),
+                self.alloc_intrinsic_value(id, "::math::lt", Some("<")),
+                self.alloc_intrinsic_value(id, "::math::gte", None),
+                self.alloc_intrinsic_value(id, "::math::gte", Some(">=")),
+                self.alloc_intrinsic_value(id, "::math::lte", None),
+                self.alloc_intrinsic_value(id, "::math::lte", Some("<=")),
+                self.alloc_intrinsic_value(id, "::math::eq", None),
+                self.alloc_intrinsic_value(id, "::math::eq", Some("==")),
+                self.alloc_intrinsic_value(id, "::math::ne", None),
+                self.alloc_intrinsic_value(id, "::math::ne", Some("!=")),
+                // Logical operations
+                self.alloc_intrinsic_value(id, "::math::not", None),
+                self.alloc_intrinsic_value(id, "::math::not", Some("!")),
+                self.alloc_intrinsic_value(id, "::math::and", None),
+                self.alloc_intrinsic_value(id, "::math::and", Some("&&")),
+                self.alloc_intrinsic_value(id, "::math::or", None),
+                self.alloc_intrinsic_value(id, "::math::or", Some("||")),
+            ]),
+        })
+    }
+
     pub fn populate(&self) {
         self.registry
             .register_module(self.heap.intern_symbol("kernel"), self.kernel_module());
+        self.registry
+            .register_module(self.heap.intern_symbol("math"), self.math_module());
+
+        // TODO: The graph module is not yet added (Things that are required on the type side are
+        // still quite a bit in flux)
     }
 }
