@@ -157,13 +157,17 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
     }
 
     fn kernel_type_module_intrinsics(&self, parent: ModuleId, items: &mut Vec<ItemId>) {
-        // Union/Intersection/Struct/Tuple are purposefully excluded, as they are
+        // Struct/Tuple are purposefully excluded, as they are
         // fundamental types and do not have any meaningful value constructors.
+        // Union and Type only have constructors for their respective types, but no meaningful
+        // types.
         items.extend_from_slice(&[
             self.alloc_intrinsic_type(parent, "::kernel::type::List", None),
             self.alloc_intrinsic_value(parent, "::kernel::type::List", None),
             self.alloc_intrinsic_type(parent, "::kernel::type::Dict", None),
             self.alloc_intrinsic_value(parent, "::kernel::type::Dict", None),
+            self.alloc_intrinsic_value(parent, "::kernel::type::Union", None),
+            self.alloc_intrinsic_value(parent, "::kernel::type::Intersection", None),
         ]);
     }
 

@@ -50,21 +50,23 @@ impl<'heap> Item<'heap> {
     pub fn search(
         &self,
         registry: &ModuleRegistry<'heap>,
-        query: impl IntoIterator<Item = InternedSymbol<'heap>>,
-    ) -> Option<Self> {
+        query: impl IntoIterator<Item = InternedSymbol<'heap>, IntoIter: Clone>,
+    ) -> Vec<Self> {
         let mut query = query.into_iter();
         let Some(name) = query.next() else {
-            return Some(*self);
+            return vec![*self];
         };
 
         let ItemKind::Module(module) = self.kind else {
-            return None;
+            return Vec::new();
         };
 
         let module = registry.modules[module].copied();
 
-        let item = module.find(registry, name)?;
-        item.search(registry, query)
+        let item = module.find(registry, name);
+        item.into_iter()
+            .flat_map(|item| item.search(registry, query.clone()))
+            .collect()
     }
 }
 

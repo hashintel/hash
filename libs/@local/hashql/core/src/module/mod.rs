@@ -123,12 +123,17 @@ impl<'heap> ModuleRegistry<'heap> {
 
     pub fn search(
         &self,
-        query: impl IntoIterator<Item = InternedSymbol<'heap>>,
-    ) -> Option<Item<'heap>> {
+        query: impl IntoIterator<Item = InternedSymbol<'heap>, IntoIter: Clone>,
+    ) -> Vec<Item<'heap>> {
         let mut query = query.into_iter();
-        let root = query.next()?;
+        let Some(root) = query.next() else {
+            return Vec::new();
+        };
 
-        let item = self.find_by_name(root)?;
+        let Some(item) = self.find_by_name(root) else {
+            return Vec::new();
+        };
+
         item.search(self, query)
     }
 }
@@ -151,15 +156,17 @@ impl<'heap> Module<'heap> {
         &self,
         registry: &ModuleRegistry<'heap>,
         name: InternedSymbol<'heap>,
-    ) -> Option<Item<'heap>> {
+    ) -> Vec<Item<'heap>> {
+        let mut results = Vec::new();
+
         for &item in self.items {
             let item = registry.items[item].copied();
             if item.name == name {
-                return Some(item);
+                results.push(item);
             }
         }
 
-        None
+        results
     }
 }
 
@@ -168,5 +175,45 @@ impl HasId for Module<'_> {
 
     fn id(&self) -> Self::Id {
         self.id
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ModuleRegistry;
+    use crate::{
+        heap::Heap,
+        module::item::{IntrinsicItem, ItemKind, Universe},
+        span::SpanId,
+        r#type::environment::Environment,
+    };
+
+    #[test]
+    fn search_across_universes() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let registry = ModuleRegistry::new(&env);
+
+        let results = registry.search([
+            heap.intern_symbol("kernel"),
+            heap.intern_symbol("type"),
+            heap.intern_symbol("Dict"),
+        ]);
+
+        assert_eq!(results.len(), 2);
+        assert_eq!(
+            results[0].kind,
+            ItemKind::Intrinsic(IntrinsicItem {
+                name: "::kernel::type::Dict",
+                universe: Universe::Type
+            })
+        );
+        assert_eq!(
+            results[1].kind,
+            ItemKind::Intrinsic(IntrinsicItem {
+                name: "::kernel::type::Dict",
+                universe: Universe::Value
+            })
+        );
     }
 }
