@@ -36,7 +36,9 @@ impl PrettyPrint for GenericArgument<'_> {
         env: &'env Environment,
         limit: RecursionDepthBoundary,
     ) -> RcDoc<'env, anstyle::Style> {
-        let mut doc = RcDoc::text(self.name.as_str().to_owned()).annotate(ORANGE);
+        let name = format!("{}?{}", self.name, self.id);
+
+        let mut doc = RcDoc::text(name).annotate(ORANGE);
 
         if let Some(constraint) = self.constraint {
             doc = doc.append(
@@ -147,6 +149,6 @@ impl PrettyPrint for Param {
         _: &'env Environment,
         _: RecursionDepthBoundary,
     ) -> RcDoc<'env, anstyle::Style> {
-        RcDoc::text(self.argument.to_string())
+        RcDoc::text(format!("?{}", self.argument))
     }
 }
