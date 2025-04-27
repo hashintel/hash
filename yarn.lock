@@ -517,7 +517,7 @@ __metadata:
     "@types/react-window": "npm:1.8.8"
     "@types/url-regex-safe": "npm:1.0.2"
     "@vercel/edge-config": "npm:0.4.1"
-    "@welldone-software/why-did-you-render": "npm:8.0.3"
+    "@welldone-software/why-did-you-render": "npm:10.0.1"
     axios: "npm:1.9.0"
     buffer: "npm:6.0.3"
     clsx: "npm:1.2.1"
@@ -19130,14 +19130,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@welldone-software/why-did-you-render@npm:8.0.3":
-  version: 8.0.3
-  resolution: "@welldone-software/why-did-you-render@npm:8.0.3"
+"@welldone-software/why-did-you-render@npm:10.0.1":
+  version: 10.0.1
+  resolution: "@welldone-software/why-did-you-render@npm:10.0.1"
   dependencies:
     lodash: "npm:^4"
   peerDependencies:
-    react: ^18
-  checksum: 10c0/637c2bd5fe9c50932bc961d395351a68fc5a80dcacc9ba0d38a3753bfef5bbcb7c920932496f2d1d48b5153cd39bc4d0de60904db03a058ca7bdcf535628e7b7
+    react: ^19
+  checksum: 10c0/30080a8f471d7fb29f0b82ccbf5894e760df0bf6169b716deb2b26723dfa72f6635db9326cf8abaa392391a8fab3baa4972057153eb548778440b233a66d5253
   languageName: node
   linkType: hard
 
