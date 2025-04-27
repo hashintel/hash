@@ -2499,9 +2499,9 @@ dependencies = [
 
 [[package]]
 name = "facet"
-version = "0.18.1"
+version = "0.18.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c728d8be0c707c97c131d4b2711c7668a0e6671704e7e0740397f7008c34c4c8"
+checksum = "5c83d5566fe459ee0bc0406f2116fff41c1d81c841cd4c79ff671d9cd2b55608"
 dependencies = [
  "facet-core",
  "facet-derive",
@@ -2519,9 +2519,9 @@ dependencies = [
 
 [[package]]
 name = "facet-derive"
-version = "0.18.1"
+version = "0.18.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "99af14bc530f52f844a5f8ccc381b63bcdd1422f91a32995f74733ac4ec8e0c7"
+checksum = "1712404c5da07c2723d48df0db8d161eceb68be6660882dffdeed28fc0ccee58"
 dependencies = [
  "facet-core",
  "facet-derive-emit",
@@ -2529,18 +2529,18 @@ dependencies = [
 
 [[package]]
 name = "facet-derive-emit"
-version = "0.18.1"
+version = "0.18.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9f7dc9716334ca61fce52aad1da424f79b5078f45d94122b62364b915a16cff5"
+checksum = "bd885bd1d561bb8549a33eafda88b45036389ad9f005242c28a26fcc3b0f9917"
 dependencies = [
  "facet-derive-parse",
 ]
 
 [[package]]
 name = "facet-derive-parse"
-version = "0.18.1"
+version = "0.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9ae906c85297a1e966b319a7e7bcc8ad3342dc73eaa3a8ca21ffb753d08904a7"
+checksum = "5cf3a97fb113737c2eea8a135b5c5a95be8a9275674361edb9a59439f8599116"
 dependencies = [
  "unsynn",
 ]
