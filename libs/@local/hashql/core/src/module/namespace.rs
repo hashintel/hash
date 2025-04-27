@@ -2,16 +2,16 @@
 use super::{ModuleRegistry, import::Import};
 use crate::symbol::InternedSymbol;
 
-/// Represents a lexical scope in HashQL.
+/// Represents the namespace of a module.
 ///
-/// A `Namespace` defines the collection of names that are available within a module.
+/// A `ModuleNamespace` defines the collection of names that are available within a module.
 #[derive(Debug, Clone)]
-pub struct Namespace<'env, 'heap> {
+pub struct ModuleNamespace<'env, 'heap> {
     registry: &'env ModuleRegistry<'heap>,
     pub imports: Vec<Import<'heap>>,
 }
 
-impl<'env, 'heap> Namespace<'env, 'heap> {
+impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
     pub const fn new(registry: &'env ModuleRegistry<'heap>) -> Self {
         Self {
             registry,
