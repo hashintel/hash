@@ -5,7 +5,7 @@ use crate::{
     r#type::{
         Type,
         collection::FastHashMap,
-        environment::{AnalysisEnvironment, Environment},
+        environment::{AnalysisEnvironment, Environment, InferenceEnvironment},
         error::TypeCheckDiagnosticCategory,
         inference::{Variable, VariableKind, solver::Unification},
         kind::{
@@ -1028,5 +1028,40 @@ fn do_not_double_emit_on_unconstrained_variables() {
     assert_eq!(
         diagnostics[1].category,
         TypeCheckDiagnosticCategory::UnconstrainedTypeVariable
+    );
+}
+
+#[test]
+fn pipeline_environment_to_solver() {
+    // (_1 | String) <: Number
+
+    let heap = Heap::new();
+    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+    let hole1 = HoleId::new(1);
+
+    let union = union!(
+        env,
+        [
+            instantiate_infer(&env, hole1),
+            primitive!(env, PrimitiveType::String)
+        ]
+    );
+
+    let number = primitive!(env, PrimitiveType::Number);
+
+    let mut environment = InferenceEnvironment::new(&env);
+    environment.collect_constraints(union, number);
+
+    let solver = environment.into_solver();
+    let (substitution, diagnostics) = solver.solve();
+    assert!(diagnostics.is_empty());
+
+    assert_equiv!(
+        env,
+        [substitution
+            .infer(hole1)
+            .expect("should have inferred hole")],
+        [number]
     );
 }
