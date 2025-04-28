@@ -38,6 +38,13 @@ where
 pub struct InternMap<'heap, T: Decompose<'heap>> {
     inner: InternSet<'heap, T::Partial>,
 
+    // In theory, this isn't as efficient as it could be, but it makes the implementation simpler.
+    // What we could do instead is have e.g. an atomic counter with the current maximum
+    // id provisioned and a roaring bitmap of ids that are currently free, then when we provision a
+    // new id, we can check if there are any free ids available and use them instead.
+    // We could then pair this with a `Vec` (or `ConcurrentVec`) and then efficiently manage the
+    // forward map with `O(1)` access. The problem with this approach is that it is simply just
+    // more complex, for a performance gain we haven't even benchmarked yet.
     forward: ConcurrentHashMap<T::Id, Interned<'heap, T::Partial>>,
     reverse: ConcurrentHashMap<Interned<'heap, T::Partial>, T::Id>,
 
