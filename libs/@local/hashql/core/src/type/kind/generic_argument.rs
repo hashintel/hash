@@ -58,6 +58,7 @@ impl PrettyPrint for GenericArgument {
 pub struct GenericArguments<'heap>(Option<Interned<'heap, [GenericArgument]>>);
 
 impl<'heap> GenericArguments<'heap> {
+    #[must_use]
     pub const fn empty() -> Self {
         Self(None)
     }
@@ -80,6 +81,7 @@ impl<'heap> GenericArguments<'heap> {
         }
     }
 
+    #[must_use]
     pub const fn len(&self) -> usize {
         match self.0 {
             Some(Interned(slice, _)) => slice.len(),
@@ -87,6 +89,7 @@ impl<'heap> GenericArguments<'heap> {
         }
     }
 
+    #[must_use]
     pub const fn is_empty(&self) -> bool {
         match self.0 {
             Some(Interned(slice, _)) => slice.is_empty(),

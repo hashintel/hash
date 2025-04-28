@@ -19,7 +19,7 @@ impl RecursionDepthBoundary {
         if self.depth >= self.limit {
             RcDoc::text("...")
         } else {
-            env.types[id].copied().pretty(env, self.enter())
+            env.r#type(id).pretty(env, self.enter())
         }
     }
 

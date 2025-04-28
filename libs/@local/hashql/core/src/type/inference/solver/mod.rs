@@ -14,7 +14,7 @@ use super::{
 use crate::{
     collection::FastHashMap,
     r#type::{
-        Type, TypeId,
+        PartialType, TypeId,
         environment::{Diagnostics, Environment, LatticeEnvironment, SimplifyEnvironment},
         error::{
             bound_constraint_violation, conflicting_equality_constraints,
@@ -393,8 +393,8 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                         Some(existing) => self.diagnostics.push(conflicting_equality_constraints(
                             &self.lattice,
                             variable,
-                            self.lattice.types[existing].copied(),
-                            self.lattice.types[r#type].copied(),
+                            self.lattice.r#type(existing),
+                            self.lattice.r#type(r#type),
                         )),
                     }
                 }
@@ -585,8 +585,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                     // this bound applies to us
                     variable_constraint
                         .lower
-                        .push(self.lattice.alloc(|id| Type {
-                            id,
+                        .push(self.lattice.intern_type(PartialType {
                             span: lower.origin.span,
                             kind: self.lattice.intern_kind(lower.kind.into_type_kind()),
                         }));
@@ -707,8 +706,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                     // this bound applies to us
                     variable_constraint
                         .upper
-                        .push(self.lattice.alloc(|id| Type {
-                            id,
+                        .push(self.lattice.intern_type(PartialType {
                             span: upper.origin.span,
                             kind: self.lattice.intern_kind(upper.kind.into_type_kind()),
                         }));
@@ -860,8 +858,8 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                 self.diagnostics.push(bound_constraint_violation(
                     &self.lattice,
                     variable,
-                    self.lattice.types[lower].copied(),
-                    self.lattice.types[upper].copied(),
+                    self.lattice.r#type(lower),
+                    self.lattice.r#type(upper),
                 ));
 
                 continue;
@@ -908,8 +906,8 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                         self.diagnostics.push(incompatible_lower_equal_constraint(
                             &self.lattice,
                             variable,
-                            self.lattice.types[lower].copied(),
-                            self.lattice.types[equal].copied(),
+                            self.lattice.r#type(lower),
+                            self.lattice.r#type(equal),
                         ));
 
                         continue;
@@ -921,8 +919,8 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                         self.diagnostics.push(incompatible_upper_equal_constraint(
                             &self.lattice,
                             variable,
-                            self.lattice.types[equal].copied(),
-                            self.lattice.types[upper].copied(),
+                            self.lattice.r#type(equal),
+                            self.lattice.r#type(upper),
                         ));
 
                         continue;

@@ -7,7 +7,7 @@ use super::{InternSet, Interned};
 use crate::{
     collection::ConcurrentHashMap,
     heap::Heap,
-    id::{HasId, Id as _},
+    id::{HasId, Id},
 };
 
 pub trait Decompose<'heap>: HasId {
@@ -26,9 +26,9 @@ pub struct Provisioned<T>(T);
 
 impl<T> Provisioned<T>
 where
-    T: Copy,
+    T: Id,
 {
-    pub fn value(self) -> T {
+    pub const fn value(self) -> T {
         self.0
     }
 }
@@ -73,8 +73,16 @@ where
     T: Decompose<'heap, Partial: Eq + Hash>,
 {
     pub fn insert(&self, id: T::Id, partial: Interned<'heap, T::Partial>) {
-        let _ = self.forward.insert(id, partial);
-        let _ = self.reverse.insert(partial, id);
+        // Result indicated that a value of the same key already exists
+        if let Err((key, _)) = self.forward.insert(id, partial) {
+            tracing::warn!(
+                %key,
+                "Attempted to insert a duplicate key into the intern map"
+            );
+        }
+
+        // This error is expected, this just means that the same partial is mapped to multiple ids
+        let _: Result<(), _> = self.reverse.insert(partial, id);
     }
 
     pub fn intern_partial(&self, partial: T::Partial) -> T {
@@ -110,7 +118,8 @@ where
         }
     }
 
-    pub fn intern(&self, closure: impl Fn(Provisioned<T::Id>) -> T::Partial) -> T {
+    // TODO: consider if this shouldn't be `Fn` instead of `FnOnce`
+    pub fn intern(&self, closure: impl FnOnce(Provisioned<T::Id>) -> T::Partial) -> T {
         let id = self.provision();
         let partial = closure(id);
 
@@ -123,6 +132,11 @@ where
         Some(T::from_parts(id, partial))
     }
 
+    /// Returns the interned value for the given id
+    ///
+    /// # Panics
+    ///
+    /// Panics if no item with the given id exists
     pub fn index(&self, id: T::Id) -> T {
         let partial = self
             .forward

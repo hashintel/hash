@@ -6,9 +6,10 @@ use smallvec::SmallVec;
 
 use super::TypeKind;
 use crate::{
+    intern::Interned,
     span::SpanId,
     r#type::{
-        Type, TypeId,
+        PartialType, Type, TypeId,
         collection::TypeIdSet,
         environment::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
@@ -24,7 +25,7 @@ use crate::{
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct UnionType<'heap> {
-    pub variants: &'heap [TypeId],
+    pub variants: Interned<'heap, [TypeId]>,
 }
 
 impl<'heap> UnionType<'heap> {
@@ -32,7 +33,7 @@ impl<'heap> UnionType<'heap> {
         let mut variants = TypeIdSet::with_capacity(env, self.variants.len());
 
         for &variant in self.variants {
-            if let TypeKind::Union(union) = env.types[variant].copied().kind {
+            if let TypeKind::Union(union) = env.r#type(variant).kind {
                 variants.extend(union.unnest(env));
             } else {
                 variants.push(variant);
@@ -86,8 +87,7 @@ impl<'heap> UnionType<'heap> {
 
         // We need to wrap this in an explicit `Union`, as a `meet` with multiple returned values
         // turns into an intersection.
-        let id = env.alloc(|id| Type {
-            id,
+        let id = env.intern_type(PartialType {
             span: lhs_span,
             kind: env.intern_kind(TypeKind::Union(UnionType {
                 variants: env.intern_type_ids(&variants),
@@ -135,7 +135,7 @@ impl<'heap> UnionType<'heap> {
 
             if env
                 .record_diagnostic(|env| {
-                    union_variant_mismatch(env, env.types[self_variant].copied(), expected)
+                    union_variant_mismatch(env, env.r#type(self_variant), expected)
                 })
                 .is_break()
             {
@@ -199,9 +199,7 @@ impl<'heap> UnionType<'heap> {
             let lhs_variant = lhs_variants[index];
 
             if env
-                .record_diagnostic(|env| {
-                    union_variant_mismatch(env, env.types[lhs_variant].copied(), rhs)
-                })
+                .record_diagnostic(|env| union_variant_mismatch(env, env.r#type(lhs_variant), rhs))
                 .is_break()
             {
                 return false;
@@ -215,9 +213,7 @@ impl<'heap> UnionType<'heap> {
             let rhs_variant = rhs_variants[index];
 
             if env
-                .record_diagnostic(|env| {
-                    union_variant_mismatch(env, env.types[rhs_variant].copied(), lhs)
-                })
+                .record_diagnostic(|env| union_variant_mismatch(env, env.r#type(rhs_variant), lhs))
                 .is_break()
             {
                 return false;
@@ -252,8 +248,7 @@ impl<'heap> UnionType<'heap> {
                 // would either way never emit a constraint.
             }
             (self_variants, []) => {
-                let never = env.alloc(|id| Type {
-                    id,
+                let never = env.intern_type(PartialType {
                     span: super_span,
                     kind: env.intern_kind(TypeKind::Never),
                 });
@@ -276,7 +271,7 @@ impl<'heap> UnionType<'heap> {
                 // variable on the right side won't be constrained to the left side (the subtype).
                 // This is deemed acceptable, as any type that isn't constrained enough on the right
                 // side will be caught during type checking.
-                let self_variant = env.types[self_variant].copied();
+                let self_variant = env.r#type(self_variant);
                 let Some(variable) = self_variant.kind.into_variable() else {
                     // There's no variable on the left, so nothing to constrain.
                     return;
@@ -284,7 +279,7 @@ impl<'heap> UnionType<'heap> {
 
                 // There are multiple variables, therefore the right side is guaranteed to be a
                 // union
-                debug_assert_matches!(env.types[supertype].copied().kind, TypeKind::Union(_));
+                debug_assert_matches!(env.r#type(supertype).kind, TypeKind::Union(_));
 
                 env.add_constraint(Constraint::UpperBound {
                     variable: Variable {
@@ -412,7 +407,7 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
         for &variant in self.kind.variants {
             let variant = env.simplify(variant);
 
-            if let Some(UnionType { variants: nested }) = env.types[variant].copied().kind.union() {
+            if let Some(UnionType { variants: nested }) = env.r#type(variant).kind.union() {
                 variants.extend_from_slice(nested);
             } else {
                 variants.push(variant);
@@ -425,8 +420,7 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
 
         // Propagate top type
         if variants.iter().any(|&variant| env.is_top(variant)) {
-            return env.alloc(|id| Type {
-                id,
+            return env.intern_type(PartialType {
                 span: self.span,
                 kind: env.intern_kind(TypeKind::Unknown),
             });
@@ -446,15 +440,12 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
 
         // Collapse empty or singleton
         match variants.len() {
-            0 => env.alloc(|id| Type {
-                id,
+            0 => env.intern_type(PartialType {
                 span: self.span,
                 kind: env.intern_kind(TypeKind::Never),
             }),
             1 => variants[0],
-            _ if variants.as_slice() == self.kind.variants => self.id,
-            _ => env.alloc(|id| Type {
-                id,
+            _ => env.intern_type(PartialType {
                 span: self.span,
                 kind: env.intern_kind(TypeKind::Union(UnionType {
                     variants: env.intern_type_ids(&variants),
@@ -1316,7 +1307,7 @@ mod test {
 
         // Simplifying should collapse duplicates
         let result = union_type.simplify(&mut simplify_env);
-        let result_type = env.types[result].copied();
+        let result_type = env.r#type(result);
 
         println!("{}", result_type.pretty_print(&env, 80));
 
@@ -1375,7 +1366,7 @@ mod test {
 
         // Simplifying should remove the Never type
         let result = union_type.simplify(&mut simplify_env);
-        let result_type = env.types[result].copied();
+        let result_type = env.r#type(result);
 
         // Result should be just Number, not a union
         assert!(matches!(
@@ -1403,7 +1394,7 @@ mod test {
 
         // Simplifying should collapse to the top type
         let result = union_type.simplify(&mut simplify_env);
-        let result_type = env.types[result].copied();
+        let result_type = env.r#type(result);
 
         // Result should be Unknown
         assert!(matches!(*result_type.kind, TypeKind::Unknown));
@@ -1421,7 +1412,7 @@ mod test {
 
         // Simplifying empty union should result in Never
         let result = union_type.simplify(&mut simplify_env);
-        let result_type = env.types[result].copied();
+        let result_type = env.r#type(result);
 
         assert!(matches!(*result_type.kind, TypeKind::Never));
     }
@@ -1440,7 +1431,7 @@ mod test {
 
         // Simplifying should remove the subtype
         let result = union_type.simplify(&mut simplify_env);
-        let result_type = env.types[result].copied();
+        let result_type = env.r#type(result);
 
         // Result should be just Number
         assert!(matches!(
@@ -1534,7 +1525,7 @@ mod test {
         // Number | Integer simplifies to just Number
         let mut simplify_env = SimplifyEnvironment::new(&env);
         let simplified = number_integer.simplify(&mut simplify_env);
-        let simplified_type = env.types[simplified].copied();
+        let simplified_type = env.r#type(simplified);
         assert!(matches!(
             *simplified_type.kind,
             TypeKind::Primitive(PrimitiveType::Number)
@@ -1633,7 +1624,7 @@ mod test {
         assert_matches!(
             &constraints[0],
             Constraint::UpperBound { variable: Variable { span: SpanId::SYNTHETIC, kind: VariableKind::Hole(bound_hole) }, bound } if {
-                let bound_type = env.types[*bound].copied().kind;
+                let bound_type = env.r#type(*bound).kind;
                 matches!(bound_type, TypeKind::Never) && *bound_hole == hole
             }
         );

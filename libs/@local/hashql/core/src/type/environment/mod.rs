@@ -47,6 +47,7 @@ impl<'heap> Environment<'heap> {
     #[must_use]
     pub fn new(source: SpanId, heap: &'heap Heap) -> Self {
         let this = Self::new_empty(source, heap);
+        prefill_environment(&this);
 
         this
     }
@@ -75,8 +76,8 @@ impl<'heap> Environment<'heap> {
     }
 
     #[inline]
-    pub fn intern_type(&self, partial: PartialType<'heap>) -> Type<'heap> {
-        self.types.intern_partial(partial)
+    pub fn intern_type(&self, partial: PartialType<'heap>) -> TypeId {
+        self.types.intern_partial(partial).id
     }
 
     #[inline]

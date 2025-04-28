@@ -1,3 +1,4 @@
+#![expect(clippy::type_repetition_in_bounds)]
 use core::{fmt::Debug, hash::Hash};
 
 use super::Interned;

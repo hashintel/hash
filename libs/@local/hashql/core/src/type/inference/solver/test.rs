@@ -4,7 +4,7 @@ use crate::{
     heap::Heap,
     span::SpanId,
     r#type::{
-        Type,
+        PartialType,
         environment::{AnalysisEnvironment, Environment, InferenceEnvironment},
         error::TypeCheckDiagnosticCategory,
         inference::{Variable, VariableKind, solver::Unification},
@@ -978,19 +978,21 @@ fn contract() {
 
     env.substitution = substitution.clone();
 
-    let expected = env.alloc(|id| Type {
-        id,
-        span: SpanId::SYNTHETIC,
-        kind: env.intern_kind(TypeKind::Struct(StructType {
-            fields: env
-                .intern_struct_fields(&mut [StructField {
-                    name: env.heap.intern_symbol("name"),
-                    value: id,
-                }])
-                .expect("should be uniq"),
-            arguments: env.intern_generic_arguments(&mut []),
-        })),
-    });
+    let expected = env
+        .types
+        .intern(|id| PartialType {
+            span: SpanId::SYNTHETIC,
+            kind: env.intern_kind(TypeKind::Struct(StructType {
+                fields: env
+                    .intern_struct_fields(&mut [StructField {
+                        name: env.heap.intern_symbol("name"),
+                        value: id.value(),
+                    }])
+                    .expect("should be uniq"),
+                arguments: env.intern_generic_arguments(&mut []),
+            })),
+        })
+        .id;
 
     let actual = substitution
         .infer(hole1)

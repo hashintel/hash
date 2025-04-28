@@ -5,7 +5,7 @@ use smallvec::SmallVec;
 
 use super::TypeKind;
 use crate::r#type::{
-    Type, TypeId,
+    PartialType, Type, TypeId,
     environment::{
         AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
         SimplifyEnvironment,
@@ -33,16 +33,7 @@ impl<'heap> Lattice<'heap> for ListType {
     ) -> SmallVec<TypeId, 4> {
         let element = env.join(self.kind.element, other.kind.element);
 
-        if element == self.kind.element {
-            return SmallVec::from_slice(&[self.id]);
-        }
-
-        if element == other.kind.element {
-            return SmallVec::from_slice(&[other.id]);
-        }
-
-        SmallVec::from_slice(&[env.alloc(|id| Type {
-            id,
+        SmallVec::from_slice(&[env.intern_type(PartialType {
             span: self.span,
             kind: env.intern_kind(TypeKind::Intrinsic(IntrinsicType::List(Self { element }))),
         })])
@@ -55,16 +46,7 @@ impl<'heap> Lattice<'heap> for ListType {
     ) -> SmallVec<TypeId, 4> {
         let element = env.meet(self.kind.element, other.kind.element);
 
-        if element == self.kind.element {
-            return SmallVec::from_slice(&[self.id]);
-        }
-
-        if element == other.kind.element {
-            return SmallVec::from_slice(&[other.id]);
-        }
-
-        SmallVec::from_slice(&[env.alloc(|id| Type {
-            id,
+        SmallVec::from_slice(&[env.intern_type(PartialType {
             span: self.span,
             kind: env.intern_kind(TypeKind::Intrinsic(IntrinsicType::List(Self { element }))),
         })])
@@ -98,8 +80,7 @@ impl<'heap> Lattice<'heap> for ListType {
         elements
             .into_iter()
             .map(|element| {
-                env.alloc(|id| Type {
-                    id,
+                env.intern_type(PartialType {
                     span: self.span,
                     kind: env
                         .intern_kind(TypeKind::Intrinsic(IntrinsicType::List(Self { element }))),
@@ -123,8 +104,7 @@ impl<'heap> Lattice<'heap> for ListType {
         elements
             .into_iter()
             .map(|element| {
-                env.alloc(|id| Type {
-                    id,
+                env.intern_type(PartialType {
                     span: self.span,
                     kind: env
                         .intern_kind(TypeKind::Intrinsic(IntrinsicType::List(Self { element }))),
@@ -152,12 +132,7 @@ impl<'heap> Lattice<'heap> for ListType {
     fn simplify(self: Type<'heap, Self>, env: &mut SimplifyEnvironment<'_, 'heap>) -> TypeId {
         let element = env.simplify(self.kind.element);
 
-        if element == self.kind.element {
-            return self.id;
-        }
-
-        env.alloc(|id| Type {
-            id,
+        env.intern_type(PartialType {
             span: self.span,
             kind: env.intern_kind(TypeKind::Intrinsic(IntrinsicType::List(Self { element }))),
         })
@@ -248,8 +223,7 @@ impl DictType {
 
         keys.iter()
             .map(|&key| {
-                env.alloc(|id| Type {
-                    id,
+                env.intern_type(PartialType {
                     span: self.span,
                     kind: env.intern_kind(TypeKind::Intrinsic(IntrinsicType::Dict(Self {
                         key,
@@ -271,8 +245,8 @@ impl<'heap> Lattice<'heap> for DictType {
             && (!env.is_concrete(self.kind.key) || !env.is_concrete(other.kind.key));
 
         if defer {
-            let self_key = env.types[self.kind.key].copied();
-            let other_key = env.types[other.kind.key].copied();
+            let self_key = env.r#type(self.kind.key);
+            let other_key = env.r#type(other.kind.key);
 
             // We circumvent `env.join` here, by directly joining the representations. This is
             // intentional, so that we can propagate the join result instead of having a `Union`.
@@ -286,20 +260,13 @@ impl<'heap> Lattice<'heap> for DictType {
         } else if env.is_equivalent(self.kind.key, other.kind.key) {
             let value = env.join(self.kind.value, other.kind.value);
 
-            if value == self.kind.value {
-                SmallVec::from_slice(&[self.id])
-            } else if value == other.kind.value {
-                SmallVec::from_slice(&[other.id])
-            } else {
-                SmallVec::from_slice(&[env.alloc(|id| Type {
-                    id,
-                    span: self.span,
-                    kind: env.intern_kind(TypeKind::Intrinsic(IntrinsicType::Dict(Self {
-                        key: self.kind.key,
-                        value,
-                    }))),
-                })])
-            }
+            SmallVec::from_slice(&[env.intern_type(PartialType {
+                span: self.span,
+                kind: env.intern_kind(TypeKind::Intrinsic(IntrinsicType::Dict(Self {
+                    key: self.kind.key,
+                    value,
+                }))),
+            })])
         } else {
             // keys are not equivalent, cannot join
             SmallVec::from_slice(&[self.id, other.id])
@@ -315,8 +282,8 @@ impl<'heap> Lattice<'heap> for DictType {
             && (!env.is_concrete(self.kind.key) || !env.is_concrete(other.kind.key));
 
         if defer {
-            let self_key = env.types[self.kind.key].copied();
-            let other_key = env.types[other.kind.key].copied();
+            let self_key = env.r#type(self.kind.key);
+            let other_key = env.r#type(other.kind.key);
 
             // We circumvent `env.meet` here, by directly joining the representations. This is
             // intentional, so that we can propagate the join result instead of having an
@@ -331,20 +298,13 @@ impl<'heap> Lattice<'heap> for DictType {
         } else if env.is_equivalent(self.kind.key, other.kind.key) {
             let value = env.meet(self.kind.value, other.kind.value);
 
-            if value == self.kind.value {
-                SmallVec::from_slice(&[self.id])
-            } else if value == other.kind.value {
-                SmallVec::from_slice(&[other.id])
-            } else {
-                SmallVec::from_slice(&[env.alloc(|id| Type {
-                    id,
-                    span: self.span,
-                    kind: env.intern_kind(TypeKind::Intrinsic(IntrinsicType::Dict(Self {
-                        key: self.kind.key,
-                        value,
-                    }))),
-                })])
-            }
+            SmallVec::from_slice(&[env.intern_type(PartialType {
+                span: self.span,
+                kind: env.intern_kind(TypeKind::Intrinsic(IntrinsicType::Dict(Self {
+                    key: self.kind.key,
+                    value,
+                }))),
+            })])
         } else {
             SmallVec::new()
         }
@@ -379,8 +339,7 @@ impl<'heap> Lattice<'heap> for DictType {
         value
             .into_iter()
             .map(|value| {
-                env.alloc(|id| Type {
-                    id,
+                env.intern_type(PartialType {
                     span: self.span,
                     kind: env.intern_kind(TypeKind::Intrinsic(IntrinsicType::Dict(Self {
                         key: self.kind.key,
@@ -407,8 +366,7 @@ impl<'heap> Lattice<'heap> for DictType {
         value
             .into_iter()
             .map(|value| {
-                env.alloc(|id| Type {
-                    id,
+                env.intern_type(PartialType {
                     span: self.span,
                     kind: env.intern_kind(TypeKind::Intrinsic(IntrinsicType::Dict(Self {
                         key: self.kind.key,
@@ -441,12 +399,7 @@ impl<'heap> Lattice<'heap> for DictType {
         let key = env.simplify(self.kind.key);
         let value = env.simplify(self.kind.value);
 
-        if self.kind.key == key && self.kind.value == value {
-            return self.id;
-        }
-
-        env.alloc(|id| Type {
-            id,
+        env.intern_type(PartialType {
             span: self.span,
             kind: env.intern_kind(TypeKind::Intrinsic(IntrinsicType::Dict(Self {
                 key,
@@ -1219,9 +1172,7 @@ mod tests {
         // Joining a list and a dict should give a union of both
         assert_equiv!(
             env,
-            env.types[list]
-                .copied()
-                .join(env.types[dict].copied(), &mut lattice_env),
+            env.r#type(list).join(env.r#type(dict), &mut lattice_env),
             [list, dict]
         );
     }
@@ -1242,9 +1193,7 @@ mod tests {
         let mut lattice_env = LatticeEnvironment::new(&env);
 
         // Meeting a list and a dict should give Never (empty)
-        let met = env.types[list]
-            .copied()
-            .meet(env.types[dict].copied(), &mut lattice_env);
+        let met = env.r#type(list).meet(env.r#type(dict), &mut lattice_env);
         assert!(met.is_empty());
     }
 
@@ -1292,28 +1241,28 @@ mod tests {
 
         // During inference, joining dicts with non-concrete keys should work using the carrier
         // pattern
-        let joined = env.types[dict_a]
-            .copied()
-            .join(env.types[dict_b].copied(), &mut lattice_env);
+        let joined = env
+            .r#type(dict_a)
+            .join(env.r#type(dict_b), &mut lattice_env);
         assert!(!joined.is_empty());
 
         // Meeting should also work with the carrier pattern
-        let met = env.types[dict_a]
-            .copied()
-            .meet(env.types[dict_b].copied(), &mut lattice_env);
+        let met = env
+            .r#type(dict_a)
+            .meet(env.r#type(dict_b), &mut lattice_env);
         assert!(!met.is_empty());
 
         // When inference is disabled, the behavior should be different
         lattice_env.set_inference_enabled(false);
 
-        let joined_no_inference = env.types[dict_a]
-            .copied()
-            .join(env.types[dict_b].copied(), &mut lattice_env);
+        let joined_no_inference = env
+            .r#type(dict_a)
+            .join(env.r#type(dict_b), &mut lattice_env);
         assert_equiv!(env, joined_no_inference, [dict_a, dict_b]);
 
-        let met_no_inference = env.types[dict_a]
-            .copied()
-            .meet(env.types[dict_b].copied(), &mut lattice_env);
+        let met_no_inference = env
+            .r#type(dict_a)
+            .meet(env.r#type(dict_b), &mut lattice_env);
         assert!(met_no_inference.is_empty());
     }
 
@@ -2070,8 +2019,7 @@ mod tests {
         let partial_edge = PartialStructuralEdge::Source(source_var);
 
         // Collect structural edges for both intrinsic types
-        env.types[list_id]
-            .copied()
+        env.r#type(list_id)
             .collect_structural_edges(partial_edge, &mut inference_env);
 
         // The IntrinsicType should delegate to ListType
@@ -2085,8 +2033,7 @@ mod tests {
         );
 
         // Now test dict
-        env.types[dict_id]
-            .copied()
+        env.r#type(dict_id)
             .collect_structural_edges(partial_edge, &mut inference_env);
 
         // The IntrinsicType should delegate to DictType

@@ -10,7 +10,7 @@ use crate::{
     math::cartesian_product,
     symbol::InternedSymbol,
     r#type::{
-        Type, TypeId,
+        PartialType, Type, TypeId,
         environment::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
             SimplifyEnvironment,
@@ -47,7 +47,8 @@ impl PrettyPrint for StructField<'_> {
 pub struct StructFields<'heap>(Option<Interned<'heap, [StructField<'heap>]>>);
 
 impl<'heap> StructFields<'heap> {
-    pub const fn new() -> Self {
+    #[must_use]
+    pub const fn empty() -> Self {
         Self(None)
     }
 
@@ -69,6 +70,7 @@ impl<'heap> StructFields<'heap> {
         }
     }
 
+    #[must_use]
     pub const fn len(&self) -> usize {
         match self.0 {
             Some(Interned(slice, _)) => slice.len(),
@@ -76,6 +78,7 @@ impl<'heap> StructFields<'heap> {
         }
     }
 
+    #[must_use]
     pub const fn is_empty(&self) -> bool {
         match self.0 {
             Some(Interned(slice, _)) => slice.is_empty(),
@@ -153,8 +156,7 @@ impl<'heap> StructType<'heap> {
         variants
             .into_iter()
             .map(|mut fields| {
-                env.alloc(|id| Type {
-                    id,
+                env.intern_type(PartialType {
                     span: self.span,
                     kind: env.intern_kind(TypeKind::Struct(Self {
                         fields: env
@@ -183,8 +185,7 @@ impl<'heap> StructType<'heap> {
             return SmallVec::from_slice(&[other.id]);
         }
 
-        let id = env.alloc(|id| Type {
-            id,
+        let id = env.intern_type(PartialType {
             span: self.span,
             kind: env.intern_kind(TypeKind::Struct(Self {
                 fields: env.intern_struct_fields(fields).unwrap_or_else(|_| {
@@ -433,28 +434,15 @@ impl<'heap> Lattice<'heap> for StructType<'heap> {
             });
         }
 
-        // Check if the fields are the same, in that case we don't need to create a new type
-        if self
-            .kind
-            .fields
-            .iter()
-            .zip(&fields)
-            .all(|(lhs, rhs)| lhs.value == rhs.value)
-        {
-            return self.id;
-        }
-
         // Check if any of the fields are uninhabited, in that case simplify down to never
         if fields.iter().any(|field| env.is_bottom(field.value)) {
-            return env.alloc(|id| Type {
-                id,
+            return env.intern_type(PartialType {
                 span: self.span,
                 kind: env.intern_kind(TypeKind::Never),
             });
         }
 
-        env.alloc(|id| Type {
-            id,
+        env.intern_type(PartialType {
             span: self.span,
             kind: env.intern_kind(TypeKind::Struct(Self {
                 fields: env
@@ -1068,7 +1056,7 @@ mod test {
 
         // Simplifying a struct with a Never field should result in Never
         let result = never_struct.simplify(&mut simplify_env);
-        let result_type = env.types[result].copied();
+        let result_type = env.r#type(result);
         assert!(
             matches!(result_type.kind, TypeKind::Never),
             "Expected Never, got {:?}",

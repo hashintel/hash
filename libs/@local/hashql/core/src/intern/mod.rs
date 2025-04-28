@@ -45,25 +45,25 @@ impl<'heap, T: ?Sized> Interned<'heap, T> {
     }
 }
 
-impl<'heap, T: ?Sized + Debug> Debug for Interned<'heap, T> {
+impl<T: ?Sized + Debug> Debug for Interned<'_, T> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         Debug::fmt(self.0, fmt)
     }
 }
 
-impl<'heap, T: ?Sized + Display> Display for Interned<'heap, T> {
+impl<T: ?Sized + Display> Display for Interned<'_, T> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         Display::fmt(self.0, fmt)
     }
 }
 
-impl<'heap, T: ?Sized> Clone for Interned<'heap, T> {
+impl<T: ?Sized> Clone for Interned<'_, T> {
     fn clone(&self) -> Self {
         *self
     }
 }
 
-impl<'heap, T: ?Sized> Copy for Interned<'heap, T> {}
+impl<T: ?Sized> Copy for Interned<'_, T> {}
 
 impl<T: ?Sized> Deref for Interned<'_, T> {
     type Target = T;
@@ -113,5 +113,14 @@ impl<T: ?Sized> Hash for Interned<'_, T> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         // Pointer hashing is sufficient, due to the uniqueness constraint.
         ptr::hash(self.0, state);
+    }
+}
+
+impl<'heap, T> IntoIterator for Interned<'heap, [T]> {
+    type IntoIter = core::slice::Iter<'heap, T>;
+    type Item = &'heap T;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter()
     }
 }
