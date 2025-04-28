@@ -1,9 +1,10 @@
 use core::{
     hash::Hash,
+    hint::cold_path,
     sync::atomic::{AtomicU32, Ordering},
 };
 
-use super::{InternSet, Interned};
+use super::Interned;
 use crate::{
     collection::ConcurrentHashMap,
     heap::Heap,
@@ -36,7 +37,11 @@ where
 #[derive(derive_more::Debug)]
 #[debug(bound(T::Partial: Eq))]
 pub struct InternMap<'heap, T: Decompose<'heap>> {
-    inner: InternSet<'heap, T::Partial>,
+    heap: &'heap Heap,
+
+    // For more information about the tradeoff and decision on the use of `ConcurrentHashMap`, see
+    // the documentation on `InternSet`.
+    inner: ConcurrentHashMap<&'heap T::Partial, T::Id>,
 
     // In theory, this isn't as efficient as it could be, but it makes the implementation simpler.
     // What we could do instead is have e.g. an atomic counter with the current maximum
@@ -45,8 +50,7 @@ pub struct InternMap<'heap, T: Decompose<'heap>> {
     // We could then pair this with a `Vec` (or `ConcurrentVec`) and then efficiently manage the
     // forward map with `O(1)` access. The problem with this approach is that it is simply just
     // more complex, for a performance gain we haven't even benchmarked yet.
-    forward: ConcurrentHashMap<T::Id, Interned<'heap, T::Partial>>,
-    reverse: ConcurrentHashMap<Interned<'heap, T::Partial>, T::Id>,
+    lookup: ConcurrentHashMap<T::Id, &'heap T::Partial>,
 
     next: AtomicU32,
 }
@@ -57,10 +61,10 @@ where
 {
     pub fn new(heap: &'heap Heap) -> Self {
         Self {
-            inner: InternSet::new(heap),
+            heap,
+            inner: ConcurrentHashMap::default(),
 
-            forward: ConcurrentHashMap::default(),
-            reverse: ConcurrentHashMap::default(),
+            lookup: ConcurrentHashMap::default(),
 
             next: AtomicU32::new(0),
         }
@@ -79,31 +83,66 @@ impl<'heap, T> InternMap<'heap, T>
 where
     T: Decompose<'heap, Partial: Eq + Hash>,
 {
-    pub fn insert(&self, id: T::Id, partial: Interned<'heap, T::Partial>) {
+    fn insert(&self, id: T::Id, partial: &'heap T::Partial) -> Interned<'heap, T::Partial> {
+        // When this is called, we expect that the partial is unique and hasn't been inserted
+        // before.
+        let interned = if self.inner.insert(partial, id) == Ok(()) {
+            Interned::new_unchecked(partial)
+        } else {
+            // Due to the fact that this is essentially single-threaded, the concurrent insertion is
+            // unlikely to *ever* occur.
+            cold_path();
+
+            tracing::debug!(%id, "concurrent insertion detected, using existing partial");
+
+            // We never remove so we know this is going to work
+            let partial = self
+                .inner
+                .read(partial, |&key, _| key)
+                .unwrap_or_else(|| unreachable!());
+
+            Interned::new_unchecked(partial)
+        };
+
         // Result indicated that a value of the same key already exists
-        if let Err((key, _)) = self.forward.insert(id, partial) {
+        if let Err((key, _)) = self.lookup.insert(id, partial) {
             tracing::warn!(
                 %key,
                 "Attempted to insert a duplicate key into the intern map"
             );
         }
 
-        // This error is expected, this just means that the same partial is mapped to multiple ids
-        let _: Result<(), _> = self.reverse.insert(partial, id);
+        interned
     }
 
-    pub fn intern_partial(&self, partial: T::Partial) -> T {
-        let partial = self.inner.intern(partial);
+    fn intern_value(&self, id: Option<T::Id>, partial: T::Partial) -> T {
+        const {
+            assert!(
+                !core::mem::needs_drop::<T::Partial>(),
+                "Cannot intern a type that needs drop"
+            );
+        };
+        const {
+            assert!(
+                core::mem::size_of::<T::Partial>() != 0,
+                "Cannot intern a zero-sized type"
+            );
+        };
 
-        // Check if the partial is already interned
-        if let Some((id, partial)) = self.reverse.read(&partial, |&partial, &id| (id, partial)) {
-            T::from_parts(id, partial)
+        if let Some((id, partial)) = self.inner.read(&partial, |&partial, &id| (id, partial)) {
+            T::from_parts(id, Interned::new_unchecked(partial))
         } else {
-            let id = self.next_id();
-            self.insert(id, partial);
+            let id = id.unwrap_or_else(|| self.next_id());
+
+            let partial = self.heap.alloc(partial);
+            let partial = self.insert(id, partial);
 
             T::from_parts(id, partial)
         }
+    }
+
+    pub fn intern_partial(&self, partial: T::Partial) -> T {
+        self.intern_value(None, partial)
     }
 
     pub fn provision(&self) -> Provisioned<T::Id> {
@@ -111,21 +150,9 @@ where
     }
 
     pub fn intern_provisioned(&self, id: Provisioned<T::Id>, partial: T::Partial) -> T {
-        let id = id.0;
-        let partial = self.inner.intern(partial);
-
-        // we first check if that partial is already interned, if not we take our new id and insert
-        // it into the map
-        if let Some((id, partial)) = self.reverse.read(&partial, |&partial, &id| (id, partial)) {
-            T::from_parts(id, partial)
-        } else {
-            self.insert(id, partial);
-
-            T::from_parts(id, partial)
-        }
+        self.intern_value(Some(id.0), partial)
     }
 
-    // TODO: consider if this shouldn't be `Fn` instead of `FnOnce`
     pub fn intern(&self, closure: impl FnOnce(Provisioned<T::Id>) -> T::Partial) -> T {
         let id = self.provision();
         let partial = closure(id);
@@ -134,9 +161,9 @@ where
     }
 
     pub fn get(&self, id: T::Id) -> Option<T> {
-        let partial = self.forward.read(&id, |_, &partial| partial)?;
+        let partial = self.lookup.read(&id, |_, &partial| partial)?;
 
-        Some(T::from_parts(id, partial))
+        Some(T::from_parts(id, Interned::new_unchecked(partial)))
     }
 
     /// Returns the interned value for the given id
@@ -146,10 +173,10 @@ where
     /// Panics if no item with the given id exists
     pub fn index(&self, id: T::Id) -> T {
         let partial = self
-            .forward
+            .lookup
             .read(&id, |_, &partial| partial)
             .expect("id should exist in map");
 
-        T::from_parts(id, partial)
+        T::from_parts(id, Interned::new_unchecked(partial))
     }
 }

@@ -74,6 +74,12 @@ impl<T: ?Sized> Deref for Interned<'_, T> {
     }
 }
 
+impl<T: ?Sized> AsRef<T> for Interned<'_, T> {
+    fn as_ref(&self) -> &T {
+        self.0
+    }
+}
+
 impl<T: ?Sized> PartialEq for Interned<'_, T> {
     #[inline]
     fn eq(&self, other: &Self) -> bool {

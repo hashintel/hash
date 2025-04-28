@@ -11,7 +11,8 @@
     slice_partition_dedup,
     let_chains,
     generic_arg_infer,
-    iter_map_windows
+    iter_map_windows,
+    cold_path
 )]
 #![cfg_attr(test, feature(custom_test_frameworks))]
 #![expect(clippy::todo)]
