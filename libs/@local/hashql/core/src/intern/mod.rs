@@ -9,7 +9,7 @@ use core::{
 };
 
 pub use self::{
-    map::{Decompose, InternMap},
+    map::{Decompose, InternMap, Provisioned},
     set::InternSet,
 };
 
