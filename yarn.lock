@@ -8915,7 +8915,7 @@ __metadata:
   resolution: "@local/hash-graph-client@workspace:libs/@local/graph/client/typescript"
   dependencies:
     "@local/tsconfig": "npm:0.0.0-private"
-    "@openapitools/openapi-generator-cli": "npm:2.19.1"
+    "@openapitools/openapi-generator-cli": "npm:2.20.0"
     "@rust/hash-graph-api": "npm:0.0.0-private"
     "@types/node": "npm:22.15.2"
     axios: "npm:1.9.0"
@@ -9020,7 +9020,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@local/internal-api-client@workspace:libs/@local/internal-api-client/typescript"
   dependencies:
-    "@openapitools/openapi-generator-cli": "npm:2.19.1"
+    "@openapitools/openapi-generator-cli": "npm:2.20.0"
     "@types/node": "npm:22.15.2"
     axios: "npm:1.9.0"
     rimraf: "npm:6.0.1"
@@ -9906,9 +9906,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@openapitools/openapi-generator-cli@npm:2.19.1":
-  version: 2.19.1
-  resolution: "@openapitools/openapi-generator-cli@npm:2.19.1"
+"@openapitools/openapi-generator-cli@npm:2.20.0":
+  version: 2.20.0
+  resolution: "@openapitools/openapi-generator-cli@npm:2.20.0"
   dependencies:
     "@nestjs/axios": "npm:4.0.0"
     "@nestjs/common": "npm:11.0.20"
@@ -9930,7 +9930,7 @@ __metadata:
     tslib: "npm:2.8.1"
   bin:
     openapi-generator-cli: main.js
-  checksum: 10c0/f7d7369ea190330b681b7218f9a4c26436bd60f39ad47586f92b267adff1a01d1ead610e121ccac2dd03a0dc87cd6495c035f9860fbc6093eb860e47ca8b0350
+  checksum: 10c0/919cba99b76e3a67f5fc0ff23e2d5104c5ac77180b1119727beefe7130717fe6cd54664c874762f3ebabdc6289b9d3ef77030330c93f7098199e3d4c8735242a
   languageName: node
   linkType: hard
 
