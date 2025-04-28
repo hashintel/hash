@@ -23,8 +23,11 @@ type EditorContextValue = {
   setGraph: (params: {
     nodes: NodeType[];
     arcs: ArcType[];
+    title: string;
     tokenTypes: TokenType[];
   }) => void;
+  title: string;
+  setTitle: Dispatch<SetStateAction<string>>;
 };
 
 const EditorContext = createContext<EditorContextValue | undefined>(undefined);
@@ -46,10 +49,20 @@ export const EditorContextProvider = ({
     defaultTokenTypes,
   );
 
+  const [title, setTitle] = useLocalstorageState<string>(
+    "petri-net-title",
+    "Process",
+  );
+
   const { fitView } = useReactFlow();
 
   const setGraph: EditorContextValue["setGraph"] = useCallback(
-    ({ nodes: newNodes, arcs: newArcs, tokenTypes: newTokenTypes }) => {
+    ({
+      nodes: newNodes,
+      arcs: newArcs,
+      tokenTypes: newTokenTypes,
+      title: newTitle,
+    }) => {
       /**
        * We flush this update first because reactflow seems to take an extra render to clear the nodes and edges,
        * and there's a crash if the token types are cleared in the same cycle as the nodes/arcs (which depend on the types).
@@ -57,6 +70,7 @@ export const EditorContextProvider = ({
       flushSync(() => {
         setNodes(newNodes);
         setArcs(newArcs);
+        setTitle(newTitle);
       });
 
       setTokenTypes(newTokenTypes);
@@ -65,7 +79,7 @@ export const EditorContextProvider = ({
         fitView({ duration: 200, padding: 0.03, maxZoom: 1 });
       }, 100);
     },
-    [setNodes, setArcs, setTokenTypes, fitView],
+    [setNodes, setArcs, setTokenTypes, setTitle, fitView],
   );
 
   const value: EditorContextValue = useMemo(
@@ -77,8 +91,20 @@ export const EditorContextProvider = ({
       setArcs,
       tokenTypes,
       setTokenTypes,
+      title,
+      setTitle,
     }),
-    [setGraph, nodes, arcs, tokenTypes, setTokenTypes, setNodes, setArcs],
+    [
+      setGraph,
+      nodes,
+      arcs,
+      tokenTypes,
+      setTokenTypes,
+      setNodes,
+      setArcs,
+      title,
+      setTitle,
+    ],
   );
 
   return (

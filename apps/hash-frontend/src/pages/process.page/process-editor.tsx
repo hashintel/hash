@@ -38,6 +38,7 @@ import {
 } from "./process-editor/simulation-context";
 import { SimulationControls } from "./process-editor/simulation-controls";
 import { nodeDimensions } from "./process-editor/styling";
+import { TitleAndNetSelect } from "./process-editor/title-and-net-select";
 import { defaultTokenTypes, TokenTypes } from "./process-editor/token-types";
 import { TransitionEditor } from "./process-editor/transition-editor";
 import { TransitionNode } from "./process-editor/transition-node";
@@ -290,6 +291,7 @@ const ProcessEditorContent = () => {
       nodes: [],
       arcs: [],
       tokenTypes: defaultTokenTypes,
+      title: "Process",
     });
 
     resetSimulation();
@@ -313,6 +315,7 @@ const ProcessEditorContent = () => {
       nodes: nodesWithInitialCounts,
       arcs: exampleCPN.arcs,
       tokenTypes: exampleCPN.tokenTypes,
+      title: exampleCPN.title,
     });
 
     resetSimulation();
@@ -436,130 +439,131 @@ const ProcessEditorContent = () => {
   };
 
   return (
-    <Box sx={{ display: "flex", height: "100%" }}>
-      <Sidebar />
+    <Stack sx={{ height: "100%" }}>
+      <TitleAndNetSelect />
 
-      <Box
-        sx={{ flex: 1, height: "100%", position: "relative" }}
-        ref={canvasContainer}
-      >
-        <Stack
-          direction="row"
-          justifyContent="space-between"
-          sx={{
-            alignItems: "flex-start",
-            position: "absolute",
-            top: 0,
-            left: 0,
-            p: 2,
-            zIndex: 100,
-            width: "100%",
-          }}
-        >
-          <TokenTypes />
-          <SimulationControls onReset={handleReset} />
-        </Stack>
+      <Stack direction="row" sx={{ flex: 1 }}>
+        <Sidebar />
 
-        <Stack
-          direction="row"
-          spacing={1}
-          sx={{ position: "absolute", bottom: 16, right: 16, zIndex: 100 }}
-        >
-          <Button onClick={handleLoadExample} size="xs" variant="tertiary">
-            Load Example
-          </Button>
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleLoadFromPnml}
-            accept=".pnml,.xml"
-            style={{ display: "none" }}
-          />
-          <Button onClick={handleImportClick} size="xs" variant="tertiary">
-            Import
-          </Button>
-          <Button onClick={handleExport} size="xs" variant="tertiary">
-            Export
-          </Button>
-          <Button onClick={handleResetAll} size="xs" variant="danger">
-            Clear
-          </Button>
-        </Stack>
+        <Box sx={{ width: "100%", position: "relative" }} ref={canvasContainer}>
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            sx={{
+              alignItems: "flex-start",
+              position: "absolute",
+              top: 0,
+              left: 0,
+              p: 2,
+              zIndex: 100,
+              width: "100%",
+            }}
+          >
+            <TokenTypes />
+            <SimulationControls onReset={handleReset} />
+          </Stack>
 
-        {selectedTransition && (
-          <TransitionEditor
-            open
-            onClose={() => setSelectedTransition(null)}
-            transitionId={selectedTransition}
-            transitionData={
-              nodes.find((node) => node.id === selectedTransition)?.data ?? {
-                label: "",
+          <Stack
+            direction="row"
+            spacing={1}
+            sx={{ position: "absolute", bottom: 16, right: 16, zIndex: 100 }}
+          >
+            <Button onClick={handleLoadExample} size="xs" variant="tertiary">
+              Load Example
+            </Button>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleLoadFromPnml}
+              accept=".pnml,.xml"
+              style={{ display: "none" }}
+            />
+            <Button onClick={handleImportClick} size="xs" variant="tertiary">
+              Import
+            </Button>
+            <Button onClick={handleExport} size="xs" variant="tertiary">
+              Export
+            </Button>
+            <Button onClick={handleResetAll} size="xs" variant="danger">
+              Clear
+            </Button>
+          </Stack>
+
+          {selectedTransition && (
+            <TransitionEditor
+              open
+              onClose={() => setSelectedTransition(null)}
+              transitionId={selectedTransition}
+              transitionData={
+                nodes.find((node) => node.id === selectedTransition)?.data ?? {
+                  label: "",
+                }
               }
-            }
-            outgoingEdges={arcs
-              .filter((edge) => edge.source === selectedTransition)
-              .map((edge) => {
-                const targetNode = nodes.find(
-                  (node) => node.id === edge.target,
-                );
-                return {
-                  id: edge.id,
-                  source: edge.source,
-                  target: edge.target,
-                  targetLabel: targetNode?.data.label ?? "Unknown",
-                  tokenWeights: edge.data?.tokenWeights ?? {},
-                };
-              })}
-            onUpdateTransition={handleUpdateTransition}
-          />
-        )}
+              outgoingEdges={arcs
+                .filter((edge) => edge.source === selectedTransition)
+                .map((edge) => {
+                  const targetNode = nodes.find(
+                    (node) => node.id === edge.target,
+                  );
+                  return {
+                    id: edge.id,
+                    source: edge.source,
+                    target: edge.target,
+                    targetLabel: targetNode?.data.label ?? "Unknown",
+                    tokenWeights: edge.data?.tokenWeights ?? {},
+                  };
+                })}
+              onUpdateTransition={handleUpdateTransition}
+            />
+          )}
 
-        {selectedPlace && (
-          <PlaceEditor
-            selectedPlace={selectedPlace}
-            tokenTypes={tokenTypes}
-            onClose={() => setSelectedPlaceId(null)}
-            onUpdateTokens={handleUpdateTokens}
-            onUpdateNodeLabel={handleUpdateNodeLabel}
-          />
-        )}
+          {selectedPlace && (
+            <PlaceEditor
+              selectedPlace={selectedPlace}
+              tokenTypes={tokenTypes}
+              onClose={() => setSelectedPlaceId(null)}
+              onUpdateTokens={handleUpdateTokens}
+              onUpdateNodeLabel={handleUpdateNodeLabel}
+            />
+          )}
 
-        {selectedArc && (
-          <ArcEditor
-            arcId={selectedArc.id}
-            tokenWeights={selectedArc.data?.tokenWeights ?? {}}
-            position={selectedArc.position}
-            onClose={() => setSelectedArc(null)}
-            onUpdateWeights={handleUpdateEdgeWeight}
-          />
-        )}
+          {selectedArc && (
+            <ArcEditor
+              arcId={selectedArc.id}
+              tokenWeights={selectedArc.data?.tokenWeights ?? {}}
+              position={selectedArc.position}
+              onClose={() => setSelectedArc(null)}
+              onUpdateWeights={handleUpdateEdgeWeight}
+            />
+          )}
 
-        <ReactFlow
-          nodes={nodes}
-          edges={arcs}
-          nodeTypes={nodeTypes}
-          edgeTypes={edgeTypes}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
-          onInit={onInit}
-          onDrop={onDrop}
-          onDragOver={onDragOver}
-          onNodeClick={onNodeClick}
-          onEdgeClick={onEdgeClick}
-          onPaneClick={handlePaneClick}
-          defaultViewport={{ x: 0, y: 0, zoom: 1 }}
-          snapToGrid
-          snapGrid={[15, 15]}
-          connectionLineType={ConnectionLineType.SmoothStep}
-          proOptions={{ hideAttribution: true }}
-        >
-          <Background gap={15} size={1} />
-        </ReactFlow>
+          <ReactFlow
+            nodes={nodes}
+            edges={arcs}
+            nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            onInit={onInit}
+            onDrop={onDrop}
+            onDragOver={onDragOver}
+            onNodeClick={onNodeClick}
+            onEdgeClick={onEdgeClick}
+            onPaneClick={handlePaneClick}
+            defaultViewport={{ x: 0, y: 0, zoom: 1 }}
+            snapToGrid
+            snapGrid={[15, 15]}
+            connectionLineType={ConnectionLineType.SmoothStep}
+            proOptions={{ hideAttribution: true }}
+          >
+            <Background gap={15} size={1} />
+          </ReactFlow>
 
-        <LogPane />
-      </Box>
-    </Box>
+          <LogPane />
+        </Box>
+      </Stack>
+    </Stack>
   );
 };
 
