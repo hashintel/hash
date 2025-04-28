@@ -30,7 +30,7 @@ X-Authenticated-User-Actor-Id: {{system_machine_id}}
 %}
 
 ### Create account group web
-POST http://127.0.0.1:4000/webs
+POST http://127.0.0.1:4000/actor-groups/webs
 Content-Type: application/json
 X-Authenticated-User-Actor-Id: {{system_machine_id}}
 
@@ -58,7 +58,7 @@ X-Authenticated-User-Actor-Id: {{user_id}}
 %}
 
 ### Add account group member
-POST http://127.0.0.1:4000/actor_groups/{{account_group_id}}/member/{{system_machine_id}}
+POST http://127.0.0.1:4000/actor-groups/{{account_group_id}}/roles/member/actors/{{system_machine_id}}
 Content-Type: application/json
 X-Authenticated-User-Actor-Id: {{user_id}}
 
@@ -80,7 +80,7 @@ X-Authenticated-User-Actor-Id: {{user_id}}
 %}
 
 ### Remove account group member
-DELETE http://127.0.0.1:4000/actor_groups/{{account_group_id}}/member/{{system_machine_id}}
+DELETE http://127.0.0.1:4000/actor-groups/{{account_group_id}}/roles/member/actors/{{system_machine_id}}
 X-Authenticated-User-Actor-Id: {{user_id}}
 
 > {%

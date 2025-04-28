@@ -24,6 +24,8 @@ export const entityTypedef = gql`
   scalar UserPermissionsOnEntities
   scalar ValidateEntityParamsComponents
   scalar WebIdsMap
+  scalar RoleAssignmentStatus
+  scalar RoleUnassignmentStatus
 
   type SubgraphAndPermissions {
     userPermissionsOnEntities: UserPermissionsOnEntities!
@@ -331,11 +333,11 @@ export const entityTypedef = gql`
     addAccountGroupMember(
       accountGroupId: AccountGroupId!
       accountId: AccountId!
-    ): Boolean!
+    ): RoleAssignmentStatus!
 
     removeAccountGroupMember(
       accountGroupId: AccountGroupId!
       accountId: AccountId!
-    ): Boolean!
+    ): RoleUnassignmentStatus!
   }
 `;
