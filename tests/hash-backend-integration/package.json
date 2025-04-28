@@ -18,7 +18,6 @@
     "@local/hash-backend-utils": "0.0.0-private",
     "@local/hash-graph-client": "0.0.0-private",
     "@local/hash-graph-sdk": "0.0.0-private",
-    "@local/hash-graph-types": "0.0.0-private",
     "@local/hash-isomorphic-utils": "0.0.0-private",
     "@local/status": "0.0.0-private",
     "@rust/hash-graph-type-defs": "0.0.0-private",

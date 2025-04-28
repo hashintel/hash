@@ -39,8 +39,8 @@ import type {
   EntityTypeInstantiatorSubjectBranded,
   EntityTypeRelationAndSubjectBranded,
   PropertyTypeRelationAndSubjectBranded,
-} from "@local/hash-graph-sdk/branded-authorization";
-import type { ConstructDataTypeParams } from "@local/hash-graph-types/ontology";
+} from "@local/hash-graph-sdk/authorization";
+import type { ConstructDataTypeParams } from "@local/hash-graph-sdk/ontology";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,

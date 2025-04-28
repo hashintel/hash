@@ -5,7 +5,7 @@ import type {
   WebPermission,
   WebRelationAndSubject,
 } from "@local/hash-graph-client";
-import type { WebAuthorizationRelationship } from "@local/hash-graph-sdk/branded-authorization";
+import type { WebAuthorizationRelationship } from "@local/hash-graph-sdk/authorization";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import { isSelfHostedInstance } from "@local/hash-isomorphic-utils/instance";
 

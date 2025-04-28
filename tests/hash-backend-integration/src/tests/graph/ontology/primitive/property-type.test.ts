@@ -16,12 +16,12 @@ import type { PropertyTypeWithMetadata } from "@blockprotocol/type-system";
 import { isOwnedOntologyElementMetadata } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
+import type { ConstructPropertyTypeParams } from "@local/hash-graph-sdk/ontology";
 import {
   currentTimeInstantTemporalAxes,
   fullTransactionTimeAxis,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import type { ConstructPropertyTypeParams } from "@local/hash-isomorphic-utils/types";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";

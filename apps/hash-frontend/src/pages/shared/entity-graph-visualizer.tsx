@@ -12,7 +12,7 @@ import {
   getClosedMultiEntityTypeFromMap,
   getDisplayFieldsForClosedEntityType,
 } from "@local/hash-graph-sdk/entity";
-import type { ClosedMultiEntityTypesRootMap } from "@local/hash-graph-types/ontology";
+import type { ClosedMultiEntityTypesRootMap } from "@local/hash-graph-sdk/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { Box, Stack, useTheme } from "@mui/material";
 import type { ReactElement } from "react";

@@ -24,7 +24,7 @@ import { HashEntity } from "@local/hash-graph-sdk/entity";
 import type {
   ClosedMultiEntityTypesDefinitions,
   ClosedMultiEntityTypesRootMap,
-} from "@local/hash-graph-types/ontology";
+} from "@local/hash-graph-sdk/ontology";
 import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import type { PersistedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import {

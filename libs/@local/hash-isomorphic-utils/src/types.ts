@@ -36,59 +36,6 @@ export type TextToken =
       linkEntityTypeBaseUrl?: BaseUrl;
     };
 
-export type SystemDefinedProperties = "$schema" | "kind" | "$id";
-
-export type ConstructPropertyTypeParams = Omit<
-  PropertyType,
-  SystemDefinedProperties
->;
-export type ConstructEntityTypeParams = Omit<
-  EntityType,
-  SystemDefinedProperties
->;
-
-export type ConversionRequest = {
-  path: PropertyPath;
-  dataTypeId: VersionedUrl;
-};
-
-export type GetEntitiesRequest = Omit<
-  GetEntitiesRequestGraphApi,
-  "conversions"
-> & {
-  conversions?: ConversionRequest[];
-};
-
-export type GetEntitySubgraphRequest = Omit<
-  GetEntitySubgraphRequestGraphApi,
-  "conversions"
-> & {
-  conversions?: { path: PropertyPath; dataTypeId: VersionedUrl }[];
-};
-
-export type UserPermissions = {
-  view: boolean;
-  viewPermissions: boolean;
-  edit: boolean;
-  editMembers: boolean | null;
-  editPermissions: boolean;
-};
-
-export type UserPermissionsOnEntityType = {
-  view: boolean;
-  edit: boolean;
-  instantiate: boolean;
-};
-
-export type UserPermissionsOnDataType = {
-  view: boolean;
-  edit: boolean;
-};
-
-export type UserPermissionsOnEntities = {
-  [key: EntityId]: UserPermissions | undefined;
-};
-
 export const isNotNullish = <T>(value: T): value is NonNullable<T> => {
   return value !== null && value !== undefined;
 };

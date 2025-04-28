@@ -6,7 +6,7 @@ import type {
 } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
 import { customColors } from "@hashintel/design-system/theme";
-import type { ClosedMultiEntityTypesDefinitions } from "@local/hash-graph-types/ontology";
+import type { ClosedMultiEntityTypesDefinitions } from "@local/hash-graph-sdk/ontology";
 
 import {
   getCellHorizontalPadding,

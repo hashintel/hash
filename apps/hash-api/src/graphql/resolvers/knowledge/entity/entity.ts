@@ -13,7 +13,7 @@ import type {
   QueryTemporalAxesUnresolved,
 } from "@local/hash-graph-client";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
-import type { EntityValidationReport } from "@local/hash-graph-types/validation";
+import type { EntityValidationReport } from "@local/hash-graph-sdk/validation";
 import {
   createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,

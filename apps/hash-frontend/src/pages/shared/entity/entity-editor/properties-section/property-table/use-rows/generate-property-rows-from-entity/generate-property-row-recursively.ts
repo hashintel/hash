@@ -5,7 +5,7 @@ import type {
   ValueOrArray,
 } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import type { ClosedMultiEntityTypesDefinitions } from "@local/hash-graph-types/ontology";
+import type { ClosedMultiEntityTypesDefinitions } from "@local/hash-graph-sdk/ontology";
 import { getPermittedDataTypes } from "@local/hash-isomorphic-utils/data-types";
 import get from "lodash/get";
 

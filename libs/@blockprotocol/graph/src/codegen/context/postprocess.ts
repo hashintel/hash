@@ -57,7 +57,7 @@ const externalIdentifiersToSource: Record<
     locallyImportable: true,
     source: {
       kind: "external",
-      definingPath: "@local/hash-graph-types/entity",
+      definingPath: "@blockprotocol/type-system",
     },
   },
   ObjectMetadata: {

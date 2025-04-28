@@ -34,10 +34,16 @@ import type {
   GraphResolveDepths,
   ModifyRelationshipOperation,
 } from "@local/hash-graph-client";
-import type { EntityAuthorizationRelationship } from "@local/hash-graph-sdk/branded-authorization";
+import type {
+  EntityAuthorizationRelationship,
+  UserPermissions,
+  UserPermissionsOnEntities,
+} from "@local/hash-graph-sdk/authorization";
 import {
   type CreateEntityParameters,
   type DiffEntityInput,
+  type GetEntitiesRequest,
+  type GetEntitySubgraphRequest,
   HashEntity,
 } from "@local/hash-graph-sdk/entity";
 import { HashLinkEntity } from "@local/hash-graph-sdk/entity";
@@ -51,12 +57,6 @@ import {
   mapGraphApiEntityTypeResolveDefinitionsToEntityTypeResolveDefinitions,
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type {
-  GetEntitiesRequest,
-  GetEntitySubgraphRequest,
-  UserPermissions,
-  UserPermissionsOnEntities,
-} from "@local/hash-isomorphic-utils/types";
 import { ApolloError } from "apollo-server-errors";
 
 import type {

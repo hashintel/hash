@@ -11,7 +11,7 @@ import type {
 } from "@local/hash-backend-utils/vault";
 import { createUserSecretPath } from "@local/hash-backend-utils/vault";
 import type { GraphApi } from "@local/hash-graph-client";
-import type { EntityRelationAndSubjectBranded } from "@local/hash-graph-sdk/branded-authorization";
+import type { EntityRelationAndSubjectBranded } from "@local/hash-graph-sdk/authorization";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,

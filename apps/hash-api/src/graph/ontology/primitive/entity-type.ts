@@ -32,11 +32,13 @@ import type {
 import type {
   EntityTypeAuthorizationRelationship,
   EntityTypeRelationAndSubjectBranded,
-} from "@local/hash-graph-sdk/branded-authorization";
+  UserPermissionsOnEntityType,
+} from "@local/hash-graph-sdk/authorization";
 import type {
   ClosedEntityTypeWithMetadata,
+  ConstructEntityTypeParams,
   EntityTypeResolveDefinitions,
-} from "@local/hash-graph-types/ontology";
+} from "@local/hash-graph-sdk/ontology";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
@@ -46,10 +48,6 @@ import {
   mapGraphApiEntityTypesToEntityTypes,
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type {
-  ConstructEntityTypeParams,
-  UserPermissionsOnEntityType,
-} from "@local/hash-isomorphic-utils/types";
 
 import type { ImpureGraphFunction } from "../../context-types";
 import { rewriteSemanticFilter } from "../../shared/rewrite-semantic-filter";

@@ -13,7 +13,7 @@ import type {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
-import type { ClosedDataTypeDefinition } from "@local/hash-graph-types/ontology";
+import type { ClosedDataTypeDefinition } from "@local/hash-graph-sdk/ontology";
 import Big from "big.js";
 
 import { add, divide, multiply, subtract } from "./numbers.js";

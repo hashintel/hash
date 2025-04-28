@@ -3,6 +3,7 @@ import type {
   OntologyTemporalMetadata,
   WebId,
 } from "@blockprotocol/type-system";
+import type { UserPermissionsOnEntityType } from "@local/hash-graph-sdk/authorization";
 import type { SerializedSubgraph } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
@@ -11,7 +12,6 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { serializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { UserPermissionsOnEntityType } from "@local/hash-isomorphic-utils/types";
 import { ApolloError } from "apollo-server-express";
 
 import {

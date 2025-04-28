@@ -16,7 +16,7 @@ import { modifyWebAuthorizationRelationships } from "@apps/hash-api/src/graph/on
 import type { DataTypeWithMetadata } from "@blockprotocol/type-system";
 import { isOwnedOntologyElementMetadata } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import type { ConstructDataTypeParams } from "@local/hash-graph-types/ontology";
+import type { ConstructDataTypeParams } from "@local/hash-graph-sdk/ontology";
 import { createConversionFunction } from "@local/hash-isomorphic-utils/data-types";
 import {
   currentTimeInstantTemporalAxes,
