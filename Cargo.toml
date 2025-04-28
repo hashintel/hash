@@ -322,9 +322,9 @@ allow_attributes_without_reason = "allow"
 # use it for grouping in particular, but this comes with sorting by name as well.
 # Needs to be further tested in a smaller scope.
 arbitrary_source_item_ordering = "allow"
+arithmetic_side_effects        = "allow"
+as_conversions                 = "allow"
 # Too many false positives when macros and/or loops are involved
-arithmetic_side_effects = "allow"
-as_conversions          = "allow"
 cognitive_complexity    = "allow"
 else_if_without_else    = "allow"
 enum_variant_names      = "allow"
