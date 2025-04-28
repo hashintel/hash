@@ -49,12 +49,12 @@ The following list is a non-exhaustive list of packages in `@local`:
 
 | Package                                                         | Language(s) | Docs URL      | Description                                                            |
 | --------------------------------------------------------------- | ----------- | ------------- | ---------------------------------------------------------------------- |
-| [@local/codec-rs](@local/codec)                                 | Rust        | Not hosted    | Implementation of different `serde` or byte codes used in HASH         |
-| [@local/hash-authorization-rs](@local/hash-authorization)       | Rust        | Not hosted    | Provides the authorization interface and logic used in the Graph       |
+| [@rust/hash-codec](@local/codec)                                | Rust        | Not hosted    | Implementation of different `serde` or byte codes used in HASH         |
+| [@rust/hash-graph-authorization](@local/graph/authorization)    | Rust        | Not hosted    | Provides the authorization interface and logic used in the Graph       |
 | [@local/hash-graph-client](@local/hash-graph-client/typescript) | TypeScript  | To be written | A generator to create a TypeScript/JavaScript client for the Graph API |
-| [@local/hash-graph-types-rs](@local/hash-graph-types)           | Rust        | Not hosted    | Types used inside of the Graph API                                     |
-| [@local/temporal-client-rs](@local/temporal-client)             | Rust        | Not hosted    | Client implementation to connect to our Temporal.io service            |
-| [@local/temporal-versioning-rs](@local/temporal-versioning)     | Rust        | Not hosted    | Implementation of temporal versioning                                  |
+| [@rust/hash-graph-types](@local/graph/types)                    | Rust        | Not hosted    | Types used inside of the Graph API                                     |
+| [@rust/hash-temporal-client](@local/temporal-client)            | Rust        | Not hosted    | Client implementation to connect to our Temporal.io service            |
+| [@rust/hash-graph-temporal-versioning](@local/graph/temporal-versioning)| Rust        | Not hosted    | Implementation of temporal versioning                                  |
 
 ## Contributing
 
