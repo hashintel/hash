@@ -136,10 +136,10 @@ impl SnapshotEntry {
             }
             Self::DataType(data_type) => {
                 context.push_body(format!("data type: {}", data_type.metadata.record_id));
-                if context.alternate() {
-                    if let Ok(json) = serde_json::to_string_pretty(data_type) {
-                        context.push_appendix(format!("{}:\n{json}", data_type.metadata.record_id));
-                    }
+                if context.alternate()
+                    && let Ok(json) = serde_json::to_string_pretty(data_type)
+                {
+                    context.push_appendix(format!("{}:\n{json}", data_type.metadata.record_id));
                 }
             }
             Self::PropertyType(property_type) => {
@@ -147,33 +147,27 @@ impl SnapshotEntry {
                     "property type: {}",
                     property_type.metadata.record_id
                 ));
-                if context.alternate() {
-                    if let Ok(json) = serde_json::to_string_pretty(property_type) {
-                        context.push_appendix(format!(
-                            "{}:\n{json}",
-                            property_type.metadata.record_id
-                        ));
-                    }
+                if context.alternate()
+                    && let Ok(json) = serde_json::to_string_pretty(property_type)
+                {
+                    context.push_appendix(format!("{}:\n{json}", property_type.metadata.record_id));
                 }
             }
             Self::EntityType(entity_type) => {
                 context.push_body(format!("entity type: {}", entity_type.metadata.record_id));
-                if context.alternate() {
-                    if let Ok(json) = serde_json::to_string_pretty(entity_type) {
-                        context
-                            .push_appendix(format!("{}:\n{json}", entity_type.metadata.record_id));
-                    }
+                if context.alternate()
+                    && let Ok(json) = serde_json::to_string_pretty(entity_type)
+                {
+                    context.push_appendix(format!("{}:\n{json}", entity_type.metadata.record_id));
                 }
             }
             Self::Entity(entity) => {
                 context.push_body(format!("entity: {}", entity.metadata.record_id.entity_id));
-                if context.alternate() {
-                    if let Ok(json) = serde_json::to_string_pretty(entity) {
-                        context.push_appendix(format!(
-                            "{}:\n{json}",
-                            entity.metadata.record_id.entity_id
-                        ));
-                    }
+                if context.alternate()
+                    && let Ok(json) = serde_json::to_string_pretty(entity)
+                {
+                    context
+                        .push_appendix(format!("{}:\n{json}", entity.metadata.record_id.entity_id));
                 }
             }
             Self::Relation(AuthorizationRelation::Entity {
@@ -181,18 +175,18 @@ impl SnapshotEntry {
                 relationship: relation,
             }) => {
                 context.push_body(format!("relation: {id}"));
-                if context.alternate() {
-                    if let Ok(json) = serde_json::to_string_pretty(relation) {
-                        context.push_appendix(format!("{id}:\n{json}"));
-                    }
+                if context.alternate()
+                    && let Ok(json) = serde_json::to_string_pretty(relation)
+                {
+                    context.push_appendix(format!("{id}:\n{json}"));
                 }
             }
             Self::DataTypeEmbedding(embedding) => {
                 context.push_body(format!("data type embedding: {}", embedding.data_type_id));
-                if context.alternate() {
-                    if let Ok(json) = serde_json::to_string_pretty(embedding) {
-                        context.push_appendix(format!("{}:\n{json}", embedding.data_type_id));
-                    }
+                if context.alternate()
+                    && let Ok(json) = serde_json::to_string_pretty(embedding)
+                {
+                    context.push_appendix(format!("{}:\n{json}", embedding.data_type_id));
                 }
             }
             Self::PropertyTypeEmbedding(embedding) => {
@@ -200,10 +194,10 @@ impl SnapshotEntry {
                     "property type embedding: {}",
                     embedding.property_type_id
                 ));
-                if context.alternate() {
-                    if let Ok(json) = serde_json::to_string_pretty(embedding) {
-                        context.push_appendix(format!("{}:\n{json}", embedding.property_type_id));
-                    }
+                if context.alternate()
+                    && let Ok(json) = serde_json::to_string_pretty(embedding)
+                {
+                    context.push_appendix(format!("{}:\n{json}", embedding.property_type_id));
                 }
             }
             Self::EntityTypeEmbedding(embedding) => {
@@ -211,10 +205,10 @@ impl SnapshotEntry {
                     "entity type embedding: {}",
                     embedding.entity_type_id
                 ));
-                if context.alternate() {
-                    if let Ok(json) = serde_json::to_string_pretty(embedding) {
-                        context.push_appendix(format!("{}:\n{json}", embedding.entity_type_id));
-                    }
+                if context.alternate()
+                    && let Ok(json) = serde_json::to_string_pretty(embedding)
+                {
+                    context.push_appendix(format!("{}:\n{json}", embedding.entity_type_id));
                 }
             }
             Self::EntityEmbedding(embedding) => {
@@ -222,11 +216,10 @@ impl SnapshotEntry {
                     "entity embedding: {}",
                     embedding.entity_id.entity_uuid
                 ));
-                if context.alternate() {
-                    if let Ok(json) = serde_json::to_string_pretty(embedding) {
-                        context
-                            .push_appendix(format!("{}:\n{json}", embedding.entity_id.entity_uuid));
-                    }
+                if context.alternate()
+                    && let Ok(json) = serde_json::to_string_pretty(embedding)
+                {
+                    context.push_appendix(format!("{}:\n{json}", embedding.entity_id.entity_uuid));
                 }
             }
         });
