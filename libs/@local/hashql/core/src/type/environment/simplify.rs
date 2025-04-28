@@ -31,12 +31,15 @@ impl Drop for ProvisionGuard {
 
 #[derive(Debug, Default)]
 struct Provision {
+    // We use `RefCell` here, as we make use of a guard, in a truly concurrent environment (which
+    // this isn't due to the fact that `Heap` is not thread-safe) `RefCell` would be insufficient.
     // RefCell is sufficient here, because we take a `&mut self` for the simplify environment,
-    // therefore we always have mutable access to the inner map, the RefCell is only used, so that
-    // we can properly cleanup on Drop, as the client is unable to access anything in the simplify
-    // environment (especially the provisioned map) by himself. The only places that interact with
-    // the provisioned map are the `provision` function and the `simplify` function, for short
-    // periods of time, and never over longer than a single expression.
+    // therefore we always have mutable (and exclusive) access to the environment, the `RefCell` is
+    // only used, so that we can properly cleanup on Drop, as the client is unable to access
+    // anything in the simplify environment (especially the provisioned map) by itself. The
+    // only places that interact with the provisioned map are the `provision` function and the
+    // `simplify` function, for short periods of time, and never over longer than a single
+    // expression.
     forward: RefCell<FastHashMap<TypeId, Provisioned<TypeId>>>,
     reverse: RefCell<FastHashMap<TypeId, TypeId>>,
 }
@@ -234,7 +237,7 @@ impl<'env, 'heap> SimplifyEnvironment<'env, 'heap> {
                 reason = "false positive, this is a manual `debug_panic`"
             )]
             if cfg!(debug_assertions) {
-                panic!("type should have been provisioned");
+                panic!("type id {id} should have been provisioned, but wasn't");
             }
 
             // in debug builds this panics if the type should have been provisioned but wasn't, as
