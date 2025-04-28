@@ -6,7 +6,7 @@ import {
   type VersionedUrl,
 } from "@blockprotocol/type-system";
 // eslint-disable-next-line no-restricted-imports -- TODO needs fixing if this package to be used from npm
-import type { ClosedDataTypeDefinition } from "@local/hash-graph-types/ontology";
+import type { ClosedDataTypeDefinition } from "@local/hash-graph-sdk/ontology";
 // eslint-disable-next-line no-restricted-imports -- TODO needs fixing if this package to be used from npm
 import { getMergedDataTypeSchema } from "@local/hash-isomorphic-utils/data-types";
 import {

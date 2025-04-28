@@ -11,7 +11,7 @@ import type {
   EntityValidationReport,
   ObjectValidationReport,
   ValueValidationError,
-} from "@local/hash-graph-types/validation";
+} from "@local/hash-graph-sdk/validation";
 import { useCallback } from "react";
 
 import type {

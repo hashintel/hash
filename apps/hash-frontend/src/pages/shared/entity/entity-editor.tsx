@@ -10,7 +10,7 @@ import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import type {
   ClosedMultiEntityTypesDefinitions,
   ClosedMultiEntityTypesRootMap,
-} from "@local/hash-graph-types/ontology";
+} from "@local/hash-graph-sdk/ontology";
 import { Box } from "@mui/material";
 import type { RefObject } from "react";
 import { useMemo } from "react";

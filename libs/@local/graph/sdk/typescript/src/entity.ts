@@ -28,6 +28,7 @@ import type {
   PropertyPatchOperation,
   PropertyPath,
   PropertyType,
+  PropertyValue,
   PropertyValueMetadata,
   PropertyValueWithMetadata,
   PropertyWithMetadata,
@@ -43,23 +44,38 @@ import {
   isObjectMetadata,
   isValueMetadata,
 } from "@blockprotocol/type-system";
+import type { Brand } from "@local/advanced-types/brand";
 import type { Subtype } from "@local/advanced-types/subtype";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import type {
   CreateEntityRequest as GraphApiCreateEntityRequest,
   DiffEntityParams,
   Entity as GraphApiEntity,
+  GetEntitiesRequest as GetEntitiesRequestGraphApi,
+  GetEntitySubgraphRequest as GetEntitySubgraphRequestGraphApi,
   GraphApi,
   PatchEntityParams as GraphApiPatchEntityParams,
   ValidateEntityParams,
 } from "@local/hash-graph-client";
+
+import type { AuthenticationContext } from "./authentication-context.js";
 import type {
   ClosedMultiEntityTypesDefinitions,
   ClosedMultiEntityTypesRootMap,
-} from "@local/hash-graph-types/ontology";
-import type { EntityValidationReport } from "@local/hash-graph-types/validation";
+} from "./ontology.js";
+import type { EntityValidationReport } from "./validation.js";
 
-import type { AuthenticationContext } from "./authentication-context.js";
+export type BrandedPropertyObject<T extends Record<string, PropertyValue>> =
+  T & {
+    [K in keyof T as Brand<K, "BaseUrl">]: T[K];
+  };
+
+// Helper function to create branded objects
+export const brandPropertyObject = <T extends Record<string, PropertyValue>>(
+  obj: T,
+): BrandedPropertyObject<T> => {
+  return obj as BrandedPropertyObject<T>;
+};
 
 export type SerializedEntityVertex = {
   kind: "entity";
@@ -141,6 +157,25 @@ export type DiffEntityInput = Subtype<
     secondTransactionTime: Timestamp | null;
   }
 >;
+
+export type ConversionRequest = {
+  path: PropertyPath;
+  dataTypeId: VersionedUrl;
+};
+
+export type GetEntitiesRequest = Omit<
+  GetEntitiesRequestGraphApi,
+  "conversions"
+> & {
+  conversions?: ConversionRequest[];
+};
+
+export type GetEntitySubgraphRequest = Omit<
+  GetEntitySubgraphRequestGraphApi,
+  "conversions"
+> & {
+  conversions?: { path: PropertyPath; dataTypeId: VersionedUrl }[];
+};
 
 const typeId: unique symbol = Symbol.for(
   "@local/hash-graph-sdk/entity/SerializedEntity",

@@ -25,7 +25,7 @@ import { GridCellKind } from "@glideapps/glide-data-grid";
 //   Select,
 // } from "@hashintel/design-system";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
-import type { ClosedMultiEntityTypesRootMap } from "@local/hash-graph-types/ontology";
+import type { ClosedMultiEntityTypesRootMap } from "@local/hash-graph-sdk/ontology";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import { Box, Stack, useTheme } from "@mui/material";
 import { useRouter } from "next/router";

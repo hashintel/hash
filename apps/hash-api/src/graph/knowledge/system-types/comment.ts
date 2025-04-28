@@ -1,6 +1,6 @@
 import type { EntityId } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
-import type { EntityRelationAndSubjectBranded } from "@local/hash-graph-sdk/branded-authorization";
+import type { EntityRelationAndSubjectBranded } from "@local/hash-graph-sdk/authorization";
 import type {
   CreateEntityParameters,
   HashEntity,

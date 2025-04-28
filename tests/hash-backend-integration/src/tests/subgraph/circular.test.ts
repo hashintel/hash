@@ -18,11 +18,11 @@ import {
   type Entity,
   ENTITY_ID_DELIMITER,
 } from "@blockprotocol/type-system";
+import type { GetEntitySubgraphRequest } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import type { GetEntitySubgraphRequest } from "@local/hash-isomorphic-utils/types";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph, restoreSnapshot } from "../test-server";

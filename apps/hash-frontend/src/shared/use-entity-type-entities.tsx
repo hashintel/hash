@@ -7,7 +7,11 @@ import type {
   EntityQuerySortingRecord,
   GraphResolveDepths,
 } from "@local/hash-graph-client";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type {
+  ConversionRequest,
+  GetEntitySubgraphRequest,
+  HashEntity,
+} from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   ignoreNoisySystemTypesFilter,
@@ -15,10 +19,6 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type {
-  ConversionRequest,
-  GetEntitySubgraphRequest,
-} from "@local/hash-isomorphic-utils/types";
 import { useMemo } from "react";
 
 import type {

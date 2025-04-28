@@ -31,6 +31,10 @@ import {
 import { Logger } from "@local/hash-backend-utils/logger";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import { getClosedMultiEntityTypeFromMap } from "@local/hash-graph-sdk/entity";
+import type {
+  ConstructEntityTypeParams,
+  SystemDefinedProperties,
+} from "@local/hash-graph-sdk/ontology";
 import {
   currentTimeInstantTemporalAxes,
   fullTransactionTimeAxis,
@@ -41,10 +45,6 @@ import {
   blockProtocolPropertyTypes,
   systemEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type {
-  ConstructEntityTypeParams,
-  SystemDefinedProperties,
-} from "@local/hash-isomorphic-utils/types";
 import { assert, beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";

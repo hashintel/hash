@@ -3,7 +3,7 @@ import {
   buildDataTypeTreesForSelector,
   DataTypeSelector,
 } from "@hashintel/design-system";
-import type { ClosedDataTypeDefinition } from "@local/hash-graph-types/ontology";
+import type { ClosedDataTypeDefinition } from "@local/hash-graph-sdk/ontology";
 import { useMemo } from "react";
 
 import { useEntityEditor } from "../../../../entity-editor-context";

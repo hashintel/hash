@@ -5,8 +5,10 @@ import type {
   EntityQueryCursor,
   EntityQuerySortingRecord,
 } from "@local/hash-graph-client";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import type { ConversionRequest } from "@local/hash-isomorphic-utils/types";
+import type {
+  ConversionRequest,
+  HashEntity,
+} from "@local/hash-graph-sdk/entity";
 import { useMemo } from "react";
 
 import type { GetEntitySubgraphQuery } from "../../../graphql/api-types.gen";

@@ -6,6 +6,7 @@ import type {
   Conversions,
   DataType,
   DataTypeMetadata,
+  EntityType,
   EntityTypeMetadata,
   OntologyProvenance,
   OntologyTemporalMetadata,
@@ -45,9 +46,21 @@ export type OntologyElementMetadata =
   | PropertyTypeMetadata
   | EntityTypeMetadata;
 
+export type SystemDefinedProperties = "$schema" | "kind" | "$id";
+
 export type ConstructDataTypeParams = DistributiveOmit<
   DataType,
-  "$id" | "kind" | "$schema"
+  SystemDefinedProperties
+>;
+
+export type ConstructPropertyTypeParams = Omit<
+  PropertyType,
+  SystemDefinedProperties
+>;
+
+export type ConstructEntityTypeParams = Omit<
+  EntityType,
+  SystemDefinedProperties
 >;
 
 export type DataTypeConversionTargets = Omit<

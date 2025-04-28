@@ -16,36 +16,36 @@ export const scalars = {
 
   DataTypeWithMetadata: "@blockprotocol/type-system#DataTypeWithMetadata",
   ConstructDataTypeParams:
-    "@local/hash-graph-types/ontology#ConstructDataTypeParams",
+    "@local/hash-graph-sdk/ontology#ConstructDataTypeParams",
   DataTypeFullConversionTargetsMap:
-    "@local/hash-graph-types/ontology#DataTypeFullConversionTargetsMap",
+    "@local/hash-graph-sdk/ontology#DataTypeFullConversionTargetsMap",
   DataTypeDirectConversionsMap:
-    "@local/hash-graph-types/ontology#DataTypeDirectConversionsMap",
+    "@local/hash-graph-sdk/ontology#DataTypeDirectConversionsMap",
 
   ClosedMultiEntityType: "@blockprotocol/type-system#ClosedMultiEntityType",
   ClosedMultiEntityTypesRootMap:
-    "@local/hash-graph-types/ontology#ClosedMultiEntityTypesRootMap",
+    "@local/hash-graph-sdk/ontology#ClosedMultiEntityTypesRootMap",
   ClosedMultiEntityTypesDefinitions:
-    "@local/hash-graph-types/ontology#ClosedMultiEntityTypesDefinitions",
+    "@local/hash-graph-sdk/ontology#ClosedMultiEntityTypesDefinitions",
   EntityTypeWithMetadata: "@blockprotocol/type-system#EntityTypeWithMetadata",
   ConstructEntityTypeParams:
-    "@local/hash-isomorphic-utils/types#ConstructEntityTypeParams",
+    "@local/hash-graph-sdk/ontology#ConstructEntityTypeParams",
 
   PropertyTypeWithMetadata:
     "@blockprotocol/type-system#PropertyTypeWithMetadata",
   ConstructPropertyTypeParams:
-    "@local/hash-isomorphic-utils/types#ConstructPropertyTypeParams",
+    "@local/hash-graph-sdk/ontology#ConstructPropertyTypeParams",
 
   SerializedEntity: "@local/hash-graph-sdk/entity#SerializedEntity",
   EntityRecordId: "@blockprotocol/type-system#EntityRecordId",
   EntityMetadata: "@blockprotocol/type-system#EntityMetadata",
   EntityRelationAndSubject:
-    "@local/hash-graph-sdk/branded-authorization#EntityRelationAndSubjectBranded",
+    "@local/hash-graph-sdk/authorization#EntityRelationAndSubjectBranded",
   EntityValidationReport:
-    "@local/hash-graph-types/validation#EntityValidationReport",
+    "@local/hash-graph-sdk/validation#EntityValidationReport",
   CountEntitiesParams: "@local/hash-graph-client#CountEntitiesParams",
   GetEntitySubgraphRequest:
-    "@local/hash-isomorphic-utils/types#GetEntitySubgraphRequest",
+    "@local/hash-graph-sdk/entity#GetEntitySubgraphRequest",
   EntityTemporalMetadata: "@blockprotocol/type-system#EntityTemporalMetadata",
   PropertyObject: "@blockprotocol/type-system#PropertyObject",
   PropertyArray: "@blockprotocol/type-system#PropertyArray",
@@ -69,12 +69,12 @@ export const scalars = {
     "@local/hash-isomorphic-utils/service-usage#AggregatedUsageRecord",
 
   UserPermissionsOnEntities:
-    "@local/hash-isomorphic-utils/types#UserPermissionsOnEntities",
-  UserPermissions: "@local/hash-isomorphic-utils/types#UserPermissions",
+    "@local/hash-graph-sdk/authorization#UserPermissionsOnEntities",
+  UserPermissions: "@local/hash-graph-sdk/authorization#UserPermissions",
   UserPermissionsOnEntityType:
-    "@local/hash-isomorphic-utils/types#UserPermissionsOnEntityType",
+    "@local/hash-graph-sdk/authorization#UserPermissionsOnEntityType",
   UserPermissionsOnDataType:
-    "@local/hash-isomorphic-utils/types#UserPermissionsOnDataType",
+    "@local/hash-graph-sdk/authorization#UserPermissionsOnDataType",
   ProspectiveUserProperties:
     "@local/hash-isomorphic-utils/system-types/prospectiveuser#ProspectiveUserProperties",
 
@@ -89,11 +89,11 @@ export const scalars = {
   ActorId: "@blockprotocol/type-system#ActorId",
   ActorGroupId: "@blockprotocol/type-system#ActorGroupId",
   AuthorizationSubjectId:
-    "@local/hash-graph-types/authorization#AuthorizationSubjectId",
+    "@local/hash-graph-sdk/authorization#AuthorizationSubjectId",
   EntityId: "@blockprotocol/type-system#EntityId",
 
   EntityUuid: "@blockprotocol/type-system#EntityUuid",
-  Uuid: "@local/hash-graph-types/branded#Uuid",
+  Uuid: "@local/hash-graph-sdk/authorization#Uuid",
 
   OntologyTemporalMetadata: "@local/hash-graph-client#OntologyTemporalMetadata",
 

@@ -20,7 +20,7 @@ import {
 import type {
   ClosedMultiEntityTypesDefinitions,
   ClosedMultiEntityTypesRootMap,
-} from "@local/hash-graph-types/ontology";
+} from "@local/hash-graph-sdk/ontology";
 
 import { simplifyProperties } from "./simplify-properties.js";
 

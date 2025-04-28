@@ -5,13 +5,13 @@ import type {
   Subgraph,
 } from "@blockprotocol/graph";
 import type { EntityId } from "@blockprotocol/type-system";
+import type { UserPermissionsOnEntities } from "@local/hash-graph-sdk/authorization";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/entity.queries";
-import type { UserPermissionsOnEntities } from "@local/hash-isomorphic-utils/types";
 import { useMemo } from "react";
 
 import type {

@@ -13,7 +13,7 @@ import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import type {
   ClosedDataTypeDefinition,
   ClosedMultiEntityTypesRootMap,
-} from "@local/hash-graph-types/ontology";
+} from "@local/hash-graph-sdk/ontology";
 import { serializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import { useEffect, useMemo, useRef, useState } from "react";
 

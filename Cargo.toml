@@ -21,7 +21,7 @@ members = [
     "libs/@local/graph/test-server",
     "libs/@local/graph/type-defs",
     "libs/@local/graph/type-fetcher",
-    "libs/@local/graph/types/rust",
+    "libs/@local/graph/types",
     "libs/@local/graph/validation",
     "libs/@local/harpc/client/rust",
     "libs/@local/harpc/codec",
@@ -82,7 +82,7 @@ hash-graph-test-data.path           = "tests/graph/test-data/rust"
 hash-graph-test-server.path         = "libs/@local/graph/test-server"
 hash-graph-type-defs.path           = "libs/@local/graph/type-defs"
 hash-graph-type-fetcher.path        = "libs/@local/graph/type-fetcher"
-hash-graph-types.path               = "libs/@local/graph/types/rust"
+hash-graph-types.path               = "libs/@local/graph/types"
 hash-graph-validation.path          = "libs/@local/graph/validation"
 hash-repo-chores.path               = "libs/@local/repo-chores/rust"
 hash-status.path                    = "libs/@local/status/rust"

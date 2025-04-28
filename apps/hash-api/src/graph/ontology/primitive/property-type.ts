@@ -26,14 +26,14 @@ import type {
 import type {
   PropertyTypeAuthorizationRelationship,
   PropertyTypeRelationAndSubjectBranded,
-} from "@local/hash-graph-sdk/branded-authorization";
+} from "@local/hash-graph-sdk/authorization";
+import type { ConstructPropertyTypeParams } from "@local/hash-graph-sdk/ontology";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
   mapGraphApiPropertyTypesToPropertyTypes,
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { ConstructPropertyTypeParams } from "@local/hash-isomorphic-utils/types";
 
 import type { ImpureGraphFunction } from "../../context-types";
 import { getWebShortname, isExternalTypeId } from "./util";

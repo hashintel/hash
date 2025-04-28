@@ -27,12 +27,13 @@ import type {
 import type {
   DataTypeAuthorizationRelationship,
   DataTypeRelationAndSubjectBranded,
-} from "@local/hash-graph-sdk/branded-authorization";
+  UserPermissionsOnDataType,
+} from "@local/hash-graph-sdk/authorization";
 import type {
   ConstructDataTypeParams,
   DataTypeConversionTargets,
   DataTypeDirectConversionsMap,
-} from "@local/hash-graph-types/ontology";
+} from "@local/hash-graph-sdk/ontology";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import {
@@ -40,7 +41,6 @@ import {
   mapGraphApiDataTypesToDataTypes,
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { UserPermissionsOnDataType } from "@local/hash-isomorphic-utils/types";
 
 import type { ImpureGraphFunction } from "../../context-types";
 import { getWebShortname, isExternalTypeId } from "./util";

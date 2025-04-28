@@ -9,7 +9,7 @@ import { getClosedMultiEntityTypeFromMap } from "@local/hash-graph-sdk/entity";
 import type {
   ClosedMultiEntityTypesDefinitions,
   ClosedMultiEntityTypesRootMap,
-} from "@local/hash-graph-types/ontology";
+} from "@local/hash-graph-sdk/ontology";
 import { useCallback } from "react";
 
 import type {

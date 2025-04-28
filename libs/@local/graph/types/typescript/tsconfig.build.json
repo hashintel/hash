@@ -1,9 +1,0 @@
-{
-  "extends": "./tsconfig.json",
-  "exclude": ["eslint.config.js"],
-  "compilerOptions": {
-    "declaration": true,
-    "outDir": "dist",
-    "paths": {}
-  }
-}

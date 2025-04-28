@@ -6,7 +6,7 @@ import type {
 import type {
   ClosedDataTypeDefinition,
   ClosedMultiEntityTypesDefinitions,
-} from "@local/hash-graph-types/ontology";
+} from "@local/hash-graph-sdk/ontology";
 
 import { isPropertyValueArray } from "../../../../../../../../lib/typeguards";
 

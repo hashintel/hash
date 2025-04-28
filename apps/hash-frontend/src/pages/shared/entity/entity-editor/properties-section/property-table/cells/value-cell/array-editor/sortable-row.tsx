@@ -7,7 +7,7 @@ import {
   faPencil,
   faTrash,
 } from "@fortawesome/free-solid-svg-icons";
-import type { ClosedDataTypeDefinition } from "@local/hash-graph-types/ontology";
+import type { ClosedDataTypeDefinition } from "@local/hash-graph-sdk/ontology";
 import {
   formatDataValue,
   getMergedDataTypeSchema,

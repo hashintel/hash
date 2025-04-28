@@ -5,7 +5,7 @@ import type {
   PropertyValueMetadata,
 } from "@blockprotocol/type-system";
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
-import type { ClosedDataTypeDefinition } from "@local/hash-graph-types/ontology";
+import type { ClosedDataTypeDefinition } from "@local/hash-graph-sdk/ontology";
 
 import type { VerticalIndentationLineDir } from "../../../../../../components/grid/utils/draw-vertical-indentation-line";
 import type { MinimalPropertyValidationReport } from "../../../../use-validate-entity";
