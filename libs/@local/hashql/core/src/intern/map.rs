@@ -79,27 +79,27 @@ where
 /// ```compile_fail
 /// # use hashql_core::{heap::Heap, intern::{InternMap, Decompose, Interned}, id::{HasId, Id}};
 /// # #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-/// # struct MyId(u32);
-/// # impl Id for MyId {
+/// # struct ValueId(u32);
+/// # impl Id for ValueId {
 /// #     fn from_u32(id: u32) -> Self { Self(id) }
 /// # }
 /// # #[derive(Debug, PartialEq, Eq, Hash)]
-/// # struct MyType {
-/// #     id: MyId,
+/// # struct Value {
+/// #     id: ValueId,
 /// #     value: (),  // Zero-sized type!
 /// # }
-/// # impl HasId for MyType {
-/// #     type Id = MyId;
+/// # impl HasId for Value {
+/// #     type Id = ValueId;
 /// #     fn id(&self) -> Self::Id { self.id }
 /// # }
-/// # impl<'heap> Decompose<'heap> for MyType {
+/// # impl<'heap> Decompose<'heap> for Value {
 /// #     type Partial = ();  // Zero-sized type!
-/// #     fn from_parts(id: MyId, partial: Interned<'heap, ()>) -> Self {
+/// #     fn from_parts(id: ValueId, partial: Interned<'heap, ()>) -> Self {
 /// #         Self { id, value: *partial.as_ref() }
 /// #     }
 /// # }
 /// let heap = Heap::new();
-/// let map = InternMap::<MyType>::new(&heap);
+/// let map = InternMap::<Value>::new(&heap);
 ///
 /// // This will fail to compile - cannot intern a zero-sized type
 /// let obj = map.intern_partial(());
@@ -110,27 +110,27 @@ where
 /// ```compile_fail
 /// # use hashql_core::{heap::Heap, intern::{InternMap, Decompose, Interned}, id::{HasId, Id}};
 /// # #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-/// # struct MyId(u32);
-/// # impl Id for MyId {
+/// # struct ValueId(u32);
+/// # impl Id for ValueId {
 /// #     fn from_u32(id: u32) -> Self { Self(id) }
 /// # }
 /// # #[derive(Debug, PartialEq, Eq, Hash)]
-/// # struct MyType {
-/// #     id: MyId,
+/// # struct Value {
+/// #     id: ValueId,
 /// #     value: Vec<i32>,  // Type that implements Drop!
 /// # }
-/// # impl HasId for MyType {
-/// #     type Id = MyId;
+/// # impl HasId for Value {
+/// #     type Id = ValueId;
 /// #     fn id(&self) -> Self::Id { self.id }
 /// # }
-/// # impl<'heap> Decompose<'heap> for MyType {
+/// # impl<'heap> Decompose<'heap> for Value {
 /// #     type Partial = Vec<i32>;  // Type that implements Drop!
-/// #     fn from_parts(id: MyId, partial: Interned<'heap, Vec<i32>>) -> Self {
+/// #     fn from_parts(id: ValueId, partial: Interned<'heap, Vec<i32>>) -> Self {
 /// #         Self { id, value: partial.as_ref().clone() }
 /// #     }
 /// # }
 /// let heap = Heap::new();
-/// let map = InternMap::<MyType>::new(&heap);
+/// let map = InternMap::<Value>::new(&heap);
 ///
 /// // This will fail to compile - cannot intern a type that implements Drop
 /// let obj = map.intern_partial(vec![1, 2, 3]);
@@ -145,25 +145,25 @@ where
 ///
 /// ```
 /// # use hashql_core::{heap::Heap, intern::{InternMap, Decompose, Interned}, id::{HasId, Id}, newtype};
-/// # newtype!(struct MyId(u32 is 0..=0xFFFF_FF00));
+/// # newtype!(struct ValueId(u32 is 0..=0xFFFF_FF00));
 /// # #[derive(Debug, PartialEq, Eq, Hash)]
-/// # struct MyType {
-/// #     id: MyId,
+/// # struct Value {
+/// #     id: ValueId,
 /// #     value: i32,
 /// # }
-/// # impl HasId for MyType {
-/// #     type Id = MyId;
+/// # impl HasId for Value {
+/// #     type Id = ValueId;
 /// #     fn id(&self) -> Self::Id { self.id }
 /// # }
-/// # impl<'heap> Decompose<'heap> for MyType {
+/// # impl<'heap> Decompose<'heap> for Value {
 /// #     type Partial = i32;
-/// #     fn from_parts(id: MyId, partial: Interned<'heap, i32>) -> Self {
+/// #     fn from_parts(id: ValueId, partial: Interned<'heap, i32>) -> Self {
 /// #         Self { id, value: *partial.as_ref() }
 /// #     }
 /// # }
 ///
 /// let heap = Heap::new();
-/// let map = InternMap::<MyType>::new(&heap);
+/// let map = InternMap::<Value>::new(&heap);
 ///
 /// // Intern a value
 /// let value = map.intern_partial(42);
@@ -324,24 +324,24 @@ where
     ///
     /// ```
     /// # use hashql_core::{heap::Heap, intern::{InternMap, Decompose, Interned}, id::{HasId, Id}, newtype};
-    /// # newtype!(struct MyId(u32 is 0..=0xFFFF_FF00));
+    /// # newtype!(struct ValueId(u32 is 0..=0xFFFF_FF00));
     /// # #[derive(Debug, PartialEq, Eq, Hash)]
-    /// # struct MyType {
-    /// #     id: MyId,
+    /// # struct Value {
+    /// #     id: ValueId,
     /// #     value: i32,
     /// # }
-    /// # impl HasId for MyType {
-    /// #     type Id = MyId;
+    /// # impl HasId for Value {
+    /// #     type Id = ValueId;
     /// #     fn id(&self) -> Self::Id { self.id }
     /// # }
-    /// # impl<'heap> Decompose<'heap> for MyType {
+    /// # impl<'heap> Decompose<'heap> for Value {
     /// #     type Partial = i32;
-    /// #     fn from_parts(id: MyId, partial: Interned<'heap, i32>) -> Self {
+    /// #     fn from_parts(id: ValueId, partial: Interned<'heap, i32>) -> Self {
     /// #         Self { id, value: *partial.as_ref() }
     /// #     }
     /// # }
     /// # let heap = Heap::new();
-    /// # let map = InternMap::<MyType>::new(&heap);
+    /// # let map = InternMap::<Value>::new(&heap);
     /// // Intern a simple value
     /// let obj = map.intern_partial(42);
     ///
@@ -366,24 +366,24 @@ where
     ///
     /// ```
     /// # use hashql_core::{heap::Heap, intern::{InternMap, Decompose, Interned, Provisioned}, id::{HasId, Id}, newtype};
-    /// # newtype!(struct MyId(u32 is 0..=0xFFFF_FF00));
+    /// # newtype!(struct ValueId(u32 is 0..=0xFFFF_FF00));
     /// # #[derive(Debug, PartialEq, Eq, Hash)]
-    /// # struct MyType {
-    /// #     id: MyId,
+    /// # struct Value {
+    /// #     id: ValueId,
     /// #     value: i32,
     /// # }
-    /// # impl HasId for MyType {
-    /// #     type Id = MyId;
+    /// # impl HasId for Value {
+    /// #     type Id = ValueId;
     /// #     fn id(&self) -> Self::Id { self.id }
     /// # }
-    /// # impl<'heap> Decompose<'heap> for MyType {
+    /// # impl<'heap> Decompose<'heap> for Value {
     /// #     type Partial = i32;
-    /// #     fn from_parts(id: MyId, partial: Interned<'heap, i32>) -> Self {
+    /// #     fn from_parts(id: ValueId, partial: Interned<'heap, i32>) -> Self {
     /// #         Self { id, value: *partial.as_ref() }
     /// #     }
     /// # }
     /// # let heap = Heap::new();
-    /// # let map = InternMap::<MyType>::new(&heap);
+    /// # let map = InternMap::<Value>::new(&heap);
     /// // Provision an ID for later use
     /// let id = map.provision();
     ///
@@ -454,24 +454,24 @@ where
     ///
     /// ```
     /// # use hashql_core::{heap::Heap, intern::{InternMap, Decompose, Interned, Provisioned}, id::{HasId, Id}, newtype};
-    /// # newtype!(struct MyId(u32 is 0..=0xFFFF_FF00));
+    /// # newtype!(struct ValueId(u32 is 0..=0xFFFF_FF00));
     /// # #[derive(Debug, PartialEq, Eq, Hash)]
-    /// # struct MyType {
-    /// #     id: MyId,
+    /// # struct Value {
+    /// #     id: ValueId,
     /// #     value: usize,
     /// # }
-    /// # impl HasId for MyType {
-    /// #     type Id = MyId;
+    /// # impl HasId for Value {
+    /// #     type Id = ValueId;
     /// #     fn id(&self) -> Self::Id { self.id }
     /// # }
-    /// # impl<'heap> Decompose<'heap> for MyType {
+    /// # impl<'heap> Decompose<'heap> for Value {
     /// #     type Partial = usize;
-    /// #     fn from_parts(id: MyId, partial: Interned<'heap, usize>) -> Self {
+    /// #     fn from_parts(id: ValueId, partial: Interned<'heap, usize>) -> Self {
     /// #         Self { id, value: *partial.as_ref() }
     /// #     }
     /// # }
     /// # let heap = Heap::new();
-    /// # let map = InternMap::<MyType>::new(&heap);
+    /// # let map = InternMap::<Value>::new(&heap);
     /// // Create a value using the provisioned ID
     /// let obj = map.intern(|id| {
     ///     let id_value = id.value();
@@ -495,24 +495,24 @@ where
     ///
     /// ```
     /// # use hashql_core::{heap::Heap, intern::{InternMap, Decompose, Interned}, id::{HasId, Id}, newtype};
-    /// # newtype!(struct MyId(u32 is 0..=0xFFFF_FF00));
+    /// # newtype!(struct ValueId(u32 is 0..=0xFFFF_FF00));
     /// # #[derive(Debug, PartialEq, Eq, Hash)]
-    /// # struct MyType {
-    /// #     id: MyId,
+    /// # struct Value {
+    /// #     id: ValueId,
     /// #     value: i32,
     /// # }
-    /// # impl HasId for MyType {
-    /// #     type Id = MyId;
+    /// # impl HasId for Value {
+    /// #     type Id = ValueId;
     /// #     fn id(&self) -> Self::Id { self.id }
     /// # }
-    /// # impl<'heap> Decompose<'heap> for MyType {
+    /// # impl<'heap> Decompose<'heap> for Value {
     /// #     type Partial = i32;
-    /// #     fn from_parts(id: MyId, partial: Interned<'heap, i32>) -> Self {
+    /// #     fn from_parts(id: ValueId, partial: Interned<'heap, i32>) -> Self {
     /// #         Self { id, value: *partial.as_ref() }
     /// #     }
     /// # }
     /// # let heap = Heap::new();
-    /// # let map = InternMap::<MyType>::new(&heap);
+    /// # let map = InternMap::<Value>::new(&heap);
     /// let obj = map.intern_partial(42);
     /// let id = obj.id();
     ///
@@ -522,7 +522,7 @@ where
     /// assert_eq!(retrieved.unwrap(), obj);
     ///
     /// // Look up a non-existent ID
-    /// let non_existent = map.get(MyId::from_u32(999));
+    /// let non_existent = map.get(ValueId::from_u32(999));
     /// assert!(non_existent.is_none());
     /// ```
     pub fn get(&self, id: T::Id) -> Option<T> {
@@ -544,24 +544,24 @@ where
     ///
     /// ```
     /// # use hashql_core::{heap::Heap, intern::{InternMap, Decompose, Interned}, id::{HasId, Id}, newtype};
-    /// # newtype!(struct MyId(u32 is 0..=0xFFFF_FF00));
+    /// # newtype!(struct ValueId(u32 is 0..=0xFFFF_FF00));
     /// # #[derive(Debug, PartialEq, Eq, Hash)]
-    /// # struct MyType {
-    /// #     id: MyId,
+    /// # struct Value {
+    /// #     id: ValueId,
     /// #     value: i32,
     /// # }
-    /// # impl HasId for MyType {
-    /// #     type Id = MyId;
+    /// # impl HasId for Value {
+    /// #     type Id = ValueId;
     /// #     fn id(&self) -> Self::Id { self.id }
     /// # }
-    /// # impl<'heap> Decompose<'heap> for MyType {
+    /// # impl<'heap> Decompose<'heap> for Value {
     /// #     type Partial = i32;
-    /// #     fn from_parts(id: MyId, partial: Interned<'heap, i32>) -> Self {
+    /// #     fn from_parts(id: ValueId, partial: Interned<'heap, i32>) -> Self {
     /// #         Self { id, value: *partial.as_ref() }
     /// #     }
     /// # }
     /// # let heap = Heap::new();
-    /// # let map = InternMap::<MyType>::new(&heap);
+    /// # let map = InternMap::<Value>::new(&heap);
     /// let obj = map.intern_partial(42);
     /// let id = obj.id();
     ///
@@ -570,7 +570,7 @@ where
     /// assert_eq!(retrieved, obj);
     ///
     /// // This would panic:
-    /// // let non_existent = map.index(MyId::from_u32(999));
+    /// // let non_existent = map.index(ValueId::from_u32(999));
     /// ```
     pub fn index(&self, id: T::Id) -> T {
         let partial = self
@@ -579,5 +579,334 @@ where
             .expect("id should exist in map");
 
         T::from_parts(id, Interned::new_unchecked(partial))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use core::hash::{Hash, Hasher};
+
+    use crate::{
+        heap::Heap,
+        id::HasId,
+        intern::{Decompose, InternMap, Interned},
+        newtype,
+    };
+
+    newtype!(struct TaggedId(u32 is 0..=0xFFFF_FF00));
+
+    #[derive(Debug, PartialEq, Eq, Hash)]
+    struct TaggedValue {
+        id: TaggedId,
+        value: i32,
+    }
+
+    impl HasId for TaggedValue {
+        type Id = TaggedId;
+
+        fn id(&self) -> Self::Id {
+            self.id
+        }
+    }
+
+    impl<'heap> Decompose<'heap> for TaggedValue {
+        type Partial = i32;
+
+        fn from_parts(id: TaggedId, partial: Interned<'heap, i32>) -> Self {
+            Self {
+                id,
+                value: *partial.as_ref(),
+            }
+        }
+    }
+
+    newtype!(struct ListId(u32 is 0..=0xFFFF_FF00));
+
+    // A recursive test type that can reference other TestNode instances by ID
+    #[derive(Debug, PartialEq, Eq, Hash)]
+    struct LinkedList {
+        id: ListId,
+        value: i32,
+        next_id: Option<ListId>,
+    }
+
+    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+    struct PartialLinkedList {
+        value: i32,
+        next_id: Option<ListId>,
+    }
+
+    impl HasId for LinkedList {
+        type Id = ListId;
+
+        fn id(&self) -> Self::Id {
+            self.id
+        }
+    }
+
+    impl<'heap> Decompose<'heap> for LinkedList {
+        type Partial = PartialLinkedList;
+
+        fn from_parts(id: ListId, partial: Interned<'heap, PartialLinkedList>) -> Self {
+            Self {
+                id,
+                value: partial.value,
+                next_id: partial.next_id,
+            }
+        }
+    }
+
+    #[test]
+    fn basic_interning() {
+        let heap = Heap::new();
+        let map = InternMap::<TaggedValue>::new(&heap);
+
+        // Intern the same value twice
+        let value1 = map.intern_partial(42);
+        let value2 = map.intern_partial(42);
+
+        // They should have the same ID
+        assert_eq!(value1.id(), value2.id());
+
+        // Intern a different value
+        let value3 = map.intern_partial(43);
+
+        // It should have a different ID
+        assert_ne!(value1.id(), value3.id());
+
+        // Verify the contents
+        assert_eq!(value1.value, 42);
+        assert_eq!(value2.value, 42);
+        assert_eq!(value3.value, 43);
+    }
+
+    #[test]
+    fn lookup_by_id() {
+        let heap = Heap::new();
+        let map = InternMap::<TaggedValue>::new(&heap);
+
+        // Intern a value
+        let value = map.intern_partial(42);
+        let id = value.id();
+
+        // Look it up by ID
+        let retrieved = map.get(id).expect("should have a value");
+        assert_eq!(retrieved, value);
+
+        // Look up a non-existent ID
+        let non_existent = map.get(TaggedId(999));
+        assert!(non_existent.is_none());
+
+        // Test the index method
+        let indexed = map.index(id);
+        assert_eq!(indexed, value);
+
+        // Indexing a non-existent ID would panic, so we don't test it directly
+    }
+
+    #[test]
+    fn provisioning() {
+        let heap = Heap::new();
+        let map = InternMap::<TaggedValue>::new(&heap);
+
+        // Provision an ID
+        let id = map.provision();
+
+        // Use it to intern a value
+        let value = map.intern_provisioned(id, 42);
+
+        // The value should have the provisioned ID
+        assert_eq!(value.id(), id.value());
+
+        // If we intern the same value again with a new provisioned ID,
+        // it should reuse the existing interned value and its ID
+        let id2 = map.provision();
+        let value2 = map.intern_provisioned(id2, 42);
+
+        // This should return the original value, not create a new one with the new ID
+        assert_eq!(value2.id(), value.id());
+        assert_ne!(value2.id(), id2.value());
+    }
+
+    #[test]
+    fn recursive_structures() {
+        let heap = Heap::new();
+        let map = InternMap::<LinkedList>::new(&heap);
+
+        // Create a linked list using provisioned IDs
+        let node3_id = map.provision();
+        let node3 = map.intern_provisioned(
+            node3_id,
+            PartialLinkedList {
+                value: 3,
+                next_id: None,
+            },
+        );
+
+        let node2_id = map.provision();
+        let node2 = map.intern_provisioned(
+            node2_id,
+            PartialLinkedList {
+                value: 2,
+                next_id: Some(node3.id()),
+            },
+        );
+
+        let node1_id = map.provision();
+        let node1 = map.intern_provisioned(
+            node1_id,
+            PartialLinkedList {
+                value: 1,
+                next_id: Some(node2.id()),
+            },
+        );
+
+        // Verify the links
+        assert_eq!(node1.next_id, Some(node2.id()));
+        assert_eq!(node2.next_id, Some(node3.id()));
+        assert_eq!(node3.next_id, None);
+
+        // Create a similar list but using the closure-based intern method
+        let list = map.intern(|head_id| {
+            // First create the tail node
+            let tail = map.intern_partial(PartialLinkedList {
+                value: 6,
+                next_id: Some(head_id.value()),
+            });
+
+            // Then create the middle node pointing to the tail
+            let middle = map.intern_partial(PartialLinkedList {
+                value: 5,
+                next_id: Some(tail.id()),
+            });
+
+            // Return the head partial that points to the middle
+            PartialLinkedList {
+                value: 4,
+                next_id: Some(middle.id()),
+            }
+        });
+
+        // Verify this list is correct too
+        assert_eq!(list.value, 4);
+        let middle_node = map.index(list.next_id.expect("should have a next_id"));
+        assert_eq!(middle_node.value, 5);
+        let tail_node = map.index(middle_node.next_id.expect("should have a next_id"));
+        assert_eq!(tail_node.value, 6);
+        let head_node = map.index(tail_node.next_id.expect("should have a next_id"));
+        assert_eq!(head_node.value, 4);
+    }
+
+    #[test]
+    fn hash_collisions() {
+        // Create a type with controlled hash collisions
+        #[derive(Debug, Copy, Clone, PartialEq, Eq)]
+        struct CollisionValue {
+            id: u32,
+            collision_group: u32,
+        }
+
+        impl Hash for CollisionValue {
+            fn hash<H: Hasher>(&self, state: &mut H) {
+                // Only hash the collision_group, causing collisions
+                self.collision_group.hash(state);
+            }
+        }
+
+        #[derive(Debug, PartialEq, Eq, Hash)]
+        struct CollisionType {
+            id: TaggedId,
+            value: CollisionValue,
+        }
+
+        impl HasId for CollisionType {
+            type Id = TaggedId;
+
+            fn id(&self) -> Self::Id {
+                self.id
+            }
+        }
+
+        impl<'heap> Decompose<'heap> for CollisionType {
+            type Partial = CollisionValue;
+
+            fn from_parts(id: TaggedId, partial: Interned<'heap, CollisionValue>) -> Self {
+                Self {
+                    id,
+                    value: *partial.as_ref(),
+                }
+            }
+        }
+
+        let heap = Heap::new();
+        let map = InternMap::<CollisionType>::new(&heap);
+
+        // Create values with the same hash but different equality
+        let value1 = map.intern_partial(CollisionValue {
+            id: 1,
+            collision_group: 42,
+        });
+
+        let value2 = map.intern_partial(CollisionValue {
+            id: 2,
+            collision_group: 42,
+        });
+
+        // They should have different IDs despite hash collision
+        assert_ne!(value1.id(), value2.id());
+
+        // Interning the same value again should return the same ID
+        let value1_again = map.intern_partial(CollisionValue {
+            id: 1,
+            collision_group: 42,
+        });
+
+        assert_eq!(value1.id(), value1_again.id());
+    }
+
+    #[test]
+    fn lifetime_persistence() {
+        let heap = Heap::new();
+        let map = InternMap::<TaggedValue>::new(&heap);
+
+        let value1_id;
+        let value1_ref;
+
+        {
+            // Create a value in a nested scope
+            let value1 = map.intern_partial(42);
+            value1_id = value1.id();
+            value1_ref = value1;
+        }
+
+        // Create the same value again after the first has gone out of scope
+        let value2 = map.intern_partial(42);
+
+        // The IDs should be the same even though value1 is dropped
+        assert_eq!(value1_id, value2.id());
+        assert_eq!(value1_ref, value2);
+    }
+
+    #[test]
+    fn deduplication_with_provisioned_ids() {
+        let heap = Heap::new();
+        let map = InternMap::<TaggedValue>::new(&heap);
+
+        // First create a value normally
+        let value1 = map.intern_partial(42);
+
+        // Now provision an ID and try to intern the same value
+        let id = map.provision();
+        let value2 = map.intern_provisioned(id, 42);
+
+        // Since the value already exists, it should reuse the first value's ID
+        assert_eq!(value1.id(), value2.id());
+        assert_ne!(id.value(), value2.id()); // The provisioned ID wasn't used
+
+        // Now create a new value with the provisioned ID
+        let value3 = map.intern_provisioned(id, 43);
+
+        // This should use the provisioned ID since it's a new value
+        assert_eq!(value3.id(), id.value());
     }
 }
