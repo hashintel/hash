@@ -21,9 +21,6 @@ use crate::{
     span::SpanId,
 };
 
-// TODO: consider interning types to reduce memory usage
-// TODO: see https://github.com/rust-lang/rust/blob/94015d3cd4b48d098abd0f3e44af97dab2b713b4/compiler/rustc_data_structures/src/intern.rs#L26 and https://github.com/rust-lang/rust/blob/94015d3cd4b48d098abd0f3e44af97dab2b713b4/compiler/rustc_data_structures/src/sharded.rs#L204
-
 newtype!(
     pub struct TypeId(u32 is 0..=0xFFFF_FF00)
 );
