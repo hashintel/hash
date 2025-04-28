@@ -401,13 +401,20 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
     }
 
     fn simplify(self: Type<'heap, Self>, env: &mut SimplifyEnvironment<'_, 'heap>) -> TypeId {
+        let (_guard, id) = env.provision(self.id);
+
         // Gather + flatten + simplify
         let mut variants =
             TypeIdSet::<16>::with_capacity(env.environment, self.kind.variants.len());
         for &variant in self.kind.variants {
             let variant = env.simplify(variant);
 
-            if let Some(UnionType { variants: nested }) = env.r#type(variant).kind.union() {
+            // We need to use `get` here, as substituted types may not yet be materialized
+            if let Some(UnionType { variants: nested }) = env
+                .types
+                .get(variant)
+                .and_then(|r#type| r#type.kind.union())
+            {
                 variants.extend_from_slice(nested);
             } else {
                 variants.push(variant);
@@ -420,10 +427,13 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
 
         // Propagate top type
         if variants.iter().any(|&variant| env.is_top(variant)) {
-            return env.intern_type(PartialType {
-                span: self.span,
-                kind: env.intern_kind(TypeKind::Unknown),
-            });
+            return env.intern_provisioned(
+                id,
+                PartialType {
+                    span: self.span,
+                    kind: env.intern_kind(TypeKind::Unknown),
+                },
+            );
         }
 
         // TODO: in the future we might want to consider collapse via constructor-merge, turning
@@ -439,18 +449,24 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
         });
 
         // Collapse empty or singleton
-        match variants.len() {
-            0 => env.intern_type(PartialType {
-                span: self.span,
-                kind: env.intern_kind(TypeKind::Never),
-            }),
-            1 => variants[0],
-            _ => env.intern_type(PartialType {
-                span: self.span,
-                kind: env.intern_kind(TypeKind::Union(UnionType {
-                    variants: env.intern_type_ids(&variants),
-                })),
-            }),
+        match variants.as_slice() {
+            [] => env.intern_provisioned(
+                id,
+                PartialType {
+                    span: self.span,
+                    kind: env.intern_kind(TypeKind::Never),
+                },
+            ),
+            &[variant] if variant != id.value() => variant,
+            _ => env.intern_provisioned(
+                id,
+                PartialType {
+                    span: self.span,
+                    kind: env.intern_kind(TypeKind::Union(UnionType {
+                        variants: env.intern_type_ids(&variants),
+                    })),
+                },
+            ),
         }
     }
 }
@@ -533,6 +549,7 @@ mod test {
         heap::Heap,
         span::SpanId,
         r#type::{
+            PartialType,
             environment::{
                 AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
                 SimplifyEnvironment,
@@ -2166,6 +2183,30 @@ mod test {
         assert!(
             constraints.is_empty(),
             "Empty union as target should collect no edges"
+        );
+    }
+
+    #[test]
+    fn simplify_recursive_union() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let r#type = env.types.intern(|id| PartialType {
+            span: SpanId::SYNTHETIC,
+            kind: env.intern_kind(TypeKind::Union(UnionType {
+                variants: env.intern_type_ids(&[id.value()]),
+            })),
+        });
+
+        let mut simplify = SimplifyEnvironment::new(&env);
+        let type_id = simplify.simplify(r#type.id);
+
+        let r#type = env.r#type(type_id);
+
+        assert_matches!(
+            r#type.kind,
+            TypeKind::Union(UnionType { variants }) if variants.len() == 1
+                && variants[0] == type_id
         );
     }
 }

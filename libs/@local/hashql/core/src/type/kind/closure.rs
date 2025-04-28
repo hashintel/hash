@@ -190,6 +190,8 @@ impl<'heap> Lattice<'heap> for ClosureType<'heap> {
     }
 
     fn simplify(self: Type<'heap, Self>, env: &mut SimplifyEnvironment<'_, 'heap>) -> TypeId {
+        let (_guard, id) = env.provision(self.id);
+
         let mut params = SmallVec::<_, 16>::with_capacity(16);
         for &param in self.kind.params {
             params.push(env.simplify(param));
@@ -197,14 +199,17 @@ impl<'heap> Lattice<'heap> for ClosureType<'heap> {
 
         let r#return = env.simplify(self.kind.returns);
 
-        env.intern_type(PartialType {
-            span: self.span,
-            kind: env.intern_kind(TypeKind::Closure(Self {
-                params: env.intern_type_ids(&params),
-                returns: r#return,
-                arguments: self.kind.arguments,
-            })),
-        })
+        env.intern_provisioned(
+            id,
+            PartialType {
+                span: self.span,
+                kind: env.intern_kind(TypeKind::Closure(Self {
+                    params: env.intern_type_ids(&params),
+                    returns: r#return,
+                    arguments: self.kind.arguments,
+                })),
+            },
+        )
     }
 }
 
@@ -269,11 +274,14 @@ impl PrettyPrint for ClosureType<'_> {
 #[cfg(test)]
 mod test {
     #![expect(clippy::min_ident_chars)]
+    use core::assert_matches::assert_matches;
+
     use super::ClosureType;
     use crate::{
         heap::Heap,
         span::SpanId,
         r#type::{
+            PartialType,
             environment::{
                 AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
                 SimplifyEnvironment,
@@ -283,7 +291,7 @@ mod test {
             },
             kind::{
                 TypeKind,
-                generic_argument::{GenericArgument, GenericArgumentId},
+                generic_argument::{GenericArgument, GenericArgumentId, GenericArguments},
                 infer::HoleId,
                 intersection::IntersectionType,
                 primitive::PrimitiveType,
@@ -1581,5 +1589,33 @@ mod test {
         // In invariant context, no structural edges should be collected
         let constraints = inference_env.take_constraints();
         assert!(constraints.is_empty());
+    }
+
+    #[test]
+    fn simplify_recursive_closure() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let r#type = env.types.intern(|id| PartialType {
+            span: SpanId::SYNTHETIC,
+            kind: env.intern_kind(TypeKind::Closure(ClosureType {
+                params: env.intern_type_ids(&[id.value()]),
+                returns: id.value(),
+                arguments: GenericArguments::empty(),
+            })),
+        });
+
+        let mut simplify = SimplifyEnvironment::new(&env);
+        let type_id = simplify.simplify(r#type.id);
+
+        let r#type = env.r#type(type_id);
+
+        assert_matches!(
+            r#type.kind,
+            TypeKind::Closure(ClosureType { params, returns, arguments }) if params.len() == 1
+                && params[0] == type_id
+                && *returns == type_id
+                && arguments.is_empty()
+        );
     }
 }

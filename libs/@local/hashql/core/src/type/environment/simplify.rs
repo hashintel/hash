@@ -121,6 +121,7 @@ impl<'env, 'heap> SimplifyEnvironment<'env, 'heap> {
         self.analysis.contains_substitution(kind)
     }
 
+    #[inline]
     pub(crate) fn take_diagnostics(&mut self) -> Option<Diagnostics> {
         self.analysis.take_diagnostics()
     }
