@@ -72,18 +72,12 @@ impl<'heap> StructFields<'heap> {
 
     #[must_use]
     pub const fn len(&self) -> usize {
-        match self.0 {
-            Some(Interned(slice, _)) => slice.len(),
-            None => 0,
-        }
+        self.as_slice().len()
     }
 
     #[must_use]
     pub const fn is_empty(&self) -> bool {
-        match self.0 {
-            Some(Interned(slice, _)) => slice.is_empty(),
-            None => true,
-        }
+        self.as_slice().is_empty()
     }
 }
 
