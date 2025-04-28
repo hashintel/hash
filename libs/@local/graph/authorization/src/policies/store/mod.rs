@@ -156,7 +156,7 @@ pub trait LocalPrincipalStore {
     /// [`StoreError`]: RoleAssignmentError::StoreError
     async fn assign_role(
         &mut self,
-        actor: ActorEntityUuid,
+        actor_id: ActorEntityUuid,
         actor_to_assign: ActorEntityUuid,
         actor_group_id: ActorGroupEntityUuid,
         name: RoleName,
@@ -177,9 +177,24 @@ pub trait LocalPrincipalStore {
     /// [`StoreError`]: RoleAssignmentError::StoreError
     async fn is_assigned(
         &mut self,
-        actor_id: ActorId,
-        actor_group_id: ActorGroupId,
+        actor_id: ActorEntityUuid,
+        actor_group_id: ActorGroupEntityUuid,
     ) -> Result<Option<RoleName>, Report<RoleAssignmentError>>;
+
+    /// Returns the actors assigned to the given role within the specified actor group.
+    ///
+    /// # Errors
+    ///
+    /// - [`RoleNotFound`] if the role does not exist
+    /// - [`StoreError`] if the underlying store returns an error
+    ///
+    /// [`RoleNotFound`]: RoleAssignmentError::RoleNotFound
+    /// [`StoreError`]: RoleAssignmentError::StoreError
+    async fn get_role_assignments(
+        &mut self,
+        actor_group_id: ActorGroupEntityUuid,
+        role: RoleName,
+    ) -> Result<Vec<ActorEntityUuid>, Report<RoleAssignmentError>>;
 
     /// Unassigns an actor from a role.
     ///
@@ -194,7 +209,7 @@ pub trait LocalPrincipalStore {
     /// [`StoreError`]: RoleAssignmentError::StoreError
     async fn unassign_role(
         &mut self,
-        actor: ActorEntityUuid,
+        actor_id: ActorEntityUuid,
         actor_to_unassign: ActorEntityUuid,
         actor_group_id: ActorGroupEntityUuid,
         name: RoleName,

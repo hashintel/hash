@@ -97,12 +97,12 @@ pub fn format_github_markdown<'b>(
         if last_group_id.is_none() {
             group_start(fmt, &analysis.measurement.info.group_id)?;
             table_header(fmt)?;
-        } else if let Some(group_id) = last_group_id.as_ref() {
-            if *group_id != analysis.measurement.info.group_id {
-                group_end(fmt)?;
-                group_start(fmt, &analysis.measurement.info.group_id)?;
-                table_header(fmt)?;
-            }
+        } else if let Some(group_id) = last_group_id.as_ref()
+            && *group_id != analysis.measurement.info.group_id
+        {
+            group_end(fmt)?;
+            group_start(fmt, &analysis.measurement.info.group_id)?;
+            table_header(fmt)?;
         }
         last_group_id = Some(analysis.measurement.info.group_id.as_str());
         table_row(fmt, analysis, name)?;

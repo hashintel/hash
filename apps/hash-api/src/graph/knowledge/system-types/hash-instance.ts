@@ -1,4 +1,3 @@
-import type { ActorEntityUuid } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import type { HashInstance } from "@local/hash-backend-utils/hash-instance";
 import {
@@ -10,14 +9,9 @@ import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-id
 import type { HASHInstance as HashInstanceEntity } from "@local/hash-isomorphic-utils/system-types/hashinstance";
 
 import { logger } from "../../../logger";
-import {
-  addActorGroupMember,
-  removeActorGroupMember,
-} from "../../account-permission-management";
 import type { ImpureGraphFunction } from "../../context-types";
 import { modifyEntityTypeAuthorizationRelationships } from "../../ontology/primitive/entity-type";
 import { createEntity } from "../primitive/entity";
-import type { User } from "./user";
 
 /**
  * Create the hash instance entity.
@@ -128,61 +122,4 @@ export const createHashInstance: ImpureGraphFunction<
   ]);
 
   return getHashInstanceFromEntity({ entity });
-};
-
-/**
- * Add an instance admin to the hash instance.
- *
- * @param params.user - the user to be added as a hash instance admin.
- *
- * @see {@link createEntity} for the documentation of the remaining parameters
- */
-export const addHashInstanceAdmin: ImpureGraphFunction<
-  { user: User },
-  Promise<void>
-> = async (ctx, authentication, params) => {
-  const { teamId } = await getInstanceAdminsTeam(ctx, authentication);
-
-  await addActorGroupMember(ctx, authentication, {
-    actorId: params.user.accountId,
-    actorGroupId: teamId,
-  });
-};
-
-/**
- * Get all members of the hash instance admin group.
- *
- * Requires the user to have the `administrator` role over the hash instance.
- */
-export const getHashInstanceGroupMembers: ImpureGraphFunction<
-  Record<string, never>,
-  Promise<ActorEntityUuid[]>
-> = async (ctx, authentication) => {
-  const { teamId } = await getInstanceAdminsTeam(ctx, authentication);
-
-  const { data: relations } = await ctx.graphApi.getActorGroupRelations(
-    authentication.actorId,
-    teamId,
-  );
-
-  return relations.map(
-    (relation) => relation.subject.subjectId as ActorEntityUuid,
-  );
-};
-
-/**
- * Remove an instance admin from the hash instance.
- *
- * @param params.user - the user to be removed as a hash instance admin.
- */
-export const removeHashInstanceAdmin: ImpureGraphFunction<
-  { user: User },
-  Promise<void>
-> = async (ctx, authentication, params): Promise<void> => {
-  const { teamId } = await getInstanceAdminsTeam(ctx, authentication);
-
-  await removeActorGroupMember(ctx, authentication, {
-    actorId: params.user.accountId,
-    actorGroupId: teamId,
-  });
 };
