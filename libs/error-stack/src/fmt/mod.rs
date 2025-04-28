@@ -846,9 +846,11 @@ fn debug_attachments_invoke<'a>(
         .map(|frame| match frame.kind() {
             #[cfg(any(feature = "std", feature = "hooks"))]
             FrameKind::Context(_) => Some(
-                Report::invoke_debug_format_hook(|hooks| hooks.call(frame, context))
-                    .then(|| context.take_body())
-                    .unwrap_or_default(),
+                if Report::invoke_debug_format_hook(|hooks| hooks.call(frame, context)) {
+                    context.take_body()
+                } else {
+                    Vec::new()
+                },
             ),
             #[cfg(any(feature = "std", feature = "hooks"))]
             FrameKind::Attachment(AttachmentKind::Printable(attachment)) => Some(

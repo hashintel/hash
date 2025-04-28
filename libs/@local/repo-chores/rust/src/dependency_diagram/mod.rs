@@ -446,16 +446,16 @@ struct PackageQueryResolver<'a> {
 
 impl<'graph> PackageResolver<'graph> for PackageQueryResolver<'_> {
     fn accept(&mut self, _: &PackageQuery<'graph>, link: PackageLink<'graph>) -> bool {
-        if let Some(include) = &self.include {
-            if !include.is_match(link.from().name()) || !include.is_match(link.to().name()) {
-                return false;
-            }
+        if let Some(include) = &self.include
+            && (!include.is_match(link.from().name()) || !include.is_match(link.to().name()))
+        {
+            return false;
         }
 
-        if let Some(exclude) = &self.exclude {
-            if exclude.is_match(link.from().name()) || exclude.is_match(link.to().name()) {
-                return false;
-            }
+        if let Some(exclude) = &self.exclude
+            && (exclude.is_match(link.from().name()) || exclude.is_match(link.to().name()))
+        {
+            return false;
         }
 
         if !self.dependency.eval(link) {
@@ -522,12 +522,12 @@ pub fn generate_dependency_diagram(
 
     let root_set = root.as_ref().map(|root| graph.resolve_package_name(root));
 
-    if let Some(root_set) = &root_set {
-        if root_set.is_empty() {
-            return Err(Report::new(DependencyDiagramError::RootCrateNotFound(
-                root.clone().unwrap_or_else(|| unreachable!()),
-            )));
-        }
+    if let Some(root_set) = &root_set
+        && root_set.is_empty()
+    {
+        return Err(Report::new(DependencyDiagramError::RootCrateNotFound(
+            root.clone().unwrap_or_else(|| unreachable!()),
+        )));
     }
 
     let resolver = PackageQueryResolver {

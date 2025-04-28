@@ -317,7 +317,7 @@ mod tests {
     }
 
     #[test]
-    fn test_parents_method() {
+    fn parents() {
         // All has no parents
         assert_eq!(ActionName::All.parents().collect::<Vec<_>>(), vec![]);
 
@@ -355,7 +355,7 @@ mod tests {
     }
 
     #[test]
-    fn test_is_parent_of_method() {
+    fn is_parent_of() {
         // View is parent of ViewEntity and ViewEntityType
         assert!(ActionName::View.is_parent_of(ActionName::ViewEntity));
         assert!(ActionName::View.is_parent_of(ActionName::ViewEntityType));
@@ -368,7 +368,7 @@ mod tests {
     }
 
     #[test]
-    fn test_is_child_of_method() {
+    fn is_child_of() {
         // ViewEntity and ViewEntityType are children of View
         assert!(ActionName::ViewEntity.is_child_of(ActionName::View));
         assert!(ActionName::ViewEntityType.is_child_of(ActionName::View));

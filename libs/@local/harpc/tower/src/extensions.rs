@@ -327,7 +327,7 @@ mod test {
     use crate::extensions::Extensions;
 
     #[test]
-    fn test_extensions() {
+    fn extensions() {
         #[derive(Clone, Debug, PartialEq)]
         struct MyType(i32);
 

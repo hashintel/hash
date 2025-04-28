@@ -194,39 +194,38 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
 
     fn pin_ontology_table(&mut self, alias: Alias) {
         let table = Table::OntologyTemporalMetadata.aliased(alias);
-        if let Some(temporal_axes) = self.temporal_axes {
-            if self.artifacts.table_info.tables.insert(table) {
-                let transaction_time_index =
-                    self.time_index(temporal_axes, TimeAxis::TransactionTime);
-                match temporal_axes {
-                    QueryTemporalAxes::DecisionTime { .. } => {
-                        self.add_condition(
-                            Condition::TimeIntervalContainsTimestamp(
-                                Expression::ColumnReference {
-                                    column: Column::OntologyTemporalMetadata(
-                                        OntologyTemporalMetadata::TransactionTime,
-                                    ),
-                                    table_alias: Some(alias),
-                                },
-                                Expression::Parameter(transaction_time_index),
-                            ),
-                            Some(table),
-                        );
-                    }
-                    QueryTemporalAxes::TransactionTime { .. } => {
-                        self.add_condition(
-                            Condition::Overlap(
-                                Expression::ColumnReference {
-                                    column: Column::OntologyTemporalMetadata(
-                                        OntologyTemporalMetadata::TransactionTime,
-                                    ),
-                                    table_alias: Some(alias),
-                                },
-                                Expression::Parameter(transaction_time_index),
-                            ),
-                            Some(table),
-                        );
-                    }
+        if let Some(temporal_axes) = self.temporal_axes
+            && self.artifacts.table_info.tables.insert(table)
+        {
+            let transaction_time_index = self.time_index(temporal_axes, TimeAxis::TransactionTime);
+            match temporal_axes {
+                QueryTemporalAxes::DecisionTime { .. } => {
+                    self.add_condition(
+                        Condition::TimeIntervalContainsTimestamp(
+                            Expression::ColumnReference {
+                                column: Column::OntologyTemporalMetadata(
+                                    OntologyTemporalMetadata::TransactionTime,
+                                ),
+                                table_alias: Some(alias),
+                            },
+                            Expression::Parameter(transaction_time_index),
+                        ),
+                        Some(table),
+                    );
+                }
+                QueryTemporalAxes::TransactionTime { .. } => {
+                    self.add_condition(
+                        Condition::Overlap(
+                            Expression::ColumnReference {
+                                column: Column::OntologyTemporalMetadata(
+                                    OntologyTemporalMetadata::TransactionTime,
+                                ),
+                                table_alias: Some(alias),
+                            },
+                            Expression::Parameter(transaction_time_index),
+                        ),
+                        Some(table),
+                    );
                 }
             }
         }
@@ -1064,14 +1063,12 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                         join_expression.table.alias.number += 1;
                     } else if let (Table::Reference(lhs), Table::Reference(rhs)) =
                         (&existing.table.table, &join_expression.table.table)
+                        && mem::discriminant(lhs) == mem::discriminant(rhs)
+                        && existing.table.alias == join_expression.table.alias
                     {
-                        if mem::discriminant(lhs) == mem::discriminant(rhs)
-                            && existing.table.alias == join_expression.table.alias
-                        {
-                            // We have a join statement for the same table but with different
-                            // conditions.
-                            join_expression.table.alias.number += 1;
-                        }
+                        // We have a join statement for the same table but with different
+                        // conditions.
+                        join_expression.table.alias.number += 1;
                     }
                 }
 
