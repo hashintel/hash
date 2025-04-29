@@ -1258,6 +1258,7 @@ mod test {
             fn_a,
             [GenericArgument {
                 id: arg1,
+                name: heap.intern_symbol("T"),
                 constraint: None
             }],
             [param1],
@@ -1269,6 +1270,7 @@ mod test {
             fn_b,
             [GenericArgument {
                 id: arg2,
+                name: heap.intern_symbol("T"),
                 constraint: None
             }],
             [param2],

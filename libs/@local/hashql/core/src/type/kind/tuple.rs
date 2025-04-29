@@ -850,6 +850,7 @@ mod test {
             tuple_with_args,
             [GenericArgument {
                 id: GenericArgumentId::new(0),
+                name: heap.intern_symbol("T"),
                 constraint: None
             }],
             [number, string]
@@ -1281,6 +1282,7 @@ mod test {
             tuple_a,
             [GenericArgument {
                 id: arg1,
+                name: heap.intern_symbol("T"),
                 constraint: None
             }],
             [param1]
@@ -1291,6 +1293,7 @@ mod test {
             tuple_b,
             [GenericArgument {
                 id: arg2,
+                name: heap.intern_symbol("U"),
                 constraint: None
             }],
             [param2]
@@ -1446,6 +1449,7 @@ mod test {
         let arg_id = GenericArgumentId::new(0);
         let generic_arg = GenericArgument {
             id: arg_id,
+            name: heap.intern_symbol("T"),
             constraint: None,
         };
 

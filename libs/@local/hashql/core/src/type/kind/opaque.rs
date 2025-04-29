@@ -816,6 +816,7 @@ mod test {
             param1,
             [GenericArgument {
                 id: arg1,
+                name: heap.intern_symbol("T"),
                 constraint: None
             }]
         );
@@ -827,6 +828,7 @@ mod test {
             param2,
             [GenericArgument {
                 id: arg2,
+                name: heap.intern_symbol("T"),
                 constraint: None
             }]
         );

@@ -164,6 +164,10 @@ impl Heap {
         self.bump.alloc_slice_copy(slice)
     }
 
+    pub fn slice_with<T>(&self, length: usize, item: impl FnMut(usize) -> T) -> &mut [T] {
+        self.bump.alloc_slice_fill_with(length, item)
+    }
+
     /// Creates a new vector allocated on this heap.
     ///
     /// The capacity is an optional initial capacity for the vector, a value of [`None`] indicates

@@ -6,7 +6,7 @@ pub mod simplify;
 
 pub use self::{
     analysis::AnalysisEnvironment,
-    context::{auxiliary::AuxiliaryData, diagnostics::Diagnostics, variance::Variance},
+    context::{diagnostics::Diagnostics, variance::Variance},
     infer::InferenceEnvironment,
     lattice::LatticeEnvironment,
     simplify::SimplifyEnvironment,
@@ -16,7 +16,9 @@ use super::{
     inference::Substitution,
     kind::{
         Infer, Param, PrimitiveType,
-        generic_argument::{GenericArgument, GenericArgumentId, GenericArguments},
+        generic_argument::{
+            GenericArgument, GenericArgumentId, GenericArgumentIdProducer, GenericArguments,
+        },
         infer::HoleId,
         r#struct::{StructField, StructFields},
     },
@@ -28,6 +30,11 @@ use crate::{
 };
 
 #[derive(Debug)]
+pub struct Counter {
+    pub generic_argument: GenericArgumentIdProducer,
+}
+
+#[derive(Debug)]
 pub struct Environment<'heap> {
     pub source: SpanId,
 
@@ -36,10 +43,10 @@ pub struct Environment<'heap> {
     pub types: InternMap<'heap, Type<'heap>>,
     kinds: InternSet<'heap, TypeKind<'heap>>,
     type_ids: InternSet<'heap, [TypeId]>,
-    generic_arguments: InternSet<'heap, [GenericArgument]>,
+    generic_arguments: InternSet<'heap, [GenericArgument<'heap>]>,
     struct_fields: InternSet<'heap, [StructField<'heap>]>,
 
-    pub auxiliary: AuxiliaryData,
+    pub counter: Counter,
     pub substitution: Substitution,
 }
 
@@ -65,7 +72,9 @@ impl<'heap> Environment<'heap> {
             generic_arguments: InternSet::new(heap),
             struct_fields: InternSet::new(heap),
 
-            auxiliary: AuxiliaryData::new(),
+            counter: Counter {
+                generic_argument: GenericArgumentIdProducer::new(),
+            },
             substitution: Substitution::default(),
         }
     }
@@ -93,7 +102,7 @@ impl<'heap> Environment<'heap> {
     #[inline]
     pub fn intern_generic_arguments(
         &self,
-        arguments: &mut [GenericArgument],
+        arguments: &mut [GenericArgument<'heap>],
     ) -> GenericArguments<'heap> {
         arguments.sort_unstable_by(|lhs, rhs| lhs.id.cmp(&rhs.id));
         // Unlike `intern_struct_fields`, where we error out on duplicates, we simply remove them
