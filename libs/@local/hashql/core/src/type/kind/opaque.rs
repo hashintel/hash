@@ -263,16 +263,21 @@ impl<'heap> Lattice<'heap> for OpaqueType<'heap> {
     }
 
     fn simplify(self: Type<'heap, Self>, env: &mut SimplifyEnvironment<'_, 'heap>) -> TypeId {
+        let (_guard, id) = env.provision(self.id);
+
         let repr = env.simplify(self.kind.repr);
 
-        env.intern_type(PartialType {
-            span: self.span,
-            kind: env.intern_kind(TypeKind::Opaque(OpaqueType {
-                name: self.kind.name,
-                repr,
-                arguments: self.kind.arguments,
-            })),
-        })
+        env.intern_provisioned(
+            id,
+            PartialType {
+                span: self.span,
+                kind: env.intern_kind(TypeKind::Opaque(OpaqueType {
+                    name: self.kind.name,
+                    repr,
+                    arguments: self.kind.arguments,
+                })),
+            },
+        )
     }
 }
 
@@ -324,11 +329,14 @@ impl PrettyPrint for OpaqueType<'_> {
 #[cfg(test)]
 mod test {
     #![expect(clippy::min_ident_chars)]
+    use core::assert_matches::assert_matches;
+
     use super::OpaqueType;
     use crate::{
         heap::Heap,
         span::SpanId,
         r#type::{
+            PartialType,
             environment::{
                 AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
                 SimplifyEnvironment,
@@ -338,7 +346,7 @@ mod test {
             },
             kind::{
                 TypeKind,
-                generic_argument::{GenericArgument, GenericArgumentId},
+                generic_argument::{GenericArgument, GenericArgumentId, GenericArguments},
                 infer::HoleId,
                 primitive::PrimitiveType,
                 test::{assert_equiv, opaque, primitive, union},
@@ -933,6 +941,33 @@ mod test {
         assert!(
             inference_env.take_constraints().is_empty(),
             "Opaque type should block structural edges even in contravariant context"
+        );
+    }
+
+    #[test]
+    fn simplify_recursive_opaque() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let r#type = env.types.intern(|id| PartialType {
+            span: SpanId::SYNTHETIC,
+            kind: env.intern_kind(TypeKind::Opaque(OpaqueType {
+                name: heap.intern_symbol("RecursiveOpaque"),
+                repr: id.value(),
+                arguments: GenericArguments::empty(),
+            })),
+        });
+
+        let mut simplify = SimplifyEnvironment::new(&env);
+        let type_id = simplify.simplify(r#type.id);
+
+        let r#type = env.r#type(type_id);
+
+        assert_matches!(
+            r#type.kind,
+            TypeKind::Opaque(OpaqueType { name, repr, arguments }) if name.as_str() == "RecursiveOpaque"
+                && *repr == type_id
+                && arguments.is_empty()
         );
     }
 }

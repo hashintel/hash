@@ -399,14 +399,19 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
     }
 
     fn simplify(self: Type<'heap, Self>, env: &mut SimplifyEnvironment<'_, 'heap>) -> TypeId {
+        let (_guard, id) = env.provision(self.id);
+
         // Gather + flatten + simplify
         let mut variants =
             TypeIdSet::<16>::with_capacity(env.environment, self.kind.variants.len());
         for &variant in self.kind.variants {
             let variant = env.simplify(variant);
 
-            if let Some(IntersectionType { variants: nested }) =
-                env.r#type(variant).kind.intersection()
+            // We need to use `get` here, as substituted types may not yet be materialized
+            if let Some(IntersectionType { variants: nested }) = env
+                .types
+                .get(variant)
+                .and_then(|r#type| r#type.kind.intersection())
             {
                 variants.extend_from_slice(nested);
             } else {
@@ -420,25 +425,29 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
 
         // Propagate bottom type
         if variants.iter().any(|&variant| env.is_bottom(variant)) {
-            return env.intern_type(PartialType {
-                span: self.span,
-                kind: env.intern_kind(TypeKind::Never),
-            });
+            return env.intern_provisioned(
+                id,
+                PartialType {
+                    span: self.span,
+                    kind: env.intern_kind(TypeKind::Never),
+                },
+            );
         }
 
         // Check for disjoint types - if any two types are unrelated, the intersection is Never
-        // TODO: check if this will make problems during inference, if we simplify there
-        // (in theory we can just side-step simplification until the very end)
         for index in 0..variants.len() {
             for jndex in (index + 1)..variants.len() {
                 let lhs = variants[index];
                 let rhs = variants[jndex];
 
                 if env.is_disjoint(lhs, rhs) {
-                    return env.intern_type(PartialType {
-                        span: self.span,
-                        kind: env.intern_kind(TypeKind::Never),
-                    });
+                    return env.intern_provisioned(
+                        id,
+                        PartialType {
+                            span: self.span,
+                            kind: env.intern_kind(TypeKind::Never),
+                        },
+                    );
                 }
             }
         }
@@ -452,18 +461,24 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
                 .any(|&subtype| subtype != supertype && env.is_subtype_of(subtype, supertype))
         });
 
-        match variants.len() {
-            0 => env.intern_type(PartialType {
-                span: self.span,
-                kind: env.intern_kind(TypeKind::Unknown),
-            }),
-            1 => variants[0],
-            _ => env.intern_type(PartialType {
-                span: self.span,
-                kind: env.intern_kind(TypeKind::Intersection(IntersectionType {
-                    variants: env.intern_type_ids(&variants),
-                })),
-            }),
+        match variants.as_slice() {
+            [] => env.intern_provisioned(
+                id,
+                PartialType {
+                    span: self.span,
+                    kind: env.intern_kind(TypeKind::Unknown),
+                },
+            ),
+            &[variant] if variant != id.value() => variant,
+            _ => env.intern_provisioned(
+                id,
+                PartialType {
+                    span: self.span,
+                    kind: env.intern_kind(TypeKind::Intersection(IntersectionType {
+                        variants: env.intern_type_ids(&variants),
+                    })),
+                },
+            ),
         }
     }
 }
@@ -535,6 +550,7 @@ mod test {
         heap::Heap,
         span::SpanId,
         r#type::{
+            PartialType,
             environment::{
                 AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
                 SimplifyEnvironment,
@@ -1983,6 +1999,30 @@ mod test {
                     target: Variable::synthetic(VariableKind::Hole(hole2)),
                 }
             ]
+        );
+    }
+
+    #[test]
+    fn simplify_recursive_intersection() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let r#type = env.types.intern(|id| PartialType {
+            span: SpanId::SYNTHETIC,
+            kind: env.intern_kind(TypeKind::Intersection(IntersectionType {
+                variants: env.intern_type_ids(&[id.value()]),
+            })),
+        });
+
+        let mut simplify = SimplifyEnvironment::new(&env);
+        let type_id = simplify.simplify(r#type.id);
+
+        let r#type = env.r#type(type_id);
+
+        assert_matches!(
+            r#type.kind,
+            TypeKind::Intersection(IntersectionType { variants }) if variants.len() == 1
+                && variants[0] == type_id
         );
     }
 }

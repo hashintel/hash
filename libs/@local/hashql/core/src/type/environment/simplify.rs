@@ -1,18 +1,90 @@
-use core::ops::Deref;
+use alloc::rc::Rc;
+use core::{cell::RefCell, ops::Deref};
 
 use smallvec::SmallVec;
 
 use super::{AnalysisEnvironment, Diagnostics, Environment};
-use crate::r#type::{
-    Type, TypeId,
-    inference::{Substitution, VariableKind, VariableLookup},
-    lattice::Lattice as _,
-    recursion::RecursionBoundary,
+use crate::{
+    collection::FastHashMap,
+    intern::Provisioned,
+    r#type::{
+        PartialType, Type, TypeId,
+        inference::{Substitution, VariableKind, VariableLookup},
+        lattice::Lattice as _,
+        recursion::RecursionBoundary,
+    },
 };
+
+pub struct ProvisionGuard {
+    inner: Rc<Provision>,
+
+    id: TypeId,
+    provisioned: Provisioned<TypeId>,
+    previous: Option<Provisioned<TypeId>>,
+}
+
+impl Drop for ProvisionGuard {
+    fn drop(&mut self) {
+        self.inner.exit(self);
+    }
+}
+
+#[derive(Debug, Default)]
+struct Provision {
+    // We use `RefCell` here, as we make use of a guard, in a truly concurrent environment (which
+    // this isn't due to the fact that `Heap` is not thread-safe) `RefCell` would be insufficient.
+    // RefCell is sufficient here, because we take a `&mut self` for the simplify environment,
+    // therefore we always have mutable (and exclusive) access to the environment, the `RefCell` is
+    // only used, so that we can properly cleanup on Drop, as the client is unable to access
+    // anything in the simplify environment (especially the provisioned map) by itself. The
+    // only places that interact with the provisioned map are the `provision` function and the
+    // `simplify` function, for short periods of time, and never over longer than a single
+    // expression.
+    forward: RefCell<FastHashMap<TypeId, Provisioned<TypeId>>>,
+    reverse: RefCell<FastHashMap<TypeId, TypeId>>,
+}
+
+impl Provision {
+    fn enter(self: Rc<Self>, id: TypeId, provisioned: Provisioned<TypeId>) -> ProvisionGuard {
+        let previous = { self.forward.borrow_mut().insert(id, provisioned) };
+
+        self.reverse.borrow_mut().insert(provisioned.value(), id);
+
+        ProvisionGuard {
+            inner: Rc::clone(&self),
+            id,
+            provisioned,
+            previous,
+        }
+    }
+
+    fn exit(&self, guard: &ProvisionGuard) {
+        if let Some(previous) = guard.previous {
+            self.forward.borrow_mut().insert(guard.id, previous);
+        } else {
+            self.forward.borrow_mut().remove(&guard.id);
+        }
+
+        self.reverse.borrow_mut().remove(&guard.provisioned.value());
+    }
+
+    fn substitute(&self, id: TypeId) -> Option<TypeId> {
+        self.forward
+            .borrow()
+            .get(&id)
+            .map(|provisioned| provisioned.value())
+    }
+
+    fn substitution_of(&self, id: TypeId) -> Option<TypeId> {
+        self.reverse.borrow().get(&id).copied()
+    }
+}
 
 pub struct SimplifyEnvironment<'env, 'heap> {
     pub environment: &'env Environment<'heap>,
     boundary: RecursionBoundary,
+
+    provisioned: Rc<Provision>,
 
     analysis: AnalysisEnvironment<'env, 'heap>,
 }
@@ -22,6 +94,7 @@ impl<'env, 'heap> SimplifyEnvironment<'env, 'heap> {
         Self {
             environment,
             boundary: RecursionBoundary::new(),
+            provisioned: Rc::default(),
             analysis: AnalysisEnvironment::new(environment),
         }
     }
@@ -51,6 +124,7 @@ impl<'env, 'heap> SimplifyEnvironment<'env, 'heap> {
         self.analysis.contains_substitution(kind)
     }
 
+    #[inline]
     pub(crate) fn take_diagnostics(&mut self) -> Option<Diagnostics> {
         self.analysis.take_diagnostics()
     }
@@ -61,50 +135,114 @@ impl<'env, 'heap> SimplifyEnvironment<'env, 'heap> {
     }
 
     #[inline]
-    pub fn is_equivalent(&mut self, lhs: TypeId, rhs: TypeId) -> bool {
+    pub fn is_equivalent(&mut self, mut lhs: TypeId, mut rhs: TypeId) -> bool {
+        if let Some(previous) = self.provisioned.substitution_of(lhs) {
+            lhs = previous;
+        }
+
+        if let Some(previous) = self.provisioned.substitution_of(rhs) {
+            rhs = previous;
+        }
+
         self.analysis.is_equivalent(lhs, rhs)
     }
 
     #[inline]
-    pub fn is_subtype_of(&mut self, subtype: TypeId, supertype: TypeId) -> bool {
+    pub fn is_subtype_of(&mut self, mut subtype: TypeId, mut supertype: TypeId) -> bool {
+        if let Some(previous) = self.provisioned.substitution_of(subtype) {
+            subtype = previous;
+        }
+
+        if let Some(previous) = self.provisioned.substitution_of(supertype) {
+            supertype = previous;
+        }
+
         self.analysis.is_subtype_of(subtype, supertype)
     }
 
     // Two types are disjoint if neither is a subtype of the other
     // This means they share no common values and their intersection is empty
     #[inline]
-    pub fn is_disjoint(&mut self, lhs: TypeId, rhs: TypeId) -> bool {
+    pub fn is_disjoint(&mut self, mut lhs: TypeId, mut rhs: TypeId) -> bool {
+        if let Some(previous) = self.provisioned.substitution_of(lhs) {
+            lhs = previous;
+        }
+
+        if let Some(previous) = self.provisioned.substitution_of(rhs) {
+            rhs = previous;
+        }
+
         self.analysis.is_disjoint(lhs, rhs)
     }
 
     #[inline]
-    pub fn is_bottom(&mut self, id: TypeId) -> bool {
+    pub fn is_bottom(&mut self, mut id: TypeId) -> bool {
+        if let Some(previous) = self.provisioned.substitution_of(id) {
+            id = previous;
+        }
+
         self.analysis.is_bottom(id)
     }
 
     #[inline]
-    pub fn is_top(&mut self, id: TypeId) -> bool {
+    pub fn is_top(&mut self, mut id: TypeId) -> bool {
+        if let Some(previous) = self.provisioned.substitution_of(id) {
+            id = previous;
+        }
+
         self.analysis.is_top(id)
     }
 
     #[inline]
-    pub fn is_concrete(&mut self, id: TypeId) -> bool {
+    pub fn is_concrete(&mut self, mut id: TypeId) -> bool {
+        if let Some(previous) = self.provisioned.substitution_of(id) {
+            id = previous;
+        }
+
         self.analysis.is_concrete(id)
     }
 
     #[inline]
-    pub fn distribute_union(&mut self, id: TypeId) -> SmallVec<TypeId, 16> {
+    pub fn distribute_union(&mut self, mut id: TypeId) -> SmallVec<TypeId, 16> {
+        if let Some(previous) = self.provisioned.substitution_of(id) {
+            id = previous;
+        }
+
         self.analysis.distribute_union(id)
     }
 
     #[inline]
-    pub fn distribute_intersection(&mut self, id: TypeId) -> SmallVec<TypeId, 16> {
+    pub fn distribute_intersection(&mut self, mut id: TypeId) -> SmallVec<TypeId, 16> {
+        if let Some(previous) = self.provisioned.substitution_of(id) {
+            id = previous;
+        }
+
         self.analysis.distribute_intersection(id)
     }
 
+    /// Simplifies the given type ID.
+    ///
+    /// # Panics
+    ///
+    /// In debug builds, this function will panic if a type should have been provisioned but wasn't.
     pub fn simplify(&mut self, id: TypeId) -> TypeId {
         if !self.boundary.enter(id, id) {
-            // We have discovered a recursive type, as such we stop simplification
+            // See if the type has been substituted
+            if let Some(substitution) = self.provisioned.substitute(id) {
+                return substitution;
+            }
+
+            #[expect(
+                clippy::manual_assert,
+                reason = "false positive, this is a manual `debug_panic`"
+            )]
+            if cfg!(debug_assertions) {
+                panic!("type id {id} should have been provisioned, but wasn't");
+            }
+
+            // in debug builds this panics if the type should have been provisioned but wasn't, as
+            // we can recover from this error (we simply return the original - unsimplified - type
+            // id) we do not need to panic here in release builds.
             return id;
         }
 
@@ -113,6 +251,26 @@ impl<'env, 'heap> SimplifyEnvironment<'env, 'heap> {
 
         self.boundary.exit(id, id);
         result
+    }
+
+    #[expect(
+        clippy::needless_pass_by_ref_mut,
+        reason = "prove ownership of environment, so that we can borrow safely"
+    )]
+    pub fn provision(&mut self, id: TypeId) -> (ProvisionGuard, Provisioned<TypeId>) {
+        let provisioned = self.environment.types.provision();
+        let guard = Rc::clone(&self.provisioned).enter(id, provisioned);
+
+        (guard, provisioned)
+    }
+
+    #[must_use]
+    pub fn intern_provisioned(
+        &self,
+        id: Provisioned<TypeId>,
+        r#type: PartialType<'heap>,
+    ) -> TypeId {
+        self.environment.types.intern_provisioned(id, r#type).id
     }
 }
 

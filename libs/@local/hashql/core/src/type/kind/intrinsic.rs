@@ -130,12 +130,16 @@ impl<'heap> Lattice<'heap> for ListType {
     }
 
     fn simplify(self: Type<'heap, Self>, env: &mut SimplifyEnvironment<'_, 'heap>) -> TypeId {
+        let (_guard, id) = env.provision(self.id);
         let element = env.simplify(self.kind.element);
 
-        env.intern_type(PartialType {
-            span: self.span,
-            kind: env.intern_kind(TypeKind::Intrinsic(IntrinsicType::List(Self { element }))),
-        })
+        env.intern_provisioned(
+            id,
+            PartialType {
+                span: self.span,
+                kind: env.intern_kind(TypeKind::Intrinsic(IntrinsicType::List(Self { element }))),
+            },
+        )
     }
 }
 
@@ -396,16 +400,21 @@ impl<'heap> Lattice<'heap> for DictType {
     }
 
     fn simplify(self: Type<'heap, Self>, env: &mut SimplifyEnvironment<'_, 'heap>) -> TypeId {
+        let (_guard, id) = env.provision(self.id);
+
         let key = env.simplify(self.kind.key);
         let value = env.simplify(self.kind.value);
 
-        env.intern_type(PartialType {
-            span: self.span,
-            kind: env.intern_kind(TypeKind::Intrinsic(IntrinsicType::Dict(Self {
-                key,
-                value,
-            }))),
-        })
+        env.intern_provisioned(
+            id,
+            PartialType {
+                span: self.span,
+                kind: env.intern_kind(TypeKind::Intrinsic(IntrinsicType::Dict(Self {
+                    key,
+                    value,
+                }))),
+            },
+        )
     }
 }
 
@@ -681,11 +690,14 @@ impl PrettyPrint for IntrinsicType {
 
 #[cfg(test)]
 mod tests {
+    use core::assert_matches::assert_matches;
+
     use super::{DictType, IntrinsicType, ListType};
     use crate::{
         heap::Heap,
         span::SpanId,
         r#type::{
+            PartialType,
             environment::{
                 AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
                 SimplifyEnvironment,
@@ -2044,6 +2056,53 @@ mod tests {
                 source: source_var,
                 target: Variable::synthetic(VariableKind::Hole(dict_hole)),
             }]
+        );
+    }
+
+    #[test]
+    fn simplify_recursive_list() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let r#type = env.types.intern(|id| PartialType {
+            span: SpanId::SYNTHETIC,
+            kind: env.intern_kind(TypeKind::Intrinsic(IntrinsicType::List(ListType {
+                element: id.value(),
+            }))),
+        });
+
+        let mut simplify = SimplifyEnvironment::new(&env);
+        let type_id = simplify.simplify(r#type.id);
+
+        let r#type = env.r#type(type_id);
+
+        assert_matches!(
+            r#type.kind,
+            TypeKind::Intrinsic(IntrinsicType::List(ListType { element })) if *element == type_id
+        );
+    }
+
+    #[test]
+    fn simplify_recursive_dict() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let r#type = env.types.intern(|id| PartialType {
+            span: SpanId::SYNTHETIC,
+            kind: env.intern_kind(TypeKind::Intrinsic(IntrinsicType::Dict(DictType {
+                key: id.value(),
+                value: id.value(),
+            }))),
+        });
+
+        let mut simplify = SimplifyEnvironment::new(&env);
+        let type_id = simplify.simplify(r#type.id);
+
+        let r#type = env.r#type(type_id);
+
+        assert_matches!(
+            r#type.kind,
+            TypeKind::Intrinsic(IntrinsicType::Dict(DictType { key, value })) if *key == type_id && *value == type_id
         );
     }
 }

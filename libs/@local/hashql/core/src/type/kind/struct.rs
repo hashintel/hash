@@ -419,6 +419,8 @@ impl<'heap> Lattice<'heap> for StructType<'heap> {
     }
 
     fn simplify(self: Type<'heap, Self>, env: &mut SimplifyEnvironment<'_, 'heap>) -> TypeId {
+        let (_guard, id) = env.provision(self.id);
+
         let mut fields = SmallVec::<_, 16>::with_capacity(self.kind.fields.len());
 
         for &field in &*self.kind.fields {
@@ -430,21 +432,27 @@ impl<'heap> Lattice<'heap> for StructType<'heap> {
 
         // Check if any of the fields are uninhabited, in that case simplify down to never
         if fields.iter().any(|field| env.is_bottom(field.value)) {
-            return env.intern_type(PartialType {
-                span: self.span,
-                kind: env.intern_kind(TypeKind::Never),
-            });
+            return env.intern_provisioned(
+                id,
+                PartialType {
+                    span: self.span,
+                    kind: env.intern_kind(TypeKind::Never),
+                },
+            );
         }
 
-        env.intern_type(PartialType {
-            span: self.span,
-            kind: env.intern_kind(TypeKind::Struct(Self {
-                fields: env
-                    .intern_struct_fields(&mut fields)
-                    .unwrap_or_else(|_| unreachable!()),
-                arguments: self.kind.arguments,
-            })),
-        })
+        env.intern_provisioned(
+            id,
+            PartialType {
+                span: self.span,
+                kind: env.intern_kind(TypeKind::Struct(Self {
+                    fields: env
+                        .intern_struct_fields(&mut fields)
+                        .unwrap_or_else(|_| unreachable!()),
+                    arguments: self.kind.arguments,
+                })),
+            },
+        )
     }
 }
 
@@ -510,11 +518,14 @@ impl PrettyPrint for StructType<'_> {
 #[cfg(test)]
 mod test {
     #![expect(clippy::min_ident_chars)]
+    use core::assert_matches::assert_matches;
+
     use super::{StructField, StructType};
     use crate::{
         heap::Heap,
         span::SpanId,
         r#type::{
+            PartialType,
             environment::{
                 AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
                 SimplifyEnvironment,
@@ -524,7 +535,7 @@ mod test {
             },
             kind::{
                 TypeKind,
-                generic_argument::{GenericArgument, GenericArgumentId},
+                generic_argument::{GenericArgument, GenericArgumentId, GenericArguments},
                 infer::HoleId,
                 intersection::IntersectionType,
                 primitive::PrimitiveType,
@@ -1912,6 +1923,36 @@ mod test {
                 source: edge_var,
                 target: Variable::synthetic(VariableKind::Hole(hole)),
             }]
+        );
+    }
+
+    #[test]
+    fn simplify_recursive_struct() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Create a recursive struct
+        let r#type = env.types.intern(|id| PartialType {
+            span: SpanId::SYNTHETIC,
+            kind: env.intern_kind(TypeKind::Struct(StructType {
+                fields: env
+                    .intern_struct_fields(&mut [struct_field!(env, "self", id.value())])
+                    .expect("fields should be unique"),
+                arguments: GenericArguments::empty(),
+            })),
+        });
+
+        let mut simplify = SimplifyEnvironment::new(&env);
+        let type_id = simplify.simplify(r#type.id);
+
+        let r#type = env.r#type(type_id);
+
+        assert_matches!(
+            r#type.kind,
+            TypeKind::Struct(StructType { fields, arguments }) if fields.len() == 1
+                && fields[0].name.as_str() == "self"
+                && fields[0].value == type_id
+                && arguments.is_empty()
         );
     }
 }
