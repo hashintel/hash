@@ -1,0 +1,10 @@
+---
+source: libs/@local/codegen/tests/codegen/main.rs
+expression: generated
+---
+type StructSimple = {
+	integer: number
+	float: number
+	string: string
+	boolean: boolean
+};

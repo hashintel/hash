@@ -1,0 +1,10 @@
+---
+source: libs/@local/codegen/tests/codegen/main.rs
+expression: generated
+---
+type MapNumericKey = {
+	int_to_string: Record<number, string>
+	int_to_int: Record<number, number>
+	btree_int_to_string: Record<number, string>
+	btree_int_to_int: Record<number, number>
+};

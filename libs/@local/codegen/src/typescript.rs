@@ -7,7 +7,9 @@ use oxc::{
 
 use crate::{
     TypeCollection,
-    definitions::{Enum, EnumTagging, EnumVariant, Fields, Primitive, Type, TypeDefinition},
+    definitions::{
+        Enum, EnumTagging, EnumVariant, Fields, Map, Primitive, Struct, Type, TypeDefinition,
+    },
 };
 
 #[derive(Default)]
@@ -264,10 +266,27 @@ impl<'a> TypeScriptGenerator<'a> {
         self.ast.ts_type_union_type(SPAN, types)
     }
 
+    fn visit_struct(&self, struct_type: &Struct) -> ast::TSType<'a> {
+        self.visit_fields(&struct_type.fields)
+    }
+
+    fn visit_map(&self, map: &Map) -> ast::TSType<'a> {
+        let mut params = self.ast.vec();
+        params.push(self.visit_type(&map.key));
+        params.push(self.visit_type(&map.value));
+
+        self.ast.ts_type_type_reference(
+            SPAN,
+            self.ast.ts_type_name_identifier_reference(SPAN, "Record"),
+            Some(self.ast.ts_type_parameter_instantiation(SPAN, params)),
+        )
+    }
+
     fn visit_type(&self, r#type: &Type) -> ast::TSType<'a> {
         match r#type {
             Type::Primitive(primitive) => self.visit_primitive(primitive),
             Type::Enum(enum_type) => self.visit_enum(enum_type),
+            Type::Struct(struct_type) => self.visit_struct(struct_type),
             Type::Reference(name) => self.ast.ts_type_type_reference(
                 SPAN,
                 self.ast
@@ -275,9 +294,16 @@ impl<'a> TypeScriptGenerator<'a> {
                 None::<ast::TSTypeParameterInstantiation<'a>>,
             ),
             Type::List(name) => self.ast.ts_type_array_type(SPAN, self.visit_type(name)),
+            Type::Map(map) => self.visit_map(map),
             Type::Optional(name) => {
+                // TODO: Properly implement optional handling
+                //   see https://linear.app/hash/issue/H-4457/capture-field-optionality-in-codegen
+                let mut types = self.ast.vec();
+                types.push(self.visit_type(name));
+                types.push(self.ast.ts_type_undefined_keyword(SPAN));
+
                 self.ast
-                    .ts_type_js_doc_nullable_type(SPAN, self.visit_type(name), true)
+                    .ts_type_parenthesized_type(SPAN, self.ast.ts_type_union_type(SPAN, types))
             }
         }
     }

@@ -1,6 +1,9 @@
 extern crate alloc;
 
 mod enums;
+mod lists;
+mod maps;
+mod structs;
 
 use std::process::ExitCode;
 
@@ -22,10 +25,36 @@ fn main() -> ExitCode {
     let targets = [CodegenTarget::Typescript];
 
     let mut collection = TypeCollection::default();
-    collection.register::<enums::ExternallyTaggedEnum>();
-    collection.register::<enums::InternallyTaggedEnum>();
-    collection.register::<enums::AdjacentlyTaggedEnum>();
-    collection.register::<enums::UntaggedEnum>();
+    // Register enums
+    collection.register::<enums::EnumExternal>();
+    collection.register::<enums::EnumInternal>();
+    collection.register::<enums::EnumAdjacent>();
+    collection.register::<enums::EnumUntagged>();
+
+    // Register structs
+    collection.register::<structs::StructUnit>();
+    collection.register::<structs::StructUnnamedSingle>();
+    collection.register::<structs::StructUnnamedDouble>();
+    collection.register::<structs::StructUnnamedTriple>();
+    collection.register::<structs::StructSimple>();
+    collection.register::<structs::StructEmpty>();
+    collection.register::<structs::StructOptional>();
+    collection.register::<structs::StructNested>();
+
+    // Register lists
+    collection.register::<lists::ListPrimitives>();
+    collection.register::<lists::ListOptionals>();
+    collection.register::<lists::ListNested>();
+    collection.register::<lists::ListStructs>();
+    collection.register::<lists::ListCollections>();
+
+    // Register maps
+    collection.register::<maps::MapStringKey>();
+    collection.register::<maps::MapNumericKey>();
+    collection.register::<maps::MapStructValue>();
+    collection.register::<maps::MapEnumKey>();
+    collection.register::<maps::MapNested>();
+    collection.register::<maps::MapOptional>();
     let names = collection
         .iter()
         .map(|(name, _)| name.to_owned())
