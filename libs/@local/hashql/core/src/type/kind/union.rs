@@ -2230,6 +2230,31 @@ mod test {
     }
 
     #[test]
+    fn simplify_recursive_union_multiple_elements() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let r#type = env.types.intern(|id| PartialType {
+            span: SpanId::SYNTHETIC,
+            kind: env.intern_kind(TypeKind::Union(UnionType {
+                variants: env
+                    .intern_type_ids(&[id.value(), primitive!(env, PrimitiveType::Number)]),
+            })),
+        });
+
+        let mut simplify = SimplifyEnvironment::new(&env);
+        let type_id = simplify.simplify(r#type.id);
+
+        let r#type = env.r#type(type_id);
+
+        assert_matches!(
+            r#type.kind,
+            TypeKind::Union(UnionType { variants }) if variants.len() == 2
+                && variants[0] == type_id
+        );
+    }
+
+    #[test]
     fn instantiate_union() {
         let heap = Heap::new();
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
