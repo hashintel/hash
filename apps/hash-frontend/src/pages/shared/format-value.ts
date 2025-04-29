@@ -5,7 +5,7 @@ import { customColors } from "@hashintel/design-system/theme";
 import type {
   ClosedDataTypeDefinition,
   ClosedMultiEntityTypesDefinitions,
-} from "@local/hash-graph-types/ontology";
+} from "@local/hash-graph-sdk/ontology";
 import {
   formatDataValue,
   type FormattedValuePart,

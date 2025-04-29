@@ -3,8 +3,9 @@ import type {
   DataTypeWithMetadata,
   OntologyTemporalMetadata,
 } from "@blockprotocol/type-system";
+import type { UserPermissionsOnDataType } from "@local/hash-graph-sdk/authorization";
 import type { SerializedSubgraph } from "@local/hash-graph-sdk/entity";
-import type { DataTypeFullConversionTargetsMap } from "@local/hash-graph-types/ontology";
+import type { DataTypeFullConversionTargetsMap } from "@local/hash-graph-sdk/ontology";
 import {
   currentTimeInstantTemporalAxes,
   defaultDataTypeAuthorizationRelationships,
@@ -15,7 +16,6 @@ import {
   mapGraphApiSubgraphToSubgraph,
   serializeSubgraph,
 } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { UserPermissionsOnDataType } from "@local/hash-isomorphic-utils/types";
 
 import {
   archiveDataType,

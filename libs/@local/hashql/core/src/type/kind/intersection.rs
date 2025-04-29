@@ -6,9 +6,10 @@ use smallvec::SmallVec;
 
 use super::TypeKind;
 use crate::{
+    intern::Interned,
     span::SpanId,
     r#type::{
-        Type, TypeId,
+        PartialType, Type, TypeId,
         collection::TypeIdSet,
         environment::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
@@ -24,7 +25,7 @@ use crate::{
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct IntersectionType<'heap> {
-    pub variants: &'heap [TypeId],
+    pub variants: Interned<'heap, [TypeId]>,
 }
 
 impl<'heap> IntersectionType<'heap> {
@@ -32,7 +33,7 @@ impl<'heap> IntersectionType<'heap> {
         let mut variants = TypeIdSet::with_capacity(env, self.variants.len());
 
         for &variant in self.variants {
-            if let TypeKind::Intersection(intersection) = env.types[variant].copied().kind {
+            if let TypeKind::Intersection(intersection) = env.r#type(variant).kind {
                 variants.extend(intersection.unnest(env));
             } else {
                 variants.push(variant);
@@ -72,8 +73,7 @@ impl<'heap> IntersectionType<'heap> {
 
         // We need to wrap this in an explicit `Intersection`, as a `join` with multiple returned
         // values turns into a union.
-        let id = env.alloc(|id| Type {
-            id,
+        let id = env.intern_type(PartialType {
             span: lhs_span,
             kind: env.intern_kind(TypeKind::Intersection(IntersectionType {
                 variants: env.intern_type_ids(&variants),
@@ -91,8 +91,7 @@ impl<'heap> IntersectionType<'heap> {
     ) -> SmallVec<TypeId, 4> {
         // 1) Top ∧ Top = Top
         if lhs_variants.is_empty() && rhs_variants.is_empty() {
-            return SmallVec::from_slice(&[env.alloc(|id| Type {
-                id,
+            return SmallVec::from_slice(&[env.intern_type(PartialType {
                 span: lhs_span,
                 kind: env.intern_kind(TypeKind::Unknown),
             })]);
@@ -154,7 +153,7 @@ impl<'heap> IntersectionType<'heap> {
 
             if env
                 .record_diagnostic(|env| {
-                    intersection_variant_mismatch(env, env.types[self_variant].copied(), expected)
+                    intersection_variant_mismatch(env, env.r#type(self_variant), expected)
                 })
                 .is_break()
             {
@@ -219,7 +218,7 @@ impl<'heap> IntersectionType<'heap> {
 
             if env
                 .record_diagnostic(|env| {
-                    intersection_variant_mismatch(env, env.types[lhs_variant].copied(), rhs)
+                    intersection_variant_mismatch(env, env.r#type(lhs_variant), rhs)
                 })
                 .is_break()
             {
@@ -235,7 +234,7 @@ impl<'heap> IntersectionType<'heap> {
 
             if env
                 .record_diagnostic(|env| {
-                    intersection_variant_mismatch(env, env.types[rhs_variant].copied(), lhs)
+                    intersection_variant_mismatch(env, env.r#type(rhs_variant), lhs)
                 })
                 .is_break()
             {
@@ -264,8 +263,7 @@ impl<'heap> IntersectionType<'heap> {
             ([], []) => {}
             ([], _) => {
                 // The left-hand side is empty, and therefore is `Unknown`
-                let this = env.alloc(|id| Type {
-                    id,
+                let this = env.intern_type(PartialType {
                     span: self_span,
                     kind: env.intern_kind(TypeKind::Unknown),
                 });
@@ -277,8 +275,7 @@ impl<'heap> IntersectionType<'heap> {
             (_, []) => {
                 // The right-hand side is empty, and therefore is `Unknown`. The bound trivially
                 // holds, but we still need to push it in case downstream relies on it.
-                let supertype = env.alloc(|id| Type {
-                    id,
+                let supertype = env.intern_type(PartialType {
                     span: super_span,
                     kind: env.intern_kind(TypeKind::Unknown),
                 });
@@ -409,7 +406,7 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
             let variant = env.simplify(variant);
 
             if let Some(IntersectionType { variants: nested }) =
-                env.types[variant].copied().kind.intersection()
+                env.r#type(variant).kind.intersection()
             {
                 variants.extend_from_slice(nested);
             } else {
@@ -423,8 +420,7 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
 
         // Propagate bottom type
         if variants.iter().any(|&variant| env.is_bottom(variant)) {
-            return env.alloc(|id| Type {
-                id,
+            return env.intern_type(PartialType {
                 span: self.span,
                 kind: env.intern_kind(TypeKind::Never),
             });
@@ -439,8 +435,7 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
                 let rhs = variants[jndex];
 
                 if env.is_disjoint(lhs, rhs) {
-                    return env.alloc(|id| Type {
-                        id,
+                    return env.intern_type(PartialType {
                         span: self.span,
                         kind: env.intern_kind(TypeKind::Never),
                     });
@@ -458,15 +453,12 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
         });
 
         match variants.len() {
-            0 => env.alloc(|id| Type {
-                id,
+            0 => env.intern_type(PartialType {
                 span: self.span,
                 kind: env.intern_kind(TypeKind::Unknown),
             }),
             1 => variants[0],
-            _ if variants.as_slice() == self.kind.variants => self.id,
-            _ => env.alloc(|id| Type {
-                id,
+            _ => env.intern_type(PartialType {
                 span: self.span,
                 kind: env.intern_kind(TypeKind::Intersection(IntersectionType {
                     variants: env.intern_type_ids(&variants),
@@ -1457,7 +1449,7 @@ mod test {
             [Constraint::LowerBound {
                 variable: Variable { span: SpanId::SYNTHETIC, kind: VariableKind::Hole(var) },
                 bound
-            }] if *env.types[*bound].copied().kind == TypeKind::Unknown && *var == hole
+            }] if *env.r#type(*bound).kind == TypeKind::Unknown && *var == hole
         );
     }
 
@@ -1483,7 +1475,7 @@ mod test {
             [Constraint::UpperBound {
                 variable: Variable { span: SpanId::SYNTHETIC, kind: VariableKind::Hole(var) },
                 bound
-            }] if *env.types[*bound].copied().kind == TypeKind::Unknown && *var == hole
+            }] if *env.r#type(*bound).kind == TypeKind::Unknown && *var == hole
         );
     }
 

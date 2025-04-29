@@ -7,7 +7,7 @@ import type {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
-import type { DataTypeDirectConversionsMap } from "@local/hash-graph-types/ontology";
+import type { DataTypeDirectConversionsMap } from "@local/hash-graph-sdk/ontology";
 
 /**
  * For the purposes of react-hook-form we need to have explicit null values to be able to unset values.

@@ -28,7 +28,6 @@
       "@local/hash-backend-utils/*": ["../hash-backend-utils/src/*.ts"],
       "@local/hash-graph-client/*": ["../graph/client/typescript/*.ts"],
       "@local/hash-graph-sdk/*": ["../graph/sdk/typescript/src/*.ts"],
-      "@local/hash-graph-types/*": ["../graph/types/typescript/src/*.ts"],
       "@local/hash-isomorphic-utils/*": ["../hash-isomorphic-utils/src/*.ts"],
       "@local/status": ["../status/typescript/src/main.ts"],
       "@local/status/type-defs/*": ["../status/typescript/src/type-defs/*.ts"],

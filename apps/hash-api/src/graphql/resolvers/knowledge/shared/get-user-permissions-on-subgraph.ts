@@ -1,5 +1,5 @@
 import type { Subgraph } from "@blockprotocol/graph";
-import type { UserPermissionsOnEntities } from "@local/hash-isomorphic-utils/types";
+import type { UserPermissionsOnEntities } from "@local/hash-graph-sdk/authorization";
 import type { GraphQLResolveInfo } from "graphql";
 import type { ResolveTree } from "graphql-parse-resolve-info";
 import { parseResolveInfo } from "graphql-parse-resolve-info";

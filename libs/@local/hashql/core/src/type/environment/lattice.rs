@@ -4,7 +4,7 @@ use smallvec::SmallVec;
 
 use super::{Diagnostics, Environment, SimplifyEnvironment};
 use crate::r#type::{
-    Type, TypeId,
+    PartialType, Type, TypeId,
     error::circular_type_reference,
     inference::{Substitution, VariableKind, VariableLookup},
     kind::{IntersectionType, TypeKind, UnionType},
@@ -135,16 +135,15 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
             variants: self.intern_type_ids(&[lhs.id, rhs.id]),
         }));
 
-        self.environment.alloc(|id| Type {
-            id,
+        self.environment.intern_type(PartialType {
             span: lhs.span,
             kind,
         })
     }
 
     pub fn join(&mut self, lhs: TypeId, rhs: TypeId) -> TypeId {
-        let lhs = self.environment.types[lhs].copied();
-        let rhs = self.environment.types[rhs].copied();
+        let lhs = self.environment.r#type(lhs);
+        let rhs = self.environment.r#type(rhs);
 
         if !self.boundary.enter(lhs.id, rhs.id) {
             return self.join_recursive(lhs, rhs);
@@ -155,8 +154,7 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
         let result = if variants.is_empty() {
             let kind = self.environment.intern_kind(TypeKind::Never);
 
-            self.environment.alloc(|id| Type {
-                id,
+            self.environment.intern_type(PartialType {
                 span: lhs.span,
                 kind,
             })
@@ -173,8 +171,7 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
                 variants: self.intern_type_ids(&variants),
             }));
 
-            let id = self.environment.alloc(|id| Type {
-                id,
+            let id = self.environment.intern_type(PartialType {
                 span: lhs.span,
                 kind,
             });
@@ -241,16 +238,15 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
                 variants: self.intern_type_ids(&[lhs.id, rhs.id]),
             }));
 
-        self.environment.alloc(|id| Type {
-            id,
+        self.environment.intern_type(PartialType {
             span: lhs.span,
             kind,
         })
     }
 
     pub fn meet(&mut self, lhs: TypeId, rhs: TypeId) -> TypeId {
-        let lhs = self.environment.types[lhs].copied();
-        let rhs = self.environment.types[rhs].copied();
+        let lhs = self.environment.r#type(lhs);
+        let rhs = self.environment.r#type(rhs);
 
         if !self.boundary.enter(lhs.id, rhs.id) {
             return self.meet_recursive(lhs, rhs);
@@ -262,8 +258,7 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
             // No common variant, therefore `Never`.
             let kind = self.environment.intern_kind(TypeKind::Never);
 
-            self.environment.alloc(|id| Type {
-                id,
+            self.environment.intern_type(PartialType {
                 span: lhs.span,
                 kind,
             })
@@ -282,8 +277,7 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
                     variants: self.intern_type_ids(&variants),
                 }));
 
-            let id = self.environment.alloc(|id| Type {
-                id,
+            let id = self.environment.intern_type(PartialType {
                 span: lhs.span,
                 kind,
             });

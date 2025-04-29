@@ -27,7 +27,7 @@ import type {
   EntityRelationAndSubjectBranded,
   EntityTypeRelationAndSubjectBranded,
   PropertyTypeRelationAndSubjectBranded,
-} from "@local/hash-graph-sdk/branded-authorization";
+} from "@local/hash-graph-sdk/authorization";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 
 import type { SubgraphFieldsFragment } from "./graphql/api-types.gen.js";

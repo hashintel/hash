@@ -13,7 +13,7 @@ import type {
   WebId,
 } from "@blockprotocol/type-system";
 import { extractBaseUrl } from "@blockprotocol/type-system";
-import type { ConstructEntityTypeParams } from "@local/hash-isomorphic-utils/types";
+import type { ConstructEntityTypeParams } from "@local/hash-graph-sdk/ontology";
 import { useRouter } from "next/router";
 import {
   useCallback,

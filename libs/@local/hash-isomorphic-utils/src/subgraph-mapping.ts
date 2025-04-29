@@ -47,7 +47,7 @@ import {
 import type {
   DataTypeConversionTargets,
   EntityTypeResolveDefinitions,
-} from "@local/hash-graph-types/ontology";
+} from "@local/hash-graph-sdk/ontology";
 
 import { systemEntityTypes, systemPropertyTypes } from "./ontology-type-ids.js";
 

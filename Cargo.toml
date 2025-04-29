@@ -21,7 +21,7 @@ members = [
     "libs/@local/graph/test-server",
     "libs/@local/graph/type-defs",
     "libs/@local/graph/type-fetcher",
-    "libs/@local/graph/types/rust",
+    "libs/@local/graph/types",
     "libs/@local/graph/validation",
     "libs/@local/harpc/client/rust",
     "libs/@local/harpc/codec",
@@ -82,7 +82,7 @@ hash-graph-test-data.path           = "tests/graph/test-data/rust"
 hash-graph-test-server.path         = "libs/@local/graph/test-server"
 hash-graph-type-defs.path           = "libs/@local/graph/type-defs"
 hash-graph-type-fetcher.path        = "libs/@local/graph/type-fetcher"
-hash-graph-types.path               = "libs/@local/graph/types/rust"
+hash-graph-types.path               = "libs/@local/graph/types"
 hash-graph-validation.path          = "libs/@local/graph/validation"
 hash-repo-chores.path               = "libs/@local/repo-chores/rust"
 hash-status.path                    = "libs/@local/status/rust"
@@ -96,7 +96,7 @@ hashql-syntax-jexpr.path            = "libs/@local/hashql/syntax-jexpr"
 type-system.path                    = "libs/@blockprotocol/type-system/rust"
 
 # External dependencies
-ada-url                  = { version = "=3.2.3", default-features = false }
+ada-url                  = { version = "=3.2.4", default-features = false }
 ahash                    = { version = "=0.8.11", default-features = false }
 ansi-to-html             = { version = "=0.2.2", default-features = false }
 anstyle                  = { version = "=1.0.10", default-features = false }
@@ -121,7 +121,7 @@ cedar-policy-validator   = { version = "=4.4.0", default-features = false }
 circular-buffer          = { version = "=1.1.0", default-features = false }
 clap                     = { version = "=4.5.37", features = ["color", "error-context", "help", "std", "suggestions", "usage"] }
 clap_builder             = { version = "=4.5.37", default-features = false, features = ["std"] }
-clap_complete            = { version = "=4.5.47", default-features = false }
+clap_complete            = { version = "=4.5.48", default-features = false }
 console_error_panic_hook = { version = "=0.1.7", default-features = false }
 convert_case             = { version = "=0.8.0", default-features = false }
 criterion                = { version = "=0.5.1" }

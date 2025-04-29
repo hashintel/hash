@@ -142,10 +142,13 @@ macro_rules! newtype {
         #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
         $vis struct $name(u32);
 
+        #[expect(clippy::allow_attributes)]
+        #[allow(dead_code)]
         impl $name {
             /// Creates a new ID with the given value.
             ///
             /// # Panics
+            ///
             /// When value is outside the valid range of $min..$max.
             #[must_use]
             $vis const fn new(value: u32) -> Self {

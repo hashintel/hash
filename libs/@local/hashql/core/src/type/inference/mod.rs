@@ -8,10 +8,10 @@ pub use self::{
 };
 use super::{
     Type, TypeId,
-    collection::FastHashMap,
     environment::{AnalysisEnvironment, InferenceEnvironment},
     kind::{generic_argument::GenericArgumentId, infer::HoleId},
 };
+use crate::collection::FastHashMap;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum PartialStructuralEdge {

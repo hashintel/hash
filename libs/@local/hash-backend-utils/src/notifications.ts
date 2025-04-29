@@ -6,7 +6,7 @@ import type {
   WebId,
 } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
-import type { EntityRelationAndSubjectBranded } from "@local/hash-graph-sdk/branded-authorization";
+import type { EntityRelationAndSubjectBranded } from "@local/hash-graph-sdk/authorization";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   systemEntityTypes,

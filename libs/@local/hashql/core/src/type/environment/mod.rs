@@ -12,23 +12,32 @@ pub use self::{
     simplify::SimplifyEnvironment,
 };
 use super::{
-    Type, TypeId, TypeKind,
+    PartialType, Type, TypeId, TypeKind,
     inference::Substitution,
-    intern::Interner,
     kind::{
-        generic_argument::{GenericArgument, GenericArguments},
+        Infer, Param, PrimitiveType,
+        generic_argument::{GenericArgument, GenericArgumentId, GenericArguments},
+        infer::HoleId,
         r#struct::{StructField, StructFields},
     },
 };
-use crate::{arena::concurrent::ConcurrentArena, heap::Heap, span::SpanId};
+use crate::{
+    heap::Heap,
+    intern::{InternMap, InternSet, Interned},
+    span::SpanId,
+};
 
 #[derive(Debug)]
 pub struct Environment<'heap> {
     pub source: SpanId,
 
     pub heap: &'heap Heap,
-    pub types: ConcurrentArena<Type<'heap>>,
-    interner: Interner<'heap>,
+
+    pub types: InternMap<'heap, Type<'heap>>,
+    kinds: InternSet<'heap, TypeKind<'heap>>,
+    type_ids: InternSet<'heap, [TypeId]>,
+    generic_arguments: InternSet<'heap, [GenericArgument]>,
+    struct_fields: InternSet<'heap, [StructField<'heap>]>,
 
     pub auxiliary: AuxiliaryData,
     pub substitution: Substitution,
@@ -37,16 +46,10 @@ pub struct Environment<'heap> {
 impl<'heap> Environment<'heap> {
     #[must_use]
     pub fn new(source: SpanId, heap: &'heap Heap) -> Self {
-        Self {
-            source,
+        let this = Self::new_empty(source, heap);
+        prefill_environment(&this);
 
-            heap,
-            types: ConcurrentArena::new(),
-            interner: Interner::new(heap),
-
-            auxiliary: AuxiliaryData::new(),
-            substitution: Substitution::default(),
-        }
+        this
     }
 
     #[must_use]
@@ -55,8 +58,12 @@ impl<'heap> Environment<'heap> {
             source,
 
             heap,
-            types: ConcurrentArena::new(),
-            interner: Interner::new_empty(heap),
+
+            types: InternMap::new(heap),
+            kinds: InternSet::new(heap),
+            type_ids: InternSet::new(heap),
+            generic_arguments: InternSet::new(heap),
+            struct_fields: InternSet::new(heap),
 
             auxiliary: AuxiliaryData::new(),
             substitution: Substitution::default(),
@@ -64,18 +71,23 @@ impl<'heap> Environment<'heap> {
     }
 
     #[inline]
-    pub fn alloc(&self, with: impl FnOnce(TypeId) -> Type<'heap>) -> TypeId {
-        self.types.push_with(with)
+    pub fn r#type(&self, id: TypeId) -> Type<'heap> {
+        self.types.index(id)
     }
 
     #[inline]
-    pub fn intern_kind(&self, kind: TypeKind<'heap>) -> &'heap TypeKind<'heap> {
-        self.interner.intern_kind(kind)
+    pub fn intern_type(&self, partial: PartialType<'heap>) -> TypeId {
+        self.types.intern_partial(partial).id
     }
 
     #[inline]
-    pub fn intern_type_ids(&self, ids: &[TypeId]) -> &'heap [TypeId] {
-        self.interner.intern_type_ids(ids)
+    pub fn intern_kind(&self, kind: TypeKind<'heap>) -> Interned<'heap, TypeKind<'heap>> {
+        self.kinds.intern(kind)
+    }
+
+    #[inline]
+    pub fn intern_type_ids(&self, ids: &[TypeId]) -> Interned<'heap, [TypeId]> {
+        self.type_ids.intern_slice(ids)
     }
 
     #[inline]
@@ -83,7 +95,13 @@ impl<'heap> Environment<'heap> {
         &self,
         arguments: &mut [GenericArgument],
     ) -> GenericArguments<'heap> {
-        self.interner.intern_generic_arguments(arguments)
+        arguments.sort_unstable_by(|lhs, rhs| lhs.id.cmp(&rhs.id));
+        // Unlike `intern_struct_fields`, where we error out on duplicates, we simply remove them
+        // here, as any duplicate means they're the same argument and therefore not necessarily an
+        // error.
+        let (dedupe, _) = arguments.partition_dedup_by_key(|argument| argument.id);
+
+        GenericArguments::from_slice_unchecked(self.generic_arguments.intern_slice(dedupe))
     }
 
     /// Interns a slice of struct fields.
@@ -97,6 +115,39 @@ impl<'heap> Environment<'heap> {
         &self,
         fields: &'fields mut [StructField<'heap>],
     ) -> Result<StructFields<'heap>, &'fields mut [StructField<'heap>]> {
-        self.interner.intern_struct_fields(fields)
+        fields.sort_unstable_by(|lhs, rhs| lhs.name.cmp(&rhs.name));
+
+        let (dedup, duplicates) = fields.partition_dedup_by_key(|field| field.name);
+
+        if !duplicates.is_empty() {
+            return Err(duplicates);
+        }
+
+        Ok(StructFields::from_slice_unchecked(
+            self.struct_fields.intern_slice(dedup),
+        ))
+    }
+}
+
+fn prefill_environment(env: &Environment) {
+    env.kinds.intern(TypeKind::Never);
+    env.kinds.intern(TypeKind::Unknown);
+
+    env.kinds.intern(TypeKind::Primitive(PrimitiveType::Number));
+    env.kinds
+        .intern(TypeKind::Primitive(PrimitiveType::Integer));
+    env.kinds.intern(TypeKind::Primitive(PrimitiveType::String));
+    env.kinds
+        .intern(TypeKind::Primitive(PrimitiveType::Boolean));
+    env.kinds.intern(TypeKind::Primitive(PrimitiveType::Null));
+
+    // Intern the first 256 infer and params, we're unlikely to need more than this
+    for index in 0..=u8::MAX {
+        env.kinds.intern(TypeKind::Infer(Infer {
+            hole: HoleId::new(u32::from(index)),
+        }));
+        env.kinds.intern(TypeKind::Param(Param {
+            argument: GenericArgumentId::new(u32::from(index)),
+        }));
     }
 }

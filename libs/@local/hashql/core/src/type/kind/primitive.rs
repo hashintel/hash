@@ -261,7 +261,7 @@ mod test {
         assert_eq!(output.len(), 1);
 
         let id = output[0];
-        let r#type = env.types[id].copied();
+        let r#type = env.r#type(id);
 
         assert_eq!(*r#type.kind, TypeKind::Primitive(primitive));
     }
@@ -284,7 +284,7 @@ mod test {
         assert_eq!(output.len(), 1);
 
         let id = output[0];
-        let r#type = env.types[id].copied();
+        let r#type = env.r#type(id);
 
         assert_eq!(*r#type.kind, TypeKind::Primitive(primitive));
     }
@@ -549,7 +549,7 @@ mod test {
 
         // Primitive types should simplify to themselves
         let result = a.simplify(&mut simplify_env);
-        let result_type = env.types[result].copied();
+        let result_type = env.r#type(result);
 
         assert_eq!(*result_type.kind, TypeKind::Primitive(primitive));
     }

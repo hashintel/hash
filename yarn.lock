@@ -277,7 +277,6 @@ __metadata:
     "@local/hash-backend-utils": "npm:0.0.0-private"
     "@local/hash-graph-client": "npm:0.0.0-private"
     "@local/hash-graph-sdk": "npm:0.0.0-private"
-    "@local/hash-graph-types": "npm:0.0.0-private"
     "@local/hash-isomorphic-utils": "npm:0.0.0-private"
     "@local/status": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
@@ -479,7 +478,6 @@ __metadata:
     "@local/eslint": "npm:0.0.0-private"
     "@local/hash-graph-client": "npm:0.0.0-private"
     "@local/hash-graph-sdk": "npm:0.0.0-private"
-    "@local/hash-graph-types": "npm:0.0.0-private"
     "@local/hash-isomorphic-utils": "npm:0.0.0-private"
     "@local/status": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
@@ -772,7 +770,6 @@ __metadata:
     "@local/eslint": "npm:0.0.0-private"
     "@local/hash-graph-client": "npm:0.0.0-private"
     "@local/hash-graph-sdk": "npm:0.0.0-private"
-    "@local/hash-graph-types": "npm:0.0.0-private"
     "@local/hash-isomorphic-utils": "npm:0.0.0-private"
     "@local/status": "npm:0.0.0-private"
     "@mui/material": "npm:5.17.1"
@@ -8935,7 +8932,6 @@ __metadata:
     "@local/eslint": "npm:0.0.0-private"
     "@local/harpc-client": "npm:0.0.0-private"
     "@local/hash-graph-client": "npm:0.0.0-private"
-    "@local/hash-graph-types": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     "@vitest/coverage-istanbul": "npm:3.1.2"
     effect: "npm:3.13.11"
@@ -8943,22 +8939,6 @@ __metadata:
     rimraf: "npm:6.0.1"
     typescript: "npm:5.7.3"
     vitest: "npm:3.1.2"
-  languageName: unknown
-  linkType: soft
-
-"@local/hash-graph-types@npm:0.0.0-private, @local/hash-graph-types@workspace:libs/@local/graph/types/typescript":
-  version: 0.0.0-use.local
-  resolution: "@local/hash-graph-types@workspace:libs/@local/graph/types/typescript"
-  dependencies:
-    "@blockprotocol/graph": "npm:0.4.0-canary.0"
-    "@blockprotocol/type-system": "npm:0.1.2-canary.0"
-    "@local/advanced-types": "npm:0.0.0-private"
-    "@local/eslint": "npm:0.0.0-private"
-    "@local/hash-graph-client": "npm:0.0.0-private"
-    "@local/tsconfig": "npm:0.0.0-private"
-    eslint: "npm:9.20.1"
-    rimraf: "npm:6.0.1"
-    typescript: "npm:5.7.3"
   languageName: unknown
   linkType: soft
 
@@ -8978,7 +8958,6 @@ __metadata:
     "@local/eslint": "npm:0.0.0-private"
     "@local/hash-graph-client": "npm:0.0.0-private"
     "@local/hash-graph-sdk": "npm:0.0.0-private"
-    "@local/hash-graph-types": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     "@sentry/browser": "npm:7.120.3"
     "@sindresorhus/slugify": "npm:1.1.2"
@@ -12802,9 +12781,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@rust/hash-graph-types@npm:0.0.0-private, @rust/hash-graph-types@workspace:libs/@local/graph/types/rust":
+"@rust/hash-graph-types@npm:0.0.0-private, @rust/hash-graph-types@workspace:libs/@local/graph/types":
   version: 0.0.0-use.local
-  resolution: "@rust/hash-graph-types@workspace:libs/@local/graph/types/rust"
+  resolution: "@rust/hash-graph-types@workspace:libs/@local/graph/types"
   dependencies:
     "@blockprotocol/type-system-rs": "npm:0.0.0-private"
     "@rust/error-stack": "npm:0.5.0"
@@ -16607,7 +16586,6 @@ __metadata:
     "@local/hash-backend-utils": "npm:0.0.0-private"
     "@local/hash-graph-client": "npm:0.0.0-private"
     "@local/hash-graph-sdk": "npm:0.0.0-private"
-    "@local/hash-graph-types": "npm:0.0.0-private"
     "@local/hash-isomorphic-utils": "npm:0.0.0-private"
     "@local/status": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
@@ -16636,7 +16614,6 @@ __metadata:
     "@local/hash-backend-utils": "npm:0.0.0-private"
     "@local/hash-graph-client": "npm:0.0.0-private"
     "@local/hash-graph-sdk": "npm:0.0.0-private"
-    "@local/hash-graph-types": "npm:0.0.0-private"
     "@local/hash-isomorphic-utils": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     "@opentelemetry/api": "npm:1.9.0"

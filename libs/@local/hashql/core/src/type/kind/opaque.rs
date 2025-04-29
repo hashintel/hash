@@ -7,7 +7,7 @@ use super::{TypeKind, generic_argument::GenericArguments};
 use crate::{
     symbol::InternedSymbol,
     r#type::{
-        Type, TypeId,
+        PartialType, Type, TypeId,
         environment::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
             SimplifyEnvironment,
@@ -75,23 +75,13 @@ impl<'heap> OpaqueType<'heap> {
             return SmallVec::new();
         }
 
-        // Try to see if we can't re-use one of the opaque types instead of creating new ones
-        if result == [self.kind.repr] {
-            return SmallVec::from_slice(&[self.id]);
-        }
-
-        if result == [other.kind.repr] {
-            return SmallVec::from_slice(&[other.id]);
-        }
-
         // Merge the two arguments together, as the inner type may refer to either
         let arguments = self.kind.arguments.merge(&other.kind.arguments, env);
 
         result
             .into_iter()
             .map(|repr| {
-                env.alloc(|id| Type {
-                    id,
+                env.intern_type(PartialType {
                     span: self.span,
                     kind: env.intern_kind(TypeKind::Opaque(OpaqueType {
                         name: self.kind.name,
@@ -134,8 +124,8 @@ impl<'heap> Lattice<'heap> for OpaqueType<'heap> {
         if env.is_inference_enabled()
             && (!env.is_concrete(self.kind.repr) || !env.is_concrete(other.kind.repr))
         {
-            let self_repr = env.types[self.kind.repr].copied();
-            let other_repr = env.types[other.kind.repr].copied();
+            let self_repr = env.r#type(self.kind.repr);
+            let other_repr = env.r#type(other.kind.repr);
 
             // We circumvent `env.join` here, by directly joining the representations. This is
             // intentional, so that we can propagate the join result instead of having a `Union`.
@@ -181,8 +171,8 @@ impl<'heap> Lattice<'heap> for OpaqueType<'heap> {
         if env.is_inference_enabled()
             && (!env.is_concrete(self.kind.repr) || !env.is_concrete(other.kind.repr))
         {
-            let self_repr = env.types[self.kind.repr].copied();
-            let other_repr = env.types[other.kind.repr].copied();
+            let self_repr = env.r#type(self.kind.repr);
+            let other_repr = env.r#type(other.kind.repr);
 
             // We circumvent `env.meet` here, by directly meeting the representations. This is
             // intentional, so that we can propagate the meet result instead of having a
@@ -275,12 +265,7 @@ impl<'heap> Lattice<'heap> for OpaqueType<'heap> {
     fn simplify(self: Type<'heap, Self>, env: &mut SimplifyEnvironment<'_, 'heap>) -> TypeId {
         let repr = env.simplify(self.kind.repr);
 
-        if repr == self.kind.repr {
-            return self.id;
-        }
-
-        env.alloc(|id| Type {
-            id,
+        env.intern_type(PartialType {
             span: self.span,
             kind: env.intern_kind(TypeKind::Opaque(OpaqueType {
                 name: self.kind.name,

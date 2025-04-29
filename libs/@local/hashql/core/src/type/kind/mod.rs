@@ -22,7 +22,7 @@ pub use self::{
     tuple::TupleType, union::UnionType,
 };
 use super::{
-    Type, TypeId,
+    PartialType, Type, TypeId,
     environment::{
         AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
         SimplifyEnvironment,
@@ -212,17 +212,19 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             // Unknown ∨ T <=> Unknown
             (Self::Unknown, _) => SmallVec::from_slice(&[self.id]),
             // T ∨ Unknown <=> Unknown (slow)
-            (_, _) if env.is_top(other.id) => SmallVec::from_slice(&[env.alloc(|id| Type {
-                id,
-                span: other.span,
-                kind: env.intern_kind(Self::Unknown),
-            })]),
+            (_, _) if env.is_top(other.id) => {
+                SmallVec::from_slice(&[env.intern_type(PartialType {
+                    span: other.span,
+                    kind: env.intern_kind(Self::Unknown),
+                })])
+            }
             // Unknown ∨ T <=> Unknown (slow)
-            (_, _) if env.is_top(self.id) => SmallVec::from_slice(&[env.alloc(|id| Type {
-                id,
-                span: other.span,
-                kind: env.intern_kind(Self::Unknown),
-            })]),
+            (_, _) if env.is_top(self.id) => {
+                SmallVec::from_slice(&[env.intern_type(PartialType {
+                    span: other.span,
+                    kind: env.intern_kind(Self::Unknown),
+                })])
+            }
 
             // Opaque ∨ _
             (Self::Opaque(lhs), Self::Opaque(rhs)) => self.with(lhs).join(other.with(rhs), env),
@@ -378,8 +380,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             // When inference is disabled, an unresolved type is considered as `Never` and an error
             // will be reported. Therefore if `Never`, the rule is: `T ∧ Never <=> Never`
             env.diagnostics.push(no_type_inference(env, self));
-            return SmallVec::from_slice(&[env.alloc(|id| Type {
-                id,
+            return SmallVec::from_slice(&[env.intern_type(PartialType {
                 span: self.span,
                 kind: env.intern_kind(Self::Never),
             })]);
@@ -397,8 +398,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             // When inference is disabled, an unresolved type is considered as `Never` and an error
             // will be reported. Therefore if `Never`, the rule is: `T ∧ Never <=> Never`
             env.diagnostics.push(no_type_inference(env, other));
-            return SmallVec::from_slice(&[env.alloc(|id| Type {
-                id,
+            return SmallVec::from_slice(&[env.intern_type(PartialType {
                 span: other.span,
                 kind: env.intern_kind(TypeKind::Never),
             })]);
@@ -431,17 +431,19 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             // Never ∧ T <=> Never
             (Self::Never, _) => SmallVec::from_slice(&[self.id]),
             // T ∧ Never <=> Never (slow)
-            (_, _) if env.is_bottom(other.id) => SmallVec::from_slice(&[env.alloc(|id| Type {
-                id,
-                span: other.span,
-                kind: env.intern_kind(Self::Never),
-            })]),
+            (_, _) if env.is_bottom(other.id) => {
+                SmallVec::from_slice(&[env.intern_type(PartialType {
+                    span: other.span,
+                    kind: env.intern_kind(Self::Never),
+                })])
+            }
             // Never ∧ T <=> Never (slow)
-            (_, _) if env.is_bottom(self.id) => SmallVec::from_slice(&[env.alloc(|id| Type {
-                id,
-                span: self.span,
-                kind: env.intern_kind(Self::Never),
-            })]),
+            (_, _) if env.is_bottom(self.id) => {
+                SmallVec::from_slice(&[env.intern_type(PartialType {
+                    span: self.span,
+                    kind: env.intern_kind(Self::Never),
+                })])
+            }
 
             // T ∧ Unknown <=> T
             (_, Self::Unknown) => SmallVec::from_slice(&[self.id]),
@@ -1243,16 +1245,14 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
 
     fn simplify(self: Type<'heap, Self>, env: &mut SimplifyEnvironment<'_, 'heap>) -> TypeId {
         if env.is_bottom(self.id) {
-            return env.alloc(|id| Type {
-                id,
+            return env.intern_type(PartialType {
                 span: self.span,
                 kind: env.intern_kind(TypeKind::Never),
             });
         }
 
         if env.is_top(self.id) {
-            return env.alloc(|id| Type {
-                id,
+            return env.intern_type(PartialType {
                 span: self.span,
                 kind: env.intern_kind(TypeKind::Unknown),
             });

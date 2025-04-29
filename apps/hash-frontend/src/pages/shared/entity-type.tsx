@@ -19,7 +19,7 @@ import {
   getFormDataFromEntityType,
   useEntityTypeForm,
 } from "@hashintel/type-editor";
-import type { OntologyElementMetadata } from "@local/hash-graph-types/ontology";
+import type { OntologyElementMetadata } from "@local/hash-graph-sdk/ontology";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { rewriteSchemasToNextVersion } from "@local/hash-isomorphic-utils/ontology-types";
 import { Box, Container, Typography } from "@mui/material";

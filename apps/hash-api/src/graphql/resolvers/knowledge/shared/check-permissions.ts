@@ -1,5 +1,5 @@
 import type { Entity } from "@blockprotocol/type-system";
-import type { UserPermissions } from "@local/hash-isomorphic-utils/types";
+import type { UserPermissions } from "@local/hash-graph-sdk/authorization";
 
 import {
   checkEntityPermission,

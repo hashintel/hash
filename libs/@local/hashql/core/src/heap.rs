@@ -36,6 +36,7 @@
 //! - `heap::Vec<'heap, T>`: A vector allocated on the heap
 //! - `heap::VecDeque<'heap, T>`: A double-ended queue allocated on the heap
 //! - `heap::HashMap<'heap, K, V, S>`: A hash map allocated on the heap
+
 use core::{alloc::Allocator, ptr};
 use std::sync::Mutex;
 
