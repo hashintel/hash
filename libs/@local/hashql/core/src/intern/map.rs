@@ -550,6 +550,46 @@ where
         Some(T::from_parts(id, Interned::new_unchecked(partial)))
     }
 
+    /// Checks if an ID exists in the map.
+    ///
+    /// This method determines whether an ID has been interned in this map without
+    /// reconstructing the complete object.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use hashql_core::{heap::Heap, intern::{InternMap, Decompose, Interned}, id::{HasId, Id}, newtype};
+    /// # newtype!(struct ValueId(u32 is 0..=0xFFFF_FF00));
+    /// # #[derive(Debug, PartialEq, Eq, Hash)]
+    /// # struct Value {
+    /// #     id: ValueId,
+    /// #     value: i32,
+    /// # }
+    /// # impl HasId for Value {
+    /// #     type Id = ValueId;
+    /// #     fn id(&self) -> Self::Id { self.id }
+    /// # }
+    /// # impl<'heap> Decompose<'heap> for Value {
+    /// #     type Partial = i32;
+    /// #     fn from_parts(id: ValueId, partial: Interned<'heap, i32>) -> Self {
+    /// #         Self { id, value: *partial.as_ref() }
+    /// #     }
+    /// # }
+    /// # let heap = Heap::new();
+    /// # let map = InternMap::<Value>::new(&heap);
+    /// let obj = map.intern_partial(42);
+    /// let id = obj.id();
+    ///
+    /// // Check if the ID exists
+    /// assert!(map.contains(id));
+    ///
+    /// // Check a non-existent ID
+    /// assert!(!map.contains(ValueId::from_u32(999)));
+    /// ```
+    pub fn contains(&self, id: T::Id) -> bool {
+        self.lookup.contains(&id)
+    }
+
     /// Returns the interned value for the given ID.
     ///
     /// This method is similar to `get`, but panics if no value with the given ID exists.

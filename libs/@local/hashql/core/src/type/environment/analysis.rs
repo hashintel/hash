@@ -323,7 +323,13 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
         let supertype = self.environment.r#type(supertype);
 
         if !self.boundary.enter(subtype.id, supertype.id) {
-            return self.is_subtype_of_recursive(subtype, supertype);
+            return self.is_subtype_of_recursive(
+                subtype,
+                supertype,
+                // should discharge:
+                self.subtype_scope.contains(subtype.id)
+                    && self.supertype_scope.contains(supertype.id),
+            );
         }
 
         if let Some(result) = self.is_quick_subtype(&subtype, &supertype) {

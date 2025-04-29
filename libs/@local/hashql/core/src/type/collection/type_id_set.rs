@@ -103,12 +103,48 @@ impl<'env, 'heap, const CAPACITY: usize> TypeIdSet<'env, 'heap, CAPACITY> {
         // As we expect the number of types to always be small (< 8), this seems sufficient, in case
         // in the future this leads to performance issues these are possible ways to optimize
         // further.
-        self.items.sort_unstable_by(|&lhs, &rhs| {
+
+        // Due to the fact that some of the items might not yet be materialized (e.g. are
+        // provisioned and referenced, but do not exist yet), we need to split the set into two
+        // parts and partition and dedupe them separately.
+        self.items
+            .sort_unstable_by_key(|&id| self.env.types.contains(id));
+        let partition_point = self
+            .items
+            .partition_point(|&id| !self.env.types.contains(id));
+
+        let (provisioned, materialized) = self.items.split_at_mut(partition_point);
+
+        // Handle provisioned types, which - unlike materialized types - can only be compared by
+        // their ID.
+        provisioned.sort_unstable();
+        let len_provisioned = provisioned.len();
+        let (_, removed) = provisioned.partition_dedup();
+        let excess_provisioned = removed.len();
+
+        // Handle materialized types, which can be compared by their kind, making deduplication
+        // irrespective of the span.
+        materialized.sort_unstable_by(|&lhs, &rhs| {
             ptr_cmp(self.env.r#type(lhs).kind, self.env.r#type(rhs).kind)
         });
+        let len_materialized = materialized.len();
+        let (_, removed) = materialized.partition_dedup_by(|lhs, rhs| {
+            ptr_eq(self.env.r#type(*lhs).kind, self.env.r#type(*rhs).kind)
+        });
+        let excess_materialized = removed.len();
 
-        self.items
-            .dedup_by(|lhs, rhs| ptr_eq(self.env.r#type(*lhs).kind, self.env.r#type(*rhs).kind));
+        // We're now at a place where we have the following layout:
+        // [provisioned, excess, materialized, excess]
+        // What we now need to do is shift the materialized items to the excess, and then cut the
+        // excess items
+        self.items.copy_within(
+            len_provisioned..(len_provisioned + len_materialized - excess_materialized),
+            len_provisioned - excess_provisioned,
+        );
+
+        self.items.truncate(
+            len_provisioned + len_materialized - excess_provisioned - excess_materialized,
+        );
 
         self.items
     }
