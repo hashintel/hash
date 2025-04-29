@@ -102,8 +102,8 @@ impl<'heap> GenericArguments<'heap> {
     }
 }
 
-impl AsRef<[GenericArgument<'heap>]> for GenericArguments<'_> {
-    fn as_ref(&self) -> &[GenericArgument] {
+impl<'heap> AsRef<[GenericArgument<'heap>]> for GenericArguments<'heap> {
+    fn as_ref(&self) -> &[GenericArgument<'heap>] {
         self.as_slice()
     }
 }

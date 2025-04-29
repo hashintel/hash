@@ -6,7 +6,7 @@ use crate::{
     heap::Heap,
     span::SpanId,
     r#type::{
-        Type, TypeId,
+        PartialType, TypeId,
         environment::Environment,
         kind::{
             OpaqueType, Param, PrimitiveType, TypeKind, UnionType,
@@ -76,8 +76,7 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
     }
 
     fn alloc_type(&self, kind: TypeKind<'heap>) -> TypeId {
-        self.env.alloc(|id| Type {
-            id,
+        self.env.intern_type(PartialType {
             span: SpanId::SYNTHETIC,
             kind: self.env.intern_kind(kind),
         })
@@ -174,8 +173,7 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
     fn kernel_type_module_opaque(&self, parent: ModuleId, items: &mut Vec<ItemId>) {
         let url = self.alloc_type(TypeKind::Opaque(OpaqueType {
             name: self.heap.intern_symbol("::kernel::type::Url"),
-            repr: self.env.alloc(|id| Type {
-                id,
+            repr: self.env.intern_type(PartialType {
                 span: SpanId::SYNTHETIC,
                 kind: self
                     .env
@@ -227,8 +225,7 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
             }]),
         }));
 
-        let option = self.env.alloc(|id| Type {
-            id,
+        let option = self.env.intern_type(PartialType {
             span: SpanId::SYNTHETIC,
             kind: self.env.intern_kind(TypeKind::Union(UnionType {
                 variants: self.env.intern_type_ids(&[some, none]),
@@ -272,8 +269,7 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
             }]),
         }));
 
-        let result = self.env.alloc(|id| Type {
-            id,
+        let result = self.env.intern_type(PartialType {
             span: SpanId::SYNTHETIC,
             kind: self.env.intern_kind(TypeKind::Union(UnionType {
                 variants: self.env.intern_type_ids(&[ok, err]),
