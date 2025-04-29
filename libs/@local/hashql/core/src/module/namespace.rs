@@ -26,7 +26,7 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
     ///
     /// # Returns
     ///
-    /// `bool` - `true` if the import was successful, `false` if the item wasn't found.
+    /// `true` if the import was successful, `false` if the item wasn't found.
     pub fn import_absolute(
         &mut self,
         name: InternedSymbol<'heap>,
@@ -52,7 +52,7 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
     ///
     /// # Returns
     ///
-    /// `bool` - `true` if the import was successfully resolved, `false` if the item wasn't found.
+    /// `true` if the import was successfully resolved, `false` if the item wasn't found.
     #[expect(clippy::needless_pass_by_value)]
     pub fn import_relative(
         &mut self,
