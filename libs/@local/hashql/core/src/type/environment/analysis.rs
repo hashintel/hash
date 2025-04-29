@@ -12,6 +12,7 @@ use crate::r#type::{
     recursion::RecursionBoundary,
 };
 
+#[derive(Debug)]
 pub struct AnalysisEnvironment<'env, 'heap> {
     environment: &'env Environment<'heap>,
     boundary: RecursionBoundary,

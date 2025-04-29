@@ -10,6 +10,7 @@ use crate::r#type::{
     recursion::RecursionBoundary,
 };
 
+#[derive(Debug)]
 pub struct InferenceEnvironment<'env, 'heap> {
     pub environment: &'env Environment<'heap>,
     boundary: RecursionBoundary,

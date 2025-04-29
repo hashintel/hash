@@ -1,4 +1,5 @@
 use core::{
+    borrow::Borrow,
     hash::Hash,
     hint::cold_path,
     sync::atomic::{AtomicU32, Ordering},
@@ -46,6 +47,24 @@ where
     /// Returns the underlying ID value.
     pub const fn value(self) -> T {
         self.0
+    }
+}
+
+impl<T> AsRef<T> for Provisioned<T>
+where
+    T: Id,
+{
+    fn as_ref(&self) -> &T {
+        &self.0
+    }
+}
+
+impl<T> Borrow<T> for Provisioned<T>
+where
+    T: Id,
+{
+    fn borrow(&self) -> &T {
+        &self.0
     }
 }
 

@@ -36,6 +36,7 @@ use crate::{
 /// - Maintaining a mapping between variable kinds and their internal IDs
 /// - Unifying variables when they are determined to be equivalent
 /// - Finding the canonical representative for each variable
+#[derive(Debug)]
 pub(crate) struct Unification {
     /// The underlying union-find data structure that tracks variable equivalence classes
     table: InPlaceUnificationTable<VariableId>,
