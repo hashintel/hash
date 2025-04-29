@@ -1,4 +1,4 @@
-#![expect(unused, clippy::empty_structs_with_brackets)]
+#![expect(unused)]
 
 // Struct with empty tuple field
 #[derive(specta::Type)]
