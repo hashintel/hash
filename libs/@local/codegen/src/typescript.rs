@@ -44,7 +44,7 @@ impl<'a> TypeScriptGenerator<'a> {
                 &self.ast.program(
                     SPAN,
                     ast::SourceType::d_ts(),
-                    "test",
+                    "unnamed",
                     self.ast.vec(),
                     None,
                     self.ast.vec(),
