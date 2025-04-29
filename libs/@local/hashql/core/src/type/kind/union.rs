@@ -509,7 +509,6 @@ impl<'heap> Inference<'heap> for UnionType<'heap> {
         }
     }
 
-    // TODO: test
     fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {
         let (_guard, id) = env.provision(self.id);
 
@@ -572,19 +571,19 @@ mod test {
             PartialType,
             environment::{
                 AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
-                SimplifyEnvironment,
+                SimplifyEnvironment, instantiate::InstantiateEnvironment,
             },
             inference::{
                 Constraint, Inference as _, PartialStructuralEdge, Variable, VariableKind,
             },
             kind::{
-                TypeKind,
-                generic_argument::GenericArgumentId,
+                OpaqueType, Param, TypeKind,
+                generic_argument::{GenericArgument, GenericArgumentId},
                 infer::HoleId,
                 intersection::IntersectionType,
                 intrinsic::{DictType, IntrinsicType},
                 primitive::PrimitiveType,
-                test::{assert_equiv, dict, intersection, primitive, tuple, union},
+                test::{assert_equiv, dict, intersection, opaque, primitive, tuple, union},
                 tuple::TupleType,
             },
             lattice::{Lattice as _, test::assert_lattice_laws},
@@ -2228,5 +2227,54 @@ mod test {
             TypeKind::Union(UnionType { variants }) if variants.len() == 1
                 && variants[0] == type_id
         );
+    }
+
+    #[test]
+    fn instantiate_union() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let argument = env.counter.generic_argument.next();
+        let param = instantiate_param(&env, argument);
+
+        let inner = opaque!(
+            env,
+            "A",
+            param,
+            [GenericArgument {
+                id: argument,
+                name: heap.intern_symbol("T"),
+                constraint: None
+            }]
+        );
+
+        union!(env, value, [inner, inner]);
+
+        let mut instantiate = InstantiateEnvironment::new(&env);
+        let type_id = value.instantiate(&mut instantiate);
+        assert!(instantiate.take_diagnostics().is_empty());
+
+        let result = env.r#type(type_id);
+        let union = result.kind.union().expect("should be a union");
+        assert_eq!(union.variants.len(), 2);
+
+        for variant in &*union.variants {
+            let variant = env.r#type(*variant);
+            let opaque = variant.kind.opaque().expect("should be an opaque type");
+            let repr = env
+                .r#type(opaque.repr)
+                .kind
+                .param()
+                .expect("should be a param");
+
+            assert_eq!(opaque.arguments.len(), 1);
+            assert_eq!(
+                *repr,
+                Param {
+                    argument: opaque.arguments[0].id
+                }
+            );
+            assert_ne!(repr.argument, argument);
+        }
     }
 }

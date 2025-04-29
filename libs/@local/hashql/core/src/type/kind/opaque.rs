@@ -306,7 +306,6 @@ impl<'heap> Inference<'heap> for OpaqueType<'heap> {
         env.in_invariant(|env| env.collect_structural_edges(self.kind.repr, variable));
     }
 
-    // TODO: test
     fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {
         let (_provision_guard, id) = env.provision(self.id);
         let (_argument_guard, arguments) = env.instantiate_arguments(self.kind.arguments);
@@ -355,13 +354,13 @@ mod test {
             PartialType,
             environment::{
                 AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
-                SimplifyEnvironment,
+                SimplifyEnvironment, instantiate::InstantiateEnvironment,
             },
             inference::{
                 Constraint, Inference as _, PartialStructuralEdge, Variable, VariableKind,
             },
             kind::{
-                TypeKind,
+                Param, TypeKind,
                 generic_argument::{GenericArgument, GenericArgumentId, GenericArguments},
                 infer::HoleId,
                 primitive::PrimitiveType,
@@ -987,5 +986,47 @@ mod test {
                 && *repr == type_id
                 && arguments.is_empty()
         );
+    }
+
+    #[test]
+    fn instantiate_opaque() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let argument = env.counter.generic_argument.next();
+        let param = instantiate_param(&env, argument);
+
+        opaque!(
+            env,
+            value,
+            "A",
+            param,
+            [GenericArgument {
+                id: argument,
+                name: heap.intern_symbol("T"),
+                constraint: None
+            }]
+        );
+
+        let mut instantiate = InstantiateEnvironment::new(&env);
+        let type_id = value.instantiate(&mut instantiate);
+        assert!(instantiate.take_diagnostics().is_empty());
+
+        let result = env.r#type(type_id);
+        let opaque = result.kind.opaque().expect("should be an opaque type");
+        let repr = env
+            .r#type(opaque.repr)
+            .kind
+            .param()
+            .expect("should be a param");
+
+        assert_eq!(opaque.arguments.len(), 1);
+        assert_eq!(
+            *repr,
+            Param {
+                argument: opaque.arguments[0].id
+            }
+        );
+        assert_ne!(repr.argument, argument);
     }
 }

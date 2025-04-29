@@ -244,7 +244,6 @@ impl<'heap> Inference<'heap> for ClosureType<'heap> {
         env.in_covariant(|env| env.collect_structural_edges(self.kind.returns, variable));
     }
 
-    // TODO: test
     fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {
         let (_provision_guard, id) = env.provision(self.id);
         let (_argument_guard, arguments) = env.instantiate_arguments(self.kind.arguments);
@@ -305,13 +304,13 @@ mod test {
             PartialType,
             environment::{
                 AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
-                SimplifyEnvironment,
+                SimplifyEnvironment, instantiate::InstantiateEnvironment,
             },
             inference::{
                 Constraint, Inference as _, PartialStructuralEdge, Variable, VariableKind,
             },
             kind::{
-                TypeKind,
+                Param, TypeKind,
                 generic_argument::{GenericArgument, GenericArgumentId, GenericArguments},
                 infer::HoleId,
                 intersection::IntersectionType,
@@ -1640,5 +1639,61 @@ mod test {
                 && *returns == type_id
                 && arguments.is_empty()
         );
+    }
+
+    #[test]
+    fn instantiate_closure() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let argument = env.counter.generic_argument.next();
+        let param = instantiate_param(&env, argument);
+
+        closure!(
+            env,
+            value,
+            [GenericArgument {
+                id: argument,
+                name: heap.intern_symbol("T"),
+                constraint: None
+            }],
+            [param],
+            param
+        );
+
+        let mut instantiate = InstantiateEnvironment::new(&env);
+        let type_id = value.instantiate(&mut instantiate);
+        assert!(instantiate.take_diagnostics().is_empty());
+
+        let result = env.r#type(type_id);
+        let closure = result.kind.closure().expect("should be a closure type");
+        assert_eq!(closure.params.len(), 1);
+
+        let param = env
+            .r#type(closure.params[0])
+            .kind
+            .param()
+            .expect("should be a param type");
+        assert_eq!(
+            *param,
+            Param {
+                argument: closure.arguments[0].id
+            }
+        );
+        assert_ne!(param.argument, argument);
+
+        let returns = env
+            .r#type(closure.returns)
+            .kind
+            .param()
+            .expect("should be a param type");
+
+        assert_eq!(
+            *returns,
+            Param {
+                argument: closure.arguments[0].id
+            }
+        );
+        assert_ne!(returns.argument, argument);
     }
 }

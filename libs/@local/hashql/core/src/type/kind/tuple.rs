@@ -302,7 +302,6 @@ impl<'heap> Inference<'heap> for TupleType<'heap> {
         }
     }
 
-    // TODO: test
     fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {
         let (_provision_guard, id) = env.provision(self.id);
         let (_argument_guard, arguments) = env.instantiate_arguments(self.kind.arguments);
@@ -370,7 +369,7 @@ mod test {
             PartialType,
             environment::{
                 AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
-                SimplifyEnvironment,
+                SimplifyEnvironment, instantiate::InstantiateEnvironment,
             },
             inference::{
                 Constraint, Inference as _, PartialStructuralEdge, Variable, VariableKind,
@@ -1559,5 +1558,37 @@ mod test {
                 && fields[0] == type_id
                 && arguments.is_empty()
         );
+    }
+
+    #[test]
+    fn instantiate_tuple() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let argument = env.counter.generic_argument.next();
+
+        tuple!(
+            env,
+            value,
+            [GenericArgument {
+                id: argument,
+                name: env.heap.intern_symbol("T"),
+                constraint: None
+            }],
+            [instantiate_param(&env, argument)]
+        );
+
+        let mut instantiate = InstantiateEnvironment::new(&env);
+        let type_id = value.instantiate(&mut instantiate);
+
+        let r#type = env.r#type(type_id).kind.tuple().expect("should be tuple");
+        assert_eq!(r#type.fields.len(), 1);
+        assert_eq!(r#type.arguments.len(), 1);
+
+        let field = env.r#type(r#type.fields[0]);
+        let param = field.kind.param().expect("should be param");
+
+        assert_eq!(param.argument, r#type.arguments[0].id);
+        assert_ne!(param.argument, argument);
     }
 }
