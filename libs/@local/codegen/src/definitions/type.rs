@@ -34,7 +34,7 @@ impl Type {
                 Self::List(Box::new(Self::from_specta(list_type.ty(), type_collection)))
             }
             specta::DataType::Nullable(nullable) => {
-                Self::List(Box::new(Self::from_specta(nullable, type_collection)))
+                Self::Optional(Box::new(Self::from_specta(nullable, type_collection)))
             }
             data_type => todo!("Unsupported data type {data_type:?}"),
         }
