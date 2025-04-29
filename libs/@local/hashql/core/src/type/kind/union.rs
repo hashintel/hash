@@ -13,7 +13,7 @@ use crate::{
         collection::TypeIdSet,
         environment::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
-            SimplifyEnvironment,
+            SimplifyEnvironment, instantiate::InstantiateEnvironment,
         },
         error::{cannot_be_subtype_of_never, type_mismatch, union_variant_mismatch},
         inference::{Constraint, Inference, PartialStructuralEdge, Variable},
@@ -509,8 +509,28 @@ impl<'heap> Inference<'heap> for UnionType<'heap> {
         }
     }
 
-    fn instantiate(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> TypeId {
-        todo!("https://linear.app/hash/issue/H-4384/hashql-type-instantiation")
+    // TODO: test
+    fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {
+        let (_guard, id) = env.provision(self.id);
+
+        let mut variants =
+            TypeIdSet::<16>::with_capacity(env.environment, self.kind.variants.len());
+
+        for &variant in self.kind.variants {
+            variants.push(env.instantiate(variant));
+        }
+
+        let variants = variants.finish();
+
+        env.intern_provisioned(
+            id,
+            PartialType {
+                span: self.span,
+                kind: env.intern_kind(TypeKind::Union(Self {
+                    variants: env.intern_type_ids(&variants),
+                })),
+            },
+        )
     }
 }
 

@@ -7,7 +7,7 @@ use crate::r#type::{
     Type, TypeId,
     environment::{
         AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
-        SimplifyEnvironment,
+        SimplifyEnvironment, instantiate::InstantiateEnvironment,
     },
     error::type_mismatch,
     inference::{Inference, PartialStructuralEdge},
@@ -194,7 +194,7 @@ impl<'heap> Inference<'heap> for PrimitiveType {
     ) {
     }
 
-    fn instantiate(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> TypeId {
+    fn instantiate(self: Type<'heap, Self>, _: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {
         self.id
     }
 }

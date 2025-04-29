@@ -11,7 +11,7 @@ use crate::{
         PartialType, Type, TypeId,
         environment::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
-            SimplifyEnvironment,
+            SimplifyEnvironment, instantiate::InstantiateEnvironment,
         },
         error::tuple_length_mismatch,
         inference::{Inference, PartialStructuralEdge},
@@ -302,8 +302,27 @@ impl<'heap> Inference<'heap> for TupleType<'heap> {
         }
     }
 
-    fn instantiate(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> TypeId {
-        todo!("https://linear.app/hash/issue/H-4384/hashql-type-instantiation")
+    // TODO: test
+    fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {
+        let (_provision_guard, id) = env.provision(self.id);
+        let (_argument_guard, arguments) = env.instantiate_arguments(self.kind.arguments);
+
+        let mut fields = SmallVec::<_, 16>::with_capacity(self.kind.fields.len());
+
+        for &field in self.kind.fields {
+            fields.push(env.instantiate(field));
+        }
+
+        env.intern_provisioned(
+            id,
+            PartialType {
+                span: self.span,
+                kind: env.intern_kind(TypeKind::Tuple(TupleType {
+                    fields: env.intern_type_ids(&fields),
+                    arguments,
+                })),
+            },
+        )
     }
 }
 

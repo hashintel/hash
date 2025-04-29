@@ -25,9 +25,9 @@ use super::{
     PartialType, Type, TypeId,
     environment::{
         AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
-        SimplifyEnvironment,
+        SimplifyEnvironment, instantiate::InstantiateEnvironment,
     },
-    error::{no_type_inference, type_mismatch},
+    error::{no_type_inference, type_mismatch, type_parameter_not_found},
     inference::{Constraint, Inference, PartialStructuralEdge, Variable, VariableKind},
     lattice::Lattice,
     pretty_print::{CYAN, GRAY, PrettyPrint},
@@ -1625,8 +1625,49 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
         }
     }
 
-    fn instantiate(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> TypeId {
-        todo!("https://linear.app/hash/issue/H-4384/hashql-type-instantiation")
+    /// Instantiates a type by replacing type parameters with their corresponding arguments.
+    ///
+    /// This function handles different type kinds according to their specific instantiation rules:
+    /// - Most structured types (Opaque, Primitive, Struct, etc.) delegate to their specific
+    ///   implementations.
+    /// - Type parameters (`Param`) are replaced with their corresponding arguments from the
+    ///   environment.
+    /// - Inference variables, `Never`, and `Unknown` types are left unchanged.
+    ///
+    /// # Type instantiation semantics
+    ///
+    /// Instantiation of a polymorphic type scheme `σ = ∀α̅. τ` (in the style of Algorithm W
+    /// as found in ML, OCaml, Haskell, Rust, and HashQL) replaces **only** the universally
+    /// quantified parameters `α̅` with fresh unification variables. All other inference‐variable
+    /// "holes" in `τ` remain unchanged, ensuring that only the bound type parameters are
+    /// freshly instantiated.
+    ///
+    /// (Only the ∀-bound type parameters are replaced)
+    fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {
+        match self.kind {
+            TypeKind::Opaque(opaque_type) => self.with(opaque_type).instantiate(env),
+            TypeKind::Primitive(primitive_type) => self.with(primitive_type).instantiate(env),
+            TypeKind::Intrinsic(intrinsic_type) => self.with(intrinsic_type).instantiate(env),
+            TypeKind::Struct(struct_type) => self.with(struct_type).instantiate(env),
+            TypeKind::Tuple(tuple_type) => self.with(tuple_type).instantiate(env),
+            TypeKind::Union(union_type) => self.with(union_type).instantiate(env),
+            TypeKind::Intersection(intersection_type) => {
+                self.with(intersection_type).instantiate(env)
+            }
+            TypeKind::Closure(closure_type) => self.with(closure_type).instantiate(env),
+            &TypeKind::Param(Param { argument }) => {
+                if let Some(argument) = env.lookup_argument(argument) {
+                    env.intern_type(PartialType {
+                        span: self.span,
+                        kind: env.intern_kind(TypeKind::Param(Param { argument })),
+                    })
+                } else {
+                    env.record_diagnostic(type_parameter_not_found(env, self, argument));
+                    self.id
+                }
+            }
+            TypeKind::Infer(_) | TypeKind::Never | TypeKind::Unknown => self.id,
+        }
     }
 }
 

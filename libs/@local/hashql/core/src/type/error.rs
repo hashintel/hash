@@ -9,7 +9,10 @@ use hashql_diagnostics::{
     severity::Severity,
 };
 
-use super::{Type, environment::Environment, inference::Variable, pretty_print::PrettyPrint};
+use super::{
+    Type, environment::Environment, inference::Variable, kind::generic_argument::GenericArgumentId,
+    pretty_print::PrettyPrint,
+};
 use crate::{span::SpanId, symbol::InternedSymbol};
 
 pub type TypeCheckDiagnostic = Diagnostic<TypeCheckDiagnosticCategory, SpanId>;
@@ -96,6 +99,11 @@ const CONFLICTING_EQUALITY_CONSTRAINTS: TerminalDiagnosticCategory = TerminalDia
     name: "Conflicting equality constraints",
 };
 
+const TYPE_PARAMETER_NOT_FOUND: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "type-parameter-not-found",
+    name: "Type parameter not found",
+};
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum TypeCheckDiagnosticCategory {
     TypeMismatch,
@@ -114,6 +122,7 @@ pub enum TypeCheckDiagnosticCategory {
     IncompatibleLowerEqualConstraint,
     IncompatibleUpperEqualConstraint,
     ConflictingEqualityConstraints,
+    TypeParameterNotFound,
 }
 
 impl DiagnosticCategory for TypeCheckDiagnosticCategory {
@@ -143,6 +152,7 @@ impl DiagnosticCategory for TypeCheckDiagnosticCategory {
             Self::IncompatibleLowerEqualConstraint => Some(&INCOMPATIBLE_LOWER_EQUAL_CONSTRAINT),
             Self::IncompatibleUpperEqualConstraint => Some(&INCOMPATIBLE_UPPER_EQUAL_CONSTRAINT),
             Self::ConflictingEqualityConstraints => Some(&CONFLICTING_EQUALITY_CONSTRAINTS),
+            Self::TypeParameterNotFound => Some(&TYPE_PARAMETER_NOT_FOUND),
         }
     }
 }
@@ -1082,6 +1092,62 @@ where
          the same variable in different parts of your code, either explicitly through annotations \
          or implicitly through usage.",
     ));
+
+    diagnostic
+}
+
+/// Creates a diagnostic for when a type parameter cannot be found during instantiation
+///
+/// This is used when instantiating a parameterized type, but one of the required type
+/// parameters is not available in the environment.
+pub(crate) fn type_parameter_not_found<K>(
+    env: &Environment,
+    param: Type<K>,
+    argument: GenericArgumentId,
+) -> TypeCheckDiagnostic
+where
+    K: PrettyPrint,
+{
+    let mut diagnostic = Diagnostic::new(
+        TypeCheckDiagnosticCategory::TypeParameterNotFound,
+        // This is a compiler bug in the error reporting sequence
+        Severity::COMPILER_BUG,
+    );
+
+    // Primary label indicating the invalid reference
+    diagnostic.labels.push(
+        Label::new(
+            param.span,
+            format!("Invalid reference to undefined type parameter ?{argument}",),
+        )
+        .with_order(1),
+    );
+
+    // Secondary label for context about error reporting
+    diagnostic.labels.push(
+        Label::new(
+            env.source,
+            "This invalid code should have been rejected earlier in the compilation process",
+        )
+        .with_order(2),
+    );
+
+    // Help message explaining the situation
+    diagnostic.help = Some(Help::new(
+        "This error indicates your code contains an invalid type parameter reference that should \
+         have been caught by an earlier validation step. While the code is indeed incorrect, the \
+         compiler should have reported this error in a more specific way at an earlier stage. \
+         Please report this issue to the HashQL team with a minimal reproduction case.",
+    ));
+
+    // Technical explanation with more details
+    diagnostic.note = Some(Note::new(format!(
+        "Technical details: Parameter ?{argument} is referenced but not defined in the current \
+         environment. This represents both an invalid program and a flaw in the error reporting \
+         sequence. The compiler should validate all parameter references during an earlier \
+         compilation phase and provide more specific error messages. Please report this as a \
+         compiler issue so we can improve error reporting for similar cases.",
+    )));
 
     diagnostic
 }

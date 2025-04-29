@@ -8,7 +8,7 @@ use crate::r#type::{
     PartialType, Type, TypeId,
     environment::{
         AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
-        SimplifyEnvironment,
+        SimplifyEnvironment, instantiate::InstantiateEnvironment,
     },
     error::type_mismatch,
     inference::{Inference, PartialStructuralEdge},
@@ -162,8 +162,18 @@ impl<'heap> Inference<'heap> for ListType {
         env.in_covariant(|env| env.collect_structural_edges(self.kind.element, variable));
     }
 
-    fn instantiate(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> TypeId {
-        todo!("https://linear.app/hash/issue/H-4384/hashql-type-instantiation")
+    fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {
+        let (_provision_guard, id) = env.provision(self.id);
+
+        let element = env.instantiate(self.kind.element);
+
+        env.intern_provisioned(
+            id,
+            PartialType {
+                span: self.span,
+                kind: env.intern_kind(TypeKind::Intrinsic(IntrinsicType::List(Self { element }))),
+            },
+        )
     }
 }
 
@@ -438,8 +448,23 @@ impl<'heap> Inference<'heap> for DictType {
         env.in_covariant(|env| env.collect_structural_edges(self.kind.value, variable));
     }
 
-    fn instantiate(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> TypeId {
-        todo!("https://linear.app/hash/issue/H-4384/hashql-type-instantiation")
+    // TODO: test
+    fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {
+        let (_provision_guard, id) = env.provision(self.id);
+
+        let key = env.instantiate(self.kind.key);
+        let value = env.instantiate(self.kind.value);
+
+        env.intern_provisioned(
+            id,
+            PartialType {
+                span: self.span,
+                kind: env.intern_kind(TypeKind::Intrinsic(IntrinsicType::Dict(Self {
+                    key,
+                    value,
+                }))),
+            },
+        )
     }
 }
 
@@ -667,7 +692,7 @@ impl<'heap> Inference<'heap> for IntrinsicType {
         }
     }
 
-    fn instantiate(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> TypeId {
+    fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {
         match self.kind {
             Self::List(list) => self.with(list).instantiate(env),
             Self::Dict(dict) => self.with(dict).instantiate(env),
