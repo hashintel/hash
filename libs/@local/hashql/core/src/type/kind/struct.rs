@@ -1926,7 +1926,6 @@ mod test {
         );
     }
 
-    #[expect(clippy::missing_asserts_for_indexing, reason = "false positive")]
     #[test]
     fn simplify_recursive_struct() {
         let heap = Heap::new();
