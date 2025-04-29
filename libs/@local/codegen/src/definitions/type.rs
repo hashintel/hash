@@ -2,7 +2,7 @@ use alloc::borrow::Cow;
 
 use specta::datatype;
 
-use super::{Enum, Map, Primitive, Struct};
+use super::{Enum, List, Map, Primitive, Struct, Tuple};
 
 #[derive(Debug, Clone)]
 pub enum Type {
@@ -12,7 +12,8 @@ pub enum Type {
     Primitive(Primitive),
     Enum(Enum),
     Struct(Struct),
-    List(Box<Self>),
+    Tuple(Tuple),
+    List(List),
     Map(Map),
     Optional(Box<Self>),
 }
@@ -37,8 +38,11 @@ impl Type {
                     .name()
                     .clone(),
             ),
+            specta::DataType::Tuple(tuple) => {
+                Self::Tuple(Tuple::from_specta(tuple, type_collection))
+            }
             specta::DataType::List(list_type) => {
-                Self::List(Box::new(Self::from_specta(list_type.ty(), type_collection)))
+                Self::List(List::from_specta(list_type, type_collection))
             }
             specta::DataType::Nullable(nullable) => {
                 Self::Optional(Box::new(Self::from_specta(nullable, type_collection)))

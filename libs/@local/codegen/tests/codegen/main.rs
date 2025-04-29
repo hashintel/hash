@@ -4,6 +4,7 @@ mod enums;
 mod lists;
 mod maps;
 mod structs;
+mod tuples;
 
 use std::process::ExitCode;
 
@@ -55,6 +56,14 @@ fn main() -> ExitCode {
     collection.register::<maps::MapEnumKey>();
     collection.register::<maps::MapNested>();
     collection.register::<maps::MapOptional>();
+
+    // Register tuples
+    collection.register::<tuples::TupleEmpty>();
+    collection.register::<tuples::TupleSingle>();
+    collection.register::<tuples::TupleDouble>();
+    collection.register::<tuples::TupleMultiple>();
+    collection.register::<tuples::TupleNested>();
+    collection.register::<tuples::TupleOptional>();
     let names = collection
         .iter()
         .map(|(name, _)| name.to_owned())
