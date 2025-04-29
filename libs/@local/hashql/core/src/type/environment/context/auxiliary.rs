@@ -1,6 +1,6 @@
-use crate::r#type::{
+use crate::{
     collection::FastHashMap,
-    kind::generic_argument::{GenericArgumentData, GenericArgumentId},
+    r#type::kind::generic_argument::{GenericArgumentData, GenericArgumentId},
 };
 
 #[derive(Debug)]

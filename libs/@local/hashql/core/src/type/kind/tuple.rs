@@ -5,9 +5,10 @@ use smallvec::SmallVec;
 
 use super::{TypeKind, generic_argument::GenericArguments};
 use crate::{
+    intern::Interned,
     math::cartesian_product,
     r#type::{
-        Type, TypeId,
+        PartialType, Type, TypeId,
         environment::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
             SimplifyEnvironment,
@@ -22,7 +23,7 @@ use crate::{
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct TupleType<'heap> {
-    pub fields: &'heap [TypeId],
+    pub fields: Interned<'heap, [TypeId]>,
 
     pub arguments: GenericArguments<'heap>,
 }
@@ -49,8 +50,7 @@ impl<'heap> TupleType<'heap> {
         variants
             .into_iter()
             .map(|fields| {
-                env.alloc(|id| Type {
-                    id,
+                env.intern_type(PartialType {
                     span: self.span,
                     kind: env.intern_kind(TypeKind::Tuple(Self {
                         fields: env.intern_type_ids(&fields),
@@ -67,24 +67,13 @@ impl<'heap> TupleType<'heap> {
         env: &Environment<'heap>,
         fields: &[TypeId],
     ) -> SmallVec<TypeId, 4> {
-        // Check if we can opt-out into allocating a new type
-        if *self.kind.fields == *fields {
-            return SmallVec::from_slice(&[self.id]);
-        }
-
-        if *other.kind.fields == *fields {
-            return SmallVec::from_slice(&[other.id]);
-        }
-
-        // ... we can't so we need to allocate a new type
         let kind = env.intern_kind(TypeKind::Tuple(Self {
             fields: env.intern_type_ids(fields),
             // merge the two arguments together, as some of the fields may refer to either
             arguments: self.kind.arguments.merge(&other.kind.arguments, env),
         }));
 
-        let id = env.alloc(|id| Type {
-            id,
+        let id = env.intern_type(PartialType {
             span: self.span,
             kind,
         });
@@ -260,31 +249,18 @@ impl<'heap> Lattice<'heap> for TupleType<'heap> {
             fields.push(env.simplify(field));
         }
 
-        // Check if we can skip the creation of a new type if all the fields are identical
-        if self
-            .kind
-            .fields
-            .iter()
-            .zip(fields.iter())
-            .all(|(&lhs, &rhs)| lhs == rhs)
-        {
-            return self.id;
-        }
-
         // Check if any of the fields are uninhabited, if that is the case we simplify down to an
         // uninhabited type
         if fields.iter().any(|&field| env.is_bottom(field)) {
             let kind = env.intern_kind(TypeKind::Never);
 
-            return env.alloc(|id| Type {
-                id,
+            return env.intern_type(PartialType {
                 span: self.span,
                 kind,
             });
         }
 
-        env.alloc(|id| Type {
-            id,
+        env.intern_type(PartialType {
             span: self.span,
             kind: env.intern_kind(TypeKind::Tuple(Self {
                 fields: env.intern_type_ids(&fields),
@@ -895,7 +871,7 @@ mod test {
         let result = never_tuple.simplify(&mut simplify_env);
 
         // The result should be a Never type
-        let result_type = env.types[result].copied();
+        let result_type = env.r#type(result);
         assert!(
             matches!(result_type.kind, TypeKind::Never),
             "Expected Never, got {:?}",
@@ -999,7 +975,7 @@ mod test {
         let result = tuple_with_intersection.simplify(&mut simplify_env);
 
         // The result should be a Never type
-        let result_type = env.types[result].copied();
+        let result_type = env.r#type(result);
         assert!(
             matches!(result_type.kind, TypeKind::Never),
             "Expected Never, got {:?}",

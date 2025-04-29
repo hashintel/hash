@@ -104,18 +104,11 @@ impl<'env, 'heap, const CAPACITY: usize> TypeIdSet<'env, 'heap, CAPACITY> {
         // in the future this leads to performance issues these are possible ways to optimize
         // further.
         self.items.sort_unstable_by(|&lhs, &rhs| {
-            ptr_cmp(
-                self.env.types[lhs].copied().kind,
-                self.env.types[rhs].copied().kind,
-            )
+            ptr_cmp(self.env.r#type(lhs).kind, self.env.r#type(rhs).kind)
         });
 
-        self.items.dedup_by(|lhs, rhs| {
-            ptr_eq(
-                self.env.types[*lhs].copied().kind,
-                self.env.types[*rhs].copied().kind,
-            )
-        });
+        self.items
+            .dedup_by(|lhs, rhs| ptr_eq(self.env.r#type(*lhs).kind, self.env.r#type(*rhs).kind));
 
         self.items
     }

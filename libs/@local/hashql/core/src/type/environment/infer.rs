@@ -108,8 +108,8 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
             Variance::Invariant => (subtype, supertype),
         };
 
-        let subtype = self.environment.types[subtype].copied();
-        let supertype = self.environment.types[supertype].copied();
+        let subtype = self.environment.r#type(subtype);
+        let supertype = self.environment.r#type(supertype);
 
         subtype.collect_constraints(supertype, self);
 
@@ -130,7 +130,7 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
             Variance::Invariant => return,
         };
 
-        let r#type = self.environment.types[id].copied();
+        let r#type = self.environment.r#type(id);
 
         r#type.collect_structural_edges(variable, self);
 

@@ -17,7 +17,8 @@ foldhash           = { workspace = true, public = true }
 hashbrown          = { workspace = true, features = ["nightly"], public = true }
 orx-concurrent-vec = { workspace = true, public = true }
 pretty             = { workspace = true, public = true }
-smallvec           = { version = "2.0.0-alpha.11", public = true }
+scc                = { workspace = true, public = true }
+smallvec           = { workspace = true, public = true }
 text-size          = { workspace = true, public = true }
 
 # Private workspace dependencies
@@ -30,7 +31,6 @@ derive_more    = { workspace = true, features = ["debug"] }
 ena            = { workspace = true }
 roaring        = { workspace = true, features = ["std", "simd"] }
 rpds           = { workspace = true }
-scc            = { workspace = true }
 serde          = { workspace = true, optional = true, features = ["alloc", "derive"] }
 simple-mermaid = { workspace = true }
 tracing        = { workspace = true }

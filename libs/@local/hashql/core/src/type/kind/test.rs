@@ -5,7 +5,7 @@ macro_rules! primitive {
 
     ($env:expr, $name:ident, $primitive:expr) => {
         let $name = primitive!($env, $primitive);
-        let $name = $env.types[$name].copied();
+        let $name = $env.r#type($name);
         let $name = $name.map(|kind| kind.primitive().expect("should be a primitive"));
     };
 }
@@ -21,7 +21,7 @@ macro_rules! tuple {
 
     ($env:expr, $name:ident, $fields:expr, $arguments:expr) => {
         let $name = tuple!($env, $fields, $arguments);
-        let $name = $env.types[$name].copied();
+        let $name = $env.r#type($name);
         let $name = $name.map(|kind| kind.tuple().expect("should be a tuple"));
     };
 }
@@ -40,7 +40,7 @@ macro_rules! r#struct {
 
     ($env:expr, $name:ident, $fields:expr, $arguments:expr) => {
         let $name = r#struct!($env, $fields, $arguments);
-        let $name = $env.types[$name].copied();
+        let $name = $env.r#type($name);
         let $name = $name.map(|kind| kind.r#struct().expect("should be a struct"));
     };
 }
@@ -73,7 +73,7 @@ macro_rules! closure {
 
     ($env:expr, $name:ident, $arguments:expr, $params:expr, $returns:expr) => {
         let $name = closure!($env, $arguments, $params, $returns);
-        let $name = $env.types[$name].copied();
+        let $name = $env.r#type($name);
         let $name = $name.map(|kind| kind.closure().expect("should be a closure"));
     };
 }
@@ -87,7 +87,7 @@ macro_rules! union {
 
     ($env:expr, $name:ident, $variants:expr) => {
         let $name = union!($env, $variants);
-        let $name = $env.types[$name].copied();
+        let $name = $env.r#type($name);
         let $name = $name.map(|kind| kind.union().expect("should be a union"));
     };
 }
@@ -101,7 +101,7 @@ macro_rules! intersection {
 
     ($env:expr, $name:ident, $variants:expr) => {
         let $name = intersection!($env, $variants);
-        let $name = $env.types[$name].copied();
+        let $name = $env.r#type($name);
         let $name = $name.map(|kind| kind.intersection().expect("should be an intersection"));
     };
 }
@@ -111,7 +111,7 @@ macro_rules! assert_kind {
         assert_eq!($actual.len(), $expected.len());
 
         for (actual, expected) in $actual.into_iter().zip($expected.iter()) {
-            let actual = &$env.types[actual].copied();
+            let actual = &$env.r#type(actual);
             assert_eq!(*actual.kind, *expected);
         }
     };
@@ -128,8 +128,8 @@ macro_rules! assert_equiv {
         $(equiv_env.set_substitution($substitution);)?
 
         for (&actual, &expected) in actual.iter().zip(expected.iter()) {
-            let actual_repr = &$env.types[actual].copied().pretty_print(&equiv_env, 80);
-            let expected_repr = &$env.types[expected].copied().pretty_print(&equiv_env, 80);
+            let actual_repr = &$env.r#type(actual).pretty_print(&equiv_env, 80);
+            let expected_repr = &$env.r#type(expected).pretty_print(&equiv_env, 80);
 
             assert!(
                 equiv_env.is_equivalent(actual, expected),
@@ -159,7 +159,7 @@ macro_rules! opaque {
 
     ($env:expr, $var_name:ident, $name:expr, $repr:expr, $arguments:expr) => {
         let $var_name = opaque!($env, $name, $repr, $arguments);
-        let $var_name = $env.types[$var_name].copied();
+        let $var_name = $env.r#type($var_name);
         let $var_name = $var_name.map(|kind| kind.opaque().expect("should be an opaque type"));
     };
 }
@@ -176,7 +176,7 @@ macro_rules! list {
 
     ($env:expr, $name:ident, $element:expr) => {
         let $name = list!($env, $element);
-        let $name = $env.types[$name].copied();
+        let $name = $env.r#type($name);
         let $name = $name.map(|kind| {
             kind.intrinsic()
                 .expect("should be an intrinsic type")
@@ -199,7 +199,7 @@ macro_rules! dict {
 
     ($env:expr, $name:ident, $key:expr, $value:expr) => {
         let $name = dict!($env, $key, $value);
-        let $name = $env.types[$name].copied();
+        let $name = $env.r#type($name);
         let $name = $name.map(|kind| {
             kind.intrinsic()
                 .expect("should be an intrinsic type")

@@ -3,6 +3,7 @@ use core::ops::Deref;
 use pretty::RcDoc;
 
 use crate::{
+    intern::Interned,
     newtype,
     symbol::Symbol,
     r#type::{
@@ -54,12 +55,12 @@ impl PrettyPrint for GenericArgument {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct GenericArguments<'heap>(&'heap [GenericArgument]);
+pub struct GenericArguments<'heap>(Option<Interned<'heap, [GenericArgument]>>);
 
 impl<'heap> GenericArguments<'heap> {
     #[must_use]
     pub const fn empty() -> Self {
-        Self(&[])
+        Self(None)
     }
 
     /// Create a new `GenericArguments` from a slice of `GenericArgument`s.
@@ -68,23 +69,36 @@ impl<'heap> GenericArguments<'heap> {
     ///
     /// You should probably use `Environment::intern_generic_arguments` instead.
     #[must_use]
-    pub const fn from_slice_unchecked(slice: &'heap [GenericArgument]) -> Self {
-        Self(slice)
+    pub const fn from_slice_unchecked(slice: Interned<'heap, [GenericArgument]>) -> Self {
+        Self(Some(slice))
     }
 
     #[must_use]
     pub const fn as_slice(&self) -> &[GenericArgument] {
-        self.0
+        match self.0 {
+            Some(Interned(slice, _)) => slice,
+            None => &[] as &[GenericArgument],
+        }
+    }
+
+    #[must_use]
+    pub const fn len(&self) -> usize {
+        self.as_slice().len()
+    }
+
+    #[must_use]
+    pub const fn is_empty(&self) -> bool {
+        self.as_slice().is_empty()
     }
 
     #[must_use]
     pub fn merge(&self, other: &Self, env: &Environment<'heap>) -> Self {
         // We can merge without de-duplication, because every argument has a unique ID.
         // What we need to do tho, is to re-sort them, so that the invariants are maintained.
-        let mut vec = Vec::with_capacity(self.0.len() + other.0.len());
+        let mut vec = Vec::with_capacity(self.len() + other.len());
 
-        vec.extend_from_slice(self.0);
-        vec.extend_from_slice(other.0);
+        vec.extend_from_slice(self.as_slice());
+        vec.extend_from_slice(other.as_slice());
 
         env.intern_generic_arguments(&mut vec)
     }
@@ -92,7 +106,7 @@ impl<'heap> GenericArguments<'heap> {
 
 impl AsRef<[GenericArgument]> for GenericArguments<'_> {
     fn as_ref(&self) -> &[GenericArgument] {
-        self.0
+        self.as_slice()
     }
 }
 
@@ -100,7 +114,7 @@ impl Deref for GenericArguments<'_> {
     type Target = [GenericArgument];
 
     fn deref(&self) -> &Self::Target {
-        self.0
+        self.as_slice()
     }
 }
 
@@ -110,19 +124,18 @@ impl PrettyPrint for GenericArguments<'_> {
         env: &'env Environment,
         limit: RecursionDepthBoundary,
     ) -> RcDoc<'env, anstyle::Style> {
-        if self.0.is_empty() {
-            RcDoc::nil()
-        } else {
-            RcDoc::text("<")
+        match self.0 {
+            Some(Interned([], _)) | None => RcDoc::nil(),
+            Some(Interned(arguments, _)) => RcDoc::text("<")
                 .append(
                     RcDoc::intersperse(
-                        self.0.iter().map(|argument| argument.pretty(env, limit)),
+                        arguments.iter().map(|argument| argument.pretty(env, limit)),
                         RcDoc::text(",").append(RcDoc::line()),
                     )
                     .nest(1)
                     .group(),
                 )
-                .append(RcDoc::text(">"))
+                .append(RcDoc::text(">")),
         }
     }
 }

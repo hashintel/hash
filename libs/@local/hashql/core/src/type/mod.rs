@@ -4,7 +4,6 @@ mod collection;
 pub mod environment;
 pub mod error;
 pub mod inference;
-pub mod intern;
 pub mod kind;
 pub mod lattice;
 pub mod pretty_print;
@@ -15,10 +14,12 @@ pub(crate) mod test;
 use core::ops::Receiver;
 
 use self::{kind::TypeKind, pretty_print::PrettyPrint, recursion::RecursionDepthBoundary};
-use crate::{id::HasId, newtype, span::SpanId};
-
-// TODO: consider interning types to reduce memory usage
-// TODO: see https://github.com/rust-lang/rust/blob/94015d3cd4b48d098abd0f3e44af97dab2b713b4/compiler/rustc_data_structures/src/intern.rs#L26 and https://github.com/rust-lang/rust/blob/94015d3cd4b48d098abd0f3e44af97dab2b713b4/compiler/rustc_data_structures/src/sharded.rs#L204
+use crate::{
+    id::HasId,
+    intern::{Decompose, Interned},
+    newtype,
+    span::SpanId,
+};
 
 newtype!(
     pub struct TypeId(u32 is 0..=0xFFFF_FF00)
@@ -80,4 +81,22 @@ impl<K> HasId for Type<'_, K> {
 
 impl<K: ?Sized> Receiver for Type<'_, K> {
     type Target = K;
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct PartialType<'heap> {
+    pub span: SpanId,
+    pub kind: Interned<'heap, TypeKind<'heap>>,
+}
+
+impl<'heap> Decompose<'heap> for Type<'heap> {
+    type Partial = PartialType<'heap>;
+
+    fn from_parts(id: Self::Id, partial: Interned<'heap, Self::Partial>) -> Self {
+        Type {
+            id,
+            span: partial.span,
+            kind: partial.kind.0,
+        }
+    }
 }

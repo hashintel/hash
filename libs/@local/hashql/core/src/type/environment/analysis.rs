@@ -93,12 +93,12 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
             &TypeKind::Param(Param { argument }) => {
                 let argument = substitution.argument(argument)?;
 
-                Some(self.environment.types[argument].copied())
+                Some(self.environment.r#type(argument))
             }
             &TypeKind::Infer(Infer { hole }) => {
                 let infer = substitution.infer(hole)?;
 
-                Some(self.environment.types[infer].copied())
+                Some(self.environment.r#type(infer))
             }
         }
     }
@@ -109,7 +109,7 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
             return false;
         }
 
-        let r#type = self.environment.types[id].copied();
+        let r#type = self.environment.r#type(id);
         let result = r#type.is_bottom(self);
 
         self.boundary.exit(id, id);
@@ -123,7 +123,7 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
             return false;
         }
 
-        let r#type = self.environment.types[id].copied();
+        let r#type = self.environment.r#type(id);
         let result = r#type.is_top(self);
 
         self.boundary.exit(id, id);
@@ -132,8 +132,8 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
     }
 
     pub fn is_disjoint(&mut self, lhs: TypeId, rhs: TypeId) -> bool {
-        let lhs = self.environment.types[lhs].copied();
-        let rhs = self.environment.types[rhs].copied();
+        let lhs = self.environment.r#type(lhs);
+        let rhs = self.environment.r#type(rhs);
 
         !lhs.is_subtype_of(rhs, self) && !rhs.is_subtype_of(lhs, self)
     }
@@ -144,7 +144,7 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
             return true;
         }
 
-        let r#type = self.environment.types[id].copied();
+        let r#type = self.environment.r#type(id);
         let result = r#type.is_concrete(self);
 
         self.boundary.exit(id, id);
@@ -159,7 +159,7 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
             return SmallVec::from_slice(&[id]);
         }
 
-        let r#type = self.environment.types[id].copied();
+        let r#type = self.environment.r#type(id);
         let result = r#type.distribute_union(self);
 
         self.boundary.exit(id, id);
@@ -174,7 +174,7 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
             return SmallVec::from_slice(&[id]);
         }
 
-        let r#type = self.environment.types[id].copied();
+        let r#type = self.environment.r#type(id);
         let result = r#type.distribute_intersection(self);
 
         self.boundary.exit(id, id);
@@ -318,8 +318,8 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
             Variance::Invariant => return self.is_equivalent(subtype, supertype),
         };
 
-        let subtype = self.environment.types[subtype].copied();
-        let supertype = self.environment.types[supertype].copied();
+        let subtype = self.environment.r#type(subtype);
+        let supertype = self.environment.r#type(supertype);
 
         if !self.boundary.enter(subtype.id, supertype.id) {
             return self.is_subtype_of_recursive(subtype, supertype);
@@ -398,8 +398,8 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
     }
 
     pub fn is_equivalent(&mut self, lhs: TypeId, rhs: TypeId) -> bool {
-        let lhs = self.environment.types[lhs].copied();
-        let rhs = self.environment.types[rhs].copied();
+        let lhs = self.environment.r#type(lhs);
+        let rhs = self.environment.r#type(rhs);
 
         if !self.boundary.enter(lhs.id, rhs.id) {
             return self.is_equivalent_recursive(lhs, rhs);

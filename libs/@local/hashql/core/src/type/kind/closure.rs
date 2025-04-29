@@ -4,17 +4,20 @@ use pretty::RcDoc;
 use smallvec::SmallVec;
 
 use super::{TypeKind, generic_argument::GenericArguments};
-use crate::r#type::{
-    Type, TypeId,
-    environment::{
-        AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
-        SimplifyEnvironment,
+use crate::{
+    intern::Interned,
+    r#type::{
+        PartialType, Type, TypeId,
+        environment::{
+            AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
+            SimplifyEnvironment,
+        },
+        error::function_parameter_count_mismatch,
+        inference::{Inference, PartialStructuralEdge},
+        lattice::Lattice,
+        pretty_print::PrettyPrint,
+        recursion::RecursionDepthBoundary,
     },
-    error::function_parameter_count_mismatch,
-    inference::{Inference, PartialStructuralEdge},
-    lattice::Lattice,
-    pretty_print::PrettyPrint,
-    recursion::RecursionDepthBoundary,
 };
 
 /// Represents a function or closure type in the type system.
@@ -33,7 +36,7 @@ use crate::r#type::{
 ///   a subtype of a function returning `B`.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct ClosureType<'heap> {
-    pub params: &'heap [TypeId],
+    pub params: Interned<'heap, [TypeId]>,
     pub returns: TypeId,
 
     pub arguments: GenericArguments<'heap>,
@@ -47,17 +50,7 @@ impl<'heap> ClosureType<'heap> {
         params: &[TypeId],
         returns: TypeId,
     ) -> SmallVec<TypeId, 4> {
-        // Try to re-use one of the closures
-        if *self.kind.params == *params && self.kind.returns == returns {
-            return SmallVec::from_slice(&[self.id]);
-        }
-
-        if *other.kind.params == *params && other.kind.returns == returns {
-            return SmallVec::from_slice(&[other.id]);
-        }
-
-        SmallVec::from_slice(&[env.alloc(|id| Type {
-            id,
+        SmallVec::from_slice(&[env.intern_type(PartialType {
             span: self.span,
             kind: env.intern_kind(TypeKind::Closure(Self {
                 params: env.intern_type_ids(params),
@@ -204,13 +197,7 @@ impl<'heap> Lattice<'heap> for ClosureType<'heap> {
 
         let r#return = env.simplify(self.kind.returns);
 
-        // We can reuse the type if it's already simplified
-        if *params == *self.kind.params && r#return == self.kind.returns {
-            return self.id;
-        }
-
-        env.alloc(|id| Type {
-            id,
+        env.intern_type(PartialType {
             span: self.span,
             kind: env.intern_kind(TypeKind::Closure(Self {
                 params: env.intern_type_ids(&params),

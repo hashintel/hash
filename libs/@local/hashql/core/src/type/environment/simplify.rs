@@ -108,7 +108,7 @@ impl<'env, 'heap> SimplifyEnvironment<'env, 'heap> {
             return id;
         }
 
-        let r#type = self.environment.types[id].copied();
+        let r#type = self.environment.r#type(id);
         let result = r#type.simplify(self);
 
         self.boundary.exit(id, id);

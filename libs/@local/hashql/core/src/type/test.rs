@@ -2,7 +2,7 @@
 use core::{assert_matches::assert_matches, fmt::Debug};
 
 use super::{
-    Type, TypeId, TypeKind,
+    PartialType, TypeId, TypeKind,
     environment::{AnalysisEnvironment, Environment},
     kind::{Infer, Param, generic_argument::GenericArgumentId, infer::HoleId},
 };
@@ -29,8 +29,7 @@ pub(crate) macro setup_analysis($name:ident) {
 pub(crate) fn instantiate<'heap>(env: &Environment<'heap>, kind: TypeKind<'heap>) -> TypeId {
     let kind = env.intern_kind(kind);
 
-    env.alloc(|id| Type {
-        id,
+    env.intern_type(PartialType {
         span: SpanId::SYNTHETIC,
         kind,
     })
@@ -67,8 +66,8 @@ fn unify_never_types() {
 
     env.is_subtype_of(never1, never2);
 
-    assert_matches!(env.types[never1].copied().kind, TypeKind::Never);
-    assert_matches!(env.types[never2].copied().kind, TypeKind::Never);
+    assert_matches!(env.r#type(never1).kind, TypeKind::Never);
+    assert_matches!(env.r#type(never2).kind, TypeKind::Never);
 }
 
 #[test]
@@ -87,8 +86,8 @@ fn never_with_other_type() {
         "There should be an no error during unification"
     );
 
-    assert_matches!(env.types[never].copied().kind, TypeKind::Never);
-    assert_matches!(env.types[other].copied().kind, TypeKind::Unknown);
+    assert_matches!(env.r#type(never).kind, TypeKind::Never);
+    assert_matches!(env.r#type(other).kind, TypeKind::Unknown);
 }
 
 #[test]
@@ -100,8 +99,8 @@ fn unify_unknown_types() {
 
     env.is_subtype_of(unknown1, unknown2);
 
-    assert_matches!(env.types[unknown1].copied().kind, TypeKind::Unknown);
-    assert_matches!(env.types[unknown2].copied().kind, TypeKind::Unknown);
+    assert_matches!(env.r#type(unknown1).kind, TypeKind::Unknown);
+    assert_matches!(env.r#type(unknown2).kind, TypeKind::Unknown);
 }
 
 #[test]
@@ -119,30 +118,34 @@ fn unknown_with_other_type() {
             .is_empty()
     );
 
-    assert_matches!(env.types[unknown].copied().kind, TypeKind::Unknown);
+    assert_matches!(env.r#type(unknown).kind, TypeKind::Unknown);
 }
 
 #[test]
 fn direct_circular_reference() {
     setup_analysis!(env);
 
-    let a = env.alloc(|tuple_id| Type {
-        id: tuple_id,
-        span: SpanId::SYNTHETIC,
-        kind: env.intern_kind(TypeKind::Tuple(TupleType {
-            fields: env.intern_type_ids(&[tuple_id]),
-            arguments: GenericArguments::empty(),
-        })),
-    });
+    let a = env
+        .types
+        .intern(|tuple_id| PartialType {
+            span: SpanId::SYNTHETIC,
+            kind: env.intern_kind(TypeKind::Tuple(TupleType {
+                fields: env.intern_type_ids(&[tuple_id.value()]),
+                arguments: GenericArguments::empty(),
+            })),
+        })
+        .id;
 
-    let b = env.alloc(|id| Type {
-        id,
-        span: SpanId::SYNTHETIC,
-        kind: env.intern_kind(TypeKind::Tuple(TupleType {
-            fields: env.intern_type_ids(&[id]),
-            arguments: GenericArguments::empty(),
-        })),
-    });
+    let b = env
+        .types
+        .intern(|id| PartialType {
+            span: SpanId::SYNTHETIC,
+            kind: env.intern_kind(TypeKind::Tuple(TupleType {
+                fields: env.intern_type_ids(&[id.value()]),
+                arguments: GenericArguments::empty(),
+            })),
+        })
+        .id;
 
     // Test subtyping with the circular type
     assert!(env.is_subtype_of(a, b));
@@ -152,7 +155,7 @@ fn direct_circular_reference() {
     assert_eq!(env.fatal_diagnostics(), 0);
 
     // Verify the tuple structure is preserved
-    if let TypeKind::Tuple(tuple) = env.types[a].copied().kind {
+    if let TypeKind::Tuple(tuple) = env.r#type(a).kind {
         assert_eq!(tuple.fields.len(), 1);
     } else {
         panic!("Expected a tuple type");
@@ -166,38 +169,44 @@ fn indirect_circular_reference() {
     // Create a cycle: A → B → C → A
     let mut c = None;
     let mut b = None;
-    let a = env.alloc(|a_id| Type {
-        id: a_id,
-        span: SpanId::SYNTHETIC,
-        kind: env.intern_kind(TypeKind::Tuple(TupleType {
-            fields: env.intern_type_ids(&[env.alloc(|b_id| {
-                b = Some(b_id);
+    let a = env
+        .types
+        .intern(|a_id| PartialType {
+            span: SpanId::SYNTHETIC,
+            kind: env.intern_kind(TypeKind::Tuple(TupleType {
+                fields: env.intern_type_ids(&[env
+                    .types
+                    .intern(|b_id| {
+                        b = Some(b_id);
 
-                Type {
-                    id: b_id,
-                    span: SpanId::SYNTHETIC,
-                    kind: env.intern_kind(TypeKind::Tuple(TupleType {
-                        fields: env.intern_type_ids(&[env.alloc(|c_id| {
-                            c = Some(c_id);
+                        PartialType {
+                            span: SpanId::SYNTHETIC,
+                            kind: env.intern_kind(TypeKind::Tuple(TupleType {
+                                fields: env.intern_type_ids(&[env
+                                    .types
+                                    .intern(|c_id| {
+                                        c = Some(c_id);
 
-                            Type {
-                                id: c_id,
-                                span: SpanId::SYNTHETIC,
-                                kind: env.intern_kind(TypeKind::Tuple(TupleType {
-                                    fields: env.intern_type_ids(&[a_id]),
-                                    arguments: GenericArguments::empty(),
-                                })),
-                            }
-                        })]),
-                        arguments: GenericArguments::empty(),
-                    })),
-                }
-            })]),
-            arguments: GenericArguments::empty(),
-        })),
-    });
-    let b = b.expect("b should be Some");
-    let c = c.expect("c should be Some");
+                                        PartialType {
+                                            span: SpanId::SYNTHETIC,
+                                            kind: env.intern_kind(TypeKind::Tuple(TupleType {
+                                                fields: env.intern_type_ids(&[a_id.value()]),
+                                                arguments: GenericArguments::empty(),
+                                            })),
+                                        }
+                                    })
+                                    .id]),
+                                arguments: GenericArguments::empty(),
+                            })),
+                        }
+                    })
+                    .id]),
+                arguments: GenericArguments::empty(),
+            })),
+        })
+        .id;
+    let b = b.expect("b should be Some").value();
+    let c = c.expect("c should be Some").value();
 
     // Test subtyping with circular references
     assert!(env.is_subtype_of(a, b));
@@ -207,19 +216,19 @@ fn indirect_circular_reference() {
     assert_eq!(env.fatal_diagnostics(), 0);
 
     // Verify the structure of the types
-    if let TypeKind::Tuple(tuple) = env.types[a].copied().kind {
+    if let TypeKind::Tuple(tuple) = env.r#type(a).kind {
         assert_eq!(tuple.fields.len(), 1);
     } else {
         panic!("Expected a tuple type for A");
     }
 
-    if let TypeKind::Tuple(tuple) = env.types[b].copied().kind {
+    if let TypeKind::Tuple(tuple) = env.r#type(b).kind {
         assert_eq!(tuple.fields.len(), 1);
     } else {
         panic!("Expected a tuple type for B");
     }
 
-    if let TypeKind::Tuple(tuple) = env.types[c].copied().kind {
+    if let TypeKind::Tuple(tuple) = env.r#type(c).kind {
         assert_eq!(tuple.fields.len(), 1);
     } else {
         panic!("Expected a tuple type for C");
@@ -241,27 +250,36 @@ fn alternating_direction_cycle() {
     // Create a cycle with alternating directions:
     // Union (A) -> Intersection (B) -> Union (A)
     let mut intersection_id = None;
-    let union_id = env.alloc(|union_id| Type {
-        id: union_id,
-        span: SpanId::SYNTHETIC,
-        kind: env.intern_kind(TypeKind::Union(UnionType {
-            variants: env.intern_type_ids(&[
-                number,
-                env.alloc(|intersection_id_inner| {
-                    intersection_id = Some(intersection_id_inner);
+    let union_id = env
+        .types
+        .intern(|union_id| PartialType {
+            span: SpanId::SYNTHETIC,
+            kind: env.intern_kind(TypeKind::Union(UnionType {
+                variants: env.intern_type_ids(&[
+                    number,
+                    env.types
+                        .intern(|intersection_id_inner| {
+                            intersection_id = Some(intersection_id_inner);
 
-                    Type {
-                        id: intersection_id_inner,
-                        span: SpanId::SYNTHETIC,
-                        kind: env.intern_kind(TypeKind::Intersection(IntersectionType {
-                            variants: env.intern_type_ids(&[string, boolean, union_id]),
-                        })),
-                    }
-                }),
-            ]),
-        })),
-    });
-    let intersection_id = intersection_id.expect("intersection_id should be Some");
+                            PartialType {
+                                span: SpanId::SYNTHETIC,
+                                kind: env.intern_kind(TypeKind::Intersection(IntersectionType {
+                                    variants: env.intern_type_ids(&[
+                                        string,
+                                        boolean,
+                                        union_id.value(),
+                                    ]),
+                                })),
+                            }
+                        })
+                        .id,
+                ]),
+            })),
+        })
+        .id;
+    let intersection_id = intersection_id
+        .expect("intersection_id should be Some")
+        .value();
 
     // Test the cycle with subtyping - these should succeed with recursive handling
     assert!(env.is_subtype_of(union_id, union_id));
@@ -271,13 +289,13 @@ fn alternating_direction_cycle() {
     assert_eq!(env.fatal_diagnostics(), 0);
 
     // Verify the structure of the types is preserved
-    if let TypeKind::Union(union) = env.types[union_id].copied().kind {
+    if let TypeKind::Union(union) = env.r#type(union_id).kind {
         assert_eq!(union.variants.len(), 2);
     } else {
         panic!("Expected a union type");
     }
 
-    if let TypeKind::Intersection(intersection) = env.types[intersection_id].copied().kind {
+    if let TypeKind::Intersection(intersection) = env.r#type(intersection_id).kind {
         assert_eq!(intersection.variants.len(), 3);
     } else {
         panic!("Expected an intersection type");
@@ -292,28 +310,32 @@ fn recursive_type_equivalence() {
     let number = instantiate(&env, TypeKind::Primitive(PrimitiveType::Number));
 
     // First recursive type - A tuple that contains a Number and a reference to itself
-    let list1_id = env.alloc(|id| {
-        Type {
-            id,
-            span: SpanId::SYNTHETIC,
-            kind: env.intern_kind(TypeKind::Tuple(TupleType {
-                arguments: GenericArguments::empty(),
-                fields: env.intern_type_ids(&[number, id]), // [value, next]
-            })),
-        }
-    });
+    let list1_id = env
+        .types
+        .intern(|id| {
+            PartialType {
+                span: SpanId::SYNTHETIC,
+                kind: env.intern_kind(TypeKind::Tuple(TupleType {
+                    arguments: GenericArguments::empty(),
+                    fields: env.intern_type_ids(&[number, id.value()]), // [value, next]
+                })),
+            }
+        })
+        .id;
 
     // Second recursive type - A structurally identical tuple
-    let list2_id = env.alloc(|id| {
-        Type {
-            id,
-            span: SpanId::SYNTHETIC,
-            kind: env.intern_kind(TypeKind::Tuple(TupleType {
-                arguments: GenericArguments::empty(),
-                fields: env.intern_type_ids(&[number, id]), // [value, next]
-            })),
-        }
-    });
+    let list2_id = env
+        .types
+        .intern(|id| {
+            PartialType {
+                span: SpanId::SYNTHETIC,
+                kind: env.intern_kind(TypeKind::Tuple(TupleType {
+                    arguments: GenericArguments::empty(),
+                    fields: env.intern_type_ids(&[number, id.value()]), // [value, next]
+                })),
+            }
+        })
+        .id;
 
     // Test that the two recursive types are structurally equivalent
     assert!(env.is_equivalent(list1_id, list2_id));
@@ -322,13 +344,13 @@ fn recursive_type_equivalence() {
     assert_eq!(env.fatal_diagnostics(), 0);
 
     // Verify that both types have the correct structure
-    if let TypeKind::Tuple(tuple) = env.types[list1_id].copied().kind {
+    if let TypeKind::Tuple(tuple) = env.r#type(list1_id).kind {
         assert_eq!(tuple.fields.len(), 2);
     } else {
         panic!("Expected a tuple type for list1");
     }
 
-    if let TypeKind::Tuple(tuple) = env.types[list2_id].copied().kind {
+    if let TypeKind::Tuple(tuple) = env.r#type(list2_id).kind {
         assert_eq!(tuple.fields.len(), 2);
     } else {
         panic!("Expected a tuple type for list2");
@@ -349,28 +371,32 @@ fn recursive_subtyping() {
     let number = instantiate(&env, TypeKind::Primitive(PrimitiveType::Number));
 
     // Create type A = (Integer, A)
-    let type_a = env.alloc(|id| {
-        Type {
-            id,
-            span: SpanId::SYNTHETIC,
-            kind: env.intern_kind(TypeKind::Tuple(TupleType {
-                arguments: GenericArguments::empty(),
-                fields: env.intern_type_ids(&[integer, id]), // [Integer, self]
-            })),
-        }
-    });
+    let type_a = env
+        .types
+        .intern(|id| {
+            PartialType {
+                span: SpanId::SYNTHETIC,
+                kind: env.intern_kind(TypeKind::Tuple(TupleType {
+                    arguments: GenericArguments::empty(),
+                    fields: env.intern_type_ids(&[integer, id.value()]), // [Integer, self]
+                })),
+            }
+        })
+        .id;
 
     // Create type B = (Number, B)
-    let type_b = env.alloc(|id| {
-        Type {
-            id,
-            span: SpanId::SYNTHETIC,
-            kind: env.intern_kind(TypeKind::Tuple(TupleType {
-                arguments: GenericArguments::empty(),
-                fields: env.intern_type_ids(&[number, id]), // [Number, self]
-            })),
-        }
-    });
+    let type_b = env
+        .types
+        .intern(|id| {
+            PartialType {
+                span: SpanId::SYNTHETIC,
+                kind: env.intern_kind(TypeKind::Tuple(TupleType {
+                    arguments: GenericArguments::empty(),
+                    fields: env.intern_type_ids(&[number, id.value()]), // [Number, self]
+                })),
+            }
+        })
+        .id;
 
     // Test subtyping relationship A <: B
     // Since Integer <: Number, and we use coinductive reasoning for the recursive part,
@@ -400,28 +426,32 @@ fn recursive_join_operation() {
     let number = instantiate(&env, TypeKind::Primitive(PrimitiveType::Number));
 
     // Create type A = (Integer, A)
-    let type_a = env.alloc(|id| {
-        Type {
-            id,
-            span: SpanId::SYNTHETIC,
-            kind: env.intern_kind(TypeKind::Tuple(TupleType {
-                arguments: GenericArguments::empty(),
-                fields: env.intern_type_ids(&[integer, id]), // [Integer, self]
-            })),
-        }
-    });
+    let type_a = env
+        .types
+        .intern(|id| {
+            PartialType {
+                span: SpanId::SYNTHETIC,
+                kind: env.intern_kind(TypeKind::Tuple(TupleType {
+                    arguments: GenericArguments::empty(),
+                    fields: env.intern_type_ids(&[integer, id.value()]), // [Integer, self]
+                })),
+            }
+        })
+        .id;
 
     // Create type B = (Number, B)
-    let type_b = env.alloc(|id| {
-        Type {
-            id,
-            span: SpanId::SYNTHETIC,
-            kind: env.intern_kind(TypeKind::Tuple(TupleType {
-                arguments: GenericArguments::empty(),
-                fields: env.intern_type_ids(&[number, id]), // [Number, self]
-            })),
-        }
-    });
+    let type_b = env
+        .types
+        .intern(|id| {
+            PartialType {
+                span: SpanId::SYNTHETIC,
+                kind: env.intern_kind(TypeKind::Tuple(TupleType {
+                    arguments: GenericArguments::empty(),
+                    fields: env.intern_type_ids(&[number, id.value()]), // [Number, self]
+                })),
+            }
+        })
+        .id;
 
     // First check subtyping relationships to confirm our premise
     assert!(
@@ -459,28 +489,32 @@ fn recursive_meet_operation() {
     let number = instantiate(&env, TypeKind::Primitive(PrimitiveType::Number));
 
     // Create type A = (Integer, A)
-    let type_a = env.alloc(|id| {
-        Type {
-            id,
-            span: SpanId::SYNTHETIC,
-            kind: env.intern_kind(TypeKind::Tuple(TupleType {
-                arguments: GenericArguments::empty(),
-                fields: env.intern_type_ids(&[integer, id]), // [Integer, self]
-            })),
-        }
-    });
+    let type_a = env
+        .types
+        .intern(|id| {
+            PartialType {
+                span: SpanId::SYNTHETIC,
+                kind: env.intern_kind(TypeKind::Tuple(TupleType {
+                    arguments: GenericArguments::empty(),
+                    fields: env.intern_type_ids(&[integer, id.value()]), // [Integer, self]
+                })),
+            }
+        })
+        .id;
 
     // Create type B = (Number, B)
-    let type_b = env.alloc(|id| {
-        Type {
-            id,
-            span: SpanId::SYNTHETIC,
-            kind: env.intern_kind(TypeKind::Tuple(TupleType {
-                arguments: GenericArguments::empty(),
-                fields: env.intern_type_ids(&[number, id]), // [Number, self]
-            })),
-        }
-    });
+    let type_b = env
+        .types
+        .intern(|id| {
+            PartialType {
+                span: SpanId::SYNTHETIC,
+                kind: env.intern_kind(TypeKind::Tuple(TupleType {
+                    arguments: GenericArguments::empty(),
+                    fields: env.intern_type_ids(&[number, id.value()]), // [Number, self]
+                })),
+            }
+        })
+        .id;
 
     // Create a lattice environment to perform meet operation
     let mut lattice_env = LatticeEnvironment::new(&env);
