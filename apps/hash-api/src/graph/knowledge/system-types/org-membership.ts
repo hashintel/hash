@@ -54,12 +54,54 @@ export const getOrgMembershipFromLinkEntity: PureGraphFunction<
 };
 
 /**
- * Create a system OrgMembership entity.
+ * Create a link entity between a user and an org.
+ * Note that this is NOT SUFFICIENT for a user to be fully a member of an org,
+ * as the user must also be added to the org's actor group in the permission system,
+ * unless the Graph has done this automatically (when a user creates an org).
  *
- * @param params.org - the org
- * @param params.user - the user
+ * @todo H-4441 have the Graph handle memberOf link entity creation, as well as permisison handling.
  *
- * @see {@link createLinkEntity} for the documentation of the remaining parameters
+ * @param params.orgEntityId - the entityId of the org
+ * @param params.userEntityId - the entityId of the user
+ */
+export const createOrgMembershipLinkEntity: ImpureGraphFunction<
+  {
+    orgEntityId: EntityId;
+    userEntityId: EntityId;
+  },
+  Promise<OrgMembership>
+> = async (ctx, authentication, { userEntityId, orgEntityId }) => {
+  const userActorId = extractWebIdFromEntityId(userEntityId) as ActorEntityUuid;
+  const orgWebId = extractWebIdFromEntityId(orgEntityId);
+
+  const linkEntity = await createLinkEntity<IsMemberOf>(ctx, authentication, {
+    webId: orgWebId,
+    properties: { value: {} },
+    linkData: {
+      leftEntityId: userEntityId,
+      rightEntityId: orgEntityId,
+    },
+    entityTypeIds: [systemLinkEntityTypes.isMemberOf.linkEntityTypeId],
+    relationships: createOrgMembershipAuthorizationRelationships({
+      memberAccountId: userActorId,
+    }),
+  });
+
+  return { linkEntity };
+};
+
+/**
+ * Creates an org membership between a user and an org, which includes:
+ * 1. Adding the user to the org's actor group in the permission system
+ * 2. Creating a link entity between the user and the org, so that the membership is represented in the graph
+ *
+ * Note that when a user CREATES an org, the Graph automatically adds their membership,
+ * and in that circumstance this function is bypassed in favour of {@link createOrgMembershipLinkEntity}
+ *
+ * @todo H-4441 have the Graph handle memberOf link entity creation, as well as permisison handling.
+ *
+ * @param params.orgEntityId - the entityId of the org
+ * @param params.userEntityId - the entityId of the user
  */
 export const createOrgMembership: ImpureGraphFunction<
   {
@@ -76,19 +118,10 @@ export const createOrgMembership: ImpureGraphFunction<
     actorGroupId: orgWebId as ActorGroupEntityUuid,
   });
 
-  let linkEntity;
   try {
-    linkEntity = await createLinkEntity<IsMemberOf>(ctx, authentication, {
-      webId: orgWebId,
-      properties: { value: {} },
-      linkData: {
-        leftEntityId: userEntityId,
-        rightEntityId: orgEntityId,
-      },
-      entityTypeIds: [systemLinkEntityTypes.isMemberOf.linkEntityTypeId],
-      relationships: createOrgMembershipAuthorizationRelationships({
-        memberAccountId: userActorId,
-      }),
+    return await createOrgMembershipLinkEntity(ctx, authentication, {
+      userEntityId,
+      orgEntityId,
     });
   } catch (error) {
     await removeActorGroupMember(ctx, authentication, {
@@ -98,8 +131,6 @@ export const createOrgMembership: ImpureGraphFunction<
 
     throw error;
   }
-
-  return { linkEntity };
 };
 
 /**
