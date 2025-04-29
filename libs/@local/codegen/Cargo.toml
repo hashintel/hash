@@ -10,13 +10,29 @@ authors.workspace = true
 # Public workspace dependencies
 
 # Public third-party dependencies
-facet      = { workspace = true, public = true }
-facet-core = { workspace = true, public = true }
+specta = { workspace = true, public = true, features = ["derive"] }
 
 # Private workspace dependencies
 
 # Private third-party dependencies
+oxc            = { workspace = true, features = ["codegen"] }
 simple-mermaid = { workspace = true }
+
+[dev-dependencies]
+insta         = { workspace = true }
+libtest-mimic = { workspace = true }
+type-system   = { workspace = true }
 
 [lints]
 workspace = true
+
+[[test]]
+name    = "codegen"
+path    = "tests/codegen/main.rs"
+harness = false
+
+
+[package.metadata.sync.turborepo]
+ignore-dev-dependencies = [
+    "@blockprotocol/type-system-rs",
+]

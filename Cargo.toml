@@ -112,7 +112,7 @@ aws-types                = { version = "=1.3.7", default-features = false }
 axum                     = { version = "=0.7.5" }
 axum-core                = { version = "=0.5.0" }
 bitvec                   = { version = "=1.0.1", default-features = false }
-bumpalo                  = { version = "=3.17.0", default-features = false }
+bumpalo                  = { version = "=3.17.0", default-features = false, features = ["allocator_api"] }
 bytes                    = { version = "=1.10.1" }
 bytes-utils              = { version = "=0.1.4", default-features = false }
 cargo_metadata           = { version = "=0.19.2", default-features = false }
@@ -141,8 +141,6 @@ enum-iterator            = { version = "=2.1.0", default-features = false }
 enumflags2               = { version = "=0.7.11", default-features = false }
 erased-serde             = { version = "=0.4.6", default-features = false }
 expect-test              = { version = "=1.5.1", default-features = false }
-facet                    = { version = "0.18.0", default-features = false }
-facet-core               = { version = "0.18.0", default-features = false }
 foldhash                 = { version = "=0.1.5", default-features = false }
 frunk                    = { version = "=0.4.3", default-features = false }
 frunk_core               = { version = "=0.4.3", default-features = false }
@@ -177,6 +175,7 @@ libp2p-ping              = { version = "=0.46.0", default-features = false }
 libp2p-stream            = { version = "=0.3.0-alpha", default-features = false }
 libp2p-swarm             = { version = "=0.46.0", default-features = false }
 libp2p-yamux             = { version = "=0.47.0", default-features = false }
+libtest-mimic            = { version = "=0.8.1", default-features = false }
 logos                    = { version = "=0.15.0", default-features = false }
 memchr                   = { version = "=2.7.4", default-features = false }
 mimalloc                 = { version = "=0.1.46", default-features = false }
@@ -192,6 +191,7 @@ opentelemetry-otlp       = { version = "=0.29.0", default-features = false }
 opentelemetry_sdk        = { version = "=0.29.0", default-features = false }
 orx-concurrent-vec       = { version = "=3.6.0", default-features = false }
 owo-colors               = { version = "=4.2.0", default-features = false }
+oxc                      = { version = "=0.67.0", default-features = false, features = ["allocator_api"] }
 paste                    = { version = "=1.0.15", default-features = false }
 pdfium-render            = { version = "=0.8.26" }
 petgraph                 = { version = "=0.8.1", default-features = false }
@@ -227,6 +227,7 @@ similar-asserts          = { version = "=1.7.0", default-features = false }
 simple-mermaid           = { version = "=0.2.0", default-features = false }
 smallvec                 = { version = "=2.0.0-alpha.11", default-features = false }
 smol_str                 = { version = "=0.3.2" }
+specta                   = { version = "=2.0.0-rc.22", default-features = false }
 supports-color           = { version = "=3.0.2", default-features = false }
 supports-unicode         = { version = "=3.0.0", default-features = false }
 syn                      = { version = "=2.0.101", default-features = false }
@@ -375,3 +376,7 @@ unneeded_field_pattern           = "allow" # Actually, the opposite would be a g
 [workspace.metadata.cargo-shear]
 # We use the `futures` crate but the dependencies are required for public dependencies
 ignored = ["futures-core", "futures-io", "futures-sink"]
+
+[patch.crates-io]
+oxc    = { git = "https://github.com/TimDiekmann/oxc", rev = "333f583e" }
+specta = { git = "https://github.com/specta-rs/specta", rev = "ab7d924" }
