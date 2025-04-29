@@ -1,0 +1,9 @@
+---
+source: libs/@local/codegen/tests/codegen/main.rs
+expression: generated
+---
+type MapEnumKey = {
+	enum_to_string: Record<MapKeyEnum, string>
+	enum_to_int: Record<MapKeyEnum, number>
+	btree_enum_to_string: Record<MapKeyEnum, string>
+};

@@ -7,7 +7,10 @@ use oxc::{
 
 use crate::{
     TypeCollection,
-    definitions::{Enum, EnumTagging, EnumVariant, Fields, Primitive, Type, TypeDefinition},
+    definitions::{
+        Enum, EnumTagging, EnumVariant, Fields, List, Map, Primitive, Struct, Tuple, Type,
+        TypeDefinition,
+    },
 };
 
 #[derive(Default)]
@@ -77,6 +80,14 @@ impl<'a> TypeScriptGenerator<'a> {
             Primitive::Number => self.ast.ts_type_number_keyword(SPAN),
             Primitive::String => self.ast.ts_type_string_keyword(SPAN),
         }
+    }
+
+    fn visit_reference(&self, reference: &str) -> ast::TSType<'a> {
+        self.ast.ts_type_type_reference(
+            SPAN,
+            self.ast.ts_type_name_identifier_reference(SPAN, reference),
+            None::<ast::TSTypeParameterInstantiation<'a>>,
+        )
     }
 
     fn visit_fields(&self, variant: &Fields) -> ast::TSType<'a> {
@@ -264,21 +275,57 @@ impl<'a> TypeScriptGenerator<'a> {
         self.ast.ts_type_union_type(SPAN, types)
     }
 
+    fn visit_struct(&self, struct_type: &Struct) -> ast::TSType<'a> {
+        self.visit_fields(&struct_type.fields)
+    }
+
+    fn visit_map(&self, map: &Map) -> ast::TSType<'a> {
+        let mut params = self.ast.vec();
+        params.push(self.visit_type(&map.key));
+        params.push(self.visit_type(&map.value));
+
+        self.ast.ts_type_type_reference(
+            SPAN,
+            self.ast.ts_type_name_identifier_reference(SPAN, "Record"),
+            Some(self.ast.ts_type_parameter_instantiation(SPAN, params)),
+        )
+    }
+
+    fn visit_tuple(&self, tuple: &Tuple) -> ast::TSType<'a> {
+        let mut elements = self.ast.vec();
+        for element in &tuple.elements {
+            elements.push(self.visit_type(element).into());
+        }
+
+        self.ast.ts_type_tuple_type(SPAN, elements)
+    }
+
+    fn visit_list(&self, list: &List) -> ast::TSType<'a> {
+        self.ast
+            .ts_type_array_type(SPAN, self.visit_type(&list.r#type))
+    }
+
+    fn visit_optional(&self, optional: &Type) -> ast::TSType<'a> {
+        // TODO: Properly implement optional handling
+        //   see https://linear.app/hash/issue/H-4457/capture-field-optionality-in-codegen
+        let mut types = self.ast.vec();
+        types.push(self.visit_type(optional));
+        types.push(self.ast.ts_type_undefined_keyword(SPAN));
+
+        self.ast
+            .ts_type_parenthesized_type(SPAN, self.ast.ts_type_union_type(SPAN, types))
+    }
+
     fn visit_type(&self, r#type: &Type) -> ast::TSType<'a> {
         match r#type {
             Type::Primitive(primitive) => self.visit_primitive(primitive),
             Type::Enum(enum_type) => self.visit_enum(enum_type),
-            Type::Reference(name) => self.ast.ts_type_type_reference(
-                SPAN,
-                self.ast
-                    .ts_type_name_identifier_reference(SPAN, name.as_ref()),
-                None::<ast::TSTypeParameterInstantiation<'a>>,
-            ),
-            Type::List(name) => self.ast.ts_type_array_type(SPAN, self.visit_type(name)),
-            Type::Optional(name) => {
-                self.ast
-                    .ts_type_js_doc_nullable_type(SPAN, self.visit_type(name), true)
-            }
+            Type::Struct(struct_type) => self.visit_struct(struct_type),
+            Type::Reference(reference) => self.visit_reference(reference),
+            Type::Tuple(tuple) => self.visit_tuple(tuple),
+            Type::List(list) => self.visit_list(list),
+            Type::Map(map) => self.visit_map(map),
+            Type::Optional(optional) => self.visit_optional(optional),
         }
     }
 }
