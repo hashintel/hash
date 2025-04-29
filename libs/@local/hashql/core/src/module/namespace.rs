@@ -37,12 +37,8 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
             return false;
         }
 
-        for result in results {
-            self.imports.push(Import {
-                name,
-                item: result.id,
-                universe: result.kind.universe(),
-            });
+        for item in results {
+            self.imports.push(Import { name, item });
         }
 
         true
@@ -71,15 +67,15 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
         // next find the item as a relative import
         let mut found = None;
         for import in self.imports.iter().rev() {
-            if import.universe.is_some() {
+            let universe = import.item.kind.universe();
+
+            if universe.is_some() {
                 // Only modules don't have a universe, which are the only ones nested, therefore we
                 // can easily skip a lookup that isn't required.
                 continue;
             }
 
-            let item = self.registry.items[import.item].copied();
-
-            let results = item.search(self.registry, query.clone());
+            let results = import.item.search(self.registry, query.clone());
 
             if !results.is_empty() {
                 found = Some(results);
@@ -91,12 +87,8 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
             return false;
         };
 
-        for found in found {
-            self.imports.push(Import {
-                name,
-                item: found.id,
-                universe: found.kind.universe(),
-            });
+        for item in found {
+            self.imports.push(Import { name, item });
         }
 
         true
@@ -122,7 +114,7 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
         universe: Universe,
     ) -> Option<Import<'heap>> {
         for import in self.imports.iter().rev() {
-            if Some(universe) != import.universe {
+            if Some(universe) != import.item.kind.universe() {
                 continue;
             }
 
@@ -241,7 +233,7 @@ mod tests {
     use crate::{
         heap::Heap,
         module::{
-            Module, ModuleRegistry,
+            ModuleRegistry, PartialModule,
             item::{IntrinsicItem, Item, ItemKind, Universe},
         },
         span::SpanId,
@@ -262,11 +254,10 @@ mod tests {
             .expect("import should exist");
 
         assert_eq!(import.name.as_str(), "Union");
-        assert_eq!(import.universe, Some(Universe::Value));
+        assert_eq!(import.item.kind.universe(), Some(Universe::Value));
 
-        let item = registry.items[import.item].copied();
         assert_eq!(
-            item.kind,
+            import.item.kind,
             ItemKind::Intrinsic(IntrinsicItem {
                 name: "::kernel::type::Union",
                 universe: Universe::Value
@@ -288,11 +279,10 @@ mod tests {
             .expect("import should exist");
 
         assert_eq!(import.name.as_str(), "Dict");
-        assert_eq!(import.universe, Some(Universe::Type));
+        assert_eq!(import.item.kind.universe(), Some(Universe::Type));
 
-        let item = registry.items[import.item].copied();
         assert_eq!(
-            item.kind,
+            import.item.kind,
             ItemKind::Intrinsic(IntrinsicItem {
                 name: "::kernel::type::Dict",
                 universe: Universe::Type
@@ -309,17 +299,15 @@ mod tests {
         let mut namespace = ModuleNamespace::new(&registry);
         namespace.import_prelude();
 
-        let module = registry.alloc_module(|id| Module {
-            id,
-            items: registry.alloc_items(&[registry.alloc_item(|item_id| Item {
-                id: item_id,
-                parent: Some(id),
+        let module = registry.intern_module(|id| PartialModule {
+            items: registry.intern_items(&[Item {
+                parent: Some(id.value()),
                 name: heap.intern_symbol("bar"),
                 kind: ItemKind::Intrinsic(IntrinsicItem {
                     name: "::foo::bar",
                     universe: Universe::Type,
                 }),
-            })]),
+            }]),
         });
         registry.register(heap.intern_symbol("foo"), module);
 
@@ -328,11 +316,10 @@ mod tests {
             .expect("import should exist");
 
         assert_eq!(import.name.as_str(), "Dict");
-        assert_eq!(import.universe, Some(Universe::Type));
+        assert_eq!(import.item.kind.universe(), Some(Universe::Type));
 
-        let item = registry.items[import.item].copied();
         assert_eq!(
-            item.kind,
+            import.item.kind,
             ItemKind::Intrinsic(IntrinsicItem {
                 name: "::kernel::type::Dict",
                 universe: Universe::Type
@@ -349,11 +336,10 @@ mod tests {
             .expect("import should exist");
 
         assert_eq!(import.name.as_str(), "Dict");
-        assert_eq!(import.universe, Some(Universe::Type));
+        assert_eq!(import.item.kind.universe(), Some(Universe::Type));
 
-        let item = registry.items[import.item].copied();
         assert_eq!(
-            item.kind,
+            import.item.kind,
             ItemKind::Intrinsic(IntrinsicItem {
                 name: "::foo::bar",
                 universe: Universe::Type

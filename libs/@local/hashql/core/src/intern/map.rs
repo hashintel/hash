@@ -193,9 +193,9 @@ pub struct InternMap<'heap, T: Decompose<'heap>> {
     // we can implement the more complex approach.
     //
     // For reference, even with the current approach and 32-bit IDs:
-    // - Each map entry requires ~24 bytes (12 bytes per hashmap entry × 2 maps)
-    // - The entire ID space would require ~96GB just for the map structures
-    // - Memory constraints will be hit long before ID exhaustion
+    // - Each map entry requires ~24 bytes (12 bytes per hashmap entry × 2 maps).
+    // - The entire ID space would require ~96GB just for the map structures.
+    // - Memory constraints will be hit long before ID exhaustion.
     lookup: ConcurrentHashMap<T::Id, &'heap T::Partial>,
 
     next: AtomicU32,

@@ -1,7 +1,5 @@
 use super::{ModuleId, ModuleRegistry};
-use crate::{id::HasId, newtype, symbol::InternedSymbol, r#type::TypeId};
-
-newtype!(pub struct ItemId(u32 is 0..=0xFFFF_FF00));
+use crate::{symbol::InternedSymbol, r#type::TypeId};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Universe {
@@ -37,7 +35,6 @@ impl ItemKind {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Item<'heap> {
-    pub id: ItemId,
     pub parent: Option<ModuleId>,
 
     // TODO: move to Ident once Copy
@@ -47,6 +44,8 @@ pub struct Item<'heap> {
 }
 
 impl<'heap> Item<'heap> {
+    // TODO: when `gen` blocks have proper r-a support revisit this, currently, due to lifetime
+    // constraints and recursive types this cannot be written as a simple iterator.
     pub fn search(
         &self,
         registry: &ModuleRegistry<'heap>,
@@ -61,19 +60,12 @@ impl<'heap> Item<'heap> {
             return Vec::new();
         };
 
-        let module = registry.modules[module].copied();
+        let module = registry.modules.index(module);
+        let items = module.find(name);
 
-        let item = module.find(registry, name);
-        item.into_iter()
-            .flat_map(|item| item.search(registry, query.clone()))
+        items
+            .into_iter()
+            .flat_map(move |item| item.search(registry, query.clone()))
             .collect()
-    }
-}
-
-impl HasId for Item<'_> {
-    type Id = ItemId;
-
-    fn id(&self) -> Self::Id {
-        self.id
     }
 }

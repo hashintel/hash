@@ -3,7 +3,7 @@
 //! This module provides functionality for managing imports within the HashQL
 //! language, including both absolute and relative imports, as well as the standard
 //! prelude of built-in items.
-use super::item::{ItemId, Universe};
+use super::item::Item;
 use crate::symbol::InternedSymbol;
 
 /// Represents a single import within a module.
@@ -15,6 +15,5 @@ use crate::symbol::InternedSymbol;
 pub struct Import<'heap> {
     pub name: InternedSymbol<'heap>,
 
-    pub item: ItemId,
-    pub universe: Option<Universe>,
+    pub item: Item<'heap>,
 }

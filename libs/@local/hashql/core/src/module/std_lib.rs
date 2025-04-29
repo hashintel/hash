@@ -1,6 +1,6 @@
 use super::{
-    Module, ModuleId, ModuleRegistry,
-    item::{IntrinsicItem, Item, ItemId, ItemKind, Universe},
+    ModuleId, ModuleRegistry, PartialModule,
+    item::{IntrinsicItem, Item, ItemKind, Universe},
 };
 use crate::{
     heap::Heap,
@@ -38,20 +38,19 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
         parent: ModuleId,
         name: &'static str,
         alias: Option<&str>,
-    ) -> ItemId {
+    ) -> Item<'heap> {
         let ident =
             alias.unwrap_or_else(|| name.rsplit_once("::").expect("path should be non-empty").1);
         let ident = self.heap.intern_symbol(ident);
 
-        self.registry.alloc_item(|id| Item {
-            id,
+        Item {
             parent: Some(parent),
             name: ident,
             kind: ItemKind::Intrinsic(IntrinsicItem {
                 name,
                 universe: Universe::Value,
             }),
-        })
+        }
     }
 
     fn alloc_intrinsic_type(
@@ -59,20 +58,19 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
         parent: ModuleId,
         name: &'static str,
         alias: Option<&str>,
-    ) -> ItemId {
+    ) -> Item<'heap> {
         let ident =
             alias.unwrap_or_else(|| name.rsplit_once("::").expect("path should be non-empty").1);
         let ident = self.heap.intern_symbol(ident);
 
-        self.registry.alloc_item(|id| Item {
-            id,
+        Item {
             parent: Some(parent),
             name: ident,
             kind: ItemKind::Intrinsic(IntrinsicItem {
                 name,
                 universe: Universe::Type,
             }),
-        })
+        }
     }
 
     fn alloc_type(&self, kind: TypeKind<'heap>) -> TypeId {
@@ -82,17 +80,18 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
         })
     }
 
-    fn alloc_type_item(&self, parent: ModuleId, name: &'static str, kind: TypeId) -> ItemId {
-        self.registry.alloc_item(|id| Item {
-            id,
+    fn alloc_type_item(&self, parent: ModuleId, name: &'static str, kind: TypeId) -> Item<'heap> {
+        Item {
             parent: Some(parent),
             name: self.heap.intern_symbol(name),
             kind: ItemKind::Type(kind),
-        })
+        }
     }
 
     fn kernel_special_form_module(&self) -> ModuleId {
-        self.registry.alloc_module(|id| {
+        self.registry.intern_module(|id| {
+            let id = id.value();
+
             let items = [
                 self.alloc_intrinsic_value(id, "::kernel::special_form::if", None),
                 self.alloc_intrinsic_value(id, "::kernel::special_form::is", None),
@@ -108,14 +107,13 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
                 self.alloc_intrinsic_value(id, "::kernel::special_form::index", None),
             ];
 
-            Module {
-                id,
-                items: self.registry.alloc_items(&items),
+            PartialModule {
+                items: self.registry.intern_items(&items),
             }
         })
     }
 
-    fn kernel_type_module_primitives(&self, parent: ModuleId, items: &mut Vec<ItemId>) {
+    fn kernel_type_module_primitives(&self, parent: ModuleId, items: &mut Vec<Item<'heap>>) {
         items.extend_from_slice(&[
             self.alloc_type_item(
                 parent,
@@ -146,7 +144,7 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
         ]);
     }
 
-    fn kernel_type_module_boundary(&self, parent: ModuleId, items: &mut Vec<ItemId>) {
+    fn kernel_type_module_boundary(&self, parent: ModuleId, items: &mut Vec<Item<'heap>>) {
         items.extend_from_slice(&[
             self.alloc_type_item(parent, "Unknown", self.alloc_type(TypeKind::Unknown)),
             self.alloc_type_item(parent, "Never", self.alloc_type(TypeKind::Never)),
@@ -155,7 +153,7 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
         ]);
     }
 
-    fn kernel_type_module_intrinsics(&self, parent: ModuleId, items: &mut Vec<ItemId>) {
+    fn kernel_type_module_intrinsics(&self, parent: ModuleId, items: &mut Vec<Item<'heap>>) {
         // Struct/Tuple are purposefully excluded, as they are
         // fundamental types and do not have any meaningful value constructors.
         // Union and Type only have constructors for their respective types, but no meaningful
@@ -170,7 +168,7 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
         ]);
     }
 
-    fn kernel_type_module_opaque(&self, parent: ModuleId, items: &mut Vec<ItemId>) {
+    fn kernel_type_module_opaque(&self, parent: ModuleId, items: &mut Vec<Item<'heap>>) {
         let url = self.alloc_type(TypeKind::Opaque(OpaqueType {
             name: self.heap.intern_symbol("::kernel::type::Url"),
             repr: self.env.intern_type(PartialType {
@@ -202,7 +200,7 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
         ]);
     }
 
-    fn kernel_type_module_option(&self, parent: ModuleId, items: &mut Vec<ItemId>) {
+    fn kernel_type_module_option(&self, parent: ModuleId, items: &mut Vec<Item<'heap>>) {
         // Option is simply a union between two opaque types, when the constructor only takes a
         // `Null` the constructor automatically allows for no-value.
         let some_generic = self.env.counter.generic_argument.next();
@@ -241,7 +239,7 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
         ]);
     }
 
-    fn kernel_type_module_result(&self, parent: ModuleId, items: &mut Vec<ItemId>) {
+    fn kernel_type_module_result(&self, parent: ModuleId, items: &mut Vec<Item<'heap>>) {
         let value_generic = self.env.counter.generic_argument.next();
         let error_generic = self.env.counter.generic_argument.next();
 
@@ -286,7 +284,9 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
     }
 
     fn kernel_type_module(&self) -> ModuleId {
-        self.registry.alloc_module(|id| {
+        self.registry.intern_module(|id| {
+            let id = id.value();
+
             let mut items = Vec::with_capacity(64);
             self.kernel_type_module_primitives(id, &mut items);
             self.kernel_type_module_boundary(id, &mut items);
@@ -295,87 +295,86 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
             self.kernel_type_module_option(id, &mut items);
             self.kernel_type_module_result(id, &mut items);
 
-            Module {
-                id,
-                items: self.registry.alloc_items(&items),
+            PartialModule {
+                items: self.registry.intern_items(&items),
             }
         })
     }
 
     fn kernel_module(&self) -> ModuleId {
-        self.registry.alloc_module(|id| Module {
-            id,
-            items: self.registry.alloc_items(&[
-                self.registry.alloc_item(|item_id| Item {
-                    id: item_id,
-                    parent: Some(id),
+        self.registry.intern_module(|id| PartialModule {
+            items: self.registry.intern_items(&[
+                Item {
+                    parent: Some(id.value()),
                     name: self.heap.intern_symbol("special_form"),
                     kind: ItemKind::Module(self.kernel_special_form_module()),
-                }),
-                self.registry.alloc_item(|item_id| Item {
-                    id: item_id,
-                    parent: Some(id),
+                },
+                Item {
+                    parent: Some(id.value()),
                     name: self.heap.intern_symbol("type"),
                     kind: ItemKind::Module(self.kernel_type_module()),
-                }),
+                },
             ]),
         })
     }
 
     fn math_module(&self) -> ModuleId {
-        self.registry.alloc_module(|id| Module {
-            id,
-            items: self.registry.alloc_items(&[
-                // Addition
-                self.alloc_intrinsic_value(id, "::math::add", None),
-                self.alloc_intrinsic_value(id, "::math::add", Some("+")),
-                // Subtraction
-                self.alloc_intrinsic_value(id, "::math::sub", None),
-                self.alloc_intrinsic_value(id, "::math::sub", Some("-")),
-                // Multiplication
-                self.alloc_intrinsic_value(id, "::math::mul", None),
-                self.alloc_intrinsic_value(id, "::math::mul", Some("*")),
-                // Division
-                self.alloc_intrinsic_value(id, "::math::div", None),
-                self.alloc_intrinsic_value(id, "::math::div", Some("/")),
-                // Modulo
-                self.alloc_intrinsic_value(id, "::math::mod", None),
-                self.alloc_intrinsic_value(id, "::math::mod", Some("%")),
-                // Power
-                self.alloc_intrinsic_value(id, "::math::pow", None),
-                self.alloc_intrinsic_value(id, "::math::pow", Some("^")),
-                // Bitwise operations
-                self.alloc_intrinsic_value(id, "::math::bit_and", None),
-                self.alloc_intrinsic_value(id, "::math::bit_and", Some("&")),
-                self.alloc_intrinsic_value(id, "::math::bit_or", None),
-                self.alloc_intrinsic_value(id, "::math::bit_or", Some("|")),
-                self.alloc_intrinsic_value(id, "::math::bit_not", None),
-                self.alloc_intrinsic_value(id, "::math::bit_not", Some("~")),
-                self.alloc_intrinsic_value(id, "::math::lshift", None),
-                self.alloc_intrinsic_value(id, "::math::lshift", Some("<<")),
-                self.alloc_intrinsic_value(id, "::math::rshift", None),
-                self.alloc_intrinsic_value(id, "::math::rshift", Some(">>")),
-                // Comparison operations
-                self.alloc_intrinsic_value(id, "::math::gt", None),
-                self.alloc_intrinsic_value(id, "::math::gt", Some(">")),
-                self.alloc_intrinsic_value(id, "::math::lt", None),
-                self.alloc_intrinsic_value(id, "::math::lt", Some("<")),
-                self.alloc_intrinsic_value(id, "::math::gte", None),
-                self.alloc_intrinsic_value(id, "::math::gte", Some(">=")),
-                self.alloc_intrinsic_value(id, "::math::lte", None),
-                self.alloc_intrinsic_value(id, "::math::lte", Some("<=")),
-                self.alloc_intrinsic_value(id, "::math::eq", None),
-                self.alloc_intrinsic_value(id, "::math::eq", Some("==")),
-                self.alloc_intrinsic_value(id, "::math::ne", None),
-                self.alloc_intrinsic_value(id, "::math::ne", Some("!=")),
-                // Logical operations
-                self.alloc_intrinsic_value(id, "::math::not", None),
-                self.alloc_intrinsic_value(id, "::math::not", Some("!")),
-                self.alloc_intrinsic_value(id, "::math::and", None),
-                self.alloc_intrinsic_value(id, "::math::and", Some("&&")),
-                self.alloc_intrinsic_value(id, "::math::or", None),
-                self.alloc_intrinsic_value(id, "::math::or", Some("||")),
-            ]),
+        self.registry.intern_module(|id| {
+            let id = id.value();
+
+            PartialModule {
+                items: self.registry.intern_items(&[
+                    // Addition
+                    self.alloc_intrinsic_value(id, "::math::add", None),
+                    self.alloc_intrinsic_value(id, "::math::add", Some("+")),
+                    // Subtraction
+                    self.alloc_intrinsic_value(id, "::math::sub", None),
+                    self.alloc_intrinsic_value(id, "::math::sub", Some("-")),
+                    // Multiplication
+                    self.alloc_intrinsic_value(id, "::math::mul", None),
+                    self.alloc_intrinsic_value(id, "::math::mul", Some("*")),
+                    // Division
+                    self.alloc_intrinsic_value(id, "::math::div", None),
+                    self.alloc_intrinsic_value(id, "::math::div", Some("/")),
+                    // Modulo
+                    self.alloc_intrinsic_value(id, "::math::mod", None),
+                    self.alloc_intrinsic_value(id, "::math::mod", Some("%")),
+                    // Power
+                    self.alloc_intrinsic_value(id, "::math::pow", None),
+                    self.alloc_intrinsic_value(id, "::math::pow", Some("^")),
+                    // Bitwise operations
+                    self.alloc_intrinsic_value(id, "::math::bit_and", None),
+                    self.alloc_intrinsic_value(id, "::math::bit_and", Some("&")),
+                    self.alloc_intrinsic_value(id, "::math::bit_or", None),
+                    self.alloc_intrinsic_value(id, "::math::bit_or", Some("|")),
+                    self.alloc_intrinsic_value(id, "::math::bit_not", None),
+                    self.alloc_intrinsic_value(id, "::math::bit_not", Some("~")),
+                    self.alloc_intrinsic_value(id, "::math::lshift", None),
+                    self.alloc_intrinsic_value(id, "::math::lshift", Some("<<")),
+                    self.alloc_intrinsic_value(id, "::math::rshift", None),
+                    self.alloc_intrinsic_value(id, "::math::rshift", Some(">>")),
+                    // Comparison operations
+                    self.alloc_intrinsic_value(id, "::math::gt", None),
+                    self.alloc_intrinsic_value(id, "::math::gt", Some(">")),
+                    self.alloc_intrinsic_value(id, "::math::lt", None),
+                    self.alloc_intrinsic_value(id, "::math::lt", Some("<")),
+                    self.alloc_intrinsic_value(id, "::math::gte", None),
+                    self.alloc_intrinsic_value(id, "::math::gte", Some(">=")),
+                    self.alloc_intrinsic_value(id, "::math::lte", None),
+                    self.alloc_intrinsic_value(id, "::math::lte", Some("<=")),
+                    self.alloc_intrinsic_value(id, "::math::eq", None),
+                    self.alloc_intrinsic_value(id, "::math::eq", Some("==")),
+                    self.alloc_intrinsic_value(id, "::math::ne", None),
+                    self.alloc_intrinsic_value(id, "::math::ne", Some("!=")),
+                    // Logical operations
+                    self.alloc_intrinsic_value(id, "::math::not", None),
+                    self.alloc_intrinsic_value(id, "::math::not", Some("!")),
+                    self.alloc_intrinsic_value(id, "::math::and", None),
+                    self.alloc_intrinsic_value(id, "::math::and", Some("&&")),
+                    self.alloc_intrinsic_value(id, "::math::or", None),
+                    self.alloc_intrinsic_value(id, "::math::or", Some("||")),
+                ]),
+            }
         })
     }
 

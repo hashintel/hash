@@ -2,13 +2,6 @@
 //!
 //! This module provides the core functionality for defining and resolving modules,
 //! managing imports, and maintaining the global registry of available items.
-//!
-//! Key components:
-//!
-//! - `ModuleRegistry`: The central registry for all modules and items
-//! - `Module`: A container for related items
-//! - `Namespace`: A collection of imports that define the available names in a scope
-//! - `Import`: An individual imported item with its name and metadata
 // TODO: This might move into the HIR instead, if required
 pub mod import;
 pub mod item;
@@ -20,11 +13,15 @@ use std::sync::Mutex;
 use hashbrown::HashMap;
 
 use self::{
-    item::{Item, ItemId, ItemKind},
+    item::{Item, ItemKind},
     std_lib::StandardLibrary,
 };
 use crate::{
-    arena::concurrent::ConcurrentArena, heap::Heap, id::HasId, newtype, symbol::InternedSymbol,
+    heap::Heap,
+    id::HasId,
+    intern::{Decompose, InternMap, InternSet, Interned, Provisioned},
+    newtype,
+    symbol::InternedSymbol,
     r#type::environment::Environment,
 };
 
@@ -38,13 +35,10 @@ newtype!(pub struct ModuleId(u32 is 0..=0xFFFF_FF00));
 pub struct ModuleRegistry<'heap> {
     heap: &'heap Heap,
 
-    // TODO: intern instead, that means we can get rid of at least `ItemId`, and maybe even
-    // `ModuleId`
-    // see: https://linear.app/hash/issue/H-4409/hashql-intern-types
-    modules: ConcurrentArena<Module<'heap>>,
-    items: ConcurrentArena<Item<'heap>>,
+    modules: InternMap<'heap, Module<'heap>>,
+    items: InternSet<'heap, [Item<'heap>]>,
 
-    tree: Mutex<HashMap<InternedSymbol<'heap>, ItemId, foldhash::fast::RandomState>>,
+    root: Mutex<HashMap<InternedSymbol<'heap>, &'heap Item<'heap>, foldhash::fast::RandomState>>,
 }
 
 impl<'heap> ModuleRegistry<'heap> {
@@ -52,9 +46,9 @@ impl<'heap> ModuleRegistry<'heap> {
     pub fn empty(heap: &'heap Heap) -> Self {
         Self {
             heap,
-            modules: ConcurrentArena::new(),
-            items: ConcurrentArena::new(),
-            tree: Mutex::new(HashMap::default()),
+            modules: InternMap::new(heap),
+            items: InternSet::new(heap),
+            root: Mutex::new(HashMap::default()),
         }
     }
 
@@ -71,56 +65,59 @@ impl<'heap> ModuleRegistry<'heap> {
         this
     }
 
-    pub fn alloc_module(&self, closure: impl FnOnce(ModuleId) -> Module<'heap>) -> ModuleId {
-        self.modules.push_with(closure)
-    }
-
-    pub fn alloc_item(&self, closure: impl FnOnce(ItemId) -> Item<'heap>) -> ItemId {
-        self.items.push_with(closure)
-    }
-
-    pub fn alloc_items(&self, items: &[ItemId]) -> &'heap [ItemId] {
-        self.heap.slice(items)
-    }
-
-    #[inline]
-    fn lock_tree<T>(
+    /// Interns a new module into the registry.
+    pub fn intern_module(
         &self,
-        closure: impl FnOnce(
-            &mut HashMap<InternedSymbol<'heap>, ItemId, foldhash::fast::RandomState>,
-        ) -> T,
-    ) -> T {
-        closure(&mut self.tree.lock().expect("lock should not be poisoned"))
+        closure: impl FnOnce(Provisioned<ModuleId>) -> PartialModule<'heap>,
+    ) -> ModuleId {
+        self.modules.intern(closure).id
     }
 
+    /// Interns a slice of items into the registry.
+    pub fn intern_items(&self, items: &[Item<'heap>]) -> Interned<'heap, [Item<'heap>]> {
+        self.items.intern_slice(items)
+    }
+
+    /// Register a new module in the root namespace.
+    ///
+    /// # Panics
+    ///
+    /// This function will panic if the internal mutex is poisoned.
     pub fn register(&self, name: InternedSymbol<'heap>, module: ModuleId) {
-        self.lock_tree(|modules| {
-            modules.insert(
+        let mut root = self.root.lock().expect("lock should not be poisoned");
+
+        root.insert(
+            name,
+            self.heap.alloc(Item {
+                parent: None,
                 name,
-                self.items.push_with(|id| Item {
-                    id,
-                    parent: None,
-                    name,
-                    kind: ItemKind::Module(module),
-                }),
-            )
-        });
+                kind: ItemKind::Module(module),
+            }),
+        );
+
+        drop(root);
     }
 
-    pub fn find_by_name(&self, name: InternedSymbol<'heap>) -> Option<Item<'heap>> {
-        let id = self.lock_tree(|modules| modules.get(&name).copied())?;
+    /// Find an item by name in the root namespace.
+    ///
+    /// # Panics
+    ///
+    /// This function will panic if the internal mutex is poisoned.
+    pub fn find_by_name(&self, name: InternedSymbol<'heap>) -> Option<&'heap Item<'heap>> {
+        let root = self.root.lock().expect("lock should not be poisoned");
 
-        Some(self.items[id].copied())
+        root.get(&name).copied()
     }
 
-    pub fn find_by_id(&self, id: ItemId) -> Option<Item<'heap>> {
-        self.lock_tree(|items| {
-            items
-                .values()
-                .find_map(|&item_id| (item_id == id).then(|| self.items[item_id].copied()))
-        })
-    }
-
+    /// Searches for items in the registry using a path-like query.
+    ///
+    /// This function takes an iterable of symbols representing a path in the module hierarchy
+    /// and returns all matching items. The search starts from the root namespace and traverses
+    /// the module structure according to the provided query path.
+    ///
+    /// # Returns
+    ///
+    /// A vector of matching items, or an empty vector if no matches are found.
     pub fn search(
         &self,
         query: impl IntoIterator<Item = InternedSymbol<'heap>, IntoIter: Clone>,
@@ -147,26 +144,33 @@ impl<'heap> ModuleRegistry<'heap> {
 pub struct Module<'heap> {
     pub id: ModuleId,
 
-    pub items: &'heap [ItemId],
+    pub items: Interned<'heap, [Item<'heap>]>,
 }
 
 impl<'heap> Module<'heap> {
     /// Finds an item within this module by name.
-    pub fn find(
-        &self,
-        registry: &ModuleRegistry<'heap>,
-        name: InternedSymbol<'heap>,
-    ) -> Vec<Item<'heap>> {
-        let mut results = Vec::new();
+    #[must_use]
+    pub fn find(&self, name: InternedSymbol<'heap>) -> impl IntoIterator<Item = Item<'heap>> {
+        self.items
+            .iter()
+            .filter(move |item| (item.name == name))
+            .copied()
+    }
+}
 
-        for &item in self.items {
-            let item = registry.items[item].copied();
-            if item.name == name {
-                results.push(item);
-            }
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct PartialModule<'heap> {
+    items: Interned<'heap, [Item<'heap>]>,
+}
+
+impl<'heap> Decompose<'heap> for Module<'heap> {
+    type Partial = PartialModule<'heap>;
+
+    fn from_parts(id: Self::Id, partial: Interned<'heap, Self::Partial>) -> Self {
+        Self {
+            id,
+            items: partial.items,
         }
-
-        results
     }
 }
 
