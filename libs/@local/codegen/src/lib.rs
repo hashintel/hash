@@ -4,12 +4,50 @@
 //!
 //! ## Workspace dependencies
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
+#![expect(clippy::todo)]
 
-use facet::Facet;
+use alloc::borrow::Cow;
+use std::collections::HashMap;
 
-/// A facet that provides code generation capabilities.
-///
-/// The `CodegenFacet` trait extends the `Facet` trait to offer code generation functionality
-/// specifically for translating Rust types to TypeScript. This trait is part of a solution for
-/// generating TypeScript types from Rust types using a set of transformation rules.
-pub trait CodegenFacet<'a>: Facet<'a> {}
+use specta::{SpectaID, datatype::NamedDataType};
+
+use self::definitions::TypeDefinition;
+
+extern crate alloc;
+
+pub mod definitions;
+
+pub mod typescript;
+
+#[derive(Debug, Default)]
+pub struct TypeCollection {
+    types: HashMap<Cow<'static, str>, (SpectaID, TypeDefinition)>,
+    collection: specta::TypeCollection,
+    // collection: HashMap<Cow<'static, str>, Definition>,
+}
+
+impl TypeCollection {
+    pub fn register<T: specta::NamedType>(&mut self) {
+        self.collection.register_mut::<T>();
+        let data_type = self.collection.get(T::ID).unwrap_or_else(|| unreachable!());
+        self.types.insert(
+            data_type.name().clone(),
+            (
+                data_type.sid(),
+                TypeDefinition::from_specta(data_type, &self.collection),
+            ),
+        );
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = (&str, (&NamedDataType, &TypeDefinition))> {
+        self.types.iter().map(|(name, (id, def))| {
+            (
+                name.as_ref(),
+                (
+                    self.collection.get(*id).unwrap_or_else(|| unreachable!()),
+                    def,
+                ),
+            )
+        })
+    }
+}

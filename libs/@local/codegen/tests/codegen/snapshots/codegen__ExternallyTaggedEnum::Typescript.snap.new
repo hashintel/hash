@@ -1,0 +1,23 @@
+---
+source: libs/@local/codegen/tests/codegen/main.rs
+assertion_line: 43
+expression: generated
+---
+type ExternallyTaggedEnum = "Unit" | {
+	EmptyUnnamed: []
+} | {
+	SingleUnnamed: number
+} | {
+	DoubleUnnamed: [boolean, string]
+} | {
+	EmptyNamed: {}
+} | {
+	SingleNamed: {
+		value: number
+	}
+} | {
+	MultiNamed: {
+		value_1: number
+		value_2: string
+	}
+};

@@ -1,0 +1,133 @@
+---
+source: libs/@local/codegen/tests/codegen.rs
+expression: named_data_type
+---
+NamedDataType {
+    name: "InternallyTaggedEnum",
+    docs: "",
+    deprecated: None,
+    ext: Some(
+        NamedDataTypeExt {
+            sid: SpectaID {
+                type_name: "InternallyTaggedEnum",
+                hash: 10239873941333270866,
+            },
+            impl_location: ImplLocation(
+                "libs/@local/codegen/tests/codegen.rs:44:10",
+            ),
+        },
+    ),
+    inner: Enum(
+        EnumType {
+            name: "InternallyTaggedEnum",
+            sid: Some(
+                SpectaID {
+                    type_name: "InternallyTaggedEnum",
+                    hash: 10239873941333270866,
+                },
+            ),
+            skip_bigint_checks: false,
+            repr: Internal {
+                tag: "type",
+            },
+            generics: [],
+            variants: [
+                (
+                    "Unit",
+                    EnumVariant {
+                        skip: false,
+                        docs: "",
+                        deprecated: None,
+                        inner: Unit,
+                    },
+                ),
+                (
+                    "EmptyNamed",
+                    EnumVariant {
+                        skip: false,
+                        docs: "",
+                        deprecated: None,
+                        inner: Named(
+                            NamedFields {
+                                fields: [],
+                                tag: None,
+                            },
+                        ),
+                    },
+                ),
+                (
+                    "SingleNamed",
+                    EnumVariant {
+                        skip: false,
+                        docs: "",
+                        deprecated: None,
+                        inner: Named(
+                            NamedFields {
+                                fields: [
+                                    (
+                                        "value",
+                                        Field {
+                                            optional: false,
+                                            flatten: false,
+                                            deprecated: None,
+                                            docs: "",
+                                            ty: Some(
+                                                Primitive(
+                                                    i32,
+                                                ),
+                                            ),
+                                        },
+                                    ),
+                                ],
+                                tag: None,
+                            },
+                        ),
+                    },
+                ),
+                (
+                    "MultiNamed",
+                    EnumVariant {
+                        skip: false,
+                        docs: "",
+                        deprecated: None,
+                        inner: Named(
+                            NamedFields {
+                                fields: [
+                                    (
+                                        "value_1",
+                                        Field {
+                                            optional: false,
+                                            flatten: false,
+                                            deprecated: None,
+                                            docs: "",
+                                            ty: Some(
+                                                Primitive(
+                                                    i32,
+                                                ),
+                                            ),
+                                        },
+                                    ),
+                                    (
+                                        "value_2",
+                                        Field {
+                                            optional: false,
+                                            flatten: false,
+                                            deprecated: None,
+                                            docs: "",
+                                            ty: Some(
+                                                Primitive(
+                                                    String,
+                                                ),
+                                            ),
+                                        },
+                                    ),
+                                ],
+                                tag: None,
+                            },
+                        ),
+                    },
+                ),
+            ],
+        },
+    ),
+}
