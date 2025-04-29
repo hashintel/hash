@@ -55,7 +55,7 @@ impl<'heap> ModuleRegistry<'heap> {
     /// Creates a new module registry with the standard library pre-loaded.
     ///
     /// This initializes the registry with all the standard modules and items
-    /// defined in the HashQL standard library.
+    /// defined in the standard library.
     pub fn new(env: &Environment<'heap>) -> Self {
         let this = Self::empty(env.heap);
 
@@ -66,11 +66,28 @@ impl<'heap> ModuleRegistry<'heap> {
     }
 
     /// Interns a new module into the registry.
+    ///
+    /// # Panics
+    ///
+    /// In debug builds, this function will panic if any item in the module has a parent
+    /// that doesn't match the module ID.
     pub fn intern_module(
         &self,
         closure: impl FnOnce(Provisioned<ModuleId>) -> PartialModule<'heap>,
     ) -> ModuleId {
-        self.modules.intern(closure).id
+        self.modules
+            .intern(|id| {
+                let module = closure(id);
+
+                if cfg!(debug_assertions) {
+                    for item in module.items {
+                        assert_eq!(item.parent, Some(id.value()));
+                    }
+                }
+
+                module
+            })
+            .id
     }
 
     /// Interns a slice of items into the registry.
@@ -82,7 +99,7 @@ impl<'heap> ModuleRegistry<'heap> {
     ///
     /// # Panics
     ///
-    /// This function will panic if the internal mutex is poisoned.
+    /// This function will panic if the internal Mutex is poisoned.
     pub fn register(&self, name: InternedSymbol<'heap>, module: ModuleId) {
         let mut root = self.root.lock().expect("lock should not be poisoned");
 
@@ -102,7 +119,7 @@ impl<'heap> ModuleRegistry<'heap> {
     ///
     /// # Panics
     ///
-    /// This function will panic if the internal mutex is poisoned.
+    /// This function will panic if the internal Mutex is poisoned.
     pub fn find_by_name(&self, name: InternedSymbol<'heap>) -> Option<&'heap Item<'heap>> {
         let root = self.root.lock().expect("lock should not be poisoned");
 
