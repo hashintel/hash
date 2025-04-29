@@ -2,6 +2,7 @@ import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-
 
 import type { MigrationFunction } from "../types";
 import {
+  anyUserInstantiator,
   createSystemEntityTypeIfNotExists,
   createSystemPropertyTypeIfNotExists,
   getCurrentHashPropertyTypeId,
@@ -66,7 +67,7 @@ const migrate: MigrationFunction = async ({
       },
       migrationState,
       webShortname: "h",
-      instantiator: null,
+      instantiator: anyUserInstantiator,
     },
   );
 
@@ -97,7 +98,7 @@ const migrate: MigrationFunction = async ({
       },
       migrationState,
       webShortname: "h",
-      instantiator: null,
+      instantiator: anyUserInstantiator,
     },
   );
 

@@ -1,6 +1,8 @@
+import { IconButton, IconDiagramRegular } from "@hashintel/design-system";
 import { Box, Typography } from "@mui/material";
 import { Handle, type NodeProps, Position } from "reactflow";
 
+import { useEditorContext } from "./editor-context";
 import { handleStyling, transitionStyling } from "./styling";
 import type { TransitionNodeData } from "./types";
 
@@ -8,6 +10,10 @@ export const TransitionNode = ({
   data,
   isConnectable,
 }: NodeProps<TransitionNodeData>) => {
+  const { label, description, subProcess } = data;
+
+  const { loadPersistedNet, persistedNets } = useEditorContext();
+
   return (
     <div
       style={{
@@ -22,9 +28,38 @@ export const TransitionNode = ({
         style={handleStyling}
       />
       <Box sx={transitionStyling}>
-        {data.label}
+        {subProcess && (
+          <IconButton
+            onClick={() => {
+              const subProcessPersistedNet = persistedNets.find(
+                (net) => net.entityId === subProcess.entityId,
+              );
 
-        {data.description && (
+              if (subProcessPersistedNet) {
+                loadPersistedNet(subProcessPersistedNet);
+              } else {
+                throw new Error("Sub process not available locally");
+              }
+            }}
+            sx={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              "&:hover": {
+                background: "transparent",
+                "& svg": {
+                  fill: ({ palette }) => palette.blue[70],
+                },
+              },
+            }}
+          >
+            <IconDiagramRegular sx={{ fontSize: 12 }} />
+          </IconButton>
+        )}
+
+        {label}
+
+        {description && (
           <Typography
             sx={{
               fontSize: "0.75rem",
@@ -33,7 +68,7 @@ export const TransitionNode = ({
               textAlign: "center",
             }}
           >
-            {data.description}
+            {description}
           </Typography>
         )}
       </Box>

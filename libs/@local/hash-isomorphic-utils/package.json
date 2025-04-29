@@ -19,7 +19,7 @@
     "build": "rimraf dist && tsc --build tsconfig.build.json",
     "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.config.ts",
     "fix:eslint": "eslint --fix .",
-    "generate-system-types": "tsx ./src/generate-system-types.ts; echo 'Fixing import paths'; fix-esm-import-path ./src/system-types/; yarn fix:eslint; yarn biome format --write ./src/system-types/{*.ts,**/*.ts}",
+    "generate-system-types": "tsx ./src/generate-system-types.ts; echo 'Fixing import paths'; fix-esm-import-path ./src/system-types/; yarn fix:eslint; biome format --write ./src/system-types/{*.ts,**/*.ts}",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
     "test:unit": "vitest --run"

@@ -1,4 +1,15 @@
+import { useMutation } from "@apollo/client";
+import type { EntityId } from "@blockprotocol/type-system";
 import { IconButton, Select, TextField } from "@hashintel/design-system";
+import {
+  blockProtocolDataTypes,
+  systemLinkEntityTypes,
+  systemPropertyTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import type {
+  SubProcessOfProperties,
+  SubProcessOfPropertiesWithMetadata,
+} from "@local/hash-isomorphic-utils/system-types/petrinet";
 import {
   Box,
   Dialog,
@@ -12,23 +23,22 @@ import {
 } from "@mui/material";
 import { useCallback, useMemo, useState } from "react";
 
+import type {
+  ArchiveEntityMutation,
+  ArchiveEntityMutationVariables,
+  CreateEntityMutation,
+  CreateEntityMutationVariables,
+} from "../../../graphql/api-types.gen";
+import {
+  archiveEntityMutation,
+  createEntityMutation,
+} from "../../../graphql/queries/knowledge/entity.queries";
 import { XMarkRegularIcon } from "../../../shared/icons/x-mark-regular-icon";
 import { Button, MenuItem } from "../../../shared/ui";
-import type { ArcType } from "./types";
-
-type TransitionCondition = {
-  id: string;
-  name: string;
-  probability: number;
-  outputEdgeId: string;
-};
-
-type TransitionData = {
-  label: string;
-  description?: string;
-  conditions?: TransitionCondition[];
-  delay?: number;
-};
+import { useActiveWorkspace } from "../../shared/workspace-context";
+import { useEditorContext } from "./editor-context";
+import { PersistedNetSelector } from "./persisted-net-selector";
+import type { ArcType, TransitionCondition, TransitionNodeData } from "./types";
 
 const normalizeProbabilities = (
   conditions: TransitionCondition[],
@@ -119,13 +129,16 @@ type TransitionEditorProps = {
   open: boolean;
   onClose: () => void;
   transitionId: string;
-  transitionData: TransitionData;
+  transitionData: TransitionNodeData;
   outgoingEdges: Array<
     ArcType & {
       targetLabel: string;
     }
   >;
-  onUpdateTransition: (transitionId: string, data: TransitionData) => void;
+  onUpdateTransition: (
+    transitionId: string,
+    data: Omit<TransitionNodeData, "type">,
+  ) => void;
 };
 
 export const TransitionEditor = ({
@@ -136,14 +149,77 @@ export const TransitionEditor = ({
   outgoingEdges,
   onUpdateTransition,
 }: TransitionEditorProps) => {
-  const [localData, setEditedData] = useState<TransitionData>({
-    label: transitionData.label,
-    description: transitionData.description ?? "",
-    conditions: transitionData.conditions ?? [],
-    delay: transitionData.delay,
-  });
+  const [localData, setEditedData] = useState<Omit<TransitionNodeData, "type">>(
+    {
+      label: transitionData.label,
+      description: transitionData.description ?? "",
+      conditions: transitionData.conditions ?? [],
+      delay: transitionData.delay,
+    },
+  );
 
   const hasConditions = localData.conditions && localData.conditions.length > 0;
+
+  const { subProcess } = localData;
+
+  const { activeWorkspaceWebId } = useActiveWorkspace();
+  const { entityId, persistedNets, refetchPersistedNets } = useEditorContext();
+
+  const [createEntity] = useMutation<
+    CreateEntityMutation,
+    CreateEntityMutationVariables
+  >(createEntityMutation);
+
+  const [archiveEntity] = useMutation<
+    ArchiveEntityMutation,
+    ArchiveEntityMutationVariables
+  >(archiveEntityMutation);
+
+  const updateSubProcess = useCallback(
+    async (subProcessEntityId: EntityId) => {
+      if (!entityId) {
+        throw new Error(
+          `Cannot set sub-process for transition without entityId`,
+        );
+      }
+
+      if (subProcess) {
+        await archiveEntity({ variables: { entityId: subProcess.entityId } });
+      }
+
+      await createEntity({
+        variables: {
+          entityTypeIds: [systemLinkEntityTypes.subProcessOf.linkEntityTypeId],
+          linkData: {
+            leftEntityId: subProcessEntityId,
+            rightEntityId: entityId,
+          },
+          properties: {
+            value: {
+              [systemPropertyTypes.transitionId.propertyTypeBaseUrl]: {
+                metadata: {
+                  dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+                },
+                value: transitionId,
+              },
+            },
+          },
+          webId: activeWorkspaceWebId,
+        },
+      });
+
+      refetchPersistedNets();
+    },
+    [
+      activeWorkspaceWebId,
+      archiveEntity,
+      createEntity,
+      entityId,
+      refetchPersistedNets,
+      subProcess,
+      transitionId,
+    ],
+  );
 
   const handleHasConditionsChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -330,7 +406,7 @@ export const TransitionEditor = ({
             />
           </Box>
 
-          <Box>
+          <Box component="label">
             <Typography component="div" variant="smallCaps" sx={{ mb: 0.5 }}>
               Delay (hours)
             </Typography>
@@ -346,10 +422,24 @@ export const TransitionEditor = ({
                     : parseFloat(event.target.value),
                 }))
               }
-              inputProps={{ min: 0, step: 0.1 }}
+              inputProps={{ min: 0, step: 0.5 }}
               sx={{ width: 80 }}
             />
           </Box>
+
+          {entityId && (
+            <Box component="label">
+              <Typography component="div" variant="smallCaps" sx={{ mb: 0.5 }}>
+                Sub-process
+              </Typography>
+
+              <PersistedNetSelector
+                options={persistedNets}
+                value={localData.subProcess?.entityId}
+                onSelect={(value) => updateSubProcess(value.entityId)}
+              />
+            </Box>
+          )}
 
           <Divider />
 

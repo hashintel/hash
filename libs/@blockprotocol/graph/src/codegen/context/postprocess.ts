@@ -43,14 +43,14 @@ const externalIdentifiersToSource: Record<
     locallyImportable: true,
     source: {
       kind: "external",
-      definingPath: "@local/hash-graph-sdk/entity",
+      definingPath: "@blockprotocol/type-system",
     },
   },
   LinkEntity: {
     locallyImportable: true,
     source: {
       kind: "external",
-      definingPath: "@local/hash-graph-sdk/entity",
+      definingPath: "@blockprotocol/type-system",
     },
   },
   Confidence: {
@@ -64,21 +64,21 @@ const externalIdentifiersToSource: Record<
     locallyImportable: true,
     source: {
       kind: "external",
-      definingPath: "@local/hash-graph-client",
+      definingPath: "@blockprotocol/type-system",
     },
   },
   ArrayMetadata: {
     locallyImportable: true,
     source: {
       kind: "external",
-      definingPath: "@local/hash-graph-client",
+      definingPath: "@blockprotocol/type-system",
     },
   },
   PropertyProvenance: {
     locallyImportable: true,
     source: {
       kind: "external",
-      definingPath: "@local/hash-graph-client",
+      definingPath: "@blockprotocol/type-system",
     },
   },
 };

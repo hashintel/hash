@@ -2,11 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type {
-  Confidence,
-  ObjectMetadata,
-  PropertyProvenance,
-} from "@blockprotocol/type-system";
+import type { ObjectMetadata } from "@blockprotocol/type-system";
 
 import type {
   AffiliatedWith,
@@ -27,6 +23,12 @@ import type {
   DocOutgoingLinksByLinkEntityTypeId,
   DocProperties,
   DocPropertiesWithMetadata,
+  DOIDataType,
+  DOIDataTypeWithMetadata,
+  DOILinkPropertyValue,
+  DOILinkPropertyValueWithMetadata,
+  DOIPropertyValue,
+  DOIPropertyValueWithMetadata,
   EmailDataType,
   EmailDataTypeWithMetadata,
   EmailPropertyValue,
@@ -43,6 +45,8 @@ import type {
   LinkOutgoingLinksByLinkEntityTypeId,
   LinkProperties,
   LinkPropertiesWithMetadata,
+  MethodologyPropertyValue,
+  MethodologyPropertyValueWithMetadata,
   NamePropertyValue,
   NamePropertyValueWithMetadata,
   NumberDataType,
@@ -88,6 +92,12 @@ export type {
   DocOutgoingLinksByLinkEntityTypeId,
   DocProperties,
   DocPropertiesWithMetadata,
+  DOIDataType,
+  DOIDataTypeWithMetadata,
+  DOILinkPropertyValue,
+  DOILinkPropertyValueWithMetadata,
+  DOIPropertyValue,
+  DOIPropertyValueWithMetadata,
   EmailDataType,
   EmailDataTypeWithMetadata,
   EmailPropertyValue,
@@ -104,6 +114,8 @@ export type {
   LinkOutgoingLinksByLinkEntityTypeId,
   LinkProperties,
   LinkPropertiesWithMetadata,
+  MethodologyPropertyValue,
+  MethodologyPropertyValueWithMetadata,
   NamePropertyValue,
   NamePropertyValueWithMetadata,
   NumberDataType,
@@ -170,35 +182,6 @@ export type AcademicPaperPropertiesWithMetadata = DocPropertiesWithMetadata & {
 };
 
 /**
- * A DOI (Digital Object Identifier), used to identify digital objects such as journal articles or datasets.
- */
-export type DOIDataType = TextDataType;
-
-export type DOIDataTypeWithMetadata = {
-  value: DOIDataType;
-  metadata: DOIDataTypeMetadata;
-};
-export type DOIDataTypeMetadata = {
-  provenance?: PropertyProvenance;
-  confidence?: Confidence;
-  dataTypeId: "https://hash.ai/@h/types/data-type/doi/v/1";
-};
-
-/**
- * A permanent link for a digital object, using its Digital Object Identifier (DOI), which resolves to a webpage describing it
- */
-export type DOILinkPropertyValue = URIDataType;
-
-export type DOILinkPropertyValueWithMetadata = URIDataTypeWithMetadata;
-
-/**
- * The Digital Object Identifier (DOI) of an object
- */
-export type DOIPropertyValue = DOIDataType;
-
-export type DOIPropertyValueWithMetadata = DOIDataTypeWithMetadata;
-
-/**
  * The type of participant or observed entity in an experiment or study.
  */
 export type ExperimentalSubjectPropertyValue = TextDataType;
@@ -212,10 +195,3 @@ export type ExperimentalSubjectPropertyValueWithMetadata =
 export type FindingPropertyValue = TextDataType;
 
 export type FindingPropertyValueWithMetadata = TextDataTypeWithMetadata;
-
-/**
- * The procedure via which something was produced, analyzed, or otherwise approached.
- */
-export type MethodologyPropertyValue = TextDataType;
-
-export type MethodologyPropertyValueWithMetadata = TextDataTypeWithMetadata;

@@ -5,10 +5,10 @@
 import type {
   ArrayMetadata,
   Confidence,
+  Entity,
   ObjectMetadata,
   PropertyProvenance,
 } from "@blockprotocol/type-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
 
 /**
  * Someone or something that can perform actions in the system
@@ -154,7 +154,7 @@ export type BlockCollectionPropertiesWithMetadata = {
   value: {};
 };
 
-export type BlockHasDataLink = { linkEntity: HasData; rightEntity: HashEntity };
+export type BlockHasDataLink = { linkEntity: HasData; rightEntity: Entity };
 
 export type BlockOutgoingLinkAndTarget = BlockHasDataLink;
 
@@ -311,6 +311,35 @@ export type ConnectionSourceNamePropertyValue = TextDataType;
 
 export type ConnectionSourceNamePropertyValueWithMetadata =
   TextDataTypeWithMetadata;
+
+/**
+ * A DOI (Digital Object Identifier), used to identify digital objects such as journal articles or datasets.
+ */
+export type DOIDataType = TextDataType;
+
+export type DOIDataTypeWithMetadata = {
+  value: DOIDataType;
+  metadata: DOIDataTypeMetadata;
+};
+export type DOIDataTypeMetadata = {
+  provenance?: PropertyProvenance;
+  confidence?: Confidence;
+  dataTypeId: "https://hash.ai/@h/types/data-type/doi/v/1";
+};
+
+/**
+ * A permanent link for a digital object, using its Digital Object Identifier (DOI), which resolves to a webpage describing it
+ */
+export type DOILinkPropertyValue = URIDataType;
+
+export type DOILinkPropertyValueWithMetadata = URIDataTypeWithMetadata;
+
+/**
+ * The Digital Object Identifier (DOI) of an object
+ */
+export type DOIPropertyValue = DOIDataType;
+
+export type DOIPropertyValueWithMetadata = DOIDataTypeWithMetadata;
 
 /**
  * A reference to a particular date and time, formatted according to RFC 3339.
@@ -1045,6 +1074,13 @@ export type ManualInferenceConfigurationPropertyValue = ObjectDataType;
 
 export type ManualInferenceConfigurationPropertyValueWithMetadata =
   ObjectDataTypeWithMetadata;
+
+/**
+ * The procedure via which something was produced, analyzed, or otherwise approached.
+ */
+export type MethodologyPropertyValue = TextDataType;
+
+export type MethodologyPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
  * A word or set of words by which something is known, addressed, or referred to.

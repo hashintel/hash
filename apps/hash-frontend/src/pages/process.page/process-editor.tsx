@@ -61,8 +61,19 @@ const ProcessEditorContent = () => {
     ArcData
   > | null>(null);
 
-  const { nodes, setNodes, arcs, setArcs, tokenTypes, setGraph } =
-    useEditorContext();
+  const {
+    arcs,
+    entityId,
+    nodes,
+    persistToGraph,
+    setArcs,
+    setNodes,
+    setPetriNetDefinition,
+    setTitle,
+    setUserEditable,
+    tokenTypes,
+    userEditable,
+  } = useEditorContext();
 
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
   const [selectedTransition, setSelectedTransition] = useState<string | null>(
@@ -287,15 +298,17 @@ const ProcessEditorContent = () => {
   const { resetSimulation } = useSimulation();
 
   const handleResetAll = useCallback(() => {
-    setGraph({
-      nodes: [],
+    setPetriNetDefinition({
       arcs: [],
+      nodes: [],
       tokenTypes: defaultTokenTypes,
-      title: "Process",
     });
 
+    setUserEditable(true);
+    setTitle("Process");
+
     resetSimulation();
-  }, [setGraph, resetSimulation]);
+  }, [setPetriNetDefinition, setUserEditable, setTitle, resetSimulation]);
 
   const handleLoadExample = useCallback(() => {
     const nodesWithInitialCounts = exampleCPN.nodes.map((node) => {
@@ -311,15 +324,17 @@ const ProcessEditorContent = () => {
       return node;
     });
 
-    setGraph({
-      nodes: nodesWithInitialCounts,
+    setPetriNetDefinition({
       arcs: exampleCPN.arcs,
+      nodes: nodesWithInitialCounts,
       tokenTypes: exampleCPN.tokenTypes,
-      title: exampleCPN.title,
     });
 
+    setUserEditable(false);
+    setTitle(exampleCPN.title);
+
     resetSimulation();
-  }, [setGraph, resetSimulation]);
+  }, [setPetriNetDefinition, setUserEditable, setTitle, resetSimulation]);
 
   const handleReset = useCallback(() => {
     setNodes((currentNodes) =>
@@ -486,6 +501,9 @@ const ProcessEditorContent = () => {
             </Button>
             <Button onClick={handleResetAll} size="xs" variant="danger">
               Clear
+            </Button>
+            <Button onClick={persistToGraph} size="xs" variant="primary">
+              {entityId && userEditable ? "Update" : "Create"}
             </Button>
           </Stack>
 
