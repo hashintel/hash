@@ -988,7 +988,7 @@ fn contract() {
                         name: env.heap.intern_symbol("name"),
                         value: id.value(),
                     }])
-                    .expect("should be uniq"),
+                    .expect("should be unique"),
                 arguments: env.intern_generic_arguments(&mut []),
             })),
         })
