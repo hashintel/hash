@@ -8,5 +8,20 @@ graph TD
     %% --> : Normal dependency
     %% -.-> : Dev dependency
     %% ---> : Build dependency
-    0[hash-codegen]
-    class 0 root
+    0[<a href="../type_system">type-system</a>]
+    1[<a href="../hash_codec">hash-codec</a>]
+    2[hash-codegen]
+    class 2 root
+    3[<a href="../hash_graph_temporal_versioning">hash-graph-temporal-versioning</a>]
+    4[<a href="../harpc_types">harpc-types</a>]
+    5[<a href="../harpc_wire_protocol">harpc-wire-protocol</a>]
+    6[<a href="../error_stack">error-stack</a>]
+    7[<a href="../hash_graph_test_data">hash-graph-test-data</a>]
+    0 --> 3
+    0 -.-> 7
+    1 --> 5
+    2 -.-> 0
+    3 --> 1
+    5 -.-> 4
+    5 --> 4
+    5 --> 6
