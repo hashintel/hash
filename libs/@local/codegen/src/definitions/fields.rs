@@ -65,14 +65,4 @@ impl Fields {
             datatype::Fields::Unit => Self::Unit,
         }
     }
-
-    /// Checks if any field in this structure has the flatten flag set to true.
-    #[must_use]
-    pub fn has_flattened_fields(&self) -> bool {
-        match self {
-            Self::Named { fields } => fields.iter().any(|(_, field)| field.flatten),
-            Self::Unnamed { fields } => fields.iter().any(|field| field.flatten),
-            Self::Unit => false,
-        }
-    }
 }
