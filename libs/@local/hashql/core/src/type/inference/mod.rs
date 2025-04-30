@@ -8,7 +8,7 @@ pub use self::{
 };
 use super::{
     Type, TypeId,
-    environment::{AnalysisEnvironment, InferenceEnvironment},
+    environment::{InferenceEnvironment, instantiate::InstantiateEnvironment},
     kind::{generic_argument::GenericArgumentId, infer::HoleId},
 };
 use crate::collection::FastHashMap;
@@ -171,5 +171,5 @@ pub trait Inference<'heap> {
     /// # Returns
     ///
     /// A new type ID representing the instantiated type.
-    fn instantiate(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> TypeId;
+    fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId;
 }

@@ -13,7 +13,7 @@ use crate::{
         collection::TypeIdSet,
         environment::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
-            SimplifyEnvironment,
+            SimplifyEnvironment, instantiate::InstantiateEnvironment,
         },
         error::{cannot_be_subtype_of_never, type_mismatch, union_variant_mismatch},
         inference::{Constraint, Inference, PartialStructuralEdge, Variable},
@@ -29,18 +29,58 @@ pub struct UnionType<'heap> {
 }
 
 impl<'heap> UnionType<'heap> {
-    pub(crate) fn unnest(&self, env: &Environment) -> SmallVec<TypeId, 16> {
-        let mut variants = TypeIdSet::with_capacity(env, self.variants.len());
+    fn unnest_impl<'env>(
+        self: Type<'heap, Self>,
+        env: &'env Environment<'heap>,
+        variants: &mut TypeIdSet<'env, 'heap, 16>,
+        visited: &mut SmallVec<TypeId, 4>,
+    ) -> ControlFlow<()> {
+        if visited.contains(&self.id) {
+            return ControlFlow::Break(());
+        }
 
-        for &variant in self.variants {
-            if let TypeKind::Union(union) = env.r#type(variant).kind {
-                variants.extend(union.unnest(env));
+        visited.push(self.id);
+
+        for &variant in self.kind.variants {
+            let r#type = env.r#type(variant);
+
+            if let Some(union) = r#type.kind.union() {
+                r#type.with(union).unnest_impl(env, variants, visited)?;
             } else {
                 variants.push(variant);
             }
         }
 
-        variants.finish()
+        visited.pop();
+
+        ControlFlow::Continue(())
+    }
+
+    /// Flatten nested unions, collapsing any self-reference into ⊤.
+    ///
+    /// This function returns a de-duplicated, “one-level” list of variant `TypeId`s. However, if
+    /// the union contains itself as a variant (i.e. an equation `μX.(… ∪ X ∪ …)`), then by
+    /// coinductive (greatest-fixed-point) reasoning the union denotes the universal supertype
+    /// (`⊤`). In that case we immediately return a singleton list containing only the `Unknown`
+    /// kind, which we treat as `⊤`.
+    pub(crate) fn unnest(
+        self: Type<'heap, Self>,
+        env: &Environment<'heap>,
+    ) -> SmallVec<TypeId, 16> {
+        let mut variants = TypeIdSet::with_capacity(env, self.kind.variants.len());
+        let mut visited = SmallVec::new();
+
+        if self
+            .unnest_impl(env, &mut variants, &mut visited)
+            .is_break()
+        {
+            SmallVec::from_slice(&[env.intern_type(PartialType {
+                span: self.span,
+                kind: env.intern_kind(TypeKind::Unknown),
+            })])
+        } else {
+            variants.finish()
+        }
     }
 
     pub(crate) fn join_variants(
@@ -316,8 +356,8 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
         other: Type<'heap, Self>,
         env: &mut LatticeEnvironment<'_, 'heap>,
     ) -> smallvec::SmallVec<TypeId, 4> {
-        let lhs_variants = self.kind.unnest(env);
-        let rhs_variants = other.kind.unnest(env);
+        let lhs_variants = self.unnest(env);
+        let rhs_variants = other.unnest(env);
 
         Self::join_variants(&lhs_variants, &rhs_variants, env)
     }
@@ -327,8 +367,8 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
         other: Type<'heap, Self>,
         env: &mut LatticeEnvironment<'_, 'heap>,
     ) -> smallvec::SmallVec<TypeId, 4> {
-        let lhs_variants = self.kind.unnest(env);
-        let rhs_variants = other.kind.unnest(env);
+        let lhs_variants = self.unnest(env);
+        let rhs_variants = other.unnest(env);
 
         Self::meet_variants(self.span, &lhs_variants, &rhs_variants, env)
     }
@@ -343,6 +383,10 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
 
     fn is_concrete(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
         self.kind.variants.iter().all(|&id| env.is_concrete(id))
+    }
+
+    fn is_recursive(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
+        self.kind.variants.iter().any(|&id| env.is_recursive(id))
     }
 
     fn distribute_union(
@@ -408,6 +452,23 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
             TypeIdSet::<16>::with_capacity(env.environment, self.kind.variants.len());
         for &variant in self.kind.variants {
             let variant = env.simplify(variant);
+
+            // If a union type contains itself as one of its own variants, e.g. `type A = A | Foo |
+            // Bar`, then under *coinductive* (greatest-fixed-point) semantics the only solution of
+            // the equation `A = X ∪ A` is the *top* type (`⊤`). Therefore any valid A must
+            // satisfy `X ⊆ A`. Coinduction picks the largest such A (the entire
+            // universe). We therefore simplify an immediately self-referential union
+            // into `⊤`.
+            if variant == id.value() {
+                // self-reference detected: `μX. (X ∪ …)` coinductively collapses to `⊤`
+                return env.intern_provisioned(
+                    id,
+                    PartialType {
+                        span: self.span,
+                        kind: env.intern_kind(TypeKind::Unknown),
+                    },
+                );
+            }
 
             // We need to use `get` here, as substituted types may not yet be materialized
             if let Some(UnionType { variants: nested }) = env
@@ -477,8 +538,8 @@ impl<'heap> Inference<'heap> for UnionType<'heap> {
         supertype: Type<'heap, Self>,
         env: &mut InferenceEnvironment<'_, 'heap>,
     ) {
-        let self_variants = self.kind.unnest(env);
-        let super_variants = supertype.kind.unnest(env);
+        let self_variants = self.unnest(env);
+        let super_variants = supertype.unnest(env);
 
         Self::collect_constraints_variants(
             supertype.id,
@@ -509,8 +570,27 @@ impl<'heap> Inference<'heap> for UnionType<'heap> {
         }
     }
 
-    fn instantiate(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> TypeId {
-        todo!("https://linear.app/hash/issue/H-4384/hashql-type-instantiation")
+    fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {
+        let (_guard, id) = env.provision(self.id);
+
+        let mut variants =
+            TypeIdSet::<16>::with_capacity(env.environment, self.kind.variants.len());
+
+        for &variant in self.kind.variants {
+            variants.push(env.instantiate(variant));
+        }
+
+        let variants = variants.finish();
+
+        env.intern_provisioned(
+            id,
+            PartialType {
+                span: self.span,
+                kind: env.intern_kind(TypeKind::Union(Self {
+                    variants: env.intern_type_ids(&variants),
+                })),
+            },
+        )
     }
 }
 
@@ -552,19 +632,19 @@ mod test {
             PartialType,
             environment::{
                 AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
-                SimplifyEnvironment,
+                SimplifyEnvironment, instantiate::InstantiateEnvironment,
             },
             inference::{
                 Constraint, Inference as _, PartialStructuralEdge, Variable, VariableKind,
             },
             kind::{
-                TypeKind,
-                generic_argument::GenericArgumentId,
+                OpaqueType, Param, TypeKind,
+                generic_argument::{GenericArgument, GenericArgumentId},
                 infer::HoleId,
                 intersection::IntersectionType,
                 intrinsic::{DictType, IntrinsicType},
                 primitive::PrimitiveType,
-                test::{assert_equiv, dict, intersection, primitive, tuple, union},
+                test::{assert_equiv, dict, intersection, opaque, primitive, tuple, union},
                 tuple::TupleType,
             },
             lattice::{Lattice as _, test::assert_lattice_laws},
@@ -590,12 +670,35 @@ mod test {
         union!(env, union_type, [number, nested_union]);
 
         // Unnesting should flatten to: Number | String | Boolean
-        let unnested = union_type.kind.unnest(&env);
+        let unnested = union_type.unnest(&env);
 
         assert_eq!(unnested.len(), 3);
         assert!(unnested.contains(&number));
         assert!(unnested.contains(&string));
         assert!(unnested.contains(&boolean));
+    }
+
+    #[test]
+    fn unnest_nested_recursive_union() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let r#type = env.types.intern(|id| PartialType {
+            span: SpanId::SYNTHETIC,
+            kind: env.intern_kind(TypeKind::Union(UnionType {
+                variants: env.intern_type_ids(&[env.intern_type(PartialType {
+                    span: SpanId::SYNTHETIC,
+                    kind: env.intern_kind(TypeKind::Union(UnionType {
+                        variants: env.intern_type_ids(&[id.value()]),
+                    })),
+                })]),
+            })),
+        });
+
+        let union = r#type.kind.union().expect("should be a union");
+        let unnested = r#type.with(union).unnest(&env);
+
+        assert_equiv!(env, unnested, [instantiate(&env, TypeKind::Unknown)]);
     }
 
     #[test]
@@ -630,6 +733,37 @@ mod test {
                 primitive!(env, PrimitiveType::String),
                 primitive!(env, PrimitiveType::Number),
             ]
+        );
+    }
+
+    #[test]
+    fn join_recursive_unions() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        union!(
+            env,
+            a,
+            [
+                primitive!(env, PrimitiveType::Number),
+                primitive!(env, PrimitiveType::String)
+            ]
+        );
+
+        let b = env.types.intern(|id| PartialType {
+            span: SpanId::SYNTHETIC,
+            kind: env.intern_kind(TypeKind::Union(UnionType {
+                variants: env
+                    .intern_type_ids(&[id.value(), primitive!(env, PrimitiveType::Number)]),
+            })),
+        });
+
+        let mut lattice_env = LatticeEnvironment::new(&env);
+
+        assert_equiv!(
+            env,
+            [lattice_env.join(a.id, b.id)],
+            [instantiate(&env, TypeKind::Unknown)]
         );
     }
 
@@ -2203,10 +2337,76 @@ mod test {
 
         let r#type = env.r#type(type_id);
 
-        assert_matches!(
-            r#type.kind,
-            TypeKind::Union(UnionType { variants }) if variants.len() == 1
-                && variants[0] == type_id
+        assert_matches!(r#type.kind, TypeKind::Unknown);
+    }
+
+    #[test]
+    fn simplify_recursive_union_multiple_elements() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let r#type = env.types.intern(|id| PartialType {
+            span: SpanId::SYNTHETIC,
+            kind: env.intern_kind(TypeKind::Union(UnionType {
+                variants: env
+                    .intern_type_ids(&[id.value(), primitive!(env, PrimitiveType::Number)]),
+            })),
+        });
+
+        let mut simplify = SimplifyEnvironment::new(&env);
+        let type_id = simplify.simplify(r#type.id);
+
+        let r#type = env.r#type(type_id);
+
+        assert_matches!(r#type.kind, TypeKind::Unknown);
+    }
+
+    #[test]
+    fn instantiate_union() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let argument = env.counter.generic_argument.next();
+        let param = instantiate_param(&env, argument);
+
+        let inner = opaque!(
+            env,
+            "A",
+            param,
+            [GenericArgument {
+                id: argument,
+                name: heap.intern_symbol("T"),
+                constraint: None
+            }]
         );
+
+        union!(env, value, [inner, inner]);
+
+        let mut instantiate = InstantiateEnvironment::new(&env);
+        let type_id = value.instantiate(&mut instantiate);
+        assert!(instantiate.take_diagnostics().is_empty());
+
+        let result = env.r#type(type_id);
+        let union = result.kind.union().expect("should be a union");
+        assert_eq!(union.variants.len(), 2);
+
+        for variant in &*union.variants {
+            let variant = env.r#type(*variant);
+            let opaque = variant.kind.opaque().expect("should be an opaque type");
+            let repr = env
+                .r#type(opaque.repr)
+                .kind
+                .param()
+                .expect("should be a param");
+
+            assert_eq!(opaque.arguments.len(), 1);
+            assert_eq!(
+                *repr,
+                Param {
+                    argument: opaque.arguments[0].id
+                }
+            );
+            assert_ne!(repr.argument, argument);
+        }
     }
 }

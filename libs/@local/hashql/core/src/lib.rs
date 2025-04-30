@@ -4,7 +4,6 @@
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
 #![feature(
     never_type,
-    decl_macro,
     assert_matches,
     arbitrary_self_types,
     allocator_api,
@@ -14,8 +13,6 @@
     iter_map_windows,
     cold_path
 )]
-#![cfg_attr(test, feature(custom_test_frameworks))]
-#![expect(clippy::todo)]
 
 extern crate alloc;
 

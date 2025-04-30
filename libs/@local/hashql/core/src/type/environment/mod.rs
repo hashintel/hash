@@ -1,6 +1,7 @@
 pub mod analysis;
 pub mod context;
 pub mod infer;
+pub mod instantiate;
 pub mod lattice;
 pub mod simplify;
 
@@ -19,7 +20,7 @@ use super::{
         generic_argument::{
             GenericArgument, GenericArgumentId, GenericArgumentIdProducer, GenericArguments,
         },
-        infer::HoleId,
+        infer::{HoleId, HoleIdProducer},
         r#struct::{StructField, StructFields},
     },
 };
@@ -29,9 +30,10 @@ use crate::{
     span::SpanId,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Counter {
     pub generic_argument: GenericArgumentIdProducer,
+    pub hole: HoleIdProducer,
 }
 
 #[derive(Debug)]
@@ -72,9 +74,7 @@ impl<'heap> Environment<'heap> {
             generic_arguments: InternSet::new(heap),
             struct_fields: InternSet::new(heap),
 
-            counter: Counter {
-                generic_argument: GenericArgumentIdProducer::new(),
-            },
+            counter: Counter::default(),
             substitution: Substitution::default(),
         }
     }

@@ -7,7 +7,7 @@ use crate::r#type::{
     Type, TypeId,
     environment::{
         AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
-        SimplifyEnvironment,
+        SimplifyEnvironment, instantiate::InstantiateEnvironment,
     },
     error::type_mismatch,
     inference::{Inference, PartialStructuralEdge},
@@ -73,6 +73,10 @@ impl<'heap> Lattice<'heap> for PrimitiveType {
 
     fn is_concrete(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
         true
+    }
+
+    fn is_recursive(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
+        false
     }
 
     fn distribute_union(
@@ -194,7 +198,7 @@ impl<'heap> Inference<'heap> for PrimitiveType {
     ) {
     }
 
-    fn instantiate(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> TypeId {
+    fn instantiate(self: Type<'heap, Self>, _: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {
         self.id
     }
 }

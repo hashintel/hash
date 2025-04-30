@@ -28,6 +28,7 @@ fn ptr_eq<T: ?Sized>(lhs: *const T, rhs: *const T) -> bool {
 ///
 /// This collection uses `SmallVec` to avoid heap allocations for small sets
 /// (up to `CAPACITY` items).
+#[derive(Debug)]
 pub(crate) struct TypeIdSet<'env, 'heap, const CAPACITY: usize> {
     env: &'env Environment<'heap>,
     items: SmallVec<TypeId, CAPACITY>,
@@ -103,12 +104,48 @@ impl<'env, 'heap, const CAPACITY: usize> TypeIdSet<'env, 'heap, CAPACITY> {
         // As we expect the number of types to always be small (< 8), this seems sufficient, in case
         // in the future this leads to performance issues these are possible ways to optimize
         // further.
-        self.items.sort_unstable_by(|&lhs, &rhs| {
+
+        // Due to the fact that some of the items might not yet be materialized (e.g. are
+        // provisioned and referenced, but do not exist yet), we need to split the set into two
+        // parts and partition and dedupe them separately.
+        self.items
+            .sort_unstable_by_key(|&id| self.env.types.contains(id));
+        let partition_point = self
+            .items
+            .partition_point(|&id| !self.env.types.contains(id));
+
+        let (provisioned, materialized) = self.items.split_at_mut(partition_point);
+
+        // Handle provisioned types, which - unlike materialized types - can only be compared by
+        // their ID.
+        provisioned.sort_unstable();
+        let len_provisioned = provisioned.len();
+        let (_, removed) = provisioned.partition_dedup();
+        let excess_provisioned = removed.len();
+
+        // Handle materialized types, which can be compared by their kind, making deduplication
+        // irrespective of the span.
+        materialized.sort_unstable_by(|&lhs, &rhs| {
             ptr_cmp(self.env.r#type(lhs).kind, self.env.r#type(rhs).kind)
         });
+        let len_materialized = materialized.len();
+        let (_, removed) = materialized.partition_dedup_by(|lhs, rhs| {
+            ptr_eq(self.env.r#type(*lhs).kind, self.env.r#type(*rhs).kind)
+        });
+        let excess_materialized = removed.len();
 
-        self.items
-            .dedup_by(|lhs, rhs| ptr_eq(self.env.r#type(*lhs).kind, self.env.r#type(*rhs).kind));
+        // We're now at a place where we have the following layout:
+        // [provisioned, excess, materialized, excess]
+        // What we now need to do is shift the materialized items to the excess, and then cut the
+        // excess items
+        self.items.copy_within(
+            len_provisioned..(len_provisioned + len_materialized - excess_materialized),
+            len_provisioned - excess_provisioned,
+        );
+
+        self.items.truncate(
+            len_provisioned + len_materialized - excess_provisioned - excess_materialized,
+        );
 
         self.items
     }
@@ -238,5 +275,169 @@ mod test {
 
         let result = set.finish();
         assert_eq!(result.len(), 2);
+    }
+
+    #[test]
+    fn mixed_provisioned_and_materialized() {
+        let heap = Heap::new();
+        let env = Environment::new_empty(SpanId::SYNTHETIC, &heap);
+
+        // Create materialized types
+        let boolean = primitive!(env, PrimitiveType::Boolean);
+        let string = primitive!(env, PrimitiveType::String);
+
+        // Create provisioned types (not yet materialized)
+        let provisioned1 = env.types.provision();
+        let provisioned2 = env.types.provision();
+
+        let mut set = TypeIdSet::<16>::new(&env);
+        set.push(boolean);
+        set.push(provisioned1.value());
+        set.push(string);
+        set.push(provisioned2.value());
+
+        let result = set.finish();
+
+        // We should have 4 unique types: 2 materialized and 2 provisioned
+        assert_eq!(result.len(), 4);
+
+        // The result should be partitioned with provisioned types first, then materialized
+        // We can verify this by checking if the first elements are not in the environment
+        for i in 0..2 {
+            assert!(!env.types.contains(result[i]));
+        }
+
+        for i in 2..4 {
+            assert!(env.types.contains(result[i]));
+        }
+    }
+
+    #[test]
+    fn deduplication_of_provisioned() {
+        let heap = Heap::new();
+        let env = Environment::new_empty(SpanId::SYNTHETIC, &heap);
+
+        // Create a provisioned type and use it twice
+        let provisioned = env.types.provision();
+
+        let mut set = TypeIdSet::<16>::new(&env);
+        set.push(provisioned.value());
+        set.push(provisioned.value()); // Same provisioned id, should be deduplicated
+
+        let result = set.finish();
+
+        // Should have only one unique provisioned type
+        assert_eq!(result.len(), 1);
+        assert!(!env.types.contains(result[0]));
+    }
+
+    #[test]
+    fn mixed_with_duplicates() {
+        let heap = Heap::new();
+        let env = Environment::new_empty(SpanId::SYNTHETIC, &heap);
+
+        // Create materialized types with some duplicates
+        let boolean1 = primitive!(env, PrimitiveType::Boolean);
+        let boolean2 = primitive!(env, PrimitiveType::Boolean); // Same kind, different id
+        let string = primitive!(env, PrimitiveType::String);
+
+        // Create provisioned types with some duplicates
+        let provisioned1 = env.types.provision();
+        let provisioned2 = env.types.provision();
+
+        let mut set = TypeIdSet::<16>::new(&env);
+        set.push(boolean1);
+        set.push(provisioned1.value());
+        set.push(string);
+        set.push(boolean2); // Will be deduplicated (same kind as boolean1)
+        set.push(provisioned2.value());
+        set.push(provisioned1.value()); // Will be deduplicated (same id as provisioned1)
+
+        let result = set.finish();
+
+        // We should have 4 unique types: 2 provisioned and 2 materialized
+        // (the duplicates should be removed)
+        assert_eq!(result.len(), 4);
+
+        // The result should have provisioned types first
+        let provisioned_count = result.iter().filter(|&&id| !env.types.contains(id)).count();
+        assert_eq!(provisioned_count, 2);
+
+        // And then materialized types
+        let materialized_count = result.iter().filter(|&&id| env.types.contains(id)).count();
+        assert_eq!(materialized_count, 2);
+    }
+
+    #[expect(clippy::missing_asserts_for_indexing)]
+    #[test]
+    fn mostly_empty_with_few_types() {
+        let heap = Heap::new();
+        let env = Environment::new_empty(SpanId::SYNTHETIC, &heap);
+
+        // Just one materialized and one provisioned
+        let boolean = primitive!(env, PrimitiveType::Boolean);
+        let provisioned = env.types.provision();
+
+        let mut set = TypeIdSet::<16>::new(&env);
+        set.push(boolean);
+        set.push(provisioned.value());
+
+        let result = set.finish();
+
+        // Should preserve both types
+        assert_eq!(result.len(), 2);
+
+        // The provisioned type should come first
+        assert!(!env.types.contains(result[0]));
+        assert!(env.types.contains(result[1]));
+    }
+
+    /// Tests with a larger number of items to ensure the algorithm scales.
+    #[test]
+    fn larger_collection() {
+        let heap = Heap::new();
+        let env = Environment::new_empty(SpanId::SYNTHETIC, &heap);
+
+        // Create various materialized types
+        let types = [
+            primitive!(env, PrimitiveType::Boolean),
+            primitive!(env, PrimitiveType::Integer),
+            primitive!(env, PrimitiveType::Number),
+            primitive!(env, PrimitiveType::String),
+        ];
+
+        // Create provisioned types
+        let mut provisioned = Vec::with_capacity(5);
+        for _ in 0..5 {
+            provisioned.push(env.types.provision());
+        }
+
+        let mut set = TypeIdSet::<32>::new(&env);
+
+        // Add with some duplication
+        for &r#type in &types {
+            set.push(r#type);
+            set.push(r#type); // Add each materialized type twice
+        }
+
+        for &provisioned in &provisioned {
+            set.push(provisioned.value());
+        }
+
+        // Add the first few again to test deduplication
+        set.push(provisioned[0].value());
+        set.push(provisioned[1].value());
+
+        let result = set.finish();
+
+        // Should have 10 unique types (5 materialized + 5 provisioned)
+        assert_eq!(result.len(), 9);
+
+        // Count of each type
+        let provisioned_count = result.iter().filter(|&&id| !env.types.contains(id)).count();
+        assert_eq!(provisioned_count, 5);
+
+        let materialized_count = result.iter().filter(|&&id| env.types.contains(id)).count();
+        assert_eq!(materialized_count, 4);
     }
 }

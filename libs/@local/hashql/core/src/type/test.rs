@@ -18,12 +18,14 @@ use crate::{
     },
 };
 
-pub(crate) macro setup_analysis($name:ident) {
-    let heap = Heap::new();
-    let environment = Environment::new(SpanId::SYNTHETIC, &heap);
+macro_rules! setup_analysis {
+    ($name:ident) => {
+        let heap = Heap::new();
+        let environment = Environment::new(SpanId::SYNTHETIC, &heap);
 
-    let mut $name = AnalysisEnvironment::new(&environment);
-    $name.with_diagnostics();
+        let mut $name = AnalysisEnvironment::new(&environment);
+        $name.with_diagnostics();
+    };
 }
 
 pub(crate) fn instantiate<'heap>(env: &Environment<'heap>, kind: TypeKind<'heap>) -> TypeId {

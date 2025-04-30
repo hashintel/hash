@@ -25,9 +25,9 @@ use super::{
     PartialType, Type, TypeId,
     environment::{
         AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
-        SimplifyEnvironment,
+        SimplifyEnvironment, instantiate::InstantiateEnvironment,
     },
-    error::{no_type_inference, type_mismatch},
+    error::{no_type_inference, type_mismatch, type_parameter_not_found},
     inference::{Constraint, Inference, PartialStructuralEdge, Variable, VariableKind},
     lattice::Lattice,
     pretty_print::{CYAN, GRAY, PrettyPrint},
@@ -308,7 +308,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 | Self::Closure(_)
                 | Self::Intersection(_),
             ) => {
-                let lhs_variants = lhs.unnest(env);
+                let lhs_variants = self.with(lhs).unnest(env);
                 let rhs_variants = [other.id];
 
                 UnionType::join_variants(&lhs_variants, &rhs_variants, env)
@@ -324,7 +324,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 Self::Union(rhs),
             ) => {
                 let lhs_variants = [self.id];
-                let rhs_variants = rhs.unnest(env);
+                let rhs_variants = other.with(rhs).unnest(env);
 
                 UnionType::join_variants(&lhs_variants, &rhs_variants, env)
             }
@@ -342,7 +342,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 | Self::Tuple(_)
                 | Self::Closure(_),
             ) => {
-                let lhs_variants = lhs.unnest(env);
+                let lhs_variants = self.with(lhs).unnest(env);
                 let rhs_variants = [other.id];
 
                 IntersectionType::join_variants(self.span, &lhs_variants, &rhs_variants, env)
@@ -357,7 +357,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 Self::Intersection(rhs),
             ) => {
                 let lhs_variants = [self.id];
-                let rhs_variants = rhs.unnest(env);
+                let rhs_variants = other.with(rhs).unnest(env);
 
                 IntersectionType::join_variants(self.span, &lhs_variants, &rhs_variants, env)
             }
@@ -536,7 +536,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 | Self::Closure(_)
                 | Self::Intersection(_),
             ) => {
-                let lhs_variants = lhs.unnest(env);
+                let lhs_variants = self.with(lhs).unnest(env);
                 let rhs_variants = [other.id];
 
                 UnionType::meet_variants(self.span, &lhs_variants, &rhs_variants, env)
@@ -552,7 +552,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 Self::Union(rhs),
             ) => {
                 let lhs_variants = [self.id];
-                let rhs_variants = rhs.unnest(env);
+                let rhs_variants = other.with(rhs).unnest(env);
 
                 UnionType::meet_variants(self.span, &lhs_variants, &rhs_variants, env)
             }
@@ -570,7 +570,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 | Self::Closure(_)
                 | Self::Tuple(_),
             ) => {
-                let lhs_variants = lhs.unnest(env);
+                let lhs_variants = self.with(lhs).unnest(env);
                 let rhs_variants = [other.id];
 
                 IntersectionType::meet_variants(self.span, &lhs_variants, &rhs_variants, env)
@@ -585,7 +585,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 Self::Intersection(rhs),
             ) => {
                 let lhs_variants = [self.id];
-                let rhs_variants = rhs.unnest(env);
+                let rhs_variants = other.with(rhs).unnest(env);
 
                 IntersectionType::meet_variants(self.span, &lhs_variants, &rhs_variants, env)
             }
@@ -675,6 +675,30 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             &Self::Param(Param { argument }) => env.substitution.argument(argument).is_some(),
             &Self::Infer(Infer { hole }) => env.substitution.infer(hole).is_some(),
             Self::Never | Self::Unknown => true,
+        }
+    }
+
+    fn is_recursive(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
+        match self.kind {
+            TypeKind::Opaque(opaque_type) => self.with(opaque_type).is_recursive(env),
+            TypeKind::Primitive(primitive_type) => self.with(primitive_type).is_recursive(env),
+            TypeKind::Intrinsic(intrinsic_type) => self.with(intrinsic_type).is_recursive(env),
+            TypeKind::Struct(struct_type) => self.with(struct_type).is_recursive(env),
+            TypeKind::Tuple(tuple_type) => self.with(tuple_type).is_recursive(env),
+            TypeKind::Union(union_type) => self.with(union_type).is_recursive(env),
+            TypeKind::Intersection(intersection_type) => {
+                self.with(intersection_type).is_recursive(env)
+            }
+            TypeKind::Closure(closure_type) => self.with(closure_type).is_recursive(env),
+            &TypeKind::Param(Param { argument }) => env
+                .substitution
+                .argument(argument)
+                .is_some_and(|substitution| env.is_recursive(substitution)),
+            &TypeKind::Infer(Infer { hole }) => env
+                .substitution
+                .infer(hole)
+                .is_some_and(|substitution| env.is_recursive(substitution)),
+            TypeKind::Never | TypeKind::Unknown => false,
         }
     }
 
@@ -1244,21 +1268,10 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
     }
 
     fn simplify(self: Type<'heap, Self>, env: &mut SimplifyEnvironment<'_, 'heap>) -> TypeId {
-        if env.is_bottom(self.id) {
-            return env.intern_type(PartialType {
-                span: self.span,
-                kind: env.intern_kind(TypeKind::Never),
-            });
-        }
-
-        if env.is_top(self.id) {
-            return env.intern_type(PartialType {
-                span: self.span,
-                kind: env.intern_kind(TypeKind::Unknown),
-            });
-        }
-
-        match self.kind {
+        // By running bottom/top checks *after* the per‐kind passes, we guarantee that
+        // self‐referential intersections and coinductive unions get properly collapsed before we
+        // ever declare a type `Never` or `Unknown`.
+        let simplified = match self.kind {
             Self::Opaque(opaque_type) => self.with(opaque_type).simplify(env),
             Self::Primitive(primitive_type) => self.with(primitive_type).simplify(env),
             Self::Intrinsic(intrinsic_type) => self.with(intrinsic_type).simplify(env),
@@ -1268,7 +1281,23 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             Self::Union(union_type) => self.with(union_type).simplify(env),
             Self::Intersection(intersection_type) => self.with(intersection_type).simplify(env),
             Self::Param(_) | Self::Never | Self::Unknown | Self::Infer(_) => self.id,
+        };
+
+        if env.is_bottom(simplified) {
+            return env.intern_type(PartialType {
+                span: self.span,
+                kind: env.intern_kind(TypeKind::Never),
+            });
         }
+
+        if env.is_top(simplified) {
+            return env.intern_type(PartialType {
+                span: self.span,
+                kind: env.intern_kind(TypeKind::Unknown),
+            });
+        }
+
+        simplified
     }
 }
 
@@ -1429,7 +1458,7 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 | Self::Closure(_)
                 | Self::Intersection(_),
             ) => {
-                let self_variants = lhs.unnest(env);
+                let self_variants = self.with(lhs).unnest(env);
                 let super_variants = [supertype.id];
 
                 UnionType::collect_constraints_variants(
@@ -1451,7 +1480,7 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 Self::Union(rhs),
             ) => {
                 let self_variants = [self.id];
-                let super_variants = rhs.unnest(env);
+                let super_variants = supertype.with(rhs).unnest(env);
 
                 UnionType::collect_constraints_variants(
                     supertype.id,
@@ -1475,7 +1504,7 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 | Self::Tuple(_)
                 | Self::Closure(_),
             ) => {
-                let self_variants = lhs.unnest(env);
+                let self_variants = self.with(lhs).unnest(env);
                 let super_variants = [supertype.id];
 
                 IntersectionType::collect_constraints_variants(
@@ -1496,7 +1525,7 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 Self::Intersection(rhs),
             ) => {
                 let self_variants = [self.id];
-                let super_variants = rhs.unnest(env);
+                let super_variants = supertype.with(rhs).unnest(env);
 
                 IntersectionType::collect_constraints_variants(
                     self.span,
@@ -1625,8 +1654,49 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
         }
     }
 
-    fn instantiate(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> TypeId {
-        todo!("https://linear.app/hash/issue/H-4384/hashql-type-instantiation")
+    /// Instantiates a type by replacing type parameters with their corresponding arguments.
+    ///
+    /// This function handles different type kinds according to their specific instantiation rules:
+    /// - Most structured types (Opaque, Primitive, Struct, etc.) delegate to their specific
+    ///   implementations.
+    /// - Type parameters (`Param`) are replaced with their corresponding arguments from the
+    ///   environment.
+    /// - Inference variables, `Never`, and `Unknown` types are left unchanged.
+    ///
+    /// # Type instantiation semantics
+    ///
+    /// Instantiation of a polymorphic type scheme `σ = ∀α̅. τ` (in the style of Algorithm W
+    /// as found in ML, OCaml, Haskell, Rust, and HashQL) replaces **only** the universally
+    /// quantified parameters `α̅` with fresh unification variables. All other inference‐variable
+    /// "holes" in `τ` remain unchanged, ensuring that only the bound type parameters are
+    /// freshly instantiated.
+    ///
+    /// (Only the ∀-bound type parameters are replaced)
+    fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {
+        match self.kind {
+            TypeKind::Opaque(opaque_type) => self.with(opaque_type).instantiate(env),
+            TypeKind::Primitive(primitive_type) => self.with(primitive_type).instantiate(env),
+            TypeKind::Intrinsic(intrinsic_type) => self.with(intrinsic_type).instantiate(env),
+            TypeKind::Struct(struct_type) => self.with(struct_type).instantiate(env),
+            TypeKind::Tuple(tuple_type) => self.with(tuple_type).instantiate(env),
+            TypeKind::Union(union_type) => self.with(union_type).instantiate(env),
+            TypeKind::Intersection(intersection_type) => {
+                self.with(intersection_type).instantiate(env)
+            }
+            TypeKind::Closure(closure_type) => self.with(closure_type).instantiate(env),
+            &TypeKind::Param(Param { argument }) => {
+                if let Some(argument) = env.lookup_argument(argument) {
+                    env.intern_type(PartialType {
+                        span: self.span,
+                        kind: env.intern_kind(TypeKind::Param(Param { argument })),
+                    })
+                } else {
+                    env.record_diagnostic(type_parameter_not_found(env, self, argument));
+                    self.id
+                }
+            }
+            TypeKind::Infer(_) | TypeKind::Never | TypeKind::Unknown => self.id,
+        }
     }
 }
 

@@ -13,7 +13,7 @@ use crate::{
         PartialType, Type, TypeId,
         environment::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
-            SimplifyEnvironment,
+            SimplifyEnvironment, instantiate::InstantiateEnvironment,
         },
         error::{missing_struct_field, struct_field_mismatch},
         inference::{Inference, PartialStructuralEdge},
@@ -286,6 +286,13 @@ impl<'heap> Lattice<'heap> for StructType<'heap> {
             .all(|field| env.is_concrete(field.value))
     }
 
+    fn is_recursive(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
+        self.kind
+            .fields
+            .iter()
+            .any(|&field| env.is_recursive(field.value))
+    }
+
     fn distribute_union(
         self: Type<'heap, Self>,
         env: &mut AnalysisEnvironment<'_, 'heap>,
@@ -492,8 +499,30 @@ impl<'heap> Inference<'heap> for StructType<'heap> {
         }
     }
 
-    fn instantiate(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> TypeId {
-        todo!("https://linear.app/hash/issue/H-4384/hashql-type-instantiation")
+    fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {
+        let (_provision_guard, id) = env.provision(self.id);
+        let (_argument_guard, arguments) = env.instantiate_arguments(self.kind.arguments);
+
+        let mut fields = SmallVec::<_, 16>::with_capacity(self.kind.fields.len());
+        for field in &*self.kind.fields {
+            fields.push(StructField {
+                name: field.name,
+                value: env.instantiate(field.value),
+            });
+        }
+
+        env.intern_provisioned(
+            id,
+            PartialType {
+                span: self.span,
+                kind: env.intern_kind(TypeKind::Struct(StructType {
+                    fields: env
+                        .intern_struct_fields(&mut fields)
+                        .unwrap_or_else(|_| unreachable!()),
+                    arguments,
+                })),
+            },
+        )
     }
 }
 
@@ -528,7 +557,7 @@ mod test {
             PartialType,
             environment::{
                 AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
-                SimplifyEnvironment,
+                SimplifyEnvironment, instantiate::InstantiateEnvironment,
             },
             inference::{
                 Constraint, Inference as _, PartialStructuralEdge, Variable, VariableKind,
@@ -1957,5 +1986,82 @@ mod test {
                 && fields[0].value == type_id
                 && arguments.is_empty()
         );
+    }
+
+    #[test]
+    fn instantiate_struct() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let argument = env.counter.generic_argument.next();
+
+        r#struct!(
+            env,
+            value,
+            [GenericArgument {
+                id: argument,
+                name: env.heap.intern_symbol("T"),
+                constraint: None
+            }],
+            [struct_field!(
+                env,
+                "name",
+                instantiate_param(&env, argument)
+            )]
+        );
+
+        let mut instantiate = InstantiateEnvironment::new(&env);
+        let type_id = value.instantiate(&mut instantiate);
+
+        let r#type = env
+            .r#type(type_id)
+            .kind
+            .r#struct()
+            .expect("should be tuple");
+        assert_eq!(r#type.fields.len(), 1);
+        assert_eq!(r#type.arguments.len(), 1);
+
+        assert_eq!(r#type.fields[0].name.as_str(), "name");
+        let field = env.r#type(r#type.fields[0].value);
+        let param = field.kind.param().expect("should be param");
+
+        assert_eq!(param.argument, r#type.arguments[0].id);
+        assert_ne!(param.argument, argument);
+    }
+
+    #[test]
+    fn instantiate_struct_recursive() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let argument = env.counter.generic_argument.next();
+
+        let value = env.types.intern(|id| PartialType {
+            span: SpanId::SYNTHETIC,
+            kind: env.intern_kind(TypeKind::Struct(StructType {
+                fields: env
+                    .intern_struct_fields(&mut [struct_field!(env, "name", id.value())])
+                    .expect("should be valid"),
+                arguments: env.intern_generic_arguments(&mut [GenericArgument {
+                    id: argument,
+                    name: env.heap.intern_symbol("T"),
+                    constraint: None,
+                }]),
+            })),
+        });
+
+        let mut instantiate = InstantiateEnvironment::new(&env);
+        let type_id = instantiate.instantiate(value.id);
+
+        let r#type = env
+            .r#type(type_id)
+            .kind
+            .r#struct()
+            .expect("should be tuple");
+        assert_eq!(r#type.fields.len(), 1);
+        assert_eq!(r#type.arguments.len(), 1);
+
+        assert_eq!(r#type.fields[0].name.as_str(), "name");
+        assert_eq!(r#type.fields[0].value, type_id);
     }
 }

@@ -13,7 +13,7 @@ use crate::{
         collection::TypeIdSet,
         environment::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
-            SimplifyEnvironment,
+            SimplifyEnvironment, instantiate::InstantiateEnvironment,
         },
         error::{cannot_be_supertype_of_unknown, intersection_variant_mismatch, type_mismatch},
         inference::Inference,
@@ -29,16 +29,55 @@ pub struct IntersectionType<'heap> {
 }
 
 impl<'heap> IntersectionType<'heap> {
-    pub(crate) fn unnest(&self, env: &Environment) -> SmallVec<TypeId, 16> {
-        let mut variants = TypeIdSet::with_capacity(env, self.variants.len());
+    fn unnest_impl<'env>(
+        self: Type<'heap, Self>,
+        env: &'env Environment<'heap>,
+        variants: &mut TypeIdSet<'env, 'heap, 16>,
+        visited: &mut SmallVec<TypeId, 4>,
+    ) {
+        if visited.contains(&self.id) {
+            return;
+        }
 
-        for &variant in self.variants {
-            if let TypeKind::Intersection(intersection) = env.r#type(variant).kind {
-                variants.extend(intersection.unnest(env));
+        visited.push(self.id);
+
+        for &variant in self.kind.variants {
+            let r#type = env.r#type(variant);
+
+            if let Some(intersection) = r#type.kind.intersection() {
+                r#type
+                    .with(intersection)
+                    .unnest_impl(env, variants, visited);
             } else {
                 variants.push(variant);
             }
         }
+
+        visited.pop();
+    }
+
+    /// Flatten nested intersections into a single level of variants.
+    ///
+    /// This function traverses the intersection structure and returns a single-level list of all
+    /// the variant `TypeId`s, removing any nesting. It also handles recursive intersections with
+    /// self-references.
+    ///
+    /// For intersection types, recursive self-references are handled differently than in unions:
+    /// - When an intersection refers to itself (i.e., an equation `μX.(X ∩ A ∩ B)`), under
+    ///   coinductive semantics. This is equivalent to the intersection of all other variants, as
+    ///   `X` must satisfy all constraints of the other variants.
+    /// - Therefore, unlike unions (which collapse to the top type when self-referential),
+    ///   self-references in intersections are simply removed during unnesting.
+    ///
+    /// For example, `(Number & (String & Boolean))` is unnested to `[Number, String, Boolean]`,
+    /// and `μX.(X & Number)` is unnested to just `[Number]`.
+    pub(crate) fn unnest(
+        self: Type<'heap, Self>,
+        env: &Environment<'heap>,
+    ) -> SmallVec<TypeId, 16> {
+        let mut variants = TypeIdSet::with_capacity(env, self.kind.variants.len());
+
+        self.unnest_impl(env, &mut variants, &mut SmallVec::new());
 
         variants.finish()
     }
@@ -303,8 +342,8 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
         other: Type<'heap, Self>,
         env: &mut LatticeEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 4> {
-        let lhs_variants = self.kind.unnest(env);
-        let rhs_variants = other.kind.unnest(env);
+        let lhs_variants = self.unnest(env);
+        let rhs_variants = other.unnest(env);
 
         Self::join_variants(self.span, &lhs_variants, &rhs_variants, env)
     }
@@ -314,20 +353,30 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
         other: Type<'heap, Self>,
         env: &mut LatticeEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 4> {
-        let lhs_variants = self.kind.unnest(env);
-        let rhs_variants = other.kind.unnest(env);
+        let lhs_variants = self.unnest(env);
+        let rhs_variants = other.unnest(env);
 
         Self::meet_variants(self.span, &lhs_variants, &rhs_variants, env)
     }
 
     fn is_bottom(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
-        if self.kind.variants.iter().any(|&id| env.is_bottom(id)) {
+        let variants = self.unnest(env);
+
+        if variants.iter().any(|&id| env.is_bottom(id)) {
             return true;
         }
 
-        // check if any of the variants are disjoint from each other
-        for (index, &lhs) in self.kind.variants.iter().enumerate() {
-            for &rhs in &self.kind.variants[index + 1..] {
+        // Check if any of the variants are disjoint from each other
+        for (index, &lhs) in variants.iter().enumerate() {
+            if lhs == self.id {
+                continue;
+            }
+
+            for &rhs in &variants[index + 1..] {
+                if lhs == rhs {
+                    continue;
+                }
+
                 if env.is_disjoint(lhs, rhs) {
                     return true;
                 }
@@ -343,6 +392,10 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
 
     fn is_concrete(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
         self.kind.variants.iter().all(|&id| env.is_concrete(id))
+    }
+
+    fn is_recursive(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
+        self.kind.variants.iter().any(|&id| env.is_recursive(id))
     }
 
     fn distribute_union(
@@ -381,8 +434,8 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
         supertype: Type<'heap, Self>,
         env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool {
-        let self_variants = self.kind.unnest(env);
-        let supertype_variants = supertype.kind.unnest(env);
+        let self_variants = self.unnest(env);
+        let supertype_variants = supertype.unnest(env);
 
         Self::is_subtype_of_variants(self, supertype, &self_variants, &supertype_variants, env)
     }
@@ -392,8 +445,8 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
         other: Type<'heap, Self>,
         env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool {
-        let lhs_variants = self.kind.unnest(env);
-        let rhs_variants = other.kind.unnest(env);
+        let lhs_variants = self.unnest(env);
+        let rhs_variants = other.unnest(env);
 
         Self::is_equivalent_variants(self, other, &lhs_variants, &rhs_variants, env)
     }
@@ -406,6 +459,19 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
             TypeIdSet::<16>::with_capacity(env.environment, self.kind.variants.len());
         for &variant in self.kind.variants {
             let variant = env.simplify(variant);
+
+            // If an intersection type contains itself as one of its own conjuncts, e.g. `type A = A
+            // & Foo & Bar`, then under *coinductive* (greatest-fixed-point) semantics
+            // the equation `A = X ∩ A` admits all `S` with `S ⊆ X`, and coinduction
+            // picks the *largest* such `S` (namely `X` itself). Therefore any valid `A`
+            // must satisfy `A ⊆ X`, and we can simplify an immediately self-referential
+            // intersection by dropping the `A` conjunct and keeping only the other
+            // types.
+            if variant == id.value() {
+                // self-reference detected: `μX.(X ∧ …)` coinductively collapses to the other
+                // conjuncts
+                continue;
+            }
 
             // We need to use `get` here, as substituted types may not yet be materialized
             if let Some(IntersectionType { variants: nested }) = env
@@ -489,8 +555,8 @@ impl<'heap> Inference<'heap> for IntersectionType<'heap> {
         supertype: Type<'heap, Self>,
         env: &mut InferenceEnvironment<'_, 'heap>,
     ) {
-        let self_variants = self.kind.unnest(env);
-        let super_variants = supertype.kind.unnest(env);
+        let self_variants = self.unnest(env);
+        let super_variants = supertype.unnest(env);
 
         Self::collect_constraints_variants(
             self.span,
@@ -511,8 +577,27 @@ impl<'heap> Inference<'heap> for IntersectionType<'heap> {
         }
     }
 
-    fn instantiate(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> TypeId {
-        todo!("https://linear.app/hash/issue/H-4384/hashql-type-instantiation")
+    fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {
+        let (_provision_guard, id) = env.provision(self.id);
+
+        let mut variants =
+            TypeIdSet::<16>::with_capacity(env.environment, self.kind.variants.len());
+
+        for &variant in self.kind.variants {
+            variants.push(env.instantiate(variant));
+        }
+
+        let variants = variants.finish();
+
+        env.intern_provisioned(
+            id,
+            PartialType {
+                span: self.span,
+                kind: env.intern_kind(TypeKind::Intersection(Self {
+                    variants: env.intern_type_ids(&variants),
+                })),
+            },
+        )
     }
 }
 
@@ -553,19 +638,20 @@ mod test {
             PartialType,
             environment::{
                 AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
-                SimplifyEnvironment,
+                SimplifyEnvironment, instantiate::InstantiateEnvironment,
             },
             inference::{
                 Constraint, Inference as _, PartialStructuralEdge, Variable, VariableKind,
             },
             kind::{
-                TypeKind,
-                generic_argument::GenericArgumentId,
+                OpaqueType, Param, TypeKind,
+                generic_argument::{GenericArgument, GenericArgumentId},
                 infer::HoleId,
                 intrinsic::{DictType, IntrinsicType},
                 primitive::PrimitiveType,
                 test::{
-                    assert_equiv, assert_sorted_eq, dict, intersection, primitive, tuple, union,
+                    assert_equiv, assert_sorted_eq, dict, intersection, opaque, primitive, tuple,
+                    union,
                 },
                 tuple::TupleType,
                 union::UnionType,
@@ -593,9 +679,35 @@ mod test {
         intersection!(env, intersection_type, [number, nested_intersection]);
 
         // Unnesting should flatten to: Number & String & Boolean
-        let unnested = intersection_type.kind.unnest(&env);
+        let unnested = intersection_type.unnest(&env);
 
         assert_eq!(unnested, [boolean, string, number]);
+    }
+
+    #[test]
+    fn unnest_nested_recursive_intersection() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let r#type = env.types.intern(|id| PartialType {
+            span: SpanId::SYNTHETIC,
+            kind: env.intern_kind(TypeKind::Intersection(IntersectionType {
+                variants: env.intern_type_ids(&[env.intern_type(PartialType {
+                    span: SpanId::SYNTHETIC,
+                    kind: env.intern_kind(TypeKind::Intersection(IntersectionType {
+                        variants: env.intern_type_ids(&[id.value()]),
+                    })),
+                })]),
+            })),
+        });
+
+        let intersection = r#type
+            .kind
+            .intersection()
+            .expect("should be an intersection");
+        let unnested = r#type.with(intersection).unnest(&env);
+
+        assert_equiv!(env, unnested, []);
     }
 
     #[test]
@@ -741,6 +853,29 @@ mod test {
 
         // The reverse should also be true
         assert_equiv!(env, non_empty.join(empty, &mut lattice_env), [non_empty.id]);
+    }
+
+    #[test]
+    fn meet_recursive_intersection() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        intersection!(env, a, [primitive!(env, PrimitiveType::Number)]);
+
+        let b = env.types.intern(|id| PartialType {
+            span: SpanId::SYNTHETIC,
+            kind: env.intern_kind(TypeKind::Intersection(IntersectionType {
+                variants: env
+                    .intern_type_ids(&[id.value(), primitive!(env, PrimitiveType::Integer)]),
+            })),
+        });
+
+        let mut lattice_env = LatticeEnvironment::new(&env);
+        assert_equiv!(
+            env,
+            [lattice_env.meet(a.id, b.id)],
+            [primitive!(env, PrimitiveType::Integer)]
+        );
     }
 
     #[test]
@@ -2019,10 +2154,108 @@ mod test {
 
         let r#type = env.r#type(type_id);
 
-        assert_matches!(
-            r#type.kind,
-            TypeKind::Intersection(IntersectionType { variants }) if variants.len() == 1
-                && variants[0] == type_id
+        assert_matches!(r#type.kind, TypeKind::Unknown);
+    }
+
+    #[test]
+    fn simplify_recursive_intersection_multiple() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let r#type = env.types.intern(|id| PartialType {
+            span: SpanId::SYNTHETIC,
+            kind: env.intern_kind(TypeKind::Intersection(IntersectionType {
+                variants: env
+                    .intern_type_ids(&[id.value(), primitive!(env, PrimitiveType::Integer)]),
+            })),
+        });
+
+        let mut simplify = SimplifyEnvironment::new(&env);
+        let type_id = simplify.simplify(r#type.id);
+
+        let r#type = env.r#type(type_id);
+
+        assert_matches!(r#type.kind, TypeKind::Primitive(PrimitiveType::Integer));
+    }
+
+    #[test]
+    fn is_bottom_recursive_intersection_multiple() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let r#type = env.types.intern(|id| PartialType {
+            span: SpanId::SYNTHETIC,
+            kind: env.intern_kind(TypeKind::Intersection(IntersectionType {
+                variants: env
+                    .intern_type_ids(&[id.value(), primitive!(env, PrimitiveType::Integer)]),
+            })),
+        });
+
+        let mut analysis = AnalysisEnvironment::new(&env);
+        let is_bottom = analysis.is_bottom(r#type.id);
+        assert!(!is_bottom);
+
+        let r#type = env.types.intern(|id| PartialType {
+            span: SpanId::SYNTHETIC,
+            kind: env.intern_kind(TypeKind::Intersection(IntersectionType {
+                variants: env.intern_type_ids(&[id.value(), instantiate(&env, TypeKind::Never)]),
+            })),
+        });
+
+        let mut analysis = AnalysisEnvironment::new(&env);
+        let is_bottom = analysis.is_bottom(r#type.id);
+        assert!(is_bottom);
+    }
+
+    #[test]
+    fn instantiate_intersection() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let argument = env.counter.generic_argument.next();
+        let param = instantiate_param(&env, argument);
+
+        let inner = opaque!(
+            env,
+            "A",
+            param,
+            [GenericArgument {
+                id: argument,
+                name: heap.intern_symbol("T"),
+                constraint: None
+            }]
         );
+
+        intersection!(env, value, [inner, inner]);
+
+        let mut instantiate = InstantiateEnvironment::new(&env);
+        let type_id = value.instantiate(&mut instantiate);
+        assert!(instantiate.take_diagnostics().is_empty());
+
+        let result = env.r#type(type_id);
+        let intersection = result
+            .kind
+            .intersection()
+            .expect("should be an intersection");
+        assert_eq!(intersection.variants.len(), 2);
+
+        for variant in &*intersection.variants {
+            let variant = env.r#type(*variant);
+            let opaque = variant.kind.opaque().expect("should be an opaque type");
+            let repr = env
+                .r#type(opaque.repr)
+                .kind
+                .param()
+                .expect("should be a param");
+
+            assert_eq!(opaque.arguments.len(), 1);
+            assert_eq!(
+                *repr,
+                Param {
+                    argument: opaque.arguments[0].id
+                }
+            );
+            assert_ne!(repr.argument, argument);
+        }
     }
 }

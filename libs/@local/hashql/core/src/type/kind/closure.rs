@@ -10,7 +10,7 @@ use crate::{
         PartialType, Type, TypeId,
         environment::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
-            SimplifyEnvironment,
+            SimplifyEnvironment, instantiate::InstantiateEnvironment,
         },
         error::function_parameter_count_mismatch,
         inference::{Inference, PartialStructuralEdge},
@@ -118,6 +118,14 @@ impl<'heap> Lattice<'heap> for ClosureType<'heap> {
     fn is_concrete(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
         self.kind.params.iter().all(|&param| env.is_concrete(param))
             && env.is_concrete(self.kind.returns)
+    }
+
+    fn is_recursive(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
+        self.kind
+            .params
+            .iter()
+            .any(|&param| env.is_recursive(param))
+            || env.is_recursive(self.kind.returns)
     }
 
     fn distribute_union(
@@ -244,8 +252,28 @@ impl<'heap> Inference<'heap> for ClosureType<'heap> {
         env.in_covariant(|env| env.collect_structural_edges(self.kind.returns, variable));
     }
 
-    fn instantiate(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> TypeId {
-        todo!("See H-4384 for more details")
+    fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {
+        let (_provision_guard, id) = env.provision(self.id);
+        let (_argument_guard, arguments) = env.instantiate_arguments(self.kind.arguments);
+
+        let mut params = SmallVec::<_, 16>::with_capacity(16);
+        for &param in self.kind.params {
+            params.push(env.instantiate(param));
+        }
+
+        let returns = env.instantiate(self.kind.returns);
+
+        env.intern_provisioned(
+            id,
+            PartialType {
+                span: self.span,
+                kind: env.intern_kind(TypeKind::Closure(Self {
+                    params: env.intern_type_ids(&params),
+                    returns,
+                    arguments,
+                })),
+            },
+        )
     }
 }
 
@@ -284,13 +312,13 @@ mod test {
             PartialType,
             environment::{
                 AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
-                SimplifyEnvironment,
+                SimplifyEnvironment, instantiate::InstantiateEnvironment,
             },
             inference::{
                 Constraint, Inference as _, PartialStructuralEdge, Variable, VariableKind,
             },
             kind::{
-                TypeKind,
+                Param, TypeKind,
                 generic_argument::{GenericArgument, GenericArgumentId, GenericArguments},
                 infer::HoleId,
                 intersection::IntersectionType,
@@ -1285,10 +1313,16 @@ mod test {
         let constraints = inference_env.take_constraints();
         assert_eq!(
             constraints,
-            [Constraint::Ordering {
-                lower: Variable::synthetic(VariableKind::Generic(arg2)),
-                upper: Variable::synthetic(VariableKind::Generic(arg1)),
-            }]
+            [
+                Constraint::Ordering {
+                    lower: Variable::synthetic(VariableKind::Generic(arg2)),
+                    upper: Variable::synthetic(VariableKind::Generic(arg1)),
+                },
+                Constraint::Ordering {
+                    lower: Variable::synthetic(VariableKind::Generic(arg1)),
+                    upper: Variable::synthetic(VariableKind::Generic(arg2)),
+                }
+            ]
         );
     }
 
@@ -1619,5 +1653,61 @@ mod test {
                 && *returns == type_id
                 && arguments.is_empty()
         );
+    }
+
+    #[test]
+    fn instantiate_closure() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let argument = env.counter.generic_argument.next();
+        let param = instantiate_param(&env, argument);
+
+        closure!(
+            env,
+            value,
+            [GenericArgument {
+                id: argument,
+                name: heap.intern_symbol("T"),
+                constraint: None
+            }],
+            [param],
+            param
+        );
+
+        let mut instantiate = InstantiateEnvironment::new(&env);
+        let type_id = value.instantiate(&mut instantiate);
+        assert!(instantiate.take_diagnostics().is_empty());
+
+        let result = env.r#type(type_id);
+        let closure = result.kind.closure().expect("should be a closure type");
+        assert_eq!(closure.params.len(), 1);
+
+        let param = env
+            .r#type(closure.params[0])
+            .kind
+            .param()
+            .expect("should be a param type");
+        assert_eq!(
+            *param,
+            Param {
+                argument: closure.arguments[0].id
+            }
+        );
+        assert_ne!(param.argument, argument);
+
+        let returns = env
+            .r#type(closure.returns)
+            .kind
+            .param()
+            .expect("should be a param type");
+
+        assert_eq!(
+            *returns,
+            Param {
+                argument: closure.arguments[0].id
+            }
+        );
+        assert_ne!(returns.argument, argument);
     }
 }

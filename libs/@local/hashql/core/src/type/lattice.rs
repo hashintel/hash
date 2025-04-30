@@ -173,7 +173,8 @@ pub trait Lattice<'heap> {
     /// In a type lattice, a top type is a supertype of every other type, forming the
     /// greatest element of the lattice. This corresponds to the `?` (`Unknown`) type.
     ///
-    /// Examples:
+    /// # Examples
+    ///
     /// - The `any` type in TypeScript is a top type
     /// - Any union type with the `Unknown` type as a variant is a top type
     /// - Empty intersection types (intersections with no variants) are top types
@@ -201,6 +202,35 @@ pub trait Lattice<'heap> {
     /// - Types with unresolved type parameters
     /// - Inference types that need further resolution
     fn is_concrete(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool;
+
+    /// Determines if a type is recursive (self-referential in its definition).
+    ///
+    /// Recursive types are types that directly or indirectly refer to themselves in their own
+    /// definition. These types are essential for representing data structures with cyclical
+    /// relationships, such as linked lists, trees, and graphs.
+    ///
+    /// In type theory, recursive types are formalized using fixed-point operators or μ-types,
+    /// written as `μX.T` where `X` may appear in `T`, representing the recursive binding of `X` to
+    /// the structure `T`.
+    ///
+    /// # Implementation Considerations
+    ///
+    /// Detecting recursion in types is critical for:
+    /// - Preventing infinite loops during type checking and inference.
+    /// - Proper handling of type simplification and normalization.
+    /// - Calculating the memory layout of recursive data structures.
+    /// - Appropriate error reporting for circular type definitions.
+    /// - Co-inductive discharge of type constraints.
+    ///
+    /// # Examples
+    ///
+    /// Recursive types commonly include:
+    /// - Self-referential structures: `type LinkedList<T> = (data: T, next: Option<LinkedList<T>>)`
+    /// - Mutually recursive types: `type Tree = (newtype Leaf i32) | (newtype Node List<Tree>)`
+    /// - Recursive type aliases: `type Json = null | boolean | number | string | Json[] |
+    ///   Dict<String, Json>`
+    /// - Recursive function types: `type Recursive = fn(x: Recursive) -> void`
+    fn is_recursive(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool;
 
     /// Applies distribution laws to expressions containing union types in covariant positions.
     ///
