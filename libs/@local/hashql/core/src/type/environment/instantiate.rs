@@ -87,11 +87,22 @@ impl<'env, 'heap> InstantiateEnvironment<'env, 'heap> {
         (guard, arguments)
     }
 
-    /// Instantiates a type.
+    /// Instantiates a type by resolving its recursive structure and applying any provisioned
+    /// substitutions.
+    ///
+    /// This function handles the instantiation of a type by:
+    /// 1. Checking for recursion boundaries using `self.boundary.enter` and `self.boundary.exit`.
+    ///    - If the recursion boundary is exceeded, the function attempts to retrieve a provisioned
+    ///      substitution for the type.
+    /// 2. Applying provisioned substitutions via `self.provisioned.get_substitution`.
+    ///    - If a substitution exists, it is returned immediately.
+    /// 3. Falling back to the original type ID if no substitution is found and the recursion
+    ///    boundary is exceeded.
     ///
     /// # Panics
     ///
-    /// Panics in debug mode if a type should have been provisioned but wasn't.
+    /// In debug mode, this function panics if a type should have been provisioned but wasn't.
+    /// In release builds, the function recovers gracefully by returning the original type ID.
     pub fn instantiate(&mut self, id: TypeId) -> TypeId {
         let r#type = self.environment.r#type(id);
 
