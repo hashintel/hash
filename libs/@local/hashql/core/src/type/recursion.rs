@@ -47,7 +47,27 @@ pub(crate) struct RecursionCycle {
 }
 
 impl RecursionCycle {
-    /// Determine if we should discharge the cycle.
+    /// Determine if we should discharge the cycle according to coinductive reasoning principles.
+    ///
+    /// In coinductive subtyping and equivalence checks for recursive types, this method determines
+    /// whether we can accept the current relationship based on the detected cycle pattern.
+    ///
+    /// This method returns `true` when both types in the relationship have been observed in
+    /// a recursive cycle (both `lhs` and `rhs` flags are true). This dual-recursion requirement
+    /// ensures that:
+    ///
+    /// 1. We only discharge cycles when we have a genuine recursive relationship on both sides,
+    ///    preventing unsound conclusions when only one type is recursive.
+    ///
+    /// 2. The coinductive hypothesis is correctly applied, following formal bisimulation principles
+    ///    where we assume the relationship holds if the non-recursive parts are consistent.
+    ///
+    /// 3. The check maintains soundness in the type system by avoiding premature discharge in
+    ///    complex type relationships where one side is non-recursive.
+    ///
+    /// This implementation aligns with formal coinductive definitions for recursive types as
+    /// described in Pierce's "Types and Programming Languages" (Chapter 21) and Amadio &
+    /// Cardelli's work on subtyping recursive types.
     pub(crate) const fn should_discharge(self) -> bool {
         self.lhs && self.rhs
     }
