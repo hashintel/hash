@@ -60,9 +60,3 @@ pub(crate) struct StructMultipleFlattened {
     #[serde(flatten)]
     nested: StructNested,
 }
-
-// Struct with nested structs
-#[derive(specta::Type)]
-pub(crate) struct StructFlattenedMap {
-    name: String,
-}
