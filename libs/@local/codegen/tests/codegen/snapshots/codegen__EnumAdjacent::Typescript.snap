@@ -27,4 +27,9 @@ type EnumAdjacent = {
 		value_1: number
 		value_2: string
 	}
+} | {
+	type: "FlattenedStruct"
+	content: {
+		name: string
+	} & StructSimple
 };

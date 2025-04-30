@@ -1,5 +1,7 @@
 #![expect(unused, clippy::empty_structs_with_brackets)]
 
+use oxc::allocator::HashMap;
+
 // Unit struct (no fields or braces)
 #[derive(specta::Type)]
 pub(crate) struct StructUnit;
@@ -39,4 +41,28 @@ pub(crate) struct StructOptional {
 pub(crate) struct StructNested {
     name: String,
     simple: StructSimple,
+}
+
+// Struct with nested structs
+#[derive(specta::Type)]
+pub(crate) struct StructSimpleFlattened {
+    name: String,
+    #[serde(flatten)]
+    simple: StructSimple,
+}
+
+// Struct with nested structs
+#[derive(specta::Type)]
+pub(crate) struct StructMultipleFlattened {
+    name: String,
+    #[serde(flatten)]
+    simple: StructSimpleFlattened,
+    #[serde(flatten)]
+    nested: StructNested,
+}
+
+// Struct with nested structs
+#[derive(specta::Type)]
+pub(crate) struct StructFlattenedMap {
+    name: String,
 }

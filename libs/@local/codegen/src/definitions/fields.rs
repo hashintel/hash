@@ -9,6 +9,7 @@ pub struct Field {
     // TODO: Export doc strings in codegen
     //   see https://linear.app/hash/issue/H-4473/export-doc-strings-in-codegen
     pub r#type: Type,
+    pub flatten: bool,
 }
 
 impl Field {
@@ -23,6 +24,7 @@ impl Field {
                 }),
                 type_collection,
             ),
+            flatten: field.flatten(),
         }
     }
 }
@@ -61,6 +63,16 @@ impl Fields {
                     .collect(),
             },
             datatype::Fields::Unit => Self::Unit,
+        }
+    }
+
+    /// Checks if any field in this structure has the flatten flag set to true.
+    #[must_use]
+    pub fn has_flattened_fields(&self) -> bool {
+        match self {
+            Self::Named { fields } => fields.iter().any(|(_, field)| field.flatten),
+            Self::Unnamed { fields } => fields.iter().any(|field| field.flatten),
+            Self::Unit => false,
         }
     }
 }

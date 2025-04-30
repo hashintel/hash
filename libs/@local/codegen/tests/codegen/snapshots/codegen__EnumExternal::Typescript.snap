@@ -19,4 +19,8 @@ type EnumExternal = "Unit" | {
 		value_1: number
 		value_2: string
 	}
+} | {
+	FlattenedStruct: {
+		name: string
+	} & StructSimple
 };

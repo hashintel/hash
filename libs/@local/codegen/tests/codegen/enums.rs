@@ -1,5 +1,7 @@
 #![expect(unused, clippy::empty_enum_variants_with_brackets)]
 
+use crate::structs::{StructNested, StructSimple};
+
 // External tagging - default serde behavior (tag is the variant name)
 #[derive(specta::Type)]
 pub(crate) enum EnumExternal {
@@ -8,8 +10,18 @@ pub(crate) enum EnumExternal {
     SingleUnnamed(i32),
     DoubleUnnamed(bool, String),
     EmptyNamed {},
-    SingleNamed { value: i32 },
-    MultiNamed { value_1: i32, value_2: String },
+    SingleNamed {
+        value: i32,
+    },
+    MultiNamed {
+        value_1: i32,
+        value_2: String,
+    },
+    FlattenedStruct {
+        name: String,
+        #[serde(flatten)]
+        simple: StructSimple,
+    },
 }
 
 // Internal tagging - tag field is inside the object
@@ -18,8 +30,18 @@ pub(crate) enum EnumExternal {
 pub(crate) enum EnumInternal {
     Unit,
     EmptyNamed {},
-    SingleNamed { value: i32 },
-    MultiNamed { value_1: i32, value_2: String },
+    SingleNamed {
+        value: i32,
+    },
+    MultiNamed {
+        value_1: i32,
+        value_2: String,
+    },
+    FlattenedStruct {
+        name: String,
+        #[serde(flatten)]
+        simple: StructSimple,
+    },
 }
 
 // Adjacent tagging - separate fields for tag and content
@@ -31,8 +53,18 @@ pub(crate) enum EnumAdjacent {
     SingleUnnamed(i32),
     DoubleUnnamed(bool, String),
     EmptyNamed {},
-    SingleNamed { value: i32 },
-    MultiNamed { value_1: i32, value_2: String },
+    SingleNamed {
+        value: i32,
+    },
+    MultiNamed {
+        value_1: i32,
+        value_2: String,
+    },
+    FlattenedStruct {
+        name: String,
+        #[serde(flatten)]
+        simple: StructSimple,
+    },
 }
 
 // Untagged - no discriminator field, purely based on shape
@@ -44,6 +76,16 @@ pub(crate) enum EnumUntagged {
     SingleUnnamed(i32),
     DoubleUnnamed(bool, String),
     EmptyNamed {},
-    SingleNamed { value: i32 },
-    MultiNamed { value_1: i32, value_2: String },
+    SingleNamed {
+        value: i32,
+    },
+    MultiNamed {
+        value_1: i32,
+        value_2: String,
+    },
+    FlattenedStruct {
+        name: String,
+        #[serde(flatten)]
+        simple: StructSimple,
+    },
 }

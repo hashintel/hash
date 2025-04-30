@@ -41,6 +41,8 @@ fn main() -> ExitCode {
     collection.register::<structs::StructEmpty>();
     collection.register::<structs::StructOptional>();
     collection.register::<structs::StructNested>();
+    collection.register::<structs::StructSimpleFlattened>();
+    collection.register::<structs::StructMultipleFlattened>();
 
     // Register lists
     collection.register::<lists::ListPrimitives>();

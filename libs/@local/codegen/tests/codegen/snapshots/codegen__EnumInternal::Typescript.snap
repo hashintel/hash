@@ -13,4 +13,7 @@ type EnumInternal = {
 	type: "MultiNamed"
 	value_1: number
 	value_2: string
-};
+} | {
+	type: "FlattenedStruct"
+	name: string
+} & StructSimple;
