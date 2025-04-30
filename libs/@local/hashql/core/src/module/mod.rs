@@ -33,6 +33,7 @@ newtype!(pub struct ModuleId(u32 is 0..=0xFFFF_FF00));
 /// It tracks all available modules and their exported items.
 #[derive(Debug)]
 pub struct ModuleRegistry<'heap> {
+    /// A reference to the global heap used for memory allocation.
     pub heap: &'heap Heap,
 
     modules: InternMap<'heap, Module<'heap>>,
