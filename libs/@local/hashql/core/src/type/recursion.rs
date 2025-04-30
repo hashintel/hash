@@ -1,12 +1,14 @@
-use core::{marker::PhantomData, ops::ControlFlow};
+use core::ops::ControlFlow;
 
-use hashbrown::{HashSet, hash_map::Entry};
 use pretty::RcDoc;
 
 use super::{
-    Type, TypeId, environment::Environment, kind::TypeKind, pretty_print::PrettyPrint as _,
+    Type, TypeId,
+    environment::{AnalysisEnvironment, Environment},
+    kind::TypeKind,
+    pretty_print::PrettyPrint as _,
 };
-use crate::collection::{FastHashMap, FastHashSet};
+use crate::collection::FastHashSet;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct RecursionDepthBoundary {
@@ -42,9 +44,9 @@ impl RecursionDepthBoundary {
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) struct RecursionCycle {
     /// Was the left-hand type already on the stack.
-    lhs: bool,
+    pub lhs: bool,
     /// Was the right-hand type already on the stack.
-    rhs: bool,
+    pub rhs: bool,
 }
 
 impl RecursionCycle {
@@ -53,34 +55,50 @@ impl RecursionCycle {
         self.lhs && self.rhs
     }
 }
-#[derive(Debug, Clone, PartialEq, Eq)]
+
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+struct RecursionStack<'heap>(Vec<(*const TypeKind<'heap>, usize)>);
+
+impl<'heap> RecursionStack<'heap> {
+    fn enter(&mut self, item: *const TypeKind<'heap>) {
+        if let Some((entry, counter)) = self.0.last_mut()
+            && core::ptr::eq(*entry, item)
+        {
+            *counter += 1;
+        } else {
+            self.0.push((item, 1));
+        }
+    }
+
+    fn exit(&mut self, item: *const TypeKind<'heap>) {
+        let (entry, counter) = self.0.last_mut().expect("should have at least one element");
+        debug_assert!(core::ptr::eq(*entry, item));
+
+        if *counter == 1 {
+            self.0.pop();
+        } else {
+            *counter -= 1;
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
 pub(crate) struct RecursionBoundary<'heap> {
     inner: FastHashSet<(*const TypeKind<'heap>, *const TypeKind<'heap>)>,
-
-    lhs: FastHashMap<*const TypeKind<'heap>, usize>,
-    rhs: FastHashMap<*const TypeKind<'heap>, usize>,
+    // lhs: RecursionStack<'heap>,
+    // rhs: RecursionStack<'heap>,
 }
 
 impl<'heap> RecursionBoundary<'heap> {
     pub(crate) fn new() -> Self {
         Self {
             inner: FastHashSet::default(),
-            lhs: FastHashMap::default(),
-            rhs: FastHashMap::default(),
+            // lhs: RecursionStack::default(),
+            // rhs: RecursionStack::default(),
         }
     }
 
-    pub(crate) fn reset(&mut self) {
-        self.inner.clear();
-        self.lhs.clear();
-        self.rhs.clear();
-    }
-
-    pub(crate) fn enter(
-        &mut self,
-        lhs: Type<'heap>,
-        rhs: Type<'heap>,
-    ) -> ControlFlow<RecursionCycle> {
+    pub(crate) fn enter(&mut self, lhs: Type<'heap>, rhs: Type<'heap>) -> ControlFlow<()> {
         let lhs_kind = core::ptr::from_ref(lhs.kind);
         let rhs_kind = core::ptr::from_ref(rhs.kind);
 
@@ -90,19 +108,12 @@ impl<'heap> RecursionBoundary<'heap> {
         // Only insert if the element was not already in the set, otherwise our coinductive
         // recursion detection will always discharge.
         if should_enter {
-            *self.lhs.entry(lhs_kind).or_default() += 1;
-            *self.rhs.entry(rhs_kind).or_default() += 1;
+            // self.lhs.enter(lhs_kind);
+            // self.rhs.enter(rhs_kind);
 
             ControlFlow::Continue(())
         } else {
-            let cycle = RecursionCycle {
-                lhs: self.lhs.contains_key(&lhs_kind),
-                rhs: self.rhs.contains_key(&rhs_kind),
-            };
-
-            println!("Cycle detected: {:?}", cycle);
-
-            ControlFlow::Break(cycle)
+            ControlFlow::Break(())
         }
     }
 
@@ -110,22 +121,8 @@ impl<'heap> RecursionBoundary<'heap> {
         let lhs_kind = core::ptr::from_ref(lhs.kind);
         let rhs_kind = core::ptr::from_ref(rhs.kind);
 
-        if let Entry::Occupied(mut entry) = self.lhs.entry(lhs_kind) {
-            let value = entry.get_mut();
-            if *value == 1 {
-                entry.remove();
-            } else {
-                *value -= 1;
-            }
-        }
-        if let Entry::Occupied(mut entry) = self.rhs.entry(rhs_kind) {
-            let value = entry.get_mut();
-            if *value == 1 {
-                entry.remove();
-            } else {
-                *value -= 1;
-            }
-        }
+        // self.lhs.exit(lhs_kind);
+        // self.rhs.exit(rhs_kind);
 
         self.inner.remove(&(lhs_kind, rhs_kind))
     }

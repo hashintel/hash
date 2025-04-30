@@ -76,18 +76,12 @@ pub trait PrettyPrint {
         let mut output = Vec::new();
         let mut writer = WriteColored::new(&mut output);
 
-        self.pretty(
-            env,
-            RecursionDepthBoundary {
-                depth: 0,
-                limit: 32,
-            },
-        )
-        .render_raw(width, &mut writer)
-        .expect(
-            "should not fail during diagnostic rendering - if it does, this indicates a bug in \
-             the pretty printer",
-        );
+        self.pretty(env, RecursionDepthBoundary { depth: 0, limit: 4 })
+            .render_raw(width, &mut writer)
+            .expect(
+                "should not fail during diagnostic rendering - if it does, this indicates a bug \
+                 in the pretty printer",
+            );
 
         String::from_utf8(output)
             .expect("should never fail as all bytes come from valid UTF-8 strings")

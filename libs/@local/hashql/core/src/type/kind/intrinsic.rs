@@ -65,6 +65,10 @@ impl<'heap> Lattice<'heap> for ListType {
         env.is_concrete(self.kind.element)
     }
 
+    fn is_recursive(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
+        env.is_recursive(self.kind.element)
+    }
+
     fn distribute_union(
         self: Type<'heap, Self>,
         env: &mut AnalysisEnvironment<'_, 'heap>,
@@ -337,6 +341,10 @@ impl<'heap> Lattice<'heap> for DictType {
         env.is_concrete(self.kind.key) && env.is_concrete(self.kind.value)
     }
 
+    fn is_recursive(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
+        env.is_recursive(self.kind.key) || env.is_recursive(self.kind.value)
+    }
+
     fn distribute_union(
         self: Type<'heap, Self>,
         env: &mut AnalysisEnvironment<'_, 'heap>,
@@ -584,6 +592,13 @@ impl<'heap> Lattice<'heap> for IntrinsicType {
         match self.kind {
             Self::List(inner) => self.with(inner).is_concrete(env),
             Self::Dict(inner) => self.with(inner).is_concrete(env),
+        }
+    }
+
+    fn is_recursive(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
+        match self.kind {
+            Self::List(inner) => self.with(inner).is_recursive(env),
+            Self::Dict(inner) => self.with(inner).is_recursive(env),
         }
     }
 

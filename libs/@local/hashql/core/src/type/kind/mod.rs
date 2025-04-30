@@ -678,6 +678,30 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
         }
     }
 
+    fn is_recursive(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
+        match self.kind {
+            TypeKind::Opaque(opaque_type) => self.with(opaque_type).is_recursive(env),
+            TypeKind::Primitive(primitive_type) => self.with(primitive_type).is_recursive(env),
+            TypeKind::Intrinsic(intrinsic_type) => self.with(intrinsic_type).is_recursive(env),
+            TypeKind::Struct(struct_type) => self.with(struct_type).is_recursive(env),
+            TypeKind::Tuple(tuple_type) => self.with(tuple_type).is_recursive(env),
+            TypeKind::Union(union_type) => self.with(union_type).is_recursive(env),
+            TypeKind::Intersection(intersection_type) => {
+                self.with(intersection_type).is_recursive(env)
+            }
+            TypeKind::Closure(closure_type) => self.with(closure_type).is_recursive(env),
+            &TypeKind::Param(Param { argument }) => env
+                .substitution
+                .argument(argument)
+                .is_some_and(|substitution| env.is_recursive(substitution)),
+            &TypeKind::Infer(Infer { hole }) => env
+                .substitution
+                .infer(hole)
+                .is_some_and(|substitution| env.is_recursive(substitution)),
+            TypeKind::Never | TypeKind::Unknown => false,
+        }
+    }
+
     fn distribute_union(
         self: Type<'heap, Self>,
         env: &mut AnalysisEnvironment<'_, 'heap>,

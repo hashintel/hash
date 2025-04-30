@@ -120,6 +120,14 @@ impl<'heap> Lattice<'heap> for ClosureType<'heap> {
             && env.is_concrete(self.kind.returns)
     }
 
+    fn is_recursive(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
+        self.kind
+            .params
+            .iter()
+            .any(|&param| env.is_recursive(param))
+            || env.is_recursive(self.kind.returns)
+    }
+
     fn distribute_union(
         self: Type<'heap, Self>,
         _: &mut AnalysisEnvironment<'_, 'heap>,

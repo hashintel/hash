@@ -156,6 +156,21 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
         result
     }
 
+    pub fn is_recursive(&mut self, id: TypeId) -> bool {
+        let r#type = self.environment.r#type(id);
+
+        if self.boundary.enter(r#type, r#type).is_break() {
+            // We have found a recursive type
+            return true;
+        }
+
+        let result = r#type.is_recursive(self);
+
+        self.boundary.exit(r#type, r#type);
+
+        result
+    }
+
     pub fn distribute_union(&mut self, id: TypeId) -> SmallVec<TypeId, 16> {
         let r#type = self.environment.r#type(id);
 
@@ -332,7 +347,12 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
         let subtype = self.environment.r#type(subtype);
         let supertype = self.environment.r#type(supertype);
 
-        if let ControlFlow::Break(cycle) = self.boundary.enter(subtype, supertype) {
+        if self.boundary.enter(subtype, supertype).is_break() {
+            let cycle = RecursionCycle {
+                lhs: self.is_recursive(subtype.id),
+                rhs: self.is_recursive(supertype.id),
+            };
+
             return self.is_subtype_of_recursive(subtype, supertype, cycle);
         }
 
@@ -417,7 +437,12 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
         let lhs = self.environment.r#type(lhs);
         let rhs = self.environment.r#type(rhs);
 
-        if let ControlFlow::Break(cycle) = self.boundary.enter(lhs, rhs) {
+        if self.boundary.enter(lhs, rhs).is_break() {
+            let cycle = RecursionCycle {
+                lhs: self.is_recursive(lhs.id),
+                rhs: self.is_recursive(rhs.id),
+            };
+
             return self.is_equivalent_recursive(lhs, rhs, cycle);
         }
 

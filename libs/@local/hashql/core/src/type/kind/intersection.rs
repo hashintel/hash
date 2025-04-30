@@ -345,6 +345,10 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
         self.kind.variants.iter().all(|&id| env.is_concrete(id))
     }
 
+    fn is_recursive(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
+        self.kind.variants.iter().any(|&id| env.is_recursive(id))
+    }
+
     fn distribute_union(
         self: Type<'heap, Self>,
         _: &mut AnalysisEnvironment<'_, 'heap>,

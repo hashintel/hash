@@ -132,6 +132,13 @@ impl<'heap> Lattice<'heap> for TupleType<'heap> {
         self.kind.fields.iter().all(|&field| env.is_concrete(field))
     }
 
+    fn is_recursive(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
+        self.kind
+            .fields
+            .iter()
+            .any(|&field| env.is_recursive(field))
+    }
+
     fn distribute_union(
         self: Type<'heap, Self>,
         env: &mut AnalysisEnvironment<'_, 'heap>,

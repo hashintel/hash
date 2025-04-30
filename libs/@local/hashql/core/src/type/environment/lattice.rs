@@ -150,7 +150,12 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
         let lhs = self.environment.r#type(lhs);
         let rhs = self.environment.r#type(rhs);
 
-        if let ControlFlow::Break(cycle) = self.boundary.enter(lhs, rhs) {
+        if self.boundary.enter(lhs, rhs).is_break() {
+            let cycle = RecursionCycle {
+                lhs: self.is_recursive(lhs.id),
+                rhs: self.is_recursive(rhs.id),
+            };
+
             return self.join_recursive(lhs, rhs, cycle);
         }
 
@@ -255,7 +260,12 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
         let lhs = self.environment.r#type(lhs);
         let rhs = self.environment.r#type(rhs);
 
-        if let ControlFlow::Break(cycle) = self.boundary.enter(lhs, rhs) {
+        if self.boundary.enter(lhs, rhs).is_break() {
+            let cycle = RecursionCycle {
+                lhs: self.is_recursive(lhs.id),
+                rhs: self.is_recursive(rhs.id),
+            };
+
             return self.meet_recursive(lhs, rhs, cycle);
         }
 
@@ -323,6 +333,11 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
     #[inline]
     pub fn is_concrete(&mut self, id: TypeId) -> bool {
         self.simplify.is_concrete(id)
+    }
+
+    #[inline]
+    pub fn is_recursive(&mut self, id: TypeId) -> bool {
+        self.simplify.is_recursive(id)
     }
 
     #[inline]

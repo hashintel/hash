@@ -202,6 +202,10 @@ impl<'heap> Lattice<'heap> for OpaqueType<'heap> {
         env.is_concrete(self.kind.repr)
     }
 
+    fn is_recursive(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
+        env.is_recursive(self.kind.repr)
+    }
+
     fn distribute_union(
         self: Type<'heap, Self>,
         _: &mut AnalysisEnvironment<'_, 'heap>,

@@ -141,6 +141,15 @@ impl<'env, 'heap> SimplifyEnvironment<'env, 'heap> {
     }
 
     #[inline]
+    pub fn is_recursive(&mut self, mut id: TypeId) -> bool {
+        if let Some(previous) = self.provisioned.get_source(id) {
+            id = previous;
+        }
+
+        self.analysis.is_recursive(id)
+    }
+
+    #[inline]
     pub fn distribute_union(&mut self, mut id: TypeId) -> SmallVec<TypeId, 16> {
         if let Some(previous) = self.provisioned.get_source(id) {
             id = previous;

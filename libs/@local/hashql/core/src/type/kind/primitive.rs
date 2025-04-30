@@ -75,6 +75,10 @@ impl<'heap> Lattice<'heap> for PrimitiveType {
         true
     }
 
+    fn is_recursive(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
+        false
+    }
+
     fn distribute_union(
         self: Type<'heap, Self>,
         _: &mut AnalysisEnvironment<'_, 'heap>,
