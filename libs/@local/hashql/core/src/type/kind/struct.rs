@@ -2028,4 +2028,40 @@ mod test {
         assert_eq!(param.argument, r#type.arguments[0].id);
         assert_ne!(param.argument, argument);
     }
+
+    #[test]
+    fn instantiate_struct_recursive() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let argument = env.counter.generic_argument.next();
+
+        let value = env.types.intern(|id| PartialType {
+            span: SpanId::SYNTHETIC,
+            kind: env.intern_kind(TypeKind::Struct(StructType {
+                fields: env
+                    .intern_struct_fields(&mut [struct_field!(env, "name", id.value())])
+                    .expect("should be valid"),
+                arguments: env.intern_generic_arguments(&mut [GenericArgument {
+                    id: argument,
+                    name: env.heap.intern_symbol("T"),
+                    constraint: None,
+                }]),
+            })),
+        });
+
+        let mut instantiate = InstantiateEnvironment::new(&env);
+        let type_id = instantiate.instantiate(value.id);
+
+        let r#type = env
+            .r#type(type_id)
+            .kind
+            .r#struct()
+            .expect("should be tuple");
+        assert_eq!(r#type.fields.len(), 1);
+        assert_eq!(r#type.arguments.len(), 1);
+
+        assert_eq!(r#type.fields[0].name.as_str(), "name");
+        assert_eq!(r#type.fields[0].value, type_id);
+    }
 }
