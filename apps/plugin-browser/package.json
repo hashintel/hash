@@ -58,7 +58,7 @@
     "@local/hash-graph-client": "0.0.0-private",
     "@local/hash-isomorphic-utils": "0.0.0-private",
     "@local/status": "0.0.0-private",
-    "@pmmmwh/react-refresh-webpack-plugin": "0.5.16",
+    "@pmmmwh/react-refresh-webpack-plugin": "0.6.0",
     "@sentry/webpack-plugin": "2.23.0",
     "@types/lodash.debounce": "4.0.9",
     "@types/react": "19.1.2",
