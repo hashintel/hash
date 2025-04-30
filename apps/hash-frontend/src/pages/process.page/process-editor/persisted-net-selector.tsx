@@ -7,13 +7,15 @@ import { MenuItem } from "../../../shared/ui";
 import type { PersistedNet } from "./types";
 
 export const PersistedNetSelector = ({
+  disabledOptions,
   onSelect,
   options,
   value,
 }: {
+  disabledOptions?: EntityId[];
   onSelect: (option: PersistedNet) => void;
   options: PersistedNet[];
-  value?: EntityId | null;
+  value: EntityId | null;
 }) => {
   const selectedOption = useMemo(() => {
     return options.find((option) => option.entityId === value);
@@ -24,7 +26,7 @@ export const PersistedNetSelector = ({
   }
 
   return (
-    <Autocomplete<PersistedNet, false, false, false>
+    <Autocomplete<PersistedNet | null, false, false, false>
       autoFocus={false}
       componentsProps={{
         paper: {
@@ -38,7 +40,10 @@ export const PersistedNetSelector = ({
       }}
       disableCloseOnSelect={false}
       disabled={options.length === 0}
-      getOptionLabel={(option) => option.title}
+      getOptionDisabled={(option) =>
+        !!option && !!disabledOptions?.includes(option.entityId)
+      }
+      getOptionLabel={(option) => option?.title ?? ""}
       inputHeight={40}
       inputProps={{
         endAdornment: <CaretDownSolidIcon sx={{ fontSize: 14 }} />,
@@ -55,10 +60,10 @@ export const PersistedNetSelector = ({
         }),
       }}
       isOptionEqualToValue={(option, selectedValue) =>
-        option.entityId === selectedValue.entityId
+        option?.entityId === selectedValue?.entityId
       }
       renderOption={(props, data) => (
-        <MenuItem {...props}>{data.title}</MenuItem>
+        <MenuItem {...props}>{data?.title ?? ""}</MenuItem>
       )}
       ListboxProps={{
         sx: {

@@ -6,10 +6,6 @@ import {
   systemLinkEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type {
-  SubProcessOfProperties,
-  SubProcessOfPropertiesWithMetadata,
-} from "@local/hash-isomorphic-utils/system-types/petrinet";
 import {
   Box,
   Dialog,
@@ -38,7 +34,12 @@ import { Button, MenuItem } from "../../../shared/ui";
 import { useActiveWorkspace } from "../../shared/workspace-context";
 import { useEditorContext } from "./editor-context";
 import { PersistedNetSelector } from "./persisted-net-selector";
-import type { ArcType, TransitionCondition, TransitionNodeData } from "./types";
+import type {
+  ArcType,
+  TransitionCondition,
+  TransitionNodeData,
+  TransitionNodeType,
+} from "./types";
 
 const normalizeProbabilities = (
   conditions: TransitionCondition[],
@@ -129,7 +130,6 @@ type TransitionEditorProps = {
   open: boolean;
   onClose: () => void;
   transitionId: string;
-  transitionData: TransitionNodeData;
   outgoingEdges: Array<
     ArcType & {
       targetLabel: string;
@@ -145,22 +145,45 @@ export const TransitionEditor = ({
   open,
   onClose,
   transitionId,
-  transitionData,
   outgoingEdges,
   onUpdateTransition,
 }: TransitionEditorProps) => {
+  const { nodes } = useEditorContext();
+
+  const initialData = useMemo(() => {
+    const transitionNode = nodes.find(
+      (node): node is TransitionNodeType =>
+        node.data.type === "transition" && node.id === transitionId,
+    );
+
+    if (!transitionNode) {
+      return {
+        conditions: [],
+        delay: 0,
+        description: "",
+        subProcess: null,
+        label: "",
+      };
+    }
+
+    return transitionNode.data;
+  }, [nodes, transitionId]);
+
   const [localData, setEditedData] = useState<Omit<TransitionNodeData, "type">>(
     {
-      label: transitionData.label,
-      description: transitionData.description ?? "",
-      conditions: transitionData.conditions ?? [],
-      delay: transitionData.delay,
+      label: initialData.label,
+      description: initialData.description ?? "",
+      conditions: initialData.conditions ?? [],
+      delay: initialData.delay,
+      /**
+       * @todo represent subprocess here?
+       */
     },
   );
 
   const hasConditions = localData.conditions && localData.conditions.length > 0;
 
-  const { subProcess } = localData;
+  const { subProcess } = initialData;
 
   const { activeWorkspaceWebId } = useActiveWorkspace();
   const { entityId, persistedNets, refetchPersistedNets } = useEditorContext();
@@ -184,7 +207,9 @@ export const TransitionEditor = ({
       }
 
       if (subProcess) {
-        await archiveEntity({ variables: { entityId: subProcess.entityId } });
+        await archiveEntity({
+          variables: { entityId: subProcess.linkEntityId },
+        });
       }
 
       await createEntity({
@@ -208,7 +233,7 @@ export const TransitionEditor = ({
         },
       });
 
-      refetchPersistedNets();
+      refetchPersistedNets({ updatedEntityId: entityId });
     },
     [
       activeWorkspaceWebId,
@@ -434,8 +459,9 @@ export const TransitionEditor = ({
               </Typography>
 
               <PersistedNetSelector
+                disabledOptions={[entityId]}
                 options={persistedNets}
-                value={localData.subProcess?.entityId}
+                value={initialData.subProcess?.subProcessEntityId ?? null}
                 onSelect={(value) => updateSubProcess(value.entityId)}
               />
             </Box>

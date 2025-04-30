@@ -67,7 +67,9 @@ const ProcessEditorContent = () => {
     nodes,
     persistToGraph,
     setArcs,
+    setEntityId,
     setNodes,
+    setParentProcess,
     setPetriNetDefinition,
     setTitle,
     setUserEditable,
@@ -304,11 +306,20 @@ const ProcessEditorContent = () => {
       tokenTypes: defaultTokenTypes,
     });
 
+    setEntityId(null);
+    setParentProcess(null);
     setUserEditable(true);
     setTitle("Process");
 
     resetSimulation();
-  }, [setPetriNetDefinition, setUserEditable, setTitle, resetSimulation]);
+  }, [
+    setPetriNetDefinition,
+    setEntityId,
+    setParentProcess,
+    setUserEditable,
+    setTitle,
+    resetSimulation,
+  ]);
 
   const handleLoadExample = useCallback(() => {
     const nodesWithInitialCounts = exampleCPN.nodes.map((node) => {
@@ -332,9 +343,16 @@ const ProcessEditorContent = () => {
 
     setUserEditable(false);
     setTitle(exampleCPN.title);
+    setEntityId(null);
 
     resetSimulation();
-  }, [setPetriNetDefinition, setUserEditable, setTitle, resetSimulation]);
+  }, [
+    setPetriNetDefinition,
+    setUserEditable,
+    setTitle,
+    setEntityId,
+    resetSimulation,
+  ]);
 
   const handleReset = useCallback(() => {
     setNodes((currentNodes) =>
@@ -500,7 +518,7 @@ const ProcessEditorContent = () => {
               Export
             </Button>
             <Button onClick={handleResetAll} size="xs" variant="danger">
-              Clear
+              New
             </Button>
             <Button onClick={persistToGraph} size="xs" variant="primary">
               {entityId && userEditable ? "Update" : "Create"}
@@ -512,11 +530,6 @@ const ProcessEditorContent = () => {
               open
               onClose={() => setSelectedTransition(null)}
               transitionId={selectedTransition}
-              transitionData={
-                nodes.find((node) => node.id === selectedTransition)?.data ?? {
-                  label: "",
-                }
-              }
               outgoingEdges={arcs
                 .filter((edge) => edge.source === selectedTransition)
                 .map((edge) => {

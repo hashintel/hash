@@ -157,9 +157,7 @@ export const Arc = ({
             );
 
             if (!tokenType) {
-              throw new Error(
-                `Token type with ID '${tokenTypeId}' not found for arc '${id}'`,
-              );
+              return null;
             }
 
             const yOffset = (index - (nonZeroWeights.length - 1) / 2) * 20;

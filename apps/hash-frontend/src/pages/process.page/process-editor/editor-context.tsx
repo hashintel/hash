@@ -29,7 +29,10 @@ import {
   updateEntityMutation,
 } from "../../../graphql/queries/knowledge/entity.queries";
 import { useActiveWorkspace } from "../../shared/workspace-context";
-import { usePersistedNets } from "./editor-context/use-persisted-nets";
+import {
+  getPersistedNetsFromSubgraph,
+  usePersistedNets,
+} from "./editor-context/use-persisted-nets";
 import { defaultTokenTypes } from "./token-types";
 import type {
   ArcType,
@@ -47,7 +50,7 @@ type EditorContextValue = {
   parentProcess: { entityId: EntityId; title: string } | null;
   persistedNets: PersistedNet[];
   persistToGraph: () => void;
-  refetchPersistedNets: () => void;
+  refetchPersistedNets: (args: { updatedEntityId: EntityId | null }) => void;
   setArcs: Dispatch<SetStateAction<ArcType[]>>;
   setEntityId: Dispatch<SetStateAction<EntityId | null>>;
   setNodes: Dispatch<SetStateAction<NodeType[]>>;
@@ -102,7 +105,7 @@ export const EditorContextProvider = ({
     title: string;
   } | null>("petri-net-parent-process", null);
 
-  const { persistedNets, refetch: refetchPersistedNets } = usePersistedNets();
+  const { persistedNets, refetch } = usePersistedNets();
 
   const { activeWorkspaceWebId } = useActiveWorkspace();
 
@@ -115,6 +118,67 @@ export const EditorContextProvider = ({
     UpdateEntityMutation,
     UpdateEntityMutationVariables
   >(updateEntityMutation);
+
+  const { fitView } = useReactFlow();
+
+  const setPetriNetDefinition: EditorContextValue["setPetriNetDefinition"] =
+    useCallback(
+      ({ nodes: newNodes, arcs: newArcs, tokenTypes: newTokenTypes }) => {
+        /**
+         * We flush this update first because reactflow seems to take an extra render to clear the nodes and edges,
+         * and there's a crash if the token types are cleared in the same cycle as the nodes/arcs (which depend on the types).
+         */
+        flushSync(() => {
+          setArcs(newArcs);
+          setNodes(newNodes);
+        });
+
+        setTokenTypes(newTokenTypes);
+
+        setTimeout(() => {
+          fitView({ duration: 200, padding: 0.03, maxZoom: 1 });
+        }, 100);
+      },
+      [fitView, setArcs, setNodes, setTokenTypes],
+    );
+
+  const loadPersistedNet = useCallback(
+    (persistedNet: PersistedNet) => {
+      setEntityId(persistedNet.entityId);
+      setParentProcess(persistedNet.parentProcess);
+      setPetriNetDefinition(persistedNet.definition);
+      setTitle(persistedNet.title);
+      setUserEditable(persistedNet.userEditable);
+    },
+    [
+      setEntityId,
+      setParentProcess,
+      setPetriNetDefinition,
+      setTitle,
+      setUserEditable,
+    ],
+  );
+
+  const refetchPersistedNets = useCallback(
+    async ({ updatedEntityId }: { updatedEntityId: EntityId | null }) => {
+      const updatedNetsData = await refetch();
+
+      const transformedNets = getPersistedNetsFromSubgraph(
+        updatedNetsData.data,
+      );
+
+      if (updatedEntityId) {
+        const updatedNet = transformedNets.find(
+          (net) => net.entityId === updatedEntityId,
+        );
+
+        if (updatedNet) {
+          loadPersistedNet(updatedNet);
+        }
+      }
+    },
+    [loadPersistedNet, refetch],
+  );
 
   const persistToGraph = useCallback(async () => {
     if (!activeWorkspaceWebId) {
@@ -136,11 +200,13 @@ export const EditorContextProvider = ({
                   metadata: {
                     dataTypeId: blockProtocolDataTypes.object.dataTypeId,
                   },
-                  value: JSON.stringify({
+                  // @ts-expect-error -- incompatibility between JsonValue and some of the Edge types
+                  // @todo fix this
+                  value: {
                     arcs,
                     nodes,
                     tokenTypes,
-                  } satisfies PetriNetDefinitionObject),
+                  },
                 },
               },
               {
@@ -158,7 +224,7 @@ export const EditorContextProvider = ({
         },
       });
 
-      void refetchPersistedNets();
+      await refetchPersistedNets({ updatedEntityId: entityId });
     } else {
       const createdEntityData = await createEntity({
         variables: {
@@ -195,7 +261,7 @@ export const EditorContextProvider = ({
 
       const createdEntity = new HashEntity(createdEntityData.data.createEntity);
 
-      void refetchPersistedNets();
+      void refetchPersistedNets({ updatedEntityId: createdEntity.entityId });
 
       setEntityId(createdEntity.entityId);
       setUserEditable(true);
@@ -213,47 +279,6 @@ export const EditorContextProvider = ({
     tokenTypes,
     updateEntity,
   ]);
-
-  const { fitView } = useReactFlow();
-
-  const setPetriNetDefinition: EditorContextValue["setPetriNetDefinition"] =
-    useCallback(
-      ({ nodes: newNodes, arcs: newArcs, tokenTypes: newTokenTypes }) => {
-        /**
-         * We flush this update first because reactflow seems to take an extra render to clear the nodes and edges,
-         * and there's a crash if the token types are cleared in the same cycle as the nodes/arcs (which depend on the types).
-         */
-        flushSync(() => {
-          setArcs(newArcs);
-          setNodes(newNodes);
-          setTokenTypes(newTokenTypes);
-        });
-
-        setTokenTypes(newTokenTypes);
-
-        setTimeout(() => {
-          fitView({ duration: 200, padding: 0.03, maxZoom: 1 });
-        }, 100);
-      },
-      [fitView, setArcs, setNodes, setTokenTypes],
-    );
-
-  const loadPersistedNet = useCallback(
-    (persistedNet: PersistedNet) => {
-      setEntityId(persistedNet.entityId);
-      setParentProcess(persistedNet.parentProcess);
-      setPetriNetDefinition(persistedNet.definition);
-      setTitle(persistedNet.title);
-      setUserEditable(persistedNet.userEditable);
-    },
-    [
-      setEntityId,
-      setParentProcess,
-      setPetriNetDefinition,
-      setTitle,
-      setUserEditable,
-    ],
-  );
 
   const value: EditorContextValue = useMemo(
     () => ({

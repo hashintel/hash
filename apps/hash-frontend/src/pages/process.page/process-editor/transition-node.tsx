@@ -30,9 +30,11 @@ export const TransitionNode = ({
       <Box sx={transitionStyling}>
         {subProcess && (
           <IconButton
-            onClick={() => {
+            onClick={(event) => {
+              event.stopPropagation();
+
               const subProcessPersistedNet = persistedNets.find(
-                (net) => net.entityId === subProcess.entityId,
+                (net) => net.entityId === subProcess.subProcessEntityId,
               );
 
               if (subProcessPersistedNet) {

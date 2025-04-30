@@ -6,11 +6,11 @@ import { useSimulation } from "./simulation-context";
 import type {
   ArcData,
   ArcType,
-  TransitionCondition,
   NodeType,
   PlaceNodeData,
   TokenCounts,
   TokenType,
+  TransitionCondition,
   TransitionNodeData,
 } from "./types";
 

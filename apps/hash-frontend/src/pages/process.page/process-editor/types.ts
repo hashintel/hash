@@ -31,8 +31,9 @@ export type TransitionNodeData = {
   delay?: number;
   description?: string;
   subProcess?: {
-    entityId: EntityId;
-    title: string;
+    linkEntityId: EntityId;
+    subProcessEntityId: EntityId;
+    subProcessTitle: string;
   };
   /**
    * Although a reactflow {@link Node} has a 'type' field, the library types don't discriminate on this field in all methods,

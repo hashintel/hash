@@ -5,7 +5,7 @@ import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
 } from "@blockprotocol/graph/stdlib";
-import type { Entity, EntityId, LinkEntity } from "@blockprotocol/type-system";
+import type { Entity, LinkEntity } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
@@ -27,9 +27,15 @@ import type {
   GetEntitySubgraphQueryVariables,
 } from "../../../../graphql/api-types.gen";
 import { getEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
-import type { PersistedNet, PetriNetDefinitionObject } from "../types";
+import type {
+  PersistedNet,
+  PetriNetDefinitionObject,
+  TransitionNodeData,
+} from "../types";
 
-const getPersistedNets = (data: GetEntitySubgraphQuery): PersistedNet[] => {
+export const getPersistedNetsFromSubgraph = (
+  data: GetEntitySubgraphQuery,
+): PersistedNet[] => {
   const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<
     EntityRootType<HashEntity<PetriNet>>
   >(data.getEntitySubgraph.subgraph);
@@ -68,7 +74,7 @@ const getPersistedNets = (data: GetEntitySubgraphQuery): PersistedNet[] => {
 
     const transitionIdToSubprocess = new Map<
       string,
-      { title: string; entityId: EntityId }
+      TransitionNodeData["subProcess"]
     >();
 
     for (const incomingSubProcess of incomingSubProcesses) {
@@ -84,16 +90,24 @@ const getPersistedNets = (data: GetEntitySubgraphQuery): PersistedNet[] => {
           "https://hash.ai/@h/types/property-type/transition-id/"
         ],
         {
-          title:
+          subProcessTitle:
             subProcess.properties[
               "https://hash.ai/@h/types/property-type/title/"
             ],
-          entityId: subProcess.entityId,
+          subProcessEntityId: subProcess.entityId,
+          linkEntityId: subProcessOfLink.entityId,
         },
       );
     }
 
-    for (const node of definition.nodes) {
+    const clonedNodes = JSON.parse(JSON.stringify(definition.nodes));
+
+    const clonedDefinition = {
+      ...definition,
+      nodes: clonedNodes,
+    };
+
+    for (const node of clonedDefinition.nodes) {
       if (node.data.type === "transition") {
         const subProcess = transitionIdToSubprocess.get(node.id);
 
@@ -133,7 +147,7 @@ const getPersistedNets = (data: GetEntitySubgraphQuery): PersistedNet[] => {
     return {
       entityId: net.entityId,
       title: netTitle,
-      definition,
+      definition: clonedDefinition,
       parentProcess: parentProcess
         ? {
             entityId: parentProcess.entityId,
@@ -188,7 +202,7 @@ export const usePersistedNets = () => {
       return [];
     }
 
-    return getPersistedNets(data);
+    return getPersistedNetsFromSubgraph(data);
   }, [data]);
 
   return {
