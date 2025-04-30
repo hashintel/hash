@@ -95,6 +95,8 @@ impl<'a> TypeScriptGenerator<'a> {
             Fields::Unit => self.ast.ts_type_null_keyword(SPAN),
             Fields::Named { fields } => {
                 let mut members = self.ast.vec();
+                // TODO: Cache generated members to avoid redundant computations
+                //   see https://linear.app/hash/issue/H-4500/cache-generated-types-for-future-re-use
                 let mut flattened_members = self.ast.vec();
                 for (field_name, field) in fields {
                     if field.flatten {
