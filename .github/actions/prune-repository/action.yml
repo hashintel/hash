@@ -27,6 +27,9 @@ runs:
         if echo "$SCOPES" | grep -q "@rust/hashql-ast"; then
           SCOPES="$SCOPES @rust/hashql-compiletest"
         fi
+        if echo "$SCOPES" | grep -q "@rust/hash-codegen"; then
+          SCOPES="$SCOPES @blockprotocol/type-system-rs"
+        fi
 
         # Deduplicate scopes
         SCOPES=$(echo "$SCOPES" | tr ' ' '\n' | sort -u | tr '\n' ' ')

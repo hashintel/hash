@@ -1,0 +1,9 @@
+---
+source: libs/@local/codegen/tests/codegen/main.rs
+expression: generated
+---
+type TeamRole = {
+	id: TeamRoleId
+	teamId: TeamId
+	name: RoleName
+};

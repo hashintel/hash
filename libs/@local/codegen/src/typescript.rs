@@ -95,7 +95,14 @@ impl<'a> TypeScriptGenerator<'a> {
             Fields::Unit => self.ast.ts_type_null_keyword(SPAN),
             Fields::Named { fields } => {
                 let mut members = self.ast.vec();
+                // TODO: Cache generated members to avoid redundant computations
+                //   see https://linear.app/hash/issue/H-4500/cache-generated-types-for-future-re-use
+                let mut flattened_members = self.ast.vec();
                 for (field_name, field) in fields {
+                    if field.flatten {
+                        flattened_members.push(self.visit_type(&field.r#type));
+                        continue;
+                    }
                     members.push(
                         self.ast.ts_signature_property_signature(
                             SPAN,
@@ -111,7 +118,13 @@ impl<'a> TypeScriptGenerator<'a> {
                         ),
                     );
                 }
-                self.ast.ts_type_type_literal(SPAN, members)
+                let fields = self.ast.ts_type_type_literal(SPAN, members);
+                if flattened_members.is_empty() {
+                    fields
+                } else {
+                    flattened_members.insert(0, fields);
+                    self.ast.ts_type_intersection_type(SPAN, flattened_members)
+                }
             }
             Fields::Unnamed { fields } => match fields.as_slice() {
                 [field] => self.visit_type(&field.r#type),
@@ -180,10 +193,15 @@ impl<'a> TypeScriptGenerator<'a> {
             ),
         );
 
+        let mut flattened_members = self.ast.vec();
         match &variant.fields {
             Fields::Unit => {}
             Fields::Named { fields } => {
                 for (field_name, field) in fields {
+                    if field.flatten {
+                        flattened_members.push(self.visit_type(&field.r#type));
+                        continue;
+                    }
                     members.push(
                         self.ast.ts_signature_property_signature(
                             SPAN,
@@ -200,12 +218,21 @@ impl<'a> TypeScriptGenerator<'a> {
                     );
                 }
             }
-            Fields::Unnamed { fields: _ } => {
-                unimplemented!("Internally tagged tuple-variant `{}`", variant.name);
-            }
+            Fields::Unnamed { fields } => match fields.as_slice() {
+                [field] => {
+                    flattened_members.push(self.visit_type(&field.r#type));
+                }
+                _ => unimplemented!("Internally tagged tuple-variant `{}`", variant.name),
+            },
         }
 
-        self.ast.ts_type_type_literal(SPAN, members)
+        let fields = self.ast.ts_type_type_literal(SPAN, members);
+        if flattened_members.is_empty() {
+            fields
+        } else {
+            flattened_members.insert(0, fields);
+            self.ast.ts_type_intersection_type(SPAN, flattened_members)
+        }
     }
 
     fn visit_adjacently_tagged_enum_variant(

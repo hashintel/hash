@@ -26,6 +26,7 @@ use crate::{
     serde::Serialize,
     serde::Deserialize,
     derive_more::Display,
+    specta::Type,
 )]
 #[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
@@ -80,7 +81,7 @@ impl From<UserId> for WebId {
 /// A human user account within the system.
 ///
 /// Represents a user with their unique identifier and assigned roles.
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, specta::Type)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]

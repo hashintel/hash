@@ -9,6 +9,7 @@ pub struct Field {
     // TODO: Export doc strings in codegen
     //   see https://linear.app/hash/issue/H-4473/export-doc-strings-in-codegen
     pub r#type: Type,
+    pub flatten: bool,
 }
 
 impl Field {
@@ -23,6 +24,7 @@ impl Field {
                 }),
                 type_collection,
             ),
+            flatten: field.flatten(),
         }
     }
 }

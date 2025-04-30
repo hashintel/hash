@@ -7,4 +7,6 @@ type EnumUntagged = null | [] | number | [boolean, string] | {} | {
 } | {
 	value_1: number
 	value_2: string
-};
+} | {
+	name: string
+} & StructSimple;
