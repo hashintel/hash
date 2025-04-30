@@ -120,6 +120,8 @@ impl<'env, 'heap> InstantiateEnvironment<'env, 'heap> {
                 panic!("type id {id} should have been provisioned, but wasn't");
             }
 
+            tracing::warn!(%id, "type id should have been provisioned, but wasn't");
+
             // in debug builds this panics if the type should have been provisioned but wasn't, as
             // we can recover from this error (we simply return the original - uninstantiated - type
             // id) we do not need to panic here in release builds.
