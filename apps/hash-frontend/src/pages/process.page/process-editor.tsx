@@ -38,6 +38,7 @@ import {
 } from "./process-editor/simulation-context";
 import { SimulationControls } from "./process-editor/simulation-controls";
 import { nodeDimensions } from "./process-editor/styling";
+import { TitleAndNetSelect } from "./process-editor/title-and-net-select";
 import { defaultTokenTypes, TokenTypes } from "./process-editor/token-types";
 import { TransitionEditor } from "./process-editor/transition-editor";
 import { TransitionNode } from "./process-editor/transition-node";
@@ -60,8 +61,21 @@ const ProcessEditorContent = () => {
     ArcData
   > | null>(null);
 
-  const { nodes, setNodes, arcs, setArcs, tokenTypes, setGraph } =
-    useEditorContext();
+  const {
+    arcs,
+    entityId,
+    nodes,
+    persistToGraph,
+    setArcs,
+    setEntityId,
+    setNodes,
+    setParentProcess,
+    setPetriNetDefinition,
+    setTitle,
+    setUserEditable,
+    tokenTypes,
+    userEditable,
+  } = useEditorContext();
 
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
   const [selectedTransition, setSelectedTransition] = useState<string | null>(
@@ -286,14 +300,26 @@ const ProcessEditorContent = () => {
   const { resetSimulation } = useSimulation();
 
   const handleResetAll = useCallback(() => {
-    setGraph({
-      nodes: [],
+    setPetriNetDefinition({
       arcs: [],
+      nodes: [],
       tokenTypes: defaultTokenTypes,
     });
 
+    setEntityId(null);
+    setParentProcess(null);
+    setUserEditable(true);
+    setTitle("Process");
+
     resetSimulation();
-  }, [setGraph, resetSimulation]);
+  }, [
+    setPetriNetDefinition,
+    setEntityId,
+    setParentProcess,
+    setUserEditable,
+    setTitle,
+    resetSimulation,
+  ]);
 
   const handleLoadExample = useCallback(() => {
     const nodesWithInitialCounts = exampleCPN.nodes.map((node) => {
@@ -309,14 +335,24 @@ const ProcessEditorContent = () => {
       return node;
     });
 
-    setGraph({
-      nodes: nodesWithInitialCounts,
+    setPetriNetDefinition({
       arcs: exampleCPN.arcs,
+      nodes: nodesWithInitialCounts,
       tokenTypes: exampleCPN.tokenTypes,
     });
 
+    setUserEditable(false);
+    setTitle(exampleCPN.title);
+    setEntityId(null);
+
     resetSimulation();
-  }, [setGraph, resetSimulation]);
+  }, [
+    setPetriNetDefinition,
+    setUserEditable,
+    setTitle,
+    setEntityId,
+    resetSimulation,
+  ]);
 
   const handleReset = useCallback(() => {
     setNodes((currentNodes) =>
@@ -436,130 +472,129 @@ const ProcessEditorContent = () => {
   };
 
   return (
-    <Box sx={{ display: "flex", height: "100%" }}>
-      <Sidebar />
+    <Stack sx={{ height: "100%" }}>
+      <TitleAndNetSelect />
 
-      <Box
-        sx={{ flex: 1, height: "100%", position: "relative" }}
-        ref={canvasContainer}
-      >
-        <Stack
-          direction="row"
-          justifyContent="space-between"
-          sx={{
-            alignItems: "flex-start",
-            position: "absolute",
-            top: 0,
-            left: 0,
-            p: 2,
-            zIndex: 100,
-            width: "100%",
-          }}
-        >
-          <TokenTypes />
-          <SimulationControls onReset={handleReset} />
-        </Stack>
+      <Stack direction="row" sx={{ flex: 1 }}>
+        <Sidebar />
 
-        <Stack
-          direction="row"
-          spacing={1}
-          sx={{ position: "absolute", bottom: 16, right: 16, zIndex: 100 }}
-        >
-          <Button onClick={handleLoadExample} size="xs" variant="tertiary">
-            Load Example
-          </Button>
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleLoadFromPnml}
-            accept=".pnml,.xml"
-            style={{ display: "none" }}
-          />
-          <Button onClick={handleImportClick} size="xs" variant="tertiary">
-            Import
-          </Button>
-          <Button onClick={handleExport} size="xs" variant="tertiary">
-            Export
-          </Button>
-          <Button onClick={handleResetAll} size="xs" variant="danger">
-            Clear
-          </Button>
-        </Stack>
+        <Box sx={{ width: "100%", position: "relative" }} ref={canvasContainer}>
+          <Stack
+            direction="row"
+            justifyContent="space-between"
+            sx={{
+              alignItems: "flex-start",
+              position: "absolute",
+              top: 0,
+              left: 0,
+              p: 2,
+              zIndex: 100,
+              width: "100%",
+            }}
+          >
+            <TokenTypes />
+            <SimulationControls onReset={handleReset} />
+          </Stack>
 
-        {selectedTransition && (
-          <TransitionEditor
-            open
-            onClose={() => setSelectedTransition(null)}
-            transitionId={selectedTransition}
-            transitionData={
-              nodes.find((node) => node.id === selectedTransition)?.data ?? {
-                label: "",
-              }
-            }
-            outgoingEdges={arcs
-              .filter((edge) => edge.source === selectedTransition)
-              .map((edge) => {
-                const targetNode = nodes.find(
-                  (node) => node.id === edge.target,
-                );
-                return {
-                  id: edge.id,
-                  source: edge.source,
-                  target: edge.target,
-                  targetLabel: targetNode?.data.label ?? "Unknown",
-                  tokenWeights: edge.data?.tokenWeights ?? {},
-                };
-              })}
-            onUpdateTransition={handleUpdateTransition}
-          />
-        )}
+          <Stack
+            direction="row"
+            spacing={1}
+            sx={{ position: "absolute", bottom: 16, right: 16, zIndex: 100 }}
+          >
+            <Button onClick={handleLoadExample} size="xs" variant="tertiary">
+              Load Example
+            </Button>
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleLoadFromPnml}
+              accept=".pnml,.xml"
+              style={{ display: "none" }}
+            />
+            <Button onClick={handleImportClick} size="xs" variant="tertiary">
+              Import
+            </Button>
+            <Button onClick={handleExport} size="xs" variant="tertiary">
+              Export
+            </Button>
+            <Button onClick={handleResetAll} size="xs" variant="danger">
+              New
+            </Button>
+            <Button onClick={persistToGraph} size="xs" variant="primary">
+              {entityId && userEditable ? "Update" : "Create"}
+            </Button>
+          </Stack>
 
-        {selectedPlace && (
-          <PlaceEditor
-            selectedPlace={selectedPlace}
-            tokenTypes={tokenTypes}
-            onClose={() => setSelectedPlaceId(null)}
-            onUpdateTokens={handleUpdateTokens}
-            onUpdateNodeLabel={handleUpdateNodeLabel}
-          />
-        )}
+          {selectedTransition && (
+            <TransitionEditor
+              open
+              onClose={() => setSelectedTransition(null)}
+              transitionId={selectedTransition}
+              outgoingEdges={arcs
+                .filter((edge) => edge.source === selectedTransition)
+                .map((edge) => {
+                  const targetNode = nodes.find(
+                    (node) => node.id === edge.target,
+                  );
+                  return {
+                    id: edge.id,
+                    source: edge.source,
+                    target: edge.target,
+                    targetLabel: targetNode?.data.label ?? "Unknown",
+                    tokenWeights: edge.data?.tokenWeights ?? {},
+                  };
+                })}
+              onUpdateTransition={handleUpdateTransition}
+            />
+          )}
 
-        {selectedArc && (
-          <ArcEditor
-            arcId={selectedArc.id}
-            tokenWeights={selectedArc.data?.tokenWeights ?? {}}
-            position={selectedArc.position}
-            onClose={() => setSelectedArc(null)}
-            onUpdateWeights={handleUpdateEdgeWeight}
-          />
-        )}
+          {selectedPlace && (
+            <PlaceEditor
+              selectedPlace={selectedPlace}
+              tokenTypes={tokenTypes}
+              onClose={() => setSelectedPlaceId(null)}
+              onUpdateTokens={handleUpdateTokens}
+              onUpdateNodeLabel={handleUpdateNodeLabel}
+            />
+          )}
 
-        <ReactFlow
-          nodes={nodes}
-          edges={arcs}
-          nodeTypes={nodeTypes}
-          edgeTypes={edgeTypes}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
-          onInit={onInit}
-          onDrop={onDrop}
-          onDragOver={onDragOver}
-          onNodeClick={onNodeClick}
-          onEdgeClick={onEdgeClick}
-          onPaneClick={handlePaneClick}
-          defaultViewport={{ x: 0, y: 0, zoom: 1 }}
-          snapToGrid
-          snapGrid={[15, 15]}
-          connectionLineType={ConnectionLineType.SmoothStep}
-          proOptions={{ hideAttribution: true }}
-        >
-          <Background gap={15} size={1} />
-        </ReactFlow>
+          {selectedArc && (
+            <ArcEditor
+              arcId={selectedArc.id}
+              tokenWeights={selectedArc.data?.tokenWeights ?? {}}
+              position={selectedArc.position}
+              onClose={() => setSelectedArc(null)}
+              onUpdateWeights={handleUpdateEdgeWeight}
+            />
+          )}
 
-        <LogPane />
-      </Box>
-    </Box>
+          <ReactFlow
+            nodes={nodes}
+            edges={arcs}
+            nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
+            onNodesChange={onNodesChange}
+            onEdgesChange={onEdgesChange}
+            onConnect={onConnect}
+            onInit={onInit}
+            onDrop={onDrop}
+            onDragOver={onDragOver}
+            onNodeClick={onNodeClick}
+            onEdgeClick={onEdgeClick}
+            onPaneClick={handlePaneClick}
+            defaultViewport={{ x: 0, y: 0, zoom: 1 }}
+            snapToGrid
+            snapGrid={[15, 15]}
+            connectionLineType={ConnectionLineType.SmoothStep}
+            proOptions={{ hideAttribution: true }}
+          >
+            <Background gap={15} size={1} />
+          </ReactFlow>
+
+          <LogPane />
+        </Box>
+      </Stack>
+    </Stack>
   );
 };
 

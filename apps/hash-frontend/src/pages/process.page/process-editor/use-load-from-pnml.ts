@@ -6,11 +6,11 @@ import { useSimulation } from "./simulation-context";
 import type {
   ArcData,
   ArcType,
-  Condition,
   NodeType,
   PlaceNodeData,
   TokenCounts,
   TokenType,
+  TransitionCondition,
   TransitionNodeData,
 } from "./types";
 
@@ -44,9 +44,13 @@ const parsePnml = (
 ): {
   nodes: NodeType[];
   arcs: ArcType[];
+  title: string;
   tokenTypes: TokenType[];
 } => {
   const document = new DOMParser().parseFromString(xml, "application/xml");
+
+  const titleElement = document.querySelector("pnml > net > name > text");
+  const title = elementToText(titleElement);
 
   const tokenTypes: TokenType[] = getElementsBySelector("colset", document).map(
     (colset) => {
@@ -115,7 +119,7 @@ const parsePnml = (
         )
       : undefined;
 
-    const conditions: Condition[] = toolSpecificContainer
+    const conditions: TransitionCondition[] = toolSpecificContainer
       ? getElementsBySelector("routing > branch", toolSpecificContainer).map(
           (b) => ({
             id: b.getAttribute("id") ?? "",
@@ -160,22 +164,45 @@ const parsePnml = (
     nodes: [...placeNodes, ...transitionNodes],
     arcs,
     tokenTypes,
+    title,
   };
 };
 
 export const useLoadFromPnml = () => {
-  const { setGraph } = useEditorContext();
+  const {
+    setEntityId,
+    setParentProcess: setParentProcessId,
+    setPetriNetDefinition,
+    setTitle,
+    setUserEditable,
+  } = useEditorContext();
   const { resetSimulation } = useSimulation();
 
   const load = useCallback(
     (xml: string) => {
-      const { nodes, arcs, tokenTypes } = parsePnml(xml);
+      const { nodes, arcs, tokenTypes, title } = parsePnml(xml);
 
-      setGraph({ nodes, arcs, tokenTypes });
+      setPetriNetDefinition({
+        arcs,
+        nodes,
+        tokenTypes,
+      });
+
+      setEntityId(null);
+      setParentProcessId(null);
+      setTitle(title);
+      setUserEditable(true);
 
       resetSimulation();
     },
-    [resetSimulation, setGraph],
+    [
+      resetSimulation,
+      setEntityId,
+      setParentProcessId,
+      setPetriNetDefinition,
+      setTitle,
+      setUserEditable,
+    ],
   );
 
   return load;

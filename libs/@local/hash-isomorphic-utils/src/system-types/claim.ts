@@ -2,8 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { ObjectMetadata } from "@blockprotocol/type-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type { Entity, ObjectMetadata } from "@blockprotocol/type-system";
 
 import type {
   Link,
@@ -42,14 +41,11 @@ export type Claim = {
   propertiesWithMetadata: ClaimPropertiesWithMetadata;
 };
 
-export type ClaimHasObjectLink = {
-  linkEntity: HasObject;
-  rightEntity: HashEntity;
-};
+export type ClaimHasObjectLink = { linkEntity: HasObject; rightEntity: Entity };
 
 export type ClaimHasSubjectLink = {
   linkEntity: HasSubject;
-  rightEntity: HashEntity;
+  rightEntity: Entity;
 };
 
 export type ClaimOutgoingLinkAndTarget =

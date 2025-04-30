@@ -13,7 +13,7 @@ const escapeXml = (str: string) =>
  * Convert the current process to an ISO-15909-2-conformant HLPN PNML document.
  */
 export const useConvertToPnml = () => {
-  const { nodes, arcs, tokenTypes } = useEditorContext();
+  const { nodes, arcs, tokenTypes, title } = useEditorContext();
 
   const convertToPnml = (): string => {
     /* ---------- Header & namespaces---------- */
@@ -23,7 +23,7 @@ export const useConvertToPnml = () => {
   xmlns:hlpn="http://www.pnml.org/version-2009/grammar/hlpn">
 
   <net id="net0" type="http://www.pnml.org/version-2009/grammar/hlpn">
-    <name><text>HASH Process</text></name>`;
+    <name><text>${escapeXml(title)}</text></name>`;
 
     /* ---------- HLPN colour-set declarations ---------- */
     pnml += `

@@ -2,8 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type { ObjectMetadata } from "@blockprotocol/type-system";
-import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import type { Entity, ObjectMetadata } from "@blockprotocol/type-system";
 
 import type {
   ArchivedPropertyValue,
@@ -78,7 +77,7 @@ export type GraphChangeNotification = {
 
 export type GraphChangeNotificationOccurredInEntityLink = {
   linkEntity: OccurredInEntity;
-  rightEntity: HashEntity;
+  rightEntity: Entity;
 };
 
 export type GraphChangeNotificationOutgoingLinkAndTarget =

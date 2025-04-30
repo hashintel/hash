@@ -1,6 +1,7 @@
 import type { ArcType, NodeType, TokenType } from "./types";
 
 export const exampleCPN = {
+  title: "Drug Production",
   tokenTypes: [
     { id: "precursor_a", name: "Precursor A", color: "#3498db" },
     { id: "precursor_b", name: "Precursor B", color: "#f1c40f" },

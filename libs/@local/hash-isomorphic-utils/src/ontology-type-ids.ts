@@ -167,6 +167,11 @@ export const systemEntityTypes = {
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/person/" as BaseUrl,
   },
+  petriNet: {
+    entityTypeId: "https://hash.ai/@h/types/entity-type/petri-net/v/1",
+    entityTypeBaseUrl:
+      "https://hash.ai/@h/types/entity-type/petri-net/" as BaseUrl,
+  },
   pptxPresentation: {
     entityTypeId: "https://hash.ai/@h/types/entity-type/pptx-presentation/v/1",
     entityTypeBaseUrl:
@@ -205,7 +210,7 @@ export const systemEntityTypes = {
   studyRecord: {
     entityTypeId: "https://hash.ai/@h/types/entity-type/study-record/v/1",
     entityTypeBaseUrl:
-      "https://hash.ai/@hash/types/entity-type/study-record/" as BaseUrl,
+      "https://hash.ai/@h/types/entity-type/study-record/" as BaseUrl,
   },
   text: {
     entityTypeId: "https://hash.ai/@h/types/entity-type/text/v/1",
@@ -279,9 +284,9 @@ export const systemLinkEntityTypes = {
       "https://hash.ai/@h/types/entity-type/has-bio/" as BaseUrl,
   },
   hasContact: {
-    linkEntityTypeId: "https://hash.ai/@hash/types/entity-type/has-contact/v/1",
+    linkEntityTypeId: "https://hash.ai/@h/types/entity-type/has-contact/v/1",
     linkEntityTypeBaseUrl:
-      "https://hash.ai/@hash/types/entity-type/has-contact/" as BaseUrl,
+      "https://hash.ai/@h/types/entity-type/has-contact/" as BaseUrl,
   },
   hasCoverImage: {
     linkEntityTypeId:
@@ -339,9 +344,9 @@ export const systemLinkEntityTypes = {
   },
   investigatedBy: {
     linkEntityTypeId:
-      "https://hash.ai/@hash/types/entity-type/investigated-by/v/1",
+      "https://hash.ai/@h/types/entity-type/investigated-by/v/1",
     linkEntityTypeBaseUrl:
-      "https://hash.ai/@hash/types/entity-type/investigated-by/" as BaseUrl,
+      "https://hash.ai/@h/types/entity-type/investigated-by/" as BaseUrl,
   },
   isMemberOf: {
     linkEntityTypeId: "https://hash.ai/@h/types/entity-type/is-member-of/v/1",
@@ -385,10 +390,14 @@ export const systemLinkEntityTypes = {
       "https://hash.ai/@h/types/entity-type/replied-to-comment/" as BaseUrl,
   },
   sponsoredBy: {
-    linkEntityTypeId:
-      "https://hash.ai/@hash/types/entity-type/sponsored-by/v/1",
+    linkEntityTypeId: "https://hash.ai/@h/types/entity-type/sponsored-by/v/1",
     linkEntityTypeBaseUrl:
-      "https://hash.ai/@hash/types/entity-type/sponsored-by/" as BaseUrl,
+      "https://hash.ai/@h/types/entity-type/sponsored-by/" as BaseUrl,
+  },
+  subProcessOf: {
+    linkEntityTypeId: "https://hash.ai/@h/types/entity-type/sub-process-of/v/1",
+    linkEntityTypeBaseUrl:
+      "https://hash.ai/@h/types/entity-type/sub-process-of/" as BaseUrl,
   },
   syncLinearDataWith: {
     linkEntityTypeId:
@@ -427,27 +436,27 @@ export const systemLinkEntityTypes = {
 export const systemPropertyTypes = {
   actualEnrollment: {
     propertyTypeId:
-      "https://hash.ai/@hash/types/property-type/actual-enrollment/v/1",
+      "https://hash.ai/@h/types/property-type/actual-enrollment/v/1",
     propertyTypeBaseUrl:
-      "https://hash.ai/@hash/types/property-type/actual-enrollment/" as BaseUrl,
+      "https://hash.ai/@h/types/property-type/actual-enrollment/" as BaseUrl,
   },
   actualStudyCompletionDate: {
     propertyTypeId:
-      "https://hash.ai/@hash/types/property-type/actual-study-completion-date/v/1",
+      "https://hash.ai/@h/types/property-type/actual-study-completion-date/v/1",
     propertyTypeBaseUrl:
-      "https://hash.ai/@hash/types/property-type/actual-study-completion-date/" as BaseUrl,
+      "https://hash.ai/@h/types/property-type/actual-study-completion-date/" as BaseUrl,
   },
   actualStudyPrimaryCompletionDate: {
     propertyTypeId:
-      "https://hash.ai/@hash/types/property-type/actual-study-primary-completion-date/v/1",
+      "https://hash.ai/@h/types/property-type/actual-study-primary-completion-date/v/1",
     propertyTypeBaseUrl:
-      "https://hash.ai/@hash/types/property-type/actual-study-primary-completion-date/" as BaseUrl,
+      "https://hash.ai/@h/types/property-type/actual-study-primary-completion-date/" as BaseUrl,
   },
   actualStudyStartDate: {
     propertyTypeId:
-      "https://hash.ai/@hash/types/property-type/actual-study-start-date/v/1",
+      "https://hash.ai/@h/types/property-type/actual-study-start-date/v/1",
     propertyTypeBaseUrl:
-      "https://hash.ai/@hash/types/property-type/actual-study-start-date/" as BaseUrl,
+      "https://hash.ai/@h/types/property-type/actual-study-start-date/" as BaseUrl,
   },
   applicationPreferences: {
     propertyTypeId:
@@ -510,6 +519,12 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/data-audience/" as BaseUrl,
   },
+  definitionObject: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/definition-object/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/definition-object/" as BaseUrl,
+  },
   deletedAt: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/deleted-at/v/1",
     propertyTypeBaseUrl:
@@ -549,33 +564,33 @@ export const systemPropertyTypes = {
   },
   estimatedEnrollment: {
     propertyTypeId:
-      "https://hash.ai/@hash/types/property-type/estimated-enrollment/v/1",
+      "https://hash.ai/@h/types/property-type/estimated-enrollment/v/1",
     propertyTypeBaseUrl:
-      "https://hash.ai/@hash/types/property-type/estimated-enrollment/" as BaseUrl,
+      "https://hash.ai/@h/types/property-type/estimated-enrollment/" as BaseUrl,
   },
   estimatedPrimaryCompletionDate: {
     propertyTypeId:
-      "https://hash.ai/@hash/types/property-type/estimated-primary-completion-date/v/1",
+      "https://hash.ai/@h/types/property-type/estimated-primary-completion-date/v/1",
     propertyTypeBaseUrl:
-      "https://hash.ai/@hash/types/property-type/estimated-primary-completion-date/" as BaseUrl,
+      "https://hash.ai/@h/types/property-type/estimated-primary-completion-date/" as BaseUrl,
   },
   estimatedStudyCompletionDate: {
     propertyTypeId:
-      "https://hash.ai/@hash/types/property-type/estimated-study-completion-date/v/1",
+      "https://hash.ai/@h/types/property-type/estimated-study-completion-date/v/1",
     propertyTypeBaseUrl:
-      "https://hash.ai/@hash/types/property-type/estimated-study-completion-date/" as BaseUrl,
+      "https://hash.ai/@h/types/property-type/estimated-study-completion-date/" as BaseUrl,
   },
   estimatedStudyStartDate: {
     propertyTypeId:
-      "https://hash.ai/@hash/types/property-type/estimated-study-start-date/v/1",
+      "https://hash.ai/@h/types/property-type/estimated-study-start-date/v/1",
     propertyTypeBaseUrl:
-      "https://hash.ai/@hash/types/property-type/estimated-study-start-date/" as BaseUrl,
+      "https://hash.ai/@h/types/property-type/estimated-study-start-date/" as BaseUrl,
   },
   exclusionCriteria: {
     propertyTypeId:
-      "https://hash.ai/@hash/types/property-type/exclusion-criteria/v/1",
+      "https://hash.ai/@h/types/property-type/exclusion-criteria/v/1",
     propertyTypeBaseUrl:
-      "https://hash.ai/@hash/types/property-type/exclusion-criteria/" as BaseUrl,
+      "https://hash.ai/@h/types/property-type/exclusion-criteria/" as BaseUrl,
   },
   experimentalSubject: {
     propertyTypeId:
@@ -670,9 +685,9 @@ export const systemPropertyTypes = {
   },
   inclusionCriteria: {
     propertyTypeId:
-      "https://hash.ai/@hash/types/property-type/inclusion-criteria/v/1",
+      "https://hash.ai/@h/types/property-type/inclusion-criteria/v/1",
     propertyTypeBaseUrl:
-      "https://hash.ai/@hash/types/property-type/inclusion-criteria/" as BaseUrl,
+      "https://hash.ai/@h/types/property-type/inclusion-criteria/" as BaseUrl,
   },
   inputUnitCost: {
     propertyTypeId:
@@ -692,10 +707,9 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/intended-use/" as BaseUrl,
   },
   intervention: {
-    propertyTypeId:
-      "https://hash.ai/@hash/types/property-type/intervention/v/1",
+    propertyTypeId: "https://hash.ai/@h/types/property-type/intervention/v/1",
     propertyTypeBaseUrl:
-      "https://hash.ai/@hash/types/property-type/intervention/" as BaseUrl,
+      "https://hash.ai/@h/types/property-type/intervention/" as BaseUrl,
   },
   isbn: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/isbn/v/1",
@@ -703,9 +717,9 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/isbn/" as BaseUrl,
   },
   isrctn: {
-    propertyTypeId: "https://hash.ai/@hash/types/property-type/isrctn/v/1",
+    propertyTypeId: "https://hash.ai/@h/types/property-type/isrctn/v/1",
     propertyTypeBaseUrl:
-      "https://hash.ai/@hash/types/property-type/isrctn/" as BaseUrl,
+      "https://hash.ai/@h/types/property-type/isrctn/" as BaseUrl,
   },
   kratosIdentityId: {
     propertyTypeId:
@@ -742,9 +756,9 @@ export const systemPropertyTypes = {
   },
   medicalCondition: {
     propertyTypeId:
-      "https://hash.ai/@hash/types/property-type/medical-condition/v/1",
+      "https://hash.ai/@h/types/property-type/medical-condition/v/1",
     propertyTypeBaseUrl:
-      "https://hash.ai/@hash/types/property-type/medical-condition/" as BaseUrl,
+      "https://hash.ai/@h/types/property-type/medical-condition/" as BaseUrl,
   },
   methodology: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/methodology/v/1",
@@ -752,9 +766,9 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/methodology/" as BaseUrl,
   },
   nctId: {
-    propertyTypeId: "https://hash.ai/@hash/types/property-type/nct-id/v/1",
+    propertyTypeId: "https://hash.ai/@h/types/property-type/nct-id/v/1",
     propertyTypeBaseUrl:
-      "https://hash.ai/@hash/types/property-type/nct-id/" as BaseUrl,
+      "https://hash.ai/@h/types/property-type/nct-id/" as BaseUrl,
   },
   numberOfPages: {
     propertyTypeId:
@@ -768,9 +782,9 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/object/" as BaseUrl,
   },
   objective: {
-    propertyTypeId: "https://hash.ai/@hash/types/property-type/objective/v/1",
+    propertyTypeId: "https://hash.ai/@h/types/property-type/objective/v/1",
     propertyTypeBaseUrl:
-      "https://hash.ai/@hash/types/property-type/objective/" as BaseUrl,
+      "https://hash.ai/@h/types/property-type/objective/" as BaseUrl,
   },
   orgSelfRegistrationIsEnabled: {
     propertyTypeId:
@@ -786,9 +800,9 @@ export const systemPropertyTypes = {
   },
   outcomeMeasure: {
     propertyTypeId:
-      "https://hash.ai/@hash/types/property-type/outcome-measure/v/1",
+      "https://hash.ai/@h/types/property-type/outcome-measure/v/1",
     propertyTypeBaseUrl:
-      "https://hash.ai/@hash/types/property-type/outcome-measure/" as BaseUrl,
+      "https://hash.ai/@h/types/property-type/outcome-measure/" as BaseUrl,
   },
   outputDefinitions: {
     propertyTypeId:
@@ -885,9 +899,9 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/shortname/" as BaseUrl,
   },
   status: {
-    propertyTypeId: "https://hash.ai/@hash/types/property-type/status/v/1",
+    propertyTypeId: "https://hash.ai/@h/types/property-type/status/v/1",
     propertyTypeBaseUrl:
-      "https://hash.ai/@hash/types/property-type/status/" as BaseUrl,
+      "https://hash.ai/@h/types/property-type/status/" as BaseUrl,
   },
   step: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/step/v/1",
@@ -901,14 +915,14 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/step-definitions/" as BaseUrl,
   },
   studyArm: {
-    propertyTypeId: "https://hash.ai/@hash/types/property-type/study-arm/v/1",
+    propertyTypeId: "https://hash.ai/@h/types/property-type/study-arm/v/1",
     propertyTypeBaseUrl:
-      "https://hash.ai/@hash/types/property-type/study-arm/" as BaseUrl,
+      "https://hash.ai/@h/types/property-type/study-arm/" as BaseUrl,
   },
   studyType: {
-    propertyTypeId: "https://hash.ai/@hash/types/property-type/study-type/v/1",
+    propertyTypeId: "https://hash.ai/@h/types/property-type/study-type/v/1",
     propertyTypeBaseUrl:
-      "https://hash.ai/@hash/types/property-type/study-type/" as BaseUrl,
+      "https://hash.ai/@h/types/property-type/study-type/" as BaseUrl,
   },
   subject: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/subject/v/1",
@@ -921,19 +935,24 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/summary/" as BaseUrl,
   },
   timeFrame: {
-    propertyTypeId: "https://hash.ai/@hash/types/property-type/time-frame/v/1",
+    propertyTypeId: "https://hash.ai/@h/types/property-type/time-frame/v/1",
     propertyTypeBaseUrl:
-      "https://hash.ai/@hash/types/property-type/time-frame/" as BaseUrl,
+      "https://hash.ai/@h/types/property-type/time-frame/" as BaseUrl,
   },
   title: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/title/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/title/" as BaseUrl,
   },
-  trialPhase: {
-    propertyTypeId: "https://hash.ai/@hash/types/property-type/trial-phase/v/1",
+  transitionId: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/transition-id/v/1",
     propertyTypeBaseUrl:
-      "https://hash.ai/@hash/types/property-type/trial-phase/" as BaseUrl,
+      "https://hash.ai/@h/types/property-type/transition-id/" as BaseUrl,
+  },
+  trialPhase: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/trial-phase/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/trial-phase/" as BaseUrl,
   },
   trigger: {
     propertyTypeId: "https://hash.ai/@h/types/property-type/trigger/v/1",
@@ -1056,8 +1075,8 @@ export const systemDataTypes = {
       "A reference to a particular date and time, formatted according to RFC 3339.",
   },
   day: {
-    dataTypeId: "https://hash.ai/@hash/types/data-type/day/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/day/" as BaseUrl,
+    dataTypeId: "https://hash.ai/@h/types/data-type/day/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/day/" as BaseUrl,
     title: "Day",
     description:
       "A measure of the length of time, defined as the time period of a full rotation of the Earth with respect to the Sun. On average, this is 24 hours.",
@@ -1070,9 +1089,8 @@ export const systemDataTypes = {
       "A DOI (Digital Object Identifier), used to identify digital objects such as journal articles or datasets.",
   },
   duration: {
-    dataTypeId: "https://hash.ai/@hash/types/data-type/duration/v/1",
-    dataTypeBaseUrl:
-      "https://hash.ai/@hash/types/data-type/duration/" as BaseUrl,
+    dataTypeId: "https://hash.ai/@h/types/data-type/duration/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/duration/" as BaseUrl,
     title: "Duration",
     description: "A measure of the length of time.",
   },
@@ -1137,8 +1155,8 @@ export const systemDataTypes = {
       "A unit of frequency in the International System of Units (SI), equivalent to one cycle per second.",
   },
   hour: {
-    dataTypeId: "https://hash.ai/@hash/types/data-type/hour/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/hour/" as BaseUrl,
+    dataTypeId: "https://hash.ai/@h/types/data-type/hour/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/hour/" as BaseUrl,
     title: "Hour",
     description:
       "A measure of the length of time, defined as exactly 3,600 seconds.",
@@ -1188,8 +1206,8 @@ export const systemDataTypes = {
       "International Standard Book Number: a numeric commercial book identifier that is intended to be unique, issued by an affiliate of the International ISBN Agency.",
   },
   isrctn: {
-    dataTypeId: "https://hash.ai/@hash/types/data-type/isrctn/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/isrctn/" as BaseUrl,
+    dataTypeId: "https://hash.ai/@h/types/data-type/isrctn/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/isrctn/" as BaseUrl,
     title: "ISRCTN",
     description:
       "The unique id for a study registered with the ISRCTN Registry.",
@@ -1264,9 +1282,9 @@ export const systemDataTypes = {
       "A measure of distance in the International System of Units (SI), the international standard for decimal-based measurements.",
   },
   microsecond: {
-    dataTypeId: "https://hash.ai/@hash/types/data-type/microsecond/v/1",
+    dataTypeId: "https://hash.ai/@h/types/data-type/microsecond/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@hash/types/data-type/microsecond/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/microsecond/" as BaseUrl,
     title: "Microsecond",
     description:
       "A measure of the length of time in the International System of Units (SI), defined as exactly 1/1000000 (1 millionth) of a second.",
@@ -1287,38 +1305,38 @@ export const systemDataTypes = {
       "A unit of length in the International System of Units (SI), equal to one thousandth of a meter.",
   },
   millisecond: {
-    dataTypeId: "https://hash.ai/@hash/types/data-type/millisecond/v/1",
+    dataTypeId: "https://hash.ai/@h/types/data-type/millisecond/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@hash/types/data-type/millisecond/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/millisecond/" as BaseUrl,
     title: "Millisecond",
     description:
       "A measure of the length of time in the International System of Units (SI), defined as exactly 1/1000 of a second.",
   },
   minute: {
-    dataTypeId: "https://hash.ai/@hash/types/data-type/minute/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/minute/" as BaseUrl,
+    dataTypeId: "https://hash.ai/@h/types/data-type/minute/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/minute/" as BaseUrl,
     title: "Minute",
     description:
       "A measure of the length of time, defined as exactly 60 seconds.",
   },
   month: {
-    dataTypeId: "https://hash.ai/@hash/types/data-type/month/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/month/" as BaseUrl,
+    dataTypeId: "https://hash.ai/@h/types/data-type/month/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/month/" as BaseUrl,
     title: "Month",
     description:
       "A measure of the length of time. Months vary in length – there are 12 months in a Gregorian year.",
   },
   nctId: {
-    dataTypeId: "https://hash.ai/@hash/types/data-type/nct-id/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/nct-id/" as BaseUrl,
+    dataTypeId: "https://hash.ai/@h/types/data-type/nct-id/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/nct-id/" as BaseUrl,
     title: "NCT ID",
     description:
       "National Clinical Trial (NCT) Identifier Number, which is a unique identifier assigned to each clinical trial registered with ClinicalTrials.gov.",
   },
   percentage: {
-    dataTypeId: "https://hash.ai/@hash/types/data-type/percentage/v/1",
+    dataTypeId: "https://hash.ai/@h/types/data-type/percentage/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@hash/types/data-type/percentage/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/percentage/" as BaseUrl,
     title: "Percentage",
     description: "A measure of the proportion of a whole.",
   },
@@ -1329,8 +1347,8 @@ export const systemDataTypes = {
     description: "The amount of energy transferred or converted per unit time.",
   },
   second: {
-    dataTypeId: "https://hash.ai/@hash/types/data-type/second/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/second/" as BaseUrl,
+    dataTypeId: "https://hash.ai/@h/types/data-type/second/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/second/" as BaseUrl,
     title: "Second",
     description:
       "The base unit of duration in the International System of Units (SI), defined as about 9 billion oscillations of the caesium atom.",
@@ -1349,9 +1367,9 @@ export const systemDataTypes = {
       "A reference to a particular clock time, formatted according to RFC 3339.",
   },
   trialPhase: {
-    dataTypeId: "https://hash.ai/@hash/types/data-type/trial-phase/v/1",
+    dataTypeId: "https://hash.ai/@h/types/data-type/trial-phase/v/1",
     dataTypeBaseUrl:
-      "https://hash.ai/@hash/types/data-type/trial-phase/" as BaseUrl,
+      "https://hash.ai/@h/types/data-type/trial-phase/" as BaseUrl,
     title: "Trial Phase",
     description:
       "The distinct stage of a clinical trial, categorizing the study's primary goals and level of testing. Phase 0 involves very limited human testing, Phase 1 tests safety, dosage, and administration, Phase 2 tests effectiveness, Phase 3 confirms benefits, and Phase 4 studies long-term effects.",
@@ -1376,8 +1394,8 @@ export const systemDataTypes = {
       "The unit of power or radiant flux in the International System of Units (SI) – the rate at which work is done or energy is transferred. Equal to one joule per second.",
   },
   week: {
-    dataTypeId: "https://hash.ai/@hash/types/data-type/week/v/1",
-    dataTypeBaseUrl: "https://hash.ai/@hash/types/data-type/week/" as BaseUrl,
+    dataTypeId: "https://hash.ai/@h/types/data-type/week/v/1",
+    dataTypeBaseUrl: "https://hash.ai/@h/types/data-type/week/" as BaseUrl,
     title: "Week",
     description: "A measure of the length of time, defined as 7 days.",
   },
