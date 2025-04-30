@@ -325,7 +325,7 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
             return true;
         }
 
-        // check if any of the variants are disjoint from each other
+        // Check if any of the variants are disjoint from each other
         for (index, &lhs) in self.kind.variants.iter().enumerate() {
             for &rhs in &self.kind.variants[index + 1..] {
                 if env.is_disjoint(lhs, rhs) {
@@ -410,6 +410,19 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
             TypeIdSet::<16>::with_capacity(env.environment, self.kind.variants.len());
         for &variant in self.kind.variants {
             let variant = env.simplify(variant);
+
+            // If an intersection type contains itself as one of its own conjuncts, e.g. `type A = A
+            // & Foo & Bar`, then under *coinductive* (greatest-fixed-point) semantics
+            // the equation `A = X ∩ A` admits all `S` with `S ⊆ X`, and coinduction
+            // picks the *largest* such `S` (namely `X` itself). Therefore any valid `A`
+            // must satisfy `A ⊆ X`, and we can simplify an immediately self-referential
+            // intersection by dropping the `A` conjunct and keeping only the other
+            // types.
+            if variant == id.value() {
+                // self-reference detected: `μX.(X ∧ …)` coinductively collapses to the other
+                // conjuncts
+                continue;
+            }
 
             // We need to use `get` here, as substituted types may not yet be materialized
             if let Some(IntersectionType { variants: nested }) = env
@@ -2043,11 +2056,30 @@ mod test {
 
         let r#type = env.r#type(type_id);
 
-        assert_matches!(
-            r#type.kind,
-            TypeKind::Intersection(IntersectionType { variants }) if variants.len() == 1
-                && variants[0] == type_id
-        );
+        assert_matches!(r#type.kind, TypeKind::Unknown);
+    }
+
+    #[test]
+    fn simplify_recursive_intersection_multiple() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let r#type = env.types.intern(|id| PartialType {
+            span: SpanId::SYNTHETIC,
+            kind: env.intern_kind(TypeKind::Intersection(IntersectionType {
+                variants: env
+                    .intern_type_ids(&[id.value(), primitive!(env, PrimitiveType::Integer)]),
+            })),
+        });
+
+        let mut simplify = SimplifyEnvironment::new(&env);
+        println!("A");
+        let type_id = simplify.simplify(r#type.id);
+        println!("B");
+
+        let r#type = env.r#type(type_id);
+
+        assert_matches!(r#type.kind, TypeKind::Primitive(PrimitiveType::Integer));
     }
 
     #[test]

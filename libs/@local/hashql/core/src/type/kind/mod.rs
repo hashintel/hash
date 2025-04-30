@@ -1268,21 +1268,10 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
     }
 
     fn simplify(self: Type<'heap, Self>, env: &mut SimplifyEnvironment<'_, 'heap>) -> TypeId {
-        if env.is_bottom(self.id) {
-            return env.intern_type(PartialType {
-                span: self.span,
-                kind: env.intern_kind(TypeKind::Never),
-            });
-        }
-
-        if env.is_top(self.id) {
-            return env.intern_type(PartialType {
-                span: self.span,
-                kind: env.intern_kind(TypeKind::Unknown),
-            });
-        }
-
-        match self.kind {
+        // By running bottom/top checks *after* the per‐kind passes, we guarantee that
+        // self‐referential intersections and coinductive unions get properly collapsed before we
+        // ever declare a type `Never` or `Unknown`.
+        let simplified = match self.kind {
             Self::Opaque(opaque_type) => self.with(opaque_type).simplify(env),
             Self::Primitive(primitive_type) => self.with(primitive_type).simplify(env),
             Self::Intrinsic(intrinsic_type) => self.with(intrinsic_type).simplify(env),
@@ -1292,7 +1281,23 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             Self::Union(union_type) => self.with(union_type).simplify(env),
             Self::Intersection(intersection_type) => self.with(intersection_type).simplify(env),
             Self::Param(_) | Self::Never | Self::Unknown | Self::Infer(_) => self.id,
+        };
+
+        if env.is_bottom(simplified) {
+            return env.intern_type(PartialType {
+                span: self.span,
+                kind: env.intern_kind(TypeKind::Never),
+            });
         }
+
+        if env.is_top(simplified) {
+            return env.intern_type(PartialType {
+                span: self.span,
+                kind: env.intern_kind(TypeKind::Unknown),
+            });
+        }
+
+        simplified
     }
 }
 

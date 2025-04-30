@@ -413,6 +413,23 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
         for &variant in self.kind.variants {
             let variant = env.simplify(variant);
 
+            // If a union type contains itself as one of its own variants, e.g. `type A = A | Foo |
+            // Bar`, then under *coinductive* (greatest-fixed-point) semantics the only solution of
+            // the equation `A = X ∪ A` is the *top* type (`⊤`). Therefore any valid A must
+            // satisfy `X ⊆ A`. Coinduction picks the largest such A (the entire
+            // universe). We therefore simplify an immediately self-referential union
+            // into `⊤`.
+            if variant == id.value() {
+                // self-reference detected: `μX. (X ∪ …)` coinductively collapses to `⊤`
+                return env.intern_provisioned(
+                    id,
+                    PartialType {
+                        span: self.span,
+                        kind: env.intern_kind(TypeKind::Unknown),
+                    },
+                );
+            }
+
             // We need to use `get` here, as substituted types may not yet be materialized
             if let Some(UnionType { variants: nested }) = env
                 .types
@@ -2226,11 +2243,7 @@ mod test {
 
         let r#type = env.r#type(type_id);
 
-        assert_matches!(
-            r#type.kind,
-            TypeKind::Union(UnionType { variants }) if variants.len() == 1
-                && variants[0] == type_id
-        );
+        assert_matches!(r#type.kind, TypeKind::Unknown);
     }
 
     #[test]
@@ -2251,11 +2264,7 @@ mod test {
 
         let r#type = env.r#type(type_id);
 
-        assert_matches!(
-            r#type.kind,
-            TypeKind::Union(UnionType { variants }) if variants.len() == 2
-                && variants[0] == type_id
-        );
+        assert_matches!(r#type.kind, TypeKind::Unknown);
     }
 
     #[test]

@@ -28,6 +28,7 @@ fn ptr_eq<T: ?Sized>(lhs: *const T, rhs: *const T) -> bool {
 ///
 /// This collection uses `SmallVec` to avoid heap allocations for small sets
 /// (up to `CAPACITY` items).
+#[derive(Debug)]
 pub(crate) struct TypeIdSet<'env, 'heap, const CAPACITY: usize> {
     env: &'env Environment<'heap>,
     items: SmallVec<TypeId, CAPACITY>,

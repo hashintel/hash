@@ -1,4 +1,4 @@
-use core::ops::{ControlFlow, Deref};
+use core::ops::Deref;
 
 use smallvec::SmallVec;
 
