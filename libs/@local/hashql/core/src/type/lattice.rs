@@ -173,7 +173,8 @@ pub trait Lattice<'heap> {
     /// In a type lattice, a top type is a supertype of every other type, forming the
     /// greatest element of the lattice. This corresponds to the `?` (`Unknown`) type.
     ///
-    /// Examples:
+    /// # Examples
+    ///
     /// - The `any` type in TypeScript is a top type
     /// - Any union type with the `Unknown` type as a variant is a top type
     /// - Empty intersection types (intersections with no variants) are top types
