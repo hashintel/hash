@@ -45,7 +45,7 @@
     "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@rust/harpc-wire-protocol": "0.0.0-private",
-    "@types/node": "22.15.2",
+    "@types/node": "22.15.3",
     "@vitest/coverage-istanbul": "3.1.2",
     "eslint": "9.20.1",
     "rimraf": "6.0.1",
