@@ -5,7 +5,7 @@ use pretty::RcDoc;
 use super::{
     Type, TypeId, environment::Environment, kind::TypeKind, pretty_print::PrettyPrint as _,
 };
-use crate::collection::FastHashSet;
+use crate::{collection::FastHashSet, intern::Interned};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct RecursionDepthBoundary {
@@ -75,7 +75,10 @@ impl RecursionCycle {
 
 #[derive(Debug, Clone)]
 pub(crate) struct RecursionBoundary<'heap> {
-    inner: FastHashSet<(*const TypeKind<'heap>, *const TypeKind<'heap>)>,
+    inner: FastHashSet<(
+        Interned<'heap, TypeKind<'heap>>,
+        Interned<'heap, TypeKind<'heap>>,
+    )>,
 }
 
 impl<'heap> RecursionBoundary<'heap> {
@@ -86,8 +89,10 @@ impl<'heap> RecursionBoundary<'heap> {
     }
 
     pub(crate) fn enter(&mut self, lhs: Type<'heap>, rhs: Type<'heap>) -> ControlFlow<()> {
-        let lhs_kind = core::ptr::from_ref(lhs.kind);
-        let rhs_kind = core::ptr::from_ref(rhs.kind);
+        // Using `new_unchecked` here is safe, due to the fact that the `TypeKind` comes directly
+        // from interning. See the `Decompose` implementation for more details.
+        let lhs_kind = Interned::new_unchecked(lhs.kind);
+        let rhs_kind = Interned::new_unchecked(rhs.kind);
 
         // Insert returns true if the element was not already in the set
         let should_enter = self.inner.insert((lhs_kind, rhs_kind));
@@ -102,8 +107,10 @@ impl<'heap> RecursionBoundary<'heap> {
     }
 
     pub(crate) fn exit(&mut self, lhs: Type<'heap>, rhs: Type<'heap>) -> bool {
-        let lhs_kind = core::ptr::from_ref(lhs.kind);
-        let rhs_kind = core::ptr::from_ref(rhs.kind);
+        // Using `new_unchecked` here is safe, due to the fact that the `TypeKind` comes directly
+        // from interning. See the `Decompose` implementation for more details.
+        let lhs_kind = Interned::new_unchecked(lhs.kind);
+        let rhs_kind = Interned::new_unchecked(rhs.kind);
 
         self.inner.remove(&(lhs_kind, rhs_kind))
     }
