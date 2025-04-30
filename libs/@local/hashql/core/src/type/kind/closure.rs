@@ -1305,10 +1305,16 @@ mod test {
         let constraints = inference_env.take_constraints();
         assert_eq!(
             constraints,
-            [Constraint::Ordering {
-                lower: Variable::synthetic(VariableKind::Generic(arg2)),
-                upper: Variable::synthetic(VariableKind::Generic(arg1)),
-            }]
+            [
+                Constraint::Ordering {
+                    lower: Variable::synthetic(VariableKind::Generic(arg2)),
+                    upper: Variable::synthetic(VariableKind::Generic(arg1)),
+                },
+                Constraint::Ordering {
+                    lower: Variable::synthetic(VariableKind::Generic(arg1)),
+                    upper: Variable::synthetic(VariableKind::Generic(arg2)),
+                }
+            ]
         );
     }
 

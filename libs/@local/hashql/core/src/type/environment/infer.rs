@@ -13,7 +13,7 @@ use crate::r#type::{
 #[derive(Debug)]
 pub struct InferenceEnvironment<'env, 'heap> {
     pub environment: &'env Environment<'heap>,
-    boundary: RecursionBoundary,
+    boundary: RecursionBoundary<'heap>,
 
     constraints: Vec<Constraint>,
     unification: Unification,
@@ -92,12 +92,6 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
     }
 
     pub fn collect_constraints(&mut self, subtype: TypeId, supertype: TypeId) {
-        if !self.boundary.enter(subtype, supertype) {
-            // In a recursive type, we've already collected the constraints once, so can simply
-            // terminate
-            return;
-        }
-
         #[expect(
             clippy::match_same_arms,
             reason = "explicit to document why invariant is covariant in disguise"
@@ -112,18 +106,18 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
         let subtype = self.environment.r#type(subtype);
         let supertype = self.environment.r#type(supertype);
 
-        subtype.collect_constraints(supertype, self);
-
-        self.boundary.exit(subtype.id, supertype.id);
-    }
-
-    pub fn collect_structural_edges(&mut self, id: TypeId, variable: PartialStructuralEdge) {
-        if !self.boundary.enter(id, id) {
+        if self.boundary.enter(subtype, supertype).is_break() {
             // In a recursive type, we've already collected the constraints once, so can simply
             // terminate
             return;
         }
 
+        subtype.collect_constraints(supertype, self);
+
+        self.boundary.exit(subtype, supertype);
+    }
+
+    pub fn collect_structural_edges(&mut self, id: TypeId, variable: PartialStructuralEdge) {
         let variable = match self.variance {
             Variance::Covariant => variable,
             Variance::Contravariant => variable.invert(),
@@ -133,9 +127,15 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
 
         let r#type = self.environment.r#type(id);
 
+        if self.boundary.enter(r#type, r#type).is_break() {
+            // In a recursive type, we've already collected the constraints once, so can simply
+            // terminate
+            return;
+        }
+
         r#type.collect_structural_edges(variable, self);
 
-        self.boundary.exit(id, id);
+        self.boundary.exit(r#type, r#type);
     }
 
     pub(crate) fn with_variance<T>(

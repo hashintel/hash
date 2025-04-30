@@ -26,7 +26,7 @@ use crate::{
 #[derive(Debug)]
 pub struct InstantiateEnvironment<'env, 'heap> {
     pub environment: &'env Environment<'heap>,
-    boundary: RecursionBoundary,
+    boundary: RecursionBoundary<'heap>,
     diagnostics: Diagnostics,
 
     argument_scope: Rc<ReplacementScope<GenericArgumentId>>,
@@ -93,7 +93,9 @@ impl<'env, 'heap> InstantiateEnvironment<'env, 'heap> {
     ///
     /// Panics in debug mode if a type should have been provisioned but wasn't.
     pub fn instantiate(&mut self, id: TypeId) -> TypeId {
-        if !self.boundary.enter(id, id) {
+        let r#type = self.environment.r#type(id);
+
+        if self.boundary.enter(r#type, r#type).is_break() {
             // See if the type has been substituted
             if let Some(substitution) = self.provisioned.get_substitution(id) {
                 return substitution;
@@ -113,10 +115,9 @@ impl<'env, 'heap> InstantiateEnvironment<'env, 'heap> {
             return id;
         }
 
-        let r#type = self.environment.r#type(id);
         let result = r#type.instantiate(self);
 
-        self.boundary.exit(id, id);
+        self.boundary.exit(r#type, r#type);
         result
     }
 

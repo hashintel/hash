@@ -443,9 +443,22 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
         let backup = variants.clone();
         variants.retain(|&mut subtype| {
             // keep v only if it is *not* a subtype of any other distinct u
-            !backup
-                .iter()
-                .any(|&supertype| subtype != supertype && env.is_subtype_of(subtype, supertype))
+            !backup.iter().any(|&supertype| {
+                // The problem is the following: given A <: (B | C), we first put it into a union,
+                // so check `[A] <: [B, C]`, that then goes over every single element of the union,
+                // and checks if `A <: B`. In theory this works, but here this means that we
+                // actually recurse twice, so `A` is marked as a "recursive" variable, even though
+                // it shouldn't be(?)
+                println!(
+                    "{} {} {} {}",
+                    subtype,
+                    supertype,
+                    env.is_subtype_of(subtype, supertype),
+                    subtype != supertype
+                );
+
+                subtype != supertype && env.is_subtype_of(subtype, supertype)
+            })
         });
 
         // Collapse empty or singleton

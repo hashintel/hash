@@ -20,7 +20,7 @@ use crate::{
 #[derive(Debug)]
 pub struct SimplifyEnvironment<'env, 'heap> {
     pub environment: &'env Environment<'heap>,
-    boundary: RecursionBoundary,
+    boundary: RecursionBoundary<'heap>,
 
     provisioned: Rc<ProvisionedScope<TypeId>>,
 
@@ -164,7 +164,9 @@ impl<'env, 'heap> SimplifyEnvironment<'env, 'heap> {
     ///
     /// In debug builds, this function will panic if a type should have been provisioned but wasn't.
     pub fn simplify(&mut self, id: TypeId) -> TypeId {
-        if !self.boundary.enter(id, id) {
+        let r#type = self.environment.r#type(id);
+
+        if self.boundary.enter(r#type, r#type).is_break() {
             // See if the type has been substituted
             if let Some(substitution) = self.provisioned.get_substitution(id) {
                 return substitution;
@@ -184,10 +186,9 @@ impl<'env, 'heap> SimplifyEnvironment<'env, 'heap> {
             return id;
         }
 
-        let r#type = self.environment.r#type(id);
         let result = r#type.simplify(self);
 
-        self.boundary.exit(id, id);
+        self.boundary.exit(r#type, r#type);
         result
     }
 

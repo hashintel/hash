@@ -1,4 +1,4 @@
-use core::ops::Deref;
+use core::ops::{ControlFlow, Deref};
 
 use smallvec::SmallVec;
 
@@ -9,14 +9,16 @@ use crate::r#type::{
     inference::{Substitution, VariableKind, VariableLookup},
     kind::{IntersectionType, TypeKind, UnionType},
     lattice::Lattice as _,
-    recursion::RecursionBoundary,
+    recursion::{RecursionBoundary, RecursionCycle},
 };
 
 #[derive(Debug)]
 pub struct LatticeEnvironment<'env, 'heap> {
     pub environment: &'env Environment<'heap>,
-    boundary: RecursionBoundary,
     pub diagnostics: Diagnostics,
+
+    boundary: RecursionBoundary<'heap>,
+
     simplify_lattice: bool,
     inference: bool,
 
@@ -119,15 +121,17 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
     ///
     /// See <https://en.wikipedia.org/wiki/Coinduction> and
     /// Chapter 21.1 of "Types and Programming Languages" by Benjamin C. Pierce
-    fn join_recursive(&mut self, lhs: Type<'heap>, rhs: Type<'heap>) -> TypeId {
+    fn join_recursive(
+        &mut self,
+        lhs: Type<'heap>,
+        rhs: Type<'heap>,
+        cycle: RecursionCycle,
+    ) -> TypeId {
         // Record diagnostic for awareness but don't treat as fatal
         self.diagnostics
             .push(circular_type_reference(self.source, lhs, rhs));
 
-        // If one type is a subtype of the other, return the supertype
-        if self.simplify.is_subtype_of(lhs.id, rhs.id) {
-            return rhs.id;
-        } else if self.simplify.is_subtype_of(rhs.id, lhs.id) {
+        if cycle.should_discharge() {
             return lhs.id;
         }
 
@@ -146,8 +150,8 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
         let lhs = self.environment.r#type(lhs);
         let rhs = self.environment.r#type(rhs);
 
-        if !self.boundary.enter(lhs.id, rhs.id) {
-            return self.join_recursive(lhs, rhs);
+        if let ControlFlow::Break(cycle) = self.boundary.enter(lhs, rhs) {
+            return self.join_recursive(lhs, rhs, cycle);
         }
 
         let variants = lhs.join(rhs, self);
@@ -184,7 +188,7 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
             }
         };
 
-        self.boundary.exit(lhs.id, rhs.id);
+        self.boundary.exit(lhs, rhs);
         result
     }
 
@@ -220,16 +224,18 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
     ///
     /// See <https://en.wikipedia.org/wiki/Coinduction> and
     /// Chapter 21.1 of "Types and Programming Languages" by Benjamin C. Pierce
-    fn meet_recursive(&mut self, lhs: Type<'heap>, rhs: Type<'heap>) -> TypeId {
+    fn meet_recursive(
+        &mut self,
+        lhs: Type<'heap>,
+        rhs: Type<'heap>,
+        cycle: RecursionCycle,
+    ) -> TypeId {
         // Record diagnostic for awareness but don't treat as fatal
         self.diagnostics
             .push(circular_type_reference(self.source, lhs, rhs));
 
-        // If one type is a subtype of the other, return the subtype
-        if self.simplify.is_subtype_of(lhs.id, rhs.id) {
+        if cycle.should_discharge() {
             return lhs.id;
-        } else if self.simplify.is_subtype_of(rhs.id, lhs.id) {
-            return rhs.id;
         }
 
         // If they aren't in a subtyping relationship, create an intersection type
@@ -249,8 +255,8 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
         let lhs = self.environment.r#type(lhs);
         let rhs = self.environment.r#type(rhs);
 
-        if !self.boundary.enter(lhs.id, rhs.id) {
-            return self.meet_recursive(lhs, rhs);
+        if let ControlFlow::Break(cycle) = self.boundary.enter(lhs, rhs) {
+            return self.meet_recursive(lhs, rhs, cycle);
         }
 
         let variants = lhs.meet(rhs, self);
@@ -290,7 +296,7 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
             }
         };
 
-        self.boundary.exit(lhs.id, rhs.id);
+        self.boundary.exit(lhs, rhs);
         result
     }
 

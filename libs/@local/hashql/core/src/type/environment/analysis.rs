@@ -9,13 +9,13 @@ use crate::r#type::{
     inference::{Substitution, VariableKind, VariableLookup},
     kind::{Infer, Param, TypeKind},
     lattice::Lattice as _,
-    recursion::RecursionBoundary,
+    recursion::{RecursionBoundary, RecursionCycle},
 };
 
 #[derive(Debug)]
 pub struct AnalysisEnvironment<'env, 'heap> {
     environment: &'env Environment<'heap>,
-    boundary: RecursionBoundary,
+    boundary: RecursionBoundary<'heap>,
     diagnostics: Option<Diagnostics>,
     variance: Variance,
     variables: Option<VariableLookup>,
@@ -105,29 +105,31 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
     }
 
     pub fn is_bottom(&mut self, id: TypeId) -> bool {
-        if !self.boundary.enter(id, id) {
+        let r#type = self.environment.r#type(id);
+
+        if self.boundary.enter(r#type, r#type).is_break() {
             // We have found a recursive type, meaning it can't be bottom
             return false;
         }
 
-        let r#type = self.environment.r#type(id);
         let result = r#type.is_bottom(self);
 
-        self.boundary.exit(id, id);
+        self.boundary.exit(r#type, r#type);
 
         result
     }
 
     pub fn is_top(&mut self, id: TypeId) -> bool {
-        if !self.boundary.enter(id, id) {
+        let r#type = self.environment.r#type(id);
+
+        if self.boundary.enter(r#type, r#type).is_break() {
             // We have found a recursive type, meaning it can't be top
             return false;
         }
 
-        let r#type = self.environment.r#type(id);
         let result = r#type.is_top(self);
 
-        self.boundary.exit(id, id);
+        self.boundary.exit(r#type, r#type);
 
         result
     }
@@ -140,45 +142,48 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
     }
 
     pub fn is_concrete(&mut self, id: TypeId) -> bool {
-        if !self.boundary.enter(id, id) {
+        let r#type = self.environment.r#type(id);
+
+        if self.boundary.enter(r#type, r#type).is_break() {
             // We have found a recursive type with no holes, therefore it must be concrete
             return true;
         }
 
-        let r#type = self.environment.r#type(id);
         let result = r#type.is_concrete(self);
 
-        self.boundary.exit(id, id);
+        self.boundary.exit(r#type, r#type);
 
         result
     }
 
     pub fn distribute_union(&mut self, id: TypeId) -> SmallVec<TypeId, 16> {
-        if !self.boundary.enter(id, id) {
+        let r#type = self.environment.r#type(id);
+
+        if self.boundary.enter(r#type, r#type).is_break() {
             // We have found a recursive type, due to coinductive reasoning, this means it can no
             // longer be distributed
             return SmallVec::from_slice(&[id]);
         }
 
-        let r#type = self.environment.r#type(id);
         let result = r#type.distribute_union(self);
 
-        self.boundary.exit(id, id);
+        self.boundary.exit(r#type, r#type);
 
         result
     }
 
     pub fn distribute_intersection(&mut self, id: TypeId) -> SmallVec<TypeId, 16> {
-        if !self.boundary.enter(id, id) {
+        let r#type = self.environment.r#type(id);
+
+        if self.boundary.enter(r#type, r#type).is_break() {
             // We have found a recursive type, due to coinductive reasoning, this means it can no
             // longer be distributed
             return SmallVec::from_slice(&[id]);
         }
 
-        let r#type = self.environment.r#type(id);
         let result = r#type.distribute_intersection(self);
 
-        self.boundary.exit(id, id);
+        self.boundary.exit(r#type, r#type);
 
         result
     }
@@ -303,13 +308,18 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
     /// See <https://en.wikipedia.org/wiki/Coinduction> and
     /// Chapter 21.1 of "Types and Programming Languages" by Benjamin C. Pierce
     #[inline]
-    fn is_subtype_of_recursive(&mut self, subtype: Type<'heap>, supertype: Type<'heap>) -> bool {
+    fn is_subtype_of_recursive(
+        &mut self,
+        subtype: Type<'heap>,
+        supertype: Type<'heap>,
+        cycle: RecursionCycle,
+    ) -> bool {
         // Issue a non-fatal diagnostic to inform that a cycle was detected, but don't treat
         // it as an error for subtyping.
         let _: ControlFlow<()> =
             self.record_diagnostic(|env| circular_type_reference(env.source, subtype, supertype));
 
-        true
+        cycle.should_discharge()
     }
 
     pub fn is_subtype_of(&mut self, subtype: TypeId, supertype: TypeId) -> bool {
@@ -322,25 +332,19 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
         let subtype = self.environment.r#type(subtype);
         let supertype = self.environment.r#type(supertype);
 
-        if !self.boundary.enter(subtype.id, supertype.id) {
-            return self.is_subtype_of_recursive(
-                subtype,
-                supertype,
-                // should discharge:
-                self.subtype_scope.contains(subtype.id)
-                    && self.supertype_scope.contains(supertype.id),
-            );
+        if let ControlFlow::Break(cycle) = self.boundary.enter(subtype, supertype) {
+            return self.is_subtype_of_recursive(subtype, supertype, cycle);
         }
 
         if let Some(result) = self.is_quick_subtype(&subtype, &supertype) {
-            self.boundary.exit(subtype.id, supertype.id);
+            self.boundary.exit(subtype, supertype);
 
             return result;
         }
 
         let result = subtype.is_subtype_of(supertype, self);
 
-        self.boundary.exit(subtype.id, supertype.id);
+        self.boundary.exit(subtype, supertype);
 
         result
     }
@@ -395,31 +399,37 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
     /// See <https://en.wikipedia.org/wiki/Coinduction> and
     /// Chapter 21.1 of "Types and Programming Languages" by Benjamin C. Pierce
     #[inline]
-    fn is_equivalent_recursive(&mut self, lhs: Type<'heap>, rhs: Type<'heap>) -> bool {
+    fn is_equivalent_recursive(
+        &mut self,
+        lhs: Type<'heap>,
+        rhs: Type<'heap>,
+        cycle: RecursionCycle,
+    ) -> bool {
         // Issue a non-fatal diagnostic to inform that a cycle was detected, but don't treat
         // it as an error for subtyping.
         let _: ControlFlow<()> =
             self.record_diagnostic(|env| circular_type_reference(env.source, lhs, rhs));
 
-        true
+        cycle.should_discharge()
     }
 
     pub fn is_equivalent(&mut self, lhs: TypeId, rhs: TypeId) -> bool {
         let lhs = self.environment.r#type(lhs);
         let rhs = self.environment.r#type(rhs);
 
-        if !self.boundary.enter(lhs.id, rhs.id) {
-            return self.is_equivalent_recursive(lhs, rhs);
+        if let ControlFlow::Break(cycle) = self.boundary.enter(lhs, rhs) {
+            return self.is_equivalent_recursive(lhs, rhs, cycle);
         }
 
         if let Some(result) = self.is_quick_equivalent(&lhs, &rhs) {
+            self.boundary.exit(lhs, rhs);
+
             return result;
         }
 
         let result = lhs.is_equivalent(rhs, self);
 
-        self.boundary.exit(lhs.id, rhs.id);
-
+        self.boundary.exit(lhs, rhs);
         result
     }
 
