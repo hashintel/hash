@@ -2,8 +2,8 @@
 source: libs/@local/codegen/tests/codegen/main.rs
 expression: generated
 ---
-export type Machine = {
-	id: MachineId
-	identifier: string
-	roles: RoleId[]
-};
+export interface Machine {
+	id: MachineId;
+	identifier: string;
+	roles: RoleId[];
+}

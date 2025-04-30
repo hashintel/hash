@@ -2,8 +2,8 @@
 source: libs/@local/codegen/tests/codegen/main.rs
 expression: generated
 ---
-export type TeamRole = {
-	id: TeamRoleId
-	teamId: TeamId
-	name: RoleName
-};
+export interface TeamRole {
+	id: TeamRoleId;
+	teamId: TeamId;
+	name: RoleName;
+}

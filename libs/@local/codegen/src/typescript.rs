@@ -67,12 +67,100 @@ impl<'a> TypeScriptGenerator<'a> {
             .code
     }
 
+    fn export_as_interface(&self, r#type: &Type) -> bool {
+        match r#type {
+            Type::Reference(name) => self
+                .collection
+                .types
+                .get(name)
+                .is_some_and(|(_, type_def)| self.export_as_interface(&type_def.r#type)),
+            Type::Struct(r#struct) => {
+                if let Fields::Named {
+                    fields,
+                    deny_unknown: true,
+                } = &r#struct.fields
+                {
+                    !fields
+                        .iter()
+                        .any(|(_, field)| field.flatten && !self.export_as_interface(&field.r#type))
+                } else {
+                    false
+                }
+            }
+            _ => false,
+        }
+    }
+
     fn visit_type_definition(&self, definition: &TypeDefinition) -> ast::Declaration<'a> {
-        self.ast.declaration_ts_type_alias(
+        if self.export_as_interface(&definition.r#type) {
+            self.generate_interface(definition)
+        } else {
+            self.ast.declaration_ts_type_alias(
+                SPAN,
+                self.ast.binding_identifier(SPAN, definition.name.as_ref()),
+                None::<ast::TSTypeParameterDeclaration<'a>>,
+                self.visit_type(&definition.r#type),
+                false,
+            )
+        }
+    }
+
+    fn generate_interface(&self, definition: &TypeDefinition) -> ast::Declaration<'a> {
+        let (body, extends) = match &definition.r#type {
+            Type::Struct(struct_def) => match &struct_def.fields {
+                Fields::Named {
+                    fields,
+                    deny_unknown: true,
+                } => {
+                    let mut members = self.ast.vec();
+                    let mut extends = self.ast.vec();
+                    for (field_name, field) in fields {
+                        if field.flatten {
+                            let Type::Reference(reference) = &field.r#type else {
+                                panic!("Expected reference type for flattened field");
+                            };
+                            extends.push(
+                                self.ast.ts_interface_heritage(
+                                    SPAN,
+                                    ast::Expression::Identifier(
+                                        self.ast
+                                            .alloc_identifier_reference(SPAN, reference.as_ref()),
+                                    ),
+                                    None::<ast::TSTypeParameterInstantiation<'a>>,
+                                ),
+                            );
+                            continue;
+                        }
+                        members.push(
+                            self.ast.ts_signature_property_signature(
+                                SPAN,
+                                false, // computed
+                                false, // optional
+                                false, // read-only
+                                self.ast
+                                    .property_key_static_identifier(SPAN, field_name.as_ref()),
+                                Some(self.ast.alloc_ts_type_annotation(
+                                    SPAN,
+                                    self.visit_type(&field.r#type),
+                                )),
+                            ),
+                        );
+                    }
+                    (members, extends)
+                }
+                _ => unimplemented!(
+                    "Tried to generate an interface from tuple-struct or unit struct"
+                ),
+            },
+            _ => unimplemented!("Tried to generate an interface from unsupported type"),
+        };
+
+        self.ast.declaration_ts_interface(
             SPAN,
             self.ast.binding_identifier(SPAN, definition.name.as_ref()),
             None::<ast::TSTypeParameterDeclaration<'a>>,
-            self.visit_type(&definition.r#type),
+            extends,
+            self.ast.ts_interface_body(SPAN, body),
             false,
         )
     }

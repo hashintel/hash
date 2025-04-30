@@ -2,6 +2,8 @@
 
 use oxc::allocator::HashMap;
 
+use crate::enums::EnumInternal;
+
 // Unit struct (no fields or braces)
 #[derive(specta::Type)]
 pub(crate) struct StructUnit;
@@ -59,4 +61,29 @@ pub(crate) struct StructMultipleFlattened {
     simple: StructSimpleFlattened,
     #[serde(flatten)]
     nested: StructNested,
+}
+
+/// Nesting interfaces should simply work without any special handling
+#[derive(specta::Type)]
+pub(crate) struct StructNestedInterfaceFlattened {
+    name: String,
+    #[serde(flatten)]
+    nested: StructMultipleFlattened,
+}
+
+/// This should generate a `type` alias as [`EnumInternal`] cannot be represented as an interface
+#[derive(specta::Type)]
+pub(crate) struct StructFlattenedEnum {
+    name: String,
+    #[serde(flatten)]
+    map: EnumInternal,
+}
+
+/// This also generates a `type` alias as the {`EnumInternal`} within [`StructFlattenedEnum`] cannot
+/// be represented as an interface
+#[derive(specta::Type)]
+pub(crate) struct StructNestedTypeFlattened {
+    name: String,
+    #[serde(flatten)]
+    nested: StructFlattenedEnum,
 }
