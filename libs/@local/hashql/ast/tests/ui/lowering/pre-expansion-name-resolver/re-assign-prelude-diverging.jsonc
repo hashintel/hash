@@ -1,0 +1,13 @@
+//@ run: pass
+//@ description: This is funky, re-assign `let` to a new value, so that it is no longer resolved, see that this doesn't affect the diverging branch
+[
+  "if",
+  { "#literal": true },
+  [
+    "let",
+    "let",
+    ["+", { "#literal": 1 }, { "#literal": 2 }],
+    ["let", "a", "b"]
+  ],
+  ["let", "a", "b"]
+]
