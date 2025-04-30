@@ -214,6 +214,10 @@ impl<'env, 'heap> PreExpansionNameResolver<'env, 'heap> {
         }
     }
 
+    /// Looks up the absolute path for a given symbol name.
+    ///
+    /// It checks the local alias map first, then the namespace cache, and finally
+    /// the module namespace (for intrinsics) if necessary. Caches namespace lookups.
     fn lookup(&mut self, name: &Symbol) -> Option<Path<'heap>> {
         if let Some(replacement) = self.alias.get(name) {
             return replacement.clone();
