@@ -33,6 +33,7 @@ impl Field {
 pub enum Fields {
     Named {
         fields: Vec<(Cow<'static, str>, Field)>,
+        deny_unknown: bool,
     },
     Unnamed {
         fields: Vec<Field>,
@@ -54,6 +55,9 @@ impl Fields {
                         (name.clone(), Field::from_specta(data_type, type_collection))
                     })
                     .collect(),
+                // TODO: Specta currently does not have `deny_unknown_fields` support
+                //   see https://linear.app/hash/issue/H-4489/implement-deny-unknown-fields-detection
+                deny_unknown: true,
             },
             datatype::Fields::Unnamed(unnamed_fields) => Self::Unnamed {
                 fields: unnamed_fields

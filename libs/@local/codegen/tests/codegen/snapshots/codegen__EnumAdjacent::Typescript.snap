@@ -15,7 +15,7 @@ type EnumAdjacent = {
 	content: [boolean, string]
 } | {
 	type: "EmptyNamed"
-	content: {}
+	content: Record<string, never>
 } | {
 	type: "SingleNamed"
 	content: {
