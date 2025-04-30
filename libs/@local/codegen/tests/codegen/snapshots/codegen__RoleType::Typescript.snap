@@ -2,4 +2,4 @@
 source: libs/@local/codegen/tests/codegen/main.rs
 expression: generated
 ---
-type RoleType = "web" | "team";
+export type RoleType = "web" | "team";

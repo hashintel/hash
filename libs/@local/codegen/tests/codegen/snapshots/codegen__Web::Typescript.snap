@@ -2,7 +2,7 @@
 source: libs/@local/codegen/tests/codegen/main.rs
 expression: generated
 ---
-type Web = {
+export type Web = {
 	id: WebId
 	shortname: (string | undefined)
 	roles: WebRoleId[]

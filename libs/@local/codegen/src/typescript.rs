@@ -42,32 +42,35 @@ impl<'a> TypeScriptGenerator<'a> {
 
     #[must_use]
     pub fn generate(&self, name: &str) -> String {
+        let definition = &self.collection.types[name].1;
         Codegen::new()
-            .build(
-                &self.ast.program(
-                    SPAN,
-                    ast::SourceType::d_ts(),
-                    "unnamed",
-                    self.ast.vec(),
-                    None,
-                    self.ast.vec(),
-                    self.ast.vec1(
-                        self.visit_type_definition(name, &self.collection.types[name].1)
-                            .into(),
-                    ),
-                ),
-            )
+            .build(&self.ast.program(
+                SPAN,
+                ast::SourceType::d_ts(),
+                "unnamed",
+                self.ast.vec(),
+                None,
+                self.ast.vec(),
+                self.ast.vec1(if definition.public {
+                    ast::Statement::ExportNamedDeclaration(self.ast.alloc_export_named_declaration(
+                        SPAN,
+                        Some(self.visit_type_definition(definition)),
+                        self.ast.vec(),
+                        None,
+                        ast::ImportOrExportKind::Type,
+                        None::<ast::WithClause<'a>>,
+                    ))
+                } else {
+                    self.visit_type_definition(definition).into()
+                }),
+            ))
             .code
     }
 
-    fn visit_type_definition(
-        &self,
-        name: &str,
-        definition: &TypeDefinition,
-    ) -> ast::Declaration<'a> {
+    fn visit_type_definition(&self, definition: &TypeDefinition) -> ast::Declaration<'a> {
         self.ast.declaration_ts_type_alias(
             SPAN,
-            self.ast.binding_identifier(SPAN, name),
+            self.ast.binding_identifier(SPAN, definition.name.as_ref()),
             None::<ast::TSTypeParameterDeclaration<'a>>,
             self.visit_type(&definition.r#type),
             false,

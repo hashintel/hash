@@ -2,7 +2,7 @@
 source: libs/@local/codegen/tests/codegen/main.rs
 expression: generated
 ---
-type ListCollections = {
+export type ListCollections = {
 	string_list: string[]
 	number_list: number[]
 	nested_list: StructSimple[]

@@ -2,7 +2,7 @@
 source: libs/@local/codegen/tests/codegen/main.rs
 expression: generated
 ---
-type MapNested = {
+export type MapNested = {
 	nested_maps: Record<string, Record<string, number>>
 	triple_nested: Record<string, Record<string, Record<string, boolean>>>
 	btree_nested: Record<string, Record<number, string>>

@@ -2,6 +2,6 @@
 source: libs/@local/codegen/tests/codegen/main.rs
 expression: generated
 ---
-type TupleOptional = {
+export type TupleOptional = {
 	optional: ([number, number] | undefined)
 };
