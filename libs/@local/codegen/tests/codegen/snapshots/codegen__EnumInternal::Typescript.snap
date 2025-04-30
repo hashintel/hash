@@ -5,6 +5,8 @@ expression: generated
 type EnumInternal = {
 	type: "Unit"
 } | {
+	type: "SingleUnnamed"
+} & StructSimple | {
 	type: "EmptyNamed"
 } | {
 	type: "SingleNamed"

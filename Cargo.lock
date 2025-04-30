@@ -8343,6 +8343,7 @@ version = "2.0.0-rc.22"
 source = "git+https://github.com/specta-rs/specta?rev=ab7d924#ab7d9245d5e2ace951707c3c383b0211ca7fc8ce"
 dependencies = [
  "specta-macros",
+ "uuid",
 ]
 
 [[package]]
@@ -9544,6 +9545,7 @@ dependencies = [
  "serde",
  "serde_json",
  "simple-mermaid",
+ "specta",
  "thiserror 2.0.12",
  "time",
  "tokio",

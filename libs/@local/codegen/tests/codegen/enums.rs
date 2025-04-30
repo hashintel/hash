@@ -29,6 +29,7 @@ pub(crate) enum EnumExternal {
 #[serde(tag = "type")]
 pub(crate) enum EnumInternal {
     Unit,
+    SingleUnnamed(StructSimple),
     EmptyNamed {},
     SingleNamed {
         value: i32,

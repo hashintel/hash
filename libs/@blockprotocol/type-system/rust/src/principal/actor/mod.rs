@@ -35,6 +35,7 @@ use crate::knowledge::entity::id::EntityUuid;
     serde::Serialize,
     serde::Deserialize,
     derive_more::Display,
+    specta::Type,
 )]
 #[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
@@ -77,7 +78,9 @@ impl From<ActorEntityUuid> for Uuid {
 /// Types of individual actors in the system.
 ///
 /// Represents the different categories of entities that can perform actions.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Copy, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize, specta::Type,
+)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
@@ -102,6 +105,7 @@ pub enum ActorType {
     serde::Deserialize,
     derive_more::Display,
     derive_more::From,
+    specta::Type,
 )]
 #[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
@@ -195,7 +199,7 @@ impl postgres_types::ToSql for ActorId {
 ///
 /// Represents the concrete implementation of an actor with its attributes and capabilities.
 /// Each variant corresponds to a specific [`ActorType`].
-#[derive(Debug, serde::Serialize, serde::Deserialize, derive_more::From)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, derive_more::From, specta::Type)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(tag = "actorType", rename_all = "camelCase")]
