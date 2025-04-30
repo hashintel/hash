@@ -412,7 +412,7 @@ __metadata:
     fractional-indexing: "npm:2.1.0"
     googleapis: "npm:133.0.0"
     graphql: "npm:16.11.0"
-    graphql-parse-resolve-info: "npm:4.14.0"
+    graphql-parse-resolve-info: "npm:4.14.1"
     graphql-scalars: "npm:1.24.2"
     helmet: "npm:4.6.0"
     hot-shots: "npm:8.5.2"
@@ -28423,15 +28423,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"graphql-parse-resolve-info@npm:4.14.0":
-  version: 4.14.0
-  resolution: "graphql-parse-resolve-info@npm:4.14.0"
+"graphql-parse-resolve-info@npm:4.14.1":
+  version: 4.14.1
+  resolution: "graphql-parse-resolve-info@npm:4.14.1"
   dependencies:
     debug: "npm:^4.1.1"
     tslib: "npm:^2.0.1"
   peerDependencies:
     graphql: ">=0.9 <0.14 || ^14.0.2 || ^15.4.0 || ^16.3.0"
-  checksum: 10c0/b8295bcd020740d04bc6c3743836808f3554574f19fa40e7ea2c91d6d43dbbbba0373d9d42669936f74ca9ecc7e208d99504a55a036ffe1369f8e45b65d0070a
+  checksum: 10c0/001a0050f0ee5c1db3db9a4c06e268e98c1df83b411cc9e606c0133de2b81ee407f2f60b8cdaafd069b9b397c040cce6d8a2af9a43b353d15e351fd5ab6418d8
   languageName: node
   linkType: hard
 

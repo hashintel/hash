@@ -82,7 +82,7 @@
     "fractional-indexing": "2.1.0",
     "googleapis": "133.0.0",
     "graphql": "16.11.0",
-    "graphql-parse-resolve-info": "4.14.0",
+    "graphql-parse-resolve-info": "4.14.1",
     "graphql-scalars": "1.24.2",
     "helmet": "4.6.0",
     "hot-shots": "8.5.2",
