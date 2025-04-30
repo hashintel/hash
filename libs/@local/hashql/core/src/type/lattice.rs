@@ -210,8 +210,8 @@ pub trait Lattice<'heap> {
     /// relationships, such as linked lists, trees, and graphs.
     ///
     /// In type theory, recursive types are formalized using fixed-point operators or μ-types,
-    /// written as μX.T where X may appear in T, representing the recursive binding of X to the
-    /// structure T.
+    /// written as `μX.T` where `X` may appear in `T`, representing the recursive binding of `X` to
+    /// the structure `T`.
     ///
     /// # Implementation Considerations
     ///

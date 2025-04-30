@@ -56,8 +56,7 @@ where
 ///
 /// 4. **Single-Threaded Context**: This approach relies on the assumption of a single-threaded
 ///    execution environment (consistent with `Heap` not being thread-safe). `RefCell` is suitable
-///    here; a `Mutex` would be unnecessary overhead and incorrect as it implies thread safety which
-///    isn't present.
+///    here; a `Mutex` would be unnecessary overhead.
 ///
 /// **In Summary**: `RefCell` is used here primarily because `Provision` is shared via `Rc`. It
 /// provides the necessary *interior mutability* for `ProvisionGuard`'s RAII cleanup

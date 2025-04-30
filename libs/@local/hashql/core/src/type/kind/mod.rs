@@ -308,7 +308,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 | Self::Closure(_)
                 | Self::Intersection(_),
             ) => {
-                let lhs_variants = lhs.unnest(self.id, self.span, env);
+                let lhs_variants = self.with(lhs).unnest(env);
                 let rhs_variants = [other.id];
 
                 UnionType::join_variants(&lhs_variants, &rhs_variants, env)
@@ -324,7 +324,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 Self::Union(rhs),
             ) => {
                 let lhs_variants = [self.id];
-                let rhs_variants = rhs.unnest(other.id, other.span, env);
+                let rhs_variants = other.with(rhs).unnest(env);
 
                 UnionType::join_variants(&lhs_variants, &rhs_variants, env)
             }
@@ -342,7 +342,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 | Self::Tuple(_)
                 | Self::Closure(_),
             ) => {
-                let lhs_variants = lhs.unnest(self.id, env);
+                let lhs_variants = self.with(lhs).unnest(env);
                 let rhs_variants = [other.id];
 
                 IntersectionType::join_variants(self.span, &lhs_variants, &rhs_variants, env)
@@ -357,7 +357,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 Self::Intersection(rhs),
             ) => {
                 let lhs_variants = [self.id];
-                let rhs_variants = rhs.unnest(other.id, env);
+                let rhs_variants = other.with(rhs).unnest(env);
 
                 IntersectionType::join_variants(self.span, &lhs_variants, &rhs_variants, env)
             }
@@ -536,7 +536,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 | Self::Closure(_)
                 | Self::Intersection(_),
             ) => {
-                let lhs_variants = lhs.unnest(self.id, self.span, env);
+                let lhs_variants = self.with(lhs).unnest(env);
                 let rhs_variants = [other.id];
 
                 UnionType::meet_variants(self.span, &lhs_variants, &rhs_variants, env)
@@ -552,7 +552,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 Self::Union(rhs),
             ) => {
                 let lhs_variants = [self.id];
-                let rhs_variants = rhs.unnest(other.id, other.span, env);
+                let rhs_variants = other.with(rhs).unnest(env);
 
                 UnionType::meet_variants(self.span, &lhs_variants, &rhs_variants, env)
             }
@@ -570,7 +570,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 | Self::Closure(_)
                 | Self::Tuple(_),
             ) => {
-                let lhs_variants = lhs.unnest(self.id, env);
+                let lhs_variants = self.with(lhs).unnest(env);
                 let rhs_variants = [other.id];
 
                 IntersectionType::meet_variants(self.span, &lhs_variants, &rhs_variants, env)
@@ -585,7 +585,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 Self::Intersection(rhs),
             ) => {
                 let lhs_variants = [self.id];
-                let rhs_variants = rhs.unnest(other.id, env);
+                let rhs_variants = other.with(rhs).unnest(env);
 
                 IntersectionType::meet_variants(self.span, &lhs_variants, &rhs_variants, env)
             }
@@ -1458,7 +1458,7 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 | Self::Closure(_)
                 | Self::Intersection(_),
             ) => {
-                let self_variants = lhs.unnest(self.id, self.span, env);
+                let self_variants = self.with(lhs).unnest(env);
                 let super_variants = [supertype.id];
 
                 UnionType::collect_constraints_variants(
@@ -1480,7 +1480,7 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 Self::Union(rhs),
             ) => {
                 let self_variants = [self.id];
-                let super_variants = rhs.unnest(supertype.id, supertype.span, env);
+                let super_variants = supertype.with(rhs).unnest(env);
 
                 UnionType::collect_constraints_variants(
                     supertype.id,
@@ -1504,7 +1504,7 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 | Self::Tuple(_)
                 | Self::Closure(_),
             ) => {
-                let self_variants = lhs.unnest(self.id, env);
+                let self_variants = self.with(lhs).unnest(env);
                 let super_variants = [supertype.id];
 
                 IntersectionType::collect_constraints_variants(
@@ -1525,7 +1525,7 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 Self::Intersection(rhs),
             ) => {
                 let self_variants = [self.id];
-                let super_variants = rhs.unnest(supertype.id, env);
+                let super_variants = supertype.with(rhs).unnest(env);
 
                 IntersectionType::collect_constraints_variants(
                     self.span,

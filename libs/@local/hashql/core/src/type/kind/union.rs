@@ -29,6 +29,33 @@ pub struct UnionType<'heap> {
 }
 
 impl<'heap> UnionType<'heap> {
+    fn unnest_impl<'env>(
+        self: Type<'heap, Self>,
+        env: &'env Environment<'heap>,
+        variants: &mut TypeIdSet<'env, 'heap, 16>,
+        visited: &mut SmallVec<TypeId, 4>,
+    ) -> ControlFlow<()> {
+        if visited.contains(&self.id) {
+            return ControlFlow::Break(());
+        }
+
+        visited.push(self.id);
+
+        for &variant in self.kind.variants {
+            let r#type = env.r#type(variant);
+
+            if let Some(union) = r#type.kind.union() {
+                r#type.with(union).unnest_impl(env, variants, visited)?;
+            } else {
+                variants.push(variant);
+            }
+        }
+
+        visited.pop();
+
+        ControlFlow::Continue(())
+    }
+
     /// Flatten nested unions, collapsing any self-reference into ⊤.
     ///
     /// This function returns a de-duplicated, “one-level” list of variant `TypeId`s. However, if
@@ -37,31 +64,23 @@ impl<'heap> UnionType<'heap> {
     /// (`⊤`). In that case we immediately return a singleton list containing only the `Unknown`
     /// kind, which we treat as `⊤`.
     pub(crate) fn unnest(
-        &self,
-        id: TypeId,
-        span: SpanId,
-        env: &Environment,
+        self: Type<'heap, Self>,
+        env: &Environment<'heap>,
     ) -> SmallVec<TypeId, 16> {
-        let mut variants = TypeIdSet::with_capacity(env, self.variants.len());
+        let mut variants = TypeIdSet::with_capacity(env, self.kind.variants.len());
+        let mut visited = SmallVec::new();
 
-        for &variant in self.variants {
-            if variant == id {
-                // self-referential type, meaning that it must be the top type
-                return SmallVec::from_slice(&[env.intern_type(PartialType {
-                    span,
-                    kind: env.intern_kind(TypeKind::Unknown),
-                })]);
-            }
-
-            let r#type = env.r#type(variant);
-            if let TypeKind::Union(union) = r#type.kind {
-                variants.extend(union.unnest(r#type.id, r#type.span, env));
-            } else {
-                variants.push(variant);
-            }
+        if self
+            .unnest_impl(env, &mut variants, &mut visited)
+            .is_break()
+        {
+            SmallVec::from_slice(&[env.intern_type(PartialType {
+                span: self.span,
+                kind: env.intern_kind(TypeKind::Unknown),
+            })])
+        } else {
+            variants.finish()
         }
-
-        variants.finish()
     }
 
     pub(crate) fn join_variants(
@@ -337,8 +356,8 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
         other: Type<'heap, Self>,
         env: &mut LatticeEnvironment<'_, 'heap>,
     ) -> smallvec::SmallVec<TypeId, 4> {
-        let lhs_variants = self.kind.unnest(self.id, self.span, env);
-        let rhs_variants = other.kind.unnest(other.id, other.span, env);
+        let lhs_variants = self.unnest(env);
+        let rhs_variants = other.unnest(env);
 
         Self::join_variants(&lhs_variants, &rhs_variants, env)
     }
@@ -348,8 +367,8 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
         other: Type<'heap, Self>,
         env: &mut LatticeEnvironment<'_, 'heap>,
     ) -> smallvec::SmallVec<TypeId, 4> {
-        let lhs_variants = self.kind.unnest(self.id, self.span, env);
-        let rhs_variants = other.kind.unnest(other.id, other.span, env);
+        let lhs_variants = self.unnest(env);
+        let rhs_variants = other.unnest(env);
 
         Self::meet_variants(self.span, &lhs_variants, &rhs_variants, env)
     }
@@ -519,8 +538,8 @@ impl<'heap> Inference<'heap> for UnionType<'heap> {
         supertype: Type<'heap, Self>,
         env: &mut InferenceEnvironment<'_, 'heap>,
     ) {
-        let self_variants = self.kind.unnest(self.id, self.span, env);
-        let super_variants = supertype.kind.unnest(supertype.id, supertype.span, env);
+        let self_variants = self.unnest(env);
+        let super_variants = supertype.unnest(env);
 
         Self::collect_constraints_variants(
             supertype.id,
@@ -651,12 +670,35 @@ mod test {
         union!(env, union_type, [number, nested_union]);
 
         // Unnesting should flatten to: Number | String | Boolean
-        let unnested = union_type.kind.unnest(union_type.id, union_type.span, &env);
+        let unnested = union_type.unnest(&env);
 
         assert_eq!(unnested.len(), 3);
         assert!(unnested.contains(&number));
         assert!(unnested.contains(&string));
         assert!(unnested.contains(&boolean));
+    }
+
+    #[test]
+    fn unnest_nested_recursive_union() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let r#type = env.types.intern(|id| PartialType {
+            span: SpanId::SYNTHETIC,
+            kind: env.intern_kind(TypeKind::Union(UnionType {
+                variants: env.intern_type_ids(&[env.intern_type(PartialType {
+                    span: SpanId::SYNTHETIC,
+                    kind: env.intern_kind(TypeKind::Union(UnionType {
+                        variants: env.intern_type_ids(&[id.value()]),
+                    })),
+                })]),
+            })),
+        });
+
+        let union = r#type.kind.union().expect("should be a union");
+        let unnested = r#type.with(union).unnest(&env);
+
+        assert_equiv!(env, unnested, [instantiate(&env, TypeKind::Unknown)]);
     }
 
     #[test]
