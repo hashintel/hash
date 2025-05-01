@@ -358,9 +358,9 @@ impl_syntax_dump!(struct LiteralExpr(); kind ?r#type);
 
 impl_syntax_dump!(struct LetExpr(name); value ?r#type body);
 
-impl_syntax_dump!(struct TypeExpr(name); value []constraints body);
+impl_syntax_dump!(struct TypeExpr(name); []constraints value body);
 
-impl_syntax_dump!(struct NewTypeExpr(name); value []constraints body);
+impl_syntax_dump!(struct NewTypeExpr(name); []constraints value body);
 
 impl SyntaxDump for UseBinding {
     fn syntax_dump(&self, fmt: &mut Formatter, depth: usize) -> fmt::Result {
