@@ -1,4 +1,4 @@
-//@ run: pass
+//@ run: fail
 //@ description: fn/4 tuple params should fail to compile
 [
   "::kernel::special_form::fn",

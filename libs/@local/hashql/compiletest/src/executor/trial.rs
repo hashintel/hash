@@ -266,6 +266,14 @@ impl Trial {
 
         let result = self.suite.run(heap, expr, &mut diagnostics);
 
+        if self.annotations.directive.run == RunMode::Pass && result.is_err() {
+            return Err(Report::new(TrialError::TrialShouldPass));
+        }
+
+        if self.annotations.directive.run == RunMode::Fail && result.is_ok() {
+            return Err(Report::new(TrialError::TrialShouldFail));
+        }
+
         let (received_stdout, fatal_diagnostic) = match result {
             Ok(stdout) => (Some(stdout), None),
             Err(error) => (None, Some(error)),
