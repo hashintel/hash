@@ -33,7 +33,7 @@ use crate::{
             closure::{ClosureParam, ClosureSignature},
             r#use::{Glob, UseBinding, UseKind},
         },
-        generic::{GenericConstraint, GenericParam, Generics},
+        generic::{GenericArgument, GenericConstraint, GenericParam, Generics},
         id::NodeId,
         path::{Path, PathSegmentArgument},
         r#type::{
@@ -496,35 +496,50 @@ impl<'heap> SpecialFormExpander<'heap> {
 
         for argument in arguments {
             match argument {
-                PathSegmentArgument::Argument(generic_argument) => {
-                    if let TypeKind::Path(path) = &generic_argument.r#type.kind {
-                        if let Some(ident) = path.as_ident() {
-                            if let Err(error) = seen.try_insert(ident.value.clone(), ident.span) {
-                                self.diagnostics.push(duplicate_generic_constraint(
-                                    ident.span,
-                                    ident.value.as_str(),
-                                    *error.entry.get(),
-                                ));
+                PathSegmentArgument::Argument(GenericArgument {
+                    id,
+                    span,
+                    ref r#type,
+                }) if let Type {
+                    kind: TypeKind::Path(path),
+                    ..
+                } = r#type.as_ref()
+                    && let Some(ident) = path.as_ident() =>
+                {
+                    if let Err(error) = seen.try_insert(ident.value.clone(), ident.span) {
+                        self.diagnostics.push(duplicate_generic_constraint(
+                            ident.span,
+                            ident.value.as_str(),
+                            *error.entry.get(),
+                        ));
 
-                                continue;
-                            }
-
-                            constraints.push(GenericConstraint {
-                                id: generic_argument.id,
-                                span: generic_argument.span,
-                                name: ident.clone(),
-                                bound: None,
-                            });
-                        } else {
-                            self.diagnostics
-                                .push(invalid_generic_argument_path(path.span));
-                            return None;
-                        }
-                    } else {
-                        self.diagnostics
-                            .push(invalid_generic_argument_type(generic_argument.r#type.span));
-                        return None;
+                        continue;
                     }
+
+                    constraints.push(GenericConstraint {
+                        id,
+                        span,
+                        name: ident.clone(),
+                        bound: None,
+                    });
+                }
+                // Specialized errors for paths, to properly guide the user
+                PathSegmentArgument::Argument(GenericArgument { ref r#type, .. })
+                    if let Type {
+                        kind: TypeKind::Path(path),
+                        ..
+                    } = r#type.as_ref() =>
+                {
+                    self.diagnostics
+                        .push(invalid_generic_argument_path(path.span));
+
+                    return None;
+                }
+                PathSegmentArgument::Argument(generic_argument) => {
+                    self.diagnostics
+                        .push(invalid_generic_argument_type(generic_argument.r#type.span));
+
+                    return None;
                 }
                 PathSegmentArgument::Constraint(generic_constraint) => {
                     if let Err(error) = seen.try_insert(

@@ -52,7 +52,8 @@
     never_type,
     decl_macro,
     macro_metavar_expr,
-    let_chains
+    let_chains,
+    if_let_guard
 )]
 #![cfg_attr(test, feature(assert_matches))]
 
