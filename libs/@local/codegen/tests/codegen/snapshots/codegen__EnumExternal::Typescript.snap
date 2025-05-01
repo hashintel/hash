@@ -9,7 +9,7 @@ type EnumExternal = "Unit" | {
 } | {
 	DoubleUnnamed: [boolean, string]
 } | {
-	EmptyNamed: {}
+	EmptyNamed: Record<string, never>
 } | {
 	SingleNamed: {
 		value: number

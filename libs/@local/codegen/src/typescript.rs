@@ -93,7 +93,22 @@ impl<'a> TypeScriptGenerator<'a> {
     fn visit_fields(&self, variant: &Fields) -> ast::TSType<'a> {
         match variant {
             Fields::Unit => self.ast.ts_type_null_keyword(SPAN),
-            Fields::Named { fields } => {
+            Fields::Named {
+                fields,
+                deny_unknown,
+            } => {
+                if fields.is_empty() && *deny_unknown {
+                    let mut params = self.ast.vec();
+                    params.push(self.ast.ts_type_string_keyword(SPAN));
+                    params.push(self.ast.ts_type_never_keyword(SPAN));
+
+                    return self.ast.ts_type_type_reference(
+                        SPAN,
+                        self.ast.ts_type_name_identifier_reference(SPAN, "Record"),
+                        Some(self.ast.ts_type_parameter_instantiation(SPAN, params)),
+                    );
+                }
+
                 let mut members = self.ast.vec();
                 // TODO: Cache generated members to avoid redundant computations
                 //   see https://linear.app/hash/issue/H-4500/cache-generated-types-for-future-re-use
@@ -196,7 +211,10 @@ impl<'a> TypeScriptGenerator<'a> {
         let mut flattened_members = self.ast.vec();
         match &variant.fields {
             Fields::Unit => {}
-            Fields::Named { fields } => {
+            Fields::Named {
+                fields,
+                deny_unknown: _,
+            } => {
                 for (field_name, field) in fields {
                     if field.flatten {
                         flattened_members.push(self.visit_type(&field.r#type));
