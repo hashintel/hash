@@ -685,6 +685,7 @@ pub fn walk_newtype_expr<'heap, T: Visitor<'heap> + ?Sized>(
         id,
         span,
         name,
+        constraints,
         value,
         body,
     }: &mut NewTypeExpr<'heap>,
@@ -693,6 +694,11 @@ pub fn walk_newtype_expr<'heap, T: Visitor<'heap> + ?Sized>(
     visitor.visit_span(span);
 
     visitor.visit_ident(name);
+
+    for constraint in constraints {
+        visitor.visit_generic_constraint(constraint);
+    }
+
     visitor.visit_type(value);
     visitor.visit_expr(body);
 }
