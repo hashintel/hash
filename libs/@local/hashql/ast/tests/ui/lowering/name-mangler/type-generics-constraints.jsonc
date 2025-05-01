@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: mangle the name of the generics with constraints
+["type", "Foo<Bar: Baz>", { "#struct": { "foo": "Bar" } }, "_"]
