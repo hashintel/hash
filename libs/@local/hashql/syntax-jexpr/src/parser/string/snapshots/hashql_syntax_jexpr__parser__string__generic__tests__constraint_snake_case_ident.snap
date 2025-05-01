@@ -1,0 +1,10 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/generic.rs
+description: Snake case identifier
+expression: snake_case
+info:
+  kind: Err
+---
+snake_case
+          ^
+invalid generic constraint

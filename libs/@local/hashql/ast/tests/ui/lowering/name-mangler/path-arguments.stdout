@@ -1,17 +1,18 @@
-Expr#4294967040@18
+Expr#4294967040@19
   ExprKind (Let)
-    LetExpr#4294967040@18 (name: a:0)
+    LetExpr#4294967040@19 (name: a:0)
       Expr#4294967040@9
         ExprKind (Literal)
           LiteralExpr#4294967040@8
             LiteralKind (Integer)
               IntegerLiteral (2)
-      Expr#4294967040@17
+      Expr#4294967040@18
         ExprKind (Path)
-          Path#4294967040@17 (rooted: false)
-            PathSegment#4294967040@16 (name: a:0)
-              GenericArgument#4294967040@15
-                Type#4294967040@14
-                  TypeKind (Path)
-                    Path#4294967040@14 (rooted: false)
-                      PathSegment#4294967040@13 (name: T)
+          Path#4294967040@18 (rooted: false)
+            PathSegment#4294967040@17 (name: a:0)
+              PathSegmentArgument (GenericArgument)
+                GenericArgument#4294967040@16
+                  Type#4294967040@15
+                    TypeKind (Path)
+                      Path#4294967040@15 (rooted: false)
+                        PathSegment#4294967040@14 (name: T)

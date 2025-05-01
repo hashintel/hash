@@ -1,0 +1,19 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/generic.rs
+description: Intersection type as bound
+expression: "T: Serializable & Comparable"
+info:
+  kind: Ok
+---
+GenericConstraint#4294967040@9 (name: T)
+  Type#4294967040@8
+    TypeKind (Intersection)
+      IntersectionType#4294967040@8
+        Type#4294967040@4
+          TypeKind (Path)
+            Path#4294967040@4 (rooted: false)
+              PathSegment#4294967040@3 (name: Serializable)
+        Type#4294967040@7
+          TypeKind (Path)
+            Path#4294967040@7 (rooted: false)
+              PathSegment#4294967040@6 (name: Comparable)

@@ -6,6 +6,7 @@ use core::{
 };
 
 use hashql_core::{
+    collection::FastHashMap,
     heap::{self, Heap},
     span::SpanId,
     symbol::Ident,
@@ -13,10 +14,12 @@ use hashql_core::{
 
 use self::error::{
     BindingMode, InvalidTypeExpressionKind, SpecialFormExpanderDiagnostic,
+    duplicate_closure_generic, duplicate_closure_parameter, duplicate_generic_constraint,
     fn_generics_with_type_annotation, fn_params_with_type_annotation, invalid_argument_length,
     invalid_binding_name_not_path, invalid_fn_generic_param, invalid_fn_generics_expression,
-    invalid_fn_params_expression, invalid_let_name_qualified_path, invalid_path_in_use_binding,
-    invalid_type_call_function, invalid_type_expression, invalid_use_import,
+    invalid_fn_params_expression, invalid_generic_argument_path, invalid_generic_argument_type,
+    invalid_let_name_qualified_path, invalid_path_in_use_binding, invalid_type_call_function,
+    invalid_type_expression, invalid_type_name_qualified_path, invalid_use_import,
     labeled_arguments_not_supported, type_with_existing_annotation, unknown_special_form_generics,
     unknown_special_form_length, unknown_special_form_name, unsupported_type_constructor_function,
     use_imports_with_type_annotation, use_path_with_generics,
@@ -30,9 +33,9 @@ use crate::{
             closure::{ClosureParam, ClosureSignature},
             r#use::{Glob, UseBinding, UseKind},
         },
-        generic::{GenericParam, Generics},
+        generic::{GenericArgument, GenericConstraint, GenericParam, Generics},
         id::NodeId,
-        path::Path,
+        path::{Path, PathSegmentArgument},
         r#type::{
             IntersectionType, StructField, StructType, TupleField, TupleType, Type, TypeKind,
             UnionType,
@@ -465,6 +468,101 @@ impl<'heap> SpecialFormExpander<'heap> {
         Some(name)
     }
 
+    fn lower_argument_to_generic_ident(
+        &mut self,
+        mode: BindingMode,
+        argument: Argument<'heap>,
+    ) -> Option<(Ident, heap::Vec<'heap, PathSegmentArgument<'heap>>)> {
+        let path = self.lower_argument_to_path(mode, argument)?;
+        let span = path.span;
+
+        let Some(name) = path.into_generic_ident() else {
+            self.diagnostics
+                .push(invalid_type_name_qualified_path(span, mode));
+
+            return None;
+        };
+
+        Some(name)
+    }
+
+    fn lower_path_segment_arguments_to_constraints(
+        &mut self,
+        arguments: heap::Vec<'heap, PathSegmentArgument<'heap>>,
+    ) -> Option<heap::Vec<'heap, GenericConstraint<'heap>>> {
+        let mut constraints = self.heap.vec(Some(arguments.len()));
+
+        let mut seen = FastHashMap::default();
+
+        for argument in arguments {
+            match argument {
+                PathSegmentArgument::Argument(GenericArgument {
+                    id,
+                    span,
+                    ref r#type,
+                }) if let Type {
+                    kind: TypeKind::Path(path),
+                    ..
+                } = r#type.as_ref()
+                    && let Some(ident) = path.as_ident() =>
+                {
+                    if let Err(error) = seen.try_insert(ident.value.clone(), ident.span) {
+                        self.diagnostics.push(duplicate_generic_constraint(
+                            ident.span,
+                            ident.value.as_str(),
+                            *error.entry.get(),
+                        ));
+
+                        continue;
+                    }
+
+                    constraints.push(GenericConstraint {
+                        id,
+                        span,
+                        name: ident.clone(),
+                        bound: None,
+                    });
+                }
+                // Specialized errors for paths, to properly guide the user
+                PathSegmentArgument::Argument(GenericArgument { ref r#type, .. })
+                    if let Type {
+                        kind: TypeKind::Path(path),
+                        ..
+                    } = r#type.as_ref() =>
+                {
+                    self.diagnostics
+                        .push(invalid_generic_argument_path(path.span));
+
+                    return None;
+                }
+                PathSegmentArgument::Argument(generic_argument) => {
+                    self.diagnostics
+                        .push(invalid_generic_argument_type(generic_argument.r#type.span));
+
+                    return None;
+                }
+                PathSegmentArgument::Constraint(generic_constraint) => {
+                    if let Err(error) = seen.try_insert(
+                        generic_constraint.name.value.clone(),
+                        generic_constraint.name.span,
+                    ) {
+                        self.diagnostics.push(duplicate_generic_constraint(
+                            generic_constraint.span,
+                            generic_constraint.name.value.as_str(),
+                            *error.entry.get(),
+                        ));
+
+                        continue;
+                    }
+
+                    constraints.push(generic_constraint);
+                }
+            }
+        }
+
+        Some(constraints)
+    }
+
     /// Lowers a let/3 special form to a `LetExpr` without type annotation.
     ///
     /// The let/3 form has the syntax: `(let name value body)`
@@ -555,15 +653,20 @@ impl<'heap> SpecialFormExpander<'heap> {
 
         let [name, value, body] = call.arguments.try_into().unwrap_or_else(|_| unreachable!());
 
-        let (name, value) = Option::zip(
-            self.lower_argument_to_ident(BindingMode::Type, name),
+        let ((name, arguments), value) = Option::zip(
+            self.lower_argument_to_generic_ident(BindingMode::Type, name),
             self.lower_expr_to_type(*value.value),
         )?;
+
+        let constraints = self.lower_path_segment_arguments_to_constraints(arguments)?;
 
         Some(ExprKind::Type(TypeExpr {
             id: call.id,
             span: call.span,
+
             name,
+            constraints,
+
             value: self.heap.boxed(value),
             body: body.value,
         }))
@@ -981,6 +1084,33 @@ impl<'heap> SpecialFormExpander<'heap> {
             .lower_fn_generics(generics)
             .zip(self.lower_fn_parameters(params))
             .zip(self.lower_expr_to_type(*return_type.value))?;
+
+        let mut seen = FastHashMap::with_capacity_and_hasher(
+            generics.params.len().max(params.len()),
+            foldhash::fast::RandomState::default(),
+        );
+
+        for param in &generics.params {
+            if let Err(error) = seen.try_insert(param.name.value.clone(), param.name.span) {
+                self.diagnostics.push(duplicate_closure_generic(
+                    param.name.span,
+                    param.name.value.as_str(),
+                    *error.entry.get(),
+                ));
+            }
+        }
+
+        seen.clear();
+
+        for param in &params {
+            if let Err(error) = seen.try_insert(param.name.value.clone(), param.name.span) {
+                self.diagnostics.push(duplicate_closure_parameter(
+                    param.name.span,
+                    param.name.value.as_str(),
+                    *error.entry.get(),
+                ));
+            }
+        }
 
         let signature = ClosureSignature {
             id: NodeId::PLACEHOLDER,

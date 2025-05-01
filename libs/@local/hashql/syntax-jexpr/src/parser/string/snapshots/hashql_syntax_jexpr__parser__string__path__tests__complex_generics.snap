@@ -5,25 +5,29 @@ expression: "HashMap<String, Vec<Option<T>>>"
 info:
   kind: Ok
 ---
-Path#4294967040@19 (rooted: false)
-  PathSegment#4294967040@18 (name: HashMap)
-    GenericArgument#4294967040@5
-      Type#4294967040@4
-        TypeKind (Path)
-          Path#4294967040@4 (rooted: false)
-            PathSegment#4294967040@3 (name: String)
-    GenericArgument#4294967040@17
-      Type#4294967040@16
-        TypeKind (Path)
-          Path#4294967040@16 (rooted: false)
-            PathSegment#4294967040@15 (name: Vec)
-              GenericArgument#4294967040@14
-                Type#4294967040@13
-                  TypeKind (Path)
-                    Path#4294967040@13 (rooted: false)
-                      PathSegment#4294967040@12 (name: Option)
-                        GenericArgument#4294967040@11
-                          Type#4294967040@10
-                            TypeKind (Path)
-                              Path#4294967040@10 (rooted: false)
-                                PathSegment#4294967040@9 (name: T)
+Path#4294967040@23 (rooted: false)
+  PathSegment#4294967040@22 (name: HashMap)
+    PathSegmentArgument (GenericArgument)
+      GenericArgument#4294967040@6
+        Type#4294967040@5
+          TypeKind (Path)
+            Path#4294967040@5 (rooted: false)
+              PathSegment#4294967040@4 (name: String)
+    PathSegmentArgument (GenericArgument)
+      GenericArgument#4294967040@21
+        Type#4294967040@20
+          TypeKind (Path)
+            Path#4294967040@20 (rooted: false)
+              PathSegment#4294967040@19 (name: Vec)
+                PathSegmentArgument (GenericArgument)
+                  GenericArgument#4294967040@18
+                    Type#4294967040@17
+                      TypeKind (Path)
+                        Path#4294967040@17 (rooted: false)
+                          PathSegment#4294967040@16 (name: Option)
+                            PathSegmentArgument (GenericArgument)
+                              GenericArgument#4294967040@15
+                                Type#4294967040@14
+                                  TypeKind (Path)
+                                    Path#4294967040@14 (rooted: false)
+                                      PathSegment#4294967040@13 (name: T)

@@ -1,0 +1,9 @@
+//@ run: fail
+//@ description: A complex type (like struct) should fail to be expanded
+[
+  "::kernel::special_form::type",
+  "Foo<(a: String)>",
+  //~^ ERROR Generic argument types must be simple path identifiers
+  { "#struct": { "foo": "Bar" } },
+  "_"
+]

@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: mangle the name of any interdependent generics
+["type", "Foo<T: U, U>", { "#struct": { "foo": "T", "bar": "U" } }, "_"]

@@ -1,0 +1,10 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/generic.rs
+description: No bound specified after colon
+expression: "T:"
+info:
+  kind: Err
+---
+T:
+  ^
+invalid type

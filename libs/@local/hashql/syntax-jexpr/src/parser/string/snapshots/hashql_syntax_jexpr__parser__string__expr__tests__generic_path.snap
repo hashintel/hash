@@ -5,12 +5,13 @@ expression: Vec<Int>
 info:
   kind: Ok
 ---
-Expr#4294967040@7
+Expr#4294967040@8
   ExprKind (Path)
-    Path#4294967040@7 (rooted: false)
-      PathSegment#4294967040@6 (name: Vec)
-        GenericArgument#4294967040@5
-          Type#4294967040@4
-            TypeKind (Path)
-              Path#4294967040@4 (rooted: false)
-                PathSegment#4294967040@3 (name: Int)
+    Path#4294967040@8 (rooted: false)
+      PathSegment#4294967040@7 (name: Vec)
+        PathSegmentArgument (GenericArgument)
+          GenericArgument#4294967040@6
+            Type#4294967040@5
+              TypeKind (Path)
+                Path#4294967040@5 (rooted: false)
+                  PathSegment#4294967040@4 (name: Int)

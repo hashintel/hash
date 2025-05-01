@@ -3,7 +3,7 @@ source: libs/@local/hashql/syntax-jexpr/src/parser/object/dict.rs
 description: Parses a dict with type annotation
 expression: "{\"#dict\": {\n            \"key\": {\"#literal\": \"value\"}\n            }, \"#type\": \"Dict<String, String>\"}"
 ---
-Expr#4294967040@17
+Expr#4294967040@19
   ExprKind (Dict)
     DictExpr#4294967040@4
       DictEntry#4294967040@3
@@ -17,17 +17,19 @@ Expr#4294967040@17
             LiteralExpr#4294967040@1
               LiteralKind (String)
                 StringLiteral (value)
-      Type#4294967040@16
+      Type#4294967040@18
         TypeKind (Path)
-          Path#4294967040@16 (rooted: false)
-            PathSegment#4294967040@15 (name: Dict)
-              GenericArgument#4294967040@10
-                Type#4294967040@9
-                  TypeKind (Path)
-                    Path#4294967040@9 (rooted: false)
-                      PathSegment#4294967040@8 (name: String)
-              GenericArgument#4294967040@14
-                Type#4294967040@13
-                  TypeKind (Path)
-                    Path#4294967040@13 (rooted: false)
-                      PathSegment#4294967040@12 (name: String)
+          Path#4294967040@18 (rooted: false)
+            PathSegment#4294967040@17 (name: Dict)
+              PathSegmentArgument (GenericArgument)
+                GenericArgument#4294967040@11
+                  Type#4294967040@10
+                    TypeKind (Path)
+                      Path#4294967040@10 (rooted: false)
+                        PathSegment#4294967040@9 (name: String)
+              PathSegmentArgument (GenericArgument)
+                GenericArgument#4294967040@16
+                  Type#4294967040@15
+                    TypeKind (Path)
+                      Path#4294967040@15 (rooted: false)
+                        PathSegment#4294967040@14 (name: String)

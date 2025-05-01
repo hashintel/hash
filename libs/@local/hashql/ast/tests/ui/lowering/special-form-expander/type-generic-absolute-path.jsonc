@@ -1,0 +1,9 @@
+//@ run: fail
+//@ description: An absolute path in generic position should be rejected
+[
+  "::kernel::special_form::type",
+  "Foo<::foo::Bar>",
+  //~^ ERROR Generic arguments must be simple identifiers
+  { "#struct": { "foo": "Bar" } },
+  "_"
+]

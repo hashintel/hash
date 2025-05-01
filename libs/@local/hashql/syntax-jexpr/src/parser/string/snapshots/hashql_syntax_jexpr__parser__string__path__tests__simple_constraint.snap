@@ -1,0 +1,15 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/path.rs
+description: Simple generic constraint
+expression: "Vec<T: Clone>"
+info:
+  kind: Ok
+---
+Path#4294967040@8 (rooted: false)
+  PathSegment#4294967040@7 (name: Vec)
+    PathSegmentArgument (GenericConstraint)
+      GenericConstraint#4294967040@6 (name: T)
+        Type#4294967040@5
+          TypeKind (Path)
+            Path#4294967040@5 (rooted: false)
+              PathSegment#4294967040@4 (name: Clone)

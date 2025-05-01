@@ -20,7 +20,7 @@ Expr#4294967040@62
                     ClosureSignature#4294967040@47
                       Generics#4294967040@28
                         GenericParam#4294967040@23 (name: T:1)
-                        GenericParam#4294967040@27 (name: T:2)
+                        GenericParam#4294967040@27 (name: U:0)
                       Type#4294967040@33
                         TypeKind (Infer)
                     Expr#4294967040@46
@@ -33,7 +33,7 @@ Expr#4294967040@62
                           Type#4294967040@45
                             TypeKind (Path)
                               Path#4294967040@45 (rooted: false)
-                                PathSegment#4294967040@44 (name: T:2)
+                                PathSegment#4294967040@44 (name: T:1)
             Argument#4294967040@60
               Expr#4294967040@60
                 ExprKind (Is)

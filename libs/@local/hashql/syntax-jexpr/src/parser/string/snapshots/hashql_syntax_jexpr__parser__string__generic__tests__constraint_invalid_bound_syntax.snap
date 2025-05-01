@@ -1,0 +1,10 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/generic.rs
+description: Missing colon between ident and bound
+expression: T Int
+info:
+  kind: Err
+---
+T Int
+  ^
+invalid generic constraint

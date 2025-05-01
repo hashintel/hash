@@ -1,0 +1,30 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/generic.rs
+description: Nested generic types as bound
+expression: "T: Option<Result<U, E>>"
+info:
+  kind: Ok
+---
+GenericConstraint#4294967040@20 (name: T)
+  Type#4294967040@19
+    TypeKind (Path)
+      Path#4294967040@19 (rooted: false)
+        PathSegment#4294967040@18 (name: Option)
+          PathSegmentArgument (GenericArgument)
+            GenericArgument#4294967040@17
+              Type#4294967040@16
+                TypeKind (Path)
+                  Path#4294967040@16 (rooted: false)
+                    PathSegment#4294967040@15 (name: Result)
+                      PathSegmentArgument (GenericArgument)
+                        GenericArgument#4294967040@9
+                          Type#4294967040@8
+                            TypeKind (Path)
+                              Path#4294967040@8 (rooted: false)
+                                PathSegment#4294967040@7 (name: U)
+                      PathSegmentArgument (GenericArgument)
+                        GenericArgument#4294967040@14
+                          Type#4294967040@13
+                            TypeKind (Path)
+                              Path#4294967040@13 (rooted: false)
+                                PathSegment#4294967040@12 (name: E)

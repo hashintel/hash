@@ -1,0 +1,24 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/generic.rs
+description: Generic type as bound
+expression: "K: Map<T, V>"
+info:
+  kind: Ok
+---
+GenericConstraint#4294967040@15 (name: K)
+  Type#4294967040@14
+    TypeKind (Path)
+      Path#4294967040@14 (rooted: false)
+        PathSegment#4294967040@13 (name: Map)
+          PathSegmentArgument (GenericArgument)
+            GenericArgument#4294967040@7
+              Type#4294967040@6
+                TypeKind (Path)
+                  Path#4294967040@6 (rooted: false)
+                    PathSegment#4294967040@5 (name: T)
+          PathSegmentArgument (GenericArgument)
+            GenericArgument#4294967040@12
+              Type#4294967040@11
+                TypeKind (Path)
+                  Path#4294967040@11 (rooted: false)
+                    PathSegment#4294967040@10 (name: V)

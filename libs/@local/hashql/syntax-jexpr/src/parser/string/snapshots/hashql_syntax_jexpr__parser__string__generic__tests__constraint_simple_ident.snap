@@ -1,0 +1,10 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/generic.rs
+description: Simple identifier without bound
+expression: T
+info:
+  kind: Err
+---
+T
+ ^
+invalid generic constraint

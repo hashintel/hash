@@ -5,17 +5,19 @@ expression: "std :: collections :: HashMap< K , V >"
 info:
   kind: Ok
 ---
-Path#4294967040@15 (rooted: false)
+Path#4294967040@17 (rooted: false)
   PathSegment#4294967040@2 (name: std)
   PathSegment#4294967040@4 (name: collections)
-  PathSegment#4294967040@14 (name: HashMap)
-    GenericArgument#4294967040@9
-      Type#4294967040@8
-        TypeKind (Path)
-          Path#4294967040@8 (rooted: false)
-            PathSegment#4294967040@7 (name: K)
-    GenericArgument#4294967040@13
-      Type#4294967040@12
-        TypeKind (Path)
-          Path#4294967040@12 (rooted: false)
-            PathSegment#4294967040@11 (name: V)
+  PathSegment#4294967040@16 (name: HashMap)
+    PathSegmentArgument (GenericArgument)
+      GenericArgument#4294967040@10
+        Type#4294967040@9
+          TypeKind (Path)
+            Path#4294967040@9 (rooted: false)
+              PathSegment#4294967040@8 (name: K)
+    PathSegmentArgument (GenericArgument)
+      GenericArgument#4294967040@15
+        Type#4294967040@14
+          TypeKind (Path)
+            Path#4294967040@14 (rooted: false)
+              PathSegment#4294967040@13 (name: V)

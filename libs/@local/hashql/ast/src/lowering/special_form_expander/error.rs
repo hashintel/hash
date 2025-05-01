@@ -15,8 +15,7 @@ use strsim::jaro_winkler;
 use super::SpecialFormKind;
 use crate::node::{
     expr::call::{Argument, LabeledArgument},
-    generic::GenericArgument,
-    path::Path,
+    path::{Path, PathSegmentArgument},
 };
 
 pub(crate) type SpecialFormExpanderDiagnostic =
@@ -102,6 +101,26 @@ const INVALID_FN_GENERIC_PARAM: TerminalDiagnosticCategory = TerminalDiagnosticC
     name: "Invalid generic parameter in function declaration",
 };
 
+const INVALID_GENERIC_ARGUMENT_PATH: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "invalid-generic-argument-path",
+    name: "Invalid path in generic argument",
+};
+
+const INVALID_GENERIC_ARGUMENT_TYPE: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "invalid-generic-argument-type",
+    name: "Invalid type in generic argument",
+};
+
+const DUPLICATE_GENERIC_CONSTRAINT: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "duplicate-generic-constraint",
+    name: "Duplicate generic parameter constraint",
+};
+
+const DUPLICATE_CLOSURE_PARAMETER: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "duplicate-closure-parameter",
+    name: "Duplicate closure parameter",
+};
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum SpecialFormExpanderDiagnosticCategory {
     UnknownSpecialForm,
@@ -120,6 +139,10 @@ pub enum SpecialFormExpanderDiagnosticCategory {
     InvalidFnParamsExpression,
     FnParamsWithTypeAnnotation,
     InvalidFnGenericParam,
+    InvalidGenericArgumentPath,
+    InvalidGenericArgumentType,
+    DuplicateGenericConstraint,
+    DuplicateClosureParameter,
 }
 
 impl DiagnosticCategory for SpecialFormExpanderDiagnosticCategory {
@@ -149,6 +172,10 @@ impl DiagnosticCategory for SpecialFormExpanderDiagnosticCategory {
             Self::InvalidFnParamsExpression => Some(&INVALID_FN_PARAMS_EXPRESSION),
             Self::FnParamsWithTypeAnnotation => Some(&FN_PARAMS_WITH_TYPE_ANNOTATION),
             Self::InvalidFnGenericParam => Some(&INVALID_FN_GENERIC_PARAM),
+            Self::InvalidGenericArgumentPath => Some(&INVALID_GENERIC_ARGUMENT_PATH),
+            Self::InvalidGenericArgumentType => Some(&INVALID_GENERIC_ARGUMENT_TYPE),
+            Self::DuplicateGenericConstraint => Some(&DUPLICATE_GENERIC_CONSTRAINT),
+            Self::DuplicateClosureParameter => Some(&DUPLICATE_CLOSURE_PARAMETER),
         }
     }
 }
@@ -238,7 +265,7 @@ pub(crate) fn unknown_special_form_name(
 }
 
 pub(crate) fn unknown_special_form_generics(
-    generics: &[&GenericArgument],
+    generics: &[&PathSegmentArgument],
 ) -> SpecialFormExpanderDiagnostic {
     let mut diagnostic = Diagnostic::new(
         SpecialFormExpanderDiagnosticCategory::UnknownSpecialForm,
@@ -251,13 +278,13 @@ pub(crate) fn unknown_special_form_generics(
 
     diagnostic
         .labels
-        .push(Label::new(first.span, "Remove these generic arguments"));
+        .push(Label::new(first.span(), "Remove these generic arguments"));
 
     #[expect(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
     for (index, arg) in rest.iter().enumerate() {
         diagnostic
             .labels
-            .push(Label::new(arg.span, "... and these too").with_order((index + 1) as i32));
+            .push(Label::new(arg.span(), "... and these too").with_order((index + 1) as i32));
     }
 
     diagnostic.help = Some(Help::new(
@@ -630,6 +657,34 @@ pub(crate) fn invalid_let_name_qualified_path(
     diagnostic
 }
 
+pub(crate) fn invalid_type_name_qualified_path(
+    span: SpanId,
+    mode: BindingMode,
+) -> SpecialFormExpanderDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        SpecialFormExpanderDiagnosticCategory::QualifiedBindingName,
+        Severity::ERROR,
+    );
+
+    diagnostic.labels.push(Label::new(
+        span,
+        "Replace this qualified path with a simple identifier",
+    ));
+
+    diagnostic.help = Some(Help::new(format!(
+        "The {mode} binding requires a simple type name (like 'String' or 'MyType<T>'), not a \
+         qualified path (like 'std::string::String'). Remove the path segments."
+    )));
+
+    diagnostic.note = Some(Note::new(
+        "Valid type names are simple identifiers, optionally followed by generic arguments (e.g., \
+         'Identifier' or 'Container<Param>'). They cannot contain '::' path separators in this \
+         context.",
+    ));
+
+    diagnostic
+}
+
 pub(crate) fn type_with_existing_annotation(span: SpanId) -> SpecialFormExpanderDiagnostic {
     let mut diagnostic = Diagnostic::new(
         SpecialFormExpanderDiagnosticCategory::TypeWithExistingAnnotation,
@@ -872,6 +927,160 @@ pub(crate) fn invalid_fn_params_expression(span: SpanId) -> SpecialFormExpanderD
 
     diagnostic.note = Some(Note::new(
         "Valid parameter expression is a struct in the form: (param1: Type1, param2: Type2, ...)",
+    ));
+
+    diagnostic
+}
+
+pub(crate) fn invalid_generic_argument_path(span: SpanId) -> SpecialFormExpanderDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        SpecialFormExpanderDiagnosticCategory::InvalidGenericArgumentPath,
+        Severity::ERROR,
+    );
+
+    diagnostic
+        .labels
+        .push(Label::new(span, "Replace with a simple identifier"));
+
+    diagnostic.help = Some(Help::new(
+        "Generic arguments must be simple identifiers. Qualified paths cannot be used as generic \
+         arguments in this context.",
+    ));
+
+    diagnostic.note = Some(Note::new(
+        "In generic parameter constraints, arguments should be simple identifiers like 'T', 'U', \
+         or 'Element' without namespace qualification or path separators.",
+    ));
+
+    diagnostic
+}
+
+pub(crate) fn invalid_generic_argument_type(span: SpanId) -> SpecialFormExpanderDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        SpecialFormExpanderDiagnosticCategory::InvalidGenericArgumentType,
+        Severity::ERROR,
+    );
+
+    diagnostic
+        .labels
+        .push(Label::new(span, "Use a simple type identifier here"));
+
+    diagnostic.help = Some(Help::new(
+        "Generic argument types must be simple path identifiers. Complex types like structs, \
+         tuples, or function types cannot be used as generic argument types in this context.",
+    ));
+
+    diagnostic.note = Some(Note::new(
+        "Valid generic argument types are simple identifiers that refer to type names, such as \
+         'String', 'Number', or type parameters like 'T'.",
+    ));
+
+    diagnostic
+}
+
+pub(crate) fn duplicate_generic_constraint(
+    span: SpanId,
+    param: &str,
+    original_span: SpanId,
+) -> SpecialFormExpanderDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        SpecialFormExpanderDiagnosticCategory::DuplicateGenericConstraint,
+        Severity::ERROR,
+    );
+
+    diagnostic.labels.push(Label::new(
+        span,
+        format!("Remove this duplicate declaration of '{param}'"),
+    ));
+
+    diagnostic.labels.push(
+        Label::new(
+            original_span,
+            format!("'{param}' was previously declared here"),
+        )
+        .with_order(1),
+    );
+
+    diagnostic.help = Some(Help::new(
+        "Each generic parameter can only be declared once in a function or type definition. \
+         Remove the duplicate declaration or use a different name.",
+    ));
+
+    diagnostic.note = Some(Note::new(
+        "Generic parameter names must be unique within a single generic parameter list. For \
+         example, in foo<T: Bound, U: OtherBound>, 'T' and 'U' are unique parameters.",
+    ));
+
+    diagnostic
+}
+
+pub(crate) fn duplicate_closure_parameter(
+    span: SpanId,
+    param: &str,
+    original_span: SpanId,
+) -> SpecialFormExpanderDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        SpecialFormExpanderDiagnosticCategory::DuplicateClosureParameter,
+        Severity::ERROR,
+    );
+
+    diagnostic.labels.push(Label::new(
+        span,
+        format!("Remove this duplicate parameter '{param}'"),
+    ));
+
+    diagnostic.labels.push(
+        Label::new(
+            original_span,
+            format!("'{param}' was previously declared here"),
+        )
+        .with_order(1),
+    );
+
+    diagnostic.help = Some(Help::new(
+        "Each function parameter must have a unique name. Rename this parameter or remove the \
+         duplicate declaration.",
+    ));
+
+    diagnostic.note = Some(Note::new(
+        "Function parameters must have unique names within the same parameter list. For example, \
+         in fn(x: Int, y: String): ReturnType body), 'x' and 'y' are unique parameters.",
+    ));
+
+    diagnostic
+}
+
+pub(crate) fn duplicate_closure_generic(
+    span: SpanId,
+    param_name: &str,
+    original_span: SpanId,
+) -> SpecialFormExpanderDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        SpecialFormExpanderDiagnosticCategory::DuplicateGenericConstraint,
+        Severity::ERROR,
+    );
+
+    diagnostic.labels.push(Label::new(
+        span,
+        format!("Remove this duplicate generic parameter '{param_name}'"),
+    ));
+
+    diagnostic.labels.push(
+        Label::new(
+            original_span,
+            format!("'{param_name}' was previously declared here"),
+        )
+        .with_order(1),
+    );
+
+    diagnostic.help = Some(Help::new(
+        "Each generic parameter can only be declared once in a function definition. Remove the \
+         duplicate declaration or use a different name.",
+    ));
+
+    diagnostic.note = Some(Note::new(
+        "Generic parameter names must be unique within a function's generic parameter list. For \
+         example, in fn<T, U>(param: T): U -> body), 'T' and 'U' are unique parameters.",
     ));
 
     diagnostic

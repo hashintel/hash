@@ -37,11 +37,12 @@ use core::fmt::Write as _;
 
 use foldhash::fast::RandomState;
 use hashbrown::HashMap;
-use hashql_core::symbol::Symbol;
+use hashql_core::{heap, symbol::Symbol};
 
 use crate::{
     node::{
         expr::{ClosureExpr, Expr, LetExpr, NewTypeExpr, TypeExpr, closure::ClosureSignature},
+        generic::GenericConstraint,
         path::Path,
         r#type::Type,
     },
@@ -283,6 +284,33 @@ impl NameMangler {
             inputs: mangled_inputs,
         }
     }
+
+    fn mangle_constraints<'heap>(
+        &mut self,
+        original: Symbol,
+        mangled: Symbol,
+        constraints: &mut heap::Vec<'heap, GenericConstraint<'heap>>,
+    ) -> Vec<(Symbol, Symbol)> {
+        let mangled_constraints: Vec<_> = constraints
+            .iter_mut()
+            .map(|constraint| {
+                let original = constraint.name.value.clone();
+                let mangled = self.mangle(&mut constraint.name.value);
+
+                (original, mangled)
+            })
+            .collect();
+
+        self.enter(Scope::Type, original, mangled, |this| {
+            this.enter_many(Scope::Type, mangled_constraints.clone(), |this| {
+                for constraint in constraints {
+                    this.visit_generic_constraint(constraint);
+                }
+            });
+        });
+
+        mangled_constraints
+    }
 }
 
 impl<'heap> Visitor<'heap> for NameMangler {
@@ -342,6 +370,7 @@ impl<'heap> Visitor<'heap> for NameMangler {
             id,
             span,
             name,
+            constraints,
             value,
             body,
         } = expr;
@@ -349,9 +378,17 @@ impl<'heap> Visitor<'heap> for NameMangler {
         self.visit_id(id);
         self.visit_span(span);
         self.visit_ident(name);
-        self.visit_type(value);
 
-        self.enter(Scope::Type, original, mangled, |this| this.visit_expr(body));
+        let mangled_constraints =
+            self.mangle_constraints(original.clone(), mangled.clone(), constraints);
+
+        self.enter(Scope::Type, original, mangled, |this| {
+            this.enter_many(Scope::Type, mangled_constraints, |this| {
+                this.visit_type(value);
+            });
+
+            this.visit_expr(body);
+        });
     }
 
     fn visit_newtype_expr(&mut self, expr: &mut NewTypeExpr<'heap>) {

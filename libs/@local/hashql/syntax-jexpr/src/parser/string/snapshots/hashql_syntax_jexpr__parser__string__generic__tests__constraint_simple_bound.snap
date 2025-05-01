@@ -1,0 +1,12 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/generic.rs
+description: Simple type bound
+expression: "T: Int"
+info:
+  kind: Ok
+---
+GenericConstraint#4294967040@5 (name: T)
+  Type#4294967040@4
+    TypeKind (Path)
+      Path#4294967040@4 (rooted: false)
+        PathSegment#4294967040@3 (name: Int)

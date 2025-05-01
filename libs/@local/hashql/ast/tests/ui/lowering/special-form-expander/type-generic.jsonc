@@ -1,0 +1,8 @@
+//@ run: pass
+//@ description: Generics should be properly lowered
+[
+  "::kernel::special_form::type",
+  "Foo<Bar>",
+  { "#struct": { "foo": "Bar" } },
+  "_"
+]

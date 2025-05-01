@@ -1,0 +1,10 @@
+//@ run: fail
+//@ description: duplicate generics should fail to compile
+[
+  "::kernel::special_form::fn",
+  { "#tuple": ["T", "T"] },
+  //~^ ERROR Remove this duplicate generic parameter 'T'
+  { "#struct": {} },
+  "_",
+  ["+", "a", "b"]
+]

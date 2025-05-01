@@ -1,7 +1,7 @@
 use hashql_core::{heap, span::SpanId, symbol::Ident};
 
 use super::Expr;
-use crate::node::{id::NodeId, r#type::Type};
+use crate::node::{generic::GenericConstraint, id::NodeId, r#type::Type};
 
 /// A type alias definition expression in the HashQL Abstract Syntax Tree.
 ///
@@ -18,6 +18,8 @@ use crate::node::{id::NodeId, r#type::Type};
 /// ```json
 /// ["type", "UserId", "String", <body>]
 /// ["type", "Point", {"#type": {"x": "Float", "y": "Float"}}, <body>]
+/// ["type", "Point<T>", {"#type": {"x": "T", "y": "T"}}, <body>]
+/// ["type", "Point<T: Number>", {"#type": {"x": "T", "y": "T"}}, <body>]
 /// ```
 ///
 /// ## Documentation Format
@@ -32,6 +34,8 @@ pub struct TypeExpr<'heap> {
     pub span: SpanId,
 
     pub name: Ident,
+    pub constraints: heap::Vec<'heap, GenericConstraint<'heap>>,
+
     pub value: heap::Box<'heap, Type<'heap>>,
 
     pub body: heap::Box<'heap, Expr<'heap>>,

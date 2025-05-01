@@ -1,0 +1,10 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/generic.rs
+description: Invalid identifier
+expression: "123"
+info:
+  kind: Err
+---
+123
+^
+invalid identifier

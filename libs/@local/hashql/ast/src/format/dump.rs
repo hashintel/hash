@@ -37,9 +37,9 @@ use crate::node::{
         tuple::TupleElement,
         r#use::{Glob, UseBinding, UseKind},
     },
-    generic::{GenericArgument, GenericParam, Generics},
+    generic::{GenericArgument, GenericConstraint, GenericParam, Generics},
     id::NodeId,
-    path::{Path, PathSegment},
+    path::{Path, PathSegment, PathSegmentArgument},
     r#type::{
         IntersectionType, StructField, StructType, TupleField, TupleType, Type, TypeKind, UnionType,
     },
@@ -218,8 +218,41 @@ impl_syntax_dump!(struct IntersectionType(); []types);
 impl_syntax_dump!(struct Path(rooted); []segments);
 impl_syntax_dump!(struct PathSegment(name); []arguments);
 
+impl SyntaxDump for PathSegmentArgument<'_> {
+    fn syntax_dump(&self, fmt: &mut Formatter, depth: usize) -> fmt::Result {
+        match self {
+            PathSegmentArgument::Argument(generic_argument) => {
+                write_header(
+                    fmt,
+                    depth,
+                    "PathSegmentArgument",
+                    None,
+                    None,
+                    Some("GenericArgument"),
+                )?;
+
+                generic_argument.syntax_dump(fmt, depth + 1)
+            }
+            PathSegmentArgument::Constraint(generic_constraint) => {
+                write_header(
+                    fmt,
+                    depth,
+                    "PathSegmentArgument",
+                    None,
+                    None,
+                    Some("GenericConstraint"),
+                )?;
+
+                generic_constraint.syntax_dump(fmt, depth + 1)
+            }
+        }
+    }
+}
+
 #[rustfmt::skip]
 impl_syntax_dump!(struct GenericArgument(); r#type);
+#[rustfmt::skip]
+impl_syntax_dump!(struct GenericConstraint(name); ?bound);
 #[rustfmt::skip]
 impl_syntax_dump!(struct GenericParam(name); ?bound);
 impl_syntax_dump!(struct Generics(); []params);
@@ -325,7 +358,7 @@ impl_syntax_dump!(struct LiteralExpr(); kind ?r#type);
 
 impl_syntax_dump!(struct LetExpr(name); value ?r#type body);
 
-impl_syntax_dump!(struct TypeExpr(name); value body);
+impl_syntax_dump!(struct TypeExpr(name); value []constraints body);
 
 impl_syntax_dump!(struct NewTypeExpr(name); value body);
 
