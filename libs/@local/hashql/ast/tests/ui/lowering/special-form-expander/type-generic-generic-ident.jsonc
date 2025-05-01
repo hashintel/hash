@@ -1,0 +1,9 @@
+//@ run: fail
+//@ description: An identifier with generic arguments should fail
+[
+  "::kernel::special_form::type",
+  "Foo<Bar<Baz>>",
+  //~^ ERROR Generic arguments must be simple identifiers
+  { "#struct": { "foo": "Bar" } },
+  "_"
+]

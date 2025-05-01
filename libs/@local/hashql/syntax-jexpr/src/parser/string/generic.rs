@@ -44,13 +44,7 @@ where
 {
     let context = input.state;
 
-    (
-        parse_ident,
-        preceded(
-            ws(":"),
-            cut_err(parse_type).context(StrContext::Expected(StrContextValue::Description("type"))),
-        ),
-    )
+    (parse_ident, preceded(ws(":"), parse_type))
         .with_span()
         .map(|((name, bound), span)| GenericConstraint {
             id: NodeId::PLACEHOLDER,

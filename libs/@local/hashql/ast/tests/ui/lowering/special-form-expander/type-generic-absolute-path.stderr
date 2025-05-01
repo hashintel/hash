@@ -1,0 +1,11 @@
+[31m[special-form-expander::invalid-generic-argument-path] Error:[0m Invalid path in generic argument
+   ╭─[ <unknown>:5:8 ]
+   │
+ 5 │   "Foo<::foo::Bar>",
+   │        ─────┬────  
+   │             ╰────── Replace with a simple identifier
+   │ 
+   │ Help: Generic arguments must be simple identifiers. Qualified paths cannot be used as generic arguments in this context.
+   │ 
+   │ Note: In generic parameter constraints, arguments should be simple identifiers like 'T', 'U', or 'Element' without namespace qualification or path separators.
+───╯
