@@ -9,8 +9,8 @@
     "storybook": "storybook dev -p 6006"
   },
   "devDependencies": {
-    "@babel/preset-env": "7.26.9",
-    "@babel/preset-typescript": "7.27.0",
+    "@babel/preset-env": "7.27.1",
+    "@babel/preset-typescript": "7.27.1",
     "@hashintel/block-design-system": "0.0.2",
     "@hashintel/design-system": "0.0.8",
     "@local/eslint": "0.0.0-private",
