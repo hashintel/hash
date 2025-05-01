@@ -98,7 +98,7 @@
     "mime-types": "2.1.35",
     "nanoid": "3.3.11",
     "nodemailer": "6.10.1",
-    "oembed-providers": "1.0.20250408",
+    "oembed-providers": "1.0.20250430",
     "openai": "4.96.2",
     "ts-json-schema-generator": "1.5.1",
     "tsx": "4.19.3",
