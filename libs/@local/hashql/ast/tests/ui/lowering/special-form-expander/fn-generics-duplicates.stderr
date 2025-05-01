@@ -1,0 +1,13 @@
+[31m[special-form-expander::duplicate-generic-constraint] Error:[0m Duplicate generic parameter constraint
+   ╭─[ <unknown>:5:22 ]
+   │
+ 5 │   { "#tuple": ["T", "T"] },
+   │                 ┬    ┬  
+   │                 │    ╰── Remove this duplicate generic parameter 'T'
+   │                 │       
+   │                 ╰─────── 'T' was previously declared here
+   │ 
+   │ Help: Each generic parameter can only be declared once in a function definition. Remove the duplicate declaration or use a different name.
+   │ 
+   │ Note: Generic parameter names must be unique within a function's generic parameter list. For example, in fn<T, U>(param: T): U -> body), 'T' and 'U' are unique parameters.
+───╯

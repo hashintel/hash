@@ -116,6 +116,11 @@ const DUPLICATE_GENERIC_CONSTRAINT: TerminalDiagnosticCategory = TerminalDiagnos
     name: "Duplicate generic parameter constraint",
 };
 
+const DUPLICATE_CLOSURE_PARAMETER: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "duplicate-closure-parameter",
+    name: "Duplicate closure parameter",
+};
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum SpecialFormExpanderDiagnosticCategory {
     UnknownSpecialForm,
@@ -137,6 +142,7 @@ pub enum SpecialFormExpanderDiagnosticCategory {
     InvalidGenericArgumentPath,
     InvalidGenericArgumentType,
     DuplicateGenericConstraint,
+    DuplicateClosureParameter,
 }
 
 impl DiagnosticCategory for SpecialFormExpanderDiagnosticCategory {
@@ -169,6 +175,7 @@ impl DiagnosticCategory for SpecialFormExpanderDiagnosticCategory {
             Self::InvalidGenericArgumentPath => Some(&INVALID_GENERIC_ARGUMENT_PATH),
             Self::InvalidGenericArgumentType => Some(&INVALID_GENERIC_ARGUMENT_TYPE),
             Self::DuplicateGenericConstraint => Some(&DUPLICATE_GENERIC_CONSTRAINT),
+            Self::DuplicateClosureParameter => Some(&DUPLICATE_CLOSURE_PARAMETER),
         }
     }
 }
@@ -1002,6 +1009,78 @@ pub(crate) fn duplicate_generic_constraint(
     diagnostic.note = Some(Note::new(
         "Generic parameter names must be unique within a single generic parameter list. For \
          example, in foo<T: Bound, U: OtherBound>, 'T' and 'U' are unique parameters.",
+    ));
+
+    diagnostic
+}
+
+pub(crate) fn duplicate_closure_parameter(
+    span: SpanId,
+    param: &str,
+    original_span: SpanId,
+) -> SpecialFormExpanderDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        SpecialFormExpanderDiagnosticCategory::DuplicateClosureParameter,
+        Severity::ERROR,
+    );
+
+    diagnostic.labels.push(Label::new(
+        span,
+        format!("Remove this duplicate parameter '{param}'"),
+    ));
+
+    diagnostic.labels.push(
+        Label::new(
+            original_span,
+            format!("'{param}' was previously declared here"),
+        )
+        .with_order(1),
+    );
+
+    diagnostic.help = Some(Help::new(
+        "Each function parameter must have a unique name. Rename this parameter or remove the \
+         duplicate declaration.",
+    ));
+
+    diagnostic.note = Some(Note::new(
+        "Function parameters must have unique names within the same parameter list. For example, \
+         in fn(x: Int, y: String): ReturnType body), 'x' and 'y' are unique parameters.",
+    ));
+
+    diagnostic
+}
+
+pub(crate) fn duplicate_closure_generic(
+    span: SpanId,
+    param_name: &str,
+    original_span: SpanId,
+) -> SpecialFormExpanderDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        SpecialFormExpanderDiagnosticCategory::DuplicateGenericConstraint,
+        Severity::ERROR,
+    );
+
+    diagnostic.labels.push(Label::new(
+        span,
+        format!("Remove this duplicate generic parameter '{param_name}'"),
+    ));
+
+    diagnostic.labels.push(
+        Label::new(
+            original_span,
+            format!("'{param_name}' was previously declared here"),
+        )
+        .with_order(1),
+    );
+
+    diagnostic.help = Some(Help::new(
+        "Each generic parameter can only be declared once in a function definition. Remove the \
+         duplicate declaration or use a different name.",
+    ));
+
+    diagnostic.note = Some(Note::new(
+        "Generic parameter names must be unique within a function's generic parameter list. For \
+         example, in fn<T, U>(param: T): U -> body), 'T' and 'U' are unique parameters.",
     ));
 
     diagnostic
