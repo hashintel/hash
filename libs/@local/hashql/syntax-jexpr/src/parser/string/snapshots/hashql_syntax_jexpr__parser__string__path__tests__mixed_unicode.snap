@@ -5,12 +5,13 @@ expression: "std::标识符::Vec<T>"
 info:
   kind: Ok
 ---
-Path#4294967040@11 (rooted: false)
+Path#4294967040@12 (rooted: false)
   PathSegment#4294967040@2 (name: std)
   PathSegment#4294967040@4 (name: 标识符)
-  PathSegment#4294967040@10 (name: Vec)
-    GenericArgument#4294967040@9
-      Type#4294967040@8
-        TypeKind (Path)
-          Path#4294967040@8 (rooted: false)
-            PathSegment#4294967040@7 (name: T)
+  PathSegment#4294967040@11 (name: Vec)
+    PathSegmentArgument (GenericArgument)
+      GenericArgument#4294967040@10
+        Type#4294967040@9
+          TypeKind (Path)
+            Path#4294967040@9 (rooted: false)
+              PathSegment#4294967040@8 (name: T)

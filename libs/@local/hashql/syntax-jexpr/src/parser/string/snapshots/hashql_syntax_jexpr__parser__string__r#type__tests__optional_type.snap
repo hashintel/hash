@@ -5,12 +5,13 @@ expression: Option<Value>
 info:
   kind: Ok
 ---
-Type#4294967040@7
+Type#4294967040@8
   TypeKind (Path)
-    Path#4294967040@7 (rooted: false)
-      PathSegment#4294967040@6 (name: Option)
-        GenericArgument#4294967040@5
-          Type#4294967040@4
-            TypeKind (Path)
-              Path#4294967040@4 (rooted: false)
-                PathSegment#4294967040@3 (name: Value)
+    Path#4294967040@8 (rooted: false)
+      PathSegment#4294967040@7 (name: Option)
+        PathSegmentArgument (GenericArgument)
+          GenericArgument#4294967040@6
+            Type#4294967040@5
+              TypeKind (Path)
+                Path#4294967040@5 (rooted: false)
+                  PathSegment#4294967040@4 (name: Value)

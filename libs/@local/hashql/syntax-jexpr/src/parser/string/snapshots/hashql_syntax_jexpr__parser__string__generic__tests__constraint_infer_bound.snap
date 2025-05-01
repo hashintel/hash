@@ -1,0 +1,10 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/generic.rs
+description: Infer type as bound
+expression: "T: _"
+info:
+  kind: Ok
+---
+GenericConstraint#4294967040@3 (name: T)
+  Type#4294967040@2
+    TypeKind (Infer)

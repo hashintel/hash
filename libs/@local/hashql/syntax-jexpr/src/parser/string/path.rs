@@ -1,17 +1,17 @@
 use hashql_ast::node::{
     id::NodeId,
-    path::{Path, PathSegment},
+    path::{Path, PathSegment, PathSegmentArgument},
 };
 use winnow::{
     ModalResult, Parser as _,
-    combinator::{cut_err, delimited, opt},
+    combinator::{alt, cut_err, delimited, opt},
     error::{AddContext, ParserError, StrContext, StrContextValue},
 };
 
 use super::{
     combinator::{separated_alloc1, ws},
     context::Input,
-    generic::parse_generic_argument,
+    generic::{parse_generic_argument, parse_generic_constraint},
     ident::parse_ident,
 };
 
@@ -26,7 +26,14 @@ where
 
     let arguments = opt(delimited(
         ws("<"),
-        separated_alloc1(context.heap, parse_generic_argument, ws(",")),
+        separated_alloc1(
+            context.heap,
+            alt((
+                parse_generic_constraint.map(PathSegmentArgument::Constraint),
+                parse_generic_argument.map(PathSegmentArgument::Argument),
+            )),
+            ws(","),
+        ),
         ws(cut_err(">").context(StrContext::Expected(StrContextValue::CharLiteral('>')))),
     ));
 
@@ -90,6 +97,12 @@ mod tests {
         path_with_generics("std::collections::HashMap<K, V>") => "Path segments with generics",
         nested_generics("Result<Option<T>, E>") => "Nested generic arguments",
         complex_generics("HashMap<String, Vec<Option<T>>>") => "Complex nested generics",
+    );
+
+    // Generic Constraints
+    test_cases!(parse_path_test;
+        simple_constraint("Vec<T: Clone>") => "Simple generic constraint",
+        multiple_constraints("Vec<T: Clone, U: Copy>") => "Multiple generic constraints",
     );
 
     // Whitespace variations

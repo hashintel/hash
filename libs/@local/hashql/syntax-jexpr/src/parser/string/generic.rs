@@ -1,5 +1,5 @@
 use hashql_ast::node::{
-    generic::{GenericArgument, GenericParam, Generics},
+    generic::{GenericArgument, GenericConstraint, GenericParam, Generics},
     id::NodeId,
 };
 use winnow::{
@@ -32,6 +32,33 @@ where
             r#type: context.heap.boxed(r#type),
         })
         .context(StrContext::Label("generic argument"))
+        .parse_next(input)
+}
+
+pub(crate) fn parse_generic_constraint<'heap, 'span, 'source, E>(
+    input: &mut Input<'heap, 'span, 'source>,
+) -> ModalResult<GenericConstraint<'heap>, E>
+where
+    E: ParserError<Input<'heap, 'span, 'source>>
+        + AddContext<Input<'heap, 'span, 'source>, StrContext>,
+{
+    let context = input.state;
+
+    (
+        parse_ident,
+        preceded(
+            ws(":"),
+            cut_err(parse_type).context(StrContext::Expected(StrContextValue::Description("type"))),
+        ),
+    )
+        .with_span()
+        .map(|((name, bound), span)| GenericConstraint {
+            id: NodeId::PLACEHOLDER,
+            span: context.span(span),
+            name,
+            bound: Some(context.heap.boxed(bound)),
+        })
+        .context(StrContext::Label("generic constraint"))
         .parse_next(input)
 }
 
@@ -87,11 +114,12 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::{parse_generic_argument, parse_generics};
+    use super::{parse_generic_argument, parse_generic_constraint, parse_generics};
     use crate::parser::string::test::{bind_parser, test_cases};
 
     // Bind our parsers to create testing functions
     bind_parser!(SyntaxDump; fn parse_generic_argument_test(parse_generic_argument));
+    bind_parser!(SyntaxDump; fn parse_generic_constraint_test(parse_generic_constraint));
     bind_parser!(SyntaxDump; fn parse_generics_test(parse_generics));
 
     // Tests for generic arguments
@@ -105,6 +133,33 @@ mod tests {
         struct_type("(key: K, value: V)") => "Struct type as generic argument",
         infer_type("_") => "Infer type as generic argument",
         whitespace_handling_argument(" Int ") => "Generic argument with whitespace",
+    );
+
+    // Tests for generic constraints
+    test_cases!(parse_generic_constraint_test;
+        // Simple identifier constraints
+        constraint_simple_ident("T") => "Simple identifier without bound",
+        constraint_snake_case_ident("snake_case") => "Snake case identifier",
+        constraint_camel_case_ident("CamelCase") => "Camel case identifier",
+
+        // With type bounds
+        constraint_simple_bound("T: Int") => "Simple type bound",
+        constraint_generic_bound("K: Map<T, V>") => "Generic type as bound",
+        constraint_nested_bound("T: Option<Result<U, E>>") => "Nested generic types as bound",
+        constraint_union_bound("T: A | B") => "Union type as bound",
+        constraint_intersection_bound("T: Serializable & Comparable") => "Intersection type as bound",
+        constraint_tuple_bound("T: (Int, String)") => "Tuple type as bound",
+        constraint_struct_bound("T: (key: K, value: V)") => "Struct type as bound",
+        constraint_infer_bound("T: _") => "Infer type as bound",
+
+        // Whitespace variations
+        constraint_whitespace_in_bound("T : Int") => "Whitespace around colon",
+        constraint_extra_whitespace("T  :  Int ") => "Extra whitespace throughout",
+
+        // These would be error cases in a full parse, but this function only parses a single constraint
+        constraint_no_bound_specified("T:") => "No bound specified after colon",
+        constraint_invalid_ident("123") => "Invalid identifier",
+        constraint_invalid_bound_syntax("T Int") => "Missing colon between ident and bound",
     );
 
     // Tests for generics (lists of generic parameters)

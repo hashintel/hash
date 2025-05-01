@@ -3,7 +3,7 @@ source: libs/@local/hashql/syntax-jexpr/src/parser/object/list.rs
 description: Parses a list with type annotation
 expression: "{\"#list\": [{\"#literal\": 1}, {\"#literal\": 2}], \"#type\": \"List<Int>\"}"
 ---
-Expr#4294967040@13
+Expr#4294967040@14
   ExprKind (List)
     ListExpr#4294967040@4
       ListElement#4294967040@1
@@ -18,12 +18,13 @@ Expr#4294967040@13
             LiteralExpr#4294967040@2
               LiteralKind (Integer)
                 IntegerLiteral (2)
-      Type#4294967040@12
+      Type#4294967040@13
         TypeKind (Path)
-          Path#4294967040@12 (rooted: false)
-            PathSegment#4294967040@11 (name: List)
-              GenericArgument#4294967040@10
-                Type#4294967040@9
-                  TypeKind (Path)
-                    Path#4294967040@9 (rooted: false)
-                      PathSegment#4294967040@8 (name: Int)
+          Path#4294967040@13 (rooted: false)
+            PathSegment#4294967040@12 (name: List)
+              PathSegmentArgument (GenericArgument)
+                GenericArgument#4294967040@11
+                  Type#4294967040@10
+                    TypeKind (Path)
+                      Path#4294967040@10 (rooted: false)
+                        PathSegment#4294967040@9 (name: Int)

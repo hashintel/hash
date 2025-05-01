@@ -5,20 +5,22 @@ expression: "Result<T, E>.value"
 info:
   kind: Ok
 ---
-Expr#4294967040@13
+Expr#4294967040@15
   ExprKind (Field)
-    FieldExpr#4294967040@13 (field: value)
-      Expr#4294967040@11
+    FieldExpr#4294967040@15 (field: value)
+      Expr#4294967040@13
         ExprKind (Path)
-          Path#4294967040@11 (rooted: false)
-            PathSegment#4294967040@10 (name: Result)
-              GenericArgument#4294967040@5
-                Type#4294967040@4
-                  TypeKind (Path)
-                    Path#4294967040@4 (rooted: false)
-                      PathSegment#4294967040@3 (name: T)
-              GenericArgument#4294967040@9
-                Type#4294967040@8
-                  TypeKind (Path)
-                    Path#4294967040@8 (rooted: false)
-                      PathSegment#4294967040@7 (name: E)
+          Path#4294967040@13 (rooted: false)
+            PathSegment#4294967040@12 (name: Result)
+              PathSegmentArgument (GenericArgument)
+                GenericArgument#4294967040@6
+                  Type#4294967040@5
+                    TypeKind (Path)
+                      Path#4294967040@5 (rooted: false)
+                        PathSegment#4294967040@4 (name: T)
+              PathSegmentArgument (GenericArgument)
+                GenericArgument#4294967040@11
+                  Type#4294967040@10
+                    TypeKind (Path)
+                      Path#4294967040@10 (rooted: false)
+                        PathSegment#4294967040@9 (name: E)

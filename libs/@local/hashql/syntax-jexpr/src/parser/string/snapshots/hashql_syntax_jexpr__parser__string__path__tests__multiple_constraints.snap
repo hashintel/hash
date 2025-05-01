@@ -1,0 +1,21 @@
+---
+source: libs/@local/hashql/syntax-jexpr/src/parser/string/path.rs
+description: Multiple generic constraints
+expression: "Vec<T: Clone, U: Copy>"
+info:
+  kind: Ok
+---
+Path#4294967040@13 (rooted: false)
+  PathSegment#4294967040@12 (name: Vec)
+    PathSegmentArgument (GenericConstraint)
+      GenericConstraint#4294967040@6 (name: T)
+        Type#4294967040@5
+          TypeKind (Path)
+            Path#4294967040@5 (rooted: false)
+              PathSegment#4294967040@4 (name: Clone)
+    PathSegmentArgument (GenericConstraint)
+      GenericConstraint#4294967040@11 (name: U)
+        Type#4294967040@10
+          TypeKind (Path)
+            Path#4294967040@10 (rooted: false)
+              PathSegment#4294967040@9 (name: Copy)
