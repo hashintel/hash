@@ -51,8 +51,8 @@ import type {
   SortableEntitiesTableColumnKey,
 } from "./entities-visualizer/entities-table/types";
 import { useEntitiesVisualizerData } from "./entities-visualizer/use-entities-visualizer-data";
-import type { EntityEditorProps } from "./entity/entity-editor";
 import { EntityGraphVisualizer } from "./entity-graph-visualizer";
+import type { EntityEditorProps } from "./entity/entity-editor";
 import type {
   DynamicNodeSizing,
   GraphVizConfig,
@@ -102,7 +102,7 @@ const generateGraphSort = (
       break;
     case "lastEdited":
       path = [
-        "recordCreatedAtTransactionTime" satisfies EntityQuerySortingToken,
+        "editionCreatedAtTransactionTime" satisfies EntityQuerySortingToken,
       ];
       break;
     case "created":

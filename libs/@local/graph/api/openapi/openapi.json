@@ -5307,8 +5307,8 @@
           "archived",
           "properties",
           "label",
-          "recordCreatedAtTransactionTime",
-          "recordCreatedAtDecisionTime",
+          "editionCreatedAtTransactionTime",
+          "editionCreatedAtDecisionTime",
           "createdAtTransactionTime",
           "createdAtDecisionTime",
           "typeTitle"
