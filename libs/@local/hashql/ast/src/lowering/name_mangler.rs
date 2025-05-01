@@ -342,6 +342,7 @@ impl<'heap> Visitor<'heap> for NameMangler {
             id,
             span,
             name,
+            constraints,
             value,
             body,
         } = expr;
@@ -349,6 +350,13 @@ impl<'heap> Visitor<'heap> for NameMangler {
         self.visit_id(id);
         self.visit_span(span);
         self.visit_ident(name);
+
+        for constraint in constraints {
+            self.visit_generic_constraint(constraint);
+        }
+
+        todo!("mangle constraints and name in value");
+
         self.visit_type(value);
 
         self.enter(Scope::Type, original, mangled, |this| this.visit_expr(body));

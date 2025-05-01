@@ -88,9 +88,9 @@ use crate::node::{
         tuple::TupleElement,
         r#use::{Glob, UseBinding, UseKind},
     },
-    generic::{GenericArgument, GenericParam, Generics},
+    generic::{GenericArgument, GenericConstraint, GenericParam, Generics},
     id::NodeId,
-    path::{Path, PathSegment},
+    path::{Path, PathSegment, PathSegmentArgument},
     r#type::{
         IntersectionType, StructField, StructType, TupleField, TupleType, Type, TypeKind, UnionType,
     },
@@ -146,8 +146,16 @@ pub trait Visitor<'heap> {
         walk_path_segment(self, segment);
     }
 
+    fn visit_path_segment_argument(&mut self, argument: &mut PathSegmentArgument<'heap>) {
+        walk_path_segment_argument(self, argument);
+    }
+
     fn visit_generic_argument(&mut self, argument: &mut GenericArgument<'heap>) {
         walk_generic_argument(self, argument);
+    }
+
+    fn visit_generic_constraint(&mut self, constraint: &mut GenericConstraint<'heap>) {
+        walk_generic_constraint(self, constraint);
     }
 
     fn visit_type(&mut self, r#type: &mut Type<'heap>) {
@@ -653,6 +661,7 @@ pub fn walk_type_expr<'heap, T: Visitor<'heap> + ?Sized>(
         id,
         span,
         name,
+        constraints,
         value,
         body,
     }: &mut TypeExpr<'heap>,
@@ -661,6 +670,11 @@ pub fn walk_type_expr<'heap, T: Visitor<'heap> + ?Sized>(
     visitor.visit_span(span);
 
     visitor.visit_ident(name);
+
+    for constraint in constraints {
+        visitor.visit_generic_constraint(constraint);
+    }
+
     visitor.visit_type(value);
     visitor.visit_expr(body);
 }
@@ -946,7 +960,21 @@ pub fn walk_path_segment<'heap, T: Visitor<'heap> + ?Sized>(
     visitor.visit_ident(name);
 
     for argument in arguments {
-        visitor.visit_generic_argument(argument);
+        visitor.visit_path_segment_argument(argument);
+    }
+}
+
+pub fn walk_path_segment_argument<'heap, T: Visitor<'heap> + ?Sized>(
+    visitor: &mut T,
+    argument: &mut PathSegmentArgument<'heap>,
+) {
+    match argument {
+        PathSegmentArgument::Argument(generic_argument) => {
+            visitor.visit_generic_argument(generic_argument)
+        }
+        PathSegmentArgument::Constraint(generic_constraint) => {
+            visitor.visit_generic_constraint(generic_constraint)
+        }
     }
 }
 
@@ -958,4 +986,23 @@ pub fn walk_generic_argument<'heap, T: Visitor<'heap> + ?Sized>(
     visitor.visit_span(span);
 
     visitor.visit_type(r#type);
+}
+
+pub fn walk_generic_constraint<'heap, T: Visitor<'heap> + ?Sized>(
+    visitor: &mut T,
+    GenericConstraint {
+        id,
+        span,
+        name,
+        bound,
+    }: &mut GenericConstraint<'heap>,
+) {
+    visitor.visit_id(id);
+    visitor.visit_span(span);
+
+    visitor.visit_ident(name);
+
+    if let Some(bound) = bound {
+        visitor.visit_type(bound);
+    }
 }

@@ -16,10 +16,11 @@ use self::error::{
     fn_generics_with_type_annotation, fn_params_with_type_annotation, invalid_argument_length,
     invalid_binding_name_not_path, invalid_fn_generic_param, invalid_fn_generics_expression,
     invalid_fn_params_expression, invalid_let_name_qualified_path, invalid_path_in_use_binding,
-    invalid_type_call_function, invalid_type_expression, invalid_use_import,
-    labeled_arguments_not_supported, type_with_existing_annotation, unknown_special_form_generics,
-    unknown_special_form_length, unknown_special_form_name, unsupported_type_constructor_function,
-    use_imports_with_type_annotation, use_path_with_generics,
+    invalid_type_call_function, invalid_type_expression, invalid_type_name_qualified_path,
+    invalid_use_import, labeled_arguments_not_supported, type_with_existing_annotation,
+    unknown_special_form_generics, unknown_special_form_length, unknown_special_form_name,
+    unsupported_type_constructor_function, use_imports_with_type_annotation,
+    use_path_with_generics,
 };
 use crate::{
     node::{
@@ -30,9 +31,9 @@ use crate::{
             closure::{ClosureParam, ClosureSignature},
             r#use::{Glob, UseBinding, UseKind},
         },
-        generic::{GenericParam, Generics},
+        generic::{GenericConstraint, GenericParam, Generics},
         id::NodeId,
-        path::Path,
+        path::{Path, PathSegmentArgument},
         r#type::{
             IntersectionType, StructField, StructType, TupleField, TupleType, Type, TypeKind,
             UnionType,
@@ -465,6 +466,57 @@ impl<'heap> SpecialFormExpander<'heap> {
         Some(name)
     }
 
+    fn lower_argument_to_generic_ident(
+        &mut self,
+        mode: BindingMode,
+        argument: Argument<'heap>,
+    ) -> Option<(Ident, heap::Vec<'heap, PathSegmentArgument<'heap>>)> {
+        let path = self.lower_argument_to_path(mode, argument)?;
+        let span = path.span;
+
+        let Some(name) = path.into_generic_ident() else {
+            self.diagnostics
+                .push(invalid_type_name_qualified_path(span, mode));
+
+            return None;
+        };
+
+        Some(name)
+    }
+
+    fn lower_path_segment_arguments_to_constraints(
+        &mut self,
+        arguments: heap::Vec<'heap, PathSegmentArgument<'heap>>,
+    ) -> Option<heap::Vec<'heap, GenericConstraint<'heap>>> {
+        let mut constraints = self.heap.vec(Some(arguments.len()));
+
+        for argument in arguments {
+            match argument {
+                PathSegmentArgument::Argument(generic_argument) => {
+                    if let TypeKind::Path(path) = &generic_argument.r#type.kind {
+                        if let Some(ident) = path.as_ident() {
+                            constraints.push(GenericConstraint {
+                                id: generic_argument.id,
+                                span: generic_argument.span,
+                                name: ident.clone(),
+                                bound: None,
+                            });
+                        } else {
+                            todo!("record diagnostic")
+                        }
+                    } else {
+                        todo!("record diagnostic")
+                    }
+                }
+                PathSegmentArgument::Constraint(generic_constraint) => {
+                    constraints.push(generic_constraint)
+                }
+            }
+        }
+
+        Some(constraints)
+    }
+
     /// Lowers a let/3 special form to a `LetExpr` without type annotation.
     ///
     /// The let/3 form has the syntax: `(let name value body)`
@@ -537,46 +589,41 @@ impl<'heap> SpecialFormExpander<'heap> {
         }
     }
 
-    fn lower_type_3(&mut self, call: CallExpr<'heap>) -> Option<ExprKind<'heap>> {
-        let [name, value, body] = call
-            .arguments
-            .try_into()
-            .expect("The caller should've verified the length of the arguments");
-
-        let (name, value) = Option::zip(
-            self.lower_argument_to_ident(BindingMode::Type, name),
-            self.lower_expr_to_type(*value.value),
-        )?;
-
-        Some(ExprKind::Type(TypeExpr {
-            id: call.id,
-            span: call.span,
-            name,
-            value: self.heap.boxed(value),
-            body: body.value,
-        }))
-    }
-
     /// Lowers a type/3 special form to a `TypeExpr`.
     ///
     /// The type/3 form has the syntax: `(type name type-expr body)`
     /// and is transformed into a type expression that defines a type alias.
-    ///
-    /// The type/4 form has the syntax: `(type name constraints type-expr body)` and is transformed
-    /// into a type expression that defines a type alias with constraints.
     fn lower_type(&mut self, call: CallExpr<'heap>) -> Option<ExprKind<'heap>> {
-        if call.arguments.len() == 3 {
-            self.lower_type_3(call)
-        } else {
+        if call.arguments.len() != 3 {
             self.diagnostics.push(invalid_argument_length(
                 call.span,
                 SpecialFormKind::Type,
                 &call.arguments,
-                &[3, 4],
+                &[3],
             ));
 
-            None
+            return None;
         }
+
+        let [name, value, body] = call.arguments.try_into().unwrap_or_else(|_| unreachable!());
+
+        let ((name, arguments), value) = Option::zip(
+            self.lower_argument_to_generic_ident(BindingMode::Type, name),
+            self.lower_expr_to_type(*value.value),
+        )?;
+
+        let constraints = self.lower_path_segment_arguments_to_constraints(arguments)?;
+
+        Some(ExprKind::Type(TypeExpr {
+            id: call.id,
+            span: call.span,
+
+            name,
+            constraints,
+
+            value: self.heap.boxed(value),
+            body: body.value,
+        }))
     }
 
     /// Lowers a newtype/3 special form to a `NewTypeExpr`.

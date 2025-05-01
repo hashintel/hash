@@ -1,6 +1,41 @@
 use hashql_core::{heap, span::SpanId, symbol::Ident};
 
-use super::{generic::GenericArgument, id::NodeId};
+use super::{
+    generic::{GenericArgument, GenericConstraint},
+    id::NodeId,
+};
+
+/// Represents an argument within the angle brackets of a path segment.
+///
+/// This enum distinguishes between standard generic type arguments (like `String`
+/// in `Vec<String>`) and generic constraints when they appear directly
+/// within the path segment's arguments list (e.g., potentially in generic
+/// function calls or specific type contexts).
+///
+/// # Examples
+///
+/// For a path segment like `HashMap<K, V>`:
+/// - `K` would be `PathSegmentArgument::Argument`
+/// - `V` would be `PathSegmentArgument::Argument`
+///
+/// For a path segment like `process<T: Debug>`:
+/// - `T: Debug` would be `PathSegmentArgument::Constraint`
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+pub enum PathSegmentArgument<'heap> {
+    /// A standard generic type argument (e.g., `String`, `T`).
+    Argument(GenericArgument<'heap>),
+    /// A generic constraint specified within the argument list (e.g., `T: Debug`).
+    Constraint(GenericConstraint<'heap>),
+}
+
+impl PathSegmentArgument<'_> {
+    pub fn span(&self) -> SpanId {
+        match self {
+            PathSegmentArgument::Argument(argument) => argument.span,
+            PathSegmentArgument::Constraint(constraint) => constraint.span,
+        }
+    }
+}
 
 /// A segment in a path expression.
 ///
@@ -21,7 +56,7 @@ pub struct PathSegment<'heap> {
 
     pub name: Ident,
     /// Type parameters attached to this path segment
-    pub arguments: heap::Vec<'heap, GenericArgument<'heap>>,
+    pub arguments: heap::Vec<'heap, PathSegmentArgument<'heap>>,
 }
 
 /// A path expression in the HashQL Abstract Syntax Tree.
@@ -69,9 +104,8 @@ pub struct Path<'heap> {
     pub segments: heap::Vec<'heap, PathSegment<'heap>>,
 }
 
-impl Path<'_> {
-    // Check if the path is a single identifier, guarantees that there's at least one segment
-    fn is_ident(&self) -> bool {
+impl<'heap> Path<'heap> {
+    const fn is_generic_ident(&self) -> bool {
         if self.rooted {
             return false;
         }
@@ -80,7 +114,18 @@ impl Path<'_> {
             return false;
         }
 
-        let segment = &self.segments[0];
+        true
+    }
+
+    // Check if the path is a single identifier, guarantees that there's at least one segment
+    const fn is_ident(&self) -> bool {
+        if !self.is_generic_ident() {
+            return false;
+        }
+
+        let [segment] = self.segments.as_slice() else {
+            unreachable!();
+        };
 
         if !segment.arguments.is_empty() {
             return false;
@@ -113,6 +158,17 @@ impl Path<'_> {
 
         let segment = self.segments.pop().unwrap_or_else(|| unreachable!());
         Some(segment.name)
+    }
+
+    pub(crate) fn into_generic_ident(
+        mut self,
+    ) -> Option<(Ident, heap::Vec<'heap, PathSegmentArgument<'heap>>)> {
+        if !self.is_generic_ident() {
+            return None;
+        }
+
+        let segment = self.segments.pop().unwrap_or_else(|| unreachable!());
+        Some((segment.name, segment.arguments))
     }
 
     /// Checks if this path is an absolute path that matches the provided sequence of identifiers.

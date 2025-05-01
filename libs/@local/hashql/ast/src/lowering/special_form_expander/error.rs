@@ -15,8 +15,7 @@ use strsim::jaro_winkler;
 use super::SpecialFormKind;
 use crate::node::{
     expr::call::{Argument, LabeledArgument},
-    generic::GenericArgument,
-    path::Path,
+    path::{Path, PathSegmentArgument},
 };
 
 pub(crate) type SpecialFormExpanderDiagnostic =
@@ -238,7 +237,7 @@ pub(crate) fn unknown_special_form_name(
 }
 
 pub(crate) fn unknown_special_form_generics(
-    generics: &[&GenericArgument],
+    generics: &[&PathSegmentArgument],
 ) -> SpecialFormExpanderDiagnostic {
     let mut diagnostic = Diagnostic::new(
         SpecialFormExpanderDiagnosticCategory::UnknownSpecialForm,
@@ -251,13 +250,13 @@ pub(crate) fn unknown_special_form_generics(
 
     diagnostic
         .labels
-        .push(Label::new(first.span, "Remove these generic arguments"));
+        .push(Label::new(first.span(), "Remove these generic arguments"));
 
     #[expect(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
     for (index, arg) in rest.iter().enumerate() {
         diagnostic
             .labels
-            .push(Label::new(arg.span, "... and these too").with_order((index + 1) as i32));
+            .push(Label::new(arg.span(), "... and these too").with_order((index + 1) as i32));
     }
 
     diagnostic.help = Some(Help::new(
@@ -329,10 +328,7 @@ pub(super) fn invalid_argument_length(
         SpecialFormKind::Let => {
             "Use either:\n- let/3: (let name value body)\n- let/4: (let name type value body)"
         }
-        SpecialFormKind::Type => {
-            "Use either:\n- type/3: (type name type-expr body)\n- type/4: (type name constraints \
-             type-expr body)"
-        }
+        SpecialFormKind::Type => "The type/3 form should look like: (type name type-expr body)",
         SpecialFormKind::Newtype => {
             "The newtype/3 form should look like: (newtype name type-expr body)"
         }
@@ -628,6 +624,34 @@ pub(crate) fn invalid_let_name_qualified_path(
     diagnostic.note = Some(Note::new(
         "Valid identifiers are simple names like 'x', 'counter', '+', or 'user_name' without any \
          namespace qualification, generic parameters, or path separators.",
+    ));
+
+    diagnostic
+}
+
+pub(crate) fn invalid_type_name_qualified_path(
+    span: SpanId,
+    mode: BindingMode,
+) -> SpecialFormExpanderDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        SpecialFormExpanderDiagnosticCategory::QualifiedBindingName,
+        Severity::ERROR,
+    );
+
+    diagnostic.labels.push(Label::new(
+        span,
+        "Replace this qualified path with a simple identifier",
+    ));
+
+    diagnostic.help = Some(Help::new(format!(
+        "The {mode} binding requires a simple type name (like 'String' or 'MyType<T>'), not a \
+         qualified path (like 'std::string::String'). Remove the path segments."
+    )));
+
+    diagnostic.note = Some(Note::new(
+        "Valid type names are simple identifiers, optionally followed by generic arguments (e.g., \
+         'Identifier' or 'Container<Param>'). They cannot contain '::' path separators in this \
+         context.",
     ));
 
     diagnostic
