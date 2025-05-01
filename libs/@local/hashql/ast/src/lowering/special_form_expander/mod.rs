@@ -537,23 +537,11 @@ impl<'heap> SpecialFormExpander<'heap> {
         }
     }
 
-    /// Lowers a type/3 special form to a `TypeExpr`.
-    ///
-    /// The type/3 form has the syntax: `(type name type-expr body)`
-    /// and is transformed into a type expression that defines a type alias.
-    fn lower_type(&mut self, call: CallExpr<'heap>) -> Option<ExprKind<'heap>> {
-        if call.arguments.len() != 3 {
-            self.diagnostics.push(invalid_argument_length(
-                call.span,
-                SpecialFormKind::Type,
-                &call.arguments,
-                &[3],
-            ));
-
-            return None;
-        }
-
-        let [name, value, body] = call.arguments.try_into().unwrap_or_else(|_| unreachable!());
+    fn lower_type_3(&mut self, call: CallExpr<'heap>) -> Option<ExprKind<'heap>> {
+        let [name, value, body] = call
+            .arguments
+            .try_into()
+            .expect("The caller should've verified the length of the arguments");
 
         let (name, value) = Option::zip(
             self.lower_argument_to_ident(BindingMode::Type, name),
@@ -567,6 +555,28 @@ impl<'heap> SpecialFormExpander<'heap> {
             value: self.heap.boxed(value),
             body: body.value,
         }))
+    }
+
+    /// Lowers a type/3 special form to a `TypeExpr`.
+    ///
+    /// The type/3 form has the syntax: `(type name type-expr body)`
+    /// and is transformed into a type expression that defines a type alias.
+    ///
+    /// The type/4 form has the syntax: `(type name constraints type-expr body)` and is transformed
+    /// into a type expression that defines a type alias with constraints.
+    fn lower_type(&mut self, call: CallExpr<'heap>) -> Option<ExprKind<'heap>> {
+        if call.arguments.len() == 3 {
+            self.lower_type_3(call)
+        } else {
+            self.diagnostics.push(invalid_argument_length(
+                call.span,
+                SpecialFormKind::Type,
+                &call.arguments,
+                &[3, 4],
+            ));
+
+            None
+        }
     }
 
     /// Lowers a newtype/3 special form to a `NewTypeExpr`.

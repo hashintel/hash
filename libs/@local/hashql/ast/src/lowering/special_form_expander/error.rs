@@ -329,7 +329,10 @@ pub(super) fn invalid_argument_length(
         SpecialFormKind::Let => {
             "Use either:\n- let/3: (let name value body)\n- let/4: (let name type value body)"
         }
-        SpecialFormKind::Type => "The type/3 form should look like: (type name type-expr body)",
+        SpecialFormKind::Type => {
+            "Use either:\n- type/3: (type name type-expr body)\n- type/4: (type name constraints \
+             type-expr body)"
+        }
         SpecialFormKind::Newtype => {
             "The newtype/3 form should look like: (newtype name type-expr body)"
         }
