@@ -170,7 +170,7 @@ justjson                 = { version = "=0.3.0", default-features = false }
 lexical                  = { version = "=7.0.4", default-features = false }
 libp2p                   = { version = "=0.55.0", default-features = false }
 libp2p-core              = { version = "=0.43.0", default-features = false }
-libp2p-identity          = { version = "=0.2.10", default-features = false }
+libp2p-identity          = { version = "=0.2.11", default-features = false }
 libp2p-ping              = { version = "=0.46.0", default-features = false }
 libp2p-stream            = { version = "=0.3.0-alpha", default-features = false }
 libp2p-swarm             = { version = "=0.46.0", default-features = false }
