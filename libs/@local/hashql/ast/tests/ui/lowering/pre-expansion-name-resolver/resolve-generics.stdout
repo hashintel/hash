@@ -1,14 +1,17 @@
-Expr#4294967040@8
+Expr#4294967040@9
   ExprKind (Call)
-    CallExpr#4294967040@8
-      Expr#4294967040@7
+    CallExpr#4294967040@9
+      Expr#4294967040@8
         ExprKind (Path)
-          Path#4294967040@7 (rooted: true)
-            PathSegment#4294967040@6 (name: math)
-            PathSegment#4294967040@6 (name: add)
-              GenericArgument#4294967040@5
-                Type#4294967040@4
-                  TypeKind (Path)
-                    Path#4294967040@4 (rooted: true)
-                      PathSegment#4294967040@3 (name: math)
-                      PathSegment#4294967040@3 (name: sub)
+          Path#4294967040@8 (rooted: true)
+            PathSegment#4294967040@7 (name: kernel)
+            PathSegment#4294967040@7 (name: type)
+            PathSegment#4294967040@7 (name: Option)
+              PathSegmentArgument (GenericArgument)
+                GenericArgument#4294967040@6
+                  Type#4294967040@5
+                    TypeKind (Path)
+                      Path#4294967040@5 (rooted: true)
+                        PathSegment#4294967040@4 (name: kernel)
+                        PathSegment#4294967040@4 (name: type)
+                        PathSegment#4294967040@4 (name: Integer)

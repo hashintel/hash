@@ -358,7 +358,7 @@ impl_syntax_dump!(struct LiteralExpr(); kind ?r#type);
 
 impl_syntax_dump!(struct LetExpr(name); value ?r#type body);
 
-impl_syntax_dump!(struct TypeExpr(name); value body);
+impl_syntax_dump!(struct TypeExpr(name); value []constraints body);
 
 impl_syntax_dump!(struct NewTypeExpr(name); value body);
 
