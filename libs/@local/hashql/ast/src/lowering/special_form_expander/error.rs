@@ -101,6 +101,16 @@ const INVALID_FN_GENERIC_PARAM: TerminalDiagnosticCategory = TerminalDiagnosticC
     name: "Invalid generic parameter in function declaration",
 };
 
+const INVALID_GENERIC_ARGUMENT_PATH: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "invalid-generic-argument-path",
+    name: "Invalid path in generic argument",
+};
+
+const INVALID_GENERIC_ARGUMENT_TYPE: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "invalid-generic-argument-type",
+    name: "Invalid type in generic argument",
+};
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum SpecialFormExpanderDiagnosticCategory {
     UnknownSpecialForm,
@@ -119,6 +129,8 @@ pub enum SpecialFormExpanderDiagnosticCategory {
     InvalidFnParamsExpression,
     FnParamsWithTypeAnnotation,
     InvalidFnGenericParam,
+    InvalidGenericArgumentPath,
+    InvalidGenericArgumentType,
 }
 
 impl DiagnosticCategory for SpecialFormExpanderDiagnosticCategory {
@@ -148,6 +160,8 @@ impl DiagnosticCategory for SpecialFormExpanderDiagnosticCategory {
             Self::InvalidFnParamsExpression => Some(&INVALID_FN_PARAMS_EXPRESSION),
             Self::FnParamsWithTypeAnnotation => Some(&FN_PARAMS_WITH_TYPE_ANNOTATION),
             Self::InvalidFnGenericParam => Some(&INVALID_FN_GENERIC_PARAM),
+            Self::InvalidGenericArgumentPath => Some(&INVALID_GENERIC_ARGUMENT_PATH),
+            Self::InvalidGenericArgumentType => Some(&INVALID_GENERIC_ARGUMENT_TYPE),
         }
     }
 }
@@ -899,6 +913,52 @@ pub(crate) fn invalid_fn_params_expression(span: SpanId) -> SpecialFormExpanderD
 
     diagnostic.note = Some(Note::new(
         "Valid parameter expression is a struct in the form: (param1: Type1, param2: Type2, ...)",
+    ));
+
+    diagnostic
+}
+
+pub(crate) fn invalid_generic_argument_path(span: SpanId) -> SpecialFormExpanderDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        SpecialFormExpanderDiagnosticCategory::InvalidGenericArgumentPath,
+        Severity::ERROR,
+    );
+
+    diagnostic
+        .labels
+        .push(Label::new(span, "Replace with a simple identifier"));
+
+    diagnostic.help = Some(Help::new(
+        "Generic arguments must be simple identifiers. Qualified paths cannot be used as generic \
+         arguments in this context.",
+    ));
+
+    diagnostic.note = Some(Note::new(
+        "In generic parameter constraints, arguments should be simple identifiers like 'T', 'U', \
+         or 'Element' without namespace qualification or path separators.",
+    ));
+
+    diagnostic
+}
+
+pub(crate) fn invalid_generic_argument_type(span: SpanId) -> SpecialFormExpanderDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        SpecialFormExpanderDiagnosticCategory::InvalidGenericArgumentType,
+        Severity::ERROR,
+    );
+
+    diagnostic
+        .labels
+        .push(Label::new(span, "Use a simple type identifier here"));
+
+    diagnostic.help = Some(Help::new(
+        "Generic argument types must be simple path identifiers. Complex types like structs, \
+         tuples, or function types cannot be used as generic argument types in this context.",
+    ));
+
+    diagnostic.note = Some(Note::new(
+        "Valid generic argument types are simple identifiers that refer to type names, such as \
+         'String', 'Number', or type parameters like 'T'.",
     ));
 
     diagnostic

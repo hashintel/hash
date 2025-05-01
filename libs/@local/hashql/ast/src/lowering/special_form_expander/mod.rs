@@ -15,12 +15,12 @@ use self::error::{
     BindingMode, InvalidTypeExpressionKind, SpecialFormExpanderDiagnostic,
     fn_generics_with_type_annotation, fn_params_with_type_annotation, invalid_argument_length,
     invalid_binding_name_not_path, invalid_fn_generic_param, invalid_fn_generics_expression,
-    invalid_fn_params_expression, invalid_let_name_qualified_path, invalid_path_in_use_binding,
-    invalid_type_call_function, invalid_type_expression, invalid_type_name_qualified_path,
-    invalid_use_import, labeled_arguments_not_supported, type_with_existing_annotation,
-    unknown_special_form_generics, unknown_special_form_length, unknown_special_form_name,
-    unsupported_type_constructor_function, use_imports_with_type_annotation,
-    use_path_with_generics,
+    invalid_fn_params_expression, invalid_generic_argument_path, invalid_generic_argument_type,
+    invalid_let_name_qualified_path, invalid_path_in_use_binding, invalid_type_call_function,
+    invalid_type_expression, invalid_type_name_qualified_path, invalid_use_import,
+    labeled_arguments_not_supported, type_with_existing_annotation, unknown_special_form_generics,
+    unknown_special_form_length, unknown_special_form_name, unsupported_type_constructor_function,
+    use_imports_with_type_annotation, use_path_with_generics,
 };
 use crate::{
     node::{
@@ -502,14 +502,18 @@ impl<'heap> SpecialFormExpander<'heap> {
                                 bound: None,
                             });
                         } else {
-                            todo!("record diagnostic")
+                            self.diagnostics
+                                .push(invalid_generic_argument_path(path.span));
+                            return None;
                         }
                     } else {
-                        todo!("record diagnostic")
+                        self.diagnostics
+                            .push(invalid_generic_argument_type(generic_argument.r#type.span));
+                        return None;
                     }
                 }
                 PathSegmentArgument::Constraint(generic_constraint) => {
-                    constraints.push(generic_constraint)
+                    constraints.push(generic_constraint);
                 }
             }
         }
