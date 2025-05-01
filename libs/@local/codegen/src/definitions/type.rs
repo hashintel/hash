@@ -59,6 +59,7 @@ impl Type {
 pub struct TypeDefinition {
     pub name: Cow<'static, str>,
     pub r#type: Type,
+    pub public: bool,
 }
 
 impl TypeDefinition {
@@ -69,6 +70,9 @@ impl TypeDefinition {
         Self {
             name: data_type.name().clone(),
             r#type: Type::from_specta(data_type.ty(), type_collection),
+            // TODO: Only export public types
+            //  see https://linear.app/hash/issue/H-4498/only-export-public-types-from-codegen
+            public: true,
         }
     }
 }

@@ -2,7 +2,7 @@
 source: libs/@local/codegen/tests/codegen/main.rs
 expression: generated
 ---
-type ActorGroupId = {
+export type ActorGroupId = {
 	actorGroupType: "web"
 	id: WebId
 } | {

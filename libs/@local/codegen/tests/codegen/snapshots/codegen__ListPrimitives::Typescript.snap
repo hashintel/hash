@@ -2,7 +2,7 @@
 source: libs/@local/codegen/tests/codegen/main.rs
 expression: generated
 ---
-type ListPrimitives = {
+export type ListPrimitives = {
 	strings: string[]
 	integers: number[]
 	floats: number[]

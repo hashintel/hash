@@ -2,7 +2,7 @@
 source: libs/@local/codegen/tests/codegen/main.rs
 expression: generated
 ---
-type EnumExternal = "Unit" | {
+export type EnumExternal = "Unit" | {
 	EmptyUnnamed: []
 } | {
 	SingleUnnamed: number
