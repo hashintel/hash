@@ -29,7 +29,8 @@ pub enum PathSegmentArgument<'heap> {
 }
 
 impl PathSegmentArgument<'_> {
-    pub fn span(&self) -> SpanId {
+    #[must_use]
+    pub const fn span(&self) -> SpanId {
         match self {
             PathSegmentArgument::Argument(argument) => argument.span,
             PathSegmentArgument::Constraint(constraint) => constraint.span,

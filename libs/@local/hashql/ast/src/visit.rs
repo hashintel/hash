@@ -970,10 +970,10 @@ pub fn walk_path_segment_argument<'heap, T: Visitor<'heap> + ?Sized>(
 ) {
     match argument {
         PathSegmentArgument::Argument(generic_argument) => {
-            visitor.visit_generic_argument(generic_argument)
+            visitor.visit_generic_argument(generic_argument);
         }
         PathSegmentArgument::Constraint(generic_constraint) => {
-            visitor.visit_generic_constraint(generic_constraint)
+            visitor.visit_generic_constraint(generic_constraint);
         }
     }
 }
