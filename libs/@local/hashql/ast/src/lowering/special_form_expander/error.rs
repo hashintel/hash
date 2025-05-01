@@ -111,6 +111,11 @@ const INVALID_GENERIC_ARGUMENT_TYPE: TerminalDiagnosticCategory = TerminalDiagno
     name: "Invalid type in generic argument",
 };
 
+const DUPLICATE_GENERIC_CONSTRAINT: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "duplicate-generic-constraint",
+    name: "Duplicate generic parameter constraint",
+};
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum SpecialFormExpanderDiagnosticCategory {
     UnknownSpecialForm,
@@ -131,6 +136,7 @@ pub enum SpecialFormExpanderDiagnosticCategory {
     InvalidFnGenericParam,
     InvalidGenericArgumentPath,
     InvalidGenericArgumentType,
+    DuplicateGenericConstraint,
 }
 
 impl DiagnosticCategory for SpecialFormExpanderDiagnosticCategory {
@@ -162,6 +168,7 @@ impl DiagnosticCategory for SpecialFormExpanderDiagnosticCategory {
             Self::InvalidFnGenericParam => Some(&INVALID_FN_GENERIC_PARAM),
             Self::InvalidGenericArgumentPath => Some(&INVALID_GENERIC_ARGUMENT_PATH),
             Self::InvalidGenericArgumentType => Some(&INVALID_GENERIC_ARGUMENT_TYPE),
+            Self::DuplicateGenericConstraint => Some(&DUPLICATE_GENERIC_CONSTRAINT),
         }
     }
 }
@@ -959,6 +966,42 @@ pub(crate) fn invalid_generic_argument_type(span: SpanId) -> SpecialFormExpander
     diagnostic.note = Some(Note::new(
         "Valid generic argument types are simple identifiers that refer to type names, such as \
          'String', 'Number', or type parameters like 'T'.",
+    ));
+
+    diagnostic
+}
+
+pub(crate) fn duplicate_generic_constraint(
+    span: SpanId,
+    param: &str,
+    original_span: SpanId,
+) -> SpecialFormExpanderDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        SpecialFormExpanderDiagnosticCategory::DuplicateGenericConstraint,
+        Severity::ERROR,
+    );
+
+    diagnostic.labels.push(Label::new(
+        span,
+        format!("Remove this duplicate declaration of '{param}'"),
+    ));
+
+    diagnostic.labels.push(
+        Label::new(
+            original_span,
+            format!("'{param}' was previously declared here"),
+        )
+        .with_order(1),
+    );
+
+    diagnostic.help = Some(Help::new(
+        "Each generic parameter can only be declared once in a function or type definition. \
+         Remove the duplicate declaration or use a different name.",
+    ));
+
+    diagnostic.note = Some(Note::new(
+        "Generic parameter names must be unique within a single generic parameter list. For \
+         example, in foo<T: Bound, U: OtherBound>, 'T' and 'U' are unique parameters.",
     ));
 
     diagnostic

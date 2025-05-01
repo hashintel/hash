@@ -6,6 +6,7 @@ use core::{
 };
 
 use hashql_core::{
+    collection::FastHashMap,
     heap::{self, Heap},
     span::SpanId,
     symbol::Ident,
@@ -13,14 +14,15 @@ use hashql_core::{
 
 use self::error::{
     BindingMode, InvalidTypeExpressionKind, SpecialFormExpanderDiagnostic,
-    fn_generics_with_type_annotation, fn_params_with_type_annotation, invalid_argument_length,
-    invalid_binding_name_not_path, invalid_fn_generic_param, invalid_fn_generics_expression,
-    invalid_fn_params_expression, invalid_generic_argument_path, invalid_generic_argument_type,
-    invalid_let_name_qualified_path, invalid_path_in_use_binding, invalid_type_call_function,
-    invalid_type_expression, invalid_type_name_qualified_path, invalid_use_import,
-    labeled_arguments_not_supported, type_with_existing_annotation, unknown_special_form_generics,
-    unknown_special_form_length, unknown_special_form_name, unsupported_type_constructor_function,
-    use_imports_with_type_annotation, use_path_with_generics,
+    duplicate_generic_constraint, fn_generics_with_type_annotation, fn_params_with_type_annotation,
+    invalid_argument_length, invalid_binding_name_not_path, invalid_fn_generic_param,
+    invalid_fn_generics_expression, invalid_fn_params_expression, invalid_generic_argument_path,
+    invalid_generic_argument_type, invalid_let_name_qualified_path, invalid_path_in_use_binding,
+    invalid_type_call_function, invalid_type_expression, invalid_type_name_qualified_path,
+    invalid_use_import, labeled_arguments_not_supported, type_with_existing_annotation,
+    unknown_special_form_generics, unknown_special_form_length, unknown_special_form_name,
+    unsupported_type_constructor_function, use_imports_with_type_annotation,
+    use_path_with_generics,
 };
 use crate::{
     node::{
@@ -490,11 +492,23 @@ impl<'heap> SpecialFormExpander<'heap> {
     ) -> Option<heap::Vec<'heap, GenericConstraint<'heap>>> {
         let mut constraints = self.heap.vec(Some(arguments.len()));
 
+        let mut seen = FastHashMap::default();
+
         for argument in arguments {
             match argument {
                 PathSegmentArgument::Argument(generic_argument) => {
                     if let TypeKind::Path(path) = &generic_argument.r#type.kind {
                         if let Some(ident) = path.as_ident() {
+                            if let Err(error) = seen.try_insert(ident.value.clone(), ident.span) {
+                                self.diagnostics.push(duplicate_generic_constraint(
+                                    ident.span,
+                                    ident.value.as_str(),
+                                    *error.entry.get(),
+                                ));
+
+                                continue;
+                            }
+
                             constraints.push(GenericConstraint {
                                 id: generic_argument.id,
                                 span: generic_argument.span,
@@ -513,6 +527,19 @@ impl<'heap> SpecialFormExpander<'heap> {
                     }
                 }
                 PathSegmentArgument::Constraint(generic_constraint) => {
+                    if let Err(error) = seen.try_insert(
+                        generic_constraint.name.value.clone(),
+                        generic_constraint.name.span,
+                    ) {
+                        self.diagnostics.push(duplicate_generic_constraint(
+                            generic_constraint.span,
+                            generic_constraint.name.value.as_str(),
+                            *error.entry.get(),
+                        ));
+
+                        continue;
+                    }
+
                     constraints.push(generic_constraint);
                 }
             }
