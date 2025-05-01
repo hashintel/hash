@@ -7,7 +7,9 @@ use hashql_ast::{
     node::expr::Expr,
     visit::Visitor as _,
 };
-use hashql_core::heap::Heap;
+use hashql_core::{
+    heap::Heap, module::ModuleRegistry, span::SpanId, r#type::environment::Environment,
+};
 
 use super::{Suite, SuiteDiagnostic, common::process_diagnostics};
 
@@ -24,8 +26,10 @@ impl Suite for AstLoweringNameManglerSuite {
         mut expr: Expr<'heap>,
         diagnostics: &mut Vec<SuiteDiagnostic>,
     ) -> Result<String, SuiteDiagnostic> {
-        let mut resolver = PreExpansionNameResolver::new(heap);
-        resolver.prefill();
+        let environment = Environment::new(SpanId::SYNTHETIC, heap);
+        let registry = ModuleRegistry::new(&environment);
+
+        let mut resolver = PreExpansionNameResolver::new(&registry);
 
         resolver.visit_expr(&mut expr);
 

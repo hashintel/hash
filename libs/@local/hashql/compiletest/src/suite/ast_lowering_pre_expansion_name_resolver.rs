@@ -2,7 +2,9 @@ use hashql_ast::{
     format::SyntaxDump as _, lowering::pre_expansion_name_resolver::PreExpansionNameResolver,
     node::expr::Expr, visit::Visitor as _,
 };
-use hashql_core::heap::Heap;
+use hashql_core::{
+    heap::Heap, module::ModuleRegistry, span::SpanId, r#type::environment::Environment,
+};
 
 use super::{Suite, SuiteDiagnostic};
 
@@ -19,8 +21,10 @@ impl Suite for AstLoweringNameResolverSuite {
         mut expr: Expr<'heap>,
         _: &mut Vec<SuiteDiagnostic>,
     ) -> Result<String, SuiteDiagnostic> {
-        let mut resolver = PreExpansionNameResolver::new(heap);
-        resolver.prefill();
+        let environment = Environment::new(SpanId::SYNTHETIC, heap);
+        let registry = ModuleRegistry::new(&environment);
+
+        let mut resolver = PreExpansionNameResolver::new(&registry);
 
         resolver.visit_expr(&mut expr);
 

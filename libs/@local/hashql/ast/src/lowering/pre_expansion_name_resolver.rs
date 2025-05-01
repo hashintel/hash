@@ -90,18 +90,23 @@
 //! 4. Built-in names can be shadowed by local bindings
 use core::mem;
 
-use foldhash::fast::RandomState;
-use hashbrown::HashMap;
 use hashql_core::{
+    collection::FastHashMap,
     heap::Heap,
-    symbol::{Ident, Symbol},
+    module::{
+        ModuleRegistry,
+        item::{IntrinsicItem, ItemKind, Universe},
+        namespace::ModuleNamespace,
+    },
+    span::SpanId,
+    symbol::{Ident, IdentKind, Symbol},
 };
 
 use crate::{
-    lowering::macros::mapping,
     node::{
         expr::{CallExpr, ExprKind},
-        path::Path,
+        id::NodeId,
+        path::{Path, PathSegment},
     },
     visit::{Visitor, walk_call_expr, walk_path},
 };
@@ -138,209 +143,27 @@ use crate::{
 ///
 /// Note that the identifier `x` in the binding position (first argument) is preserved exactly as
 /// written, while its use in the body expression is resolved according to the current scope.
-pub struct PreExpansionNameResolver<'heap> {
-    mapping: HashMap<Symbol, Path<'heap>, RandomState>,
+pub struct PreExpansionNameResolver<'env, 'heap> {
+    alias: FastHashMap<Symbol, Option<Path<'heap>>>,
+    namespace: ModuleNamespace<'env, 'heap>,
+    namespace_cache: FastHashMap<Symbol, Path<'heap>>,
     resolve: bool,
     heap: &'heap Heap,
 }
 
-impl<'heap> PreExpansionNameResolver<'heap> {
+impl<'env, 'heap> PreExpansionNameResolver<'env, 'heap> {
     /// Creates a new `NameResolver` with an empty mapping.
-    pub fn new(heap: &'heap Heap) -> Self {
+    pub fn new(registry: &'env ModuleRegistry<'heap>) -> Self {
+        let mut namespace = ModuleNamespace::new(registry);
+        namespace.import_prelude();
+
         Self {
-            mapping: HashMap::with_hasher(RandomState::default()),
+            alias: FastHashMap::default(),
+            namespace,
+            namespace_cache: FastHashMap::default(),
             resolve: false,
-            heap,
+            heap: registry.heap,
         }
-    }
-
-    fn prefill_kernel_special_forms(&mut self) {
-        mapping!(self.mapping, self.heap; [
-            if => ::kernel::special_form::if,
-            is => ::kernel::special_form::is,
-            let => ::kernel::special_form::let,
-            type => ::kernel::special_form::type,
-            newtype => ::kernel::special_form::newtype,
-            use => ::kernel::special_form::use,
-            fn => ::kernel::special_form::fn,
-            input => ::kernel::special_form::input,
-
-            "." => ::kernel::special_form::access,
-            access => ::kernel::special_form::access,
-
-            "[]" => ::kernel::special_form::index,
-            index => ::kernel::special_form::index,
-        ]);
-    }
-
-    fn prefill_kernel_types(&mut self) {
-        mapping!(self.mapping, self.heap; [
-            Boolean => ::kernel::type::Boolean,
-
-            Number => ::kernel::type::Number,
-            Integer => ::kernel::type::Integer,
-            Natural => ::kernel::type::Natural,
-
-            String => ::kernel::type::String,
-            Url => ::kernel::type::Url,
-            BaseUrl => ::kernel::type::BaseUrl,
-
-            List => ::kernel::type::List,
-            Tuple => ::kernel::type::Tuple,
-
-            Dict => ::kernel::type::Dict,
-            Struct => ::kernel::type::Struct,
-
-            Null => ::kernel::type::Null,
-
-            "?" => ::kernel::type::Unknown,
-            Unknown => ::kernel::type::Unknown,
-
-            // "!" => ::kernel::type::"!",
-            // ^ a later step specializes "::math::not" into "::kernel::type::!" if the operation happens in the type context
-            Never => ::kernel::type::Never,
-
-            // "|" => ::kernel::type::Union,
-            // ^ a later step specializes "::math::bit_or" into "::kernel::type::Union" if the operation happens in the type context
-            Union => ::kernel::type::Union,
-
-            // "&" => ::kernel::type::Intersection,
-            // ^ a later step specializes "::math::bit_and" into "::kernel::type::Intersection" if the operation happens in the type context
-            Intersection => ::kernel::type::Intersection,
-
-            Option => ::kernel::type::Option,
-            Result => ::kernel::type::Result,
-        ]);
-    }
-
-    fn prefill_kernel(&mut self) {
-        self.prefill_kernel_special_forms();
-        self.prefill_kernel_types();
-
-        mapping!(self.mapping, self.heap; [
-            kernel => ::kernel
-        ]);
-    }
-
-    fn prefill_math(&mut self) {
-        mapping!(self.mapping, self.heap; [
-            "+" => ::math::add,
-            "-" => ::math::sub,
-            "*" => ::math::mul,
-            "/" => ::math::div,
-            "%" => ::math::mod,
-            "^" => ::math::pow,
-
-            "&" => ::math::bit_and,
-            "|" => ::math::bit_or,
-            "~" => ::math::bit_not,
-            "<<" => ::math::lshift,
-            ">>" => ::math::rshift,
-
-            ">" => ::math::gt,
-            "<" => ::math::lt,
-            ">=" => ::math::gte,
-            "<=" => ::math::lte,
-            "==" => ::math::eq,
-            "!=" => ::math::ne,
-
-            "!" => ::math::not,
-            "&&" => ::math::and,
-            "||" => ::math::or,
-        ]);
-    }
-
-    fn prefill_graph_types(&mut self) {
-        mapping!(self.mapping, self.heap; [
-            Graph => ::graph::Graph,
-            SortedGraph => ::graph::SortedGraph,
-
-            VariableTimeAxis => ::graph::VariableTimeAxis,
-            PinnedTimeAxis => ::graph::PinnedTimeAxis,
-            TimeAxis => ::graph::TimeAxis,
-
-            Entities => ::graph::Entities,
-            Relationship => ::graph::Relationship,
-
-            EntityLinks => ::graph::EntityLinks,
-            EntityProvenance => ::graph::EntityProvenance,
-            Entity => ::graph::Entity,
-
-            EntityTypeProvenance => ::graph::EntityTypeProvenance,
-            EntityType => ::graph::EntityType,
-
-            PropertyTypeProvenance => ::graph::PropertyTypeProvenance,
-            PropertyType => ::graph::PropertyType,
-
-            DataTypeProvenance => ::graph::DataTypeProvenance,
-            DataType => ::graph::DataType,
-        ]);
-    }
-
-    fn prefill_graph_head(&mut self) {
-        mapping!(self.mapping, self.heap; [
-            entities => ::graph::head::entities,
-            entity_types => ::graph::head::entity_types,
-            property_types => ::graph::head::property_types,
-            data_types => ::graph::head::data_types,
-
-            from_array => ::graph::head::from_array,
-        ]);
-    }
-
-    fn prefill_graph_body(&mut self) {
-        mapping!(self.mapping, self.heap; [
-            map => ::graph::body::map,
-            filter => ::graph::body::filter,
-            flat_map => ::graph::body::flat_map,
-
-            insert => ::graph::body::insert,
-            remove => ::graph::body::remove,
-        ]);
-    }
-
-    fn prefill_graph_tail(&mut self) {
-        mapping!(self.mapping, self.heap; [
-            reduce => ::graph::tail::reduce,
-
-            collect => ::graph::tail::collect,
-            select => ::graph::tail::select,
-            exists => ::graph::tail::exists,
-
-            Ordering => ::graph::tail::Ordering,
-            SortFn => ::graph::tail::SortFn,
-
-            sort_by => ::graph::tail::sort_by,
-
-            // sorted methods
-            Cursor => ::graph::tail::Cursor,
-            CursorResult => ::graph::tail::CursorResult,
-
-            cursor => ::graph::tail::cursor, // module by itself, has `cursor::after` and `cursor::before`
-            offset => ::graph::tail::offset,
-        ]);
-    }
-
-    fn prefill_graph(&mut self) {
-        self.prefill_graph_types();
-
-        self.prefill_graph_head();
-        self.prefill_graph_body();
-        self.prefill_graph_tail();
-
-        mapping!(self.mapping, self.heap; [
-            graph => ::graph,
-        ]);
-    }
-
-    /// Fills the name mapping with all built-in names.
-    ///
-    /// This acts as a polyfill for the eventual prelude system by registering
-    /// all kernel functions, types, operators, and graph-specific functionality.
-    pub fn prefill(&mut self) {
-        self.prefill_kernel();
-        self.prefill_math();
-        self.prefill_graph();
     }
 
     fn walk_call(&mut self, expr: &mut CallExpr<'heap>, to: &Ident, mut from: Option<Path<'heap>>) {
@@ -371,18 +194,19 @@ impl<'heap> PreExpansionNameResolver<'heap> {
                 // The first argument is the identifier, which we shouldn't normalize
             } else if index == len - 1 {
                 let old = if let Some(from) = from.take() {
-                    self.mapping.insert(to.value.clone(), from)
+                    self.alias.insert(to.value.clone(), Some(from))
                 } else {
-                    self.mapping.remove(&to.value)
+                    // Explicitly unset the alias
+                    self.alias.insert(to.value.clone(), None)
                 };
 
                 self.visit_argument(argument);
 
                 if let Some(old) = old {
-                    self.mapping.insert(to.value.clone(), old);
+                    self.alias.insert(to.value.clone(), old);
                 } else {
                     // The binding hasn't existed before, therefore restoration = deletion
-                    self.mapping.remove(&to.value);
+                    self.alias.remove(&to.value);
                 }
             } else {
                 self.visit_argument(argument);
@@ -390,20 +214,66 @@ impl<'heap> PreExpansionNameResolver<'heap> {
         }
     }
 
-    fn absolute_path<'this>(
-        &'this self,
-        name: &str,
-    ) -> impl ExactSizeIterator<Item = &'this Symbol> {
-        self.mapping
-            .get(name)
-            .expect("let special form should be present in mapping")
-            .segments
-            .iter()
-            .map(|segment| &segment.name.value)
+    /// Looks up the absolute path for a given symbol name.
+    ///
+    /// It checks the local alias map first, then the namespace cache, and finally
+    /// the module namespace (for intrinsics) if necessary. Caches namespace lookups.
+    fn lookup(&mut self, name: &Symbol) -> Option<Path<'heap>> {
+        if let Some(replacement) = self.alias.get(name) {
+            return replacement.clone();
+        }
+
+        // Check first if the cache has a version that's already been resolved
+        if let Some(path) = self.namespace_cache.get(name) {
+            return Some(path.clone());
+        }
+
+        let import = self
+            .namespace
+            .lookup_import(self.heap.intern_symbol(name.as_str()), Universe::Value)?;
+
+        // We're only interested in intrinsics
+        let ItemKind::Intrinsic(IntrinsicItem {
+            name: path,
+            universe: _,
+        }) = import.item.kind
+        else {
+            return None;
+        };
+
+        // The name is a fully qualified path, that we need to convert into a path
+        let (rooted, path) = path
+            .strip_prefix("::")
+            .map_or((false, path), |path| (true, path));
+
+        let segments = path.split("::").map(|name| PathSegment {
+            id: NodeId::PLACEHOLDER,
+            span: SpanId::SYNTHETIC,
+            name: Ident {
+                span: SpanId::SYNTHETIC,
+                value: Symbol::new(name),
+                kind: IdentKind::Lexical,
+            },
+            arguments: self.heap.vec(None),
+        });
+
+        let mut vec = self.heap.vec(None);
+        vec.extend(segments);
+
+        let path = Path {
+            id: NodeId::PLACEHOLDER,
+            span: SpanId::SYNTHETIC,
+            rooted,
+            segments: vec,
+        };
+
+        self.namespace_cache.insert(name.clone(), path.clone());
+
+        Some(path)
     }
 }
 
-impl<'heap> Visitor<'heap> for PreExpansionNameResolver<'heap> {
+impl<'heap> Visitor<'heap> for PreExpansionNameResolver<'_, 'heap> {
     fn visit_path(&mut self, path: &mut Path<'heap>) {
         if !self.resolve {
             walk_path(self, path);
@@ -421,7 +291,9 @@ impl<'heap> Visitor<'heap> for PreExpansionNameResolver<'heap> {
             return;
         };
 
-        let Some(replacement) = self.mapping.get(&segment.name.value) else {
+        // The mapping can either exist in the registry, or our alias mapping
+
+        let Some(replacement) = self.lookup(&segment.name.value) else {
             walk_path(self, path);
             return;
         };
@@ -439,8 +311,7 @@ impl<'heap> Visitor<'heap> for PreExpansionNameResolver<'heap> {
             0..1,
             replacement
                 .segments
-                .iter()
-                .cloned()
+                .into_iter()
                 .enumerate()
                 .map(|(index, mut segment)| {
                     // Make sure that we inherit the span from the original segment
@@ -489,7 +360,7 @@ impl<'heap> Visitor<'heap> for PreExpansionNameResolver<'heap> {
         }
 
         // Check if said path is equivalent to the let special form
-        if !function.matches_absolute_path(self.absolute_path("let")) {
+        if !function.matches_absolute_path(["kernel", "special_form", "let"]) {
             walk_call_expr(self, expr);
             return;
         }
