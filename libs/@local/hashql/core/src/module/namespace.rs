@@ -49,6 +49,7 @@ pub struct ModuleNamespace<'env, 'heap> {
 }
 
 impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
+    /// Create a new module namespace.
     pub fn new(registry: &'env ModuleRegistry<'heap>) -> Self {
         Self {
             registry,
