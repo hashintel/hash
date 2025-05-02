@@ -3,8 +3,8 @@ use core::{fmt::Debug, iter};
 use strsim::jaro_winkler;
 
 use super::{
-    Module, ModuleId, ModuleRegistry,
-    error::Suggestion,
+    Module, ModuleRegistry,
+    error::{ResolutionError, Suggestion},
     import::Import,
     item::{Item, ItemKind, Universe},
 };
@@ -33,42 +33,6 @@ impl<'heap> Iterator for ResolveIter<'heap> {
             ResolveIter::Glob(iter) => iter.next(),
         }
     }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum ResolutionError<'heap> {
-    InvalidQueryLength {
-        expected: usize,
-    },
-    ModuleRequired {
-        depth: usize,
-        found: Option<Universe>,
-    },
-
-    PackageNotFound {
-        depth: usize,
-        suggestions: Vec<Suggestion<ModuleId>>,
-    },
-    ImportNotFound {
-        depth: usize,
-        suggestions: Vec<Suggestion<Import<'heap>>>,
-    },
-
-    ModuleNotFound {
-        depth: usize,
-        suggestions: Vec<Suggestion<Item<'heap>>>,
-    },
-
-    ItemNotFound {
-        depth: usize,
-        suggestions: Vec<Suggestion<Item<'heap>>>,
-    },
-
-    Ambiguous(Item<'heap>),
-
-    ModuleEmpty {
-        depth: usize,
-    },
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]

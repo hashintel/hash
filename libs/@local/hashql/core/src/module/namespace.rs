@@ -4,9 +4,10 @@ use ena::snapshot_vec::{Snapshot, SnapshotVec};
 
 use super::{
     ModuleRegistry,
+    error::ResolutionError,
     import::{Import, ImportDelegate},
     item::{Item, Universe},
-    resolver::{ResolutionError, ResolveIter},
+    resolver::ResolveIter,
 };
 use crate::{
     module::resolver::{Resolver, ResolverMode, ResolverOptions},
@@ -402,9 +403,9 @@ mod tests {
         heap::Heap,
         module::{
             ModuleId, ModuleRegistry, PartialModule,
+            error::ResolutionError,
             item::{IntrinsicItem, Item, ItemKind, Universe},
             namespace::{ImportOptions, ResolutionMode, ResolveOptions},
-            resolver::ResolutionError,
         },
         span::SpanId,
         r#type::environment::Environment,
