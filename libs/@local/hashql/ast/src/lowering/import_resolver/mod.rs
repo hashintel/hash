@@ -12,6 +12,10 @@ use hashql_core::{
     symbol::{Ident, IdentKind, InternedSymbol, Symbol},
 };
 
+use self::error::{
+    ImportResolverDiagnostic, failed_import, failed_path_resolution, generic_arguments_in_use_path,
+    invalid_path_segments, module_with_generic_arguments,
+};
 use crate::{
     node::{
         expr::{
@@ -46,8 +50,24 @@ pub struct ImportResolver<'env, 'heap> {
     heap: &'heap Heap,
     namespace: ModuleNamespace<'env, 'heap>,
     current_universe: Universe,
-
     scope: Scope<'heap>,
+    diagnostics: Vec<ImportResolverDiagnostic>,
+}
+
+impl<'env, 'heap> ImportResolver<'env, 'heap> {
+    pub fn new(heap: &'heap Heap, namespace: ModuleNamespace<'env, 'heap>) -> Self {
+        Self {
+            heap,
+            namespace,
+            current_universe: Universe::Value,
+            scope: Scope::default(),
+            diagnostics: Vec::new(),
+        }
+    }
+
+    pub fn take_diagnostics(&mut self) -> Vec<ImportResolverDiagnostic> {
+        mem::take(&mut self.diagnostics)
+    }
 }
 
 impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
@@ -63,16 +83,16 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
     ) {
         // We don't need to walk the path here, because the import resolution already does the
         // normalization for us
-
         let mut query = Vec::with_capacity(path.segments.len());
 
         // We'll replace ourselves with the body once walked, therefore save to drain
         for segment in path.segments.drain(..) {
-            if segment.arguments.is_empty() {
-                query.push(segment.name.value.intern(self.heap));
-            } else {
-                todo!("record diagnostic")
+            if !segment.arguments.is_empty() {
+                self.diagnostics
+                    .push(generic_arguments_in_use_path(segment.span));
             }
+
+            query.push(segment.name.value.intern(self.heap));
         }
 
         let mode = if path.rooted {
