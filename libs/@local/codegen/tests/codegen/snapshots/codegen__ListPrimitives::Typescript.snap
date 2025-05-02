@@ -2,18 +2,18 @@
 source: libs/@local/codegen/tests/codegen/main.rs
 expression: generated
 ---
-export type ListPrimitives = {
-	strings: string[]
-	integers: number[]
-	floats: number[]
-	booleans: boolean[]
-	small_array: number[]
-	string_array: string[]
-	boolean_array: boolean[]
-	string_set: string[]
-	integer_set: number[]
-	btree_string_set: string[]
-	btree_integer_set: number[]
-	linked_string_list: string[]
-	linked_integer_list: number[]
-};
+export interface ListPrimitives {
+	strings: string[];
+	integers: number[];
+	floats: number[];
+	booleans: boolean[];
+	small_array: number[];
+	string_array: string[];
+	boolean_array: boolean[];
+	string_set: string[];
+	integer_set: number[];
+	btree_string_set: string[];
+	btree_integer_set: number[];
+	linked_string_list: string[];
+	linked_integer_list: number[];
+}

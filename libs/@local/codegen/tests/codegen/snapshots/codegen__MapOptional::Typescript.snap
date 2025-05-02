@@ -2,9 +2,9 @@
 source: libs/@local/codegen/tests/codegen/main.rs
 expression: generated
 ---
-export type MapOptional = {
-	maybe_map: (Record<string, number> | undefined)
-	map_of_optionals: Record<string, (number | undefined)>
-	maybe_btree: (Record<string, string> | undefined)
-	btree_of_optionals: Record<string, (number | undefined)>
-};
+export interface MapOptional {
+	maybe_map: (Record<string, number> | undefined);
+	map_of_optionals: Record<string, (number | undefined)>;
+	maybe_btree: (Record<string, string> | undefined);
+	btree_of_optionals: Record<string, (number | undefined)>;
+}

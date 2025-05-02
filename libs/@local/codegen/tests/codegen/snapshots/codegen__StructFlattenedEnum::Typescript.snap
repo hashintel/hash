@@ -2,6 +2,6 @@
 source: libs/@local/codegen/tests/codegen/main.rs
 expression: generated
 ---
-export interface StructSimpleFlattened extends StructSimple {
-	name: string;
-}
+export type StructFlattenedEnum = {
+	name: string
+} & EnumInternal;

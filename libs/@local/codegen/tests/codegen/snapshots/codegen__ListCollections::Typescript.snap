@@ -2,8 +2,8 @@
 source: libs/@local/codegen/tests/codegen/main.rs
 expression: generated
 ---
-export type ListCollections = {
-	string_list: string[]
-	number_list: number[]
-	nested_list: StructSimple[]
-};
+export interface ListCollections {
+	string_list: string[];
+	number_list: number[];
+	nested_list: StructSimple[];
+}

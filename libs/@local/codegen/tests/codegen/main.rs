@@ -39,6 +39,9 @@ fn register_types(collection: &mut TypeCollection) {
     collection.register::<structs::StructNested>();
     collection.register::<structs::StructSimpleFlattened>();
     collection.register::<structs::StructMultipleFlattened>();
+    collection.register::<structs::StructFlattenedEnum>();
+    collection.register::<structs::StructNestedTypeFlattened>();
+    collection.register::<structs::StructNestedInterfaceFlattened>();
 
     // Register lists
     collection.register::<lists::ListPrimitives>();

@@ -2,6 +2,6 @@
 source: libs/@local/codegen/tests/codegen/main.rs
 expression: generated
 ---
-export type TupleNested = {
-	nested: [string, [number, boolean]]
-};
+export interface TupleNested {
+	nested: [string, [number, boolean]];
+}

@@ -2,8 +2,8 @@
 source: libs/@local/codegen/tests/codegen/main.rs
 expression: generated
 ---
-export type Web = {
-	id: WebId
-	shortname: (string | undefined)
-	roles: WebRoleId[]
-};
+export interface Web {
+	id: WebId;
+	shortname: (string | undefined);
+	roles: WebRoleId[];
+}

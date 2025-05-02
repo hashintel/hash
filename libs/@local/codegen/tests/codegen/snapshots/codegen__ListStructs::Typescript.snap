@@ -2,9 +2,9 @@
 source: libs/@local/codegen/tests/codegen/main.rs
 expression: generated
 ---
-export type ListStructs = {
-	vec_items: StructSimple[]
-	array_items: StructSimple[]
-	set_items: StructSimple[]
-	linked_items: StructSimple[]
-};
+export interface ListStructs {
+	vec_items: StructSimple[];
+	array_items: StructSimple[];
+	set_items: StructSimple[];
+	linked_items: StructSimple[];
+}

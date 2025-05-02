@@ -2,6 +2,6 @@
 source: libs/@local/codegen/tests/codegen/main.rs
 expression: generated
 ---
-export type TupleEmpty = {
-	empty: []
-};
+export interface TupleEmpty {
+	empty: [];
+}
