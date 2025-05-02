@@ -129,17 +129,22 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
     /// # Returns
     ///
     /// `true` if the import was successfully resolved, `false` if the item wasn't found.
-    #[expect(clippy::needless_pass_by_value)]
     pub fn import_relative(
         &mut self,
         name: InternedSymbol<'heap>,
-        query: impl IntoIterator<Item = InternedSymbol<'heap>, IntoIter: Clone> + Clone,
+        query: impl IntoIterator<Item = InternedSymbol<'heap>, IntoIter: Clone>,
         options: ImportOptions,
     ) -> bool {
+        let mut query = query.into_iter();
+
         // First try to find the item as absolute import
         if self.import_absolute(name, query.clone(), options) {
             return true;
         }
+
+        let Some(entry) = query.next() else {
+            return false;
+        };
 
         // Next find the item as a relative import
         let mut found = None;
@@ -149,6 +154,10 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
             if universe.is_some() {
                 // Only modules don't have a universe, which are the only ones nested, therefore we
                 // can easily skip a lookup that isn't required.
+                continue;
+            }
+
+            if import.name != entry {
                 continue;
             }
 
@@ -422,6 +431,111 @@ mod tests {
         );
     }
 
-    // TODO: relative import
-    // TODO: import glob
+    #[test]
+    fn relative_import() {
+        let heap = Heap::new();
+        let environment = Environment::new(SpanId::SYNTHETIC, &heap);
+        let registry = ModuleRegistry::new(&environment);
+
+        let mut namespace = ModuleNamespace::new(&registry);
+
+        // first import the type module as a module
+        let success = namespace.import_absolute(
+            heap.intern_symbol("type"),
+            [heap.intern_symbol("kernel"), heap.intern_symbol("type")],
+            ImportOptions { glob: false },
+        );
+        assert!(success);
+
+        // import `Dict` relative from type (now that it is imported)
+        let success = namespace.import_relative(
+            heap.intern_symbol("Dict"),
+            [heap.intern_symbol("type"), heap.intern_symbol("Dict")],
+            ImportOptions { glob: false },
+        );
+        assert!(success);
+
+        // We should be able to import `Dict` now
+        let import = namespace
+            .lookup_import(heap.intern_symbol("Dict"), Universe::Type)
+            .expect("import should exist");
+
+        assert_eq!(import.name.as_str(), "Dict");
+        assert_eq!(import.item.kind.universe(), Some(Universe::Type));
+    }
+
+    #[test]
+    fn relative_import_renamed() {
+        let heap = Heap::new();
+        let environment = Environment::new(SpanId::SYNTHETIC, &heap);
+        let registry = ModuleRegistry::new(&environment);
+
+        let mut namespace = ModuleNamespace::new(&registry);
+
+        // first import the type module as a module
+        let success = namespace.import_absolute(
+            heap.intern_symbol("foo"),
+            [heap.intern_symbol("kernel"), heap.intern_symbol("type")],
+            ImportOptions { glob: false },
+        );
+        assert!(success);
+
+        // import `Dict` relative from type (now that it is imported)
+        let success = namespace.import_relative(
+            heap.intern_symbol("Dict"),
+            [heap.intern_symbol("foo"), heap.intern_symbol("Dict")],
+            ImportOptions { glob: false },
+        );
+        assert!(success);
+
+        // We should be able to import `Dict` now
+        let import = namespace
+            .lookup_import(heap.intern_symbol("Dict"), Universe::Type)
+            .expect("import should exist");
+
+        assert_eq!(import.name.as_str(), "Dict");
+        assert_eq!(import.item.kind.universe(), Some(Universe::Type));
+    }
+
+    #[test]
+    fn import_glob() {
+        let heap = Heap::new();
+        let environment = Environment::new(SpanId::SYNTHETIC, &heap);
+        let registry = ModuleRegistry::new(&environment);
+
+        let mut namespace = ModuleNamespace::new(&registry);
+
+        // first import the type module as a module
+        let success = namespace.import_absolute(
+            heap.intern_symbol("*"),
+            [heap.intern_symbol("kernel"), heap.intern_symbol("type")],
+            ImportOptions { glob: true },
+        );
+        assert!(success);
+
+        // We should be able to import `Dict` now
+        let import = namespace
+            .lookup_import(heap.intern_symbol("Dict"), Universe::Type)
+            .expect("import should exist");
+
+        assert_eq!(import.name.as_str(), "Dict");
+        assert_eq!(import.item.kind.universe(), Some(Universe::Type));
+    }
+
+    #[test]
+    fn import_glob_does_not_exist() {
+        let heap = Heap::new();
+        let environment = Environment::new(SpanId::SYNTHETIC, &heap);
+        let registry = ModuleRegistry::new(&environment);
+
+        let mut namespace = ModuleNamespace::new(&registry);
+
+        // first import the type module as a module
+        let success = namespace.import_absolute(
+            heap.intern_symbol("*"),
+            [heap.intern_symbol("kernel"), heap.intern_symbol("foo")],
+            ImportOptions { glob: true },
+        );
+        assert!(!success);
+    }
 }
