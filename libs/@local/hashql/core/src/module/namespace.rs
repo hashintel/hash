@@ -1,15 +1,17 @@
 //! Namespace management for the HashQL module system.
-use core::iter;
 
 use ena::snapshot_vec::{Snapshot, SnapshotVec};
 
 use super::{
-    Module, ModuleRegistry,
-    error::Suggestion,
+    ModuleRegistry,
     import::{Import, ImportDelegate},
-    item::{Item, ItemKind, Universe},
+    item::{Item, Universe},
+    resolver::{ResolveError, ResolveIter},
 };
-use crate::symbol::InternedSymbol;
+use crate::{
+    module::resolver::{Resolver, ResolverMode, ResolverOptions},
+    symbol::InternedSymbol,
+};
 
 pub struct ModuleNamespaceSnapshot(Snapshot);
 
@@ -23,6 +25,7 @@ pub enum ResolutionMode {
 pub struct ImportOptions {
     pub glob: bool,
     pub mode: ResolutionMode,
+    pub suggestions: bool,
 }
 
 pub struct ResolveOptions {
@@ -34,18 +37,6 @@ pub struct ResolveOptions {
 pub enum Transaction<T> {
     Commit(T),
     Rollback(T),
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-enum ResolverMode {
-    Single(Universe),
-    Glob,
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-struct ResolverOptions {
-    mode: ResolverMode,
-    suggestions: bool,
 }
 
 /// Represents the namespace of a module.
@@ -65,61 +56,17 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
         }
     }
 
-    fn import_glob(&mut self, items: Vec<Item<'heap>>) -> bool {
-        if !items
-            .iter()
-            .any(|item| matches!(item.kind, ItemKind::Module(_)))
-        {
-            return false;
-        }
-
-        for item in items {
-            // Import everything if it is a module, otherwise skip it
-            let ItemKind::Module(module) = item.kind else {
-                continue;
-            };
-
-            for &item in self.registry.modules.index(module).items {
+    fn import_commit(&mut self, name: InternedSymbol<'heap>, glob: bool, iter: ResolveIter<'heap>) {
+        // The resolver guarantees that the iterator is non-empty if the query was found
+        for item in iter {
+            if glob {
                 self.imports.push(Import {
                     name: item.name,
                     item,
                 });
+            } else {
+                self.imports.push(Import { name, item });
             }
-        }
-
-        true
-    }
-
-    fn import_resolve(
-        &mut self,
-        name: InternedSymbol<'heap>,
-        items: Vec<Item<'heap>>,
-        ImportOptions { glob, mode: _ }: ImportOptions,
-    ) -> bool {
-        if items.is_empty() {
-            return false;
-        }
-
-        if glob {
-            return self.import_glob(items);
-        }
-
-        for item in items {
-            self.imports.push(Import { name, item });
-        }
-
-        true
-    }
-
-    pub fn import(
-        &mut self,
-        name: InternedSymbol<'heap>,
-        query: impl IntoIterator<Item = InternedSymbol<'heap>, IntoIter: Clone>,
-        options: ImportOptions,
-    ) -> bool {
-        match options.mode {
-            ResolutionMode::Absolute => self.import_absolute(name, query, options),
-            ResolutionMode::Relative => self.import_relative(name, query, options),
         }
     }
 
@@ -134,45 +81,27 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
     pub fn import_absolute(
         &mut self,
         name: InternedSymbol<'heap>,
-        query: impl IntoIterator<Item = InternedSymbol<'heap>, IntoIter: Clone>,
+        query: impl IntoIterator<Item = InternedSymbol<'heap>>,
         options: ImportOptions,
-    ) -> bool {
+    ) -> Result<(), ResolveError<'heap>> {
         debug_assert_eq!(options.mode, ResolutionMode::Absolute);
 
-        let results = self.registry.search(query);
+        let resolver = Resolver {
+            registry: self.registry,
+            options: ResolverOptions {
+                mode: if options.glob {
+                    ResolverMode::Glob
+                } else {
+                    ResolverMode::Multi
+                },
+                suggestions: options.suggestions,
+            },
+        };
 
-        self.import_resolve(name, results, options)
-    }
+        let iter = resolver.resolve_absolute(query)?;
+        self.import_commit(name, options.glob, iter);
 
-    pub fn snapshot(&mut self) -> ModuleNamespaceSnapshot {
-        ModuleNamespaceSnapshot(self.imports.start_snapshot())
-    }
-
-    pub fn commit(&mut self, snapshot: ModuleNamespaceSnapshot) {
-        self.imports.commit(snapshot.0);
-    }
-
-    pub fn rollback_to(&mut self, snapshot: ModuleNamespaceSnapshot) {
-        self.imports.rollback_to(snapshot.0);
-    }
-
-    pub fn in_transaction<T>(&mut self, closure: impl FnOnce(&mut Self) -> Transaction<T>) -> T {
-        let snapshot = self.imports.start_snapshot();
-
-        let transaction = closure(self);
-
-        match transaction {
-            Transaction::Commit(value) => {
-                self.imports.commit(snapshot);
-
-                value
-            }
-            Transaction::Rollback(value) => {
-                self.imports.rollback_to(snapshot);
-
-                value
-            }
-        }
+        Ok(())
     }
 
     /// Attempts to add a relative import.
@@ -187,57 +116,39 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
     pub fn import_relative(
         &mut self,
         name: InternedSymbol<'heap>,
-        query: impl IntoIterator<Item = InternedSymbol<'heap>, IntoIter: Clone>,
+        query: impl IntoIterator<Item = InternedSymbol<'heap>> + Clone,
         options: ImportOptions,
-    ) -> bool {
+    ) -> Result<(), ResolveError<'heap>> {
         debug_assert_eq!(options.mode, ResolutionMode::Relative);
 
-        let mut query = query.into_iter();
-
-        // First try to find the item as absolute import
-        if self.import_absolute(
-            name,
-            query.clone(),
-            ImportOptions {
-                glob: options.glob,
-                mode: ResolutionMode::Absolute,
+        let mut resolver = Resolver {
+            registry: self.registry,
+            options: ResolverOptions {
+                mode: if options.glob {
+                    ResolverMode::Glob
+                } else {
+                    ResolverMode::Multi
+                },
+                suggestions: options.suggestions,
             },
-        ) {
-            return true;
-        }
-
-        let Some(entry) = query.next() else {
-            return false;
         };
 
-        // Next find the item as a relative import
-        let mut found = None;
-        for import in self.imports.iter().rev() {
-            let universe = import.item.kind.universe();
+        let iter = resolver.resolve_relative(query, &self.imports)?;
+        self.import_commit(name, options.glob, iter);
 
-            if universe.is_some() {
-                // Only modules don't have a universe, which are the only ones nested, therefore we
-                // can easily skip a lookup that isn't required.
-                continue;
-            }
+        Ok(())
+    }
 
-            if import.name != entry {
-                continue;
-            }
-
-            let results = import.item.search(self.registry, query.clone());
-
-            if !results.is_empty() {
-                found = Some(results);
-                break;
-            }
+    pub fn import(
+        &mut self,
+        name: InternedSymbol<'heap>,
+        query: impl IntoIterator<Item = InternedSymbol<'heap>> + Clone,
+        options: ImportOptions,
+    ) -> Result<(), ResolveError<'heap>> {
+        match options.mode {
+            ResolutionMode::Absolute => self.import_absolute(name, query, options),
+            ResolutionMode::Relative => self.import_relative(name, query, options),
         }
-
-        let Some(found) = found else {
-            return false;
-        };
-
-        self.import_resolve(name, found, options)
     }
 
     fn import_absolute_static(
@@ -256,60 +167,71 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
             ImportOptions {
                 glob: false,
                 mode: ResolutionMode::Absolute,
+                suggestions: false,
             },
         )
+        .is_ok()
     }
 
-    pub fn resolve_relative_import(
+    pub fn resolve_relative(
         &self,
-        query: impl IntoIterator<Item = InternedSymbol<'heap>, IntoIter: Clone>,
+        query: impl IntoIterator<Item = InternedSymbol<'heap>> + Clone,
         ResolveOptions { universe, mode }: ResolveOptions,
-    ) -> Option<Item<'heap>> {
+    ) -> Result<Item<'heap>, ResolveError<'heap>> {
         debug_assert_eq!(mode, ResolutionMode::Relative);
 
-        let mut query = query.into_iter();
+        let mut resolver = Resolver {
+            registry: self.registry,
+            options: ResolverOptions {
+                mode: ResolverMode::Single(universe),
+                suggestions: true,
+            },
+        };
 
-        let entry = query.next()?;
+        let mut iter = resolver.resolve_relative(query, &self.imports)?;
 
-        for import in self.imports.iter().rev() {
-            if import.name != entry {
-                continue;
-            }
-
-            let items = import.item.search(self.registry, query.clone());
-
-            for item in items {
-                if item.kind.universe() == Some(universe) {
-                    return Some(item);
-                }
-            }
+        // ResolveIter guarantees that at least one item is returned
+        let item = iter.next().unwrap_or_else(|| unreachable!());
+        if iter.next().is_some() {
+            Err(ResolveError::Ambiguous(item))
+        } else {
+            Ok(item)
         }
-
-        None
     }
 
-    pub fn resolve_absolute_import(
+    pub fn resolve_absolute(
         &self,
-        query: impl IntoIterator<Item = InternedSymbol<'heap>, IntoIter: Clone>,
+        query: impl IntoIterator<Item = InternedSymbol<'heap>>,
         ResolveOptions { universe, mode }: ResolveOptions,
-    ) -> Option<Item<'heap>> {
+    ) -> Result<Item<'heap>, ResolveError<'heap>> {
         debug_assert_eq!(mode, ResolutionMode::Absolute);
 
-        let items = self.registry.search(query);
+        let resolver = Resolver {
+            registry: self.registry,
+            options: ResolverOptions {
+                mode: ResolverMode::Single(universe),
+                suggestions: true,
+            },
+        };
 
-        items
-            .into_iter()
-            .find(|&item| item.kind.universe() == Some(universe))
+        let mut iter = resolver.resolve_absolute(query)?;
+        // ResolveIter guarantees that at least one item is returned
+        let item = iter.next().unwrap_or_else(|| unreachable!());
+        if iter.next().is_some() {
+            Err(ResolveError::Ambiguous(item))
+        } else {
+            Ok(item)
+        }
     }
 
     pub fn resolve(
         &self,
-        query: impl IntoIterator<Item = InternedSymbol<'heap>, IntoIter: Clone>,
+        query: impl IntoIterator<Item = InternedSymbol<'heap>> + Clone,
         options: ResolveOptions,
-    ) -> Option<Item<'heap>> {
+    ) -> Result<Item<'heap>, ResolveError<'heap>> {
         match options.mode {
-            ResolutionMode::Absolute => self.resolve_absolute_import(query, options),
-            ResolutionMode::Relative => self.resolve_relative_import(query, options),
+            ResolutionMode::Absolute => self.resolve_absolute(query, options),
+            ResolutionMode::Relative => self.resolve_relative(query, options),
         }
     }
 
@@ -412,6 +334,37 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
 
         debug_assert!(successful);
     }
+
+    pub fn snapshot(&mut self) -> ModuleNamespaceSnapshot {
+        ModuleNamespaceSnapshot(self.imports.start_snapshot())
+    }
+
+    pub fn commit(&mut self, snapshot: ModuleNamespaceSnapshot) {
+        self.imports.commit(snapshot.0);
+    }
+
+    pub fn rollback_to(&mut self, snapshot: ModuleNamespaceSnapshot) {
+        self.imports.rollback_to(snapshot.0);
+    }
+
+    pub fn in_transaction<T>(&mut self, closure: impl FnOnce(&mut Self) -> Transaction<T>) -> T {
+        let snapshot = self.imports.start_snapshot();
+
+        let transaction = closure(self);
+
+        match transaction {
+            Transaction::Commit(value) => {
+                self.imports.commit(snapshot);
+
+                value
+            }
+            Transaction::Rollback(value) => {
+                self.imports.rollback_to(snapshot);
+
+                value
+            }
+        }
+    }
 }
 
 #[cfg(test)]
@@ -438,7 +391,7 @@ mod tests {
         namespace.import_prelude();
 
         let item = namespace
-            .resolve_relative_import(
+            .resolve_relative(
                 [heap.intern_symbol("Union")],
                 ResolveOptions {
                     mode: ResolutionMode::Relative,
@@ -469,7 +422,7 @@ mod tests {
         namespace.import_prelude();
 
         let item = namespace
-            .resolve_relative_import(
+            .resolve_relative(
                 [heap.intern_symbol("Dict")],
                 ResolveOptions {
                     mode: ResolutionMode::Relative,
@@ -500,7 +453,7 @@ mod tests {
         namespace.import_prelude();
 
         let item = namespace
-            .resolve_absolute_import(
+            .resolve_absolute(
                 [
                     heap.intern_symbol("kernel"),
                     heap.intern_symbol("type"),
@@ -535,7 +488,7 @@ mod tests {
         namespace.import_prelude();
 
         let item = namespace
-            .resolve_absolute_import(
+            .resolve_absolute(
                 [
                     heap.intern_symbol("kernel"),
                     heap.intern_symbol("type"),
@@ -580,7 +533,7 @@ mod tests {
         assert!(success);
 
         let item = namespace
-            .resolve_relative_import(
+            .resolve_relative(
                 [heap.intern_symbol("type"), heap.intern_symbol("Union")],
                 ResolveOptions {
                     universe: Universe::Value,
@@ -626,7 +579,7 @@ mod tests {
         registry.register(module);
 
         let import = namespace
-            .resolve_relative_import(
+            .resolve_relative(
                 [heap.intern_symbol("Dict")],
                 ResolveOptions {
                     universe: Universe::Type,
@@ -656,7 +609,7 @@ mod tests {
         ));
 
         let import = namespace
-            .resolve_relative_import(
+            .resolve_relative(
                 [heap.intern_symbol("Dict")],
                 ResolveOptions {
                     universe: Universe::Type,
@@ -709,7 +662,7 @@ mod tests {
 
         // We should be able to import `Dict` now
         let import = namespace
-            .resolve_relative_import(
+            .resolve_relative(
                 [heap.intern_symbol("Dict")],
                 ResolveOptions {
                     universe: Universe::Type,
@@ -788,7 +741,7 @@ mod tests {
 
         // We should be able to import `Dict` now
         let import = namespace
-            .resolve_relative_import(
+            .resolve_relative(
                 [heap.intern_symbol("Dict")],
                 ResolveOptions {
                     universe: Universe::Type,

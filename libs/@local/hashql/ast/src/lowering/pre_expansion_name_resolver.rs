@@ -229,7 +229,7 @@ impl<'env, 'heap> PreExpansionNameResolver<'env, 'heap> {
         }
 
         // TODO: this is incorrect, any only works for single names and not for relative imports
-        let import = self.namespace.resolve_relative_import(
+        let import = self.namespace.resolve_relative(
             [name.intern(self.heap)],
             ResolveOptions {
                 mode: ResolutionMode::Relative,

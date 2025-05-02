@@ -11,9 +11,11 @@ use super::{
 use crate::symbol::InternedSymbol;
 
 pub(crate) type ModuleItemIterator<'heap> = impl ExactSizeIterator<Item = Item<'heap>>;
+pub(crate) type MultiResolveItemIterator<'heap> = impl Iterator<Item = Item<'heap>>;
 
 pub(crate) enum ResolveIter<'heap> {
     Single(iter::Once<Item<'heap>>),
+    MultiResolve(MultiResolveItemIterator<'heap>),
     Glob(ModuleItemIterator<'heap>),
 }
 
@@ -23,16 +25,8 @@ impl<'heap> Iterator for ResolveIter<'heap> {
     fn next(&mut self) -> Option<Self::Item> {
         match self {
             ResolveIter::Single(iter) => iter.next(),
+            ResolveIter::MultiResolve(iter) => iter.next(),
             ResolveIter::Glob(iter) => iter.next(),
-        }
-    }
-}
-
-impl ExactSizeIterator for ResolveIter<'_> {
-    fn len(&self) -> usize {
-        match self {
-            ResolveIter::Single(iter) => iter.len(),
-            ResolveIter::Glob(iter) => iter.len(),
         }
     }
 }
@@ -65,18 +59,21 @@ pub enum ResolveError<'heap> {
         depth: usize,
         suggestions: Vec<Suggestion<Item<'heap>>>,
     },
+
+    Ambiguous(Item<'heap>),
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub(crate) enum ResolverMode {
     Single(Universe),
+    Multi,
     Glob,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub(crate) struct ResolverOptions {
-    mode: ResolverMode,
-    suggestions: bool,
+    pub mode: ResolverMode,
+    pub suggestions: bool,
 }
 
 pub(crate) struct Resolver<'env, 'heap> {
@@ -91,6 +88,16 @@ impl<'heap> Resolver<'_, 'heap> {
         } else {
             Vec::new()
         }
+    }
+
+    fn with_suggestions<T>(&mut self, enable: bool, closure: impl FnOnce(&mut Self) -> T) -> T {
+        let current = self.options.suggestions;
+        self.options.suggestions = enable;
+
+        let result = closure(self);
+
+        self.options.suggestions = current;
+        result
     }
 
     fn resolve_single(
@@ -116,6 +123,30 @@ impl<'heap> Resolver<'_, 'heap> {
         };
 
         Ok(iter::once(item))
+    }
+
+    #[define_opaque(MultiResolveItemIterator)]
+    fn resolve_multi(
+        &self,
+        module: Module<'heap>,
+        name: InternedSymbol<'heap>,
+        depth: usize,
+    ) -> Result<MultiResolveItemIterator<'heap>, ResolveError<'heap>> {
+        let mut item = module
+            .items
+            .into_iter()
+            .copied()
+            .filter(move |item| item.name == name)
+            .peekable();
+
+        if item.peek().is_none() {
+            return Err(ResolveError::ItemNotFound {
+                depth,
+                suggestions: self.suggest(|| module.suggestions(name, |_| true)),
+            });
+        }
+
+        Ok(item)
     }
 
     #[define_opaque(ModuleItemIterator)]
@@ -193,13 +224,16 @@ impl<'heap> Resolver<'_, 'heap> {
             ResolverMode::Single(universe) => self
                 .resolve_single(module, universe, name, depth)
                 .map(ResolveIter::Single),
+            ResolverMode::Multi => self
+                .resolve_multi(module, name, depth)
+                .map(ResolveIter::MultiResolve),
             ResolverMode::Glob => self
                 .resolve_glob(module, name, depth)
                 .map(ResolveIter::Glob),
         }
     }
 
-    fn resolve_absolute(
+    pub(crate) fn resolve_absolute(
         &self,
         query: impl IntoIterator<Item = InternedSymbol<'heap>>,
     ) -> Result<ResolveIter<'heap>, ResolveError<'heap>> {
@@ -217,16 +251,6 @@ impl<'heap> Resolver<'_, 'heap> {
         };
 
         self.resolve_impl(query, module)
-    }
-
-    fn with_suggestions<T>(&mut self, enable: bool, closure: impl FnOnce(&mut Self) -> T) -> T {
-        let current = self.options.suggestions;
-        self.options.suggestions = enable;
-
-        let result = closure(self);
-
-        self.options.suggestions = current;
-        result
     }
 
     fn resolve_import_single(
@@ -258,6 +282,8 @@ impl<'heap> Resolver<'_, 'heap> {
         Ok(iter::once(import.item))
     }
 
+    // fn resolve_import_multi(&self, name: InternedSymbol<'heap>, )
+
     #[define_opaque(ModuleItemIterator)]
     fn resolve_import_glob(
         &self,
@@ -276,7 +302,7 @@ impl<'heap> Resolver<'_, 'heap> {
     }
 
     #[expect(clippy::panic_in_result_fn, reason = "sanity check")]
-    fn resolve_relative(
+    pub(crate) fn resolve_relative(
         &mut self,
         query: impl IntoIterator<Item = InternedSymbol<'heap>> + Clone,
         imports: &[Import<'heap>],
@@ -294,6 +320,7 @@ impl<'heap> Resolver<'_, 'heap> {
             return Err(ResolveError::InvalidQueryLength { expected: 1 });
         };
 
+        // This does *not* work, as it depends on the type, what we're going to import :/
         let Some(&import) = imports.iter().find(|import| import.name == name) else {
             return Err(ResolveError::ImportNotFound {
                 depth: 0,
