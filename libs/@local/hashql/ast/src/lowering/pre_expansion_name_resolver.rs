@@ -228,14 +228,19 @@ impl<'env, 'heap> PreExpansionNameResolver<'env, 'heap> {
             return Some(path.clone());
         }
 
-        // TODO: this is incorrect, any only works for single names and not for relative imports
-        let import = self.namespace.resolve_relative(
-            [name.intern(self.heap)],
-            ResolveOptions {
-                mode: ResolutionMode::Relative,
-                universe: Universe::Value,
-            },
-        )?;
+        // This is very conservative, in *theory* we should take a look at the whole path and use
+        // that as import, but as we're only interested in special-forms, which are only imported as
+        // name, we can safely just use the name.
+        let import = self
+            .namespace
+            .resolve_relative(
+                [name.intern(self.heap)],
+                ResolveOptions {
+                    mode: ResolutionMode::Relative,
+                    universe: Universe::Value,
+                },
+            )
+            .ok()?;
 
         // We're only interested in intrinsics
         let ItemKind::Intrinsic(IntrinsicItem {

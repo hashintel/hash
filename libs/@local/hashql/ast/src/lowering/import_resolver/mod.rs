@@ -141,9 +141,6 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
                     },
                 );
 
-                // TODO: the problem is we don't know *why* we failed, and it isn't that easy to
-                // find out why. We currently return a Vec, the problem is that we don't know how to
-                // continue, we will have to make a thonk about how to solve this issue.
                 if let Err(error) = result {
                     todo!("record diagnostic")
                 }
