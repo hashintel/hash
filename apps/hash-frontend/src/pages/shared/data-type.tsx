@@ -4,10 +4,13 @@ import { getRoots } from "@blockprotocol/graph/stdlib";
 import type {
   BaseUrl,
   DataTypeWithMetadata,
+  OntologyTypeVersion,
   WebId,
 } from "@blockprotocol/type-system";
 import {
+  compareOntologyTypeVersions,
   extractVersion,
+  makeOntologyTypeVersion,
   versionedUrlFromComponents,
 } from "@blockprotocol/type-system";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
@@ -63,7 +66,7 @@ type DataTypeProps = {
   webId?: WebId | null;
   draftNewDataType?: DataTypeWithMetadata | null;
   dataTypeBaseUrl?: BaseUrl;
-  requestedVersion: number | null;
+  requestedVersion: OntologyTypeVersion | null;
   onDataTypeUpdated: (dataType: DataTypeWithMetadata) => void;
 };
 
@@ -160,7 +163,7 @@ export const DataType = ({
 
   const { remoteDataType, latestVersionNumber: latestVersion } = useMemo<{
     remoteDataType: DataTypeWithMetadata | null;
-    latestVersionNumber: number | null;
+    latestVersionNumber: OntologyTypeVersion | null;
   }>(() => {
     if (!remoteDataTypeData || !!draftNewDataType) {
       return { remoteDataType: null, latestVersionNumber: null };
@@ -176,7 +179,10 @@ export const DataType = ({
       const version = extractVersion(dataType.schema.$id);
       if (
         !highestVersionDataType ||
-        version > highestVersionDataType.metadata.recordId.version
+        compareOntologyTypeVersions(
+          version,
+          highestVersionDataType.metadata.recordId.version,
+        ) > 0
       ) {
         highestVersionDataType = dataType;
       }
@@ -317,7 +323,7 @@ export const DataType = ({
   }
 
   const currentVersion = draftNewDataType
-    ? 0
+    ? makeOntologyTypeVersion({ major: 0 })
     : extractVersion(dataType.schema.$id);
 
   const isLatest = !requestedVersion || requestedVersion === latestVersion;

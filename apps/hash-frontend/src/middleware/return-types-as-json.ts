@@ -129,7 +129,7 @@ export const returnTypeAsJson = async (request: NextRequest) => {
 
   const { baseId, revisionId } = root;
 
-  const type = vertices[baseId]?.[revisionId];
+  const type = vertices[baseId]?.[revisionId.toString()];
 
   if (!type) {
     return generateErrorResponse(

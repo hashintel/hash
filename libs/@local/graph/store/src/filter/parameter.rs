@@ -21,15 +21,13 @@ use uuid::Uuid;
 #[serde(untagged)]
 pub enum Parameter<'p> {
     Boolean(bool),
-    Integer(i32),
+    OntologyTypeVersion(OntologyTypeVersion),
     Decimal(Real),
     Text(Cow<'p, str>),
     Vector(Embedding<'p>),
     Any(PropertyValue),
     #[serde(skip)]
     Uuid(Uuid),
-    #[serde(skip)]
-    OntologyTypeVersion(OntologyTypeVersion),
     #[serde(skip)]
     Timestamp(Timestamp<()>),
 }
@@ -83,7 +81,6 @@ impl Parameter<'_> {
     pub fn to_owned(&self) -> Parameter<'static> {
         match self {
             Parameter::Boolean(bool) => Parameter::Boolean(*bool),
-            Parameter::Integer(number) => Parameter::Integer(*number),
             Parameter::Decimal(number) => Parameter::Decimal(number.to_owned()),
             Parameter::Text(text) => Parameter::Text(Cow::Owned(text.to_string())),
             Parameter::Vector(vector) => Parameter::Vector(vector.to_owned()),
@@ -98,7 +95,6 @@ impl Parameter<'_> {
     pub fn parameter_type(&self) -> ParameterType {
         match self {
             Parameter::Boolean(_) => ParameterType::Boolean,
-            Parameter::Integer(_) => ParameterType::Integer,
             Parameter::Decimal(_) => ParameterType::Decimal,
             Parameter::Text(_) => ParameterType::Text,
             Parameter::Vector(_) => ParameterType::Vector(Box::new(ParameterType::Decimal)),
@@ -153,11 +149,9 @@ impl fmt::Display for ParameterConversionError {
                         Parameter::Any(PropertyValue::Null) => "null".to_owned(),
                         Parameter::Boolean(boolean)
                         | Parameter::Any(PropertyValue::Bool(boolean)) => boolean.to_string(),
-                        Parameter::Integer(number) => number.to_string(),
-                        #[expect(clippy::match_same_arms)]
-                        Parameter::Decimal(number) => number.to_string(),
-                        Parameter::Any(PropertyValue::Number(number)) => number.to_string(),
-                        Parameter::Text(text) => text.to_string(),
+                        Parameter::Decimal(number)
+                        | Parameter::Any(PropertyValue::Number(number)) => number.to_string(),
+                        Parameter::Text(text) => format!("\"{text}\""),
                         Parameter::Vector(_) => "vector".to_owned(),
                         Parameter::Any(PropertyValue::String(string)) => string.clone(),
                         Parameter::Uuid(uuid) => uuid.to_string(),
@@ -207,30 +201,12 @@ impl Parameter<'_> {
                 *self = Parameter::Boolean(*bool);
             }
 
-            // Integral conversions
-            (Parameter::Integer(number), ParameterType::Any) => {
-                *self = Parameter::Any(PropertyValue::Number(Real::from(*number)));
-            }
-            (Parameter::Any(PropertyValue::Number(number)), ParameterType::Integer) => {
-                *self = Parameter::Integer(number.to_i32().ok_or_else(|| {
-                    ParameterConversionError::InvalidParameterType {
-                        actual: self.to_owned().into(),
-                        expected: ParameterType::Integer,
-                    }
-                })?);
-            }
-            (Parameter::Integer(number), ParameterType::OntologyTypeVersion) => {
-                *self = Parameter::OntologyTypeVersion(OntologyTypeVersion::new(
-                    u32::try_from(*number).change_context_lazy(|| {
-                        ParameterConversionError::InvalidParameterType {
-                            actual: self.to_owned().into(),
-                            expected: ParameterType::OntologyTypeVersion,
-                        }
-                    })?,
-                ));
-            }
+            // Ontology type conversions
             (Parameter::Text(text), ParameterType::OntologyTypeVersion) if text == "latest" => {
                 // Special case for checking `version == "latest"
+            }
+            (Parameter::OntologyTypeVersion(version), ParameterType::Text) => {
+                *self = Parameter::Text(Cow::Owned(version.inner().to_string()));
             }
 
             // Floating point conversions

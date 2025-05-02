@@ -230,7 +230,7 @@ const EntitiesPage: NextPageWithLayout = () => {
 
   const pageTitle = entityType
     ? entityTypeId
-      ? `${entityType.schema.title} v${extractVersion(entityTypeId)}`
+      ? `${entityType.schema.title} v${extractVersion(entityTypeId).toString()}`
       : // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- we don't want an empty string
         entityType.schema.titlePlural || pluralize(entityType.schema.title)
     : "Entities";

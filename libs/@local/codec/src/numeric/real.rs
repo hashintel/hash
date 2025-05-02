@@ -96,6 +96,11 @@ impl Real {
     }
 
     #[must_use]
+    pub fn to_u32(&self) -> Option<u32> {
+        self.0.to_int().value().try_into().ok()
+    }
+
+    #[must_use]
     pub fn to_f32(&self) -> f32 {
         self.0.to_f32().value()
     }

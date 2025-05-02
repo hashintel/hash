@@ -192,7 +192,7 @@ export const extractVersion = (url: VersionedUrl): OntologyTypeVersion => {
 
   const [_match, _baseUrl, version] = groups;
 
-  return Number(version) as OntologyTypeVersion;
+  return version as unknown as OntologyTypeVersion;
 };
 
 /**
@@ -202,26 +202,35 @@ export const extractVersion = (url: VersionedUrl): OntologyTypeVersion => {
  * @throws {ParseVersionedUrlError} if the versionedUrl is invalid
  */
 export const componentsFromVersionedUrl = (
-  versionedUrl: VersionedUrl,
+  url: VersionedUrl,
 ): {
   baseUrl: BaseUrl;
   version: OntologyTypeVersion;
 } => {
-  const baseUrl = extractBaseUrl(versionedUrl);
-  const version = extractVersion(versionedUrl);
+  if (url.length > 2048) {
+    throw new Error(`URL too long: ${url}`);
+  }
+
+  const groups = versionedUrlRegExp.exec(url);
+
+  if (groups === null) {
+    throw new Error(`Not a valid VersionedUrl: ${url}`);
+  }
+
+  const [_match, baseUrl, version] = groups;
 
   return {
-    baseUrl,
-    version,
+    baseUrl: baseUrl as BaseUrl,
+    version: version as unknown as OntologyTypeVersion,
   };
 };
 
 class InvalidVersionedUrlComponentsError extends Error {
-  components: { baseUrl: BaseUrl; version: number };
+  components: { baseUrl: BaseUrl; version: OntologyTypeVersion };
   error: ParseVersionedUrlError;
 
   constructor(
-    components: { baseUrl: BaseUrl; version: number },
+    components: { baseUrl: BaseUrl; version: OntologyTypeVersion },
     error: ParseVersionedUrlError,
   ) {
     super(
@@ -237,9 +246,9 @@ class InvalidVersionedUrlComponentsError extends Error {
 
 export const versionedUrlFromComponents = (
   baseUrl: BaseUrl,
-  version: number,
+  version: OntologyTypeVersion,
 ): VersionedUrl => {
-  const versionedUrl = `${baseUrl}v/${version}`;
+  const versionedUrl = `${baseUrl}v/${version.toString()}`;
 
   const validationResult = validateVersionedUrl(versionedUrl);
 
@@ -255,6 +264,35 @@ export const versionedUrlFromComponents = (
 
 export const ontologyTypeRecordIdToVersionedUrl = (
   ontologyTypeRecordId: OntologyTypeRecordId,
-): VersionedUrl => {
-  return `${ontologyTypeRecordId.baseUrl}v/${ontologyTypeRecordId.version}`;
+): VersionedUrl =>
+  `${ontologyTypeRecordId.baseUrl}v/${ontologyTypeRecordId.version.toString()}`;
+
+export const makeOntologyTypeVersion = ({ major }: { major: number }) =>
+  `${major}` as unknown as OntologyTypeVersion;
+
+export const parseOntologyTypeVersion = (
+  version: string,
+): OntologyTypeVersion =>
+  makeOntologyTypeVersion({ major: Number.parseInt(version, 10) });
+
+export const incrementOntologyTypeVersion = (
+  version: OntologyTypeVersion,
+): OntologyTypeVersion =>
+  makeOntologyTypeVersion({
+    major: Number.parseInt(version.toString(), 10) + 1,
+  });
+
+export const compareOntologyTypeVersions = (
+  versionA: OntologyTypeVersion,
+  versionB: OntologyTypeVersion,
+): -1 | 0 | 1 => {
+  const parsedVersionA = Number.parseInt(versionA.toString(), 10);
+  const parsedVersionB = Number.parseInt(versionB.toString(), 10);
+  if (parsedVersionA < parsedVersionB) {
+    return -1;
+  } else if (parsedVersionA > parsedVersionB) {
+    return 1;
+  } else {
+    return 0;
+  }
 };

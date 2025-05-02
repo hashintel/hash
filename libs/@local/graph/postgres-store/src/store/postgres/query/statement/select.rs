@@ -140,6 +140,7 @@ mod tests {
         Distinctness, PostgresRecord, SelectCompiler, test_helper::trim_whitespace,
     };
 
+    #[track_caller]
     fn test_compilation<'p, 'q: 'p, T: PostgresRecord + 'static>(
         compiler: &SelectCompiler<'p, 'q, T>,
         expected_statement: &'static str,
@@ -292,7 +293,7 @@ mod tests {
                     path: DataTypeQueryPath::Version,
                 }),
                 Some(FilterExpression::Parameter {
-                    parameter: Parameter::Integer(1),
+                    parameter: Parameter::Decimal(Real::from_natural(1, 1)),
                     convert: None,
                 }),
             ),
@@ -312,7 +313,7 @@ mod tests {
             &[
                 &pinned_timestamp,
                 &"https://blockprotocol.org/@blockprotocol/types/data-type/text/",
-                &1_i32,
+                &Real::from_natural(1, 1),
             ],
         );
     }
@@ -448,7 +449,7 @@ mod tests {
                     },
                 }),
                 Some(FilterExpression::Parameter {
-                    parameter: Parameter::Integer(1),
+                    parameter: Parameter::Decimal(Real::from_natural(1, 1)),
                     convert: None,
                 }),
             ),
@@ -482,7 +483,7 @@ mod tests {
                 &pinned_timestamp,
                 &"Text",
                 &"https://blockprotocol.org/@blockprotocol/types/data-type/text/",
-                &1_i32,
+                &Real::from_natural(1, 1),
             ],
         );
     }
@@ -858,7 +859,7 @@ mod tests {
                 },
             }),
             Some(FilterExpression::Parameter {
-                parameter: Parameter::Integer(10),
+                parameter: Parameter::Decimal(Real::from_natural(10, 1)),
                 convert: None,
             }),
         );
@@ -895,7 +896,7 @@ mod tests {
             &[
                 &pinned_timestamp,
                 &temporal_axes.variable_interval(),
-                &10_i32,
+                &Real::from_natural(10, 1),
             ],
         );
     }
@@ -919,7 +920,7 @@ mod tests {
                 },
             }),
             Some(FilterExpression::Parameter {
-                parameter: Parameter::Integer(10),
+                parameter: Parameter::Decimal(Real::from_natural(10, 1)),
                 convert: None,
             }),
         );
@@ -956,7 +957,7 @@ mod tests {
             &[
                 &pinned_timestamp,
                 &temporal_axes.variable_interval(),
-                &10_i32,
+                &Real::from_natural(10, 1),
             ],
         );
     }

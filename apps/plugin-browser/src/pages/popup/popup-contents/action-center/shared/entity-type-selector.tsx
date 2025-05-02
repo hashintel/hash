@@ -4,6 +4,7 @@ import type {
   EntityTypeWithMetadata,
   VersionedUrl,
 } from "@blockprotocol/type-system";
+import { compareOntologyTypeVersions } from "@blockprotocol/type-system";
 import { Autocomplete, Chip, MenuItem } from "@hashintel/design-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { PopperProps } from "@mui/material";
@@ -77,8 +78,10 @@ export const EntityTypeSelector = ({
           (selectedType) => selectedType.schema.$id === type.schema.$id,
         ) &&
         (!latestEntityTypesByBaseUrl[baseUrl] ||
-          latestEntityTypesByBaseUrl[baseUrl].metadata.recordId.version <
-            type.metadata.recordId.version)
+          compareOntologyTypeVersions(
+            latestEntityTypesByBaseUrl[baseUrl].metadata.recordId.version,
+            type.metadata.recordId.version,
+          ) < 0)
       ) {
         latestEntityTypesByBaseUrl[baseUrl] = type;
       }

@@ -12,6 +12,7 @@ import type {
   EntityType,
   EntityTypeWithMetadata,
   OneOfSchema,
+  OntologyTypeRecordId,
   PropertyObjectWithMetadata,
   PropertyType,
   PropertyTypeReference,
@@ -29,6 +30,8 @@ import {
   ENTITY_TYPE_META_SCHEMA,
   extractBaseUrl,
   extractWebIdFromEntityId,
+  incrementOntologyTypeVersion,
+  makeOntologyTypeVersion,
   PROPERTY_TYPE_META_SCHEMA,
   versionedUrlFromComponents,
 } from "@blockprotocol/type-system";
@@ -226,7 +229,7 @@ export const createSystemDataTypeIfNotExists: ImpureGraphFunction<
     shortname: webShortname,
   });
 
-  const versionNumber = 1;
+  const versionNumber = makeOntologyTypeVersion({ major: 1 });
 
   const dataTypeId = versionedUrlFromComponents(baseUrl, versionNumber);
 
@@ -318,7 +321,7 @@ export const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<
     shortname: webShortname,
   });
 
-  const versionNumber = 1;
+  const versionNumber = makeOntologyTypeVersion({ major: 1 });
 
   const propertyTypeId = versionedUrlFromComponents(baseUrl, versionNumber);
 
@@ -543,7 +546,7 @@ export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
     shortname: webShortname,
   });
 
-  const versionNumber = 1;
+  const versionNumber = makeOntologyTypeVersion({ major: 1 });
 
   const entityTypeId = versionedUrlFromComponents(baseUrl, versionNumber);
 
@@ -744,17 +747,21 @@ export const updateSystemEntityType: ImpureGraphFunction<
 
   if (versionInMigrationState !== version) {
     throw new Error(
-      `Update requested for entity type with current entityTypeId ${currentEntityTypeId}, but the current version in migration state is ${versionInMigrationState}`,
+      `Update requested for entity type with current entityTypeId ${currentEntityTypeId}, but the current version in migration state is ${versionInMigrationState.toString()}`,
     );
   }
 
-  const nextEntityTypeId = versionedUrlFromComponents(baseUrl, version + 1);
+  const nextEntityTypeVersion = incrementOntologyTypeVersion(version);
+  const nextEntityTypeId = versionedUrlFromComponents(
+    baseUrl,
+    nextEntityTypeVersion,
+  );
   try {
     await getEntityTypeById(context, authentication, {
       entityTypeId: nextEntityTypeId,
     });
 
-    migrationState.entityTypeVersions[baseUrl] = version + 1;
+    migrationState.entityTypeVersions[baseUrl] = nextEntityTypeVersion;
 
     return { updatedEntityTypeId: nextEntityTypeId };
   } catch {
@@ -804,7 +811,8 @@ export const updateSystemEntityType: ImpureGraphFunction<
         })
         .then((resp) => resp.data);
 
-  const { version: newVersion } = updatedTypeMetadata.recordId;
+  const { version: newVersion } =
+    updatedTypeMetadata.recordId as unknown as OntologyTypeRecordId;
 
   migrationState.entityTypeVersions[baseUrl] = newVersion;
 
@@ -838,11 +846,14 @@ export const updateSystemPropertyType: ImpureGraphFunction<
 
   if (versionInMigrationState !== version) {
     throw new Error(
-      `Update requested for property type with current propertyTypeId ${currentPropertyTypeId}, but the current version in migration state is ${versionInMigrationState}`,
+      `Update requested for property type with current propertyTypeId ${currentPropertyTypeId}, but the current version in migration state is ${versionInMigrationState.toString()}`,
     );
   }
 
-  const nextPropertyTypeId = versionedUrlFromComponents(baseUrl, version + 1);
+  const nextPropertyTypeId = versionedUrlFromComponents(
+    baseUrl,
+    incrementOntologyTypeVersion(version),
+  );
   try {
     await getPropertyTypeById(context, authentication, {
       propertyTypeId: nextPropertyTypeId,
@@ -881,7 +892,8 @@ export const updateSystemPropertyType: ImpureGraphFunction<
         })
         .then((resp) => resp.data);
 
-  const { version: newVersion } = updatedPropertyTypeMetadata.recordId;
+  const { version: newVersion } =
+    updatedPropertyTypeMetadata.recordId as unknown as OntologyTypeRecordId;
 
   migrationState.propertyTypeVersions[baseUrl] = newVersion;
 
@@ -919,7 +931,10 @@ export const upgradeDependenciesInHashEntityType: ImpureGraphFunction<
       currentDependentEntityTypeId,
     );
 
-    return versionedUrlFromComponents(baseUrl, version + 1);
+    return versionedUrlFromComponents(
+      baseUrl,
+      incrementOntologyTypeVersion(version),
+    );
   });
 
   for (const dependentEntityTypeKey of dependentEntityTypeKeys) {

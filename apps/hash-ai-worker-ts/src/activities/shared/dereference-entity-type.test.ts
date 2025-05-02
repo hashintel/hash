@@ -14,7 +14,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
           reversed: false,
           rightEndpoint: {
             baseId: "https://hash.ai/@h/types/property-type/expired-at/",
-            revisionId: 1,
+            revisionId: "1",
           },
         },
         {
@@ -22,7 +22,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
           reversed: false,
           rightEndpoint: {
             baseId: "https://hash.ai/@h/types/property-type/organization-name/",
-            revisionId: 1,
+            revisionId: "1",
           },
         },
         {
@@ -30,7 +30,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
           reversed: false,
           rightEndpoint: {
             baseId: "https://hash.ai/@h/types/property-type/archived/",
-            revisionId: 1,
+            revisionId: "1",
           },
         },
         {
@@ -39,7 +39,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
           rightEndpoint: {
             baseId:
               "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/",
-            revisionId: 1,
+            revisionId: "1",
           },
         },
         {
@@ -48,7 +48,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
           rightEndpoint: {
             baseId:
               "https://blockprotocol.org/@blockprotocol/types/data-type/number/",
-            revisionId: 1,
+            revisionId: "1",
           },
         },
       ],
@@ -61,7 +61,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
           rightEndpoint: {
             baseId:
               "https://blockprotocol.org/@blockprotocol/types/data-type/text/",
-            revisionId: 1,
+            revisionId: "1",
           },
         },
       ],
@@ -74,7 +74,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
           rightEndpoint: {
             baseId:
               "https://blockprotocol.org/@blockprotocol/types/data-type/text/",
-            revisionId: 1,
+            revisionId: "1",
           },
         },
       ],
@@ -86,7 +86,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
           reversed: false,
           rightEndpoint: {
             baseId: "https://hash.ai/@d/types/property-type/notes/",
-            revisionId: 1,
+            revisionId: "1",
           },
         },
         {
@@ -94,7 +94,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
           reversed: false,
           rightEndpoint: {
             baseId: "https://hash.ai/@h/types/property-type/summary/",
-            revisionId: 1,
+            revisionId: "1",
           },
         },
       ],
@@ -106,7 +106,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
           reversed: false,
           rightEndpoint: {
             baseId: "https://hash.ai/@h/types/property-type/archived/",
-            revisionId: 1,
+            revisionId: "1",
           },
         },
         {
@@ -114,7 +114,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
           reversed: false,
           rightEndpoint: {
             baseId: "https://hash.ai/@h/types/property-type/deleted-at/",
-            revisionId: 1,
+            revisionId: "1",
           },
         },
         {
@@ -122,7 +122,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
           reversed: false,
           rightEndpoint: {
             baseId: "https://hash.ai/@test/types/property-type/mixed-array/",
-            revisionId: 3,
+            revisionId: "3",
           },
         },
         {
@@ -131,7 +131,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
           rightEndpoint: {
             baseId:
               "https://hash.ai/@test/types/property-type/notes-and-summary/",
-            revisionId: 1,
+            revisionId: "1",
           },
         },
       ],
@@ -144,7 +144,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
           rightEndpoint: {
             baseId:
               "https://blockprotocol.org/@blockprotocol/types/data-type/text/",
-            revisionId: 1,
+            revisionId: "1",
           },
         },
       ],
@@ -157,7 +157,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
           rightEndpoint: {
             baseId:
               "https://blockprotocol.org/@blockprotocol/types/data-type/text/",
-            revisionId: 1,
+            revisionId: "1",
           },
         },
       ],
@@ -170,7 +170,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
           rightEndpoint: {
             baseId:
               "https://blockprotocol.org/@blockprotocol/types/data-type/text/",
-            revisionId: 1,
+            revisionId: "1",
           },
         },
       ],
@@ -183,7 +183,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
           rightEndpoint: {
             baseId:
               "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/",
-            revisionId: 1,
+            revisionId: "1",
           },
         },
       ],
@@ -192,7 +192,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
   roots: [
     {
       baseId: "https://hash.ai/@test/types/entity-type/property-values-demo/",
-      revisionId: 4,
+      revisionId: "4",
     },
   ],
   vertices: {
@@ -213,7 +213,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
             recordId: {
               baseUrl:
                 "https://blockprotocol.org/@blockprotocol/types/data-type/text/",
-              version: 1,
+              version: "1",
             },
             provenance: {
               edition: {
@@ -273,7 +273,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
             recordId: {
               baseUrl:
                 "https://hash.ai/@test/types/property-type/notes-and-summary/",
-              version: 1,
+              version: "1",
             },
             provenance: {
               edition: {
@@ -319,7 +319,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
                 items: {
                   $ref: "https://hash.ai/@h/types/property-type/deleted-at/v/1",
                 },
-                minItems: 0,
+                minItems: "0",
               },
               "https://hash.ai/@test/types/property-type/notes-and-summary/": {
                 $ref: "https://hash.ai/@test/types/property-type/notes-and-summary/v/1",
@@ -341,7 +341,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
                     },
                   ],
                 },
-                minItems: 0,
+                minItems: "0",
               },
             },
           },
@@ -349,7 +349,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
             recordId: {
               baseUrl:
                 "https://hash.ai/@test/types/entity-type/property-values-demo/",
-              version: 4,
+              version: "4",
             },
             provenance: {
               edition: {
@@ -393,7 +393,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
             recordId: {
               baseUrl:
                 "https://blockprotocol.org/@blockprotocol/types/data-type/number/",
-              version: 1,
+              version: "1",
             },
             provenance: {
               edition: {
@@ -490,7 +490,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
           metadata: {
             recordId: {
               baseUrl: "https://hash.ai/@test/types/property-type/mixed-array/",
-              version: 3,
+              version: "3",
             },
             provenance: {
               edition: {
@@ -537,7 +537,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
           metadata: {
             recordId: {
               baseUrl: "https://hash.ai/@h/types/property-type/archived/",
-              version: 1,
+              version: "1",
             },
             provenance: {
               edition: {
@@ -584,7 +584,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
           metadata: {
             recordId: {
               baseUrl: "https://hash.ai/@h/types/property-type/expired-at/",
-              version: 1,
+              version: "1",
             },
             provenance: {
               edition: {
@@ -631,7 +631,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
           metadata: {
             recordId: {
               baseUrl: "https://hash.ai/@h/types/property-type/summary/",
-              version: 1,
+              version: "1",
             },
             provenance: {
               edition: {
@@ -679,7 +679,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
             recordId: {
               baseUrl:
                 "https://hash.ai/@h/types/property-type/organization-name/",
-              version: 1,
+              version: "1",
             },
             provenance: {
               edition: {
@@ -726,7 +726,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
           metadata: {
             recordId: {
               baseUrl: "https://hash.ai/@h/types/property-type/deleted-at/",
-              version: 1,
+              version: "1",
             },
             provenance: {
               edition: {
@@ -770,7 +770,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
             recordId: {
               baseUrl:
                 "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/",
-              version: 1,
+              version: "1",
             },
             provenance: {
               edition: {
@@ -817,7 +817,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
           metadata: {
             recordId: {
               baseUrl: "https://hash.ai/@d/types/property-type/notes/",
-              version: 1,
+              version: "1",
             },
             provenance: {
               edition: {

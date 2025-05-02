@@ -10,6 +10,7 @@ import type {
   WebId,
 } from "@blockprotocol/type-system";
 import {
+  compareOntologyTypeVersions,
   componentsFromVersionedUrl,
   mustHaveAtLeastOne,
   versionedUrlFromComponents,
@@ -136,7 +137,10 @@ export const upgradeWebEntities = async ({
 
         if (
           !matchingTypeRecordId ||
-          matchingTypeRecordId.version >= newVersion
+          compareOntologyTypeVersions(
+            matchingTypeRecordId.version,
+            newVersion,
+          ) >= 0
         ) {
           continue;
         }

@@ -6,6 +6,7 @@ import type {
 import {
   componentsFromVersionedUrl,
   currentTimestamp,
+  parseOntologyTypeVersion,
 } from "@blockprotocol/type-system";
 import { GlobalStyles } from "@mui/system";
 import { Buffer } from "buffer/";
@@ -107,7 +108,7 @@ const Page: NextPageWithLayout = () => {
   }, [router.query.draft]);
 
   const requestedVersion = requestedVersionString
-    ? Number.parseInt(requestedVersionString, 10)
+    ? parseOntologyTypeVersion(requestedVersionString)
     : null;
 
   if (!routeNamespace) {
@@ -124,7 +125,7 @@ const Page: NextPageWithLayout = () => {
         webId={routeNamespace.webId}
         draftNewDataType={draftDataType}
         dataTypeBaseUrl={dataTypeBaseUrl}
-        key={`${dataTypeBaseUrl}-${requestedVersion}`}
+        key={`${dataTypeBaseUrl}-${requestedVersion?.toString()}`}
         requestedVersion={requestedVersion}
         onDataTypeUpdated={(dataType) => {
           void router.push(generateLinkParameters(dataType.schema.$id).href);

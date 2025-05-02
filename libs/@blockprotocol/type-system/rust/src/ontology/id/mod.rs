@@ -233,17 +233,41 @@ impl<'a> FromSql<'a> for BaseUrl {
 /// let version = OntologyTypeVersion::new(1);
 /// assert_eq!(version.inner(), 1);
 /// ```
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema), schema(value_type = String))]
 #[repr(transparent)]
 pub struct OntologyTypeVersion(
+    // We aim to replace the simple `u32` with a more complex type in the future.
+    // For now, we use `u32` to represent the version number. but we export it as an
+    // `Opaque` type to ensure that it is not used directly in TypeScript.
     #[cfg_attr(
         target_arch = "wasm32",
-        tsify(type = "Brand<number, \"OntologyTypeVersion\">")
+        tsify(type = "Opaque<\"OntologyTypeVersion\">")
     )]
     u32,
 );
+
+impl Serialize for OntologyTypeVersion {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        self.0.to_string().serialize(serializer)
+    }
+}
+
+impl<'de> Deserialize<'de> for OntologyTypeVersion {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        <&str>::deserialize(deserializer)?
+            .parse()
+            .map(Self::new)
+            .map_err(de::Error::custom)
+    }
+}
 
 impl OntologyTypeVersion {
     /// Creates a new version identifier with the specified value.
@@ -350,7 +374,7 @@ pub struct VersionedUrl {
 mod patch {
     #[derive(tsify_next::Tsify)]
     #[expect(dead_code, reason = "Used in the generated TypeScript types")]
-    struct VersionedUrl(#[tsify(type = "`${string}v/${number}`")] String);
+    struct VersionedUrl(#[tsify(type = "`${string}v/${string}`")] String);
 }
 
 impl VersionedUrl {
@@ -523,11 +547,9 @@ impl ToSchema<'_> for VersionedUrl {
 #[serde(rename_all = "camelCase")]
 pub struct OntologyTypeRecordId {
     /// The base URL component representing the unversioned part of the type identifier
-    #[cfg_attr(feature = "utoipa", schema(value_type = BaseUrl))]
     pub base_url: BaseUrl,
 
     /// The version number component specifying the exact version of the type
-    #[cfg_attr(feature = "utoipa", schema(value_type = u32))]
     pub version: OntologyTypeVersion,
 }
 

@@ -2,6 +2,7 @@ import type {
   Entity,
   EntityEditionProvenance,
   EntityType,
+  OntologyTypeVersion,
   PropertyDiff,
   PropertyMetadata,
   PropertyProvenance,
@@ -36,9 +37,9 @@ type PropertyUpdateEvent = HistoryEventBase & {
 type TypeUpdateEvent = HistoryEventBase & {
   type: "type-update";
   entityType: {
-    oldVersion?: number;
+    oldVersion?: OntologyTypeVersion;
     title: string;
-    version: number;
+    version: OntologyTypeVersion;
   };
   op: "added" | "removed" | "upgraded";
   provenance: {

@@ -1,5 +1,9 @@
 import type { EntityType } from "@blockprotocol/type-system";
-import { extractBaseUrl, extractVersion } from "@blockprotocol/type-system";
+import {
+  compareOntologyTypeVersions,
+  extractBaseUrl,
+  extractVersion,
+} from "@blockprotocol/type-system";
 import { TypeCard } from "@hashintel/design-system";
 /* eslint-disable no-restricted-imports */
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -22,7 +26,10 @@ export const InheritedTypeCard = ({
   const { entityTypes } = useEntityTypesOptions();
 
   const [currentVersion, latestVersion] = useTypeVersions($id, entityTypes);
-  const newVersion = currentVersion < latestVersion ? latestVersion : undefined;
+  const newVersion =
+    compareOntologyTypeVersions(currentVersion, latestVersion) < 0
+      ? latestVersion
+      : undefined;
 
   const isReadOnly = useIsReadonly();
 
@@ -43,7 +50,7 @@ export const InheritedTypeCard = ({
         const targetBaseUrl = extractBaseUrl(id);
 
         if (targetBaseUrl === extractBaseUrl($id)) {
-          return `${targetBaseUrl}v/${newVersion}` as const;
+          return `${targetBaseUrl}v/${newVersion.toString()}` as const;
         }
         return id;
       }),

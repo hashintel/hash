@@ -179,7 +179,9 @@ export const createEntityType: ImpureGraphFunction<
     },
   );
 
-  return { schema, metadata: metadata as EntityTypeMetadata };
+  // TODO: Avoid casting through `unknown` when new codegen is in place
+  //   see https://linear.app/hash/issue/H-4463/utilize-new-codegen-and-replace-custom-defined-node-types
+  return { schema, metadata: metadata as unknown as EntityTypeMetadata };
 };
 
 /**
@@ -371,7 +373,9 @@ export const updateEntityType: ImpureGraphFunction<
   );
 
   const newEntityTypeId = ontologyTypeRecordIdToVersionedUrl(
-    metadata.recordId as OntologyTypeRecordId,
+    // TODO: Avoid casting through `unknown` when new codegen is in place
+    //   see https://linear.app/hash/issue/H-4463/utilize-new-codegen-and-replace-custom-defined-node-types
+    metadata.recordId as unknown as OntologyTypeRecordId,
   );
 
   return {
@@ -381,7 +385,9 @@ export const updateEntityType: ImpureGraphFunction<
       ...schema,
       $id: newEntityTypeId,
     },
-    metadata: metadata as EntityTypeMetadata,
+    // TODO: Avoid casting through `unknown` when new codegen is in place
+    //   see https://linear.app/hash/issue/H-4463/utilize-new-codegen-and-replace-custom-defined-node-types
+    metadata: metadata as unknown as EntityTypeMetadata,
   };
 };
 
@@ -435,10 +441,14 @@ export const updateEntityTypes: ImpureGraphFunction<
         $schema: ENTITY_TYPE_META_SCHEMA,
         ...input.schema,
         $id: ontologyTypeRecordIdToVersionedUrl(
-          metadata.recordId as OntologyTypeRecordId,
+          // TODO: Avoid casting through `unknown` when new codegen is in place
+          //   see https://linear.app/hash/issue/H-4463/utilize-new-codegen-and-replace-custom-defined-node-types
+          metadata.recordId as unknown as OntologyTypeRecordId,
         ),
       },
-      metadata: metadata as EntityTypeMetadata,
+      // TODO: Avoid casting through `unknown` when new codegen is in place
+      //   see https://linear.app/hash/issue/H-4463/utilize-new-codegen-and-replace-custom-defined-node-types
+      metadata: metadata as unknown as EntityTypeMetadata,
     };
   });
 };

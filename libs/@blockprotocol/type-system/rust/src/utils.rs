@@ -6,7 +6,7 @@ mod wasm {
 
     #[wasm_bindgen(typescript_custom_section)]
     const TS_APPEND_CONTENT: &'static str = r#"
-    import type { Brand } from "@local/advanced-types/brand";
+    import type { Brand, Opaque } from "@local/advanced-types/brand";
     "#;
 
     // Common types

@@ -1,4 +1,9 @@
-import type { EntityId, MachineId, WebId } from "@blockprotocol/type-system";
+import type {
+  EntityId,
+  MachineId,
+  OntologyTypeVersion,
+  WebId,
+} from "@blockprotocol/type-system";
 import {
   extractBaseUrl,
   extractWebIdFromEntityId,
@@ -100,8 +105,8 @@ export const createOrg: ImpureGraphFunction<
     name: string;
     webId?: WebId;
     websiteUrl?: string | null;
-    machineEntityTypeVersion?: number;
-    orgEntityTypeVersion?: number;
+    machineEntityTypeVersion?: OntologyTypeVersion;
+    orgEntityTypeVersion?: OntologyTypeVersion;
     bypassShortnameValidation?: boolean;
   },
   Promise<Org>

@@ -12,7 +12,10 @@ import type {
   VersionedUrl,
   WebId,
 } from "@blockprotocol/type-system";
-import { extractBaseUrl } from "@blockprotocol/type-system";
+import {
+  compareOntologyTypeVersions,
+  extractBaseUrl,
+} from "@blockprotocol/type-system";
 import type { ConstructEntityTypeParams } from "@local/hash-graph-sdk/ontology";
 import { useRouter } from "next/router";
 import {
@@ -67,7 +70,7 @@ export const useEntityTypeValue = (
 
   const { contextEntityType, latestVersion } = useMemo<{
     contextEntityType: EntityTypeWithMetadata | null;
-    latestVersion: number | null;
+    latestVersion: OntologyTypeVersion | null;
   }>(() => {
     if (entityTypesLoading || !entityTypesSubgraph || isDraft) {
       return { contextEntityType: null, latestVersion: null };
@@ -87,7 +90,11 @@ export const useEntityTypeValue = (
         }) => version,
       );
 
-      const maxVersion = Math.max(...availableVersions) as OntologyTypeVersion;
+      const maxVersion = availableVersions.reduce(
+        (max, current) =>
+          compareOntologyTypeVersions(current, max) > 0 ? current : max,
+        availableVersions[0]!,
+      );
 
       // Return the requested version if one has been specified and it exists
       if (requestedVersion) {
@@ -102,12 +109,12 @@ export const useEntityTypeValue = (
         } else {
           // eslint-disable-next-line no-console -- intentional debugging logging
           console.warn(
-            `Requested version ${requestedVersion} not found – redirecting to latest.`,
+            `Requested version ${requestedVersion.toString()} not found – redirecting to latest.`,
           );
           void router.replace(
             window.location.href.replace(
-              `/v/${requestedVersion}`,
-              `/v/${maxVersion}`,
+              `/v/${requestedVersion.toString()}`,
+              `/v/${maxVersion.toString()}`,
             ),
           );
         }

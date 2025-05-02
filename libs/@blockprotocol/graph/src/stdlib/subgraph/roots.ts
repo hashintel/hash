@@ -39,7 +39,7 @@ export const getRoots = <RootType extends SubgraphRootType>(
     const root = mustBeDefined(
       (subgraph.vertices as Record<string, Record<string, Vertex>>)[
         rootVertexId.baseId
-      ]?.[rootVertexId.revisionId],
+      ]?.[rootVertexId.revisionId.toString()],
       `roots should have corresponding vertices but ${JSON.stringify(
         rootVertexId,
       )} was missing`,

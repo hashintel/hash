@@ -123,6 +123,7 @@ impl Transpile for WhereExpression {
 mod tests {
     use alloc::borrow::Cow;
 
+    use hash_codec::numeric::Real;
     use hash_graph_store::{
         data_type::DataTypeQueryPath,
         filter::{Filter, FilterExpression, Parameter},
@@ -178,7 +179,7 @@ mod tests {
                     path: DataTypeQueryPath::Version,
                 }),
                 Some(FilterExpression::Parameter {
-                    parameter: Parameter::Integer(1),
+                    parameter: Parameter::Decimal(Real::from_natural(1, 1)),
                     convert: None,
                 }),
             ),
@@ -269,7 +270,7 @@ mod tests {
             &[
                 format!("{:?}", temporal_axes.pinned_timestamp()).as_str(),
                 "\"https://blockprotocol.org/@blockprotocol/types/data-type/text/\"",
-                "1",
+                format!("{:?}", Real::from_natural(1, 1)).as_str(),
                 "\"some title\"",
                 "\"some description\""
             ]

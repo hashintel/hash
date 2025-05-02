@@ -1,5 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import {
+  compareOntologyTypeVersions,
   componentsFromVersionedUrl,
   extractBaseUrl,
   extractVersion,
@@ -219,7 +220,10 @@ export const useGetTypeChangeDetails = () => {
           ? extractVersion(oldLinkTypeId)
           : undefined;
 
-        if (oldLinkVersion && oldLinkVersion < newLinkTypeVersion) {
+        if (
+          oldLinkVersion &&
+          compareOntologyTypeVersions(oldLinkVersion, newLinkTypeVersion) < 0
+        ) {
           changeDetails.linkChanges.push({
             change: "Link version changed",
             linkTypeBaseUrl: newLinkTypeBaseUrl,

@@ -108,7 +108,7 @@ export const createDataType: ImpureGraphFunction<
     },
   );
 
-  return { schema, metadata: metadata as DataTypeMetadata };
+  return { schema, metadata: metadata as unknown as DataTypeMetadata };
 };
 
 export const getDataTypes: ImpureGraphFunction<
@@ -250,9 +250,15 @@ export const updateDataType: ImpureGraphFunction<
       $schema: DATA_TYPE_META_SCHEMA,
       kind: "dataType",
       ...schema,
-      $id: ontologyTypeRecordIdToVersionedUrl(recordId as OntologyTypeRecordId),
+      // TODO: Avoid casting through `unknown` when new codegen is in place
+      //   see https://linear.app/hash/issue/H-4463/utilize-new-codegen-and-replace-custom-defined-node-types
+      $id: ontologyTypeRecordIdToVersionedUrl(
+        recordId as unknown as OntologyTypeRecordId,
+      ),
     },
-    metadata: metadata as DataTypeMetadata,
+    // TODO: Avoid casting through `unknown` when new codegen is in place
+    //   see https://linear.app/hash/issue/H-4463/utilize-new-codegen-and-replace-custom-defined-node-types
+    metadata: metadata as unknown as DataTypeMetadata,
   };
 };
 

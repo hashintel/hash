@@ -107,7 +107,7 @@ export const isEntityVertexId = (
 export type OntologyVertices = {
   /** Branding the keys causes too much complication with accessing the vertices. */
   [baseUrl: string]: {
-    [revisionId: OntologyTypeVersion]: OntologyVertex;
+    [revisionId: string]: OntologyVertex;
   };
 };
 

@@ -1,3 +1,4 @@
+import type { OntologyTypeVersion } from "@blockprotocol/type-system";
 import { versionedUrlFromComponents } from "@blockprotocol/type-system";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import { generateTypeBaseUrl } from "@local/hash-isomorphic-utils/ontology-types";
@@ -16,7 +17,7 @@ export const useGenerateTypeUrlsForUser = () => {
     }: {
       kind: "entity-type" | "property-type" | "data-type";
       title: string;
-      version: number;
+      version: OntologyTypeVersion;
     }) => {
       if (!activeWorkspace?.shortname) {
         throw new Error("No valid active workspace");

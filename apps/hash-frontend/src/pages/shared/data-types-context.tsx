@@ -4,6 +4,7 @@ import type {
   DataTypeWithMetadata,
   VersionedUrl,
 } from "@blockprotocol/type-system";
+import { compareOntologyTypeVersions } from "@blockprotocol/type-system";
 import { typedValues } from "@local/advanced-types/typed-entries";
 import type { PropsWithChildren } from "react";
 import { createContext, useContext, useMemo } from "react";
@@ -58,8 +59,10 @@ export const DataTypesContextProvider = ({ children }: PropsWithChildren) => {
         if (dataTypeVertex.kind === "dataType") {
           if (
             !highestVersion ||
-            dataTypeVertex.inner.metadata.recordId.version >
-              highestVersion.metadata.recordId.version
+            compareOntologyTypeVersions(
+              dataTypeVertex.inner.metadata.recordId.version,
+              highestVersion.metadata.recordId.version,
+            ) > 0
           ) {
             highestVersion = dataTypeVertex.inner;
           }

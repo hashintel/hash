@@ -1,4 +1,5 @@
 import type { BaseUrl } from "@blockprotocol/type-system";
+import { parseOntologyTypeVersion } from "@blockprotocol/type-system";
 import { useRouter } from "next/router";
 
 import type { NextPageWithLayout } from "../../../../shared/layout";
@@ -15,14 +16,14 @@ const Page: NextPageWithLayout = () => {
   const dataTypeBaseUrl = atob(base64EncodedBaseUrl) as BaseUrl;
 
   const requestedVersion = requestedVersionString
-    ? parseInt(requestedVersionString, 10)
+    ? parseOntologyTypeVersion(requestedVersionString)
     : null;
 
   return (
     <DataType
       dataTypeBaseUrl={dataTypeBaseUrl}
       isInSlide={false}
-      key={`${dataTypeBaseUrl}-${requestedVersion}`}
+      key={`${dataTypeBaseUrl}-${requestedVersion?.toString()}`}
       requestedVersion={requestedVersion}
       onDataTypeUpdated={() => {
         throw new Error("Unexpected update to external data type");

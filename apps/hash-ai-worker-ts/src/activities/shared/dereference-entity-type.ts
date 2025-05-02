@@ -18,6 +18,7 @@ import type {
 } from "@blockprotocol/type-system";
 import {
   atLeastOne,
+  compareOntologyTypeVersions,
   componentsFromVersionedUrl,
   extractBaseUrl,
   extractVersion,
@@ -395,11 +396,14 @@ export const dereferenceEntityType = <
        */
       if (
         !existingProperty ||
-        extractVersion(
-          "items" in existingProperty
-            ? existingProperty.items.$id
-            : existingProperty.$id,
-        ) < version
+        compareOntologyTypeVersions(
+          extractVersion(
+            "items" in existingProperty
+              ? existingProperty.items.$id
+              : existingProperty.$id,
+          ),
+          version,
+        ) < 0
       ) {
         let propertyKey: string | BaseUrl = baseUrl;
 
