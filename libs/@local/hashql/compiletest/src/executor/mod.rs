@@ -35,6 +35,10 @@ pub(crate) enum TrialError {
     UnfulfilledAnnotation(DiagnosticAnnotation),
     #[display("unexpected diagnostic:\n{_0}")]
     UnexpectedDiagnostic(String),
+    #[display("Expected trial to fail, but it passed instead")]
+    TrialShouldFail,
+    #[display("Expected trial to pass, but it failed")]
+    TrialShouldPass,
 }
 
 impl error::Error for TrialError {}
