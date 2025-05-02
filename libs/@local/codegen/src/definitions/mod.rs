@@ -15,5 +15,5 @@ pub use self::{
     primitive::Primitive,
     r#struct::Struct,
     tuple::Tuple,
-    r#type::{Type, TypeDefinition},
+    r#type::{Type, TypeDefinition, TypeId},
 };

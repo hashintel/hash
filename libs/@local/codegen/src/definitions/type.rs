@@ -1,14 +1,29 @@
 use alloc::borrow::Cow;
 
-use specta::datatype;
+use specta::{SpectaID, datatype};
 
 use super::{Enum, List, Map, Primitive, Struct, Tuple};
 
+/// A wrapper around `specta::SpectaID` that uniquely identifies types.
+///
+/// This solves the problem of distinguishing between different type references that might have the
+/// same name but are from different scopes or modules.
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
+pub struct TypeId(specta::SpectaID);
+
+impl TypeId {
+    pub(crate) const fn from_specta(id: specta::SpectaID) -> Self {
+        Self(id)
+    }
+
+    pub(crate) const fn to_specta(self) -> SpectaID {
+        self.0
+    }
+}
+
 #[derive(Debug, Clone)]
 pub enum Type {
-    // TODO: Use a `TypeId` to distinguish between the same type names
-    //   see https://linear.app/hash/issue/H-4486/implement-a-typeid-to-distinguish-between-different-references-with
-    Reference(Cow<'static, str>),
+    Reference(TypeId),
     Primitive(Primitive),
     Enum(Enum),
     Struct(Struct),
@@ -31,13 +46,9 @@ impl Type {
                 Self::Struct(Struct::from_specta(struct_type, type_collection))
             }
             specta::DataType::Primitive(primitive_type) => Self::Primitive(primitive_type.into()),
-            specta::DataType::Reference(reference) => Self::Reference(
-                type_collection
-                    .get(reference.sid())
-                    .expect("Type collection should have SID")
-                    .name()
-                    .clone(),
-            ),
+            specta::DataType::Reference(reference) => {
+                Self::Reference(TypeId::from_specta(reference.sid()))
+            }
             specta::DataType::Tuple(tuple) => {
                 Self::Tuple(Tuple::from_specta(tuple, type_collection))
             }

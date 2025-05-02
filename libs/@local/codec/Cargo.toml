@@ -16,6 +16,7 @@ serde               = { workspace = true, public = true, optional = true }
 # Public third-party dependencies
 bytes      = { workspace = true, public = true }
 regex      = { workspace = true, public = true, optional = true }
+specta     = { workspace = true, public = true, optional = true, features = ["derive"] }
 tokio-util = { workspace = true, public = true, optional = true, features = ["codec"] }
 utoipa     = { workspace = true, public = true, optional = true }
 
@@ -45,7 +46,7 @@ bytes = [
 ]
 serde = ["dep:serde", "dep:time", "dep:regex"]
 harpc = ["dep:harpc-wire-protocol", "dep:tokio-util", "dep:error-stack"]
-numeric = ["dep:dashu-base", "dep:dashu-float", "dep:derive_more"]
+numeric = ["dep:dashu-base", "dep:dashu-float", "dep:derive_more", "dep:specta"]
 postgres = ["dep:postgres-types"]
 utoipa = ["dep:utoipa"]
 

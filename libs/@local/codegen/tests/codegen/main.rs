@@ -66,6 +66,9 @@ fn register_types(collection: &mut TypeCollection) {
     collection.register::<tuples::TupleNested>();
     collection.register::<tuples::TupleOptional>();
 
+    // Register a recursive type
+    collection.register::<type_system::knowledge::PropertyValue>();
+
     // Register principals
     // Note, that transitive types can be completed by the codegen
     collection.register::<principal::Principal>();
@@ -84,19 +87,19 @@ fn main() -> ExitCode {
     register_types(&mut collection);
     collection.register_transitive_types();
 
-    let names = collection
+    let types = collection
         .iter()
-        .map(|(name, _)| name.to_owned())
+        .map(|(type_id, _, def)| (type_id, def.name.clone()))
         .collect::<Vec<_>>();
 
     let settings = TypeScriptGeneratorSettings::default();
     let generator = TypeScriptGenerator::new(&settings, collection);
 
     let mut tests = Vec::new();
-    for name in &names {
+    for (type_id, name) in types {
         for target in &targets {
             let test_name = format!("{name}::{target:?}");
-            let generated = generator.generate(name);
+            let generated = generator.generate(type_id);
             tests.push(Trial::test(test_name.clone(), move || {
                 assert_snapshot!(test_name, generated);
                 Ok(())

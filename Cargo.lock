@@ -3218,6 +3218,7 @@ dependencies = [
  "serde",
  "serde_json",
  "simple-mermaid",
+ "specta",
  "time",
  "tokio-util",
  "utoipa",
