@@ -936,6 +936,25 @@ mod test {
                 .iter()
                 .any(|item| item.kind.universe() == Some(Universe::Value))
         );
+
+        let result = resolver
+            .resolve_relative([heap.intern_symbol("Dict")], namespace.imports_as_slice())
+            .expect("Resolution should succeed");
+
+        let items: Vec<_> = result.collect();
+        assert_eq!(items.len(), 2);
+
+        // Verify we have both Type and Value universes
+        assert!(
+            items
+                .iter()
+                .any(|item| item.kind.universe() == Some(Universe::Type))
+        );
+        assert!(
+            items
+                .iter()
+                .any(|item| item.kind.universe() == Some(Universe::Value))
+        );
     }
 
     #[test]
