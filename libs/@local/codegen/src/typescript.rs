@@ -74,7 +74,12 @@ impl<'a> TypeScriptGenerator<'a> {
                     .collection
                     .types
                     .get(name)
-                    .unwrap_or_else(|| panic!("Reference {name} not found in type map"))
+                    .unwrap_or_else(|| {
+                        panic!(
+                            "Reference {name} not found. Ensure all referenced types are \
+                             registered or use `register_transitive_types()` first."
+                        )
+                    })
                     .1
                     .r#type,
             ),

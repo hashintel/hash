@@ -39,6 +39,29 @@ impl TypeCollection {
         );
     }
 
+    /// Registers transitive types that are not directly registered with the collection.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use hash_codegen::TypeCollection;
+    ///
+    /// #[derive(specta::Type)]
+    /// struct Inner {
+    ///     value: u32,
+    /// }
+    ///
+    /// #[derive(specta::Type)]
+    /// struct Outer {
+    ///     inner: Inner,
+    /// }
+    ///
+    /// let mut collection = TypeCollection::default();
+    /// collection.register::<Outer>();
+    /// collection.register_transitive_types();
+    ///
+    /// assert!(collection.iter().any(|(name, _)| name == "Inner"));
+    /// ```
     pub fn register_transitive_types(&mut self) {
         for data_type in self.collection.into_unsorted_iter() {
             self.types
