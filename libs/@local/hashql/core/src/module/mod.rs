@@ -3,14 +3,19 @@
 //! This module provides the core functionality for defining and resolving modules,
 //! managing imports, and maintaining the global registry of available items.
 // TODO: This might move into the HIR instead, if required
+pub mod error;
 pub mod import;
 pub mod item;
 pub mod namespace;
+mod resolver;
 mod std_lib;
 
 use std::sync::Mutex;
 
+use strsim::jaro_winkler;
+
 use self::{
+    error::Suggestion,
     item::{Item, ItemKind},
     std_lib::StandardLibrary,
 };
@@ -113,15 +118,14 @@ impl<'heap> ModuleRegistry<'heap> {
     ///
     /// This function will panic if the internal Mutex is poisoned.
     pub fn register(&self, module: ModuleId) {
-        let mut root = self.root.lock().expect("lock should not be poisoned");
         let module = self.modules.index(module);
 
         if cfg!(debug_assertions) {
             assert_eq!(module.parent, ModuleId::ROOT);
         }
 
+        let mut root = self.root.lock().expect("lock should not be poisoned");
         root.insert(module.name, module.id);
-
         drop(root);
     }
 
@@ -139,6 +143,22 @@ impl<'heap> ModuleRegistry<'heap> {
         let module = self.modules.index(id);
 
         Some(module)
+    }
+
+    fn suggestions(&self, name: InternedSymbol<'heap>) -> Vec<Suggestion<ModuleId>> {
+        let root = self.root.lock().expect("lock should not be poisoned");
+
+        let mut results = Vec::with_capacity(root.len());
+        for (&key, &module) in &*root {
+            let score = jaro_winkler(key.as_str(), name.as_str());
+            results.push(Suggestion {
+                item: module,
+                score,
+            });
+        }
+        drop(root);
+
+        results
     }
 
     /// Searches for items in the registry using a path-like query.
@@ -196,6 +216,25 @@ impl<'heap> Module<'heap> {
             .iter()
             .filter(move |item| (item.name == name))
             .copied()
+    }
+
+    fn suggestions(
+        &self,
+        name: InternedSymbol<'heap>,
+        mut select: impl FnMut(&Item<'heap>) -> bool,
+    ) -> Vec<Suggestion<Item<'heap>>> {
+        let mut similarities = Vec::with_capacity(self.items.len());
+
+        for &item in self.items {
+            if !select(&item) {
+                continue;
+            }
+
+            let score = jaro_winkler(item.name.as_str(), name.as_str());
+            similarities.push(Suggestion { item, score });
+        }
+
+        similarities
     }
 }
 

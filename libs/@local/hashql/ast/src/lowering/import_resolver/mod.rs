@@ -133,6 +133,9 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
                     ImportOptions { glob: true, mode },
                 );
 
+                // TODO: the problem is we don't know *why* we failed, and it isn't that easy to
+                // find out why. We currently return a Vec, the problem is that we don't know how to
+                // continue, we will have to make a thonk about how to solve this issue.
                 if !success {
                     todo!("record diagnostic")
                 }
@@ -206,6 +209,7 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
         let span = path.segments.first().unwrap_or_else(|| unreachable!()).span;
         segments.truncate(segments.len() - path.segments.len());
 
+        path.rooted = true;
         path.segments.splice(
             0..0,
             segments.into_iter().map(|ident| PathSegment {

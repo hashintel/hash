@@ -1,8 +1,11 @@
 //! Namespace management for the HashQL module system.
+use core::iter;
+
 use ena::snapshot_vec::{Snapshot, SnapshotVec};
 
 use super::{
-    ModuleRegistry,
+    Module, ModuleRegistry,
+    error::Suggestion,
     import::{Import, ImportDelegate},
     item::{Item, ItemKind, Universe},
 };
@@ -31,6 +34,18 @@ pub struct ResolveOptions {
 pub enum Transaction<T> {
     Commit(T),
     Rollback(T),
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+enum ResolverMode {
+    Single(Universe),
+    Glob,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+struct ResolverOptions {
+    mode: ResolverMode,
+    suggestions: bool,
 }
 
 /// Represents the namespace of a module.
