@@ -67,40 +67,12 @@ fn register_types(collection: &mut TypeCollection) {
     collection.register::<tuples::TupleOptional>();
 
     // Register principals
+    // Note, that transitive types can be completed by the codegen
     collection.register::<principal::Principal>();
     collection.register::<principal::PrincipalId>();
-
-    // Register actors
-    collection.register::<principal::actor::Actor>();
-    collection.register::<principal::actor::ActorId>();
-    collection.register::<principal::actor::ActorEntityUuid>();
     collection.register::<principal::actor::ActorType>();
-    collection.register::<principal::actor::User>();
-    collection.register::<principal::actor::UserId>();
-    collection.register::<principal::actor::Machine>();
-    collection.register::<principal::actor::MachineId>();
-    collection.register::<principal::actor::Ai>();
-    collection.register::<principal::actor::AiId>();
-
-    // Register actor groups
-    collection.register::<principal::actor_group::ActorGroup>();
-    collection.register::<principal::actor_group::ActorGroupId>();
-    collection.register::<principal::actor_group::ActorGroupEntityUuid>();
     collection.register::<principal::actor_group::ActorGroupType>();
-    collection.register::<principal::actor_group::Web>();
-    collection.register::<principal::actor_group::WebId>();
-    collection.register::<principal::actor_group::Team>();
-    collection.register::<principal::actor_group::TeamId>();
-
-    // Register roles
-    collection.register::<principal::role::Role>();
-    collection.register::<principal::role::RoleId>();
-    collection.register::<principal::role::RoleName>();
     collection.register::<principal::role::RoleType>();
-    collection.register::<principal::role::WebRole>();
-    collection.register::<principal::role::WebRoleId>();
-    collection.register::<principal::role::TeamRole>();
-    collection.register::<principal::role::TeamRoleId>();
 }
 
 fn main() -> ExitCode {
@@ -110,6 +82,7 @@ fn main() -> ExitCode {
 
     let mut collection = TypeCollection::default();
     register_types(&mut collection);
+    collection.register_transitive_types();
 
     let names = collection
         .iter()
