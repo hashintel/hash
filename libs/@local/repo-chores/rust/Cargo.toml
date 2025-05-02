@@ -26,7 +26,7 @@ clap           = { workspace = true, features = ["cargo", "derive", "env", "wrap
 clap_complete  = { workspace = true }
 derive_more    = { workspace = true, features = ["display"] }
 globset        = { workspace = true }
-guppy          = "0.17.17"
+guppy          = { workspace = true }
 hash-tracing   = { workspace = true, features = ["clap"] }
 serde          = { workspace = true, features = ["derive", "std"] }
 serde_json     = { workspace = true }

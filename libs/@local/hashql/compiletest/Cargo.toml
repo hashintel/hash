@@ -21,22 +21,22 @@ hashql-syntax-jexpr = { workspace = true }
 # Private third-party dependencies
 anstyle            = { workspace = true }
 ariadne            = { workspace = true }
-camino             = "1.1.9"
+camino             = { workspace = true }
 clap               = { workspace = true, features = ["derive", "env"] }
 derive_more        = { workspace = true, features = ["display"] }
-guppy              = "0.17.17"
-indicatif          = "0.17.11"
-line-index         = "0.1.2"
-nextest-filtering  = "0.15.0"
-nextest-metadata   = "0.12.2"
-radix_trie         = "0.2.1"
-rayon              = "1.10.0"
+guppy              = { workspace = true }
+indicatif          = { workspace = true }
+line-index         = { workspace = true }
+nextest-filtering  = { workspace = true }
+nextest-metadata   = { workspace = true }
+radix_trie         = { workspace = true }
+rayon              = { workspace = true }
 serde              = { workspace = true }
 similar-asserts    = { workspace = true }
 simple-mermaid     = { workspace = true }
-toml               = "0.8.20"
+toml               = { workspace = true }
 tracing            = { workspace = true }
-tracing-indicatif  = "0.3.9"
+tracing-indicatif  = { workspace = true }
 tracing-subscriber = { workspace = true, features = ["ansi", "env-filter", "fmt"] }
 walkdir            = { workspace = true }
 
