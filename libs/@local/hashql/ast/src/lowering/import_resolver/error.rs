@@ -2,27 +2,32 @@ use std::borrow::Cow;
 
 use hashql_core::{span::SpanId, symbol::Symbol};
 use hashql_diagnostics::{
-    Category, Diagnostic, Help, Label, Note, Severity, category::DiagnosticCategory,
+    Diagnostic,
+    category::{DiagnosticCategory, TerminalDiagnosticCategory},
+    help::Help,
+    label::Label,
+    note::Note,
+    severity::Severity,
 };
 
 pub(crate) type ImportResolverDiagnostic = Diagnostic<ImportResolverDiagnosticCategory, SpanId>;
 
-const GENERIC_ARGUMENTS_IN_USE_PATH: Category = Category {
+const GENERIC_ARGUMENTS_IN_USE_PATH: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "generic-arguments-in-use-path",
     name: "Generic arguments not allowed in import paths",
 };
 
-const EMPTY_PATH: Category = Category {
+const EMPTY_PATH: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "empty-path",
     name: "Empty path in import statement",
 };
 
-const GENERIC_ARGUMENTS_IN_MODULE: Category = Category {
+const GENERIC_ARGUMENTS_IN_MODULE: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "generic-arguments-in-module",
     name: "Generic arguments only allowed in final path segment",
 };
 
-const UNKNOWN_IMPORT: Category = Category {
+const UNKNOWN_IMPORT: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "unknown-import",
     name: "Unknown import path",
 };

@@ -13,8 +13,8 @@ use hashql_core::{
 };
 
 use self::error::{
-    ImportResolverDiagnostic, failed_import, failed_path_resolution, generic_arguments_in_use_path,
-    invalid_path_segments, module_with_generic_arguments,
+    ImportResolverDiagnostic, empty_path, generic_arguments_in_module,
+    generic_arguments_in_use_path,
 };
 use crate::{
     node::{
@@ -147,7 +147,8 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
     fn visit_path(&mut self, path: &mut Path<'heap>) {
         // We don't support generics except for the *last* segment
         let [modules @ .., ident] = &*path.segments else {
-            todo!("record diagnostic")
+            self.diagnostics.push(empty_path(path.span));
+            return;
         };
 
         if modules.is_empty()
@@ -161,7 +162,8 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
 
         for module in modules {
             if !module.arguments.is_empty() {
-                todo!("record diagnostic")
+                self.diagnostics
+                    .push(generic_arguments_in_module(module.span));
             }
         }
 

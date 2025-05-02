@@ -63,7 +63,7 @@ pub struct Item<'heap> {
 impl<'heap> Item<'heap> {
     // TODO: when `gen` blocks have proper r-a support revisit this, currently, due to lifetime
     // constraints and recursive types this cannot be written as a simple iterator.
-    pub fn search(
+    pub(crate) fn search(
         &self,
         registry: &ModuleRegistry<'heap>,
         query: impl IntoIterator<Item = InternedSymbol<'heap>, IntoIter: Clone>,
