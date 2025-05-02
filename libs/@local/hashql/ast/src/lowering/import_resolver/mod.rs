@@ -1,3 +1,5 @@
+pub mod error;
+
 use core::{iter, mem};
 
 use hashql_core::{
