@@ -10,15 +10,14 @@ mod std_lib;
 
 use std::sync::Mutex;
 
-use hashbrown::HashMap;
-
 use self::{
     item::{Item, ItemKind},
     std_lib::StandardLibrary,
 };
 use crate::{
+    collection::FastHashMap,
     heap::Heap,
-    id::HasId,
+    id::{HasId, Id as _},
     intern::{Decompose, InternMap, InternSet, Interned, Provisioned},
     newtype,
     symbol::InternedSymbol,
@@ -26,6 +25,10 @@ use crate::{
 };
 
 newtype!(pub struct ModuleId(u32 is 0..=0xFFFF_FF00));
+
+impl ModuleId {
+    pub const ROOT: Self = Self::MAX;
+}
 
 /// The central registry for all modules and items in a HashQL program.
 ///
@@ -39,7 +42,7 @@ pub struct ModuleRegistry<'heap> {
     modules: InternMap<'heap, Module<'heap>>,
     items: InternSet<'heap, [Item<'heap>]>,
 
-    root: Mutex<HashMap<InternedSymbol<'heap>, &'heap Item<'heap>, foldhash::fast::RandomState>>,
+    root: Mutex<FastHashMap<InternedSymbol<'heap>, ModuleId>>,
 }
 
 impl<'heap> ModuleRegistry<'heap> {
@@ -49,7 +52,7 @@ impl<'heap> ModuleRegistry<'heap> {
             heap,
             modules: InternMap::new(heap),
             items: InternSet::new(heap),
-            root: Mutex::new(HashMap::default()),
+            root: Mutex::default(),
         }
     }
 
@@ -82,7 +85,15 @@ impl<'heap> ModuleRegistry<'heap> {
 
                 if cfg!(debug_assertions) {
                     for item in module.items {
-                        assert_eq!(item.parent, Some(id.value()));
+                        assert_eq!(item.module, id.value());
+
+                        // check for modules if the parent is also set *correctly* to our module
+                        if let ItemKind::Module(module) = item.kind {
+                            let module = self.modules.index(module);
+
+                            assert_eq!(module.parent, id.value());
+                            assert_eq!(module.name, item.name);
+                        }
                     }
                 }
 
@@ -101,17 +112,15 @@ impl<'heap> ModuleRegistry<'heap> {
     /// # Panics
     ///
     /// This function will panic if the internal Mutex is poisoned.
-    pub fn register(&self, name: InternedSymbol<'heap>, module: ModuleId) {
+    pub fn register(&self, module: ModuleId) {
         let mut root = self.root.lock().expect("lock should not be poisoned");
+        let module = self.modules.index(module);
 
-        root.insert(
-            name,
-            self.heap.alloc(Item {
-                parent: None,
-                name,
-                kind: ItemKind::Module(module),
-            }),
-        );
+        if cfg!(debug_assertions) {
+            assert_eq!(module.parent, ModuleId::ROOT);
+        }
+
+        root.insert(module.name, module.id);
 
         drop(root);
     }
@@ -121,10 +130,15 @@ impl<'heap> ModuleRegistry<'heap> {
     /// # Panics
     ///
     /// This function will panic if the internal Mutex is poisoned.
-    pub fn find_by_name(&self, name: InternedSymbol<'heap>) -> Option<&'heap Item<'heap>> {
+    fn find_by_name(&self, name: InternedSymbol<'heap>) -> Option<Module<'heap>> {
         let root = self.root.lock().expect("lock should not be poisoned");
 
-        root.get(&name).copied()
+        let id = root.get(&name).copied()?;
+        drop(root);
+
+        let module = self.modules.index(id);
+
+        Some(module)
     }
 
     /// Searches for items in the registry using a path-like query.
@@ -145,8 +159,14 @@ impl<'heap> ModuleRegistry<'heap> {
             return Vec::new();
         };
 
-        let Some(item) = self.find_by_name(root) else {
+        let Some(module) = self.find_by_name(root) else {
             return Vec::new();
+        };
+
+        let item = Item {
+            module: module.parent,
+            name: root,
+            kind: ItemKind::Module(module.id),
         };
 
         item.search(self, query)
@@ -161,6 +181,9 @@ impl<'heap> ModuleRegistry<'heap> {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Module<'heap> {
     pub id: ModuleId,
+    pub name: InternedSymbol<'heap>,
+
+    pub parent: ModuleId,
 
     pub items: Interned<'heap, [Item<'heap>]>,
 }
@@ -178,6 +201,8 @@ impl<'heap> Module<'heap> {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct PartialModule<'heap> {
+    name: InternedSymbol<'heap>,
+    parent: ModuleId,
     items: Interned<'heap, [Item<'heap>]>,
 }
 
@@ -187,6 +212,8 @@ impl<'heap> Decompose<'heap> for Module<'heap> {
     fn from_parts(id: Self::Id, partial: Interned<'heap, Self::Partial>) -> Self {
         Self {
             id,
+            name: partial.name,
+            parent: partial.parent,
             items: partial.items,
         }
     }

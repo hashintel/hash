@@ -38,7 +38,7 @@ pub enum Transaction<T> {
 /// A `ModuleNamespace` defines the collection of names that are available within a module.
 #[derive(Debug, Clone)]
 pub struct ModuleNamespace<'env, 'heap> {
-    registry: &'env ModuleRegistry<'heap>,
+    pub registry: &'env ModuleRegistry<'heap>,
     imports: SnapshotVec<ImportDelegate<'heap>>,
 }
 
@@ -405,7 +405,7 @@ mod tests {
     use crate::{
         heap::Heap,
         module::{
-            ModuleRegistry, PartialModule,
+            ModuleId, ModuleRegistry, PartialModule,
             item::{IntrinsicItem, Item, ItemKind, Universe},
             namespace::{ImportOptions, ResolutionMode, ResolveOptions},
         },
@@ -596,8 +596,11 @@ mod tests {
         namespace.import_prelude();
 
         let module = registry.intern_module(|id| PartialModule {
+            parent: ModuleId::ROOT,
+            name: heap.intern_symbol("foo"),
+
             items: registry.intern_items(&[Item {
-                parent: Some(id.value()),
+                module: id.value(),
                 name: heap.intern_symbol("bar"),
                 kind: ItemKind::Intrinsic(IntrinsicItem {
                     name: "::foo::bar",
@@ -605,7 +608,7 @@ mod tests {
                 }),
             }]),
         });
-        registry.register(heap.intern_symbol("foo"), module);
+        registry.register(module);
 
         let import = namespace
             .resolve_relative_import(

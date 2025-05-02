@@ -96,7 +96,7 @@ use hashql_core::{
     module::{
         ModuleRegistry,
         item::{IntrinsicItem, ItemKind, Universe},
-        namespace::ModuleNamespace,
+        namespace::{ModuleNamespace, ResolutionMode, ResolveOptions},
     },
     span::SpanId,
     symbol::{Ident, IdentKind, Symbol},
@@ -228,15 +228,20 @@ impl<'env, 'heap> PreExpansionNameResolver<'env, 'heap> {
             return Some(path.clone());
         }
 
-        let import = self
-            .namespace
-            .resolve_name(name.intern(self.heap), Universe::Value)?;
+        // TODO: this is incorrect, any only works for single names and not for relative imports
+        let import = self.namespace.resolve_relative_import(
+            [name.intern(self.heap)],
+            ResolveOptions {
+                mode: ResolutionMode::Relative,
+                universe: Universe::Value,
+            },
+        )?;
 
         // We're only interested in intrinsics
         let ItemKind::Intrinsic(IntrinsicItem {
             name: path,
             universe: _,
-        }) = import.item.kind
+        }) = import.kind
         else {
             return None;
         };

@@ -44,7 +44,7 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
         let ident = self.heap.intern_symbol(ident);
 
         Item {
-            parent: Some(parent),
+            module: parent,
             name: ident,
             kind: ItemKind::Intrinsic(IntrinsicItem {
                 name,
@@ -64,7 +64,7 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
         let ident = self.heap.intern_symbol(ident);
 
         Item {
-            parent: Some(parent),
+            module: parent,
             name: ident,
             kind: ItemKind::Intrinsic(IntrinsicItem {
                 name,
@@ -82,13 +82,13 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
 
     fn alloc_type_item(&self, parent: ModuleId, name: &'static str, kind: TypeId) -> Item<'heap> {
         Item {
-            parent: Some(parent),
+            module: parent,
             name: self.heap.intern_symbol(name),
             kind: ItemKind::Type(kind),
         }
     }
 
-    fn kernel_special_form_module(&self) -> ModuleId {
+    fn kernel_special_form_module(&self, parent: ModuleId) -> ModuleId {
         self.registry.intern_module(|id| {
             let id = id.value();
 
@@ -108,6 +108,8 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
             ];
 
             PartialModule {
+                name: self.heap.intern_symbol("special_form"),
+                parent,
                 items: self.registry.intern_items(&items),
             }
         })
@@ -283,7 +285,7 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
         ]);
     }
 
-    fn kernel_type_module(&self) -> ModuleId {
+    fn kernel_type_module(&self, parent: ModuleId) -> ModuleId {
         self.registry.intern_module(|id| {
             let id = id.value();
 
@@ -296,6 +298,8 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
             self.kernel_type_module_result(id, &mut items);
 
             PartialModule {
+                name: self.heap.intern_symbol("type"),
+                parent,
                 items: self.registry.intern_items(&items),
             }
         })
@@ -303,16 +307,18 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
 
     fn kernel_module(&self) -> ModuleId {
         self.registry.intern_module(|id| PartialModule {
+            name: self.heap.intern_symbol("kernel"),
+            parent: ModuleId::ROOT,
             items: self.registry.intern_items(&[
                 Item {
-                    parent: Some(id.value()),
+                    module: id.value(),
                     name: self.heap.intern_symbol("special_form"),
-                    kind: ItemKind::Module(self.kernel_special_form_module()),
+                    kind: ItemKind::Module(self.kernel_special_form_module(id.value())),
                 },
                 Item {
-                    parent: Some(id.value()),
+                    module: id.value(),
                     name: self.heap.intern_symbol("type"),
-                    kind: ItemKind::Module(self.kernel_type_module()),
+                    kind: ItemKind::Module(self.kernel_type_module(id.value())),
                 },
             ]),
         })
@@ -323,6 +329,8 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
             let id = id.value();
 
             PartialModule {
+                name: self.heap.intern_symbol("math"),
+                parent: ModuleId::ROOT,
                 items: self.registry.intern_items(&[
                     // Addition
                     self.alloc_intrinsic_value(id, "::math::add", None),
@@ -379,10 +387,8 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
     }
 
     pub(super) fn register(&self) {
-        self.registry
-            .register(self.heap.intern_symbol("kernel"), self.kernel_module());
-        self.registry
-            .register(self.heap.intern_symbol("math"), self.math_module());
+        self.registry.register(self.kernel_module());
+        self.registry.register(self.math_module());
 
         // TODO: The graph module is not yet added (Primarily due to the fact that we're not yet
         // sure about the shape of some of the types involved).

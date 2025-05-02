@@ -1,4 +1,6 @@
-use super::{ModuleId, ModuleRegistry};
+use core::iter;
+
+use super::{Module, ModuleId, ModuleRegistry};
 use crate::{symbol::InternedSymbol, r#type::TypeId};
 
 /// Represents the conceptual space or "universe" an item belongs to.
@@ -50,7 +52,7 @@ impl ItemKind {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Item<'heap> {
-    pub parent: Option<ModuleId>,
+    pub module: ModuleId,
 
     // TODO: move to Ident once Copy
     //  see: https://linear.app/hash/issue/H-4414/hashql-move-from-symbol-to-internedsymbol
@@ -82,5 +84,36 @@ impl<'heap> Item<'heap> {
             .into_iter()
             .flat_map(move |item| item.search(registry, query.clone()))
             .collect()
+    }
+
+    pub fn ancestors(
+        &self,
+        registry: &ModuleRegistry<'heap>,
+    ) -> impl IntoIterator<Item = Module<'heap>> {
+        let mut next = self.module;
+
+        iter::from_fn(move || {
+            if next == ModuleId::ROOT {
+                return None;
+            }
+
+            let module = registry.modules.index(next);
+            next = module.parent;
+
+            Some(module)
+        })
+    }
+
+    pub fn absolute_path(
+        &self,
+        registry: &ModuleRegistry<'heap>,
+    ) -> impl Iterator<Item = InternedSymbol<'heap>> {
+        let mut modules: Vec<_> = self.ancestors(registry).into_iter().collect();
+        modules.reverse();
+
+        modules
+            .into_iter()
+            .map(|module| module.name)
+            .chain(iter::once(self.name))
     }
 }
