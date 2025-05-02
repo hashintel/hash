@@ -1,4 +1,4 @@
-use core::iter;
+use core::{fmt::Debug, iter};
 
 use strsim::jaro_winkler;
 
@@ -10,10 +10,11 @@ use super::{
 };
 use crate::symbol::InternedSymbol;
 
-pub(crate) type ModuleItemIterator<'heap> = impl ExactSizeIterator<Item = Item<'heap>>;
-pub(crate) type MultiResolveItemIterator<'heap> = impl Iterator<Item = Item<'heap>>;
-pub(crate) type MultiResolveImportIterator<'heap> = impl Iterator<Item = Item<'heap>>;
+pub(crate) type ModuleItemIterator<'heap> = impl ExactSizeIterator<Item = Item<'heap>> + Debug;
+pub(crate) type MultiResolveItemIterator<'heap> = impl Iterator<Item = Item<'heap>> + Debug;
+pub(crate) type MultiResolveImportIterator<'heap> = impl Iterator<Item = Item<'heap>> + Debug;
 
+#[derive(Debug)]
 pub(crate) enum ResolveIter<'heap> {
     Single(iter::Once<Item<'heap>>),
     MultiResolve(MultiResolveItemIterator<'heap>),
@@ -190,12 +191,23 @@ impl<'heap> Resolver<'_, 'heap> {
         Ok(module.items.into_iter().copied())
     }
 
+    #[define_opaque(ModuleItemIterator)]
     fn resolve_impl(
         &self,
         query: impl IntoIterator<Item = InternedSymbol<'heap>>,
         mut module: Module<'heap>,
     ) -> Result<ResolveIter<'heap>, ResolutionError<'heap>> {
         let mut query = query.into_iter().enumerate().peekable();
+
+        // In case that we're in glob mode and the query is empty (which is only valid in glob
+        // mode), return all items
+        if query.peek().is_none() && self.options.mode == ResolverMode::Glob {
+            if module.items.is_empty() {
+                return Err(ResolutionError::ModuleEmpty { depth: 0 });
+            }
+
+            return Ok(ResolveIter::Glob(module.items.into_iter().copied()));
+        }
 
         // Traverse the entry until we're at the last item
         let (depth, name) = loop {
@@ -429,5 +441,617 @@ impl<'heap> Resolver<'_, 'heap> {
                 .resolve_import_glob(name, imports)
                 .map(ResolveIter::Glob),
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use core::assert_matches::assert_matches;
+
+    use super::ResolutionError;
+    use crate::{
+        heap::Heap,
+        module::{
+            ModuleId, ModuleRegistry, PartialModule,
+            item::Universe,
+            namespace::{ImportOptions, ModuleNamespace, ResolutionMode},
+            resolver::{Resolver, ResolverMode, ResolverOptions},
+        },
+        span::SpanId,
+        r#type::environment::Environment,
+    };
+
+    #[test]
+    fn single_mode_resolve_type() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let registry = ModuleRegistry::new(&env);
+
+        let resolver = Resolver {
+            registry: &registry,
+            options: ResolverOptions {
+                mode: ResolverMode::Single(Universe::Type),
+                suggestions: false,
+            },
+        };
+
+        let result = resolver
+            .resolve_absolute([
+                heap.intern_symbol("kernel"),
+                heap.intern_symbol("type"),
+                heap.intern_symbol("Dict"),
+            ])
+            .expect("Resolution should succeed");
+
+        let items: Vec<_> = result.collect();
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].name.as_str(), "Dict",);
+        assert_eq!(items[0].kind.universe(), Some(Universe::Type),);
+    }
+
+    #[test]
+    fn single_mode_resolve_value() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let registry = ModuleRegistry::new(&env);
+
+        let resolver = Resolver {
+            registry: &registry,
+            options: ResolverOptions {
+                mode: ResolverMode::Single(Universe::Value),
+                suggestions: false,
+            },
+        };
+
+        let result = resolver
+            .resolve_absolute([
+                heap.intern_symbol("kernel"),
+                heap.intern_symbol("type"),
+                heap.intern_symbol("Dict"),
+            ])
+            .expect("Resolution should succeed");
+
+        let items: Vec<_> = result.collect();
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].name.as_str(), "Dict",);
+        assert_eq!(items[0].kind.universe(), Some(Universe::Value));
+    }
+
+    #[test]
+    fn single_mode_item_not_found() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let registry = ModuleRegistry::new(&env);
+
+        let resolver = Resolver {
+            registry: &registry,
+            options: ResolverOptions {
+                mode: ResolverMode::Single(Universe::Type),
+                suggestions: false,
+            },
+        };
+
+        let error = resolver
+            .resolve_absolute([
+                heap.intern_symbol("kernel"),
+                heap.intern_symbol("type"),
+                heap.intern_symbol("NonExistentType"),
+            ])
+            .expect_err("Resolution should fail for non-existent item");
+
+        assert_matches!(error, ResolutionError::ItemNotFound { depth: 2, suggestions } if suggestions.is_empty());
+    }
+
+    #[test]
+    fn multi_mode_resolution() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let registry = ModuleRegistry::new(&env);
+
+        let resolver = Resolver {
+            registry: &registry,
+            options: ResolverOptions {
+                mode: ResolverMode::Multi,
+                suggestions: false,
+            },
+        };
+
+        let result = resolver
+            .resolve_absolute([
+                heap.intern_symbol("kernel"),
+                heap.intern_symbol("type"),
+                heap.intern_symbol("Dict"),
+            ])
+            .expect("Resolution should succeed");
+
+        let items: Vec<_> = result.collect();
+        assert_eq!(items.len(), 2);
+
+        // Verify we have both Type and Value universes
+        assert!(
+            items
+                .iter()
+                .any(|item| item.kind.universe() == Some(Universe::Type))
+        );
+
+        assert!(
+            items
+                .iter()
+                .any(|item| item.kind.universe() == Some(Universe::Value))
+        );
+    }
+
+    #[test]
+    fn multi_mode_single_universe_item() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let registry = ModuleRegistry::new(&env);
+
+        let resolver = Resolver {
+            registry: &registry,
+            options: ResolverOptions {
+                mode: ResolverMode::Multi,
+                suggestions: false,
+            },
+        };
+
+        let result = resolver
+            .resolve_absolute([heap.intern_symbol("math"), heap.intern_symbol("add")])
+            .expect("Resolution should succeed");
+
+        let items: Vec<_> = result.collect();
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].kind.universe(), Some(Universe::Value));
+    }
+
+    #[test]
+    fn glob_mode_resolution() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let registry = ModuleRegistry::new(&env);
+
+        let resolver = Resolver {
+            registry: &registry,
+            options: ResolverOptions {
+                mode: ResolverMode::Glob,
+                suggestions: false,
+            },
+        };
+
+        let result = resolver
+            .resolve_absolute([heap.intern_symbol("kernel"), heap.intern_symbol("type")])
+            .expect("Resolution should succeed");
+
+        let items: Vec<_> = result.collect();
+        assert!(!items.is_empty());
+
+        // Check for some known items in the "type" module
+        assert!(items.iter().any(|item| item.name.as_str() == "Dict"));
+        assert!(items.iter().any(|item| item.name.as_str() == "Boolean"));
+        assert!(items.iter().any(|item| item.name.as_str() == "Union"));
+    }
+
+    #[test]
+    fn glob_mode_first_level() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let registry = ModuleRegistry::new(&env);
+
+        let resolver = Resolver {
+            registry: &registry,
+            options: ResolverOptions {
+                mode: ResolverMode::Glob,
+                suggestions: false,
+            },
+        };
+
+        let result = resolver
+            .resolve_absolute([heap.intern_symbol("kernel")])
+            .expect("Resolution should succeed");
+
+        let items: Vec<_> = result.collect();
+        assert!(!items.is_empty());
+
+        // Check for some known items in the "type" module
+        assert!(items.iter().any(|item| item.name.as_str() == "type"));
+        assert!(
+            items
+                .iter()
+                .any(|item| item.name.as_str() == "special_form")
+        );
+    }
+
+    #[test]
+    fn glob_mode_module_not_found() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let registry = ModuleRegistry::new(&env);
+
+        let resolver = Resolver {
+            registry: &registry,
+            options: ResolverOptions {
+                mode: ResolverMode::Glob,
+                suggestions: false,
+            },
+        };
+
+        let error = resolver
+            .resolve_absolute([
+                heap.intern_symbol("kernel"),
+                heap.intern_symbol("nonexistent_module"),
+            ])
+            .expect_err("Resolution should fail for non-existent module");
+
+        assert_matches!(error, ResolutionError::ModuleNotFound { depth: 1, suggestions } if suggestions.is_empty());
+    }
+
+    #[test]
+    fn invalid_query_length_absolute() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let registry = ModuleRegistry::new(&env);
+
+        let resolver = Resolver {
+            registry: &registry,
+            options: ResolverOptions {
+                mode: ResolverMode::Multi,
+                suggestions: false,
+            },
+        };
+
+        let error = resolver
+            .resolve_absolute([])
+            .expect_err("Resolution should fail for empty query");
+
+        assert_matches!(error, ResolutionError::InvalidQueryLength { expected: 2 });
+
+        let error = resolver
+            .resolve_absolute([heap.intern_symbol("kernel")])
+            .expect_err("Resolution should fail for empty query");
+
+        assert_matches!(error, ResolutionError::InvalidQueryLength { expected: 2 });
+    }
+
+    #[test]
+    fn invalid_query_length_relative() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let registry = ModuleRegistry::new(&env);
+
+        let mut resolver = Resolver {
+            registry: &registry,
+            options: ResolverOptions {
+                mode: ResolverMode::Glob,
+                suggestions: false,
+            },
+        };
+
+        let error = resolver
+            .resolve_relative([], &[])
+            .expect_err("Resolution should fail for empty query");
+
+        assert_matches!(error, ResolutionError::InvalidQueryLength { expected: 1 });
+    }
+
+    #[test]
+    fn package_not_found() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let registry = ModuleRegistry::new(&env);
+
+        let resolver = Resolver {
+            registry: &registry,
+            options: ResolverOptions {
+                mode: ResolverMode::Glob,
+                suggestions: false,
+            },
+        };
+
+        let error = resolver
+            .resolve_absolute([heap.intern_symbol("nonexistent_package")])
+            .expect_err("Resolution should fail for non-existent package");
+
+        assert_matches!(error, ResolutionError::PackageNotFound { depth: 0, suggestions } if suggestions.is_empty());
+    }
+
+    #[test]
+    fn module_required_error() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let registry = ModuleRegistry::new(&env);
+
+        let resolver = Resolver {
+            registry: &registry,
+            options: ResolverOptions {
+                mode: ResolverMode::Glob,
+                suggestions: false,
+            },
+        };
+
+        let error = resolver
+            .resolve_absolute([
+                heap.intern_symbol("math"),
+                heap.intern_symbol("add"), // This is a value, not a module
+                heap.intern_symbol("anything"),
+            ])
+            .expect_err("Resolution should fail for non-module item");
+
+        assert_matches!(
+            error,
+            ResolutionError::ModuleRequired {
+                depth: 1,
+                found: Some(Universe::Value)
+            }
+        );
+    }
+
+    #[test]
+    fn module_empty_error() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let registry = ModuleRegistry::new(&env);
+
+        // Create an empty module and register it
+        let empty_module_id = registry.intern_module(|_| {
+            PartialModule {
+                name: heap.intern_symbol("empty_module"),
+                parent: ModuleId::ROOT,
+                items: registry.intern_items(&[]), // No items
+            }
+        });
+
+        registry.register(empty_module_id);
+
+        let resolver = Resolver {
+            registry: &registry,
+            options: ResolverOptions {
+                mode: ResolverMode::Glob,
+                suggestions: false,
+            },
+        };
+
+        let error = resolver
+            .resolve_absolute([heap.intern_symbol("empty_module")])
+            .expect_err("Resolution should fail for empty module");
+
+        assert_matches!(error, ResolutionError::ModuleEmpty { depth: 0 });
+    }
+
+    #[test]
+    fn absolute_module_not_found() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let registry = ModuleRegistry::new(&env);
+
+        let resolver = Resolver {
+            registry: &registry,
+            options: ResolverOptions {
+                mode: ResolverMode::Single(Universe::Type),
+                suggestions: false,
+            },
+        };
+
+        let error = resolver
+            .resolve_absolute([
+                heap.intern_symbol("kernel"),
+                heap.intern_symbol("nonexistent_module"), // This module doesn't exist
+                heap.intern_symbol("anything"),
+            ])
+            .expect_err("Resolution should fail for non-existent module");
+
+        assert_matches!(error, ResolutionError::ModuleNotFound { depth: 1, suggestions } if suggestions.is_empty());
+    }
+
+    #[test]
+    fn relative_single_resolution() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let registry = ModuleRegistry::new(&env);
+
+        let mut namespace = ModuleNamespace::new(&registry);
+        namespace.import_prelude();
+
+        // import type under a new alias
+        namespace
+            .import(
+                heap.intern_symbol("foo"),
+                [heap.intern_symbol("kernel"), heap.intern_symbol("type")],
+                ImportOptions {
+                    glob: false,
+                    mode: ResolutionMode::Absolute,
+                    suggestions: false,
+                },
+            )
+            .expect("Import should succeed");
+
+        let mut resolver = Resolver {
+            registry: &registry,
+            options: ResolverOptions {
+                mode: ResolverMode::Single(Universe::Type),
+                suggestions: false,
+            },
+        };
+
+        let result = resolver
+            .resolve_relative(
+                [heap.intern_symbol("foo"), heap.intern_symbol("Dict")],
+                namespace.imports_as_slice(),
+            )
+            .expect("Resolution should succeed");
+
+        let items: Vec<_> = result.collect();
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].name.as_str(), "Dict");
+        assert_eq!(items[0].kind.universe(), Some(Universe::Type));
+    }
+
+    #[test]
+    fn relative_multi_resolution() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let registry = ModuleRegistry::new(&env);
+
+        let mut namespace = ModuleNamespace::new(&registry);
+        namespace.import_prelude();
+
+        // import type under a new alias
+        namespace
+            .import(
+                heap.intern_symbol("foo"),
+                [heap.intern_symbol("kernel"), heap.intern_symbol("type")],
+                ImportOptions {
+                    glob: false,
+                    mode: ResolutionMode::Absolute,
+                    suggestions: false,
+                },
+            )
+            .expect("Import should succeed");
+
+        let mut resolver = Resolver {
+            registry: &registry,
+            options: ResolverOptions {
+                mode: ResolverMode::Multi,
+                suggestions: false,
+            },
+        };
+
+        let result = resolver
+            .resolve_relative(
+                [heap.intern_symbol("foo"), heap.intern_symbol("Dict")],
+                namespace.imports_as_slice(),
+            )
+            .expect("Resolution should succeed");
+
+        let items: Vec<_> = result.collect();
+        assert_eq!(items.len(), 2);
+
+        // Verify we have both Type and Value universes
+        assert!(
+            items
+                .iter()
+                .any(|item| item.kind.universe() == Some(Universe::Type))
+        );
+        assert!(
+            items
+                .iter()
+                .any(|item| item.kind.universe() == Some(Universe::Value))
+        );
+    }
+
+    #[test]
+    fn relative_module_not_found() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let registry = ModuleRegistry::new(&env);
+
+        let mut namespace = ModuleNamespace::new(&registry);
+        namespace.import_prelude();
+
+        namespace
+            .import(
+                heap.intern_symbol("type"),
+                [heap.intern_symbol("kernel"), heap.intern_symbol("type")],
+                ImportOptions {
+                    glob: false,
+                    mode: ResolutionMode::Absolute,
+                    suggestions: false,
+                },
+            )
+            .expect("Import should succeed");
+
+        let mut resolver = Resolver {
+            registry: &registry,
+            options: ResolverOptions {
+                mode: ResolverMode::Single(Universe::Type),
+                suggestions: false,
+            },
+        };
+
+        let error = resolver
+            .resolve_relative(
+                [
+                    heap.intern_symbol("type"),
+                    heap.intern_symbol("nonexistent_module"), // This module doesn't exist
+                    heap.intern_symbol("anything"),
+                ],
+                namespace.imports_as_slice(),
+            )
+            .expect_err("Resolution should fail for non-existent module");
+
+        assert_matches!(error, ResolutionError::ModuleNotFound { depth: 1, suggestions } if suggestions.is_empty());
+    }
+
+    #[test]
+    fn fallback_to_absolute_resolution() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let registry = ModuleRegistry::new(&env);
+
+        let mut namespace = ModuleNamespace::new(&registry);
+        namespace.import_prelude();
+
+        let mut resolver = Resolver {
+            registry: &registry,
+            options: ResolverOptions {
+                mode: ResolverMode::Single(Universe::Type),
+                suggestions: false,
+            },
+        };
+
+        let result = resolver
+            .resolve_relative(
+                [
+                    heap.intern_symbol("kernel"),
+                    heap.intern_symbol("type"),
+                    heap.intern_symbol("Dict"),
+                ],
+                namespace.imports_as_slice(),
+            )
+            .expect("Resolution should succeed by falling back to absolute");
+
+        let items: Vec<_> = result.collect();
+        assert_eq!(items.len(), 1);
+        assert_eq!(items[0].name.as_str(), "Dict");
+    }
+
+    #[test]
+    fn relative_glob_mode_first_level() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        let registry = ModuleRegistry::new(&env);
+
+        let mut namespace = ModuleNamespace::new(&registry);
+        namespace.import_prelude();
+
+        namespace
+            .import(
+                heap.intern_symbol("type"),
+                [heap.intern_symbol("kernel"), heap.intern_symbol("type")],
+                ImportOptions {
+                    glob: false,
+                    mode: ResolutionMode::Absolute,
+                    suggestions: false,
+                },
+            )
+            .expect("Import should succeed");
+
+        let mut resolver = Resolver {
+            registry: &registry,
+            options: ResolverOptions {
+                mode: ResolverMode::Glob,
+                suggestions: false,
+            },
+        };
+
+        let result = resolver
+            .resolve_relative([heap.intern_symbol("type")], namespace.imports_as_slice())
+            .expect("Resolution should succeed");
+
+        let items: Vec<_> = result.collect();
+        assert!(!items.is_empty());
+
+        // Check for some known items in the "type" module
+        assert!(items.iter().any(|item| item.name.as_str() == "Dict"));
+        assert!(items.iter().any(|item| item.name.as_str() == "Union"));
     }
 }

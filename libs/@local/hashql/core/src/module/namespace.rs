@@ -365,6 +365,11 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
             }
         }
     }
+
+    #[cfg(test)]
+    pub(crate) fn imports_as_slice(&self) -> &[Import<'heap>] {
+        &*self.imports
+    }
 }
 
 #[cfg(test)]
