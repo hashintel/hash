@@ -827,8 +827,8 @@ pub enum EntityQuerySortingToken {
     Archived,
     Properties,
     Label,
-    RecordCreatedAtTransactionTime,
-    RecordCreatedAtDecisionTime,
+    EditionCreatedAtTransactionTime,
+    EditionCreatedAtDecisionTime,
     CreatedAtTransactionTime,
     CreatedAtDecisionTime,
     TypeTitle,
@@ -842,8 +842,8 @@ pub(crate) struct EntityQuerySortingVisitor {
 
 impl EntityQuerySortingVisitor {
     pub(crate) const EXPECTING: &'static str =
-        "one of `uuid`, `archived`, `properties`, `label`, `recordCreatedAtTransactionTime`, \
-         `recordCreatedAtDecisionTime`, `createdAtTransactionTime`, `createdAtDecisionTime`, \
+        "one of `uuid`, `archived`, `properties`, `label`, `editionCreatedAtTransactionTime`, \
+         `editionCreatedAtDecisionTime`, `createdAtTransactionTime`, `createdAtDecisionTime`, \
          `typeTitle`";
 
     #[must_use]
@@ -871,10 +871,10 @@ impl<'de> Visitor<'de> for EntityQuerySortingVisitor {
         Ok(match token {
             EntityQuerySortingToken::Uuid => EntityQueryPath::Uuid,
             EntityQuerySortingToken::Archived => EntityQueryPath::Archived,
-            EntityQuerySortingToken::RecordCreatedAtTransactionTime => {
+            EntityQuerySortingToken::EditionCreatedAtTransactionTime => {
                 EntityQueryPath::TransactionTime
             }
-            EntityQuerySortingToken::RecordCreatedAtDecisionTime => EntityQueryPath::DecisionTime,
+            EntityQuerySortingToken::EditionCreatedAtDecisionTime => EntityQueryPath::DecisionTime,
             EntityQuerySortingToken::CreatedAtTransactionTime => {
                 EntityQueryPath::Provenance(Some(JsonPath::from_path_tokens(vec![
                     PathToken::Field(Cow::Borrowed("createdAtTransactionTime")),

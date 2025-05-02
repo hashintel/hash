@@ -102,7 +102,7 @@ const generateGraphSort = (
       break;
     case "lastEdited":
       path = [
-        "recordCreatedAtTransactionTime" satisfies EntityQuerySortingToken,
+        "editionCreatedAtTransactionTime" satisfies EntityQuerySortingToken,
       ];
       break;
     case "created":
