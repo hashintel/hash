@@ -67,22 +67,22 @@ impl<'a> TypeScriptGenerator<'a> {
             .code
     }
 
-    fn export_as_interface(&self, r#type: &Type) -> bool {
+    fn should_export_as_interface(&self, r#type: &Type) -> bool {
         match r#type {
             Type::Reference(name) => self
                 .collection
                 .types
                 .get(name)
-                .is_some_and(|(_, type_def)| self.export_as_interface(&type_def.r#type)),
+                .is_some_and(|(_, type_def)| self.should_export_as_interface(&type_def.r#type)),
             Type::Struct(r#struct) => {
                 if let Fields::Named {
                     fields,
                     deny_unknown: true,
                 } = &r#struct.fields
                 {
-                    !fields
-                        .iter()
-                        .any(|(_, field)| field.flatten && !self.export_as_interface(&field.r#type))
+                    !fields.iter().any(|(_, field)| {
+                        field.flatten && !self.should_export_as_interface(&field.r#type)
+                    })
                 } else {
                     false
                 }
@@ -92,7 +92,7 @@ impl<'a> TypeScriptGenerator<'a> {
     }
 
     fn visit_type_definition(&self, definition: &TypeDefinition) -> ast::Declaration<'a> {
-        if self.export_as_interface(&definition.r#type) {
+        if self.should_export_as_interface(&definition.r#type) {
             self.generate_interface(definition)
         } else {
             self.ast.declaration_ts_type_alias(
