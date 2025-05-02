@@ -69,11 +69,15 @@ impl<'a> TypeScriptGenerator<'a> {
 
     fn should_export_as_interface(&self, r#type: &Type) -> bool {
         match r#type {
-            Type::Reference(name) => self
-                .collection
-                .types
-                .get(name)
-                .is_some_and(|(_, type_def)| self.should_export_as_interface(&type_def.r#type)),
+            Type::Reference(name) => self.should_export_as_interface(
+                &self
+                    .collection
+                    .types
+                    .get(name)
+                    .unwrap_or_else(|| panic!("Reference {name} not found in type map"))
+                    .1
+                    .r#type,
+            ),
             Type::Struct(r#struct) => {
                 if let Fields::Named {
                     fields,

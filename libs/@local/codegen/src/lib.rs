@@ -39,6 +39,19 @@ impl TypeCollection {
         );
     }
 
+    pub fn register_transitive_types(&mut self) {
+        for data_type in self.collection.into_unsorted_iter() {
+            self.types
+                .entry(data_type.name().clone())
+                .or_insert_with(|| {
+                    (
+                        data_type.sid(),
+                        TypeDefinition::from_specta(data_type, &self.collection),
+                    )
+                });
+        }
+    }
+
     pub fn iter(&self) -> impl Iterator<Item = (&str, (&NamedDataType, &TypeDefinition))> {
         self.types.iter().map(|(name, (id, def))| {
             (
