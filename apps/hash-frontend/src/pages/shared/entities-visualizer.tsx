@@ -51,8 +51,8 @@ import type {
   SortableEntitiesTableColumnKey,
 } from "./entities-visualizer/entities-table/types";
 import { useEntitiesVisualizerData } from "./entities-visualizer/use-entities-visualizer-data";
-import { EntityGraphVisualizer } from "./entity-graph-visualizer";
 import type { EntityEditorProps } from "./entity/entity-editor";
+import { EntityGraphVisualizer } from "./entity-graph-visualizer";
 import type {
   DynamicNodeSizing,
   GraphVizConfig,
