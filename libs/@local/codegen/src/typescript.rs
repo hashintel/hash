@@ -9,7 +9,7 @@ use crate::{
     TypeCollection,
     definitions::{
         Enum, EnumTagging, EnumVariant, Fields, List, Map, Primitive, Struct, Tuple, Type,
-        TypeDefinition,
+        TypeDefinition, TypeId,
     },
 };
 
@@ -41,8 +41,8 @@ impl<'a> TypeScriptGenerator<'a> {
     }
 
     #[must_use]
-    pub fn generate(&self, name: &str) -> String {
-        let definition = &self.collection.types[name].1;
+    pub fn generate(&self, id: TypeId) -> String {
+        let definition = &self.collection.types[&id];
         Codegen::new()
             .build(&self.ast.program(
                 SPAN,
@@ -69,18 +69,24 @@ impl<'a> TypeScriptGenerator<'a> {
 
     fn should_export_as_interface(&self, r#type: &Type) -> bool {
         match r#type {
-            Type::Reference(name) => self.should_export_as_interface(
+            Type::Reference(reference) => self.should_export_as_interface(
                 &self
                     .collection
                     .types
-                    .get(name)
+                    .get(reference)
                     .unwrap_or_else(|| {
                         panic!(
-                            "Reference {name} not found. Ensure all referenced types are \
-                             registered or use `register_transitive_types()` first."
+                            "Reference {:?} not found. Ensure all referenced types are registered \
+                             or use `register_transitive_types()` first.",
+                            self.collection
+                                .collection
+                                .get(reference.to_specta())
+                                .map_or_else(
+                                    || format!("{reference:?}"),
+                                    |data_type| data_type.name().to_string()
+                                )
                         )
                     })
-                    .1
                     .r#type,
             ),
             Type::Struct(r#struct) => {
@@ -134,16 +140,14 @@ impl<'a> TypeScriptGenerator<'a> {
                             let Type::Reference(reference) = &field.r#type else {
                                 panic!("Expected reference type for flattened field");
                             };
-                            extends.push(
-                                self.ast.ts_interface_heritage(
+                            extends.push(self.ast.ts_interface_heritage(
+                                SPAN,
+                                ast::Expression::Identifier(self.ast.alloc_identifier_reference(
                                     SPAN,
-                                    ast::Expression::Identifier(
-                                        self.ast
-                                            .alloc_identifier_reference(SPAN, reference.as_ref()),
-                                    ),
-                                    None::<ast::TSTypeParameterInstantiation<'a>>,
-                                ),
-                            );
+                                    self.collection.types[reference].name.as_ref(),
+                                )),
+                                None::<ast::TSTypeParameterInstantiation<'a>>,
+                            ));
                             continue;
                         }
                         members.push(
@@ -188,10 +192,13 @@ impl<'a> TypeScriptGenerator<'a> {
         }
     }
 
-    fn visit_reference(&self, reference: &str) -> ast::TSType<'a> {
+    fn visit_reference(&self, reference: TypeId) -> ast::TSType<'a> {
         self.ast.ts_type_type_reference(
             SPAN,
-            self.ast.ts_type_name_identifier_reference(SPAN, reference),
+            self.ast.ts_type_name_identifier_reference(
+                SPAN,
+                self.collection.types[&reference].name.as_ref(),
+            ),
             None::<ast::TSTypeParameterInstantiation<'a>>,
         )
     }
@@ -472,7 +479,7 @@ impl<'a> TypeScriptGenerator<'a> {
             Type::Primitive(primitive) => self.visit_primitive(primitive),
             Type::Enum(enum_type) => self.visit_enum(enum_type),
             Type::Struct(struct_type) => self.visit_struct(struct_type),
-            Type::Reference(reference) => self.visit_reference(reference),
+            Type::Reference(reference) => self.visit_reference(*reference),
             Type::Tuple(tuple) => self.visit_tuple(tuple),
             Type::List(list) => self.visit_list(list),
             Type::Map(map) => self.visit_map(map),

@@ -6,12 +6,11 @@
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
 #![expect(clippy::todo)]
 
-use alloc::borrow::Cow;
 use std::collections::HashMap;
 
-use specta::{SpectaID, datatype::NamedDataType};
+use specta::datatype::NamedDataType;
 
-use self::definitions::TypeDefinition;
+use self::definitions::{TypeDefinition, TypeId};
 
 extern crate alloc;
 
@@ -21,9 +20,8 @@ pub mod typescript;
 
 #[derive(Debug, Default)]
 pub struct TypeCollection {
-    types: HashMap<Cow<'static, str>, (SpectaID, TypeDefinition)>,
+    types: HashMap<TypeId, TypeDefinition>,
     collection: specta::TypeCollection,
-    // collection: HashMap<Cow<'static, str>, Definition>,
 }
 
 impl TypeCollection {
@@ -31,11 +29,8 @@ impl TypeCollection {
         self.collection.register_mut::<T>();
         let data_type = self.collection.get(T::ID).unwrap_or_else(|| unreachable!());
         self.types.insert(
-            data_type.name().clone(),
-            (
-                data_type.sid(),
-                TypeDefinition::from_specta(data_type, &self.collection),
-            ),
+            TypeId::from_specta(T::ID),
+            TypeDefinition::from_specta(data_type, &self.collection),
         );
     }
 
@@ -61,33 +56,38 @@ impl TypeCollection {
     /// let num_added = collection.register_transitive_types();
     ///
     /// assert_eq!(num_added, 1);
-    /// assert!(collection.iter().any(|(name, _)| name == "Inner"));
+    /// assert!(
+    ///     collection
+    ///         .iter()
+    ///         .any(|(_, _, type_def)| type_def.name == "Inner")
+    /// );
     /// ```
     pub fn register_transitive_types(&mut self) -> usize {
         let mut num_added = 0;
         for data_type in self.collection.into_unsorted_iter() {
             self.types
-                .entry(data_type.name().clone())
+                .entry(TypeId::from_specta(data_type.sid()))
                 .or_insert_with(|| {
                     num_added += 1;
-                    (
-                        data_type.sid(),
-                        TypeDefinition::from_specta(data_type, &self.collection),
-                    )
+                    TypeDefinition::from_specta(data_type, &self.collection)
                 });
         }
         num_added
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (&str, (&NamedDataType, &TypeDefinition))> {
-        self.types.iter().map(|(name, (id, def))| {
+    pub fn iter(&self) -> impl Iterator<Item = (TypeId, &NamedDataType, &TypeDefinition)> {
+        self.types.iter().map(|(id, def)| {
             (
-                name.as_ref(),
-                (
-                    self.collection.get(*id).unwrap_or_else(|| unreachable!()),
-                    def,
-                ),
+                *id,
+                self.collection
+                    .get(id.to_specta())
+                    .unwrap_or_else(|| unreachable!()),
+                def,
             )
         })
+    }
+
+    pub fn get(&self, id: TypeId) -> Option<&TypeDefinition> {
+        self.types.get(&id)
     }
 }
