@@ -75,9 +75,9 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
     /// An absolute import directly references an item from the global module registry
     /// using a fully-qualified path.
     ///
-    /// # Returns
+    /// # Errors
     ///
-    /// `true` if the import was successful, `false` if the item wasn't found.
+    /// Returns a `ResolutionError` if the path cannot be resolved.
     pub fn import_absolute(
         &mut self,
         name: InternedSymbol<'heap>,
@@ -110,9 +110,9 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
     /// 1. As an absolute import if it exists in the global registry
     /// 2. Relative to another import already in scope
     ///
-    /// # Returns
+    /// # Errors
     ///
-    /// `true` if the import was successfully resolved, `false` if the item wasn't found.
+    /// Returns a `ResolutionError` if the path cannot be resolved.
     pub fn import_relative(
         &mut self,
         name: InternedSymbol<'heap>,
@@ -139,6 +139,11 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
         Ok(())
     }
 
+    /// Imports a path using the specified resolution mode.
+    ///
+    /// # Errors
+    ///
+    /// Returns a `ResolutionError` if the path cannot be resolved.
     pub fn import(
         &mut self,
         name: InternedSymbol<'heap>,
@@ -173,6 +178,11 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
         .is_ok()
     }
 
+    /// Resolves a path relative to the current scope.
+    ///
+    /// # Errors
+    ///
+    /// Returns a `ResolutionError` if the path cannot be resolved or if multiple matches are found.
     pub fn resolve_relative(
         &self,
         query: impl IntoIterator<Item = InternedSymbol<'heap>> + Clone,
@@ -199,6 +209,11 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
         }
     }
 
+    /// Resolves a path from the absolute scope.
+    ///
+    /// # Errors
+    ///
+    /// Returns a `ResolutionError` if the path cannot be resolved or if multiple matches are found.
     pub fn resolve_absolute(
         &self,
         query: impl IntoIterator<Item = InternedSymbol<'heap>>,
@@ -224,6 +239,11 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
         }
     }
 
+    /// Resolves a path using the specified resolution mode.
+    ///
+    /// # Errors
+    ///
+    /// Returns a `ResolutionError` if the path cannot be resolved or if multiple matches are found.
     pub fn resolve(
         &self,
         query: impl IntoIterator<Item = InternedSymbol<'heap>> + Clone,
@@ -368,7 +388,7 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
 
     #[cfg(test)]
     pub(crate) fn imports_as_slice(&self) -> &[Import<'heap>] {
-        &*self.imports
+        &self.imports
     }
 }
 
@@ -530,16 +550,17 @@ mod tests {
         let mut namespace = ModuleNamespace::new(&registry);
         namespace.import_prelude();
 
-        let success = namespace.import_absolute(
-            heap.intern_symbol("type"),
-            [heap.intern_symbol("kernel"), heap.intern_symbol("type")],
-            ImportOptions {
-                glob: false,
-                mode: ResolutionMode::Absolute,
-                suggestions: false,
-            },
-        );
-        assert!(success.is_ok());
+        namespace
+            .import_absolute(
+                heap.intern_symbol("type"),
+                [heap.intern_symbol("kernel"), heap.intern_symbol("type")],
+                ImportOptions {
+                    glob: false,
+                    mode: ResolutionMode::Absolute,
+                    suggestions: false,
+                },
+            )
+            .expect("import should exist");
 
         let item = namespace
             .resolve_relative(
