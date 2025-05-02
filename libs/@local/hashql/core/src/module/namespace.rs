@@ -6,7 +6,7 @@ use super::{
     ModuleRegistry,
     import::{Import, ImportDelegate},
     item::{Item, Universe},
-    resolver::{ResolveError, ResolveIter},
+    resolver::{ResolutionError, ResolveIter},
 };
 use crate::{
     module::resolver::{Resolver, ResolverMode, ResolverOptions},
@@ -83,7 +83,7 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
         name: InternedSymbol<'heap>,
         query: impl IntoIterator<Item = InternedSymbol<'heap>>,
         options: ImportOptions,
-    ) -> Result<(), ResolveError<'heap>> {
+    ) -> Result<(), ResolutionError<'heap>> {
         debug_assert_eq!(options.mode, ResolutionMode::Absolute);
 
         let resolver = Resolver {
@@ -118,7 +118,7 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
         name: InternedSymbol<'heap>,
         query: impl IntoIterator<Item = InternedSymbol<'heap>> + Clone,
         options: ImportOptions,
-    ) -> Result<(), ResolveError<'heap>> {
+    ) -> Result<(), ResolutionError<'heap>> {
         debug_assert_eq!(options.mode, ResolutionMode::Relative);
 
         let mut resolver = Resolver {
@@ -144,7 +144,7 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
         name: InternedSymbol<'heap>,
         query: impl IntoIterator<Item = InternedSymbol<'heap>> + Clone,
         options: ImportOptions,
-    ) -> Result<(), ResolveError<'heap>> {
+    ) -> Result<(), ResolutionError<'heap>> {
         match options.mode {
             ResolutionMode::Absolute => self.import_absolute(name, query, options),
             ResolutionMode::Relative => self.import_relative(name, query, options),
@@ -177,7 +177,7 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
         &self,
         query: impl IntoIterator<Item = InternedSymbol<'heap>> + Clone,
         ResolveOptions { universe, mode }: ResolveOptions,
-    ) -> Result<Item<'heap>, ResolveError<'heap>> {
+    ) -> Result<Item<'heap>, ResolutionError<'heap>> {
         debug_assert_eq!(mode, ResolutionMode::Relative);
 
         let mut resolver = Resolver {
@@ -193,7 +193,7 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
         // ResolveIter guarantees that at least one item is returned
         let item = iter.next().unwrap_or_else(|| unreachable!());
         if iter.next().is_some() {
-            Err(ResolveError::Ambiguous(item))
+            Err(ResolutionError::Ambiguous(item))
         } else {
             Ok(item)
         }
@@ -203,7 +203,7 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
         &self,
         query: impl IntoIterator<Item = InternedSymbol<'heap>>,
         ResolveOptions { universe, mode }: ResolveOptions,
-    ) -> Result<Item<'heap>, ResolveError<'heap>> {
+    ) -> Result<Item<'heap>, ResolutionError<'heap>> {
         debug_assert_eq!(mode, ResolutionMode::Absolute);
 
         let resolver = Resolver {
@@ -218,7 +218,7 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
         // ResolveIter guarantees that at least one item is returned
         let item = iter.next().unwrap_or_else(|| unreachable!());
         if iter.next().is_some() {
-            Err(ResolveError::Ambiguous(item))
+            Err(ResolutionError::Ambiguous(item))
         } else {
             Ok(item)
         }
@@ -228,7 +228,7 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
         &self,
         query: impl IntoIterator<Item = InternedSymbol<'heap>> + Clone,
         options: ResolveOptions,
-    ) -> Result<Item<'heap>, ResolveError<'heap>> {
+    ) -> Result<Item<'heap>, ResolutionError<'heap>> {
         match options.mode {
             ResolutionMode::Absolute => self.resolve_absolute(query, options),
             ResolutionMode::Relative => self.resolve_relative(query, options),
@@ -739,16 +739,19 @@ mod tests {
         let mut namespace = ModuleNamespace::new(&registry);
 
         // First import the type module as a module
-        let success = namespace.import_absolute(
-            heap.intern_symbol("*"),
-            [heap.intern_symbol("kernel"), heap.intern_symbol("type")],
-            ImportOptions {
-                glob: true,
-                mode: ResolutionMode::Absolute,
-                suggestions: false,
-            },
-        );
-        assert!(success.is_ok());
+        namespace
+            .import_absolute(
+                heap.intern_symbol("*"),
+                [heap.intern_symbol("kernel"), heap.intern_symbol("type")],
+                ImportOptions {
+                    glob: true,
+                    mode: ResolutionMode::Absolute,
+                    suggestions: false,
+                },
+            )
+            .expect("should be able to import glob from absolute");
+
+        println!("{:?}", namespace.imports);
 
         // We should be able to import `Dict` now
         let import = namespace

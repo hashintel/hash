@@ -35,7 +35,7 @@ impl<'heap> Iterator for ResolveIter<'heap> {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum ResolveError<'heap> {
+pub enum ResolutionError<'heap> {
     InvalidQueryLength {
         expected: usize,
     },
@@ -113,7 +113,7 @@ impl<'heap> Resolver<'_, 'heap> {
         universe: Universe,
         name: InternedSymbol<'heap>,
         depth: usize,
-    ) -> Result<iter::Once<Item<'heap>>, ResolveError<'heap>> {
+    ) -> Result<iter::Once<Item<'heap>>, ResolutionError<'heap>> {
         let item = module
             .items
             .iter()
@@ -121,7 +121,7 @@ impl<'heap> Resolver<'_, 'heap> {
             .find(|item| item.name == name && item.kind.universe() == Some(universe));
 
         let Some(item) = item else {
-            return Err(ResolveError::ItemNotFound {
+            return Err(ResolutionError::ItemNotFound {
                 depth,
                 suggestions: self.suggest(|| {
                     module.suggestions(name, |item| item.kind.universe() == Some(universe))
@@ -138,7 +138,7 @@ impl<'heap> Resolver<'_, 'heap> {
         module: Module<'heap>,
         name: InternedSymbol<'heap>,
         depth: usize,
-    ) -> Result<MultiResolveItemIterator<'heap>, ResolveError<'heap>> {
+    ) -> Result<MultiResolveItemIterator<'heap>, ResolutionError<'heap>> {
         let mut item = module
             .items
             .into_iter()
@@ -147,7 +147,7 @@ impl<'heap> Resolver<'_, 'heap> {
             .peekable();
 
         if item.peek().is_none() {
-            return Err(ResolveError::ItemNotFound {
+            return Err(ResolutionError::ItemNotFound {
                 depth,
                 suggestions: self.suggest(|| module.suggestions(name, |_| true)),
             });
@@ -162,7 +162,7 @@ impl<'heap> Resolver<'_, 'heap> {
         module: Module<'heap>,
         name: InternedSymbol<'heap>,
         depth: usize,
-    ) -> Result<ModuleItemIterator<'heap>, ResolveError<'heap>> {
+    ) -> Result<ModuleItemIterator<'heap>, ResolutionError<'heap>> {
         let candidate = module
             .items
             .iter()
@@ -173,7 +173,7 @@ impl<'heap> Resolver<'_, 'heap> {
             });
 
         let Some(module) = candidate else {
-            return Err(ResolveError::ModuleNotFound {
+            return Err(ResolutionError::ModuleNotFound {
                 depth,
                 suggestions: self.suggest(|| {
                     module.suggestions(name, |item| matches!(item.kind, ItemKind::Module(_)))
@@ -184,7 +184,7 @@ impl<'heap> Resolver<'_, 'heap> {
         let module = self.registry.modules.index(module);
 
         if module.items.is_empty() {
-            return Err(ResolveError::ModuleEmpty { depth });
+            return Err(ResolutionError::ModuleEmpty { depth });
         }
 
         Ok(module.items.into_iter().copied())
@@ -194,13 +194,13 @@ impl<'heap> Resolver<'_, 'heap> {
         &self,
         query: impl IntoIterator<Item = InternedSymbol<'heap>>,
         mut module: Module<'heap>,
-    ) -> Result<ResolveIter<'heap>, ResolveError<'heap>> {
+    ) -> Result<ResolveIter<'heap>, ResolutionError<'heap>> {
         let mut query = query.into_iter().enumerate().peekable();
 
         // Traverse the entry until we're at the last item
         let (depth, name) = loop {
             let Some((mut depth, name)) = query.next() else {
-                return Err(ResolveError::InvalidQueryLength { expected: 2 });
+                return Err(ResolutionError::InvalidQueryLength { expected: 2 });
             };
 
             // We start at 1, because the entry (the one we're starting at) is selected by the user
@@ -212,7 +212,7 @@ impl<'heap> Resolver<'_, 'heap> {
             }
 
             let Some(&item) = module.items.iter().find(|item| item.name == name) else {
-                return Err(ResolveError::ModuleNotFound {
+                return Err(ResolutionError::ModuleNotFound {
                     depth,
                     suggestions: self.suggest(|| {
                         module.suggestions(name, |item| matches!(item.kind, ItemKind::Module(_)))
@@ -222,7 +222,7 @@ impl<'heap> Resolver<'_, 'heap> {
 
             // Because we're not at the last item, the item needs to be a module
             let ItemKind::Module(next) = item.kind else {
-                return Err(ResolveError::ModuleRequired {
+                return Err(ResolutionError::ModuleRequired {
                     depth,
                     found: item.kind.universe(),
                 });
@@ -247,15 +247,15 @@ impl<'heap> Resolver<'_, 'heap> {
     pub(crate) fn resolve_absolute(
         &self,
         query: impl IntoIterator<Item = InternedSymbol<'heap>>,
-    ) -> Result<ResolveIter<'heap>, ResolveError<'heap>> {
+    ) -> Result<ResolveIter<'heap>, ResolutionError<'heap>> {
         let mut query = query.into_iter();
 
         let Some(name) = query.next() else {
-            return Err(ResolveError::InvalidQueryLength { expected: 2 });
+            return Err(ResolutionError::InvalidQueryLength { expected: 2 });
         };
 
         let Some(module) = self.registry.find_by_name(name) else {
-            return Err(ResolveError::PackageNotFound {
+            return Err(ResolutionError::PackageNotFound {
                 depth: 0,
                 suggestions: self.suggest(|| self.registry.suggestions(name)),
             });
@@ -269,14 +269,14 @@ impl<'heap> Resolver<'_, 'heap> {
         name: InternedSymbol<'heap>,
         imports: &[Import<'heap>],
         universe: Universe,
-    ) -> Result<iter::Once<Item<'heap>>, ResolveError<'heap>> {
+    ) -> Result<iter::Once<Item<'heap>>, ResolutionError<'heap>> {
         let import = imports
             .iter()
             .rev()
             .find(|import| import.name == name && import.item.kind.universe() == Some(universe));
 
         let Some(import) = import else {
-            return Err(ResolveError::ImportNotFound {
+            return Err(ResolutionError::ImportNotFound {
                 depth: 0,
                 suggestions: self.suggest(|| {
                     imports
@@ -302,7 +302,7 @@ impl<'heap> Resolver<'_, 'heap> {
         &self,
         name: InternedSymbol<'heap>,
         imports: &[Import<'heap>],
-    ) -> Result<MultiResolveImportIterator<'heap>, ResolveError<'heap>> {
+    ) -> Result<MultiResolveImportIterator<'heap>, ResolutionError<'heap>> {
         let mut base = imports
             .iter()
             .rev()
@@ -321,7 +321,7 @@ impl<'heap> Resolver<'_, 'heap> {
         let module = base.find(|import| matches!(import.item.kind, ItemKind::Module(_)));
 
         if value.is_none() && r#type.is_none() && module.is_none() {
-            return Err(ResolveError::ImportNotFound {
+            return Err(ResolutionError::ImportNotFound {
                 depth: 0,
                 suggestions: self.suggest(|| {
                     imports
@@ -350,7 +350,7 @@ impl<'heap> Resolver<'_, 'heap> {
         &self,
         name: InternedSymbol<'heap>,
         imports: &[Import<'heap>],
-    ) -> Result<ModuleItemIterator<'heap>, ResolveError<'heap>> {
+    ) -> Result<ModuleItemIterator<'heap>, ResolutionError<'heap>> {
         let module = imports
             .iter()
             .rev()
@@ -360,7 +360,7 @@ impl<'heap> Resolver<'_, 'heap> {
             });
 
         let Some(module) = module else {
-            return Err(ResolveError::ModuleRequired {
+            return Err(ResolutionError::ModuleRequired {
                 depth: 0,
                 found: None,
             });
@@ -369,7 +369,7 @@ impl<'heap> Resolver<'_, 'heap> {
         let module = self.registry.modules.index(module);
 
         if module.items.is_empty() {
-            return Err(ResolveError::ModuleEmpty { depth: 0 });
+            return Err(ResolutionError::ModuleEmpty { depth: 0 });
         }
 
         Ok(module.items.into_iter().copied())
@@ -380,7 +380,7 @@ impl<'heap> Resolver<'_, 'heap> {
         &mut self,
         query: impl IntoIterator<Item = InternedSymbol<'heap>> + Clone,
         imports: &[Import<'heap>],
-    ) -> Result<ResolveIter<'heap>, ResolveError<'heap>> {
+    ) -> Result<ResolveIter<'heap>, ResolutionError<'heap>> {
         // first check if we can import the module via it's absolute path, do not record
         // suggestions, as that is unnecessarily slow
         if let Ok(iter) = self.with_suggestions(false, |this| this.resolve_absolute(query.clone()))
@@ -391,29 +391,10 @@ impl<'heap> Resolver<'_, 'heap> {
         let mut query = query.into_iter().peekable();
 
         let Some(name) = query.next() else {
-            return Err(ResolveError::InvalidQueryLength { expected: 1 });
+            return Err(ResolutionError::InvalidQueryLength { expected: 1 });
         };
 
-        // This does *not* work, as it depends on the type, what we're going to import :/
-        let Some(&import) = imports.iter().find(|import| import.name == name) else {
-            return Err(ResolveError::ImportNotFound {
-                depth: 0,
-                suggestions: self.suggest(|| {
-                    imports
-                        .iter()
-                        .map(|&import| {
-                            let score = jaro_winkler(import.name.as_str(), name.as_str());
-                            Suggestion {
-                                item: import,
-                                score,
-                            }
-                        })
-                        .collect()
-                }),
-            });
-        };
-
-        let has_next = query.peek().is_none();
+        let has_next = query.peek().is_some();
 
         if has_next {
             let module = imports
@@ -425,9 +406,9 @@ impl<'heap> Resolver<'_, 'heap> {
                 });
 
             let Some(module) = module else {
-                return Err(ResolveError::ModuleRequired {
+                return Err(ResolutionError::ModuleRequired {
                     depth: 0,
-                    found: import.item.kind.universe(),
+                    found: None,
                 });
             };
 
