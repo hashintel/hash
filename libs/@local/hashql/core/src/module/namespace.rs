@@ -369,6 +369,8 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
 
 #[cfg(test)]
 mod tests {
+    use core::assert_matches::assert_matches;
+
     use super::ModuleNamespace;
     use crate::{
         heap::Heap,
@@ -376,6 +378,7 @@ mod tests {
             ModuleId, ModuleRegistry, PartialModule,
             item::{IntrinsicItem, Item, ItemKind, Universe},
             namespace::{ImportOptions, ResolutionMode, ResolveOptions},
+            resolver::ResolutionError,
         },
         span::SpanId,
         r#type::environment::Environment,
@@ -600,19 +603,17 @@ mod tests {
             })
         );
 
-        assert!(
-            namespace
-                .import_absolute(
-                    heap.intern_symbol("Dict"),
-                    [heap.intern_symbol("foo"), heap.intern_symbol("bar")],
-                    ImportOptions {
-                        glob: false,
-                        mode: ResolutionMode::Absolute,
-                        suggestions: false
-                    }
-                )
-                .is_ok()
-        );
+        namespace
+            .import_absolute(
+                heap.intern_symbol("Dict"),
+                [heap.intern_symbol("foo"), heap.intern_symbol("bar")],
+                ImportOptions {
+                    glob: false,
+                    mode: ResolutionMode::Absolute,
+                    suggestions: false,
+                },
+            )
+            .expect("should be able to import");
 
         let import = namespace
             .resolve_relative(
@@ -645,28 +646,30 @@ mod tests {
         let mut namespace = ModuleNamespace::new(&registry);
 
         // first import the type module as a module
-        let success = namespace.import_absolute(
-            heap.intern_symbol("type"),
-            [heap.intern_symbol("kernel"), heap.intern_symbol("type")],
-            ImportOptions {
-                glob: false,
-                mode: ResolutionMode::Absolute,
-                suggestions: false,
-            },
-        );
-        assert!(success.is_ok());
+        namespace
+            .import_absolute(
+                heap.intern_symbol("type"),
+                [heap.intern_symbol("kernel"), heap.intern_symbol("type")],
+                ImportOptions {
+                    glob: false,
+                    mode: ResolutionMode::Absolute,
+                    suggestions: false,
+                },
+            )
+            .expect("should be able to import");
 
         // import `Dict` relative from type (now that it is imported)
-        let success = namespace.import_relative(
-            heap.intern_symbol("Dict"),
-            [heap.intern_symbol("type"), heap.intern_symbol("Dict")],
-            ImportOptions {
-                glob: false,
-                mode: ResolutionMode::Relative,
-                suggestions: false,
-            },
-        );
-        assert!(success.is_ok());
+        namespace
+            .import_relative(
+                heap.intern_symbol("Dict"),
+                [heap.intern_symbol("type"), heap.intern_symbol("Dict")],
+                ImportOptions {
+                    glob: false,
+                    mode: ResolutionMode::Relative,
+                    suggestions: false,
+                },
+            )
+            .expect("should be able to import");
 
         // We should be able to import `Dict` now
         let import = namespace
@@ -692,42 +695,30 @@ mod tests {
         let mut namespace = ModuleNamespace::new(&registry);
 
         // first import the type module as a module
-        let success = namespace.import_absolute(
-            heap.intern_symbol("foo"),
-            [heap.intern_symbol("kernel"), heap.intern_symbol("type")],
-            ImportOptions {
-                glob: false,
-                mode: ResolutionMode::Absolute,
-                suggestions: false,
-            },
-        );
-        assert!(success.is_ok());
+        namespace
+            .import_absolute(
+                heap.intern_symbol("foo"),
+                [heap.intern_symbol("kernel"), heap.intern_symbol("type")],
+                ImportOptions {
+                    glob: false,
+                    mode: ResolutionMode::Absolute,
+                    suggestions: false,
+                },
+            )
+            .expect("should be able to import");
 
         // import `Dict` relative from type (now that it is imported)
-        let success = namespace.import_relative(
-            heap.intern_symbol("Dict"),
-            [heap.intern_symbol("foo"), heap.intern_symbol("Dict")],
-            ImportOptions {
-                glob: false,
-                mode: ResolutionMode::Relative,
-                suggestions: false,
-            },
-        );
-        assert!(success.is_ok());
-
-        // // We should be able to import `Dict` now
-        // let import = namespace
-        //     .resolve_relative_import(
-        //         [heap.intern_symbol("Dict")],
-        //         ResolveOptions {
-        //             universe: Universe::Type,
-        //             mode: ResolutionMode::Relative,
-        //         },
-        //     )
-        //     .expect("import should exist");
-
-        // assert_eq!(import.name.as_str(), "Dict");
-        // assert_eq!(import.kind.universe(), Some(Universe::Type));
+        namespace
+            .import_relative(
+                heap.intern_symbol("Dict"),
+                [heap.intern_symbol("foo"), heap.intern_symbol("Dict")],
+                ImportOptions {
+                    glob: false,
+                    mode: ResolutionMode::Relative,
+                    suggestions: false,
+                },
+            )
+            .expect("should be able to import");
     }
 
     #[test]
@@ -776,15 +767,24 @@ mod tests {
 
         let mut namespace = ModuleNamespace::new(&registry);
 
-        let success = namespace.import_absolute(
-            heap.intern_symbol("*"),
-            [heap.intern_symbol("kernel"), heap.intern_symbol("foo")],
-            ImportOptions {
-                glob: true,
-                mode: ResolutionMode::Absolute,
-                suggestions: false,
-            },
+        let error = namespace
+            .import_absolute(
+                heap.intern_symbol("*"),
+                [heap.intern_symbol("kernel"), heap.intern_symbol("foo")],
+                ImportOptions {
+                    glob: true,
+                    mode: ResolutionMode::Absolute,
+                    suggestions: false,
+                },
+            )
+            .expect_err("should be unable to import non-existent glob");
+
+        assert_matches!(
+            error,
+            ResolutionError::ModuleNotFound {
+                depth: 1,
+                suggestions
+            } if suggestions.is_empty()
         );
-        assert!(!success.is_ok());
     }
 }
