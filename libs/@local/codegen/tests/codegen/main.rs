@@ -66,6 +66,9 @@ fn register_types(collection: &mut TypeCollection) {
     collection.register::<tuples::TupleNested>();
     collection.register::<tuples::TupleOptional>();
 
+    // Register a recursive type
+    collection.register::<type_system::knowledge::PropertyValue>();
+
     // Register principals
     // Note, that transitive types can be completed by the codegen
     collection.register::<principal::Principal>();

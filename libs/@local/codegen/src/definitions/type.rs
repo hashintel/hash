@@ -8,11 +8,11 @@ use super::{Enum, List, Map, Primitive, Struct, Tuple};
 pub struct TypeId(specta::SpectaID);
 
 impl TypeId {
-    pub(crate) fn from_specta(id: specta::SpectaID) -> Self {
+    pub(crate) const fn from_specta(id: specta::SpectaID) -> Self {
         Self(id)
     }
 
-    pub(crate) fn to_specta(self) -> SpectaID {
+    pub(crate) const fn to_specta(self) -> SpectaID {
         self.0
     }
 }

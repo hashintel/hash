@@ -192,12 +192,12 @@ impl<'a> TypeScriptGenerator<'a> {
         }
     }
 
-    fn visit_reference(&self, reference: TypeId) -> ast::TSType<'a> {
+    fn visit_reference(&self, type_id: TypeId) -> ast::TSType<'a> {
         self.ast.ts_type_type_reference(
             SPAN,
             self.ast.ts_type_name_identifier_reference(
                 SPAN,
-                self.collection.types[&reference].name.as_ref(),
+                self.collection.types[&type_id].name.as_ref(),
             ),
             None::<ast::TSTypeParameterInstantiation<'a>>,
         )
