@@ -324,7 +324,7 @@ __metadata:
     rimraf: "npm:6.0.1"
     sanitize-html: "npm:2.16.0"
     tsconfig-paths-webpack-plugin: "npm:4.2.0"
-    tsx: "npm:4.19.3"
+    tsx: "npm:4.19.4"
     typescript: "npm:5.7.3"
     vitest: "npm:3.1.2"
     wait-on: "npm:8.0.3"
@@ -432,7 +432,7 @@ __metadata:
     openai: "npm:4.96.2"
     rimraf: "npm:6.0.1"
     ts-json-schema-generator: "npm:1.5.1"
-    tsx: "npm:4.19.3"
+    tsx: "npm:4.19.4"
     typescript: "npm:5.7.3"
     vitest: "npm:3.1.2"
     wait-on: "npm:8.0.3"
@@ -630,7 +630,7 @@ __metadata:
     dotenv-flow: "npm:3.3.0"
     eslint: "npm:9.20.1"
     rimraf: "npm:6.0.1"
-    tsx: "npm:4.19.3"
+    tsx: "npm:4.19.4"
     typescript: "npm:5.7.3"
     wait-on: "npm:8.0.3"
   languageName: unknown
@@ -648,7 +648,7 @@ __metadata:
     eslint: "npm:9.20.1"
     set-interval-async: "npm:2.0.3"
     slonik: "npm:24.2.0"
-    tsx: "npm:4.19.3"
+    tsx: "npm:4.19.4"
     typescript: "npm:5.7.3"
   languageName: unknown
   linkType: soft
@@ -665,7 +665,7 @@ __metadata:
     "@types/node": "npm:22.15.3"
     eslint: "npm:9.20.1"
     hot-shots: "npm:8.5.2"
-    tsx: "npm:4.19.3"
+    tsx: "npm:4.19.4"
     typescript: "npm:5.7.3"
   languageName: unknown
   linkType: soft
@@ -717,7 +717,7 @@ __metadata:
     eslint: "npm:9.20.1"
     rimraf: "npm:6.0.1"
     shx: "npm:0.4.0"
-    tsx: "npm:4.19.3"
+    tsx: "npm:4.19.4"
     typescript: "npm:5.7.3"
     zod: "npm:3.24.3"
     zod-to-json-schema: "npm:3.24.5"
@@ -742,7 +742,7 @@ __metadata:
     notion-to-md: "npm:3.1.8"
     rimraf: "npm:6.0.1"
     shx: "npm:0.4.0"
-    tsx: "npm:4.19.3"
+    tsx: "npm:4.19.4"
     typescript: "npm:5.7.3"
     zod: "npm:3.24.3"
     zod-to-json-schema: "npm:3.24.5"
@@ -8987,7 +8987,7 @@ __metadata:
     react: "npm:19.1.0"
     rimraf: "npm:6.0.1"
     serialize-error: "npm:12.0.0"
-    tsx: "npm:4.19.3"
+    tsx: "npm:4.19.4"
     typescript: "npm:5.7.3"
     uuid: "npm:11.1.0"
     vitest: "npm:3.1.2"
@@ -9028,7 +9028,7 @@ __metadata:
     ignore: "npm:7.0.4"
     regex-parser: "npm:2.3.1"
     sort-package-json: "npm:2.15.1"
-    tsx: "npm:4.19.3"
+    tsx: "npm:4.19.4"
     typescript: "npm:5.7.3"
     zod: "npm:3.24.3"
     zod-to-json-schema: "npm:3.24.5"
@@ -12740,7 +12740,7 @@ __metadata:
     "@rust/hash-status": "npm:0.0.0-private"
     "@rust/hash-temporal-client": "npm:0.0.0-private"
     "@rust/hash-tracing": "npm:0.0.0-private"
-    tsx: "npm:4.19.3"
+    tsx: "npm:4.19.4"
   languageName: unknown
   linkType: soft
 
@@ -12797,7 +12797,7 @@ __metadata:
     "@rust/hash-status": "npm:0.0.0-private"
     eslint: "npm:9.20.1"
     quicktype: "npm:16.0.43"
-    tsx: "npm:4.19.3"
+    tsx: "npm:4.19.4"
     typescript: "npm:5.7.3"
   languageName: unknown
   linkType: soft
@@ -42874,9 +42874,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tsx@npm:4.19.3":
-  version: 4.19.3
-  resolution: "tsx@npm:4.19.3"
+"tsx@npm:4.19.4":
+  version: 4.19.4
+  resolution: "tsx@npm:4.19.4"
   dependencies:
     esbuild: "npm:~0.25.0"
     fsevents: "npm:~2.3.3"
@@ -42886,7 +42886,7 @@ __metadata:
       optional: true
   bin:
     tsx: dist/cli.mjs
-  checksum: 10c0/cacfb4cf1392ae10e8e4fe032ad26ccb07cd8a3b32e5a0da270d9c48d06ee74f743e4a84686cbc9d89b48032d59bbc56cd911e076f53cebe61dc24fa525ff790
+  checksum: 10c0/f7b8d44362343fbde1f2ecc9832d243a450e1168dd09702a545ebe5f699aa6912e45b431a54b885466db414cceda48e5067b36d182027c43b2c02a4f99d8721e
   languageName: node
   linkType: hard
 
