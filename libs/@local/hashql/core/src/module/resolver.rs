@@ -1,11 +1,41 @@
 use core::iter;
 
+use strsim::jaro_winkler;
+
 use super::{
-    Module, ModuleRegistry,
+    Module, ModuleId, ModuleRegistry,
     error::Suggestion,
+    import::Import,
     item::{Item, ItemKind, Universe},
 };
 use crate::symbol::InternedSymbol;
+
+pub(crate) type ModuleItemIterator<'heap> = impl ExactSizeIterator<Item = Item<'heap>>;
+
+pub(crate) enum ResolveIter<'heap> {
+    Single(iter::Once<Item<'heap>>),
+    Glob(ModuleItemIterator<'heap>),
+}
+
+impl<'heap> Iterator for ResolveIter<'heap> {
+    type Item = Item<'heap>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self {
+            ResolveIter::Single(iter) => iter.next(),
+            ResolveIter::Glob(iter) => iter.next(),
+        }
+    }
+}
+
+impl<'heap> ExactSizeIterator for ResolveIter<'heap> {
+    fn len(&self) -> usize {
+        match self {
+            ResolveIter::Single(iter) => iter.len(),
+            ResolveIter::Glob(iter) => iter.len(),
+        }
+    }
+}
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ResolveError<'heap> {
@@ -14,10 +44,21 @@ pub enum ResolveError<'heap> {
         depth: usize,
         found: Option<Universe>,
     },
+
+    PackageNotFound {
+        depth: usize,
+        suggestions: Vec<Suggestion<ModuleId>>,
+    },
+    ImportNotFound {
+        depth: usize,
+        suggestions: Vec<Suggestion<Import<'heap>>>,
+    },
+
     ModuleNotFound {
         depth: usize,
         suggestions: Vec<Suggestion<Item<'heap>>>,
     },
+
     ItemNotFound {
         depth: usize,
         suggestions: Vec<Suggestion<Item<'heap>>>,
@@ -56,7 +97,7 @@ impl<'heap> Resolver<'_, 'heap> {
         universe: Universe,
         name: InternedSymbol<'heap>,
         depth: usize,
-    ) -> Result<impl IntoIterator<Item = Item<'heap>>, ResolveError<'heap>> {
+    ) -> Result<iter::Once<Item<'heap>>, ResolveError<'heap>> {
         let item = module
             .items
             .iter()
@@ -75,12 +116,13 @@ impl<'heap> Resolver<'_, 'heap> {
         Ok(iter::once(item))
     }
 
+    #[define_opaque(ModuleItemIterator)]
     fn resolve_glob(
         &self,
         module: Module<'heap>,
         name: InternedSymbol<'heap>,
         depth: usize,
-    ) -> Result<impl IntoIterator<Item = Item<'heap>>, ResolveError<'heap>> {
+    ) -> Result<ModuleItemIterator<'heap>, ResolveError<'heap>> {
         let candidate = module
             .items
             .iter()
@@ -99,20 +141,16 @@ impl<'heap> Resolver<'_, 'heap> {
             });
         };
 
-        Ok(self
-            .registry
-            .modules
-            .index(module)
-            .items
-            .into_iter()
-            .copied())
+        let module = self.registry.modules.index(module);
+
+        Ok(module.items.into_iter().copied())
     }
 
-    pub(crate) fn resolve(
+    fn resolve_impl(
         &self,
-        mut module: Module<'heap>,
         query: impl IntoIterator<Item = InternedSymbol<'heap>>,
-    ) -> Result<impl IntoIterator<Item = Item<'heap>>, ResolveError<'heap>> {
+        mut module: Module<'heap>,
+    ) -> Result<ResolveIter<'heap>, ResolveError<'heap>> {
         let mut query = query.into_iter().enumerate().peekable();
 
         // Traverse the entry until we're at the last item
@@ -149,23 +187,147 @@ impl<'heap> Resolver<'_, 'heap> {
             module = self.registry.modules.index(next);
         };
 
-        let mut iter_single = None;
-        let mut iter_glob = None;
-
         match self.options.mode {
-            ResolverMode::Single(universe) => {
-                iter_single = Some(self.resolve_single(module, universe, name, depth)?);
-            }
-            ResolverMode::Glob => {
-                iter_glob = Some(self.resolve_glob(module, name, depth)?);
-            }
+            ResolverMode::Single(universe) => self
+                .resolve_single(module, universe, name, depth)
+                .map(ResolveIter::Single),
+            ResolverMode::Glob => self
+                .resolve_glob(module, name, depth)
+                .map(ResolveIter::Glob),
+        }
+    }
+
+    fn resolve_absolute(
+        &self,
+        query: impl IntoIterator<Item = InternedSymbol<'heap>>,
+    ) -> Result<ResolveIter<'heap>, ResolveError<'heap>> {
+        let mut query = query.into_iter();
+
+        let Some(name) = query.next() else {
+            return Err(ResolveError::NotEnoughLengthChangeName);
+        };
+
+        let Some(module) = self.registry.find_by_name(name) else {
+            return Err(ResolveError::PackageNotFound {
+                depth: 0,
+                suggestions: self.suggest(|| self.registry.suggestions(name)),
+            });
+        };
+
+        self.resolve_impl(query, module)
+    }
+
+    fn with_suggestions<T>(&mut self, enable: bool, closure: impl FnOnce(&mut Self) -> T) -> T {
+        let current = self.options.suggestions;
+        self.options.suggestions = enable;
+
+        let result = closure(self);
+
+        self.options.suggestions = current;
+        result
+    }
+
+    fn resolve_import_single(
+        &self,
+        name: InternedSymbol<'heap>,
+        import: Import<'heap>,
+        universe: Universe,
+        imports: &[Import<'heap>],
+    ) -> Result<iter::Once<Item<'heap>>, ResolveError<'heap>> {
+        if import.item.kind.universe() != Some(universe) {
+            return Err(ResolveError::ImportNotFound {
+                depth: 0,
+                suggestions: self.suggest(|| {
+                    imports
+                        .iter()
+                        .filter(|import| import.item.kind.universe() == Some(universe))
+                        .map(|&import| {
+                            let score = jaro_winkler(import.name.as_str(), name.as_str());
+                            Suggestion {
+                                item: import,
+                                score,
+                            }
+                        })
+                        .collect()
+                }),
+            });
         }
 
-        // This might look weird, but allows us to use a single `Iterator`, without a custom type
-        // which is pretty neat!
-        Ok(iter_single
-            .into_iter()
-            .flatten()
-            .chain(iter_glob.into_iter().flatten()))
+        Ok(iter::once(import.item))
+    }
+
+    #[define_opaque(ModuleItemIterator)]
+    fn resolve_import_glob(
+        &self,
+        import: Import<'heap>,
+    ) -> Result<ModuleItemIterator<'heap>, ResolveError<'heap>> {
+        let ItemKind::Module(module) = import.item.kind else {
+            return Err(ResolveError::ExpectedModule {
+                depth: 0,
+                found: import.item.kind.universe(),
+            });
+        };
+
+        let module = self.registry.modules.index(module);
+
+        Ok(module.items.into_iter().copied())
+    }
+
+    fn resolve_relative(
+        &mut self,
+        query: impl IntoIterator<Item = InternedSymbol<'heap>> + Clone,
+        imports: &[Import<'heap>],
+    ) -> Result<ResolveIter<'heap>, ResolveError<'heap>> {
+        // first check if we can import the module via it's absolute path, do not record
+        // suggestions, as that is unnecessarily slow
+        if let Ok(iter) = self.with_suggestions(false, |this| this.resolve_absolute(query.clone()))
+        {
+            return Ok(iter);
+        }
+
+        let mut query = query.into_iter().peekable();
+
+        let Some(name) = query.next() else {
+            return Err(ResolveError::NotEnoughLengthChangeName);
+        };
+
+        let Some(&import) = imports.iter().find(|import| import.name == name) else {
+            return Err(ResolveError::ImportNotFound {
+                depth: 0,
+                suggestions: self.suggest(|| {
+                    imports
+                        .iter()
+                        .map(|&import| {
+                            let score = jaro_winkler(import.name.as_str(), name.as_str());
+                            Suggestion {
+                                item: import,
+                                score,
+                            }
+                        })
+                        .collect()
+                }),
+            });
+        };
+
+        let has_next = query.peek().is_none();
+
+        if has_next {
+            let ItemKind::Module(module) = import.item.kind else {
+                return Err(ResolveError::ExpectedModule {
+                    depth: 0,
+                    found: import.item.kind.universe(),
+                });
+            };
+
+            let module = self.registry.modules.index(module);
+            return self.resolve_impl(query, module);
+        }
+
+        match self.options.mode {
+            ResolverMode::Single(universe) => self
+                .resolve_import_single(name, import, universe, imports)
+                .map(ResolveIter::Single),
+            ResolverMode::Glob => self.resolve_import_glob(import).map(ResolveIter::Glob),
+        }
     }
 }
