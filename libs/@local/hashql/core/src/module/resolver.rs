@@ -12,10 +12,12 @@ use crate::symbol::InternedSymbol;
 
 pub(crate) type ModuleItemIterator<'heap> = impl ExactSizeIterator<Item = Item<'heap>>;
 pub(crate) type MultiResolveItemIterator<'heap> = impl Iterator<Item = Item<'heap>>;
+pub(crate) type MultiResolveImportIterator<'heap> = impl Iterator<Item = Item<'heap>>;
 
 pub(crate) enum ResolveIter<'heap> {
     Single(iter::Once<Item<'heap>>),
     MultiResolve(MultiResolveItemIterator<'heap>),
+    MultiImport(MultiResolveImportIterator<'heap>),
     Glob(ModuleItemIterator<'heap>),
 }
 
@@ -26,6 +28,7 @@ impl<'heap> Iterator for ResolveIter<'heap> {
         match self {
             ResolveIter::Single(iter) => iter.next(),
             ResolveIter::MultiResolve(iter) => iter.next(),
+            ResolveIter::MultiImport(iter) => iter.next(),
             ResolveIter::Glob(iter) => iter.next(),
         }
     }
@@ -264,11 +267,15 @@ impl<'heap> Resolver<'_, 'heap> {
     fn resolve_import_single(
         &self,
         name: InternedSymbol<'heap>,
-        import: Import<'heap>,
-        universe: Universe,
         imports: &[Import<'heap>],
+        universe: Universe,
     ) -> Result<iter::Once<Item<'heap>>, ResolveError<'heap>> {
-        if import.item.kind.universe() != Some(universe) {
+        let import = imports
+            .iter()
+            .rev()
+            .find(|import| import.name == name && import.item.kind.universe() == Some(universe));
+
+        let Some(import) = import else {
             return Err(ResolveError::ImportNotFound {
                 depth: 0,
                 suggestions: self.suggest(|| {
@@ -285,22 +292,77 @@ impl<'heap> Resolver<'_, 'heap> {
                         .collect()
                 }),
             });
-        }
+        };
 
         Ok(iter::once(import.item))
     }
 
-    // fn resolve_import_multi(&self, name: InternedSymbol<'heap>, )
+    #[define_opaque(MultiResolveImportIterator)]
+    fn resolve_import_multi(
+        &self,
+        name: InternedSymbol<'heap>,
+        imports: &[Import<'heap>],
+    ) -> Result<MultiResolveImportIterator<'heap>, ResolveError<'heap>> {
+        let mut base = imports
+            .iter()
+            .rev()
+            .copied()
+            .filter(|import| import.name == name);
+
+        // try to import one of every type
+        let value = base
+            .clone()
+            .find(|import| import.item.kind.universe() == Some(Universe::Value));
+
+        let r#type = base
+            .clone()
+            .find(|import| import.item.kind.universe() == Some(Universe::Type));
+
+        let module = base.find(|import| matches!(import.item.kind, ItemKind::Module(_)));
+
+        if value.is_none() && r#type.is_none() && module.is_none() {
+            return Err(ResolveError::ImportNotFound {
+                depth: 0,
+                suggestions: self.suggest(|| {
+                    imports
+                        .iter()
+                        .map(|&import| {
+                            let score = jaro_winkler(import.name.as_str(), name.as_str());
+                            Suggestion {
+                                item: import,
+                                score,
+                            }
+                        })
+                        .collect()
+                }),
+            });
+        }
+
+        Ok(value
+            .into_iter()
+            .chain(r#type)
+            .chain(module)
+            .map(|import| import.item))
+    }
 
     #[define_opaque(ModuleItemIterator)]
     fn resolve_import_glob(
         &self,
-        import: Import<'heap>,
+        name: InternedSymbol<'heap>,
+        imports: &[Import<'heap>],
     ) -> Result<ModuleItemIterator<'heap>, ResolveError<'heap>> {
-        let ItemKind::Module(module) = import.item.kind else {
+        let module = imports
+            .iter()
+            .rev()
+            .find_map(|import| match import.item.kind {
+                ItemKind::Module(module) if import.name == name => Some(module),
+                _ => None,
+            });
+
+        let Some(module) = module else {
             return Err(ResolveError::ModuleRequired {
                 depth: 0,
-                found: import.item.kind.universe(),
+                found: None,
             });
         };
 
@@ -354,7 +416,15 @@ impl<'heap> Resolver<'_, 'heap> {
         let has_next = query.peek().is_none();
 
         if has_next {
-            let ItemKind::Module(module) = import.item.kind else {
+            let module = imports
+                .iter()
+                .rev()
+                .find_map(|import| match import.item.kind {
+                    ItemKind::Module(module) if import.name == name => Some(module),
+                    _ => None,
+                });
+
+            let Some(module) = module else {
                 return Err(ResolveError::ModuleRequired {
                     depth: 0,
                     found: import.item.kind.universe(),
@@ -369,9 +439,14 @@ impl<'heap> Resolver<'_, 'heap> {
 
         match self.options.mode {
             ResolverMode::Single(universe) => self
-                .resolve_import_single(name, import, universe, imports)
+                .resolve_import_single(name, imports, universe)
                 .map(ResolveIter::Single),
-            ResolverMode::Glob => self.resolve_import_glob(import).map(ResolveIter::Glob),
+            ResolverMode::Multi => self
+                .resolve_import_multi(name, imports)
+                .map(ResolveIter::MultiImport),
+            ResolverMode::Glob => self
+                .resolve_import_glob(name, imports)
+                .map(ResolveIter::Glob),
         }
     }
 }
