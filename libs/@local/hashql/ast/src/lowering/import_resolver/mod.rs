@@ -115,28 +115,36 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
                     let name = name.value.intern(self.heap);
                     let alias = alias.map_or(name, |alias| alias.value.intern(self.heap));
 
-                    let success = self.namespace.import(
+                    let result = self.namespace.import(
                         alias,
                         query.iter().copied().chain(iter::once(name)),
-                        ImportOptions { glob: false, mode },
+                        ImportOptions {
+                            glob: false,
+                            mode,
+                            suggestions: true,
+                        },
                     );
 
-                    if !success {
+                    if let Err(error) = result {
                         todo!("record diagnostic")
                     }
                 }
             }
             UseKind::Glob(_) => {
-                let success = self.namespace.import(
+                let result = self.namespace.import(
                     self.heap.intern_symbol("*"),
                     query.iter().copied(),
-                    ImportOptions { glob: true, mode },
+                    ImportOptions {
+                        glob: true,
+                        mode,
+                        suggestions: true,
+                    },
                 );
 
                 // TODO: the problem is we don't know *why* we failed, and it isn't that easy to
                 // find out why. We currently return a Vec, the problem is that we don't know how to
                 // continue, we will have to make a thonk about how to solve this issue.
-                if !success {
+                if let Err(error) = result {
                     todo!("record diagnostic")
                 }
             }
