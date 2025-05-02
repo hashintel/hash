@@ -319,7 +319,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
                 items: {
                   $ref: "https://hash.ai/@h/types/property-type/deleted-at/v/1",
                 },
-                minItems: "0",
+                minItems: 0,
               },
               "https://hash.ai/@test/types/property-type/notes-and-summary/": {
                 $ref: "https://hash.ai/@test/types/property-type/notes-and-summary/v/1",
@@ -341,7 +341,7 @@ const testSubgraph: Pick<ApiClientSubgraph, "edges" | "roots" | "vertices"> = {
                     },
                   ],
                 },
-                minItems: "0",
+                minItems: 0,
               },
             },
           },
