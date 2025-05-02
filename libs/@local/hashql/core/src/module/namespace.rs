@@ -1,6 +1,23 @@
 //! Namespace management for the HashQL module system.
-use super::{ModuleRegistry, import::Import, item::Universe};
+use ena::snapshot_vec::SnapshotVec;
+
+use super::{
+    ModuleRegistry,
+    import::{Import, ImportDelegate},
+    item::{Item, ItemKind, Universe},
+};
 use crate::symbol::InternedSymbol;
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct ImportOptions {
+    pub glob: bool,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum Transaction<T> {
+    Commit(T),
+    Rollback(T),
+}
 
 /// Represents the namespace of a module.
 ///
@@ -8,15 +25,61 @@ use crate::symbol::InternedSymbol;
 #[derive(Debug, Clone)]
 pub struct ModuleNamespace<'env, 'heap> {
     registry: &'env ModuleRegistry<'heap>,
-    pub imports: Vec<Import<'heap>>,
+    imports: SnapshotVec<ImportDelegate<'heap>>,
 }
 
 impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
-    pub const fn new(registry: &'env ModuleRegistry<'heap>) -> Self {
+    pub fn new(registry: &'env ModuleRegistry<'heap>) -> Self {
         Self {
             registry,
-            imports: Vec::new(),
+            imports: SnapshotVec::new(),
         }
+    }
+
+    fn import_glob(&mut self, items: Vec<Item<'heap>>) -> bool {
+        if !items
+            .iter()
+            .any(|item| matches!(item.kind, ItemKind::Module(_)))
+        {
+            return false;
+        }
+
+        for item in items {
+            // Import everything if it is a module, otherwise skip it
+            let ItemKind::Module(module) = item.kind else {
+                continue;
+            };
+
+            for &item in self.registry.modules.index(module).items {
+                self.imports.push(Import {
+                    name: item.name,
+                    item,
+                });
+            }
+        }
+
+        true
+    }
+
+    fn import(
+        &mut self,
+        name: InternedSymbol<'heap>,
+        items: Vec<Item<'heap>>,
+        ImportOptions { glob }: ImportOptions,
+    ) -> bool {
+        if items.is_empty() {
+            return false;
+        }
+
+        if glob {
+            return self.import_glob(items);
+        }
+
+        for item in items {
+            self.imports.push(Import { name, item });
+        }
+
+        true
     }
 
     /// Attempts to add an absolute import.
@@ -31,17 +94,30 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
         &mut self,
         name: InternedSymbol<'heap>,
         query: impl IntoIterator<Item = InternedSymbol<'heap>, IntoIter: Clone>,
+        options: ImportOptions,
     ) -> bool {
         let results = self.registry.search(query);
-        if results.is_empty() {
-            return false;
-        }
 
-        for item in results {
-            self.imports.push(Import { name, item });
-        }
+        self.import(name, results, options)
+    }
 
-        true
+    pub fn in_transaction<T>(&mut self, closure: impl FnOnce(&mut Self) -> Transaction<T>) -> T {
+        let snapshot = self.imports.start_snapshot();
+
+        let transaction = closure(self);
+
+        match transaction {
+            Transaction::Commit(value) => {
+                self.imports.commit(snapshot);
+
+                value
+            }
+            Transaction::Rollback(value) => {
+                self.imports.rollback_to(snapshot);
+
+                value
+            }
+        }
     }
 
     /// Attempts to add a relative import.
@@ -58,13 +134,14 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
         &mut self,
         name: InternedSymbol<'heap>,
         query: impl IntoIterator<Item = InternedSymbol<'heap>, IntoIter: Clone> + Clone,
+        options: ImportOptions,
     ) -> bool {
-        // first try to find the item as absolute import
-        if self.import_absolute(name, query.clone()) {
+        // First try to find the item as absolute import
+        if self.import_absolute(name, query.clone(), options) {
             return true;
         }
 
-        // next find the item as a relative import
+        // Next find the item as a relative import
         let mut found = None;
         for import in self.imports.iter().rev() {
             let universe = import.item.kind.universe();
@@ -87,11 +164,7 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
             return false;
         };
 
-        for item in found {
-            self.imports.push(Import { name, item });
-        }
-
-        true
+        self.import(name, found, options)
     }
 
     fn import_absolute_static(
@@ -104,7 +177,7 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
             .into_iter()
             .map(|symbol| self.registry.heap.intern_symbol(symbol));
 
-        self.import_absolute(name, query)
+        self.import_absolute(name, query, ImportOptions { glob: false })
     }
 
     #[must_use]
@@ -235,6 +308,7 @@ mod tests {
         module::{
             ModuleRegistry, PartialModule,
             item::{IntrinsicItem, Item, ItemKind, Universe},
+            namespace::ImportOptions,
         },
         span::SpanId,
         r#type::environment::Environment,
@@ -328,7 +402,8 @@ mod tests {
 
         assert!(namespace.import_absolute(
             heap.intern_symbol("Dict"),
-            [heap.intern_symbol("foo"), heap.intern_symbol("bar")]
+            [heap.intern_symbol("foo"), heap.intern_symbol("bar")],
+            ImportOptions { glob: false }
         ));
 
         let import = namespace
@@ -346,4 +421,7 @@ mod tests {
             })
         );
     }
+
+    // TODO: relative import
+    // TODO: import glob
 }
