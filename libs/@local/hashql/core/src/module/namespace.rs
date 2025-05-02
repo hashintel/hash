@@ -528,9 +528,10 @@ mod tests {
             ImportOptions {
                 glob: false,
                 mode: ResolutionMode::Absolute,
+                suggestions: false,
             },
         );
-        assert!(success);
+        assert!(success.is_ok());
 
         let item = namespace
             .resolve_relative(
@@ -599,14 +600,19 @@ mod tests {
             })
         );
 
-        assert!(namespace.import_absolute(
-            heap.intern_symbol("Dict"),
-            [heap.intern_symbol("foo"), heap.intern_symbol("bar")],
-            ImportOptions {
-                glob: false,
-                mode: ResolutionMode::Absolute
-            }
-        ));
+        assert!(
+            namespace
+                .import_absolute(
+                    heap.intern_symbol("Dict"),
+                    [heap.intern_symbol("foo"), heap.intern_symbol("bar")],
+                    ImportOptions {
+                        glob: false,
+                        mode: ResolutionMode::Absolute,
+                        suggestions: false
+                    }
+                )
+                .is_ok()
+        );
 
         let import = namespace
             .resolve_relative(
@@ -645,9 +651,10 @@ mod tests {
             ImportOptions {
                 glob: false,
                 mode: ResolutionMode::Absolute,
+                suggestions: false,
             },
         );
-        assert!(success);
+        assert!(success.is_ok());
 
         // import `Dict` relative from type (now that it is imported)
         let success = namespace.import_relative(
@@ -656,9 +663,10 @@ mod tests {
             ImportOptions {
                 glob: false,
                 mode: ResolutionMode::Relative,
+                suggestions: false,
             },
         );
-        assert!(success);
+        assert!(success.is_ok());
 
         // We should be able to import `Dict` now
         let import = namespace
@@ -690,9 +698,10 @@ mod tests {
             ImportOptions {
                 glob: false,
                 mode: ResolutionMode::Absolute,
+                suggestions: false,
             },
         );
-        assert!(success);
+        assert!(success.is_ok());
 
         // import `Dict` relative from type (now that it is imported)
         let success = namespace.import_relative(
@@ -701,9 +710,10 @@ mod tests {
             ImportOptions {
                 glob: false,
                 mode: ResolutionMode::Relative,
+                suggestions: false,
             },
         );
-        assert!(success);
+        assert!(success.is_ok());
 
         // // We should be able to import `Dict` now
         // let import = namespace
@@ -735,9 +745,10 @@ mod tests {
             ImportOptions {
                 glob: true,
                 mode: ResolutionMode::Absolute,
+                suggestions: false,
             },
         );
-        assert!(success);
+        assert!(success.is_ok());
 
         // We should be able to import `Dict` now
         let import = namespace
@@ -768,8 +779,9 @@ mod tests {
             ImportOptions {
                 glob: true,
                 mode: ResolutionMode::Absolute,
+                suggestions: false,
             },
         );
-        assert!(!success);
+        assert!(!success.is_ok());
     }
 }
