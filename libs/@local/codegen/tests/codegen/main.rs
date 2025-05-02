@@ -6,10 +6,12 @@ mod maps;
 mod structs;
 mod tuples;
 
+use core::error::Error;
 use std::process::ExitCode;
 
 use hash_codegen::{
     TypeCollection,
+    definitions::TypeId,
     typescript::{TypeScriptGenerator, TypeScriptGeneratorSettings},
 };
 use insta::assert_snapshot;
@@ -78,31 +80,43 @@ fn register_types(collection: &mut TypeCollection) {
     collection.register::<principal::role::RoleType>();
 }
 
+fn test_single_type(test_name: &str, type_id: TypeId) -> Result<(), Box<dyn Error>> {
+    let mut collection = TypeCollection::default();
+    register_types(&mut collection);
+    collection.register_transitive_types();
+
+    let settings = TypeScriptGeneratorSettings::default();
+    let mut generator = TypeScriptGenerator::new(&settings, &collection);
+
+    generator.add_type_declaration(type_id);
+
+    let mut generated = String::new();
+    generator.write(&mut generated)?;
+    assert_snapshot!(test_name, generated);
+
+    Ok(())
+}
+
 fn main() -> ExitCode {
     let args = Arguments::from_args();
 
     let targets = [CodegenTarget::Typescript];
 
-    let mut collection = TypeCollection::default();
-    register_types(&mut collection);
-    collection.register_transitive_types();
+    let mut all_types = TypeCollection::default();
+    register_types(&mut all_types);
+    all_types.register_transitive_types();
 
-    let types = collection
+    let types = all_types
         .iter()
         .map(|(type_id, _, def)| (type_id, def.name.clone()))
         .collect::<Vec<_>>();
-
-    let settings = TypeScriptGeneratorSettings::default();
-    let generator = TypeScriptGenerator::new(&settings, collection);
 
     let mut tests = Vec::new();
     for (type_id, name) in types {
         for target in &targets {
             let test_name = format!("{name}::{target:?}");
-            let generated = generator.generate(type_id);
             tests.push(Trial::test(test_name.clone(), move || {
-                assert_snapshot!(test_name, generated);
-                Ok(())
+                test_single_type(&test_name, type_id).map_err(libtest_mimic::Failed::from)
             }));
         }
     }

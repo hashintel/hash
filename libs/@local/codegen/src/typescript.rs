@@ -1,6 +1,9 @@
+use core::fmt::{self, Write};
+use std::io;
+
 use oxc::{
-    allocator::Allocator,
-    ast::{AstBuilder, ast},
+    allocator::{self, Allocator},
+    ast::{AstBuilder, ast, ast_builder},
     codegen::Codegen,
     span::SPAN,
 };
@@ -20,51 +23,52 @@ pub struct TypeScriptGeneratorSettings {
 }
 
 #[expect(dead_code)]
-pub struct TypeScriptGenerator<'a> {
+pub struct TypeScriptGenerator<'a, 'c> {
     settings: &'a TypeScriptGeneratorSettings,
-    collection: TypeCollection,
+    collection: &'c TypeCollection,
     ast: AstBuilder<'a>,
+    program: ast::Program<'a>,
 }
 
-impl<'a> TypeScriptGenerator<'a> {
-    pub const fn new(
-        settings: &'a TypeScriptGeneratorSettings,
-        collection: TypeCollection,
-    ) -> Self {
+impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
+    pub fn new(settings: &'a TypeScriptGeneratorSettings, collection: &'c TypeCollection) -> Self {
+        let ast_builder = AstBuilder::new(&settings.allocator);
+        let program = ast_builder.program(
+            SPAN,
+            ast::SourceType::d_ts(),
+            "unnamed",
+            ast_builder.vec(),
+            None,
+            ast_builder.vec(),
+            ast_builder.vec(),
+        );
         Self {
             settings,
             collection,
-            ast: AstBuilder {
-                allocator: &settings.allocator,
-            },
+            ast: ast_builder,
+            program,
         }
     }
 
-    #[must_use]
-    pub fn generate(&self, id: TypeId) -> String {
+    pub fn write(self, output: &mut impl Write) -> fmt::Result {
+        output.write_str(&Codegen::new().build(&self.program).code)
+    }
+
+    pub fn add_type_declaration(&mut self, id: TypeId) {
         let definition = &self.collection.types[&id];
-        Codegen::new()
-            .build(&self.ast.program(
+        let type_declaration = self.visit_type_definition(definition);
+        self.program.body.push(if definition.public {
+            ast::Statement::ExportNamedDeclaration(self.ast.alloc_export_named_declaration(
                 SPAN,
-                ast::SourceType::d_ts(),
-                "unnamed",
+                Some(type_declaration),
                 self.ast.vec(),
                 None,
-                self.ast.vec(),
-                self.ast.vec1(if definition.public {
-                    ast::Statement::ExportNamedDeclaration(self.ast.alloc_export_named_declaration(
-                        SPAN,
-                        Some(self.visit_type_definition(definition)),
-                        self.ast.vec(),
-                        None,
-                        ast::ImportOrExportKind::Type,
-                        None::<ast::WithClause<'a>>,
-                    ))
-                } else {
-                    self.visit_type_definition(definition).into()
-                }),
+                ast::ImportOrExportKind::Type,
+                None::<ast::WithClause<'a>>,
             ))
-            .code
+        } else {
+            type_declaration.into()
+        });
     }
 
     fn should_export_as_interface(&self, r#type: &Type) -> bool {
