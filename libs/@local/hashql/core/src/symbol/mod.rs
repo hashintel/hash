@@ -27,7 +27,7 @@ use core::{
 
 use ecow::EcoString;
 
-use crate::span::SpanId;
+use crate::{heap::Heap, span::SpanId};
 
 /// A string-like value used throughout the HashQL compiler.
 ///
@@ -161,6 +161,11 @@ impl Symbol {
     /// ```
     pub fn push_str(&mut self, string: impl AsRef<str>) {
         self.0.push_str(string.as_ref());
+    }
+
+    pub fn intern<'heap>(&self, heap: &'heap Heap) -> InternedSymbol<'heap> {
+        // This is just a proxy method that makes switching from symbol to interned symbol easier
+        heap.intern_symbol(self.as_str())
     }
 }
 

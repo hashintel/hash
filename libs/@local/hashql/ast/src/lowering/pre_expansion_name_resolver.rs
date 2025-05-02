@@ -230,7 +230,7 @@ impl<'env, 'heap> PreExpansionNameResolver<'env, 'heap> {
 
         let import = self
             .namespace
-            .lookup_import(self.heap.intern_symbol(name.as_str()), Universe::Value)?;
+            .lookup_import(name.intern(self.heap), Universe::Value)?;
 
         // We're only interested in intrinsics
         let ItemKind::Intrinsic(IntrinsicItem {
