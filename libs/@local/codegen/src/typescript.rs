@@ -116,6 +116,12 @@ impl<'a> TypeScriptGenerator<'a> {
                     let mut extends = self.ast.vec();
                     for (field_name, field) in fields {
                         if field.flatten {
+                            // TODO: Implement struct inlining.
+                            //       If it would be a struct, we couldn't add it as `extends`, so we
+                            //       actually need a reference here. If we encounter a `panic!` here
+                            //       due to `field.r#type` being a `Type::Struct` we can workaround
+                            //       it by truely flatten the struct into the interface.
+                            //   see https://linear.app/hash/issue/H-4506/support-inlining-of-flattened-structs
                             let Type::Reference(reference) = &field.r#type else {
                                 panic!("Expected reference type for flattened field");
                             };
