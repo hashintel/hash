@@ -1,6 +1,11 @@
 Expr#4294967040@24
   ExprKind (Type)
     TypeExpr#4294967040@24 (name: Foo:0)
+      GenericConstraint#4294967040@10 (name: Bar:0)
+        Type#4294967040@9
+          TypeKind (Path)
+            Path#4294967040@9 (rooted: false)
+              PathSegment#4294967040@8 (name: Baz)
       Type#4294967040@20
         TypeKind (Struct)
           StructType#4294967040@20
@@ -9,10 +14,5 @@ Expr#4294967040@24
                 TypeKind (Path)
                   Path#4294967040@18 (rooted: false)
                     PathSegment#4294967040@17 (name: Bar:0)
-      GenericConstraint#4294967040@10 (name: Bar:0)
-        Type#4294967040@9
-          TypeKind (Path)
-            Path#4294967040@9 (rooted: false)
-              PathSegment#4294967040@8 (name: Baz)
       Expr#4294967040@23
         ExprKind (Underscore)

@@ -1,0 +1,57 @@
+Expr#4294967040@70
+  ExprKind (NewType)
+    NewTypeExpr#4294967040@70 (name: Foo:0)
+      GenericConstraint#4294967040@10 (name: T:0)
+        Type#4294967040@9
+          TypeKind (Path)
+            Path#4294967040@9 (rooted: false)
+              PathSegment#4294967040@8 (name: Bar)
+      GenericConstraint#4294967040@15 (name: U:0)
+        Type#4294967040@14
+          TypeKind (Path)
+            Path#4294967040@14 (rooted: false)
+              PathSegment#4294967040@13 (name: V:0)
+      GenericConstraint#4294967040@20 (name: V:0)
+      Type#4294967040@66
+        TypeKind (Struct)
+          StructType#4294967040@66
+            StructField#4294967040@29 (name: foo)
+              Type#4294967040@28
+                TypeKind (Path)
+                  Path#4294967040@28 (rooted: false)
+                    PathSegment#4294967040@27 (name: T:0)
+            StructField#4294967040@36 (name: bar)
+              Type#4294967040@35
+                TypeKind (Path)
+                  Path#4294967040@35 (rooted: false)
+                    PathSegment#4294967040@34 (name: U:0)
+            StructField#4294967040@43 (name: baz)
+              Type#4294967040@42
+                TypeKind (Path)
+                  Path#4294967040@42 (rooted: false)
+                    PathSegment#4294967040@41 (name: V:0)
+            StructField#4294967040@65 (name: inner)
+              Type#4294967040@64
+                TypeKind (Path)
+                  Path#4294967040@64 (rooted: false)
+                    PathSegment#4294967040@63 (name: Foo:0)
+                      PathSegmentArgument (GenericArgument)
+                        GenericArgument#4294967040@52
+                          Type#4294967040@51
+                            TypeKind (Path)
+                              Path#4294967040@51 (rooted: false)
+                                PathSegment#4294967040@50 (name: T:0)
+                      PathSegmentArgument (GenericArgument)
+                        GenericArgument#4294967040@57
+                          Type#4294967040@56
+                            TypeKind (Path)
+                              Path#4294967040@56 (rooted: false)
+                                PathSegment#4294967040@55 (name: U:0)
+                      PathSegmentArgument (GenericArgument)
+                        GenericArgument#4294967040@62
+                          Type#4294967040@61
+                            TypeKind (Path)
+                              Path#4294967040@61 (rooted: false)
+                                PathSegment#4294967040@60 (name: V:0)
+      Expr#4294967040@69
+        ExprKind (Underscore)

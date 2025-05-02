@@ -399,6 +399,7 @@ impl<'heap> Visitor<'heap> for NameMangler {
             id,
             span,
             name,
+            constraints,
             value,
             body,
         } = expr;
@@ -406,9 +407,15 @@ impl<'heap> Visitor<'heap> for NameMangler {
         self.visit_id(id);
         self.visit_span(span);
         self.visit_ident(name);
-        self.visit_type(value);
+
+        let mangled_constraints =
+            self.mangle_constraints(original.clone(), mangled.clone(), constraints);
 
         self.enter(Scope::Type, original.clone(), mangled.clone(), |this| {
+            this.enter_many(Scope::Type, mangled_constraints, |this| {
+                this.visit_type(value);
+            });
+
             // unlike types, newtypes also bring a constructor into scope
             this.enter(Scope::Value, original, mangled, |this| {
                 this.visit_expr(body);

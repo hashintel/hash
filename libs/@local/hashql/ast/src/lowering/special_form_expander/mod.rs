@@ -691,15 +691,20 @@ impl<'heap> SpecialFormExpander<'heap> {
 
         let [name, value, body] = call.arguments.try_into().unwrap_or_else(|_| unreachable!());
 
-        let (name, value) = Option::zip(
-            self.lower_argument_to_ident(BindingMode::Newtype, name),
+        let ((name, arguments), value) = Option::zip(
+            self.lower_argument_to_generic_ident(BindingMode::Newtype, name),
             self.lower_expr_to_type(*value.value),
         )?;
+
+        let constraints = self.lower_path_segment_arguments_to_constraints(arguments)?;
 
         Some(ExprKind::NewType(NewTypeExpr {
             id: call.id,
             span: call.span,
+
             name,
+            constraints,
+
             value: self.heap.boxed(value),
             body: body.value,
         }))

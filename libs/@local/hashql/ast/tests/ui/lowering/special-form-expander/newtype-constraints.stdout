@@ -1,0 +1,15 @@
+Expr#4294967040@28
+  ExprKind (NewType)
+    NewTypeExpr#4294967040@28 (name: Foo)
+      GenericConstraint#4294967040@14 (name: T)
+      GenericConstraint#4294967040@19 (name: U)
+        Type#4294967040@18
+          TypeKind (Path)
+            Path#4294967040@18 (rooted: false)
+              PathSegment#4294967040@17 (name: Bar)
+      Type#4294967040@25
+        TypeKind (Path)
+          Path#4294967040@25 (rooted: false)
+            PathSegment#4294967040@24 (name: Integer)
+      Expr#4294967040@27
+        ExprKind (Underscore)

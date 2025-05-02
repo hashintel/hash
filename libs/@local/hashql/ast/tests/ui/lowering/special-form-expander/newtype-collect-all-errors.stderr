@@ -22,9 +22,9 @@
    │
  3 │ ["::kernel::special_form::newtype", "::x", { "#literal": 1 }, "x"]
    │                                      ─┬─  
-   │                                       ╰─── Replace this with a simple identifier
+   │                                       ╰─── Replace this qualified path with a simple identifier
    │ 
-   │ Help: newtype binding names must be simple identifiers without any path qualification. Qualified paths cannot be used as binding names.
+   │ Help: The newtype binding requires a simple type name (like 'String' or 'MyType<T>'), not a qualified path (like 'std::string::String'). Remove the path segments.
    │ 
-   │ Note: Valid identifiers are simple names like 'x', 'counter', '+', or 'user_name' without any namespace qualification, generic parameters, or path separators.
+   │ Note: Valid type names are simple identifiers, optionally followed by generic arguments (e.g., 'Identifier' or 'Container<Param>'). They cannot contain '::' path separators in this context.
 ───╯
