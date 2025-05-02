@@ -27,9 +27,9 @@ const GENERIC_ARGUMENTS_IN_MODULE: TerminalDiagnosticCategory = TerminalDiagnost
     name: "Generic arguments only allowed in final path segment",
 };
 
-const UNKNOWN_IMPORT: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
-    id: "unknown-import",
-    name: "Unknown import path",
+const UNRESOLVED_IMPORT: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "unresolved-import",
+    name: "Unresolved import path",
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -37,7 +37,7 @@ pub enum ImportResolverDiagnosticCategory {
     GenericArgumentsInUsePath,
     EmptyPath,
     GenericArgumentsInModule,
-    UnknownImport,
+    UnresolvedImport,
 }
 
 impl DiagnosticCategory for ImportResolverDiagnosticCategory {
@@ -54,7 +54,7 @@ impl DiagnosticCategory for ImportResolverDiagnosticCategory {
             Self::GenericArgumentsInUsePath => Some(&GENERIC_ARGUMENTS_IN_USE_PATH),
             Self::EmptyPath => Some(&EMPTY_PATH),
             Self::GenericArgumentsInModule => Some(&GENERIC_ARGUMENTS_IN_MODULE),
-            Self::UnknownImport => Some(&UNKNOWN_IMPORT),
+            Self::UnresolvedImport => Some(&UNRESOLVED_IMPORT),
         }
     }
 }
@@ -132,136 +132,57 @@ pub struct Suggestion {
     pub score: f64,
 }
 
-/// Represents problem location in an import path
-pub enum ImportProblem {
-    /// A module in the path doesn't exist
-    Module {
-        /// Index of the problematic segment
-        segment_index: usize,
-        /// Possible alternative modules
-        suggestions: Vec<Suggestion>,
-    },
-    /// The symbol being imported doesn't exist in the module
-    Symbol {
-        /// The symbol that wasn't found
-        symbol: Symbol,
-        /// Possible alternative symbols
-        suggestions: Vec<Suggestion>,
-    },
-    /// No symbols were found for a glob import
-    EmptyGlob,
-    /// The path couldn't be resolved for an unknown reason
-    Unknown,
-}
-
 /// Error when an import path cannot be resolved
-pub(crate) fn unknown_import(
+pub(crate) fn unresolved_import(
     span: SpanId,
     path: &[Symbol],
-    problem: ImportProblem,
+    suggestions: Option<Vec<Suggestion>>,
 ) -> ImportResolverDiagnostic {
     let mut diagnostic = Diagnostic::new(
-        ImportResolverDiagnosticCategory::UnknownImport,
+        ImportResolverDiagnosticCategory::UnresolvedImport,
         Severity::ERROR,
     );
 
-    let path_str = path
-        .iter()
-        .map(|s| s.to_string())
-        .collect::<Vec<_>>()
-        .join("::");
+    let path_str = if path.is_empty() {
+        "<empty>".to_string()
+    } else {
+        path.iter()
+            .map(|symbol| symbol.to_string())
+            .collect::<Vec<_>>()
+            .join("::")
+    };
 
-    match &problem {
-        ImportProblem::Module {
-            segment_index,
-            suggestions,
-        } => {
-            // Get the problematic module name
-            let module_name = if *segment_index < path.len() {
-                path[*segment_index].to_string()
-            } else {
-                "<unknown>".to_string()
-            };
+    diagnostic
+        .labels
+        .push(Label::new(span, "Unresolved import"));
 
-            diagnostic
-                .labels
-                .push(Label::new(span, format!("Unknown module '{module_name}'")));
+    let mut help = format!(
+        "Cannot resolve the import path '{path_str}'. Check that it exists and is spelled \
+         correctly."
+    );
 
-            let mut help = format!("The module '{module_name}' doesn't exist in this scope.");
+    // Add suggestions if available
+    if let Some(suggestions) = suggestions {
+        if !suggestions.is_empty() {
+            let top_suggestions: Vec<_> = suggestions.iter()
+                .filter(|s| s.score > 0.7) // Only include reasonably good matches
+                .take(3)                  // Limit to top 3
+                .map(|s| s.name.clone())
+                .collect();
 
-            // Add suggestions if available
-            if !suggestions.is_empty() {
-                let top_suggestions: Vec<_> = suggestions.iter()
-                    .filter(|s| s.score > 0.7) // Only include reasonably good matches
-                    .take(3)                  // Limit to top 3
-                    .map(|s| s.name.clone())
-                    .collect();
-
-                if !top_suggestions.is_empty() {
-                    let suggestion_str = top_suggestions.join("', '");
-                    help.push_str(&format!("\n\nDid you mean: '{suggestion_str}'?"));
-                }
+            if !top_suggestions.is_empty() {
+                let suggestion_str = top_suggestions.join("', '");
+                help.push_str(&format!("\n\nDid you mean: '{suggestion_str}'?"));
             }
-
-            diagnostic.help = Some(Help::new(help));
-        }
-
-        ImportProblem::Symbol {
-            symbol,
-            suggestions,
-        } => {
-            diagnostic
-                .labels
-                .push(Label::new(span, format!("Symbol '{symbol}' not found")));
-
-            let mut help = format!("The symbol '{symbol}' doesn't exist in module '{path_str}'.");
-
-            // Add suggestions if available
-            if !suggestions.is_empty() {
-                let top_suggestions: Vec<_> = suggestions.iter()
-                    .filter(|s| s.score > 0.7) // Only include reasonably good matches
-                    .take(3)                  // Limit to top 3
-                    .map(|s| s.name.clone())
-                    .collect();
-
-                if !top_suggestions.is_empty() {
-                    let suggestion_str = top_suggestions.join("', '");
-                    help.push_str(&format!("\n\nDid you mean: '{suggestion_str}'?"));
-                }
-            }
-
-            diagnostic.help = Some(Help::new(help));
-
-            diagnostic.note = Some(Note::new(
-                "Check if the symbol is public and spelled correctly, or if it needs to be \
-                 imported from another module.",
-            ));
-        }
-
-        ImportProblem::EmptyGlob => {
-            diagnostic
-                .labels
-                .push(Label::new(span, "No importable symbols found"));
-
-            diagnostic.help = Some(Help::new(format!(
-                "Module '{path_str}' exists but contains no public symbols that can be imported."
-            )));
-
-            diagnostic.note = Some(Note::new(
-                "Consider using a specific import instead of a glob import, or check if the \
-                 module is empty.",
-            ));
-        }
-
-        ImportProblem::Unknown => {
-            diagnostic.labels.push(Label::new(span, "Import not found"));
-
-            diagnostic.help = Some(Help::new(format!(
-                "Unable to resolve the import path '{path_str}'. Check that it exists and is \
-                 spelled correctly."
-            )));
         }
     }
+
+    diagnostic.help = Some(Help::new(help));
+
+    diagnostic.note = Some(Note::new(
+        "Make sure you've imported any required modules and that exported items are public and \
+         spelled correctly.",
+    ));
 
     diagnostic
 }
