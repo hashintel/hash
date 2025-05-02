@@ -4,6 +4,10 @@ use specta::{SpectaID, datatype};
 
 use super::{Enum, List, Map, Primitive, Struct, Tuple};
 
+/// A wrapper around `specta::SpectaID` that uniquely identifies types.
+///
+/// This solves the problem of distinguishing between different type references that might have the
+/// same name but are from different scopes or modules.
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct TypeId(specta::SpectaID);
 
