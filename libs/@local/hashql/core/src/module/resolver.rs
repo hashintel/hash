@@ -28,7 +28,7 @@ impl<'heap> Iterator for ResolveIter<'heap> {
     }
 }
 
-impl<'heap> ExactSizeIterator for ResolveIter<'heap> {
+impl ExactSizeIterator for ResolveIter<'_> {
     fn len(&self) -> usize {
         match self {
             ResolveIter::Single(iter) => iter.len(),
@@ -39,8 +39,10 @@ impl<'heap> ExactSizeIterator for ResolveIter<'heap> {
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum ResolveError<'heap> {
-    NotEnoughLengthChangeName,
-    ExpectedModule {
+    InvalidQueryLength {
+        expected: usize,
+    },
+    ModuleRequired {
         depth: usize,
         found: Option<Universe>,
     },
@@ -156,7 +158,7 @@ impl<'heap> Resolver<'_, 'heap> {
         // Traverse the entry until we're at the last item
         let (depth, name) = loop {
             let Some((mut depth, name)) = query.next() else {
-                return Err(ResolveError::NotEnoughLengthChangeName);
+                return Err(ResolveError::InvalidQueryLength { expected: 2 });
             };
 
             // We start at 1, because the entry (the one we're starting at) is selected by the user
@@ -178,7 +180,7 @@ impl<'heap> Resolver<'_, 'heap> {
 
             // Because we're not at the last item, the item needs to be a module
             let ItemKind::Module(next) = item.kind else {
-                return Err(ResolveError::ExpectedModule {
+                return Err(ResolveError::ModuleRequired {
                     depth,
                     found: item.kind.universe(),
                 });
@@ -204,7 +206,7 @@ impl<'heap> Resolver<'_, 'heap> {
         let mut query = query.into_iter();
 
         let Some(name) = query.next() else {
-            return Err(ResolveError::NotEnoughLengthChangeName);
+            return Err(ResolveError::InvalidQueryLength { expected: 2 });
         };
 
         let Some(module) = self.registry.find_by_name(name) else {
@@ -262,7 +264,7 @@ impl<'heap> Resolver<'_, 'heap> {
         import: Import<'heap>,
     ) -> Result<ModuleItemIterator<'heap>, ResolveError<'heap>> {
         let ItemKind::Module(module) = import.item.kind else {
-            return Err(ResolveError::ExpectedModule {
+            return Err(ResolveError::ModuleRequired {
                 depth: 0,
                 found: import.item.kind.universe(),
             });
@@ -273,6 +275,7 @@ impl<'heap> Resolver<'_, 'heap> {
         Ok(module.items.into_iter().copied())
     }
 
+    #[expect(clippy::panic_in_result_fn, reason = "sanity check")]
     fn resolve_relative(
         &mut self,
         query: impl IntoIterator<Item = InternedSymbol<'heap>> + Clone,
@@ -288,7 +291,7 @@ impl<'heap> Resolver<'_, 'heap> {
         let mut query = query.into_iter().peekable();
 
         let Some(name) = query.next() else {
-            return Err(ResolveError::NotEnoughLengthChangeName);
+            return Err(ResolveError::InvalidQueryLength { expected: 1 });
         };
 
         let Some(&import) = imports.iter().find(|import| import.name == name) else {
@@ -313,7 +316,7 @@ impl<'heap> Resolver<'_, 'heap> {
 
         if has_next {
             let ItemKind::Module(module) = import.item.kind else {
-                return Err(ResolveError::ExpectedModule {
+                return Err(ResolveError::ModuleRequired {
                     depth: 0,
                     found: import.item.kind.universe(),
                 });
@@ -322,6 +325,8 @@ impl<'heap> Resolver<'_, 'heap> {
             let module = self.registry.modules.index(module);
             return self.resolve_impl(query, module);
         }
+
+        assert_eq!(query.next(), None);
 
         match self.options.mode {
             ResolverMode::Single(universe) => self
