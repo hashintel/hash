@@ -58,21 +58,25 @@ impl TypeCollection {
     ///
     /// let mut collection = TypeCollection::default();
     /// collection.register::<Outer>();
-    /// collection.register_transitive_types();
+    /// let num_added = collection.register_transitive_types();
     ///
+    /// assert_eq!(num_added, 1);
     /// assert!(collection.iter().any(|(name, _)| name == "Inner"));
     /// ```
-    pub fn register_transitive_types(&mut self) {
+    pub fn register_transitive_types(&mut self) -> usize {
+        let mut num_added = 0;
         for data_type in self.collection.into_unsorted_iter() {
             self.types
                 .entry(data_type.name().clone())
                 .or_insert_with(|| {
+                    num_added += 1;
                     (
                         data_type.sid(),
                         TypeDefinition::from_specta(data_type, &self.collection),
                     )
                 });
         }
+        num_added
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (&str, (&NamedDataType, &TypeDefinition))> {
