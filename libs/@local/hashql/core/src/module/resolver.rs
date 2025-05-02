@@ -61,6 +61,10 @@ pub enum ResolveError<'heap> {
     },
 
     Ambiguous(Item<'heap>),
+
+    ModuleEmpty {
+        depth: usize,
+    },
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -175,6 +179,10 @@ impl<'heap> Resolver<'_, 'heap> {
         };
 
         let module = self.registry.modules.index(module);
+
+        if module.items.is_empty() {
+            return Err(ResolveError::ModuleEmpty { depth });
+        }
 
         Ok(module.items.into_iter().copied())
     }
@@ -297,6 +305,10 @@ impl<'heap> Resolver<'_, 'heap> {
         };
 
         let module = self.registry.modules.index(module);
+
+        if module.items.is_empty() {
+            return Err(ResolveError::ModuleEmpty { depth: 0 });
+        }
 
         Ok(module.items.into_iter().copied())
     }
