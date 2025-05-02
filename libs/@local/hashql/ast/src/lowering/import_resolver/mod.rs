@@ -19,14 +19,14 @@ use self::error::{
 use crate::{
     node::{
         expr::{
-            Expr, ExprKind, UseExpr,
+            Expr, ExprKind, LetExpr, NewTypeExpr, TypeExpr, UseExpr,
             r#use::{UseBinding, UseKind},
         },
         id::NodeId,
         path::{Path, PathSegment},
         r#type::Type,
     },
-    visit::{Visitor, walk_expr, walk_type},
+    visit::{Visitor, walk_expr, walk_let_expr, walk_newtype_expr, walk_type, walk_type_expr},
 };
 
 #[derive(Debug, Default)]
@@ -240,5 +240,46 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
         self.current_universe = Universe::Type;
         walk_type(self, r#type);
         self.current_universe = previous;
+    }
+
+    fn visit_let_expr(&mut self, expr: &mut LetExpr<'heap>) {
+        let symbol = expr.name.value.intern(self.heap);
+
+        let should_remove = self.scope.value.insert(symbol);
+
+        walk_let_expr(self, expr);
+
+        if should_remove {
+            self.scope.value.remove(&symbol);
+        }
+    }
+
+    fn visit_type_expr(&mut self, expr: &mut TypeExpr<'heap>) {
+        let symbol = expr.name.value.intern(self.heap);
+
+        let should_remove = self.scope.r#type.insert(symbol);
+
+        walk_type_expr(self, expr);
+
+        if should_remove {
+            self.scope.r#type.remove(&symbol);
+        }
+    }
+
+    fn visit_newtype_expr(&mut self, expr: &mut NewTypeExpr<'heap>) {
+        let symbol = expr.name.value.intern(self.heap);
+
+        let should_remove_value = self.scope.value.insert(symbol);
+        let should_remove_type = self.scope.r#type.insert(symbol);
+
+        walk_newtype_expr(self, expr);
+
+        if should_remove_value {
+            self.scope.value.remove(&symbol);
+        }
+
+        if should_remove_type {
+            self.scope.r#type.remove(&symbol);
+        }
     }
 }
