@@ -4,7 +4,7 @@ use strsim::jaro_winkler;
 
 use super::{
     Module, ModuleRegistry,
-    error::{ResolutionError, Suggestion},
+    error::{ResolutionError, ResolutionSuggestion},
     import::Import,
     item::{Item, ItemKind, Universe},
 };
@@ -54,7 +54,10 @@ pub(crate) struct Resolver<'env, 'heap> {
 }
 
 impl<'heap> Resolver<'_, 'heap> {
-    fn suggest<T>(&self, call: impl FnOnce() -> Vec<Suggestion<T>>) -> Vec<Suggestion<T>> {
+    fn suggest<T>(
+        &self,
+        call: impl FnOnce() -> Vec<ResolutionSuggestion<T>>,
+    ) -> Vec<ResolutionSuggestion<T>> {
         if self.options.suggestions {
             call()
         } else {
@@ -260,7 +263,7 @@ impl<'heap> Resolver<'_, 'heap> {
                         .filter(|import| import.item.kind.universe() == Some(universe))
                         .map(|&import| {
                             let score = jaro_winkler(import.name.as_str(), name.as_str());
-                            Suggestion {
+                            ResolutionSuggestion {
                                 item: import,
                                 score,
                             }
@@ -304,7 +307,7 @@ impl<'heap> Resolver<'_, 'heap> {
                         .iter()
                         .map(|&import| {
                             let score = jaro_winkler(import.name.as_str(), name.as_str());
-                            Suggestion {
+                            ResolutionSuggestion {
                                 item: import,
                                 score,
                             }

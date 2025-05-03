@@ -5,7 +5,7 @@ use super::{
 };
 
 #[derive(Debug, Copy, Clone, PartialEq)]
-pub struct Suggestion<T> {
+pub struct ResolutionSuggestion<T> {
     pub item: T,
     pub score: f64,
 }
@@ -22,21 +22,21 @@ pub enum ResolutionError<'heap> {
 
     PackageNotFound {
         depth: usize,
-        suggestions: Vec<Suggestion<ModuleId>>,
+        suggestions: Vec<ResolutionSuggestion<ModuleId>>,
     },
     ImportNotFound {
         depth: usize,
-        suggestions: Vec<Suggestion<Import<'heap>>>,
+        suggestions: Vec<ResolutionSuggestion<Import<'heap>>>,
     },
 
     ModuleNotFound {
         depth: usize,
-        suggestions: Vec<Suggestion<Item<'heap>>>,
+        suggestions: Vec<ResolutionSuggestion<Item<'heap>>>,
     },
 
     ItemNotFound {
         depth: usize,
-        suggestions: Vec<Suggestion<Item<'heap>>>,
+        suggestions: Vec<ResolutionSuggestion<Item<'heap>>>,
     },
 
     Ambiguous(Item<'heap>),

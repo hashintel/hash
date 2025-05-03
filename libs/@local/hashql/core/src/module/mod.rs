@@ -15,7 +15,7 @@ use std::sync::Mutex;
 use strsim::jaro_winkler;
 
 use self::{
-    error::Suggestion,
+    error::ResolutionSuggestion,
     item::{Item, ItemKind},
     std_lib::StandardLibrary,
 };
@@ -44,7 +44,7 @@ pub struct ModuleRegistry<'heap> {
     /// A reference to the global heap used for memory allocation.
     pub heap: &'heap Heap,
 
-    modules: InternMap<'heap, Module<'heap>>,
+    pub modules: InternMap<'heap, Module<'heap>>,
     items: InternSet<'heap, [Item<'heap>]>,
 
     root: Mutex<FastHashMap<InternedSymbol<'heap>, ModuleId>>,
@@ -145,13 +145,13 @@ impl<'heap> ModuleRegistry<'heap> {
         Some(module)
     }
 
-    fn suggestions(&self, name: InternedSymbol<'heap>) -> Vec<Suggestion<ModuleId>> {
+    fn suggestions(&self, name: InternedSymbol<'heap>) -> Vec<ResolutionSuggestion<ModuleId>> {
         let root = self.root.lock().expect("lock should not be poisoned");
 
         let mut results = Vec::with_capacity(root.len());
         for (&key, &module) in &*root {
             let score = jaro_winkler(key.as_str(), name.as_str());
-            results.push(Suggestion {
+            results.push(ResolutionSuggestion {
                 item: module,
                 score,
             });
@@ -222,7 +222,7 @@ impl<'heap> Module<'heap> {
         &self,
         name: InternedSymbol<'heap>,
         mut select: impl FnMut(&Item<'heap>) -> bool,
-    ) -> Vec<Suggestion<Item<'heap>>> {
+    ) -> Vec<ResolutionSuggestion<Item<'heap>>> {
         let mut similarities = Vec::with_capacity(self.items.len());
 
         for &item in self.items {
@@ -231,7 +231,7 @@ impl<'heap> Module<'heap> {
             }
 
             let score = jaro_winkler(item.name.as_str(), name.as_str());
-            similarities.push(Suggestion { item, score });
+            similarities.push(ResolutionSuggestion { item, score });
         }
 
         similarities
