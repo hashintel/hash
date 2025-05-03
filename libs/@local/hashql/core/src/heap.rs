@@ -43,7 +43,10 @@ use std::sync::Mutex;
 use bumpalo::Bump;
 use hashbrown::HashSet;
 
-use crate::symbol::InternedSymbol;
+use crate::symbol::{
+    InternedSymbol,
+    sym::{LEXICAL, SYMBOLS},
+};
 
 /// A boxed value allocated on the `Heap`.
 ///
@@ -90,10 +93,14 @@ impl Heap {
     /// when allocations are made.
     #[must_use]
     pub fn new() -> Self {
-        Self {
+        let this = Self {
             bump: Bump::new(),
             strings: Mutex::default(),
-        }
+        };
+
+        this.prime_symbols();
+
+        this
     }
 
     /// Creates a new heap with the specified initial capacity.
@@ -103,10 +110,14 @@ impl Heap {
     /// of the AST is known in advance.
     #[must_use]
     pub fn with_capacity(capacity: usize) -> Self {
-        Self {
+        let this = Self {
             bump: Bump::with_capacity(capacity),
             strings: Mutex::default(),
-        }
+        };
+
+        this.prime_symbols();
+
+        this
     }
 
     /// Resets the heap, clearing all allocations.
@@ -121,6 +132,7 @@ impl Heap {
             .lock()
             .expect("lock should not be poisoned")
             .clear();
+        self.prime_symbols();
 
         self.bump.reset();
     }
@@ -129,6 +141,21 @@ impl Heap {
         const { assert!(!core::mem::needs_drop::<T>()) };
 
         self.bump.alloc(value)
+    }
+
+    fn prime_symbols(&self) {
+        let mut strings = self.strings.lock().expect("lock should not be poisoned");
+        strings.reserve(LEXICAL.len() + SYMBOLS.len());
+
+        for &symbol in SYMBOLS {
+            strings.insert(symbol);
+        }
+
+        for &symbol in LEXICAL {
+            strings.insert(symbol);
+        }
+
+        drop(strings);
     }
 
     /// Interns a string symbol, returning a reference to the interned value.

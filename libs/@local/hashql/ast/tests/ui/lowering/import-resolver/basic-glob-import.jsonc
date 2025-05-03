@@ -5,8 +5,8 @@
   "math",
   "*",
   [
-    "lshift",
-    ["rshift", { "#literal": 2 }, { "#literal": 3 }],
+    "bit_shl",
+    ["bit_shr", { "#literal": 2 }, { "#literal": 3 }],
     { "#literal": 4 }
   ]
 ]

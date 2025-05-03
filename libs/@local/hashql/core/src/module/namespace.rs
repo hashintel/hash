@@ -361,8 +361,8 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
         successful &= self.import_absolute_static("&", ["math", "bit_and"]);
         successful &= self.import_absolute_static("|", ["math", "bit_or"]);
         successful &= self.import_absolute_static("~", ["math", "bit_not"]);
-        successful &= self.import_absolute_static("<<", ["math", "lshift"]);
-        successful &= self.import_absolute_static(">>", ["math", "rshift"]);
+        successful &= self.import_absolute_static("<<", ["math", "bit_shl"]);
+        successful &= self.import_absolute_static(">>", ["math", "bit_shr"]);
 
         // Comparison operators
         successful &= self.import_absolute_static(">", ["math", "gt"]);

@@ -17,6 +17,8 @@
 //! This encapsulation enables future optimizations such as string interning (either through
 //! the `string_interner` crate or a custom implementation) without requiring API changes.
 
+pub mod sym;
+
 use core::{
     borrow::Borrow,
     cmp::Ordering,
