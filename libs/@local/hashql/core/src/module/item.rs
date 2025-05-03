@@ -61,31 +61,6 @@ pub struct Item<'heap> {
 }
 
 impl<'heap> Item<'heap> {
-    // TODO: when `gen` blocks have proper r-a support revisit this, currently, due to lifetime
-    // constraints and recursive types this cannot be written as a simple iterator.
-    pub(crate) fn search(
-        &self,
-        registry: &ModuleRegistry<'heap>,
-        query: impl IntoIterator<Item = InternedSymbol<'heap>, IntoIter: Clone>,
-    ) -> Vec<Self> {
-        let mut query = query.into_iter();
-        let Some(name) = query.next() else {
-            return vec![*self];
-        };
-
-        let ItemKind::Module(module) = self.kind else {
-            return Vec::new();
-        };
-
-        let module = registry.modules.index(module);
-        let items = module.find(name);
-
-        items
-            .into_iter()
-            .flat_map(move |item| item.search(registry, query.clone()))
-            .collect()
-    }
-
     pub fn ancestors(
         &self,
         registry: &ModuleRegistry<'heap>,

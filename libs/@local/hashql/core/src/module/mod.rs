@@ -160,37 +160,6 @@ impl<'heap> ModuleRegistry<'heap> {
 
         results
     }
-
-    /// Searches for items in the registry using a path-like query.
-    ///
-    /// This function takes an iterable of symbols representing a path in the module hierarchy
-    /// and returns all matching items. The search starts from the root namespace and traverses
-    /// the module structure according to the provided query path.
-    ///
-    /// # Returns
-    ///
-    /// A vector of matching items, or an empty vector if no matches are found.
-    pub fn search(
-        &self,
-        query: impl IntoIterator<Item = InternedSymbol<'heap>, IntoIter: Clone>,
-    ) -> Vec<Item<'heap>> {
-        let mut query = query.into_iter();
-        let Some(root) = query.next() else {
-            return Vec::new();
-        };
-
-        let Some(module) = self.find_by_name(root) else {
-            return Vec::new();
-        };
-
-        let item = Item {
-            module: module.parent,
-            name: root,
-            kind: ItemKind::Module(module.id),
-        };
-
-        item.search(self, query)
-    }
 }
 
 /// A module in the HashQL language.
@@ -209,15 +178,6 @@ pub struct Module<'heap> {
 }
 
 impl<'heap> Module<'heap> {
-    /// Finds an item within this module by name.
-    #[must_use]
-    pub fn find(&self, name: InternedSymbol<'heap>) -> impl IntoIterator<Item = Item<'heap>> {
-        self.items
-            .iter()
-            .filter(move |item| (item.name == name))
-            .copied()
-    }
-
     fn suggestions(
         &self,
         name: InternedSymbol<'heap>,
@@ -263,45 +223,5 @@ impl HasId for Module<'_> {
 
     fn id(&self) -> Self::Id {
         self.id
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::ModuleRegistry;
-    use crate::{
-        heap::Heap,
-        module::item::{IntrinsicItem, ItemKind, Universe},
-        span::SpanId,
-        r#type::environment::Environment,
-    };
-
-    #[test]
-    fn search_across_universes() {
-        let heap = Heap::new();
-        let env = Environment::new(SpanId::SYNTHETIC, &heap);
-        let registry = ModuleRegistry::new(&env);
-
-        let results = registry.search([
-            heap.intern_symbol("kernel"),
-            heap.intern_symbol("type"),
-            heap.intern_symbol("Dict"),
-        ]);
-
-        assert_eq!(results.len(), 2);
-        assert_eq!(
-            results[0].kind,
-            ItemKind::Intrinsic(IntrinsicItem {
-                name: "::kernel::type::Dict",
-                universe: Universe::Type
-            })
-        );
-        assert_eq!(
-            results[1].kind,
-            ItemKind::Intrinsic(IntrinsicItem {
-                name: "::kernel::type::Dict",
-                universe: Universe::Value
-            })
-        );
     }
 }
