@@ -106,8 +106,10 @@ pub(crate) fn generic_arguments_in_use_path(
 
 /// Error when a path has no segments
 pub(crate) fn empty_path(span: SpanId) -> ImportResolverDiagnostic {
-    let mut diagnostic =
-        Diagnostic::new(ImportResolverDiagnosticCategory::EmptyPath, Severity::ERROR);
+    let mut diagnostic = Diagnostic::new(
+        ImportResolverDiagnosticCategory::EmptyPath,
+        Severity::COMPILER_BUG,
+    );
 
     diagnostic.labels.push(
         Label::new(span, "Specify a path here")
@@ -121,7 +123,9 @@ pub(crate) fn empty_path(span: SpanId) -> ImportResolverDiagnostic {
 
     diagnostic.note = Some(Note::new(
         "Import statements require a non-empty path to identify what module or item you want to \
-         bring into scope.",
+         bring into scope. This error is still valid, but should've been caught in an earlier \
+         stage of the compiler pipeline. Please report this issue to the HashQL team with a \
+         minimal reproduction case.",
     ));
 
     diagnostic

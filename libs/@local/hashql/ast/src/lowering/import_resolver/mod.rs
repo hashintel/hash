@@ -453,5 +453,5 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
         });
     }
 
-    // TODO: generic constraints
+    // TODO: closures
 }
