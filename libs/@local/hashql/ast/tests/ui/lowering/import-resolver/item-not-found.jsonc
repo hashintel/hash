@@ -1,0 +1,4 @@
+//@ run: fail
+//@ description: should error out if item does not exist
+["use", "math", { "#tuple": ["llshift"] }, "_"]
+//~^ ERROR 'llshift' not found in module 'math'

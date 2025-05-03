@@ -3,10 +3,10 @@
 use ena::snapshot_vec::{Snapshot, SnapshotVec};
 
 use super::{
-    ModuleRegistry,
+    ModuleId, ModuleRegistry,
     error::ResolutionError,
     import::{Import, ImportDelegate},
-    item::{Item, Universe},
+    item::{Item, ItemKind, Universe},
     resolver::ResolveIter,
 };
 use crate::{
@@ -118,12 +118,12 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
     pub fn import_relative(
         &mut self,
         name: InternedSymbol<'heap>,
-        query: impl IntoIterator<Item = InternedSymbol<'heap>> + Clone,
+        query: impl IntoIterator<Item = InternedSymbol<'heap>>,
         options: ImportOptions,
     ) -> Result<(), ResolutionError<'heap>> {
         debug_assert_eq!(options.mode, ResolutionMode::Relative);
 
-        let mut resolver = Resolver {
+        let resolver = Resolver {
             registry: self.registry,
             options: ResolverOptions {
                 mode: if options.glob {
@@ -187,12 +187,12 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
     /// Returns a `ResolutionError` if the path cannot be resolved or if multiple matches are found.
     pub fn resolve_relative(
         &self,
-        query: impl IntoIterator<Item = InternedSymbol<'heap>> + Clone,
+        query: impl IntoIterator<Item = InternedSymbol<'heap>>,
         ResolveOptions { universe, mode }: ResolveOptions,
     ) -> Result<Item<'heap>, ResolutionError<'heap>> {
         debug_assert_eq!(mode, ResolutionMode::Relative);
 
-        let mut resolver = Resolver {
+        let resolver = Resolver {
             registry: self.registry,
             options: ResolverOptions {
                 mode: ResolverMode::Single(universe),
@@ -257,7 +257,28 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
         }
     }
 
-    /// Imports all standard prelude items.
+    fn import_modules(&mut self) {
+        let root = self
+            .registry
+            .root
+            .read()
+            .expect("should be able to lock registry");
+
+        for (&name, &module) in &*root {
+            self.imports.push(Import {
+                name,
+                item: Item {
+                    module: ModuleId::ROOT,
+                    name,
+                    kind: ItemKind::Module(module),
+                },
+            });
+        }
+
+        drop(root);
+    }
+
+    /// Imports all standard prelude items and all root modules.
     ///
     /// The prelude includes common types, special forms, and operators that should be
     /// available in every module by default. This includes:
@@ -270,6 +291,8 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
     ///
     /// In debug builds, this function asserts that all prelude imports are successful.
     pub fn import_prelude(&mut self) {
+        self.import_modules();
+
         let mut successful = true;
 
         // Special Forms

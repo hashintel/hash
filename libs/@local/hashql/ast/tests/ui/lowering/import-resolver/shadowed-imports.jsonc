@@ -1,0 +1,8 @@
+//@ run: pass
+//@ description: shadowed imports should work
+[
+  "use",
+  "kernel::type",
+  { "#tuple": ["Dict"] },
+  ["use", "math", { "#struct": { "add": "Dict" } }, "Dict"]
+]

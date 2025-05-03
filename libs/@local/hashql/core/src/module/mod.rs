@@ -10,7 +10,7 @@ pub mod namespace;
 mod resolver;
 mod std_lib;
 
-use std::sync::Mutex;
+use std::sync::RwLock;
 
 use strsim::jaro_winkler;
 
@@ -47,7 +47,7 @@ pub struct ModuleRegistry<'heap> {
     pub modules: InternMap<'heap, Module<'heap>>,
     items: InternSet<'heap, [Item<'heap>]>,
 
-    root: Mutex<FastHashMap<InternedSymbol<'heap>, ModuleId>>,
+    root: RwLock<FastHashMap<InternedSymbol<'heap>, ModuleId>>,
 }
 
 impl<'heap> ModuleRegistry<'heap> {
@@ -57,7 +57,7 @@ impl<'heap> ModuleRegistry<'heap> {
             heap,
             modules: InternMap::new(heap),
             items: InternSet::new(heap),
-            root: Mutex::default(),
+            root: RwLock::default(),
         }
     }
 
@@ -116,7 +116,7 @@ impl<'heap> ModuleRegistry<'heap> {
     ///
     /// # Panics
     ///
-    /// This function will panic if the internal Mutex is poisoned.
+    /// This function will panic if the internal `RwLock` is poisoned.
     pub fn register(&self, module: ModuleId) {
         let module = self.modules.index(module);
 
@@ -124,7 +124,7 @@ impl<'heap> ModuleRegistry<'heap> {
             assert_eq!(module.parent, ModuleId::ROOT);
         }
 
-        let mut root = self.root.lock().expect("lock should not be poisoned");
+        let mut root = self.root.write().expect("lock should not be poisoned");
         root.insert(module.name, module.id);
         drop(root);
     }
@@ -133,9 +133,9 @@ impl<'heap> ModuleRegistry<'heap> {
     ///
     /// # Panics
     ///
-    /// This function will panic if the internal Mutex is poisoned.
+    /// This function will panic if the internal `RwLock` is poisoned.
     fn find_by_name(&self, name: InternedSymbol<'heap>) -> Option<Module<'heap>> {
-        let root = self.root.lock().expect("lock should not be poisoned");
+        let root = self.root.read().expect("lock should not be poisoned");
 
         let id = root.get(&name).copied()?;
         drop(root);
@@ -146,7 +146,7 @@ impl<'heap> ModuleRegistry<'heap> {
     }
 
     fn suggestions(&self, name: InternedSymbol<'heap>) -> Vec<ResolutionSuggestion<ModuleId>> {
-        let root = self.root.lock().expect("lock should not be poisoned");
+        let root = self.root.read().expect("lock should not be poisoned");
 
         let mut results = Vec::with_capacity(root.len());
         for (&key, &module) in &*root {

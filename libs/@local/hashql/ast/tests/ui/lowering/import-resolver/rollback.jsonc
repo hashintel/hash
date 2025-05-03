@@ -1,0 +1,9 @@
+//@ run: fail
+//@ description: imports should be properly scoped
+[
+  "if",
+  { "#literal": true },
+  ["use", "math", { "#tuple": ["lshift"] }, "lshift"],
+  "lshift"
+  //~^ ERROR 'lshift' needs to be imported first
+]

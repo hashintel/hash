@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: nested resolution should work
+["use", "kernel", { "#tuple": ["type"] }, "type::Dict"]

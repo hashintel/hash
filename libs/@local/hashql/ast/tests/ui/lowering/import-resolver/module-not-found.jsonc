@@ -1,3 +1,4 @@
 //@ run: fail
 //@ description: module shouldn't be found
 ["use", "kernel::foo", { "#tuple": ["baz"] }, "_"]
+//~^ ERROR Module 'foo' not found

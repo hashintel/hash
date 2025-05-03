@@ -65,16 +65,6 @@ impl<'heap> Resolver<'_, 'heap> {
         }
     }
 
-    fn with_suggestions<T>(&mut self, enable: bool, closure: impl FnOnce(&mut Self) -> T) -> T {
-        let current = self.options.suggestions;
-        self.options.suggestions = enable;
-
-        let result = closure(self);
-
-        self.options.suggestions = current;
-        result
-    }
-
     fn resolve_single(
         &self,
         module: Module<'heap>,
@@ -356,17 +346,10 @@ impl<'heap> Resolver<'_, 'heap> {
 
     #[expect(clippy::panic_in_result_fn, reason = "sanity check")]
     pub(crate) fn resolve_relative(
-        &mut self,
-        query: impl IntoIterator<Item = InternedSymbol<'heap>> + Clone,
+        &self,
+        query: impl IntoIterator<Item = InternedSymbol<'heap>>,
         imports: &[Import<'heap>],
     ) -> Result<ResolveIter<'heap>, ResolutionError<'heap>> {
-        // first check if we can import the module via it's absolute path, do not record
-        // suggestions, as that is unnecessarily slow
-        if let Ok(iter) = self.with_suggestions(false, |this| this.resolve_absolute(query.clone()))
-        {
-            return Ok(iter);
-        }
-
         let mut query = query.into_iter().peekable();
 
         let Some(name) = query.next() else {
@@ -702,7 +685,7 @@ mod test {
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
         let registry = ModuleRegistry::new(&env);
 
-        let mut resolver = Resolver {
+        let resolver = Resolver {
             registry: &registry,
             options: ResolverOptions {
                 mode: ResolverMode::Glob,
@@ -848,7 +831,7 @@ mod test {
             )
             .expect("Import should succeed");
 
-        let mut resolver = Resolver {
+        let resolver = Resolver {
             registry: &registry,
             options: ResolverOptions {
                 mode: ResolverMode::Single(Universe::Type),
@@ -891,7 +874,7 @@ mod test {
             )
             .expect("Import should succeed");
 
-        let mut resolver = Resolver {
+        let resolver = Resolver {
             registry: &registry,
             options: ResolverOptions {
                 mode: ResolverMode::Multi,
@@ -962,7 +945,7 @@ mod test {
             )
             .expect("Import should succeed");
 
-        let mut resolver = Resolver {
+        let resolver = Resolver {
             registry: &registry,
             options: ResolverOptions {
                 mode: ResolverMode::Single(Universe::Type),
@@ -982,39 +965,6 @@ mod test {
             .expect_err("Resolution should fail for non-existent module");
 
         assert_matches!(error, ResolutionError::ModuleNotFound { depth: 1, suggestions } if suggestions.is_empty());
-    }
-
-    #[test]
-    fn fallback_to_absolute_resolution() {
-        let heap = Heap::new();
-        let env = Environment::new(SpanId::SYNTHETIC, &heap);
-        let registry = ModuleRegistry::new(&env);
-
-        let mut namespace = ModuleNamespace::new(&registry);
-        namespace.import_prelude();
-
-        let mut resolver = Resolver {
-            registry: &registry,
-            options: ResolverOptions {
-                mode: ResolverMode::Single(Universe::Type),
-                suggestions: false,
-            },
-        };
-
-        let result = resolver
-            .resolve_relative(
-                [
-                    heap.intern_symbol("kernel"),
-                    heap.intern_symbol("type"),
-                    heap.intern_symbol("Dict"),
-                ],
-                namespace.imports_as_slice(),
-            )
-            .expect("Resolution should succeed by falling back to absolute");
-
-        let items: Vec<_> = result.collect();
-        assert_eq!(items.len(), 1);
-        assert_eq!(items[0].name.as_str(), "Dict");
     }
 
     #[test]
@@ -1038,7 +988,7 @@ mod test {
             )
             .expect("Import should succeed");
 
-        let mut resolver = Resolver {
+        let resolver = Resolver {
             registry: &registry,
             options: ResolverOptions {
                 mode: ResolverMode::Glob,

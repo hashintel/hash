@@ -1,0 +1,20 @@
+Expr#4294967040@29
+  ExprKind (NewType)
+    NewTypeExpr#4294967040@29 (name: Integer)
+      Type#4294967040@11
+        TypeKind (Path)
+          Path#4294967040@11 (rooted: true)
+            PathSegment#4294967040@10 (name: kernel)
+            PathSegment#4294967040@10 (name: type)
+            PathSegment#4294967040@10 (name: Number)
+      Expr#4294967040@28
+        ExprKind (Type)
+          TypeExpr#4294967040@28 (name: Bar)
+            Type#4294967040@23
+              TypeKind (Path)
+                Path#4294967040@23 (rooted: false)
+                  PathSegment#4294967040@22 (name: Integer)
+            Expr#4294967040@27
+              ExprKind (Path)
+                Path#4294967040@27 (rooted: false)
+                  PathSegment#4294967040@26 (name: Integer)

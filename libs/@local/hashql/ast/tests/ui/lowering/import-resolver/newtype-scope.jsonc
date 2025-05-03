@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: newtype should affect both value and type scope
+["newtype", "Integer", "Number", ["type", "Bar", "Integer", "Integer"]]
