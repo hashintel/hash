@@ -2,12 +2,12 @@
    ╭─[ <unknown>:7:4 ]
    │
  7 │   "bit_shl"
-   │    ───┬──
-   │       ╰──── 'bit_shl' needs to be imported first
-   │
+   │    ───┬───  
+   │       ╰───── 'bit_shl' needs to be imported first
+   │ 
    │ Help: Add an import statement for 'bit_shl' before using it. Check if the name is spelled correctly.
-   │
-   │       Possible alternatives are `List`, `Dict`, `is` and 41 others.
-   │
+   │       
+   │       Possible alternatives are `List`, `Dict`, `input` and 41 others.
+   │ 
    │ Note: Before using an item from another module, you must import it with a 'use' statement or access it with a fully qualified path.
 ───╯

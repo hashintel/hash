@@ -2,4 +2,4 @@ Expr#4294967040@20
   ExprKind (Path)
     Path#4294967040@20 (rooted: true)
       PathSegment#4294967040@19 (name: math)
-      PathSegment#4294967040@19 (name: lshift)
+      PathSegment#4294967040@19 (name: bit_shl)
