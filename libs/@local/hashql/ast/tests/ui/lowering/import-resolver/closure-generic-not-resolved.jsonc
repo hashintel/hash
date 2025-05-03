@@ -1,0 +1,13 @@
+//@ run: pass
+//@ description: Tests that generic parameter names in closures are recognized in type context and not resolved as paths
+[
+  "fn",
+  { "#tuple": ["Dict"] }, // Generic parameter named the same as a common type
+  {
+    "#struct": {
+      "x": "Dict" // Should reference the generic parameter, not resolve as a path
+    }
+  },
+  "Dict", // Should reference the generic parameter, not resolve as a path
+  "x"
+]

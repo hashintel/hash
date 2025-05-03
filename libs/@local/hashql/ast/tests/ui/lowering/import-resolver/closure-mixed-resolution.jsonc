@@ -1,0 +1,13 @@
+//@ run: pass
+//@ description: Tests that path segments in closures are correctly resolved when not shadowed by parameters
+[
+  "fn",
+  { "#tuple": [] },
+  {
+    "#struct": {
+      "x": "Number"
+    }
+  },
+  "Number",
+  ["math::add", "x", { "#literal": 1 }] // 'math::add' should be resolved as a path, 'x' as a parameter
+]

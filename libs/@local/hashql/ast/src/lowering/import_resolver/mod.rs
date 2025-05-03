@@ -20,14 +20,14 @@ use super::super::node::path::PathSegmentArgument;
 use crate::{
     node::{
         expr::{
-            Expr, ExprKind, LetExpr, NewTypeExpr, TypeExpr, UseExpr,
+            ClosureExpr, Expr, ExprKind, LetExpr, NewTypeExpr, TypeExpr, UseExpr,
             r#use::{UseBinding, UseKind},
         },
         id::NodeId,
         path::{Path, PathSegment},
         r#type::Type,
     },
-    visit::{Visitor, walk_expr, walk_path, walk_type},
+    visit::{Visitor, walk_closure_expr, walk_expr, walk_path, walk_type},
 };
 
 #[derive(Debug, Default)]
@@ -453,5 +453,26 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
         });
     }
 
-    // TODO: closures
+    fn visit_closure_expr(&mut self, expr: &mut ClosureExpr<'heap>) {
+        let generic_symbols: Vec<_> = expr
+            .signature
+            .generics
+            .params
+            .iter()
+            .map(|param| param.name.value.intern(self.heap))
+            .collect();
+
+        let param_symbols: Vec<_> = expr
+            .signature
+            .inputs
+            .iter()
+            .map(|input| input.name.value.intern(self.heap))
+            .collect();
+
+        self.enter_many(Universe::Type, generic_symbols, |this| {
+            this.enter_many(Universe::Value, param_symbols, |this| {
+                walk_closure_expr(this, expr);
+            });
+        });
+    }
 }
