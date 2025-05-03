@@ -52,6 +52,7 @@ use crate::{
     visit::{Visitor, walk_expr, walk_path, walk_type},
 };
 
+#[derive(Debug, Copy, Clone)]
 struct Binding<'heap> {
     name: InternedSymbol<'heap>,
     previous: Option<InternedSymbol<'heap>>,
@@ -77,8 +78,8 @@ impl<'heap> Universes<'heap> {
         mangled: InternedSymbol<'heap>,
     ) -> Binding<'heap> {
         let residual = match scope {
-            Universe::Type => self.r#type.insert(original.clone(), mangled),
-            Universe::Value => self.value.insert(original.clone(), mangled),
+            Universe::Type => self.r#type.insert(original, mangled),
+            Universe::Value => self.value.insert(original, mangled),
         };
 
         Binding {
@@ -173,7 +174,7 @@ impl<'heap> NameMangler<'heap> {
     /// is invalid in regular identifiers, symbols, and `BaseUrl`s, ensuring the mangled
     /// name will not conflict with any valid user-defined identifier.
     fn mangle(&mut self, symbol: &mut InternedSymbol<'heap>) -> InternedSymbol<'heap> {
-        let count = self.counter.entry(symbol.clone()).or_insert(0);
+        let count = self.counter.entry(*symbol).or_insert(0);
 
         let mut mangled = symbol.as_str().to_owned();
         mangled.push(':');
@@ -260,7 +261,7 @@ impl<'heap> NameMangler<'heap> {
             .params
             .iter_mut()
             .map(|param| {
-                let original = param.name.value.clone();
+                let original = param.name.value;
                 let mangled = self.mangle(&mut param.name.value);
 
                 (original, mangled)
@@ -270,7 +271,7 @@ impl<'heap> NameMangler<'heap> {
         let mangled_inputs: Vec<_> = inputs
             .iter_mut()
             .map(|input| {
-                let original = input.name.value.clone();
+                let original = input.name.value;
                 let mangled = self.mangle(&mut input.name.value);
 
                 (original, mangled)
@@ -302,7 +303,7 @@ impl<'heap> NameMangler<'heap> {
         let mangled_constraints: Vec<_> = constraints
             .iter_mut()
             .map(|constraint| {
-                let original = constraint.name.value.clone();
+                let original = constraint.name.value;
                 let mangled = self.mangle(&mut constraint.name.value);
 
                 (original, mangled)
@@ -344,7 +345,7 @@ impl<'heap> Visitor<'heap> for NameMangler<'heap> {
     // In this stage any use statement should no longer be present.
 
     fn visit_let_expr(&mut self, expr: &mut LetExpr<'heap>) {
-        let original = expr.name.value.clone();
+        let original = expr.name.value;
         let mangled = self.mangle(&mut expr.name.value);
 
         let LetExpr {
@@ -371,7 +372,7 @@ impl<'heap> Visitor<'heap> for NameMangler<'heap> {
     }
 
     fn visit_type_expr(&mut self, expr: &mut TypeExpr<'heap>) {
-        let original = expr.name.value.clone();
+        let original = expr.name.value;
         let mangled = self.mangle(&mut expr.name.value);
 
         let TypeExpr {
@@ -387,8 +388,7 @@ impl<'heap> Visitor<'heap> for NameMangler<'heap> {
         self.visit_span(span);
         self.visit_ident(name);
 
-        let mangled_constraints =
-            self.mangle_constraints(original.clone(), mangled.clone(), constraints);
+        let mangled_constraints = self.mangle_constraints(original, mangled, constraints);
 
         self.enter(Universe::Type, original, mangled, |this| {
             this.enter_many(Universe::Type, mangled_constraints, |this| {
@@ -400,7 +400,7 @@ impl<'heap> Visitor<'heap> for NameMangler<'heap> {
     }
 
     fn visit_newtype_expr(&mut self, expr: &mut NewTypeExpr<'heap>) {
-        let original = expr.name.value.clone();
+        let original = expr.name.value;
         let mangled = self.mangle(&mut expr.name.value);
 
         let NewTypeExpr {
@@ -416,10 +416,9 @@ impl<'heap> Visitor<'heap> for NameMangler<'heap> {
         self.visit_span(span);
         self.visit_ident(name);
 
-        let mangled_constraints =
-            self.mangle_constraints(original.clone(), mangled.clone(), constraints);
+        let mangled_constraints = self.mangle_constraints(original, mangled, constraints);
 
-        self.enter(Universe::Type, original.clone(), mangled.clone(), |this| {
+        self.enter(Universe::Type, original, mangled, |this| {
             this.enter_many(Universe::Type, mangled_constraints, |this| {
                 this.visit_type(value);
             });

@@ -201,16 +201,16 @@ impl<'env, 'heap> PreExpansionNameResolver<'env, 'heap> {
                 // The first argument is the identifier, which we shouldn't normalize
             } else if index == len - 1 {
                 let old = if let Some(from) = from.take() {
-                    self.alias.insert(to.value.clone(), Some(from))
+                    self.alias.insert(to.value, Some(from))
                 } else {
                     // Explicitly unset the alias
-                    self.alias.insert(to.value.clone(), None)
+                    self.alias.insert(to.value, None)
                 };
 
                 self.visit_argument(argument);
 
                 if let Some(old) = old {
-                    self.alias.insert(to.value.clone(), old);
+                    self.alias.insert(to.value, old);
                 } else {
                     // The binding hasn't existed before, therefore restoration = deletion
                     self.alias.remove(&to.value);
@@ -284,7 +284,7 @@ impl<'env, 'heap> PreExpansionNameResolver<'env, 'heap> {
             segments: vec,
         };
 
-        self.namespace_cache.insert(name.clone(), path.clone());
+        self.namespace_cache.insert(name, path.clone());
 
         Some(path)
     }
@@ -398,7 +398,7 @@ impl<'heap> Visitor<'heap> for PreExpansionNameResolver<'_, 'heap> {
         };
 
         // We do **not** resolve the `to` path, as it is supposed to be an identifier
-        let Some(to) = to.as_ident().cloned() else {
+        let Some(to) = to.as_ident().copied() else {
             walk_call_expr(self, expr);
             return;
         };

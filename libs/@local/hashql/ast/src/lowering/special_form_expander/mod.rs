@@ -504,9 +504,9 @@ impl<'heap> SpecialFormExpander<'heap> {
                     kind: TypeKind::Path(path),
                     ..
                 } = r#type.as_ref()
-                    && let Some(ident) = path.as_ident() =>
+                    && let Some(&ident) = path.as_ident() =>
                 {
-                    if let Err(error) = seen.try_insert(ident.value.clone(), ident.span) {
+                    if let Err(error) = seen.try_insert(ident.value, ident.span) {
                         self.diagnostics.push(duplicate_generic_constraint(
                             ident.span,
                             ident.value.as_str(),
@@ -519,7 +519,7 @@ impl<'heap> SpecialFormExpander<'heap> {
                     constraints.push(GenericConstraint {
                         id,
                         span,
-                        name: ident.clone(),
+                        name: ident,
                         bound: None,
                     });
                 }
@@ -542,10 +542,9 @@ impl<'heap> SpecialFormExpander<'heap> {
                     return None;
                 }
                 PathSegmentArgument::Constraint(generic_constraint) => {
-                    if let Err(error) = seen.try_insert(
-                        generic_constraint.name.value.clone(),
-                        generic_constraint.name.span,
-                    ) {
+                    if let Err(error) =
+                        seen.try_insert(generic_constraint.name.value, generic_constraint.name.span)
+                    {
                         self.diagnostics.push(duplicate_generic_constraint(
                             generic_constraint.span,
                             generic_constraint.name.value.as_str(),
@@ -1096,7 +1095,7 @@ impl<'heap> SpecialFormExpander<'heap> {
         );
 
         for param in &generics.params {
-            if let Err(error) = seen.try_insert(param.name.value.clone(), param.name.span) {
+            if let Err(error) = seen.try_insert(param.name.value, param.name.span) {
                 self.diagnostics.push(duplicate_closure_generic(
                     param.name.span,
                     param.name.value.as_str(),
@@ -1108,7 +1107,7 @@ impl<'heap> SpecialFormExpander<'heap> {
         seen.clear();
 
         for param in &params {
-            if let Err(error) = seen.try_insert(param.name.value.clone(), param.name.span) {
+            if let Err(error) = seen.try_insert(param.name.value, param.name.span) {
                 self.diagnostics.push(duplicate_closure_parameter(
                     param.name.span,
                     param.name.value.as_str(),

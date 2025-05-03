@@ -33,7 +33,7 @@ pub struct IntegerLiteral<'heap> {
     pub value: InternedSymbol<'heap>,
 }
 
-impl<'heap> IntegerLiteral<'heap> {
+impl IntegerLiteral<'_> {
     /// Attempts to convert the integer literal to an unsigned 8-bit integer.
     ///
     /// Returns `None` if the value is negative or exceeds the range of [`u8`].
