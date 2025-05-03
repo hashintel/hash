@@ -283,12 +283,34 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
         self.current_universe = previous;
     }
 
-    fn visit_let_expr(&mut self, expr: &mut LetExpr<'heap>) {
-        let symbol = expr.name.value.intern(self.heap);
+    fn visit_let_expr(
+        &mut self,
+        LetExpr {
+            id,
+            span,
+            name,
+            value,
+            r#type,
+            body,
+        }: &mut LetExpr<'heap>,
+    ) {
+        let symbol = name.value.intern(self.heap);
+
+        self.visit_id(id);
+        self.visit_span(span);
+        self.visit_ident(name);
+
+        // Important: The scope only effect in the body, not in the value, as that would allow the
+        // creation of recursive values
+        self.visit_expr(value);
+
+        if let Some(r#type) = r#type {
+            self.visit_type(r#type);
+        }
 
         let should_remove = self.scope.value.insert(symbol);
 
-        walk_let_expr(self, expr);
+        self.visit_expr(body);
 
         if should_remove {
             self.scope.value.remove(&symbol);
