@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Tests that complex nested type parameters with generic arguments resolve correctly
+["type", "Foo<T, E>", "List<Option<Result<T, E>>>", "_"]

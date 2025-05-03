@@ -1,0 +1,46 @@
+Expr#4294967040@64
+  ExprKind (Let)
+    LetExpr#4294967040@64 (name: x)
+      Expr#4294967040@37
+        ExprKind (Literal)
+          LiteralExpr#4294967040@36
+            LiteralKind (String)
+              StringLiteral (2)
+      Type#4294967040@35
+        TypeKind (Path)
+          Path#4294967040@35 (rooted: true)
+            PathSegment#4294967040@34 (name: kernel)
+            PathSegment#4294967040@34 (name: type)
+            PathSegment#4294967040@34 (name: Dict)
+              PathSegmentArgument (GenericArgument)
+                GenericArgument#4294967040@33
+                  Type#4294967040@32
+                    TypeKind (Path)
+                      Path#4294967040@32 (rooted: true)
+                        PathSegment#4294967040@31 (name: kernel)
+                        PathSegment#4294967040@31 (name: type)
+                        PathSegment#4294967040@31 (name: Number)
+      Expr#4294967040@63
+        ExprKind (Let)
+          LetExpr#4294967040@63 (name: y)
+            Expr#4294967040@60
+              ExprKind (Literal)
+                LiteralExpr#4294967040@59
+                  LiteralKind (Integer)
+                    IntegerLiteral (3)
+            Type#4294967040@58
+              TypeKind (Path)
+                Path#4294967040@58 (rooted: true)
+                  PathSegment#4294967040@48 (name: kernel)
+                  PathSegment#4294967040@50 (name: type)
+                  PathSegment#4294967040@57 (name: Option)
+                    PathSegmentArgument (GenericArgument)
+                      GenericArgument#4294967040@56
+                        Type#4294967040@55
+                          TypeKind (Path)
+                            Path#4294967040@55 (rooted: true)
+                              PathSegment#4294967040@54 (name: kernel)
+                              PathSegment#4294967040@54 (name: type)
+                              PathSegment#4294967040@54 (name: Number)
+            Expr#4294967040@62
+              ExprKind (Underscore)

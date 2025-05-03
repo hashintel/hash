@@ -1,0 +1,13 @@
+//@ run: pass
+//@ description: Tests that ambiguous names are correctly resolved based on the current universe (type vs value)
+[
+  "use",
+  "math",
+  { "#struct": { "add": "Dict" } },
+  [
+    "type",
+    "X",
+    "Dict", // Should resolve in type universe
+    "Dict" // Should resolve in value universe
+  ]
+]
