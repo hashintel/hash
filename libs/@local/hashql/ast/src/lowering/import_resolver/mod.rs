@@ -26,9 +26,7 @@ use crate::{
         path::{Path, PathSegment},
         r#type::Type,
     },
-    visit::{
-        Visitor, walk_expr, walk_let_expr, walk_newtype_expr, walk_path, walk_type, walk_type_expr,
-    },
+    visit::{Visitor, walk_expr, walk_path, walk_type},
 };
 
 #[derive(Debug, Default)]
@@ -45,6 +43,20 @@ impl<'heap> Scope<'heap> {
         };
 
         inner.contains(&name)
+    }
+
+    fn insert(&mut self, universe: Universe, name: InternedSymbol<'heap>) -> bool {
+        match universe {
+            Universe::Type => self.r#type.insert(name),
+            Universe::Value => self.value.insert(name),
+        }
+    }
+
+    fn remove(&mut self, universe: Universe, name: InternedSymbol<'heap>) -> bool {
+        match universe {
+            Universe::Type => self.r#type.remove(&name),
+            Universe::Value => self.value.remove(&name),
+        }
     }
 }
 
@@ -69,6 +81,43 @@ impl<'env, 'heap> ImportResolver<'env, 'heap> {
 
     pub fn take_diagnostics(&mut self) -> Vec<ImportResolverDiagnostic> {
         mem::take(&mut self.diagnostics)
+    }
+
+    fn enter<T>(
+        &mut self,
+        universe: Universe,
+        symbol: InternedSymbol<'heap>,
+        closure: impl FnOnce(&mut Self) -> T,
+    ) -> T {
+        let remove = self.scope.insert(universe, symbol);
+
+        let result = closure(self);
+
+        if remove {
+            self.scope.remove(universe, symbol);
+        }
+
+        result
+    }
+
+    fn enter_many<T>(
+        &mut self,
+        universe: Universe,
+        symbols: impl IntoIterator<Item = InternedSymbol<'heap>>,
+        closure: impl FnOnce(&mut Self) -> T,
+    ) -> T {
+        let remove: Vec<_> = symbols
+            .into_iter()
+            .filter(|symbol| self.scope.insert(universe, symbol))
+            .collect();
+
+        let result = closure(self);
+
+        for symbol in remove {
+            self.scope.remove(universe, symbol);
+        }
+
+        result
     }
 }
 
@@ -317,25 +366,97 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
         }
     }
 
-    fn visit_type_expr(&mut self, expr: &mut TypeExpr<'heap>) {
-        let symbol = expr.name.value.intern(self.heap);
+    fn visit_type_expr(
+        &mut self,
+        TypeExpr {
+            id,
+            span,
+            name,
+            constraints,
+            value,
+            body,
+        }: &mut TypeExpr<'heap>,
+    ) {
+        let symbol = name.value.intern(self.heap);
+
+        self.visit_id(id);
+        self.visit_span(span);
+        self.visit_ident(name);
 
         let should_remove = self.scope.r#type.insert(symbol);
 
-        walk_type_expr(self, expr);
+        // Unlike the type name (which can be referenced in the body), constraints are only
+        // referenced in the value
+        let mut removed_constraints = Vec::with_capacity(constraints.len());
+        for constraint in &mut *constraints {
+            let ident = constraint.name.value.intern(self.heap);
+            if self.scope.r#type.insert(ident) {
+                removed_constraints.push(ident);
+            }
+        }
+
+        // Constraints already have the type in their own scope (to allow for `T: Foo<U>`
+        // constraints), as well as their own constraints.
+        for constraint in constraints {
+            self.visit_generic_constraint(constraint);
+        }
+
+        self.visit_type(value);
+
+        for constraint in removed_constraints {
+            self.scope.r#type.remove(&constraint);
+        }
+
+        self.visit_expr(body);
 
         if should_remove {
             self.scope.r#type.remove(&symbol);
         }
     }
 
-    fn visit_newtype_expr(&mut self, expr: &mut NewTypeExpr<'heap>) {
-        let symbol = expr.name.value.intern(self.heap);
+    fn visit_newtype_expr(
+        &mut self,
+        NewTypeExpr {
+            id,
+            span,
+            name,
+            constraints,
+            value,
+            body,
+        }: &mut NewTypeExpr<'heap>,
+    ) {
+        let symbol = name.value.intern(self.heap);
+
+        self.visit_id(id);
+        self.visit_span(span);
+        self.visit_ident(name);
 
         let should_remove_value = self.scope.value.insert(symbol);
         let should_remove_type = self.scope.r#type.insert(symbol);
 
-        walk_newtype_expr(self, expr);
+        // Unlike the type name (which can be referenced in the body), constraints are only
+        // referenced in the value
+        let mut removed_constraints = Vec::with_capacity(constraints.len());
+        for constraint in &mut *constraints {
+            let ident = constraint.name.value.intern(self.heap);
+            if self.scope.r#type.insert(ident) {
+                removed_constraints.push(ident);
+            }
+        }
+
+        // Constraints already have the type in their own scope (to allow for `T: Foo<U>`
+        // constraints), as well as their own constraints.
+        for constraint in constraints {
+            self.visit_generic_constraint(constraint);
+        }
+
+        self.visit_type(value);
+
+        for constraint in removed_constraints {
+            self.scope.r#type.remove(&constraint);
+        }
+
+        self.visit_expr(body);
 
         if should_remove_value {
             self.scope.value.remove(&symbol);
