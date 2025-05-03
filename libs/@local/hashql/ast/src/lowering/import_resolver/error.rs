@@ -1,5 +1,5 @@
-use core::fmt::Display;
-use std::{borrow::Cow, fmt};
+use alloc::borrow::Cow;
+use core::{fmt, fmt::Display};
 
 use hashql_core::{
     module::{
@@ -105,19 +105,15 @@ pub(crate) fn generic_arguments_in_use_path(
 }
 
 /// Error when a path has no segments
-pub(crate) fn empty_path(span: SpanId, use_span: SpanId) -> ImportResolverDiagnostic {
+pub(crate) fn empty_path(span: SpanId) -> ImportResolverDiagnostic {
     let mut diagnostic =
         Diagnostic::new(ImportResolverDiagnosticCategory::EmptyPath, Severity::ERROR);
 
-    // Add primary and secondary labels
-    diagnostic.labels.extend([
+    diagnostic.labels.push(
         Label::new(span, "Specify a path here")
             .with_order(0)
             .with_color(Color::Ansi(AnsiColor::Red)),
-        Label::new(use_span, "In this import statement")
-            .with_order(1)
-            .with_color(Color::Ansi(AnsiColor::Blue)),
-    ]);
+    );
 
     diagnostic.help = Some(Help::new(
         "Add a valid path with at least one identifier, such as `module` or `module::item`.",
@@ -226,13 +222,9 @@ impl Display for FormatPath<'_, '_> {
 
         if path.rooted {
             fmt.write_str("::")?;
-        };
+        }
 
-        let segments = if let Some(depth) = depth {
-            &path.segments[..depth]
-        } else {
-            &path.segments[..]
-        };
+        let segments = depth.map_or_else(|| &*path.segments, |depth| &path.segments[..depth]);
 
         for (index, segment) in segments.iter().enumerate() {
             if index > 0 {
@@ -247,8 +239,9 @@ impl Display for FormatPath<'_, '_> {
 }
 
 /// Convert a resolution error to a diagnostic
+#[expect(clippy::too_many_lines)]
 pub(crate) fn from_resolution_error<'heap>(
-    use_span: SpanId,
+    use_span: Option<SpanId>,
     registry: &ModuleRegistry<'heap>,
     path: &Path<'heap>,
     mut error: ResolutionError<'heap>,
@@ -260,16 +253,21 @@ pub(crate) fn from_resolution_error<'heap>(
 
     match &mut error {
         &mut ResolutionError::InvalidQueryLength { expected } => {
-            diagnostic.labels.extend([
+            diagnostic.labels.push(
                 // Primary label highlighting the problematic path
                 Label::new(path.span, "Expected more path segments")
                     .with_order(0)
                     .with_color(Color::Ansi(AnsiColor::Red)),
+            );
+
+            if let Some(use_span) = use_span {
                 // Secondary label showing the context of the use statement
-                Label::new(use_span, "In this import statement")
-                    .with_order(1)
-                    .with_color(Color::Ansi(AnsiColor::Blue)),
-            ]);
+                diagnostic.labels.push(
+                    Label::new(use_span, "In this import statement")
+                        .with_order(1)
+                        .with_color(Color::Ansi(AnsiColor::Blue)),
+                );
+            }
 
             diagnostic.help = Some(Help::new(format!(
                 "This import path needs at least {expected} segments to be valid. Add the missing \
@@ -325,20 +323,25 @@ pub(crate) fn from_resolution_error<'heap>(
             let package_name = path.segments[depth].name.value.clone();
             let package_span = path.segments[depth].span;
 
-            diagnostic.labels.extend([
+            diagnostic.labels.push(
                 // Primary label highlighting the missing package
                 Label::new(package_span, format!("Missing package '{package_name}'"))
                     .with_order(0)
                     .with_color(Color::Ansi(AnsiColor::Red)),
-                // Secondary label showing the context
-                Label::new(use_span, "In this import statement")
-                    .with_order(1)
-                    .with_color(Color::Ansi(AnsiColor::Blue)),
-            ]);
-
-            let mut help = format!(
-                "This package couldn't be found. Make sure it is spelled correctly and installed."
             );
+
+            if let Some(use_span) = use_span {
+                diagnostic.labels.push(
+                    // Secondary label showing the context
+                    Label::new(use_span, "In this import statement")
+                        .with_order(1)
+                        .with_color(Color::Ansi(AnsiColor::Blue)),
+                );
+            }
+
+            let mut help = "This package couldn't be found. Make sure it is spelled correctly and \
+                            installed."
+                .to_owned();
 
             if let Some(suggestion) = format_suggestions(suggestions, |&module| {
                 Cow::Owned(registry.modules.index(module).name.as_str().to_owned())
@@ -359,18 +362,23 @@ pub(crate) fn from_resolution_error<'heap>(
             let import = path.segments[depth].name.value.clone();
             let import_span = path.segments[depth].span;
 
-            diagnostic.labels.extend([
+            diagnostic.labels.push(
                 Label::new(
                     import_span,
                     format!("'{import}' needs to be imported first"),
                 )
                 .with_order(0)
                 .with_color(Color::Ansi(AnsiColor::Red)),
-                // Add a secondary label for context
-                Label::new(use_span, "In this import statement")
-                    .with_order(1)
-                    .with_color(Color::Ansi(AnsiColor::Blue)),
-            ]);
+            );
+
+            if let Some(use_span) = use_span {
+                diagnostic.labels.push(
+                    // Add a secondary label for context
+                    Label::new(use_span, "In this import statement")
+                        .with_order(1)
+                        .with_color(Color::Ansi(AnsiColor::Blue)),
+                );
+            }
 
             let mut help = format!(
                 "Add an import statement for '{import}' before using it. Check if the name is \
@@ -454,7 +462,7 @@ pub(crate) fn from_resolution_error<'heap>(
                         .with_order(1)
                         .with_color(Color::Ansi(AnsiColor::Blue)),
                 );
-            } else {
+            } else if let Some(use_span) = use_span {
                 diagnostic.labels.push(
                     Label::new(use_span, "In this import")
                         .with_order(1)

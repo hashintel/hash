@@ -13,7 +13,7 @@ use hashql_core::{
 };
 
 use self::error::{
-    ImportResolverDiagnostic, empty_path, generic_arguments_in_module,
+    ImportResolverDiagnostic, empty_path, from_resolution_error, generic_arguments_in_module,
     generic_arguments_in_use_path,
 };
 use crate::{
@@ -75,7 +75,7 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
         &mut self,
         UseExpr {
             id: _,
-            span: _,
+            span,
             path,
             kind,
             body,
@@ -89,7 +89,7 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
         for segment in path.segments.drain(..) {
             if !segment.arguments.is_empty() {
                 self.diagnostics
-                    .push(generic_arguments_in_use_path(segment.span));
+                    .push(generic_arguments_in_use_path(segment.span, path.span));
             }
 
             query.push(segment.name.value.intern(self.heap));
@@ -126,7 +126,16 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
                     );
 
                     if let Err(error) = result {
-                        todo!("record diagnostic")
+                        self.diagnostics.push(from_resolution_error(
+                            Some(*span),
+                            self.namespace.registry,
+                            path,
+                            error,
+                        ));
+
+                        // We cannot continue here, so we replace the body with `Dummy`, this way we
+                        // can still report the error and continue in the control flow
+                        **body = Expr::dummy();
                     }
                 }
             }
@@ -142,7 +151,16 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
                 );
 
                 if let Err(error) = result {
-                    todo!("record diagnostic")
+                    self.diagnostics.push(from_resolution_error(
+                        Some(*span),
+                        self.namespace.registry,
+                        path,
+                        error,
+                    ));
+
+                    // We cannot continue here, so we replace the body with `Dummy`, this way we
+                    // can still report the error and continue in the control flow
+                    **body = Expr::dummy();
                 }
             }
         }
@@ -171,7 +189,7 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
         for module in modules {
             if !module.arguments.is_empty() {
                 self.diagnostics
-                    .push(generic_arguments_in_module(module.span));
+                    .push(generic_arguments_in_module(module.span, path.span));
             }
         }
 
@@ -186,14 +204,24 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
             ResolutionMode::Relative
         };
 
-        let Some(item) = self.namespace.resolve(
+        let item = match self.namespace.resolve(
             segments,
             ResolveOptions {
                 mode,
                 universe: self.current_universe,
             },
-        ) else {
-            todo!("record diagnostic")
+        ) {
+            Ok(item) => item,
+            Err(error) => {
+                self.diagnostics.push(from_resolution_error(
+                    None,
+                    self.namespace.registry,
+                    path,
+                    error,
+                ));
+
+                return;
+            }
         };
 
         let mut segments: Vec<_> = item.absolute_path(self.namespace.registry).collect();
