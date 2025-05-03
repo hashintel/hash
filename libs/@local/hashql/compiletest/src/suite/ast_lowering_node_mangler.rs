@@ -38,7 +38,7 @@ impl Suite for AstLoweringNameManglerSuite {
 
         process_diagnostics(diagnostics, expander.take_diagnostics())?;
 
-        let mut renumberer = NameMangler::new();
+        let mut renumberer = NameMangler::new(heap);
         renumberer.visit_expr(&mut expr);
 
         Ok(expr.syntax_dump_to_string())

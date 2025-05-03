@@ -86,17 +86,17 @@ impl FloatLiteral<'_> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use hashql_core::heap::Heap;
 
-    fn symbol(value: &str) -> Symbol {
-        Symbol::new(value)
-    }
+    use crate::node::expr::literal::FloatLiteral;
 
     #[test]
     #[expect(clippy::float_cmp)]
     fn valid_json_f32() {
+        let heap = Heap::new();
+
         let literal = FloatLiteral {
-            value: symbol("123.456"),
+            value: heap.intern_symbol("123.456"),
         };
 
         assert_eq!(literal.as_f32(), 123.456);
@@ -105,8 +105,10 @@ mod tests {
     #[test]
     #[expect(clippy::float_cmp)]
     fn valid_json_f64() {
+        let heap = Heap::new();
+
         let literal = FloatLiteral {
-            value: symbol("123.456789012345"),
+            value: heap.intern_symbol("123.456789012345"),
         };
 
         assert_eq!(literal.as_f64(), 123.456_789_012_345);
@@ -115,8 +117,10 @@ mod tests {
     #[test]
     #[expect(clippy::float_cmp)]
     fn scientific_notation() {
+        let heap = Heap::new();
+
         let literal = FloatLiteral {
-            value: symbol("1.23e4"),
+            value: heap.intern_symbol("1.23e4"),
         };
 
         assert_eq!(literal.as_f32(), 12300.0);
@@ -125,8 +129,10 @@ mod tests {
 
     #[test]
     fn negative_scientific_notation() {
+        let heap = Heap::new();
+
         let literal = FloatLiteral {
-            value: symbol("-1.23e-2"),
+            value: heap.intern_symbol("-1.23e-2"),
         };
 
         assert!((literal.as_f32() - (-0.0123)).abs() < f32::EPSILON);
@@ -136,8 +142,10 @@ mod tests {
     #[test]
     #[should_panic(expected = "float literal should be formatted according to JSON specification")]
     fn invalid_float() {
+        let heap = Heap::new();
+
         let literal = FloatLiteral {
-            value: symbol("not-a-number"),
+            value: heap.intern_symbol("not-a-number"),
         };
 
         let _value = literal.as_f64();
