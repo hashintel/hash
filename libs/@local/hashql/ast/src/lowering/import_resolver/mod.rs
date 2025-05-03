@@ -137,8 +137,7 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
         // normalization for us
         let mut query = Vec::with_capacity(path.segments.len());
 
-        // We'll replace ourselves with the body once walked, therefore save to drain
-        for segment in path.segments.drain(..) {
+        for segment in &path.segments {
             if !segment.arguments.is_empty() {
                 self.diagnostics
                     .push(generic_arguments_in_use_path(segment.span, *span));
@@ -164,12 +163,12 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
                     alias,
                 } in use_bindings.drain(..)
                 {
-                    let name = name.value.intern(self.heap);
-                    let alias = alias.map_or(name, |alias| alias.value.intern(self.heap));
+                    let name_symbol = name.value.intern(self.heap);
+                    let alias = alias.map_or(name_symbol, |alias| alias.value.intern(self.heap));
 
                     let result = self.namespace.import(
                         alias,
-                        query.iter().copied().chain(iter::once(name)),
+                        query.iter().copied().chain(iter::once(name_symbol)),
                         ImportOptions {
                             glob: false,
                             mode,
@@ -182,6 +181,7 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
                             Some(*span),
                             self.namespace.registry,
                             path,
+                            Some((name.span, name_symbol)),
                             error,
                         ));
 
@@ -207,6 +207,7 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
                         Some(*span),
                         self.namespace.registry,
                         path,
+                        None,
                         error,
                     ));
 
@@ -223,7 +224,6 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
     }
 
     fn visit_path(&mut self, path: &mut Path<'heap>) {
-        // We don't support generics except for the *last* segment
         let [modules @ .., ident] = &*path.segments else {
             self.diagnostics.push(empty_path(path.span));
             return;
@@ -238,6 +238,7 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
             return;
         }
 
+        // We don't support generics except for the *last* segment
         let mut r#continue = true;
         for module in modules {
             if !module.arguments.is_empty() {
@@ -279,6 +280,7 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
                     None,
                     self.namespace.registry,
                     path,
+                    None,
                     error,
                 ));
 

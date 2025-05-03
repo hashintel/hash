@@ -1,0 +1,3 @@
+//@ run: fail
+//@ description: module shouldn't be found
+["use", "kernel::foo", { "#tuple": ["baz"] }, "_"]

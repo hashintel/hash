@@ -8,6 +8,7 @@ use hashql_core::{
         item::Universe,
     },
     span::SpanId,
+    symbol::InternedSymbol,
 };
 use hashql_diagnostics::{
     Diagnostic,
@@ -223,24 +224,24 @@ fn format_suggestions<T>(
     Some(format!("\n\nDid you mean: `{suggestion}`?"))
 }
 
-struct FormatPath<'a, 'heap>(&'a Path<'heap>, Option<usize>);
+struct FormatPath<'a, 'heap>(bool, &'a [(SpanId, InternedSymbol<'heap>)], Option<usize>);
 
 impl Display for FormatPath<'_, '_> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let &Self(path, depth) = self;
+        let &Self(rooted, segments, depth) = self;
 
-        if path.rooted {
+        if rooted {
             fmt.write_str("::")?;
         }
 
-        let segments = depth.map_or_else(|| &*path.segments, |depth| &path.segments[..depth]);
+        let segments = depth.map_or(segments, |depth| &segments[..=depth]);
 
-        for (index, segment) in segments.iter().enumerate() {
+        for (index, (_, segment)) in segments.iter().enumerate() {
             if index > 0 {
                 fmt.write_str("::")?;
             }
 
-            fmt.write_str(segment.name.value.as_str())?;
+            Display::fmt(segment, fmt)?;
         }
 
         Ok(())
@@ -253,12 +254,20 @@ pub(crate) fn from_resolution_error<'heap>(
     use_span: Option<SpanId>,
     registry: &ModuleRegistry<'heap>,
     path: &Path<'heap>,
+    name: Option<(SpanId, InternedSymbol<'heap>)>,
     mut error: ResolutionError<'heap>,
 ) -> ImportResolverDiagnostic {
     let mut diagnostic = Diagnostic::new(
         ImportResolverDiagnosticCategory::UnresolvedImport,
         Severity::ERROR,
     );
+
+    let segments: Vec<_> = path
+        .segments
+        .iter()
+        .map(|segment| (segment.span, segment.name.value.intern(registry.heap)))
+        .chain(name)
+        .collect();
 
     match &mut error {
         &mut ResolutionError::InvalidQueryLength { expected } => {
@@ -290,7 +299,7 @@ pub(crate) fn from_resolution_error<'heap>(
         }
 
         &mut ResolutionError::ModuleRequired { depth, found } => {
-            let path_segment_span = path.segments[depth].span;
+            let (path_segment_span, _) = segments[depth];
 
             diagnostic.labels.extend([
                 // Primary label showing the item that can't contain other items
@@ -298,13 +307,13 @@ pub(crate) fn from_resolution_error<'heap>(
                     path_segment_span,
                     format!(
                         "'{}' cannot contain other items",
-                        FormatPath(path, Some(depth))
+                        FormatPath(path.rooted, &segments, Some(depth))
                     ),
                 )
                 .with_order(0)
                 .with_color(Color::Ansi(AnsiColor::Red)),
                 // Secondary label showing the full path context
-                Label::new(path.span, "Invalid path structure")
+                Label::new(path.span, "In this path")
                     .with_order(1)
                     .with_color(Color::Ansi(AnsiColor::Blue)),
             ]);
@@ -316,9 +325,8 @@ pub(crate) fn from_resolution_error<'heap>(
             };
 
             diagnostic.help = Some(Help::new(format!(
-                "'{}' is {universe}, not a module. Only modules can contain other items. Check \
-                 your import path.",
-                FormatPath(path, Some(depth))
+                "'{}' is {universe}. Only modules can contain other items. Check your import path.",
+                FormatPath(path.rooted, &segments, Some(depth))
             )));
 
             diagnostic.note = Some(Note::new(
@@ -329,8 +337,7 @@ pub(crate) fn from_resolution_error<'heap>(
 
         ResolutionError::PackageNotFound { depth, suggestions } => {
             let depth = *depth;
-            let package_name = path.segments[depth].name.value.clone();
-            let package_span = path.segments[depth].span;
+            let (package_span, package_name) = segments[depth];
 
             diagnostic.labels.push(
                 // Primary label highlighting the missing package
@@ -368,13 +375,12 @@ pub(crate) fn from_resolution_error<'heap>(
 
         ResolutionError::ImportNotFound { depth, suggestions } => {
             let depth = *depth;
-            let import = path.segments[depth].name.value.clone();
-            let import_span = path.segments[depth].span;
+            let (import_span, import_name) = segments[depth];
 
             diagnostic.labels.push(
                 Label::new(
                     import_span,
-                    format!("'{import}' needs to be imported first"),
+                    format!("'{import_name}' needs to be imported first"),
                 )
                 .with_order(0)
                 .with_color(Color::Ansi(AnsiColor::Red)),
@@ -390,8 +396,8 @@ pub(crate) fn from_resolution_error<'heap>(
             }
 
             let mut help = format!(
-                "Add an import statement for '{import}' before using it. Check if the name is \
-                 spelled correctly."
+                "Add an import statement for '{import_name}' before using it. Check if the name \
+                 is spelled correctly."
             );
 
             if let Some(suggestion) =
@@ -410,11 +416,10 @@ pub(crate) fn from_resolution_error<'heap>(
 
         ResolutionError::ModuleNotFound { depth, suggestions } => {
             let depth = *depth;
-            let module = path.segments[depth].name.value.clone();
-            let module_span = path.segments[depth].span;
+            let (module_span, module_name) = segments[depth];
 
             diagnostic.labels.extend([
-                Label::new(module_span, format!("Module '{module}' not found"))
+                Label::new(module_span, format!("Module '{module_name}' not found"))
                     .with_order(0)
                     .with_color(Color::Ansi(AnsiColor::Red)),
                 // Add secondary label for context
@@ -426,7 +431,7 @@ pub(crate) fn from_resolution_error<'heap>(
             let mut help = format!(
                 "The module '{}' doesn't exist in this scope. Check the spelling and ensure the \
                  module is available.",
-                FormatPath(path, Some(depth))
+                FormatPath(path.rooted, &segments, Some(depth))
             );
 
             if let Some(suggestion) =
@@ -445,15 +450,14 @@ pub(crate) fn from_resolution_error<'heap>(
 
         ResolutionError::ItemNotFound { depth, suggestions } => {
             let depth = *depth;
-            let item = path.segments[depth].name.value.clone();
-            let item_span = path.segments[depth].span;
+            let (item_span, item_name) = segments[depth];
 
             let label_text = if depth == 0 {
-                format!("'{item}' not found in current scope")
+                format!("'{item_name}' not found in current scope")
             } else {
                 format!(
-                    "'{item}' not found in module '{}'",
-                    FormatPath(path, Some(depth - 1))
+                    "'{item_name}' not found in module '{}'",
+                    FormatPath(path.rooted, &segments, Some(depth - 1))
                 )
             };
 
@@ -465,7 +469,7 @@ pub(crate) fn from_resolution_error<'heap>(
 
             // Add a secondary label highlighting the module
             if depth > 0 {
-                let module_span = path.segments[depth - 1].span;
+                let module_span = segments[depth - 1].0;
                 diagnostic.labels.push(
                     Label::new(module_span, "This module")
                         .with_order(1)
@@ -498,18 +502,17 @@ pub(crate) fn from_resolution_error<'heap>(
         }
 
         ResolutionError::Ambiguous(item) => {
-            let name = item.name.as_str();
-
             // Find the span for the ambiguous name in the path
-            let item_span = path
-                .segments
+            let item_span = segments
                 .iter()
-                .find_map(|segment| (segment.name.value.as_str() == name).then_some(segment.span))
+                .find_map(|&(segment_span, segment_name)| {
+                    (segment_name == item.name).then_some(segment_span)
+                })
                 .unwrap_or(path.span);
 
             diagnostic.labels.extend([
                 // Primary label, pointing to the problem
-                Label::new(item_span, format!("'{name}' is ambiguous"))
+                Label::new(item_span, format!("'{}' is ambiguous", item.name))
                     .with_order(0)
                     .with_color(Color::Ansi(AnsiColor::Red)),
                 // Secondary label, pointing to the path
@@ -519,9 +522,10 @@ pub(crate) fn from_resolution_error<'heap>(
             ]);
 
             diagnostic.help = Some(Help::new(format!(
-                "The name '{name}' could refer to multiple different items in {}. Use a fully \
+                "The name '{}' could refer to multiple different items in {}. Use a fully \
                  qualified path to specify which one you want.",
-                FormatPath(path, Some(path.segments.len() - 1))
+                item.name,
+                FormatPath(path.rooted, &segments, None)
             )));
 
             diagnostic.note = Some(Note::new(
@@ -532,7 +536,7 @@ pub(crate) fn from_resolution_error<'heap>(
         }
 
         &mut ResolutionError::ModuleEmpty { depth } => {
-            let module_span = path.segments[depth].span;
+            let (module_span, _) = segments[depth];
 
             diagnostic.labels.extend([
                 // Primary label, pointing to the module
@@ -540,7 +544,7 @@ pub(crate) fn from_resolution_error<'heap>(
                     module_span,
                     format!(
                         "Module '{}' has no exported members",
-                        FormatPath(path, Some(depth))
+                        FormatPath(path.rooted, &segments, Some(depth))
                     ),
                 )
                 .with_order(0)

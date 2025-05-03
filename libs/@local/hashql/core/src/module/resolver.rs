@@ -385,9 +385,26 @@ impl<'heap> Resolver<'_, 'heap> {
                 });
 
             let Some(module) = module else {
-                return Err(ResolutionError::ModuleRequired {
+                return Err(ResolutionError::ModuleNotFound {
                     depth: 0,
-                    found: None,
+                    suggestions: self.suggest(|| {
+                        // take every unique name from the imports (that are modules)
+                        let mut names: Vec<_> = imports
+                            .iter()
+                            .filter(|import| matches!(import.item.kind, ItemKind::Module(_)))
+                            .map(|import| ResolutionSuggestion {
+                                item: import.item,
+                                score: jaro_winkler(import.item.name.as_str(), name.as_str()),
+                            })
+                            .collect();
+
+                        names.sort_unstable_by_key(|ResolutionSuggestion { item, score: _ }| {
+                            item.name
+                        });
+                        names.dedup_by_key(|ResolutionSuggestion { item, score: _ }| item.name);
+
+                        names
+                    }),
                 });
             };
 
