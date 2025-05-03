@@ -99,7 +99,7 @@ use hashql_core::{
         namespace::{ModuleNamespace, ResolutionMode, ResolveOptions},
     },
     span::SpanId,
-    symbol::{Ident, IdentKind, Symbol},
+    symbol::{Ident, IdentKind, InternedSymbol},
 };
 
 use crate::{
@@ -144,9 +144,11 @@ use crate::{
 /// Note that the identifier `x` in the binding position (first argument) is preserved exactly as
 /// written, while its use in the body expression is resolved according to the current scope.
 pub struct PreExpansionNameResolver<'env, 'heap> {
-    alias: FastHashMap<Symbol, Option<Path<'heap>>>,
+    alias: FastHashMap<InternedSymbol<'heap>, Option<Path<'heap>>>,
+
     namespace: ModuleNamespace<'env, 'heap>,
-    namespace_cache: FastHashMap<Symbol, Path<'heap>>,
+    namespace_cache: FastHashMap<InternedSymbol<'heap>, Path<'heap>>,
+
     resolve: bool,
     heap: &'heap Heap,
 }
@@ -166,7 +168,12 @@ impl<'env, 'heap> PreExpansionNameResolver<'env, 'heap> {
         }
     }
 
-    fn walk_call(&mut self, expr: &mut CallExpr<'heap>, to: &Ident, mut from: Option<Path<'heap>>) {
+    fn walk_call(
+        &mut self,
+        expr: &mut CallExpr<'heap>,
+        to: Ident<'heap>,
+        mut from: Option<Path<'heap>>,
+    ) {
         // We now need to call_expr, but it's important that we don't apply the mapping
         // indiscriminately but instead we do so selectively on only on the last argument, as that
         // is the body of the expression.
@@ -218,13 +225,13 @@ impl<'env, 'heap> PreExpansionNameResolver<'env, 'heap> {
     ///
     /// It checks the local alias map first, then the namespace cache, and finally
     /// the module namespace (for intrinsics) if necessary. Caches namespace lookups.
-    fn lookup(&mut self, name: &Symbol) -> Option<Path<'heap>> {
-        if let Some(replacement) = self.alias.get(name) {
+    fn lookup(&mut self, name: InternedSymbol<'heap>) -> Option<Path<'heap>> {
+        if let Some(replacement) = self.alias.get(&name) {
             return replacement.clone();
         }
 
         // Check first if the cache has a version that's already been resolved
-        if let Some(path) = self.namespace_cache.get(name) {
+        if let Some(path) = self.namespace_cache.get(&name) {
             return Some(path.clone());
         }
 
@@ -234,7 +241,7 @@ impl<'env, 'heap> PreExpansionNameResolver<'env, 'heap> {
         let import = self
             .namespace
             .resolve_relative(
-                [name.intern(self.heap)],
+                [name],
                 ResolveOptions {
                     mode: ResolutionMode::Relative,
                     universe: Universe::Value,
@@ -261,7 +268,7 @@ impl<'env, 'heap> PreExpansionNameResolver<'env, 'heap> {
             span: SpanId::SYNTHETIC,
             name: Ident {
                 span: SpanId::SYNTHETIC,
-                value: Symbol::new(name),
+                value: self.heap.intern_symbol(name),
                 kind: IdentKind::Lexical,
             },
             arguments: self.heap.vec(None),
@@ -303,7 +310,7 @@ impl<'heap> Visitor<'heap> for PreExpansionNameResolver<'_, 'heap> {
 
         // The mapping can either exist in the registry, or our alias mapping
 
-        let Some(replacement) = self.lookup(&segment.name.value) else {
+        let Some(replacement) = self.lookup(segment.name.value) else {
             walk_path(self, path);
             return;
         };
@@ -400,7 +407,7 @@ impl<'heap> Visitor<'heap> for PreExpansionNameResolver<'_, 'heap> {
             // While it isn't a path and therefore not an alias, this is still a valid assignment,
             // therefore we need to actually *remove* the mapping for the duration of the call.
 
-            self.walk_call(expr, &to, None);
+            self.walk_call(expr, to, None);
             return;
         };
 
@@ -410,6 +417,6 @@ impl<'heap> Visitor<'heap> for PreExpansionNameResolver<'_, 'heap> {
         self.resolve = false;
         let from = Some(from.clone());
 
-        self.walk_call(expr, &to, from);
+        self.walk_call(expr, to, from);
     }
 }

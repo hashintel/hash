@@ -331,7 +331,7 @@ impl<'heap> Visitor<'heap> for NameMangler<'heap> {
         }
 
         let first = &mut path.segments[0];
-        if let Some(replacement) = self.universes.get(self.current_universe, &first.name.value) {
+        if let Some(replacement) = self.universes.get(self.current_universe, first.name.value) {
             first.name.value = replacement;
         }
 
