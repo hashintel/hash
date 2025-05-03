@@ -143,7 +143,7 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
                     .push(generic_arguments_in_use_path(segment.span, *span));
             }
 
-            query.push(segment.name.value.intern(self.heap));
+            query.push(segment.name.value);
         }
 
         let mode = if path.rooted {
@@ -163,12 +163,11 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
                     alias,
                 } in use_bindings.drain(..)
                 {
-                    let name_symbol = name.value.intern(self.heap);
-                    let alias = alias.map_or(name_symbol, |alias| alias.value.intern(self.heap));
+                    let alias = alias.map_or(name.value, |alias| alias.value);
 
                     let result = self.namespace.import(
                         alias,
-                        query.iter().copied().chain(iter::once(name_symbol)),
+                        query.iter().copied().chain(iter::once(name.value)),
                         ImportOptions {
                             glob: false,
                             mode,
@@ -181,7 +180,7 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
                             Some(*span),
                             self.namespace.registry,
                             path,
-                            Some((name.span, name_symbol)),
+                            Some((name.span, name.value)),
                             error,
                         ));
 
@@ -229,11 +228,7 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
             return;
         };
 
-        if modules.is_empty()
-            && self
-                .scope
-                .contains(self.current_universe, ident.name.value.intern(self.heap))
-        {
+        if modules.is_empty() && self.scope.contains(self.current_universe, ident.name.value) {
             // We do not need to look this up, because it's already in scope as an identifier
             return;
         }
@@ -256,10 +251,7 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
             return;
         }
 
-        let segments = path
-            .segments
-            .iter()
-            .map(|segment| segment.name.value.intern(self.heap));
+        let segments = path.segments.iter().map(|segment| segment.name.value);
 
         let mode = if path.rooted {
             ResolutionMode::Absolute
@@ -356,8 +348,6 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
             body,
         }: &mut LetExpr<'heap>,
     ) {
-        let symbol = name.value.intern(self.heap);
-
         self.visit_id(id);
         self.visit_span(span);
         self.visit_ident(name);
@@ -370,7 +360,7 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
             self.visit_type(r#type);
         }
 
-        self.enter(Universe::Value, symbol, |this| {
+        self.enter(Universe::Value, name.value, |this| {
             this.visit_expr(body);
         });
     }
@@ -386,16 +376,14 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
             body,
         }: &mut TypeExpr<'heap>,
     ) {
-        let symbol = name.value.intern(self.heap);
-
         self.visit_id(id);
         self.visit_span(span);
         self.visit_ident(name);
 
-        self.enter(Universe::Type, symbol, |this| {
+        self.enter(Universe::Type, name.value, |this| {
             let constraint_symbols: Vec<_> = constraints
                 .iter()
-                .map(|constraint| constraint.name.value.intern(this.heap))
+                .map(|constraint| constraint.name.value)
                 .collect();
 
             // Constraints are mentioned in the type value, as well as the constraints themselves,
@@ -423,16 +411,14 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
             body,
         }: &mut NewTypeExpr<'heap>,
     ) {
-        let symbol = name.value.intern(self.heap);
-
         self.visit_id(id);
         self.visit_span(span);
         self.visit_ident(name);
 
-        self.enter(Universe::Type, symbol, |this| {
+        self.enter(Universe::Type, name.value, |this| {
             let constraint_symbols: Vec<_> = constraints
                 .iter()
-                .map(|constraint| constraint.name.value.intern(this.heap))
+                .map(|constraint| constraint.name.value)
                 .collect();
 
             // Constraints are mentioned in the type value, as well as the constraints themselves,
@@ -447,7 +433,7 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
 
             // Unlike types, newtypes (opaque types) also bring into scope (only in the body)
             // themselves as a constructor
-            this.enter(Universe::Value, symbol, |this| {
+            this.enter(Universe::Value, name.value, |this| {
                 this.visit_expr(body);
             });
         });
@@ -459,14 +445,14 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
             .generics
             .params
             .iter()
-            .map(|param| param.name.value.intern(self.heap))
+            .map(|param| param.name.value)
             .collect();
 
         let param_symbols: Vec<_> = expr
             .signature
             .inputs
             .iter()
-            .map(|input| input.name.value.intern(self.heap))
+            .map(|input| input.name.value)
             .collect();
 
         self.enter_many(Universe::Type, generic_symbols, |this| {

@@ -269,7 +269,7 @@ pub(crate) fn from_resolution_error<'heap>(
     let segments: Vec<_> = path
         .segments
         .iter()
-        .map(|segment| (segment.span, segment.name.value.intern(registry.heap)))
+        .map(|segment| (segment.span, segment.name.value))
         .chain(name)
         .collect();
 

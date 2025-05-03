@@ -454,7 +454,7 @@ impl<'heap> SpecialFormExpander<'heap> {
         &mut self,
         mode: BindingMode,
         argument: Argument<'heap>,
-    ) -> Option<Ident> {
+    ) -> Option<Ident<'heap>> {
         let path = self.lower_argument_to_path(mode, argument)?;
         let span = path.span;
 
@@ -472,7 +472,7 @@ impl<'heap> SpecialFormExpander<'heap> {
         &mut self,
         mode: BindingMode,
         argument: Argument<'heap>,
-    ) -> Option<(Ident, heap::Vec<'heap, PathSegmentArgument<'heap>>)> {
+    ) -> Option<(Ident<'heap>, heap::Vec<'heap, PathSegmentArgument<'heap>>)> {
         let path = self.lower_argument_to_path(mode, argument)?;
         let span = path.span;
 
@@ -717,7 +717,7 @@ impl<'heap> SpecialFormExpander<'heap> {
     /// an identifier (to use as alias).
     ///
     /// Returns a `UseKind::Named` with the appropriate bindings if successful.
-    fn lower_use_imports_struct(&mut self, r#struct: StructExpr) -> Option<UseKind<'heap>> {
+    fn lower_use_imports_struct(&mut self, r#struct: StructExpr<'heap>) -> Option<UseKind<'heap>> {
         // {key: value}, each value must be a value must be an underscore *or* ident
         if let Some(type_expr) = &r#struct.r#type {
             self.diagnostics
@@ -776,7 +776,7 @@ impl<'heap> SpecialFormExpander<'heap> {
     /// should be a simple identifier. These imports use the original name without aliasing.
     ///
     /// Returns a `UseKind::Named` with the appropriate bindings if successful.
-    fn lower_use_imports_tuple(&mut self, tuple: TupleExpr) -> Option<UseKind<'heap>> {
+    fn lower_use_imports_tuple(&mut self, tuple: TupleExpr<'heap>) -> Option<UseKind<'heap>> {
         if let Some(type_expr) = &tuple.r#type {
             self.diagnostics
                 .push(use_imports_with_type_annotation(type_expr.span));
