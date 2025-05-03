@@ -1,3 +1,3 @@
 //@ run: pass
-//@ description: Prelude should be imported and used for both types and values
+//@ description: Tests that prelude items are automatically available in both type and value universes
 ["type", "Foo", "Option<Number>", "Some"]

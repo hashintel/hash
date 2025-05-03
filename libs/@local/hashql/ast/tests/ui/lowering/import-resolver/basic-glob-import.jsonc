@@ -1,5 +1,5 @@
 //@ run: pass
-//@ description: Basic glob imports should be supported
+//@ description: Tests that glob imports (*) bring all module items into scope and resolve correctly
 [
   "use",
   "math",

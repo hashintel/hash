@@ -1,4 +1,4 @@
 //@ run: fail
-//@ description: should error out if item does not exist
+//@ description: Tests that importing a non-existent item produces an appropriate error with suggestions
 ["use", "math", { "#tuple": ["llshift"] }, "_"]
 //~^ ERROR 'llshift' not found in module 'math'

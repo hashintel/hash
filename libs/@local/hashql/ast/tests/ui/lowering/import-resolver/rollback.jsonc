@@ -1,5 +1,5 @@
 //@ run: fail
-//@ description: imports should be properly scoped
+//@ description: Tests that imports are properly scoped and don't leak outside their containing expression
 [
   "if",
   { "#literal": true },

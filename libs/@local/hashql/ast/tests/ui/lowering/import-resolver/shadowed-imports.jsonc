@@ -1,5 +1,5 @@
 //@ run: pass
-//@ description: shadowed imports should work
+//@ description: Tests that later imports can shadow earlier ones with the same name
 [
   "use",
   "kernel::type",
