@@ -9,7 +9,7 @@ use hashql_core::{
         item::Universe,
         namespace::{ImportOptions, ModuleNamespace, ResolutionMode, ResolveOptions},
     },
-    symbol::{Ident, IdentKind, InternedSymbol, Symbol},
+    symbol::{Ident, IdentKind, InternedSymbol},
 };
 
 use self::error::{
@@ -295,11 +295,11 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
         debug_assert!(segments.len() >= path.segments.len());
 
         // For the trailing segments, set the name to the canonical name (they might be renamed)
-        for (lhs, rhs) in segments[segments.len() - path.segments.len()..]
+        for (&lhs, rhs) in segments[segments.len() - path.segments.len()..]
             .iter()
             .zip(&mut path.segments)
         {
-            rhs.name.value = Symbol::new(lhs.as_str());
+            rhs.name.value = lhs;
         }
 
         let span = path.segments.first().unwrap_or_else(|| unreachable!()).span;
@@ -309,12 +309,12 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
             0..0,
             segments[..segments.len() - path.segments.len()]
                 .iter()
-                .map(|ident| PathSegment {
+                .map(|&ident| PathSegment {
                     id: NodeId::PLACEHOLDER,
                     span,
                     name: Ident {
                         span,
-                        value: Symbol::new(ident),
+                        value: ident,
                         kind: IdentKind::Lexical,
                     },
                     arguments: self.heap.vec(None),

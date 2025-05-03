@@ -35,9 +35,12 @@
 
 use core::fmt::Write as _;
 
-use foldhash::fast::RandomState;
-use hashbrown::HashMap;
-use hashql_core::{collection::FastHashMap, heap, symbol::Symbol};
+use hashql_core::{
+    collection::FastHashMap,
+    heap::{self, Heap},
+    module::item::Universe,
+    symbol::InternedSymbol,
+};
 
 use crate::{
     node::{
@@ -49,23 +52,17 @@ use crate::{
     visit::{Visitor, walk_expr, walk_path, walk_type},
 };
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-enum Scope {
-    Type,
-    Value,
+struct Binding<'heap> {
+    name: InternedSymbol<'heap>,
+    previous: Option<InternedSymbol<'heap>>,
 }
 
-struct Binding {
-    name: Symbol,
-    previous: Option<Symbol>,
+struct Universes<'heap> {
+    value: FastHashMap<InternedSymbol<'heap>, InternedSymbol<'heap>>,
+    r#type: FastHashMap<InternedSymbol<'heap>, InternedSymbol<'heap>>,
 }
 
-struct Namespaces {
-    value: FastHashMap<Symbol, Symbol>,
-    r#type: FastHashMap<Symbol, Symbol>,
-}
-
-impl Namespaces {
+impl<'heap> Universes<'heap> {
     fn new() -> Self {
         Self {
             value: FastHashMap::default(),
@@ -73,10 +70,15 @@ impl Namespaces {
         }
     }
 
-    fn enter(&mut self, scope: Scope, original: Symbol, mangled: Symbol) -> Binding {
+    fn enter(
+        &mut self,
+        scope: Universe,
+        original: InternedSymbol<'heap>,
+        mangled: InternedSymbol<'heap>,
+    ) -> Binding<'heap> {
         let residual = match scope {
-            Scope::Type => self.r#type.insert(original.clone(), mangled),
-            Scope::Value => self.value.insert(original.clone(), mangled),
+            Universe::Type => self.r#type.insert(original.clone(), mangled),
+            Universe::Value => self.value.insert(original.clone(), mangled),
         };
 
         Binding {
@@ -85,31 +87,31 @@ impl Namespaces {
         }
     }
 
-    fn exit(&mut self, scope: Scope, residual: Binding) {
+    fn exit(&mut self, scope: Universe, residual: Binding<'heap>) {
         if let Some(old) = residual.previous {
             match scope {
-                Scope::Type => self.r#type.insert(residual.name, old),
-                Scope::Value => self.value.insert(residual.name, old),
+                Universe::Type => self.r#type.insert(residual.name, old),
+                Universe::Value => self.value.insert(residual.name, old),
             };
         } else {
             match scope {
-                Scope::Type => self.r#type.remove(&residual.name),
-                Scope::Value => self.value.remove(&residual.name),
+                Universe::Type => self.r#type.remove(&residual.name),
+                Universe::Value => self.value.remove(&residual.name),
             };
         }
     }
 
-    fn get(&self, scope: Scope, name: &Symbol) -> Option<Symbol> {
+    fn get(&self, scope: Universe, name: InternedSymbol<'heap>) -> Option<InternedSymbol<'heap>> {
         match scope {
-            Scope::Type => self.r#type.get(name).cloned(),
-            Scope::Value => self.value.get(name).cloned(),
+            Universe::Type => self.r#type.get(&name).copied(),
+            Universe::Value => self.value.get(&name).copied(),
         }
     }
 }
 
-struct MangledSignature {
-    generic_params: Vec<(Symbol, Symbol)>,
-    inputs: Vec<(Symbol, Symbol)>,
+struct MangledSignature<'heap> {
+    generic_params: Vec<(InternedSymbol<'heap>, InternedSymbol<'heap>)>,
+    inputs: Vec<(InternedSymbol<'heap>, InternedSymbol<'heap>)>,
 }
 
 /// Name mangler for HashQL, responsible for ensuring identifier uniqueness.
@@ -144,21 +146,23 @@ struct MangledSignature {
 /// let x:1 = 2 in
 ///     x:1 + x:1;
 /// ```
-pub struct NameMangler {
-    namespaces: Namespaces,
-    scope: Scope,
+pub struct NameMangler<'heap> {
+    heap: &'heap Heap,
+    universes: Universes<'heap>,
+    current_universe: Universe,
 
-    counter: HashMap<Symbol, usize, RandomState>,
+    counter: FastHashMap<InternedSymbol<'heap>, usize>,
 }
 
-impl NameMangler {
+impl<'heap> NameMangler<'heap> {
     /// Creates a new name mangler.
     #[must_use]
-    pub fn new() -> Self {
+    pub fn new(heap: &'heap Heap) -> Self {
         Self {
-            namespaces: Namespaces::new(),
-            scope: Scope::Value,
-            counter: HashMap::with_hasher(RandomState::default()),
+            heap,
+            universes: Universes::new(),
+            current_universe: Universe::Value,
+            counter: FastHashMap::default(),
         }
     }
 
@@ -168,18 +172,22 @@ impl NameMangler {
     /// for each original symbol. This exploits the fact that `:` followed by a number
     /// is invalid in regular identifiers, symbols, and `BaseUrl`s, ensuring the mangled
     /// name will not conflict with any valid user-defined identifier.
-    fn mangle(&mut self, symbol: &mut Symbol) -> Symbol {
+    fn mangle(&mut self, symbol: &mut InternedSymbol<'heap>) -> InternedSymbol<'heap> {
         let count = self.counter.entry(symbol.clone()).or_insert(0);
 
-        symbol.push(':');
+        let mut mangled = symbol.as_str().to_owned();
+        mangled.push(':');
 
         // Unwrapping here is fine, because the formatter for numbers is infallible and the
         // underlying write implementation is infallible as well.
-        write!(symbol, "{count}").unwrap_or_else(|_| unreachable!());
+        write!(mangled, "{count}").unwrap_or_else(|_| unreachable!());
 
         *count += 1;
 
-        symbol.clone()
+        let mangled = self.heap.intern_symbol(&mangled);
+        *symbol = mangled;
+
+        mangled
     }
 
     /// Enters a new scope with a binding.
@@ -189,16 +197,16 @@ impl NameMangler {
     /// provided closure, and is automatically removed when the closure completes.
     fn enter<T>(
         &mut self,
-        scope: Scope,
-        original: Symbol,
-        mangled: Symbol,
+        universe: Universe,
+        original: InternedSymbol<'heap>,
+        mangled: InternedSymbol<'heap>,
         closure: impl FnOnce(&mut Self) -> T,
     ) -> T {
-        let binding = self.namespaces.enter(scope, original, mangled);
+        let binding = self.universes.enter(universe, original, mangled);
 
         let result = closure(self);
 
-        self.namespaces.exit(scope, binding);
+        self.universes.exit(universe, binding);
 
         result
     }
@@ -211,20 +219,20 @@ impl NameMangler {
     /// order when the closure completes.
     fn enter_many<T>(
         &mut self,
-        scope: Scope,
-        replacements: Vec<(Symbol, Symbol)>,
+        universe: Universe,
+        replacements: Vec<(InternedSymbol<'heap>, InternedSymbol<'heap>)>,
         closure: impl FnOnce(&mut Self) -> T,
     ) -> T {
         let mut bindings = Vec::with_capacity(replacements.len());
 
         for (original, replacement) in replacements {
-            bindings.push(self.namespaces.enter(scope, original, replacement));
+            bindings.push(self.universes.enter(universe, original, replacement));
         }
 
         let result = closure(self);
 
         for binding in bindings.into_iter().rev() {
-            self.namespaces.exit(scope, binding);
+            self.universes.exit(universe, binding);
         }
 
         result
@@ -243,8 +251,8 @@ impl NameMangler {
             generics,
             inputs,
             output,
-        }: &mut ClosureSignature<'_>,
-    ) -> MangledSignature {
+        }: &mut ClosureSignature<'heap>,
+    ) -> MangledSignature<'heap> {
         self.visit_id(id);
         self.visit_span(span);
 
@@ -271,7 +279,7 @@ impl NameMangler {
 
         self.visit_generics(generics);
 
-        self.enter_many(Scope::Type, mangled_generic_params.clone(), |this| {
+        self.enter_many(Universe::Type, mangled_generic_params.clone(), |this| {
             for param in inputs {
                 this.visit_closure_param(param);
             }
@@ -285,12 +293,12 @@ impl NameMangler {
         }
     }
 
-    fn mangle_constraints<'heap>(
+    fn mangle_constraints(
         &mut self,
-        original: Symbol,
-        mangled: Symbol,
+        original: InternedSymbol<'heap>,
+        mangled: InternedSymbol<'heap>,
         constraints: &mut heap::Vec<'heap, GenericConstraint<'heap>>,
-    ) -> Vec<(Symbol, Symbol)> {
+    ) -> Vec<(InternedSymbol<'heap>, InternedSymbol<'heap>)> {
         let mangled_constraints: Vec<_> = constraints
             .iter_mut()
             .map(|constraint| {
@@ -301,8 +309,8 @@ impl NameMangler {
             })
             .collect();
 
-        self.enter(Scope::Type, original, mangled, |this| {
-            this.enter_many(Scope::Type, mangled_constraints.clone(), |this| {
+        self.enter(Universe::Type, original, mangled, |this| {
+            this.enter_many(Universe::Type, mangled_constraints.clone(), |this| {
                 for constraint in constraints {
                     this.visit_generic_constraint(constraint);
                 }
@@ -313,7 +321,7 @@ impl NameMangler {
     }
 }
 
-impl<'heap> Visitor<'heap> for NameMangler {
+impl<'heap> Visitor<'heap> for NameMangler<'heap> {
     fn visit_path(&mut self, path: &mut Path<'heap>) {
         // If the first segment is a symbol, and said symbol has a renamed version, replace it. This
         // is only every the case if it isn't rooted.
@@ -323,7 +331,7 @@ impl<'heap> Visitor<'heap> for NameMangler {
         }
 
         let first = &mut path.segments[0];
-        if let Some(replacement) = self.namespaces.get(self.scope, &first.name.value) {
+        if let Some(replacement) = self.universes.get(self.current_universe, &first.name.value) {
             first.name.value = replacement;
         }
 
@@ -357,7 +365,7 @@ impl<'heap> Visitor<'heap> for NameMangler {
             self.visit_type(r#type);
         }
 
-        self.enter(Scope::Value, original, mangled, |this| {
+        self.enter(Universe::Value, original, mangled, |this| {
             this.visit_expr(body);
         });
     }
@@ -382,8 +390,8 @@ impl<'heap> Visitor<'heap> for NameMangler {
         let mangled_constraints =
             self.mangle_constraints(original.clone(), mangled.clone(), constraints);
 
-        self.enter(Scope::Type, original, mangled, |this| {
-            this.enter_many(Scope::Type, mangled_constraints, |this| {
+        self.enter(Universe::Type, original, mangled, |this| {
+            this.enter_many(Universe::Type, mangled_constraints, |this| {
                 this.visit_type(value);
             });
 
@@ -411,30 +419,30 @@ impl<'heap> Visitor<'heap> for NameMangler {
         let mangled_constraints =
             self.mangle_constraints(original.clone(), mangled.clone(), constraints);
 
-        self.enter(Scope::Type, original.clone(), mangled.clone(), |this| {
-            this.enter_many(Scope::Type, mangled_constraints, |this| {
+        self.enter(Universe::Type, original.clone(), mangled.clone(), |this| {
+            this.enter_many(Universe::Type, mangled_constraints, |this| {
                 this.visit_type(value);
             });
 
             // unlike types, newtypes also bring a constructor into scope
-            this.enter(Scope::Value, original, mangled, |this| {
+            this.enter(Universe::Value, original, mangled, |this| {
                 this.visit_expr(body);
             });
         });
     }
 
     fn visit_expr(&mut self, expr: &mut Expr<'heap>) {
-        let previous = self.scope;
-        self.scope = Scope::Value;
+        let previous = self.current_universe;
+        self.current_universe = Universe::Value;
         walk_expr(self, expr);
-        self.scope = previous;
+        self.current_universe = previous;
     }
 
     fn visit_type(&mut self, r#type: &mut Type<'heap>) {
-        let previous = self.scope;
-        self.scope = Scope::Type;
+        let previous = self.current_universe;
+        self.current_universe = Universe::Type;
         walk_type(self, r#type);
-        self.scope = previous;
+        self.current_universe = previous;
     }
 
     fn visit_closure_expr(&mut self, expr: &mut ClosureExpr<'heap>) {
@@ -453,14 +461,8 @@ impl<'heap> Visitor<'heap> for NameMangler {
             inputs,
         } = self.mangle_closure_signature(signature);
 
-        self.enter_many(Scope::Type, generic_params, |this| {
-            this.enter_many(Scope::Value, inputs, |this| this.visit_expr(body));
+        self.enter_many(Universe::Type, generic_params, |this| {
+            this.enter_many(Universe::Value, inputs, |this| this.visit_expr(body));
         });
-    }
-}
-
-impl Default for NameMangler {
-    fn default() -> Self {
-        Self::new()
     }
 }

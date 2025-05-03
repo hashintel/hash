@@ -27,181 +27,7 @@ use core::{
     ptr,
 };
 
-use ecow::EcoString;
-
-use crate::{heap::Heap, span::SpanId};
-
-/// A string-like value used throughout the HashQL compiler.
-///
-/// Symbols represent string data that appears in source code and persists throughout
-/// compilation, they are read-only and immutable.
-///
-/// This type is deliberately opaque to hide its internal representation,
-/// allowing for future optimizations like string interning without changing
-/// the public API. Symbols are designed to be efficient for long-lived objects
-/// that are frequently compared, hashed, and referenced during compilation.
-///
-/// # Examples
-///
-/// ```
-/// # use hashql_core::symbol::Symbol;
-/// let variable_name = Symbol::new("counter");
-/// let function_name = Symbol::new("calculate_total");
-///
-/// assert_eq!(variable_name.as_str(), "counter");
-/// assert_ne!(variable_name, function_name);
-/// ```
-#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord)]
-pub struct Symbol(EcoString);
-
-impl Symbol {
-    /// Creates a new symbol from a string-like value.
-    ///
-    /// Converts the input to an internal representation optimized for the compiler's
-    /// symbol handling. The input is copied, so the original string doesn't need to
-    /// be kept alive.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use hashql_core::symbol::Symbol;
-    /// let from_str = Symbol::new("variable");
-    /// let from_string = Symbol::new(String::from("function"));
-    /// ```
-    #[must_use]
-    pub fn new(name: impl AsRef<str>) -> Self {
-        Self(EcoString::from(name.as_ref()))
-    }
-
-    /// Creates a new symbol from a static string literal.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use hashql_core::symbol::Symbol;
-    /// let keyword = Symbol::new_static("function");
-    /// assert_eq!(keyword.as_str(), "function");
-    /// ```
-    #[must_use]
-    pub const fn new_static(name: &'static str) -> Self {
-        Self(EcoString::inline(name))
-    }
-
-    /// Creates a new symbol from an iterator of characters.
-    ///
-    /// This method builds a symbol by collecting characters from the provided iterator,
-    /// which is useful when constructing symbols dynamically or character-by-character.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use hashql_core::symbol::Symbol;
-    /// let chars = ['s', 'y', 'm', 'b', 'o', 'l'];
-    /// let symbol = Symbol::from_chars(chars);
-    /// assert_eq!(symbol.as_str(), "symbol");
-    ///
-    /// // Can also be used with iterators that produce characters
-    /// let filtered = "A-B-C".chars().filter(|&c| c != '-');
-    /// let symbol = Symbol::from_chars(filtered);
-    /// assert_eq!(symbol.as_str(), "ABC");
-    /// ```
-    pub fn from_chars(iter: impl IntoIterator<Item = char>) -> Self {
-        Self(EcoString::from_iter(iter))
-    }
-
-    /// Returns the symbol's content as a string slice.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use hashql_core::symbol::Symbol;
-    /// let symbol = Symbol::new("identifier");
-    /// assert_eq!(symbol.as_str(), "identifier");
-    /// ```
-    #[must_use]
-    pub fn as_str(&self) -> &str {
-        self.0.as_str()
-    }
-
-    /// Returns the symbol's content as a byte slice.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use hashql_core::symbol::Symbol;
-    /// let symbol = Symbol::new("test");
-    /// assert_eq!(symbol.as_bytes(), b"test");
-    /// ```
-    #[must_use]
-    pub fn as_bytes(&self) -> &[u8] {
-        self.0.as_bytes()
-    }
-
-    /// Appends a single character to this symbol, modifying it in place.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use hashql_core::symbol::Symbol;
-    /// let mut symbol = Symbol::new("abc");
-    /// symbol.push('d');
-    /// assert_eq!(symbol.as_str(), "abcd");
-    /// ```
-    pub fn push(&mut self, char: char) {
-        self.0.push(char);
-    }
-
-    /// Appends a string-like value to this symbol, modifying it in place.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// # use hashql_core::symbol::Symbol;
-    /// let mut symbol = Symbol::new("prefix_");
-    /// symbol.push_str("suffix");
-    /// assert_eq!(symbol.as_str(), "prefix_suffix");
-    /// ```
-    pub fn push_str(&mut self, string: impl AsRef<str>) {
-        self.0.push_str(string.as_ref());
-    }
-
-    pub fn intern<'heap>(&self, heap: &'heap Heap) -> InternedSymbol<'heap> {
-        // This is just a proxy method that makes switching from symbol to interned symbol easier
-        heap.intern_symbol(self.as_str())
-    }
-}
-
-// Sound because Symbol is a newtype wrapper around EcoString
-impl Borrow<str> for Symbol {
-    fn borrow(&self) -> &str {
-        self.as_str()
-    }
-}
-
-impl AsRef<str> for Symbol {
-    fn as_ref(&self) -> &str {
-        self.as_str()
-    }
-}
-
-impl Display for Symbol {
-    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
-        Display::fmt(&self.0, fmt)
-    }
-}
-
-#[expect(clippy::renamed_function_params)]
-impl fmt::Write for Symbol {
-    #[inline]
-    fn write_str(&mut self, string: &str) -> fmt::Result {
-        EcoString::write_str(&mut self.0, string)
-    }
-
-    #[inline]
-    fn write_char(&mut self, char: char) -> fmt::Result {
-        EcoString::write_char(&mut self.0, char)
-    }
-}
+use crate::span::SpanId;
 
 /// A string-like value used throughout the HashQL compiler.
 ///
@@ -215,9 +41,6 @@ impl fmt::Write for Symbol {
 ///
 /// The caller must ensure that the string is unique and interned. The types correctness requires
 /// relies on these *but it does not enforce it*.
-///
-/// This type is the next generation of symbols, and scheduled to replace the current
-/// implementation.
 #[derive(Debug, Copy, Clone)]
 pub struct InternedSymbol<'heap>(&'heap str);
 
@@ -415,21 +238,21 @@ pub enum IdentKind {
 /// - name: `Symbol("counter")`
 /// - kind: `IdentKind::Lexical`
 /// - span: `5..12`
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Ident {
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct Ident<'heap> {
     pub span: SpanId,
 
-    pub value: Symbol,
+    pub value: InternedSymbol<'heap>,
     pub kind: IdentKind,
 }
 
-impl AsRef<str> for Ident {
+impl AsRef<str> for Ident<'_> {
     fn as_ref(&self) -> &str {
         self.value.as_str()
     }
 }
 
-impl Display for Ident {
+impl Display for Ident<'_> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         Display::fmt(&self.value.0, fmt)
     }
