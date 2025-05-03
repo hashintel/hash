@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: `use` paths should be eliminated
+["use", "kernel", { "#tuple": ["type"] }, "_"]

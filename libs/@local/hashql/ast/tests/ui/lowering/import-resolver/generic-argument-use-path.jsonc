@@ -1,0 +1,4 @@
+//@ run: fail
+//@ description: Generic arguments in the use path should
+["use", "kernel::type<T>", { "#tuple": ["T"] }, "_"]
+//~^ ERROR Generic arguments are not allowed here

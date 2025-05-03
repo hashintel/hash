@@ -77,7 +77,7 @@ pub(crate) fn generic_arguments_in_use_path(
 ) -> ImportResolverDiagnostic {
     let mut diagnostic = Diagnostic::new(
         ImportResolverDiagnosticCategory::GenericArgumentsInUsePath,
-        Severity::ERROR,
+        Severity::COMPILER_BUG,
     );
 
     // Add primary and secondary labels
@@ -96,9 +96,8 @@ pub(crate) fn generic_arguments_in_use_path(
     ));
 
     diagnostic.note = Some(Note::new(
-        "Import paths only identify modules and items to bring into scope, not specific generic \
-         instantiations. Generic type parameters are applied when using the type, not when \
-         importing it.",
+        "This error is still valid, but should've been caught in an earlier stage of the compiler \
+         pipeline. Please report this issue to the HashQL team with a minimal reproduction case.",
     ));
 
     diagnostic
@@ -129,30 +128,31 @@ pub(crate) fn empty_path(span: SpanId) -> ImportResolverDiagnostic {
 
 /// Error when generic arguments are used in a module path segment
 pub(crate) fn generic_arguments_in_module(
-    span: SpanId,
-    path_span: SpanId,
+    spans: impl IntoIterator<Item = SpanId>,
 ) -> ImportResolverDiagnostic {
     let mut diagnostic = Diagnostic::new(
         ImportResolverDiagnosticCategory::GenericArgumentsInModule,
         Severity::ERROR,
     );
 
+    let mut spans = spans.into_iter();
+    let primary = spans.next().expect("spans should be non-empty");
+
     // Primary label highlighting the invalid generic arguments
     diagnostic.labels.push(
-        Label::new(span, "Remove these generic arguments")
+        Label::new(primary, "Remove this generic argument")
             .with_order(0)
             .with_color(Color::Ansi(AnsiColor::Red)),
     );
 
-    // Secondary label showing the context of the entire path
-    diagnostic.labels.push(
-        Label::new(
-            path_span,
-            "Generic arguments are only allowed in the final segment",
-        )
-        .with_order(1)
-        .with_color(Color::Ansi(AnsiColor::Blue)),
-    );
+    #[expect(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
+    for (index, secondary) in spans.enumerate() {
+        diagnostic.labels.push(
+            Label::new(secondary, "... and this generic argument")
+                .with_order(-((index + 1) as i32))
+                .with_color(Color::Ansi(AnsiColor::Red)),
+        );
+    }
 
     diagnostic.help = Some(Help::new(
         "Generic arguments can only appear on the final type in a path. Remove them from this \
@@ -200,7 +200,16 @@ fn format_suggestions<T>(
             .intersperse(Cow::Borrowed("`, `"))
             .collect();
 
-        return Some(format!("\n\nPossible alternatives: `{suggestion}`"));
+        let remaining = suggestions.len().saturating_sub(3);
+        let suffix = match remaining {
+            0 => String::new(),
+            1 => format!(" and `{}`", render(&suggestions[3].item)),
+            _ => format!(" and {remaining} others"),
+        };
+
+        return Some(format!(
+            "\n\nPossible alternatives are `{suggestion}`{suffix}."
+        ));
     }
 
     // Format the good suggestions with markdown-style backticks

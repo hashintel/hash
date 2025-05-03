@@ -1,0 +1,4 @@
+//@ run: fail
+//@ description: Generic arguments in the absolute path should fail
+["::math<T>::add", { "#literal": 2 }, { "#literal": 3 }]
+//~^ ERROR Remove this generic argument

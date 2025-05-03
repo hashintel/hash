@@ -16,6 +16,7 @@ use self::error::{
     ImportResolverDiagnostic, empty_path, from_resolution_error, generic_arguments_in_module,
     generic_arguments_in_use_path,
 };
+use super::super::node::path::PathSegmentArgument;
 use crate::{
     node::{
         expr::{
@@ -140,7 +141,7 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
         for segment in path.segments.drain(..) {
             if !segment.arguments.is_empty() {
                 self.diagnostics
-                    .push(generic_arguments_in_use_path(segment.span, path.span));
+                    .push(generic_arguments_in_use_path(segment.span, *span));
             }
 
             query.push(segment.name.value.intern(self.heap));
@@ -237,11 +238,21 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
             return;
         }
 
+        let mut r#continue = true;
         for module in modules {
             if !module.arguments.is_empty() {
-                self.diagnostics
-                    .push(generic_arguments_in_module(module.span, path.span));
+                self.diagnostics.push(generic_arguments_in_module(
+                    module.arguments.iter().map(PathSegmentArgument::span),
+                ));
+
+                r#continue = false;
             }
+        }
+
+        if !r#continue {
+            // While in theory we could continue processing here, the problem would be that any
+            // generic parameter would double emit errors, which adds additional visual noise.
+            return;
         }
 
         let segments = path
