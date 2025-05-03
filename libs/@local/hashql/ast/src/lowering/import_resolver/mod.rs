@@ -108,7 +108,7 @@ impl<'env, 'heap> ImportResolver<'env, 'heap> {
     ) -> T {
         let remove: Vec<_> = symbols
             .into_iter()
-            .filter(|symbol| self.scope.insert(universe, symbol))
+            .filter(|&symbol| self.scope.insert(universe, symbol))
             .collect();
 
         let result = closure(self);
@@ -357,13 +357,9 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
             self.visit_type(r#type);
         }
 
-        let should_remove = self.scope.value.insert(symbol);
-
-        self.visit_expr(body);
-
-        if should_remove {
-            self.scope.value.remove(&symbol);
-        }
+        self.enter(Universe::Value, symbol, |this| {
+            this.visit_expr(body);
+        });
     }
 
     fn visit_type_expr(
@@ -383,35 +379,24 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
         self.visit_span(span);
         self.visit_ident(name);
 
-        let should_remove = self.scope.r#type.insert(symbol);
+        self.enter(Universe::Type, symbol, |this| {
+            let constraint_symbols: Vec<_> = constraints
+                .iter()
+                .map(|constraint| constraint.name.value.intern(this.heap))
+                .collect();
 
-        // Unlike the type name (which can be referenced in the body), constraints are only
-        // referenced in the value
-        let mut removed_constraints = Vec::with_capacity(constraints.len());
-        for constraint in &mut *constraints {
-            let ident = constraint.name.value.intern(self.heap);
-            if self.scope.r#type.insert(ident) {
-                removed_constraints.push(ident);
-            }
-        }
+            // Constraints are mentioned in the type value, as well as the constraints themselves,
+            // while the type outlines the value and is bound in the body as well.
+            this.enter_many(Universe::Type, constraint_symbols, |this| {
+                for constraint in constraints {
+                    this.visit_generic_constraint(constraint);
+                }
 
-        // Constraints already have the type in their own scope (to allow for `T: Foo<U>`
-        // constraints), as well as their own constraints.
-        for constraint in constraints {
-            self.visit_generic_constraint(constraint);
-        }
+                this.visit_type(value);
+            });
 
-        self.visit_type(value);
-
-        for constraint in removed_constraints {
-            self.scope.r#type.remove(&constraint);
-        }
-
-        self.visit_expr(body);
-
-        if should_remove {
-            self.scope.r#type.remove(&symbol);
-        }
+            this.visit_expr(body);
+        });
     }
 
     fn visit_newtype_expr(
@@ -431,40 +416,28 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
         self.visit_span(span);
         self.visit_ident(name);
 
-        let should_remove_value = self.scope.value.insert(symbol);
-        let should_remove_type = self.scope.r#type.insert(symbol);
+        self.enter(Universe::Type, symbol, |this| {
+            let constraint_symbols: Vec<_> = constraints
+                .iter()
+                .map(|constraint| constraint.name.value.intern(this.heap))
+                .collect();
 
-        // Unlike the type name (which can be referenced in the body), constraints are only
-        // referenced in the value
-        let mut removed_constraints = Vec::with_capacity(constraints.len());
-        for constraint in &mut *constraints {
-            let ident = constraint.name.value.intern(self.heap);
-            if self.scope.r#type.insert(ident) {
-                removed_constraints.push(ident);
-            }
-        }
+            // Constraints are mentioned in the type value, as well as the constraints themselves,
+            // while the type outlines the value and is bound in the body as well.
+            this.enter_many(Universe::Type, constraint_symbols, |this| {
+                for constraint in constraints {
+                    this.visit_generic_constraint(constraint);
+                }
 
-        // Constraints already have the type in their own scope (to allow for `T: Foo<U>`
-        // constraints), as well as their own constraints.
-        for constraint in constraints {
-            self.visit_generic_constraint(constraint);
-        }
+                this.visit_type(value);
+            });
 
-        self.visit_type(value);
-
-        for constraint in removed_constraints {
-            self.scope.r#type.remove(&constraint);
-        }
-
-        self.visit_expr(body);
-
-        if should_remove_value {
-            self.scope.value.remove(&symbol);
-        }
-
-        if should_remove_type {
-            self.scope.r#type.remove(&symbol);
-        }
+            // Unlike types, newtypes (opaque types) also bring into scope (only in the body)
+            // themselves as a constructor
+            this.enter(Universe::Value, symbol, |this| {
+                this.visit_expr(body);
+            });
+        });
     }
 
     // TODO: generic constraints
