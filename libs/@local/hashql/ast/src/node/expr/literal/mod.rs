@@ -12,8 +12,8 @@ use crate::node::{id::NodeId, r#type::Type};
 /// Each variant represents a specific type of literal that can appear in expressions.
 /// Literals are constant values that are directly expressed in the source code
 /// rather than being computed at runtime.
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub enum LiteralKind {
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum LiteralKind<'heap> {
     /// Represents a null value.
     ///
     /// The null literal represents the absence of a value or an undefined state.
@@ -74,7 +74,7 @@ pub enum LiteralKind {
     /// 3.14
     /// 1e-3
     /// ```
-    Float(FloatLiteral),
+    Float(FloatLiteral<'heap>),
 
     /// Represents an integer literal.
     ///
@@ -96,7 +96,7 @@ pub enum LiteralKind {
     /// 123
     /// -456
     /// ```
-    Integer(IntegerLiteral),
+    Integer(IntegerLiteral<'heap>),
 
     /// Represents a string literal.
     ///
@@ -117,7 +117,7 @@ pub enum LiteralKind {
     /// "hello"
     /// "world"
     /// ```
-    String(StringLiteral),
+    String(StringLiteral<'heap>),
 }
 
 /// A literal expression in the HashQL Abstract Syntax Tree.
@@ -153,6 +153,6 @@ pub struct LiteralExpr<'heap> {
     pub id: NodeId,
     pub span: SpanId,
 
-    pub kind: LiteralKind,
+    pub kind: LiteralKind<'heap>,
     pub r#type: Option<heap::Box<'heap, Type<'heap>>>,
 }

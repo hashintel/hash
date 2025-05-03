@@ -1,4 +1,4 @@
-use hashql_core::symbol::Symbol;
+use hashql_core::symbol::InternedSymbol;
 use lexical::{
     FromLexicalWithOptions as _, ParseIntegerOptions, ParseIntegerOptionsBuilder, format,
 };
@@ -28,12 +28,12 @@ const PARSE: ParseIntegerOptions = match ParseIntegerOptionsBuilder::new().build
 /// 0
 /// 9223372036854775807  // Large integers are preserved exactly
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct IntegerLiteral {
-    pub value: Symbol,
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct IntegerLiteral<'heap> {
+    pub value: InternedSymbol<'heap>,
 }
 
-impl IntegerLiteral {
+impl<'heap> IntegerLiteral<'heap> {
     /// Attempts to convert the integer literal to an unsigned 8-bit integer.
     ///
     /// Returns `None` if the value is negative or exceeds the range of [`u8`].

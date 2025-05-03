@@ -44,7 +44,7 @@ pub struct GenericConstraint<'heap> {
     pub id: NodeId,
     pub span: SpanId,
 
-    pub name: Ident,
+    pub name: Ident<'heap>,
     // Due to the fact that we have `&` and `|`, we don't need to have `Vec` of bounds
     pub bound: Option<heap::Box<'heap, Type<'heap>>>,
 }
@@ -65,7 +65,7 @@ pub struct GenericParam<'heap> {
     pub id: NodeId,
     pub span: SpanId,
 
-    pub name: Ident,
+    pub name: Ident<'heap>,
     pub bound: Option<heap::Box<'heap, Type<'heap>>>,
 }
 

@@ -9,12 +9,12 @@ use crate::node::{id::NodeId, path::Path};
 /// When an alias is provided, the imported item will be available under the
 /// new name within the scope.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct UseBinding {
+pub struct UseBinding<'heap> {
     pub id: NodeId,
     pub span: SpanId,
 
-    pub name: Ident,
-    pub alias: Option<Ident>,
+    pub name: Ident<'heap>,
+    pub alias: Option<Ident<'heap>>,
 }
 
 /// A glob import marker.
@@ -33,7 +33,7 @@ pub struct Glob {
 /// items are being imported with a glob.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum UseKind<'heap> {
-    Named(heap::Vec<'heap, UseBinding>),
+    Named(heap::Vec<'heap, UseBinding<'heap>>),
     Glob(Glob),
 }
 

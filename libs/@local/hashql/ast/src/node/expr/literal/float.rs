@@ -1,4 +1,4 @@
-use hashql_core::symbol::Symbol;
+use hashql_core::symbol::InternedSymbol;
 use lexical::{FromLexicalWithOptions as _, ParseFloatOptions, ParseFloatOptionsBuilder, format};
 
 pub(crate) const PARSE: ParseFloatOptions = match ParseFloatOptionsBuilder::new().build() {
@@ -33,12 +33,12 @@ pub(crate) const PARSE: ParseFloatOptions = match ParseFloatOptionsBuilder::new(
 /// ```
 ///
 /// [JSON specification (RFC 8259)]: https://datatracker.ietf.org/doc/html/rfc8259#section-6
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct FloatLiteral {
-    pub value: Symbol,
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct FloatLiteral<'heap> {
+    pub value: InternedSymbol<'heap>,
 }
 
-impl FloatLiteral {
+impl FloatLiteral<'_> {
     // `f16` and `f128` are currently unsupported as they cannot be formatted or parsed from either
     // lexical or rust standard library
     //
