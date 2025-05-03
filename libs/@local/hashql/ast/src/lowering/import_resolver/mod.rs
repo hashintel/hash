@@ -275,37 +275,37 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
             }
         };
 
-        let mut segments: Vec<_> = item.absolute_path(self.namespace.registry).collect();
+        let segments: Vec<_> = item.absolute_path(self.namespace.registry).collect();
 
-        // Ensure that the last n segments are the same, this should always be the case, so this
-        // is only a sanity check under debug assertions.
+        // The trailing segments might not be the same due to renames, reset the symbol to the
+        // canonical form (but retain the span)
         debug_assert!(segments.len() >= path.segments.len());
-        if cfg!(debug_assertions) {
-            let length = path.segments.len();
-            for (lhs, rhs) in segments[segments.len() - length..]
-                .iter()
-                .zip(&path.segments)
-            {
-                assert_eq!(*lhs, rhs.name.value.intern(self.heap));
-            }
+
+        // For the trailing segments, set the name to the canonical name (they might be renamed)
+        for (lhs, rhs) in segments[segments.len() - path.segments.len()..]
+            .iter()
+            .zip(&mut path.segments)
+        {
+            rhs.name.value = Symbol::new(lhs.as_str());
         }
 
         let span = path.segments.first().unwrap_or_else(|| unreachable!()).span;
-        segments.truncate(segments.len() - path.segments.len());
 
         path.rooted = true;
         path.segments.splice(
             0..0,
-            segments.into_iter().map(|ident| PathSegment {
-                id: NodeId::PLACEHOLDER,
-                span,
-                name: Ident {
+            segments[..segments.len() - path.segments.len()]
+                .iter()
+                .map(|ident| PathSegment {
+                    id: NodeId::PLACEHOLDER,
                     span,
-                    value: Symbol::new(ident),
-                    kind: IdentKind::Lexical,
-                },
-                arguments: self.heap.vec(None),
-            }),
+                    name: Ident {
+                        span,
+                        value: Symbol::new(ident),
+                        kind: IdentKind::Lexical,
+                    },
+                    arguments: self.heap.vec(None),
+                }),
         );
 
         walk_path(self, path);

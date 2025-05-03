@@ -1,0 +1,12 @@
+//@ run: pass
+//@ description: Basic glob imports should be supported
+[
+  "use",
+  "math",
+  "*",
+  [
+    "lshift",
+    ["rshift", { "#literal": 2 }, { "#literal": 3 }],
+    { "#literal": 4 }
+  ]
+]

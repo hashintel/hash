@@ -1,0 +1,5 @@
+Expr#4294967040@17
+  ExprKind (Path)
+    Path#4294967040@17 (rooted: true)
+      PathSegment#4294967040@16 (name: math)
+      PathSegment#4294967040@16 (name: lshift)

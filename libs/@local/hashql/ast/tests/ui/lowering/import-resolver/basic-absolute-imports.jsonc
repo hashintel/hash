@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Basic absolute imports should be supported
+["use", "::math", { "#tuple": ["lshift"] }, "lshift"]

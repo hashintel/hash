@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Renamed imports should be supported
+["use", "math", { "#struct": { "lshift": "<<<" } }, "<<<"]
