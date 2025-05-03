@@ -78,16 +78,17 @@ pub(crate) fn generic_arguments_in_use_path(span: SpanId) -> ImportResolverDiagn
 
     diagnostic
         .labels
-        .push(Label::new(span, "Remove these generic arguments"));
+        .push(Label::new(span, "Remove these generic arguments").with_order(0));
 
     diagnostic.help = Some(Help::new(
         "Use statements don't accept generic type parameters. Remove the angle brackets and type \
-         parameters.",
+         parameters.\n\nExample: Use `module::Type` instead of `module::Type<T>`.",
     ));
 
     diagnostic.note = Some(Note::new(
         "Import paths only identify modules and items to bring into scope, not specific generic \
-         instantiations.",
+         instantiations. Generic type parameters are applied when using the type, not when \
+         importing it.",
     ));
 
     diagnostic
@@ -100,10 +101,15 @@ pub(crate) fn empty_path(span: SpanId) -> ImportResolverDiagnostic {
 
     diagnostic
         .labels
-        .push(Label::new(span, "Specify a path here"));
+        .push(Label::new(span, "Specify a path here").with_order(0));
 
     diagnostic.help = Some(Help::new(
         "Add a valid path with at least one identifier, such as `module` or `module::item`.",
+    ));
+
+    diagnostic.note = Some(Note::new(
+        "Import statements require a non-empty path to identify what module or item you want to \
+         bring into scope.",
     ));
 
     diagnostic
@@ -118,16 +124,19 @@ pub(crate) fn generic_arguments_in_module(span: SpanId) -> ImportResolverDiagnos
 
     diagnostic
         .labels
-        .push(Label::new(span, "Remove these generic arguments"));
+        .push(Label::new(span, "Remove these generic arguments").with_order(0));
 
     diagnostic.help = Some(Help::new(
         "Generic arguments can only appear on the final type in a path. Remove them from this \
-         module segment.",
+         module segment or move them to the final type in the path.\n\nCorrect: \
+         `module::submodule::Type<T>`\nIncorrect: `module<T>::submodule::Type`",
     ));
 
     diagnostic.note = Some(Note::new(
-        "To use generic parameters, apply them only to the final type: \
-         `module::submodule::Type<T>`.",
+        "Module paths don't accept generic parameters because modules themselves aren't generic. \
+         Only the final type in a path can have generic parameters.\n\nThe path resolution \
+         happens before any generic type checking, so generic arguments can only be applied after \
+         the item is found.",
     ));
 
     diagnostic
@@ -209,21 +218,30 @@ pub(crate) fn from_resolution_error<'heap>(
         &mut ResolutionError::InvalidQueryLength { expected } => {
             diagnostic
                 .labels
-                .push(Label::new(span, "Expected more path segments"));
+                .push(Label::new(span, "Expected more path segments").with_order(0));
 
             diagnostic.help = Some(Help::new(format!(
-                "This import path needs at least {expected} segments to be valid."
+                "This import path needs at least {expected} segments to be valid. Add the missing \
+                 segments to complete the path."
             )));
+
+            diagnostic.note = Some(Note::new(
+                "Import paths must be complete to properly identify the item you want to import. \
+                 Incomplete paths cannot be resolved.",
+            ));
         }
 
         &mut ResolutionError::ModuleRequired { depth, found } => {
-            diagnostic.labels.push(Label::new(
-                span,
-                format!(
-                    "'{}' cannot contain other items",
-                    FormatPath(path, Some(depth))
-                ),
-            ));
+            diagnostic.labels.push(
+                Label::new(
+                    span,
+                    format!(
+                        "'{}' cannot contain other items",
+                        FormatPath(path, Some(depth))
+                    ),
+                )
+                .with_order(0),
+            );
 
             let universe = match found {
                 Some(Universe::Value) => "a value",
@@ -232,12 +250,14 @@ pub(crate) fn from_resolution_error<'heap>(
             };
 
             diagnostic.help = Some(Help::new(format!(
-                "'{}' is {universe}, not a module. Only modules can contain other items.",
+                "'{}' is {universe}, not a module. Only modules can contain other items. Check \
+                 your import path.",
                 FormatPath(path, Some(depth))
             )));
 
             diagnostic.note = Some(Note::new(
-                "The '::' syntax can only be used with modules to access their members.",
+                "The '::' syntax can only be used with modules to access their members. Values \
+                 and types cannot contain other items.",
             ));
         }
 
@@ -245,13 +265,12 @@ pub(crate) fn from_resolution_error<'heap>(
             let depth = *depth;
             let package_name = path.segments[depth].name.value.clone();
 
-            diagnostic.labels.push(Label::new(
-                span,
-                format!("Missing package '{package_name}'"),
-            ));
+            diagnostic
+                .labels
+                .push(Label::new(span, format!("Missing package '{package_name}'")).with_order(0));
 
             let mut help = format!(
-                "This package couldn't be found, make sure it is spelled correctly and installed."
+                "This package couldn't be found. Make sure it is spelled correctly and installed."
             );
 
             if let Some(suggestion) = format_suggestions(suggestions, |&module| {
@@ -261,18 +280,25 @@ pub(crate) fn from_resolution_error<'heap>(
             }
 
             diagnostic.help = Some(Help::new(help));
+
+            diagnostic.note = Some(Note::new(
+                "Packages must be installed and properly configured in your project dependencies \
+                 before they can be imported.",
+            ));
         }
 
         ResolutionError::ImportNotFound { depth, suggestions } => {
             let depth = *depth;
             let import = path.segments[depth].name.value.clone();
 
-            diagnostic.labels.push(Label::new(
-                span,
-                format!("'{import}' needs to be imported first"),
-            ));
+            diagnostic.labels.push(
+                Label::new(span, format!("'{import}' needs to be imported first")).with_order(0),
+            );
 
-            let mut help = format!("Add an import statement for '{import}' before using it.");
+            let mut help = format!(
+                "Add an import statement for '{import}' before using it. Check if the name is \
+                 spelled correctly."
+            );
 
             if let Some(suggestion) =
                 format_suggestions(suggestions, |import| Cow::Borrowed(import.name.as_str()))
@@ -281,6 +307,11 @@ pub(crate) fn from_resolution_error<'heap>(
             }
 
             diagnostic.help = Some(Help::new(help));
+
+            diagnostic.note = Some(Note::new(
+                "Before using an item from another module, you must import it with a 'use' \
+                 statement or access it with a fully qualified path.",
+            ));
         }
 
         ResolutionError::ModuleNotFound { depth, suggestions } => {
@@ -289,10 +320,11 @@ pub(crate) fn from_resolution_error<'heap>(
 
             diagnostic
                 .labels
-                .push(Label::new(span, format!("Module '{module}' not found")));
+                .push(Label::new(span, format!("Module '{module}' not found")).with_order(0));
 
             let mut help = format!(
-                "The module '{}' doesn't exist in this scope.",
+                "The module '{}' doesn't exist in this scope. Check the spelling and ensure the \
+                 module is available.",
                 FormatPath(path, Some(depth))
             );
 
@@ -303,6 +335,11 @@ pub(crate) fn from_resolution_error<'heap>(
             }
 
             diagnostic.help = Some(Help::new(help));
+
+            diagnostic.note = Some(Note::new(
+                "Modules must be properly defined and exported from their parent module to be \
+                 accessible.",
+            ));
         }
 
         ResolutionError::ItemNotFound { depth, suggestions } => {
@@ -318,9 +355,13 @@ pub(crate) fn from_resolution_error<'heap>(
                 )
             };
 
-            diagnostic.labels.push(Label::new(span, label_text));
+            diagnostic
+                .labels
+                .push(Label::new(span, label_text).with_order(0));
 
-            let mut help = "Check the spelling and ensure the item is exported.".to_owned();
+            let mut help = "Check the spelling and ensure the item is exported and available in \
+                            this context."
+                .to_owned();
 
             if let Some(suggestion) =
                 format_suggestions(suggestions, |item| Cow::Borrowed(item.name.as_str()))
@@ -329,6 +370,11 @@ pub(crate) fn from_resolution_error<'heap>(
             }
 
             diagnostic.help = Some(Help::new(help));
+
+            diagnostic.note = Some(Note::new(
+                "Items must be defined and accessible from the importing location. Make sure the \
+                 item exists and is public.",
+            ));
         }
 
         ResolutionError::Ambiguous(item) => {
@@ -336,33 +382,42 @@ pub(crate) fn from_resolution_error<'heap>(
 
             diagnostic
                 .labels
-                .push(Label::new(span, format!("'{name}' is ambiguous")));
+                .push(Label::new(span, format!("'{name}' is ambiguous")).with_order(0));
 
             diagnostic.help = Some(Help::new(format!(
-                "The name '{name}' could refer to multiple different items in {}. [add some more \
-                 context here]",
+                "The name '{name}' could refer to multiple different items in {}. Use a fully \
+                 qualified path to specify which one you want.",
                 FormatPath(path, Some(path.segments.len() - 1))
             )));
 
-            diagnostic.note = Some(Note::new("[TODO]"));
+            diagnostic.note = Some(Note::new(
+                "When multiple items with the same name are in scope, you must use a fully \
+                 qualified path to avoid ambiguity. Consider using explicit imports instead of \
+                 glob imports to prevent name conflicts.",
+            ));
         }
 
         &mut ResolutionError::ModuleEmpty { depth } => {
-            diagnostic.labels.push(Label::new(
-                span,
-                format!(
-                    "Module '{}' has no exported members",
-                    FormatPath(path, Some(depth))
-                ),
-            ));
+            diagnostic.labels.push(
+                Label::new(
+                    span,
+                    format!(
+                        "Module '{}' has no exported members",
+                        FormatPath(path, Some(depth))
+                    ),
+                )
+                .with_order(0),
+            );
 
             diagnostic.help = Some(Help::new(
-                "This module exists but doesn't expose any items that can be imported.",
+                "This module exists but doesn't expose any items that can be imported. Check if \
+                 you're importing the correct module or if the module has any public exports.",
             ));
 
             diagnostic.note = Some(Note::new(
-                "Try using specific imports instead of a glob pattern, or check that the module \
-                 exports what you need.",
+                "To use items from a module, they must be marked as public/exported. If you're \
+                 using a glob import pattern like 'module::*', try using specific imports instead \
+                 to see what's available.",
             ));
         }
     }
