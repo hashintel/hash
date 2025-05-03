@@ -1,0 +1,11 @@
+Expr#4294967040@14
+  ExprKind (Let)
+    LetExpr#4294967040@14 (name: Dict)
+      Expr#4294967040@11
+        ExprKind (Path)
+          Path#4294967040@11 (rooted: true)
+            PathSegment#4294967040@10 (name: kernel)
+            PathSegment#4294967040@10 (name: type)
+            PathSegment#4294967040@10 (name: Dict)
+      Expr#4294967040@13
+        ExprKind (Underscore)

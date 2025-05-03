@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Local (recursive) bindings should be affected
+["let", "Dict", "Dict", "_"]

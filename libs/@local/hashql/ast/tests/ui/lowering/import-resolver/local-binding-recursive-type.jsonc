@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Local (recursive) bindings should be unaffected
+["type", "Dict", "Dict", "_"]

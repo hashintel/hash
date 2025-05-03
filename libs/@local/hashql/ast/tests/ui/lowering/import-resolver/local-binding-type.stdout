@@ -1,0 +1,18 @@
+Expr#4294967040@27
+  ExprKind (Type)
+    TypeExpr#4294967040@27 (name: Dict)
+      Type#4294967040@11
+        TypeKind (Path)
+          Path#4294967040@11 (rooted: true)
+            PathSegment#4294967040@10 (name: kernel)
+            PathSegment#4294967040@10 (name: type)
+            PathSegment#4294967040@10 (name: Number)
+      Expr#4294967040@26
+        ExprKind (Type)
+          TypeExpr#4294967040@26 (name: Bar)
+            Type#4294967040@23
+              TypeKind (Path)
+                Path#4294967040@23 (rooted: false)
+                  PathSegment#4294967040@22 (name: Dict)
+            Expr#4294967040@25
+              ExprKind (Underscore)

@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Prelude should be imported and used for both types and values
+["type", "Foo", "Option<Number>", "Some"]

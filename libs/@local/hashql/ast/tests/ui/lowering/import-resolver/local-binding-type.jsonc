@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Local bindings should not be resolved
+["type", "Dict", "Number", ["type", "Bar", "Dict", "_"]]

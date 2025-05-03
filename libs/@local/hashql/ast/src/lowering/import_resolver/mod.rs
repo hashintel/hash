@@ -26,7 +26,9 @@ use crate::{
         path::{Path, PathSegment},
         r#type::Type,
     },
-    visit::{Visitor, walk_expr, walk_let_expr, walk_newtype_expr, walk_type, walk_type_expr},
+    visit::{
+        Visitor, walk_expr, walk_let_expr, walk_newtype_expr, walk_path, walk_type, walk_type_expr,
+    },
 };
 
 #[derive(Debug, Default)]
@@ -256,6 +258,8 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
                 arguments: self.heap.vec(None),
             }),
         );
+
+        walk_path(self, path);
     }
 
     fn visit_expr(&mut self, expr: &mut Expr<'heap>) {
@@ -319,4 +323,6 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
             self.scope.r#type.remove(&symbol);
         }
     }
+
+    // TODO: generic constraints
 }
