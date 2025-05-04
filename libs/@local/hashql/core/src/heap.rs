@@ -45,7 +45,7 @@ use hashbrown::HashSet;
 
 use crate::symbol::{
     InternedSymbol,
-    sym::{LEXICAL, SYMBOLS},
+    sym::{DIGITS, LEXICAL, SYMBOLS},
 };
 
 /// A boxed value allocated on the `Heap`.
@@ -145,9 +145,13 @@ impl Heap {
 
     fn prime_symbols(&self) {
         let mut strings = self.strings.lock().expect("lock should not be poisoned");
-        strings.reserve(LEXICAL.len() + SYMBOLS.len());
+        strings.reserve(LEXICAL.len() + DIGITS.len() + SYMBOLS.len());
 
         for &symbol in SYMBOLS {
+            strings.insert(symbol);
+        }
+
+        for &symbol in DIGITS {
             strings.insert(symbol);
         }
 

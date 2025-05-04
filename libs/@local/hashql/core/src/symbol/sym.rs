@@ -87,12 +87,27 @@ symbols![lexical; LEXICAL;
     sub,
 ];
 
+symbols![digit; DIGITS;
+    zero: "0",
+    one: "1",
+    two: "2",
+    three: "3",
+    four: "4",
+    five: "5",
+    six: "6",
+    seven: "7",
+    eight: "8",
+    nine: "9",
+];
+
 symbols![symbol; SYMBOLS;
     add: "+",
     ampersand: "&",
     and: "&&",
     asterisk: "*",
     backets: "[]",
+    bit_shl: "<<",
+    bit_shr: ">>",
     caret: "^",
     div: "/",
     dot: ".",
