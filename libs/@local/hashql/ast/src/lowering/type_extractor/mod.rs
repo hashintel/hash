@@ -3,13 +3,18 @@ pub mod error;
 use core::mem;
 
 use hashql_core::{
-    collection::FastHashMap,
+    collection::{FastHashMap, SmallVec},
     intern::Provisioned,
+    module::ModuleRegistry,
     symbol::Symbol,
     r#type::{
         PartialType, TypeId,
         environment::Environment,
-        kind::{Infer, TypeKind},
+        kind::{
+            Infer, IntersectionType, StructType, TupleType, TypeKind, UnionType,
+            generic_argument::{GenericArgumentId, GenericArguments},
+            r#struct::StructField,
+        },
     },
 };
 
@@ -18,7 +23,7 @@ use crate::{
     node::{
         self,
         expr::{Expr, ExprKind, NewTypeExpr, TypeExpr},
-        r#type::Type,
+        r#type::{TupleField, Type},
     },
     visit::{Visitor, walk_expr},
 };
@@ -33,8 +38,11 @@ struct ProvisionedTypeEnvironment<'heap> {
     opaque: FastHashMap<Symbol<'heap>, Provisioned<TypeId>>,
 }
 
+struct Generics<'heap>(FastHashMap<Symbol<'heap>, GenericArgumentId>);
+
 pub struct TypeExtractor<'env, 'heap> {
     environment: &'env Environment<'heap>,
+    modules: &'env ModuleRegistry<'heap>,
 
     alias: FastHashMap<Symbol<'heap>, TypeExpr<'heap>>,
     opaque: FastHashMap<Symbol<'heap>, NewTypeExpr<'heap>>,
@@ -44,9 +52,13 @@ pub struct TypeExtractor<'env, 'heap> {
 
 impl<'env, 'heap> TypeExtractor<'env, 'heap> {
     #[must_use]
-    pub fn new(environment: &'env Environment<'heap>) -> Self {
+    pub fn new(
+        environment: &'env Environment<'heap>,
+        modules: &'env ModuleRegistry<'heap>,
+    ) -> Self {
         Self {
             environment,
+            modules,
 
             alias: FastHashMap::default(),
             opaque: FastHashMap::default(),
@@ -57,27 +69,83 @@ impl<'env, 'heap> TypeExtractor<'env, 'heap> {
 
     fn convert_type(
         &mut self,
-        id: Provisioned<TypeId>,
         r#type: Type<'heap>,
         provisioned: &ProvisionedTypeEnvironment<'heap>,
-    ) {
-        // for generics we basically need to collect all the generics, and then until we hit a path
-        // that is the generics, then ofc for generics on the path itself, it's imperative that said
-        // the arguments are mapped to those as well, in a sense we need a type visitor?
+        generics: &Generics<'heap>,
+    ) -> TypeId {
         let kind = match r#type.kind {
             node::r#type::TypeKind::Infer => {
                 let hole = self.environment.counter.hole.next();
 
                 TypeKind::Infer(Infer { hole })
             }
-            node::r#type::TypeKind::Path(path) => todo!(),
-            node::r#type::TypeKind::Tuple(tuple_type) => {
+            node::r#type::TypeKind::Path(path) => {
+                // Check first if the path is a single segment, in that case we can take a look
+                // at the provisioned values, to see if it already exists, and if that is the case
+                // use that. Now the problem is that we're unable to link any generics. I guess we'd
+                // need to instantiate the type, then create a substitution of the generics?
                 todo!()
             }
-            node::r#type::TypeKind::Struct(struct_type) => todo!(),
-            node::r#type::TypeKind::Union(union_type) => todo!(),
-            node::r#type::TypeKind::Intersection(intersection_type) => todo!(),
+            node::r#type::TypeKind::Tuple(tuple_type) => {
+                let mut elements = SmallVec::with_capacity(tuple_type.fields.len());
+
+                for TupleField { r#type, .. } in tuple_type.fields {
+                    elements.push(self.convert_type(r#type, provisioned, generics));
+                }
+
+                TypeKind::Tuple(TupleType {
+                    fields: self.environment.intern_type_ids(&elements),
+                    arguments: GenericArguments::empty(),
+                })
+            }
+            node::r#type::TypeKind::Struct(struct_type) => {
+                let mut fields = SmallVec::with_capacity(struct_type.fields.len());
+
+                for node::r#type::StructField { name, r#type, .. } in struct_type.fields {
+                    fields.push(StructField {
+                        name: name.value,
+                        value: self.convert_type(r#type, provisioned, generics),
+                    });
+                }
+
+                match self.environment.intern_struct_fields(&mut fields) {
+                    Ok(fields) => TypeKind::Struct(StructType {
+                        fields,
+                        arguments: GenericArguments::empty(),
+                    }),
+                    Err(duplicates) => {
+                        todo!("record error")
+                    }
+                }
+            }
+            node::r#type::TypeKind::Union(union_type) => {
+                let mut variants = SmallVec::with_capacity(union_type.types.len());
+
+                for r#type in union_type.types {
+                    variants.push(self.convert_type(r#type, provisioned, generics));
+                }
+
+                TypeKind::Union(UnionType {
+                    variants: self.environment.intern_type_ids(&variants),
+                })
+            }
+            node::r#type::TypeKind::Intersection(intersection_type) => {
+                let mut variants = SmallVec::with_capacity(intersection_type.types.len());
+
+                for r#type in intersection_type.types {
+                    variants.push(self.convert_type(r#type, provisioned, generics));
+                }
+
+                TypeKind::Intersection(IntersectionType {
+                    variants: self.environment.intern_type_ids(&variants),
+                })
+            }
         };
+
+        self.environment.intern_type(PartialType {
+            span: r#type.span,
+            kind: self.environment.intern_kind(kind),
+        })
     }
 }
 
