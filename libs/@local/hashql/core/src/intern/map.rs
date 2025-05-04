@@ -37,6 +37,7 @@ pub trait Decompose<'heap>: HasId {
 /// if the value being interned already exists in the map. This is acceptable for recursive
 /// types, as they'll automatically use the provisioned ID to create a new type, which
 /// then propagates upward to create the parent type using this new ID.
+#[repr(transparent)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Provisioned<T>(T);
 

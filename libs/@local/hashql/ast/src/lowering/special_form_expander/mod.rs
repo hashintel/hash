@@ -251,36 +251,16 @@ impl<'heap> SpecialFormExpander<'heap> {
         })
     }
 
-    fn lower_expr_to_type_path(id: NodeId, span: SpanId, path: Path<'heap>) -> Type<'heap> {
-        if path.matches_absolute_path(["kernel", "type", "Never"]) {
-            return Type {
-                id,
-                span,
-                kind: TypeKind::Never,
-            };
-        }
-
-        if path.matches_absolute_path(["kernel", "type", "Unknown"]) {
-            return Type {
-                id,
-                span,
-                kind: TypeKind::Unknown,
-            };
-        }
-
-        Type {
-            id,
-            span,
-            kind: TypeKind::Path(path),
-        }
-    }
-
     fn lower_expr_to_type(&mut self, expr: Expr<'heap>) -> Option<Type<'heap>> {
         match expr.kind {
             ExprKind::Call(call_expr) => self.lower_expr_to_type_call(call_expr),
             ExprKind::Struct(struct_expr) => self.lower_expr_to_type_struct(struct_expr),
             ExprKind::Tuple(tuple_expr) => self.lower_expr_to_type_tuple(tuple_expr),
-            ExprKind::Path(path) => Some(Self::lower_expr_to_type_path(expr.id, expr.span, path)),
+            ExprKind::Path(path) => Some(Type {
+                id: expr.id,
+                span: expr.span,
+                kind: TypeKind::Path(path),
+            }),
             ExprKind::Underscore => Some(Type {
                 id: expr.id,
                 span: expr.span,

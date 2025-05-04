@@ -321,7 +321,7 @@ pub fn walk_type<'heap, T: Visitor<'heap> + ?Sized>(
     visitor.visit_span(span);
 
     match kind {
-        TypeKind::Unknown | TypeKind::Infer | TypeKind::Never => {}
+        TypeKind::Infer => {}
         TypeKind::Path(path) => visitor.visit_path(path),
         TypeKind::Tuple(tuple_type) => visitor.visit_tuple_type(tuple_type),
         TypeKind::Struct(struct_type) => visitor.visit_struct_type(struct_type),
