@@ -6,7 +6,7 @@
 //! and maintain clarity about where the symbols are defined. For example:
 //!
 //! ```rust
-//! use crate::symbol::sym;
+//! use hashql_core::symbol::sym;
 //!
 //! // Correct usage:
 //! let add_symbol = sym::lexical::add;
