@@ -109,7 +109,7 @@ symbols![symbol; SYMBOLS;
     bit_shl: "<<",
     bit_shr: ">>",
     caret: "^",
-    div: "/",
+    slash: "/",
     dot: ".",
     eq: "==",
     gt: ">",
