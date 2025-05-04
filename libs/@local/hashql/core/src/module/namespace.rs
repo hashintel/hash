@@ -202,8 +202,9 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
 
         let mut iter = resolver.resolve_relative(query, &self.imports)?;
 
-        // ResolveIter guarantees that at least one item is returned
-        let item = iter.next().unwrap_or_else(|| unreachable!());
+        let item = iter.next().unwrap_or_else(|| {
+            unreachable!("ResolveIter guarantees at least one item is returned")
+        });
         if iter.next().is_some() {
             Err(ResolutionError::Ambiguous(item))
         } else {
@@ -232,8 +233,9 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
         };
 
         let mut iter = resolver.resolve_absolute(query)?;
-        // ResolveIter guarantees that at least one item is returned
-        let item = iter.next().unwrap_or_else(|| unreachable!());
+        let item = iter.next().unwrap_or_else(|| {
+            unreachable!("ResolveIter guarantees at least one item is returned")
+        });
         if iter.next().is_some() {
             Err(ResolutionError::Ambiguous(item))
         } else {
@@ -792,8 +794,6 @@ mod tests {
                 },
             )
             .expect("should be able to import glob from absolute");
-
-        println!("{:?}", namespace.imports);
 
         // We should be able to import `Dict` now
         let import = namespace

@@ -239,18 +239,18 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
         }
 
         // We don't support generics except for the *last* segment
-        let mut r#continue = true;
+        let mut should_continue = true;
         for module in modules {
             if !module.arguments.is_empty() {
                 self.diagnostics.push(generic_arguments_in_module(
                     module.arguments.iter().map(PathSegmentArgument::span),
                 ));
 
-                r#continue = false;
+                should_continue = false;
             }
         }
 
-        if !r#continue {
+        if !should_continue {
             // While in theory we could continue processing here, the problem would be that any
             // generic parameter would double emit errors, which adds additional visual noise.
             return;
