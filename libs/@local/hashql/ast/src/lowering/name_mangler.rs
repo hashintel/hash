@@ -186,6 +186,9 @@ impl<'heap> NameMangler<'heap> {
         *count += 1;
 
         let mangled = self.heap.intern_symbol(&mangled);
+        // Updating the symbol directly with the mangled version allows us to avoid unnecessary
+        // re-assignment. When we mangle a symbol we immediately replace it. It allows allows us to
+        // ensure that any mangling takes immediate effect.
         *symbol = mangled;
 
         mangled
