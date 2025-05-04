@@ -1,4 +1,4 @@
-use hashql_core::symbol::InternedSymbol;
+use hashql_core::symbol::Symbol;
 use lexical::{FromLexicalWithOptions as _, ParseFloatOptions, ParseFloatOptionsBuilder, format};
 
 pub(crate) const PARSE: ParseFloatOptions = match ParseFloatOptionsBuilder::new().build() {
@@ -35,7 +35,7 @@ pub(crate) const PARSE: ParseFloatOptions = match ParseFloatOptionsBuilder::new(
 /// [JSON specification (RFC 8259)]: https://datatracker.ietf.org/doc/html/rfc8259#section-6
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct FloatLiteral<'heap> {
-    pub value: InternedSymbol<'heap>,
+    pub value: Symbol<'heap>,
 }
 
 impl FloatLiteral<'_> {

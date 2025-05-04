@@ -5,7 +5,7 @@ use pretty::RcDoc;
 use crate::{
     intern::Interned,
     newtype, newtype_producer,
-    symbol::InternedSymbol,
+    symbol::Symbol,
     r#type::{
         TypeId,
         environment::Environment,
@@ -24,7 +24,7 @@ newtype_producer!(pub struct GenericArgumentIdProducer(GenericArgumentId));
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct GenericArgument<'heap> {
     pub id: GenericArgumentId,
-    pub name: InternedSymbol<'heap>,
+    pub name: Symbol<'heap>,
 
     // The initial type constraint (if present)
     pub constraint: Option<TypeId>,

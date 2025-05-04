@@ -1,18 +1,18 @@
 #![expect(non_upper_case_globals, clippy::min_ident_chars)]
-use super::InternedSymbol;
+use super::Symbol;
 
 macro_rules! symbols {
     (@sym) => {};
     (@sym $name:ident $(, $($rest:tt)*)?) => {
-        pub static $name: super::InternedSymbol<'static> = super::InternedSymbol::new_unchecked(stringify!($name));
+        pub static $name: super::Symbol<'static> = super::Symbol::new_unchecked(stringify!($name));
         $(symbols!(@sym $($rest)*);)?
     };
     (@sym $name:ident : $value:literal $(, $($rest:tt)*)?) => {
-        pub static $name: super::InternedSymbol<'static> = super::InternedSymbol::new_unchecked($value);
+        pub static $name: super::Symbol<'static> = super::Symbol::new_unchecked($value);
         $(symbols!(@sym $($rest)*);)?
     };
     (@table $module:ident $table:ident #($($name:ident)*)) => {
-        pub(crate) const $table: &[&InternedSymbol<'static>] = &[
+        pub(crate) const $table: &[&Symbol<'static>] = &[
             $(&$module::$name),*
         ];
     };

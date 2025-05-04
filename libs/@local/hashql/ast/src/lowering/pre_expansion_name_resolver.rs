@@ -99,7 +99,7 @@ use hashql_core::{
         namespace::{ModuleNamespace, ResolutionMode, ResolveOptions},
     },
     span::SpanId,
-    symbol::{Ident, IdentKind, InternedSymbol},
+    symbol::{Ident, IdentKind, Symbol},
 };
 
 use crate::{
@@ -144,10 +144,10 @@ use crate::{
 /// Note that the identifier `x` in the binding position (first argument) is preserved exactly as
 /// written, while its use in the body expression is resolved according to the current scope.
 pub struct PreExpansionNameResolver<'env, 'heap> {
-    alias: FastHashMap<InternedSymbol<'heap>, Option<Path<'heap>>>,
+    alias: FastHashMap<Symbol<'heap>, Option<Path<'heap>>>,
 
     namespace: ModuleNamespace<'env, 'heap>,
-    namespace_cache: FastHashMap<InternedSymbol<'heap>, Path<'heap>>,
+    namespace_cache: FastHashMap<Symbol<'heap>, Path<'heap>>,
 
     resolve: bool,
     heap: &'heap Heap,
@@ -225,7 +225,7 @@ impl<'env, 'heap> PreExpansionNameResolver<'env, 'heap> {
     ///
     /// It checks the local alias map first, then the namespace cache, and finally
     /// the module namespace (for intrinsics) if necessary. Caches namespace lookups.
-    fn lookup(&mut self, name: InternedSymbol<'heap>) -> Option<Path<'heap>> {
+    fn lookup(&mut self, name: Symbol<'heap>) -> Option<Path<'heap>> {
         if let Some(replacement) = self.alias.get(&name) {
             return replacement.clone();
         }

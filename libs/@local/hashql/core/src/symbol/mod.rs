@@ -42,9 +42,9 @@ use crate::span::SpanId;
 /// The caller must ensure that the string is unique and interned. The types correctness requires
 /// relies on these *but it does not enforce it*.
 #[derive(Debug, Copy, Clone)]
-pub struct InternedSymbol<'heap>(&'heap str);
+pub struct Symbol<'heap>(&'heap str);
 
-impl<'heap> InternedSymbol<'heap> {
+impl<'heap> Symbol<'heap> {
     /// Creates a new interned symbol from a string slice.
     ///
     /// The caller must ensure that the string is unique and interned.
@@ -63,22 +63,22 @@ impl<'heap> InternedSymbol<'heap> {
     }
 }
 
-impl PartialEq for InternedSymbol<'_> {
+impl PartialEq for Symbol<'_> {
     fn eq(&self, other: &Self) -> bool {
         // Pointer equality implies string equality (due to the unique contents assumption)
         ptr::eq(self.0, other.0)
     }
 }
 
-impl Eq for InternedSymbol<'_> {}
+impl Eq for Symbol<'_> {}
 
-impl PartialOrd for InternedSymbol<'_> {
+impl PartialOrd for Symbol<'_> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         Some(self.cmp(other))
     }
 }
 
-impl Ord for InternedSymbol<'_> {
+impl Ord for Symbol<'_> {
     fn cmp(&self, other: &Self) -> Ordering {
         // Pointer equality implies string equality (due to the unique contents assumption), but if
         // not the same the contents must be compared.
@@ -90,26 +90,26 @@ impl Ord for InternedSymbol<'_> {
     }
 }
 
-impl Hash for InternedSymbol<'_> {
+impl Hash for Symbol<'_> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         // Pointer hashing is sufficient (due to the unique contents assumption)
         ptr::hash(self.0, state);
     }
 }
 
-impl Borrow<str> for InternedSymbol<'_> {
+impl Borrow<str> for Symbol<'_> {
     fn borrow(&self) -> &str {
         self.0
     }
 }
 
-impl AsRef<str> for InternedSymbol<'_> {
+impl AsRef<str> for Symbol<'_> {
     fn as_ref(&self) -> &str {
         self.0
     }
 }
 
-impl Display for InternedSymbol<'_> {
+impl Display for Symbol<'_> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         Display::fmt(self.0, fmt)
     }
@@ -247,7 +247,7 @@ pub enum IdentKind {
 pub struct Ident<'heap> {
     pub span: SpanId,
 
-    pub value: InternedSymbol<'heap>,
+    pub value: Symbol<'heap>,
     pub kind: IdentKind,
 }
 

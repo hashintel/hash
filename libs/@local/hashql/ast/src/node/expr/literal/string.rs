@@ -1,4 +1,4 @@
-use hashql_core::symbol::InternedSymbol;
+use hashql_core::symbol::Symbol;
 
 /// A literal representation of a string value.
 ///
@@ -23,7 +23,7 @@ use hashql_core::symbol::InternedSymbol;
 /// ```
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct StringLiteral<'heap> {
-    pub value: InternedSymbol<'heap>,
+    pub value: Symbol<'heap>,
 }
 
 impl StringLiteral<'_> {

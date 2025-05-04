@@ -25,7 +25,7 @@ use crate::{
     id::{HasId, Id as _},
     intern::{Decompose, InternMap, InternSet, Interned, Provisioned},
     newtype,
-    symbol::InternedSymbol,
+    symbol::Symbol,
     r#type::environment::Environment,
 };
 
@@ -47,7 +47,7 @@ pub struct ModuleRegistry<'heap> {
     pub modules: InternMap<'heap, Module<'heap>>,
     items: InternSet<'heap, [Item<'heap>]>,
 
-    root: RwLock<FastHashMap<InternedSymbol<'heap>, ModuleId>>,
+    root: RwLock<FastHashMap<Symbol<'heap>, ModuleId>>,
 }
 
 impl<'heap> ModuleRegistry<'heap> {
@@ -134,7 +134,7 @@ impl<'heap> ModuleRegistry<'heap> {
     /// # Panics
     ///
     /// This function will panic if the internal `RwLock` is poisoned.
-    fn find_by_name(&self, name: InternedSymbol<'heap>) -> Option<Module<'heap>> {
+    fn find_by_name(&self, name: Symbol<'heap>) -> Option<Module<'heap>> {
         let root = self.root.read().expect("lock should not be poisoned");
 
         let id = root.get(&name).copied()?;
@@ -145,7 +145,7 @@ impl<'heap> ModuleRegistry<'heap> {
         Some(module)
     }
 
-    fn suggestions(&self, name: InternedSymbol<'heap>) -> Vec<ResolutionSuggestion<ModuleId>> {
+    fn suggestions(&self, name: Symbol<'heap>) -> Vec<ResolutionSuggestion<ModuleId>> {
         let root = self.root.read().expect("lock should not be poisoned");
 
         let mut results = Vec::with_capacity(root.len());
@@ -170,7 +170,7 @@ impl<'heap> ModuleRegistry<'heap> {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Module<'heap> {
     pub id: ModuleId,
-    pub name: InternedSymbol<'heap>,
+    pub name: Symbol<'heap>,
 
     pub parent: ModuleId,
 
@@ -180,7 +180,7 @@ pub struct Module<'heap> {
 impl<'heap> Module<'heap> {
     fn suggestions(
         &self,
-        name: InternedSymbol<'heap>,
+        name: Symbol<'heap>,
         mut select: impl FnMut(&Item<'heap>) -> bool,
     ) -> Vec<ResolutionSuggestion<Item<'heap>>> {
         let mut similarities = Vec::with_capacity(self.items.len());
@@ -200,7 +200,7 @@ impl<'heap> Module<'heap> {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct PartialModule<'heap> {
-    name: InternedSymbol<'heap>,
+    name: Symbol<'heap>,
     parent: ModuleId,
     items: Interned<'heap, [Item<'heap>]>,
 }

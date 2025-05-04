@@ -5,7 +5,7 @@ use smallvec::SmallVec;
 
 use super::{TypeKind, generic_argument::GenericArguments};
 use crate::{
-    symbol::InternedSymbol,
+    symbol::Symbol,
     r#type::{
         PartialType, Type, TypeId,
         environment::{
@@ -42,7 +42,7 @@ use crate::{
 /// 4. Consistent variance behavior across the type system
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct OpaqueType<'heap> {
-    pub name: InternedSymbol<'heap>,
+    pub name: Symbol<'heap>,
     pub repr: TypeId,
 
     pub arguments: GenericArguments<'heap>,

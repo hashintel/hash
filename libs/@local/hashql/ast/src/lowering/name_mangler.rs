@@ -39,7 +39,7 @@ use hashql_core::{
     collection::FastHashMap,
     heap::{self, Heap},
     module::item::Universe,
-    symbol::InternedSymbol,
+    symbol::Symbol,
 };
 
 use crate::{
@@ -54,13 +54,13 @@ use crate::{
 
 #[derive(Debug, Copy, Clone)]
 struct Binding<'heap> {
-    name: InternedSymbol<'heap>,
-    previous: Option<InternedSymbol<'heap>>,
+    name: Symbol<'heap>,
+    previous: Option<Symbol<'heap>>,
 }
 
 struct Universes<'heap> {
-    value: FastHashMap<InternedSymbol<'heap>, InternedSymbol<'heap>>,
-    r#type: FastHashMap<InternedSymbol<'heap>, InternedSymbol<'heap>>,
+    value: FastHashMap<Symbol<'heap>, Symbol<'heap>>,
+    r#type: FastHashMap<Symbol<'heap>, Symbol<'heap>>,
 }
 
 impl<'heap> Universes<'heap> {
@@ -74,8 +74,8 @@ impl<'heap> Universes<'heap> {
     fn enter(
         &mut self,
         scope: Universe,
-        original: InternedSymbol<'heap>,
-        mangled: InternedSymbol<'heap>,
+        original: Symbol<'heap>,
+        mangled: Symbol<'heap>,
     ) -> Binding<'heap> {
         let residual = match scope {
             Universe::Type => self.r#type.insert(original, mangled),
@@ -102,7 +102,7 @@ impl<'heap> Universes<'heap> {
         }
     }
 
-    fn get(&self, scope: Universe, name: InternedSymbol<'heap>) -> Option<InternedSymbol<'heap>> {
+    fn get(&self, scope: Universe, name: Symbol<'heap>) -> Option<Symbol<'heap>> {
         match scope {
             Universe::Type => self.r#type.get(&name).copied(),
             Universe::Value => self.value.get(&name).copied(),
@@ -111,8 +111,8 @@ impl<'heap> Universes<'heap> {
 }
 
 struct MangledSignature<'heap> {
-    generic_params: Vec<(InternedSymbol<'heap>, InternedSymbol<'heap>)>,
-    inputs: Vec<(InternedSymbol<'heap>, InternedSymbol<'heap>)>,
+    generic_params: Vec<(Symbol<'heap>, Symbol<'heap>)>,
+    inputs: Vec<(Symbol<'heap>, Symbol<'heap>)>,
 }
 
 /// Name mangler for HashQL, responsible for ensuring identifier uniqueness.
@@ -152,7 +152,7 @@ pub struct NameMangler<'heap> {
     universes: Universes<'heap>,
     current_universe: Universe,
 
-    counter: FastHashMap<InternedSymbol<'heap>, usize>,
+    counter: FastHashMap<Symbol<'heap>, usize>,
 }
 
 impl<'heap> NameMangler<'heap> {
@@ -173,7 +173,7 @@ impl<'heap> NameMangler<'heap> {
     /// for each original symbol. This exploits the fact that `:` followed by a number
     /// is invalid in regular identifiers, symbols, and `BaseUrl`s, ensuring the mangled
     /// name will not conflict with any valid user-defined identifier.
-    fn mangle(&mut self, symbol: &mut InternedSymbol<'heap>) -> InternedSymbol<'heap> {
+    fn mangle(&mut self, symbol: &mut Symbol<'heap>) -> Symbol<'heap> {
         let count = self.counter.entry(*symbol).or_insert(0);
 
         let mut mangled = symbol.as_str().to_owned();
@@ -199,8 +199,8 @@ impl<'heap> NameMangler<'heap> {
     fn enter<T>(
         &mut self,
         universe: Universe,
-        original: InternedSymbol<'heap>,
-        mangled: InternedSymbol<'heap>,
+        original: Symbol<'heap>,
+        mangled: Symbol<'heap>,
         closure: impl FnOnce(&mut Self) -> T,
     ) -> T {
         let binding = self.universes.enter(universe, original, mangled);
@@ -221,7 +221,7 @@ impl<'heap> NameMangler<'heap> {
     fn enter_many<T>(
         &mut self,
         universe: Universe,
-        replacements: Vec<(InternedSymbol<'heap>, InternedSymbol<'heap>)>,
+        replacements: Vec<(Symbol<'heap>, Symbol<'heap>)>,
         closure: impl FnOnce(&mut Self) -> T,
     ) -> T {
         let mut bindings = Vec::with_capacity(replacements.len());
@@ -296,10 +296,10 @@ impl<'heap> NameMangler<'heap> {
 
     fn mangle_constraints(
         &mut self,
-        original: InternedSymbol<'heap>,
-        mangled: InternedSymbol<'heap>,
+        original: Symbol<'heap>,
+        mangled: Symbol<'heap>,
         constraints: &mut heap::Vec<'heap, GenericConstraint<'heap>>,
-    ) -> Vec<(InternedSymbol<'heap>, InternedSymbol<'heap>)> {
+    ) -> Vec<(Symbol<'heap>, Symbol<'heap>)> {
         let mangled_constraints: Vec<_> = constraints
             .iter_mut()
             .map(|constraint| {

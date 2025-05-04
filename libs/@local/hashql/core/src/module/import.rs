@@ -8,7 +8,7 @@ use core::marker::PhantomData;
 use ena::snapshot_vec::SnapshotVecDelegate;
 
 use super::item::Item;
-use crate::symbol::InternedSymbol;
+use crate::symbol::Symbol;
 
 /// Represents a single import within a module.
 ///
@@ -17,7 +17,7 @@ use crate::symbol::InternedSymbol;
 /// to ensure proper resolution during type checking.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Import<'heap> {
-    pub name: InternedSymbol<'heap>,
+    pub name: Symbol<'heap>,
 
     pub item: Item<'heap>,
 }

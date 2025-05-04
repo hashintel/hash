@@ -44,7 +44,7 @@ use bumpalo::Bump;
 use hashbrown::HashSet;
 
 use crate::symbol::{
-    InternedSymbol,
+    Symbol,
     sym::{DIGITS, LEXICAL, SYMBOLS},
 };
 
@@ -167,11 +167,11 @@ impl Heap {
     /// # Panics
     ///
     /// This function will panic if the internal mutex is poisoned.
-    pub fn intern_symbol<'this>(&'this self, value: &str) -> InternedSymbol<'this> {
+    pub fn intern_symbol<'this>(&'this self, value: &str) -> Symbol<'this> {
         let mut strings = self.strings.lock().expect("lock should not be poisoned");
 
         if let Some(&string) = strings.get(value) {
-            return InternedSymbol::new_unchecked(string);
+            return Symbol::new_unchecked(string);
         }
 
         let string = &*self.bump.alloc_str(value);
@@ -185,7 +185,7 @@ impl Heap {
         strings.insert(string);
         drop(strings);
 
-        InternedSymbol::new_unchecked(string)
+        Symbol::new_unchecked(string)
     }
 
     pub fn slice<T>(&self, slice: &[T]) -> &mut [T]

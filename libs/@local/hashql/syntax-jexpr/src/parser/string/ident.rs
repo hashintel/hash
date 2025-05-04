@@ -1,7 +1,7 @@
 use ada_url::{SchemeType, Url};
 use hashql_core::{
     heap::Heap,
-    symbol::{Ident, IdentKind, InternedSymbol},
+    symbol::{Ident, IdentKind, Symbol},
 };
 use unicode_normalization::{IsNormalized, UnicodeNormalization as _, is_nfc_quick};
 use unicode_properties::{GeneralCategoryGroup, UnicodeGeneralCategory as _};
@@ -14,7 +14,7 @@ use winnow::{
 
 use super::context::Input;
 
-fn intern<'heap>(heap: &'heap Heap, value: &str) -> InternedSymbol<'heap> {
+fn intern<'heap>(heap: &'heap Heap, value: &str) -> Symbol<'heap> {
     if is_nfc_quick(value.chars()) == IsNormalized::Yes {
         heap.intern_symbol(value)
     } else {

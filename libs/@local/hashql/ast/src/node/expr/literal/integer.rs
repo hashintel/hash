@@ -1,4 +1,4 @@
-use hashql_core::symbol::InternedSymbol;
+use hashql_core::symbol::Symbol;
 use lexical::{
     FromLexicalWithOptions as _, ParseIntegerOptions, ParseIntegerOptionsBuilder, format,
 };
@@ -30,7 +30,7 @@ const PARSE: ParseIntegerOptions = match ParseIntegerOptionsBuilder::new().build
 /// ```
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct IntegerLiteral<'heap> {
-    pub value: InternedSymbol<'heap>,
+    pub value: Symbol<'heap>,
 }
 
 impl IntegerLiteral<'_> {

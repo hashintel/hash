@@ -9,7 +9,7 @@ use hashql_core::{
         item::Universe,
         namespace::{ImportOptions, ModuleNamespace, ResolutionMode, ResolveOptions},
     },
-    symbol::{Ident, IdentKind, InternedSymbol},
+    symbol::{Ident, IdentKind, Symbol},
 };
 
 use self::error::{
@@ -32,12 +32,12 @@ use crate::{
 
 #[derive(Debug, Default)]
 struct Scope<'heap> {
-    value: FastHashSet<InternedSymbol<'heap>>,
-    r#type: FastHashSet<InternedSymbol<'heap>>,
+    value: FastHashSet<Symbol<'heap>>,
+    r#type: FastHashSet<Symbol<'heap>>,
 }
 
 impl<'heap> Scope<'heap> {
-    fn contains(&self, universe: Universe, name: InternedSymbol<'heap>) -> bool {
+    fn contains(&self, universe: Universe, name: Symbol<'heap>) -> bool {
         let inner = match universe {
             Universe::Type => &self.r#type,
             Universe::Value => &self.value,
@@ -46,14 +46,14 @@ impl<'heap> Scope<'heap> {
         inner.contains(&name)
     }
 
-    fn insert(&mut self, universe: Universe, name: InternedSymbol<'heap>) -> bool {
+    fn insert(&mut self, universe: Universe, name: Symbol<'heap>) -> bool {
         match universe {
             Universe::Type => self.r#type.insert(name),
             Universe::Value => self.value.insert(name),
         }
     }
 
-    fn remove(&mut self, universe: Universe, name: InternedSymbol<'heap>) -> bool {
+    fn remove(&mut self, universe: Universe, name: Symbol<'heap>) -> bool {
         match universe {
             Universe::Type => self.r#type.remove(&name),
             Universe::Value => self.value.remove(&name),
@@ -87,7 +87,7 @@ impl<'env, 'heap> ImportResolver<'env, 'heap> {
     fn enter<T>(
         &mut self,
         universe: Universe,
-        symbol: InternedSymbol<'heap>,
+        symbol: Symbol<'heap>,
         closure: impl FnOnce(&mut Self) -> T,
     ) -> T {
         let remove = self.scope.insert(universe, symbol);
@@ -104,7 +104,7 @@ impl<'env, 'heap> ImportResolver<'env, 'heap> {
     fn enter_many<T>(
         &mut self,
         universe: Universe,
-        symbols: impl IntoIterator<Item = InternedSymbol<'heap>>,
+        symbols: impl IntoIterator<Item = Symbol<'heap>>,
         closure: impl FnOnce(&mut Self) -> T,
     ) -> T {
         let remove: Vec<_> = symbols

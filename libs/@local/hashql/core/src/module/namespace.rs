@@ -11,7 +11,7 @@ use super::{
 };
 use crate::{
     module::resolver::{Resolver, ResolverMode, ResolverOptions},
-    symbol::InternedSymbol,
+    symbol::Symbol,
 };
 
 pub struct ModuleNamespaceSnapshot(Snapshot);
@@ -58,7 +58,7 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
         }
     }
 
-    fn import_commit(&mut self, name: InternedSymbol<'heap>, glob: bool, iter: ResolveIter<'heap>) {
+    fn import_commit(&mut self, name: Symbol<'heap>, glob: bool, iter: ResolveIter<'heap>) {
         // The resolver guarantees that the iterator is non-empty if the query was found
         for item in iter {
             if glob {
@@ -82,8 +82,8 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
     /// Returns a `ResolutionError` if the path cannot be resolved.
     pub fn import_absolute(
         &mut self,
-        name: InternedSymbol<'heap>,
-        query: impl IntoIterator<Item = InternedSymbol<'heap>>,
+        name: Symbol<'heap>,
+        query: impl IntoIterator<Item = Symbol<'heap>>,
         options: ImportOptions,
     ) -> Result<(), ResolutionError<'heap>> {
         debug_assert_eq!(options.mode, ResolutionMode::Absolute);
@@ -117,8 +117,8 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
     /// Returns a `ResolutionError` if the path cannot be resolved.
     pub fn import_relative(
         &mut self,
-        name: InternedSymbol<'heap>,
-        query: impl IntoIterator<Item = InternedSymbol<'heap>>,
+        name: Symbol<'heap>,
+        query: impl IntoIterator<Item = Symbol<'heap>>,
         options: ImportOptions,
     ) -> Result<(), ResolutionError<'heap>> {
         debug_assert_eq!(options.mode, ResolutionMode::Relative);
@@ -148,8 +148,8 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
     /// Returns a `ResolutionError` if the path cannot be resolved.
     pub fn import(
         &mut self,
-        name: InternedSymbol<'heap>,
-        query: impl IntoIterator<Item = InternedSymbol<'heap>> + Clone,
+        name: Symbol<'heap>,
+        query: impl IntoIterator<Item = Symbol<'heap>> + Clone,
         options: ImportOptions,
     ) -> Result<(), ResolutionError<'heap>> {
         match options.mode {
@@ -187,7 +187,7 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
     /// Returns a `ResolutionError` if the path cannot be resolved or if multiple matches are found.
     pub fn resolve_relative(
         &self,
-        query: impl IntoIterator<Item = InternedSymbol<'heap>>,
+        query: impl IntoIterator<Item = Symbol<'heap>>,
         ResolveOptions { universe, mode }: ResolveOptions,
     ) -> Result<Item<'heap>, ResolutionError<'heap>> {
         debug_assert_eq!(mode, ResolutionMode::Relative);
@@ -219,7 +219,7 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
     /// Returns a `ResolutionError` if the path cannot be resolved or if multiple matches are found.
     pub fn resolve_absolute(
         &self,
-        query: impl IntoIterator<Item = InternedSymbol<'heap>>,
+        query: impl IntoIterator<Item = Symbol<'heap>>,
         ResolveOptions { universe, mode }: ResolveOptions,
     ) -> Result<Item<'heap>, ResolutionError<'heap>> {
         debug_assert_eq!(mode, ResolutionMode::Absolute);
@@ -250,7 +250,7 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
     /// Returns a `ResolutionError` if the path cannot be resolved or if multiple matches are found.
     pub fn resolve(
         &self,
-        query: impl IntoIterator<Item = InternedSymbol<'heap>> + Clone,
+        query: impl IntoIterator<Item = Symbol<'heap>> + Clone,
         options: ResolveOptions,
     ) -> Result<Item<'heap>, ResolutionError<'heap>> {
         match options.mode {
