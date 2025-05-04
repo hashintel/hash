@@ -4,7 +4,7 @@ use core::mem;
 
 use hashql_core::{collection::FastHashMap, symbol::Symbol};
 
-use self::error::TypeExtractorDiagnostic;
+use self::error::{TypeExtractorDiagnostic, duplicate_newtype, duplicate_type_alias};
 use crate::{
     node::expr::{Expr, ExprKind, NewTypeExpr, TypeExpr},
     visit::{Visitor, walk_expr},
@@ -27,6 +27,12 @@ impl TypeExtractor<'_> {
             diagnostics: Vec::new(),
         }
     }
+
+    /// Gets all diagnostics collected during traversal.
+    #[must_use]
+    pub fn take_diagnostics(&mut self) -> Vec<TypeExtractorDiagnostic> {
+        mem::take(&mut self.diagnostics)
+    }
 }
 
 impl<'heap> Visitor<'heap> for TypeExtractor<'heap> {
@@ -38,19 +44,27 @@ impl<'heap> Visitor<'heap> for TypeExtractor<'heap> {
 
         let body = match mem::replace(&mut expr.kind, ExprKind::Dummy) {
             ExprKind::Type(mut expr) => {
+                let name = expr.name.value;
+                let span = expr.span;
+
                 let body = mem::replace(&mut *expr.body, Expr::dummy());
 
-                if let Err(error) = self.alias.try_insert(expr.name.value, expr) {
-                    todo!("record diagnostic");
+                if let Err(error) = self.alias.try_insert(name, expr) {
+                    let diagnostic = duplicate_type_alias(error.entry.get().span, span, name);
+                    self.diagnostics.push(diagnostic);
                 }
 
                 body
             }
             ExprKind::NewType(mut expr) => {
+                let name = expr.name.value;
+                let span = expr.span;
+
                 let body = mem::replace(&mut *expr.body, Expr::dummy());
 
-                if let Err(error) = self.opaque.try_insert(expr.name.value, expr) {
-                    todo!("record diagnostic");
+                if let Err(error) = self.opaque.try_insert(name, expr) {
+                    let diagnostic = duplicate_newtype(error.entry.get().span, span, name);
+                    self.diagnostics.push(diagnostic);
                 }
 
                 body
