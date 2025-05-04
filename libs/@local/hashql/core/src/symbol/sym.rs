@@ -12,7 +12,7 @@ macro_rules! symbols {
         $(symbols!(@sym $($rest)*);)?
     };
     (@table $module:ident $table:ident #($($name:ident)*)) => {
-        pub(crate) const $table: &[&Symbol<'static>] = &[
+        const $table: &[&Symbol<'static>] = &[
             $(&$module::$name),*
         ];
     };
@@ -124,10 +124,13 @@ symbols![symbol; SYMBOLS;
     tilde: "~",
 ];
 
+pub(crate) const TABLES: &[&[&Symbol<'static>]] = &[LEXICAL, DIGITS, SYMBOLS];
+
 #[cfg(test)]
 mod test {
     use core::ptr;
 
+    use super::TABLES;
     use crate::{heap::Heap, symbol::sym};
 
     #[test]
@@ -146,5 +149,15 @@ mod test {
         let mul_sym = sym::symbol::asterisk;
 
         assert!(ptr::eq(mul_heap.0, mul_sym.0));
+    }
+
+    #[test]
+    fn ensure_no_collisions() {
+        let mut set = std::collections::HashSet::new();
+        for &table in TABLES {
+            for &symbol in table {
+                assert!(set.insert(symbol));
+            }
+        }
     }
 }

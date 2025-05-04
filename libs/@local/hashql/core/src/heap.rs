@@ -43,10 +43,7 @@ use std::sync::Mutex;
 use bumpalo::Bump;
 use hashbrown::HashSet;
 
-use crate::symbol::{
-    Symbol,
-    sym::{DIGITS, LEXICAL, SYMBOLS},
-};
+use crate::symbol::{Symbol, sym::TABLES};
 
 /// A boxed value allocated on the `Heap`.
 ///
@@ -145,18 +142,12 @@ impl Heap {
 
     fn prime_symbols(&self) {
         let mut strings = self.strings.lock().expect("lock should not be poisoned");
-        strings.reserve(LEXICAL.len() + DIGITS.len() + SYMBOLS.len());
+        strings.reserve(TABLES.iter().map(|table| table.len()).sum());
 
-        for &symbol in SYMBOLS {
-            assert!(strings.insert(symbol.as_str()));
-        }
-
-        for &symbol in DIGITS {
-            assert!(strings.insert(symbol.as_str()));
-        }
-
-        for &symbol in LEXICAL {
-            assert!(strings.insert(symbol.as_str()));
+        for &table in TABLES {
+            for &symbol in table {
+                assert!(strings.insert(symbol.as_str()));
+            }
         }
 
         drop(strings);
