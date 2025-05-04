@@ -1,6 +1,38 @@
+//! This module defines a collection of static symbol constants used throughout the codebase.
+//!
+//! # Usage
+//!
+//! These symbols should only ever be imported with the `sym` prefix to avoid naming conflicts
+//! and maintain clarity about where the symbols are defined. For example:
+//!
+//! ```rust
+//! use crate::symbol::sym;
+//!
+//! // Correct usage:
+//! let add_symbol = sym::lexical::add;
+//! let asterisk = sym::symbol::asterisk;
+//!
+//! // Incorrect usage (avoid):
+//! // use crate::symbol::sym::lexical::*;
+//! ```
+//!
+//! These symbols provide pointer equality guarantees when interned from a `Heap`,
+//! which allows for efficient symbol comparison operations.
 #![expect(non_upper_case_globals, clippy::min_ident_chars)]
 use super::Symbol;
 
+/// Macro for defining groups of static symbol constants.
+///
+/// This macro creates modules containing static `Symbol` instances and
+/// generates tables that group these symbols for efficient lookup.
+///
+/// The macro supports several forms:
+/// - Basic symbol: uses the identifier name as the symbol value
+/// - Custom symbol: allows specifying a custom string value with the `name: "value"` syntax
+/// - Special handling for Rust keywords using the `r#` prefix
+///
+/// For each symbol group, this macro also creates a corresponding table of references
+/// to all symbols in that group.
 macro_rules! symbols {
     (@sym) => {};
     (@sym $name:ident $(, $($rest:tt)*)?) => {
