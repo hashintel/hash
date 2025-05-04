@@ -4,16 +4,16 @@ use super::InternedSymbol;
 macro_rules! symbols {
     (@sym) => {};
     (@sym $name:ident $(, $($rest:tt)*)?) => {
-        pub const $name: super::InternedSymbol<'static> = super::InternedSymbol::new_unchecked(stringify!($name));
+        pub static $name: super::InternedSymbol<'static> = super::InternedSymbol::new_unchecked(stringify!($name));
         $(symbols!(@sym $($rest)*);)?
     };
     (@sym $name:ident : $value:literal $(, $($rest:tt)*)?) => {
-        pub const $name: super::InternedSymbol<'static> = super::InternedSymbol::new_unchecked($value);
+        pub static $name: super::InternedSymbol<'static> = super::InternedSymbol::new_unchecked($value);
         $(symbols!(@sym $($rest)*);)?
     };
     (@table $module:ident $table:ident #($($name:ident)*)) => {
-        pub(crate) const $table: &[&str] = &[
-            $($module::$name.0),*
+        pub(crate) const $table: &[&InternedSymbol<'static>] = &[
+            $(&$module::$name),*
         ];
     };
     (@table $module:ident $table:ident #($($acc:tt)*) $name:ident $(: $value:literal)? $(, $($rest:tt)*)?) => {
@@ -116,7 +116,6 @@ symbols![symbol; SYMBOLS;
     gte: ">=",
     lt: "<",
     lte: "<=",
-    mul: "*",
     ne: "!=",
     not: "!",
     or: "||",
@@ -124,3 +123,28 @@ symbols![symbol; SYMBOLS;
     sub: "-",
     tilde: "~",
 ];
+
+#[cfg(test)]
+mod test {
+    use core::ptr;
+
+    use crate::{heap::Heap, symbol::sym};
+
+    #[test]
+    fn pointer_equality_from_heap() {
+        let mut heap = Heap::new();
+
+        let mul_heap = heap.intern_symbol("*");
+        let mul_sym = sym::symbol::asterisk;
+
+        assert!(ptr::eq(mul_heap.0, mul_sym.0));
+
+        // even after reset that should be the case
+        heap.reset();
+
+        let mul_heap = heap.intern_symbol("*");
+        let mul_sym = sym::symbol::asterisk;
+
+        assert!(ptr::eq(mul_heap.0, mul_sym.0));
+    }
+}

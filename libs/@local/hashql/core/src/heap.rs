@@ -148,15 +148,15 @@ impl Heap {
         strings.reserve(LEXICAL.len() + DIGITS.len() + SYMBOLS.len());
 
         for &symbol in SYMBOLS {
-            strings.insert(symbol);
+            assert!(strings.insert(symbol.as_str()));
         }
 
         for &symbol in DIGITS {
-            strings.insert(symbol);
+            assert!(strings.insert(symbol.as_str()));
         }
 
         for &symbol in LEXICAL {
-            strings.insert(symbol);
+            assert!(strings.insert(symbol.as_str()));
         }
 
         drop(strings);
