@@ -628,6 +628,111 @@ mod tests {
     }
 
     #[test]
+    fn join_complex_substitution_merging() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let mut lattice = LatticeEnvironment::new(&env);
+        lattice.without_simplify();
+
+        // Create base types for substitution values
+        let number = primitive!(env, PrimitiveType::Number);
+        let integer = primitive!(env, PrimitiveType::Integer);
+        let string = primitive!(env, PrimitiveType::String);
+        let boolean = primitive!(env, PrimitiveType::Boolean);
+
+        // Create several generic argument IDs
+        let argument1 = env.counter.generic_argument.next();
+        let argument2 = env.counter.generic_argument.next();
+        let argument3 = env.counter.generic_argument.next();
+        let argument4 = env.counter.generic_argument.next();
+
+        // Create complex sets of substitutions for two Apply types:
+        // 1. Identical substitutions (arg1:string in both)
+        // 2. Same argument with different values (arg2:number and arg2:boolean)
+        // 3. Unique arguments (arg3 only in first, arg4 only in second)
+
+        let apply1 = apply!(
+            env,
+            number,
+            [
+                GenericSubstitution {
+                    argument: argument1,
+                    value: string,
+                },
+                GenericSubstitution {
+                    argument: argument2,
+                    value: number,
+                },
+                GenericSubstitution {
+                    argument: argument3,
+                    value: integer,
+                },
+            ]
+        );
+
+        let apply2 = apply!(
+            env,
+            number,
+            [
+                GenericSubstitution {
+                    argument: argument1,
+                    value: string,
+                },
+                GenericSubstitution {
+                    argument: argument2,
+                    value: boolean,
+                },
+                GenericSubstitution {
+                    argument: argument4,
+                    value: string,
+                },
+            ]
+        );
+
+        // Join the types with complex substitutions
+        let result = lattice.join(apply1, apply2);
+        let apply = env
+            .r#type(result)
+            .kind
+            .apply()
+            .expect("should be an apply type");
+
+        // The result should have:
+        // - One substitution for arg1 (deduped)
+        // - Two substitutions for arg2 (different values)
+        // - One substitution for arg3 (from first Apply)
+        // - One substitution for arg4 (from second Apply)
+        // So 5 total substitutions
+
+        assert_eq!(
+            *apply.substitutions,
+            [
+                GenericSubstitution {
+                    argument: argument1,
+                    value: string,
+                },
+                GenericSubstitution {
+                    argument: argument2,
+                    value: number,
+                },
+                GenericSubstitution {
+                    argument: argument2,
+                    value: boolean,
+                },
+                GenericSubstitution {
+                    argument: argument3,
+                    value: integer,
+                },
+                GenericSubstitution {
+                    argument: argument4,
+                    value: string,
+                },
+            ]
+        );
+    }
+
+    #[test]
     fn bottom() {
         let heap = Heap::new();
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
