@@ -177,6 +177,10 @@ impl<'env, 'heap> InstantiateEnvironment<'env, 'heap> {
         self.force_instantiate(id)
     }
 
+    pub fn clear_provisioned(&mut self) {
+        self.provisioned.clear();
+    }
+
     // During provisioning we don't need any guards, this allows us to have some more structural
     // sharing if we refer to the same type. This leads to a reduce in exploded types.
     #[expect(

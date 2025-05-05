@@ -92,6 +92,11 @@ where
         self.reverse.borrow_mut().insert(provisioned, id);
     }
 
+    pub(crate) fn clear(&mut self) {
+        self.forward.borrow_mut().clear();
+        self.reverse.borrow_mut().clear();
+    }
+
     fn exit(&self, guard: &ProvisionedGuard<T>) {
         if let Some(previous) = guard.previous {
             self.forward.borrow_mut().insert(guard.id, previous);
