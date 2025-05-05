@@ -188,7 +188,7 @@ mod test {
         let mut set = std::collections::HashSet::new();
         for &table in TABLES {
             for &symbol in table {
-                assert!(set.insert(symbol));
+                assert!(set.insert(symbol.0));
             }
         }
     }
