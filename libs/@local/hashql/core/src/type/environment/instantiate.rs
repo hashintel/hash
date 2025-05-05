@@ -166,33 +166,24 @@ impl<'env, 'heap> InstantiateEnvironment<'env, 'heap> {
     /// In debug mode, this function panics if a type should have been provisioned but wasn't.
     /// In release builds, the function recovers gracefully by returning the original type ID.
     pub fn instantiate(&mut self, id: TypeId) -> TypeId {
+        // If we already have a substitution we can use that substitution (cycle guard)
+        if let Some(substitution) = self.provisioned.get_substitution(id) {
+            return substitution;
+        }
+
         let r#type = self.environment.r#type(id);
 
-        if self.boundary.enter(r#type, r#type).is_break() {
-            // See if the type has been substituted
-            if let Some(substitution) = self.provisioned.get_substitution(id) {
-                return substitution;
-            }
-
-            #[expect(
-                clippy::manual_assert,
-                reason = "false positive, this is a manual `debug_panic`"
-            )]
-            if cfg!(debug_assertions) {
-                panic!("type id {id} should have been provisioned, but wasn't");
-            }
-
-            tracing::warn!(%id, "type id should have been provisioned, but wasn't");
-
-            // in debug builds this panics if the type should have been provisioned but wasn't, as
-            // we can recover from this error (we simply return the original - uninstantiated - type
-            // id) we do not need to panic here in release builds.
-            return id;
+        #[expect(clippy::manual_assert, reason = "false positive")]
+        if cfg!(debug_assertions) && self.boundary.enter(r#type, r#type).is_break() {
+            panic!("type id {id} should have been provisioned, but wasn't");
         }
 
         let result = r#type.instantiate(self);
 
-        self.boundary.exit(r#type, r#type);
+        if cfg!(debug_assertions) {
+            self.boundary.exit(r#type, r#type);
+        }
+
         result
     }
 
