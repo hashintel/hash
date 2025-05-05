@@ -2,13 +2,17 @@ use core::ops::Deref;
 
 use pretty::RcDoc;
 
-use super::GenericArgumentId;
+use super::{GenericArgumentId, Param};
 use crate::{
     intern::Interned,
     span::SpanId,
     r#type::{
         PartialType, Type, TypeId,
-        environment::{AnalysisEnvironment, Environment, LatticeEnvironment, SimplifyEnvironment},
+        environment::{
+            AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
+            SimplifyEnvironment, instantiate::InstantiateEnvironment,
+        },
+        inference::{Inference, PartialStructuralEdge},
         kind::TypeKind,
         lattice::Lattice,
         pretty_print::{ORANGE, PrettyPrint, RED},
@@ -297,6 +301,55 @@ impl<'heap> Lattice<'heap> for Apply<'heap> {
                 substitutions: self.kind.substitutions,
             })),
         })
+    }
+}
+
+impl<'heap> Apply<'heap> {
+    fn collect_substitution_constraints(
+        self,
+        span: SpanId,
+        env: &mut InferenceEnvironment<'_, 'heap>,
+    ) {
+        for &substitution in &*self.substitutions {
+            let param = env.intern_type(PartialType {
+                span,
+                kind: env.intern_kind(TypeKind::Param(Param {
+                    argument: substitution.argument,
+                })),
+            });
+
+            env.in_invariant(|env| env.collect_constraints(param, substitution.value));
+        }
+    }
+}
+
+impl<'heap> Inference<'heap> for Apply<'heap> {
+    fn collect_constraints(
+        self: Type<'heap, Self>,
+        supertype: Type<'heap, Self>,
+        env: &mut InferenceEnvironment<'_, 'heap>,
+    ) {
+        // We do not really care for the underlying type, we just want to collect our constraints
+        self.kind.collect_substitution_constraints(self.span, env);
+        supertype
+            .kind
+            .collect_substitution_constraints(supertype.span, env);
+
+        env.collect_constraints(self.kind.base, supertype.kind.base);
+    }
+
+    fn collect_structural_edges(
+        self: Type<'heap, Self>,
+        variable: PartialStructuralEdge,
+        env: &mut InferenceEnvironment<'_, 'heap>,
+    ) {
+        // As the value is invariant, there are no structural edges between the value of the
+        // substitution and argument
+        env.collect_structural_edges(self.kind.base, variable);
+    }
+
+    fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {
+        todo!()
     }
 }
 
