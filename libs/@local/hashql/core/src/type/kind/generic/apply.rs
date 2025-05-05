@@ -286,7 +286,6 @@ impl<'heap> Lattice<'heap> for Apply<'heap> {
 
     fn simplify(self: Type<'heap, Self>, env: &mut SimplifyEnvironment<'_, 'heap>) -> TypeId {
         let (_guard, id) = env.provision(self.id);
-        println!("Simplify: {} => {:?}", self.id, id);
 
         let base = env.simplify(self.kind.base);
 
@@ -1139,6 +1138,12 @@ mod tests {
 
     #[test]
     fn instantiated_nested() {
+        // type Bar<U> = Struct {
+        //   inner: Foo<Bar<U>>
+        // };
+        // type Foo<T> = Struct {
+        //   val: T
+        // };
         todo!()
     }
 
@@ -1244,6 +1249,11 @@ mod tests {
 
     #[test]
     fn instantiate_different_substitutions() {
+        // type Bar = Struct {
+        //   bar: Foo<String>,
+        //   baz: Foo<Number>
+        // };
+        // type Foo<T> = Struct { f: T }
         todo!()
     }
 }

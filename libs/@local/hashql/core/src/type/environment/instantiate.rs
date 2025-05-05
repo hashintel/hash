@@ -6,7 +6,7 @@ use smallvec::SmallVec;
 use super::{
     Diagnostics, Environment,
     context::{
-        provision::ProvisionedScope,
+        provision::{ProvisionedGuard, ProvisionedScope},
         replace::{ReplacementGuard, ReplacementScope},
     },
 };
@@ -41,6 +41,7 @@ pub struct InstantiateEnvironment<'env, 'heap> {
     argument_scope: Rc<ReplacementScope<GenericArgumentId>>,
 
     provisioned: Rc<ProvisionedScope<TypeId>>,
+    substitutions: FastHashMap<TypeId, Option<TypeId>>,
 }
 
 impl<'env, 'heap> InstantiateEnvironment<'env, 'heap> {
@@ -51,6 +52,8 @@ impl<'env, 'heap> InstantiateEnvironment<'env, 'heap> {
 
             substitutions_scope: Rc::default(),
             argument_scope: Rc::default(),
+
+            substitutions: FastHashMap::default(),
 
             provisioned: Rc::default(),
         }
@@ -102,10 +105,6 @@ impl<'env, 'heap> InstantiateEnvironment<'env, 'heap> {
         (guard, arguments)
     }
 
-    #[expect(
-        clippy::needless_pass_by_ref_mut,
-        reason = "prove ownership of environment, so that we can borrow safely"
-    )]
     pub fn instantiate_substitutions(
         &mut self,
         substitutions: GenericSubstitutions<'heap>,
@@ -179,29 +178,47 @@ impl<'env, 'heap> InstantiateEnvironment<'env, 'heap> {
     /// In debug mode, this function panics if a type should have been provisioned but wasn't.
     /// In release builds, the function recovers gracefully by returning the original type ID.
     pub fn instantiate(&mut self, id: TypeId) -> TypeId {
+        // Check if we've already visited this type before and if so, if it is a potentially
+        // recursive type
+        if let Some(&Some(substitution)) = self.substitutions.get(&id) {
+            return substitution;
+        }
+
         // If we already have a substitution we can use that substitution (cycle guard)
         if let Some(substitution) = self.provisioned.get_substitution(id) {
             return substitution;
         }
 
-        self.force_instantiate(id)
+        let replacement = self.force_instantiate(id);
+
+        // We only cache the instantiation / substitution in the case that the type is actually
+        // potentially recursive. A type is marked as potentially recursive by setting `None`
+        // through the provision function (if provisioned it must be potentially recursive)
+        // This way we do not cache any types that cannot be recursive, such as parameters.
+        if let Some(entry) = self.substitutions.get_mut(&id) {
+            *entry = Some(replacement);
+        }
+
+        replacement
     }
 
-    pub fn clear_provisioned(&mut self) {
-        self.provisioned.clear();
-    }
-
-    // During provisioning we don't need any guards, this allows us to have some more structural
-    // sharing if we refer to the same type. This leads to a reduce in exploded types.
     #[expect(
         clippy::needless_pass_by_ref_mut,
         reason = "prove ownership of environment, so that we can borrow safely"
     )]
-    pub fn provision(&mut self, id: TypeId) -> ((), Provisioned<TypeId>) {
-        let provisioned = self.environment.types.provision();
-        self.provisioned.enter_unscoped(id, provisioned);
+    pub fn clear_provisioned(&mut self) {
+        self.provisioned.clear();
+    }
 
-        ((), provisioned)
+    pub fn provision(&mut self, id: TypeId) -> (ProvisionedGuard<TypeId>, Provisioned<TypeId>) {
+        let provisioned = self.environment.types.provision();
+        let guard = Rc::clone(&self.provisioned).enter(id, provisioned);
+
+        // This is officially a potentially recursive type, therefore we can enable to cache it's
+        // substitution.
+        self.substitutions.insert(id, None);
+
+        (guard, provisioned)
     }
 
     #[must_use]

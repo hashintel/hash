@@ -427,7 +427,6 @@ impl<'heap> Lattice<'heap> for StructType<'heap> {
 
     fn simplify(self: Type<'heap, Self>, env: &mut SimplifyEnvironment<'_, 'heap>) -> TypeId {
         let (_guard, id) = env.provision(self.id);
-        println!("Simplify (Struct) {} => {:?}", self.id, id);
 
         let mut fields = SmallVec::<_, 16>::with_capacity(self.kind.fields.len());
 
@@ -449,7 +448,7 @@ impl<'heap> Lattice<'heap> for StructType<'heap> {
             );
         }
 
-        let substituted = env.intern_provisioned(
+        env.intern_provisioned(
             id,
             PartialType {
                 span: self.span,
@@ -460,11 +459,7 @@ impl<'heap> Lattice<'heap> for StructType<'heap> {
                     arguments: self.kind.arguments,
                 })),
             },
-        );
-
-        println!("Finish: {:?} => {}", id, substituted);
-
-        substituted
+        )
     }
 }
 
