@@ -53,7 +53,8 @@
     decl_macro,
     macro_metavar_expr,
     let_chains,
-    if_let_guard
+    if_let_guard,
+    iter_intersperse
 )]
 #![cfg_attr(test, feature(assert_matches))]
 

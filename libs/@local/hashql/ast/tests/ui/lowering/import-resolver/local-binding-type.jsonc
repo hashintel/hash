@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Tests that local type bindings are properly tracked in scope and not resolved as paths
+["type", "Dict", "Number", ["type", "Bar", "Dict", "_"]]

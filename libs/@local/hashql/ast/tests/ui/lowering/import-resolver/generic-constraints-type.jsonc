@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Tests that generic constraints in type declarations are preserved and don't trigger path resolution
+["type", "Dict<Number>", "Number", "_"]

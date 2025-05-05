@@ -1,0 +1,41 @@
+Expr#4294967040@44
+  ExprKind (Type)
+    TypeExpr#4294967040@44 (name: Foo)
+      GenericConstraint#4294967040@10 (name: T)
+      GenericConstraint#4294967040@15 (name: E)
+      Type#4294967040@41
+        TypeKind (Path)
+          Path#4294967040@41 (rooted: true)
+            PathSegment#4294967040@40 (name: kernel)
+            PathSegment#4294967040@40 (name: type)
+            PathSegment#4294967040@40 (name: List)
+              PathSegmentArgument (GenericArgument)
+                GenericArgument#4294967040@39
+                  Type#4294967040@38
+                    TypeKind (Path)
+                      Path#4294967040@38 (rooted: true)
+                        PathSegment#4294967040@37 (name: kernel)
+                        PathSegment#4294967040@37 (name: type)
+                        PathSegment#4294967040@37 (name: Option)
+                          PathSegmentArgument (GenericArgument)
+                            GenericArgument#4294967040@36
+                              Type#4294967040@35
+                                TypeKind (Path)
+                                  Path#4294967040@35 (rooted: true)
+                                    PathSegment#4294967040@34 (name: kernel)
+                                    PathSegment#4294967040@34 (name: type)
+                                    PathSegment#4294967040@34 (name: Result)
+                                      PathSegmentArgument (GenericArgument)
+                                        GenericArgument#4294967040@28
+                                          Type#4294967040@27
+                                            TypeKind (Path)
+                                              Path#4294967040@27 (rooted: false)
+                                                PathSegment#4294967040@26 (name: T)
+                                      PathSegmentArgument (GenericArgument)
+                                        GenericArgument#4294967040@33
+                                          Type#4294967040@32
+                                            TypeKind (Path)
+                                              Path#4294967040@32 (rooted: false)
+                                                PathSegment#4294967040@31 (name: E)
+      Expr#4294967040@43
+        ExprKind (Underscore)

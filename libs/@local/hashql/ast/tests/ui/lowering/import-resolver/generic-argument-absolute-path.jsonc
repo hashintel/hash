@@ -1,0 +1,4 @@
+//@ run: fail
+//@ description: Tests that generic arguments in non-final segments of paths are rejected with appropriate error
+["::math<T>::add", { "#literal": 2 }, { "#literal": 3 }]
+//~^ ERROR Remove this generic argument

@@ -33,6 +33,7 @@ roaring        = { workspace = true, features = ["std", "simd"] }
 rpds           = { workspace = true }
 serde          = { workspace = true, optional = true, features = ["alloc", "derive"] }
 simple-mermaid = { workspace = true }
+strsim         = "0.11.1"
 tracing        = { workspace = true }
 
 

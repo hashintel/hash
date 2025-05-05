@@ -551,3 +551,13 @@ pub struct Expr<'heap> {
 
     pub kind: ExprKind<'heap>,
 }
+
+impl Expr<'_> {
+    pub(crate) const fn dummy() -> Self {
+        Self {
+            id: NodeId::PLACEHOLDER,
+            span: SpanId::SYNTHETIC,
+            kind: ExprKind::Dummy,
+        }
+    }
+}

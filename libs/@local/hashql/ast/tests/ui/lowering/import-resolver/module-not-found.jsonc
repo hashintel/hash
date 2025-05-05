@@ -1,0 +1,4 @@
+//@ run: fail
+//@ description: Tests that importing from a non-existent module produces an appropriate error with suggestions
+["use", "kernel::foo", { "#tuple": ["baz"] }, "_"]
+//~^ ERROR Module 'foo' not found

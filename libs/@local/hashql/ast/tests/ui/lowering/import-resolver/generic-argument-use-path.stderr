@@ -1,0 +1,13 @@
+[31m[special-form-expander::use-path-with-generics] Error:[0m Use path with generic arguments
+   ╭─[ <unknown>:3:10 ]
+   │
+ 3 │ ["use", "kernel::type<T>", { "#tuple": ["T"] }, "_"]
+   │          ───────┬───┬───  
+   │                 │   ╰───── Generic arguments are not allowed here
+   │                 │         
+   │                 ╰───────── Remove these generic arguments
+   │ 
+   │ Help: The 'use' special form does not support generic arguments in import paths. Remove all generic arguments from the path.
+   │ 
+   │ Note: Use statements in HashQL can only import modules or specific symbols, but cannot specify generic parameters during import.
+───╯

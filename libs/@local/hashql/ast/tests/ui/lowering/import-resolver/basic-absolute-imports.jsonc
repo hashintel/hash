@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Tests that absolute imports (with :: prefix) resolve correctly and are normalized
+["use", "::math", { "#tuple": ["lshift"] }, "lshift"]

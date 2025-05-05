@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Tests that generic arguments in the final segment of a path are accepted and resolved correctly
+["`+`<Number>", { "#literal": 2 }, { "#literal": 3 }]

@@ -314,7 +314,7 @@ __metadata:
     md5: "npm:2.3.0"
     mime-types: "npm:2.1.35"
     officeparser: "npm:4.2.0"
-    openai: "npm:4.96.2"
+    openai: "npm:4.97.0"
     openai-chat-tokens: "npm:0.2.8"
     papaparse: "npm:5.5.2"
     pdf2json: "npm:3.1.5"
@@ -336,11 +336,11 @@ __metadata:
   resolution: "@apps/hash-api@workspace:apps/hash-api"
   dependencies:
     "@apps/hash-graph": "npm:0.0.0-private"
-    "@aws-sdk/client-s3": "npm:3.800.0"
+    "@aws-sdk/client-s3": "npm:3.802.0"
     "@aws-sdk/client-ses": "npm:3.799.0"
     "@aws-sdk/credential-provider-node": "npm:3.799.0"
-    "@aws-sdk/s3-presigned-post": "npm:3.800.0"
-    "@aws-sdk/s3-request-presigner": "npm:3.800.0"
+    "@aws-sdk/s3-presigned-post": "npm:3.802.0"
+    "@aws-sdk/s3-request-presigner": "npm:3.802.0"
     "@blockprotocol/core": "patch:@blockprotocol/core@npm%3A0.1.3#~/.yarn/patches/@blockprotocol-core-npm-0.1.3-7c4f062e15.patch"
     "@blockprotocol/graph": "npm:0.4.0-canary.0"
     "@blockprotocol/type-system": "npm:0.1.2-canary.0"
@@ -429,14 +429,14 @@ __metadata:
     nanoid: "npm:3.3.11"
     nodemailer: "npm:6.10.1"
     oembed-providers: "npm:1.0.20250430"
-    openai: "npm:4.96.2"
+    openai: "npm:4.97.0"
     rimraf: "npm:6.0.1"
     ts-json-schema-generator: "npm:1.5.1"
     tsx: "npm:4.19.4"
     typescript: "npm:5.7.3"
     vitest: "npm:3.1.2"
     wait-on: "npm:8.0.3"
-    ws: "npm:8.18.1"
+    ws: "npm:8.18.2"
   languageName: unknown
   linkType: soft
 
@@ -560,12 +560,12 @@ __metadata:
     react-dom: "npm:19.1.0"
     react-dropzone: "npm:14.3.8"
     react-full-screen: "npm:1.1.1"
-    react-hook-form: "npm:7.56.1"
+    react-hook-form: "npm:7.56.2"
     react-markdown: "npm:9.1.0"
     react-pdf: "npm:9.2.1"
     react-responsive-carousel: "npm:3.2.23"
     react-transition-group: "npm:4.4.5"
-    react-virtuoso: "npm:4.12.6"
+    react-virtuoso: "npm:4.12.7"
     react-window: "npm:1.8.11"
     reactflow: "npm:11.11.4"
     remark-gfm: "npm:4.0.1"
@@ -719,7 +719,7 @@ __metadata:
     shx: "npm:0.4.0"
     tsx: "npm:4.19.4"
     typescript: "npm:5.7.3"
-    zod: "npm:3.24.3"
+    zod: "npm:3.24.4"
     zod-to-json-schema: "npm:3.24.5"
   bin:
     linear-mcp: ./dist/index.js
@@ -744,7 +744,7 @@ __metadata:
     shx: "npm:0.4.0"
     tsx: "npm:4.19.4"
     typescript: "npm:5.7.3"
-    zod: "npm:3.24.3"
+    zod: "npm:3.24.4"
     zod-to-json-schema: "npm:3.24.5"
   bin:
     notion-mcp: ./dist/index.js
@@ -817,7 +817,7 @@ __metadata:
     webpack: "npm:5.99.7"
     webpack-cli: "npm:4.10.0"
     webpack-dev-server: "npm:4.15.2"
-    ws: "npm:8.18.1"
+    ws: "npm:8.18.2"
     zip-webpack-plugin: "npm:4.0.3"
   languageName: unknown
   linkType: soft
@@ -1217,9 +1217,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@aws-sdk/client-s3@npm:3.800.0":
-  version: 3.800.0
-  resolution: "@aws-sdk/client-s3@npm:3.800.0"
+"@aws-sdk/client-s3@npm:3.802.0":
+  version: 3.802.0
+  resolution: "@aws-sdk/client-s3@npm:3.802.0"
   dependencies:
     "@aws-crypto/sha1-browser": "npm:5.2.0"
     "@aws-crypto/sha256-browser": "npm:5.2.0"
@@ -1277,7 +1277,7 @@ __metadata:
     "@smithy/util-utf8": "npm:^4.0.0"
     "@smithy/util-waiter": "npm:^4.0.3"
     tslib: "npm:^2.6.2"
-  checksum: 10c0/718e55fd9b83d4f7a63ee95eef3b452f29398f27ad98ff97f6d14d86ad0d48b2543277af149de21c80e8c1bfeb1c1d3aa55abe4218c30ce7e9d5c47ed2c9c522
+  checksum: 10c0/2580cb30bdbf74306eda8406108fbb6be47d5d6bdc4e4ecf314323cde75d213dc1cd68f90e11042223d1e4ddce94816a2810240cc7059fd717ca6c84e752618d
   languageName: node
   linkType: hard
 
@@ -2156,11 +2156,11 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@aws-sdk/s3-presigned-post@npm:3.800.0":
-  version: 3.800.0
-  resolution: "@aws-sdk/s3-presigned-post@npm:3.800.0"
+"@aws-sdk/s3-presigned-post@npm:3.802.0":
+  version: 3.802.0
+  resolution: "@aws-sdk/s3-presigned-post@npm:3.802.0"
   dependencies:
-    "@aws-sdk/client-s3": "npm:3.800.0"
+    "@aws-sdk/client-s3": "npm:3.802.0"
     "@aws-sdk/types": "npm:3.775.0"
     "@aws-sdk/util-format-url": "npm:3.775.0"
     "@smithy/middleware-endpoint": "npm:^4.1.1"
@@ -2169,13 +2169,13 @@ __metadata:
     "@smithy/util-hex-encoding": "npm:^4.0.0"
     "@smithy/util-utf8": "npm:^4.0.0"
     tslib: "npm:^2.6.2"
-  checksum: 10c0/a9670714c01df0008608fc29255e435df62d79e1cf10e646fa9ea20703048b5186a454e9f072231c004aa102b6f9c76757051ded102ed3d61724de06dc8913aa
+  checksum: 10c0/a225fd22b611dd13c3c5119d14f5e080f2dbc89601ca5e62917a4456f269d5165d5cb1b8d1e4b25ef771544bb24b4dd96f5643d7a248f6f3413cab2827a4e0fe
   languageName: node
   linkType: hard
 
-"@aws-sdk/s3-request-presigner@npm:3.800.0":
-  version: 3.800.0
-  resolution: "@aws-sdk/s3-request-presigner@npm:3.800.0"
+"@aws-sdk/s3-request-presigner@npm:3.802.0":
+  version: 3.802.0
+  resolution: "@aws-sdk/s3-request-presigner@npm:3.802.0"
   dependencies:
     "@aws-sdk/signature-v4-multi-region": "npm:3.800.0"
     "@aws-sdk/types": "npm:3.775.0"
@@ -2185,7 +2185,7 @@ __metadata:
     "@smithy/smithy-client": "npm:^4.2.1"
     "@smithy/types": "npm:^4.2.0"
     tslib: "npm:^2.6.2"
-  checksum: 10c0/fec5d4d16f08489067142c591e384493a6c654c2f4641c60485e4d44cac2930afe44a3dc25dd0bc9ee5f6ff17946e99ae18340e402a1a9a6f178e72c93948a3f
+  checksum: 10c0/d006f454569e7056787bce3286f72e31ec7d292a08bc1c054f73e83a9648161baa17fe35a75e5c49693b3b4fc2a59344a5b0ea663560746c7240d4882b773af8
   languageName: node
   linkType: hard
 
@@ -7096,14 +7096,14 @@ __metadata:
     eslint-plugin-storybook: "npm:0.11.3"
     react: "npm:19.1.0"
     react-dom: "npm:19.1.0"
-    react-hook-form: "npm:7.56.1"
+    react-hook-form: "npm:7.56.2"
     typescript: "npm:5.7.3"
   peerDependencies:
     "@mui/material": ^5.14.0
     "@mui/system": ^5.14.0
     react: ^19.0.0
     react-dom: ^19.0.0
-    react-hook-form: 7.56.1
+    react-hook-form: 7.56.2
   languageName: unknown
   linkType: soft
 
@@ -7130,7 +7130,7 @@ __metadata:
     material-ui-popup-state: "npm:4.1.0"
     react: "npm:19.1.0"
     react-dom: "npm:19.1.0"
-    react-hook-form: "npm:7.56.1"
+    react-hook-form: "npm:7.56.2"
     rooks: "npm:7.14.1"
     setimmediate: "npm:1.0.5"
     typescript: "npm:5.7.3"
@@ -7139,7 +7139,7 @@ __metadata:
     "@mui/system": ^5.14.0
     react: ^19.0.0
     react-dom: ^19.0.0
-    react-hook-form: 7.56.1
+    react-hook-form: 7.56.2
   languageName: unknown
   linkType: soft
 
@@ -8861,8 +8861,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@local/hash-backend-utils@workspace:libs/@local/hash-backend-utils"
   dependencies:
-    "@aws-sdk/client-s3": "npm:3.800.0"
-    "@aws-sdk/s3-request-presigner": "npm:3.800.0"
+    "@aws-sdk/client-s3": "npm:3.802.0"
+    "@aws-sdk/s3-request-presigner": "npm:3.802.0"
     "@blockprotocol/core": "patch:@blockprotocol/core@npm%3A0.1.3#~/.yarn/patches/@blockprotocol-core-npm-0.1.3-7c4f062e15.patch"
     "@blockprotocol/graph": "npm:0.4.0-canary.0"
     "@blockprotocol/type-system": "npm:0.1.2-canary.0"
@@ -9030,7 +9030,7 @@ __metadata:
     sort-package-json: "npm:2.15.1"
     tsx: "npm:4.19.4"
     typescript: "npm:5.7.3"
-    zod: "npm:3.24.3"
+    zod: "npm:3.24.4"
     zod-to-json-schema: "npm:3.24.5"
   languageName: unknown
   linkType: soft
@@ -35635,9 +35635,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"openai@npm:4.96.2, openai@npm:^4.73.1":
-  version: 4.96.2
-  resolution: "openai@npm:4.96.2"
+"openai@npm:4.97.0, openai@npm:^4.73.1":
+  version: 4.97.0
+  resolution: "openai@npm:4.97.0"
   dependencies:
     "@types/node": "npm:^18.11.18"
     "@types/node-fetch": "npm:^2.6.4"
@@ -35656,7 +35656,7 @@ __metadata:
       optional: true
   bin:
     openai: bin/cli
-  checksum: 10c0/db9698258f1033d5155c11ee8868f0e81fad743e991fe118d67bceaa621beeba8047a2d5e3bfde6675f0b1ed53ea5e6860edf4bd376c92fff0f2564bac536d46
+  checksum: 10c0/9938eb85102dd0465197e79c0912df9f3afd52be2d9524fd5100f5befbfa70e6bb7803120515ffa0925b7afc14762052b087c7c2f3d0b85852efa22aa1d745d6
   languageName: node
   linkType: hard
 
@@ -38171,12 +38171,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-hook-form@npm:7.56.1":
-  version: 7.56.1
-  resolution: "react-hook-form@npm:7.56.1"
+"react-hook-form@npm:7.56.2":
+  version: 7.56.2
+  resolution: "react-hook-form@npm:7.56.2"
   peerDependencies:
     react: ^16.8.0 || ^17 || ^18 || ^19
-  checksum: 10c0/26eafd54bf47167628e34c2f22ea27ea7bdd5b4231a56af5be31ccedfb2a721708b308026ea4a17f2fb15c7b5fff83c0feb4acc7aa07bd6faa8506e917810cab
+  checksum: 10c0/9eeca7525c5c0b1356670e7cc77687298c7280a31c99bca396596124371467c310cad22f2c10efd9c75b4570d07740ee1c6ad481d59c1b725c7600767f0a35af
   languageName: node
   linkType: hard
 
@@ -38476,13 +38476,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-virtuoso@npm:4.12.6":
-  version: 4.12.6
-  resolution: "react-virtuoso@npm:4.12.6"
+"react-virtuoso@npm:4.12.7":
+  version: 4.12.7
+  resolution: "react-virtuoso@npm:4.12.7"
   peerDependencies:
     react: ">=16 || >=17 || >= 18 || >= 19"
     react-dom: ">=16 || >=17 || >= 18 || >=19"
-  checksum: 10c0/d101228e3d574bee075b5f20dbbfc440e8223df5b21c44c9a563c77bd1a04b2573b7411de998da9f671e04ac616bb1672b46aa715f213f6504dce7586a4999a4
+  checksum: 10c0/56f4ea49668ad1004be42ff75dc0eade581754dd37a0aa04a3b7470cb132b324de2e7af5d8e29c420bf9726fd4a016104e2a14347ed9cc23235ce7a658a0591e
   languageName: node
   linkType: hard
 
@@ -45117,9 +45117,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ws@npm:8.18.1, ws@npm:^8.12.0, ws@npm:^8.13.0, ws@npm:^8.15.1, ws@npm:^8.17.1, ws@npm:^8.18.0, ws@npm:^8.2.3":
-  version: 8.18.1
-  resolution: "ws@npm:8.18.1"
+"ws@npm:8.18.2, ws@npm:^8.12.0, ws@npm:^8.13.0, ws@npm:^8.15.1, ws@npm:^8.17.1, ws@npm:^8.18.0, ws@npm:^8.2.3":
+  version: 8.18.2
+  resolution: "ws@npm:8.18.2"
   peerDependencies:
     bufferutil: ^4.0.1
     utf-8-validate: ">=5.0.2"
@@ -45128,7 +45128,7 @@ __metadata:
       optional: true
     utf-8-validate:
       optional: true
-  checksum: 10c0/e498965d6938c63058c4310ffb6967f07d4fa06789d3364829028af380d299fe05762961742971c764973dce3d1f6a2633fe8b2d9410c9b52e534b4b882a99fa
+  checksum: 10c0/4b50f67931b8c6943c893f59c524f0e4905bbd183016cfb0f2b8653aa7f28dad4e456b9d99d285bbb67cca4fedd9ce90dfdfaa82b898a11414ebd66ee99141e4
   languageName: node
   linkType: hard
 
@@ -45583,10 +45583,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"zod@npm:3.24.3, zod@npm:^3.23.8":
-  version: 3.24.3
-  resolution: "zod@npm:3.24.3"
-  checksum: 10c0/ab0369810968d0329a1a141e9418e01e5c9c2a4905cbb7cb7f5a131d6e9487596e1400e21eeff24c4a8ee28dacfa5bd6103893765c055b7a98c2006a5a4fc68d
+"zod@npm:3.24.4, zod@npm:^3.23.8":
+  version: 3.24.4
+  resolution: "zod@npm:3.24.4"
+  checksum: 10c0/ab3112f017562180a41a0f83d870b333677f7d6b77f106696c56894567051b91154714a088149d8387a4f50806a2520efcb666f108cd384a35c236a191186d91
   languageName: node
   linkType: hard
 
