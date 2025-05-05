@@ -9,7 +9,7 @@ use crate::{
     r#type::{
         TypeId,
         environment::Environment,
-        pretty_print::{ORANGE, PrettyPrint},
+        pretty_print::{ORANGE, PrettyPrint, RED},
         recursion::RecursionDepthBoundary,
     },
 };
@@ -123,9 +123,9 @@ impl PrettyPrint for GenericArguments<'_> {
         env: &'env Environment,
         limit: RecursionDepthBoundary,
     ) -> RcDoc<'env, anstyle::Style> {
-        match self.0 {
-            Some(Interned([], _)) | None => RcDoc::nil(),
-            Some(Interned(arguments, _)) => RcDoc::text("<")
+        match self.as_slice() {
+            [] => RcDoc::nil(),
+            arguments => RcDoc::text("<")
                 .append(
                     RcDoc::intersperse(
                         arguments.iter().map(|argument| argument.pretty(env, limit)),
@@ -223,6 +223,52 @@ impl Deref for GenericSubstitutions<'_> {
 
     fn deref(&self) -> &Self::Target {
         self.as_slice()
+    }
+}
+
+impl PrettyPrint for GenericSubstitutions<'_> {
+    fn pretty<'env>(
+        &self,
+        env: &'env Environment,
+        limit: RecursionDepthBoundary,
+    ) -> RcDoc<'env, anstyle::Style> {
+        match self.as_slice() {
+            [] => RcDoc::nil(),
+            slice => RcDoc::text("<")
+                .append(
+                    RcDoc::intersperse(
+                        slice
+                            .iter()
+                            .map(|substitution| substitution.pretty(env, limit)),
+                        RcDoc::text(",").append(RcDoc::line()),
+                    )
+                    .nest(1)
+                    .group(),
+                )
+                .append(RcDoc::text(">")),
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct Apply<'heap> {
+    pub base: TypeId,
+    pub substitutions: GenericSubstitutions<'heap>,
+}
+
+impl PrettyPrint for Apply<'_> {
+    fn pretty<'env>(
+        &self,
+        env: &'env Environment,
+        limit: RecursionDepthBoundary,
+    ) -> RcDoc<'env, anstyle::Style> {
+        limit.pretty(env, self.base).append(
+            RcDoc::line()
+                .append(RcDoc::text("where").annotate(RED))
+                .append(self.substitutions.pretty(env, limit))
+                .group()
+                .nest(1),
+        )
     }
 }
 
