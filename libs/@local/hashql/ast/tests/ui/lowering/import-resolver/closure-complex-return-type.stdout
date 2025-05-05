@@ -1,0 +1,40 @@
+Expr#4294967040@37
+  ExprKind (Closure)
+    ClosureExpr#4294967040@37
+      ClosureSignature#4294967040@37
+        Generics#4294967040@4
+        ClosureParam#4294967040@12 (name: x)
+          Type#4294967040@11
+            TypeKind (Path)
+              Path#4294967040@11 (rooted: true)
+                PathSegment#4294967040@10 (name: kernel)
+                PathSegment#4294967040@10 (name: type)
+                PathSegment#4294967040@10 (name: Number)
+        Type#4294967040@27
+          TypeKind (Path)
+            Path#4294967040@27 (rooted: true)
+              PathSegment#4294967040@17 (name: kernel)
+              PathSegment#4294967040@19 (name: type)
+              PathSegment#4294967040@26 (name: Option)
+                PathSegmentArgument (GenericArgument)
+                  GenericArgument#4294967040@25
+                    Type#4294967040@24
+                      TypeKind (Path)
+                        Path#4294967040@24 (rooted: true)
+                          PathSegment#4294967040@23 (name: kernel)
+                          PathSegment#4294967040@23 (name: type)
+                          PathSegment#4294967040@23 (name: Number)
+      Expr#4294967040@36
+        ExprKind (Call)
+          CallExpr#4294967040@36
+            Expr#4294967040@31
+              ExprKind (Path)
+                Path#4294967040@31 (rooted: true)
+                  PathSegment#4294967040@30 (name: kernel)
+                  PathSegment#4294967040@30 (name: type)
+                  PathSegment#4294967040@30 (name: Some)
+            Argument#4294967040@35
+              Expr#4294967040@35
+                ExprKind (Path)
+                  Path#4294967040@35 (rooted: false)
+                    PathSegment#4294967040@34 (name: x)

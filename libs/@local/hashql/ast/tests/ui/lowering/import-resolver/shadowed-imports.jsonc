@@ -1,0 +1,8 @@
+//@ run: pass
+//@ description: Tests that later imports can shadow earlier ones with the same name
+[
+  "use",
+  "kernel::type",
+  { "#tuple": ["Dict"] },
+  ["use", "math", { "#struct": { "add": "Dict" } }, "Dict"]
+]

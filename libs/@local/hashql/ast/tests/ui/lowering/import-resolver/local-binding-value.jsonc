@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Tests that local value bindings are properly tracked in scope and not resolved as paths
+["let", "Dict", { "#literal": 2 }, "Dict"]

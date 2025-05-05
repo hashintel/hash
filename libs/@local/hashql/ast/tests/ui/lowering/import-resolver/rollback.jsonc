@@ -1,0 +1,9 @@
+//@ run: fail
+//@ description: Tests that imports are properly scoped and don't leak outside their containing expression
+[
+  "if",
+  { "#literal": true },
+  ["use", "math", { "#tuple": ["lshift"] }, "lshift"],
+  "lshift"
+  //~^ ERROR 'lshift' needs to be imported first
+]

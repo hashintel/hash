@@ -3801,6 +3801,7 @@ dependencies = [
  "serde",
  "simple-mermaid",
  "smallvec 2.0.0-alpha.11",
+ "strsim",
  "test-case",
  "text-size",
  "tracing",

@@ -37,7 +37,7 @@ use core::fmt::Write as _;
 
 use foldhash::fast::RandomState;
 use hashbrown::HashMap;
-use hashql_core::{heap, symbol::Symbol};
+use hashql_core::{collection::FastHashMap, heap, symbol::Symbol};
 
 use crate::{
     node::{
@@ -61,15 +61,15 @@ struct Binding {
 }
 
 struct Namespaces {
-    value: HashMap<Symbol, Symbol, RandomState>,
-    r#type: HashMap<Symbol, Symbol, RandomState>,
+    value: FastHashMap<Symbol, Symbol>,
+    r#type: FastHashMap<Symbol, Symbol>,
 }
 
 impl Namespaces {
     fn new() -> Self {
         Self {
-            value: HashMap::with_hasher(RandomState::default()),
-            r#type: HashMap::with_hasher(RandomState::default()),
+            value: FastHashMap::default(),
+            r#type: FastHashMap::default(),
         }
     }
 

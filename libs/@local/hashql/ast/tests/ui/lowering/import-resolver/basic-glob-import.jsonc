@@ -1,0 +1,12 @@
+//@ run: pass
+//@ description: Tests that glob imports (*) bring all module items into scope and resolve correctly
+[
+  "use",
+  "math",
+  "*",
+  [
+    "lshift",
+    ["rshift", { "#literal": 2 }, { "#literal": 3 }],
+    { "#literal": 4 }
+  ]
+]

@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Tests that generic constraints in newtype declarations are preserved and correctly scoped
+["newtype", "Dict<Number>", "Number", "_"]

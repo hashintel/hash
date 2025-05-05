@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Tests that relative paths are normalized to absolute paths in nested expressions
+["use", "kernel", { "#tuple": ["type"] }, ["type", "Foo", "type::Dict", "_"]]

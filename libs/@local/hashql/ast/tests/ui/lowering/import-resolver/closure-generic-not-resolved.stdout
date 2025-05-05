@@ -1,0 +1,19 @@
+Expr#4294967040@27
+  ExprKind (Closure)
+    ClosureExpr#4294967040@27
+      ClosureSignature#4294967040@27
+        Generics#4294967040@8
+          GenericParam#4294967040@7 (name: Dict)
+        ClosureParam#4294967040@16 (name: x)
+          Type#4294967040@15
+            TypeKind (Path)
+              Path#4294967040@15 (rooted: false)
+                PathSegment#4294967040@14 (name: Dict)
+        Type#4294967040@22
+          TypeKind (Path)
+            Path#4294967040@22 (rooted: false)
+              PathSegment#4294967040@21 (name: Dict)
+      Expr#4294967040@26
+        ExprKind (Path)
+          Path#4294967040@26 (rooted: false)
+            PathSegment#4294967040@25 (name: x)

@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Tests that recursive value references are resolved as paths since they occur in the value expression
+["let", "Dict", ["+", "Dict", "Dict"], "Dict"]

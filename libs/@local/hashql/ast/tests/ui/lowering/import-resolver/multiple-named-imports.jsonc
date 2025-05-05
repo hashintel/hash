@@ -1,0 +1,12 @@
+//@ run: pass
+//@ description: Tests that a single use statement can import multiple items from the same module
+[
+  "use",
+  "math",
+  { "#struct": { "add": "plus", "sub": "minus", "mul": "times" } },
+  [
+    "plus",
+    ["minus", { "#literal": 5 }, { "#literal": 3 }],
+    ["times", { "#literal": 2 }, { "#literal": 2 }]
+  ]
+]
