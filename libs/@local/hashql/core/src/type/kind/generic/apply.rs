@@ -352,7 +352,9 @@ impl<'heap> Inference<'heap> for Apply<'heap> {
         let id = env.provision(self.id);
         let (_guard, substitutions) = env.instantiate_substitutions(self.kind.substitutions);
 
-        let base = env.instantiate(self.kind.base);
+        // Skip the substitution map, this makes sure that we always generate a new type (if
+        // required)
+        let base = env.force_instantiate(self.kind.base);
 
         env.intern_provisioned(
             id,
