@@ -21,7 +21,6 @@ use crate::{
             GenericArgument, GenericArgumentId, GenericArguments, GenericSubstitution,
             GenericSubstitutions,
         },
-        recursion::RecursionBoundary,
     },
 };
 
@@ -30,7 +29,6 @@ use crate::{
 #[derive(Debug)]
 pub struct InstantiateEnvironment<'env, 'heap> {
     pub environment: &'env Environment<'heap>,
-    boundary: RecursionBoundary<'heap>,
     diagnostics: Diagnostics,
 
     // We split these into two scopes, to ensure that the behaviour or generic arguments is that
@@ -46,7 +44,6 @@ impl<'env, 'heap> InstantiateEnvironment<'env, 'heap> {
     pub fn new(environment: &'env Environment<'heap>) -> Self {
         Self {
             environment,
-            boundary: RecursionBoundary::new(),
             diagnostics: Diagnostics::default(),
 
             substitutions_scope: Rc::default(),
@@ -149,6 +146,12 @@ impl<'env, 'heap> InstantiateEnvironment<'env, 'heap> {
         (guard, substitutions)
     }
 
+    pub(crate) fn force_instantiate(&mut self, id: TypeId) -> TypeId {
+        let r#type = self.environment.r#type(id);
+
+        r#type.instantiate(self)
+    }
+
     /// Instantiates a type by resolving its recursive structure and applying any provisioned
     /// substitutions.
     ///
@@ -171,20 +174,7 @@ impl<'env, 'heap> InstantiateEnvironment<'env, 'heap> {
             return substitution;
         }
 
-        let r#type = self.environment.r#type(id);
-
-        #[expect(clippy::manual_assert, reason = "false positive")]
-        if cfg!(debug_assertions) && self.boundary.enter(r#type, r#type).is_break() {
-            panic!("type id {id} should have been provisioned, but wasn't");
-        }
-
-        let result = r#type.instantiate(self);
-
-        if cfg!(debug_assertions) {
-            self.boundary.exit(r#type, r#type);
-        }
-
-        result
+        self.force_instantiate(id)
     }
 
     // During provisioning we don't need any guards, this allows us to have some more structural

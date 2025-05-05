@@ -349,8 +349,8 @@ impl<'heap> Inference<'heap> for Apply<'heap> {
     }
 
     fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {
-        let (_guard, substitutions) = env.instantiate_substitutions(self.kind.substitutions);
         let id = env.provision(self.id);
+        let (_guard, substitutions) = env.instantiate_substitutions(self.kind.substitutions);
 
         let base = env.instantiate(self.kind.base);
 
