@@ -349,19 +349,22 @@ impl<'heap> Inference<'heap> for Apply<'heap> {
     }
 
     fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {
-        // TODO: Instantiation via apply is a bit different, in that the recursion guard is
-        // different.
-        let (_guard, substitutions) = env.instantiate_substitutions(self.kind.substitutions);
+        let (_substitution_guard, substitutions) =
+            env.instantiate_substitutions(self.kind.substitutions);
+        let (_id_guard, id) = env.provision(self.id);
 
         let base = env.instantiate(self.kind.base);
 
-        env.intern_type(PartialType {
-            span: self.span,
-            kind: env.intern_kind(TypeKind::Apply(Self {
-                base,
-                substitutions,
-            })),
-        })
+        env.intern_provisioned(
+            id,
+            PartialType {
+                span: self.span,
+                kind: env.intern_kind(TypeKind::Apply(Self {
+                    base,
+                    substitutions,
+                })),
+            },
+        )
     }
 }
 
