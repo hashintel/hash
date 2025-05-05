@@ -92,7 +92,7 @@ where
         self.reverse.borrow_mut().insert(provisioned, id);
     }
 
-    pub(crate) fn clear(&mut self) {
+    pub(crate) fn clear(&self) {
         self.forward.borrow_mut().clear();
         self.reverse.borrow_mut().clear();
     }

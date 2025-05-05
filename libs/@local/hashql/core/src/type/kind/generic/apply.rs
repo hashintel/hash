@@ -384,3 +384,315 @@ impl PrettyPrint for Apply<'_> {
         )
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{Apply, GenericSubstitution};
+    use crate::{
+        heap::Heap,
+        span::SpanId,
+        r#type::{
+            PartialType,
+            environment::{
+                AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
+                SimplifyEnvironment,
+            },
+            inference::{Constraint, PartialStructuralEdge, Variable, VariableKind},
+            kind::{
+                IntersectionType, PrimitiveType, StructType, TypeKind, UnionType,
+                generic::{GenericArgumentId, GenericSubstitutions},
+                infer::HoleId,
+                r#struct::StructField,
+                test::{
+                    apply, assert_equiv, intersection, primitive, r#struct, struct_field, union,
+                },
+            },
+            pretty_print::PrettyPrint as _,
+            test::{instantiate, instantiate_infer},
+        },
+    };
+
+    // TODO: meet and join generic argument merging
+
+    #[test]
+    fn meet() {
+        // Meet should wrap the result of the underlying operation
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let mut lattice = LatticeEnvironment::new(&env);
+
+        let primitive_number = primitive!(env, PrimitiveType::Number);
+        let primitive_integer = primitive!(env, PrimitiveType::Integer);
+
+        let applied_number = apply!(env, primitive_number, []);
+        let applied_integer = apply!(env, primitive_integer, []);
+
+        assert_equiv!(
+            env,
+            [lattice.meet(applied_number, applied_integer)],
+            [applied_integer]
+        );
+
+        assert_equiv!(
+            env,
+            [lattice.meet(applied_number, primitive_integer)],
+            [applied_integer]
+        );
+
+        assert_equiv!(
+            env,
+            [lattice.meet(primitive_number, applied_integer)],
+            [primitive_integer]
+        );
+    }
+
+    #[test]
+    fn join() {
+        // Join should wrap the result of the underlying operation
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let mut lattice = LatticeEnvironment::new(&env);
+
+        let primitive_number = primitive!(env, PrimitiveType::Number);
+        let primitive_integer = primitive!(env, PrimitiveType::Integer);
+
+        let applied_number = apply!(env, primitive_number, []);
+        let applied_integer = apply!(env, primitive_integer, []);
+
+        assert_equiv!(
+            env,
+            [lattice.join(applied_number, applied_integer)],
+            [applied_number]
+        );
+
+        assert_equiv!(
+            env,
+            [lattice.join(applied_number, primitive_number)],
+            [applied_number]
+        );
+
+        assert_equiv!(
+            env,
+            [lattice.join(primitive_number, applied_number)],
+            [applied_number]
+        );
+    }
+
+    #[test]
+    fn bottom() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Verify that `is_bottom` simply delegates to the base type
+        let apply_never = apply!(env, instantiate(&env, TypeKind::Never), []);
+        let mut analysis = AnalysisEnvironment::new(&env);
+        assert!(analysis.is_bottom(apply_never));
+
+        let apply_string = apply!(env, primitive!(env, PrimitiveType::String), []);
+        assert!(!analysis.is_bottom(apply_string));
+    }
+
+    #[test]
+    fn top() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Verify that `is_top` simply delegates to the base type
+        let apply_unknown = apply!(env, instantiate(&env, TypeKind::Unknown), []);
+        let mut analysis = AnalysisEnvironment::new(&env);
+        assert!(analysis.is_top(apply_unknown));
+
+        let apply_string = apply!(env, primitive!(env, PrimitiveType::String), []);
+        assert!(!analysis.is_top(apply_string));
+    }
+
+    #[test]
+    fn concrete() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Verify that `is_concrete` simply delegates to the base type
+        let apply_never = apply!(env, instantiate(&env, TypeKind::Never), []);
+        let mut analysis = AnalysisEnvironment::new(&env);
+        assert!(analysis.is_concrete(apply_never));
+
+        let apply_infer = apply!(env, instantiate_infer(&env, 0_u32), []);
+        assert!(!analysis.is_concrete(apply_infer));
+    }
+
+    #[test]
+    fn recursive() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // type that's `type A = Apply<(name: A), []>`
+        let recursive = env.types.intern(|id| PartialType {
+            span: SpanId::SYNTHETIC,
+            kind: env.intern_kind(TypeKind::Apply(Apply {
+                base: r#struct!(env, [], [struct_field!(env, "A", id.value())]),
+                substitutions: GenericSubstitutions::empty(),
+            })),
+        });
+        let mut analysis = AnalysisEnvironment::new(&env);
+        assert!(analysis.is_recursive(recursive.id));
+
+        let apply_infer = apply!(env, instantiate_infer(&env, 0_u32), []);
+        assert!(!analysis.is_recursive(apply_infer));
+    }
+
+    #[test]
+    fn distribute_union() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // If the inner type is just a single type, we should just return ourselves
+        let string = apply!(env, primitive!(env, PrimitiveType::String), []);
+        let mut analysis = AnalysisEnvironment::new(&env);
+        assert_eq!(analysis.distribute_union(string), [string]);
+
+        // If the inner type is distributing, we should distribute ourselves as well
+        let union = apply!(
+            env,
+            union!(
+                env,
+                [
+                    primitive!(env, PrimitiveType::Number),
+                    primitive!(env, PrimitiveType::String)
+                ]
+            ),
+            []
+        );
+        let mut analysis = AnalysisEnvironment::new(&env);
+        assert_equiv!(
+            env,
+            analysis.distribute_union(union),
+            [
+                apply!(env, primitive!(env, PrimitiveType::Number), []),
+                apply!(env, primitive!(env, PrimitiveType::String), [])
+            ]
+        );
+    }
+
+    #[test]
+    fn distribute_intersection() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // If the inner type is just a single type, we should just return ourselves
+        let string = apply!(env, primitive!(env, PrimitiveType::String), []);
+        let mut analysis = AnalysisEnvironment::new(&env);
+        assert_eq!(analysis.distribute_intersection(string), [string]);
+
+        // If the inner type is distributing, we should distribute ourselves as well
+        let union = apply!(
+            env,
+            intersection!(
+                env,
+                [
+                    primitive!(env, PrimitiveType::Number),
+                    primitive!(env, PrimitiveType::String)
+                ]
+            ),
+            []
+        );
+        let mut analysis = AnalysisEnvironment::new(&env);
+        assert_equiv!(
+            env,
+            analysis.distribute_intersection(union),
+            [
+                apply!(env, primitive!(env, PrimitiveType::Number), []),
+                apply!(env, primitive!(env, PrimitiveType::String), [])
+            ]
+        );
+    }
+
+    #[test]
+    fn is_subtype_of() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Apply should be transparent in is_subtype_of checks
+        let integer = apply!(env, primitive!(env, PrimitiveType::Integer), []);
+        let number = apply!(env, primitive!(env, PrimitiveType::Number), []);
+
+        let mut analysis = AnalysisEnvironment::new(&env);
+        assert!(analysis.is_subtype_of(integer, number));
+        assert!(!analysis.is_subtype_of(number, integer));
+    }
+
+    #[test]
+    fn simplify() {
+        // Simplify should be transparent if the type is not concrete
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let mut simplify = SimplifyEnvironment::new(&env);
+        let infer = apply!(env, instantiate_infer(&env, 0_u32), []);
+        let number = apply!(env, primitive!(env, PrimitiveType::Number), []);
+
+        assert_eq!(simplify.simplify(infer), infer);
+        assert_equiv!(
+            env,
+            [simplify.simplify(number)],
+            [primitive!(env, PrimitiveType::Number)]
+        );
+    }
+
+    #[test]
+    fn collect_constraints() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let mut infer = InferenceEnvironment::new(&env);
+
+        let subtype = apply!(
+            env,
+            instantiate(&env, TypeKind::Never),
+            [GenericSubstitution {
+                argument: GenericArgumentId::new(0),
+                value: primitive!(env, PrimitiveType::Number)
+            }]
+        );
+
+        let supertype = primitive!(env, PrimitiveType::String);
+
+        infer.collect_constraints(subtype, supertype);
+
+        let constraints = infer.take_constraints();
+        assert_eq!(
+            constraints,
+            [Constraint::Equals {
+                variable: Variable::synthetic(VariableKind::Generic(GenericArgumentId::new(0))),
+                r#type: primitive!(env, PrimitiveType::Number)
+            }]
+        );
+    }
+
+    #[test]
+    fn collect_structural_constraints() {
+        // Nothing should happen as they are invariant
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let mut infer = InferenceEnvironment::new(&env);
+
+        let subtype = apply!(
+            env,
+            instantiate(&env, TypeKind::Never),
+            [GenericSubstitution {
+                argument: GenericArgumentId::new(0),
+                value: primitive!(env, PrimitiveType::Number)
+            }]
+        );
+
+        infer.collect_structural_edges(
+            subtype,
+            PartialStructuralEdge::Source(Variable::synthetic(VariableKind::Hole(HoleId::new(0)))),
+        );
+
+        let constraints = infer.take_constraints();
+        assert_eq!(constraints, []);
+    }
+}
