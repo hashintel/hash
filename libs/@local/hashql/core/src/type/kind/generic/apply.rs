@@ -350,6 +350,12 @@ impl<'heap> Inference<'heap> for Apply<'heap> {
         let id = env.provision(self.id);
         let (_guard, substitutions) = env.instantiate_substitutions(self.kind.substitutions);
 
+        if substitutions.is_empty() {
+            // No substitutions means that this apply is does not apply, and can therefore be safely
+            // removed
+            return env.instantiate(self.kind.base);
+        }
+
         // Skip the substitution map, this makes sure that we always generate a new type (if
         // required)
         let base = env.force_instantiate(self.kind.base);
@@ -393,11 +399,11 @@ mod tests {
             PartialType,
             environment::{
                 AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
-                SimplifyEnvironment,
+                SimplifyEnvironment, instantiate::InstantiateEnvironment,
             },
             inference::{Constraint, PartialStructuralEdge, Variable, VariableKind},
             kind::{
-                IntersectionType, PrimitiveType, StructType, TypeKind, UnionType,
+                GenericArgument, IntersectionType, PrimitiveType, StructType, TypeKind, UnionType,
                 generic::{GenericArgumentId, GenericSubstitutions},
                 infer::HoleId,
                 r#struct::StructField,
@@ -406,7 +412,7 @@ mod tests {
                 },
             },
             pretty_print::PrettyPrint as _,
-            test::{instantiate, instantiate_infer},
+            test::{instantiate, instantiate_infer, instantiate_param},
         },
     };
 
@@ -875,6 +881,20 @@ mod tests {
     }
 
     #[test]
+    fn is_equivalent() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Apply should be transparent in is_subtype_of checks
+        let integer = apply!(env, primitive!(env, PrimitiveType::Integer), []);
+        let number = apply!(env, primitive!(env, PrimitiveType::Number), []);
+
+        let mut analysis = AnalysisEnvironment::new(&env);
+        assert!(analysis.is_equivalent(integer, integer));
+        assert!(!analysis.is_equivalent(number, integer));
+    }
+
+    #[test]
     fn simplify() {
         // Simplify should be transparent if the type is not concrete
         let heap = Heap::new();
@@ -908,7 +928,7 @@ mod tests {
             }]
         );
 
-        let supertype = primitive!(env, PrimitiveType::String);
+        let supertype = apply!(env, primitive!(env, PrimitiveType::String), []);
 
         infer.collect_constraints(subtype, supertype);
 
@@ -946,5 +966,248 @@ mod tests {
 
         let constraints = infer.take_constraints();
         assert_eq!(constraints, []);
+    }
+
+    #[test]
+    fn instantiate_generic() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let argument = env.counter.generic_argument.next();
+
+        let foo = r#struct!(
+            &env,
+            [GenericArgument {
+                id: argument,
+                name: heap.intern_symbol("T"),
+                constraint: None
+            }],
+            [struct_field!(env, "foo", instantiate_param(&env, argument))]
+        );
+
+        let apply = apply!(
+            env,
+            foo,
+            [GenericSubstitution {
+                argument,
+                value: primitive!(env, PrimitiveType::String)
+            }]
+        );
+
+        let mut instantiate = InstantiateEnvironment::new(&env);
+
+        let result = instantiate.instantiate(apply);
+        let result = env.r#type(result).kind.apply().expect("Should be apply");
+
+        assert_eq!(result.substitutions.len(), 1);
+        assert_ne!(result.substitutions[0].argument, argument);
+
+        let foo = env
+            .r#type(result.base)
+            .kind
+            .r#struct()
+            .expect("Should be struct");
+
+        assert_eq!(foo.arguments[0].id, result.substitutions[0].argument);
+
+        let field = foo.fields[0].value;
+        let &field = env.r#type(field).kind.param().expect("Should be param");
+        assert_eq!(field.argument, result.substitutions[0].argument);
+    }
+
+    #[test]
+    fn instantiate_distinct() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let argument = env.counter.generic_argument.next();
+
+        let foo = r#struct!(
+            &env,
+            [GenericArgument {
+                id: argument,
+                name: heap.intern_symbol("T"),
+                constraint: None
+            }],
+            [struct_field!(env, "foo", instantiate_param(&env, argument))]
+        );
+
+        let a = apply!(
+            env,
+            foo,
+            [GenericSubstitution {
+                argument,
+                value: primitive!(env, PrimitiveType::String)
+            }]
+        );
+
+        let b = apply!(
+            env,
+            foo,
+            [GenericSubstitution {
+                argument,
+                value: primitive!(env, PrimitiveType::Integer)
+            }]
+        );
+
+        let mut instantiate = InstantiateEnvironment::new(&env);
+
+        let mut results = Vec::with_capacity(2);
+        for id in [a, b] {
+            let result = instantiate.instantiate(id);
+            let &result = env.r#type(result).kind.apply().expect("Should be apply");
+            results.push(result);
+
+            assert_eq!(result.substitutions.len(), 1);
+            assert_ne!(result.substitutions[0].argument, argument);
+
+            let foo = env
+                .r#type(result.base)
+                .kind
+                .r#struct()
+                .expect("Should be struct");
+
+            assert_eq!(foo.arguments[0].id, result.substitutions[0].argument);
+
+            let field = foo.fields[0].value;
+            let &field = env.r#type(field).kind.param().expect("Should be param");
+            assert_eq!(field.argument, result.substitutions[0].argument);
+        }
+
+        // check that from the result both a and b are distinct
+        let a = results[0];
+        let b = results[1];
+        assert_ne!(a.substitutions[0].argument, b.substitutions[0].argument);
+    }
+
+    #[test]
+    fn instantiate_recursive() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // type Foo<T> = Foo<T> where<T = T>
+        // a purely recursive type drops the apply wrapper
+        let foo = env
+            .types
+            .intern(|id| {
+                let argument = env.counter.generic_argument.next();
+
+                PartialType {
+                    span: SpanId::SYNTHETIC,
+                    kind: env.intern_kind(TypeKind::Struct(StructType {
+                        fields: env
+                            .intern_struct_fields(&mut [StructField {
+                                name: heap.intern_symbol("foo"),
+                                value: apply!(
+                                    env,
+                                    id.value(),
+                                    [GenericSubstitution {
+                                        argument,
+                                        value: instantiate_param(&env, argument)
+                                    }]
+                                ),
+                            }])
+                            .expect("no duplicates"),
+                        arguments: env.intern_generic_arguments(&mut [GenericArgument {
+                            id: argument,
+                            name: heap.intern_symbol("T"),
+                            constraint: None,
+                        }]),
+                    })),
+                }
+            })
+            .id;
+
+        let mut instantiate = InstantiateEnvironment::new(&env);
+
+        let result_id = instantiate.instantiate(foo);
+        let result = env
+            .r#type(result_id)
+            .kind
+            .r#struct()
+            .expect("should be struct");
+
+        // The inner type should be the exact same id as the outer type
+        assert_eq!(result.fields[0].value, result_id);
+    }
+
+    #[test]
+    fn instantiated_nested() {
+        todo!()
+    }
+
+    #[test]
+    fn instantiate_mutually_recursive() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let mut b = None;
+        let a = env.types.intern(|a_id| {
+            let t = env.counter.generic_argument.next(); // T
+            let u = env.counter.generic_argument.next(); // U
+
+            // type B<U> = (a: A<T> where T = U)
+            let b_id = r#struct!(
+                env,
+                [GenericArgument {
+                    id: u,
+                    name: heap.intern_symbol("U"),
+                    constraint: None
+                }],
+                [struct_field!(
+                    env,
+                    "a",
+                    apply!(
+                        env,
+                        a_id.value(),
+                        [GenericSubstitution {
+                            argument: t,
+                            value: instantiate_param(&env, u)
+                        }]
+                    )
+                )]
+            );
+
+            b = Some(b_id);
+
+            // type A<T> = (b: B<U> where U = T)
+            PartialType {
+                span: SpanId::SYNTHETIC,
+                kind: env.intern_kind(TypeKind::Struct(StructType {
+                    fields: env
+                        .intern_struct_fields(&mut [struct_field!(
+                            env,
+                            "b",
+                            apply!(
+                                env,
+                                b_id,
+                                [GenericSubstitution {
+                                    argument: u,
+                                    value: instantiate_param(&env, t)
+                                }]
+                            )
+                        )])
+                        .expect("should have no duplicates"),
+                    arguments: env.intern_generic_arguments(&mut [GenericArgument {
+                        id: t,
+                        name: heap.intern_symbol("T"),
+                        constraint: None,
+                    }]),
+                })),
+            }
+        });
+
+        let b = b.expect("should have new type");
+
+        let mut instantiate = InstantiateEnvironment::new(&env);
+
+        let result_id = instantiate.instantiate(a.id);
+
+        // We should have a depth of 3
+    }
+
+    #[test]
+    fn instantiate_different_substitutions() {
+        todo!()
     }
 }

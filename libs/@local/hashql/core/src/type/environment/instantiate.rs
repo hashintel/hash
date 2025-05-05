@@ -17,9 +17,12 @@ use crate::{
         PartialType, TypeId,
         error::TypeCheckDiagnostic,
         inference::Inference as _,
-        kind::generic::{
-            GenericArgument, GenericArgumentId, GenericArguments, GenericSubstitution,
-            GenericSubstitutions,
+        kind::{
+            Param, TypeKind,
+            generic::{
+                GenericArgument, GenericArgumentId, GenericArguments, GenericSubstitution,
+                GenericSubstitutions,
+            },
         },
     },
 };
@@ -79,11 +82,10 @@ impl<'env, 'heap> InstantiateEnvironment<'env, 'heap> {
             let id = if let Some(id) = self.substitutions_scope.lookup(generic.id) {
                 id
             } else {
-                let id = self.environment.counter.generic_argument.next();
-                mapping.push((generic.id, id));
-
-                id
+                self.environment.counter.generic_argument.next()
             };
+
+            mapping.push((generic.id, id));
 
             replacements.push(GenericArgument {
                 id,
@@ -121,6 +123,14 @@ impl<'env, 'heap> InstantiateEnvironment<'env, 'heap> {
         );
 
         for &substitution in &*substitutions {
+            if let Some(&TypeKind::Param(Param { argument })) =
+                self.types.get(substitution.value).map(|r#type| r#type.kind)
+                && argument == substitution.argument
+            {
+                // A mapping from T ↦ T can be safely ignored
+                continue;
+            }
+
             let argument = if let Some(&argument) = mapping.get(&substitution.argument) {
                 argument
             } else {
@@ -132,7 +142,7 @@ impl<'env, 'heap> InstantiateEnvironment<'env, 'heap> {
 
             replacements.push(GenericSubstitution {
                 argument,
-                value: substitution.value,
+                value: self.instantiate(substitution.value),
             });
         }
 

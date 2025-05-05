@@ -153,6 +153,6 @@ impl PrettyPrint for Param {
         _: &'env Environment,
         _: RecursionDepthBoundary,
     ) -> RcDoc<'env, anstyle::Style> {
-        RcDoc::text(format!("?{}", self.argument))
+        RcDoc::text(format!("?{}", self.argument)).annotate(ORANGE)
     }
 }
