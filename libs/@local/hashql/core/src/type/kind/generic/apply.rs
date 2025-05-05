@@ -138,6 +138,26 @@ pub struct Apply<'heap> {
 }
 
 impl<'heap> Apply<'heap> {
+    fn wrap(
+        span: SpanId,
+        bases: smallvec::SmallVec<TypeId, 4>,
+        substitutions: GenericSubstitutions<'heap>,
+        env: &Environment<'heap>,
+    ) -> smallvec::SmallVec<TypeId, 4> {
+        bases
+            .into_iter()
+            .map(|base| {
+                env.intern_type(PartialType {
+                    span,
+                    kind: env.intern_kind(TypeKind::Apply(Self {
+                        base,
+                        substitutions,
+                    })),
+                })
+            })
+            .collect()
+    }
+
     pub fn join_base(
         self,
         other: Self,
@@ -152,18 +172,7 @@ impl<'heap> Apply<'heap> {
 
         let substitutions = self.substitutions.merge(&other.substitutions, env);
 
-        bases
-            .into_iter()
-            .map(|base| {
-                env.intern_type(PartialType {
-                    span,
-                    kind: env.intern_kind(TypeKind::Apply(Self {
-                        base,
-                        substitutions,
-                    })),
-                })
-            })
-            .collect()
+        Self::wrap(span, bases, substitutions, env)
     }
 
     pub fn meet_base(
@@ -180,18 +189,7 @@ impl<'heap> Apply<'heap> {
 
         let substitutions = self.substitutions.merge(&other.substitutions, env);
 
-        bases
-            .into_iter()
-            .map(|base| {
-                env.intern_type(PartialType {
-                    span,
-                    kind: env.intern_kind(TypeKind::Apply(Self {
-                        base,
-                        substitutions,
-                    })),
-                })
-            })
-            .collect()
+        Self::wrap(span, bases, substitutions, env)
     }
 }
 
@@ -412,8 +410,6 @@ mod tests {
         },
     };
 
-    // TODO: meet and join generic argument merging
-
     #[test]
     fn meet() {
         // Meet should wrap the result of the underlying operation
@@ -478,6 +474,157 @@ mod tests {
             [lattice.join(primitive_number, applied_number)],
             [applied_number]
         );
+    }
+
+    #[test]
+    fn join_generic_argument_merging() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let mut lattice = LatticeEnvironment::new(&env);
+        lattice.without_simplify();
+
+        // Create base types
+        let number = primitive!(env, PrimitiveType::Number);
+        let string = primitive!(env, PrimitiveType::String);
+        let boolean = primitive!(env, PrimitiveType::Boolean);
+
+        // Create generic argument IDs
+        let argument1 = env.counter.generic_argument.next();
+        let argument2 = env.counter.generic_argument.next();
+
+        // Create Apply types with different substitutions
+        let apply1 = apply!(
+            env,
+            number,
+            [GenericSubstitution {
+                argument: argument1,
+                value: string,
+            }]
+        );
+
+        let apply2 = apply!(
+            env,
+            number,
+            [GenericSubstitution {
+                argument: argument2,
+                value: boolean,
+            }]
+        );
+
+        // Join the types
+        let result = lattice.join(apply1, apply2);
+
+        let apply = env.r#type(result).kind.apply().expect("should be apply");
+
+        assert_eq!(apply.substitutions.len(), 2);
+
+        // Check that substitutions are sorted by argument ID
+        assert_eq!(apply.substitutions[0].argument, argument1);
+        assert_eq!(apply.substitutions[1].argument, argument2);
+
+        // Check substitution values
+        assert_equiv!(env, [apply.substitutions[0].value], [string]);
+        assert_equiv!(env, [apply.substitutions[1].value], [boolean]);
+    }
+
+    #[test]
+    fn join_same_generic_arguments() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let mut lattice = LatticeEnvironment::new(&env);
+        lattice.without_simplify();
+
+        // Create base types
+        let number = primitive!(env, PrimitiveType::Number);
+        let string = primitive!(env, PrimitiveType::String);
+        let boolean = primitive!(env, PrimitiveType::Boolean);
+
+        // Create generic argument IDs
+        let argument1 = env.counter.generic_argument.next();
+
+        // Create Apply types with different substitutions
+        let apply1 = apply!(
+            env,
+            number,
+            [GenericSubstitution {
+                argument: argument1,
+                value: string,
+            }]
+        );
+
+        let apply2 = apply!(
+            env,
+            number,
+            [GenericSubstitution {
+                argument: argument1,
+                value: boolean,
+            }]
+        );
+
+        // Join the types
+        let result = lattice.join(apply1, apply2);
+
+        let apply = env.r#type(result).kind.apply().expect("should be apply");
+
+        assert_eq!(apply.substitutions.len(), 2);
+
+        // Check that substitutions are sorted by argument ID
+        assert_eq!(apply.substitutions[0].argument, argument1);
+        assert_eq!(apply.substitutions[1].argument, argument1);
+
+        // Check substitution values
+        assert_equiv!(env, [apply.substitutions[0].value], [string]);
+        assert_equiv!(env, [apply.substitutions[1].value], [boolean]);
+    }
+
+    #[test]
+    fn join_identical_generic_arguments() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let mut lattice = LatticeEnvironment::new(&env);
+        lattice.without_simplify();
+
+        // Create base types
+        let number = primitive!(env, PrimitiveType::Number);
+        let string = primitive!(env, PrimitiveType::String);
+
+        // Create generic argument IDs
+        let argument1 = env.counter.generic_argument.next();
+
+        // Create Apply types with different substitutions
+        let apply1 = apply!(
+            env,
+            number,
+            [GenericSubstitution {
+                argument: argument1,
+                value: string,
+            }]
+        );
+
+        let apply2 = apply!(
+            env,
+            number,
+            [GenericSubstitution {
+                argument: argument1,
+                value: string,
+            }]
+        );
+
+        // Join the types
+        let result = lattice.join(apply1, apply2);
+
+        let apply = env.r#type(result).kind.apply().expect("should be apply");
+
+        assert_eq!(apply.substitutions.len(), 1);
+
+        // Check that substitutions are sorted by argument ID
+        assert_eq!(apply.substitutions[0].argument, argument1);
+
+        // Check substitution values
+        assert_equiv!(env, [apply.substitutions[0].value], [string]);
     }
 
     #[test]
