@@ -6,7 +6,7 @@ use smallvec::SmallVec;
 use super::{
     Diagnostics, Environment,
     context::{
-        provision::{ProvisionedGuard, ProvisionedScope},
+        provision::ProvisionedScope,
         replace::{ReplacementGuard, ReplacementScope},
     },
 };
@@ -187,15 +187,17 @@ impl<'env, 'heap> InstantiateEnvironment<'env, 'heap> {
         result
     }
 
+    // During provisioning we don't need any guards, this allows us to have some more structural
+    // sharing if we refer to the same type. This leads to a reduce in exploded types.
     #[expect(
         clippy::needless_pass_by_ref_mut,
         reason = "prove ownership of environment, so that we can borrow safely"
     )]
-    pub fn provision(&mut self, id: TypeId) -> (ProvisionedGuard<TypeId>, Provisioned<TypeId>) {
+    pub fn provision(&mut self, id: TypeId) -> ((), Provisioned<TypeId>) {
         let provisioned = self.environment.types.provision();
-        let guard = Rc::clone(&self.provisioned).enter(id, provisioned);
+        self.provisioned.enter_unscoped(id, provisioned);
 
-        (guard, provisioned)
+        ((), provisioned)
     }
 
     #[must_use]

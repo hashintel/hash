@@ -87,6 +87,11 @@ where
         }
     }
 
+    pub(crate) fn enter_unscoped(&self, id: T, provisioned: Provisioned<T>) {
+        self.forward.borrow_mut().insert(id, provisioned);
+        self.reverse.borrow_mut().insert(provisioned, id);
+    }
+
     fn exit(&self, guard: &ProvisionedGuard<T>) {
         if let Some(previous) = guard.previous {
             self.forward.borrow_mut().insert(guard.id, previous);
