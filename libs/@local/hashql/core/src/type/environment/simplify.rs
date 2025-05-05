@@ -22,6 +22,7 @@ pub struct SimplifyEnvironment<'env, 'heap> {
     pub environment: &'env Environment<'heap>,
     boundary: RecursionBoundary<'heap>,
 
+    // TODO: this needs to move into the analysis environment
     provisioned: Rc<ProvisionedScope<TypeId>>,
 
     analysis: AnalysisEnvironment<'env, 'heap>,

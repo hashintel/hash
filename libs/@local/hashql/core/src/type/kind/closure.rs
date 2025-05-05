@@ -253,7 +253,7 @@ impl<'heap> Inference<'heap> for ClosureType<'heap> {
     }
 
     fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {
-        let id = env.provision(self.id);
+        let (_guard_id, id) = env.provision(self.id);
         let (_guard, arguments) = env.instantiate_arguments(self.kind.arguments);
 
         let mut params = SmallVec::<_, 16>::with_capacity(16);

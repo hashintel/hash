@@ -167,7 +167,7 @@ impl<'heap> Inference<'heap> for ListType {
     }
 
     fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {
-        let id = env.provision(self.id);
+        let (_guard, id) = env.provision(self.id);
 
         let element = env.instantiate(self.kind.element);
 
@@ -457,7 +457,7 @@ impl<'heap> Inference<'heap> for DictType {
     }
 
     fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {
-        let id = env.provision(self.id);
+        let (_guard, id) = env.provision(self.id);
 
         let key = env.instantiate(self.kind.key);
         let value = env.instantiate(self.kind.value);

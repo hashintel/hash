@@ -285,6 +285,9 @@ impl<'heap> Lattice<'heap> for Apply<'heap> {
     }
 
     fn simplify(self: Type<'heap, Self>, env: &mut SimplifyEnvironment<'_, 'heap>) -> TypeId {
+        let (_guard, id) = env.provision(self.id);
+        println!("Simplify: {} => {:?}", self.id, id);
+
         let base = env.simplify(self.kind.base);
 
         // If the type is concrete, then we no longer need the `Apply` wrapper
@@ -292,13 +295,16 @@ impl<'heap> Lattice<'heap> for Apply<'heap> {
             return base;
         }
 
-        env.intern_type(PartialType {
-            span: self.span,
-            kind: env.intern_kind(TypeKind::Apply(Apply {
-                base,
-                substitutions: self.kind.substitutions,
-            })),
-        })
+        env.intern_provisioned(
+            id,
+            PartialType {
+                span: self.span,
+                kind: env.intern_kind(TypeKind::Apply(Apply {
+                    base,
+                    substitutions: self.kind.substitutions,
+                })),
+            },
+        )
     }
 }
 
@@ -347,7 +353,7 @@ impl<'heap> Inference<'heap> for Apply<'heap> {
     }
 
     fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {
-        let id = env.provision(self.id);
+        let (_guard_id, id) = env.provision(self.id);
         let (_guard, substitutions) = env.instantiate_substitutions(self.kind.substitutions);
 
         if substitutions.is_empty() {
@@ -1141,7 +1147,6 @@ mod tests {
         let heap = Heap::new();
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
-        let mut b = None;
         let a = env.types.intern(|a_id| {
             let t = env.counter.generic_argument.next(); // T
             let u = env.counter.generic_argument.next(); // U
@@ -1167,8 +1172,6 @@ mod tests {
                     )
                 )]
             );
-
-            b = Some(b_id);
 
             // type A<T> = (b: B<U> where U = T)
             PartialType {
@@ -1197,13 +1200,46 @@ mod tests {
             }
         });
 
-        let b = b.expect("should have new type");
-
         let mut instantiate = InstantiateEnvironment::new(&env);
 
         let result_id = instantiate.instantiate(a.id);
+        let result_id = SimplifyEnvironment::new(&env).simplify(result_id);
+        // TODO: the provisioning needs to go into the analysis not into the simplify :buh: as
+        // analysis makes use of it (makes sense)
 
-        // We should have a depth of 3
+        let result = env
+            .r#type(result_id)
+            .kind
+            .r#struct()
+            .expect("should be struct");
+
+        let outer_param = result.arguments[0];
+
+        let inner = env
+            .r#type(result.fields[0].value)
+            .kind
+            .r#struct()
+            .expect("should be a struct");
+        let inner_param = inner.arguments[0];
+
+        let inner_inner = env
+            .r#type(inner.fields[0].value)
+            .kind
+            .r#struct()
+            .expect("should be a struct");
+        let inner_inner_param = inner_inner.arguments[0];
+
+        let inner_inner_inner = env
+            .r#type(inner_inner.fields[0].value)
+            .kind
+            .r#struct()
+            .expect("should be a struct");
+        let inner_inner_inner_param = inner_inner_inner.arguments[0];
+
+        assert_ne!(outer_param, inner_param);
+        assert_ne!(inner_param, inner_inner_param);
+        assert_ne!(inner_inner_param, outer_param);
+        assert_eq!(inner_param, inner_inner_inner_param);
     }
 
     #[test]

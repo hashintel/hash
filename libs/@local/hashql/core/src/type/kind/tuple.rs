@@ -310,7 +310,7 @@ impl<'heap> Inference<'heap> for TupleType<'heap> {
     }
 
     fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {
-        let id = env.provision(self.id);
+        let (_guard_id, id) = env.provision(self.id);
         let (_guard, arguments) = env.instantiate_arguments(self.kind.arguments);
 
         let mut fields = SmallVec::<_, 16>::with_capacity(self.kind.fields.len());

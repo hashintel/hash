@@ -571,7 +571,7 @@ impl<'heap> Inference<'heap> for UnionType<'heap> {
     }
 
     fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {
-        let id = env.provision(self.id);
+        let (_guard_id, id) = env.provision(self.id);
 
         let mut variants =
             TypeIdSet::<16>::with_capacity(env.environment, self.kind.variants.len());
