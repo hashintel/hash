@@ -311,8 +311,8 @@ impl<'heap> Inference<'heap> for OpaqueType<'heap> {
     }
 
     fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {
-        let (_provision_guard, id) = env.provision(self.id);
-        let (_argument_guard, arguments) = env.instantiate_arguments(self.kind.arguments);
+        let id = env.provision(self.id);
+        let (_guard, arguments) = env.instantiate_arguments(self.kind.arguments);
 
         let repr = env.instantiate(self.kind.repr);
 

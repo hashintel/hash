@@ -193,11 +193,11 @@ impl<'env, 'heap> InstantiateEnvironment<'env, 'heap> {
         clippy::needless_pass_by_ref_mut,
         reason = "prove ownership of environment, so that we can borrow safely"
     )]
-    pub fn provision(&mut self, id: TypeId) -> ((), Provisioned<TypeId>) {
+    pub fn provision(&mut self, id: TypeId) -> Provisioned<TypeId> {
         let provisioned = self.environment.types.provision();
         self.provisioned.enter_unscoped(id, provisioned);
 
-        ((), provisioned)
+        provisioned
     }
 
     #[must_use]

@@ -500,8 +500,8 @@ impl<'heap> Inference<'heap> for StructType<'heap> {
     }
 
     fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {
-        let (_provision_guard, id) = env.provision(self.id);
-        let (_argument_guard, arguments) = env.instantiate_arguments(self.kind.arguments);
+        let id = env.provision(self.id);
+        let (_guard, arguments) = env.instantiate_arguments(self.kind.arguments);
 
         let mut fields = SmallVec::<_, 16>::with_capacity(self.kind.fields.len());
         for field in &*self.kind.fields {
