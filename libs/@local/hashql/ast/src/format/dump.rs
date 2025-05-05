@@ -279,7 +279,7 @@ impl_syntax_dump!(struct TupleExpr(); []elements ?r#type);
 impl_syntax_dump!(struct ListElement(); value);
 impl_syntax_dump!(struct ListExpr(); []elements ?r#type);
 
-impl SyntaxDump for FloatLiteral {
+impl SyntaxDump for FloatLiteral<'_> {
     fn syntax_dump(&self, fmt: &mut Formatter, depth: usize) -> fmt::Result {
         let Self { value } = self;
 
@@ -294,7 +294,7 @@ impl SyntaxDump for FloatLiteral {
     }
 }
 
-impl SyntaxDump for IntegerLiteral {
+impl SyntaxDump for IntegerLiteral<'_> {
     fn syntax_dump(&self, fmt: &mut Formatter, depth: usize) -> fmt::Result {
         let Self { value } = self;
 
@@ -309,7 +309,7 @@ impl SyntaxDump for IntegerLiteral {
     }
 }
 
-impl SyntaxDump for StringLiteral {
+impl SyntaxDump for StringLiteral<'_> {
     fn syntax_dump(&self, fmt: &mut Formatter, depth: usize) -> fmt::Result {
         let Self { value } = self;
 
@@ -324,7 +324,7 @@ impl SyntaxDump for StringLiteral {
     }
 }
 
-impl SyntaxDump for LiteralKind {
+impl SyntaxDump for LiteralKind<'_> {
     fn syntax_dump(&self, fmt: &mut Formatter, depth: usize) -> fmt::Result {
         match self {
             Self::Null => write_header(fmt, depth, "LiteralKind", None, None, Some("Null")),
@@ -362,7 +362,7 @@ impl_syntax_dump!(struct TypeExpr(name); []constraints value body);
 
 impl_syntax_dump!(struct NewTypeExpr(name); []constraints value body);
 
-impl SyntaxDump for UseBinding {
+impl SyntaxDump for UseBinding<'_> {
     fn syntax_dump(&self, fmt: &mut Formatter, depth: usize) -> fmt::Result {
         let Self {
             id,

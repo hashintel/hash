@@ -10,7 +10,7 @@ pub struct StructField<'heap> {
     pub id: NodeId,
     pub span: SpanId,
 
-    pub name: Ident,
+    pub name: Ident<'heap>,
     pub r#type: Type<'heap>,
 }
 

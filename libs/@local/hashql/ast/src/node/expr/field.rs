@@ -30,5 +30,5 @@ pub struct FieldExpr<'heap> {
     pub span: SpanId,
 
     pub value: heap::Box<'heap, Expr<'heap>>,
-    pub field: Ident,
+    pub field: Ident<'heap>,
 }

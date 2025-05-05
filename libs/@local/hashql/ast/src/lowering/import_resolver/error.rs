@@ -8,7 +8,7 @@ use hashql_core::{
         item::Universe,
     },
     span::SpanId,
-    symbol::InternedSymbol,
+    symbol::Symbol,
 };
 use hashql_diagnostics::{
     Diagnostic,
@@ -228,7 +228,7 @@ fn format_suggestions<T>(
     Some(format!("\n\nDid you mean: `{suggestion}`?"))
 }
 
-struct FormatPath<'a, 'heap>(bool, &'a [(SpanId, InternedSymbol<'heap>)], Option<usize>);
+struct FormatPath<'a, 'heap>(bool, &'a [(SpanId, Symbol<'heap>)], Option<usize>);
 
 impl Display for FormatPath<'_, '_> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -258,7 +258,7 @@ pub(crate) fn from_resolution_error<'heap>(
     use_span: Option<SpanId>,
     registry: &ModuleRegistry<'heap>,
     path: &Path<'heap>,
-    name: Option<(SpanId, InternedSymbol<'heap>)>,
+    name: Option<(SpanId, Symbol<'heap>)>,
     mut error: ResolutionError<'heap>,
 ) -> ImportResolverDiagnostic {
     let mut diagnostic = Diagnostic::new(
@@ -269,7 +269,7 @@ pub(crate) fn from_resolution_error<'heap>(
     let segments: Vec<_> = path
         .segments
         .iter()
-        .map(|segment| (segment.span, segment.name.value.intern(registry.heap)))
+        .map(|segment| (segment.span, segment.name.value))
         .chain(name)
         .collect();
 

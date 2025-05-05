@@ -3,7 +3,7 @@
 [
   "if",
   { "#literal": true },
-  ["use", "math", { "#tuple": ["lshift"] }, "lshift"],
-  "lshift"
-  //~^ ERROR 'lshift' needs to be imported first
+  ["use", "math", { "#tuple": ["bit_shl"] }, "bit_shl"],
+  "bit_shl"
+  //~^ ERROR 'bit_shl' needs to be imported first
 ]

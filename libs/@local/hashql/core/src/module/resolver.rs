@@ -8,7 +8,7 @@ use super::{
     import::Import,
     item::{Item, ItemKind, Universe},
 };
-use crate::symbol::InternedSymbol;
+use crate::symbol::Symbol;
 
 pub(crate) type ModuleItemIterator<'heap> = impl ExactSizeIterator<Item = Item<'heap>> + Debug;
 pub(crate) type MultiResolveItemIterator<'heap> = impl Iterator<Item = Item<'heap>> + Debug;
@@ -69,7 +69,7 @@ impl<'heap> Resolver<'_, 'heap> {
         &self,
         module: Module<'heap>,
         universe: Universe,
-        name: InternedSymbol<'heap>,
+        name: Symbol<'heap>,
         depth: usize,
     ) -> Result<iter::Once<Item<'heap>>, ResolutionError<'heap>> {
         let item = module
@@ -94,7 +94,7 @@ impl<'heap> Resolver<'_, 'heap> {
     fn resolve_multi(
         &self,
         module: Module<'heap>,
-        name: InternedSymbol<'heap>,
+        name: Symbol<'heap>,
         depth: usize,
     ) -> Result<MultiResolveItemIterator<'heap>, ResolutionError<'heap>> {
         let mut item = module
@@ -118,7 +118,7 @@ impl<'heap> Resolver<'_, 'heap> {
     fn resolve_glob(
         &self,
         module: Module<'heap>,
-        name: InternedSymbol<'heap>,
+        name: Symbol<'heap>,
         depth: usize,
     ) -> Result<ModuleItemIterator<'heap>, ResolutionError<'heap>> {
         let candidate = module
@@ -151,7 +151,7 @@ impl<'heap> Resolver<'_, 'heap> {
     #[define_opaque(ModuleItemIterator)]
     fn resolve_impl(
         &self,
-        query: impl IntoIterator<Item = InternedSymbol<'heap>>,
+        query: impl IntoIterator<Item = Symbol<'heap>>,
         mut module: Module<'heap>,
     ) -> Result<ResolveIter<'heap>, ResolutionError<'heap>> {
         let mut query = query.into_iter().enumerate().peekable();
@@ -215,7 +215,7 @@ impl<'heap> Resolver<'_, 'heap> {
 
     pub(crate) fn resolve_absolute(
         &self,
-        query: impl IntoIterator<Item = InternedSymbol<'heap>>,
+        query: impl IntoIterator<Item = Symbol<'heap>>,
     ) -> Result<ResolveIter<'heap>, ResolutionError<'heap>> {
         let mut query = query.into_iter();
 
@@ -235,7 +235,7 @@ impl<'heap> Resolver<'_, 'heap> {
 
     fn resolve_import_single(
         &self,
-        name: InternedSymbol<'heap>,
+        name: Symbol<'heap>,
         imports: &[Import<'heap>],
         universe: Universe,
     ) -> Result<iter::Once<Item<'heap>>, ResolutionError<'heap>> {
@@ -269,7 +269,7 @@ impl<'heap> Resolver<'_, 'heap> {
     #[define_opaque(MultiResolveImportIterator)]
     fn resolve_import_multi(
         &self,
-        name: InternedSymbol<'heap>,
+        name: Symbol<'heap>,
         imports: &[Import<'heap>],
     ) -> Result<MultiResolveImportIterator<'heap>, ResolutionError<'heap>> {
         let mut base = imports
@@ -317,7 +317,7 @@ impl<'heap> Resolver<'_, 'heap> {
     #[define_opaque(ModuleItemIterator)]
     fn resolve_import_glob(
         &self,
-        name: InternedSymbol<'heap>,
+        name: Symbol<'heap>,
         imports: &[Import<'heap>],
     ) -> Result<ModuleItemIterator<'heap>, ResolutionError<'heap>> {
         let module = imports
@@ -347,7 +347,7 @@ impl<'heap> Resolver<'_, 'heap> {
     #[expect(clippy::panic_in_result_fn, reason = "sanity check")]
     pub(crate) fn resolve_relative(
         &self,
-        query: impl IntoIterator<Item = InternedSymbol<'heap>>,
+        query: impl IntoIterator<Item = Symbol<'heap>>,
         imports: &[Import<'heap>],
     ) -> Result<ResolveIter<'heap>, ResolutionError<'heap>> {
         let mut query = query.into_iter().peekable();

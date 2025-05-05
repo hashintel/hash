@@ -41,7 +41,7 @@ pub struct NewTypeExpr<'heap> {
     pub id: NodeId,
     pub span: SpanId,
 
-    pub name: Ident,
+    pub name: Ident<'heap>,
     pub constraints: heap::Vec<'heap, GenericConstraint<'heap>>,
 
     pub value: heap::Box<'heap, Type<'heap>>,

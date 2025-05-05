@@ -1,7 +1,7 @@
 use core::iter;
 
 use super::{Module, ModuleId, ModuleRegistry};
-use crate::{symbol::InternedSymbol, r#type::TypeId};
+use crate::{symbol::Symbol, r#type::TypeId};
 
 /// Represents the conceptual space or "universe" an item belongs to.
 ///
@@ -56,7 +56,7 @@ pub struct Item<'heap> {
 
     // TODO: move to Ident once Copy
     //  see: https://linear.app/hash/issue/H-4414/hashql-move-from-symbol-to-internedsymbol
-    pub name: InternedSymbol<'heap>,
+    pub name: Symbol<'heap>,
     pub kind: ItemKind,
 }
 
@@ -82,7 +82,7 @@ impl<'heap> Item<'heap> {
     pub fn absolute_path(
         &self,
         registry: &ModuleRegistry<'heap>,
-    ) -> impl Iterator<Item = InternedSymbol<'heap>> {
+    ) -> impl Iterator<Item = Symbol<'heap>> {
         let mut modules: Vec<_> = self.ancestors(registry).into_iter().collect();
         modules.reverse();
 

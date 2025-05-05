@@ -5,7 +5,7 @@ use hashql_ast::node::{
     },
     id::NodeId,
 };
-use hashql_core::symbol::{Ident, IdentKind, Symbol};
+use hashql_core::symbol::{Ident, IdentKind};
 use winnow::{
     ModalResult, Parser as _,
     ascii::{digit1, multispace0},
@@ -21,7 +21,7 @@ use super::{combinator::ws, context::Input, ident::parse_ident, path::parse_path
 #[derive(Debug)]
 enum Access<'heap> {
     Index(LiteralExpr<'heap>),
-    Field(Ident),
+    Field(Ident<'heap>),
 }
 
 // super limited set of expressions that are supported in strings for convenience
@@ -42,7 +42,7 @@ where
                 Access::Field(Ident {
                     span: context.span(range),
 
-                    value: Symbol::new(digit),
+                    value: context.heap.intern_symbol(digit),
                     kind: IdentKind::Lexical, // Do we need to specify a different kind here?
                 })
             }),
@@ -70,7 +70,7 @@ where
                 id: NodeId::PLACEHOLDER,
                 span,
                 kind: LiteralKind::Integer(IntegerLiteral {
-                    value: Symbol::new(digit),
+                    value: context.heap.intern_symbol(digit),
                 }),
                 r#type: None,
             })

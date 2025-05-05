@@ -144,9 +144,11 @@ use crate::{
 /// Note that the identifier `x` in the binding position (first argument) is preserved exactly as
 /// written, while its use in the body expression is resolved according to the current scope.
 pub struct PreExpansionNameResolver<'env, 'heap> {
-    alias: FastHashMap<Symbol, Option<Path<'heap>>>,
+    alias: FastHashMap<Symbol<'heap>, Option<Path<'heap>>>,
+
     namespace: ModuleNamespace<'env, 'heap>,
-    namespace_cache: FastHashMap<Symbol, Path<'heap>>,
+    namespace_cache: FastHashMap<Symbol<'heap>, Path<'heap>>,
+
     resolve: bool,
     heap: &'heap Heap,
 }
@@ -166,7 +168,12 @@ impl<'env, 'heap> PreExpansionNameResolver<'env, 'heap> {
         }
     }
 
-    fn walk_call(&mut self, expr: &mut CallExpr<'heap>, to: &Ident, mut from: Option<Path<'heap>>) {
+    fn walk_call(
+        &mut self,
+        expr: &mut CallExpr<'heap>,
+        to: Ident<'heap>,
+        mut from: Option<Path<'heap>>,
+    ) {
         // We now need to call_expr, but it's important that we don't apply the mapping
         // indiscriminately but instead we do so selectively on only on the last argument, as that
         // is the body of the expression.
@@ -194,16 +201,16 @@ impl<'env, 'heap> PreExpansionNameResolver<'env, 'heap> {
                 // The first argument is the identifier, which we shouldn't normalize
             } else if index == len - 1 {
                 let old = if let Some(from) = from.take() {
-                    self.alias.insert(to.value.clone(), Some(from))
+                    self.alias.insert(to.value, Some(from))
                 } else {
                     // Explicitly unset the alias
-                    self.alias.insert(to.value.clone(), None)
+                    self.alias.insert(to.value, None)
                 };
 
                 self.visit_argument(argument);
 
                 if let Some(old) = old {
-                    self.alias.insert(to.value.clone(), old);
+                    self.alias.insert(to.value, old);
                 } else {
                     // The binding hasn't existed before, therefore restoration = deletion
                     self.alias.remove(&to.value);
@@ -218,13 +225,13 @@ impl<'env, 'heap> PreExpansionNameResolver<'env, 'heap> {
     ///
     /// It checks the local alias map first, then the namespace cache, and finally
     /// the module namespace (for intrinsics) if necessary. Caches namespace lookups.
-    fn lookup(&mut self, name: &Symbol) -> Option<Path<'heap>> {
-        if let Some(replacement) = self.alias.get(name) {
+    fn lookup(&mut self, name: Symbol<'heap>) -> Option<Path<'heap>> {
+        if let Some(replacement) = self.alias.get(&name) {
             return replacement.clone();
         }
 
         // Check first if the cache has a version that's already been resolved
-        if let Some(path) = self.namespace_cache.get(name) {
+        if let Some(path) = self.namespace_cache.get(&name) {
             return Some(path.clone());
         }
 
@@ -234,7 +241,7 @@ impl<'env, 'heap> PreExpansionNameResolver<'env, 'heap> {
         let import = self
             .namespace
             .resolve_relative(
-                [name.intern(self.heap)],
+                [name],
                 ResolveOptions {
                     mode: ResolutionMode::Relative,
                     universe: Universe::Value,
@@ -261,7 +268,7 @@ impl<'env, 'heap> PreExpansionNameResolver<'env, 'heap> {
             span: SpanId::SYNTHETIC,
             name: Ident {
                 span: SpanId::SYNTHETIC,
-                value: Symbol::new(name),
+                value: self.heap.intern_symbol(name),
                 kind: IdentKind::Lexical,
             },
             arguments: self.heap.vec(None),
@@ -277,7 +284,7 @@ impl<'env, 'heap> PreExpansionNameResolver<'env, 'heap> {
             segments: vec,
         };
 
-        self.namespace_cache.insert(name.clone(), path.clone());
+        self.namespace_cache.insert(name, path.clone());
 
         Some(path)
     }
@@ -303,7 +310,7 @@ impl<'heap> Visitor<'heap> for PreExpansionNameResolver<'_, 'heap> {
 
         // The mapping can either exist in the registry, or our alias mapping
 
-        let Some(replacement) = self.lookup(&segment.name.value) else {
+        let Some(replacement) = self.lookup(segment.name.value) else {
             walk_path(self, path);
             return;
         };
@@ -391,7 +398,7 @@ impl<'heap> Visitor<'heap> for PreExpansionNameResolver<'_, 'heap> {
         };
 
         // We do **not** resolve the `to` path, as it is supposed to be an identifier
-        let Some(to) = to.as_ident().cloned() else {
+        let Some(to) = to.as_ident().copied() else {
             walk_call_expr(self, expr);
             return;
         };
@@ -400,7 +407,7 @@ impl<'heap> Visitor<'heap> for PreExpansionNameResolver<'_, 'heap> {
             // While it isn't a path and therefore not an alias, this is still a valid assignment,
             // therefore we need to actually *remove* the mapping for the duration of the call.
 
-            self.walk_call(expr, &to, None);
+            self.walk_call(expr, to, None);
             return;
         };
 
@@ -410,6 +417,6 @@ impl<'heap> Visitor<'heap> for PreExpansionNameResolver<'_, 'heap> {
         self.resolve = false;
         let from = Some(from.clone());
 
-        self.walk_call(expr, &to, from);
+        self.walk_call(expr, to, from);
     }
 }

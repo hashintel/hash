@@ -454,7 +454,7 @@ impl<'heap> SpecialFormExpander<'heap> {
         &mut self,
         mode: BindingMode,
         argument: Argument<'heap>,
-    ) -> Option<Ident> {
+    ) -> Option<Ident<'heap>> {
         let path = self.lower_argument_to_path(mode, argument)?;
         let span = path.span;
 
@@ -472,7 +472,7 @@ impl<'heap> SpecialFormExpander<'heap> {
         &mut self,
         mode: BindingMode,
         argument: Argument<'heap>,
-    ) -> Option<(Ident, heap::Vec<'heap, PathSegmentArgument<'heap>>)> {
+    ) -> Option<(Ident<'heap>, heap::Vec<'heap, PathSegmentArgument<'heap>>)> {
         let path = self.lower_argument_to_path(mode, argument)?;
         let span = path.span;
 
@@ -504,9 +504,9 @@ impl<'heap> SpecialFormExpander<'heap> {
                     kind: TypeKind::Path(path),
                     ..
                 } = r#type.as_ref()
-                    && let Some(ident) = path.as_ident() =>
+                    && let Some(&ident) = path.as_ident() =>
                 {
-                    if let Err(error) = seen.try_insert(ident.value.clone(), ident.span) {
+                    if let Err(error) = seen.try_insert(ident.value, ident.span) {
                         self.diagnostics.push(duplicate_generic_constraint(
                             ident.span,
                             ident.value.as_str(),
@@ -519,7 +519,7 @@ impl<'heap> SpecialFormExpander<'heap> {
                     constraints.push(GenericConstraint {
                         id,
                         span,
-                        name: ident.clone(),
+                        name: ident,
                         bound: None,
                     });
                 }
@@ -542,10 +542,9 @@ impl<'heap> SpecialFormExpander<'heap> {
                     return None;
                 }
                 PathSegmentArgument::Constraint(generic_constraint) => {
-                    if let Err(error) = seen.try_insert(
-                        generic_constraint.name.value.clone(),
-                        generic_constraint.name.span,
-                    ) {
+                    if let Err(error) =
+                        seen.try_insert(generic_constraint.name.value, generic_constraint.name.span)
+                    {
                         self.diagnostics.push(duplicate_generic_constraint(
                             generic_constraint.span,
                             generic_constraint.name.value.as_str(),
@@ -717,7 +716,7 @@ impl<'heap> SpecialFormExpander<'heap> {
     /// an identifier (to use as alias).
     ///
     /// Returns a `UseKind::Named` with the appropriate bindings if successful.
-    fn lower_use_imports_struct(&mut self, r#struct: StructExpr) -> Option<UseKind<'heap>> {
+    fn lower_use_imports_struct(&mut self, r#struct: StructExpr<'heap>) -> Option<UseKind<'heap>> {
         // {key: value}, each value must be a value must be an underscore *or* ident
         if let Some(type_expr) = &r#struct.r#type {
             self.diagnostics
@@ -776,7 +775,7 @@ impl<'heap> SpecialFormExpander<'heap> {
     /// should be a simple identifier. These imports use the original name without aliasing.
     ///
     /// Returns a `UseKind::Named` with the appropriate bindings if successful.
-    fn lower_use_imports_tuple(&mut self, tuple: TupleExpr) -> Option<UseKind<'heap>> {
+    fn lower_use_imports_tuple(&mut self, tuple: TupleExpr<'heap>) -> Option<UseKind<'heap>> {
         if let Some(type_expr) = &tuple.r#type {
             self.diagnostics
                 .push(use_imports_with_type_annotation(type_expr.span));
@@ -1096,7 +1095,7 @@ impl<'heap> SpecialFormExpander<'heap> {
         );
 
         for param in &generics.params {
-            if let Err(error) = seen.try_insert(param.name.value.clone(), param.name.span) {
+            if let Err(error) = seen.try_insert(param.name.value, param.name.span) {
                 self.diagnostics.push(duplicate_closure_generic(
                     param.name.span,
                     param.name.value.as_str(),
@@ -1108,7 +1107,7 @@ impl<'heap> SpecialFormExpander<'heap> {
         seen.clear();
 
         for param in &params {
-            if let Err(error) = seen.try_insert(param.name.value.clone(), param.name.span) {
+            if let Err(error) = seen.try_insert(param.name.value, param.name.span) {
                 self.diagnostics.push(duplicate_closure_parameter(
                     param.name.span,
                     param.name.value.as_str(),

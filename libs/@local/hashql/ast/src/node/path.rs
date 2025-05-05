@@ -55,7 +55,7 @@ pub struct PathSegment<'heap> {
     pub id: NodeId,
     pub span: SpanId,
 
-    pub name: Ident,
+    pub name: Ident<'heap>,
     /// Type parameters attached to this path segment
     pub arguments: heap::Vec<'heap, PathSegmentArgument<'heap>>,
 }
@@ -142,7 +142,7 @@ impl<'heap> Path<'heap> {
     }
 
     // Check if the path is a single identifier, and return if that's the case
-    pub(crate) fn as_ident(&self) -> Option<&Ident> {
+    pub(crate) fn as_ident(&self) -> Option<&Ident<'heap>> {
         if !self.is_ident() {
             return None;
         }
@@ -152,7 +152,7 @@ impl<'heap> Path<'heap> {
         Some(&segment.name)
     }
 
-    pub(crate) fn into_ident(mut self) -> Option<Ident> {
+    pub(crate) fn into_ident(mut self) -> Option<Ident<'heap>> {
         if !self.is_ident() {
             return None;
         }
@@ -163,7 +163,7 @@ impl<'heap> Path<'heap> {
 
     pub(crate) fn into_generic_ident(
         mut self,
-    ) -> Option<(Ident, heap::Vec<'heap, PathSegmentArgument<'heap>>)> {
+    ) -> Option<(Ident<'heap>, heap::Vec<'heap, PathSegmentArgument<'heap>>)> {
         if !self.is_generic_ident() {
             return None;
         }

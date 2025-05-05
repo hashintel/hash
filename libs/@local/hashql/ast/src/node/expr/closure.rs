@@ -11,7 +11,7 @@ pub struct ClosureParam<'heap> {
     pub id: NodeId,
     pub span: SpanId,
 
-    pub name: Ident,
+    pub name: Ident<'heap>,
     pub bound: heap::Box<'heap, Type<'heap>>,
 }
 

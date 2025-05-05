@@ -1,15 +1,15 @@
 [31m[import-resolver::unresolved-import] Error:[0m Unresolved import
    ╭─[ <unknown>:3:31 ]
    │
- 3 │ ["use", "math", { "#tuple": ["llshift"] }, "_"]
-   │          ──┬─                 ───┬───  
-   │            │                     ╰───── 'llshift' not found in module 'math'
-   │            │                           
-   │            ╰─────────────────────────── This module
+ 3 │ ["use", "math", { "#tuple": ["lshift"] }, "_"]
+   │          ──┬─                 ───┬──  
+   │            │                     ╰──── 'lshift' not found in module 'math'
+   │            │                          
+   │            ╰────────────────────────── This module
    │ 
    │ Help: Check the spelling and ensure the item is exported and available in this context.
    │       
-   │       Did you mean: `lshift`, `rshift`?
+   │       Possible alternatives are `lt`, `bit_not`, `sub` and 37 others.
    │ 
    │ Note: Items must be defined and accessible from the importing location. Make sure the item exists and is public.
 ───╯

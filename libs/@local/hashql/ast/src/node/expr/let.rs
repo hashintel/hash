@@ -32,7 +32,7 @@ pub struct LetExpr<'heap> {
     pub id: NodeId,
     pub span: SpanId,
 
-    pub name: Ident,
+    pub name: Ident<'heap>,
     pub value: heap::Box<'heap, Expr<'heap>>,
     pub r#type: Option<heap::Box<'heap, Type<'heap>>>,
 

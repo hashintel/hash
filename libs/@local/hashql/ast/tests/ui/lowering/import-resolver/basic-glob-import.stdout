@@ -5,7 +5,7 @@ Expr#4294967040@27
         ExprKind (Path)
           Path#4294967040@15 (rooted: true)
             PathSegment#4294967040@14 (name: math)
-            PathSegment#4294967040@14 (name: lshift)
+            PathSegment#4294967040@14 (name: bit_shl)
       Argument#4294967040@24
         Expr#4294967040@24
           ExprKind (Call)
@@ -14,7 +14,7 @@ Expr#4294967040@27
                 ExprKind (Path)
                   Path#4294967040@19 (rooted: true)
                     PathSegment#4294967040@18 (name: math)
-                    PathSegment#4294967040@18 (name: rshift)
+                    PathSegment#4294967040@18 (name: bit_shr)
               Argument#4294967040@21
                 Expr#4294967040@21
                   ExprKind (Literal)

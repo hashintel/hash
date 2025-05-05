@@ -12,7 +12,7 @@ pub struct StructEntry<'heap> {
     pub id: NodeId,
     pub span: SpanId,
 
-    pub key: Ident,
+    pub key: Ident<'heap>,
     pub value: heap::Box<'heap, Expr<'heap>>,
 }
 

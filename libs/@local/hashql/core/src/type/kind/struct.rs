@@ -8,7 +8,7 @@ use crate::{
     collection::FastHashMap,
     intern::Interned,
     math::cartesian_product,
-    symbol::InternedSymbol,
+    symbol::Symbol,
     r#type::{
         PartialType, Type, TypeId,
         environment::{
@@ -25,7 +25,7 @@ use crate::{
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct StructField<'heap> {
-    pub name: InternedSymbol<'heap>,
+    pub name: Symbol<'heap>,
     pub value: TypeId,
 }
 

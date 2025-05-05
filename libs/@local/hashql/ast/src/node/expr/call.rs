@@ -51,7 +51,7 @@ pub struct LabeledArgument<'heap> {
     pub id: NodeId,
     pub span: SpanId,
 
-    pub label: Ident,
+    pub label: Ident<'heap>,
     pub value: Argument<'heap>,
 }
 
