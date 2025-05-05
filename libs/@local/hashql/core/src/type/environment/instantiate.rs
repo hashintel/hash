@@ -11,12 +11,16 @@ use super::{
     },
 };
 use crate::{
+    collection::FastHashMap,
     intern::Provisioned,
     r#type::{
         PartialType, TypeId,
         error::TypeCheckDiagnostic,
         inference::Inference as _,
-        kind::generic::{GenericArgument, GenericArgumentId, GenericArguments},
+        kind::generic::{
+            GenericArgument, GenericArgumentId, GenericArguments, GenericSubstitution,
+            GenericSubstitutions,
+        },
         recursion::RecursionBoundary,
     },
 };
@@ -29,6 +33,10 @@ pub struct InstantiateEnvironment<'env, 'heap> {
     boundary: RecursionBoundary<'heap>,
     diagnostics: Diagnostics,
 
+    // We split these into two scopes, to ensure that the behaviour or generic arguments is that
+    // any "override" down the line of a generic argument results in new arguments. We only
+    // take on the previous value if a substitution is active.
+    substitutions_scope: Rc<ReplacementScope<GenericArgumentId>>,
     argument_scope: Rc<ReplacementScope<GenericArgumentId>>,
 
     provisioned: Rc<ProvisionedScope<TypeId>>,
@@ -41,6 +49,7 @@ impl<'env, 'heap> InstantiateEnvironment<'env, 'heap> {
             boundary: RecursionBoundary::new(),
             diagnostics: Diagnostics::default(),
 
+            substitutions_scope: Rc::default(),
             argument_scope: Rc::default(),
 
             provisioned: Rc::default(),
@@ -69,8 +78,15 @@ impl<'env, 'heap> InstantiateEnvironment<'env, 'heap> {
         let mut mapping = Vec::with_capacity(arguments.len());
 
         for generic in &*arguments {
-            let id = self.environment.counter.generic_argument.next();
-            mapping.push((generic.id, id));
+            // Check if the argument already exists, this the case if `Apply` ran before this
+            let id = if let Some(id) = self.substitutions_scope.lookup(generic.id) {
+                id
+            } else {
+                let id = self.environment.counter.generic_argument.next();
+                mapping.push((generic.id, id));
+
+                id
+            };
 
             replacements.push(GenericArgument {
                 id,
@@ -85,6 +101,52 @@ impl<'env, 'heap> InstantiateEnvironment<'env, 'heap> {
         let guard = scope.enter_many(mapping);
 
         (guard, arguments)
+    }
+
+    #[expect(
+        clippy::needless_pass_by_ref_mut,
+        reason = "prove ownership of environment, so that we can borrow safely"
+    )]
+    pub fn instantiate_substitutions(
+        &mut self,
+        substitutions: GenericSubstitutions<'heap>,
+    ) -> (
+        ReplacementGuard<GenericArgumentId>,
+        GenericSubstitutions<'heap>,
+    ) {
+        let mut replacements = SmallVec::<_, 16>::with_capacity(substitutions.len());
+        // We need a map here, because some substitutions *might* be overlapping and might be
+        // referring to the same variable, due to the fact that we merge substitutions during join
+        // and meet.
+        let mut mapping = FastHashMap::with_capacity_and_hasher(
+            substitutions.len(),
+            foldhash::fast::RandomState::default(),
+        );
+
+        for &substitution in &*substitutions {
+            let argument = if let Some(&argument) = mapping.get(&substitution.argument) {
+                argument
+            } else {
+                let id = self.environment.counter.generic_argument.next();
+                mapping.insert(substitution.argument, id);
+
+                id
+            };
+
+            replacements.push(GenericSubstitution {
+                argument,
+                value: substitution.value,
+            });
+        }
+
+        let substitutions = self
+            .environment
+            .intern_generic_substitutions(&mut replacements);
+
+        let scope = Rc::clone(&self.substitutions_scope);
+        let guard = scope.enter_many(mapping);
+
+        (guard, substitutions)
     }
 
     /// Instantiates a type by resolving its recursive structure and applying any provisioned

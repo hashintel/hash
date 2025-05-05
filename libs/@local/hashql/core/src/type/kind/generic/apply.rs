@@ -271,7 +271,7 @@ impl<'heap> Lattice<'heap> for Apply<'heap> {
                     span: self.span,
                     kind: env.intern_kind(TypeKind::Apply(Apply {
                         base,
-                        substitutions: self.kind.substitutions.clone(),
+                        substitutions: self.kind.substitutions,
                     })),
                 })
             })
@@ -349,7 +349,19 @@ impl<'heap> Inference<'heap> for Apply<'heap> {
     }
 
     fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {
-        todo!()
+        // TODO: Instantiation via apply is a bit different, in that the recursion guard is
+        // different.
+        let (_guard, substitutions) = env.instantiate_substitutions(self.kind.substitutions);
+
+        let base = env.instantiate(self.kind.base);
+
+        env.intern_type(PartialType {
+            span: self.span,
+            kind: env.intern_kind(TypeKind::Apply(Self {
+                base,
+                substitutions,
+            })),
+        })
     }
 }
 
