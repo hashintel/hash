@@ -6,8 +6,9 @@ use super::GenericArgumentId;
 use crate::{
     intern::Interned,
     r#type::{
-        Type, TypeId,
-        environment::{AnalysisEnvironment, Environment, LatticeEnvironment},
+        PartialType, Type, TypeId,
+        environment::{AnalysisEnvironment, Environment, LatticeEnvironment, SimplifyEnvironment},
+        kind::TypeKind,
         lattice::Lattice,
         pretty_print::{ORANGE, PrettyPrint, RED},
         recursion::RecursionDepthBoundary,
@@ -137,7 +138,29 @@ impl<'heap> Lattice<'heap> for Apply<'heap> {
         other: Type<'heap, Self>,
         env: &mut LatticeEnvironment<'_, 'heap>,
     ) -> smallvec::SmallVec<TypeId, 4> {
-        todo!()
+        // As we require to wrap the result in our own type, we call the function directly
+        let self_base = env.r#type(self.kind.base);
+        let other_base = env.r#type(other.kind.base);
+
+        let bases = self_base.join(other_base, env);
+
+        let substitutions = self
+            .kind
+            .substitutions
+            .merge(&other.kind.substitutions, env);
+
+        bases
+            .into_iter()
+            .map(|base| {
+                env.intern_type(PartialType {
+                    span: self.span,
+                    kind: env.intern_kind(TypeKind::Apply(Self {
+                        base,
+                        substitutions,
+                    })),
+                })
+            })
+            .collect()
     }
 
     fn meet(
@@ -145,37 +168,95 @@ impl<'heap> Lattice<'heap> for Apply<'heap> {
         other: Type<'heap, Self>,
         env: &mut LatticeEnvironment<'_, 'heap>,
     ) -> smallvec::SmallVec<TypeId, 4> {
-        todo!()
+        // As we require to wrap the result in our own type, we call the function directly
+        let self_base = env.r#type(self.kind.base);
+        let other_base = env.r#type(other.kind.base);
+
+        let bases = self_base.meet(other_base, env);
+
+        let substitutions = self
+            .kind
+            .substitutions
+            .merge(&other.kind.substitutions, env);
+
+        bases
+            .into_iter()
+            .map(|base| {
+                env.intern_type(PartialType {
+                    span: self.span,
+                    kind: env.intern_kind(TypeKind::Apply(Self {
+                        base,
+                        substitutions,
+                    })),
+                })
+            })
+            .collect()
     }
 
     fn is_bottom(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
-        todo!()
+        env.is_bottom(self.kind.base)
     }
 
     fn is_top(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
-        todo!()
+        env.is_top(self.kind.base)
     }
 
     fn is_concrete(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
-        todo!()
+        env.is_concrete(self.kind.base)
     }
 
     fn is_recursive(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
-        todo!()
+        env.is_recursive(self.kind.base)
     }
 
     fn distribute_union(
         self: Type<'heap, Self>,
         env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> smallvec::SmallVec<TypeId, 16> {
-        todo!()
+        let base = env.distribute_union(self.kind.base);
+
+        // Due to distribution rules, we know if there's a single element, it's the same as the
+        // original type.
+        if base.len() == 1 {
+            return smallvec::SmallVec::from_slice(&[self.id]);
+        }
+
+        base.into_iter()
+            .map(|base| {
+                env.intern_type(PartialType {
+                    span: self.span,
+                    kind: env.intern_kind(TypeKind::Apply(Apply {
+                        base,
+                        substitutions: self.kind.substitutions,
+                    })),
+                })
+            })
+            .collect()
     }
 
     fn distribute_intersection(
         self: Type<'heap, Self>,
         env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> smallvec::SmallVec<TypeId, 16> {
-        todo!()
+        let base = env.distribute_intersection(self.kind.base);
+
+        // Due to distribution rules, we know if there's a single element, it's the same as the
+        // original type.
+        if base.len() == 1 {
+            return smallvec::SmallVec::from_slice(&[self.id]);
+        }
+
+        base.into_iter()
+            .map(|base| {
+                env.intern_type(PartialType {
+                    span: self.span,
+                    kind: env.intern_kind(TypeKind::Apply(Apply {
+                        base,
+                        substitutions: self.kind.substitutions.clone(),
+                    })),
+                })
+            })
+            .collect()
     }
 
     fn is_subtype_of(
@@ -183,14 +264,19 @@ impl<'heap> Lattice<'heap> for Apply<'heap> {
         supertype: Type<'heap, Self>,
         env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool {
-        todo!()
+        env.is_subtype_of(self.kind.base, supertype.kind.base)
     }
 
-    fn simplify(
-        self: Type<'heap, Self>,
-        env: &mut crate::r#type::environment::SimplifyEnvironment<'_, 'heap>,
-    ) -> TypeId {
-        todo!()
+    fn simplify(self: Type<'heap, Self>, env: &mut SimplifyEnvironment<'_, 'heap>) -> TypeId {
+        let base = env.simplify(self.kind.base);
+
+        env.intern_type(PartialType {
+            span: self.span,
+            kind: env.intern_kind(TypeKind::Apply(Apply {
+                base,
+                substitutions: self.kind.substitutions,
+            })),
+        })
     }
 }
 
