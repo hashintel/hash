@@ -305,7 +305,7 @@ impl<'heap> Lattice<'heap> for Apply<'heap> {
 }
 
 impl<'heap> Apply<'heap> {
-    fn collect_substitution_constraints(
+    pub fn collect_substitution_constraints(
         self,
         span: SpanId,
         env: &mut InferenceEnvironment<'_, 'heap>,
