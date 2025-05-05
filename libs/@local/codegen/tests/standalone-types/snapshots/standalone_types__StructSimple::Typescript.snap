@@ -1,0 +1,10 @@
+---
+source: libs/@local/codegen/tests/standalone-types/main.rs
+expression: generated
+---
+export interface StructSimple {
+	integer: number;
+	float: number;
+	string: string;
+	boolean: boolean;
+}

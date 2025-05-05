@@ -1,0 +1,10 @@
+---
+source: libs/@local/codegen/tests/standalone-types/main.rs
+expression: generated
+---
+export interface ListStructs {
+	vec_items: StructSimple[];
+	array_items: StructSimple[];
+	set_items: StructSimple[];
+	linked_items: StructSimple[];
+}

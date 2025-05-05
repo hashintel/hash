@@ -27,8 +27,8 @@ type-system   = { workspace = true }
 workspace = true
 
 [[test]]
-name    = "codegen"
-path    = "tests/codegen/main.rs"
+name    = "standalone-types"
+path    = "tests/standalone-types/main.rs"
 harness = false
 
 

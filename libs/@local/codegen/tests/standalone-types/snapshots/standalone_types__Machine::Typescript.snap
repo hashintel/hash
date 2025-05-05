@@ -1,0 +1,9 @@
+---
+source: libs/@local/codegen/tests/standalone-types/main.rs
+expression: generated
+---
+export interface Machine {
+	id: MachineId;
+	identifier: string;
+	roles: RoleId[];
+}

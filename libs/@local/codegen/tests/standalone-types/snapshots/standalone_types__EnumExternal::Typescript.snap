@@ -1,0 +1,26 @@
+---
+source: libs/@local/codegen/tests/standalone-types/main.rs
+expression: generated
+---
+export type EnumExternal = "Unit" | {
+	EmptyUnnamed: []
+} | {
+	SingleUnnamed: number
+} | {
+	DoubleUnnamed: [boolean, string]
+} | {
+	EmptyNamed: Record<string, never>
+} | {
+	SingleNamed: {
+		value: number
+	}
+} | {
+	MultiNamed: {
+		value_1: number
+		value_2: string
+	}
+} | {
+	FlattenedStruct: {
+		name: string
+	} & StructSimple
+};

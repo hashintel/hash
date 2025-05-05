@@ -1,0 +1,10 @@
+---
+source: libs/@local/codegen/tests/standalone-types/main.rs
+expression: generated
+---
+export interface ListNested {
+	list_of_lists: number[][];
+	matrix: number[][][];
+	nested_sets: number[][];
+	mixed_nesting: number[][];
+}
