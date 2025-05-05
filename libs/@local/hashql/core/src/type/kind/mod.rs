@@ -16,7 +16,7 @@ use core::{ops::ControlFlow, ptr};
 use pretty::RcDoc;
 use smallvec::SmallVec;
 
-use self::generic::Apply;
+use self::generic::{Apply, GenericSubstitutions};
 pub use self::{
     closure::ClosureType, generic::Param, infer::Infer, intersection::IntersectionType,
     intrinsic::IntrinsicType, opaque::OpaqueType, primitive::PrimitiveType, r#struct::StructType,
@@ -307,6 +307,45 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 | Self::Tuple(_),
             ) => SmallVec::from_slice(&[self.id, other.id]),
 
+            // Apply ∨ _
+            (Self::Apply(lhs), Self::Apply(rhs)) => self.with(lhs).join(other.with(rhs), env),
+            (
+                &Self::Apply(lhs),
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_)
+                | Self::Union(_)
+                | Self::Intersection(_)
+                | Self::Closure(_),
+            ) => {
+                let rhs = Apply {
+                    base: other.id,
+                    substitutions: GenericSubstitutions::empty(),
+                };
+
+                lhs.join_base(rhs, env, self.span)
+            }
+            (
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_)
+                | Self::Union(_)
+                | Self::Intersection(_)
+                | Self::Closure(_),
+                &Self::Apply(rhs),
+            ) => {
+                let lhs = Apply {
+                    base: self.id,
+                    substitutions: GenericSubstitutions::empty(),
+                };
+
+                lhs.join_base(rhs, env, self.span)
+            }
+
             // Union ∨ _
             (Self::Union(lhs), Self::Union(rhs)) => self.with(lhs).join(other.with(rhs), env),
             (
@@ -535,6 +574,45 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 | Self::Tuple(_),
             ) => SmallVec::new(),
 
+            // Apply ∧ _
+            (Self::Apply(lhs), Self::Apply(rhs)) => self.with(lhs).meet(other.with(rhs), env),
+            (
+                &Self::Apply(lhs),
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_)
+                | Self::Union(_)
+                | Self::Intersection(_)
+                | Self::Closure(_),
+            ) => {
+                let rhs = Apply {
+                    base: other.id,
+                    substitutions: GenericSubstitutions::empty(),
+                };
+
+                lhs.meet_base(rhs, env, self.span)
+            }
+            (
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_)
+                | Self::Union(_)
+                | Self::Intersection(_)
+                | Self::Closure(_),
+                &Self::Apply(rhs),
+            ) => {
+                let lhs = Apply {
+                    base: self.id,
+                    substitutions: GenericSubstitutions::empty(),
+                };
+
+                lhs.meet_base(rhs, env, self.span)
+            }
+
             // Union ∧ _
             (Self::Union(lhs), Self::Union(rhs)) => self.with(lhs).meet(other.with(rhs), env),
             (
@@ -613,6 +691,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             Self::Closure(closure_type) => self.with(closure_type).is_bottom(env),
             Self::Union(union_type) => self.with(union_type).is_bottom(env),
             Self::Intersection(intersection_type) => self.with(intersection_type).is_bottom(env),
+            Self::Apply(apply) => self.with(apply).is_bottom(env),
             &Self::Param(Param { argument }) => {
                 let Some(substitution) = env.substitution.argument(argument) else {
                     let _: ControlFlow<()> =
@@ -648,6 +727,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             Self::Closure(closure_type) => self.with(closure_type).is_top(env),
             Self::Union(union_type) => self.with(union_type).is_top(env),
             Self::Intersection(intersection_type) => self.with(intersection_type).is_top(env),
+            Self::Apply(apply) => self.with(apply).is_top(env),
             &Self::Param(Param { argument }) => {
                 let Some(substitution) = env.substitution.argument(argument) else {
                     let _: ControlFlow<()> =
@@ -683,6 +763,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             Self::Closure(closure_type) => self.with(closure_type).is_concrete(env),
             Self::Union(union_type) => self.with(union_type).is_concrete(env),
             Self::Intersection(intersection_type) => self.with(intersection_type).is_concrete(env),
+            Self::Apply(apply) => self.with(apply).is_concrete(env),
             &Self::Param(Param { argument }) => env.substitution.argument(argument).is_some(),
             &Self::Infer(Infer { hole }) => env.substitution.infer(hole).is_some(),
             Self::Never | Self::Unknown => true,
@@ -701,6 +782,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 self.with(intersection_type).is_recursive(env)
             }
             TypeKind::Closure(closure_type) => self.with(closure_type).is_recursive(env),
+            TypeKind::Apply(apply) => self.with(apply).is_recursive(env),
             &TypeKind::Param(Param { argument }) => env
                 .substitution
                 .argument(argument)
@@ -728,6 +810,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             Self::Intersection(intersection_type) => {
                 self.with(intersection_type).distribute_union(env)
             }
+            Self::Apply(apply_type) => self.with(apply_type).distribute_union(env),
             &Self::Param(Param { argument }) => env.substitution.argument(argument).map_or_else(
                 || SmallVec::from_slice(&[self.id]),
                 |substitution| env.distribute_union(substitution),
@@ -759,6 +842,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             Self::Intersection(intersection_type) => {
                 self.with(intersection_type).distribute_intersection(env)
             }
+            Self::Apply(apply_type) => self.with(apply_type).distribute_intersection(env),
             &Self::Param(Param { argument }) => env.substitution.argument(argument).map_or_else(
                 || SmallVec::from_slice(&[self.id]),
                 |substitution| env.distribute_intersection(substitution),
@@ -903,6 +987,33 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 | Self::Intrinsic(_)
                 | Self::Tuple(_),
             ) => false,
+
+            // Apply ≡ _
+            (Self::Apply(lhs), Self::Apply(rhs)) => {
+                return self.with(lhs).is_equivalent(other.with(rhs), env);
+            }
+            (
+                Self::Apply(lhs),
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_)
+                | Self::Closure(_)
+                | Self::Union(_)
+                | Self::Intersection(_),
+            ) => return env.is_equivalent(lhs.base, other.id),
+            (
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_)
+                | Self::Closure(_)
+                | Self::Union(_)
+                | Self::Intersection(_),
+                Self::Apply(rhs),
+            ) => return env.is_equivalent(self.id, rhs.base),
 
             // Union ≡ _
             (Self::Union(lhs), Self::Union(rhs)) => {
@@ -1163,6 +1274,33 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 | Self::Tuple(_),
             ) => false,
 
+            // Apply <: _
+            (Self::Apply(lhs), Self::Apply(rhs)) => {
+                return self.with(lhs).is_subtype_of(supertype.with(rhs), env);
+            }
+            (
+                Self::Apply(lhs),
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_)
+                | Self::Closure(_)
+                | Self::Union(_)
+                | Self::Intersection(_),
+            ) => return env.is_subtype_of(lhs.base, supertype.id),
+            (
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_)
+                | Self::Closure(_)
+                | Self::Union(_)
+                | Self::Intersection(_),
+                Self::Apply(rhs),
+            ) => return env.is_subtype_of(self.id, rhs.base),
+
             // Union <: _
             (Self::Union(lhs), Self::Union(rhs)) => {
                 return self.with(lhs).is_subtype_of(supertype.with(rhs), env);
@@ -1289,6 +1427,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             Self::Struct(struct_type) => self.with(struct_type).simplify(env),
             Self::Tuple(tuple_type) => self.with(tuple_type).simplify(env),
             Self::Closure(closure_type) => self.with(closure_type).simplify(env),
+            Self::Apply(apply_type) => self.with(apply_type).simplify(env),
             Self::Union(union_type) => self.with(union_type).simplify(env),
             Self::Intersection(intersection_type) => self.with(intersection_type).simplify(env),
             Self::Param(_) | Self::Never | Self::Unknown | Self::Infer(_) => self.id,

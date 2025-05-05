@@ -12,7 +12,7 @@ use crate::{
     r#type::{
         TypeId,
         environment::Environment,
-        pretty_print::{ORANGE, PrettyPrint, RED},
+        pretty_print::{ORANGE, PrettyPrint},
         recursion::RecursionDepthBoundary,
     },
 };

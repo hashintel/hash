@@ -5,6 +5,7 @@ use pretty::RcDoc;
 use super::GenericArgumentId;
 use crate::{
     intern::Interned,
+    span::SpanId,
     r#type::{
         PartialType, Type, TypeId,
         environment::{AnalysisEnvironment, Environment, LatticeEnvironment, SimplifyEnvironment},
@@ -132,28 +133,26 @@ pub struct Apply<'heap> {
     pub substitutions: GenericSubstitutions<'heap>,
 }
 
-impl<'heap> Lattice<'heap> for Apply<'heap> {
-    fn join(
-        self: Type<'heap, Self>,
-        other: Type<'heap, Self>,
+impl<'heap> Apply<'heap> {
+    pub fn join_base(
+        self,
+        other: Self,
         env: &mut LatticeEnvironment<'_, 'heap>,
+        span: SpanId,
     ) -> smallvec::SmallVec<TypeId, 4> {
         // As we require to wrap the result in our own type, we call the function directly
-        let self_base = env.r#type(self.kind.base);
-        let other_base = env.r#type(other.kind.base);
+        let self_base = env.r#type(self.base);
+        let other_base = env.r#type(other.base);
 
         let bases = self_base.join(other_base, env);
 
-        let substitutions = self
-            .kind
-            .substitutions
-            .merge(&other.kind.substitutions, env);
+        let substitutions = self.substitutions.merge(&other.substitutions, env);
 
         bases
             .into_iter()
             .map(|base| {
                 env.intern_type(PartialType {
-                    span: self.span,
+                    span,
                     kind: env.intern_kind(TypeKind::Apply(Self {
                         base,
                         substitutions,
@@ -163,27 +162,25 @@ impl<'heap> Lattice<'heap> for Apply<'heap> {
             .collect()
     }
 
-    fn meet(
-        self: Type<'heap, Self>,
-        other: Type<'heap, Self>,
+    pub fn meet_base(
+        self,
+        other: Self,
         env: &mut LatticeEnvironment<'_, 'heap>,
+        span: SpanId,
     ) -> smallvec::SmallVec<TypeId, 4> {
         // As we require to wrap the result in our own type, we call the function directly
-        let self_base = env.r#type(self.kind.base);
-        let other_base = env.r#type(other.kind.base);
+        let self_base = env.r#type(self.base);
+        let other_base = env.r#type(other.base);
 
         let bases = self_base.meet(other_base, env);
 
-        let substitutions = self
-            .kind
-            .substitutions
-            .merge(&other.kind.substitutions, env);
+        let substitutions = self.substitutions.merge(&other.substitutions, env);
 
         bases
             .into_iter()
             .map(|base| {
                 env.intern_type(PartialType {
-                    span: self.span,
+                    span,
                     kind: env.intern_kind(TypeKind::Apply(Self {
                         base,
                         substitutions,
@@ -191,6 +188,24 @@ impl<'heap> Lattice<'heap> for Apply<'heap> {
                 })
             })
             .collect()
+    }
+}
+
+impl<'heap> Lattice<'heap> for Apply<'heap> {
+    fn join(
+        self: Type<'heap, Self>,
+        other: Type<'heap, Self>,
+        env: &mut LatticeEnvironment<'_, 'heap>,
+    ) -> smallvec::SmallVec<TypeId, 4> {
+        self.kind.join_base(*other.kind, env, self.span)
+    }
+
+    fn meet(
+        self: Type<'heap, Self>,
+        other: Type<'heap, Self>,
+        env: &mut LatticeEnvironment<'_, 'heap>,
+    ) -> smallvec::SmallVec<TypeId, 4> {
+        self.kind.meet_base(*other.kind, env, self.span)
     }
 
     fn is_bottom(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
@@ -269,6 +284,11 @@ impl<'heap> Lattice<'heap> for Apply<'heap> {
 
     fn simplify(self: Type<'heap, Self>, env: &mut SimplifyEnvironment<'_, 'heap>) -> TypeId {
         let base = env.simplify(self.kind.base);
+
+        // If the type is concrete, then we no longer need the `Apply` wrapper
+        if env.is_concrete(base) {
+            return base;
+        }
 
         env.intern_type(PartialType {
             span: self.span,
