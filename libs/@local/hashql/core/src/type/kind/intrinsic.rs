@@ -746,7 +746,7 @@ mod tests {
             },
             kind::{
                 OpaqueType, Param, TypeKind,
-                generic_argument::GenericArgument,
+                generic::GenericArgument,
                 infer::HoleId,
                 intersection::IntersectionType,
                 primitive::PrimitiveType,

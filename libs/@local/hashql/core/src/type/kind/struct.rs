@@ -3,7 +3,7 @@ use core::ops::{ControlFlow, Deref};
 use pretty::RcDoc;
 use smallvec::SmallVec;
 
-use super::{TypeKind, generic_argument::GenericArguments};
+use super::{TypeKind, generic::GenericArguments};
 use crate::{
     collection::FastHashMap,
     intern::Interned,
@@ -564,7 +564,7 @@ mod test {
             },
             kind::{
                 TypeKind,
-                generic_argument::{GenericArgument, GenericArgumentId, GenericArguments},
+                generic::{GenericArgument, GenericArgumentId, GenericArguments},
                 infer::HoleId,
                 intersection::IntersectionType,
                 primitive::PrimitiveType,

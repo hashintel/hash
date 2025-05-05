@@ -639,7 +639,7 @@ mod test {
             },
             kind::{
                 OpaqueType, Param, TypeKind,
-                generic_argument::{GenericArgument, GenericArgumentId},
+                generic::{GenericArgument, GenericArgumentId},
                 infer::HoleId,
                 intersection::IntersectionType,
                 intrinsic::{DictType, IntrinsicType},

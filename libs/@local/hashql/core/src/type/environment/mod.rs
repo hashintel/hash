@@ -17,7 +17,7 @@ use super::{
     inference::Substitution,
     kind::{
         Infer, Param, PrimitiveType,
-        generic_argument::{
+        generic::{
             GenericArgument, GenericArgumentId, GenericArgumentIdProducer, GenericArguments,
             GenericSubstitution, GenericSubstitutions,
         },

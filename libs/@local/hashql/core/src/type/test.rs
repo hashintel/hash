@@ -4,7 +4,7 @@ use core::{assert_matches::assert_matches, fmt::Debug};
 use super::{
     PartialType, TypeId, TypeKind,
     environment::{AnalysisEnvironment, Environment},
-    kind::{Infer, Param, generic_argument::GenericArgumentId, infer::HoleId},
+    kind::{Infer, Param, generic::GenericArgumentId, infer::HoleId},
 };
 use crate::{
     heap::Heap,
@@ -12,8 +12,8 @@ use crate::{
     r#type::{
         environment::LatticeEnvironment,
         kind::{
-            generic_argument::GenericArguments, intersection::IntersectionType,
-            primitive::PrimitiveType, tuple::TupleType, union::UnionType,
+            generic::GenericArguments, intersection::IntersectionType, primitive::PrimitiveType,
+            tuple::TupleType, union::UnionType,
         },
     },
 };

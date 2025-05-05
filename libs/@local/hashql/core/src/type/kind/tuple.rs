@@ -3,7 +3,7 @@ use core::ops::ControlFlow;
 use pretty::RcDoc;
 use smallvec::SmallVec;
 
-use super::{TypeKind, generic_argument::GenericArguments};
+use super::{TypeKind, generic::GenericArguments};
 use crate::{
     intern::Interned,
     math::cartesian_product,
@@ -383,7 +383,7 @@ mod test {
             },
             kind::{
                 TypeKind,
-                generic_argument::{GenericArgument, GenericArgumentId, GenericArguments},
+                generic::{GenericArgument, GenericArgumentId, GenericArguments},
                 infer::HoleId,
                 intersection::IntersectionType,
                 primitive::PrimitiveType,

@@ -16,7 +16,7 @@ use crate::{
         PartialType, TypeId,
         error::TypeCheckDiagnostic,
         inference::Inference as _,
-        kind::generic_argument::{GenericArgument, GenericArgumentId, GenericArguments},
+        kind::generic::{GenericArgument, GenericArgumentId, GenericArguments},
         recursion::RecursionBoundary,
     },
 };

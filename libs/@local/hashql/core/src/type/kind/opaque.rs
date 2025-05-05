@@ -3,7 +3,7 @@ use core::ops::ControlFlow;
 use pretty::RcDoc;
 use smallvec::SmallVec;
 
-use super::{TypeKind, generic_argument::GenericArguments};
+use super::{TypeKind, generic::GenericArguments};
 use crate::{
     symbol::Symbol,
     r#type::{
@@ -365,7 +365,7 @@ mod test {
             },
             kind::{
                 Param, TypeKind,
-                generic_argument::{GenericArgument, GenericArgumentId, GenericArguments},
+                generic::{GenericArgument, GenericArgumentId, GenericArguments},
                 infer::HoleId,
                 primitive::PrimitiveType,
                 test::{assert_equiv, opaque, primitive, union},

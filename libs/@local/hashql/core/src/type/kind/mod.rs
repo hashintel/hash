@@ -1,5 +1,5 @@
 pub mod closure;
-pub mod generic_argument;
+pub mod generic;
 pub mod infer;
 pub mod intersection;
 pub mod intrinsic;
@@ -17,7 +17,7 @@ use pretty::RcDoc;
 use smallvec::SmallVec;
 
 pub use self::{
-    closure::ClosureType, generic_argument::Param, infer::Infer, intersection::IntersectionType,
+    closure::ClosureType, generic::Param, infer::Infer, intersection::IntersectionType,
     intrinsic::IntrinsicType, opaque::OpaqueType, primitive::PrimitiveType, r#struct::StructType,
     tuple::TupleType, union::UnionType,
 };
