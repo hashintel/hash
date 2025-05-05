@@ -1,0 +1,88 @@
+---
+source: libs/@local/codegen/tests/full-exports/main.rs
+expression: generator.write()
+---
+export type WebId = ActorGroupEntityUuid;
+export type WebRoleId = string;
+export type RoleId = {
+	roleType: "web"
+	id: WebRoleId
+} | {
+	roleType: "team"
+	id: TeamRoleId
+};
+export interface Web {
+	id: WebId;
+	shortname: (string | undefined);
+	roles: WebRoleId[];
+}
+export type Role = {
+	roleType: "web"
+} & WebRole | {
+	roleType: "team"
+} & TeamRole;
+export type Actor = {
+	actorType: "user"
+} & User | {
+	actorType: "machine"
+} & Machine | {
+	actorType: "ai"
+} & Ai;
+export interface TeamRole {
+	id: TeamRoleId;
+	teamId: TeamId;
+	name: RoleName;
+}
+export type UserId = ActorEntityUuid;
+export interface WebRole {
+	id: WebRoleId;
+	webId: WebId;
+	name: RoleName;
+}
+export type ActorGroup = {
+	actorGroupType: "web"
+} & Web | {
+	actorGroupType: "team"
+} & Team;
+export type ActorGroupEntityUuid = EntityUuid;
+export interface Team {
+	id: TeamId;
+	parentId: ActorGroupId;
+	name: string;
+	roles: TeamRoleId[];
+}
+export type ActorEntityUuid = EntityUuid;
+export type TeamRoleId = string;
+export interface Ai {
+	id: AiId;
+	identifier: string;
+	roles: RoleId[];
+}
+export type ActorGroupId = {
+	actorGroupType: "web"
+	id: WebId
+} | {
+	actorGroupType: "team"
+	id: TeamId
+};
+export interface User {
+	id: UserId;
+	roles: RoleId[];
+}
+export type MachineId = ActorEntityUuid;
+export type Principal = {
+	principalType: "actor"
+} & Actor | {
+	principalType: "actorGroup"
+} & ActorGroup | {
+	principalType: "role"
+} & Role;
+export type TeamId = ActorGroupEntityUuid;
+export interface Machine {
+	id: MachineId;
+	identifier: string;
+	roles: RoleId[];
+}
+export type AiId = ActorEntityUuid;
+export type EntityUuid = string;
+export type RoleName = "administrator" | "member";

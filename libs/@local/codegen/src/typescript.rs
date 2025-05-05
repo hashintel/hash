@@ -1,12 +1,10 @@
-use core::fmt::{self, Write};
-use std::io;
-
 use oxc::{
-    allocator::{self, Allocator},
-    ast::{AstBuilder, ast, ast_builder},
+    allocator::Allocator,
+    ast::{AstBuilder, ast},
     codegen::Codegen,
     span::SPAN,
 };
+use specta::NamedType;
 
 use crate::{
     TypeCollection,
@@ -50,11 +48,12 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
         }
     }
 
-    pub fn write(self, output: &mut impl Write) -> fmt::Result {
-        output.write_str(&Codegen::new().build(&self.program).code)
+    /// Generates TypeScript code from the provided type collection.
+    pub fn write(self) -> String {
+        Codegen::new().build(&self.program).code
     }
 
-    pub fn add_type_declaration(&mut self, id: TypeId) {
+    pub fn add_type_declaration_by_id(&mut self, id: TypeId) {
         let definition = &self.collection.types[&id];
         let type_declaration = self.visit_type_definition(definition);
         self.program.body.push(if definition.public {
@@ -69,6 +68,10 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
         } else {
             type_declaration.into()
         });
+    }
+
+    pub fn add_type_declaration<T: NamedType>(&mut self) {
+        self.add_type_declaration_by_id(TypeId::from_specta(T::ID));
     }
 
     fn should_export_as_interface(&self, r#type: &Type) -> bool {

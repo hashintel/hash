@@ -32,6 +32,7 @@ utoipa           = { workspace = true, public = true, features = ["url"], option
 uuid             = { workspace = true, public = true, features = ["v5", "serde", "std"] }
 
 # Private workspace dependencies
+hash-codegen = { workspace = true }
 
 # Private third-party dependencies
 derive_more    = { workspace = true, features = ["display", "error", "from"] }

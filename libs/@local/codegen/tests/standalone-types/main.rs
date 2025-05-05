@@ -7,7 +7,6 @@ mod structs;
 mod tuples;
 
 use alloc::borrow::Cow;
-use core::error::Error;
 use std::process::ExitCode;
 
 use hash_codegen::{
@@ -91,7 +90,7 @@ fn find_available_types() -> Vec<(TypeId, Cow<'static, str>)> {
         .map(|(type_id, _, def)| (type_id, def.name.clone()))
         .collect::<Vec<_>>()
 }
-fn test_single_type(test_name: &str, type_id: TypeId) -> Result<(), Box<dyn Error>> {
+fn test_single_type(test_name: &str, type_id: TypeId) {
     let mut collection = TypeCollection::default();
     register_types(&mut collection);
     collection.register_transitive_types();
@@ -99,13 +98,10 @@ fn test_single_type(test_name: &str, type_id: TypeId) -> Result<(), Box<dyn Erro
     let settings = TypeScriptGeneratorSettings::default();
     let mut generator = TypeScriptGenerator::new(&settings, &collection);
 
-    generator.add_type_declaration(type_id);
+    generator.add_type_declaration_by_id(type_id);
 
-    let mut generated = String::new();
-    generator.write(&mut generated)?;
+    let generated = generator.write();
     assert_snapshot!(test_name, generated);
-
-    Ok(())
 }
 
 fn main() -> ExitCode {
@@ -120,7 +116,8 @@ fn main() -> ExitCode {
         for target in &targets {
             let test_name = format!("{name}::{target:?}");
             tests.push(Trial::test(test_name.clone(), move || {
-                test_single_type(&test_name, type_id).map_err(libtest_mimic::Failed::from)
+                test_single_type(&test_name, type_id);
+                Ok(())
             }));
         }
     }
