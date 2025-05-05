@@ -1,0 +1,11 @@
+---
+source: libs/@local/codegen/tests/standalone-types/main.rs
+expression: generated
+---
+export type PrincipalId = {
+	principalType: "actor"
+} & ActorId | {
+	principalType: "actorGroup"
+} & ActorGroupId | {
+	principalType: "role"
+} & RoleId;

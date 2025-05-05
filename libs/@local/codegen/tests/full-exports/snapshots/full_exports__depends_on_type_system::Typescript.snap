@@ -1,0 +1,7 @@
+---
+source: libs/@local/codegen/tests/full-exports/main.rs
+expression: generator.write()
+---
+export interface DependsOnTypeSystem {
+	principal: Principal;
+}

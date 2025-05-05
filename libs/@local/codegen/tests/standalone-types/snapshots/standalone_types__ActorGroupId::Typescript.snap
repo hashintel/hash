@@ -1,0 +1,11 @@
+---
+source: libs/@local/codegen/tests/standalone-types/main.rs
+expression: generated
+---
+export type ActorGroupId = {
+	actorGroupType: "web"
+	id: WebId
+} | {
+	actorGroupType: "team"
+	id: TeamId
+};

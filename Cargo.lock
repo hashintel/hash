@@ -9532,6 +9532,7 @@ dependencies = [
  "error-stack",
  "futures",
  "hash-codec",
+ "hash-codegen",
  "hash-graph-temporal-versioning",
  "hash-graph-test-data",
  "iso8601-duration",

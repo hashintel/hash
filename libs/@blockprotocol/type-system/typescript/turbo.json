@@ -2,7 +2,10 @@
   "extends": ["//"],
   "tasks": {
     "codegen": {
-      "dependsOn": ["@blockprotocol/type-system-rs#build:wasm"]
+      "dependsOn": [
+        "@blockprotocol/type-system-rs#build:wasm",
+        "@blockprotocol/type-system-rs#build:types"
+      ]
     },
     "build": {
       "outputs": ["dist/**"]

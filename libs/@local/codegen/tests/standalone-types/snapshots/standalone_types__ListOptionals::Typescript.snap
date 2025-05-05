@@ -1,0 +1,10 @@
+---
+source: libs/@local/codegen/tests/standalone-types/main.rs
+expression: generated
+---
+export interface ListOptionals {
+	optional_strings: (string | undefined)[];
+	optional_integers: (number | undefined)[];
+	optional_arrays: (number[] | undefined)[];
+	optional_sets: (string[] | undefined)[];
+}

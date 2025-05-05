@@ -4,6 +4,9 @@
     "build:wasm": {
       "outputs": ["pkg/**"]
     },
+    "build:types": {
+      "outputs": ["dist/**"]
+    },
     "lint:tsc": {
       "dependsOn": ["build:wasm"]
     }

@@ -1,0 +1,9 @@
+---
+source: libs/@local/codegen/tests/standalone-types/main.rs
+expression: generated
+---
+export interface MapEnumKey {
+	enum_to_string: Record<MapKeyEnum, string>;
+	enum_to_int: Record<MapKeyEnum, number>;
+	btree_enum_to_string: Record<MapKeyEnum, string>;
+}

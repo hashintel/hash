@@ -283,7 +283,9 @@ wasm-bindgen-test        = { version = "=0.3.50", default-features = false }
 winnow                   = { version = "=0.7.9", default-features = false }
 
 [profile.dev]
-codegen-backend = "cranelift"
+# TODO: Use `codegen-backend = "cranelift"`
+#       We currently use `llvm` for all profiles to avoid issues in `Docker`
+codegen-backend = "llvm"
 
 [profile.dev-llvm]
 codegen-backend = "llvm"

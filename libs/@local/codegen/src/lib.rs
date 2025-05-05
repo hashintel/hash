@@ -6,7 +6,7 @@
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
 #![expect(clippy::todo)]
 
-use std::collections::HashMap;
+use alloc::collections::BTreeMap;
 
 use specta::datatype::NamedDataType;
 
@@ -20,7 +20,7 @@ pub mod typescript;
 
 #[derive(Debug, Default)]
 pub struct TypeCollection {
-    types: HashMap<TypeId, TypeDefinition>,
+    types: BTreeMap<TypeId, TypeDefinition>,
     collection: specta::TypeCollection,
 }
 

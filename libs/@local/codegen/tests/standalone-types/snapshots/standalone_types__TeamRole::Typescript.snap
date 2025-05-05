@@ -1,0 +1,9 @@
+---
+source: libs/@local/codegen/tests/standalone-types/main.rs
+expression: generated
+---
+export interface TeamRole {
+	id: TeamRoleId;
+	teamId: TeamId;
+	name: RoleName;
+}

@@ -1,0 +1,11 @@
+---
+source: libs/@local/codegen/tests/standalone-types/main.rs
+expression: generated
+---
+export type RoleId = {
+	roleType: "web"
+	id: WebRoleId
+} | {
+	roleType: "team"
+	id: TeamRoleId
+};

@@ -71,6 +71,7 @@ pub struct TypeDefinition {
     pub name: Cow<'static, str>,
     pub r#type: Type,
     pub public: bool,
+    pub module: Cow<'static, str>,
 }
 
 impl TypeDefinition {
@@ -84,6 +85,7 @@ impl TypeDefinition {
             // TODO: Only export public types
             //  see https://linear.app/hash/issue/H-4498/only-export-public-types-from-codegen
             public: true,
+            module: data_type.module_path().clone(),
         }
     }
 }
