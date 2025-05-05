@@ -16,6 +16,7 @@ use core::{ops::ControlFlow, ptr};
 use pretty::RcDoc;
 use smallvec::SmallVec;
 
+use self::generic::Apply;
 pub use self::{
     closure::ClosureType, generic::Param, infer::Infer, intersection::IntersectionType,
     intrinsic::IntrinsicType, opaque::OpaqueType, primitive::PrimitiveType, r#struct::StructType,
@@ -48,6 +49,8 @@ pub enum TypeKind<'heap> {
 
     Closure(ClosureType<'heap>),
 
+    Apply(Apply<'heap>),
+
     Param(Param),
     Infer(Infer),
 
@@ -55,9 +58,9 @@ pub enum TypeKind<'heap> {
     Unknown,
 }
 
-impl TypeKind<'_> {
+impl<'heap> TypeKind<'heap> {
     #[must_use]
-    pub const fn opaque(&self) -> Option<&OpaqueType> {
+    pub const fn opaque(&self) -> Option<&OpaqueType<'heap>> {
         match self {
             Self::Opaque(r#type) => Some(r#type),
             _ => None,
@@ -81,7 +84,7 @@ impl TypeKind<'_> {
     }
 
     #[must_use]
-    pub const fn r#struct(&self) -> Option<&StructType> {
+    pub const fn r#struct(&self) -> Option<&StructType<'heap>> {
         match self {
             Self::Struct(r#type) => Some(r#type),
             _ => None,
@@ -89,7 +92,7 @@ impl TypeKind<'_> {
     }
 
     #[must_use]
-    pub const fn tuple(&self) -> Option<&TupleType> {
+    pub const fn tuple(&self) -> Option<&TupleType<'heap>> {
         match self {
             Self::Tuple(r#type) => Some(r#type),
             _ => None,
@@ -97,7 +100,7 @@ impl TypeKind<'_> {
     }
 
     #[must_use]
-    pub const fn closure(&self) -> Option<&ClosureType> {
+    pub const fn closure(&self) -> Option<&ClosureType<'heap>> {
         match self {
             Self::Closure(r#type) => Some(r#type),
             _ => None,
@@ -105,7 +108,7 @@ impl TypeKind<'_> {
     }
 
     #[must_use]
-    pub const fn union(&self) -> Option<&UnionType> {
+    pub const fn union(&self) -> Option<&UnionType<'heap>> {
         match self {
             Self::Union(r#type) => Some(r#type),
             _ => None,
@@ -113,9 +116,17 @@ impl TypeKind<'_> {
     }
 
     #[must_use]
-    pub const fn intersection(&self) -> Option<&IntersectionType> {
+    pub const fn intersection(&self) -> Option<&IntersectionType<'heap>> {
         match self {
             Self::Intersection(r#type) => Some(r#type),
+            _ => None,
+        }
+    }
+
+    #[must_use]
+    pub const fn apply(&self) -> Option<&Apply<'heap>> {
+        match self {
+            Self::Apply(r#type) => Some(r#type),
             _ => None,
         }
     }
