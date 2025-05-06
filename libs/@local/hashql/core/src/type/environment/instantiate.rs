@@ -11,37 +11,55 @@ use super::{
     },
 };
 use crate::{
+    collection::FastHashMap,
     intern::Provisioned,
     r#type::{
         PartialType, TypeId,
         error::TypeCheckDiagnostic,
         inference::Inference as _,
-        kind::generic_argument::{GenericArgument, GenericArgumentId, GenericArguments},
-        recursion::RecursionBoundary,
+        kind::{
+            Param, TypeKind,
+            generic::{
+                GenericArgument, GenericArgumentId, GenericArguments, GenericSubstitution,
+                GenericSubstitutions,
+            },
+        },
     },
 };
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum SubstitutionState {
+    IdentitiesOnly,
+    Mixed,
+}
 
 // This was moved out of the `InferenceEnvironment`, as the requirements (especially provision
 // scoping) are too different and there's nearly 0 overlap.
 #[derive(Debug)]
 pub struct InstantiateEnvironment<'env, 'heap> {
     pub environment: &'env Environment<'heap>,
-    boundary: RecursionBoundary<'heap>,
     diagnostics: Diagnostics,
 
+    // We split these into two scopes, to ensure that the behaviour or generic arguments is that
+    // any "override" down the line of a generic argument results in new arguments. We only
+    // take on the previous value if a substitution is active.
+    substitutions_scope: Rc<ReplacementScope<GenericArgumentId>>,
     argument_scope: Rc<ReplacementScope<GenericArgumentId>>,
 
     provisioned: Rc<ProvisionedScope<TypeId>>,
+    substitutions: FastHashMap<TypeId, Option<TypeId>>,
 }
 
 impl<'env, 'heap> InstantiateEnvironment<'env, 'heap> {
     pub fn new(environment: &'env Environment<'heap>) -> Self {
         Self {
             environment,
-            boundary: RecursionBoundary::new(),
             diagnostics: Diagnostics::default(),
 
+            substitutions_scope: Rc::default(),
             argument_scope: Rc::default(),
+
+            substitutions: FastHashMap::default(),
 
             provisioned: Rc::default(),
         }
@@ -69,7 +87,13 @@ impl<'env, 'heap> InstantiateEnvironment<'env, 'heap> {
         let mut mapping = Vec::with_capacity(arguments.len());
 
         for generic in &*arguments {
-            let id = self.environment.counter.generic_argument.next();
+            // Check if the argument already exists, this the case if `Apply` ran before this
+            let id = if let Some(id) = self.substitutions_scope.lookup(generic.id) {
+                id
+            } else {
+                self.environment.counter.generic_argument.next()
+            };
+
             mapping.push((generic.id, id));
 
             replacements.push(GenericArgument {
@@ -85,6 +109,67 @@ impl<'env, 'heap> InstantiateEnvironment<'env, 'heap> {
         let guard = scope.enter_many(mapping);
 
         (guard, arguments)
+    }
+
+    pub fn instantiate_substitutions(
+        &mut self,
+        substitutions: GenericSubstitutions<'heap>,
+    ) -> (
+        ReplacementGuard<GenericArgumentId>,
+        GenericSubstitutions<'heap>,
+        SubstitutionState,
+    ) {
+        let mut replacements = SmallVec::<_, 16>::with_capacity(substitutions.len());
+        // We need a map here, because some substitutions *might* be overlapping and might be
+        // referring to the same variable, due to the fact that we merge substitutions during join
+        // and meet.
+        let mut mapping = FastHashMap::with_capacity_and_hasher(
+            substitutions.len(),
+            foldhash::fast::RandomState::default(),
+        );
+
+        let mut state = SubstitutionState::IdentitiesOnly;
+
+        for &substitution in &*substitutions {
+            // Check if only T ↦ T mappings exist, if that is the case then we can safely ignore any
+            // substitution.
+            if let Some(&TypeKind::Param(Param { argument })) =
+                self.types.get(substitution.value).map(|r#type| r#type.kind)
+                && argument == substitution.argument
+            {
+            } else {
+                state = SubstitutionState::Mixed;
+            }
+
+            let argument = if let Some(&argument) = mapping.get(&substitution.argument) {
+                argument
+            } else {
+                let id = self.environment.counter.generic_argument.next();
+                mapping.insert(substitution.argument, id);
+
+                id
+            };
+
+            replacements.push(GenericSubstitution {
+                argument,
+                value: self.instantiate(substitution.value),
+            });
+        }
+
+        let substitutions = self
+            .environment
+            .intern_generic_substitutions(&mut replacements);
+
+        let scope = Rc::clone(&self.substitutions_scope);
+        let guard = scope.enter_many(mapping);
+
+        (guard, substitutions, state)
+    }
+
+    pub(crate) fn force_instantiate(&mut self, id: TypeId) -> TypeId {
+        let r#type = self.environment.r#type(id);
+
+        r#type.instantiate(self)
     }
 
     /// Instantiates a type by resolving its recursive structure and applying any provisioned
@@ -104,43 +189,41 @@ impl<'env, 'heap> InstantiateEnvironment<'env, 'heap> {
     /// In debug mode, this function panics if a type should have been provisioned but wasn't.
     /// In release builds, the function recovers gracefully by returning the original type ID.
     pub fn instantiate(&mut self, id: TypeId) -> TypeId {
-        let r#type = self.environment.r#type(id);
-
-        if self.boundary.enter(r#type, r#type).is_break() {
-            // See if the type has been substituted
-            if let Some(substitution) = self.provisioned.get_substitution(id) {
-                return substitution;
-            }
-
-            #[expect(
-                clippy::manual_assert,
-                reason = "false positive, this is a manual `debug_panic`"
-            )]
-            if cfg!(debug_assertions) {
-                panic!("type id {id} should have been provisioned, but wasn't");
-            }
-
-            tracing::warn!(%id, "type id should have been provisioned, but wasn't");
-
-            // in debug builds this panics if the type should have been provisioned but wasn't, as
-            // we can recover from this error (we simply return the original - uninstantiated - type
-            // id) we do not need to panic here in release builds.
-            return id;
+        // Check if we've already visited this type before and if so, if it is a potentially
+        // recursive type
+        if let Some(&Some(substitution)) = self.substitutions.get(&id) {
+            return substitution;
         }
 
-        let result = r#type.instantiate(self);
+        // If we already have a substitution we can use that substitution (cycle guard)
+        if let Some(substitution) = self.provisioned.get_substitution(id) {
+            return substitution;
+        }
 
-        self.boundary.exit(r#type, r#type);
-        result
+        let replacement = self.force_instantiate(id);
+
+        // We only cache the instantiation / substitution in the case that the type is actually
+        // potentially recursive. A type is marked as potentially recursive by setting `None`
+        // through the provision function (if provisioned it must be potentially recursive)
+        // This way we do not cache any types that cannot be recursive, such as parameters.
+        if let Some(entry) = self.substitutions.get_mut(&id) {
+            *entry = Some(replacement);
+        }
+
+        replacement
     }
 
-    #[expect(
-        clippy::needless_pass_by_ref_mut,
-        reason = "prove ownership of environment, so that we can borrow safely"
-    )]
+    pub fn clear_provisioned(&mut self) {
+        self.substitutions.clear();
+    }
+
     pub fn provision(&mut self, id: TypeId) -> (ProvisionedGuard<TypeId>, Provisioned<TypeId>) {
         let provisioned = self.environment.types.provision();
         let guard = Rc::clone(&self.provisioned).enter(id, provisioned);
+
+        // This is officially a potentially recursive type, therefore we can enable to cache it's
+        // substitution.
+        self.substitutions.insert(id, None);
 
         (guard, provisioned)
     }

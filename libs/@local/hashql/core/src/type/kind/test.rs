@@ -106,6 +106,26 @@ macro_rules! intersection {
     };
 }
 
+macro_rules! apply {
+    ($env:expr, $base:expr, $substitutions:expr) => {{
+        let mut substitutions = $substitutions;
+
+        instantiate(
+            &$env,
+            TypeKind::Apply(Apply {
+                base: $base,
+                substitutions: $env.intern_generic_substitutions(&mut substitutions),
+            }),
+        )
+    }};
+
+    ($env:expr, $name:ident, $base:expr, $substitutions:expr) => {
+        let $name = apply!($env, $base, $substitutions);
+        let $name = $env.r#type($name);
+        let $name = $name.map(|kind| kind.apply().expect("should be an apply"));
+    };
+}
+
 macro_rules! assert_kind {
     ($env:expr, $actual:expr, $expected:expr) => {
         assert_eq!($actual.len(), $expected.len());
@@ -221,6 +241,7 @@ macro_rules! assert_sorted_eq {
     }};
 }
 
+pub(crate) use apply;
 pub(crate) use assert_equiv;
 pub(crate) use assert_kind;
 pub(crate) use assert_sorted_eq;

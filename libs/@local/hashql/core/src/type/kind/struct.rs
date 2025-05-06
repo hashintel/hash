@@ -3,7 +3,7 @@ use core::ops::{ControlFlow, Deref};
 use pretty::RcDoc;
 use smallvec::SmallVec;
 
-use super::{TypeKind, generic_argument::GenericArguments};
+use super::{TypeKind, generic::GenericArguments};
 use crate::{
     collection::FastHashMap,
     intern::Interned,
@@ -500,8 +500,8 @@ impl<'heap> Inference<'heap> for StructType<'heap> {
     }
 
     fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {
-        let (_provision_guard, id) = env.provision(self.id);
-        let (_argument_guard, arguments) = env.instantiate_arguments(self.kind.arguments);
+        let (_guard_id, id) = env.provision(self.id);
+        let (_guard, arguments) = env.instantiate_arguments(self.kind.arguments);
 
         let mut fields = SmallVec::<_, 16>::with_capacity(self.kind.fields.len());
         for field in &*self.kind.fields {
@@ -564,7 +564,7 @@ mod test {
             },
             kind::{
                 TypeKind,
-                generic_argument::{GenericArgument, GenericArgumentId, GenericArguments},
+                generic::{GenericArgument, GenericArgumentId, GenericArguments},
                 infer::HoleId,
                 intersection::IntersectionType,
                 primitive::PrimitiveType,

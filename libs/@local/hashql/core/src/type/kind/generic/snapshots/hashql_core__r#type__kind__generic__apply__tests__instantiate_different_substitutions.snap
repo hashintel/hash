@@ -1,0 +1,5 @@
+---
+source: libs/@local/hashql/core/src/type/kind/generic/apply.rs
+expression: "strip_str(&env.r#type(result_id).pretty_print(&env, 80))"
+---
+(bar: <T?1>(foo: ?1) where<?1 = String>, baz: <T?2>(foo: ?2) where<?2 = Number>)

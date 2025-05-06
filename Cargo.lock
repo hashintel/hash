@@ -3783,6 +3783,7 @@ dependencies = [
 name = "hashql-core"
 version = "0.0.0"
 dependencies = [
+ "anstream",
  "anstyle",
  "archery",
  "bitvec",
@@ -3793,6 +3794,7 @@ dependencies = [
  "foldhash",
  "hashbrown 0.15.3",
  "hashql-diagnostics",
+ "insta",
  "orx-concurrent-vec",
  "pretty",
  "roaring",

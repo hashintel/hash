@@ -1,0 +1,20 @@
+---
+source: libs/@local/hashql/core/src/type/kind/generic/apply.rs
+expression: "strip_str(&env.r#type(result_id).pretty_print(&env, 80))"
+---
+<T?1>(foo:
+ <T?1>(foo:
+  <T?1>(foo:
+   <T?1>(foo:
+    <T?1>(foo:
+     <T?1>(foo:
+      <T?1>(foo:
+       <T?1>(foo:
+        <T?1>(foo:
+         <T?1>(foo:
+          <T?1>(foo:
+           <T?1>(foo:
+            <T?1>(foo:
+             <T?1>(foo: <T?1>(foo: <T?1>(foo: ... where<>) where<>) where<>)
+              where<>) where<>) where<>) where<>) where<>) where<>) where<>)
+       where<>) where<>) where<>) where<>) where<>) where<>) where<>

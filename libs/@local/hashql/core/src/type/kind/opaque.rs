@@ -3,7 +3,7 @@ use core::ops::ControlFlow;
 use pretty::RcDoc;
 use smallvec::SmallVec;
 
-use super::{TypeKind, generic_argument::GenericArguments};
+use super::{TypeKind, generic::GenericArguments};
 use crate::{
     symbol::Symbol,
     r#type::{
@@ -311,8 +311,8 @@ impl<'heap> Inference<'heap> for OpaqueType<'heap> {
     }
 
     fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {
-        let (_provision_guard, id) = env.provision(self.id);
-        let (_argument_guard, arguments) = env.instantiate_arguments(self.kind.arguments);
+        let (_guard_id, id) = env.provision(self.id);
+        let (_guard, arguments) = env.instantiate_arguments(self.kind.arguments);
 
         let repr = env.instantiate(self.kind.repr);
 
@@ -365,7 +365,7 @@ mod test {
             },
             kind::{
                 Param, TypeKind,
-                generic_argument::{GenericArgument, GenericArgumentId, GenericArguments},
+                generic::{GenericArgument, GenericArgumentId, GenericArguments},
                 infer::HoleId,
                 primitive::PrimitiveType,
                 test::{assert_equiv, opaque, primitive, union},
