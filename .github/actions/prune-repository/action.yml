@@ -15,7 +15,9 @@ runs:
         SCOPES=$(echo "${{ inputs.scope }}" | tr '\n' ' ')
 
         while IFS= read -r scope; do
-          DEPENDENCIES=$(turbo query "query { packages(filter: { equal: { field: NAME, value: \"$scope\" } }) { items { name, allDependencies { items { name  } }}  } }" | jq -c "[.data.packages.items[].allDependencies.items[].name]")
+          # Read all the dependencies for the given scope.
+          # The result will contain strings for the scope and all its dependencies so it can be grepped later.
+          DEPENDENCIES=$(turbo query "query { packages(filter: { equal: { field: NAME, value: \"$scope\" } }) { items { name, allDependencies { items { name  } }}  } }")
 
           # TODO: remove once deer is in labs
           #   see https://linear.app/hash/issue/H-3692/move-deer-to-labs
