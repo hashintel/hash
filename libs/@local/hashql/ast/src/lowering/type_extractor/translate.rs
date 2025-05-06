@@ -27,6 +27,7 @@ use hashql_core::{
     },
 };
 
+use super::error::TypeExtractorDiagnostic;
 use crate::node::{
     self,
     path::{Path, PathSegmentArgument},
@@ -59,9 +60,9 @@ enum Identity<'heap> {
 }
 
 /// Represents a local type variable with its associated type information
-struct LocalVariable<'heap> {
+struct LocalVariable<'ty, 'heap> {
     id: Provisioned<TypeId>,
-    r#type: node::r#type::Type<'heap>,
+    r#type: &'ty node::r#type::Type<'heap>,
     identity: Identity<'heap>,
     arguments: TinyVec<GenericArgument<'heap>>,
 }
@@ -71,15 +72,16 @@ struct LocalVariable<'heap> {
 /// The translation unit maintains all the context needed for translating AST type
 /// nodes into the core type system, including environment, registry access,
 /// and tracking of local variables and bound generic parameters.
-struct TranslationUnit<'env, 'heap> {
+struct TranslationUnit<'env, 'ty, 'heap> {
     env: &'env Environment<'heap>,
     registry: &'env ModuleRegistry<'heap>,
+    diagnostics: Vec<TypeExtractorDiagnostic>,
 
-    locals: &'env FastHashMap<Symbol<'heap>, LocalVariable<'heap>>,
+    locals: &'env FastHashMap<Symbol<'heap>, LocalVariable<'ty, 'heap>>,
     bound_generics: TinyVec<GenericArgument<'heap>>,
 }
 
-impl<'heap> TranslationUnit<'_, 'heap> {
+impl<'heap> TranslationUnit<'_, '_, 'heap> {
     /// Creates a nominal (named) type with its underlying representation
     ///
     /// Nominal types are identified by their name rather than structure, but still have an
@@ -303,7 +305,7 @@ impl<'heap> TranslationUnit<'_, 'heap> {
                 let hole = self.env.counter.hole.next();
 
                 if !arguments.is_empty() {
-                    todo!("record diagnostic")
+                    todo!("record diagnostic; inference variables can't have arguments")
                 }
 
                 TypeKind::Infer(Infer { hole })
@@ -346,7 +348,7 @@ impl<'heap> TranslationUnit<'_, 'heap> {
                 let fields = match self.env.intern_struct_fields(&mut fields) {
                     Ok(fields) => fields,
                     Err(duplicates) => {
-                        todo!("record diagnostics")
+                        todo!("record diagnostics; duplicate fields")
                     }
                 };
 
@@ -406,7 +408,7 @@ impl<'heap> TranslationUnit<'_, 'heap> {
     ///
     /// This method handles creating the appropriate type for a local variable, taking into account
     /// whether it has nominal or structural identity.
-    fn variable(&self, variable: &LocalVariable<'heap>) -> TypeId {
+    fn variable(&self, variable: &LocalVariable<'_, 'heap>) -> TypeId {
         let kind = if let Identity::Nominal(name) = variable.identity {
             self.nominal(
                 name,

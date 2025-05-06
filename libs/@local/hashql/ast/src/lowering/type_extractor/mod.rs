@@ -2,33 +2,19 @@ pub mod error;
 pub mod translate;
 
 use core::mem;
-use std::borrow::Cow;
 
 use hashql_core::{
-    collection::{FastHashMap, SmallVec, TinyVec},
-    intern::Provisioned,
+    collection::{FastHashMap, TinyVec},
     module::ModuleRegistry,
-    span::SpanId,
-    symbol::{Ident, Symbol},
-    r#type::{
-        PartialType, Type, TypeId,
-        environment::Environment,
-        kind::{
-            Apply, Infer, IntersectionType, OpaqueType, Param, StructType, TupleType, TypeKind,
-            UnionType,
-            generic::{GenericArgument, GenericArgumentId, GenericArguments, GenericSubstitution},
-            r#struct::StructField,
-        },
-    },
+    symbol::Symbol,
+    r#type::{TypeId, environment::Environment, kind::generic::GenericArgument},
 };
 
 use self::error::{TypeExtractorDiagnostic, duplicate_newtype, duplicate_type_alias};
 use crate::{
     node::{
-        self,
         expr::{Expr, ExprKind, NewTypeExpr, TypeExpr},
         generic::GenericConstraint,
-        path::{Path, PathSegmentArgument},
     },
     visit::{Visitor, walk_expr},
 };
@@ -36,72 +22,6 @@ use crate::{
 pub struct TypeEnvironment<'heap> {
     pub alias: FastHashMap<Symbol<'heap>, TypeId>,
     pub opaque: FastHashMap<Symbol<'heap>, TypeId>,
-}
-
-// TODO: I don't think these two need to be separate
-#[derive(Debug, Default)]
-struct ProvisionedTypeEnvironment<'heap> {
-    alias: FastHashMap<Symbol<'heap>, Provisioned<TypeId>>,
-    opaque: FastHashMap<Symbol<'heap>, Provisioned<TypeId>>,
-}
-
-struct Generics<'heap> {
-    alias: FastHashMap<Symbol<'heap>, TinyVec<GenericArgument<'heap>>>,
-    opaque: FastHashMap<Symbol<'heap>, TinyVec<GenericArgument<'heap>>>,
-}
-
-struct Scope<'a, 'heap> {
-    provisioned: &'a ProvisionedTypeEnvironment<'heap>,
-    generics: &'a Generics<'heap>,
-
-    // Generic arguments that are currently in scope
-    local_generics: TinyVec<GenericArgument<'heap>>,
-}
-
-impl<'heap> Scope<'_, 'heap> {
-    fn local(
-        &self,
-        env: &Environment<'heap>,
-        ident: Ident<'heap>,
-    ) -> Option<(TypeId, &[GenericArgument<'heap>])> {
-        // look through the generics, and see if there are any generics, that have a fitting name
-        if let Some(&generic) = self
-            .local_generics
-            .iter()
-            .find(|generic| generic.name == ident.value)
-        {
-            let param = env.intern_type(PartialType {
-                span: ident.span,
-                kind: env.intern_kind(TypeKind::Param(Param {
-                    argument: generic.id,
-                })),
-            });
-
-            // A generic does not have any arguments that can be slotted into
-            return Some((param, &[]));
-        }
-
-        let order = [
-            (&self.provisioned.alias, &self.generics.alias),
-            (&self.provisioned.opaque, &self.generics.opaque),
-        ];
-
-        for (provisioned, generics) in order {
-            // Look through the list of provisioned items, are there any that fit the bill?
-            if let Some(&provisioned) = provisioned.get(&ident.value) {
-                // The generics **must** be in the generics list as well, if it is in the
-                // provisioned list
-                let generics = generics
-                    .get(&ident.value)
-                    .expect("if provisioned this should exist");
-
-                return Some((provisioned.value(), generics.as_slice()));
-            }
-        }
-
-        // No match found, meaning it's an unbound variable
-        None
-    }
 }
 
 pub struct TypeExtractor<'env, 'heap> {
