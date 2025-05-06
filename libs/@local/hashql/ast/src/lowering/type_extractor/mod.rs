@@ -1,4 +1,5 @@
 pub mod error;
+pub mod translate;
 
 use core::mem;
 use std::borrow::Cow;
@@ -27,6 +28,7 @@ use crate::{
         self,
         expr::{Expr, ExprKind, NewTypeExpr, TypeExpr},
         generic::GenericConstraint,
+        path::{Path, PathSegmentArgument},
     },
     visit::{Visitor, walk_expr},
 };
@@ -52,8 +54,8 @@ struct Scope<'a, 'heap> {
     provisioned: &'a ProvisionedTypeEnvironment<'heap>,
     generics: &'a Generics<'heap>,
 
-    local_generics: TinyVec<GenericArgument<'heap>>, /* Generic arguments that are currently in
-                                                      * scope */
+    // Generic arguments that are currently in scope
+    local_generics: TinyVec<GenericArgument<'heap>>,
 }
 
 impl<'heap> Scope<'_, 'heap> {
@@ -100,12 +102,6 @@ impl<'heap> Scope<'_, 'heap> {
         // No match found, meaning it's an unbound variable
         None
     }
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-enum Mode<'heap> {
-    Structural,
-    Nominal(Symbol<'heap>),
 }
 
 pub struct TypeExtractor<'env, 'heap> {
@@ -212,164 +208,6 @@ impl<'env, 'heap> TypeExtractor<'env, 'heap> {
         }
 
         generics
-    }
-
-    fn convert_nominal_type(
-        &mut self,
-        id: Option<Provisioned<TypeId>>,
-        name: Symbol<'heap>,
-        mut arguments: TinyVec<GenericArgument<'heap>>,
-        repr: node::r#type::Type<'heap>,
-        scope: &Scope<'_, 'heap>,
-    ) -> TypeId {
-        let span = repr.span;
-
-        let repr = self.convert_type(None, TinyVec::new(), repr, scope);
-
-        let kind = OpaqueType {
-            name,
-            repr,
-            arguments: self.environment.intern_generic_arguments(&mut arguments),
-        };
-
-        let partial = PartialType {
-            span,
-            kind: self.environment.intern_kind(TypeKind::Opaque(kind)),
-        };
-
-        if let Some(id) = id {
-            self.environment.types.intern_provisioned(id, partial).id
-        } else {
-            self.environment.intern_type(partial)
-        }
-    }
-
-    fn convert_type(
-        &mut self,
-        id: Option<(Provisioned<TypeId>, Mode<'heap>)>,
-        mut arguments: TinyVec<GenericArgument<'heap>>,
-        r#type: node::r#type::Type<'heap>,
-        scope: &Scope<'_, 'heap>,
-    ) -> TypeId {
-        let mode = id.map_or(Mode::Structural, |(_, mode)| mode);
-
-        if let Mode::Nominal(name) = mode {
-            return self.convert_nominal_type(id.map(|(id, _)| id), name, arguments, r#type, scope);
-        }
-
-        let kind = match r#type.kind {
-            node::r#type::TypeKind::Infer => {
-                let hole = self.environment.counter.hole.next();
-
-                if !arguments.is_empty() {
-                    todo!("record diagnostic")
-                }
-
-                TypeKind::Infer(Infer { hole })
-            }
-            node::r#type::TypeKind::Path(path) => {
-                if let Some((name, parameters)) = path.as_generic_ident() {
-                    let Some((base, arguments)) = scope.local(self.environment, name) else {
-                        todo!("record diagnostic - unbound variable");
-                    };
-
-                    if parameters.len() != arguments.len() {
-                        todo!("record diagnostic - not enough or too many generic parameters")
-                    }
-
-                    let mut substitutions = TinyVec::with_capacity(parameters.len());
-
-                    for (&argument, parameter) in arguments.iter().zip(parameters.iter()) {
-                        // TODO: try to convert from generic constraint to path (but only if it
-                        // doesn't have a bound)
-
-                        let value = self.convert_type(None, TinyVec::new(), todo!(), scope);
-
-                        substitutions.push(GenericSubstitution {
-                            argument: argument.id,
-                            value,
-                        });
-                    }
-
-                    TypeKind::Apply(Apply {
-                        base,
-                        substitutions: self
-                            .environment
-                            .intern_generic_substitutions(&mut substitutions),
-                    })
-                } else {
-                    todo!("global lookup")
-                }
-            }
-            node::r#type::TypeKind::Tuple(tuple_type) => {
-                let mut elements = SmallVec::with_capacity(tuple_type.fields.len());
-
-                for node::r#type::TupleField { r#type, .. } in tuple_type.fields {
-                    // Any nested type has automatically no arguments
-                    elements.push(self.convert_type(None, TinyVec::new(), r#type, scope));
-                }
-
-                TypeKind::Tuple(TupleType {
-                    fields: self.environment.intern_type_ids(&elements),
-                    arguments: self.environment.intern_generic_arguments(&mut arguments),
-                })
-            }
-            node::r#type::TypeKind::Struct(struct_type) => {
-                let mut fields = SmallVec::with_capacity(struct_type.fields.len());
-
-                for node::r#type::StructField { name, r#type, .. } in struct_type.fields {
-                    fields.push(StructField {
-                        name: name.value,
-                        value: self.convert_type(None, TinyVec::new(), r#type, scope),
-                    });
-                }
-
-                let fields = match self.environment.intern_struct_fields(&mut fields) {
-                    Ok(fields) => fields,
-                    Err(duplicates) => {
-                        todo!("record diagnostics")
-                    }
-                };
-
-                TypeKind::Struct(StructType {
-                    fields,
-                    arguments: self.environment.intern_generic_arguments(&mut arguments),
-                })
-            }
-            node::r#type::TypeKind::Union(union_type) => {
-                let mut variants = SmallVec::with_capacity(union_type.types.len());
-
-                for r#type in union_type.types {
-                    variants.push(self.convert_type(None, arguments.clone(), r#type, scope));
-                }
-
-                TypeKind::Union(UnionType {
-                    variants: self.environment.intern_type_ids(&variants),
-                })
-            }
-            node::r#type::TypeKind::Intersection(intersection_type) => {
-                let mut variants = SmallVec::with_capacity(intersection_type.types.len());
-
-                for r#type in intersection_type.types {
-                    variants.push(self.convert_type(None, arguments.clone(), r#type, scope));
-                }
-
-                TypeKind::Intersection(IntersectionType {
-                    variants: self.environment.intern_type_ids(&variants),
-                })
-            }
-        };
-
-        let partial = PartialType {
-            span: r#type.span,
-            kind: self.environment.intern_kind(kind),
-        };
-
-        if let Some((id, _)) = id {
-            self.environment.types.intern_provisioned(id, partial).id
-        } else {
-            self.environment.intern_type(partial)
-        }
     }
 }
 
