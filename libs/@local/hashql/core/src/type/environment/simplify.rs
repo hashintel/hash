@@ -3,10 +3,7 @@ use core::ops::Deref;
 
 use smallvec::SmallVec;
 
-use super::{
-    AnalysisEnvironment, Diagnostics, Environment,
-    context::provision::{ProvisionedGuard, ProvisionedScope},
-};
+use super::{AnalysisEnvironment, Diagnostics, Environment, context::provision::ProvisionedGuard};
 use crate::{
     intern::Provisioned,
     r#type::{
@@ -22,9 +19,6 @@ pub struct SimplifyEnvironment<'env, 'heap> {
     pub environment: &'env Environment<'heap>,
     boundary: RecursionBoundary<'heap>,
 
-    // TODO: this needs to move into the analysis environment
-    provisioned: Rc<ProvisionedScope<TypeId>>,
-
     analysis: AnalysisEnvironment<'env, 'heap>,
 }
 
@@ -33,7 +27,6 @@ impl<'env, 'heap> SimplifyEnvironment<'env, 'heap> {
         Self {
             environment,
             boundary: RecursionBoundary::new(),
-            provisioned: Rc::default(),
             analysis: AnalysisEnvironment::new(environment),
         }
     }
@@ -74,97 +67,49 @@ impl<'env, 'heap> SimplifyEnvironment<'env, 'heap> {
     }
 
     #[inline]
-    pub fn is_equivalent(&mut self, mut lhs: TypeId, mut rhs: TypeId) -> bool {
-        if let Some(previous) = self.provisioned.get_source(lhs) {
-            lhs = previous;
-        }
-
-        if let Some(previous) = self.provisioned.get_source(rhs) {
-            rhs = previous;
-        }
-
+    pub fn is_equivalent(&mut self, lhs: TypeId, rhs: TypeId) -> bool {
         self.analysis.is_equivalent(lhs, rhs)
     }
 
     #[inline]
-    pub fn is_subtype_of(&mut self, mut subtype: TypeId, mut supertype: TypeId) -> bool {
-        if let Some(previous) = self.provisioned.get_source(subtype) {
-            subtype = previous;
-        }
-
-        if let Some(previous) = self.provisioned.get_source(supertype) {
-            supertype = previous;
-        }
-
+    pub fn is_subtype_of(&mut self, subtype: TypeId, supertype: TypeId) -> bool {
         self.analysis.is_subtype_of(subtype, supertype)
     }
 
     // Two types are disjoint if neither is a subtype of the other
     // This means they share no common values and their intersection is empty
     #[inline]
-    pub fn is_disjoint(&mut self, mut lhs: TypeId, mut rhs: TypeId) -> bool {
-        if let Some(previous) = self.provisioned.get_source(lhs) {
-            lhs = previous;
-        }
-
-        if let Some(previous) = self.provisioned.get_source(rhs) {
-            rhs = previous;
-        }
-
+    pub fn is_disjoint(&mut self, lhs: TypeId, rhs: TypeId) -> bool {
         self.analysis.is_disjoint(lhs, rhs)
     }
 
     #[inline]
-    pub fn is_bottom(&mut self, mut id: TypeId) -> bool {
-        if let Some(previous) = self.provisioned.get_source(id) {
-            id = previous;
-        }
-
+    pub fn is_bottom(&mut self, id: TypeId) -> bool {
         self.analysis.is_bottom(id)
     }
 
     #[inline]
-    pub fn is_top(&mut self, mut id: TypeId) -> bool {
-        if let Some(previous) = self.provisioned.get_source(id) {
-            id = previous;
-        }
-
+    pub fn is_top(&mut self, id: TypeId) -> bool {
         self.analysis.is_top(id)
     }
 
     #[inline]
-    pub fn is_concrete(&mut self, mut id: TypeId) -> bool {
-        if let Some(previous) = self.provisioned.get_source(id) {
-            id = previous;
-        }
-
+    pub fn is_concrete(&mut self, id: TypeId) -> bool {
         self.analysis.is_concrete(id)
     }
 
     #[inline]
-    pub fn is_recursive(&mut self, mut id: TypeId) -> bool {
-        if let Some(previous) = self.provisioned.get_source(id) {
-            id = previous;
-        }
-
+    pub fn is_recursive(&mut self, id: TypeId) -> bool {
         self.analysis.is_recursive(id)
     }
 
     #[inline]
-    pub fn distribute_union(&mut self, mut id: TypeId) -> SmallVec<TypeId, 16> {
-        if let Some(previous) = self.provisioned.get_source(id) {
-            id = previous;
-        }
-
+    pub fn distribute_union(&mut self, id: TypeId) -> SmallVec<TypeId, 16> {
         self.analysis.distribute_union(id)
     }
 
     #[inline]
-    pub fn distribute_intersection(&mut self, mut id: TypeId) -> SmallVec<TypeId, 16> {
-        if let Some(previous) = self.provisioned.get_source(id) {
-            id = previous;
-        }
-
+    pub fn distribute_intersection(&mut self, id: TypeId) -> SmallVec<TypeId, 16> {
         self.analysis.distribute_intersection(id)
     }
 
@@ -178,7 +123,7 @@ impl<'env, 'heap> SimplifyEnvironment<'env, 'heap> {
 
         if self.boundary.enter(r#type, r#type).is_break() {
             // See if the type has been substituted
-            if let Some(substitution) = self.provisioned.get_substitution(id) {
+            if let Some(substitution) = self.analysis.provisioned.get_substitution(id) {
                 return substitution;
             }
 
@@ -208,7 +153,7 @@ impl<'env, 'heap> SimplifyEnvironment<'env, 'heap> {
     )]
     pub fn provision(&mut self, id: TypeId) -> (ProvisionedGuard<TypeId>, Provisioned<TypeId>) {
         let provisioned = self.environment.types.provision();
-        let guard = Rc::clone(&self.provisioned).enter(id, provisioned);
+        let guard = Rc::clone(&self.analysis.provisioned).enter(id, provisioned);
 
         (guard, provisioned)
     }

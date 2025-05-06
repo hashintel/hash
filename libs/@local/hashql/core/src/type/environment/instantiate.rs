@@ -111,6 +111,7 @@ impl<'env, 'heap> InstantiateEnvironment<'env, 'heap> {
     ) -> (
         ReplacementGuard<GenericArgumentId>,
         GenericSubstitutions<'heap>,
+        bool,
     ) {
         let mut replacements = SmallVec::<_, 16>::with_capacity(substitutions.len());
         // We need a map here, because some substitutions *might* be overlapping and might be
@@ -121,13 +122,17 @@ impl<'env, 'heap> InstantiateEnvironment<'env, 'heap> {
             foldhash::fast::RandomState::default(),
         );
 
+        let mut only_identities = true;
+
         for &substitution in &*substitutions {
+            // Check if only T ↦ T mappings exist, if that is the case then we can safely ignore any
+            // substitution.
             if let Some(&TypeKind::Param(Param { argument })) =
                 self.types.get(substitution.value).map(|r#type| r#type.kind)
                 && argument == substitution.argument
             {
-                // A mapping from T ↦ T can be safely ignored
-                continue;
+            } else {
+                only_identities = false;
             }
 
             let argument = if let Some(&argument) = mapping.get(&substitution.argument) {
@@ -152,7 +157,7 @@ impl<'env, 'heap> InstantiateEnvironment<'env, 'heap> {
         let scope = Rc::clone(&self.substitutions_scope);
         let guard = scope.enter_many(mapping);
 
-        (guard, substitutions)
+        (guard, substitutions, only_identities)
     }
 
     pub(crate) fn force_instantiate(&mut self, id: TypeId) -> TypeId {
@@ -202,12 +207,8 @@ impl<'env, 'heap> InstantiateEnvironment<'env, 'heap> {
         replacement
     }
 
-    #[expect(
-        clippy::needless_pass_by_ref_mut,
-        reason = "prove ownership of environment, so that we can borrow safely"
-    )]
     pub fn clear_provisioned(&mut self) {
-        self.provisioned.clear();
+        self.substitutions.clear();
     }
 
     pub fn provision(&mut self, id: TypeId) -> (ProvisionedGuard<TypeId>, Provisioned<TypeId>) {

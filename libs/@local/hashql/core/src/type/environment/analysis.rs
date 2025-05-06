@@ -1,8 +1,9 @@
+use alloc::rc::Rc;
 use core::ops::{ControlFlow, Deref};
 
 use smallvec::SmallVec;
 
-use super::{Diagnostics, Environment, Variance};
+use super::{Diagnostics, Environment, Variance, context::provision::ProvisionedScope};
 use crate::r#type::{
     Type, TypeId,
     error::{TypeCheckDiagnostic, circular_type_reference},
@@ -13,13 +14,21 @@ use crate::r#type::{
 };
 
 #[derive(Debug)]
+#[expect(
+    clippy::field_scoped_visibility_modifiers,
+    reason = "implementation detail"
+)]
 pub struct AnalysisEnvironment<'env, 'heap> {
     environment: &'env Environment<'heap>,
-    boundary: RecursionBoundary<'heap>,
     diagnostics: Option<Diagnostics>,
-    variance: Variance,
+
+    boundary: RecursionBoundary<'heap>,
+
     variables: Option<VariableLookup>,
     substitution: Option<Substitution>,
+    pub(crate) provisioned: Rc<ProvisionedScope<TypeId>>,
+
+    variance: Variance,
 }
 
 impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
@@ -27,11 +36,15 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
     pub fn new(environment: &'env Environment<'heap>) -> Self {
         Self {
             environment,
-            boundary: RecursionBoundary::new(),
             diagnostics: None,
-            variance: Variance::Covariant,
+
+            boundary: RecursionBoundary::new(),
+
             variables: None,
             substitution: None,
+            provisioned: Rc::default(),
+
+            variance: Variance::Covariant,
         }
     }
 
@@ -105,8 +118,17 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
         }
     }
 
+    #[expect(clippy::needless_pass_by_ref_mut, reason = "proof of ownership")]
+    fn resolve_id(&mut self, id: TypeId) -> TypeId {
+        if let Some(source) = self.provisioned.get_source(id) {
+            return source;
+        }
+
+        id
+    }
+
     pub fn is_bottom(&mut self, id: TypeId) -> bool {
-        let r#type = self.environment.r#type(id);
+        let r#type = self.environment.r#type(self.resolve_id(id));
 
         if self.boundary.enter(r#type, r#type).is_break() {
             // We have found a recursive type, meaning it can't be bottom
@@ -121,7 +143,7 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
     }
 
     pub fn is_top(&mut self, id: TypeId) -> bool {
-        let r#type = self.environment.r#type(id);
+        let r#type = self.environment.r#type(self.resolve_id(id));
 
         if self.boundary.enter(r#type, r#type).is_break() {
             // We have found a recursive type, meaning it can't be top
@@ -136,14 +158,14 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
     }
 
     pub fn is_disjoint(&mut self, lhs: TypeId, rhs: TypeId) -> bool {
-        let lhs = self.environment.r#type(lhs);
-        let rhs = self.environment.r#type(rhs);
+        let lhs = self.environment.r#type(self.resolve_id(lhs));
+        let rhs = self.environment.r#type(self.resolve_id(rhs));
 
         !lhs.is_subtype_of(rhs, self) && !rhs.is_subtype_of(lhs, self)
     }
 
     pub fn is_concrete(&mut self, id: TypeId) -> bool {
-        let r#type = self.environment.r#type(id);
+        let r#type = self.environment.r#type(self.resolve_id(id));
 
         if self.boundary.enter(r#type, r#type).is_break() {
             // We have found a recursive type with no holes, therefore it must be concrete
@@ -158,7 +180,7 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
     }
 
     pub fn is_recursive(&mut self, id: TypeId) -> bool {
-        let r#type = self.environment.r#type(id);
+        let r#type = self.environment.r#type(self.resolve_id(id));
 
         if self.boundary.enter(r#type, r#type).is_break() {
             // We have found a recursive type
@@ -173,7 +195,7 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
     }
 
     pub fn distribute_union(&mut self, id: TypeId) -> SmallVec<TypeId, 16> {
-        let r#type = self.environment.r#type(id);
+        let r#type = self.environment.r#type(self.resolve_id(id));
 
         if self.boundary.enter(r#type, r#type).is_break() {
             // We have found a recursive type, due to coinductive reasoning, this means it can no
@@ -189,7 +211,7 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
     }
 
     pub fn distribute_intersection(&mut self, id: TypeId) -> SmallVec<TypeId, 16> {
-        let r#type = self.environment.r#type(id);
+        let r#type = self.environment.r#type(self.resolve_id(id));
 
         if self.boundary.enter(r#type, r#type).is_break() {
             // We have found a recursive type, due to coinductive reasoning, this means it can no
@@ -345,8 +367,8 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
             Variance::Invariant => return self.is_equivalent(subtype, supertype),
         };
 
-        let subtype = self.environment.r#type(subtype);
-        let supertype = self.environment.r#type(supertype);
+        let subtype = self.environment.r#type(self.resolve_id(subtype));
+        let supertype = self.environment.r#type(self.resolve_id(supertype));
 
         if self.boundary.enter(subtype, supertype).is_break() {
             let cycle = RecursionCycle {
@@ -435,8 +457,8 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
     }
 
     pub fn is_equivalent(&mut self, lhs: TypeId, rhs: TypeId) -> bool {
-        let lhs = self.environment.r#type(lhs);
-        let rhs = self.environment.r#type(rhs);
+        let lhs = self.environment.r#type(self.resolve_id(lhs));
+        let rhs = self.environment.r#type(self.resolve_id(rhs));
 
         if self.boundary.enter(lhs, rhs).is_break() {
             let cycle = RecursionCycle {

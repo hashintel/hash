@@ -11,6 +11,15 @@ pub struct ProvisionedGuard<T: Id> {
     previous: Option<Provisioned<T>>,
 }
 
+impl<T> ProvisionedGuard<T>
+where
+    T: Id,
+{
+    pub(crate) fn is_used(&self) -> bool {
+        self.inner.is_used(self.provisioned)
+    }
+}
+
 impl<T> Drop for ProvisionedGuard<T>
 where
     T: Id,
@@ -67,7 +76,7 @@ where
 #[derive(Debug)]
 pub(crate) struct ProvisionedScope<T> {
     forward: RefCell<FastHashMap<T, Provisioned<T>>>,
-    reverse: RefCell<FastHashMap<Provisioned<T>, T>>,
+    reverse: RefCell<FastHashMap<Provisioned<T>, (usize, T)>>,
 }
 
 impl<T> ProvisionedScope<T>
@@ -77,7 +86,7 @@ where
     pub(crate) fn enter(self: Rc<Self>, id: T, provisioned: Provisioned<T>) -> ProvisionedGuard<T> {
         let previous = { self.forward.borrow_mut().insert(id, provisioned) };
 
-        self.reverse.borrow_mut().insert(provisioned, id);
+        self.reverse.borrow_mut().insert(provisioned, (0, id));
 
         ProvisionedGuard {
             inner: Rc::clone(&self),
@@ -85,16 +94,6 @@ where
             provisioned,
             previous,
         }
-    }
-
-    pub(crate) fn enter_unscoped(&self, id: T, provisioned: Provisioned<T>) {
-        self.forward.borrow_mut().insert(id, provisioned);
-        self.reverse.borrow_mut().insert(provisioned, id);
-    }
-
-    pub(crate) fn clear(&self) {
-        self.forward.borrow_mut().clear();
-        self.reverse.borrow_mut().clear();
     }
 
     fn exit(&self, guard: &ProvisionedGuard<T>) {
@@ -115,7 +114,23 @@ where
     }
 
     pub(crate) fn get_source(&self, id: T) -> Option<T> {
-        self.reverse.borrow().get(&id).copied()
+        let value = {
+            let mut guard = self.reverse.borrow_mut();
+
+            let (access, value) = guard.get_mut(&id)?;
+            *access += 1;
+
+            *value
+        };
+
+        Some(value)
+    }
+
+    pub(crate) fn is_used(&self, id: Provisioned<T>) -> bool {
+        self.reverse
+            .borrow()
+            .get(&id)
+            .is_some_and(|&(access, _)| access > 0)
     }
 }
 
