@@ -152,6 +152,16 @@ impl<'heap> Path<'heap> {
         Some(&segment.name)
     }
 
+    pub(crate) fn as_generic_ident(&self) -> Option<(Ident<'heap>, &[PathSegmentArgument<'heap>])> {
+        if !self.is_generic_ident() {
+            return None;
+        }
+
+        let segment = &self.segments[0];
+
+        Some((segment.name, &segment.arguments))
+    }
+
     pub(crate) fn into_ident(mut self) -> Option<Ident<'heap>> {
         if !self.is_ident() {
             return None;

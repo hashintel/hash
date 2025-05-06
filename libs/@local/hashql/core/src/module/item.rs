@@ -1,7 +1,10 @@
 use core::iter;
 
 use super::{Module, ModuleId, ModuleRegistry};
-use crate::{symbol::Symbol, r#type::TypeId};
+use crate::{
+    symbol::Symbol,
+    r#type::{TypeId, kind::GenericArgument},
+};
 
 /// Represents the conceptual space or "universe" an item belongs to.
 ///
@@ -31,20 +34,20 @@ pub struct IntrinsicItem {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum ItemKind {
+pub enum ItemKind<'heap> {
     Module(ModuleId),
     // In the future we'll also need to export values (like closures)
     // this would be done via a `DefId`/`ValueId` or similar
-    Type(TypeId),
+    Type(TypeId, &'heap [GenericArgument<'heap>]),
     Intrinsic(IntrinsicItem),
 }
 
-impl ItemKind {
+impl ItemKind<'_> {
     #[must_use]
     pub const fn universe(&self) -> Option<Universe> {
         match self {
             Self::Module(_) => None,
-            Self::Type(_) => Some(Universe::Type),
+            Self::Type(_, _) => Some(Universe::Type),
             Self::Intrinsic(IntrinsicItem { universe, .. }) => Some(*universe),
         }
     }
@@ -57,7 +60,7 @@ pub struct Item<'heap> {
     // TODO: move to Ident once Copy
     //  see: https://linear.app/hash/issue/H-4414/hashql-move-from-symbol-to-internedsymbol
     pub name: Symbol<'heap>,
-    pub kind: ItemKind,
+    pub kind: ItemKind<'heap>,
 }
 
 impl<'heap> Item<'heap> {
