@@ -10,7 +10,8 @@ use crate::{
         PartialType, Type, TypeId,
         environment::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
-            SimplifyEnvironment, instantiate::InstantiateEnvironment,
+            SimplifyEnvironment,
+            instantiate::{InstantiateEnvironment, SubstitutionState},
         },
         inference::{Inference, PartialStructuralEdge},
         kind::TypeKind,
@@ -355,10 +356,10 @@ impl<'heap> Inference<'heap> for Apply<'heap> {
 
     fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {
         let (guard_id, id) = env.provision(self.id);
-        let (_guard, substitutions, only_identities) =
+        let (_guard, substitutions, substitution_state) =
             env.instantiate_substitutions(self.kind.substitutions);
 
-        if only_identities || substitutions.is_empty() {
+        if substitution_state == SubstitutionState::IdentitiesOnly || substitutions.is_empty() {
             // When we have only identity substitutions or no substitutions at all,
             // we can use regular instantiation for the base type because the result
             // won't be generic over the substitutions

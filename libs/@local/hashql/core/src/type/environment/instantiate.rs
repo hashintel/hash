@@ -27,6 +27,12 @@ use crate::{
     },
 };
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum SubstitutionState {
+    IdentitiesOnly,
+    Mixed,
+}
+
 // This was moved out of the `InferenceEnvironment`, as the requirements (especially provision
 // scoping) are too different and there's nearly 0 overlap.
 #[derive(Debug)]
@@ -111,7 +117,7 @@ impl<'env, 'heap> InstantiateEnvironment<'env, 'heap> {
     ) -> (
         ReplacementGuard<GenericArgumentId>,
         GenericSubstitutions<'heap>,
-        bool,
+        SubstitutionState,
     ) {
         let mut replacements = SmallVec::<_, 16>::with_capacity(substitutions.len());
         // We need a map here, because some substitutions *might* be overlapping and might be
@@ -122,7 +128,7 @@ impl<'env, 'heap> InstantiateEnvironment<'env, 'heap> {
             foldhash::fast::RandomState::default(),
         );
 
-        let mut only_identities = true;
+        let mut state = SubstitutionState::IdentitiesOnly;
 
         for &substitution in &*substitutions {
             // Check if only T ↦ T mappings exist, if that is the case then we can safely ignore any
@@ -132,7 +138,7 @@ impl<'env, 'heap> InstantiateEnvironment<'env, 'heap> {
                 && argument == substitution.argument
             {
             } else {
-                only_identities = false;
+                state = SubstitutionState::Mixed;
             }
 
             let argument = if let Some(&argument) = mapping.get(&substitution.argument) {
@@ -157,7 +163,7 @@ impl<'env, 'heap> InstantiateEnvironment<'env, 'heap> {
         let scope = Rc::clone(&self.substitutions_scope);
         let guard = scope.enter_many(mapping);
 
-        (guard, substitutions, only_identities)
+        (guard, substitutions, state)
     }
 
     pub(crate) fn force_instantiate(&mut self, id: TypeId) -> TypeId {
