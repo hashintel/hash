@@ -114,7 +114,7 @@ impl PrettyPrint for GenericSubstitutions<'_> {
         limit: RecursionDepthBoundary,
     ) -> RcDoc<'env, anstyle::Style> {
         match self.as_slice() {
-            [] => RcDoc::nil(),
+            [] => RcDoc::text("<>"),
             slice => RcDoc::text("<")
                 .append(
                     RcDoc::intersperse(
@@ -354,18 +354,39 @@ impl<'heap> Inference<'heap> for Apply<'heap> {
     }
 
     fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {
-        let (_guard_id, id) = env.provision(self.id);
+        let (guard_id, id) = env.provision(self.id);
         let (_guard, substitutions, only_identities) =
             env.instantiate_substitutions(self.kind.substitutions);
 
         if only_identities || substitutions.is_empty() {
-            // No substitutions means that this apply is does not apply, and can therefore be safely
-            // removed
-            return env.instantiate(self.kind.base);
+            // When we have only identity substitutions or no substitutions at all,
+            // we can use regular instantiation for the base type because the result
+            // won't be generic over the substitutions
+            let base = env.instantiate(self.kind.base);
+
+            // If there are no effective substitutions, this Apply is redundant and
+            // can potentially be simplified to just the base type
+            if guard_id.is_used() {
+                // However, if the type is referenced elsewhere, we must preserve the ID
+                // by closing the reference. We use an empty substitution map which is
+                // semantically equivalent to having no substitutions
+                return env.intern_provisioned(
+                    id,
+                    PartialType {
+                        span: self.span,
+                        kind: env.intern_kind(TypeKind::Apply(Self {
+                            base,
+                            substitutions: GenericSubstitutions::empty(),
+                        })),
+                    },
+                );
+            }
+
+            return base;
         }
 
-        // Skip the substitution map, this makes sure that we always generate a new type (if
-        // required)
+        // For non-identity substitutions, we force instantiation of the base type
+        // to ensure we generate a new type instance rather than reusing an existing one
         let base = env.force_instantiate(self.kind.base);
 
         env.intern_provisioned(
@@ -934,6 +955,40 @@ mod tests {
             [simplify.simplify(number)],
             [primitive!(env, PrimitiveType::Number)]
         );
+    }
+
+    #[test]
+    fn simplify_instantiate_recursive() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let t = env.counter.generic_argument.next();
+
+        let recursive = env.types.intern(|recursive| PartialType {
+            span: SpanId::SYNTHETIC,
+            kind: env.intern_kind(TypeKind::Apply(Apply {
+                base: r#struct!(
+                    env,
+                    [GenericArgument {
+                        id: t,
+                        name: heap.intern_symbol("T"),
+                        constraint: None
+                    }],
+                    [struct_field!(env, "foo", recursive.value())]
+                ),
+                substitutions: env.intern_generic_substitutions(&mut [GenericSubstitution {
+                    argument: t,
+                    value: instantiate_param(&env, t),
+                }]),
+            })),
+        });
+
+        let mut simplify = SimplifyEnvironment::new(&env);
+        let mut instantiate = InstantiateEnvironment::new(&env);
+        let result_id = simplify.simplify(instantiate.instantiate(recursive.id));
+
+        // The type is complicated enough that it isn't feasible to test it through assertions.
+        insta::assert_snapshot!(strip_str(&env.r#type(result_id).pretty_print(&env, 80)));
     }
 
     #[test]

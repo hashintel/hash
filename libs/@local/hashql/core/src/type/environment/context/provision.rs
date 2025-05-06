@@ -107,10 +107,19 @@ where
     }
 
     pub(crate) fn get_substitution(&self, id: T) -> Option<T> {
-        self.forward
-            .borrow()
-            .get(&id)
-            .map(|provisioned| provisioned.value())
+        let value = {
+            let provisioned = self.forward.borrow_mut().get(&id).copied()?;
+
+            self.reverse
+                .borrow_mut()
+                .get_mut(&provisioned)
+                .expect("should exist")
+                .0 += 1;
+
+            provisioned
+        };
+
+        Some(value.value())
     }
 
     pub(crate) fn get_source(&self, id: T) -> Option<T> {
