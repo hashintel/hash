@@ -8,7 +8,7 @@ use super::{Enum, List, Map, Primitive, Struct, Tuple};
 ///
 /// This solves the problem of distinguishing between different type references that might have the
 /// same name but are from different scopes or modules.
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub struct TypeId(specta::SpectaID);
 
 impl TypeId {
