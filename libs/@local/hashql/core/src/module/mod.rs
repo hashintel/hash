@@ -6,6 +6,7 @@
 pub mod error;
 pub mod import;
 pub mod item;
+pub mod locals;
 pub mod namespace;
 mod resolver;
 mod std_lib;

@@ -35,7 +35,7 @@ use crate::node::{
 
 /// Represents a reference to either a type variable or a type node
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-enum Reference<'ty, 'heap> {
+pub(crate) enum Reference<'ty, 'heap> {
     Variable(Ident<'heap>),
     Type(&'ty node::r#type::Type<'heap>),
 }
@@ -54,17 +54,18 @@ impl Reference<'_, '_> {
 /// Types in the system can have either structural identity (compared by their structure)
 /// or nominal identity (compared by their name), which affects type checking.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-enum Identity<'heap> {
+pub(crate) enum Identity<'heap> {
     Structural,
     Nominal(Symbol<'heap>),
 }
 
 /// Represents a local type variable with its associated type information
-struct LocalVariable<'ty, 'heap> {
-    id: Provisioned<TypeId>,
-    r#type: &'ty node::r#type::Type<'heap>,
-    identity: Identity<'heap>,
-    arguments: TinyVec<GenericArgument<'heap>>,
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct LocalVariable<'ty, 'heap> {
+    pub id: Provisioned<TypeId>,
+    pub r#type: &'ty node::r#type::Type<'heap>,
+    pub identity: Identity<'heap>,
+    pub arguments: TinyVec<GenericArgument<'heap>>,
 }
 
 /// Main context for type translation operations
@@ -72,13 +73,13 @@ struct LocalVariable<'ty, 'heap> {
 /// The translation unit maintains all the context needed for translating AST type
 /// nodes into the core type system, including environment, registry access,
 /// and tracking of local variables and bound generic parameters.
-struct TranslationUnit<'env, 'ty, 'heap> {
-    env: &'env Environment<'heap>,
-    registry: &'env ModuleRegistry<'heap>,
-    diagnostics: Vec<TypeExtractorDiagnostic>,
+pub(crate) struct TranslationUnit<'env, 'ty, 'heap> {
+    pub env: &'env Environment<'heap>,
+    pub registry: &'env ModuleRegistry<'heap>,
+    pub diagnostics: Vec<TypeExtractorDiagnostic>,
 
-    locals: &'env FastHashMap<Symbol<'heap>, LocalVariable<'ty, 'heap>>,
-    bound_generics: TinyVec<GenericArgument<'heap>>,
+    pub locals: &'env FastHashMap<Symbol<'heap>, LocalVariable<'ty, 'heap>>,
+    pub bound_generics: TinyVec<GenericArgument<'heap>>,
 }
 
 impl<'heap> TranslationUnit<'_, '_, 'heap> {
@@ -199,7 +200,9 @@ impl<'heap> TranslationUnit<'_, '_, 'heap> {
         parameters: &[PathSegmentArgument<'heap>],
     ) -> TypeKind<'heap> {
         let Some((base, arguments)) = self.find_local(ident) else {
-            todo!("record diagnostic - unbound variable");
+            todo!(
+                "record diagnostic - unbound variable; compiler bug, should be caught previously"
+            );
         };
 
         self.apply_reference(base, arguments, parameters)
@@ -386,7 +389,7 @@ impl<'heap> TranslationUnit<'_, '_, 'heap> {
     ///
     /// This is a dispatcher method that handles both variable references and type references,
     /// converting them to an interned TypeId.
-    fn reference(
+    pub(crate) fn reference(
         &self,
         reference: Reference<'_, 'heap>,
         arguments: TinyVec<GenericArgument<'heap>>,
@@ -408,7 +411,7 @@ impl<'heap> TranslationUnit<'_, '_, 'heap> {
     ///
     /// This method handles creating the appropriate type for a local variable, taking into account
     /// whether it has nominal or structural identity.
-    fn variable(&self, variable: &LocalVariable<'_, 'heap>) -> TypeId {
+    pub(crate) fn variable(&self, variable: &LocalVariable<'_, 'heap>) -> TypeId {
         let kind = if let Identity::Nominal(name) = variable.identity {
             self.nominal(
                 name,

@@ -1,6 +1,6 @@
 use alloc::borrow::Cow;
 
-use hashql_core::{span::SpanId, symbol::Symbol};
+use hashql_core::{span::SpanId, symbol::Symbol, r#type::error::TypeCheckDiagnosticCategory};
 use hashql_diagnostics::{
     Diagnostic,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
@@ -26,6 +26,7 @@ const DUPLICATE_NEWTYPE: TerminalDiagnosticCategory = TerminalDiagnosticCategory
 pub enum TypeExtractorDiagnosticCategory {
     DuplicateTypeAlias,
     DuplicateNewtype,
+    TypeCheck(TypeCheckDiagnosticCategory),
 }
 
 impl DiagnosticCategory for TypeExtractorDiagnosticCategory {
@@ -41,6 +42,7 @@ impl DiagnosticCategory for TypeExtractorDiagnosticCategory {
         match self {
             Self::DuplicateTypeAlias => Some(&DUPLICATE_TYPE_ALIAS),
             Self::DuplicateNewtype => Some(&DUPLICATE_NEWTYPE),
+            Self::TypeCheck(category) => Some(category),
         }
     }
 }
