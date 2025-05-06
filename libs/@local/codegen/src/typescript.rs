@@ -48,6 +48,35 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
         }
     }
 
+    pub fn add_import_declaration(
+        &mut self,
+        module: &str,
+        specifiers: impl IntoIterator<Item = &'a str>,
+    ) {
+        self.program.body.push(
+            self.ast
+                .module_declaration_import_declaration(
+                    SPAN,
+                    Some(
+                        self.ast
+                            .vec_from_iter(specifiers.into_iter().map(|specifier| {
+                                self.ast.import_declaration_specifier_import_specifier(
+                                    SPAN,
+                                    self.ast.module_export_name_identifier_name(SPAN, specifier),
+                                    self.ast.binding_identifier(SPAN, specifier),
+                                    ast::ImportOrExportKind::Value,
+                                )
+                            })),
+                    ),
+                    self.ast.string_literal(SPAN, module, None),
+                    None,
+                    None::<ast::WithClause<'a>>,
+                    ast::ImportOrExportKind::Type,
+                )
+                .into(),
+        );
+    }
+
     /// Generates TypeScript code from the provided type collection.
     pub fn write(self) -> String {
         Codegen::new().build(&self.program).code
@@ -74,28 +103,34 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
         self.add_type_declaration_by_id(TypeId::from_specta(T::ID));
     }
 
-    fn should_export_as_interface(&self, r#type: &Type) -> bool {
+    fn can_be_used_in_interface_extend(&self, r#type: &Type) -> bool {
         match r#type {
-            Type::Reference(reference) => self.should_export_as_interface(
+            Type::Reference(type_id) => self.can_be_used_in_interface_extend(
                 &self
                     .collection
                     .types
-                    .get(reference)
+                    .get(type_id)
                     .unwrap_or_else(|| {
                         panic!(
                             "Reference {:?} not found. Ensure all referenced types are registered \
                              or use `register_transitive_types()` first.",
                             self.collection
                                 .collection
-                                .get(reference.to_specta())
+                                .get(type_id.to_specta())
                                 .map_or_else(
-                                    || format!("{reference:?}"),
+                                    || format!("{type_id:?}"),
                                     |data_type| data_type.name().to_string()
                                 )
                         )
                     })
                     .r#type,
             ),
+            r#type => self.should_export_as_interface(r#type),
+        }
+    }
+
+    fn should_export_as_interface(&self, r#type: &Type) -> bool {
+        match r#type {
             Type::Struct(r#struct) => {
                 if let Fields::Named {
                     fields,
@@ -103,7 +138,7 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
                 } = &r#struct.fields
                 {
                     !fields.iter().any(|(_, field)| {
-                        field.flatten && !self.should_export_as_interface(&field.r#type)
+                        field.flatten && !self.can_be_used_in_interface_extend(&field.r#type)
                     })
                 } else {
                     false
@@ -144,14 +179,14 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
                             //       due to `field.r#type` being a `Type::Struct` we can workaround
                             //       it by truely flatten the struct into the interface.
                             //   see https://linear.app/hash/issue/H-4506/support-inlining-of-flattened-structs
-                            let Type::Reference(reference) = &field.r#type else {
+                            let Type::Reference(type_id) = &field.r#type else {
                                 panic!("Expected reference type for flattened field");
                             };
                             extends.push(self.ast.ts_interface_heritage(
                                 SPAN,
                                 ast::Expression::Identifier(self.ast.alloc_identifier_reference(
                                     SPAN,
-                                    self.collection.types[reference].name.as_ref(),
+                                    self.collection.types[type_id].name.as_ref(),
                                 )),
                                 None::<ast::TSTypeParameterInstantiation<'a>>,
                             ));
@@ -178,7 +213,7 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
                     "Tried to generate an interface from tuple-struct or unit struct"
                 ),
             },
-            _ => unimplemented!("Tried to generate an interface from unsupported type"),
+            ty => unimplemented!("Tried to generate an interface from unsupported type: {ty:?}",),
         };
 
         self.ast.declaration_ts_interface(
@@ -218,14 +253,16 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
                 deny_unknown,
             } => {
                 if fields.is_empty() && *deny_unknown {
-                    let mut params = self.ast.vec();
-                    params.push(self.ast.ts_type_string_keyword(SPAN));
-                    params.push(self.ast.ts_type_never_keyword(SPAN));
-
                     return self.ast.ts_type_type_reference(
                         SPAN,
                         self.ast.ts_type_name_identifier_reference(SPAN, "Record"),
-                        Some(self.ast.ts_type_parameter_instantiation(SPAN, params)),
+                        Some(self.ast.ts_type_parameter_instantiation(
+                            SPAN,
+                            self.ast.vec_from_array([
+                                self.ast.ts_type_string_keyword(SPAN),
+                                self.ast.ts_type_never_keyword(SPAN),
+                            ]),
+                        )),
                     );
                 }
 
@@ -263,13 +300,14 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
             }
             Fields::Unnamed { fields } => match fields.as_slice() {
                 [field] => self.visit_type(&field.r#type),
-                fields => {
-                    let mut members = self.ast.vec();
-                    for field in fields {
-                        members.push(self.visit_type(&field.r#type).into());
-                    }
-                    self.ast.ts_type_tuple_type(SPAN, members)
-                }
+                fields => self.ast.ts_type_tuple_type(
+                    SPAN,
+                    self.ast.vec_from_iter(
+                        fields
+                            .iter()
+                            .map(|field| self.visit_type(&field.r#type).into()),
+                    ),
+                ),
             },
         }
     }
@@ -431,13 +469,15 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
     }
 
     fn visit_enum(&self, enum_type: &Enum) -> ast::TSType<'a> {
-        let mut types = self.ast.vec();
-
-        for variant in &enum_type.variants {
-            types.push(self.visit_enum_variant(variant, &enum_type.tagging));
-        }
-
-        self.ast.ts_type_union_type(SPAN, types)
+        self.ast.ts_type_union_type(
+            SPAN,
+            self.ast.vec_from_iter(
+                enum_type
+                    .variants
+                    .iter()
+                    .map(|variant| self.visit_enum_variant(variant, &enum_type.tagging)),
+            ),
+        )
     }
 
     fn visit_struct(&self, struct_type: &Struct) -> ast::TSType<'a> {
@@ -445,24 +485,29 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
     }
 
     fn visit_map(&self, map: &Map) -> ast::TSType<'a> {
-        let mut params = self.ast.vec();
-        params.push(self.visit_type(&map.key));
-        params.push(self.visit_type(&map.value));
-
         self.ast.ts_type_type_reference(
             SPAN,
             self.ast.ts_type_name_identifier_reference(SPAN, "Record"),
-            Some(self.ast.ts_type_parameter_instantiation(SPAN, params)),
+            Some(
+                self.ast.ts_type_parameter_instantiation(
+                    SPAN,
+                    self.ast
+                        .vec_from_array([self.visit_type(&map.key), self.visit_type(&map.value)]),
+                ),
+            ),
         )
     }
 
     fn visit_tuple(&self, tuple: &Tuple) -> ast::TSType<'a> {
-        let mut elements = self.ast.vec();
-        for element in &tuple.elements {
-            elements.push(self.visit_type(element).into());
-        }
-
-        self.ast.ts_type_tuple_type(SPAN, elements)
+        self.ast.ts_type_tuple_type(
+            SPAN,
+            self.ast.vec_from_iter(
+                tuple
+                    .elements
+                    .iter()
+                    .map(|element| self.visit_type(element).into()),
+            ),
+        )
     }
 
     fn visit_list(&self, list: &List) -> ast::TSType<'a> {
@@ -473,12 +518,16 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
     fn visit_optional(&self, optional: &Type) -> ast::TSType<'a> {
         // TODO: Properly implement optional handling
         //   see https://linear.app/hash/issue/H-4457/capture-field-optionality-in-codegen
-        let mut types = self.ast.vec();
-        types.push(self.visit_type(optional));
-        types.push(self.ast.ts_type_undefined_keyword(SPAN));
-
-        self.ast
-            .ts_type_parenthesized_type(SPAN, self.ast.ts_type_union_type(SPAN, types))
+        self.ast.ts_type_parenthesized_type(
+            SPAN,
+            self.ast.ts_type_union_type(
+                SPAN,
+                self.ast.vec_from_array([
+                    self.visit_type(optional),
+                    self.ast.ts_type_undefined_keyword(SPAN),
+                ]),
+            ),
+        )
     }
 
     fn visit_type(&self, r#type: &Type) -> ast::TSType<'a> {
@@ -486,7 +535,7 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
             Type::Primitive(primitive) => self.visit_primitive(primitive),
             Type::Enum(enum_type) => self.visit_enum(enum_type),
             Type::Struct(struct_type) => self.visit_struct(struct_type),
-            Type::Reference(reference) => self.visit_reference(*reference),
+            Type::Reference(type_id) => self.visit_reference(*type_id),
             Type::Tuple(tuple) => self.visit_tuple(tuple),
             Type::List(list) => self.visit_list(list),
             Type::Map(map) => self.visit_map(map),

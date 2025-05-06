@@ -31,8 +31,8 @@ use crate::knowledge::entity::id::EntityUuid;
     serde::Serialize,
     serde::Deserialize,
     derive_more::Display,
-    specta::Type,
 )]
+#[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[cfg_attr(
@@ -74,9 +74,8 @@ impl From<ActorGroupEntityUuid> for Uuid {
 /// Types of actor groups in the system.
 ///
 /// Represents the different categories of actor groupings.
-#[derive(
-    Debug, Copy, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize, specta::Type,
-)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
@@ -100,8 +99,8 @@ pub enum ActorGroupType {
     serde::Deserialize,
     derive_more::Display,
     derive_more::From,
-    specta::Type,
 )]
+#[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(tag = "actorGroupType", content = "id", rename_all = "camelCase")]
@@ -186,7 +185,8 @@ impl postgres_types::ToSql for ActorGroupId {
 ///
 /// Represents the concrete implementation of an actor group with its attributes and capabilities.
 /// Each variant corresponds to a specific [`ActorGroupType`].
-#[derive(Debug, serde::Serialize, serde::Deserialize, derive_more::From, specta::Type)]
+#[derive(Debug, serde::Serialize, serde::Deserialize, derive_more::From)]
+#[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(tag = "actorGroupType", rename_all = "camelCase")]

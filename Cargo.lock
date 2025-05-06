@@ -3213,6 +3213,7 @@ dependencies = [
  "error-stack",
  "harpc-types",
  "harpc-wire-protocol",
+ "hash-codegen",
  "postgres-types",
  "regex",
  "serde",

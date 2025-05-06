@@ -8,26 +8,24 @@ use hash_codegen::{
     TypeCollection,
     typescript::{TypeScriptGenerator, TypeScriptGeneratorSettings},
 };
-use type_system::principal;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut collection = TypeCollection::default();
 
-    collection.register::<principal::Principal>();
-    collection.register::<principal::PrincipalId>();
-    collection.register::<principal::actor::ActorType>();
-    collection.register::<principal::actor_group::ActorGroupType>();
-    collection.register::<principal::role::RoleType>();
+    // Numeric types
+    #[cfg(feature = "numeric")]
+    {
+        use hash_codec::numeric;
+        collection.register::<numeric::Real>();
+    }
 
     collection.register_transitive_types();
 
     let settings = TypeScriptGeneratorSettings::default();
     let mut generator = TypeScriptGenerator::new(&settings, &collection);
 
-    generator.add_import_declaration("@rust/hash-codec/types", ["Real"]);
-
     for (type_id, _, type_definition) in collection.iter() {
-        if type_definition.module.starts_with("type_system") {
+        if type_definition.module.starts_with("hash_codec") {
             generator.add_type_declaration_by_id(type_id);
         }
     }

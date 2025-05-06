@@ -21,6 +21,7 @@ tokio-util = { workspace = true, public = true, optional = true, features = ["co
 utoipa     = { workspace = true, public = true, optional = true }
 
 # Private workspace dependencies
+hash-codegen = { workspace = true, optional = true }
 
 # Private third-party dependencies
 dashu-base     = { workspace = true, optional = true, features = ["std"] }
@@ -36,7 +37,12 @@ harpc-types = { workspace = true }
 serde       = { workspace = true, features = ["derive"] }
 serde_json  = { workspace = true }
 
+[[bin]]
+name              = "export-types"
+required-features = ["codegen"]
+
 [features]
+codegen = ["dep:hash-codegen", "dep:specta"]
 bytes = [
     "dep:serde",
     "dep:derive-where",
@@ -46,7 +52,7 @@ bytes = [
 ]
 serde = ["dep:serde", "dep:time", "dep:regex"]
 harpc = ["dep:harpc-wire-protocol", "dep:tokio-util", "dep:error-stack"]
-numeric = ["dep:dashu-base", "dep:dashu-float", "dep:derive_more", "dep:specta"]
+numeric = ["dep:dashu-base", "dep:dashu-float", "dep:derive_more"]
 postgres = ["dep:postgres-types"]
 utoipa = ["dep:utoipa"]
 

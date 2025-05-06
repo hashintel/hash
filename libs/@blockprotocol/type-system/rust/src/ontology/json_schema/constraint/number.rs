@@ -212,19 +212,14 @@ impl ConstraintValidator<Real> for NumberSchema {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct NumberConstraints {
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[cfg_attr(target_arch = "wasm32", tsify(type = "number"))]
     pub minimum: Option<Real>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[cfg_attr(target_arch = "wasm32", tsify(type = "number"))]
     pub exclusive_minimum: Option<Real>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[cfg_attr(target_arch = "wasm32", tsify(type = "number"))]
     pub maximum: Option<Real>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[cfg_attr(target_arch = "wasm32", tsify(type = "number"))]
     pub exclusive_maximum: Option<Real>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    #[cfg_attr(target_arch = "wasm32", tsify(type = "number"))]
     pub multiple_of: Option<Real>,
 }
 

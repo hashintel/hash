@@ -22,8 +22,8 @@ use crate::principal::actor_group::WebId;
     serde::Serialize,
     serde::Deserialize,
     derive_more::Display,
-    specta::Type,
 )]
+#[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "postgres", derive(FromSql, ToSql), postgres(transparent))]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
