@@ -25,6 +25,9 @@
     "build:docker": {
       "cache": false
     },
+    "build:types": {
+      "dependsOn": ["^build:types"]
+    },
     "compile": {
       "cache": false
     },
@@ -87,7 +90,7 @@
       "dependsOn": ["codegen", "@local/eslint#build"]
     },
     "lint:tsc": {
-      "dependsOn": ["codegen"]
+      "dependsOn": ["codegen", "build:types"]
     },
     "fix:eslint": {
       "dependsOn": ["codegen"]

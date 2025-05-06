@@ -203,7 +203,6 @@ mod codec {
         Variable(Variable),
         Constant {
             #[serde(rename = "const")]
-            #[cfg_attr(target_arch = "wasm32", tsify(type = "number"))]
             value: Real,
             r#type: NumberTypeTag,
         },

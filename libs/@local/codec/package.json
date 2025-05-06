@@ -3,7 +3,19 @@
   "version": "0.0.0-private",
   "private": true,
   "license": "AGPL-3",
+  "type": "module",
+  "exports": {
+    "./types": "./dist/types.js"
+  },
+  "typesVersions": {
+    "*": {
+      "types": [
+        "./dist/types.d.ts"
+      ]
+    }
+  },
   "scripts": {
+    "build:types": "cargo run --bin export-types --features codegen,numeric",
     "doc:dependency-diagram": "cargo run -p hash-repo-chores -- dependency-diagram --output docs/dependency-diagram.mmd --root hash-codec --root-deps-and-dependents --link-mode non-roots --include-dev-deps --include-build-deps --logging-console-level info",
     "fix:clippy": "just clippy --fix",
     "lint:clippy": "just clippy",
