@@ -11,6 +11,15 @@ pub struct ProvisionedGuard<T: Id> {
     previous: Option<Provisioned<T>>,
 }
 
+impl<T> ProvisionedGuard<T>
+where
+    T: Id,
+{
+    pub(crate) fn is_used(&self) -> bool {
+        self.inner.is_used(self.provisioned)
+    }
+}
+
 impl<T> Drop for ProvisionedGuard<T>
 where
     T: Id,
@@ -67,7 +76,7 @@ where
 #[derive(Debug)]
 pub(crate) struct ProvisionedScope<T> {
     forward: RefCell<FastHashMap<T, Provisioned<T>>>,
-    reverse: RefCell<FastHashMap<Provisioned<T>, T>>,
+    reverse: RefCell<FastHashMap<Provisioned<T>, (usize, T)>>,
 }
 
 impl<T> ProvisionedScope<T>
@@ -77,7 +86,7 @@ where
     pub(crate) fn enter(self: Rc<Self>, id: T, provisioned: Provisioned<T>) -> ProvisionedGuard<T> {
         let previous = { self.forward.borrow_mut().insert(id, provisioned) };
 
-        self.reverse.borrow_mut().insert(provisioned, id);
+        self.reverse.borrow_mut().insert(provisioned, (0, id));
 
         ProvisionedGuard {
             inner: Rc::clone(&self),
@@ -98,14 +107,39 @@ where
     }
 
     pub(crate) fn get_substitution(&self, id: T) -> Option<T> {
-        self.forward
-            .borrow()
-            .get(&id)
-            .map(|provisioned| provisioned.value())
+        let value = {
+            let provisioned = self.forward.borrow_mut().get(&id).copied()?;
+
+            self.reverse
+                .borrow_mut()
+                .get_mut(&provisioned)
+                .expect("should exist")
+                .0 += 1;
+
+            provisioned
+        };
+
+        Some(value.value())
     }
 
     pub(crate) fn get_source(&self, id: T) -> Option<T> {
-        self.reverse.borrow().get(&id).copied()
+        let value = {
+            let mut guard = self.reverse.borrow_mut();
+
+            let (access, value) = guard.get_mut(&id)?;
+            *access += 1;
+
+            *value
+        };
+
+        Some(value)
+    }
+
+    pub(crate) fn is_used(&self, id: Provisioned<T>) -> bool {
+        self.reverse
+            .borrow()
+            .get(&id)
+            .is_some_and(|&(access, _)| access > 0)
     }
 }
 

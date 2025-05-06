@@ -6,7 +6,7 @@ use ena::unify::UnifyKey;
 use crate::{
     collection::FastHashMap,
     span::SpanId,
-    r#type::kind::{Infer, Param, TypeKind, generic_argument::GenericArgumentId, infer::HoleId},
+    r#type::kind::{Infer, Param, TypeKind, generic::GenericArgumentId, infer::HoleId},
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]

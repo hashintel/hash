@@ -9,7 +9,7 @@ pub use self::{
 use super::{
     Type, TypeId,
     environment::{InferenceEnvironment, instantiate::InstantiateEnvironment},
-    kind::{generic_argument::GenericArgumentId, infer::HoleId},
+    kind::{generic::GenericArgumentId, infer::HoleId},
 };
 use crate::collection::FastHashMap;
 

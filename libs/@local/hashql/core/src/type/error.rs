@@ -10,7 +10,7 @@ use hashql_diagnostics::{
 };
 
 use super::{
-    Type, environment::Environment, inference::Variable, kind::generic_argument::GenericArgumentId,
+    Type, environment::Environment, inference::Variable, kind::generic::GenericArgumentId,
     pretty_print::PrettyPrint,
 };
 use crate::{span::SpanId, symbol::Symbol};

@@ -1,0 +1,28 @@
+---
+source: libs/@local/hashql/core/src/type/kind/generic/apply.rs
+expression: "strip_str(&env.r#type(result_id).pretty_print(&env, 80))"
+---
+<T?2, U?3>(foo:
+ <T?4, U?5>(foo:
+  <T?4, U?5>(foo:
+   <T?4, U?5>(foo:
+    <T?4, U?5>(foo:
+     <T?4, U?5>(foo:
+      <T?4, U?5>(foo:
+       <T?4, U?5>(foo:
+        <T?4, U?5>(foo:
+         <T?4, U?5>(foo:
+          <T?4, U?5>(foo:
+           <T?4, U?5>(foo:
+            <T?4, U?5>(foo:
+             <T?4, U?5>(foo:
+              <T?4, U?5>(foo:
+               <T?4, U?5>(foo: <T?4, U?5>(foo: ...) where<?4 = ?2, ?5 = String>)
+                where<?4 = ?2, ?5 = String>) where<?4 = ?2, ?5 = String>)
+              where<?4 = ?2, ?5 = String>) where<?4 = ?2, ?5 = String>)
+            where<?4 = ?2, ?5 = String>) where<?4 = ?2, ?5 = String>)
+          where<?4 = ?2, ?5 = String>) where<?4 = ?2, ?5 = String>)
+        where<?4 = ?2, ?5 = String>) where<?4 = ?2, ?5 = String>)
+      where<?4 = ?2, ?5 = String>) where<?4 = ?2, ?5 = String>)
+    where<?4 = ?2, ?5 = String>) where<?4 = ?2, ?5 = String>)
+  where<?4 = ?2, ?5 = String>)

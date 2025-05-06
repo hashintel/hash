@@ -29,7 +29,10 @@ impl<T> ReplacementScope<T>
 where
     T: Copy + Eq + Hash,
 {
-    pub(crate) fn enter_many(self: Rc<Self>, items: Vec<(T, T)>) -> ReplacementGuard<T> {
+    pub(crate) fn enter_many(
+        self: Rc<Self>,
+        items: impl IntoIterator<Item = (T, T)>,
+    ) -> ReplacementGuard<T> {
         let mut lookup = self.lookup.borrow_mut();
         let items = items
             .into_iter()

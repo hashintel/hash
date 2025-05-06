@@ -10,7 +10,7 @@ use crate::{
         environment::Environment,
         kind::{
             OpaqueType, Param, PrimitiveType, TypeKind, UnionType,
-            generic_argument::{GenericArgument, GenericArguments},
+            generic::{GenericArgument, GenericArguments},
         },
     },
 };

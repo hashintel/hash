@@ -1,7 +1,10 @@
+pub mod apply;
+
 use core::ops::Deref;
 
 use pretty::RcDoc;
 
+pub use self::apply::{Apply, GenericSubstitution, GenericSubstitutions};
 use crate::{
     intern::Interned,
     newtype, newtype_producer,
@@ -44,7 +47,8 @@ impl PrettyPrint for GenericArgument<'_> {
             doc = doc.append(
                 RcDoc::text(":")
                     .append(RcDoc::line())
-                    .append(limit.pretty(env, constraint)),
+                    .append(limit.pretty(env, constraint))
+                    .group(),
             );
         }
 
@@ -122,9 +126,9 @@ impl PrettyPrint for GenericArguments<'_> {
         env: &'env Environment,
         limit: RecursionDepthBoundary,
     ) -> RcDoc<'env, anstyle::Style> {
-        match self.0 {
-            Some(Interned([], _)) | None => RcDoc::nil(),
-            Some(Interned(arguments, _)) => RcDoc::text("<")
+        match self.as_slice() {
+            [] => RcDoc::nil(),
+            arguments => RcDoc::text("<")
                 .append(
                     RcDoc::intersperse(
                         arguments.iter().map(|argument| argument.pretty(env, limit)),
@@ -149,6 +153,6 @@ impl PrettyPrint for Param {
         _: &'env Environment,
         _: RecursionDepthBoundary,
     ) -> RcDoc<'env, anstyle::Style> {
-        RcDoc::text(format!("?{}", self.argument))
+        RcDoc::text(format!("?{}", self.argument)).annotate(ORANGE)
     }
 }
