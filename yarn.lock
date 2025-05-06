@@ -12622,6 +12622,7 @@ __metadata:
     "@rust/error-stack": "npm:0.5.0"
     "@rust/harpc-types": "npm:0.0.0-private"
     "@rust/harpc-wire-protocol": "npm:0.0.0-private"
+    "@rust/hash-codegen": "npm:0.0.0-private"
   languageName: unknown
   linkType: soft
 
