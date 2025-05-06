@@ -3,7 +3,7 @@ use hashql_core::{
     intern::Provisioned,
     module::{
         ModuleRegistry,
-        item::{Item, ItemKind, Universe},
+        item::{IntrinsicItem, Item, ItemKind, Universe},
     },
     span::SpanId,
     symbol::{Ident, Symbol},
@@ -11,8 +11,11 @@ use hashql_core::{
         PartialType, TypeId,
         environment::Environment,
         kind::{
-            Apply, GenericArgument, Infer, IntersectionType, OpaqueType, Param, StructType,
-            TupleType, TypeKind, UnionType, generic::GenericSubstitution, r#struct::StructField,
+            Apply, GenericArgument, Infer, IntersectionType, IntrinsicType, OpaqueType, Param,
+            StructType, TupleType, TypeKind, UnionType,
+            generic::GenericSubstitution,
+            intrinsic::{DictType, ListType},
+            r#struct::StructField,
         },
     },
 };
@@ -99,6 +102,24 @@ impl<'heap> TranslationUnit<'_, 'heap> {
         Some((variable.id.value(), &variable.arguments))
     }
 
+    fn convert_path_segment_argument<'arg>(
+        &self,
+        parameter: &'arg PathSegmentArgument<'heap>,
+    ) -> Reference<'arg, 'heap> {
+        match parameter {
+            node::path::PathSegmentArgument::Argument(generic_argument) => {
+                Reference::Type(&generic_argument.r#type)
+            }
+            node::path::PathSegmentArgument::Constraint(generic_constraint) => {
+                if generic_constraint.bound.is_some() {
+                    todo!("record diagnostics, constraints in this position are not allowed");
+                }
+
+                Reference::Variable(generic_constraint.name)
+            }
+        }
+    }
+
     fn apply_reference(
         &self,
         base: TypeId,
@@ -114,18 +135,7 @@ impl<'heap> TranslationUnit<'_, 'heap> {
         for (&argument, parameter) in arguments.iter().zip(parameters.iter()) {
             // TODO: try to convert from generic constraint to path (but only if it
             // doesn't have a bound)
-            let reference = match parameter {
-                node::path::PathSegmentArgument::Argument(generic_argument) => {
-                    Reference::Type(&generic_argument.r#type)
-                }
-                node::path::PathSegmentArgument::Constraint(generic_constraint) => {
-                    if generic_constraint.bound.is_some() {
-                        todo!("record diagnostics, constraints in this position are not allowed");
-                    }
-
-                    Reference::Variable(generic_constraint.name)
-                }
-            };
+            let reference = self.convert_path_segment_argument(parameter);
 
             let value = self.reference(reference, TinyVec::new());
 
@@ -153,6 +163,50 @@ impl<'heap> TranslationUnit<'_, 'heap> {
         self.apply_reference(base, arguments, parameters)
     }
 
+    #[expect(clippy::missing_asserts_for_indexing, reason = "false positive")]
+    fn intrinsic(
+        &self,
+        name: &'static str,
+        parameters: &[PathSegmentArgument<'heap>],
+    ) -> TypeKind<'heap> {
+        if name.starts_with("::kernel::special_form") {
+            todo!("emit diagnostic, special forms no longer supported here")
+        }
+
+        match name {
+            "::kernel::type::List" => {
+                if parameters.len() != 1 {
+                    todo!(
+                        "emit diagnostic, expected 1 parameter, found {}",
+                        parameters.len()
+                    );
+                }
+
+                let reference = self.convert_path_segment_argument(&parameters[0]);
+                let element = self.reference(reference, TinyVec::new());
+
+                TypeKind::Intrinsic(IntrinsicType::List(ListType { element }))
+            }
+            "::kernel::type::Dict" => {
+                if parameters.len() != 2 {
+                    todo!(
+                        "emit diagnostic, expected 2 parameters, found {}",
+                        parameters.len()
+                    );
+                }
+
+                let key = self.convert_path_segment_argument(&parameters[0]);
+                let key = self.reference(key, TinyVec::new());
+
+                let value = self.convert_path_segment_argument(&parameters[1]);
+                let value = self.reference(value, TinyVec::new());
+
+                TypeKind::Intrinsic(IntrinsicType::Dict(DictType { key, value }))
+            }
+            _ => todo!("emit diagnostic, unknown intrinsic type"),
+        }
+    }
+
     fn global_reference(&self, path: &Path<'heap>) -> TypeKind<'heap> {
         let parameters = &path
             .segments
@@ -167,6 +221,14 @@ impl<'heap> TranslationUnit<'_, 'heap> {
                 kind: ItemKind::Type(id, arguments),
                 ..
             }) => (id, arguments),
+            Ok(Item {
+                kind:
+                    ItemKind::Intrinsic(IntrinsicItem {
+                        name,
+                        universe: Universe::Type,
+                    }),
+                ..
+            }) => return self.intrinsic(name, parameters),
             Ok(_) => todo!("emit diagnostic, invalid item, compiler bug"),
             Err(error) => {
                 todo!("emit diagnostic, resolution error, compiler bug")
