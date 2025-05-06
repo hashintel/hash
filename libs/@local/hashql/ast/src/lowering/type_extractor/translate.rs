@@ -1,3 +1,10 @@
+//! Type translation module that converts AST type nodes into the core type system.
+//!
+//! This module handles the translation from abstract tree type representations
+//! to the lower-level type system used by the compiler for type checking and inference.
+//! It maintains context about local variables, generics, and handles path resolution through
+//! the module registry to support both local and global type references.
+
 use hashql_core::{
     collection::{FastHashMap, SmallVec, TinyVec},
     intern::Provisioned,
@@ -25,6 +32,7 @@ use crate::node::{
     path::{Path, PathSegmentArgument},
 };
 
+/// Represents a reference to either a type variable or a type node
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 enum Reference<'ty, 'heap> {
     Variable(Ident<'heap>),
@@ -40,12 +48,17 @@ impl Reference<'_, '_> {
     }
 }
 
+/// Specifies whether a type has structural or nominal identity
+///
+/// Types in the system can have either structural identity (compared by their structure)
+/// or nominal identity (compared by their name), which affects type checking.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 enum Identity<'heap> {
     Structural,
     Nominal(Symbol<'heap>),
 }
 
+/// Represents a local type variable with its associated type information
 struct LocalVariable<'heap> {
     id: Provisioned<TypeId>,
     r#type: node::r#type::Type<'heap>,
@@ -53,6 +66,11 @@ struct LocalVariable<'heap> {
     arguments: TinyVec<GenericArgument<'heap>>,
 }
 
+/// Main context for type translation operations
+///
+/// The translation unit maintains all the context needed for translating AST type
+/// nodes into the core type system, including environment, registry access,
+/// and tracking of local variables and bound generic parameters.
 struct TranslationUnit<'env, 'heap> {
     env: &'env Environment<'heap>,
     registry: &'env ModuleRegistry<'heap>,
@@ -62,6 +80,10 @@ struct TranslationUnit<'env, 'heap> {
 }
 
 impl<'heap> TranslationUnit<'_, 'heap> {
+    /// Creates a nominal (named) type with its underlying representation
+    ///
+    /// Nominal types are identified by their name rather than structure, but still have an
+    /// underlying representation.
     fn nominal(
         &self,
         name: Symbol<'heap>,
@@ -79,6 +101,11 @@ impl<'heap> TranslationUnit<'_, 'heap> {
         TypeKind::Opaque(kind)
     }
 
+    /// Looks up a local identifier to find its associated type and generic arguments
+    ///
+    /// This method first checks if the identifier refers to a bound generic parameter, and if so,
+    /// creates a parameter reference. Otherwise, it looks for a local variable with that name and
+    /// returns its type ID and generic arguments.
     fn find_local(&self, ident: Ident<'heap>) -> Option<(TypeId, &[GenericArgument<'heap>])> {
         // Look through the generics, and see if there are any generics, that have a fitting name
         if let Some(&generic) = self
@@ -102,6 +129,10 @@ impl<'heap> TranslationUnit<'_, 'heap> {
         Some((variable.id.value(), &variable.arguments))
     }
 
+    /// Converts a path segment argument into a type reference
+    ///
+    /// Path segment arguments can be either concrete type arguments or generic constraints. This
+    /// method converts both forms into a uniform Reference type for further processing.
     fn convert_path_segment_argument<'arg>(
         &self,
         parameter: &'arg PathSegmentArgument<'heap>,
@@ -120,6 +151,11 @@ impl<'heap> TranslationUnit<'_, 'heap> {
         }
     }
 
+    /// Applies generic arguments to a base type
+    ///
+    /// This creates a type application by substituting concrete types for the generic parameters of
+    /// the base type. It maps the provided parameters to the expected arguments and creates the
+    /// appropriate substitutions.
     fn apply_reference(
         &self,
         base: TypeId,
@@ -151,6 +187,10 @@ impl<'heap> TranslationUnit<'_, 'heap> {
         })
     }
 
+    /// Resolves a reference to a local variable or generic parameter
+    ///
+    /// This handles local identifiers by finding their corresponding type and applying any generic
+    /// parameters provided at the reference site.
     fn local_reference(
         &self,
         ident: Ident<'heap>,
@@ -163,6 +203,11 @@ impl<'heap> TranslationUnit<'_, 'heap> {
         self.apply_reference(base, arguments, parameters)
     }
 
+    /// Handles intrinsic type references like List and Dict
+    ///
+    /// Intrinsic types are built-in parameterized types with special semantics. This method
+    /// resolves references to intrinsic types and constructs the appropriate type representation
+    /// based on the provided parameters.
     #[expect(clippy::missing_asserts_for_indexing, reason = "false positive")]
     fn intrinsic(
         &self,
@@ -207,6 +252,11 @@ impl<'heap> TranslationUnit<'_, 'heap> {
         }
     }
 
+    /// Resolves a global type reference from a path
+    ///
+    /// Global references are paths like `::module::Type<T>` that need to be resolved through the
+    /// module registry. This method handles both normal types and intrinsic types, and applies any
+    /// generic parameters.
     fn global_reference(&self, path: &Path<'heap>) -> TypeKind<'heap> {
         let parameters = &path
             .segments
@@ -238,6 +288,11 @@ impl<'heap> TranslationUnit<'_, 'heap> {
         self.apply_reference(base, arguments, parameters)
     }
 
+    /// Translates an AST type kind into the core type system representation
+    ///
+    /// This is the main translation function that handles all the different type kinds (infer,
+    /// path, tuple, struct, union, intersection) and converts them to the corresponding core type
+    /// system representation.
     fn type_kind(
         &self,
         kind: &node::r#type::TypeKind<'heap>,
@@ -254,12 +309,9 @@ impl<'heap> TranslationUnit<'_, 'heap> {
                 TypeKind::Infer(Infer { hole })
             }
             node::r#type::TypeKind::Path(path) => {
-                // TODO: what if we have a path with generic arguments?! I know we have apply, but
-                // we have nowhere to stick the generics to, if it's a simple type alias, e.g. `type
-                // Foo<T> = Bar<T, String>` will fail, because we have nowhere to define `Foo<T>` as
-                // a generic, opaques have the ability to define these, aliases don't. We would
-                // require an `Alias` node that does it for us, but that's uber-messy, even then we
-                // wouldn't be able to handle additional constraints on said type.
+                if !arguments.is_empty() {
+                    unimplemented!("https://linear.app/hash/issue/H-4524/hashql-alias-type-variant")
+                }
 
                 if let Some((name, parameters)) = path.as_generic_ident() {
                     self.local_reference(name, parameters)
@@ -328,6 +380,10 @@ impl<'heap> TranslationUnit<'_, 'heap> {
         }
     }
 
+    /// Translates a reference into a TypeId
+    ///
+    /// This is a dispatcher method that handles both variable references and type references,
+    /// converting them to an interned TypeId.
     fn reference(
         &self,
         reference: Reference<'_, 'heap>,
@@ -346,6 +402,10 @@ impl<'heap> TranslationUnit<'_, 'heap> {
         self.env.intern_type(partial)
     }
 
+    /// Converts a local variable to its TypeId representation
+    ///
+    /// This method handles creating the appropriate type for a local variable, taking into account
+    /// whether it has nominal or structural identity.
     fn variable(&self, variable: &LocalVariable<'heap>) -> TypeId {
         let kind = if let Identity::Nominal(name) = variable.identity {
             self.nominal(
