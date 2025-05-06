@@ -90,7 +90,7 @@
       "dependsOn": ["codegen"]
     },
     "fix:eslint": {
-      "dependsOn": ["codegen"]
+      "dependsOn": ["codegen", "@local/eslint#build"]
     },
     "fix:clippy": {},
     "sentry:sourcemaps": {
