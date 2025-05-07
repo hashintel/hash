@@ -4,7 +4,6 @@ use core::{
     iter,
 };
 
-use hashbrown::HashSet;
 use hashql_core::{
     collection::FastHashSet,
     module::{
@@ -266,7 +265,7 @@ impl Display for FormatPath<'_, '_> {
     }
 }
 
-/// Convert a resolution error to a diagnostic
+#[expect(clippy::too_many_lines)]
 pub(crate) fn unresolved_variable<'heap>(
     registry: &ModuleRegistry<'heap>,
     universe: Universe,
@@ -298,7 +297,7 @@ pub(crate) fn unresolved_variable<'heap>(
     // Find similar local variables
     let mut local_suggestions: Vec<_> = locals
         .into_iter()
-        .filter_map(|local| {
+        .filter_map(|&local| {
             let score = jaro_winkler(ident.value.as_str(), local.as_str());
             // Only include suggestions with a reasonably high similarity
             (score > 0.7).then_some((local, score))
@@ -345,7 +344,6 @@ pub(crate) fn unresolved_variable<'heap>(
 
         if good_suggestions.is_empty() {
             // Fall back to showing any suggestions if none have high similarity
-
             for suggestion in suggestions.iter().take(3) {
                 let _: fmt::Result = writeln!(help, "  - `{}`", suggestion.item.name);
             }
@@ -369,26 +367,51 @@ pub(crate) fn unresolved_variable<'heap>(
         .collect();
 
     if !importable.is_empty() {
-        for importable in importable {
-            let absolute_path: String = iter::once("")
-                .chain(
-                    importable
-                        .absolute_path(registry)
-                        .map(|symbol| symbol.unwrap()),
-                )
+        help.push_str("\nAdditionally, items with a similar name exist in other modules:\n");
+
+        // Display up to 3 importable items with their full paths
+        for item in importable.iter().take(3) {
+            let absolute_path: String = iter::once("") // Start with an empty string for leading "::"
+                .chain(item.absolute_path(registry).map(|symbol| symbol.unwrap()))
                 .intersperse("::")
                 .collect();
 
-            todo!("help")
+            let _: fmt::Result = writeln!(help, "  - `{absolute_path}`");
         }
+
+        if importable.len() > 3 {
+            let remaining = importable.len() - 3;
+            let _: fmt::Result =
+                writeln!(help, "  - and {remaining} more items available for import");
+        }
+    }
+
+    // Suggest how to use the first (best) match from the importable items
+    if let Some(item) = importable.first() {
+        let absolute_path: String = iter::once("")
+            .chain(item.absolute_path(registry).map(|symbol| symbol.unwrap()))
+            .intersperse("::")
+            .collect();
+
+        help.push_str("\nTo use an item like ");
+        let _: fmt::Result = write!(help, "`{absolute_path}`");
+        help.push_str(", you can either:\n");
+
+        // Option 1: Import statement
+        help.push_str("1. Add an import at the beginning of your file:\n");
+        let _: fmt::Result = writeln!(help, "     use {absolute_path} in");
+
+        // Option 2: Fully qualified path
+        help.push_str("2. Use its fully qualified path directly in your code:\n");
+        let _: fmt::Result = writeln!(help, "     {absolute_path}");
     }
 
     diagnostic.help = Some(Help::new(help));
 
     diagnostic.note = Some(Note::new(
         "Variables must be defined before they can be used. This could be a typo, a variable used \
-         outside its scope, or a missing declaration. Check variable names carefully and verify \
-         that declarations appear before usage.",
+         outside its scope, or a missing declaration. If it's a function or type from another \
+         module, you might need to import it first.",
     ));
 
     diagnostic
