@@ -1,6 +1,5 @@
 ---
 source: libs/@local/codegen/tests/standalone-types/main.rs
-assertion_line: 119
 expression: generated
 ---
-export interface StructSingleSkipped {}
+export type StructUnnamedDoubleSkipped = number;
