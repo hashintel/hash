@@ -5,10 +5,11 @@ use hashql_core::{
     module::{
         ModuleRegistry,
         error::{ResolutionError, ResolutionSuggestion},
+        import::Import,
         item::Universe,
     },
     span::SpanId,
-    symbol::Symbol,
+    symbol::{Ident, Symbol},
 };
 use hashql_diagnostics::{
     Diagnostic,
@@ -19,6 +20,7 @@ use hashql_diagnostics::{
     note::Note,
     severity::Severity,
 };
+use strsim::jaro_winkler;
 
 use crate::node::path::Path;
 
@@ -44,12 +46,18 @@ const UNRESOLVED_IMPORT: TerminalDiagnosticCategory = TerminalDiagnosticCategory
     name: "Unresolved import",
 };
 
+const UNRESOLVED_VARIABLE: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "unresolved-variable",
+    name: "Unresolved variable",
+};
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum ImportResolverDiagnosticCategory {
     GenericArgumentsInUsePath,
     EmptyPath,
     GenericArgumentsInModule,
     UnresolvedImport,
+    UnresolvedVariable,
 }
 
 impl DiagnosticCategory for ImportResolverDiagnosticCategory {
@@ -67,6 +75,7 @@ impl DiagnosticCategory for ImportResolverDiagnosticCategory {
             Self::EmptyPath => Some(&EMPTY_PATH),
             Self::GenericArgumentsInModule => Some(&GENERIC_ARGUMENTS_IN_MODULE),
             Self::UnresolvedImport => Some(&UNRESOLVED_IMPORT),
+            Self::UnresolvedVariable => Some(&UNRESOLVED_VARIABLE),
         }
     }
 }
@@ -253,6 +262,104 @@ impl Display for FormatPath<'_, '_> {
 }
 
 /// Convert a resolution error to a diagnostic
+pub(crate) fn unresolved_variable<'heap>(
+    ident: Ident<'heap>,
+    locals: impl IntoIterator<Item = Symbol<'heap>>,
+    mut suggestions: Vec<ResolutionSuggestion<Import<'heap>>>,
+) -> ImportResolverDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        ImportResolverDiagnosticCategory::UnresolvedVariable,
+        Severity::ERROR,
+    );
+
+    diagnostic.labels.push(
+        Label::new(
+            ident.span,
+            format!("'{}' is not defined in the current scope", ident.value),
+        )
+        .with_order(0)
+        .with_color(Color::Ansi(AnsiColor::Red)),
+    );
+
+    // Find similar local variables
+    let mut local_suggestions: Vec<_> = locals
+        .into_iter()
+        .filter_map(|local| {
+            let score = jaro_winkler(ident.value.as_str(), local.as_str());
+            // Only include suggestions with a reasonably high similarity
+            (score > 0.7).then_some((local, score))
+        })
+        .collect();
+
+    // Sort by similarity score (highest first)
+    local_suggestions.sort_unstable_by(|&(_, lhs), &(_, rhs)| rhs.total_cmp(&lhs));
+
+    let mut help = format!(
+        "The variable '{}' wasn't found in the current scope.",
+        ident.value
+    );
+
+    // Add local variable suggestions if available
+    if !local_suggestions.is_empty() {
+        help.push_str("\n\nDid you mean one of these local variables?\n");
+
+        for (local, _) in local_suggestions.iter().take(3) {
+            help.push_str(&format!("  - `{local}`\n"));
+        }
+
+        if local_suggestions.len() > 3 {
+            let remaining = local_suggestions.len() - 3;
+            help.push_str(&format!("  ... and {remaining} more\n"));
+        }
+    }
+
+    // Show imported items that are already in scope and have similar names
+
+    if !suggestions.is_empty() {
+        if !local_suggestions.is_empty() {
+            help.push_str("\nOr ");
+        }
+
+        // Sort and filter imported item suggestions by score
+        suggestions.sort_by(|lhs, rhs| rhs.score.total_cmp(&lhs.score));
+        let good_suggestions: Vec<_> = suggestions
+            .iter()
+            .filter(|suggestion| suggestion.score > 0.7)
+            .take(3)
+            .collect();
+
+        if !good_suggestions.is_empty() {
+            help.push_str("did you mean one of these imported items?\n");
+
+            for suggestion in &good_suggestions {
+                help.push_str(&format!("  - `{}`\n", suggestion.item.name));
+            }
+        } else if !suggestions.is_empty() {
+            // Fall back to showing any suggestions if none have high similarity
+            help.push_str("perhaps you meant one of these imported items:\n");
+
+            for suggestion in suggestions.iter().take(3) {
+                help.push_str(&format!("  - `{}`\n", suggestion.item.name));
+            }
+
+            if suggestions.len() > 3 {
+                let remaining = suggestions.len() - 3;
+                help.push_str(&format!("  ... and {remaining} more\n"));
+            }
+        }
+    }
+
+    diagnostic.help = Some(Help::new(help));
+
+    diagnostic.note = Some(Note::new(
+        "Variables must be defined before they can be used. Check for typos in variable names, \
+         ensure that variables are declared before they're used, and verify you're referencing \
+         the correct name for local variables or imported items.",
+    ));
+
+    diagnostic
+}
+
 #[expect(clippy::too_many_lines)]
 pub(crate) fn from_resolution_error<'heap>(
     use_span: Option<SpanId>,
