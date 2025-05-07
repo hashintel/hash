@@ -1,0 +1,9 @@
+//@ run: fail
+//@ description: Tests rejection of underscore with explicit type arguments
+[
+  "type",
+  "InvalidInfer<T>",
+  "_",
+  //~^ ERROR Type arguments cannot be used with '_' placeholder
+  "_"
+]

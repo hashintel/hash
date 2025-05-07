@@ -3,6 +3,6 @@ Expr#4294967040@42
 
 ------------------------
 
-StringWrapper:0 = (<T:0?4>(foo: ?4) where<?4 = String>,)
+StringWrapper:0 = (<T:0?5>(foo: ?5) where<?5 = String>,)
 
-Wrapper:0 = <T:0?5>(foo: ?5)
+Wrapper:0 = <T:0?4>(foo: ?4)

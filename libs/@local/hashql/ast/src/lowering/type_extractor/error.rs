@@ -502,7 +502,7 @@ pub(crate) fn unknown_intrinsic_type(
 ) -> TypeExtractorDiagnostic {
     let mut diagnostic = Diagnostic::new(
         TypeExtractorDiagnosticCategory::UnknownIntrinsicType,
-        Severity::ERROR,
+        Severity::COMPILER_BUG,
     );
 
     diagnostic.labels.push(
@@ -535,7 +535,9 @@ pub(crate) fn unknown_intrinsic_type(
     diagnostic.note = Some(Note::new(format!(
         "Available intrinsic types: `{available}`\n\nIntrinsic types are fundamental building \
          blocks provided by the language runtime. They form the basis of the type system and \
-         cannot be redefined by user code."
+         cannot be redefined by user code.\n\nThis is likely a compiler bug. The import resolver \
+         should've caught this error beforehand. Please report this issue to the HashQL team with \
+         a minimal reproduction case that demonstrates how to trigger this error."
     )));
 
     diagnostic

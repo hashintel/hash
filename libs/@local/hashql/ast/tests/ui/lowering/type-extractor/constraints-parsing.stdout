@@ -3,4 +3,4 @@ Expr#4294967040@28
 
 ------------------------
 
-Sortable:0 = <T:0?4: Number where<>>(items: List<?4>)
+Sortable:0 = <T:0?4: Number>(items: List<?4>)

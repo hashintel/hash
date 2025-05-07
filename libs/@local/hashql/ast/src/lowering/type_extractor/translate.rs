@@ -308,6 +308,8 @@ impl<'env, 'heap> TranslationUnit<'env, '_, 'heap> {
                         2,
                         parameters.len(),
                     ));
+
+                    return TypeKind::Never;
                 }
 
                 let key = self
