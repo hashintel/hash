@@ -57,7 +57,7 @@ export interface Team {
 export type TeamId = ActorGroupEntityUuid;
 export interface Web {
 	id: WebId;
-	shortname: (string | undefined);
+	shortname?: string;
 	roles: WebRoleId[];
 }
 export type WebId = ActorGroupEntityUuid;
