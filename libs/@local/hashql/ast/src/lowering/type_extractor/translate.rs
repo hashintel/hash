@@ -27,11 +27,35 @@ use hashql_core::{
     },
 };
 
-use super::error::TypeExtractorDiagnostic;
-use crate::node::{
-    self,
-    path::{Path, PathSegmentArgument},
+use super::error::{
+    TypeExtractorDiagnostic, duplicate_struct_fields, generic_constraint_not_allowed,
+    invalid_resolved_item, resolution_error, special_form_not_supported, unknown_intrinsic_type,
 };
+use crate::{
+    lowering::type_extractor::error::{
+        generic_parameter_mismatch, infer_with_arguments, intrinsic_parameter_count_mismatch,
+        unbound_type_variable,
+    },
+    node::{
+        self,
+        path::{Path, PathSegmentArgument},
+    },
+};
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub(crate) enum VariableReference<'env, 'heap> {
+    Local(Ident<'heap>),
+    Global(&'env Path<'heap>),
+}
+
+impl VariableReference<'_, '_> {
+    pub(crate) const fn span(&self) -> SpanId {
+        match self {
+            Self::Local(ident) => ident.span,
+            Self::Global(path) => path.span,
+        }
+    }
+}
 
 /// Represents a reference to either a type variable or a type node
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -59,13 +83,16 @@ pub(crate) enum Identity<'heap> {
     Nominal(Symbol<'heap>),
 }
 
+type GenericArguments<'heap> = TinyVec<GenericArgument<'heap>>;
+
 /// Represents a local type variable with its associated type information
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct LocalVariable<'ty, 'heap> {
     pub id: Provisioned<TypeId>,
     pub r#type: &'ty node::r#type::Type<'heap>,
     pub identity: Identity<'heap>,
-    pub arguments: TinyVec<GenericArgument<'heap>>,
+
+    pub arguments: GenericArguments<'heap>,
 }
 
 /// Main context for type translation operations
@@ -79,18 +106,18 @@ pub(crate) struct TranslationUnit<'env, 'ty, 'heap> {
     pub diagnostics: Vec<TypeExtractorDiagnostic>,
 
     pub locals: &'env FastHashMap<Symbol<'heap>, LocalVariable<'ty, 'heap>>,
-    pub bound_generics: TinyVec<GenericArgument<'heap>>,
+    pub bound_generics: &'env GenericArguments<'heap>,
 }
 
-impl<'heap> TranslationUnit<'_, '_, 'heap> {
+impl<'env, 'heap> TranslationUnit<'env, '_, 'heap> {
     /// Creates a nominal (named) type with its underlying representation
     ///
     /// Nominal types are identified by their name rather than structure, but still have an
     /// underlying representation.
     fn nominal(
-        &self,
+        &mut self,
         name: Symbol<'heap>,
-        mut arguments: TinyVec<GenericArgument<'heap>>,
+        mut arguments: GenericArguments<'heap>,
         repr: Reference<'_, 'heap>,
     ) -> TypeKind<'heap> {
         let repr = self.reference(repr, TinyVec::new());
@@ -109,7 +136,7 @@ impl<'heap> TranslationUnit<'_, '_, 'heap> {
     /// This method first checks if the identifier refers to a bound generic parameter, and if so,
     /// creates a parameter reference. Otherwise, it looks for a local variable with that name and
     /// returns its type ID and generic arguments.
-    fn find_local(&self, ident: Ident<'heap>) -> Option<(TypeId, &[GenericArgument<'heap>])> {
+    fn find_local(&self, ident: Ident<'heap>) -> Option<(TypeId, &'env [GenericArgument<'heap>])> {
         // Look through the generics, and see if there are any generics, that have a fitting name
         if let Some(&generic) = self
             .bound_generics
@@ -137,7 +164,7 @@ impl<'heap> TranslationUnit<'_, '_, 'heap> {
     /// Path segment arguments can be either concrete type arguments or generic constraints. This
     /// method converts both forms into a uniform Reference type for further processing.
     fn convert_path_segment_argument<'arg>(
-        &self,
+        &mut self,
         parameter: &'arg PathSegmentArgument<'heap>,
     ) -> Reference<'arg, 'heap> {
         match parameter {
@@ -146,7 +173,11 @@ impl<'heap> TranslationUnit<'_, '_, 'heap> {
             }
             node::path::PathSegmentArgument::Constraint(generic_constraint) => {
                 if generic_constraint.bound.is_some() {
-                    todo!("record diagnostics, constraints in this position are not allowed");
+                    self.diagnostics.push(generic_constraint_not_allowed(
+                        generic_constraint.span,
+                        parameter.span(),
+                        generic_constraint.name.value,
+                    ));
                 }
 
                 Reference::Variable(generic_constraint.name)
@@ -160,26 +191,28 @@ impl<'heap> TranslationUnit<'_, '_, 'heap> {
     /// the base type. It maps the provided parameters to the expected arguments and creates the
     /// appropriate substitutions.
     fn apply_reference(
-        &self,
+        &mut self,
+        variable: &VariableReference<'_, 'heap>,
         base: TypeId,
-        arguments: &[GenericArgument<'heap>],
-        parameters: &[PathSegmentArgument<'heap>],
+        parameters: &[GenericArgument<'heap>],
+        arguments: &[PathSegmentArgument<'heap>],
     ) -> TypeKind<'heap> {
-        if parameters.len() != arguments.len() {
-            todo!("record diagnostic - not enough or too many generic parameters")
+        if arguments.len() != parameters.len() {
+            self.diagnostics
+                .push(generic_parameter_mismatch(variable, parameters, arguments));
+
+            return TypeKind::Never;
         }
 
-        let mut substitutions = TinyVec::with_capacity(parameters.len());
+        let mut substitutions = TinyVec::with_capacity(arguments.len());
 
-        for (&argument, parameter) in arguments.iter().zip(parameters.iter()) {
-            // TODO: try to convert from generic constraint to path (but only if it
-            // doesn't have a bound)
-            let reference = self.convert_path_segment_argument(parameter);
+        for (&parameter, argument) in parameters.iter().zip(arguments.iter()) {
+            let reference = self.convert_path_segment_argument(argument);
 
             let value = self.reference(reference, TinyVec::new());
 
             substitutions.push(GenericSubstitution {
-                argument: argument.id,
+                argument: parameter.id,
                 value,
             });
         }
@@ -195,17 +228,26 @@ impl<'heap> TranslationUnit<'_, '_, 'heap> {
     /// This handles local identifiers by finding their corresponding type and applying any generic
     /// parameters provided at the reference site.
     fn local_reference(
-        &self,
+        &mut self,
         ident: Ident<'heap>,
         parameters: &[PathSegmentArgument<'heap>],
     ) -> TypeKind<'heap> {
         let Some((base, arguments)) = self.find_local(ident) else {
-            todo!(
-                "record diagnostic - unbound variable; compiler bug, should be caught previously"
-            );
+            self.diagnostics.push(unbound_type_variable(
+                ident.span,
+                ident.value,
+                self.locals.keys().copied(),
+            ));
+
+            return TypeKind::Never;
         };
 
-        self.apply_reference(base, arguments, parameters)
+        self.apply_reference(
+            &VariableReference::Local(ident),
+            base,
+            arguments,
+            parameters,
+        )
     }
 
     /// Handles intrinsic type references like List and Dict
@@ -215,21 +257,29 @@ impl<'heap> TranslationUnit<'_, '_, 'heap> {
     /// based on the provided parameters.
     #[expect(clippy::missing_asserts_for_indexing, reason = "false positive")]
     fn intrinsic(
-        &self,
+        &mut self,
+        span: SpanId,
         name: &'static str,
         parameters: &[PathSegmentArgument<'heap>],
     ) -> TypeKind<'heap> {
         if name.starts_with("::kernel::special_form") {
-            todo!("emit diagnostic, special forms no longer supported here")
+            self.diagnostics
+                .push(special_form_not_supported(span, name));
+
+            return TypeKind::Never;
         }
 
         match name {
             "::kernel::type::List" => {
                 if parameters.len() != 1 {
-                    todo!(
-                        "emit diagnostic, expected 1 parameter, found {}",
-                        parameters.len()
-                    );
+                    self.diagnostics.push(intrinsic_parameter_count_mismatch(
+                        span,
+                        name,
+                        1,
+                        parameters.len(),
+                    ));
+
+                    return TypeKind::Never;
                 }
 
                 let reference = self.convert_path_segment_argument(&parameters[0]);
@@ -239,10 +289,12 @@ impl<'heap> TranslationUnit<'_, '_, 'heap> {
             }
             "::kernel::type::Dict" => {
                 if parameters.len() != 2 {
-                    todo!(
-                        "emit diagnostic, expected 2 parameters, found {}",
-                        parameters.len()
-                    );
+                    self.diagnostics.push(intrinsic_parameter_count_mismatch(
+                        span,
+                        name,
+                        2,
+                        parameters.len(),
+                    ));
                 }
 
                 let key = self.convert_path_segment_argument(&parameters[0]);
@@ -253,7 +305,15 @@ impl<'heap> TranslationUnit<'_, '_, 'heap> {
 
                 TypeKind::Intrinsic(IntrinsicType::Dict(DictType { key, value }))
             }
-            _ => todo!("emit diagnostic, unknown intrinsic type"),
+            _ => {
+                self.diagnostics.push(unknown_intrinsic_type(
+                    span,
+                    name,
+                    &["::kernel::type::List", "::kernel::type::Dict"],
+                ));
+
+                TypeKind::Never
+            }
         }
     }
 
@@ -262,16 +322,16 @@ impl<'heap> TranslationUnit<'_, '_, 'heap> {
     /// Global references are paths like `::module::Type<T>` that need to be resolved through the
     /// module registry. This method handles both normal types and intrinsic types, and applies any
     /// generic parameters.
-    fn global_reference(&self, path: &Path<'heap>) -> TypeKind<'heap> {
+    fn global_reference(&mut self, path: &Path<'heap>) -> TypeKind<'heap> {
         let parameters = &path
             .segments
             .last()
             .unwrap_or_else(|| unreachable!("segments are always non-empty"))
             .arguments;
 
-        let path = path.segments.iter().map(|segment| segment.name.value);
+        let query = path.segments.iter().map(|segment| segment.name.value);
 
-        let (base, arguments) = match self.registry.resolve(path, Universe::Type) {
+        let (base, arguments) = match self.registry.resolve(query, Universe::Type) {
             Ok(Item {
                 kind: ItemKind::Type(id, arguments),
                 ..
@@ -283,14 +343,26 @@ impl<'heap> TranslationUnit<'_, '_, 'heap> {
                         universe: Universe::Type,
                     }),
                 ..
-            }) => return self.intrinsic(name, parameters),
-            Ok(_) => todo!("emit diagnostic, invalid item, compiler bug"),
+            }) => return self.intrinsic(path.span, name, parameters),
+            Ok(item) => {
+                self.diagnostics
+                    .push(invalid_resolved_item(path.span, Universe::Type, item.kind));
+
+                return TypeKind::Never;
+            }
             Err(error) => {
-                todo!("emit diagnostic, resolution error, compiler bug")
+                self.diagnostics.push(resolution_error(path, &error));
+
+                return TypeKind::Never;
             }
         };
 
-        self.apply_reference(base, arguments, parameters)
+        self.apply_reference(
+            &VariableReference::Global(path),
+            base,
+            arguments,
+            parameters,
+        )
     }
 
     /// Translates an AST type kind into the core type system representation
@@ -299,16 +371,19 @@ impl<'heap> TranslationUnit<'_, '_, 'heap> {
     /// path, tuple, struct, union, intersection) and converts them to the corresponding core type
     /// system representation.
     fn type_kind(
-        &self,
+        &mut self,
+        span: SpanId,
         kind: &node::r#type::TypeKind<'heap>,
-        mut arguments: TinyVec<GenericArgument<'heap>>,
+        mut arguments: GenericArguments<'heap>,
     ) -> TypeKind<'heap> {
         match kind {
             node::r#type::TypeKind::Infer => {
                 let hole = self.env.counter.hole.next();
 
                 if !arguments.is_empty() {
-                    todo!("record diagnostic; inference variables can't have arguments")
+                    self.diagnostics.push(infer_with_arguments(span));
+
+                    return TypeKind::Never;
                 }
 
                 TypeKind::Infer(Infer { hole })
@@ -341,17 +416,46 @@ impl<'heap> TranslationUnit<'_, '_, 'heap> {
             node::r#type::TypeKind::Struct(struct_type) => {
                 let mut fields = SmallVec::with_capacity(struct_type.fields.len());
 
-                for node::r#type::StructField { name, r#type, .. } in &struct_type.fields {
+                let mut spans = FastHashMap::with_capacity_and_hasher(
+                    fields.len(),
+                    foldhash::fast::RandomState::default(),
+                );
+
+                for node::r#type::StructField {
+                    name, r#type, span, ..
+                } in &struct_type.fields
+                {
                     fields.push(StructField {
                         name: name.value,
                         value: self.reference(Reference::Type(r#type), TinyVec::new()),
                     });
+
+                    spans.entry(name.value).or_insert(Vec::new()).push(*span);
                 }
 
                 let fields = match self.env.intern_struct_fields(&mut fields) {
                     Ok(fields) => fields,
-                    Err(duplicates) => {
-                        todo!("record diagnostics; duplicate fields")
+                    Err((fields, _)) => {
+                        for field in fields {
+                            let spans = spans.get(&field.name).map_or(&[] as &[_], Vec::as_slice);
+                            // The first span is the original span, any subsequent spans are
+                            // duplicates
+                            let original = spans[0];
+                            let duplicates = &spans[1..];
+
+                            if duplicates.is_empty() {
+                                // Not a duplicate
+                                continue;
+                            }
+
+                            self.diagnostics.push(duplicate_struct_fields(
+                                original,
+                                duplicates.iter().copied(),
+                                field.name,
+                            ));
+                        }
+
+                        return TypeKind::Never;
                     }
                 };
 
@@ -385,18 +489,18 @@ impl<'heap> TranslationUnit<'_, '_, 'heap> {
         }
     }
 
-    /// Translates a reference into a TypeId
+    /// Translates a reference into a `TypeId`
     ///
     /// This is a dispatcher method that handles both variable references and type references,
-    /// converting them to an interned TypeId.
+    /// converting them to an interned `TypeId`.
     pub(crate) fn reference(
-        &self,
+        &mut self,
         reference: Reference<'_, 'heap>,
-        arguments: TinyVec<GenericArgument<'heap>>,
+        arguments: GenericArguments<'heap>,
     ) -> TypeId {
         let kind = match reference {
             Reference::Variable(ident) => self.local_reference(ident, &[]),
-            Reference::Type(r#type) => self.type_kind(&r#type.kind, arguments),
+            Reference::Type(r#type) => self.type_kind(r#type.span, &r#type.kind, arguments),
         };
 
         let partial = PartialType {
@@ -407,19 +511,23 @@ impl<'heap> TranslationUnit<'_, '_, 'heap> {
         self.env.intern_type(partial)
     }
 
-    /// Converts a local variable to its TypeId representation
+    /// Converts a local variable to its `TypeId` representation
     ///
     /// This method handles creating the appropriate type for a local variable, taking into account
     /// whether it has nominal or structural identity.
-    pub(crate) fn variable(&self, variable: &LocalVariable<'_, 'heap>) -> TypeId {
+    pub(crate) fn variable(&mut self, variable: &LocalVariable<'_, 'heap>) -> TypeId {
         let kind = if let Identity::Nominal(name) = variable.identity {
             self.nominal(
                 name,
                 variable.arguments.clone(),
-                Reference::Type(&variable.r#type),
+                Reference::Type(variable.r#type),
             )
         } else {
-            self.type_kind(&variable.r#type.kind, variable.arguments.clone())
+            self.type_kind(
+                variable.r#type.span,
+                &variable.r#type.kind,
+                variable.arguments.clone(),
+            )
         };
 
         let partial = PartialType {

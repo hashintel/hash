@@ -21,6 +21,7 @@ use hashql_diagnostics::{
 };
 use strsim::jaro_winkler;
 
+use super::translate::VariableReference;
 use crate::node::path::{Path, PathSegmentArgument};
 
 pub(crate) type TypeExtractorDiagnostic = Diagnostic<TypeExtractorDiagnosticCategory, SpanId>;
@@ -80,7 +81,11 @@ const DUPLICATE_STRUCT_FIELD: TerminalDiagnosticCategory = TerminalDiagnosticCat
     name: "Duplicate struct field",
 };
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+const GENERIC_CONSTRAINT_NOT_ALLOWED: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "generic-constraint-not-allowed",
+    name: "Constraint not allowed in generic arguments",
+};
+
 pub enum TypeExtractorDiagnosticCategory {
     DuplicateTypeAlias,
     DuplicateNewtype,
@@ -93,6 +98,7 @@ pub enum TypeExtractorDiagnosticCategory {
     ResolutionError,
     InferWithArguments,
     DuplicateStructField,
+    GenericConstraintNotAllowed,
     TypeCheck(TypeCheckDiagnosticCategory),
 }
 
@@ -118,6 +124,7 @@ impl DiagnosticCategory for TypeExtractorDiagnosticCategory {
             Self::ResolutionError => Some(&RESOLUTION_ERROR),
             Self::InferWithArguments => Some(&INFER_WITH_ARGUMENTS),
             Self::DuplicateStructField => Some(&DUPLICATE_STRUCT_FIELD),
+            Self::GenericConstraintNotAllowed => Some(&GENERIC_CONSTRAINT_NOT_ALLOWED),
             Self::TypeCheck(category) => Some(category),
         }
     }
@@ -150,6 +157,42 @@ pub(crate) fn duplicate_type_alias(
         "This likely represents a compiler bug in the name mangling pass. The name mangler should \
          have given these identical names unique internal identifiers to avoid this collision. \
          Please report this issue to the HashQL team with a minimal reproduction case.",
+    ));
+
+    diagnostic
+}
+
+/// Creates a diagnostic for when a constraint is used in a generic argument position.
+///
+/// This diagnostic is generated when a generic constraint (like `T: Bound`) is used in a place
+/// where only a type argument is allowed, such as in `Foo<T: Bound>`.
+pub(crate) fn generic_constraint_not_allowed(
+    constraint_span: SpanId,
+    type_span: SpanId,
+    name: Symbol<'_>,
+) -> TypeExtractorDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        TypeExtractorDiagnosticCategory::GenericConstraintNotAllowed,
+        Severity::ERROR,
+    );
+
+    diagnostic.labels.extend([
+        Label::new(
+            constraint_span,
+            format!("Constraint on `{name}` not allowed here"),
+        )
+        .with_order(0)
+        .with_color(Color::Ansi(AnsiColor::Red)),
+        Label::new(type_span, "... in this type instantiation")
+            .with_order(-1)
+            .with_color(Color::Ansi(AnsiColor::Blue)),
+    ]);
+
+    diagnostic.help = Some(Help::new(format!("Use `{name}` without a constraint")));
+
+    diagnostic.note = Some(Note::new(
+        "Type constraints cannot be specified at the usage site in HashQL. Constraints on type \
+         parameters must be declared where the type is defined, not where it is used.",
     ));
 
     diagnostic
@@ -197,8 +240,7 @@ pub(crate) fn duplicate_newtype(
 /// This diagnostic is generated when a type is provided with an incorrect number of generic
 /// parameters. It handles both too many and too few parameters cases.
 pub(crate) fn generic_parameter_mismatch(
-    span: SpanId,
-    name: Symbol<'_>,
+    variable: &VariableReference,
     parameters: &[GenericArgument<'_>],
     arguments: &[PathSegmentArgument<'_>],
 ) -> TypeExtractorDiagnostic {
@@ -206,6 +248,21 @@ pub(crate) fn generic_parameter_mismatch(
         TypeExtractorDiagnosticCategory::GenericParameterMismatch,
         Severity::ERROR,
     );
+
+    let name = match variable {
+        VariableReference::Local(ident) => Cow::Borrowed(ident.value.as_str()),
+        VariableReference::Global(path) => path
+            .rooted
+            .then_some("")
+            .into_iter()
+            .chain(
+                path.segments
+                    .iter()
+                    .map(|segment| segment.name.value.as_str()),
+            )
+            .intersperse("::")
+            .collect(),
+    };
 
     let expected = parameters.len();
     let actual = arguments.len();
@@ -229,15 +286,18 @@ pub(crate) fn generic_parameter_mismatch(
 
     diagnostic
         .labels
-        .push(Label::new(span, message).with_color(Color::Ansi(AnsiColor::Red)));
+        .push(Label::new(variable.span(), message).with_color(Color::Ansi(AnsiColor::Red)));
 
     let mut index = -1;
 
     for missing in missing {
         diagnostic.labels.push(
-            Label::new(span, format!("Missing parameter `{}`", missing.name))
-                .with_order(index)
-                .with_color(Color::Ansi(AnsiColor::Yellow)),
+            Label::new(
+                variable.span(),
+                format!("Missing parameter `{}`", missing.name),
+            )
+            .with_order(index)
+            .with_color(Color::Ansi(AnsiColor::Yellow)),
         );
 
         index -= 1;
@@ -524,25 +584,26 @@ pub(crate) fn invalid_resolved_item(
 /// Creates a diagnostic for a resolution error.
 ///
 /// This diagnostic is generated when path resolution fails due to a compiler bug.
-pub(crate) fn resolution_error(
-    span: SpanId,
-    path: &Path,
-    error: &ResolutionError,
-) -> TypeExtractorDiagnostic {
+pub(crate) fn resolution_error(path: &Path, error: &ResolutionError) -> TypeExtractorDiagnostic {
     let mut diagnostic = Diagnostic::new(
         TypeExtractorDiagnosticCategory::ResolutionError,
         Severity::COMPILER_BUG,
     );
 
     let path_display = path
-        .segments
-        .iter()
-        .map(|segment| segment.name.value.as_str())
+        .rooted
+        .then_some("::")
+        .into_iter()
+        .chain(
+            path.segments
+                .iter()
+                .map(|segment| segment.name.value.as_str()),
+        )
         .intersperse("::")
         .collect::<String>();
 
     diagnostic.labels.push(
-        Label::new(span, format!("Could not resolve '::{path_display}'"))
+        Label::new(path.span, format!("Could not resolve '{path_display}'"))
             .with_color(Color::Ansi(AnsiColor::Red)),
     );
 
@@ -563,23 +624,19 @@ pub(crate) fn resolution_error(
 ///
 /// This diagnostic is generated when an inferred type ('_') is provided with type arguments,
 /// which doesn't make sense semantically.
-pub(crate) fn infer_with_arguments(
-    infer_span: SpanId,
-    arguments_span: SpanId,
-) -> TypeExtractorDiagnostic {
+pub(crate) fn infer_with_arguments(infer_span: SpanId) -> TypeExtractorDiagnostic {
     let mut diagnostic = Diagnostic::new(
         TypeExtractorDiagnosticCategory::InferWithArguments,
         Severity::ERROR,
     );
 
-    diagnostic.labels.extend([
-        Label::new(arguments_span, "Type arguments cannot be used with '_'")
-            .with_order(0)
-            .with_color(Color::Ansi(AnsiColor::Red)),
-        Label::new(infer_span, "... which is defined here")
-            .with_order(-1)
-            .with_color(Color::Ansi(AnsiColor::Blue)),
-    ]);
+    diagnostic.labels.push(
+        Label::new(
+            infer_span,
+            "Type arguments cannot be used with '_' placeholder",
+        )
+        .with_color(Color::Ansi(AnsiColor::Red)),
+    );
 
     diagnostic.help = Some(Help::new(
         "To fix this error, you have two options:\n1. Remove these type arguments completely, \

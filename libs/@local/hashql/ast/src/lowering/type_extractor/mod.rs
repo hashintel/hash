@@ -134,7 +134,7 @@ impl<'env, 'heap> TypeExtractor<'env, 'heap> {
             registry: self.registry,
             diagnostics: Vec::new(),
             locals: &partial,
-            bound_generics: TinyVec::new(),
+            bound_generics: &TinyVec::new(),
         };
 
         // Given that we've finalized the list of arguments, take said list of arguments and
@@ -148,7 +148,7 @@ impl<'env, 'heap> TypeExtractor<'env, 'heap> {
 
             debug_assert_eq!(constraints.len(), local.arguments.len());
 
-            unit.bound_generics.clone_from(&local.arguments);
+            unit.bound_generics = &partial[&name].arguments;
 
             for (constraint, argument) in constraints.iter().zip(local.arguments.iter_mut()) {
                 debug_assert_eq!(constraint.name.value, argument.name);
@@ -171,13 +171,13 @@ impl<'env, 'heap> TypeExtractor<'env, 'heap> {
             registry: self.registry,
             diagnostics: Vec::new(),
             locals: &locals,
-            bound_generics: TinyVec::new(),
+            bound_generics: &TinyVec::new(),
         };
 
         let mut output = LocalTypes::with_capacity(locals.len());
 
         for (&name, variable) in &locals {
-            unit.bound_generics.clone_from(&variable.arguments);
+            unit.bound_generics = &variable.arguments;
 
             output.insert(name, unit.variable(variable));
         }
