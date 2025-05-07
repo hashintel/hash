@@ -36,15 +36,15 @@ pub struct TypeExtractor<'env, 'heap> {
 
     module: Symbol<'heap>,
 
-    alias: FastHashMap<Symbol<'heap>, TypeExpr<'heap>>,
-    opaque: FastHashMap<Symbol<'heap>, NewTypeExpr<'heap>>,
+    alias: Vec<(Symbol<'heap>, TypeExpr<'heap>)>,
+    opaque: Vec<(Symbol<'heap>, NewTypeExpr<'heap>)>,
 
     diagnostics: Vec<TypeExtractorDiagnostic>,
 }
 
 impl<'env, 'heap> TypeExtractor<'env, 'heap> {
     #[must_use]
-    pub fn new(
+    pub const fn new(
         environment: &'env Environment<'heap>,
         registry: &'env ModuleRegistry<'heap>,
         module: Symbol<'heap>,
@@ -55,8 +55,8 @@ impl<'env, 'heap> TypeExtractor<'env, 'heap> {
 
             module,
 
-            alias: FastHashMap::default(),
-            opaque: FastHashMap::default(),
+            alias: Vec::new(),
+            opaque: Vec::new(),
 
             diagnostics: Vec::new(),
         }
@@ -93,38 +93,51 @@ impl<'env, 'heap> TypeExtractor<'env, 'heap> {
         FastHashMap<Symbol<'heap>, LocalVariable<'_, 'heap>>,
         Vec<TypeExtractorDiagnostic>,
     ) {
+        let mut diagnostics = Vec::new();
+
         // Setup the translation unit and environment
         let mut locals = FastHashMap::with_capacity_and_hasher(
             self.alias.len() + self.opaque.len(),
             foldhash::fast::RandomState::default(),
         );
 
-        for (&name, r#type) in &self.alias {
-            locals.insert(
-                name,
+        // This could be easier if we were to use a `FastHashMap` for the alias and opaque
+        // respectively. The problem with that approach is that we're losing any kind of information
+        // about the order of the types.
+        for (name, expr) in &self.alias {
+            // We need to defer evaluation of duplicates here, where we actually into a type.
+            if let Err(error) = locals.try_insert(
+                *name,
                 LocalVariable {
                     id: self.environment.types.provision(),
-                    r#type: &r#type.value,
+                    r#type: &expr.value,
                     identity: Identity::Structural,
-                    arguments: self.convert_generic_constraints(&r#type.constraints),
+                    arguments: self.convert_generic_constraints(&expr.constraints),
                 },
-            );
+            ) {
+                let diagnostic =
+                    duplicate_type_alias(error.entry.get().r#type.span, expr.span, *name);
+                diagnostics.push(diagnostic);
+            }
         }
 
-        for (&name, r#type) in &self.opaque {
-            locals.insert(
-                name,
+        for (name, expr) in &self.opaque {
+            if let Err(error) = locals.try_insert(
+                *name,
                 LocalVariable {
                     id: self.environment.types.provision(),
-                    r#type: &r#type.value,
+                    r#type: &expr.value,
                     identity: Identity::Nominal(
                         self.environment
                             .heap
                             .intern_symbol(&format!("{}::{}", self.module, name)),
                     ),
-                    arguments: self.convert_generic_constraints(&r#type.constraints),
+                    arguments: self.convert_generic_constraints(&expr.constraints),
                 },
-            );
+            ) {
+                let diagnostic = duplicate_newtype(error.entry.get().r#type.span, expr.span, *name);
+                diagnostics.push(diagnostic);
+            }
         }
 
         let partial = locals.clone();
@@ -132,19 +145,25 @@ impl<'env, 'heap> TypeExtractor<'env, 'heap> {
         let mut unit = TranslationUnit {
             env: self.environment,
             registry: self.registry,
-            diagnostics: Vec::new(),
+            diagnostics,
             locals: &partial,
             bound_generics: &TinyVec::new(),
         };
 
+        let alias_iter = self
+            .alias
+            .iter()
+            .map(|(name, expr)| (*name, &expr.constraints));
+
+        let opaque_iter = self
+            .opaque
+            .iter()
+            .map(|(name, expr)| (*name, &expr.constraints));
+
         // Given that we've finalized the list of arguments, take said list of arguments and
         // initialize the bounds
-        for (&name, local) in &mut locals {
-            // Find the alias or opaque that corresponds to this (and it's arguments)
-            let constraints = &self.alias.get(&name).map_or_else(
-                || &self.opaque[&name].constraints,
-                |r#type| &r#type.constraints,
-            );
+        for (name, constraints) in alias_iter.chain(opaque_iter) {
+            let local = locals.get_mut(&name).unwrap_or_else(|| unreachable!());
 
             debug_assert_eq!(constraints.len(), local.arguments.len());
 
@@ -176,7 +195,15 @@ impl<'env, 'heap> TypeExtractor<'env, 'heap> {
 
         let mut output = LocalTypes::with_capacity(locals.len());
 
-        for (&name, variable) in &locals {
+        // We need to keep the iteration order consistent
+        for name in self
+            .alias
+            .iter()
+            .map(|&(name, _)| name)
+            .chain(self.opaque.iter().map(|&(name, _)| name))
+        {
+            let variable = &locals[&name];
+
             unit.bound_generics = &variable.arguments;
 
             output.insert(name, unit.variable(variable));
@@ -213,27 +240,19 @@ impl<'heap> Visitor<'heap> for TypeExtractor<'_, 'heap> {
         let body = match mem::replace(&mut expr.kind, ExprKind::Dummy) {
             ExprKind::Type(mut expr) => {
                 let name = expr.name.value;
-                let span = expr.span;
 
                 let body = mem::replace(&mut *expr.body, Expr::dummy());
 
-                if let Err(error) = self.alias.try_insert(name, expr) {
-                    let diagnostic = duplicate_type_alias(error.entry.get().span, span, name);
-                    self.diagnostics.push(diagnostic);
-                }
+                self.alias.push((name, expr));
 
                 body
             }
             ExprKind::NewType(mut expr) => {
                 let name = expr.name.value;
-                let span = expr.span;
 
                 let body = mem::replace(&mut *expr.body, Expr::dummy());
 
-                if let Err(error) = self.opaque.try_insert(name, expr) {
-                    let diagnostic = duplicate_newtype(error.entry.get().span, span, name);
-                    self.diagnostics.push(diagnostic);
-                }
+                self.opaque.push((name, expr));
 
                 body
             }

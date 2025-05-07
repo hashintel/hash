@@ -7,23 +7,31 @@ use crate::{
     },
 };
 
-pub struct LocalTypes<'heap>(FastHashMap<Symbol<'heap>, TypeId>);
+pub struct LocalTypes<'heap> {
+    storage: Vec<(Symbol<'heap>, TypeId)>,
+    lookup: FastHashMap<Symbol<'heap>, usize>,
+}
 
 impl<'heap> LocalTypes<'heap> {
     #[must_use]
     pub fn with_capacity(capacity: usize) -> Self {
-        Self(FastHashMap::with_capacity_and_hasher(
-            capacity,
-            foldhash::fast::RandomState::default(),
-        ))
+        Self {
+            storage: Vec::with_capacity(capacity),
+            lookup: FastHashMap::with_capacity_and_hasher(
+                capacity,
+                foldhash::fast::RandomState::default(),
+            ),
+        }
     }
 
-    pub fn insert(&mut self, symbol: Symbol<'heap>, type_id: TypeId) -> Option<TypeId> {
-        self.0.insert(symbol, type_id)
+    pub fn insert(&mut self, symbol: Symbol<'heap>, type_id: TypeId) {
+        let index = self.storage.len();
+        self.storage.push((symbol, type_id));
+        self.lookup.insert(symbol, index);
     }
 
     pub fn iter(&self) -> impl Iterator<Item = (Symbol<'heap>, TypeId)> {
-        self.0.iter().map(|(&symbol, &type_id)| (symbol, type_id))
+        self.storage.iter().copied()
     }
 
     pub fn finish(&mut self, env: &Environment<'heap>) -> Diagnostics {
@@ -31,7 +39,7 @@ impl<'heap> LocalTypes<'heap> {
         // properly set-up) to split the individual types from each other.
         let mut instantiate = InstantiateEnvironment::new(env);
 
-        for type_id in self.0.values_mut() {
+        for (_, type_id) in &mut self.storage {
             *type_id = instantiate.instantiate(*type_id);
             instantiate.clear_provisioned();
         }
