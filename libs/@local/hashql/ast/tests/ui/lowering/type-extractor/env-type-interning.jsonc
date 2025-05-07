@@ -1,0 +1,8 @@
+//@ run: pass
+//@ description: Tests that types are correctly interned in the environment
+[
+  "type",
+  "A",
+  "Number",
+  ["type", "B", "Number", ["type", "Same", { "#tuple": ["A", "B"] }, "_"]]
+]

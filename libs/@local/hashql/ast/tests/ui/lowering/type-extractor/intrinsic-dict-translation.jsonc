@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Tests that Dict<K,V> is correctly translated to IntrinsicType::Dict
+["type", "StringToNumber", "Dict<String, Number>", "_"]

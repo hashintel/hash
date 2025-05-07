@@ -166,10 +166,10 @@ impl<'env, 'heap> TranslationUnit<'env, '_, 'heap> {
     fn convert_path_segment_argument<'arg>(
         &mut self,
         parameter: &'arg PathSegmentArgument<'heap>,
-    ) -> Reference<'arg, 'heap> {
+    ) -> Option<Reference<'arg, 'heap>> {
         match parameter {
             node::path::PathSegmentArgument::Argument(generic_argument) => {
-                Reference::Type(&generic_argument.r#type)
+                Some(Reference::Type(&generic_argument.r#type))
             }
             node::path::PathSegmentArgument::Constraint(generic_constraint) => {
                 if generic_constraint.bound.is_some() {
@@ -178,9 +178,11 @@ impl<'env, 'heap> TranslationUnit<'env, '_, 'heap> {
                         parameter.span(),
                         generic_constraint.name.value,
                     ));
+
+                    return None;
                 }
 
-                Reference::Variable(generic_constraint.name)
+                Some(Reference::Variable(generic_constraint.name))
             }
         }
     }
@@ -206,8 +208,12 @@ impl<'env, 'heap> TranslationUnit<'env, '_, 'heap> {
 
         let mut substitutions = TinyVec::with_capacity(arguments.len());
 
+        let mut error = false;
         for (&parameter, argument) in parameters.iter().zip(arguments.iter()) {
-            let reference = self.convert_path_segment_argument(argument);
+            let Some(reference) = self.convert_path_segment_argument(argument) else {
+                error = true;
+                continue;
+            };
 
             let value = self.reference(reference, TinyVec::new());
 
@@ -215,6 +221,10 @@ impl<'env, 'heap> TranslationUnit<'env, '_, 'heap> {
                 argument: parameter.id,
                 value,
             });
+        }
+
+        if error {
+            return TypeKind::Never;
         }
 
         TypeKind::Apply(Apply {
@@ -282,7 +292,10 @@ impl<'env, 'heap> TranslationUnit<'env, '_, 'heap> {
                     return TypeKind::Never;
                 }
 
-                let reference = self.convert_path_segment_argument(&parameters[0]);
+                let Some(reference) = self.convert_path_segment_argument(&parameters[0]) else {
+                    return TypeKind::Never;
+                };
+
                 let element = self.reference(reference, TinyVec::new());
 
                 TypeKind::Intrinsic(IntrinsicType::List(ListType { element }))
@@ -297,11 +310,17 @@ impl<'env, 'heap> TranslationUnit<'env, '_, 'heap> {
                     ));
                 }
 
-                let key = self.convert_path_segment_argument(&parameters[0]);
-                let key = self.reference(key, TinyVec::new());
+                let key = self
+                    .convert_path_segment_argument(&parameters[0])
+                    .map(|key| self.reference(key, TinyVec::new()));
 
-                let value = self.convert_path_segment_argument(&parameters[1]);
-                let value = self.reference(value, TinyVec::new());
+                let value = self
+                    .convert_path_segment_argument(&parameters[1])
+                    .map(|value| self.reference(value, TinyVec::new()));
+
+                let Some((key, value)) = Option::zip(key, value) else {
+                    return TypeKind::Never;
+                };
 
                 TypeKind::Intrinsic(IntrinsicType::Dict(DictType { key, value }))
             }

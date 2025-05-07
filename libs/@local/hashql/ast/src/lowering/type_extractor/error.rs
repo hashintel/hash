@@ -235,6 +235,13 @@ pub(crate) fn duplicate_newtype(
     diagnostic
 }
 
+fn demangle<'s>(symbol: &'s Symbol) -> &'s str {
+    symbol
+        .as_str()
+        .rsplit_once(':')
+        .map_or(symbol.as_str(), |(name, _)| name)
+}
+
 /// Creates a diagnostic for incorrect generic parameter count.
 ///
 /// This diagnostic is generated when a type is provided with an incorrect number of generic
@@ -250,7 +257,7 @@ pub(crate) fn generic_parameter_mismatch(
     );
 
     let name = match variable {
-        VariableReference::Local(ident) => Cow::Borrowed(ident.value.as_str()),
+        VariableReference::Local(ident) => Cow::Borrowed(demangle(&ident.value)),
         VariableReference::Global(path) => path
             .rooted
             .then_some("")
@@ -267,8 +274,8 @@ pub(crate) fn generic_parameter_mismatch(
     let expected = parameters.len();
     let actual = arguments.len();
 
-    let missing = &parameters[actual..];
-    let extraneous = &arguments[expected..];
+    let missing = parameters.get(actual..).unwrap_or(&[]);
+    let extraneous = arguments.get(expected..).unwrap_or(&[]);
 
     let message = if actual < expected {
         format!(
@@ -294,7 +301,7 @@ pub(crate) fn generic_parameter_mismatch(
         diagnostic.labels.push(
             Label::new(
                 variable.span(),
-                format!("Missing parameter `{}`", missing.name),
+                format!("Missing parameter `{}`", demangle(&missing.name)),
             )
             .with_order(index)
             .with_color(Color::Ansi(AnsiColor::Yellow)),
@@ -315,7 +322,7 @@ pub(crate) fn generic_parameter_mismatch(
 
     let params = parameters
         .iter()
-        .map(|param| param.name.as_str())
+        .map(|param| demangle(&param.name))
         .intersperse(", ")
         .collect::<String>();
 
@@ -367,7 +374,7 @@ pub(crate) fn unbound_type_variable<'heap>(
         let suggestions: String = suggestions
             .iter()
             .take(3)
-            .map(Symbol::as_str)
+            .map(demangle)
             .intersperse("`, `")
             .collect();
 

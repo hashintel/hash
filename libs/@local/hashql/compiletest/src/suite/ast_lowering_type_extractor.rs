@@ -66,7 +66,10 @@ impl Suite for AstLoweringTypeExtractorSuite {
         let mut output = expr.syntax_dump_to_string();
         output.push_str("\n------------------------");
 
-        for (name, id) in locals.iter() {
+        let mut locals: Vec<_> = locals.iter().collect();
+        locals.sort_by_key(|&(symbol, _)| symbol);
+
+        for (name, id) in locals {
             let _: Result<(), _> = write!(
                 output,
                 "\n\n{name} = {}",
