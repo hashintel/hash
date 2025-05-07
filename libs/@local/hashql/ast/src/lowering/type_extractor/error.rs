@@ -1,4 +1,5 @@
 use alloc::borrow::Cow;
+use core::cmp::Ordering;
 
 use hashql_core::{
     module::{
@@ -139,7 +140,7 @@ pub(crate) fn duplicate_type_alias(
     diagnostic.labels.extend([
         Label::new(
             original_span,
-            format!("Type '{name}' was already defined here"),
+            format!("Type '{name}' was originally defined here"),
         )
         .with_order(1)
         .with_color(Color::Ansi(AnsiColor::Blue)),
@@ -147,6 +148,10 @@ pub(crate) fn duplicate_type_alias(
             .with_order(0)
             .with_color(Color::Ansi(AnsiColor::Red)),
     ]);
+
+    diagnostic.help = Some(Help::new(
+        "This is an internal compiler issue, not an error in your code.",
+    ));
 
     diagnostic.note = Some(Note::new(
         "This likely represents a compiler bug in the name mangling pass. The name mangler should \
@@ -174,7 +179,7 @@ pub(crate) fn duplicate_newtype(
     diagnostic.labels.extend([
         Label::new(
             original_span,
-            format!("Newtype '{name}' was already defined here"),
+            format!("Newtype '{name}' was originally defined here"),
         )
         .with_order(1)
         .with_color(Color::Ansi(AnsiColor::Blue)),
@@ -182,6 +187,10 @@ pub(crate) fn duplicate_newtype(
             .with_order(0)
             .with_color(Color::Ansi(AnsiColor::Red)),
     ]);
+
+    diagnostic.help = Some(Help::new(
+        "This is an internal compiler issue, not an error in your code.",
+    ));
 
     diagnostic.note = Some(Note::new(
         "This likely represents a compiler bug in the name mangling pass. The name mangler should \
@@ -235,12 +244,9 @@ pub(crate) fn generic_parameter_mismatch(
 
     for missing in missing {
         diagnostic.labels.push(
-            Label::new(
-                span,
-                format!("Missing generic parameter `{}`", missing.name),
-            )
-            .with_order(index)
-            .with_color(Color::Ansi(AnsiColor::Red)),
+            Label::new(span, format!("Missing parameter `{}`", missing.name))
+                .with_order(index)
+                .with_color(Color::Ansi(AnsiColor::Yellow)),
         );
 
         index -= 1;
@@ -248,7 +254,7 @@ pub(crate) fn generic_parameter_mismatch(
 
     for extraneous in extraneous {
         diagnostic.labels.push(
-            Label::new(extraneous.span(), "Unexpected generic parameter")
+            Label::new(extraneous.span(), "Remove this parameter")
                 .with_order(index)
                 .with_color(Color::Ansi(AnsiColor::Red)),
         );
@@ -256,18 +262,26 @@ pub(crate) fn generic_parameter_mismatch(
         index -= 1;
     }
 
-    let help = format!(
-        "`{name}<{}>` expects {} argument{}",
-        parameters
-            .iter()
-            .map(|param| param.name.as_str())
-            .intersperse(", ")
-            .collect::<String>(),
-        parameters.len(),
-        if parameters.len() == 1 { "" } else { "s" }
-    );
+    let params = parameters
+        .iter()
+        .map(|param| param.name.as_str())
+        .intersperse(", ")
+        .collect::<String>();
+
+    let usage = format!("`{name}<{params}>`");
+
+    let help = match actual.cmp(&expected) {
+        Ordering::Less => format!("Add the missing parameter(s): {usage}"),
+        Ordering::Greater => format!("Remove the extra parameter(s): {usage}"),
+        Ordering::Equal => format!("Use: {usage}"),
+    };
 
     diagnostic.help = Some(Help::new(help));
+
+    diagnostic.note = Some(Note::new(
+        "Generic type parameters let types work with different data types while maintaining type \
+         safety.",
+    ));
 
     diagnostic
 }
@@ -287,7 +301,8 @@ pub(crate) fn unbound_type_variable<'heap>(
     );
 
     diagnostic.labels.push(
-        Label::new(span, format!("Cannot find '{name}'")).with_color(Color::Ansi(AnsiColor::Red)),
+        Label::new(span, format!("Undefined type '{name}'"))
+            .with_color(Color::Ansi(AnsiColor::Red)),
     );
 
     let suggestions: Vec<_> = locals
@@ -295,7 +310,11 @@ pub(crate) fn unbound_type_variable<'heap>(
         .filter(|local| jaro_winkler(local.as_str(), name.as_str()) > 0.7)
         .collect();
 
-    if !suggestions.is_empty() {
+    if suggestions.is_empty() {
+        diagnostic.help = Some(Help::new(
+            "This is an internal compiler issue, not an error in your code.",
+        ));
+    } else {
         let suggestions: String = suggestions
             .iter()
             .take(3)
@@ -325,9 +344,13 @@ pub(crate) fn special_form_not_supported(span: SpanId, name: &str) -> TypeExtrac
     );
 
     diagnostic.labels.push(
-        Label::new(span, format!("'{name}' is not supported in this context"))
+        Label::new(span, format!("'{name}' not supported here"))
             .with_color(Color::Ansi(AnsiColor::Red)),
     );
+
+    diagnostic.help = Some(Help::new(
+        "This form should have been handled by an earlier compilation stage.",
+    ));
 
     diagnostic.note = Some(Note::new(
         "Before this step any special forms should have been replaced with native type syntax in \
@@ -353,19 +376,25 @@ pub(crate) fn intrinsic_parameter_count_mismatch(
         Severity::ERROR,
     );
 
-    let message = format!(
-        "Intrinsic type `{name}` expects {expected} type parameter{}, but {actual} {} provided",
-        if expected == 1 { "" } else { "s" },
-        if actual == 1 { "was" } else { "were" }
-    );
+    let message = if actual < expected {
+        format!(
+            "Intrinsic `{name}` needs {expected} parameter{}, but got {actual}",
+            if expected == 1 { "" } else { "s" }
+        )
+    } else {
+        format!(
+            "Intrinsic `{name}` takes {expected} parameter{}, but got {actual}",
+            if expected == 1 { "" } else { "s" }
+        )
+    };
 
     diagnostic
         .labels
         .push(Label::new(span, message).with_color(Color::Ansi(AnsiColor::Red)));
 
     let help_example = match name {
-        "::kernel::type::List" => Cow::Borrowed("List<T>"),
-        "::kernel::type::Dict" => Cow::Borrowed("Dict<K, V>"),
+        "::kernel::type::List" => Cow::Borrowed("List<ElementType>"),
+        "::kernel::type::Dict" => Cow::Borrowed("Dict<KeyType, ValueType>"),
         _ => {
             let params = (0..expected)
                 .map(|i| Cow::Owned(format!("T{}", i + 1)))
@@ -376,7 +405,24 @@ pub(crate) fn intrinsic_parameter_count_mismatch(
         }
     };
 
-    diagnostic.help = Some(Help::new(format!("Use the correct form: `{help_example}`")));
+    let help_message = if actual < expected {
+        format!("Add missing parameter(s): `{help_example}`")
+    } else {
+        format!("Remove extra parameter(s): `{help_example}`")
+    };
+
+    diagnostic.help = Some(Help::new(help_message));
+
+    // Add a note explaining the purpose of the intrinsic type
+    let note_message = match name {
+        "::kernel::type::List" => "List requires one type parameter specifying the element type.",
+        "::kernel::type::Dict" => {
+            "Dict requires two type parameters: the key type and the value type."
+        }
+        _ => "Intrinsic types have specific requirements for their type parameters.",
+    };
+
+    diagnostic.note = Some(Note::new(note_message));
 
     diagnostic
 }
@@ -406,7 +452,12 @@ pub(crate) fn unknown_intrinsic_type(
         .take(3)
         .collect();
 
-    if !similar.is_empty() {
+    if similar.is_empty() {
+        // Provide helpful guidance even without close matches
+        diagnostic.help = Some(Help::new(
+            "Check documentation for available intrinsic types.",
+        ));
+    } else {
         let suggestions: String = similar.into_iter().intersperse("`, `").collect();
 
         diagnostic.help = Some(Help::new(format!("Did you mean `{suggestions}`?")));
@@ -415,7 +466,7 @@ pub(crate) fn unknown_intrinsic_type(
     let available: String = available.iter().copied().intersperse("`, `").collect();
 
     diagnostic.note = Some(Note::new(format!(
-        "Available intrinsic types are: `{available}`"
+        "Available intrinsic types: `{available}`"
     )));
 
     diagnostic
@@ -473,7 +524,7 @@ pub(crate) fn resolution_error(
         Severity::COMPILER_BUG,
     );
 
-    let path = path
+    let path_display = path
         .segments
         .iter()
         .map(|segment| segment.name.value.as_str())
@@ -481,17 +532,23 @@ pub(crate) fn resolution_error(
         .collect::<String>();
 
     diagnostic.labels.push(
-        Label::new(span, format!("Failed to resolve '::{path}'"))
+        Label::new(span, format!("Failed to resolve '::{path_display}'"))
             .with_color(Color::Ansi(AnsiColor::Red)),
     );
 
-    diagnostic.note = Some(Note::new(
-        "This is likely a compiler bug. Path resolution should have succeeded or been caught \
-         earlier. Please report this issue to the HashQL team with a minimal reproduction case.",
-    ));
+    // Add a more informative help message
+    let help_message = if path.segments.len() > 1 {
+        "This is an internal compiler issue with path resolution."
+    } else {
+        "This is an internal compiler issue with locals resolution."
+    };
 
-    diagnostic.help = Some(Help::new(format!(
-        "The error which occured while trying to resolve was:\n\n{error:#?}",
+    diagnostic.help = Some(Help::new(help_message));
+
+    diagnostic.note = Some(Note::new(format!(
+        "This is likely a compiler bug. Path resolution should have succeeded or been caught \
+         earlier. Please report this issue to the HashQL team with a minimal reproduction \
+         case.\n\nTechnical error details:\n{error:#?}"
     )));
 
     diagnostic
@@ -511,24 +568,21 @@ pub(crate) fn infer_with_arguments(
     );
 
     diagnostic.labels.extend([
-        Label::new(
-            arguments_span,
-            "These type arguments are not applicable to an inference placeholder",
-        )
-        .with_order(0)
-        .with_color(Color::Ansi(AnsiColor::Red)),
-        Label::new(infer_span, "... which is defined here")
+        Label::new(arguments_span, "Type arguments can't be applied to '_'")
+            .with_order(0)
+            .with_color(Color::Ansi(AnsiColor::Red)),
+        Label::new(infer_span, "... infer placeholder defined here")
             .with_order(-1)
             .with_color(Color::Ansi(AnsiColor::Blue)),
     ]);
 
     diagnostic.help = Some(Help::new(
-        "Either remove the type arguments or replace '_' with a concrete generic type",
+        "Either:\n1. Remove these type arguments, or\n2. Replace '_' with a generic type",
     ));
 
     diagnostic.note = Some(Note::new(
-        "The type inference placeholder '_' represents a type that will be determined by the \
-         compiler. It cannot accept type arguments because it doesn't represent a generic type.",
+        "The '_' placeholder tells the compiler to infer the type automatically. Unlike generic \
+         types, it can't accept type arguments because it's not a type constructor.",
     ));
 
     diagnostic
@@ -567,10 +621,12 @@ pub(crate) fn duplicate_struct_fields(
         index -= 1;
     }
 
-    diagnostic.help = Some(Help::new("Rename or remove one of the duplicate fields"));
+    diagnostic.help = Some(Help::new(format!(
+        "Either rename or remove the duplicate `{field_name}` field(s)"
+    )));
 
     diagnostic.note = Some(Note::new(
-        "Struct types require unique field names to ensure clear and unambiguous access patterns.",
+        "Struct fields must have unique names to prevent ambiguity when accessing them.",
     ));
 
     diagnostic
