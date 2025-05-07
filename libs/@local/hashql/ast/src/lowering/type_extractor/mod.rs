@@ -182,6 +182,7 @@ impl<'env, 'heap> TypeExtractor<'env, 'heap> {
             output.insert(name, unit.variable(variable));
         }
 
+        self.diagnostics.extend(unit.diagnostics);
         self.diagnostics.extend(diagnostics);
 
         let diagnostics = output.finish(self.environment);
