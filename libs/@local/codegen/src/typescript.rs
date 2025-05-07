@@ -26,6 +26,7 @@ pub struct TypeScriptGenerator<'a, 'c> {
     collection: &'c TypeCollection,
     ast: AstBuilder<'a>,
     program: ast::Program<'a>,
+    has_branded_types: bool,
 }
 
 impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
@@ -45,6 +46,7 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
             collection,
             ast: ast_builder,
             program,
+            has_branded_types: false,
         }
     }
 
@@ -148,15 +150,86 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
         }
     }
 
-    fn visit_type_definition(&self, definition: &TypeDefinition) -> ast::Declaration<'a> {
-        if self.should_export_as_interface(&definition.r#type) {
+    fn visit_type_definition(&mut self, definition: &TypeDefinition) -> ast::Declaration<'a> {
+        if !definition.branded && self.should_export_as_interface(&definition.r#type) {
             self.generate_interface(definition)
         } else {
+            let mut r#type = self.visit_type(&definition.r#type);
+
+            if definition.branded {
+                if !self.has_branded_types {
+                    self.has_branded_types = true;
+                    self.add_import_declaration("@local/advanced-types/brand", ["Brand"]);
+                }
+
+                // This extends the `UserId` type by intersecting it with the `WebId` type. We
+                // currently, don't have a way to represent the `UserId` type in the
+                // AST, so we have to do this manually.
+                // TODO: Allow this to be done from the Rust code directly
+                //   see https://linear.app/hash/issue/H-4514/allow-specifying-type-branding-in-rust-itself
+                if definition.module == "type_system::principal::actor::user"
+                    && definition.name == "UserId"
+                {
+                    r#type = self.ast.ts_type_intersection_type(
+                        SPAN,
+                        self.ast.vec_from_array([
+                            r#type,
+                            self.ast.ts_type_type_reference(
+                                SPAN,
+                                self.ast.ts_type_name_identifier_reference(SPAN, "WebId"),
+                                None::<ast::TSTypeParameterInstantiation<'a>>,
+                            ),
+                        ]),
+                    );
+                }
+
+                // This extends the `WebId` type by unifying it with the `ActorEntityUuid` type. We
+                // currently, don't have a way to represent the `WebId` type in the
+                // AST, so we have to do this manually.
+                // TODO: Allow this to be done from the Rust code directly
+                //   see https://linear.app/hash/issue/H-4514/allow-specifying-type-branding-in-rust-itself
+                if definition.module == "type_system::principal::actor_group::web"
+                    && definition.name == "WebId"
+                {
+                    r#type = self.ast.ts_type_union_type(
+                        SPAN,
+                        self.ast.vec_from_array([
+                            r#type,
+                            self.ast.ts_type_type_reference(
+                                SPAN,
+                                self.ast
+                                    .ts_type_name_identifier_reference(SPAN, "ActorEntityUuid"),
+                                None::<ast::TSTypeParameterInstantiation<'a>>,
+                            ),
+                        ]),
+                    );
+                }
+
+                r#type = self.ast.ts_type_type_reference(
+                    SPAN,
+                    self.ast.ts_type_name_identifier_reference(SPAN, "Brand"),
+                    Some(self.ast.ts_type_parameter_instantiation(
+                        SPAN,
+                        self.ast.vec_from_array([
+                            r#type,
+                            self.ast.ts_type_literal_type(
+                                SPAN,
+                                self.ast.ts_literal_string_literal(
+                                    SPAN,
+                                    definition.name.as_ref(),
+                                    None,
+                                ),
+                            ),
+                        ]),
+                    )),
+                );
+            }
+
             self.ast.declaration_ts_type_alias(
                 SPAN,
                 self.ast.binding_identifier(SPAN, definition.name.as_ref()),
                 None::<ast::TSTypeParameterDeclaration<'a>>,
-                self.visit_type(&definition.r#type),
+                r#type,
                 false,
             )
         }

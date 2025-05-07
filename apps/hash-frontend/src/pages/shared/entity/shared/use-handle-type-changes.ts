@@ -3,12 +3,12 @@ import {
   getOutgoingLinksForEntity,
   getRoots,
 } from "@blockprotocol/graph/stdlib";
-import { extractBaseUrl, mustHaveAtLeastOne } from "@blockprotocol/type-system";
 import type {
   BaseUrl,
   EntityId,
   VersionedUrl,
-} from "@blockprotocol/type-system-rs/pkg/type-system";
+} from "@blockprotocol/type-system";
+import { extractBaseUrl, mustHaveAtLeastOne } from "@blockprotocol/type-system";
 import {
   getClosedMultiEntityTypeFromMap,
   type HashEntity,

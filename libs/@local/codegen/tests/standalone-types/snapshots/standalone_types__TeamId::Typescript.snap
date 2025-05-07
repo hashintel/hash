@@ -2,4 +2,5 @@
 source: libs/@local/codegen/tests/standalone-types/main.rs
 expression: generated
 ---
-export type TeamId = ActorGroupEntityUuid;
+import type { Brand } from "@local/advanced-types/brand";
+export type TeamId = Brand<ActorGroupEntityUuid, "TeamId">;

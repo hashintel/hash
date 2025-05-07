@@ -28,7 +28,6 @@ use crate::{
     derive_more::Display,
 )]
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[cfg_attr(
     feature = "postgres",
@@ -36,13 +35,7 @@ use crate::{
     postgres(transparent)
 )]
 #[repr(transparent)]
-pub struct UserId(
-    #[cfg_attr(
-        target_arch = "wasm32",
-        tsify(type = "Brand<ActorEntityUuid & WebId, \"UserId\">")
-    )]
-    ActorEntityUuid,
-);
+pub struct UserId(ActorEntityUuid);
 
 impl UserId {
     /// Creates a new [`UserId`] from any value that can be converted to a `Uuid`.
@@ -83,7 +76,6 @@ impl From<UserId> for WebId {
 /// Represents a user with their unique identifier and assigned roles.
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct User {

@@ -37,7 +37,6 @@ use crate::knowledge::entity::id::EntityUuid;
     derive_more::Display,
 )]
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[cfg_attr(
     feature = "postgres",
@@ -45,13 +44,7 @@ use crate::knowledge::entity::id::EntityUuid;
     postgres(transparent)
 )]
 #[repr(transparent)]
-pub struct ActorEntityUuid(
-    #[cfg_attr(
-        target_arch = "wasm32",
-        tsify(type = "Brand<EntityUuid, \"ActorEntityUuid\">")
-    )]
-    EntityUuid,
-);
+pub struct ActorEntityUuid(EntityUuid);
 
 impl ActorEntityUuid {
     /// Creates a new `ActorEntityUuid` from any value that can be converted to a `Uuid`.
@@ -80,7 +73,6 @@ impl From<ActorEntityUuid> for Uuid {
 /// Represents the different categories of entities that can perform actions.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
 pub enum ActorType {
@@ -106,7 +98,6 @@ pub enum ActorType {
     derive_more::From,
 )]
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(tag = "actorType", content = "id", rename_all = "camelCase")]
 pub enum ActorId {
@@ -200,7 +191,6 @@ impl postgres_types::ToSql for ActorId {
 /// Each variant corresponds to a specific [`ActorType`].
 #[derive(Debug, serde::Serialize, serde::Deserialize, derive_more::From)]
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(tag = "actorType", rename_all = "camelCase")]
 pub enum Actor {

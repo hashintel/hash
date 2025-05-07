@@ -15,7 +15,6 @@ use crate::principal::actor_group::TeamId;
     derive_more::Display,
 )]
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[cfg_attr(
     feature = "postgres",
@@ -23,9 +22,7 @@ use crate::principal::actor_group::TeamId;
     postgres(transparent)
 )]
 #[repr(transparent)]
-pub struct TeamRoleId(
-    #[cfg_attr(target_arch = "wasm32", tsify(type = "Brand<string, \"TeamRoleId\">"))] Uuid,
-);
+pub struct TeamRoleId(Uuid);
 
 impl TeamRoleId {
     #[must_use]
@@ -42,7 +39,6 @@ impl From<TeamRoleId> for Uuid {
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct TeamRole {

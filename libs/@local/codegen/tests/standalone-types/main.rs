@@ -78,6 +78,15 @@ fn register_types(collection: &mut TypeCollection) {
     collection.register::<principal::actor::ActorType>();
     collection.register::<principal::actor_group::ActorGroupType>();
     collection.register::<principal::role::RoleType>();
+
+    // We currently have to manually specify the branded types
+    collection.register_branded::<principal::actor::UserId>();
+    collection.register_branded::<principal::actor::MachineId>();
+    collection.register_branded::<principal::actor::AiId>();
+    collection.register_branded::<principal::actor_group::WebId>();
+    collection.register_branded::<principal::actor_group::TeamId>();
+    collection.register_branded::<principal::role::WebRoleId>();
+    collection.register_branded::<principal::role::TeamRoleId>();
 }
 
 fn find_available_types() -> Vec<(TypeId, Cow<'static, str>)> {

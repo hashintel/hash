@@ -117,7 +117,6 @@ impl From<RoleType> for PrincipalType {
     derive_more::From,
 )]
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(tag = "principalType", rename_all = "camelCase")]
 pub enum PrincipalId {
@@ -199,7 +198,6 @@ impl postgres_types::ToSql for PrincipalId {
 /// and provenance tracking purposes.
 #[derive(Debug, serde::Serialize, serde::Deserialize, derive_more::From)]
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(tag = "principalType", rename_all = "camelCase")]
 pub enum Principal {
