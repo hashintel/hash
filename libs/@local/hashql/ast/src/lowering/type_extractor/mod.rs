@@ -163,7 +163,12 @@ impl<'env, 'heap> TypeExtractor<'env, 'heap> {
         // Given that we've finalized the list of arguments, take said list of arguments and
         // initialize the bounds
         for (name, constraints) in alias_iter.chain(opaque_iter) {
-            let local = locals.get_mut(&name).unwrap_or_else(|| unreachable!());
+            let local = locals.get_mut(&name).unwrap_or_else(|| {
+                unreachable!(
+                    "Invariant violated: Expected key '{name}' to exist in the 'locals' HashMap, \
+                     but it was not found. This indicates a bug in the type extraction logic.",
+                )
+            });
 
             debug_assert_eq!(constraints.len(), local.arguments.len());
 
