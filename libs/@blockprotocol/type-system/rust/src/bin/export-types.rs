@@ -20,6 +20,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     collection.register::<principal::actor_group::ActorGroupType>();
     collection.register::<principal::role::RoleType>();
 
+    // Knowledge types
+    collection.register::<knowledge::value::PropertyValue>();
+
     // We currently have to manually specify the branded types
     collection.register_branded::<knowledge::entity::id::EntityUuid>();
     collection.register_branded::<knowledge::entity::id::DraftId>();
