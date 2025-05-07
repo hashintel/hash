@@ -1,7 +1,11 @@
 use alloc::borrow::Cow;
-use core::{fmt, fmt::Display};
+use core::{
+    fmt,
+    fmt::{Display, Write as _},
+};
 
 use hashql_core::{
+    collection::FastHashSet,
     module::{
         ModuleRegistry,
         error::{ResolutionError, ResolutionSuggestion},
@@ -263,8 +267,10 @@ impl Display for FormatPath<'_, '_> {
 
 /// Convert a resolution error to a diagnostic
 pub(crate) fn unresolved_variable<'heap>(
+    registry: &ModuleRegistry<'heap>,
+    universe: Universe,
     ident: Ident<'heap>,
-    locals: impl IntoIterator<Item = Symbol<'heap>>,
+    locals: &FastHashSet<Symbol<'heap>>,
     mut suggestions: Vec<ResolutionSuggestion<Import<'heap>>>,
 ) -> ImportResolverDiagnostic {
     let mut diagnostic = Diagnostic::new(
@@ -275,11 +281,14 @@ pub(crate) fn unresolved_variable<'heap>(
     diagnostic.labels.push(
         Label::new(
             ident.span,
-            format!("'{}' is not defined in the current scope", ident.value),
+            format!("Cannot find variable '{}'", ident.value),
         )
         .with_order(0)
         .with_color(Color::Ansi(AnsiColor::Red)),
     );
+
+    // Remove any suggestions that are already in the locals set
+    suggestions.retain(|suggestion| !locals.contains(&suggestion.item.name));
 
     // Find similar local variables
     let mut local_suggestions: Vec<_> = locals
@@ -294,31 +303,32 @@ pub(crate) fn unresolved_variable<'heap>(
     // Sort by similarity score (highest first)
     local_suggestions.sort_unstable_by(|&(_, lhs), &(_, rhs)| rhs.total_cmp(&lhs));
 
-    let mut help = format!(
-        "The variable '{}' wasn't found in the current scope.",
-        ident.value
-    );
+    let mut help = format!("The name '{}' doesn't exist in this scope.", ident.value);
 
-    // Add local variable suggestions if available
+    // Local variable suggestions section
     if !local_suggestions.is_empty() {
         help.push_str("\n\nDid you mean one of these local variables?\n");
 
         for (local, _) in local_suggestions.iter().take(3) {
-            help.push_str(&format!("  - `{local}`\n"));
+            let _: fmt::Result = writeln!(help, "  - `{local}`");
         }
 
         if local_suggestions.len() > 3 {
             let remaining = local_suggestions.len() - 3;
-            help.push_str(&format!("  ... and {remaining} more\n"));
+            let _: fmt::Result = writeln!(help, "  - and {remaining} more similar variables");
         }
     }
 
-    // Show imported items that are already in scope and have similar names
-
+    // Imported item suggestions section
     if !suggestions.is_empty() {
-        if !local_suggestions.is_empty() {
-            help.push_str("\nOr ");
+        // Add a connector if we've already shown local suggestions
+        if local_suggestions.is_empty() {
+            help.push_str("\n\nPerhaps you meant ");
+        } else {
+            help.push_str("\nOr perhaps you meant ");
         }
+
+        help.push_str("one of these imported items?\n");
 
         // Sort and filter imported item suggestions by score
         suggestions.sort_by(|lhs, rhs| rhs.score.total_cmp(&lhs.score));
@@ -328,23 +338,20 @@ pub(crate) fn unresolved_variable<'heap>(
             .take(3)
             .collect();
 
-        if !good_suggestions.is_empty() {
-            help.push_str("did you mean one of these imported items?\n");
-
-            for suggestion in &good_suggestions {
-                help.push_str(&format!("  - `{}`\n", suggestion.item.name));
-            }
-        } else if !suggestions.is_empty() {
+        if good_suggestions.is_empty() {
             // Fall back to showing any suggestions if none have high similarity
-            help.push_str("perhaps you meant one of these imported items:\n");
 
             for suggestion in suggestions.iter().take(3) {
-                help.push_str(&format!("  - `{}`\n", suggestion.item.name));
+                let _: fmt::Result = writeln!(help, "  - `{}`", suggestion.item.name);
             }
 
             if suggestions.len() > 3 {
                 let remaining = suggestions.len() - 3;
-                help.push_str(&format!("  ... and {remaining} more\n"));
+                let _: fmt::Result = writeln!(help, "  - and {remaining} more imported items");
+            }
+        } else {
+            for suggestion in &good_suggestions {
+                let _: fmt::Result = writeln!(help, "  - `{}`", suggestion.item.name);
             }
         }
     }
@@ -352,9 +359,9 @@ pub(crate) fn unresolved_variable<'heap>(
     diagnostic.help = Some(Help::new(help));
 
     diagnostic.note = Some(Note::new(
-        "Variables must be defined before they can be used. Check for typos in variable names, \
-         ensure that variables are declared before they're used, and verify you're referencing \
-         the correct name for local variables or imported items.",
+        "Variables must be defined before they can be used. This could be a typo, a variable used \
+         outside its scope, or a missing declaration. Check variable names carefully and verify \
+         that declarations appear before usage.",
     ));
 
     diagnostic

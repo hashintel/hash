@@ -6,6 +6,7 @@ use hashql_core::{
     collection::FastHashSet,
     heap::Heap,
     module::{
+        error::ResolutionError,
         item::Universe,
         namespace::{ImportOptions, ModuleNamespace, ResolutionMode, ResolveOptions},
     },
@@ -14,7 +15,7 @@ use hashql_core::{
 
 use self::error::{
     ImportResolverDiagnostic, empty_path, from_resolution_error, generic_arguments_in_module,
-    generic_arguments_in_use_path,
+    generic_arguments_in_use_path, unresolved_variable,
 };
 use super::super::node::path::PathSegmentArgument;
 use crate::{
@@ -268,6 +269,22 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
             },
         ) {
             Ok(item) => item,
+            Err(ResolutionError::ImportNotFound {
+                depth: _,
+                suggestions,
+            }) if modules.is_empty() => {
+                self.diagnostics.push(unresolved_variable(
+                    ident.name,
+                    match self.current_universe {
+                        Universe::Type => &self.scope.r#type,
+                        Universe::Value => &self.scope.value,
+                    },
+                    suggestions,
+                ));
+
+                walk_path(self, path);
+                return;
+            }
             Err(error) => {
                 self.diagnostics.push(from_resolution_error(
                     None,

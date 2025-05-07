@@ -1,0 +1,17 @@
+[31m[import-resolver::unresolved-variable] Error:[0m Unresolved variable
+    ╭─[ <unknown>:11:6 ]
+    │
+ 11 │     "föo"
+    │      ─┬─  
+    │       ╰─── Cannot find variable 'föo'
+    │ 
+    │ Help: The name 'föo' doesn't exist in this scope.
+    │       
+    │       Did you mean one of these local variables?
+    │         - `foo`
+    │       
+    │       Or perhaps you meant one of these imported items?
+    │         - `fooo`
+    │ 
+    │ Note: Variables must be defined before they can be used. This could be a typo, a variable used outside its scope, or a missing declaration. Check variable names carefully and verify that declarations appear before usage.
+────╯
