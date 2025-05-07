@@ -198,6 +198,7 @@ impl SyntaxDump for TypeKind<'_> {
 
                 intersection_type.syntax_dump(fmt, depth + 1)
             }
+            TypeKind::Dummy => write_header(fmt, depth, "TypeKind", None, None, Some("Dummy")),
         }
     }
 }
