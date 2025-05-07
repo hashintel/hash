@@ -269,7 +269,7 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
                             self.ast.ts_signature_property_signature(
                                 SPAN,
                                 false, // computed
-                                false, // optional
+                                field.optional,
                                 false, // read-only
                                 self.ast
                                     .property_key_static_identifier(SPAN, field_name.as_ref()),
@@ -352,7 +352,7 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
                         self.ast.ts_signature_property_signature(
                             SPAN,
                             false, // computed
-                            false, // optional
+                            field.optional,
                             false, // read-only
                             self.ast
                                 .property_key_static_identifier(SPAN, field_name.as_ref()),
@@ -455,7 +455,7 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
                         self.ast.ts_signature_property_signature(
                             SPAN,
                             false, // computed
-                            false, // optional
+                            field.optional,
                             false, // readonly
                             self.ast
                                 .property_key_static_identifier(SPAN, field_name.as_ref()),
@@ -598,8 +598,6 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
     }
 
     fn visit_optional(&self, optional: &Type) -> ast::TSType<'a> {
-        // TODO: Properly implement optional handling
-        //   see https://linear.app/hash/issue/H-4457/capture-field-optionality-in-codegen
         self.ast.ts_type_parenthesized_type(
             SPAN,
             self.ast.ts_type_union_type(

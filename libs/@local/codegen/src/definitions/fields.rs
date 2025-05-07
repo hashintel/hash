@@ -10,6 +10,7 @@ pub struct Field {
     //   see https://linear.app/hash/issue/H-4473/export-doc-strings-in-codegen
     pub r#type: Type,
     pub flatten: bool,
+    pub optional: bool,
 }
 
 impl Field {
@@ -17,14 +18,26 @@ impl Field {
         field: &datatype::Field,
         type_collection: &specta::TypeCollection,
     ) -> Self {
-        Self {
-            r#type: Type::from_specta(
-                field.ty().unwrap_or_else(|| {
-                    todo!("https://linear.app/hash/issue/H-4472/allow-field-skipping-in-codegen")
-                }),
-                type_collection,
-            ),
-            flatten: field.flatten(),
+        let r#type = Type::from_specta(
+            field.ty().unwrap_or_else(|| {
+                todo!("https://linear.app/hash/issue/H-4472/allow-field-skipping-in-codegen")
+            }),
+            type_collection,
+        );
+        if !field.flatten()
+            && let Type::Optional(optional) = r#type
+        {
+            Self {
+                r#type: *optional,
+                flatten: field.flatten(),
+                optional: true,
+            }
+        } else {
+            Self {
+                r#type,
+                flatten: field.flatten(),
+                optional: field.optional(),
+            }
         }
     }
 }
