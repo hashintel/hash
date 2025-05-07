@@ -188,7 +188,7 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
                 // AST, so we have to do this manually.
                 // TODO: Allow this to be done from the Rust code directly
                 //   see https://linear.app/hash/issue/H-4514/allow-specifying-type-branding-in-rust-itself
-                if definition.module == "type_system::principal::actor::user"
+                if definition.module == "type_system::principal::actor_group::web"
                     && definition.name == "WebId"
                 {
                     r#type = self.ast.ts_type_union_type(
