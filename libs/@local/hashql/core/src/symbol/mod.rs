@@ -61,8 +61,7 @@ impl<'heap> Symbol<'heap> {
     ///
     /// Unlike [`Self::as_str`], this method provides access for the lifetime of the interner
     /// instead of the symbol itself, somewhat circumventing the protections given to the symbol
-    /// itself. Any unwrapped type should be considered no longer unique and is not safe to use in
-    /// conjunction with [`Self::new_unchecked`].
+    /// itself. Any unwrapped type should be considered no longer unique and interned.
     #[must_use]
     pub const fn unwrap(&self) -> &'heap str {
         self.0
