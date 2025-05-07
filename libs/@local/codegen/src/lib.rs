@@ -54,6 +54,19 @@ impl TypeCollection {
         );
     }
 
+    // TODO: We want to allow specifying branding in the Rust code itself, rather than relying on
+    //       the code generator to specify it.
+    //   see https://linear.app/hash/issue/H-4514/allow-specifying-type-branding-in-rust-itself
+    pub fn register_branded<T: specta::NamedType>(&mut self) {
+        self.collection.register_mut::<T>();
+        let data_type = self.collection.get(T::ID).unwrap_or_else(|| unreachable!());
+        self.ordered_keys.insert(OrderedTypeId::from(data_type));
+        self.types.insert(
+            TypeId::from_specta(T::ID),
+            TypeDefinition::from_specta_branded(data_type, &self.collection),
+        );
+    }
+
     /// Registers transitive types that are not directly registered with the collection.
     ///
     /// # Example

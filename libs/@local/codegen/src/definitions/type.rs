@@ -72,6 +72,7 @@ pub struct TypeDefinition {
     pub r#type: Type,
     pub public: bool,
     pub module: Cow<'static, str>,
+    pub branded: bool,
 }
 
 impl TypeDefinition {
@@ -86,6 +87,16 @@ impl TypeDefinition {
             //  see https://linear.app/hash/issue/H-4498/only-export-public-types-from-codegen
             public: true,
             module: data_type.module_path().clone(),
+            branded: false,
         }
+    }
+
+    pub(crate) fn from_specta_branded(
+        data_type: &datatype::NamedDataType,
+        type_collection: &specta::TypeCollection,
+    ) -> Self {
+        let mut def = Self::from_specta(data_type, type_collection);
+        def.branded = true;
+        def
     }
 }

@@ -156,7 +156,7 @@ const BlockContextMenu: ForwardRefRenderFunction<
         icon: <FontAwesomeIcon icon={faLink} />,
         onClick: () => {
           const url = new URL(document.location.href);
-          url.hash = getBlockDomId((entityId ?? undefined)!);
+          url.hash = getBlockDomId(entityId ?? undefined);
           void navigator.clipboard.writeText(url.toString());
         },
       },

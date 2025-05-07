@@ -8,16 +8,32 @@ use hash_codegen::{
     TypeCollection,
     typescript::{TypeScriptGenerator, TypeScriptGeneratorSettings},
 };
-use type_system::principal;
+use type_system::{knowledge, principal};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut collection = TypeCollection::default();
 
+    // Principal types
     collection.register::<principal::Principal>();
     collection.register::<principal::PrincipalId>();
     collection.register::<principal::actor::ActorType>();
     collection.register::<principal::actor_group::ActorGroupType>();
     collection.register::<principal::role::RoleType>();
+
+    // We currently have to manually specify the branded types
+    collection.register_branded::<knowledge::entity::id::EntityUuid>();
+    collection.register_branded::<knowledge::entity::id::DraftId>();
+    collection.register_branded::<knowledge::entity::id::EntityEditionId>();
+
+    collection.register_branded::<principal::actor::ActorEntityUuid>();
+    collection.register_branded::<principal::actor::UserId>();
+    collection.register_branded::<principal::actor::MachineId>();
+    collection.register_branded::<principal::actor::AiId>();
+    collection.register_branded::<principal::actor_group::ActorGroupEntityUuid>();
+    collection.register_branded::<principal::actor_group::WebId>();
+    collection.register_branded::<principal::actor_group::TeamId>();
+    collection.register_branded::<principal::role::WebRoleId>();
+    collection.register_branded::<principal::role::TeamRoleId>();
 
     collection.register_transitive_types();
 

@@ -1,8 +1,6 @@
 import type {
-  DraftId,
   EntityId,
   EntityMetadata as RustEntityMetadata,
-  EntityUuid,
   LinkData,
   PropertyArrayMetadata,
   PropertyArrayWithMetadata,
@@ -15,8 +13,12 @@ import type {
   PropertyValueWithMetadata,
   PropertyWithMetadata,
   VersionedUrl,
-  WebId,
 } from "@blockprotocol/type-system-rs";
+import type {
+  DraftId,
+  EntityUuid,
+  WebId,
+} from "@blockprotocol/type-system-rs/types";
 import { validate as validateUuid } from "uuid";
 
 export type TypeIdsAndPropertiesForEntity = {

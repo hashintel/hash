@@ -8,6 +8,15 @@ mod wasm {
     const TS_APPEND_CONTENT: &'static str = r#"
     import type { Brand } from "@local/advanced-types/brand";
     import type { Real } from "@rust/hash-codec/types";
+    import type {
+        ActorEntityUuid,
+        ActorGroupEntityUuid,
+        ActorType,
+        DraftId,
+        EntityEditionId,
+        UserId,
+        WebId
+    } from "../dist/types.js";
     "#;
 
     // Common types
