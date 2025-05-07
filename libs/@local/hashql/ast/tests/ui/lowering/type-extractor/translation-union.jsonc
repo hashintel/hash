@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Tests translation of AST union type to core UnionType
+["type", "Either", ["|", "Number", "String"], "_"]

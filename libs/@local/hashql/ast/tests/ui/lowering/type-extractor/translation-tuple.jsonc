@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Tests translation of AST tuple type to core TupleType with interned fields
+["type", "Pair", { "#tuple": ["Number", "String"] }, "_"]

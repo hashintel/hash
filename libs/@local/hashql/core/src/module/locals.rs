@@ -22,6 +22,10 @@ impl<'heap> LocalTypes<'heap> {
         self.0.insert(symbol, type_id)
     }
 
+    pub fn iter(&self) -> impl Iterator<Item = (Symbol<'heap>, TypeId)> {
+        self.0.iter().map(|(&symbol, &type_id)| (symbol, type_id))
+    }
+
     pub fn finish(&mut self, env: &Environment<'heap>) -> Diagnostics {
         // Once finished we need to go over once to instantiate every call (now that everything is
         // properly set-up) to split the individual types from each other.

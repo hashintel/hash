@@ -1,0 +1,6 @@
+Expr#4294967040@25
+  ExprKind (Underscore)
+
+------------------------
+
+Person: (age: Number, name: String)

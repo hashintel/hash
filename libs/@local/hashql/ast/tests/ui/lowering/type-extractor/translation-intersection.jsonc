@@ -1,0 +1,12 @@
+//@ run: pass
+//@ description: Tests translation of AST intersection type to core IntersectionType
+[
+  "type",
+  "Combined",
+  [
+    "&",
+    { "#struct": { "name": "String" } },
+    { "#struct": { "age": "Number" } }
+  ],
+  "_"
+]

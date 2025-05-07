@@ -1907,7 +1907,7 @@ impl PrettyPrint for TypeKind<'_> {
             Self::Intersection(intersection_type) => intersection_type.pretty(env, limit),
             Self::Apply(apply_type) => apply_type.pretty(env, limit),
             Self::Param(param_type) => param_type.pretty(env, limit),
-            Self::Infer(_) => RcDoc::text("_").annotate(GRAY),
+            Self::Infer(Infer { hole }) => RcDoc::text(format!("_{hole}")).annotate(GRAY),
             Self::Never => RcDoc::text("!").annotate(CYAN),
             Self::Unknown => RcDoc::text("?").annotate(CYAN),
         }

@@ -46,12 +46,12 @@ impl<'env, 'heap> TypeExtractor<'env, 'heap> {
     #[must_use]
     pub fn new(
         environment: &'env Environment<'heap>,
-        modules: &'env ModuleRegistry<'heap>,
+        registry: &'env ModuleRegistry<'heap>,
         module: Symbol<'heap>,
     ) -> Self {
         Self {
             environment,
-            registry: modules,
+            registry,
 
             module,
 
