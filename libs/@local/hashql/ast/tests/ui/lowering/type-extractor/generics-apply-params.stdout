@@ -1,8 +1,8 @@
-Expr#4294967040@45
+Expr#4294967040@42
   ExprKind (Underscore)
 
 ------------------------
 
-Wrapper:0 = <T:0?4>(foo: ?4)
+StringWrapper:0 = (<T:0?4>(foo: ?4) where<?4 = !>,)
 
-StringWrapper:0 = (<T:0?5>(foo: ?4) where<?5 = String>,)
+Wrapper:0 = <T:0?5>(foo: ?5)

@@ -33,6 +33,7 @@ impl<'heap> LocalTypes<'heap> {
 
         for type_id in self.0.values_mut() {
             *type_id = instantiate.instantiate(*type_id);
+            instantiate.clear_provisioned();
         }
 
         instantiate.take_diagnostics()
