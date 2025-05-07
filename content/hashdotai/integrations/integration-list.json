@@ -260,6 +260,16 @@
     "category": ["Docs & Files"]
   },
   {
+    "name": "Granola",
+    "logoUrl": "https://app.hash.ai/icons/integrations/icon_granola.svg",
+    "productUrl": "https://www.granola.ai/",
+    "summaryHtml": "AI-assisted notetaking and transcription for virtual meetings and calls",
+    "integrationUrl": "https://app.hash.ai/settings/integrations/granola",
+    "availability": "Considered",
+    "audience": ["Enterprise", "Startup"],
+    "category": ["Communications"]
+  },
+  {
     "name": "Sentry",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_sentry.svg",
     "productUrl": "https://sentry.io/features",
