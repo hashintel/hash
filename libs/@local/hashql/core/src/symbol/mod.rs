@@ -58,6 +58,11 @@ impl<'heap> Symbol<'heap> {
     }
 
     #[must_use]
+    pub const fn unwrap(&self) -> &'heap str {
+        self.0
+    }
+
+    #[must_use]
     pub const fn as_bytes(&self) -> &[u8] {
         self.0.as_bytes()
     }

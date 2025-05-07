@@ -274,6 +274,8 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
                 suggestions,
             }) if modules.is_empty() => {
                 self.diagnostics.push(unresolved_variable(
+                    self.namespace.registry,
+                    self.current_universe,
                     ident.name,
                     match self.current_universe {
                         Universe::Type => &self.scope.r#type,

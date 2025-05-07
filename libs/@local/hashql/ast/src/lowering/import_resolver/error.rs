@@ -1,9 +1,10 @@
 use alloc::borrow::Cow;
 use core::{
-    fmt,
-    fmt::{Display, Write as _},
+    fmt::{self, Display, Write as _},
+    iter,
 };
 
+use hashbrown::HashSet;
 use hashql_core::{
     collection::FastHashSet,
     module::{
@@ -289,6 +290,10 @@ pub(crate) fn unresolved_variable<'heap>(
 
     // Remove any suggestions that are already in the locals set
     suggestions.retain(|suggestion| !locals.contains(&suggestion.item.name));
+    let import_suggestions: FastHashSet<_> = suggestions
+        .iter()
+        .map(|suggestion| suggestion.item.name)
+        .collect();
 
     // Find similar local variables
     let mut local_suggestions: Vec<_> = locals
@@ -353,6 +358,28 @@ pub(crate) fn unresolved_variable<'heap>(
             for suggestion in &good_suggestions {
                 let _: fmt::Result = writeln!(help, "  - `{}`", suggestion.item.name);
             }
+        }
+    }
+
+    // Check if there are any importable items by the same name (that aren't already imported)
+    let importable: Vec<_> = registry
+        .search_by_name(ident.value, universe)
+        .into_iter()
+        .filter(|item| !locals.contains(&item.name) && !import_suggestions.contains(&item.name))
+        .collect();
+
+    if !importable.is_empty() {
+        for importable in importable {
+            let absolute_path: String = iter::once("")
+                .chain(
+                    importable
+                        .absolute_path(registry)
+                        .map(|symbol| symbol.unwrap()),
+                )
+                .intersperse("::")
+                .collect();
+
+            todo!("help")
         }
     }
 
