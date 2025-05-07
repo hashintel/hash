@@ -138,20 +138,13 @@ pub(crate) fn duplicate_type_alias(
     );
 
     diagnostic.labels.extend([
-        Label::new(
-            original_span,
-            format!("Type '{name}' was originally defined here"),
-        )
-        .with_order(1)
-        .with_color(Color::Ansi(AnsiColor::Blue)),
+        Label::new(original_span, format!("Type '{name}' first defined here"))
+            .with_order(1)
+            .with_color(Color::Ansi(AnsiColor::Blue)),
         Label::new(duplicate_span, "... but was redefined here")
             .with_order(0)
             .with_color(Color::Ansi(AnsiColor::Red)),
     ]);
-
-    diagnostic.help = Some(Help::new(
-        "This is an internal compiler issue, not an error in your code.",
-    ));
 
     diagnostic.note = Some(Note::new(
         "This likely represents a compiler bug in the name mangling pass. The name mangler should \
@@ -179,7 +172,7 @@ pub(crate) fn duplicate_newtype(
     diagnostic.labels.extend([
         Label::new(
             original_span,
-            format!("Newtype '{name}' was originally defined here"),
+            format!("Newtype '{name}' first defined here"),
         )
         .with_order(1)
         .with_color(Color::Ansi(AnsiColor::Blue)),
@@ -188,14 +181,12 @@ pub(crate) fn duplicate_newtype(
             .with_color(Color::Ansi(AnsiColor::Red)),
     ]);
 
-    diagnostic.help = Some(Help::new(
-        "This is an internal compiler issue, not an error in your code.",
-    ));
-
     diagnostic.note = Some(Note::new(
-        "This likely represents a compiler bug in the name mangling pass. The name mangler should \
-         have given these identical names unique internal identifiers to avoid this collision. \
-         Please report this issue to the HashQL team with a minimal reproduction case.",
+        "This likely represents a compiler bug in the name mangling pass. The compiler \
+         encountered duplicate newtype definitions with the same name that should have been given \
+         unique internal identifiers. The name mangler should have prevented this collision \
+         automatically. Please report this issue to the HashQL team with a minimal reproduction \
+         case.",
     ));
 
     diagnostic
@@ -224,13 +215,13 @@ pub(crate) fn generic_parameter_mismatch(
 
     let message = if actual < expected {
         format!(
-            "Type `{name}` requires {expected} type parameter{}, but only {actual} {} provided",
+            "Type `{name}` needs {expected} type parameter{}, but only {actual} {} provided",
             if expected == 1 { "" } else { "s" },
             if actual == 1 { "was" } else { "were" }
         )
     } else {
         format!(
-            "Type `{name}` accepts {expected} type parameter{}, but {actual} {} provided",
+            "Type `{name}` takes {expected} type parameter{}, but {actual} {} provided",
             if expected == 1 { "" } else { "s" },
             if actual == 1 { "was" } else { "were" }
         )
@@ -279,8 +270,10 @@ pub(crate) fn generic_parameter_mismatch(
     diagnostic.help = Some(Help::new(help));
 
     diagnostic.note = Some(Note::new(
-        "Generic type parameters let types work with different data types while maintaining type \
-         safety.",
+        "Generic type parameters allow types to work with different data types while maintaining \
+         type safety. Each generic type has specific requirements for the number and names of \
+         type parameters it accepts. For example, List<T> requires exactly one type parameter, \
+         while Dict<K, V> requires two.",
     ));
 
     diagnostic
@@ -301,7 +294,7 @@ pub(crate) fn unbound_type_variable<'heap>(
     );
 
     diagnostic.labels.push(
-        Label::new(span, format!("Undefined type '{name}'"))
+        Label::new(span, format!("Cannot find type '{name}'"))
             .with_color(Color::Ansi(AnsiColor::Red)),
     );
 
@@ -310,11 +303,7 @@ pub(crate) fn unbound_type_variable<'heap>(
         .filter(|local| jaro_winkler(local.as_str(), name.as_str()) > 0.7)
         .collect();
 
-    if suggestions.is_empty() {
-        diagnostic.help = Some(Help::new(
-            "This is an internal compiler issue, not an error in your code.",
-        ));
-    } else {
+    if !suggestions.is_empty() {
         let suggestions: String = suggestions
             .iter()
             .take(3)
@@ -326,7 +315,9 @@ pub(crate) fn unbound_type_variable<'heap>(
     }
 
     diagnostic.note = Some(Note::new(
-        "This is likely a compiler bug. The name resolution pass should have caught this error. \
+        "This is likely a compiler bug in the name resolution system. The type checker has \
+         encountered a name that wasn't properly resolved earlier in compilation. The name \
+         resolution pass should have caught this error or provided a more specific error message. \
          Please report this issue to the HashQL team with a minimal reproduction case.",
     ));
 
@@ -344,18 +335,15 @@ pub(crate) fn special_form_not_supported(span: SpanId, name: &str) -> TypeExtrac
     );
 
     diagnostic.labels.push(
-        Label::new(span, format!("'{name}' not supported here"))
+        Label::new(span, format!("Special form '{name}' not supported here"))
             .with_color(Color::Ansi(AnsiColor::Red)),
     );
 
-    diagnostic.help = Some(Help::new(
-        "This form should have been handled by an earlier compilation stage.",
-    ));
-
     diagnostic.note = Some(Note::new(
-        "Before this step any special forms should have been replaced with native type syntax in \
-         the special form expander compilation pass. Special forms in this position are not \
-         supported.",
+        "This special form should have been handled by an earlier compilation stage. Before this \
+         step, special forms should have been replaced with native type syntax in the special \
+         form expander compilation pass or error out on invalid placement. This likely indicates \
+         an issue with the compiler, not with your code.",
     ));
 
     diagnostic
@@ -378,12 +366,12 @@ pub(crate) fn intrinsic_parameter_count_mismatch(
 
     let message = if actual < expected {
         format!(
-            "Intrinsic `{name}` needs {expected} parameter{}, but got {actual}",
+            "Intrinsic `{name}` needs {expected} parameter{}, but found {actual}",
             if expected == 1 { "" } else { "s" }
         )
     } else {
         format!(
-            "Intrinsic `{name}` takes {expected} parameter{}, but got {actual}",
+            "Intrinsic `{name}` takes {expected} parameter{}, but found {actual}",
             if expected == 1 { "" } else { "s" }
         )
     };
@@ -415,11 +403,21 @@ pub(crate) fn intrinsic_parameter_count_mismatch(
 
     // Add a note explaining the purpose of the intrinsic type
     let note_message = match name {
-        "::kernel::type::List" => "List requires one type parameter specifying the element type.",
-        "::kernel::type::Dict" => {
-            "Dict requires two type parameters: the key type and the value type."
+        "::kernel::type::List" => {
+            "List is a generic container that requires exactly one type parameter specifying the \
+             element type. For example, List<String> is a list of strings, while List<Number> is a \
+             list of numbers."
         }
-        _ => "Intrinsic types have specific requirements for their type parameters.",
+        "::kernel::type::Dict" => {
+            "Dict is a key-value mapping that requires exactly two type parameters: the key type \
+             and the value type. For example, Dict<String, Number> maps string keys to number \
+             values."
+        }
+        _ => {
+            "Intrinsic types are built-in types provided by the language with specific \
+             requirements for their type parameters. Each intrinsic has a defined number of type \
+             parameters it can accept."
+        }
     };
 
     diagnostic.note = Some(Note::new(note_message));
@@ -441,7 +439,7 @@ pub(crate) fn unknown_intrinsic_type(
     );
 
     diagnostic.labels.push(
-        Label::new(span, format!("Unknown intrinsic `{name}`"))
+        Label::new(span, format!("Unknown intrinsic type `{name}`"))
             .with_color(Color::Ansi(AnsiColor::Red)),
     );
 
@@ -455,7 +453,9 @@ pub(crate) fn unknown_intrinsic_type(
     if similar.is_empty() {
         // Provide helpful guidance even without close matches
         diagnostic.help = Some(Help::new(
-            "Check documentation for available intrinsic types.",
+            "Check the HashQL documentation for a complete list of available intrinsic types. \
+             Make sure you're using the correct namespace and capitalization for the type you're \
+             trying to use.",
         ));
     } else {
         let suggestions: String = similar.into_iter().intersperse("`, `").collect();
@@ -466,7 +466,9 @@ pub(crate) fn unknown_intrinsic_type(
     let available: String = available.iter().copied().intersperse("`, `").collect();
 
     diagnostic.note = Some(Note::new(format!(
-        "Available intrinsic types: `{available}`"
+        "Available intrinsic types: `{available}`\n\nIntrinsic types are fundamental building \
+         blocks provided by the language runtime. They form the basis of the type system and \
+         cannot be redefined by user code."
     )));
 
     diagnostic
@@ -500,12 +502,20 @@ pub(crate) fn invalid_resolved_item(
         .with_color(Color::Ansi(AnsiColor::Red)),
     );
 
-    diagnostic.help = Some(Help::new(format!("Found a {actual:?} instead")));
+    diagnostic.help = Some(Help::new(format!(
+        "Found a {actual:?} instead of a {}. This is an internal compiler issue with type \
+         resolution, not a problem with your code.",
+        match expected {
+            Universe::Type => "type",
+            Universe::Value => "value",
+        }
+    )));
 
     diagnostic.note = Some(Note::new(
-        "This is likely a compiler bug. An earlier compilation pass (the import resolver) \
-         should've caught this error. Please report this issue to the HashQL team with a minimal \
-         reproduction case.",
+        "This is likely a compiler bug in the import resolution system. The compiler has confused \
+         types and values during name resolution. The import resolver should have caught this \
+         error before reaching this stage. Please report this issue to the HashQL team with a \
+         minimal reproduction case that demonstrates how to trigger this error.",
     ));
 
     diagnostic
@@ -532,23 +542,18 @@ pub(crate) fn resolution_error(
         .collect::<String>();
 
     diagnostic.labels.push(
-        Label::new(span, format!("Failed to resolve '::{path_display}'"))
+        Label::new(span, format!("Could not resolve '::{path_display}'"))
             .with_color(Color::Ansi(AnsiColor::Red)),
     );
 
-    // Add a more informative help message
-    let help_message = if path.segments.len() > 1 {
-        "This is an internal compiler issue with path resolution."
-    } else {
-        "This is an internal compiler issue with locals resolution."
-    };
-
-    diagnostic.help = Some(Help::new(help_message));
-
     diagnostic.note = Some(Note::new(format!(
-        "This is likely a compiler bug. Path resolution should have succeeded or been caught \
-         earlier. Please report this issue to the HashQL team with a minimal reproduction \
-         case.\n\nTechnical error details:\n{error:#?}"
+        "This is likely a compiler bug in the name resolution system. During type checking, the \
+         compiler failed to resolve a path that should have been properly processed by earlier \
+         compilation stages. Either the path resolution should have succeeded or a more specific \
+         error should have been reported earlier in compilation. \n\nPlease report this issue to \
+         the HashQL team with a minimal reproduction case that triggers this error. Include the \
+         path you were trying to reference and any relevant type definitions.\n\nTechnical error \
+         details:\n{error:#?}"
     )));
 
     diagnostic
@@ -568,21 +573,27 @@ pub(crate) fn infer_with_arguments(
     );
 
     diagnostic.labels.extend([
-        Label::new(arguments_span, "Type arguments can't be applied to '_'")
+        Label::new(arguments_span, "Type arguments cannot be used with '_'")
             .with_order(0)
             .with_color(Color::Ansi(AnsiColor::Red)),
-        Label::new(infer_span, "... infer placeholder defined here")
+        Label::new(infer_span, "... which is defined here")
             .with_order(-1)
             .with_color(Color::Ansi(AnsiColor::Blue)),
     ]);
 
     diagnostic.help = Some(Help::new(
-        "Either:\n1. Remove these type arguments, or\n2. Replace '_' with a generic type",
+        "To fix this error, you have two options:\n1. Remove these type arguments completely, \
+         or\n2. Replace the '_' placeholder with a proper generic type parameter that can accept \
+         arguments",
     ));
 
     diagnostic.note = Some(Note::new(
-        "The '_' placeholder tells the compiler to infer the type automatically. Unlike generic \
-         types, it can't accept type arguments because it's not a type constructor.",
+        "The '_' placeholder (underscore) is a special symbol that tells the compiler to infer \
+         the type automatically based on context. Unlike generic types such as 'List' or 'Dict', \
+         the underscore isn't a type constructor and therefore cannot be parameterized with \
+         additional type arguments.\n\nIf you need to use generic type parameters, consider using \
+         a named type variable or a specific generic type constructor instead. For example, \
+         instead of '_<String>', use either 'T' or 'List<String>'.",
     ));
 
     diagnostic
@@ -622,11 +633,15 @@ pub(crate) fn duplicate_struct_fields(
     }
 
     diagnostic.help = Some(Help::new(format!(
-        "Either rename or remove the duplicate `{field_name}` field(s)"
+        "To fix this error, you can either:\n1. Rename the duplicate `{field_name}` field to a \
+         different name, or\n2. Remove the redundant field definition entirely if it's not needed"
     )));
 
     diagnostic.note = Some(Note::new(
-        "Struct fields must have unique names to prevent ambiguity when accessing them.",
+        "Struct types in HashQL require that each field has a unique name. Having multiple fields \
+         with the same name would create ambiguity when accessing fields through dot notation or \
+         destructuring. The compiler enforces this constraint to ensure clear and predictable \
+         access patterns for struct data.",
     ));
 
     diagnostic
