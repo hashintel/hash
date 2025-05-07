@@ -162,9 +162,10 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
                     self.add_import_declaration("@local/advanced-types/brand", ["Brand"]);
                 }
 
-                // TODO: This is a workaround for the fact that we don't have a way to
-                //       represent the `WebId` type in the AST. We should find a way to
-                //       represent it properly in the AST and remove this workaround.
+                // This extends the `UserId` type by intersecting it with the `WebId` type. We
+                // currently, don't have a way to represent the `UserId` type in the
+                // AST, so we have to do this manually.
+                // TODO: Allow this to be done from the Rust code directly
                 //   see https://linear.app/hash/issue/H-4514/allow-specifying-type-branding-in-rust-itself
                 if definition.module == "type_system::principal::actor::user"
                     && definition.name == "UserId"
@@ -182,11 +183,12 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
                     );
                 }
 
-                // TODO: This is a workaround for the fact that we don't have a way to
-                //       represent the `WebId` type in the AST. We should find a way to
-                //       represent it properly in the AST and remove this workaround.
+                // This extends the `WebId` type by unifying it with the `ActorEntityUuid` type. We
+                // currently, don't have a way to represent the `WebId` type in the
+                // AST, so we have to do this manually.
+                // TODO: Allow this to be done from the Rust code directly
                 //   see https://linear.app/hash/issue/H-4514/allow-specifying-type-branding-in-rust-itself
-                if definition.module == "type_system::principal::actor_group::web"
+                if definition.module == "type_system::principal::actor::user"
                     && definition.name == "WebId"
                 {
                     r#type = self.ast.ts_type_union_type(

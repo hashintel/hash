@@ -54,6 +54,19 @@ impl TypeCollection {
         );
     }
 
+    /// Registers a "branded" type `T` with the collection.
+    ///
+    /// Type branding allows creating a new, distinct type identity for an
+    /// existing underlying type. This is useful for conveying specific semantic
+    /// meaning or for instructing the code generator to handle this type
+    /// differently, even if its structure is identical to another.
+    ///
+    /// For example, you might have a generic `String` type, but you want to
+    /// treat `EmailString` (which is also a `String`) as a special type
+    /// in your generated code (e.g., for client-side validation or specific UI
+    /// rendering). `register_branded` facilitates this by marking the type
+    /// such that `TypeDefinition::from_specta_branded` is used, allowing
+    /// for custom logic based on this "brand".
     // TODO: We want to allow specifying branding in the Rust code itself, rather than relying on
     //       the code generator to specify it.
     //   see https://linear.app/hash/issue/H-4514/allow-specifying-type-branding-in-rust-itself
