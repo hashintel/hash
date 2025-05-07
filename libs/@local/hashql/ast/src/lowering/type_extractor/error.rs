@@ -86,6 +86,7 @@ const GENERIC_CONSTRAINT_NOT_ALLOWED: TerminalDiagnosticCategory = TerminalDiagn
     name: "Constraint not allowed in generic arguments",
 };
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum TypeExtractorDiagnosticCategory {
     DuplicateTypeAlias,
     DuplicateNewtype,
