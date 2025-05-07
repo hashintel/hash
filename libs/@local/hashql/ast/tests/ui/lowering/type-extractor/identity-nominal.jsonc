@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Tests that newtypes get nominal identity with qualified path in the type system
+["newtype", "Distinct", "Number", "_"]

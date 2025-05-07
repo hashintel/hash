@@ -4,7 +4,8 @@ use anstream::adapter::strip_str;
 use hashql_ast::{
     format::SyntaxDump as _,
     lowering::{
-        import_resolver::ImportResolver, pre_expansion_name_resolver::PreExpansionNameResolver,
+        import_resolver::ImportResolver, name_mangler::NameMangler,
+        pre_expansion_name_resolver::PreExpansionNameResolver,
         special_form_expander::SpecialFormExpander, type_extractor::TypeExtractor,
     },
     node::expr::Expr,
@@ -52,6 +53,9 @@ impl Suite for AstLoweringTypeExtractorSuite {
 
         process_diagnostics(diagnostics, resolver.take_diagnostics())?;
 
+        let mut mangler = NameMangler::new(heap);
+        mangler.visit_expr(&mut expr);
+
         let mut extractor =
             TypeExtractor::new(&environment, &registry, heap.intern_symbol("::main"));
         extractor.visit_expr(&mut expr);
@@ -65,7 +69,7 @@ impl Suite for AstLoweringTypeExtractorSuite {
         for (name, id) in locals.iter() {
             let _: Result<(), _> = write!(
                 output,
-                "\n\n{name}: {}",
+                "\n\n{name} = {}",
                 strip_str(&environment.r#type(id).pretty_print(&environment, 80))
             );
         }

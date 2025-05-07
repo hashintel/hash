@@ -3,4 +3,6 @@ Expr#4294967040@25
 
 ------------------------
 
-Person:0 = (age: Number, name: String)
+First:0 = Number
+
+Second:0 = Number

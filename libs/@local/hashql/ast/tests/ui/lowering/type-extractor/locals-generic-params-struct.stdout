@@ -1,6 +1,6 @@
-Expr#4294967040@22
+Expr#4294967040@23
   ExprKind (Underscore)
 
 ------------------------
 
-Either:0 = (String | Number)
+Box:0 = <T:0?4>(foo: ?4)

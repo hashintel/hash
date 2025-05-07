@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Tests that generic type parameters are correctly associated with their types
+["type", "Box<T>", { "#struct": { "foo": "T" } }, "_"]

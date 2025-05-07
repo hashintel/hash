@@ -1,6 +1,6 @@
-Expr#4294967040@22
+Expr#4294967040@13
   ExprKind (Underscore)
 
 ------------------------
 
-Either:0 = (String | Number)
+Alias:0 = Number

@@ -1,0 +1,3 @@
+//@ run: skip reason=https://linear.app/hash/issue/H-4524/hashql-alias-type-variant
+//@ description: Tests that generic type parameters are correctly associated with their types
+["type", "Box<T>", "T", "_"]
