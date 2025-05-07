@@ -558,14 +558,23 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
     }
 
     fn visit_map(&self, map: &Map) -> ast::TSType<'a> {
-        self.ast.ts_type_type_reference(
+        self.ast.ts_type_type_literal(
             SPAN,
-            self.ast.ts_type_name_identifier_reference(SPAN, "Record"),
-            Some(
-                self.ast.ts_type_parameter_instantiation(
+            self.ast.vec1(
+                self.ast.ts_signature_index_signature(
                     SPAN,
+                    self.ast.vec1(
+                        self.ast.ts_index_signature_name(
+                            SPAN,
+                            "key",
+                            self.ast
+                                .alloc_ts_type_annotation(SPAN, self.visit_type(&map.key)),
+                        ),
+                    ),
                     self.ast
-                        .vec_from_array([self.visit_type(&map.key), self.visit_type(&map.value)]),
+                        .alloc_ts_type_annotation(SPAN, self.visit_type(&map.value)),
+                    false, // read-only
+                    false, // static
                 ),
             ),
         )

@@ -3,9 +3,19 @@ source: libs/@local/codegen/tests/standalone-types/main.rs
 expression: generated
 ---
 export interface MapStringKey {
-	string_to_string: Record<string, string>;
-	string_to_int: Record<string, number>;
-	string_to_bool: Record<string, boolean>;
-	btree_string_to_string: Record<string, string>;
-	btree_string_to_int: Record<string, number>;
+	string_to_string: {
+		[key: string]: string
+	};
+	string_to_int: {
+		[key: string]: number
+	};
+	string_to_bool: {
+		[key: string]: boolean
+	};
+	btree_string_to_string: {
+		[key: string]: string
+	};
+	btree_string_to_int: {
+		[key: string]: number
+	};
 }

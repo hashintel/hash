@@ -3,8 +3,16 @@ source: libs/@local/codegen/tests/standalone-types/main.rs
 expression: generated
 ---
 export interface MapOptional {
-	maybe_map: (Record<string, number> | undefined);
-	map_of_optionals: Record<string, (number | undefined)>;
-	maybe_btree: (Record<string, string> | undefined);
-	btree_of_optionals: Record<string, (number | undefined)>;
+	maybe_map: ({
+		[key: string]: number
+	} | undefined);
+	map_of_optionals: {
+		[key: string]: (number | undefined)
+	};
+	maybe_btree: ({
+		[key: string]: string
+	} | undefined);
+	btree_of_optionals: {
+		[key: string]: (number | undefined)
+	};
 }

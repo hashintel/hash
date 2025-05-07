@@ -14,6 +14,7 @@ mod wasm {
         ActorType,
         DraftId,
         EntityEditionId,
+        PropertyValue,
         UserId,
         WebId
     } from "../dist/types.js";
