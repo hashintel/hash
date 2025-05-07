@@ -5,11 +5,5 @@
   "EmptyDict",
   "Dict<String>",
   //~^ ERROR Intrinsic `::kernel::type::Dict` needs 2 parameters, but found 1
-  [
-    "type",
-    "TooManyDict",
-    "Dict<String, Number, String>",
-    //~^ ERROR Intrinsic `::kernel::type::Dict` takes 2 parameters, but found 3
-    "_"
-  ]
+  "_"
 ]

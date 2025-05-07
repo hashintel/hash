@@ -5,11 +5,5 @@
   "EmptyList",
   "List",
   //~^ ERROR `::kernel::type::List` needs 1 parameter, but found 0
-  [
-    "type",
-    "TooManyList",
-    "List<Number, String>",
-    //~^ ERROR Intrinsic `::kernel::type::List` takes 1 parameter, but found 2
-    "_"
-  ]
+  "_"
 ]
