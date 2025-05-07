@@ -31,7 +31,7 @@
   },
   {
     "name": "Veeva Vault",
-    "logoUrl": "https://app.hash.ai/icons/integrations/icon_veeva-vault.svg",
+    "logoUrl": "https://app.hash.ai/icons/integrations/icon_veeva.svg",
     "productUrl": "https://www.veeva.com/products/vault-platform/",
     "summaryHtml": "Process data, quality validation, audit trails, and more",
     "integrationUrl": "https://app.hash.ai/settings/integrations/veeva-vault",
