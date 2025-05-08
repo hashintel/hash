@@ -2,14 +2,11 @@
   "extends": ["//"],
   "tasks": {
     "build:wasm": {
-      "dependsOn": ["build:types"],
       "outputs": ["pkg/**"]
     },
     "build:types": {
-      "outputs": ["dist/**"]
-    },
-    "lint:tsc": {
-      "dependsOn": ["codegen", "build:wasm"]
+      "dependsOn": ["build:wasm", "^build:types"],
+      "outputs": ["types/**"]
     }
   }
 }

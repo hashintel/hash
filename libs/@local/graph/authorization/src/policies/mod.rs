@@ -40,6 +40,7 @@ pub use self::{
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[cfg_attr(
     feature = "postgres",
     derive(postgres_types::FromSql, postgres_types::ToSql),
@@ -69,6 +70,7 @@ pub enum Effect {
     derive(postgres_types::FromSql, postgres_types::ToSql),
     postgres(transparent)
 )]
+#[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[repr(transparent)]
 pub struct PolicyId(Uuid);
@@ -91,6 +93,7 @@ impl PolicyId {
 }
 
 #[derive(PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Policy {
     pub id: PolicyId,
@@ -98,7 +101,7 @@ pub struct Policy {
     pub principal: Option<PrincipalConstraint>,
     pub actions: Vec<ActionName>,
     pub resource: Option<ResourceConstraint>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(skip)]
     pub constraints: Option<()>,
 }
 

@@ -1,0 +1,6 @@
+---
+source: libs/@local/codec/tests/codegen-shadow.rs
+description: Generated TS types
+extension: d.ts
+snapshot_kind: binary
+---

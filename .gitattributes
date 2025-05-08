@@ -1,1 +1,3 @@
 **/docs/dependency-diagram.mmd linguist-generated=true
+**/*.snap linguist-generated=true
+**/*.snap.* linguist-generated=true

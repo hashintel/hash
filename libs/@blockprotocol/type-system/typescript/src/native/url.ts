@@ -1,12 +1,14 @@
 import type {
-  BaseUrl,
   OntologyTypeRecordId,
-  OntologyTypeVersion,
   ParseBaseUrlError,
   ParseVersionedUrlError,
   Result,
   VersionedUrl,
 } from "@blockprotocol/type-system-rs";
+import type {
+  BaseUrl,
+  OntologyTypeVersion,
+} from "@blockprotocol/type-system-rs/types";
 
 /**
  * Checks if a given URL string is a valid base URL.

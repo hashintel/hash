@@ -7,7 +7,7 @@
 #![expect(clippy::todo)]
 
 use alloc::{borrow::Cow, collections::BTreeSet};
-use std::collections::HashMap;
+use std::collections::{HashMap, hash_map::Entry};
 
 use specta::{SpectaID, datatype::NamedDataType};
 
@@ -19,11 +19,23 @@ pub mod definitions;
 
 pub mod typescript;
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct TypeCollection {
     ordered_keys: BTreeSet<OrderedTypeId>,
     types: HashMap<TypeId, TypeDefinition>,
     collection: specta::TypeCollection,
+}
+
+impl Default for TypeCollection {
+    fn default() -> Self {
+        let mut collection = Self {
+            ordered_keys: BTreeSet::new(),
+            types: HashMap::new(),
+            collection: specta::export(),
+        };
+        collection.register_transitive_types();
+        collection
+    }
 }
 
 #[derive(Debug, PartialEq, Eq, PartialOrd, Ord)]
@@ -44,16 +56,6 @@ impl From<&NamedDataType> for OrderedTypeId {
 }
 
 impl TypeCollection {
-    pub fn register<T: specta::NamedType>(&mut self) {
-        self.collection.register_mut::<T>();
-        let data_type = self.collection.get(T::ID).unwrap_or_else(|| unreachable!());
-        self.ordered_keys.insert(OrderedTypeId::from(data_type));
-        self.types.insert(
-            TypeId::from_specta(T::ID),
-            TypeDefinition::from_specta(data_type, &self.collection),
-        );
-    }
-
     /// Registers a "branded" type `T` with the collection.
     ///
     /// Type branding allows creating a new, distinct type identity for an
@@ -70,14 +72,18 @@ impl TypeCollection {
     // TODO: We want to allow specifying branding in the Rust code itself, rather than relying on
     //       the code generator to specify it.
     //   see https://linear.app/hash/issue/H-4514/allow-specifying-type-branding-in-rust-itself
-    pub fn register_branded<T: specta::NamedType>(&mut self) {
-        self.collection.register_mut::<T>();
-        let data_type = self.collection.get(T::ID).unwrap_or_else(|| unreachable!());
-        self.ordered_keys.insert(OrderedTypeId::from(data_type));
-        self.types.insert(
-            TypeId::from_specta(T::ID),
-            TypeDefinition::from_specta_branded(data_type, &self.collection),
-        );
+    pub fn make_branded<T: specta::NamedType>(&mut self) {
+        match self.types.entry(TypeId::from_specta(T::ID)) {
+            Entry::Occupied(mut entry) => entry.get_mut().branded = true,
+            Entry::Vacant(entry) => {
+                self.collection.register_mut::<T>();
+                let data_type = self.collection.get(T::ID).unwrap_or_else(|| unreachable!());
+                self.ordered_keys.insert(OrderedTypeId::from(data_type));
+                entry
+                    .insert(TypeDefinition::from_specta(data_type, &self.collection))
+                    .branded = true;
+            }
+        }
     }
 
     /// Registers transitive types that are not directly registered with the collection.
@@ -108,7 +114,7 @@ impl TypeCollection {
     ///         .any(|(_, _, type_def)| type_def.name == "Inner")
     /// );
     /// ```
-    pub fn register_transitive_types(&mut self) -> usize {
+    fn register_transitive_types(&mut self) -> usize {
         let mut num_added = 0;
         for data_type in self.collection.into_unsorted_iter() {
             self.types

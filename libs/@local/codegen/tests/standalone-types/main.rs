@@ -24,83 +24,18 @@ pub enum CodegenTarget {
 }
 
 fn register_types(collection: &mut TypeCollection) {
-    // Register enums
-    collection.register::<enums::EnumExternal>();
-    collection.register::<enums::EnumInternal>();
-    collection.register::<enums::EnumAdjacent>();
-    collection.register::<enums::EnumUntagged>();
-
-    // Register structs
-    collection.register::<structs::StructUnit>();
-    collection.register::<structs::StructUnnamedSingle>();
-    collection.register::<structs::StructUnnamedDouble>();
-    collection.register::<structs::StructUnnamedTriple>();
-    collection.register::<structs::StructSimple>();
-    collection.register::<structs::StructEmpty>();
-    collection.register::<structs::StructOptional>();
-    collection.register::<structs::StructNested>();
-    collection.register::<structs::StructSimpleFlattened>();
-    collection.register::<structs::StructMultipleFlattened>();
-    collection.register::<structs::StructFlattenedEnum>();
-    collection.register::<structs::StructNestedTypeFlattened>();
-    collection.register::<structs::StructNestedInterfaceFlattened>();
-    collection.register::<structs::StructSingleSkipped>();
-    collection.register::<structs::StructDoubleSkipped>();
-    collection.register::<structs::StructMultipleSkipped>();
-    collection.register::<structs::StructUnnamedSingleSkipped>();
-    collection.register::<structs::StructUnnamedDoubleSkipped>();
-    collection.register::<structs::StructUnnamedMultipleSkipped>();
-
-    // Register lists
-    collection.register::<lists::ListPrimitives>();
-    collection.register::<lists::ListOptionals>();
-    collection.register::<lists::ListNested>();
-    collection.register::<lists::ListStructs>();
-    collection.register::<lists::ListCollections>();
-
-    // Register maps
-    collection.register::<maps::MapStringKey>();
-    collection.register::<maps::MapNumericKey>();
-    collection.register::<maps::MapStructValue>();
-    collection.register::<maps::MapEnumKey>();
-    collection.register::<maps::MapNested>();
-    collection.register::<maps::MapOptional>();
-
-    // Register tuples
-    collection.register::<tuples::TupleEmpty>();
-    collection.register::<tuples::TupleSingle>();
-    collection.register::<tuples::TupleDouble>();
-    collection.register::<tuples::TupleMultiple>();
-    collection.register::<tuples::TupleNested>();
-    collection.register::<tuples::TupleOptional>();
-
-    // Register a recursive type
-    collection.register::<type_system::knowledge::PropertyValue>();
-
-    // Register principals
-    // Note, that transitive types can be completed by the codegen
-    collection.register::<principal::Principal>();
-    collection.register::<principal::PrincipalId>();
-    collection.register::<principal::actor::ActorType>();
-    collection.register::<principal::actor_group::ActorGroupType>();
-    collection.register::<principal::role::RoleType>();
-
     // We currently have to manually specify the branded types
-    collection.register_branded::<principal::actor::UserId>();
-    collection.register_branded::<principal::actor::MachineId>();
-    collection.register_branded::<principal::actor::AiId>();
-    collection.register_branded::<principal::actor_group::WebId>();
-    collection.register_branded::<principal::actor_group::TeamId>();
-    collection.register_branded::<principal::role::WebRoleId>();
-    collection.register_branded::<principal::role::TeamRoleId>();
+    collection.make_branded::<principal::actor::UserId>();
+    collection.make_branded::<principal::actor::MachineId>();
+    collection.make_branded::<principal::actor::AiId>();
+    collection.make_branded::<principal::actor_group::WebId>();
+    collection.make_branded::<principal::actor_group::TeamId>();
+    collection.make_branded::<principal::role::WebRoleId>();
+    collection.make_branded::<principal::role::TeamRoleId>();
 }
 
 fn find_available_types() -> Vec<(TypeId, Cow<'static, str>)> {
-    let mut all_types = TypeCollection::default();
-    register_types(&mut all_types);
-    all_types.register_transitive_types();
-
-    all_types
+    TypeCollection::default()
         .iter()
         .map(|(type_id, _, def)| (type_id, def.name.clone()))
         .collect::<Vec<_>>()
@@ -108,7 +43,6 @@ fn find_available_types() -> Vec<(TypeId, Cow<'static, str>)> {
 fn test_single_type(test_name: &str, type_id: TypeId) {
     let mut collection = TypeCollection::default();
     register_types(&mut collection);
-    collection.register_transitive_types();
 
     let settings = TypeScriptGeneratorSettings::default();
     let mut generator = TypeScriptGenerator::new(&settings, &collection);
@@ -121,10 +55,6 @@ fn test_single_type(test_name: &str, type_id: TypeId) {
 
 fn main() -> ExitCode {
     let targets = [CodegenTarget::Typescript];
-
-    let mut all_types = TypeCollection::default();
-    register_types(&mut all_types);
-    all_types.register_transitive_types();
 
     let mut tests = Vec::new();
     for (type_id, name) in find_available_types() {

@@ -6,7 +6,7 @@
   "type": "module",
   "exports": {
     ".": "./pkg/type-system.js",
-    "./types": "./dist/types.js",
+    "./types": "./types/index.snap.js",
     "./wasm": "./pkg/type-system_bg.wasm"
   },
   "typesVersions": {
@@ -15,7 +15,7 @@
         "./pkg/type-system.d.ts"
       ],
       "types": [
-        "./dist/types.d.ts"
+        "./types/index.snap.d.ts"
       ],
       "wasm": [
         "./pkg/type-system_bg.wasm.d.ts"
@@ -23,7 +23,7 @@
     }
   },
   "scripts": {
-    "build:types": "cargo run --bin export-types --features codegen",
+    "build:types": "mise exec --env dev cargo:cargo-insta -- cargo-insta test --features codegen --test codegen-shadow --accept",
     "build:wasm": "mise exec --env prod cargo:wasm-pack -- wasm-pack build --target web --out-name type-system --scope blockprotocol --release . && rm pkg/package.json",
     "doc:dependency-diagram": "cargo run -p hash-repo-chores -- dependency-diagram --output docs/dependency-diagram.mmd --root type-system --root-deps-and-dependents --link-mode non-roots --include-dev-deps --include-build-deps --logging-console-level info",
     "fix:clippy": "just clippy --fix",

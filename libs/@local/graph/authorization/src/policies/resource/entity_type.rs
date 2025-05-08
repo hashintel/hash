@@ -19,8 +19,9 @@ use crate::policies::cedar::{
     Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
 )]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[repr(transparent)]
-pub struct EntityTypeId(VersionedUrl);
+pub struct EntityTypeId(#[cfg_attr(feature = "codegen", specta(type = String))] VersionedUrl);
 
 impl EntityTypeId {
     #[must_use]
@@ -75,6 +76,7 @@ impl EntityTypeResource<'_> {
 }
 
 #[derive(Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[serde(
     tag = "type",
     rename_all = "camelCase",
@@ -190,6 +192,7 @@ impl ToCedarEntityId for EntityTypeId {
 }
 
 #[derive(Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[serde(untagged, rename_all_fields = "camelCase", deny_unknown_fields)]
 pub enum EntityTypeResourceConstraint {
     Any {

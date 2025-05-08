@@ -45,11 +45,12 @@ thiserror      = { workspace = true }
 
 [dev-dependencies]
 hash-graph-test-data = { workspace = true }
+insta                = { workspace = true }
 pretty_assertions    = { workspace = true }
 tokio                = { workspace = true, features = ["macros", "rt"] }
 
-[[bin]]
-name              = "export-types"
+[[test]]
+name              = "codegen-shadow"
 required-features = ["codegen"]
 
 [features]
