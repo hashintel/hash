@@ -130,7 +130,7 @@ impl Trial {
             &context,
         );
 
-        self.ignore = !matches;
+        self.ignore = self.ignore || !matches;
     }
 
     fn stdout_file(&self) -> PathBuf {

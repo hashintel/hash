@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Tests that type declarations are correctly stored as local variables
+["type", "First", "Number", ["type", "Second", "First", "_"]]

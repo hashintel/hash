@@ -3,6 +3,7 @@ mod ast_lowering_node_mangler;
 mod ast_lowering_node_renumberer;
 mod ast_lowering_pre_expansion_name_resolver;
 mod ast_lowering_special_form_expander;
+mod ast_lowering_type_extractor;
 pub(crate) mod common;
 mod parse_syntax_dump;
 
@@ -16,6 +17,7 @@ use self::{
     ast_lowering_node_renumberer::AstLoweringNodeRenumbererSuite,
     ast_lowering_pre_expansion_name_resolver::AstLoweringNameResolverSuite,
     ast_lowering_special_form_expander::AstLoweringSpecialFormExpanderSuite,
+    ast_lowering_type_extractor::AstLoweringTypeExtractorSuite,
     parse_syntax_dump::ParseSyntaxDumpSuite,
 };
 
@@ -41,6 +43,7 @@ const SUITES: &[&dyn Suite] = &[
     &AstLoweringNodeRenumbererSuite,
     &AstLoweringNameManglerSuite,
     &AstLoweringImportResolverSuite,
+    &AstLoweringTypeExtractorSuite,
 ];
 
 pub(crate) fn find_suite(name: &str) -> Option<&'static dyn Suite> {

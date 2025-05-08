@@ -6,6 +6,7 @@
 pub mod error;
 pub mod import;
 pub mod item;
+pub mod locals;
 pub mod namespace;
 mod resolver;
 mod std_lib;
@@ -15,8 +16,9 @@ use std::sync::RwLock;
 use strsim::jaro_winkler;
 
 use self::{
-    error::ResolutionSuggestion,
-    item::{Item, ItemKind},
+    error::{ResolutionError, ResolutionSuggestion},
+    item::{Item, ItemKind, Universe},
+    resolver::{Resolver, ResolverMode, ResolverOptions},
     std_lib::StandardLibrary,
 };
 use crate::{
@@ -145,6 +147,7 @@ impl<'heap> ModuleRegistry<'heap> {
         Some(module)
     }
 
+    /// Finds suggestions for the given name in the root namespace.
     fn suggestions(&self, name: Symbol<'heap>) -> Vec<ResolutionSuggestion<ModuleId>> {
         let root = self.root.read().expect("lock should not be poisoned");
 
@@ -159,6 +162,39 @@ impl<'heap> ModuleRegistry<'heap> {
         drop(root);
 
         results
+    }
+
+    /// Resolves a path to an item in the registry.
+    ///
+    /// # Errors
+    ///
+    /// Returns a `ResolutionError` if:
+    /// - The path cannot be resolved to any item
+    /// - The path resolves to multiple items (ambiguous resolution)
+    /// - Any part of the path fails to resolve correctly
+    pub fn resolve(
+        &self,
+        path: impl IntoIterator<Item = Symbol<'heap>>,
+        universe: Universe,
+    ) -> Result<Item<'heap>, ResolutionError<'heap>> {
+        let resolver = Resolver {
+            registry: self,
+            options: ResolverOptions {
+                mode: ResolverMode::Single(universe),
+                suggestions: true,
+            },
+        };
+
+        let mut iter = resolver.resolve_absolute(path)?;
+        let item = iter.next().unwrap_or_else(|| {
+            unreachable!("ResolveIter guarantees at least one item is returned")
+        });
+
+        if iter.next().is_some() {
+            Err(ResolutionError::Ambiguous(item))
+        } else {
+            Ok(item)
+        }
     }
 }
 

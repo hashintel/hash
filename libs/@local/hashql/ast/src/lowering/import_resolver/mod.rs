@@ -230,6 +230,7 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
 
         if modules.is_empty() && self.scope.contains(self.current_universe, ident.name.value) {
             // We do not need to look this up, because it's already in scope as an identifier
+            walk_path(self, path);
             return;
         }
 
@@ -276,6 +277,7 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
                     error,
                 ));
 
+                walk_path(self, path);
                 return;
             }
         };

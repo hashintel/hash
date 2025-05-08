@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Tests that generic constraints are correctly parsed and stored
+["type", "Sortable<T: Number>", { "#struct": { "items": "List<T>" } }, "_"]

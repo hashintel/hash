@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Tests that arguments of identifiers are resolved as well
+["type", "Wrapper<T>", "T", ["type", "StringWrapper", "Wrapper<String>", "_"]]

@@ -1,0 +1,15 @@
+[31m[type-extractor::infer-with-arguments] Error:[0m Inference placeholder with type arguments
+   ╭─[ <unknown>:6:4 ]
+   │
+ 6 │   "_",
+   │    ┬  
+   │    ╰── Type arguments cannot be used with '_' placeholder
+   │ 
+   │ Help: To fix this error, you have two options:
+   │       1. Remove these type arguments completely, or
+   │       2. Replace the '_' placeholder with a proper generic type parameter that can accept arguments
+   │ 
+   │ Note: The '_' placeholder (underscore) is a special symbol that tells the compiler to infer the type automatically based on context. Unlike generic types such as 'List' or 'Dict', the underscore isn't a type constructor and therefore cannot be parameterized with additional type arguments.
+   │       
+   │       If you need to use generic type parameters, consider using a named type variable or a specific generic type constructor instead. For example, instead of '_<String>', use either 'T' or 'List<String>'.
+───╯

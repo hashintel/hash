@@ -80,11 +80,17 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
         })
     }
 
-    fn alloc_type_item(&self, parent: ModuleId, name: &'static str, kind: TypeId) -> Item<'heap> {
+    fn alloc_type_item(
+        &self,
+        parent: ModuleId,
+        name: &'static str,
+        kind: TypeId,
+        generics: &[GenericArgument<'heap>],
+    ) -> Item<'heap> {
         Item {
             module: parent,
             name: self.heap.intern_symbol(name),
-            kind: ItemKind::Type(kind),
+            kind: ItemKind::Type(kind, self.heap.slice(generics)),
         }
     }
 
@@ -121,37 +127,42 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
                 parent,
                 "Boolean",
                 self.alloc_type(TypeKind::Primitive(PrimitiveType::Boolean)),
+                &[],
             ),
             self.alloc_type_item(
                 parent,
                 "Null",
                 self.alloc_type(TypeKind::Primitive(PrimitiveType::Null)),
+                &[],
             ),
             self.alloc_type_item(
                 parent,
                 "Number",
                 self.alloc_type(TypeKind::Primitive(PrimitiveType::Number)),
+                &[],
             ),
             self.alloc_type_item(
                 parent,
                 "Integer",
                 self.alloc_type(TypeKind::Primitive(PrimitiveType::Integer)),
+                &[],
             ),
             // Natural does not yet exist, due to lack of support for refinements
             self.alloc_type_item(
                 parent,
                 "String",
                 self.alloc_type(TypeKind::Primitive(PrimitiveType::String)),
+                &[],
             ),
         ]);
     }
 
     fn kernel_type_module_boundary(&self, parent: ModuleId, items: &mut Vec<Item<'heap>>) {
         items.extend_from_slice(&[
-            self.alloc_type_item(parent, "Unknown", self.alloc_type(TypeKind::Unknown)),
-            self.alloc_type_item(parent, "Never", self.alloc_type(TypeKind::Never)),
-            self.alloc_type_item(parent, "?", self.alloc_type(TypeKind::Unknown)),
-            self.alloc_type_item(parent, "!", self.alloc_type(TypeKind::Never)),
+            self.alloc_type_item(parent, "Unknown", self.alloc_type(TypeKind::Unknown), &[]),
+            self.alloc_type_item(parent, "Never", self.alloc_type(TypeKind::Never), &[]),
+            self.alloc_type_item(parent, "?", self.alloc_type(TypeKind::Unknown), &[]),
+            self.alloc_type_item(parent, "!", self.alloc_type(TypeKind::Never), &[]),
         ]);
     }
 
@@ -187,7 +198,7 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
         // intrinsics.
         // see: https://linear.app/hash/issue/H-4451/hashql-prelude-opaque-type-constructors-should-be-alone-standing
         items.extend_from_slice(&[
-            self.alloc_type_item(parent, "Url", url),
+            self.alloc_type_item(parent, "Url", url, &[]),
             self.alloc_intrinsic_value(parent, "::kernel::type::Url", None),
             self.alloc_type_item(
                 parent,
@@ -197,6 +208,7 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
                     repr: url,
                     arguments: GenericArguments::empty(),
                 })),
+                &[],
             ),
             self.alloc_intrinsic_value(parent, "::kernel::type::BaseUrl", None),
         ]);
@@ -206,6 +218,11 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
         // Option is simply a union between two opaque types, when the constructor only takes a
         // `Null` the constructor automatically allows for no-value.
         let some_generic = self.env.counter.generic_argument.next();
+        let some_generic_argument = GenericArgument {
+            id: some_generic,
+            name: self.heap.intern_symbol("T"),
+            constraint: None,
+        };
 
         let none = self.alloc_type(TypeKind::Opaque(OpaqueType {
             name: self.heap.intern_symbol("::kernel::type::None"),
@@ -218,11 +235,9 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
             repr: self.alloc_type(TypeKind::Param(Param {
                 argument: some_generic,
             })),
-            arguments: self.env.intern_generic_arguments(&mut [GenericArgument {
-                id: some_generic,
-                name: self.heap.intern_symbol("T"),
-                constraint: None,
-            }]),
+            arguments: self
+                .env
+                .intern_generic_arguments(&mut [some_generic_argument]),
         }));
 
         let option = self.env.intern_type(PartialType {
@@ -233,28 +248,37 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
         });
 
         items.extend_from_slice(&[
-            self.alloc_type_item(parent, "None", none),
+            self.alloc_type_item(parent, "None", none, &[]),
             self.alloc_intrinsic_value(parent, "::kernel::type::None", None),
-            self.alloc_type_item(parent, "Some", some),
+            self.alloc_type_item(parent, "Some", some, &[some_generic_argument]),
             self.alloc_intrinsic_value(parent, "::kernel::type::Some", None),
-            self.alloc_type_item(parent, "Option", option),
+            self.alloc_type_item(parent, "Option", option, &[some_generic_argument]),
         ]);
     }
 
     fn kernel_type_module_result(&self, parent: ModuleId, items: &mut Vec<Item<'heap>>) {
         let value_generic = self.env.counter.generic_argument.next();
+        let value_generic_argument = GenericArgument {
+            id: value_generic,
+            name: self.heap.intern_symbol("T"),
+            constraint: None,
+        };
+
         let error_generic = self.env.counter.generic_argument.next();
+        let error_generic_argument = GenericArgument {
+            id: error_generic,
+            name: self.heap.intern_symbol("E"),
+            constraint: None,
+        };
 
         let ok = self.alloc_type(TypeKind::Opaque(OpaqueType {
             name: self.heap.intern_symbol("::kernel::type::Ok"),
             repr: self.alloc_type(TypeKind::Param(Param {
                 argument: value_generic,
             })),
-            arguments: self.env.intern_generic_arguments(&mut [GenericArgument {
-                id: value_generic,
-                name: self.heap.intern_symbol("T"),
-                constraint: None,
-            }]),
+            arguments: self
+                .env
+                .intern_generic_arguments(&mut [value_generic_argument]),
         }));
 
         let err = self.alloc_type(TypeKind::Opaque(OpaqueType {
@@ -262,11 +286,9 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
             repr: self.alloc_type(TypeKind::Param(Param {
                 argument: error_generic,
             })),
-            arguments: self.env.intern_generic_arguments(&mut [GenericArgument {
-                id: error_generic,
-                name: self.heap.intern_symbol("E"),
-                constraint: None,
-            }]),
+            arguments: self
+                .env
+                .intern_generic_arguments(&mut [error_generic_argument]),
         }));
 
         let result = self.env.intern_type(PartialType {
@@ -277,11 +299,16 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
         });
 
         items.extend_from_slice(&[
-            self.alloc_type_item(parent, "Ok", ok),
+            self.alloc_type_item(parent, "Ok", ok, &[value_generic_argument]),
             self.alloc_intrinsic_value(parent, "::kernel::type::Ok", None),
-            self.alloc_type_item(parent, "Err", err),
+            self.alloc_type_item(parent, "Err", err, &[error_generic_argument]),
             self.alloc_intrinsic_value(parent, "::kernel::type::Err", None),
-            self.alloc_type_item(parent, "Result", result),
+            self.alloc_type_item(
+                parent,
+                "Result",
+                result,
+                &[value_generic_argument, error_generic_argument],
+            ),
         ]);
     }
 

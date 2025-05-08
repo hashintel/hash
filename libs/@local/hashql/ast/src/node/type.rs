@@ -142,19 +142,6 @@ pub struct IntersectionType<'heap> {
 /// from simple path references to complex composite types.
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
 pub enum TypeKind<'heap> {
-    /// The unknown type (`kernel::types::?`).
-    ///
-    /// Represents a type that is genuinely unknown or cannot be determined.
-    /// This is different from an inferred type, as it indicates the absence
-    /// of type information.
-    Unknown,
-
-    /// The never type (`kernel::types::!`).
-    ///
-    /// Represents the type of expressions that never produce a value,
-    /// such as expressions that always throw an error or infinite loops.
-    Never,
-
     /// The infer type (`_`).
     ///
     /// Represents a type that should be inferred by the type checker.

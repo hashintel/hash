@@ -1,0 +1,9 @@
+//@ run: fail
+//@ description: Tests List intrinsic with wrong parameter count
+[
+  "type",
+  "EmptyList",
+  "List",
+  //~^ ERROR `::kernel::type::List` needs 1 parameter, but found 0
+  "_"
+]

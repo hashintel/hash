@@ -1,0 +1,18 @@
+//@ run: fail
+//@ description: Tests error handling for structs with multiple duplicate fields
+[
+  "type",
+  "BadRecord",
+  {
+    "#struct": {
+      "field": "Number",
+      //~^ ERROR Field `field` first defined here
+      "field": "String",
+      "another": "Boolean",
+      //~^ ERROR Field `another` first defined here
+      "another": "Number",
+      "unique": "String"
+    }
+  },
+  "_"
+]

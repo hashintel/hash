@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Tests translation of infer placeholders to core Infer type with hole IDs
+["type", "Inferred", "_", "_"]

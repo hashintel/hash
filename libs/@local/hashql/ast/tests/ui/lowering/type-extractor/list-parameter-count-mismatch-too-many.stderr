@@ -1,0 +1,11 @@
+[31m[type-extractor::intrinsic-parameter-mismatch] Error:[0m Incorrect intrinsic type parameters
+   ╭─[ <unknown>:6:4 ]
+   │
+ 6 │   "List<Number, String>",
+   │    ──────────┬─────────  
+   │              ╰─────────── Intrinsic `::kernel::type::List` takes 1 parameter, but found 2
+   │ 
+   │ Help: Remove extra parameter(s): `List<ElementType>`
+   │ 
+   │ Note: List is a generic container that requires exactly one type parameter specifying the element type. For example, List<String> is a list of strings, while List<Number> is a list of numbers.
+───╯

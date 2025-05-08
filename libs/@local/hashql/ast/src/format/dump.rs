@@ -172,8 +172,6 @@ impl_syntax_dump!(struct Type(); kind);
 impl SyntaxDump for TypeKind<'_> {
     fn syntax_dump(&self, fmt: &mut Formatter, depth: usize) -> fmt::Result {
         match self {
-            TypeKind::Unknown => write_header(fmt, depth, "TypeKind", None, None, Some("Unknown")),
-            TypeKind::Never => write_header(fmt, depth, "TypeKind", None, None, Some("Never")),
             TypeKind::Infer => write_header(fmt, depth, "TypeKind", None, None, Some("Infer")),
             TypeKind::Path(path) => {
                 write_header(fmt, depth, "TypeKind", None, None, Some("Path"))?;

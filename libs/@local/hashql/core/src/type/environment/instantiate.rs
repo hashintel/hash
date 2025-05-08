@@ -75,10 +75,6 @@ impl<'env, 'heap> InstantiateEnvironment<'env, 'heap> {
         self.diagnostics.push(diagnostic);
     }
 
-    #[expect(
-        clippy::needless_pass_by_ref_mut,
-        reason = "prove ownership of environment, so that we can borrow safely"
-    )]
     pub fn instantiate_arguments(
         &mut self,
         arguments: GenericArguments<'heap>,
@@ -95,18 +91,24 @@ impl<'env, 'heap> InstantiateEnvironment<'env, 'heap> {
             };
 
             mapping.push((generic.id, id));
+        }
 
+        let scope = Rc::clone(&self.argument_scope);
+        let guard = scope.enter_many(mapping.clone());
+
+        // We need to do this *after* we've entered the guard, so that the different instantiations
+        // are aware of each other.
+        for (generic, (_, id)) in arguments.iter().zip(mapping) {
             replacements.push(GenericArgument {
                 id,
                 name: generic.name,
-                constraint: generic.constraint,
+                constraint: generic
+                    .constraint
+                    .map(|constraint| self.instantiate(constraint)),
             });
         }
 
         let arguments = self.environment.intern_generic_arguments(&mut replacements);
-
-        let scope = Rc::clone(&self.argument_scope);
-        let guard = scope.enter_many(mapping);
 
         (guard, arguments)
     }

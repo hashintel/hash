@@ -1,0 +1,9 @@
+//@ run: fail
+//@ description: Tests List intrinsic with wrong parameter count
+[
+  "type",
+  "TooManyDict",
+  "Dict<String, Number, String>",
+  //~^ ERROR Intrinsic `::kernel::type::Dict` takes 2 parameters, but found 3
+  "_"
+]

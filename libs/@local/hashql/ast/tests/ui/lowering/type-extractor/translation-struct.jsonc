@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Tests translation of AST struct type to core StructType with interned fields
+["type", "Person", { "#struct": { "name": "String", "age": "Number" } }, "_"]

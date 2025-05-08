@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Tests that List<T> is correctly translated to IntrinsicType::List
+["type", "Numbers", "List<Number>", "_"]

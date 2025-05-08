@@ -107,6 +107,10 @@ impl<'heap> Environment<'heap> {
         &self,
         arguments: &mut [GenericArgument<'heap>],
     ) -> GenericArguments<'heap> {
+        if arguments.is_empty() {
+            return GenericArguments::empty();
+        }
+
         arguments.sort_unstable_by(|lhs, rhs| lhs.id.cmp(&rhs.id));
         // Unlike `intern_struct_fields`, where we error out on duplicates, we simply remove them
         // here, as any duplicate means they're the same argument and therefore not necessarily an
@@ -121,6 +125,10 @@ impl<'heap> Environment<'heap> {
         &self,
         substitutions: &mut [GenericSubstitution],
     ) -> GenericSubstitutions<'heap> {
+        if substitutions.is_empty() {
+            return GenericSubstitutions::empty();
+        }
+
         substitutions.sort_unstable();
         // Unlike `intern_struct_fields`, where we error out on duplicates, we simply remove them
         // here, as any duplicate means they're the same argument and therefore not necessarily an
@@ -140,13 +148,23 @@ impl<'heap> Environment<'heap> {
     pub fn intern_struct_fields<'fields>(
         &self,
         fields: &'fields mut [StructField<'heap>],
-    ) -> Result<StructFields<'heap>, &'fields mut [StructField<'heap>]> {
+    ) -> Result<
+        StructFields<'heap>,
+        (
+            &'fields mut [StructField<'heap>],
+            &'fields mut [StructField<'heap>],
+        ),
+    > {
+        if fields.is_empty() {
+            return Ok(StructFields::empty());
+        }
+
         fields.sort_unstable_by(|lhs, rhs| lhs.name.cmp(&rhs.name));
 
         let (dedup, duplicates) = fields.partition_dedup_by_key(|field| field.name);
 
         if !duplicates.is_empty() {
-            return Err(duplicates);
+            return Err((dedup, duplicates));
         }
 
         Ok(StructFields::from_slice_unchecked(
