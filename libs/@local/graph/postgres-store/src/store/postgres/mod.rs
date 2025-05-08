@@ -20,12 +20,13 @@ use hash_graph_authorization::{
         RequestContext,
         action::ActionName,
         principal::PrincipalConstraint,
+        resource::ResourceConstraint,
         store::{
-            CreateWebParameter, CreateWebResponse, PrincipalStore, RoleAssignmentStatus,
-            RoleUnassignmentStatus,
+            CreateWebParameter, CreateWebResponse, PolicyFilter, PolicyStore, PrincipalFilter,
+            PrincipalStore, RoleAssignmentStatus, RoleUnassignmentStatus,
             error::{
-                EnsureSystemPoliciesError, GetSystemAccountError, RoleAssignmentError,
-                WebCreationError,
+                EnsureSystemPoliciesError, GetPoliciesError, GetSystemAccountError,
+                RoleAssignmentError, WebCreationError,
             },
         },
     },
@@ -71,8 +72,8 @@ use type_system::{
         provenance::{OntologyEditionProvenance, OntologyOwnership, OntologyProvenance},
     },
     principal::{
-        PrincipalType,
-        actor::{ActorEntityUuid, ActorId, AiId, MachineId},
+        PrincipalId, PrincipalType,
+        actor::{ActorEntityUuid, ActorId, ActorType, AiId, MachineId},
         actor_group::{ActorGroupEntityUuid, ActorGroupId, TeamId, WebId},
         role::RoleName,
     },
@@ -753,6 +754,157 @@ where
         } else {
             Ok(status)
         }
+    }
+}
+
+impl<C, A> PolicyStore for PostgresStore<C, A>
+where
+    C: AsClient,
+    A: AuthorizationApi + Send + Sync,
+{
+    #[expect(clippy::too_many_lines)]
+    async fn find_policies(
+        &self,
+        filter: &PolicyFilter,
+    ) -> Result<Vec<Policy>, Report<GetPoliciesError>> {
+        let mut filters = Vec::new();
+        let mut parameters = Vec::<Box<dyn ToSql + Send + Sync>>::new();
+
+        if let Some(principal) = &filter.principal {
+            let (principal_id, actor_type) = match principal {
+                PrincipalFilter::Constrained(PrincipalConstraint::ActorType { actor_type }) => {
+                    (None, Some(*actor_type))
+                }
+                PrincipalFilter::Constrained(PrincipalConstraint::Actor { actor }) => {
+                    (Some(PrincipalId::Actor(*actor)), None)
+                }
+                PrincipalFilter::Constrained(PrincipalConstraint::ActorGroup {
+                    actor_group,
+                    actor_type,
+                }) => (Some(PrincipalId::ActorGroup(*actor_group)), *actor_type),
+                PrincipalFilter::Constrained(PrincipalConstraint::Role { role, actor_type }) => {
+                    (Some(PrincipalId::Role(*role)), *actor_type)
+                }
+                PrincipalFilter::Unconstrained => (None, None),
+            };
+            if let Some(principal_id) = principal_id {
+                parameters.push(Box::new(principal_id));
+                parameters.push(Box::new(principal_id.principal_type()));
+                filters.push(format!(
+                    "policy.principal_id = ${} AND policy.principal_type = ${}",
+                    parameters.len() - 1,
+                    parameters.len()
+                ));
+            } else {
+                filters.push(
+                    "policy.principal_id IS NULL AND policy.principal_type IS NULL".to_owned(),
+                );
+            }
+
+            if let Some(actor_type) = actor_type {
+                parameters.push(Box::new(PrincipalType::from(actor_type)));
+                filters.push(format!("policy.actor_type = ${}", parameters.len()));
+            } else {
+                filters.push("policy.actor_type IS NULL".to_owned());
+            }
+        }
+
+        let base_query = "
+            SELECT
+                policy.id,
+                policy.effect,
+                policy.principal_id,
+                policy.principal_type,
+                policy.actor_type,
+                policy.resource_constraint,
+                array_agg(policy_action.action_name)
+            FROM policy
+            JOIN policy_action ON policy.id = policy_action.policy_id
+            "
+        .to_owned();
+        let group_by_query = "
+            GROUP BY
+                policy.id,
+                policy.effect,
+                policy.principal_id,
+                policy.principal_type,
+                policy.actor_type,
+                policy.resource_constraint
+            ";
+
+        let query = if filters.is_empty() {
+            format!("{base_query} {group_by_query}")
+        } else {
+            format!(
+                "{base_query} WHERE {} {group_by_query}",
+                filters.join(" AND ")
+            )
+        };
+
+        self.as_client()
+            .query_raw(&query, parameters)
+            .await
+            .change_context(GetPoliciesError::StoreError)?
+            .map_err(|error| Report::new(error).change_context(GetPoliciesError::StoreError))
+            .and_then(async |row| -> Result<_, Report<GetPoliciesError>> {
+                let policy_id = PolicyId::new(row.get(0));
+                let effect = row.get(1);
+                let principal_uuid: Option<Uuid> = row.get(2);
+                let principal_type: Option<PrincipalType> = row.get(3);
+                let actor_type: Option<PrincipalType> = row.get(4);
+                let resource_constraint = row
+                    .get::<_, Option<Json<ResourceConstraint>>>(5)
+                    .map(|json| json.0);
+                let actions = row.get(6);
+
+                let principal_id = match (principal_uuid, principal_type) {
+                    (Some(uuid), Some(principal_type)) => {
+                        Some(PrincipalId::new(uuid, principal_type))
+                    }
+                    (None, None) => None,
+                    (Some(_), None) | (None, Some(_)) => {
+                        return Err(Report::new(GetPoliciesError::InvalidPrincipalConstraint));
+                    }
+                };
+
+                let actor_type = actor_type
+                    .map(|principal_type| match principal_type {
+                        PrincipalType::User => Ok(ActorType::User),
+                        PrincipalType::Machine => Ok(ActorType::Machine),
+                        PrincipalType::Ai => Ok(ActorType::Ai),
+                        _ => Err(GetPoliciesError::InvalidPrincipalConstraint),
+                    })
+                    .transpose()?;
+
+                let principal_constraint = match (principal_id, actor_type) {
+                    (None, None) => None,
+                    (None, Some(actor_type)) => Some(PrincipalConstraint::ActorType { actor_type }),
+                    (Some(PrincipalId::Actor(actor)), None) => {
+                        Some(PrincipalConstraint::Actor { actor })
+                    }
+                    (Some(PrincipalId::ActorGroup(actor_group)), actor_type) => {
+                        Some(PrincipalConstraint::ActorGroup {
+                            actor_group,
+                            actor_type,
+                        })
+                    }
+                    (Some(PrincipalId::Role(role)), actor_type) => {
+                        Some(PrincipalConstraint::Role { role, actor_type })
+                    }
+                    _ => return Err(Report::new(GetPoliciesError::InvalidPrincipalConstraint)),
+                };
+
+                Ok(Policy {
+                    id: policy_id,
+                    effect,
+                    principal: principal_constraint,
+                    actions,
+                    resource: resource_constraint,
+                    constraints: None,
+                })
+            })
+            .try_collect()
+            .await
     }
 }
 

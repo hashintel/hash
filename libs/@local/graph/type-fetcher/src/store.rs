@@ -5,11 +5,15 @@ use std::collections::{HashMap, HashSet};
 use error_stack::{Report, ResultExt as _};
 use hash_graph_authorization::{
     AuthorizationApi,
-    policies::store::{
-        CreateWebParameter, CreateWebResponse, PrincipalStore, RoleAssignmentStatus,
-        RoleUnassignmentStatus,
-        error::{
-            EnsureSystemPoliciesError, GetSystemAccountError, RoleAssignmentError, WebCreationError,
+    policies::{
+        Policy,
+        store::{
+            CreateWebParameter, CreateWebResponse, PolicyFilter, PolicyStore, PrincipalStore,
+            RoleAssignmentStatus, RoleUnassignmentStatus,
+            error::{
+                EnsureSystemPoliciesError, GetPoliciesError, GetSystemAccountError,
+                RoleAssignmentError, WebCreationError,
+            },
         },
     },
     schema::{
@@ -240,6 +244,19 @@ where
         self.store
             .unassign_role(actor_id, actor_to_unassign, actor_group_id, name)
             .await
+    }
+}
+
+impl<S, A> PolicyStore for FetchingStore<S, A>
+where
+    S: PolicyStore + Sync,
+    A: Send + Sync,
+{
+    async fn find_policies(
+        &self,
+        filter: &PolicyFilter,
+    ) -> Result<Vec<Policy>, Report<GetPoliciesError>> {
+        self.store.find_policies(filter).await
     }
 }
 

@@ -89,6 +89,38 @@ pub enum RoleUnassignmentStatus {
     NotAssigned,
 }
 
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "kebab-case", tag = "filter", deny_unknown_fields)]
+pub enum PrincipalFilter {
+    Unconstrained,
+    Constrained(PrincipalConstraint),
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct PolicyFilter {
+    pub principal: Option<PrincipalFilter>,
+}
+
+#[trait_variant::make(Send)]
+pub trait PolicyStore {
+    /// Searches for policies in the local store that match the provided filter.
+    ///
+    /// This method queries the underlying policy store using the given
+    /// [`PolicyFilter`] and returns a list of matching [`Policy`] objects. The filter
+    /// can be used to specify criteria such as policy type, subject, resource, or action.
+    ///
+    /// # Errors
+    ///
+    /// - [`StoreError`] if the underlying store returns an error
+    ///
+    /// [`StoreError`]: GetPoliciesError::StoreError
+    async fn find_policies(
+        &self,
+        filter: &PolicyFilter,
+    ) -> Result<Vec<Policy>, Report<GetPoliciesError>>;
+}
+
 #[trait_variant::make(PrincipalStore: Send)]
 pub trait LocalPrincipalStore {
     /// Searches for the system account and returns its ID.
