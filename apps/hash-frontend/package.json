@@ -139,7 +139,7 @@
     "@types/iframe-resizer": "3.5.13",
     "@types/jsonpath": "0.2.4",
     "@types/lodash": "4.17.16",
-    "@types/papaparse": "5.3.15",
+    "@types/papaparse": "5.3.16",
     "@types/react": "19.1.2",
     "@types/react-beautiful-dnd": "13.1.8",
     "@types/react-dom": "19.1.3",
