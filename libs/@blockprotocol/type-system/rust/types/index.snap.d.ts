@@ -9,7 +9,7 @@ export type PropertyValue = null | boolean | string | Real | PropertyValue[] | {
 	[key: string]: PropertyValue
 };
 export type BaseUrl = Brand<string, "BaseUrl">;
-export type OntologyTypeVersion = Brand<number, "OntologyTypeVersion">;
+export type OntologyTypeVersion = Brand<string, "OntologyTypeVersion">;
 export type Principal = {
 	principalType: "actor"
 } & Actor | {
