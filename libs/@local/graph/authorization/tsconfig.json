@@ -1,6 +1,6 @@
 {
   "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
-  "files": ["dist/types.d.ts"],
+  "include": ["types/**/*.d.ts"],
   "compilerOptions": {
     "lib": ["DOM", "ES2024"],
     "module": "NodeNext",

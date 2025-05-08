@@ -1,6 +1,6 @@
 {
   "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
-  "files": ["types/index.snap.d.ts"],
+  "include": ["types/**/*.d.ts"],
   "compilerOptions": {
     "module": "NodeNext",
     "moduleResolution": "NodeNext"
