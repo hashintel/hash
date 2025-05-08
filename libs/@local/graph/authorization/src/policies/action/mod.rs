@@ -26,6 +26,7 @@ use crate::policies::cedar::FromCedarEntityId;
     serde::Deserialize,
     enum_iterator::Sequence,
 )]
+#[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[serde(rename_all = "camelCase")]
 pub enum ActionName {
     All,

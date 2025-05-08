@@ -90,13 +90,4 @@ impl TypeDefinition {
             branded: false,
         }
     }
-
-    pub(crate) fn from_specta_branded(
-        data_type: &datatype::NamedDataType,
-        type_collection: &specta::TypeCollection,
-    ) -> Self {
-        let mut def = Self::from_specta(data_type, type_collection);
-        def.branded = true;
-        def
-    }
 }

@@ -15,6 +15,7 @@ pub mod group;
 pub mod role;
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[serde(
     tag = "type",
     rename_all = "camelCase",

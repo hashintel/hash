@@ -12,12 +12,14 @@ mod wasm {
         ActorEntityUuid,
         ActorGroupEntityUuid,
         ActorType,
+        BaseUrl,
         DraftId,
         EntityEditionId,
+        OntologyTypeVersion,
         PropertyValue,
         UserId,
         WebId
-    } from "../dist/types.js";
+    } from "../types/index.snap.js";
     "#;
 
     // Common types

@@ -10,7 +10,7 @@ authors.workspace = true
 # Public workspace dependencies
 
 # Public third-party dependencies
-specta = { workspace = true, public = true, features = ["derive"] }
+specta = { workspace = true, public = true, features = ["derive", "export"] }
 
 # Private workspace dependencies
 

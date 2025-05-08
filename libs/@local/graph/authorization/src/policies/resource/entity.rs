@@ -25,6 +25,7 @@ pub struct EntityResource<'a> {
 }
 
 #[derive(Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[serde(
     tag = "type",
     rename_all = "camelCase",
@@ -168,6 +169,7 @@ impl ToCedarEntityId for EntityUuid {
 }
 
 #[derive(Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[serde(untagged, rename_all_fields = "camelCase", deny_unknown_fields)]
 pub enum EntityResourceConstraint {
     Any {

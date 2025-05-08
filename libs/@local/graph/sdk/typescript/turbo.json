@@ -1,6 +1,9 @@
 {
   "extends": ["//"],
   "tasks": {
+    "codegen": {
+      "dependsOn": ["^build", "^build:types"]
+    },
     "build": {
       "outputs": ["dist/**"]
     }

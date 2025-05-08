@@ -8942,6 +8942,7 @@ __metadata:
     "@local/harpc-client": "npm:0.0.0-private"
     "@local/hash-graph-client": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
+    "@rust/hash-graph-authorization": "npm:0.0.0-private"
     "@vitest/coverage-istanbul": "npm:3.1.3"
     effect: "npm:3.13.11"
     eslint: "npm:9.20.1"
@@ -12628,10 +12629,12 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@rust/hash-codec@workspace:libs/@local/codec"
   dependencies:
+    "@local/tsconfig": "npm:0.0.0-private"
     "@rust/error-stack": "npm:0.5.0"
     "@rust/harpc-types": "npm:0.0.0-private"
     "@rust/harpc-wire-protocol": "npm:0.0.0-private"
     "@rust/hash-codegen": "npm:0.0.0-private"
+    typescript: "npm:5.7.3"
   languageName: unknown
   linkType: soft
 
@@ -12672,8 +12675,11 @@ __metadata:
   resolution: "@rust/hash-graph-authorization@workspace:libs/@local/graph/authorization"
   dependencies:
     "@blockprotocol/type-system-rs": "npm:0.0.0-private"
+    "@local/tsconfig": "npm:0.0.0-private"
     "@rust/error-stack": "npm:0.5.0"
     "@rust/hash-codec": "npm:0.0.0-private"
+    "@rust/hash-codegen": "npm:0.0.0-private"
+    typescript: "npm:5.7.3"
   languageName: unknown
   linkType: soft
 

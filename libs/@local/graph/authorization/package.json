@@ -3,16 +3,34 @@
   "version": "0.0.0-private",
   "private": true,
   "license": "AGPL-3",
+  "type": "module",
+  "exports": {
+    "./types": "./types/index.snap.js"
+  },
+  "typesVersions": {
+    "*": {
+      "types": [
+        "./types/index.snap.d.ts"
+      ]
+    }
+  },
   "scripts": {
+    "build:types": "mise exec --env dev cargo:cargo-insta -- cargo-insta test --features codegen --test codegen --accept",
     "doc:dependency-diagram": "cargo run -p hash-repo-chores -- dependency-diagram --output docs/dependency-diagram.mmd --root hash-graph-authorization --root-deps-and-dependents --link-mode non-roots --include-dev-deps --include-build-deps --logging-console-level info",
     "fix:clippy": "just clippy --fix",
     "lint:clippy": "just clippy",
-    "test:integration": "cargo hack nextest run --feature-powerset --test '*'",
-    "test:unit": "cargo hack nextest run --feature-powerset --lib && cargo test --all-features --doc"
+    "lint:tsc": "tsc --noEmit",
+    "test:integration": "cargo hack nextest run --feature-powerset --all-targets --filterset \"kind(test) | kind(bench)\"",
+    "test:unit": "cargo hack nextest run --feature-powerset --all-targets --filterset \"not kind(test) & not kind(bench)\" && cargo test --all-features --doc"
   },
   "dependencies": {
     "@blockprotocol/type-system-rs": "0.0.0-private",
     "@rust/error-stack": "0.5.0",
-    "@rust/hash-codec": "0.0.0-private"
+    "@rust/hash-codec": "0.0.0-private",
+    "@rust/hash-codegen": "0.0.0-private"
+  },
+  "devDependencies": {
+    "@local/tsconfig": "0.0.0-private",
+    "typescript": "5.7.3"
   }
 }
