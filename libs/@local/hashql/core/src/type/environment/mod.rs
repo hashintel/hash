@@ -17,8 +17,9 @@ use super::{
     inference::Substitution,
     kind::{
         Infer, Param, PrimitiveType,
-        generic_argument::{
+        generic::{
             GenericArgument, GenericArgumentId, GenericArgumentIdProducer, GenericArguments,
+            GenericSubstitution, GenericSubstitutions,
         },
         infer::{HoleId, HoleIdProducer},
         r#struct::{StructField, StructFields},
@@ -46,6 +47,7 @@ pub struct Environment<'heap> {
     kinds: InternSet<'heap, TypeKind<'heap>>,
     type_ids: InternSet<'heap, [TypeId]>,
     generic_arguments: InternSet<'heap, [GenericArgument<'heap>]>,
+    generic_substitutions: InternSet<'heap, [GenericSubstitution]>,
     struct_fields: InternSet<'heap, [StructField<'heap>]>,
 
     pub counter: Counter,
@@ -72,6 +74,7 @@ impl<'heap> Environment<'heap> {
             kinds: InternSet::new(heap),
             type_ids: InternSet::new(heap),
             generic_arguments: InternSet::new(heap),
+            generic_substitutions: InternSet::new(heap),
             struct_fields: InternSet::new(heap),
 
             counter: Counter::default(),
@@ -104,6 +107,10 @@ impl<'heap> Environment<'heap> {
         &self,
         arguments: &mut [GenericArgument<'heap>],
     ) -> GenericArguments<'heap> {
+        if arguments.is_empty() {
+            return GenericArguments::empty();
+        }
+
         arguments.sort_unstable_by(|lhs, rhs| lhs.id.cmp(&rhs.id));
         // Unlike `intern_struct_fields`, where we error out on duplicates, we simply remove them
         // here, as any duplicate means they're the same argument and therefore not necessarily an
@@ -111,6 +118,24 @@ impl<'heap> Environment<'heap> {
         let (dedupe, _) = arguments.partition_dedup_by_key(|argument| argument.id);
 
         GenericArguments::from_slice_unchecked(self.generic_arguments.intern_slice(dedupe))
+    }
+
+    #[inline]
+    pub fn intern_generic_substitutions(
+        &self,
+        substitutions: &mut [GenericSubstitution],
+    ) -> GenericSubstitutions<'heap> {
+        if substitutions.is_empty() {
+            return GenericSubstitutions::empty();
+        }
+
+        substitutions.sort_unstable();
+        // Unlike `intern_struct_fields`, where we error out on duplicates, we simply remove them
+        // here, as any duplicate means they're the same argument and therefore not necessarily an
+        // error.
+        let (dedupe, _) = substitutions.partition_dedup();
+
+        GenericSubstitutions::from_slice_unchecked(self.generic_substitutions.intern_slice(dedupe))
     }
 
     /// Interns a slice of struct fields.
@@ -123,13 +148,23 @@ impl<'heap> Environment<'heap> {
     pub fn intern_struct_fields<'fields>(
         &self,
         fields: &'fields mut [StructField<'heap>],
-    ) -> Result<StructFields<'heap>, &'fields mut [StructField<'heap>]> {
+    ) -> Result<
+        StructFields<'heap>,
+        (
+            &'fields mut [StructField<'heap>],
+            &'fields mut [StructField<'heap>],
+        ),
+    > {
+        if fields.is_empty() {
+            return Ok(StructFields::empty());
+        }
+
         fields.sort_unstable_by(|lhs, rhs| lhs.name.cmp(&rhs.name));
 
         let (dedup, duplicates) = fields.partition_dedup_by_key(|field| field.name);
 
         if !duplicates.is_empty() {
-            return Err(duplicates);
+            return Err((dedup, duplicates));
         }
 
         Ok(StructFields::from_slice_unchecked(

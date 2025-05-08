@@ -15,6 +15,7 @@ type-system = { workspace = true, public = true }
 futures-core   = { workspace = true, public = true }
 postgres-types = { workspace = true, public = true, features = ["derive", "with-uuid-1"], optional = true }
 reqwest        = { workspace = true, public = true, features = ["json", "stream"] }
+specta         = { workspace = true, public = true, optional = true, features = ["derive"] }
 
 # Private workspace dependencies
 hash-codec = { workspace = true, features = ["bytes"] }
@@ -40,13 +41,26 @@ utoipa                 = { workspace = true, optional = true }
 uuid                   = { workspace = true, features = ["v4"] }
 
 [dev-dependencies]
+hash-codegen      = { workspace = true }
 indoc             = { workspace = true }
+insta             = { workspace = true }
 pretty_assertions = { workspace = true }
 tokio             = { workspace = true, features = ["macros", "rt-multi-thread"] }
 
+[[test]]
+name              = "codegen"
+required-features = ["codegen"]
+
 [features]
+codegen  = ["dep:specta", "type-system/codegen"]
 utoipa   = ["dep:utoipa"]
 postgres = ["dep:postgres-types", "dep:bytes"]
 
 [lints]
 workspace = true
+
+
+[package.metadata.sync.turborepo]
+extra-dev-dependencies = [
+    { name = "@local/tsconfig", version = "0.0.0-private" },
+]

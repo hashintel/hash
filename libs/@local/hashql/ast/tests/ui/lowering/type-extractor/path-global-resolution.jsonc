@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Tests that global paths are correctly resolved in type context
+["type", "Global", "::kernel::type::Number", "_"]

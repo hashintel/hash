@@ -1,0 +1,9 @@
+//@ run: fail
+//@ description: Tests rejection of constraints in usage location
+[
+  "type",
+  "SomeType",
+  "List<T: Number>",
+  //~^ ERROR Constraint on `T` not allowed here
+  "_"
+]

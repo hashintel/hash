@@ -10,7 +10,7 @@ use crate::{
         environment::Environment,
         kind::{
             OpaqueType, Param, PrimitiveType, TypeKind, UnionType,
-            generic_argument::{GenericArgument, GenericArguments},
+            generic::{GenericArgument, GenericArguments},
         },
     },
 };
@@ -44,7 +44,7 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
         let ident = self.heap.intern_symbol(ident);
 
         Item {
-            parent: Some(parent),
+            module: parent,
             name: ident,
             kind: ItemKind::Intrinsic(IntrinsicItem {
                 name,
@@ -64,7 +64,7 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
         let ident = self.heap.intern_symbol(ident);
 
         Item {
-            parent: Some(parent),
+            module: parent,
             name: ident,
             kind: ItemKind::Intrinsic(IntrinsicItem {
                 name,
@@ -80,15 +80,21 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
         })
     }
 
-    fn alloc_type_item(&self, parent: ModuleId, name: &'static str, kind: TypeId) -> Item<'heap> {
+    fn alloc_type_item(
+        &self,
+        parent: ModuleId,
+        name: &'static str,
+        kind: TypeId,
+        generics: &[GenericArgument<'heap>],
+    ) -> Item<'heap> {
         Item {
-            parent: Some(parent),
+            module: parent,
             name: self.heap.intern_symbol(name),
-            kind: ItemKind::Type(kind),
+            kind: ItemKind::Type(kind, self.heap.slice(generics)),
         }
     }
 
-    fn kernel_special_form_module(&self) -> ModuleId {
+    fn kernel_special_form_module(&self, parent: ModuleId) -> ModuleId {
         self.registry.intern_module(|id| {
             let id = id.value();
 
@@ -108,6 +114,8 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
             ];
 
             PartialModule {
+                name: self.heap.intern_symbol("special_form"),
+                parent,
                 items: self.registry.intern_items(&items),
             }
         })
@@ -119,37 +127,42 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
                 parent,
                 "Boolean",
                 self.alloc_type(TypeKind::Primitive(PrimitiveType::Boolean)),
+                &[],
             ),
             self.alloc_type_item(
                 parent,
                 "Null",
                 self.alloc_type(TypeKind::Primitive(PrimitiveType::Null)),
+                &[],
             ),
             self.alloc_type_item(
                 parent,
                 "Number",
                 self.alloc_type(TypeKind::Primitive(PrimitiveType::Number)),
+                &[],
             ),
             self.alloc_type_item(
                 parent,
                 "Integer",
                 self.alloc_type(TypeKind::Primitive(PrimitiveType::Integer)),
+                &[],
             ),
             // Natural does not yet exist, due to lack of support for refinements
             self.alloc_type_item(
                 parent,
                 "String",
                 self.alloc_type(TypeKind::Primitive(PrimitiveType::String)),
+                &[],
             ),
         ]);
     }
 
     fn kernel_type_module_boundary(&self, parent: ModuleId, items: &mut Vec<Item<'heap>>) {
         items.extend_from_slice(&[
-            self.alloc_type_item(parent, "Unknown", self.alloc_type(TypeKind::Unknown)),
-            self.alloc_type_item(parent, "Never", self.alloc_type(TypeKind::Never)),
-            self.alloc_type_item(parent, "?", self.alloc_type(TypeKind::Unknown)),
-            self.alloc_type_item(parent, "!", self.alloc_type(TypeKind::Never)),
+            self.alloc_type_item(parent, "Unknown", self.alloc_type(TypeKind::Unknown), &[]),
+            self.alloc_type_item(parent, "Never", self.alloc_type(TypeKind::Never), &[]),
+            self.alloc_type_item(parent, "?", self.alloc_type(TypeKind::Unknown), &[]),
+            self.alloc_type_item(parent, "!", self.alloc_type(TypeKind::Never), &[]),
         ]);
     }
 
@@ -185,7 +198,7 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
         // intrinsics.
         // see: https://linear.app/hash/issue/H-4451/hashql-prelude-opaque-type-constructors-should-be-alone-standing
         items.extend_from_slice(&[
-            self.alloc_type_item(parent, "Url", url),
+            self.alloc_type_item(parent, "Url", url, &[]),
             self.alloc_intrinsic_value(parent, "::kernel::type::Url", None),
             self.alloc_type_item(
                 parent,
@@ -195,6 +208,7 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
                     repr: url,
                     arguments: GenericArguments::empty(),
                 })),
+                &[],
             ),
             self.alloc_intrinsic_value(parent, "::kernel::type::BaseUrl", None),
         ]);
@@ -204,6 +218,11 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
         // Option is simply a union between two opaque types, when the constructor only takes a
         // `Null` the constructor automatically allows for no-value.
         let some_generic = self.env.counter.generic_argument.next();
+        let some_generic_argument = GenericArgument {
+            id: some_generic,
+            name: self.heap.intern_symbol("T"),
+            constraint: None,
+        };
 
         let none = self.alloc_type(TypeKind::Opaque(OpaqueType {
             name: self.heap.intern_symbol("::kernel::type::None"),
@@ -216,11 +235,9 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
             repr: self.alloc_type(TypeKind::Param(Param {
                 argument: some_generic,
             })),
-            arguments: self.env.intern_generic_arguments(&mut [GenericArgument {
-                id: some_generic,
-                name: self.heap.intern_symbol("T"),
-                constraint: None,
-            }]),
+            arguments: self
+                .env
+                .intern_generic_arguments(&mut [some_generic_argument]),
         }));
 
         let option = self.env.intern_type(PartialType {
@@ -231,28 +248,37 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
         });
 
         items.extend_from_slice(&[
-            self.alloc_type_item(parent, "None", none),
+            self.alloc_type_item(parent, "None", none, &[]),
             self.alloc_intrinsic_value(parent, "::kernel::type::None", None),
-            self.alloc_type_item(parent, "Some", some),
+            self.alloc_type_item(parent, "Some", some, &[some_generic_argument]),
             self.alloc_intrinsic_value(parent, "::kernel::type::Some", None),
-            self.alloc_type_item(parent, "Option", option),
+            self.alloc_type_item(parent, "Option", option, &[some_generic_argument]),
         ]);
     }
 
     fn kernel_type_module_result(&self, parent: ModuleId, items: &mut Vec<Item<'heap>>) {
         let value_generic = self.env.counter.generic_argument.next();
+        let value_generic_argument = GenericArgument {
+            id: value_generic,
+            name: self.heap.intern_symbol("T"),
+            constraint: None,
+        };
+
         let error_generic = self.env.counter.generic_argument.next();
+        let error_generic_argument = GenericArgument {
+            id: error_generic,
+            name: self.heap.intern_symbol("E"),
+            constraint: None,
+        };
 
         let ok = self.alloc_type(TypeKind::Opaque(OpaqueType {
             name: self.heap.intern_symbol("::kernel::type::Ok"),
             repr: self.alloc_type(TypeKind::Param(Param {
                 argument: value_generic,
             })),
-            arguments: self.env.intern_generic_arguments(&mut [GenericArgument {
-                id: value_generic,
-                name: self.heap.intern_symbol("T"),
-                constraint: None,
-            }]),
+            arguments: self
+                .env
+                .intern_generic_arguments(&mut [value_generic_argument]),
         }));
 
         let err = self.alloc_type(TypeKind::Opaque(OpaqueType {
@@ -260,11 +286,9 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
             repr: self.alloc_type(TypeKind::Param(Param {
                 argument: error_generic,
             })),
-            arguments: self.env.intern_generic_arguments(&mut [GenericArgument {
-                id: error_generic,
-                name: self.heap.intern_symbol("E"),
-                constraint: None,
-            }]),
+            arguments: self
+                .env
+                .intern_generic_arguments(&mut [error_generic_argument]),
         }));
 
         let result = self.env.intern_type(PartialType {
@@ -275,15 +299,20 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
         });
 
         items.extend_from_slice(&[
-            self.alloc_type_item(parent, "Ok", ok),
+            self.alloc_type_item(parent, "Ok", ok, &[value_generic_argument]),
             self.alloc_intrinsic_value(parent, "::kernel::type::Ok", None),
-            self.alloc_type_item(parent, "Err", err),
+            self.alloc_type_item(parent, "Err", err, &[error_generic_argument]),
             self.alloc_intrinsic_value(parent, "::kernel::type::Err", None),
-            self.alloc_type_item(parent, "Result", result),
+            self.alloc_type_item(
+                parent,
+                "Result",
+                result,
+                &[value_generic_argument, error_generic_argument],
+            ),
         ]);
     }
 
-    fn kernel_type_module(&self) -> ModuleId {
+    fn kernel_type_module(&self, parent: ModuleId) -> ModuleId {
         self.registry.intern_module(|id| {
             let id = id.value();
 
@@ -296,6 +325,8 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
             self.kernel_type_module_result(id, &mut items);
 
             PartialModule {
+                name: self.heap.intern_symbol("type"),
+                parent,
                 items: self.registry.intern_items(&items),
             }
         })
@@ -303,16 +334,18 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
 
     fn kernel_module(&self) -> ModuleId {
         self.registry.intern_module(|id| PartialModule {
+            name: self.heap.intern_symbol("kernel"),
+            parent: ModuleId::ROOT,
             items: self.registry.intern_items(&[
                 Item {
-                    parent: Some(id.value()),
+                    module: id.value(),
                     name: self.heap.intern_symbol("special_form"),
-                    kind: ItemKind::Module(self.kernel_special_form_module()),
+                    kind: ItemKind::Module(self.kernel_special_form_module(id.value())),
                 },
                 Item {
-                    parent: Some(id.value()),
+                    module: id.value(),
                     name: self.heap.intern_symbol("type"),
-                    kind: ItemKind::Module(self.kernel_type_module()),
+                    kind: ItemKind::Module(self.kernel_type_module(id.value())),
                 },
             ]),
         })
@@ -323,6 +356,8 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
             let id = id.value();
 
             PartialModule {
+                name: self.heap.intern_symbol("math"),
+                parent: ModuleId::ROOT,
                 items: self.registry.intern_items(&[
                     // Addition
                     self.alloc_intrinsic_value(id, "::math::add", None),
@@ -349,10 +384,10 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
                     self.alloc_intrinsic_value(id, "::math::bit_or", Some("|")),
                     self.alloc_intrinsic_value(id, "::math::bit_not", None),
                     self.alloc_intrinsic_value(id, "::math::bit_not", Some("~")),
-                    self.alloc_intrinsic_value(id, "::math::lshift", None),
-                    self.alloc_intrinsic_value(id, "::math::lshift", Some("<<")),
-                    self.alloc_intrinsic_value(id, "::math::rshift", None),
-                    self.alloc_intrinsic_value(id, "::math::rshift", Some(">>")),
+                    self.alloc_intrinsic_value(id, "::math::bit_shl", None),
+                    self.alloc_intrinsic_value(id, "::math::bit_shl", Some("<<")),
+                    self.alloc_intrinsic_value(id, "::math::bit_shr", None),
+                    self.alloc_intrinsic_value(id, "::math::bit_shr", Some(">>")),
                     // Comparison operations
                     self.alloc_intrinsic_value(id, "::math::gt", None),
                     self.alloc_intrinsic_value(id, "::math::gt", Some(">")),
@@ -379,10 +414,8 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
     }
 
     pub(super) fn register(&self) {
-        self.registry
-            .register(self.heap.intern_symbol("kernel"), self.kernel_module());
-        self.registry
-            .register(self.heap.intern_symbol("math"), self.math_module());
+        self.registry.register(self.kernel_module());
+        self.registry.register(self.math_module());
 
         // TODO: The graph module is not yet added (Primarily due to the fact that we're not yet
         // sure about the shape of some of the types involved).

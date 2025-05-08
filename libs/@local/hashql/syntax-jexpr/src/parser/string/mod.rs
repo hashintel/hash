@@ -125,18 +125,18 @@ pub(crate) fn parse_type_from_token<'heap, 'source>(
     parse_type_from_string(state, id, &value)
 }
 
-pub(crate) fn parse_ident_from_string(
-    state: &ParserState<'_, '_>,
+pub(crate) fn parse_ident_from_string<'heap>(
+    state: &ParserState<'heap, '_>,
     parent: SpanId,
     value: &str,
-) -> Result<Ident, ParseError<impl Debug, ContextError>> {
+) -> Result<Ident<'heap>, ParseError<impl Debug, ContextError>> {
     parse_from_string(parse_ident, state, parent, value)
 }
 
-pub(crate) fn parse_ident_labelled_argument_from_string(
-    state: &ParserState<'_, '_>,
+pub(crate) fn parse_ident_labelled_argument_from_string<'heap>(
+    state: &ParserState<'heap, '_>,
     parent: SpanId,
     value: &str,
-) -> Result<Ident, ParseError<impl Debug, ContextError>> {
+) -> Result<Ident<'heap>, ParseError<impl Debug, ContextError>> {
     parse_from_string(parse_ident_labelled_argument, state, parent, value)
 }

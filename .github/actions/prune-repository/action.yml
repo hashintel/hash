@@ -14,22 +14,25 @@ runs:
         # Convert newline-separated input to space-separated arguments
         SCOPES=$(echo "${{ inputs.scope }}" | tr '\n' ' ')
 
-        # TODO: remove once deer is in labs
-        #   see https://linear.app/hash/issue/H-3692/move-deer-to-labs
-        # Nested crates are pruned in a way where the lockfile does not correctly reflect the pruned workspace, leading to an installation failure.
-        # Check if any of the scopes start with @rust/deer
-        # If any deer crate is in scope, include all deer crates
-        if echo "$SCOPES" | grep -q "@rust/deer\(-desert\|-macros\|-json\)\?"; then
-          SCOPES="$SCOPES @rust/deer @rust/deer-desert @rust/deer-macros @rust/deer-json"
-        fi
+        while IFS= read -r scope; do
+          # Read all the dependencies for the given scope.
+          # The result will contain strings for the scope and all its dependencies so it can be grepped later.
+          DEPENDENCIES=$(turbo query "query { packages(filter: { equal: { field: NAME, value: \"$scope\" } }) { items { name, allDependencies { items { name  } }}  } }")
 
-        # Workaround as turbo doesn't allow for cyclic dependencies
-        if echo "$SCOPES" | grep -q "@rust/hashql-ast"; then
-          SCOPES="$SCOPES @rust/hashql-compiletest"
-        fi
-        if echo "$SCOPES" | grep -q "@rust/hash-codegen"; then
-          SCOPES="$SCOPES @blockprotocol/type-system-rs"
-        fi
+          # TODO: remove once deer is in labs
+          #   see https://linear.app/hash/issue/H-3692/move-deer-to-labs
+          # Nested crates are pruned in a way where the lockfile does not correctly reflect the pruned workspace, leading to an installation failure.
+          # Check if any of the scopes start with @rust/deer
+          # If any deer crate is in scope, include all deer crates
+          if echo "$DEPENDENCIES" | grep -q "@rust/deer\(-desert\|-macros\|-json\)\?"; then
+            SCOPES="$SCOPES @rust/deer @rust/deer-desert @rust/deer-macros @rust/deer-json"
+          fi
+
+          # Workaround as turbo doesn't allow for cyclic dependencies
+          if echo "$DEPENDENCIES" | grep -q "@rust/hashql-ast"; then
+            SCOPES="$SCOPES @rust/hashql-compiletest"
+          fi
+        done <<< "${{ inputs.scope }}"
 
         # Deduplicate scopes
         SCOPES=$(echo "$SCOPES" | tr ' ' '\n' | sort -u | tr '\n' ' ')

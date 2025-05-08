@@ -11,7 +11,8 @@
     let_chains,
     generic_arg_infer,
     iter_map_windows,
-    cold_path
+    cold_path,
+    type_alias_impl_trait
 )]
 
 extern crate alloc;

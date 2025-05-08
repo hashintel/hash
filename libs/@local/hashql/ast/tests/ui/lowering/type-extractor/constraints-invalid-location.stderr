@@ -1,0 +1,13 @@
+[31m[type-extractor::generic-constraint-not-allowed] Error:[0m Constraint not allowed in generic arguments
+   ╭─[ <unknown>:6:9 ]
+   │
+ 6 │   "List<T: Number>",
+   │         ────┬────  
+   │             ╰────── ... in this type instantiation
+   │             │      
+   │             ╰────── Constraint on `T` not allowed here
+   │ 
+   │ Help: Use `T` without a constraint
+   │ 
+   │ Note: Type constraints cannot be specified at the usage site in HashQL. Constraints on type parameters must be declared where the type is defined, not where it is used.
+───╯

@@ -13,7 +13,7 @@
     "name": "Blue Yonder Platform",
     "logoUrl": "https://app.hash.ai/icons/integrations/icon_blue-yonder.svg",
     "productUrl": "https://blueyonder.com/solutions/blue-yonder-platform",
-    "summaryHtml": "End-to-end supply chain, warehouse, returns, transportation, order management and more",
+    "summaryHtml": "End-to-end supply chain, warehouse, returns, transportation, and order management",
     "integrationUrl": "https://app.hash.ai/settings/integrations/blue-yonder",
     "availability": "Considered",
     "audience": ["Enterprise"],
@@ -28,6 +28,36 @@
     "availability": "Considered",
     "audience": ["Enterprise"],
     "category": ["Process Mining", "Supply Chain"]
+  },
+  {
+    "name": "Veeva Vault",
+    "logoUrl": "https://app.hash.ai/icons/integrations/icon_veeva.svg",
+    "productUrl": "https://www.veeva.com/products/vault-platform/",
+    "summaryHtml": "Process data, quality validation, audit trails, and more",
+    "integrationUrl": "https://app.hash.ai/settings/integrations/veeva-vault",
+    "availability": "Considered",
+    "audience": ["Enterprise"],
+    "category": ["Supply Chain"]
+  },
+  {
+    "name": "PAS-X MES",
+    "logoUrl": "https://app.hash.ai/icons/integrations/icon_pas-x.svg",
+    "productUrl": "https://www.koerber-pharma.com/en/solutions/software/werum-pas-x-mes-suite",
+    "summaryHtml": "Biopharmaceutical manufacturing execution and electronic batch recording data",
+    "integrationUrl": "https://app.hash.ai/settings/integrations/pas-x-mes",
+    "availability": "Considered",
+    "audience": ["Enterprise"],
+    "category": ["Supply Chain"]
+  },
+  {
+    "name": "Fourkites",
+    "logoUrl": "https://app.hash.ai/icons/integrations/icon_fourkites.svg",
+    "productUrl": "https://www.fourkites.com/platform/",
+    "summaryHtml": "Real-time orders, shipments, inventory, assets, facilities, and decisions",
+    "integrationUrl": "https://app.hash.ai/settings/integrations/fourkites",
+    "availability": "Considered",
+    "audience": ["Enterprise"],
+    "category": ["Supply Chain"]
   },
   {
     "name": "OMP",
@@ -258,6 +288,16 @@
     "availability": "Considered",
     "audience": ["Enterprise", "Individual", "Startup"],
     "category": ["Docs & Files"]
+  },
+  {
+    "name": "Granola",
+    "logoUrl": "https://app.hash.ai/icons/integrations/icon_granola.svg",
+    "productUrl": "https://www.granola.ai/",
+    "summaryHtml": "AI-assisted notetaking and transcription for virtual meetings and calls",
+    "integrationUrl": "https://app.hash.ai/settings/integrations/granola",
+    "availability": "Considered",
+    "audience": ["Enterprise", "Startup"],
+    "category": ["Communications"]
   },
   {
     "name": "Sentry",

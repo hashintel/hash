@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Tests that newtype declarations add bindings to both value and type universes simultaneously
+["newtype", "Integer", "Number", ["type", "Bar", "Integer", "Integer"]]

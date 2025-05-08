@@ -4,6 +4,7 @@ use circular_buffer::CircularBuffer;
 use hashql_core::{
     heap::Heap,
     span::{SpanId, storage::SpanStorage},
+    symbol::Symbol,
 };
 use text_size::TextRange;
 
@@ -195,6 +196,10 @@ impl<'heap, 'source> ParserState<'heap, 'source> {
                 stack: Vec::new(),
             },
         }
+    }
+
+    pub(crate) fn intern_symbol(&self, value: impl AsRef<str>) -> Symbol<'heap> {
+        self.heap.intern_symbol(value.as_ref())
     }
 
     /// Consumes and returns the next token, validating it against the expected syntax kinds.

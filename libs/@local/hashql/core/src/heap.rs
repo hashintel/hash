@@ -43,7 +43,7 @@ use std::sync::Mutex;
 use bumpalo::Bump;
 use hashbrown::HashSet;
 
-use crate::symbol::InternedSymbol;
+use crate::symbol::{Symbol, sym::TABLES};
 
 /// A boxed value allocated on the `Heap`.
 ///
@@ -90,10 +90,14 @@ impl Heap {
     /// when allocations are made.
     #[must_use]
     pub fn new() -> Self {
-        Self {
+        let this = Self {
             bump: Bump::new(),
             strings: Mutex::default(),
-        }
+        };
+
+        this.prime_symbols();
+
+        this
     }
 
     /// Creates a new heap with the specified initial capacity.
@@ -103,10 +107,14 @@ impl Heap {
     /// of the AST is known in advance.
     #[must_use]
     pub fn with_capacity(capacity: usize) -> Self {
-        Self {
+        let this = Self {
             bump: Bump::with_capacity(capacity),
             strings: Mutex::default(),
-        }
+        };
+
+        this.prime_symbols();
+
+        this
     }
 
     /// Resets the heap, clearing all allocations.
@@ -121,6 +129,7 @@ impl Heap {
             .lock()
             .expect("lock should not be poisoned")
             .clear();
+        self.prime_symbols();
 
         self.bump.reset();
     }
@@ -131,16 +140,29 @@ impl Heap {
         self.bump.alloc(value)
     }
 
+    fn prime_symbols(&self) {
+        let mut strings = self.strings.lock().expect("lock should not be poisoned");
+        strings.reserve(TABLES.iter().map(|table| table.len()).sum());
+
+        for &table in TABLES {
+            for &symbol in table {
+                assert!(strings.insert(symbol.as_str()));
+            }
+        }
+
+        drop(strings);
+    }
+
     /// Interns a string symbol, returning a reference to the interned value.
     ///
     /// # Panics
     ///
     /// This function will panic if the internal mutex is poisoned.
-    pub fn intern_symbol<'this>(&'this self, value: &str) -> InternedSymbol<'this> {
+    pub fn intern_symbol<'this>(&'this self, value: &str) -> Symbol<'this> {
         let mut strings = self.strings.lock().expect("lock should not be poisoned");
 
         if let Some(&string) = strings.get(value) {
-            return InternedSymbol::new_unchecked(string);
+            return Symbol::new_unchecked(string);
         }
 
         let string = &*self.bump.alloc_str(value);
@@ -154,7 +176,7 @@ impl Heap {
         strings.insert(string);
         drop(strings);
 
-        InternedSymbol::new_unchecked(string)
+        Symbol::new_unchecked(string)
     }
 
     pub fn slice<T>(&self, slice: &[T]) -> &mut [T]

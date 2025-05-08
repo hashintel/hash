@@ -50,22 +50,16 @@ pub use self::metadata::ValueMetadata;
 /// ```
 ///
 /// [`DataType`]: crate::ontology::data_type::DataType
-#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize, specta::Type)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[derive(Debug, Clone, PartialEq, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[serde(untagged)]
 pub enum PropertyValue {
     Null,
     Bool(bool),
     String(String),
-    Number(#[cfg_attr(target_arch = "wasm32", tsify(type = "number"))] Real),
-    Array(#[cfg_attr(target_arch = "wasm32", tsify(type = "PropertyValue[]"))] Vec<Self>),
-    Object(
-        #[cfg_attr(
-            target_arch = "wasm32",
-            tsify(type = "{ [key: string]: PropertyValue }")
-        )]
-        HashMap<String, Self>,
-    ),
+    Number(Real),
+    Array(Vec<Self>),
+    Object(HashMap<String, Self>),
 }
 
 impl fmt::Display for PropertyValue {

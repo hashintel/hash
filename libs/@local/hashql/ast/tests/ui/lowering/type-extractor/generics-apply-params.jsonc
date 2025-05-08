@@ -1,0 +1,8 @@
+//@ run: pass
+//@ description: Tests that generic argument application works correctly with TypeKind::Apply
+[
+  "type",
+  "Wrapper<T>",
+  { "#struct": { "foo": "T" } },
+  ["type", "StringWrapper", { "#tuple": ["Wrapper<String>"] }, "_"]
+]

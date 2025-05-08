@@ -2,8 +2,9 @@ use core::str::pattern::{Pattern as _, Searcher as _};
 
 use hashql_diagnostics::severity::Severity;
 
-type Severities = [&'static Severity; 5];
+type Severities = [&'static Severity; 6];
 const SUPPORTED_SEVERITIES: Severities = [
+    &Severity::COMPILER_BUG,
     &Severity::CRITICAL,
     &Severity::ERROR,
     &Severity::WARNING,

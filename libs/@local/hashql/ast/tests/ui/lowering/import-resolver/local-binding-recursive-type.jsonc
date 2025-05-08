@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Tests that recursive type references in the same declaration aren't resolved as paths
+["type", "Dict", "Dict", "_"]

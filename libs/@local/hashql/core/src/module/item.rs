@@ -1,5 +1,10 @@
-use super::{ModuleId, ModuleRegistry};
-use crate::{symbol::InternedSymbol, r#type::TypeId};
+use core::iter;
+
+use super::{Module, ModuleId, ModuleRegistry};
+use crate::{
+    symbol::Symbol,
+    r#type::{TypeId, kind::GenericArgument},
+};
 
 /// Represents the conceptual space or "universe" an item belongs to.
 ///
@@ -29,20 +34,20 @@ pub struct IntrinsicItem {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum ItemKind {
+pub enum ItemKind<'heap> {
     Module(ModuleId),
     // In the future we'll also need to export values (like closures)
     // this would be done via a `DefId`/`ValueId` or similar
-    Type(TypeId),
+    Type(TypeId, &'heap [GenericArgument<'heap>]),
     Intrinsic(IntrinsicItem),
 }
 
-impl ItemKind {
+impl ItemKind<'_> {
     #[must_use]
     pub const fn universe(&self) -> Option<Universe> {
         match self {
             Self::Module(_) => None,
-            Self::Type(_) => Some(Universe::Type),
+            Self::Type(_, _) => Some(Universe::Type),
             Self::Intrinsic(IntrinsicItem { universe, .. }) => Some(*universe),
         }
     }
@@ -50,37 +55,43 @@ impl ItemKind {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Item<'heap> {
-    pub parent: Option<ModuleId>,
+    pub module: ModuleId,
 
     // TODO: move to Ident once Copy
     //  see: https://linear.app/hash/issue/H-4414/hashql-move-from-symbol-to-internedsymbol
-    pub name: InternedSymbol<'heap>,
-    pub kind: ItemKind,
+    pub name: Symbol<'heap>,
+    pub kind: ItemKind<'heap>,
 }
 
 impl<'heap> Item<'heap> {
-    // TODO: when `gen` blocks have proper r-a support revisit this, currently, due to lifetime
-    // constraints and recursive types this cannot be written as a simple iterator.
-    pub fn search(
+    pub fn ancestors(
         &self,
         registry: &ModuleRegistry<'heap>,
-        query: impl IntoIterator<Item = InternedSymbol<'heap>, IntoIter: Clone>,
-    ) -> Vec<Self> {
-        let mut query = query.into_iter();
-        let Some(name) = query.next() else {
-            return vec![*self];
-        };
+    ) -> impl IntoIterator<Item = Module<'heap>> {
+        let mut next = self.module;
 
-        let ItemKind::Module(module) = self.kind else {
-            return Vec::new();
-        };
+        iter::from_fn(move || {
+            if next == ModuleId::ROOT {
+                return None;
+            }
 
-        let module = registry.modules.index(module);
-        let items = module.find(name);
+            let module = registry.modules.index(next);
+            next = module.parent;
 
-        items
+            Some(module)
+        })
+    }
+
+    pub fn absolute_path(
+        &self,
+        registry: &ModuleRegistry<'heap>,
+    ) -> impl Iterator<Item = Symbol<'heap>> {
+        let mut modules: Vec<_> = self.ancestors(registry).into_iter().collect();
+        modules.reverse();
+
+        modules
             .into_iter()
-            .flat_map(move |item| item.search(registry, query.clone()))
-            .collect()
+            .map(|module| module.name)
+            .chain(iter::once(self.name))
     }
 }

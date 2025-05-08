@@ -8,7 +8,7 @@ use super::{Enum, List, Map, Primitive, Struct, Tuple};
 ///
 /// This solves the problem of distinguishing between different type references that might have the
 /// same name but are from different scopes or modules.
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub struct TypeId(specta::SpectaID);
 
 impl TypeId {
@@ -71,6 +71,8 @@ pub struct TypeDefinition {
     pub name: Cow<'static, str>,
     pub r#type: Type,
     pub public: bool,
+    pub module: Cow<'static, str>,
+    pub branded: bool,
 }
 
 impl TypeDefinition {
@@ -84,6 +86,8 @@ impl TypeDefinition {
             // TODO: Only export public types
             //  see https://linear.app/hash/issue/H-4498/only-export-public-types-from-codegen
             public: true,
+            module: data_type.module_path().clone(),
+            branded: false,
         }
     }
 }

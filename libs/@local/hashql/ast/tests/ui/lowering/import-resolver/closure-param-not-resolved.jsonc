@@ -1,0 +1,13 @@
+//@ run: pass
+//@ description: Tests that parameter names in closures are recognized as local bindings and not resolved as paths
+[
+  "fn",
+  { "#tuple": [] },
+  {
+    "#struct": {
+      "Dict": "Number" // Parameter named the same as a common type
+    }
+  },
+  "Number",
+  "Dict" // Should be treated as a parameter, not resolved as a path
+]

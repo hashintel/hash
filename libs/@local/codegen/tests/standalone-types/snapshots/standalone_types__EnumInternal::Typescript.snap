@@ -1,0 +1,21 @@
+---
+source: libs/@local/codegen/tests/standalone-types/main.rs
+expression: generated
+---
+export type EnumInternal = {
+	type: "Unit"
+} | {
+	type: "SingleUnnamed"
+} & StructSimple | {
+	type: "EmptyNamed"
+} | {
+	type: "SingleNamed"
+	value: number
+} | {
+	type: "MultiNamed"
+	value_1: number
+	value_2: string
+} | {
+	type: "FlattenedStruct"
+	name: string
+} & StructSimple;

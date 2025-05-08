@@ -1,0 +1,715 @@
+use alloc::borrow::Cow;
+use core::cmp::Ordering;
+
+use hashql_core::{
+    module::{
+        error::ResolutionError,
+        item::{ItemKind, Universe},
+    },
+    span::SpanId,
+    symbol::Symbol,
+    r#type::{error::TypeCheckDiagnosticCategory, kind::GenericArgument},
+};
+use hashql_diagnostics::{
+    Diagnostic,
+    category::{DiagnosticCategory, TerminalDiagnosticCategory},
+    color::{AnsiColor, Color},
+    help::Help,
+    label::Label,
+    note::Note,
+    severity::Severity,
+};
+use strsim::jaro_winkler;
+
+use super::translate::VariableReference;
+use crate::node::path::{Path, PathSegmentArgument};
+
+pub(crate) type TypeExtractorDiagnostic = Diagnostic<TypeExtractorDiagnosticCategory, SpanId>;
+
+const DUPLICATE_TYPE_ALIAS: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "duplicate-type-alias",
+    name: "Duplicate type alias name",
+};
+
+const DUPLICATE_NEWTYPE: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "duplicate-newtype",
+    name: "Duplicate newtype name",
+};
+
+const GENERIC_PARAMETER_MISMATCH: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "generic-parameter-mismatch",
+    name: "Incorrect number of type parameters",
+};
+
+const UNBOUND_TYPE_VARIABLE: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "unbound-type-variable",
+    name: "Unbound type variable",
+};
+
+const SPECIAL_FORM_NOT_SUPPORTED: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "special-form-not-supported",
+    name: "Unsupported special form",
+};
+
+const INTRINSIC_PARAMETER_MISMATCH: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "intrinsic-parameter-mismatch",
+    name: "Incorrect intrinsic type parameters",
+};
+
+const UNKNOWN_INTRINSIC_TYPE: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "unknown-intrinsic-type",
+    name: "Unknown intrinsic type",
+};
+
+const INVALID_RESOLUTION: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "invalid-resolution",
+    name: "Invalid item resolution",
+};
+
+const RESOLUTION_ERROR: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "resolution-error",
+    name: "Path resolution error",
+};
+
+const INFER_WITH_ARGUMENTS: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "infer-with-arguments",
+    name: "Inference placeholder with type arguments",
+};
+
+const DUPLICATE_STRUCT_FIELD: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "duplicate-struct-field",
+    name: "Duplicate struct field",
+};
+
+const GENERIC_CONSTRAINT_NOT_ALLOWED: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "generic-constraint-not-allowed",
+    name: "Constraint not allowed in generic arguments",
+};
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum TypeExtractorDiagnosticCategory {
+    DuplicateTypeAlias,
+    DuplicateNewtype,
+    GenericParameterMismatch,
+    UnboundTypeVariable,
+    SpecialFormNotSupported,
+    IntrinsicParameterMismatch,
+    UnknownIntrinsicType,
+    InvalidResolution,
+    ResolutionError,
+    InferWithArguments,
+    DuplicateStructField,
+    GenericConstraintNotAllowed,
+    TypeCheck(TypeCheckDiagnosticCategory),
+}
+
+impl DiagnosticCategory for TypeExtractorDiagnosticCategory {
+    fn id(&self) -> Cow<'_, str> {
+        Cow::Borrowed("type-extractor")
+    }
+
+    fn name(&self) -> Cow<'_, str> {
+        Cow::Borrowed("Type Extractor")
+    }
+
+    fn subcategory(&self) -> Option<&dyn DiagnosticCategory> {
+        match self {
+            Self::DuplicateTypeAlias => Some(&DUPLICATE_TYPE_ALIAS),
+            Self::DuplicateNewtype => Some(&DUPLICATE_NEWTYPE),
+            Self::GenericParameterMismatch => Some(&GENERIC_PARAMETER_MISMATCH),
+            Self::UnboundTypeVariable => Some(&UNBOUND_TYPE_VARIABLE),
+            Self::SpecialFormNotSupported => Some(&SPECIAL_FORM_NOT_SUPPORTED),
+            Self::IntrinsicParameterMismatch => Some(&INTRINSIC_PARAMETER_MISMATCH),
+            Self::UnknownIntrinsicType => Some(&UNKNOWN_INTRINSIC_TYPE),
+            Self::InvalidResolution => Some(&INVALID_RESOLUTION),
+            Self::ResolutionError => Some(&RESOLUTION_ERROR),
+            Self::InferWithArguments => Some(&INFER_WITH_ARGUMENTS),
+            Self::DuplicateStructField => Some(&DUPLICATE_STRUCT_FIELD),
+            Self::GenericConstraintNotAllowed => Some(&GENERIC_CONSTRAINT_NOT_ALLOWED),
+            Self::TypeCheck(category) => Some(category),
+        }
+    }
+}
+
+/// Creates a diagnostic for a duplicate type alias name.
+///
+/// This diagnostic is generated when the type extractor finds a duplicate type alias name
+/// which should have been prevented by the name mangler at an earlier stage.
+pub(crate) fn duplicate_type_alias(
+    original_span: SpanId,
+    duplicate_span: SpanId,
+    name: Symbol<'_>,
+) -> TypeExtractorDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        TypeExtractorDiagnosticCategory::DuplicateTypeAlias,
+        Severity::COMPILER_BUG,
+    );
+
+    diagnostic.labels.extend([
+        Label::new(original_span, format!("Type '{name}' first defined here"))
+            .with_order(1)
+            .with_color(Color::Ansi(AnsiColor::Blue)),
+        Label::new(duplicate_span, "... but was redefined here")
+            .with_order(0)
+            .with_color(Color::Ansi(AnsiColor::Red)),
+    ]);
+
+    diagnostic.note = Some(Note::new(
+        "This likely represents a compiler bug in the name mangling pass. The name mangler should \
+         have given these identical names unique internal identifiers to avoid this collision. \
+         Please report this issue to the HashQL team with a minimal reproduction case.",
+    ));
+
+    diagnostic
+}
+
+/// Creates a diagnostic for when a constraint is used in a generic argument position.
+///
+/// This diagnostic is generated when a generic constraint (like `T: Bound`) is used in a place
+/// where only a type argument is allowed, such as in `Foo<T: Bound>`.
+pub(crate) fn generic_constraint_not_allowed(
+    constraint_span: SpanId,
+    type_span: SpanId,
+    name: Symbol<'_>,
+) -> TypeExtractorDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        TypeExtractorDiagnosticCategory::GenericConstraintNotAllowed,
+        Severity::ERROR,
+    );
+
+    diagnostic.labels.extend([
+        Label::new(
+            constraint_span,
+            format!("Constraint on `{name}` not allowed here"),
+        )
+        .with_order(0)
+        .with_color(Color::Ansi(AnsiColor::Red)),
+        Label::new(type_span, "... in this type instantiation")
+            .with_order(-1)
+            .with_color(Color::Ansi(AnsiColor::Blue)),
+    ]);
+
+    diagnostic.help = Some(Help::new(format!("Use `{name}` without a constraint")));
+
+    diagnostic.note = Some(Note::new(
+        "Type constraints cannot be specified at the usage site in HashQL. Constraints on type \
+         parameters must be declared where the type is defined, not where it is used.",
+    ));
+
+    diagnostic
+}
+
+/// Creates a diagnostic for a duplicate newtype name.
+///
+/// This diagnostic is generated when the type extractor finds a duplicate newtype name
+/// which should have been prevented by the name mangler at an earlier stage.
+pub(crate) fn duplicate_newtype(
+    original_span: SpanId,
+    duplicate_span: SpanId,
+    name: Symbol<'_>,
+) -> TypeExtractorDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        TypeExtractorDiagnosticCategory::DuplicateNewtype,
+        Severity::COMPILER_BUG,
+    );
+
+    diagnostic.labels.extend([
+        Label::new(
+            original_span,
+            format!("Newtype '{name}' first defined here"),
+        )
+        .with_order(1)
+        .with_color(Color::Ansi(AnsiColor::Blue)),
+        Label::new(duplicate_span, "... but was redefined here")
+            .with_order(0)
+            .with_color(Color::Ansi(AnsiColor::Red)),
+    ]);
+
+    diagnostic.note = Some(Note::new(
+        "This likely represents a compiler bug in the name mangling pass. The compiler \
+         encountered duplicate newtype definitions with the same name that should have been given \
+         unique internal identifiers. The name mangler should have prevented this collision \
+         automatically. Please report this issue to the HashQL team with a minimal reproduction \
+         case.",
+    ));
+
+    diagnostic
+}
+
+fn demangle<'s>(symbol: &'s Symbol) -> &'s str {
+    symbol
+        .as_str()
+        .rsplit_once(':')
+        .map_or(symbol.as_str(), |(name, _)| name)
+}
+
+/// Creates a diagnostic for incorrect generic parameter count.
+///
+/// This diagnostic is generated when a type is provided with an incorrect number of generic
+/// parameters. It handles both too many and too few parameters cases.
+pub(crate) fn generic_parameter_mismatch(
+    variable: &VariableReference,
+    parameters: &[GenericArgument<'_>],
+    arguments: &[PathSegmentArgument<'_>],
+) -> TypeExtractorDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        TypeExtractorDiagnosticCategory::GenericParameterMismatch,
+        Severity::ERROR,
+    );
+
+    let name = match variable {
+        VariableReference::Local(ident) => Cow::Borrowed(demangle(&ident.value)),
+        VariableReference::Global(path) => path
+            .rooted
+            .then_some("")
+            .into_iter()
+            .chain(
+                path.segments
+                    .iter()
+                    .map(|segment| segment.name.value.as_str()),
+            )
+            .intersperse("::")
+            .collect(),
+    };
+
+    let expected = parameters.len();
+    let actual = arguments.len();
+
+    let missing = parameters.get(actual..).unwrap_or(&[]);
+    let extraneous = arguments.get(expected..).unwrap_or(&[]);
+
+    let message = if actual < expected {
+        format!(
+            "Type `{name}` needs {expected} type parameter{}, but only {actual} {} provided",
+            if expected == 1 { "" } else { "s" },
+            if actual == 1 { "was" } else { "were" }
+        )
+    } else {
+        format!(
+            "Type `{name}` takes {expected} type parameter{}, but {actual} {} provided",
+            if expected == 1 { "" } else { "s" },
+            if actual == 1 { "was" } else { "were" }
+        )
+    };
+
+    diagnostic
+        .labels
+        .push(Label::new(variable.span(), message).with_color(Color::Ansi(AnsiColor::Red)));
+
+    let mut index = -1;
+
+    for missing in missing {
+        diagnostic.labels.push(
+            Label::new(
+                variable.span(),
+                format!("Missing parameter `{}`", demangle(&missing.name)),
+            )
+            .with_order(index)
+            .with_color(Color::Ansi(AnsiColor::Yellow)),
+        );
+
+        index -= 1;
+    }
+
+    for extraneous in extraneous {
+        diagnostic.labels.push(
+            Label::new(extraneous.span(), "Remove this parameter")
+                .with_order(index)
+                .with_color(Color::Ansi(AnsiColor::Red)),
+        );
+
+        index -= 1;
+    }
+
+    let params = parameters
+        .iter()
+        .map(|param| demangle(&param.name))
+        .intersperse(", ")
+        .collect::<String>();
+
+    let usage = format!("`{name}<{params}>`");
+
+    let help = match actual.cmp(&expected) {
+        Ordering::Less => format!("Add the missing parameter(s): {usage}"),
+        Ordering::Greater => format!("Remove the extra parameter(s): {usage}"),
+        Ordering::Equal => format!("Use: {usage}"),
+    };
+
+    diagnostic.help = Some(Help::new(help));
+
+    diagnostic.note = Some(Note::new(
+        "Generic type parameters allow types to work with different data types while maintaining \
+         type safety. Each generic type has specific requirements for the number and names of \
+         type parameters it accepts. For example, List<T> requires exactly one type parameter, \
+         while Dict<K, V> requires two.",
+    ));
+
+    diagnostic
+}
+
+/// Creates a diagnostic for an unbound type variable.
+///
+/// This diagnostic is generated when a variable reference cannot be resolved within
+/// the current scope, which should have been caught by an earlier pass.
+pub(crate) fn unbound_type_variable<'heap>(
+    span: SpanId,
+    name: Symbol<'heap>,
+    locals: impl IntoIterator<Item = Symbol<'heap>>,
+) -> TypeExtractorDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        TypeExtractorDiagnosticCategory::UnboundTypeVariable,
+        Severity::COMPILER_BUG,
+    );
+
+    diagnostic.labels.push(
+        Label::new(span, format!("Cannot find type '{name}'"))
+            .with_color(Color::Ansi(AnsiColor::Red)),
+    );
+
+    let suggestions: Vec<_> = locals
+        .into_iter()
+        .filter(|local| jaro_winkler(local.as_str(), name.as_str()) > 0.7)
+        .collect();
+
+    if !suggestions.is_empty() {
+        let suggestions: String = suggestions
+            .iter()
+            .take(3)
+            .map(demangle)
+            .intersperse("`, `")
+            .collect();
+
+        diagnostic.help = Some(Help::new(format!("Did you mean `{suggestions}`?")));
+    }
+
+    diagnostic.note = Some(Note::new(
+        "This is likely a compiler bug in the name resolution system. The type checker has \
+         encountered a name that wasn't properly resolved earlier in compilation. The name \
+         resolution pass should have caught this error or provided a more specific error message. \
+         Please report this issue to the HashQL team with a minimal reproduction case.",
+    ));
+
+    diagnostic
+}
+
+/// Creates a diagnostic for a special form usage where it's no longer supported.
+///
+/// This diagnostic is generated when code attempts to use a special form in a context
+/// where they are no longer supported (likely after a language change).
+pub(crate) fn special_form_not_supported(span: SpanId, name: &str) -> TypeExtractorDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        TypeExtractorDiagnosticCategory::SpecialFormNotSupported,
+        Severity::ERROR,
+    );
+
+    diagnostic.labels.push(
+        Label::new(span, format!("Special form '{name}' not supported here"))
+            .with_color(Color::Ansi(AnsiColor::Red)),
+    );
+
+    diagnostic.note = Some(Note::new(
+        "This special form should have been handled by an earlier compilation stage. Before this \
+         step, special forms should have been replaced with native type syntax in the special \
+         form expander compilation pass or error out on invalid placement. This likely indicates \
+         an issue with the compiler, not with your code.",
+    ));
+
+    diagnostic
+}
+
+/// Creates a diagnostic for an incorrect number of type parameters for an intrinsic type.
+///
+/// This diagnostic is generated when an intrinsic type like List or Dict is used with
+/// an incorrect number of type parameters.
+pub(crate) fn intrinsic_parameter_count_mismatch(
+    span: SpanId,
+    name: &str,
+    expected: usize,
+    actual: usize,
+) -> TypeExtractorDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        TypeExtractorDiagnosticCategory::IntrinsicParameterMismatch,
+        Severity::ERROR,
+    );
+
+    let message = if actual < expected {
+        format!(
+            "Intrinsic `{name}` needs {expected} parameter{}, but found {actual}",
+            if expected == 1 { "" } else { "s" }
+        )
+    } else {
+        format!(
+            "Intrinsic `{name}` takes {expected} parameter{}, but found {actual}",
+            if expected == 1 { "" } else { "s" }
+        )
+    };
+
+    diagnostic
+        .labels
+        .push(Label::new(span, message).with_color(Color::Ansi(AnsiColor::Red)));
+
+    let help_example = match name {
+        "::kernel::type::List" => Cow::Borrowed("List<ElementType>"),
+        "::kernel::type::Dict" => Cow::Borrowed("Dict<KeyType, ValueType>"),
+        _ => {
+            let params = (0..expected)
+                .map(|i| Cow::Owned(format!("T{}", i + 1)))
+                .intersperse(Cow::Borrowed(", "))
+                .collect::<String>();
+
+            Cow::Owned(format!("{name}<{params}>"))
+        }
+    };
+
+    let help_message = if actual < expected {
+        format!("Add missing parameter(s): `{help_example}`")
+    } else {
+        format!("Remove extra parameter(s): `{help_example}`")
+    };
+
+    diagnostic.help = Some(Help::new(help_message));
+
+    // Add a note explaining the purpose of the intrinsic type
+    let note_message = match name {
+        "::kernel::type::List" => {
+            "List is a generic container that requires exactly one type parameter specifying the \
+             element type. For example, List<String> is a list of strings, while List<Number> is a \
+             list of numbers."
+        }
+        "::kernel::type::Dict" => {
+            "Dict is a key-value mapping that requires exactly two type parameters: the key type \
+             and the value type. For example, Dict<String, Number> maps string keys to number \
+             values."
+        }
+        _ => {
+            "Intrinsic types are built-in types provided by the language with specific \
+             requirements for their type parameters. Each intrinsic has a defined number of type \
+             parameters it can accept."
+        }
+    };
+
+    diagnostic.note = Some(Note::new(note_message));
+
+    diagnostic
+}
+
+/// Creates a diagnostic for an unknown intrinsic type.
+///
+/// This diagnostic is generated when a reference to an unknown intrinsic type is encountered.
+pub(crate) fn unknown_intrinsic_type(
+    span: SpanId,
+    name: &str,
+    available: &[&str],
+) -> TypeExtractorDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        TypeExtractorDiagnosticCategory::UnknownIntrinsicType,
+        Severity::COMPILER_BUG,
+    );
+
+    diagnostic.labels.push(
+        Label::new(span, format!("Unknown intrinsic type `{name}`"))
+            .with_color(Color::Ansi(AnsiColor::Red)),
+    );
+
+    let similar: Vec<_> = available
+        .iter()
+        .copied()
+        .filter(|intrinsic| jaro_winkler(intrinsic, name) > 0.7)
+        .take(3)
+        .collect();
+
+    if similar.is_empty() {
+        // Provide helpful guidance even without close matches
+        diagnostic.help = Some(Help::new(
+            "Check the HashQL documentation for a complete list of available intrinsic types. \
+             Make sure you're using the correct namespace and capitalization for the type you're \
+             trying to use.",
+        ));
+    } else {
+        let suggestions: String = similar.into_iter().intersperse("`, `").collect();
+
+        diagnostic.help = Some(Help::new(format!("Did you mean `{suggestions}`?")));
+    }
+
+    let available: String = available.iter().copied().intersperse("`, `").collect();
+
+    diagnostic.note = Some(Note::new(format!(
+        "Available intrinsic types: `{available}`\n\nIntrinsic types are fundamental building \
+         blocks provided by the language runtime. They form the basis of the type system and \
+         cannot be redefined by user code.\n\nThis is likely a compiler bug. The import resolver \
+         should've caught this error beforehand. Please report this issue to the HashQL team with \
+         a minimal reproduction case that demonstrates how to trigger this error."
+    )));
+
+    diagnostic
+}
+
+/// Creates a diagnostic for invalid item resolution.
+///
+/// This diagnostic is generated when a resolution succeeds but produces an item
+/// of the wrong kind, which indicates a compiler bug.
+pub(crate) fn invalid_resolved_item(
+    span: SpanId,
+    expected: Universe,
+    actual: ItemKind,
+) -> TypeExtractorDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        TypeExtractorDiagnosticCategory::InvalidResolution,
+        Severity::COMPILER_BUG,
+    );
+
+    diagnostic.labels.push(
+        Label::new(
+            span,
+            format!(
+                "a {} was expected here",
+                match expected {
+                    Universe::Type => "value",
+                    Universe::Value => "type",
+                }
+            ),
+        )
+        .with_color(Color::Ansi(AnsiColor::Red)),
+    );
+
+    diagnostic.help = Some(Help::new(format!(
+        "Found a {actual:?} instead of a {}. This is an internal compiler issue with type \
+         resolution, not a problem with your code.",
+        match expected {
+            Universe::Type => "type",
+            Universe::Value => "value",
+        }
+    )));
+
+    diagnostic.note = Some(Note::new(
+        "This is likely a compiler bug in the import resolution system. The compiler has confused \
+         types and values during name resolution. The import resolver should have caught this \
+         error before reaching this stage. Please report this issue to the HashQL team with a \
+         minimal reproduction case that demonstrates how to trigger this error.",
+    ));
+
+    diagnostic
+}
+
+/// Creates a diagnostic for a resolution error.
+///
+/// This diagnostic is generated when path resolution fails due to a compiler bug.
+pub(crate) fn resolution_error(path: &Path, error: &ResolutionError) -> TypeExtractorDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        TypeExtractorDiagnosticCategory::ResolutionError,
+        Severity::COMPILER_BUG,
+    );
+
+    let path_display = path
+        .rooted
+        .then_some("::")
+        .into_iter()
+        .chain(
+            path.segments
+                .iter()
+                .map(|segment| segment.name.value.as_str()),
+        )
+        .intersperse("::")
+        .collect::<String>();
+
+    diagnostic.labels.push(
+        Label::new(path.span, format!("Could not resolve '{path_display}'"))
+            .with_color(Color::Ansi(AnsiColor::Red)),
+    );
+
+    diagnostic.note = Some(Note::new(format!(
+        "This is likely a compiler bug in the name resolution system. During type checking, the \
+         compiler failed to resolve a path that should have been properly processed by earlier \
+         compilation stages. Either the path resolution should have succeeded or a more specific \
+         error should have been reported earlier in compilation. \n\nPlease report this issue to \
+         the HashQL team with a minimal reproduction case that triggers this error. Include the \
+         path you were trying to reference and any relevant type definitions.\n\nTechnical error \
+         details:\n{error:#?}"
+    )));
+
+    diagnostic
+}
+
+/// Creates a diagnostic for infer variable with arguments.
+///
+/// This diagnostic is generated when an inferred type ('_') is provided with type arguments,
+/// which doesn't make sense semantically.
+pub(crate) fn infer_with_arguments(infer_span: SpanId) -> TypeExtractorDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        TypeExtractorDiagnosticCategory::InferWithArguments,
+        Severity::ERROR,
+    );
+
+    diagnostic.labels.push(
+        Label::new(
+            infer_span,
+            "Type arguments cannot be used with '_' placeholder",
+        )
+        .with_color(Color::Ansi(AnsiColor::Red)),
+    );
+
+    diagnostic.help = Some(Help::new(
+        "To fix this error, you have two options:\n1. Remove these type arguments completely, \
+         or\n2. Replace the '_' placeholder with a proper generic type parameter that can accept \
+         arguments",
+    ));
+
+    diagnostic.note = Some(Note::new(
+        "The '_' placeholder (underscore) is a special symbol that tells the compiler to infer \
+         the type automatically based on context. Unlike generic types such as 'List' or 'Dict', \
+         the underscore isn't a type constructor and therefore cannot be parameterized with \
+         additional type arguments.\n\nIf you need to use generic type parameters, consider using \
+         a named type variable or a specific generic type constructor instead. For example, \
+         instead of '_<String>', use either 'T' or 'List<String>'.",
+    ));
+
+    diagnostic
+}
+
+/// Creates a diagnostic for duplicate struct fields.
+///
+/// This diagnostic is generated when a struct type definition contains duplicate field names.
+pub(crate) fn duplicate_struct_fields(
+    original_span: SpanId,
+    duplicates: impl IntoIterator<Item = SpanId>,
+    field_name: Symbol<'_>,
+) -> TypeExtractorDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        TypeExtractorDiagnosticCategory::DuplicateStructField,
+        Severity::ERROR,
+    );
+
+    diagnostic.labels.push(
+        Label::new(
+            original_span,
+            format!("Field `{field_name}` first defined here"),
+        )
+        .with_order(1)
+        .with_color(Color::Ansi(AnsiColor::Blue)),
+    );
+
+    let mut index = -1;
+    for duplicate in duplicates {
+        diagnostic.labels.push(
+            Label::new(duplicate, "..., but was redefined here")
+                .with_order(index)
+                .with_color(Color::Ansi(AnsiColor::Red)),
+        );
+
+        index -= 1;
+    }
+
+    diagnostic.help = Some(Help::new(format!(
+        "To fix this error, you can either:\n1. Rename the duplicate `{field_name}` field to a \
+         different name, or\n2. Remove the redundant field definition entirely if it's not needed"
+    )));
+
+    diagnostic.note = Some(Note::new(
+        "Struct types in HashQL require that each field has a unique name. Having multiple fields \
+         with the same name would create ambiguity when accessing fields through dot notation or \
+         destructuring. The compiler enforces this constraint to ensure clear and predictable \
+         access patterns for struct data.",
+    ));
+
+    diagnostic
+}

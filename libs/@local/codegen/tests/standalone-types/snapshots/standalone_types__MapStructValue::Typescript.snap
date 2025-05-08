@@ -1,0 +1,18 @@
+---
+source: libs/@local/codegen/tests/standalone-types/main.rs
+expression: generated
+---
+export interface MapStructValue {
+	string_to_struct: {
+		[key: string]: StructSimple
+	};
+	int_to_struct: {
+		[key: number]: StructSimple
+	};
+	btree_string_to_struct: {
+		[key: string]: StructSimple
+	};
+	btree_int_to_struct: {
+		[key: number]: StructSimple
+	};
+}

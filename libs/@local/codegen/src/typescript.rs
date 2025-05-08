@@ -4,6 +4,7 @@ use oxc::{
     codegen::Codegen,
     span::SPAN,
 };
+use specta::NamedType;
 
 use crate::{
     TypeCollection,
@@ -20,75 +21,118 @@ pub struct TypeScriptGeneratorSettings {
 }
 
 #[expect(dead_code)]
-pub struct TypeScriptGenerator<'a> {
+pub struct TypeScriptGenerator<'a, 'c> {
     settings: &'a TypeScriptGeneratorSettings,
-    collection: TypeCollection,
+    collection: &'c TypeCollection,
     ast: AstBuilder<'a>,
+    program: ast::Program<'a>,
+    has_branded_types: bool,
 }
 
-impl<'a> TypeScriptGenerator<'a> {
-    pub const fn new(
-        settings: &'a TypeScriptGeneratorSettings,
-        collection: TypeCollection,
-    ) -> Self {
+impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
+    pub fn new(settings: &'a TypeScriptGeneratorSettings, collection: &'c TypeCollection) -> Self {
+        let ast_builder = AstBuilder::new(&settings.allocator);
+        let program = ast_builder.program(
+            SPAN,
+            ast::SourceType::d_ts(),
+            "unnamed",
+            ast_builder.vec(),
+            None,
+            ast_builder.vec(),
+            ast_builder.vec(),
+        );
         Self {
             settings,
             collection,
-            ast: AstBuilder {
-                allocator: &settings.allocator,
-            },
+            ast: ast_builder,
+            program,
+            has_branded_types: false,
         }
     }
 
-    #[must_use]
-    pub fn generate(&self, id: TypeId) -> String {
-        let definition = &self.collection.types[&id];
-        Codegen::new()
-            .build(&self.ast.program(
-                SPAN,
-                ast::SourceType::d_ts(),
-                "unnamed",
-                self.ast.vec(),
-                None,
-                self.ast.vec(),
-                self.ast.vec1(if definition.public {
-                    ast::Statement::ExportNamedDeclaration(self.ast.alloc_export_named_declaration(
-                        SPAN,
-                        Some(self.visit_type_definition(definition)),
-                        self.ast.vec(),
-                        None,
-                        ast::ImportOrExportKind::Type,
-                        None::<ast::WithClause<'a>>,
-                    ))
-                } else {
-                    self.visit_type_definition(definition).into()
-                }),
-            ))
-            .code
+    pub fn add_import_declaration(
+        &mut self,
+        module: &str,
+        specifiers: impl IntoIterator<Item = &'a str>,
+    ) {
+        self.program.body.push(
+            self.ast
+                .module_declaration_import_declaration(
+                    SPAN,
+                    Some(
+                        self.ast
+                            .vec_from_iter(specifiers.into_iter().map(|specifier| {
+                                self.ast.import_declaration_specifier_import_specifier(
+                                    SPAN,
+                                    self.ast.module_export_name_identifier_name(SPAN, specifier),
+                                    self.ast.binding_identifier(SPAN, specifier),
+                                    ast::ImportOrExportKind::Value,
+                                )
+                            })),
+                    ),
+                    self.ast.string_literal(SPAN, module, None),
+                    None,
+                    None::<ast::WithClause<'a>>,
+                    ast::ImportOrExportKind::Type,
+                )
+                .into(),
+        );
     }
 
-    fn should_export_as_interface(&self, r#type: &Type) -> bool {
+    /// Generates TypeScript code from the provided type collection.
+    pub fn write(self) -> String {
+        Codegen::new().build(&self.program).code
+    }
+
+    pub fn add_type_declaration_by_id(&mut self, id: TypeId) {
+        let definition = &self.collection.types[&id];
+        let type_declaration = self.visit_type_definition(definition);
+        self.program.body.push(if definition.public {
+            ast::Statement::ExportNamedDeclaration(self.ast.alloc_export_named_declaration(
+                SPAN,
+                Some(type_declaration),
+                self.ast.vec(),
+                None,
+                ast::ImportOrExportKind::Type,
+                None::<ast::WithClause<'a>>,
+            ))
+        } else {
+            type_declaration.into()
+        });
+    }
+
+    pub fn add_type_declaration<T: NamedType>(&mut self) {
+        self.add_type_declaration_by_id(TypeId::from_specta(T::ID));
+    }
+
+    fn can_be_used_in_interface_extend(&self, r#type: &Type) -> bool {
         match r#type {
-            Type::Reference(reference) => self.should_export_as_interface(
+            Type::Reference(type_id) => self.can_be_used_in_interface_extend(
                 &self
                     .collection
                     .types
-                    .get(reference)
+                    .get(type_id)
                     .unwrap_or_else(|| {
                         panic!(
                             "Reference {:?} not found. Ensure all referenced types are registered \
                              or use `register_transitive_types()` first.",
                             self.collection
                                 .collection
-                                .get(reference.to_specta())
+                                .get(type_id.to_specta())
                                 .map_or_else(
-                                    || format!("{reference:?}"),
+                                    || format!("{type_id:?}"),
                                     |data_type| data_type.name().to_string()
                                 )
                         )
                     })
                     .r#type,
             ),
+            r#type => self.should_export_as_interface(r#type),
+        }
+    }
+
+    fn should_export_as_interface(&self, r#type: &Type) -> bool {
+        match r#type {
             Type::Struct(r#struct) => {
                 if let Fields::Named {
                     fields,
@@ -96,7 +140,7 @@ impl<'a> TypeScriptGenerator<'a> {
                 } = &r#struct.fields
                 {
                     !fields.iter().any(|(_, field)| {
-                        field.flatten && !self.should_export_as_interface(&field.r#type)
+                        field.flatten && !self.can_be_used_in_interface_extend(&field.r#type)
                     })
                 } else {
                     false
@@ -106,15 +150,86 @@ impl<'a> TypeScriptGenerator<'a> {
         }
     }
 
-    fn visit_type_definition(&self, definition: &TypeDefinition) -> ast::Declaration<'a> {
-        if self.should_export_as_interface(&definition.r#type) {
+    fn visit_type_definition(&mut self, definition: &TypeDefinition) -> ast::Declaration<'a> {
+        if !definition.branded && self.should_export_as_interface(&definition.r#type) {
             self.generate_interface(definition)
         } else {
+            let mut r#type = self.visit_type(&definition.r#type);
+
+            if definition.branded {
+                if !self.has_branded_types {
+                    self.has_branded_types = true;
+                    self.add_import_declaration("@local/advanced-types/brand", ["Brand"]);
+                }
+
+                // This extends the `UserId` type by intersecting it with the `WebId` type. We
+                // currently, don't have a way to represent the `UserId` type in the
+                // AST, so we have to do this manually.
+                // TODO: Allow this to be done from the Rust code directly
+                //   see https://linear.app/hash/issue/H-4514/allow-specifying-type-branding-in-rust-itself
+                if definition.module == "type_system::principal::actor::user"
+                    && definition.name == "UserId"
+                {
+                    r#type = self.ast.ts_type_intersection_type(
+                        SPAN,
+                        self.ast.vec_from_array([
+                            r#type,
+                            self.ast.ts_type_type_reference(
+                                SPAN,
+                                self.ast.ts_type_name_identifier_reference(SPAN, "WebId"),
+                                None::<ast::TSTypeParameterInstantiation<'a>>,
+                            ),
+                        ]),
+                    );
+                }
+
+                // This extends the `WebId` type by unifying it with the `ActorEntityUuid` type. We
+                // currently, don't have a way to represent the `WebId` type in the
+                // AST, so we have to do this manually.
+                // TODO: Allow this to be done from the Rust code directly
+                //   see https://linear.app/hash/issue/H-4514/allow-specifying-type-branding-in-rust-itself
+                if definition.module == "type_system::principal::actor_group::web"
+                    && definition.name == "WebId"
+                {
+                    r#type = self.ast.ts_type_union_type(
+                        SPAN,
+                        self.ast.vec_from_array([
+                            r#type,
+                            self.ast.ts_type_type_reference(
+                                SPAN,
+                                self.ast
+                                    .ts_type_name_identifier_reference(SPAN, "ActorEntityUuid"),
+                                None::<ast::TSTypeParameterInstantiation<'a>>,
+                            ),
+                        ]),
+                    );
+                }
+
+                r#type = self.ast.ts_type_type_reference(
+                    SPAN,
+                    self.ast.ts_type_name_identifier_reference(SPAN, "Brand"),
+                    Some(self.ast.ts_type_parameter_instantiation(
+                        SPAN,
+                        self.ast.vec_from_array([
+                            r#type,
+                            self.ast.ts_type_literal_type(
+                                SPAN,
+                                self.ast.ts_literal_string_literal(
+                                    SPAN,
+                                    definition.name.as_ref(),
+                                    None,
+                                ),
+                            ),
+                        ]),
+                    )),
+                );
+            }
+
             self.ast.declaration_ts_type_alias(
                 SPAN,
                 self.ast.binding_identifier(SPAN, definition.name.as_ref()),
                 None::<ast::TSTypeParameterDeclaration<'a>>,
-                self.visit_type(&definition.r#type),
+                r#type,
                 false,
             )
         }
@@ -137,14 +252,14 @@ impl<'a> TypeScriptGenerator<'a> {
                             //       due to `field.r#type` being a `Type::Struct` we can workaround
                             //       it by truely flatten the struct into the interface.
                             //   see https://linear.app/hash/issue/H-4506/support-inlining-of-flattened-structs
-                            let Type::Reference(reference) = &field.r#type else {
+                            let Type::Reference(type_id) = &field.r#type else {
                                 panic!("Expected reference type for flattened field");
                             };
                             extends.push(self.ast.ts_interface_heritage(
                                 SPAN,
                                 ast::Expression::Identifier(self.ast.alloc_identifier_reference(
                                     SPAN,
-                                    self.collection.types[reference].name.as_ref(),
+                                    self.collection.types[type_id].name.as_ref(),
                                 )),
                                 None::<ast::TSTypeParameterInstantiation<'a>>,
                             ));
@@ -154,7 +269,7 @@ impl<'a> TypeScriptGenerator<'a> {
                             self.ast.ts_signature_property_signature(
                                 SPAN,
                                 false, // computed
-                                false, // optional
+                                field.optional,
                                 false, // read-only
                                 self.ast
                                     .property_key_static_identifier(SPAN, field_name.as_ref()),
@@ -171,7 +286,7 @@ impl<'a> TypeScriptGenerator<'a> {
                     "Tried to generate an interface from tuple-struct or unit struct"
                 ),
             },
-            _ => unimplemented!("Tried to generate an interface from unsupported type"),
+            ty => unimplemented!("Tried to generate an interface from unsupported type: {ty:?}",),
         };
 
         self.ast.declaration_ts_interface(
@@ -211,14 +326,16 @@ impl<'a> TypeScriptGenerator<'a> {
                 deny_unknown,
             } => {
                 if fields.is_empty() && *deny_unknown {
-                    let mut params = self.ast.vec();
-                    params.push(self.ast.ts_type_string_keyword(SPAN));
-                    params.push(self.ast.ts_type_never_keyword(SPAN));
-
                     return self.ast.ts_type_type_reference(
                         SPAN,
                         self.ast.ts_type_name_identifier_reference(SPAN, "Record"),
-                        Some(self.ast.ts_type_parameter_instantiation(SPAN, params)),
+                        Some(self.ast.ts_type_parameter_instantiation(
+                            SPAN,
+                            self.ast.vec_from_array([
+                                self.ast.ts_type_string_keyword(SPAN),
+                                self.ast.ts_type_never_keyword(SPAN),
+                            ]),
+                        )),
                     );
                 }
 
@@ -235,7 +352,7 @@ impl<'a> TypeScriptGenerator<'a> {
                         self.ast.ts_signature_property_signature(
                             SPAN,
                             false, // computed
-                            false, // optional
+                            field.optional,
                             false, // read-only
                             self.ast
                                 .property_key_static_identifier(SPAN, field_name.as_ref()),
@@ -256,13 +373,14 @@ impl<'a> TypeScriptGenerator<'a> {
             }
             Fields::Unnamed { fields } => match fields.as_slice() {
                 [field] => self.visit_type(&field.r#type),
-                fields => {
-                    let mut members = self.ast.vec();
-                    for field in fields {
-                        members.push(self.visit_type(&field.r#type).into());
-                    }
-                    self.ast.ts_type_tuple_type(SPAN, members)
-                }
+                fields => self.ast.ts_type_tuple_type(
+                    SPAN,
+                    self.ast.vec_from_iter(
+                        fields
+                            .iter()
+                            .map(|field| self.visit_type(&field.r#type).into()),
+                    ),
+                ),
             },
         }
     }
@@ -337,7 +455,7 @@ impl<'a> TypeScriptGenerator<'a> {
                         self.ast.ts_signature_property_signature(
                             SPAN,
                             false, // computed
-                            false, // optional
+                            field.optional,
                             false, // readonly
                             self.ast
                                 .property_key_static_identifier(SPAN, field_name.as_ref()),
@@ -424,13 +542,15 @@ impl<'a> TypeScriptGenerator<'a> {
     }
 
     fn visit_enum(&self, enum_type: &Enum) -> ast::TSType<'a> {
-        let mut types = self.ast.vec();
-
-        for variant in &enum_type.variants {
-            types.push(self.visit_enum_variant(variant, &enum_type.tagging));
-        }
-
-        self.ast.ts_type_union_type(SPAN, types)
+        self.ast.ts_type_union_type(
+            SPAN,
+            self.ast.vec_from_iter(
+                enum_type
+                    .variants
+                    .iter()
+                    .map(|variant| self.visit_enum_variant(variant, &enum_type.tagging)),
+            ),
+        )
     }
 
     fn visit_struct(&self, struct_type: &Struct) -> ast::TSType<'a> {
@@ -438,24 +558,38 @@ impl<'a> TypeScriptGenerator<'a> {
     }
 
     fn visit_map(&self, map: &Map) -> ast::TSType<'a> {
-        let mut params = self.ast.vec();
-        params.push(self.visit_type(&map.key));
-        params.push(self.visit_type(&map.value));
-
-        self.ast.ts_type_type_reference(
+        self.ast.ts_type_type_literal(
             SPAN,
-            self.ast.ts_type_name_identifier_reference(SPAN, "Record"),
-            Some(self.ast.ts_type_parameter_instantiation(SPAN, params)),
+            self.ast.vec1(
+                self.ast.ts_signature_index_signature(
+                    SPAN,
+                    self.ast.vec1(
+                        self.ast.ts_index_signature_name(
+                            SPAN,
+                            "key",
+                            self.ast
+                                .alloc_ts_type_annotation(SPAN, self.visit_type(&map.key)),
+                        ),
+                    ),
+                    self.ast
+                        .alloc_ts_type_annotation(SPAN, self.visit_type(&map.value)),
+                    false, // read-only
+                    false, // static
+                ),
+            ),
         )
     }
 
     fn visit_tuple(&self, tuple: &Tuple) -> ast::TSType<'a> {
-        let mut elements = self.ast.vec();
-        for element in &tuple.elements {
-            elements.push(self.visit_type(element).into());
-        }
-
-        self.ast.ts_type_tuple_type(SPAN, elements)
+        self.ast.ts_type_tuple_type(
+            SPAN,
+            self.ast.vec_from_iter(
+                tuple
+                    .elements
+                    .iter()
+                    .map(|element| self.visit_type(element).into()),
+            ),
+        )
     }
 
     fn visit_list(&self, list: &List) -> ast::TSType<'a> {
@@ -464,14 +598,16 @@ impl<'a> TypeScriptGenerator<'a> {
     }
 
     fn visit_optional(&self, optional: &Type) -> ast::TSType<'a> {
-        // TODO: Properly implement optional handling
-        //   see https://linear.app/hash/issue/H-4457/capture-field-optionality-in-codegen
-        let mut types = self.ast.vec();
-        types.push(self.visit_type(optional));
-        types.push(self.ast.ts_type_undefined_keyword(SPAN));
-
-        self.ast
-            .ts_type_parenthesized_type(SPAN, self.ast.ts_type_union_type(SPAN, types))
+        self.ast.ts_type_parenthesized_type(
+            SPAN,
+            self.ast.ts_type_union_type(
+                SPAN,
+                self.ast.vec_from_array([
+                    self.visit_type(optional),
+                    self.ast.ts_type_undefined_keyword(SPAN),
+                ]),
+            ),
+        )
     }
 
     fn visit_type(&self, r#type: &Type) -> ast::TSType<'a> {
@@ -479,7 +615,7 @@ impl<'a> TypeScriptGenerator<'a> {
             Type::Primitive(primitive) => self.visit_primitive(primitive),
             Type::Enum(enum_type) => self.visit_enum(enum_type),
             Type::Struct(struct_type) => self.visit_struct(struct_type),
-            Type::Reference(reference) => self.visit_reference(*reference),
+            Type::Reference(type_id) => self.visit_reference(*type_id),
             Type::Tuple(tuple) => self.visit_tuple(tuple),
             Type::List(list) => self.visit_list(list),
             Type::Map(map) => self.visit_map(map),

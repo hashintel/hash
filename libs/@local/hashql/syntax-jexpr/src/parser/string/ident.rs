@@ -1,5 +1,8 @@
 use ada_url::{SchemeType, Url};
-use hashql_core::symbol::{Ident, IdentKind, Symbol};
+use hashql_core::{
+    heap::Heap,
+    symbol::{Ident, IdentKind, Symbol},
+};
 use unicode_normalization::{IsNormalized, UnicodeNormalization as _, is_nfc_quick};
 use unicode_properties::{GeneralCategoryGroup, UnicodeGeneralCategory as _};
 use winnow::{
@@ -11,16 +14,18 @@ use winnow::{
 
 use super::context::Input;
 
-fn intern(value: &str) -> Symbol {
-    match is_nfc_quick(value.chars()) {
-        IsNormalized::Yes => Symbol::new(value),
-        _ => Symbol::from_chars(value.nfc()),
+fn intern<'heap>(heap: &'heap Heap, value: &str) -> Symbol<'heap> {
+    if is_nfc_quick(value.chars()) == IsNormalized::Yes {
+        heap.intern_symbol(value)
+    } else {
+        let normalized: String = value.nfc().collect();
+        heap.intern_symbol(&normalized)
     }
 }
 
 fn parse_ident_lexical<'heap, 'span, 'source, E>(
     input: &mut Input<'heap, 'span, 'source>,
-) -> ModalResult<Ident, E>
+) -> ModalResult<Ident<'heap>, E>
 where
     E: ParserError<Input<'heap, 'span, 'source>>
         + AddContext<Input<'heap, 'span, 'source>, StrContext>,
@@ -42,7 +47,7 @@ where
         .with_span()
         .map(|(value, span): (&str, _)| Ident {
             span: context.span(span),
-            value: intern(value),
+            value: intern(context.heap, value),
             kind: IdentKind::Lexical,
         })
         .parse_next(input)
@@ -66,7 +71,7 @@ fn is_symbol(char: char) -> bool {
 
 fn parse_ident_symbol<'heap, 'span, 'source, E>(
     input: &mut Input<'heap, 'span, 'source>,
-) -> ModalResult<Ident, E>
+) -> ModalResult<Ident<'heap>, E>
 where
     E: ParserError<Input<'heap, 'span, 'source>>
         + AddContext<Input<'heap, 'span, 'source>, StrContext>,
@@ -84,7 +89,7 @@ where
         .with_span()
         .map(|(value, span): (&str, _)| Ident {
             span: context.span(span),
-            value: intern(value),
+            value: intern(context.heap, value),
             kind: IdentKind::Symbol,
         })
         .parse_next(input)
@@ -125,7 +130,7 @@ fn is_url_char(char: char) -> bool {
 
 fn parse_ident_url<'heap, 'span, 'source, E>(
     input: &mut Input<'heap, 'span, 'source>,
-) -> ModalResult<Ident, E>
+) -> ModalResult<Ident<'heap>, E>
 where
     E: ParserError<Input<'heap, 'span, 'source>>
         + AddContext<Input<'heap, 'span, 'source>, StrContext>,
@@ -157,7 +162,7 @@ where
     .with_span()
     .map(|(url, span)| Ident {
         span: context.span(span),
-        value: intern(url),
+        value: intern(context.heap, url),
         kind: IdentKind::BaseUrl,
     })
     .parse_next(input)
@@ -165,7 +170,7 @@ where
 
 pub(crate) fn parse_ident<'heap, 'span, 'source, E>(
     input: &mut Input<'heap, 'span, 'source>,
-) -> ModalResult<Ident, E>
+) -> ModalResult<Ident<'heap>, E>
 where
     E: ParserError<Input<'heap, 'span, 'source>>
         + AddContext<Input<'heap, 'span, 'source>, StrContext>,
@@ -182,7 +187,7 @@ where
 
 pub(crate) fn parse_ident_labelled_argument<'heap, 'span, 'source, E>(
     input: &mut Input<'heap, 'span, 'source>,
-) -> ModalResult<Ident, E>
+) -> ModalResult<Ident<'heap>, E>
 where
     E: ParserError<Input<'heap, 'span, 'source>>
         + AddContext<Input<'heap, 'span, 'source>, StrContext>,

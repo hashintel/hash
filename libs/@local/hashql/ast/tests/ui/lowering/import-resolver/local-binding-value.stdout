@@ -1,0 +1,12 @@
+Expr#4294967040@14
+  ExprKind (Let)
+    LetExpr#4294967040@14 (name: Dict)
+      Expr#4294967040@9
+        ExprKind (Literal)
+          LiteralExpr#4294967040@8
+            LiteralKind (Integer)
+              IntegerLiteral (2)
+      Expr#4294967040@13
+        ExprKind (Path)
+          Path#4294967040@13 (rooted: false)
+            PathSegment#4294967040@12 (name: Dict)

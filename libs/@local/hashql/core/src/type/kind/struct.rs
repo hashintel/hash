@@ -3,12 +3,12 @@ use core::ops::{ControlFlow, Deref};
 use pretty::RcDoc;
 use smallvec::SmallVec;
 
-use super::{TypeKind, generic_argument::GenericArguments};
+use super::{TypeKind, generic::GenericArguments};
 use crate::{
     collection::FastHashMap,
     intern::Interned,
     math::cartesian_product,
-    symbol::InternedSymbol,
+    symbol::Symbol,
     r#type::{
         PartialType, Type, TypeId,
         environment::{
@@ -25,7 +25,7 @@ use crate::{
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct StructField<'heap> {
-    pub name: InternedSymbol<'heap>,
+    pub name: Symbol<'heap>,
     pub value: TypeId,
 }
 
@@ -500,8 +500,8 @@ impl<'heap> Inference<'heap> for StructType<'heap> {
     }
 
     fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {
-        let (_provision_guard, id) = env.provision(self.id);
-        let (_argument_guard, arguments) = env.instantiate_arguments(self.kind.arguments);
+        let (_guard_id, id) = env.provision(self.id);
+        let (_guard, arguments) = env.instantiate_arguments(self.kind.arguments);
 
         let mut fields = SmallVec::<_, 16>::with_capacity(self.kind.fields.len());
         for field in &*self.kind.fields {
@@ -549,6 +549,8 @@ mod test {
     #![expect(clippy::min_ident_chars)]
     use core::assert_matches::assert_matches;
 
+    use anstream::adapter::strip_str;
+
     use super::{StructField, StructType};
     use crate::{
         heap::Heap,
@@ -564,7 +566,7 @@ mod test {
             },
             kind::{
                 TypeKind,
-                generic_argument::{GenericArgument, GenericArgumentId, GenericArguments},
+                generic::{GenericArgument, GenericArgumentId, GenericArguments},
                 infer::HoleId,
                 intersection::IntersectionType,
                 primitive::PrimitiveType,
@@ -2063,5 +2065,37 @@ mod test {
 
         assert_eq!(r#type.fields[0].name.as_str(), "name");
         assert_eq!(r#type.fields[0].value, type_id);
+    }
+
+    #[test]
+    fn instantiate_interdependent() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let t = env.counter.generic_argument.next();
+        let u = env.counter.generic_argument.next();
+
+        let value = r#struct!(
+            env,
+            [
+                GenericArgument {
+                    id: t,
+                    name: env.heap.intern_symbol("T"),
+                    constraint: None,
+                },
+                GenericArgument {
+                    id: u,
+                    name: env.heap.intern_symbol("U"),
+                    constraint: Some(instantiate_param(&env, t)),
+                }
+            ],
+            []
+        );
+
+        let mut instantiate = InstantiateEnvironment::new(&env);
+        let type_id = instantiate.instantiate(value);
+
+        // The type is complicated enough that it isn't feasible to test it through assertions.
+        insta::assert_snapshot!(strip_str(&env.r#type(type_id).pretty_print(&env, 80)));
     }
 }

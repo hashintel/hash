@@ -22,15 +22,12 @@ use crate::principal::actor_group::WebId;
     serde::Serialize,
     serde::Deserialize,
     derive_more::Display,
-    specta::Type,
 )]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[cfg_attr(feature = "postgres", derive(FromSql, ToSql), postgres(transparent))]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[repr(transparent)]
-pub struct EntityUuid(
-    #[cfg_attr(target_arch = "wasm32", tsify(type = "Brand<string, \"EntityUuid\">"))] Uuid,
-);
+pub struct EntityUuid(Uuid);
 
 impl EntityUuid {
     #[must_use]
@@ -56,13 +53,11 @@ impl From<EntityUuid> for Uuid {
     serde::Deserialize,
     derive_more::Display,
 )]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[cfg_attr(feature = "postgres", derive(FromSql, ToSql), postgres(transparent))]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[repr(transparent)]
-pub struct DraftId(
-    #[cfg_attr(target_arch = "wasm32", tsify(type = "Brand<string, \"DraftId\">"))] Uuid,
-);
+pub struct DraftId(Uuid);
 
 impl DraftId {
     #[must_use]
@@ -167,17 +162,11 @@ mod patch {
 #[derive(
     Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
 )]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[cfg_attr(feature = "postgres", derive(FromSql, ToSql), postgres(transparent))]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[repr(transparent)]
-pub struct EntityEditionId(
-    #[cfg_attr(
-        target_arch = "wasm32",
-        tsify(type = "Brand<string, \"EntityEditionId\">")
-    )]
-    Uuid,
-);
+pub struct EntityEditionId(Uuid);
 
 impl EntityEditionId {
     #[must_use]

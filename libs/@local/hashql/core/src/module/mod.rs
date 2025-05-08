@@ -3,29 +3,40 @@
 //! This module provides the core functionality for defining and resolving modules,
 //! managing imports, and maintaining the global registry of available items.
 // TODO: This might move into the HIR instead, if required
+pub mod error;
 pub mod import;
 pub mod item;
+pub mod locals;
 pub mod namespace;
+mod resolver;
 mod std_lib;
 
-use std::sync::Mutex;
+use core::slice;
+use std::sync::RwLock;
 
-use hashbrown::HashMap;
+use strsim::jaro_winkler;
 
 use self::{
-    item::{Item, ItemKind},
+    error::{ResolutionError, ResolutionSuggestion},
+    item::{Item, ItemKind, Universe},
+    resolver::{Resolver, ResolverMode, ResolverOptions},
     std_lib::StandardLibrary,
 };
 use crate::{
+    collection::{FastHashMap, FastHashSet},
     heap::Heap,
-    id::HasId,
+    id::{HasId, Id as _},
     intern::{Decompose, InternMap, InternSet, Interned, Provisioned},
     newtype,
-    symbol::InternedSymbol,
+    symbol::Symbol,
     r#type::environment::Environment,
 };
 
 newtype!(pub struct ModuleId(u32 is 0..=0xFFFF_FF00));
+
+impl ModuleId {
+    pub const ROOT: Self = Self::MAX;
+}
 
 /// The central registry for all modules and items in a HashQL program.
 ///
@@ -36,10 +47,10 @@ pub struct ModuleRegistry<'heap> {
     /// A reference to the global heap used for memory allocation.
     pub heap: &'heap Heap,
 
-    modules: InternMap<'heap, Module<'heap>>,
+    pub modules: InternMap<'heap, Module<'heap>>,
     items: InternSet<'heap, [Item<'heap>]>,
 
-    root: Mutex<HashMap<InternedSymbol<'heap>, &'heap Item<'heap>, foldhash::fast::RandomState>>,
+    root: RwLock<FastHashMap<Symbol<'heap>, ModuleId>>,
 }
 
 impl<'heap> ModuleRegistry<'heap> {
@@ -49,7 +60,7 @@ impl<'heap> ModuleRegistry<'heap> {
             heap,
             modules: InternMap::new(heap),
             items: InternSet::new(heap),
-            root: Mutex::new(HashMap::default()),
+            root: RwLock::default(),
         }
     }
 
@@ -82,7 +93,15 @@ impl<'heap> ModuleRegistry<'heap> {
 
                 if cfg!(debug_assertions) {
                     for item in module.items {
-                        assert_eq!(item.parent, Some(id.value()));
+                        assert_eq!(item.module, id.value());
+
+                        // check for modules if the parent is also set *correctly* to our module
+                        if let ItemKind::Module(module) = item.kind {
+                            let module = self.modules.index(module);
+
+                            assert_eq!(module.parent, id.value());
+                            assert_eq!(module.name, item.name);
+                        }
                     }
                 }
 
@@ -100,19 +119,16 @@ impl<'heap> ModuleRegistry<'heap> {
     ///
     /// # Panics
     ///
-    /// This function will panic if the internal Mutex is poisoned.
-    pub fn register(&self, name: InternedSymbol<'heap>, module: ModuleId) {
-        let mut root = self.root.lock().expect("lock should not be poisoned");
+    /// This function will panic if the internal `RwLock` is poisoned.
+    pub fn register(&self, module: ModuleId) {
+        let module = self.modules.index(module);
 
-        root.insert(
-            name,
-            self.heap.alloc(Item {
-                parent: None,
-                name,
-                kind: ItemKind::Module(module),
-            }),
-        );
+        if cfg!(debug_assertions) {
+            assert_eq!(module.parent, ModuleId::ROOT);
+        }
 
+        let mut root = self.root.write().expect("lock should not be poisoned");
+        root.insert(module.name, module.id);
         drop(root);
     }
 
@@ -120,36 +136,153 @@ impl<'heap> ModuleRegistry<'heap> {
     ///
     /// # Panics
     ///
-    /// This function will panic if the internal Mutex is poisoned.
-    pub fn find_by_name(&self, name: InternedSymbol<'heap>) -> Option<&'heap Item<'heap>> {
-        let root = self.root.lock().expect("lock should not be poisoned");
+    /// This function will panic if the internal `RwLock` is poisoned.
+    fn find_by_name(&self, name: Symbol<'heap>) -> Option<Module<'heap>> {
+        let root = self.root.read().expect("lock should not be poisoned");
 
-        root.get(&name).copied()
+        let id = root.get(&name).copied()?;
+        drop(root);
+
+        let module = self.modules.index(id);
+
+        Some(module)
     }
 
-    /// Searches for items in the registry using a path-like query.
+    /// Finds suggestions for the given name in the root namespace.
+    fn suggestions(&self, name: Symbol<'heap>) -> Vec<ResolutionSuggestion<ModuleId>> {
+        let root = self.root.read().expect("lock should not be poisoned");
+
+        let mut results = Vec::with_capacity(root.len());
+        for (&key, &module) in &*root {
+            let score = jaro_winkler(key.as_str(), name.as_str());
+            results.push(ResolutionSuggestion {
+                item: module,
+                score,
+            });
+        }
+        drop(root);
+
+        results
+    }
+
+    /// Resolves a path to an item in the registry.
     ///
-    /// This function takes an iterable of symbols representing a path in the module hierarchy
-    /// and returns all matching items. The search starts from the root namespace and traverses
-    /// the module structure according to the provided query path.
+    /// # Errors
     ///
-    /// # Returns
-    ///
-    /// A vector of matching items, or an empty vector if no matches are found.
-    pub fn search(
+    /// Returns a `ResolutionError` if:
+    /// - The path cannot be resolved to any item
+    /// - The path resolves to multiple items (ambiguous resolution)
+    /// - Any part of the path fails to resolve correctly
+    pub fn resolve(
         &self,
-        query: impl IntoIterator<Item = InternedSymbol<'heap>, IntoIter: Clone>,
-    ) -> Vec<Item<'heap>> {
-        let mut query = query.into_iter();
-        let Some(root) = query.next() else {
-            return Vec::new();
+        path: impl IntoIterator<Item = Symbol<'heap>>,
+        universe: Universe,
+    ) -> Result<Item<'heap>, ResolutionError<'heap>> {
+        let resolver = Resolver {
+            registry: self,
+            options: ResolverOptions {
+                mode: ResolverMode::Single(universe),
+                suggestions: true,
+            },
         };
 
-        let Some(item) = self.find_by_name(root) else {
-            return Vec::new();
-        };
+        let mut iter = resolver.resolve_absolute(path)?;
+        let item = iter.next().unwrap_or_else(|| {
+            unreachable!("ResolveIter guarantees at least one item is returned")
+        });
 
-        item.search(self, query)
+        if iter.next().is_some() {
+            Err(ResolutionError::Ambiguous(item))
+        } else {
+            Ok(item)
+        }
+    }
+
+    /// Searches for items with the given name in the specified universe.
+    ///
+    /// This function performs a depth-first traversal of the module hierarchy, starting from the
+    /// root modules, and returns an iterator over all items that match both:
+    /// - The exact name provided
+    /// - The specified universe
+    ///
+    /// # Algorithm
+    ///
+    /// The function implements a non-recursive DFS traversal using:
+    /// - A stack to track modules to visit
+    /// - A set to prevent revisiting modules (avoiding cycles)
+    /// - A stateful iterator for the current module's items
+    ///
+    /// For each module, it:
+    /// 1. Examines all items in the module
+    /// 2. Returns matching items as they're found
+    /// 3. Adds child modules to the stack for later exploration
+    /// 4. After exhausting a module's items, proceeds to the next module from the stack
+    ///
+    /// # Performance
+    ///
+    /// This method requires allocation for the traversal state:
+    /// - A vector for the module exploration stack
+    /// - A hash set for tracking visited modules
+    ///
+    /// # Panics
+    ///
+    /// This function will panic if the internal `RwLock` is poisoned.
+    #[expect(clippy::iter_on_empty_collections)]
+    pub fn search_by_name(
+        &self,
+        name: Symbol<'heap>,
+        universe: Universe,
+    ) -> impl IntoIterator<Item = Item<'heap>> {
+        let mut stack: Vec<_> = self
+            .root
+            .read()
+            .expect("lock should not be poisoned")
+            .values()
+            .copied()
+            .collect();
+
+        let mut seen = FastHashSet::with_capacity_and_hasher(
+            stack.len(),
+            foldhash::fast::RandomState::default(),
+        );
+        let mut current: slice::Iter<'heap, Item<'heap>> = [].iter();
+
+        core::iter::from_fn(move || {
+            'outer: loop {
+                // Process all items in the current module, before continuing to the next module
+                for &item in current.by_ref() {
+                    if item.name == name && item.kind.universe() == Some(universe) {
+                        return Some(item);
+                    }
+
+                    if let ItemKind::Module(child) = item.kind
+                        && !seen.contains(&child)
+                    {
+                        stack.push(child);
+                    }
+                }
+
+                // Current module is exhausted, try to get the next module from the stack
+                while let Some(id) = stack.pop() {
+                    if seen.contains(&id) {
+                        continue;
+                    }
+
+                    seen.insert(id);
+
+                    let module = self.modules.index(id);
+                    current = module.items.into_iter();
+
+                    // Jump back to processing items in this new module
+                    continue 'outer;
+                }
+
+                // We have exhausted all modules and all items, therefore we are done
+                break;
+            }
+
+            None
+        })
     }
 }
 
@@ -161,23 +294,38 @@ impl<'heap> ModuleRegistry<'heap> {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Module<'heap> {
     pub id: ModuleId,
+    pub name: Symbol<'heap>,
+
+    pub parent: ModuleId,
 
     pub items: Interned<'heap, [Item<'heap>]>,
 }
 
 impl<'heap> Module<'heap> {
-    /// Finds an item within this module by name.
-    #[must_use]
-    pub fn find(&self, name: InternedSymbol<'heap>) -> impl IntoIterator<Item = Item<'heap>> {
-        self.items
-            .iter()
-            .filter(move |item| (item.name == name))
-            .copied()
+    fn suggestions(
+        &self,
+        name: Symbol<'heap>,
+        mut select: impl FnMut(&Item<'heap>) -> bool,
+    ) -> Vec<ResolutionSuggestion<Item<'heap>>> {
+        let mut similarities = Vec::with_capacity(self.items.len());
+
+        for &item in self.items {
+            if !select(&item) {
+                continue;
+            }
+
+            let score = jaro_winkler(item.name.as_str(), name.as_str());
+            similarities.push(ResolutionSuggestion { item, score });
+        }
+
+        similarities
     }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct PartialModule<'heap> {
+    name: Symbol<'heap>,
+    parent: ModuleId,
     items: Interned<'heap, [Item<'heap>]>,
 }
 
@@ -187,6 +335,8 @@ impl<'heap> Decompose<'heap> for Module<'heap> {
     fn from_parts(id: Self::Id, partial: Interned<'heap, Self::Partial>) -> Self {
         Self {
             id,
+            name: partial.name,
+            parent: partial.parent,
             items: partial.items,
         }
     }
@@ -197,45 +347,5 @@ impl HasId for Module<'_> {
 
     fn id(&self) -> Self::Id {
         self.id
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::ModuleRegistry;
-    use crate::{
-        heap::Heap,
-        module::item::{IntrinsicItem, ItemKind, Universe},
-        span::SpanId,
-        r#type::environment::Environment,
-    };
-
-    #[test]
-    fn search_across_universes() {
-        let heap = Heap::new();
-        let env = Environment::new(SpanId::SYNTHETIC, &heap);
-        let registry = ModuleRegistry::new(&env);
-
-        let results = registry.search([
-            heap.intern_symbol("kernel"),
-            heap.intern_symbol("type"),
-            heap.intern_symbol("Dict"),
-        ]);
-
-        assert_eq!(results.len(), 2);
-        assert_eq!(
-            results[0].kind,
-            ItemKind::Intrinsic(IntrinsicItem {
-                name: "::kernel::type::Dict",
-                universe: Universe::Type
-            })
-        );
-        assert_eq!(
-            results[1].kind,
-            ItemKind::Intrinsic(IntrinsicItem {
-                name: "::kernel::type::Dict",
-                universe: Universe::Value
-            })
-        );
     }
 }

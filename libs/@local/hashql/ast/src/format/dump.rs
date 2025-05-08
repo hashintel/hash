@@ -172,8 +172,6 @@ impl_syntax_dump!(struct Type(); kind);
 impl SyntaxDump for TypeKind<'_> {
     fn syntax_dump(&self, fmt: &mut Formatter, depth: usize) -> fmt::Result {
         match self {
-            TypeKind::Unknown => write_header(fmt, depth, "TypeKind", None, None, Some("Unknown")),
-            TypeKind::Never => write_header(fmt, depth, "TypeKind", None, None, Some("Never")),
             TypeKind::Infer => write_header(fmt, depth, "TypeKind", None, None, Some("Infer")),
             TypeKind::Path(path) => {
                 write_header(fmt, depth, "TypeKind", None, None, Some("Path"))?;
@@ -200,6 +198,7 @@ impl SyntaxDump for TypeKind<'_> {
 
                 intersection_type.syntax_dump(fmt, depth + 1)
             }
+            TypeKind::Dummy => write_header(fmt, depth, "TypeKind", None, None, Some("Dummy")),
         }
     }
 }
@@ -279,7 +278,7 @@ impl_syntax_dump!(struct TupleExpr(); []elements ?r#type);
 impl_syntax_dump!(struct ListElement(); value);
 impl_syntax_dump!(struct ListExpr(); []elements ?r#type);
 
-impl SyntaxDump for FloatLiteral {
+impl SyntaxDump for FloatLiteral<'_> {
     fn syntax_dump(&self, fmt: &mut Formatter, depth: usize) -> fmt::Result {
         let Self { value } = self;
 
@@ -294,7 +293,7 @@ impl SyntaxDump for FloatLiteral {
     }
 }
 
-impl SyntaxDump for IntegerLiteral {
+impl SyntaxDump for IntegerLiteral<'_> {
     fn syntax_dump(&self, fmt: &mut Formatter, depth: usize) -> fmt::Result {
         let Self { value } = self;
 
@@ -309,7 +308,7 @@ impl SyntaxDump for IntegerLiteral {
     }
 }
 
-impl SyntaxDump for StringLiteral {
+impl SyntaxDump for StringLiteral<'_> {
     fn syntax_dump(&self, fmt: &mut Formatter, depth: usize) -> fmt::Result {
         let Self { value } = self;
 
@@ -324,7 +323,7 @@ impl SyntaxDump for StringLiteral {
     }
 }
 
-impl SyntaxDump for LiteralKind {
+impl SyntaxDump for LiteralKind<'_> {
     fn syntax_dump(&self, fmt: &mut Formatter, depth: usize) -> fmt::Result {
         match self {
             Self::Null => write_header(fmt, depth, "LiteralKind", None, None, Some("Null")),
@@ -362,7 +361,7 @@ impl_syntax_dump!(struct TypeExpr(name); []constraints value body);
 
 impl_syntax_dump!(struct NewTypeExpr(name); []constraints value body);
 
-impl SyntaxDump for UseBinding {
+impl SyntaxDump for UseBinding<'_> {
     fn syntax_dump(&self, fmt: &mut Formatter, depth: usize) -> fmt::Result {
         let Self {
             id,

@@ -148,7 +148,7 @@ where
 }
 
 fn parse_type_paren_struct<'heap, 'span, 'source, E>(
-    ident: Ident,
+    ident: Ident<'heap>,
     partial_field_span: Range<usize>,
 
     start_span: Range<usize>,
@@ -171,7 +171,7 @@ where
         let mut field = Some(StructField {
             id: NodeId::PLACEHOLDER,
             span: field_span,
-            name: ident.clone(),
+            name: ident,
             r#type: field_type,
         });
 
@@ -271,7 +271,7 @@ where
         + AddContext<Input<'heap, 'span, 'source>, StrContext>,
 {
     enum ParseDecision<'heap> {
-        Struct(Ident, Range<usize>),
+        Struct(Ident<'heap>, Range<usize>),
         TupleOrParen(Type<'heap>),
     }
 

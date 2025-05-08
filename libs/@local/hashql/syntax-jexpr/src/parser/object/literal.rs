@@ -5,7 +5,6 @@ use hashql_ast::node::{
     },
     id::NodeId,
 };
-use hashql_core::symbol::Symbol;
 use text_size::TextRange;
 
 use super::{
@@ -93,17 +92,17 @@ fn parse_literal<'heap>(
         TokenKind::Number(number) => {
             if number.has_fraction() {
                 LiteralKind::Float(FloatLiteral {
-                    value: Symbol::new(number.as_str()),
+                    value: state.intern_symbol(number.as_str()),
                 })
             } else {
                 LiteralKind::Integer(IntegerLiteral {
-                    value: Symbol::new(number.as_str()),
+                    value: state.intern_symbol(number.as_str()),
                 })
             }
         }
         TokenKind::Bool(value) => LiteralKind::Boolean(value),
         TokenKind::String(value) => LiteralKind::String(StringLiteral {
-            value: Symbol::new(value),
+            value: state.intern_symbol(value),
         }),
         kind => {
             return Err(literal_expected_primitive(span, kind.syntax()).map_category(From::from));

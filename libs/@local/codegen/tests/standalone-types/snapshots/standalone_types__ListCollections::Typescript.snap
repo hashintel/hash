@@ -1,0 +1,9 @@
+---
+source: libs/@local/codegen/tests/standalone-types/main.rs
+expression: generated
+---
+export interface ListCollections {
+	string_list: string[];
+	number_list: number[];
+	nested_list: StructSimple[];
+}

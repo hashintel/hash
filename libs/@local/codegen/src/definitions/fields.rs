@@ -10,21 +10,32 @@ pub struct Field {
     //   see https://linear.app/hash/issue/H-4473/export-doc-strings-in-codegen
     pub r#type: Type,
     pub flatten: bool,
+    pub optional: bool,
 }
 
 impl Field {
     pub(crate) fn from_specta(
         field: &datatype::Field,
         type_collection: &specta::TypeCollection,
-    ) -> Self {
-        Self {
-            r#type: Type::from_specta(
-                field.ty().unwrap_or_else(|| {
-                    todo!("https://linear.app/hash/issue/H-4472/allow-field-skipping-in-codegen")
-                }),
-                type_collection,
-            ),
-            flatten: field.flatten(),
+    ) -> Option<Self> {
+        let r#type = field
+            .ty()
+            .map(|ty| Type::from_specta(ty, type_collection))?;
+
+        if !field.flatten()
+            && let Type::Optional(optional) = r#type
+        {
+            Some(Self {
+                r#type: *optional,
+                flatten: field.flatten(),
+                optional: true,
+            })
+        } else {
+            Some(Self {
+                r#type,
+                flatten: field.flatten(),
+                optional: field.optional(),
+            })
         }
     }
 }
@@ -51,8 +62,11 @@ impl Fields {
                 fields: named_fields
                     .fields()
                     .iter()
-                    .map(|(name, data_type)| {
-                        (name.clone(), Field::from_specta(data_type, type_collection))
+                    .filter_map(|(name, data_type)| {
+                        Some((
+                            name.clone(),
+                            Field::from_specta(data_type, type_collection)?,
+                        ))
                     })
                     .collect(),
                 // TODO: Specta currently does not have `deny_unknown_fields` support
@@ -63,7 +77,7 @@ impl Fields {
                 fields: unnamed_fields
                     .fields()
                     .iter()
-                    .map(|data_type| Field::from_specta(data_type, type_collection))
+                    .filter_map(|data_type| Field::from_specta(data_type, type_collection))
                     .collect(),
             },
             datatype::Fields::Unit => Self::Unit,

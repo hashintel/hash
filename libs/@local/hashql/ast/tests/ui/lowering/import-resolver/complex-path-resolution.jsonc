@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Tests that complex paths with multiple segments and nested types are correctly resolved
+["type", "Foo", "kernel::type::List<Option<Number>>", "_"]

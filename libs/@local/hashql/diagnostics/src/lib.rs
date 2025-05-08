@@ -16,6 +16,8 @@ pub mod note;
 pub mod severity;
 pub mod span;
 
+pub use anstyle as color;
+
 #[cfg(feature = "serde")]
 pub(crate) mod encoding;
 

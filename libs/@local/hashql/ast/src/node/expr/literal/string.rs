@@ -21,15 +21,15 @@ use hashql_core::symbol::Symbol;
 /// "こんにちは"       // Non-ASCII characters are fully supported
 /// "😊 🚀 🌍"        // Emoji and other Unicode characters
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct StringLiteral {
-    pub value: Symbol,
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct StringLiteral<'heap> {
+    pub value: Symbol<'heap>,
 }
 
-impl StringLiteral {
+impl StringLiteral<'_> {
     /// Returns the string value as a string slice.
     #[must_use]
-    pub fn as_str(&self) -> &str {
+    pub const fn as_str(&self) -> &str {
         self.value.as_str()
     }
 }

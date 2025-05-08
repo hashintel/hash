@@ -1,0 +1,14 @@
+//@ run: fail
+//@ description: Tests error handling when wrong number of generic params are provided
+[
+  "type",
+  "Pair<A, B>",
+  { "#tuple": ["A", "B"] },
+  [
+    "type",
+    "Invalid",
+    "Pair<Number>",
+    //~^ ERROR Type `Pair` needs 2 type parameters, but only 1 was provided
+    "_"
+  ]
+]

@@ -1,0 +1,4 @@
+//@ run: fail
+//@ description: Tests that generic arguments in 'use' statements are rejected with appropriate error
+["use", "kernel::type<T>", { "#tuple": ["T"] }, "_"]
+//~^ ERROR Generic arguments are not allowed here

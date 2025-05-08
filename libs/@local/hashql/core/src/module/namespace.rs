@@ -1,21 +1,74 @@
 //! Namespace management for the HashQL module system.
-use super::{ModuleRegistry, import::Import, item::Universe};
-use crate::symbol::InternedSymbol;
+
+use ena::snapshot_vec::{Snapshot, SnapshotVec};
+
+use super::{
+    ModuleId, ModuleRegistry,
+    error::ResolutionError,
+    import::{Import, ImportDelegate},
+    item::{Item, ItemKind, Universe},
+    resolver::ResolveIter,
+};
+use crate::{
+    module::resolver::{Resolver, ResolverMode, ResolverOptions},
+    symbol::Symbol,
+};
+
+pub struct ModuleNamespaceSnapshot(Snapshot);
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum ResolutionMode {
+    Absolute,
+    Relative,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct ImportOptions {
+    pub glob: bool,
+    pub mode: ResolutionMode,
+    pub suggestions: bool,
+}
+
+pub struct ResolveOptions {
+    pub universe: Universe,
+    pub mode: ResolutionMode,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum Transaction<T> {
+    Commit(T),
+    Rollback(T),
+}
 
 /// Represents the namespace of a module.
 ///
 /// A `ModuleNamespace` defines the collection of names that are available within a module.
 #[derive(Debug, Clone)]
 pub struct ModuleNamespace<'env, 'heap> {
-    registry: &'env ModuleRegistry<'heap>,
-    pub imports: Vec<Import<'heap>>,
+    pub registry: &'env ModuleRegistry<'heap>,
+    imports: SnapshotVec<ImportDelegate<'heap>>,
 }
 
 impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
-    pub const fn new(registry: &'env ModuleRegistry<'heap>) -> Self {
+    /// Create a new module namespace.
+    pub fn new(registry: &'env ModuleRegistry<'heap>) -> Self {
         Self {
             registry,
-            imports: Vec::new(),
+            imports: SnapshotVec::new(),
+        }
+    }
+
+    fn import_commit(&mut self, name: Symbol<'heap>, glob: bool, iter: ResolveIter<'heap>) {
+        // The resolver guarantees that the iterator is non-empty if the query was found
+        for item in iter {
+            if glob {
+                self.imports.push(Import {
+                    name: item.name,
+                    item,
+                });
+            } else {
+                self.imports.push(Import { name, item });
+            }
         }
     }
 
@@ -24,24 +77,33 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
     /// An absolute import directly references an item from the global module registry
     /// using a fully-qualified path.
     ///
-    /// # Returns
+    /// # Errors
     ///
-    /// `true` if the import was successful, `false` if the item wasn't found.
+    /// Returns a `ResolutionError` if the path cannot be resolved.
     pub fn import_absolute(
         &mut self,
-        name: InternedSymbol<'heap>,
-        query: impl IntoIterator<Item = InternedSymbol<'heap>, IntoIter: Clone>,
-    ) -> bool {
-        let results = self.registry.search(query);
-        if results.is_empty() {
-            return false;
-        }
+        name: Symbol<'heap>,
+        query: impl IntoIterator<Item = Symbol<'heap>>,
+        options: ImportOptions,
+    ) -> Result<(), ResolutionError<'heap>> {
+        debug_assert_eq!(options.mode, ResolutionMode::Absolute);
 
-        for item in results {
-            self.imports.push(Import { name, item });
-        }
+        let resolver = Resolver {
+            registry: self.registry,
+            options: ResolverOptions {
+                mode: if options.glob {
+                    ResolverMode::Glob
+                } else {
+                    ResolverMode::Multi
+                },
+                suggestions: options.suggestions,
+            },
+        };
 
-        true
+        let iter = resolver.resolve_absolute(query)?;
+        self.import_commit(name, options.glob, iter);
+
+        Ok(())
     }
 
     /// Attempts to add a relative import.
@@ -50,48 +112,50 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
     /// 1. As an absolute import if it exists in the global registry
     /// 2. Relative to another import already in scope
     ///
-    /// # Returns
+    /// # Errors
     ///
-    /// `true` if the import was successfully resolved, `false` if the item wasn't found.
-    #[expect(clippy::needless_pass_by_value)]
+    /// Returns a `ResolutionError` if the path cannot be resolved.
     pub fn import_relative(
         &mut self,
-        name: InternedSymbol<'heap>,
-        query: impl IntoIterator<Item = InternedSymbol<'heap>, IntoIter: Clone> + Clone,
-    ) -> bool {
-        // first try to find the item as absolute import
-        if self.import_absolute(name, query.clone()) {
-            return true;
-        }
+        name: Symbol<'heap>,
+        query: impl IntoIterator<Item = Symbol<'heap>>,
+        options: ImportOptions,
+    ) -> Result<(), ResolutionError<'heap>> {
+        debug_assert_eq!(options.mode, ResolutionMode::Relative);
 
-        // next find the item as a relative import
-        let mut found = None;
-        for import in self.imports.iter().rev() {
-            let universe = import.item.kind.universe();
-
-            if universe.is_some() {
-                // Only modules don't have a universe, which are the only ones nested, therefore we
-                // can easily skip a lookup that isn't required.
-                continue;
-            }
-
-            let results = import.item.search(self.registry, query.clone());
-
-            if !results.is_empty() {
-                found = Some(results);
-                break;
-            }
-        }
-
-        let Some(found) = found else {
-            return false;
+        let resolver = Resolver {
+            registry: self.registry,
+            options: ResolverOptions {
+                mode: if options.glob {
+                    ResolverMode::Glob
+                } else {
+                    ResolverMode::Multi
+                },
+                suggestions: options.suggestions,
+            },
         };
 
-        for item in found {
-            self.imports.push(Import { name, item });
-        }
+        let iter = resolver.resolve_relative(query, &self.imports)?;
+        self.import_commit(name, options.glob, iter);
 
-        true
+        Ok(())
+    }
+
+    /// Imports a path using the specified resolution mode.
+    ///
+    /// # Errors
+    ///
+    /// Returns a `ResolutionError` if the path cannot be resolved.
+    pub fn import(
+        &mut self,
+        name: Symbol<'heap>,
+        query: impl IntoIterator<Item = Symbol<'heap>> + Clone,
+        options: ImportOptions,
+    ) -> Result<(), ResolutionError<'heap>> {
+        match options.mode {
+            ResolutionMode::Absolute => self.import_absolute(name, query, options),
+            ResolutionMode::Relative => self.import_relative(name, query, options),
+        }
     }
 
     fn import_absolute_static(
@@ -104,29 +168,119 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
             .into_iter()
             .map(|symbol| self.registry.heap.intern_symbol(symbol));
 
-        self.import_absolute(name, query)
+        self.import_absolute(
+            name,
+            query,
+            ImportOptions {
+                glob: false,
+                mode: ResolutionMode::Absolute,
+                suggestions: false,
+            },
+        )
+        .is_ok()
     }
 
-    #[must_use]
-    pub fn lookup_import(
+    /// Resolves a path relative to the current scope.
+    ///
+    /// # Errors
+    ///
+    /// Returns a `ResolutionError` if the path cannot be resolved or if multiple matches are found.
+    pub fn resolve_relative(
         &self,
-        name: InternedSymbol<'heap>,
-        universe: Universe,
-    ) -> Option<Import<'heap>> {
-        for import in self.imports.iter().rev() {
-            if Some(universe) != import.item.kind.universe() {
-                continue;
-            }
+        query: impl IntoIterator<Item = Symbol<'heap>>,
+        ResolveOptions { universe, mode }: ResolveOptions,
+    ) -> Result<Item<'heap>, ResolutionError<'heap>> {
+        debug_assert_eq!(mode, ResolutionMode::Relative);
 
-            if import.name == name {
-                return Some(*import);
-            }
+        let resolver = Resolver {
+            registry: self.registry,
+            options: ResolverOptions {
+                mode: ResolverMode::Single(universe),
+                suggestions: true,
+            },
+        };
+
+        let mut iter = resolver.resolve_relative(query, &self.imports)?;
+
+        let item = iter.next().unwrap_or_else(|| {
+            unreachable!("ResolveIter guarantees at least one item is returned")
+        });
+        if iter.next().is_some() {
+            Err(ResolutionError::Ambiguous(item))
+        } else {
+            Ok(item)
+        }
+    }
+
+    /// Resolves a path from the absolute scope.
+    ///
+    /// # Errors
+    ///
+    /// Returns a `ResolutionError` if the path cannot be resolved or if multiple matches are found.
+    pub fn resolve_absolute(
+        &self,
+        query: impl IntoIterator<Item = Symbol<'heap>>,
+        ResolveOptions { universe, mode }: ResolveOptions,
+    ) -> Result<Item<'heap>, ResolutionError<'heap>> {
+        debug_assert_eq!(mode, ResolutionMode::Absolute);
+
+        let resolver = Resolver {
+            registry: self.registry,
+            options: ResolverOptions {
+                mode: ResolverMode::Single(universe),
+                suggestions: true,
+            },
+        };
+
+        let mut iter = resolver.resolve_absolute(query)?;
+        let item = iter.next().unwrap_or_else(|| {
+            unreachable!("ResolveIter guarantees at least one item is returned")
+        });
+        if iter.next().is_some() {
+            Err(ResolutionError::Ambiguous(item))
+        } else {
+            Ok(item)
+        }
+    }
+
+    /// Resolves a path using the specified resolution mode.
+    ///
+    /// # Errors
+    ///
+    /// Returns a `ResolutionError` if the path cannot be resolved or if multiple matches are found.
+    pub fn resolve(
+        &self,
+        query: impl IntoIterator<Item = Symbol<'heap>> + Clone,
+        options: ResolveOptions,
+    ) -> Result<Item<'heap>, ResolutionError<'heap>> {
+        match options.mode {
+            ResolutionMode::Absolute => self.resolve_absolute(query, options),
+            ResolutionMode::Relative => self.resolve_relative(query, options),
+        }
+    }
+
+    fn import_modules(&mut self) {
+        let root = self
+            .registry
+            .root
+            .read()
+            .expect("should be able to lock registry");
+
+        for (&name, &module) in &*root {
+            self.imports.push(Import {
+                name,
+                item: Item {
+                    module: ModuleId::ROOT,
+                    name,
+                    kind: ItemKind::Module(module),
+                },
+            });
         }
 
-        None
+        drop(root);
     }
 
-    /// Imports all standard prelude items.
+    /// Imports all standard prelude items and all root modules.
     ///
     /// The prelude includes common types, special forms, and operators that should be
     /// available in every module by default. This includes:
@@ -139,6 +293,8 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
     ///
     /// In debug builds, this function asserts that all prelude imports are successful.
     pub fn import_prelude(&mut self) {
+        self.import_modules();
+
         let mut successful = true;
 
         // Special Forms
@@ -205,8 +361,8 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
         successful &= self.import_absolute_static("&", ["math", "bit_and"]);
         successful &= self.import_absolute_static("|", ["math", "bit_or"]);
         successful &= self.import_absolute_static("~", ["math", "bit_not"]);
-        successful &= self.import_absolute_static("<<", ["math", "lshift"]);
-        successful &= self.import_absolute_static(">>", ["math", "rshift"]);
+        successful &= self.import_absolute_static("<<", ["math", "bit_shl"]);
+        successful &= self.import_absolute_static(">>", ["math", "bit_shr"]);
 
         // Comparison operators
         successful &= self.import_absolute_static(">", ["math", "gt"]);
@@ -225,23 +381,63 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
 
         debug_assert!(successful);
     }
+
+    pub fn snapshot(&mut self) -> ModuleNamespaceSnapshot {
+        ModuleNamespaceSnapshot(self.imports.start_snapshot())
+    }
+
+    pub fn commit(&mut self, snapshot: ModuleNamespaceSnapshot) {
+        self.imports.commit(snapshot.0);
+    }
+
+    pub fn rollback_to(&mut self, snapshot: ModuleNamespaceSnapshot) {
+        self.imports.rollback_to(snapshot.0);
+    }
+
+    pub fn in_transaction<T>(&mut self, closure: impl FnOnce(&mut Self) -> Transaction<T>) -> T {
+        let snapshot = self.imports.start_snapshot();
+
+        let transaction = closure(self);
+
+        match transaction {
+            Transaction::Commit(value) => {
+                self.imports.commit(snapshot);
+
+                value
+            }
+            Transaction::Rollback(value) => {
+                self.imports.rollback_to(snapshot);
+
+                value
+            }
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn imports_as_slice(&self) -> &[Import<'heap>] {
+        &self.imports
+    }
 }
 
 #[cfg(test)]
 mod tests {
+    use core::assert_matches::assert_matches;
+
     use super::ModuleNamespace;
     use crate::{
         heap::Heap,
         module::{
-            ModuleRegistry, PartialModule,
+            ModuleId, ModuleRegistry, PartialModule,
+            error::ResolutionError,
             item::{IntrinsicItem, Item, ItemKind, Universe},
+            namespace::{ImportOptions, ResolutionMode, ResolveOptions},
         },
         span::SpanId,
         r#type::environment::Environment,
     };
 
     #[test]
-    fn lookup_prelude_value() {
+    fn resolve_relative_value() {
         let heap = Heap::new();
         let environment = Environment::new(SpanId::SYNTHETIC, &heap);
         let registry = ModuleRegistry::new(&environment);
@@ -249,15 +445,21 @@ mod tests {
         let mut namespace = ModuleNamespace::new(&registry);
         namespace.import_prelude();
 
-        let import = namespace
-            .lookup_import(heap.intern_symbol("Union"), Universe::Value)
+        let item = namespace
+            .resolve_relative(
+                [heap.intern_symbol("Union")],
+                ResolveOptions {
+                    mode: ResolutionMode::Relative,
+                    universe: Universe::Value,
+                },
+            )
             .expect("import should exist");
 
-        assert_eq!(import.name.as_str(), "Union");
-        assert_eq!(import.item.kind.universe(), Some(Universe::Value));
+        assert_eq!(item.name.as_str(), "Union");
+        assert_eq!(item.kind.universe(), Some(Universe::Value));
 
         assert_eq!(
-            import.item.kind,
+            item.kind,
             ItemKind::Intrinsic(IntrinsicItem {
                 name: "::kernel::type::Union",
                 universe: Universe::Value
@@ -266,7 +468,7 @@ mod tests {
     }
 
     #[test]
-    fn lookup_prelude_type() {
+    fn resolve_relative_type() {
         let heap = Heap::new();
         let environment = Environment::new(SpanId::SYNTHETIC, &heap);
         let registry = ModuleRegistry::new(&environment);
@@ -274,18 +476,137 @@ mod tests {
         let mut namespace = ModuleNamespace::new(&registry);
         namespace.import_prelude();
 
-        let import = namespace
-            .lookup_import(heap.intern_symbol("Dict"), Universe::Type)
+        let item = namespace
+            .resolve_relative(
+                [heap.intern_symbol("Dict")],
+                ResolveOptions {
+                    mode: ResolutionMode::Relative,
+                    universe: Universe::Type,
+                },
+            )
             .expect("import should exist");
 
-        assert_eq!(import.name.as_str(), "Dict");
-        assert_eq!(import.item.kind.universe(), Some(Universe::Type));
+        assert_eq!(item.name.as_str(), "Dict");
+        assert_eq!(item.kind.universe(), Some(Universe::Type));
 
         assert_eq!(
-            import.item.kind,
+            item.kind,
             ItemKind::Intrinsic(IntrinsicItem {
                 name: "::kernel::type::Dict",
                 universe: Universe::Type
+            })
+        );
+    }
+
+    #[test]
+    fn resolve_absolute_value() {
+        let heap = Heap::new();
+        let environment = Environment::new(SpanId::SYNTHETIC, &heap);
+        let registry = ModuleRegistry::new(&environment);
+
+        let mut namespace = ModuleNamespace::new(&registry);
+        namespace.import_prelude();
+
+        let item = namespace
+            .resolve_absolute(
+                [
+                    heap.intern_symbol("kernel"),
+                    heap.intern_symbol("type"),
+                    heap.intern_symbol("Union"),
+                ],
+                ResolveOptions {
+                    mode: ResolutionMode::Absolute,
+                    universe: Universe::Value,
+                },
+            )
+            .expect("import should exist");
+
+        assert_eq!(item.name.as_str(), "Union");
+        assert_eq!(item.kind.universe(), Some(Universe::Value));
+
+        assert_eq!(
+            item.kind,
+            ItemKind::Intrinsic(IntrinsicItem {
+                name: "::kernel::type::Union",
+                universe: Universe::Value
+            })
+        );
+    }
+
+    #[test]
+    fn resolve_absolute_type() {
+        let heap = Heap::new();
+        let environment = Environment::new(SpanId::SYNTHETIC, &heap);
+        let registry = ModuleRegistry::new(&environment);
+
+        let mut namespace = ModuleNamespace::new(&registry);
+        namespace.import_prelude();
+
+        let item = namespace
+            .resolve_absolute(
+                [
+                    heap.intern_symbol("kernel"),
+                    heap.intern_symbol("type"),
+                    heap.intern_symbol("Dict"),
+                ],
+                ResolveOptions {
+                    mode: ResolutionMode::Absolute,
+                    universe: Universe::Type,
+                },
+            )
+            .expect("import should exist");
+
+        assert_eq!(item.name.as_str(), "Dict");
+        assert_eq!(item.kind.universe(), Some(Universe::Type));
+
+        assert_eq!(
+            item.kind,
+            ItemKind::Intrinsic(IntrinsicItem {
+                name: "::kernel::type::Dict",
+                universe: Universe::Type
+            })
+        );
+    }
+
+    #[test]
+    fn resolve_relative_nested() {
+        let heap = Heap::new();
+        let environment = Environment::new(SpanId::SYNTHETIC, &heap);
+        let registry = ModuleRegistry::new(&environment);
+
+        let mut namespace = ModuleNamespace::new(&registry);
+        namespace.import_prelude();
+
+        namespace
+            .import_absolute(
+                heap.intern_symbol("type"),
+                [heap.intern_symbol("kernel"), heap.intern_symbol("type")],
+                ImportOptions {
+                    glob: false,
+                    mode: ResolutionMode::Absolute,
+                    suggestions: false,
+                },
+            )
+            .expect("import should exist");
+
+        let item = namespace
+            .resolve_relative(
+                [heap.intern_symbol("type"), heap.intern_symbol("Union")],
+                ResolveOptions {
+                    universe: Universe::Value,
+                    mode: ResolutionMode::Relative,
+                },
+            )
+            .expect("import should exist");
+
+        assert_eq!(item.name.as_str(), "Union");
+        assert_eq!(item.kind.universe(), Some(Universe::Value));
+
+        assert_eq!(
+            item.kind,
+            ItemKind::Intrinsic(IntrinsicItem {
+                name: "::kernel::type::Union",
+                universe: Universe::Value
             })
         );
     }
@@ -300,8 +621,11 @@ mod tests {
         namespace.import_prelude();
 
         let module = registry.intern_module(|id| PartialModule {
+            parent: ModuleId::ROOT,
+            name: heap.intern_symbol("foo"),
+
             items: registry.intern_items(&[Item {
-                parent: Some(id.value()),
+                module: id.value(),
                 name: heap.intern_symbol("bar"),
                 kind: ItemKind::Intrinsic(IntrinsicItem {
                     name: "::foo::bar",
@@ -309,41 +633,209 @@ mod tests {
                 }),
             }]),
         });
-        registry.register(heap.intern_symbol("foo"), module);
+        registry.register(module);
 
         let import = namespace
-            .lookup_import(heap.intern_symbol("Dict"), Universe::Type)
+            .resolve_relative(
+                [heap.intern_symbol("Dict")],
+                ResolveOptions {
+                    universe: Universe::Type,
+                    mode: ResolutionMode::Relative,
+                },
+            )
             .expect("import should exist");
 
         assert_eq!(import.name.as_str(), "Dict");
-        assert_eq!(import.item.kind.universe(), Some(Universe::Type));
+        assert_eq!(import.kind.universe(), Some(Universe::Type));
 
         assert_eq!(
-            import.item.kind,
+            import.kind,
             ItemKind::Intrinsic(IntrinsicItem {
                 name: "::kernel::type::Dict",
                 universe: Universe::Type
             })
         );
 
-        assert!(namespace.import_absolute(
-            heap.intern_symbol("Dict"),
-            [heap.intern_symbol("foo"), heap.intern_symbol("bar")]
-        ));
+        namespace
+            .import_absolute(
+                heap.intern_symbol("Dict"),
+                [heap.intern_symbol("foo"), heap.intern_symbol("bar")],
+                ImportOptions {
+                    glob: false,
+                    mode: ResolutionMode::Absolute,
+                    suggestions: false,
+                },
+            )
+            .expect("should be able to import");
 
         let import = namespace
-            .lookup_import(heap.intern_symbol("Dict"), Universe::Type)
+            .resolve_relative(
+                [heap.intern_symbol("Dict")],
+                ResolveOptions {
+                    universe: Universe::Type,
+                    mode: ResolutionMode::Relative,
+                },
+            )
             .expect("import should exist");
 
-        assert_eq!(import.name.as_str(), "Dict");
-        assert_eq!(import.item.kind.universe(), Some(Universe::Type));
+        assert_eq!(import.name.as_str(), "bar");
+        assert_eq!(import.kind.universe(), Some(Universe::Type));
 
         assert_eq!(
-            import.item.kind,
+            import.kind,
             ItemKind::Intrinsic(IntrinsicItem {
                 name: "::foo::bar",
                 universe: Universe::Type
             })
+        );
+    }
+
+    #[test]
+    fn relative_import() {
+        let heap = Heap::new();
+        let environment = Environment::new(SpanId::SYNTHETIC, &heap);
+        let registry = ModuleRegistry::new(&environment);
+
+        let mut namespace = ModuleNamespace::new(&registry);
+
+        // first import the type module as a module
+        namespace
+            .import_absolute(
+                heap.intern_symbol("type"),
+                [heap.intern_symbol("kernel"), heap.intern_symbol("type")],
+                ImportOptions {
+                    glob: false,
+                    mode: ResolutionMode::Absolute,
+                    suggestions: false,
+                },
+            )
+            .expect("should be able to import");
+
+        // import `Dict` relative from type (now that it is imported)
+        namespace
+            .import_relative(
+                heap.intern_symbol("Dict"),
+                [heap.intern_symbol("type"), heap.intern_symbol("Dict")],
+                ImportOptions {
+                    glob: false,
+                    mode: ResolutionMode::Relative,
+                    suggestions: false,
+                },
+            )
+            .expect("should be able to import");
+
+        // We should be able to import `Dict` now
+        let import = namespace
+            .resolve_relative(
+                [heap.intern_symbol("Dict")],
+                ResolveOptions {
+                    universe: Universe::Type,
+                    mode: ResolutionMode::Relative,
+                },
+            )
+            .expect("import should exist");
+
+        assert_eq!(import.name.as_str(), "Dict");
+        assert_eq!(import.kind.universe(), Some(Universe::Type));
+    }
+
+    #[test]
+    fn relative_import_renamed() {
+        let heap = Heap::new();
+        let environment = Environment::new(SpanId::SYNTHETIC, &heap);
+        let registry = ModuleRegistry::new(&environment);
+
+        let mut namespace = ModuleNamespace::new(&registry);
+
+        // first import the type module as a module
+        namespace
+            .import_absolute(
+                heap.intern_symbol("foo"),
+                [heap.intern_symbol("kernel"), heap.intern_symbol("type")],
+                ImportOptions {
+                    glob: false,
+                    mode: ResolutionMode::Absolute,
+                    suggestions: false,
+                },
+            )
+            .expect("should be able to import");
+
+        // import `Dict` relative from type (now that it is imported)
+        namespace
+            .import_relative(
+                heap.intern_symbol("Dict"),
+                [heap.intern_symbol("foo"), heap.intern_symbol("Dict")],
+                ImportOptions {
+                    glob: false,
+                    mode: ResolutionMode::Relative,
+                    suggestions: false,
+                },
+            )
+            .expect("should be able to import");
+    }
+
+    #[test]
+    fn import_glob() {
+        let heap = Heap::new();
+        let environment = Environment::new(SpanId::SYNTHETIC, &heap);
+        let registry = ModuleRegistry::new(&environment);
+
+        let mut namespace = ModuleNamespace::new(&registry);
+
+        // First import the type module as a module
+        namespace
+            .import_absolute(
+                heap.intern_symbol("*"),
+                [heap.intern_symbol("kernel"), heap.intern_symbol("type")],
+                ImportOptions {
+                    glob: true,
+                    mode: ResolutionMode::Absolute,
+                    suggestions: false,
+                },
+            )
+            .expect("should be able to import glob from absolute");
+
+        // We should be able to import `Dict` now
+        let import = namespace
+            .resolve_relative(
+                [heap.intern_symbol("Dict")],
+                ResolveOptions {
+                    universe: Universe::Type,
+                    mode: ResolutionMode::Relative,
+                },
+            )
+            .expect("import should exist");
+
+        assert_eq!(import.name.as_str(), "Dict");
+        assert_eq!(import.kind.universe(), Some(Universe::Type));
+    }
+
+    #[test]
+    fn import_glob_does_not_exist() {
+        let heap = Heap::new();
+        let environment = Environment::new(SpanId::SYNTHETIC, &heap);
+        let registry = ModuleRegistry::new(&environment);
+
+        let mut namespace = ModuleNamespace::new(&registry);
+
+        let error = namespace
+            .import_absolute(
+                heap.intern_symbol("*"),
+                [heap.intern_symbol("kernel"), heap.intern_symbol("foo")],
+                ImportOptions {
+                    glob: true,
+                    mode: ResolutionMode::Absolute,
+                    suggestions: false,
+                },
+            )
+            .expect_err("should be unable to import non-existent glob");
+
+        assert_matches!(
+            error,
+            ResolutionError::ModuleNotFound {
+                depth: 1,
+                suggestions
+            } if suggestions.is_empty()
         );
     }
 }

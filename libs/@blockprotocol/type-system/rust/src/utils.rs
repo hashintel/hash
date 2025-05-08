@@ -6,7 +6,20 @@ mod wasm {
 
     #[wasm_bindgen(typescript_custom_section)]
     const TS_APPEND_CONTENT: &'static str = r#"
-    import type { Brand, Opaque } from "@local/advanced-types/brand";
+    import type { Brand } from "@local/advanced-types/brand";
+    import type { Real } from "@rust/hash-codec/types";
+    import type {
+        ActorEntityUuid,
+        ActorGroupEntityUuid,
+        ActorType,
+        BaseUrl,
+        DraftId,
+        EntityEditionId,
+        OntologyTypeVersion,
+        PropertyValue,
+        UserId,
+        WebId
+    } from "../types/index.snap.js";
     "#;
 
     // Common types

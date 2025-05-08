@@ -6,7 +6,6 @@ use hashql_ast::node::{
     },
     id::NodeId,
 };
-use hashql_core::symbol::Symbol;
 use text_size::TextRange;
 
 use super::{
@@ -96,7 +95,7 @@ fn parse_dict_object<'heap, 'source>(
                 id: NodeId::PLACEHOLDER,
                 span: key_span_id,
                 kind: LiteralKind::String(StringLiteral {
-                    value: Symbol::new(key.value),
+                    value: state.intern_symbol(key.value),
                 }),
                 r#type: None,
             }),

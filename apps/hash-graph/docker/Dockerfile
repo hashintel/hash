@@ -1,4 +1,4 @@
-FROM debian:12.9-slim AS mise
+FROM debian:12.10-slim AS mise
 
 SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
 

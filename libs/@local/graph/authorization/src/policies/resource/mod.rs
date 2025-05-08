@@ -44,6 +44,7 @@ impl CedarExpressionVisitor for ResourceVariableVisitor {
 }
 
 #[derive(Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[serde(
     tag = "type",
     rename_all = "camelCase",

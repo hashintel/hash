@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Tests that relative imports (without :: prefix) resolve correctly and get normalized to absolute paths
+["use", "math", { "#tuple": ["bit_shl"] }, "bit_shl"]

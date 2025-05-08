@@ -1,0 +1,9 @@
+//@ run: pass
+//@ description: Tests that an unresolved type is handled by dummy replacement, allowing lowering to continue.
+[
+  "type",
+  "Foo",
+  "T",
+  //~^ ERROR Cannot find variable 'T'
+  "_"
+]

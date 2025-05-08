@@ -1,0 +1,25 @@
+Expr#4294967040@37
+  ExprKind (Type)
+    TypeExpr#4294967040@37 (name: Wrapper)
+      GenericConstraint#4294967040@10 (name: T)
+      Type#4294967040@16
+        TypeKind (Path)
+          Path#4294967040@16 (rooted: false)
+            PathSegment#4294967040@15 (name: T)
+      Expr#4294967040@36
+        ExprKind (Type)
+          TypeExpr#4294967040@36 (name: StringWrapper)
+            Type#4294967040@33
+              TypeKind (Path)
+                Path#4294967040@33 (rooted: false)
+                  PathSegment#4294967040@32 (name: Wrapper)
+                    PathSegmentArgument (GenericArgument)
+                      GenericArgument#4294967040@31
+                        Type#4294967040@30
+                          TypeKind (Path)
+                            Path#4294967040@30 (rooted: true)
+                              PathSegment#4294967040@29 (name: kernel)
+                              PathSegment#4294967040@29 (name: type)
+                              PathSegment#4294967040@29 (name: String)
+            Expr#4294967040@35
+              ExprKind (Underscore)

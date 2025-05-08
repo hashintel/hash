@@ -63,8 +63,9 @@ pub struct ConversionError(dashu_base::ConversionError);
 /// let maybe_int = value.to_i32(); // Some(42)
 /// let float_val = value.to_f64(); // 42.0
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, specta::Type)]
-pub struct Real(#[specta(type = f64)] dashu_float::DBig);
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[cfg_attr(feature = "codegen", derive(specta::Type))]
+pub struct Real(#[cfg_attr(feature = "codegen", specta(type = f64))] dashu_float::DBig);
 
 const MIN_PRECISION: usize = 64;
 
@@ -79,7 +80,7 @@ impl Real {
     /// * `exponent` - The power of 10 to multiply the significand by
     #[must_use]
     pub const fn from_natural(significand: u32, exponent: isize) -> Self {
-        #[expect(clippy::as_underscore, reason = "Type type differs between platforms")]
+        #[expect(clippy::as_underscore, reason = "Type differs between platforms")]
         Self(dashu_float::DBig::from_parts_const(
             Sign::Positive,
             significand as _,

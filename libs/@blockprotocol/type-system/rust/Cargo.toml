@@ -25,7 +25,7 @@ iso8601-duration = { workspace = true, public = true }
 postgres-types   = { workspace = true, public = true, features = ["derive", "with-uuid-1", "with-serde_json-1"], optional = true }
 semver           = { workspace = true, public = true, features = ["serde"] }
 serde_json       = { workspace = true, public = true }
-specta           = { workspace = true, public = true, features = ["derive", "uuid"] }
+specta           = { workspace = true, public = true, optional = true, features = ["derive", "uuid"] }
 time             = { workspace = true, public = true, features = ["serde"] }
 url              = { workspace = true, public = true, features = ["serde"] }
 utoipa           = { workspace = true, public = true, features = ["url"], optional = true }
@@ -43,11 +43,18 @@ simple-mermaid = { workspace = true }
 thiserror      = { workspace = true }
 
 [dev-dependencies]
+hash-codegen         = { workspace = true }
 hash-graph-test-data = { workspace = true }
+insta                = { workspace = true }
 pretty_assertions    = { workspace = true }
 tokio                = { workspace = true, features = ["macros", "rt"] }
 
+[[test]]
+name              = "codegen"
+required-features = ["codegen"]
+
 [features]
+codegen  = ["dep:specta", "hash-codec/codegen"]
 postgres = ["dep:postgres-types", "hash-graph-temporal-versioning/postgres"]
 utoipa   = ["dep:utoipa", "hash-graph-temporal-versioning/utoipa"]
 

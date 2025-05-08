@@ -1,0 +1,4 @@
+//@ run: fail
+//@ description: Tests that importing a non-existent item produces an appropriate error with suggestions
+["use", "math", { "#tuple": ["lshift"] }, "_"]
+//~^ ERROR 'lshift' not found in module 'math'

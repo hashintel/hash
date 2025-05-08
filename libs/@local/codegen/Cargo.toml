@@ -10,7 +10,7 @@ authors.workspace = true
 # Public workspace dependencies
 
 # Public third-party dependencies
-specta = { workspace = true, public = true, features = ["derive"] }
+specta = { workspace = true, public = true, features = ["derive", "export"] }
 
 # Private workspace dependencies
 
@@ -21,18 +21,11 @@ simple-mermaid = { workspace = true }
 [dev-dependencies]
 insta         = { workspace = true }
 libtest-mimic = { workspace = true }
-type-system   = { workspace = true }
 
 [lints]
 workspace = true
 
 [[test]]
-name    = "codegen"
-path    = "tests/codegen/main.rs"
+name    = "standalone-types"
+path    = "tests/standalone-types/main.rs"
 harness = false
-
-
-[package.metadata.sync.turborepo]
-ignore-dev-dependencies = [
-    "@blockprotocol/type-system-rs",
-]

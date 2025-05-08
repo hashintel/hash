@@ -19,9 +19,8 @@ use super::actor_group::ActorGroupId;
     serde::Serialize,
     serde::Deserialize,
     derive_more::Display,
-    specta::Type,
 )]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub enum RoleName {
@@ -66,10 +65,8 @@ impl<'a> postgres_types::FromSql<'a> for RoleName {
     }
 }
 
-#[derive(
-    Debug, Copy, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize, specta::Type,
-)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(deny_unknown_fields, rename_all = "kebab-case")]
 pub enum RoleType {
@@ -88,9 +85,8 @@ pub enum RoleType {
     serde::Deserialize,
     derive_more::Display,
     derive_more::From,
-    specta::Type,
 )]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(tag = "roleType", content = "id", rename_all = "camelCase")]
 pub enum RoleId {
@@ -145,8 +141,8 @@ impl postgres_types::ToSql for RoleId {
     }
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize, derive_more::From, specta::Type)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[derive(Debug, serde::Serialize, serde::Deserialize, derive_more::From)]
+#[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(tag = "roleType", rename_all = "camelCase")]
 pub enum Role {

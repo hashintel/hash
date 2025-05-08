@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Tests that local paths are correctly resolved in type context
+["type", "Local", "Number", ["type", "Reference", "Local", "_"]]

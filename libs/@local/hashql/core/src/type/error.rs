@@ -10,10 +10,10 @@ use hashql_diagnostics::{
 };
 
 use super::{
-    Type, environment::Environment, inference::Variable, kind::generic_argument::GenericArgumentId,
+    Type, environment::Environment, inference::Variable, kind::generic::GenericArgumentId,
     pretty_print::PrettyPrint,
 };
-use crate::{span::SpanId, symbol::InternedSymbol};
+use crate::{span::SpanId, symbol::Symbol};
 
 pub type TypeCheckDiagnostic = Diagnostic<TypeCheckDiagnosticCategory, SpanId>;
 
@@ -355,8 +355,8 @@ pub(crate) fn opaque_type_name_mismatch<K>(
     lhs: Type<K>,
     rhs: Type<K>,
 
-    lhs_name: InternedSymbol,
-    rhs_name: InternedSymbol,
+    lhs_name: Symbol,
+    rhs_name: Symbol,
 ) -> TypeCheckDiagnostic
 where
     K: PrettyPrint,
@@ -681,7 +681,7 @@ where
 pub fn duplicate_struct_field<K>(
     span: SpanId,
     struct_type: Type<K>,
-    field_name: InternedSymbol,
+    field_name: Symbol,
 ) -> TypeCheckDiagnostic
 where
     K: PrettyPrint,
@@ -727,7 +727,7 @@ pub(crate) fn missing_struct_field<K>(
     span: SpanId,
     subtype: Type<K>,
     supertype: Type<K>,
-    field_name: InternedSymbol,
+    field_name: Symbol,
 ) -> TypeCheckDiagnostic
 where
     K: PrettyPrint,

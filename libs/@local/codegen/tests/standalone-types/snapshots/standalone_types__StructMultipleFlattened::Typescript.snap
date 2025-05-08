@@ -1,0 +1,7 @@
+---
+source: libs/@local/codegen/tests/standalone-types/main.rs
+expression: generated
+---
+export interface StructMultipleFlattened extends StructSimpleFlattened, StructNested {
+	name: string;
+}

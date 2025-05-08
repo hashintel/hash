@@ -33,6 +33,7 @@ roaring        = { workspace = true, features = ["std", "simd"] }
 rpds           = { workspace = true }
 serde          = { workspace = true, optional = true, features = ["alloc", "derive"] }
 simple-mermaid = { workspace = true }
+strsim         = "0.11.1"
 tracing        = { workspace = true }
 
 
@@ -43,4 +44,6 @@ serde = ["dep:serde", "text-size/serde"]
 workspace = true
 
 [dev-dependencies]
-test-case = "3.3.1"
+anstream        = { version = "0.6.18", default-features = false }
+insta.workspace = true
+test-case       = "3.3.1"

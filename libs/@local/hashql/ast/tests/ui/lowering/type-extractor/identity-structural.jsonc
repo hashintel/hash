@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Tests that type aliases get structural identity in the type system
+["type", "Alias", "Number", "_"]

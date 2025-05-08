@@ -566,9 +566,9 @@ dependencies = [
 
 [[package]]
 name = "aws-sdk-s3"
-version = "1.83.0"
+version = "1.84.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "51384750334005f40e1a334b0d54eca822a77eacdcf3c50fdf38f583c5eee7a2"
+checksum = "2111975ef21dc06542918479df0df861b273eb8d99e6bb987da469b546dce32c"
 dependencies = [
  "aws-credential-types",
  "aws-runtime",
@@ -1518,9 +1518,9 @@ dependencies = [
 
 [[package]]
 name = "clap_complete"
-version = "4.5.48"
+version = "4.5.50"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "be8c97f3a6f02b9e24cadc12aaba75201d18754b53ea0a9d99642f806ccdb4c9"
+checksum = "c91d3baa3bcd889d60e6ef28874126a0b384fd225ab83aa6d8a801c519194ce1"
 dependencies = [
  "clap",
 ]
@@ -1844,6 +1844,22 @@ dependencies = [
  "quote",
  "syn 2.0.101",
 ]
+
+[[package]]
+name = "ctor"
+version = "0.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a4735f265ba6a1188052ca32d461028a7d1125868be18e287e756019da7607b5"
+dependencies = [
+ "ctor-proc-macro",
+ "dtor",
+]
+
+[[package]]
+name = "ctor-proc-macro"
+version = "0.0.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4f211af61d8efdd104f96e57adf5e426ba1bc3ed7a4ead616e15e5881fd79c4d"
 
 [[package]]
 name = "ctr"
@@ -2241,6 +2257,21 @@ name = "dtoa"
 version = "1.0.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d6add3b8cff394282be81f3fc1a0605db594ed69890078ca6e2cab1c408bcf04"
+
+[[package]]
+name = "dtor"
+version = "0.0.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "97cbdf2ad6846025e8e25df05171abfb30e3ababa12ee0a0e44b9bbe570633a8"
+dependencies = [
+ "dtor-proc-macro",
+]
+
+[[package]]
+name = "dtor-proc-macro"
+version = "0.0.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7454e41ff9012c00d53cf7f475c5e3afa3b91b7c90568495495e8d9bf47a1055"
 
 [[package]]
 name = "dunce"
@@ -2961,9 +2992,9 @@ dependencies = [
 
 [[package]]
 name = "guppy"
-version = "0.17.17"
+version = "0.17.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "452b22f04f2a5cdae96b3a636a7c311da0cba665ca90f5033e042b8b590b6d7c"
+checksum = "b59852737bb6ccfe90e37408dfefd968b23bfd14daf30406d49ee46b4763e64a"
 dependencies = [
  "ahash",
  "camino",
@@ -3213,6 +3244,8 @@ dependencies = [
  "error-stack",
  "harpc-types",
  "harpc-wire-protocol",
+ "hash-codegen",
+ "insta",
  "postgres-types",
  "regex",
  "serde",
@@ -3233,7 +3266,6 @@ dependencies = [
  "oxc",
  "simple-mermaid",
  "specta",
- "type-system",
 ]
 
 [[package]]
@@ -3335,7 +3367,9 @@ dependencies = [
  "futures",
  "futures-core",
  "hash-codec",
+ "hash-codegen",
  "indoc",
+ "insta",
  "postgres-types",
  "pretty_assertions",
  "reqwest",
@@ -3344,6 +3378,7 @@ dependencies = [
  "serde_plain",
  "simple-mermaid",
  "smol_str",
+ "specta",
  "tokio",
  "tokio-util",
  "tracing",
@@ -3752,6 +3787,7 @@ dependencies = [
 name = "hashql-compiletest"
 version = "0.0.0"
 dependencies = [
+ "anstream",
  "anstyle",
  "ariadne",
  "camino",
@@ -3783,6 +3819,7 @@ dependencies = [
 name = "hashql-core"
 version = "0.0.0"
 dependencies = [
+ "anstream",
  "anstyle",
  "archery",
  "bitvec",
@@ -3793,6 +3830,7 @@ dependencies = [
  "foldhash",
  "hashbrown 0.15.3",
  "hashql-diagnostics",
+ "insta",
  "orx-concurrent-vec",
  "pretty",
  "roaring",
@@ -3801,6 +3839,7 @@ dependencies = [
  "serde",
  "simple-mermaid",
  "smallvec 2.0.0-alpha.11",
+ "strsim",
  "test-case",
  "text-size",
  "tracing",
@@ -5554,7 +5593,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "55740c4ae1d8696773c78fdafd5d0e5fe9bc9f1b071c7ba493ba5c413a9184f3"
 dependencies = [
  "bitflags 2.9.0",
- "ctor",
+ "ctor 0.2.9",
  "napi-derive",
  "napi-sys",
  "once_cell",
@@ -8339,6 +8378,7 @@ name = "specta"
 version = "2.0.0-rc.22"
 source = "git+https://github.com/specta-rs/specta?rev=ab7d924#ab7d9245d5e2ace951707c3c383b0211ca7fc8ce"
 dependencies = [
+ "ctor 0.4.2",
  "specta-macros",
  "uuid",
 ]
@@ -9020,9 +9060,9 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "tokio"
-version = "1.44.2"
+version = "1.45.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e6b88822cbe49de4185e3a4cbf8321dd487cf5fe0c5c65695fef6346371e9c48"
+checksum = "2513ca694ef9ede0fb23fe71a4ee4107cb102b9dc1930f6d0fd77aae068ae165"
 dependencies = [
  "backtrace",
  "bytes",
@@ -9142,9 +9182,9 @@ dependencies = [
 
 [[package]]
 name = "toml"
-version = "0.8.20"
+version = "0.8.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cd87a5cdd6ffab733b2f74bc4fd7ee5fff6634124999ac278c35fc78c6120148"
+checksum = "05ae329d1f08c4d17a59bed7ff5b5a769d062e64a62d34a3261b219e62cd5aae"
 dependencies = [
  "serde",
  "serde_spanned",
@@ -9265,9 +9305,9 @@ dependencies = [
 
 [[package]]
 name = "tower-http"
-version = "0.6.2"
+version = "0.6.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "403fa3b783d4b626a8ad51d766ab03cb6d2dbfc46b1c5d4448395e6628dc9697"
+checksum = "a1cfca9ae570b2a6efc764a88e914c29b3dfaa1fafe5f495812ae97ec9bc4d53"
 dependencies = [
  "bitflags 2.9.0",
  "bytes",
@@ -9531,8 +9571,10 @@ dependencies = [
  "error-stack",
  "futures",
  "hash-codec",
+ "hash-codegen",
  "hash-graph-temporal-versioning",
  "hash-graph-test-data",
+ "insta",
  "iso8601-duration",
  "itertools 0.14.0",
  "postgres-types",
@@ -10561,9 +10603,9 @@ checksum = "271414315aff87387382ec3d271b52d7ae78726f5d44ac98b4f4030c91880486"
 
 [[package]]
 name = "winnow"
-version = "0.7.8"
+version = "0.7.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9e27d6ad3dac991091e4d35de9ba2d2d00647c5d0fc26c5496dee55984ae111b"
+checksum = "c06928c8748d81b05c9be96aad92e1b6ff01833332f281e8cfca3be4b35fc9ec"
 dependencies = [
  "memchr",
 ]

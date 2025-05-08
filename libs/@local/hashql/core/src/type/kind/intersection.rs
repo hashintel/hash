@@ -578,7 +578,7 @@ impl<'heap> Inference<'heap> for IntersectionType<'heap> {
     }
 
     fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {
-        let (_provision_guard, id) = env.provision(self.id);
+        let (_guard, id) = env.provision(self.id);
 
         let mut variants =
             TypeIdSet::<16>::with_capacity(env.environment, self.kind.variants.len());
@@ -645,7 +645,7 @@ mod test {
             },
             kind::{
                 OpaqueType, Param, TypeKind,
-                generic_argument::{GenericArgument, GenericArgumentId},
+                generic::{GenericArgument, GenericArgumentId},
                 infer::HoleId,
                 intrinsic::{DictType, IntrinsicType},
                 primitive::PrimitiveType,
@@ -2212,21 +2212,35 @@ mod test {
         let heap = Heap::new();
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
-        let argument = env.counter.generic_argument.next();
-        let param = instantiate_param(&env, argument);
+        let argument1 = env.counter.generic_argument.next();
+        let argument2 = env.counter.generic_argument.next();
 
-        let inner = opaque!(
+        let param1 = instantiate_param(&env, argument1);
+        let param2 = instantiate_param(&env, argument2);
+
+        let a = opaque!(
             env,
             "A",
-            param,
+            param1,
             [GenericArgument {
-                id: argument,
+                id: argument1,
                 name: heap.intern_symbol("T"),
                 constraint: None
             }]
         );
 
-        intersection!(env, value, [inner, inner]);
+        let b = opaque!(
+            env,
+            "A",
+            param2,
+            [GenericArgument {
+                id: argument2,
+                name: heap.intern_symbol("T"),
+                constraint: None
+            }]
+        );
+
+        intersection!(env, value, [a, b]);
 
         let mut instantiate = InstantiateEnvironment::new(&env);
         let type_id = value.instantiate(&mut instantiate);
@@ -2239,8 +2253,10 @@ mod test {
             .expect("should be an intersection");
         assert_eq!(intersection.variants.len(), 2);
 
-        for variant in &*intersection.variants {
-            let variant = env.r#type(*variant);
+        let generic_arguments = [argument1, argument2];
+
+        for (index, &variant) in intersection.variants.iter().enumerate() {
+            let variant = env.r#type(variant);
             let opaque = variant.kind.opaque().expect("should be an opaque type");
             let repr = env
                 .r#type(opaque.repr)
@@ -2255,7 +2271,7 @@ mod test {
                     argument: opaque.arguments[0].id
                 }
             );
-            assert_ne!(repr.argument, argument);
+            assert_ne!(repr.argument, generic_arguments[index]);
         }
     }
 }

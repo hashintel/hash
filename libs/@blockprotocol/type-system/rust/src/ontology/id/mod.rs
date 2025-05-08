@@ -84,12 +84,10 @@ mod error;
 /// [`MissingTrailingSlash`]: ParseBaseUrlError::MissingTrailingSlash
 /// [`UrlParseError`]: ParseBaseUrlError::UrlParseError
 /// [`CannotBeABase`]: ParseBaseUrlError::CannotBeABase
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
-#[cfg_attr(feature = "postgres", derive(ToSql), postgres(transparent))]
 #[derive(Clone, PartialEq, Eq, Ord, PartialOrd, Hash)]
-pub struct BaseUrl(
-    #[cfg_attr(target_arch = "wasm32", tsify(type = "Brand<Url, \"BaseUrl\">"))] String,
-);
+#[cfg_attr(feature = "codegen", derive(specta::Type))]
+#[cfg_attr(feature = "postgres", derive(ToSql), postgres(transparent))]
+pub struct BaseUrl(String);
 
 impl fmt::Debug for BaseUrl {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -234,18 +232,14 @@ impl<'a> FromSql<'a> for BaseUrl {
 /// assert_eq!(version.inner(), 1);
 /// ```
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema), schema(value_type = String))]
 #[repr(transparent)]
 pub struct OntologyTypeVersion(
     // We aim to replace the simple `u32` with a more complex type in the future.
     // For now, we use `u32` to represent the version number. but we export it as an
     // `Opaque` type to ensure that it is not used directly in TypeScript.
-    #[cfg_attr(
-        target_arch = "wasm32",
-        tsify(type = "Opaque<\"OntologyTypeVersion\">")
-    )]
-    u32,
+    #[cfg_attr(feature = "codegen", specta(type = String))] u32,
 );
 
 impl Serialize for OntologyTypeVersion {
@@ -362,6 +356,7 @@ impl<'a> FromSql<'a> for OntologyTypeVersion {
 /// [`AdditionalEndContent`]: ParseVersionedUrlError::AdditionalEndContent
 /// [`InvalidBaseUrl`]: ParseVersionedUrlError::InvalidBaseUrl
 #[derive(Debug, Clone, PartialEq, Eq, Ord, PartialOrd, Hash)]
+#[cfg_attr(feature = "codegen", derive(specta::Type), specta(export = false))]
 pub struct VersionedUrl {
     /// The base URL component representing the unversioned part of the type identifier
     pub base_url: BaseUrl,

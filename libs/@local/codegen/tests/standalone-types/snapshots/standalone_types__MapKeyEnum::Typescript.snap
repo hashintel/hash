@@ -1,0 +1,5 @@
+---
+source: libs/@local/codegen/tests/standalone-types/main.rs
+expression: generated
+---
+export type MapKeyEnum = "Foo" | "Bar" | "Baz";

@@ -28,12 +28,12 @@ const PARSE: ParseIntegerOptions = match ParseIntegerOptionsBuilder::new().build
 /// 0
 /// 9223372036854775807  // Large integers are preserved exactly
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct IntegerLiteral {
-    pub value: Symbol,
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct IntegerLiteral<'heap> {
+    pub value: Symbol<'heap>,
 }
 
-impl IntegerLiteral {
+impl IntegerLiteral<'_> {
     /// Attempts to convert the integer literal to an unsigned 8-bit integer.
     ///
     /// Returns `None` if the value is negative or exceeds the range of [`u8`].
@@ -147,16 +147,16 @@ impl IntegerLiteral {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use hashql_core::heap::Heap;
 
-    fn symbol(value: &str) -> Symbol {
-        Symbol::new(value)
-    }
+    use crate::node::expr::literal::IntegerLiteral;
 
     #[test]
     fn parse_unsigned_integers() {
+        let heap = Heap::new();
+
         let literal = IntegerLiteral {
-            value: symbol("123"),
+            value: heap.intern_symbol("123"),
         };
 
         assert_eq!(literal.as_u8(), Some(123));
@@ -168,8 +168,10 @@ mod tests {
 
     #[test]
     fn parse_signed_integers() {
+        let heap = Heap::new();
+
         let positive = IntegerLiteral {
-            value: symbol("42"),
+            value: heap.intern_symbol("42"),
         };
 
         assert_eq!(positive.as_i8(), Some(42));
@@ -179,7 +181,7 @@ mod tests {
         assert_eq!(positive.as_i128(), Some(42));
 
         let negative = IntegerLiteral {
-            value: symbol("-42"),
+            value: heap.intern_symbol("-42"),
         };
 
         assert_eq!(negative.as_i8(), Some(-42));
@@ -191,28 +193,32 @@ mod tests {
 
     #[test]
     fn unsigned_bounds() {
+        let heap = Heap::new();
+
         let too_large_for_u8 = IntegerLiteral {
-            value: symbol("256"),
+            value: heap.intern_symbol("256"),
         };
         assert_eq!(too_large_for_u8.as_u8(), None);
         assert_eq!(too_large_for_u8.as_u16(), Some(256));
 
         let max_u8 = IntegerLiteral {
-            value: symbol("255"),
+            value: heap.intern_symbol("255"),
         };
         assert_eq!(max_u8.as_u8(), Some(255));
     }
 
     #[test]
     fn signed_bounds() {
+        let heap = Heap::new();
+
         let too_large_for_i8 = IntegerLiteral {
-            value: symbol("128"),
+            value: heap.intern_symbol("128"),
         };
         assert_eq!(too_large_for_i8.as_i8(), None);
         assert_eq!(too_large_for_i8.as_i16(), Some(128));
 
         let too_small_for_i8 = IntegerLiteral {
-            value: symbol("-129"),
+            value: heap.intern_symbol("-129"),
         };
         assert_eq!(too_small_for_i8.as_i8(), None);
         assert_eq!(too_small_for_i8.as_i16(), Some(-129));
@@ -221,8 +227,10 @@ mod tests {
     #[test]
     #[expect(clippy::float_cmp)]
     fn float_conversions() {
+        let heap = Heap::new();
+
         let integer = IntegerLiteral {
-            value: symbol("42"),
+            value: heap.intern_symbol("42"),
         };
 
         assert_eq!(integer.as_f32(), 42.0);
@@ -231,8 +239,10 @@ mod tests {
 
     #[test]
     fn invalid_formats() {
+        let heap = Heap::new();
+
         let invalid = IntegerLiteral {
-            value: symbol("not_a_number"),
+            value: heap.intern_symbol("not_a_number"),
         };
 
         assert_eq!(invalid.as_u32(), None);

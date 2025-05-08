@@ -15,9 +15,8 @@ use crate::{knowledge::entity::id::EntityUuid, principal::role::RoleId};
     serde::Serialize,
     serde::Deserialize,
     derive_more::Display,
-    specta::Type,
 )]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[cfg_attr(
     feature = "postgres",
@@ -25,13 +24,7 @@ use crate::{knowledge::entity::id::EntityUuid, principal::role::RoleId};
     postgres(transparent)
 )]
 #[repr(transparent)]
-pub struct AiId(
-    #[cfg_attr(
-        target_arch = "wasm32",
-        tsify(type = "Brand<ActorEntityUuid, \"AiId\">")
-    )]
-    ActorEntityUuid,
-);
+pub struct AiId(ActorEntityUuid);
 
 impl AiId {
     #[must_use]
@@ -58,8 +51,8 @@ impl From<AiId> for Uuid {
     }
 }
 
-#[derive(Debug, serde::Serialize, serde::Deserialize, specta::Type)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Ai {

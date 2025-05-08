@@ -1,0 +1,13 @@
+//@ run: pass
+//@ description: Tests that closures with complex return types correctly resolve type paths
+[
+  "fn",
+  { "#tuple": [] },
+  {
+    "#struct": {
+      "x": "Number"
+    }
+  },
+  "kernel::type::Option<Number>",
+  ["Some", "x"]
+]
