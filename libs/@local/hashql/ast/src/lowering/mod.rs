@@ -1,4 +1,5 @@
 pub mod error;
+pub mod generic_constraint_sanitizer;
 pub mod import_resolver;
 pub mod name_mangler;
 pub mod node_renumberer;
