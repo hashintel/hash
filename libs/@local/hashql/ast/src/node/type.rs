@@ -175,6 +175,21 @@ pub enum TypeKind<'heap> {
     ///
     /// Represents a type that must satisfy all of several component types.
     Intersection(IntersectionType<'heap>),
+
+    /// A placeholder type used exclusively during AST transformation phases.
+    ///
+    /// The `Dummy` variant serves as a temporary placeholder during processes
+    /// like AST lowering, where a `TypeKind` might need to be extracted or
+    /// replaced. It allows for the safe manipulation of type structures
+    /// without requiring an immediate valid replacement.
+    ///
+    /// # Implementation Note
+    ///
+    /// This variant is intended only as an intermediate state during
+    /// transformations and should not be present in a finalized AST.
+    /// The presence of a `Dummy` type after all transformations are complete
+    /// would indicate an issue in the transformation logic.
+    Dummy,
 }
 
 /// A type in the HashQL Abstract Syntax Tree.

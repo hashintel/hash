@@ -26,7 +26,7 @@ use crate::{
         },
         id::NodeId,
         path::{Path, PathSegment},
-        r#type::Type,
+        r#type::{Type, TypeKind},
     },
     visit::{Visitor, walk_closure_expr, walk_expr, walk_path, walk_type},
 };
@@ -68,6 +68,7 @@ pub struct ImportResolver<'env, 'heap> {
     current_universe: Universe,
     scope: Scope<'heap>,
     diagnostics: Vec<ImportResolverDiagnostic>,
+    handled_diagnostics: usize,
 }
 
 impl<'env, 'heap> ImportResolver<'env, 'heap> {
@@ -78,11 +79,19 @@ impl<'env, 'heap> ImportResolver<'env, 'heap> {
             current_universe: Universe::Value,
             scope: Scope::default(),
             diagnostics: Vec::new(),
+            handled_diagnostics: 0,
         }
     }
 
     pub fn take_diagnostics(&mut self) -> Vec<ImportResolverDiagnostic> {
         mem::take(&mut self.diagnostics)
+    }
+
+    fn fatal_diagnostics_count(&self) -> usize {
+        self.diagnostics
+            .iter()
+            .filter(|diagnostic| diagnostic.severity.is_fatal())
+            .count()
     }
 
     fn enter<T>(
@@ -341,13 +350,22 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
         // Process the node first
         walk_expr(self, expr);
 
-        // Replace any use statement with it's body
-        let ExprKind::Use(use_expr) = &mut expr.kind else {
-            return;
-        };
-
-        let inner = mem::replace(&mut *use_expr.body, Expr::dummy());
-        *expr = inner;
+        match &mut expr.kind {
+            // Replace any use statement with it's body
+            ExprKind::Use(use_expr) => {
+                let inner = mem::replace(&mut *use_expr.body, Expr::dummy());
+                *expr = inner;
+            }
+            // Replace any path, which has had diagnostics emitted with a dummy expression
+            kind @ ExprKind::Path(_) => {
+                let fatal = self.fatal_diagnostics_count();
+                if self.handled_diagnostics < fatal {
+                    *kind = ExprKind::Dummy;
+                    self.handled_diagnostics = fatal;
+                }
+            }
+            _ => {}
+        }
     }
 
     fn visit_type(&mut self, r#type: &mut Type<'heap>) {
@@ -356,6 +374,15 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
         self.current_universe = Universe::Type;
         walk_type(self, r#type);
         self.current_universe = previous;
+
+        // Replace any path, which has had diagnostics emitted with a dummy expression
+        if matches!(r#type.kind, TypeKind::Path(_)) {
+            let fatal = self.fatal_diagnostics_count();
+            if self.handled_diagnostics < fatal {
+                r#type.kind = TypeKind::Dummy;
+                self.handled_diagnostics = fatal;
+            }
+        }
     }
 
     fn visit_let_expr(

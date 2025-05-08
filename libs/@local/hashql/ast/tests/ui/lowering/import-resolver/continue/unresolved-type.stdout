@@ -1,0 +1,7 @@
+Expr#4294967040@14
+  ExprKind (Type)
+    TypeExpr#4294967040@14 (name: Foo)
+      Type#4294967040@11
+        TypeKind (Dummy)
+      Expr#4294967040@13
+        ExprKind (Underscore)

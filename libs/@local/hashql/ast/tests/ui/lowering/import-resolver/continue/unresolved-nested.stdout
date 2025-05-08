@@ -1,0 +1,14 @@
+Expr#4294967040@19
+  ExprKind (Type)
+    TypeExpr#4294967040@19 (name: Foo)
+      GenericConstraint#4294967040@10 (name: T)
+        Type#4294967040@9
+          TypeKind (Dummy)
+      Type#4294967040@16
+        TypeKind (Path)
+          Path#4294967040@16 (rooted: true)
+            PathSegment#4294967040@15 (name: kernel)
+            PathSegment#4294967040@15 (name: type)
+            PathSegment#4294967040@15 (name: Number)
+      Expr#4294967040@18
+        ExprKind (Underscore)
