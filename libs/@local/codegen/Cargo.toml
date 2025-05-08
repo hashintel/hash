@@ -21,7 +21,6 @@ simple-mermaid = { workspace = true }
 [dev-dependencies]
 insta         = { workspace = true }
 libtest-mimic = { workspace = true }
-type-system   = { workspace = true, features = ["codegen"] }
 
 [lints]
 workspace = true
@@ -30,9 +29,3 @@ workspace = true
 name    = "standalone-types"
 path    = "tests/standalone-types/main.rs"
 harness = false
-
-
-[package.metadata.sync.turborepo]
-ignore-dev-dependencies = [
-    "@blockprotocol/type-system-rs",
-]

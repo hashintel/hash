@@ -18,8 +18,7 @@ reqwest        = { workspace = true, public = true, features = ["json", "stream"
 specta         = { workspace = true, public = true, optional = true, features = ["derive"] }
 
 # Private workspace dependencies
-hash-codec   = { workspace = true, features = ["bytes"] }
-hash-codegen = { workspace = true, optional = true }
+hash-codec = { workspace = true, features = ["bytes"] }
 
 # Private third-party dependencies
 bytes                  = { workspace = true, optional = true }
@@ -42,6 +41,7 @@ utoipa                 = { workspace = true, optional = true }
 uuid                   = { workspace = true, features = ["v4"] }
 
 [dev-dependencies]
+hash-codegen      = { workspace = true }
 indoc             = { workspace = true }
 insta             = { workspace = true }
 pretty_assertions = { workspace = true }
@@ -52,7 +52,7 @@ name              = "codegen"
 required-features = ["codegen"]
 
 [features]
-codegen  = ["dep:hash-codegen", "dep:specta", "type-system/codegen"]
+codegen  = ["dep:specta", "type-system/codegen"]
 utoipa   = ["dep:utoipa"]
 postgres = ["dep:postgres-types", "dep:bytes"]
 
