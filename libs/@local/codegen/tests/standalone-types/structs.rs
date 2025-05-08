@@ -87,3 +87,32 @@ pub(crate) struct StructNestedTypeFlattened {
     #[serde(flatten)]
     nested: StructFlattenedEnum,
 }
+
+#[derive(specta::Type)]
+pub(crate) struct StructSingleSkipped {
+    #[specta(skip)]
+    integer: i32,
+}
+#[derive(specta::Type)]
+pub(crate) struct StructDoubleSkipped {
+    integer: i32,
+    #[specta(skip)]
+    float: f64,
+}
+
+#[derive(specta::Type)]
+pub(crate) struct StructMultipleSkipped {
+    integer: i32,
+    #[specta(skip)]
+    float: f64,
+    string: String,
+}
+
+#[derive(specta::Type)]
+pub(crate) struct StructUnnamedSingleSkipped(#[specta(skip)] i32);
+
+#[derive(specta::Type)]
+pub(crate) struct StructUnnamedDoubleSkipped(i32, #[specta(skip)] f64);
+
+#[derive(specta::Type)]
+pub(crate) struct StructUnnamedMultipleSkipped(i32, #[specta(skip)] f64, String);

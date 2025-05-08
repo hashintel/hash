@@ -44,6 +44,12 @@ fn register_types(collection: &mut TypeCollection) {
     collection.register::<structs::StructFlattenedEnum>();
     collection.register::<structs::StructNestedTypeFlattened>();
     collection.register::<structs::StructNestedInterfaceFlattened>();
+    collection.register::<structs::StructSingleSkipped>();
+    collection.register::<structs::StructDoubleSkipped>();
+    collection.register::<structs::StructMultipleSkipped>();
+    collection.register::<structs::StructUnnamedSingleSkipped>();
+    collection.register::<structs::StructUnnamedDoubleSkipped>();
+    collection.register::<structs::StructUnnamedMultipleSkipped>();
 
     // Register lists
     collection.register::<lists::ListPrimitives>();
