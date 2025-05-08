@@ -17,10 +17,8 @@ fn index() -> io::Result<()> {
     generator.add_import_declaration(
         "@blockprotocol/type-system-rs/types",
         [
-            "ActorEntityUuid",
             "ActorId",
             "ActorType",
-            "ActorGroupEntityUuid",
             "ActorGroupId",
             "BaseUrl",
             "EntityUuid",
