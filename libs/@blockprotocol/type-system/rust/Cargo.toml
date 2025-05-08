@@ -50,7 +50,7 @@ pretty_assertions    = { workspace = true }
 tokio                = { workspace = true, features = ["macros", "rt"] }
 
 [[test]]
-name              = "codegen-shadow"
+name              = "codegen"
 required-features = ["codegen"]
 
 [features]

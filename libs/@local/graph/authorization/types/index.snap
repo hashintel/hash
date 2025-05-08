@@ -1,5 +1,5 @@
 ---
-source: libs/@local/graph/authorization/tests/codegen-shadow.rs
+source: libs/@local/graph/authorization/tests/codegen.rs
 description: Generated TS types
 extension: d.ts
 snapshot_kind: binary

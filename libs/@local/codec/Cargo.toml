@@ -39,7 +39,7 @@ serde       = { workspace = true, features = ["derive"] }
 serde_json  = { workspace = true }
 
 [[test]]
-name              = "codegen-shadow"
+name              = "codegen"
 required-features = ["codegen", "numeric"]
 
 [features]
