@@ -24,8 +24,6 @@
 
 #[cfg(feature = "postgres")]
 use core::error::Error;
-#[cfg(feature = "serde")]
-use core::str::FromStr as _;
 use core::{fmt, ops};
 
 #[cfg(feature = "postgres")]
@@ -250,15 +248,6 @@ impl de::Visitor<'_> for RealVisitor {
         E: de::Error,
     {
         Real::try_from(value).map_err(E::custom)
-    }
-
-    fn visit_str<E>(self, value: &str) -> Result<Real, E>
-    where
-        E: de::Error,
-    {
-        dashu_float::DBig::from_str(value)
-            .map(Real)
-            .map_err(E::custom)
     }
 }
 

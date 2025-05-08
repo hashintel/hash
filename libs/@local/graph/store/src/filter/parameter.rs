@@ -21,13 +21,14 @@ use uuid::Uuid;
 #[serde(untagged)]
 pub enum Parameter<'p> {
     Boolean(bool),
-    OntologyTypeVersion(OntologyTypeVersion),
     Decimal(Real),
     Text(Cow<'p, str>),
     Vector(Embedding<'p>),
     Any(PropertyValue),
     #[serde(skip)]
     Uuid(Uuid),
+    #[serde(skip)]
+    OntologyTypeVersion(OntologyTypeVersion),
     #[serde(skip)]
     Timestamp(Timestamp<()>),
 }
@@ -202,11 +203,18 @@ impl Parameter<'_> {
             }
 
             // Ontology type conversions
-            (Parameter::Text(text), ParameterType::OntologyTypeVersion) if text == "latest" => {
+            (Parameter::Text(text), ParameterType::OntologyTypeVersion) => {
                 // Special case for checking `version == "latest"
-            }
-            (Parameter::OntologyTypeVersion(version), ParameterType::Text) => {
-                *self = Parameter::Text(Cow::Owned(version.inner().to_string()));
+                if text != "latest" {
+                    *self = Parameter::OntologyTypeVersion(OntologyTypeVersion::new(
+                        text.parse().change_context_lazy(|| {
+                            ParameterConversionError::InvalidParameterType {
+                                actual: self.to_owned().into(),
+                                expected: ParameterType::OntologyTypeVersion,
+                            }
+                        })?,
+                    ));
+                }
             }
 
             // Floating point conversions
