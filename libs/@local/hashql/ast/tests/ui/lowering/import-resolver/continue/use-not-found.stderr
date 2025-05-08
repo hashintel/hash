@@ -1,0 +1,15 @@
+[31m[import-resolver::unresolved-import] Error:[0m Unresolved import
+   ╭─[ <unknown>:5:12 ]
+   │
+ 5 │   "kernel::foo",
+   │    ─────┬───┬─  
+   │         │   ╰─── Module 'foo' not found
+   │         │       
+   │         ╰─────── In this path
+   │ 
+   │ Help: The module 'kernel::foo' doesn't exist in this scope. Check the spelling and ensure the module is available.
+   │       
+   │       Possible alternatives are `special_form`, `type`.
+   │ 
+   │ Note: Modules must be properly defined and exported from their parent module to be accessible.
+───╯
