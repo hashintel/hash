@@ -31,7 +31,7 @@ export type TransitionNodeData = {
   delay?: number;
   description?: string;
   subProcess?: {
-    linkEntityId: EntityId;
+    linkEntityId?: EntityId;
     subProcessEntityId: EntityId;
     subProcessTitle: string;
   };

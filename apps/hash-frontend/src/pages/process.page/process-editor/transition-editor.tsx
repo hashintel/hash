@@ -1,11 +1,5 @@
-import { useMutation } from "@apollo/client";
 import type { EntityId } from "@blockprotocol/type-system";
 import { IconButton, Select, TextField } from "@hashintel/design-system";
-import {
-  blockProtocolDataTypes,
-  systemLinkEntityTypes,
-  systemPropertyTypes,
-} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   Box,
   Dialog,
@@ -19,19 +13,8 @@ import {
 } from "@mui/material";
 import { useCallback, useMemo, useState } from "react";
 
-import type {
-  ArchiveEntityMutation,
-  ArchiveEntityMutationVariables,
-  CreateEntityMutation,
-  CreateEntityMutationVariables,
-} from "../../../graphql/api-types.gen";
-import {
-  archiveEntityMutation,
-  createEntityMutation,
-} from "../../../graphql/queries/knowledge/entity.queries";
 import { XMarkRegularIcon } from "../../../shared/icons/x-mark-regular-icon";
 import { Button, MenuItem } from "../../../shared/ui";
-import { useActiveWorkspace } from "../../shared/workspace-context";
 import { useEditorContext } from "./editor-context";
 import { PersistedNetSelector } from "./persisted-net-selector";
 import type {
@@ -161,7 +144,7 @@ export const TransitionEditor = ({
         conditions: [],
         delay: 0,
         description: "",
-        subProcess: null,
+        subProcess: undefined,
         label: "",
       };
     }
@@ -175,75 +158,31 @@ export const TransitionEditor = ({
       description: initialData.description ?? "",
       conditions: initialData.conditions ?? [],
       delay: initialData.delay,
-      /**
-       * @todo represent subprocess here?
-       */
+      subProcess: initialData.subProcess,
     },
   );
 
   const hasConditions = localData.conditions && localData.conditions.length > 0;
 
-  const { subProcess } = initialData;
-
-  const { activeWorkspaceWebId } = useActiveWorkspace();
-  const { entityId, persistedNets, refetchPersistedNets } = useEditorContext();
-
-  const [createEntity] = useMutation<
-    CreateEntityMutation,
-    CreateEntityMutationVariables
-  >(createEntityMutation);
-
-  const [archiveEntity] = useMutation<
-    ArchiveEntityMutation,
-    ArchiveEntityMutationVariables
-  >(archiveEntityMutation);
+  const { entityId, persistedNets } = useEditorContext();
 
   const updateSubProcess = useCallback(
-    async (subProcessEntityId: EntityId) => {
-      if (!entityId) {
-        throw new Error(
-          `Cannot set sub-process for transition without entityId`,
-        );
-      }
-
-      if (subProcess) {
-        await archiveEntity({
-          variables: { entityId: subProcess.linkEntityId },
-        });
-      }
-
-      await createEntity({
-        variables: {
-          entityTypeIds: [systemLinkEntityTypes.subProcessOf.linkEntityTypeId],
-          linkData: {
-            leftEntityId: subProcessEntityId,
-            rightEntityId: entityId,
-          },
-          properties: {
-            value: {
-              [systemPropertyTypes.transitionId.propertyTypeBaseUrl]: {
-                metadata: {
-                  dataTypeId: blockProtocolDataTypes.text.dataTypeId,
-                },
-                value: transitionId,
-              },
-            },
-          },
-          webId: activeWorkspaceWebId,
+    ({
+      subProcessEntityId,
+      subProcessTitle,
+    }: {
+      subProcessEntityId: EntityId;
+      subProcessTitle: string;
+    }) => {
+      setEditedData((prev) => ({
+        ...prev,
+        subProcess: {
+          subProcessEntityId,
+          subProcessTitle,
         },
-      });
-
-      refetchPersistedNets({ updatedEntityId: entityId });
+      }));
     },
-    [
-      activeWorkspaceWebId,
-      archiveEntity,
-      createEntity,
-      entityId,
-      refetchPersistedNets,
-      subProcess,
-      transitionId,
-    ],
+    [],
   );
 
   const handleHasConditionsChange = useCallback(
@@ -461,8 +400,14 @@ export const TransitionEditor = ({
               <PersistedNetSelector
                 disabledOptions={[entityId]}
                 options={persistedNets}
+                placeholder="Select process to link"
                 value={initialData.subProcess?.subProcessEntityId ?? null}
-                onSelect={(value) => updateSubProcess(value.entityId)}
+                onSelect={(value) =>
+                  updateSubProcess({
+                    subProcessEntityId: value.entityId,
+                    subProcessTitle: value.title,
+                  })
+                }
               />
             </Box>
           )}

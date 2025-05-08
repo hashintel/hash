@@ -1,9 +1,11 @@
 import { useMutation } from "@apollo/client";
 import type { EntityId } from "@blockprotocol/type-system";
+import { AlertModal } from "@hashintel/design-system";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   blockProtocolDataTypes,
   systemEntityTypes,
+  systemLinkEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
@@ -13,18 +15,22 @@ import {
   useCallback,
   useContext,
   useMemo,
+  useState,
 } from "react";
 import { flushSync } from "react-dom";
 import { useReactFlow } from "reactflow";
 import { useLocalstorageState } from "rooks";
 
 import type {
+  ArchiveEntityMutation,
+  ArchiveEntityMutationVariables,
   CreateEntityMutation,
   CreateEntityMutationVariables,
   UpdateEntityMutation,
   UpdateEntityMutationVariables,
 } from "../../../graphql/api-types.gen";
 import {
+  archiveEntityMutation,
   createEntityMutation,
   updateEntityMutation,
 } from "../../../graphql/queries/knowledge/entity.queries";
@@ -40,15 +46,18 @@ import type {
   PersistedNet,
   PetriNetDefinitionObject,
   TokenType,
+  TransitionNodeType,
 } from "./types";
 
 type EditorContextValue = {
   arcs: ArcType[];
+  discardChanges: null | (() => void);
+  isDirty: boolean;
   entityId: EntityId | null;
-  loadPersistedNet: (persistedNet: PersistedNet) => void;
   nodes: NodeType[];
   parentProcess: { entityId: EntityId; title: string } | null;
   persistedNets: PersistedNet[];
+  persistPending: boolean;
   persistToGraph: () => void;
   refetchPersistedNets: (args: { updatedEntityId: EntityId | null }) => void;
   setArcs: Dispatch<SetStateAction<ArcType[]>>;
@@ -61,6 +70,7 @@ type EditorContextValue = {
   setUserEditable: Dispatch<SetStateAction<boolean>>;
   setTitle: Dispatch<SetStateAction<string>>;
   setTokenTypes: Dispatch<SetStateAction<TokenType[]>>;
+  switchToNet: (persistedNet: PersistedNet) => void;
   title: string;
   tokenTypes: TokenType[];
   userEditable: boolean;
@@ -109,6 +119,8 @@ export const EditorContextProvider = ({
 
   const { activeWorkspaceWebId } = useActiveWorkspace();
 
+  const [persistPending, setPersistPending] = useState(false);
+
   const [createEntity] = useMutation<
     CreateEntityMutation,
     CreateEntityMutationVariables
@@ -118,6 +130,11 @@ export const EditorContextProvider = ({
     UpdateEntityMutation,
     UpdateEntityMutationVariables
   >(updateEntityMutation);
+
+  const [archiveEntity] = useMutation<
+    ArchiveEntityMutation,
+    ArchiveEntityMutationVariables
+  >(archiveEntityMutation);
 
   const { fitView } = useReactFlow();
 
@@ -142,13 +159,66 @@ export const EditorContextProvider = ({
       [fitView, setArcs, setNodes, setTokenTypes],
     );
 
+  const persistedNet = useMemo(() => {
+    return persistedNets.find((net) => net.entityId === entityId);
+  }, [persistedNets, entityId]);
+
+  const isDirty = useMemo(() => {
+    if (!persistedNet) {
+      return true;
+    }
+
+    if (title !== persistedNet.title) {
+      return true;
+    }
+
+    if (parentProcess?.entityId !== persistedNet.parentProcess?.entityId) {
+      return true;
+    }
+
+    if (arcs.length !== persistedNet.definition.arcs.length) {
+      return true;
+    }
+
+    if (nodes.length !== persistedNet.definition.nodes.length) {
+      return true;
+    }
+
+    if (tokenTypes.length !== persistedNet.definition.tokenTypes.length) {
+      return true;
+    }
+
+    if (JSON.stringify(arcs) !== JSON.stringify(persistedNet.definition.arcs)) {
+      return true;
+    }
+
+    if (
+      JSON.stringify(nodes) !== JSON.stringify(persistedNet.definition.nodes)
+    ) {
+      return true;
+    }
+
+    if (
+      JSON.stringify(tokenTypes) !==
+      JSON.stringify(persistedNet.definition.tokenTypes)
+    ) {
+      return true;
+    }
+
+    return false;
+  }, [arcs, nodes, tokenTypes, persistedNet, title, parentProcess]);
+
+  const [switchTargetPendingConfirmation, setSwitchTargetPendingConfirmation] =
+    useState<PersistedNet | null>(null);
+
   const loadPersistedNet = useCallback(
-    (persistedNet: PersistedNet) => {
-      setEntityId(persistedNet.entityId);
-      setParentProcess(persistedNet.parentProcess);
-      setPetriNetDefinition(persistedNet.definition);
-      setTitle(persistedNet.title);
-      setUserEditable(persistedNet.userEditable);
+    (net: PersistedNet) => {
+      setSwitchTargetPendingConfirmation(null);
+      setEntityId(net.entityId);
+      setParentProcess(net.parentProcess);
+      setPetriNetDefinition(net.definition);
+      setTitle(net.title);
+      setUserEditable(net.userEditable);
     },
     [
       setEntityId,
@@ -157,6 +227,17 @@ export const EditorContextProvider = ({
       setTitle,
       setUserEditable,
     ],
+  );
+
+  const switchToNet = useCallback(
+    (net: PersistedNet) => {
+      if (isDirty) {
+        setSwitchTargetPendingConfirmation(net);
+      } else {
+        loadPersistedNet(net);
+      }
+    },
+    [isDirty, loadPersistedNet],
   );
 
   const refetchPersistedNets = useCallback(
@@ -184,6 +265,10 @@ export const EditorContextProvider = ({
     if (!activeWorkspaceWebId) {
       return;
     }
+
+    setPersistPending(true);
+
+    let persistedEntityId = entityId;
 
     if (entityId) {
       await updateEntity({
@@ -223,8 +308,6 @@ export const EditorContextProvider = ({
           },
         },
       });
-
-      await refetchPersistedNets({ updatedEntityId: entityId });
     } else {
       const createdEntityData = await createEntity({
         variables: {
@@ -261,17 +344,81 @@ export const EditorContextProvider = ({
 
       const createdEntity = new HashEntity(createdEntityData.data.createEntity);
 
-      void refetchPersistedNets({ updatedEntityId: createdEntity.entityId });
-
-      setEntityId(createdEntity.entityId);
-      setUserEditable(true);
+      persistedEntityId = createdEntity.entityId;
     }
+
+    if (!persistedEntityId) {
+      throw new Error("Somehow no entityId available after persisting net");
+    }
+
+    /**
+     * Handle sub-process changes. For any sub-process changed on a transition:
+     * 1. Archive the previous sub-process, if there was one
+     * 2. Create a new link to the new sub-process, if there is one
+     */
+    for (const node of nodes) {
+      if (node.data.type === "transition") {
+        const previousTransition = persistedNet?.definition.nodes.find(
+          (transition): transition is TransitionNodeType =>
+            transition.data.type === "transition" && transition.id === node.id,
+        );
+
+        const previousSubProcess = previousTransition?.data.subProcess;
+
+        const subProcessHasChanged =
+          previousSubProcess?.subProcessEntityId !==
+          node.data.subProcess?.subProcessEntityId;
+
+        if (!subProcessHasChanged) {
+          continue;
+        }
+
+        if (previousSubProcess?.linkEntityId) {
+          await archiveEntity({
+            variables: { entityId: previousSubProcess.linkEntityId },
+          });
+        }
+
+        if (node.data.subProcess?.subProcessEntityId) {
+          await createEntity({
+            variables: {
+              entityTypeIds: [
+                systemLinkEntityTypes.subProcessOf.linkEntityTypeId,
+              ],
+              linkData: {
+                leftEntityId: node.data.subProcess.subProcessEntityId,
+                rightEntityId: persistedEntityId,
+              },
+              properties: {
+                value: {
+                  [systemPropertyTypes.transitionId.propertyTypeBaseUrl]: {
+                    metadata: {
+                      dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+                    },
+                    value: node.id,
+                  },
+                },
+              },
+              webId: activeWorkspaceWebId,
+            },
+          });
+        }
+      }
+    }
+
+    await refetchPersistedNets({ updatedEntityId: persistedEntityId });
+    setEntityId(persistedEntityId);
+    setUserEditable(true);
+
+    setPersistPending(false);
   }, [
     activeWorkspaceWebId,
+    archiveEntity,
     arcs,
     createEntity,
     entityId,
     nodes,
+    persistedNet?.definition.nodes,
     refetchPersistedNets,
     setEntityId,
     setUserEditable,
@@ -280,14 +427,24 @@ export const EditorContextProvider = ({
     updateEntity,
   ]);
 
+  const discardChanges = useMemo(() => {
+    if (!persistedNet) {
+      return null;
+    }
+
+    return () => loadPersistedNet(persistedNet);
+  }, [persistedNet, loadPersistedNet]);
+
   const value: EditorContextValue = useMemo(
     () => ({
       arcs,
+      discardChanges,
       entityId,
-      loadPersistedNet,
+      isDirty,
       nodes,
       parentProcess,
       persistedNets,
+      persistPending,
       persistToGraph,
       refetchPersistedNets,
       setArcs,
@@ -298,16 +455,19 @@ export const EditorContextProvider = ({
       setTitle,
       setTokenTypes,
       setUserEditable,
+      switchToNet,
       title,
       tokenTypes,
       userEditable,
     }),
     [
       arcs,
+      discardChanges,
       entityId,
-      loadPersistedNet,
+      isDirty,
       nodes,
       parentProcess,
+      persistPending,
       persistedNets,
       persistToGraph,
       refetchPersistedNets,
@@ -319,6 +479,7 @@ export const EditorContextProvider = ({
       setTitle,
       setTokenTypes,
       setUserEditable,
+      switchToNet,
       title,
       tokenTypes,
       userEditable,
@@ -326,7 +487,25 @@ export const EditorContextProvider = ({
   );
 
   return (
-    <EditorContext.Provider value={value}>{children}</EditorContext.Provider>
+    <EditorContext.Provider value={value}>
+      {children}
+      {switchTargetPendingConfirmation && (
+        <AlertModal
+          callback={() => {
+            loadPersistedNet(switchTargetPendingConfirmation);
+          }}
+          calloutMessage="You have unsaved changes which will be discarded. Are you sure you want to switch to another net?"
+          confirmButtonText="Switch"
+          contentStyle={{
+            maxWidth: 450,
+          }}
+          header="Switch and discard changes?"
+          open
+          close={() => setSwitchTargetPendingConfirmation(null)}
+          type="warning"
+        />
+      )}
+    </EditorContext.Provider>
   );
 };
 

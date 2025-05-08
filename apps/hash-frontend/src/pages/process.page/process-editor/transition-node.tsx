@@ -12,7 +12,7 @@ export const TransitionNode = ({
 }: NodeProps<TransitionNodeData>) => {
   const { label, description, subProcess } = data;
 
-  const { loadPersistedNet, persistedNets } = useEditorContext();
+  const { switchToNet, persistedNets } = useEditorContext();
 
   return (
     <div
@@ -38,7 +38,7 @@ export const TransitionNode = ({
               );
 
               if (subProcessPersistedNet) {
-                loadPersistedNet(subProcessPersistedNet);
+                switchToNet(subProcessPersistedNet);
               } else {
                 throw new Error("Sub process not available locally");
               }

@@ -31,6 +31,7 @@ import { exampleCPN } from "./process-editor/examples";
 import { LogPane } from "./process-editor/log-pane";
 import { PlaceEditor } from "./process-editor/place-editor";
 import { PlaceNode } from "./process-editor/place-node";
+import { ProcessEditBar } from "./process-editor/process-edit-bar";
 import { Sidebar } from "./process-editor/sidebar";
 import {
   SimulationContextProvider,
@@ -473,6 +474,7 @@ const ProcessEditorContent = () => {
 
   return (
     <Stack sx={{ height: "100%" }}>
+      <ProcessEditBar />
       <TitleAndNetSelect />
 
       <Stack direction="row" sx={{ flex: 1 }}>
@@ -519,9 +521,6 @@ const ProcessEditorContent = () => {
             </Button>
             <Button onClick={handleResetAll} size="xs" variant="danger">
               New
-            </Button>
-            <Button onClick={persistToGraph} size="xs" variant="primary">
-              {entityId && userEditable ? "Update" : "Create"}
             </Button>
           </Stack>
 

@@ -14,6 +14,7 @@ import { Button } from "../../../shared/ui/button";
 
 export const EditBarContents = ({
   hideConfirm,
+  hideDiscard,
   icon,
   title,
   label,
@@ -21,12 +22,17 @@ export const EditBarContents = ({
   confirmButtonProps,
 }: {
   hideConfirm?: boolean;
+  hideDiscard?: boolean;
   icon: ReactNode;
   title: ReactNode;
   label: ReactNode;
   discardButtonProps: ButtonProps;
   confirmButtonProps: ButtonProps;
 }) => {
+  if (hideDiscard && hideConfirm) {
+    throw new Error("hideDiscard and hideConfirm cannot both be true");
+  }
+
   return (
     <Container
       sx={{
@@ -43,25 +49,27 @@ export const EditBarContents = ({
         {label}
       </Typography>
       <Stack spacing={1.25} sx={{ marginLeft: "auto" }} direction="row">
-        <Button
-          variant="tertiary"
-          size="xs"
-          sx={[
-            (theme) => ({
-              borderColor: theme.palette.blue[50],
-              backgroundColor: "transparent",
-              color: "white",
-              "&:hover": {
-                backgroundColor: theme.palette.blue[80],
+        {!hideDiscard && (
+          <Button
+            variant="tertiary"
+            size="xs"
+            sx={[
+              (theme) => ({
+                borderColor: theme.palette.blue[50],
+                backgroundColor: "transparent",
                 color: "white",
-              },
-            }),
-            ...(Array.isArray(discardSx) ? discardSx : [discardSx]),
-          ]}
-          {...discardButtonProps}
-        >
-          {discardButtonProps.children}
-        </Button>
+                "&:hover": {
+                  backgroundColor: theme.palette.blue[80],
+                  color: "white",
+                },
+              }),
+              ...(Array.isArray(discardSx) ? discardSx : [discardSx]),
+            ]}
+            {...discardButtonProps}
+          >
+            {discardButtonProps.children}
+          </Button>
+        )}
         {!hideConfirm && (
           <Button
             variant="secondary"
