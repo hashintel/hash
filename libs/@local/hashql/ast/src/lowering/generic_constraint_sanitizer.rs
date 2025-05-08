@@ -1,7 +1,7 @@
 use alloc::borrow::Cow;
 use core::mem;
 
-use hashql_core::span::SpanId;
+use hashql_core::{span::SpanId, symbol::Symbol};
 use hashql_diagnostics::{
     Diagnostic,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
@@ -31,11 +31,11 @@ pub enum GenericConstraintSanitizerDiagnosticCategory {
 
 impl DiagnosticCategory for GenericConstraintSanitizerDiagnosticCategory {
     fn id(&self) -> Cow<'_, str> {
-        Cow::Borrowed("import-resolver")
+        Cow::Borrowed("generic-constraint-sanitizer")
     }
 
     fn name(&self) -> Cow<'_, str> {
-        Cow::Borrowed("Import Resolver")
+        Cow::Borrowed("Generic Constraint Sanitizer")
     }
 
     fn subcategory(&self) -> Option<&dyn DiagnosticCategory> {
@@ -45,25 +45,28 @@ impl DiagnosticCategory for GenericConstraintSanitizerDiagnosticCategory {
     }
 }
 
-fn invalid_generic_constraint(span: SpanId, name: &str) -> GenericConstraintSanitizerDiagnostic {
+fn invalid_generic_constraint(span: SpanId, name: Symbol) -> GenericConstraintSanitizerDiagnostic {
     let mut diagnostic = Diagnostic::new(
         GenericConstraintSanitizerDiagnosticCategory::InvalidGenericConstraint,
         Severity::ERROR,
     );
 
-    diagnostic.labels.push(Label::new(
-        span,
-        format!("Generic constraint with bound is not allowed here"),
-    ));
+    diagnostic.labels.push(
+        Label::new(
+            span,
+            format!("Remove this constraint from generic parameter '{name}'"),
+        )
+        .with_order(0),
+    );
 
     diagnostic.help = Some(Help::new(format!(
-        "Generic parameter '{name}' cannot have constraints in this context. Remove the \
-         constraint."
+        "Generic constraints (like '{name}: Bound') are not allowed in this context. Use just the \
+         generic parameter name without bounds: '{name}'."
     )));
 
     diagnostic.note = Some(Note::new(
-        "Generic constraints with bounds are only allowed in certain positions like function \
-         declarations.",
+        "Generic constraints with bounds can only be used in certain positions such as function \
+         declarations, type declarations and newtype declarations",
     ));
 
     diagnostic
@@ -89,7 +92,7 @@ impl GenericConstraintSanitizer {
 impl<'heap> Visitor<'heap> for GenericConstraintSanitizer {
     fn visit_path_segment_argument(&mut self, argument: &mut PathSegmentArgument<'heap>) {
         if let PathSegmentArgument::Constraint(GenericConstraint {
-            id,
+            id: _,
             span,
             name,
             bound: bound @ Some(_),
@@ -98,7 +101,8 @@ impl<'heap> Visitor<'heap> for GenericConstraintSanitizer {
             // Remove the bound for further processing
             *bound = None;
 
-            todo!("emit diagnostic")
+            self.diagnostics
+                .push(invalid_generic_constraint(*span, name.value));
         }
     }
 }

@@ -1,3 +1,4 @@
+mod ast_lowering_generic_constraint_sanitizer;
 mod ast_lowering_import_resolver;
 mod ast_lowering_node_mangler;
 mod ast_lowering_node_renumberer;
@@ -12,6 +13,7 @@ use hashql_core::{heap::Heap, span::SpanId};
 use hashql_diagnostics::{Diagnostic, category::DiagnosticCategory, span::AbsoluteDiagnosticSpan};
 
 use self::{
+    ast_lowering_generic_constraint_sanitizer::AstLoweringGenericConstraintSanitizerSuite,
     ast_lowering_import_resolver::AstLoweringImportResolverSuite,
     ast_lowering_node_mangler::AstLoweringNameManglerSuite,
     ast_lowering_node_renumberer::AstLoweringNodeRenumbererSuite,
@@ -44,6 +46,7 @@ const SUITES: &[&dyn Suite] = &[
     &AstLoweringNameManglerSuite,
     &AstLoweringImportResolverSuite,
     &AstLoweringTypeExtractorSuite,
+    &AstLoweringGenericConstraintSanitizerSuite,
 ];
 
 pub(crate) fn find_suite(name: &str) -> Option<&'static dyn Suite> {
