@@ -4,5 +4,5 @@ expression: generated
 ---
 export interface StructOptional {
 	required: string;
-	optional: (number | undefined);
+	optional?: number;
 }

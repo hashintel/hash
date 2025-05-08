@@ -4,6 +4,6 @@ expression: generated
 ---
 export interface Web {
 	id: WebId;
-	shortname: (string | undefined);
+	shortname?: string;
 	roles: WebRoleId[];
 }
