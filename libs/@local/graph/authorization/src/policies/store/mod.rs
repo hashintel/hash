@@ -90,6 +90,7 @@ pub enum RoleUnassignmentStatus {
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[serde(rename_all = "kebab-case", tag = "filter", deny_unknown_fields)]
 pub enum PrincipalFilter {
     Unconstrained,
@@ -97,6 +98,7 @@ pub enum PrincipalFilter {
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PolicyFilter {
     pub principal: Option<PrincipalFilter>,
@@ -248,7 +250,7 @@ pub trait LocalPrincipalStore {
     ) -> Result<RoleUnassignmentStatus, Report<RoleAssignmentError>>;
 }
 
-pub trait PolicyStore {
+pub trait OldPolicyStore {
     /// Creates a new user within the given web and returns its ID.
     ///
     /// # Errors
@@ -447,7 +449,7 @@ pub struct MemoryPolicyStore {
     policies: HashMap<PrincipalIndex, HashMap<PolicyId, Policy>>,
 }
 
-impl PolicyStore for MemoryPolicyStore {
+impl OldPolicyStore for MemoryPolicyStore {
     fn create_user(&mut self, web_id: WebId) -> Result<UserId, Report<ActorCreationError>> {
         ensure!(
             self.teams.contains_key(&ActorGroupId::Web(web_id)),

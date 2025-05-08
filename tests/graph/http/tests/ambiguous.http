@@ -11,21 +11,6 @@ Content-Type: application/json
   client.global.set("system_machine_id", response.body);
 %}
 
-### Read policies
-POST http://127.0.0.1:4000/policies
-Content-Type: application/json
-Accept: application/json
-X-Authenticated-User-Actor-Id: {{system_machine_id}}
-
-{
-  "principal": {
-    "filter": "constrained",
-    "type": "actor",
-    "actorType": "machine",
-    "id": "{{system_machine_id}}"
-  }
-}
-
 
 ### Create account
 POST http://127.0.0.1:4000/actors/user
