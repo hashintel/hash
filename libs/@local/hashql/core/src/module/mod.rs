@@ -11,6 +11,7 @@ pub mod namespace;
 mod resolver;
 mod std_lib;
 
+use core::slice;
 use std::sync::RwLock;
 
 use strsim::jaro_winkler;
@@ -22,7 +23,7 @@ use self::{
     std_lib::StandardLibrary,
 };
 use crate::{
-    collection::FastHashMap,
+    collection::{FastHashMap, FastHashSet},
     heap::Heap,
     id::{HasId, Id as _},
     intern::{Decompose, InternMap, InternSet, Interned, Provisioned},
@@ -195,6 +196,93 @@ impl<'heap> ModuleRegistry<'heap> {
         } else {
             Ok(item)
         }
+    }
+
+    /// Searches for items with the given name in the specified universe.
+    ///
+    /// This function performs a depth-first traversal of the module hierarchy, starting from the
+    /// root modules, and returns an iterator over all items that match both:
+    /// - The exact name provided
+    /// - The specified universe
+    ///
+    /// # Algorithm
+    ///
+    /// The function implements a non-recursive DFS traversal using:
+    /// - A stack to track modules to visit
+    /// - A set to prevent revisiting modules (avoiding cycles)
+    /// - A stateful iterator for the current module's items
+    ///
+    /// For each module, it:
+    /// 1. Examines all items in the module
+    /// 2. Returns matching items as they're found
+    /// 3. Adds child modules to the stack for later exploration
+    /// 4. After exhausting a module's items, proceeds to the next module from the stack
+    ///
+    /// # Performance
+    ///
+    /// This method requires allocation for the traversal state:
+    /// - A vector for the module exploration stack
+    /// - A hash set for tracking visited modules
+    ///
+    /// # Panics
+    ///
+    /// This function will panic if the internal `RwLock` is poisoned.
+    #[expect(clippy::iter_on_empty_collections)]
+    pub fn search_by_name(
+        &self,
+        name: Symbol<'heap>,
+        universe: Universe,
+    ) -> impl IntoIterator<Item = Item<'heap>> {
+        let mut stack: Vec<_> = self
+            .root
+            .read()
+            .expect("lock should not be poisoned")
+            .values()
+            .copied()
+            .collect();
+
+        let mut seen = FastHashSet::with_capacity_and_hasher(
+            stack.len(),
+            foldhash::fast::RandomState::default(),
+        );
+        let mut current: slice::Iter<'heap, Item<'heap>> = [].iter();
+
+        core::iter::from_fn(move || {
+            'outer: loop {
+                // Process all items in the current module, before continuing to the next module
+                for &item in current.by_ref() {
+                    if item.name == name && item.kind.universe() == Some(universe) {
+                        return Some(item);
+                    }
+
+                    if let ItemKind::Module(child) = item.kind
+                        && !seen.contains(&child)
+                    {
+                        stack.push(child);
+                    }
+                }
+
+                // Current module is exhausted, try to get the next module from the stack
+                while let Some(id) = stack.pop() {
+                    if seen.contains(&id) {
+                        continue;
+                    }
+
+                    seen.insert(id);
+
+                    let module = self.modules.index(id);
+                    current = module.items.into_iter();
+
+                    // Jump back to processing items in this new module
+                    continue 'outer;
+                }
+
+                // We have exhausted all modules and all items, therefore we are done
+                break;
+            }
+
+            None
+        })
     }
 }
 

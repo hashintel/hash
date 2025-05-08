@@ -57,6 +57,16 @@ impl<'heap> Symbol<'heap> {
         self.0
     }
 
+    /// Returns the string representation of the symbol.
+    ///
+    /// Unlike [`Self::as_str`], this method provides access for the lifetime of the interner
+    /// instead of the symbol itself, somewhat circumventing the protections given to the symbol
+    /// itself. Any unwrapped type should be considered no longer unique and interned.
+    #[must_use]
+    pub const fn unwrap(&self) -> &'heap str {
+        self.0
+    }
+
     #[must_use]
     pub const fn as_bytes(&self) -> &[u8] {
         self.0.as_bytes()

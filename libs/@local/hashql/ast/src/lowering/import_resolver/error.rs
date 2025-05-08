@@ -1,14 +1,19 @@
 use alloc::borrow::Cow;
-use core::{fmt, fmt::Display};
+use core::{
+    fmt::{self, Display, Write as _},
+    iter,
+};
 
 use hashql_core::{
+    collection::FastHashSet,
     module::{
         ModuleRegistry,
         error::{ResolutionError, ResolutionSuggestion},
+        import::Import,
         item::Universe,
     },
     span::SpanId,
-    symbol::Symbol,
+    symbol::{Ident, Symbol},
 };
 use hashql_diagnostics::{
     Diagnostic,
@@ -19,6 +24,7 @@ use hashql_diagnostics::{
     note::Note,
     severity::Severity,
 };
+use strsim::jaro_winkler;
 
 use crate::node::path::Path;
 
@@ -44,12 +50,18 @@ const UNRESOLVED_IMPORT: TerminalDiagnosticCategory = TerminalDiagnosticCategory
     name: "Unresolved import",
 };
 
+const UNRESOLVED_VARIABLE: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "unresolved-variable",
+    name: "Unresolved variable",
+};
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum ImportResolverDiagnosticCategory {
     GenericArgumentsInUsePath,
     EmptyPath,
     GenericArgumentsInModule,
     UnresolvedImport,
+    UnresolvedVariable,
 }
 
 impl DiagnosticCategory for ImportResolverDiagnosticCategory {
@@ -67,6 +79,7 @@ impl DiagnosticCategory for ImportResolverDiagnosticCategory {
             Self::EmptyPath => Some(&EMPTY_PATH),
             Self::GenericArgumentsInModule => Some(&GENERIC_ARGUMENTS_IN_MODULE),
             Self::UnresolvedImport => Some(&UNRESOLVED_IMPORT),
+            Self::UnresolvedVariable => Some(&UNRESOLVED_VARIABLE),
         }
     }
 }
@@ -252,7 +265,158 @@ impl Display for FormatPath<'_, '_> {
     }
 }
 
-/// Convert a resolution error to a diagnostic
+#[expect(clippy::too_many_lines)]
+pub(crate) fn unresolved_variable<'heap>(
+    registry: &ModuleRegistry<'heap>,
+    universe: Universe,
+    ident: Ident<'heap>,
+    locals: &FastHashSet<Symbol<'heap>>,
+    mut suggestions: Vec<ResolutionSuggestion<Import<'heap>>>,
+) -> ImportResolverDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        ImportResolverDiagnosticCategory::UnresolvedVariable,
+        Severity::ERROR,
+    );
+
+    diagnostic.labels.push(
+        Label::new(
+            ident.span,
+            format!("Cannot find variable '{}'", ident.value),
+        )
+        .with_order(0)
+        .with_color(Color::Ansi(AnsiColor::Red)),
+    );
+
+    // Remove any suggestions that are already in the locals set
+    suggestions.retain(|suggestion| !locals.contains(&suggestion.item.name));
+    let import_suggestions: FastHashSet<_> = suggestions
+        .iter()
+        .map(|suggestion| suggestion.item.name)
+        .collect();
+
+    // Find similar local variables
+    let mut local_suggestions: Vec<_> = locals
+        .into_iter()
+        .filter_map(|&local| {
+            let score = jaro_winkler(ident.value.as_str(), local.as_str());
+            // Only include suggestions with a reasonably high similarity
+            (score > 0.7).then_some((local, score))
+        })
+        .collect();
+
+    // Sort by similarity score (highest first)
+    local_suggestions.sort_unstable_by(|&(_, lhs), &(_, rhs)| rhs.total_cmp(&lhs));
+
+    let mut help = format!("The name '{}' doesn't exist in this scope.", ident.value);
+
+    // Local variable suggestions section
+    if !local_suggestions.is_empty() {
+        help.push_str("\n\nDid you mean one of these local variables?\n");
+
+        for (local, _) in local_suggestions.iter().take(3) {
+            let _: fmt::Result = writeln!(help, "  - `{local}`");
+        }
+
+        if local_suggestions.len() > 3 {
+            let remaining = local_suggestions.len() - 3;
+            let _: fmt::Result = writeln!(help, "  - and {remaining} more similar variables");
+        }
+    }
+
+    // Imported item suggestions section
+    if !suggestions.is_empty() {
+        // Add a connector if we've already shown local suggestions
+        if local_suggestions.is_empty() {
+            help.push_str("\n\nPerhaps you meant ");
+        } else {
+            help.push_str("\nOr perhaps you meant ");
+        }
+
+        help.push_str("one of these imported items?\n");
+
+        // Sort and filter imported item suggestions by score
+        suggestions.sort_by(|lhs, rhs| rhs.score.total_cmp(&lhs.score));
+        let good_suggestions: Vec<_> = suggestions
+            .iter()
+            .filter(|suggestion| suggestion.score > 0.7)
+            .take(3)
+            .collect();
+
+        if good_suggestions.is_empty() {
+            // Fall back to showing any suggestions if none have high similarity
+            for suggestion in suggestions.iter().take(3) {
+                let _: fmt::Result = writeln!(help, "  - `{}`", suggestion.item.name);
+            }
+
+            if suggestions.len() > 3 {
+                let remaining = suggestions.len() - 3;
+                let _: fmt::Result = writeln!(help, "  - and {remaining} more imported items");
+            }
+        } else {
+            for suggestion in &good_suggestions {
+                let _: fmt::Result = writeln!(help, "  - `{}`", suggestion.item.name);
+            }
+        }
+    }
+
+    // Check if there are any importable items by the same name (that aren't already imported)
+    let importable: Vec<_> = registry
+        .search_by_name(ident.value, universe)
+        .into_iter()
+        .filter(|item| !locals.contains(&item.name) && !import_suggestions.contains(&item.name))
+        .collect();
+
+    if !importable.is_empty() {
+        help.push_str("\nAdditionally, items with a similar name exist in other modules:\n");
+
+        // Display up to 3 importable items with their full paths
+        for item in importable.iter().take(3) {
+            let absolute_path: String = iter::once("") // Start with an empty string for leading "::"
+                .chain(item.absolute_path(registry).map(|symbol| symbol.unwrap()))
+                .intersperse("::")
+                .collect();
+
+            let _: fmt::Result = writeln!(help, "  - `{absolute_path}`");
+        }
+
+        if importable.len() > 3 {
+            let remaining = importable.len() - 3;
+            let _: fmt::Result =
+                writeln!(help, "  - and {remaining} more items available for import");
+        }
+    }
+
+    // Suggest how to use the first (best) match from the importable items
+    if let Some(item) = importable.first() {
+        let absolute_path: String = iter::once("")
+            .chain(item.absolute_path(registry).map(|symbol| symbol.unwrap()))
+            .intersperse("::")
+            .collect();
+
+        help.push_str("\nTo use an item like ");
+        let _: fmt::Result = write!(help, "`{absolute_path}`");
+        help.push_str(", you can either:\n");
+
+        // Option 1: Import statement
+        help.push_str("1. Add an import at the beginning of your file:\n");
+        let _: fmt::Result = writeln!(help, "     use {absolute_path} in");
+
+        // Option 2: Fully qualified path
+        help.push_str("2. Use its fully qualified path directly in your code:\n");
+        let _: fmt::Result = writeln!(help, "     {absolute_path}");
+    }
+
+    diagnostic.help = Some(Help::new(help));
+
+    diagnostic.note = Some(Note::new(
+        "Variables must be defined before they can be used. This could be a typo, a variable used \
+         outside its scope, or a missing declaration. If it's a function or type from another \
+         module, you might need to import it first.",
+    ));
+
+    diagnostic
+}
+
 #[expect(clippy::too_many_lines)]
 pub(crate) fn from_resolution_error<'heap>(
     use_span: Option<SpanId>,

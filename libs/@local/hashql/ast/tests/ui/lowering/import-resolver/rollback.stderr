@@ -1,13 +1,26 @@
-[31m[import-resolver::unresolved-import] Error:[0m Unresolved import
+[31m[import-resolver::unresolved-variable] Error:[0m Unresolved variable
    ╭─[ <unknown>:7:4 ]
    │
  7 │   "bit_shl"
    │    ───┬───  
-   │       ╰───── 'bit_shl' needs to be imported first
+   │       ╰───── Cannot find variable 'bit_shl'
    │ 
-   │ Help: Add an import statement for 'bit_shl' before using it. Check if the name is spelled correctly.
+   │ Help: The name 'bit_shl' doesn't exist in this scope.
    │       
-   │       Possible alternatives are `List`, `Dict`, `input` and 41 others.
+   │       Perhaps you meant one of these imported items?
+   │         - `List`
+   │         - `Dict`
+   │         - `input`
+   │         - and 41 more imported items
+   │       
+   │       Additionally, items with a similar name exist in other modules:
+   │         - `::math::bit_shl`
+   │       
+   │       To use an item like `::math::bit_shl`, you can either:
+   │       1. Add an import at the beginning of your file:
+   │            use ::math::bit_shl in
+   │       2. Use its fully qualified path directly in your code:
+   │            ::math::bit_shl
    │ 
-   │ Note: Before using an item from another module, you must import it with a 'use' statement or access it with a fully qualified path.
+   │ Note: Variables must be defined before they can be used. This could be a typo, a variable used outside its scope, or a missing declaration. If it's a function or type from another module, you might need to import it first.
 ───╯
