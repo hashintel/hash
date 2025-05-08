@@ -1,3 +1,5 @@
+// This file was generated from `libs/@blockprotocol/type-system/rust/tests/codegen.rs`
+
 import type { Real } from "@rust/hash-codec/types";
 import type { Brand } from "@local/advanced-types/brand";
 export type DraftId = Brand<string, "DraftId">;

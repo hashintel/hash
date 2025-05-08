@@ -3266,7 +3266,6 @@ dependencies = [
  "oxc",
  "simple-mermaid",
  "specta",
- "type-system",
 ]
 
 [[package]]
