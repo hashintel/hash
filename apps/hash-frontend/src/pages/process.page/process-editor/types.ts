@@ -34,6 +34,16 @@ export type TransitionNodeData = {
     linkEntityId?: EntityId;
     subProcessEntityId: EntityId;
     subProcessTitle: string;
+    /**
+     * The IDs of the input places for this transition which are represented in the subprocess (which should appear as starting places there).
+     * There must be at least one, but not all input places to this transition (in the parent) must appear in the subprocess.
+     */
+    inputPlaceIds: string[];
+    /**
+     * The IDs of the output places for this transition which are represented in the subprocess (which should appear as ending places there).
+     * There must be at least one, but not all output places to this transition (in the parent) must appear in the subprocess.
+     */
+    outputPlaceIds: string[];
   };
   /**
    * Although a reactflow {@link Node} has a 'type' field, the library types don't discriminate on this field in all methods,

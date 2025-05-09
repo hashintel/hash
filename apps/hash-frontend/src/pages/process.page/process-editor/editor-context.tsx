@@ -1,5 +1,8 @@
 import { useMutation } from "@apollo/client";
-import type { EntityId } from "@blockprotocol/type-system";
+import type {
+  EntityId,
+  PropertyObjectWithMetadata,
+} from "@blockprotocol/type-system";
 import { AlertModal } from "@hashintel/design-system";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
@@ -8,6 +11,11 @@ import {
   systemLinkEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import type {
+  PetriNetPropertiesWithMetadata,
+  SubProcessOfPropertiesWithMetadata,
+} from "@local/hash-isomorphic-utils/system-types/petrinet";
+import type { nodes } from "jsonpath";
 import {
   createContext,
   type Dispatch,
@@ -19,7 +27,6 @@ import {
 } from "react";
 import { flushSync } from "react-dom";
 import { useReactFlow } from "reactflow";
-import { useLocalstorageState } from "rooks";
 
 import type {
   ArchiveEntityMutation,
@@ -83,37 +90,22 @@ export const EditorContextProvider = ({
 }: {
   children: React.ReactNode;
 }) => {
-  const [entityId, setEntityId] = useLocalstorageState<EntityId | null>(
-    "petri-net-entity-id",
-    null,
-  );
+  const [entityId, setEntityId] = useState<EntityId | null>(null);
 
-  const [userEditable, setUserEditable] = useLocalstorageState<boolean>(
-    "petri-net-user-editable",
-    true,
-  );
+  const [userEditable, setUserEditable] = useState<boolean>(true);
 
-  const [nodes, setNodes] = useLocalstorageState<NodeType[]>(
-    "petri-net-nodes",
-    [],
-  );
+  const [nodes, setNodes] = useState<NodeType[]>([]);
 
-  const [arcs, setArcs] = useLocalstorageState<ArcType[]>("petri-net-arcs", []);
+  const [arcs, setArcs] = useState<ArcType[]>([]);
 
-  const [tokenTypes, setTokenTypes] = useLocalstorageState<TokenType[]>(
-    "petri-net-token-types",
-    defaultTokenTypes,
-  );
+  const [tokenTypes, setTokenTypes] = useState<TokenType[]>(defaultTokenTypes);
 
-  const [title, setTitle] = useLocalstorageState<string>(
-    "petri-net-title",
-    "Process",
-  );
+  const [title, setTitle] = useState<string>("Process");
 
-  const [parentProcess, setParentProcess] = useLocalstorageState<{
+  const [parentProcess, setParentProcess] = useState<{
     entityId: EntityId;
     title: string;
-  } | null>("petri-net-parent-process", null);
+  } | null>(null);
 
   const { persistedNets, refetch } = usePersistedNets();
 
@@ -188,12 +180,17 @@ export const EditorContextProvider = ({
       return true;
     }
 
-    if (JSON.stringify(arcs) !== JSON.stringify(persistedNet.definition.arcs)) {
+    if (
+      JSON.stringify(arcs.map(({ selected: _, ...arc }) => arc)) !==
+      JSON.stringify(persistedNet.definition.arcs)
+    ) {
       return true;
     }
 
     if (
-      JSON.stringify(nodes) !== JSON.stringify(persistedNet.definition.nodes)
+      JSON.stringify(
+        nodes.map(({ selected: _, dragging: __, ...node }) => node),
+      ) !== JSON.stringify(persistedNet.definition.nodes)
     ) {
       return true;
     }
@@ -291,7 +288,7 @@ export const EditorContextProvider = ({
                     arcs,
                     nodes,
                     tokenTypes,
-                  },
+                  } satisfies PetriNetDefinitionObject,
                 },
               },
               {
@@ -314,10 +311,8 @@ export const EditorContextProvider = ({
           entityTypeIds: [systemEntityTypes.petriNet.entityTypeId],
           webId: activeWorkspaceWebId,
           properties: {
-            // @ts-expect-error -- incompatibility between JsonValue and some of the Edge types
-            // @todo fix this
             value: {
-              [systemPropertyTypes.definitionObject.propertyTypeBaseUrl]: {
+              "https://hash.ai/@h/types/property-type/definition-object/": {
                 metadata: {
                   dataTypeId: blockProtocolDataTypes.object.dataTypeId,
                 },
@@ -327,14 +322,14 @@ export const EditorContextProvider = ({
                   tokenTypes,
                 } satisfies PetriNetDefinitionObject,
               },
-              [systemPropertyTypes.title.propertyTypeBaseUrl]: {
+              "https://hash.ai/@h/types/property-type/title/": {
                 metadata: {
                   dataTypeId: blockProtocolDataTypes.text.dataTypeId,
                 },
                 value: title,
               },
             },
-          },
+          } satisfies PetriNetPropertiesWithMetadata as PropertyObjectWithMetadata,
         },
       });
 
@@ -391,14 +386,30 @@ export const EditorContextProvider = ({
               },
               properties: {
                 value: {
-                  [systemPropertyTypes.transitionId.propertyTypeBaseUrl]: {
+                  "https://hash.ai/@h/types/property-type/transition-id/": {
                     metadata: {
                       dataTypeId: blockProtocolDataTypes.text.dataTypeId,
                     },
                     value: node.id,
                   },
+                  "https://hash.ai/@h/types/property-type/input-place-id/": {
+                    value: node.data.subProcess.inputPlaceIds.map((id) => ({
+                      metadata: {
+                        dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+                      },
+                      value: id,
+                    })),
+                  },
+                  "https://hash.ai/@h/types/property-type/output-place-id/": {
+                    value: node.data.subProcess.outputPlaceIds.map((id) => ({
+                      metadata: {
+                        dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+                      },
+                      value: id,
+                    })),
+                  },
                 },
-              },
+              } satisfies SubProcessOfPropertiesWithMetadata as PropertyObjectWithMetadata,
               webId: activeWorkspaceWebId,
             },
           });

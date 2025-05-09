@@ -2,10 +2,12 @@ import type { EntityId } from "@blockprotocol/type-system";
 import { IconButton, Select, TextField } from "@hashintel/design-system";
 import {
   Box,
+  Checkbox,
   Dialog,
   DialogActions,
   DialogContent,
   Divider,
+  FormControlLabel,
   Slider,
   Stack,
   Switch,
@@ -19,6 +21,7 @@ import { useEditorContext } from "./editor-context";
 import { PersistedNetSelector } from "./persisted-net-selector";
 import type {
   ArcType,
+  PlaceNodeType,
   TransitionCondition,
   TransitionNodeData,
   TransitionNodeType,
@@ -131,34 +134,62 @@ export const TransitionEditor = ({
   outgoingEdges,
   onUpdateTransition,
 }: TransitionEditorProps) => {
-  const { nodes } = useEditorContext();
+  const { arcs, nodes } = useEditorContext();
 
-  const initialData = useMemo(() => {
-    const transitionNode = nodes.find(
-      (node): node is TransitionNodeType =>
-        node.data.type === "transition" && node.id === transitionId,
+  const { transitionNode, allInputPlaces, allOutputPlaces } = useMemo(() => {
+    const node = nodes.find(
+      (option): option is TransitionNodeType =>
+        option.data.type === "transition" && option.id === transitionId,
     );
 
-    if (!transitionNode) {
-      return {
-        conditions: [],
-        delay: 0,
-        description: "",
-        subProcess: undefined,
-        label: "",
-      };
+    if (!node) {
+      throw new Error("Transition node not found");
     }
 
-    return transitionNode.data;
-  }, [nodes, transitionId]);
+    const inputPlaces: PlaceNodeType[] = [];
+    const outputPlaces: PlaceNodeType[] = [];
+
+    for (const arc of arcs) {
+      if (arc.source === transitionId) {
+        const outputPlace = nodes.find(
+          (option): option is PlaceNodeType =>
+            option.type === "place" && option.id === arc.target,
+        );
+
+        if (!outputPlace) {
+          throw new Error("Output place not found");
+        }
+
+        outputPlaces.push(outputPlace);
+      }
+      if (arc.target === transitionId) {
+        const inputPlace = nodes.find(
+          (option): option is PlaceNodeType =>
+            option.type === "place" && option.id === arc.source,
+        );
+
+        if (!inputPlace) {
+          throw new Error("Input place not found");
+        }
+
+        inputPlaces.push(inputPlace);
+      }
+    }
+
+    return {
+      transitionNode: node,
+      allInputPlaces: inputPlaces,
+      allOutputPlaces: outputPlaces,
+    };
+  }, [arcs, nodes, transitionId]);
 
   const [localData, setEditedData] = useState<Omit<TransitionNodeData, "type">>(
     {
-      label: initialData.label,
-      description: initialData.description ?? "",
-      conditions: initialData.conditions ?? [],
-      delay: initialData.delay,
-      subProcess: initialData.subProcess,
+      label: transitionNode.data.label,
+      description: transitionNode.data.description ?? "",
+      conditions: transitionNode.data.conditions ?? [],
+      delay: transitionNode.data.delay,
+      subProcess: transitionNode.data.subProcess,
     },
   );
 
@@ -170,15 +201,21 @@ export const TransitionEditor = ({
     ({
       subProcessEntityId,
       subProcessTitle,
+      inputPlaceIds,
+      outputPlaceIds,
     }: {
       subProcessEntityId: EntityId;
       subProcessTitle: string;
+      inputPlaceIds: string[];
+      outputPlaceIds: string[];
     }) => {
       setEditedData((prev) => ({
         ...prev,
         subProcess: {
           subProcessEntityId,
           subProcessTitle,
+          inputPlaceIds,
+          outputPlaceIds,
         },
       }));
     },
@@ -332,6 +369,12 @@ export const TransitionEditor = ({
     );
   }, [localData.conditions]);
 
+  const subProcessOptions = useMemo(() => {
+    return persistedNets.filter(
+      (net) => net.userEditable && ![entityId].includes(net.entityId),
+    );
+  }, [persistedNets, entityId]);
+
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
       <DialogContent>
@@ -391,25 +434,129 @@ export const TransitionEditor = ({
             />
           </Box>
 
-          {entityId && (
+          {subProcessOptions.length > 0 && (
             <Box component="label">
               <Typography component="div" variant="smallCaps" sx={{ mb: 0.5 }}>
                 Sub-process
               </Typography>
 
               <PersistedNetSelector
-                disabledOptions={[entityId]}
-                options={persistedNets}
+                options={subProcessOptions}
                 placeholder="Select process to link"
-                value={initialData.subProcess?.subProcessEntityId ?? null}
+                value={localData.subProcess?.subProcessEntityId ?? null}
                 onSelect={(value) =>
                   updateSubProcess({
+                    inputPlaceIds: allInputPlaces.map((place) => place.id),
+                    outputPlaceIds: allOutputPlaces.map((place) => place.id),
+                    ...localData.subProcess,
                     subProcessEntityId: value.entityId,
                     subProcessTitle: value.title,
                   })
                 }
               />
             </Box>
+          )}
+
+          {localData.subProcess && (
+            <>
+              <Box sx={{ mt: 2 }}>
+                <Typography
+                  component="div"
+                  variant="smallCaps"
+                  sx={{ mb: 0.5 }}
+                >
+                  Input places
+                </Typography>
+                <Stack>
+                  {allInputPlaces.map((place) => (
+                    <FormControlLabel
+                      key={place.id}
+                      control={
+                        <Checkbox
+                          size="small"
+                          checked={
+                            localData.subProcess?.inputPlaceIds.includes(
+                              place.id,
+                            ) ?? false
+                          }
+                          onChange={(event) => {
+                            const isChecked = event.target.checked;
+                            const currentInputPlaceIds =
+                              localData.subProcess?.inputPlaceIds ?? [];
+                            const newInputPlaceIds = isChecked
+                              ? [...currentInputPlaceIds, place.id]
+                              : currentInputPlaceIds.filter(
+                                  (id) => id !== place.id,
+                                );
+
+                            updateSubProcess({
+                              ...localData.subProcess!,
+                              inputPlaceIds: newInputPlaceIds,
+                              outputPlaceIds:
+                                localData.subProcess?.outputPlaceIds ?? [],
+                              subProcessEntityId:
+                                localData.subProcess!.subProcessEntityId,
+                              subProcessTitle:
+                                localData.subProcess!.subProcessTitle,
+                            });
+                          }}
+                        />
+                      }
+                      label={place.data.label}
+                    />
+                  ))}
+                </Stack>
+              </Box>
+
+              <Box sx={{ mt: 2 }}>
+                <Typography
+                  component="div"
+                  variant="smallCaps"
+                  sx={{ mb: 0.5 }}
+                >
+                  Output places
+                </Typography>
+                <Stack>
+                  {allOutputPlaces.map((place) => (
+                    <FormControlLabel
+                      key={place.id}
+                      control={
+                        <Checkbox
+                          size="small"
+                          checked={
+                            localData.subProcess?.outputPlaceIds.includes(
+                              place.id,
+                            ) ?? false
+                          }
+                          onChange={(event) => {
+                            const isChecked = event.target.checked;
+                            const currentOutputPlaceIds =
+                              localData.subProcess?.outputPlaceIds ?? [];
+                            const newOutputPlaceIds = isChecked
+                              ? [...currentOutputPlaceIds, place.id]
+                              : currentOutputPlaceIds.filter(
+                                  (id) => id !== place.id,
+                                );
+
+                            updateSubProcess({
+                              ...localData.subProcess!,
+                              inputPlaceIds:
+                                localData.subProcess?.inputPlaceIds ?? [],
+                              outputPlaceIds: newOutputPlaceIds,
+                              subProcessEntityId:
+                                localData.subProcess!.subProcessEntityId,
+                              subProcessTitle:
+                                localData.subProcess!.subProcessTitle,
+                            });
+                          }}
+                        />
+                      }
+                      label={place.data.label}
+                    />
+                  ))}
+                </Stack>
+              </Box>
+            </>
           )}
 
           <Divider />
