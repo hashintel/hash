@@ -203,20 +203,11 @@ pub fn symbol_table(input: TokenStream) -> TokenStream {
         let mut macro_arms = TokenStream::new();
 
         for (name, (value_span, value)) in items {
-            let name_display = name.to_string();
-
-            let name_display = name_display
-                .strip_prefix("r#")
-                .unwrap_or(name_display.as_str());
-
-            let static_name = Ident::new(&format!("__{name_display}"), name.span());
-
             let mut value = Literal::string(&value);
             value.set_span(value_span);
 
             module_contents.extend(quote!(
-                static $static_name: &str = $value;
-                pub static $name: $krate::symbol::Symbol<'static> = $krate::symbol::Symbol::$new_unchecked_ident($static_name);
+                pub static $name: $krate::symbol::Symbol<'static> = $krate::symbol::Symbol::$new_unchecked_ident($value);
             ));
 
             macro_arms.extend(quote!(
@@ -241,20 +232,20 @@ pub fn symbol_table(input: TokenStream) -> TokenStream {
     let mut lookup_table_contents = TokenStream::new();
     for (module, name, _) in &lookup {
         lookup_table_contents.extend(quote!(
-            $module::$name,
+            &$module::$name,
         ));
     }
     output.extend(quote!(
-        pub static $tables_const: &[$krate::symbol::Symbol<'static>] = &[
+        pub static $tables_const: &[&$krate::symbol::Symbol<'static>] = &[
             $lookup_table_contents
         ];
     ));
 
     let mut match_arms = TokenStream::new();
-    for (module, name, value) in &lookup {
+    for (module, name, value) in lookup {
         // First we try to take the value and convert it into a TokenStream (e.g. parse it), this is
         // in addition to the macro rules of the different modules
-        if let Ok(stream) = TokenStream::from_str(value) {
+        if let Ok(stream) = TokenStream::from_str(&value) {
             match_arms.extend(quote!(
                 ($stream) => { $$crate::symbol::sym::$module::$name };
             ));
@@ -274,6 +265,8 @@ pub fn symbol_table(input: TokenStream) -> TokenStream {
         #[macro_export]
         macro_rules! $t_ident {
             $match_arms
+
+            ($$($$value:tt),+) => { [$$($t_ident![$$value]),+] };
         }
 
         pub use $t_ident;

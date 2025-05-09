@@ -11,7 +11,7 @@ use super::{
 };
 use crate::{
     module::resolver::{Resolver, ResolverMode, ResolverOptions},
-    symbol::Symbol,
+    symbol::{Symbol, sym::T},
 };
 
 pub struct ModuleNamespaceSnapshot(Snapshot);
@@ -160,14 +160,9 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
 
     fn import_absolute_static(
         &mut self,
-        name: &'static str,
-        query: impl IntoIterator<Item = &'static str, IntoIter: Clone>,
+        name: Symbol<'heap>,
+        query: impl IntoIterator<Item = Symbol<'heap>, IntoIter: Clone>,
     ) -> bool {
-        let name = self.registry.heap.intern_symbol(name);
-        let query = query
-            .into_iter()
-            .map(|symbol| self.registry.heap.intern_symbol(symbol));
-
         self.import_absolute(
             name,
             query,
@@ -298,84 +293,83 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
         let mut successful = true;
 
         // Special Forms
-        successful &= self.import_absolute_static("if", ["kernel", "special_form", "if"]);
-        successful &= self.import_absolute_static("is", ["kernel", "special_form", "is"]);
-        successful &= self.import_absolute_static("let", ["kernel", "special_form", "let"]);
-        successful &= self.import_absolute_static("type", ["kernel", "special_form", "type"]);
-        successful &= self.import_absolute_static("newtype", ["kernel", "special_form", "newtype"]);
-        successful &= self.import_absolute_static("use", ["kernel", "special_form", "use"]);
-        successful &= self.import_absolute_static("fn", ["kernel", "special_form", "fn"]);
-        successful &= self.import_absolute_static("input", ["kernel", "special_form", "input"]);
+        successful &= self.import_absolute_static(T![if], T![kernel, special_form, if]);
+        successful &= self.import_absolute_static(T![is], T![kernel, special_form, is]);
+        successful &= self.import_absolute_static(T![let], T![kernel, special_form, let]);
+        successful &= self.import_absolute_static(T![type], T![kernel, special_form, type]);
+        successful &= self.import_absolute_static(T![newtype], T![kernel, special_form, newtype]);
+        successful &= self.import_absolute_static(T![use], T![kernel, special_form, use]);
+        successful &= self.import_absolute_static(T![fn], T![kernel, special_form, fn]);
+        successful &= self.import_absolute_static(T![input], T![kernel, special_form, input]);
 
-        successful &= self.import_absolute_static(".", ["kernel", "special_form", "access"]);
-        successful &= self.import_absolute_static("access", ["kernel", "special_form", "access"]);
+        successful &= self.import_absolute_static(T![.], T![kernel, special_form, access]);
+        successful &= self.import_absolute_static(T![access], T![kernel, special_form, access]);
 
-        successful &= self.import_absolute_static("[]", ["kernel", "special_form", "index"]);
-        successful &= self.import_absolute_static("index", ["kernel", "special_form", "index"]);
+        successful &= self.import_absolute_static(T![[]], T![kernel, special_form, index]);
+        successful &= self.import_absolute_static(T![index], T![kernel, special_form, index]);
 
         // Type definitions
-        successful &= self.import_absolute_static("Boolean", ["kernel", "type", "Boolean"]);
+        successful &= self.import_absolute_static(T![Boolean], T![kernel, type, Boolean]);
 
-        successful &= self.import_absolute_static("Number", ["kernel", "type", "Number"]);
-        successful &= self.import_absolute_static("Integer", ["kernel", "type", "Integer"]);
+        successful &= self.import_absolute_static(T![Number], T![kernel, type, Number]);
+        successful &= self.import_absolute_static(T![Integer], T![kernel, type, Integer]);
 
-        successful &= self.import_absolute_static("String", ["kernel", "type", "String"]);
-        successful &= self.import_absolute_static("Url", ["kernel", "type", "Url"]);
-        successful &= self.import_absolute_static("BaseUrl", ["kernel", "type", "BaseUrl"]);
+        successful &= self.import_absolute_static(T![String], T![kernel, type, String]);
+        successful &= self.import_absolute_static(T![Url], T![kernel, type, Url]);
+        successful &= self.import_absolute_static(T![BaseUrl], T![kernel, type, BaseUrl]);
 
-        successful &= self.import_absolute_static("List", ["kernel", "type", "List"]);
-        successful &= self.import_absolute_static("Dict", ["kernel", "type", "Dict"]);
+        successful &= self.import_absolute_static(T![List], T![kernel, type, List]);
+        successful &= self.import_absolute_static(T![Dict], T![kernel, type, Dict]);
 
-        successful &= self.import_absolute_static("Null", ["kernel", "type", "Null"]);
+        successful &= self.import_absolute_static(T![Null], T![kernel, type, Null]);
 
-        successful &= self.import_absolute_static("?", ["kernel", "type", "Unknown"]);
-        successful &= self.import_absolute_static("Unknown", ["kernel", "type", "Unknown"]);
+        successful &= self.import_absolute_static(T![?], T![kernel, type, Unknown]);
+        successful &= self.import_absolute_static(T![Unknown], T![kernel, type, Unknown]);
 
-        successful &= self.import_absolute_static("!", ["kernel", "type", "Never"]);
-        successful &= self.import_absolute_static("Never", ["kernel", "type", "Never"]);
+        successful &= self.import_absolute_static(T![!], T![kernel, type, Never]);
+        successful &= self.import_absolute_static(T![Never], T![kernel, type, Never]);
 
-        successful &= self.import_absolute_static("|", ["kernel", "type", "Union"]);
-        successful &= self.import_absolute_static("Union", ["kernel", "type", "Union"]);
+        successful &= self.import_absolute_static(T![|], T![kernel, type, Union]);
+        successful &= self.import_absolute_static(T![Union], T![kernel, type, Union]);
 
-        successful &= self.import_absolute_static("&", ["kernel", "type", "Intersection"]);
-        successful &=
-            self.import_absolute_static("Intersection", ["kernel", "type", "Intersection"]);
+        successful &= self.import_absolute_static(T![&], T![kernel, type, Intersection]);
+        successful &= self.import_absolute_static(T![Intersection], T![kernel, type, Intersection]);
 
-        successful &= self.import_absolute_static("None", ["kernel", "type", "None"]);
-        successful &= self.import_absolute_static("Some", ["kernel", "type", "Some"]);
-        successful &= self.import_absolute_static("Option", ["kernel", "type", "Option"]);
+        successful &= self.import_absolute_static(T![None], T![kernel, type, None]);
+        successful &= self.import_absolute_static(T![Some], T![kernel, type, Some]);
+        successful &= self.import_absolute_static(T![Option], T![kernel, type, Option]);
 
-        successful &= self.import_absolute_static("Ok", ["kernel", "type", "Ok"]);
-        successful &= self.import_absolute_static("Err", ["kernel", "type", "Err"]);
-        successful &= self.import_absolute_static("Result", ["kernel", "type", "Result"]);
+        successful &= self.import_absolute_static(T![Ok], T![kernel, type, Ok]);
+        successful &= self.import_absolute_static(T![Err], T![kernel, type, Err]);
+        successful &= self.import_absolute_static(T![Result], T![kernel, type, Result]);
 
         // Math operators
-        successful &= self.import_absolute_static("+", ["math", "add"]);
-        successful &= self.import_absolute_static("-", ["math", "sub"]);
-        successful &= self.import_absolute_static("*", ["math", "mul"]);
-        successful &= self.import_absolute_static("/", ["math", "div"]);
-        successful &= self.import_absolute_static("%", ["math", "mod"]);
-        successful &= self.import_absolute_static("^", ["math", "pow"]);
+        successful &= self.import_absolute_static(T![+], T![math, add]);
+        successful &= self.import_absolute_static(T![-], T![math, sub]);
+        successful &= self.import_absolute_static(T![*], T![math, mul]);
+        successful &= self.import_absolute_static(T![/], T![math, div]);
+        successful &= self.import_absolute_static(T![%], T![math, mod]);
+        successful &= self.import_absolute_static(T![^], T![math, pow]);
 
         // Bitwise operators
-        successful &= self.import_absolute_static("&", ["math", "bit_and"]);
-        successful &= self.import_absolute_static("|", ["math", "bit_or"]);
-        successful &= self.import_absolute_static("~", ["math", "bit_not"]);
-        successful &= self.import_absolute_static("<<", ["math", "bit_shl"]);
-        successful &= self.import_absolute_static(">>", ["math", "bit_shr"]);
+        successful &= self.import_absolute_static(T![&], T![math, bit_and]);
+        successful &= self.import_absolute_static(T![|], T![math, bit_or]);
+        successful &= self.import_absolute_static(T![~], T![math, bit_not]);
+        successful &= self.import_absolute_static(T![<<], T![math, bit_shl]);
+        successful &= self.import_absolute_static(T![>>], T![math, bit_shr]);
 
         // Comparison operators
-        successful &= self.import_absolute_static(">", ["math", "gt"]);
-        successful &= self.import_absolute_static("<", ["math", "lt"]);
-        successful &= self.import_absolute_static(">=", ["math", "gte"]);
-        successful &= self.import_absolute_static("<=", ["math", "lte"]);
-        successful &= self.import_absolute_static("==", ["math", "eq"]);
-        successful &= self.import_absolute_static("!=", ["math", "ne"]);
+        successful &= self.import_absolute_static(T![>], T![math, gt]);
+        successful &= self.import_absolute_static(T![<], T![math, lt]);
+        successful &= self.import_absolute_static(T![>=], T![math, gte]);
+        successful &= self.import_absolute_static(T![<=], T![math, lte]);
+        successful &= self.import_absolute_static(T![==], T![math, eq]);
+        successful &= self.import_absolute_static(T![!=], T![math, ne]);
 
         // Logical operators
-        successful &= self.import_absolute_static("!", ["math", "not"]);
-        successful &= self.import_absolute_static("&&", ["math", "and"]);
-        successful &= self.import_absolute_static("||", ["math", "or"]);
+        successful &= self.import_absolute_static(T![!], T![math, not]);
+        successful &= self.import_absolute_static(T![&&], T![math, and]);
+        successful &= self.import_absolute_static(T![||], T![math, or]);
 
         // TODO: graph operations, these are excluded for now as we don't have them in the std
 
