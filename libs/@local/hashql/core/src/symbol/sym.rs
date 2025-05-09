@@ -133,7 +133,7 @@ mod test {
 
         assert!(ptr::eq(mul_heap.0, mul_sym.0));
 
-        // even after reset that should be the case
+        // Even after reset that should be the case
         heap.reset();
 
         let mul_heap = heap.intern_symbol("*");

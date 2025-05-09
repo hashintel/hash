@@ -161,6 +161,7 @@ pub fn symbol_table(input: TokenStream) -> TokenStream {
     let tables_const = Ident::new("TABLES", Span::call_site());
     let krate = Ident::new("crate", Span::call_site());
     let new_unchecked_ident = Ident::new("new_unchecked", Span::call_site());
+    let t_ident = Ident::new("T", Span::call_site());
 
     let mut lookup = Vec::new();
     let mut modules = Vec::new();
@@ -215,7 +216,7 @@ pub fn symbol_table(input: TokenStream) -> TokenStream {
 
             module_contents.extend(quote!(
                 static $static_name: &str = $value;
-                pub const $name: $krate::symbol::Symbol<'static> = $krate::symbol::Symbol::$new_unchecked_ident($static_name);
+                pub static $name: $krate::symbol::Symbol<'static> = $krate::symbol::Symbol::$new_unchecked_ident($static_name);
             ));
 
             macro_arms.extend(quote!(
@@ -244,7 +245,7 @@ pub fn symbol_table(input: TokenStream) -> TokenStream {
         ));
     }
     output.extend(quote!(
-        pub const $tables_const: &[$krate::symbol::Symbol<'static>] = &[
+        pub static $tables_const: &[$krate::symbol::Symbol<'static>] = &[
             $lookup_table_contents
         ];
     ));
@@ -271,11 +272,11 @@ pub fn symbol_table(input: TokenStream) -> TokenStream {
     // lookup table
     output.extend(quote!(
         #[macro_export]
-        macro_rules! T {
+        macro_rules! $t_ident {
             $match_arms
         }
 
-        pub use T;
+        pub use $t_ident;
     ));
 
     output

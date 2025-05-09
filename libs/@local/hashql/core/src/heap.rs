@@ -145,7 +145,7 @@ impl Heap {
         strings.reserve(TABLES.len());
 
         for symbol in TABLES {
-            assert!(strings.insert(symbol.as_str()));
+            assert!(strings.insert(symbol.unwrap()));
         }
 
         drop(strings);
