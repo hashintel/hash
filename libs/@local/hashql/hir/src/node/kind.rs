@@ -1,25 +1,16 @@
-use super::variable::Variable;
+use super::{access::Access, data::Data, variable::Variable};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum NodeKind<'heap> {
     Call,
 
-    // Data Structures
-    Struct,
-    Dict,
-    Tuple,
-    List,
-
-    Literal,
     Variable(Variable<'heap>),
     Binding, // local binding
     Input,
     Closure,
     // If - currently unsupported
-
-    // Indexing
-    Field,
-    Index,
+    Data(Data),
+    Access(Access),
 
     // Type Assertions
     Is, // Type Assertion (optimized out later after typechk)
