@@ -106,20 +106,65 @@ pub struct PolicyFilter {
 
 #[trait_variant::make(Send)]
 pub trait PolicyStore {
-    /// Searches for policies in the local store that match the provided filter.
-    ///
-    /// This method queries the underlying policy store using the given
-    /// [`PolicyFilter`] and returns a list of matching [`Policy`] objects. The filter
-    /// can be used to specify criteria such as policy type, subject, resource, or action.
+    /// Retrieves a policy by its ID.
     ///
     /// # Errors
     ///
     /// - [`StoreError`] if the underlying store returns an error
     ///
     /// [`StoreError`]: GetPoliciesError::StoreError
-    async fn find_policies(
+    async fn get_policy_by_id(
         &self,
+        authenticated_actor: ActorEntityUuid,
+        policy_id: PolicyId,
+    ) -> Result<Option<Policy>, Report<GetPoliciesError>>;
+
+    /// Queries for policies in the local store that match the provided filter.
+    ///
+    /// This method queries the underlying policy store using the given [`PolicyFilter`] and returns
+    /// a list of matching [`Policy`] objects. The filter can be used to specify criteria such as
+    /// policy type, subject, resource, or action.
+    ///
+    /// Note that this does not resolve indirect policies (e.g., policies applying to roles held by
+    /// a specific actor). For resolving all policies applicable to an actor, including indirect
+    /// ones, use [`find_policies_for_actor`].
+    ///
+    /// [`find_policies_for_actor`]: Self::find_policies_for_actor
+    ///
+    /// # Errors
+    ///
+    /// - [`StoreError`] if the underlying store returns an error
+    ///
+    /// [`StoreError`]: GetPoliciesError::StoreError
+    async fn query_policies(
+        &self,
+        authenticated_actor: ActorEntityUuid,
         filter: &PolicyFilter,
+    ) -> Result<Vec<Policy>, Report<GetPoliciesError>>;
+
+    /// Searches for policies that apply to the given actor.
+    ///
+    /// This method queries the underlying policy store to find policies that are relevant to the
+    /// specified actor. The policies returned may include those that apply to the actor directly,
+    /// as well as policies that apply to any roles the actor has.
+    ///
+    /// This provides a complete set of policies that apply to an actor, including all policies that
+    ///   - apply to the actor itself,
+    ///   - apply to the actor's roles,
+    ///   - apply to the actor's groups, and
+    ///   - apply to the actor's parent groups (for teams).
+    ///
+    /// # Errors
+    ///
+    /// - [`ActorNotFound`] if the actor does not exist
+    /// - [`StoreError`] if the underlying store returns an error
+    ///
+    /// [`ActorNotFound`]: GetPoliciesError::ActorNotFound
+    /// [`StoreError`]: GetPoliciesError::StoreError
+    async fn resolve_policies_for_actor(
+        &self,
+        authenticated_actor: ActorEntityUuid,
+        actor_id: ActorId,
     ) -> Result<Vec<Policy>, Report<GetPoliciesError>>;
 }
 

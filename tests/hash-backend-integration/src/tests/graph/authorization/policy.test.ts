@@ -3,7 +3,12 @@ import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { findPolicies } from "@local/hash-graph-sdk/policy";
+import {
+  getPolicy,
+  queryPolicies,
+  resolvePoliciesForActor,
+} from "@local/hash-graph-sdk/policy";
+import type { Policy, PolicyId } from "@rust/hash-graph-authorization/types";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../test-server";
@@ -20,6 +25,7 @@ const { graphApi } = graphContext;
 
 describe("Policy CRUD", () => {
   let testUser: User;
+  let testPolicy: Policy;
 
   beforeAll(async () => {
     await ensureSystemGraphIsInitialized({ logger, context: graphContext });
@@ -38,16 +44,15 @@ describe("Policy CRUD", () => {
   it("can query all policies", async () => {
     const authentication = { actorId: testUser.accountId };
 
-    const policies = await findPolicies(graphApi, authentication, {});
+    const policies = await queryPolicies(graphApi, authentication, {});
 
-    expect(policies).toBeDefined();
     expect(policies.length).toBeGreaterThan(0);
   });
 
   it("can query system-actor policies", async () => {
     const authentication = { actorId: testUser.accountId };
 
-    const policies = await findPolicies(graphApi, authentication, {
+    const policies = await queryPolicies(graphApi, authentication, {
       principal: {
         filter: "constrained",
         type: "actor",
@@ -56,7 +61,41 @@ describe("Policy CRUD", () => {
       },
     });
 
-    expect(policies).toBeDefined();
     expect(policies.length).toBeGreaterThan(0);
+    testPolicy = policies[0]!;
+  });
+
+  it("can get specific policies", async () => {
+    const authentication = { actorId: testUser.accountId };
+
+    expect(
+      await getPolicy(graphApi, authentication, testPolicy.id),
+    ).toStrictEqual(testPolicy);
+
+    expect(
+      await getPolicy(
+        graphApi,
+        authentication,
+        "00000000-0000-0000-0000-000000000000" as PolicyId,
+      ),
+    ).toBeUndefined();
+  });
+
+  it("can find policies for an actor", async () => {
+    const authentication = { actorId: testUser.accountId };
+
+    expect(
+      await resolvePoliciesForActor(graphApi, authentication, {
+        actorType: "machine",
+        id: systemAccountId,
+      }),
+    ).toContainEqual(testPolicy);
+
+    expect(
+      await resolvePoliciesForActor(graphApi, authentication, {
+        actorType: "user",
+        id: testUser.accountId,
+      }),
+    ).toStrictEqual([]);
   });
 });

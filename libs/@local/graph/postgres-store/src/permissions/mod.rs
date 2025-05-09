@@ -9,17 +9,14 @@ use hash_graph_authorization::{
         Context, ContextBuilder, Policy, PolicyId,
         action::ActionName,
         principal::PrincipalConstraint,
-        resource::ResourceConstraint,
         store::{RoleAssignmentStatus, RoleUnassignmentStatus},
     },
 };
-use postgres_types::{Json, ToSql};
+use postgres_types::Json;
 use tokio_postgres::{GenericClient as _, error::SqlState};
 use type_system::principal::{
     PrincipalId, PrincipalType,
-    actor::{
-        Actor, ActorEntityUuid, ActorId, ActorType, Ai, AiId, Machine, MachineId, User, UserId,
-    },
+    actor::{Actor, ActorEntityUuid, ActorId, Ai, AiId, Machine, MachineId, User, UserId},
     actor_group::{ActorGroup, ActorGroupEntityUuid, ActorGroupId, Team, TeamId, Web, WebId},
     role::{Role, RoleId, RoleName, TeamRole, TeamRoleId, WebRole, WebRoleId},
 };
@@ -29,14 +26,6 @@ use crate::store::{AsClient, PostgresStore};
 
 mod error;
 pub use self::error::{ActionError, PolicyError, PrincipalError};
-const fn principal_type_into_actor_type(principal_type: PrincipalType) -> Option<ActorType> {
-    match principal_type {
-        PrincipalType::User => Some(ActorType::User),
-        PrincipalType::Machine => Some(ActorType::Machine),
-        PrincipalType::Ai => Some(ActorType::Ai),
-        _ => None,
-    }
-}
 
 impl<C, A> PostgresStore<C, A>
 where
@@ -1479,181 +1468,5 @@ where
         context_builder
             .build()
             .change_context(PrincipalError::ContextBuilderError)
-    }
-
-    /// Gets all policies associated with an actor.
-    ///
-    /// This provides a complete set of policies that apply to an actor, including all policies that
-    ///   - apply to the actor itself,
-    ///   - apply to the actor's roles,
-    ///   - apply to the actor's groups, and
-    ///   - apply to the actor's parent groups (for teams).
-    ///
-    /// # Errors
-    ///
-    /// - [`PrincipalNotFound`] if the actor with the given ID doesn't exist
-    /// - [`StoreError`] if a database error occurs
-    ///
-    /// [`PrincipalNotFound`]: PrincipalError::PrincipalNotFound
-    /// [`StoreError`]: PrincipalError::StoreError
-    // TODO: We should probably allow filtering based on the action as well here
-    #[expect(clippy::too_many_lines)]
-    pub async fn get_policies_for_actor(
-        &self,
-        actor_id: ActorId,
-    ) -> Result<HashMap<PolicyId, Policy>, Report<PolicyError>> {
-        // The below query does several things. It:
-        //   1. gets all principals that the actor can act as
-        //   2. gets all policies that apply to those principals
-        //   3. TODO: filters the policies based on the action -- currently not implemented
-        //
-        // Principals are retrieved by:
-        //   - the actor itself, filtered by the actor ID and actor type
-        //   - all roles assigned to the actor, filtered by the actor ID
-        //   - all actor groups associated with those roles, determined by the role's actor group ID
-        //   - all parent actor groups of those actor groups (for teams), determined by the actor
-        //     group hierarchy
-        //
-        // The actions are associated in the `policy_action` table. We join that table and aggregate
-        // the actions for each policy. All actions are included, but the action hierarchy is used
-        // to determine which actions are relevant to the actor.
-        self.as_client()
-            .query_raw(
-                "
-                WITH principals AS (
-                    -- The actor itself
-                    SELECT id, principal_type
-                    FROM actor
-                    WHERE id = $1 AND principal_type = $2
-
-                    UNION ALL
-
-                    -- All roles directly assigned to the actor
-                    SELECT role.id, role.principal_type
-                    FROM actor_role
-                    JOIN role ON actor_role.role_id = role.id
-                    WHERE actor_role.actor_id = $1
-
-                    UNION ALL
-
-                    -- Direct actor group of each role - always included
-                    SELECT actor_group.id, actor_group.principal_type
-                    FROM actor_role
-                    JOIN role ON actor_role.role_id = role.id
-                    JOIN actor_group ON actor_group.id = role.actor_group_id
-                    WHERE actor_role.actor_id = $1
-
-                    UNION ALL
-
-                    -- All parent actor groups of actor groups (recursively through hierarchy)
-                    SELECT parent.id, parent.principal_type
-                    FROM actor_role
-                    JOIN role ON actor_role.role_id = role.id
-                    JOIN team_hierarchy
-                      ON team_hierarchy.child_id = role.actor_group_id
-                    JOIN actor_group parent ON parent.id = team_hierarchy.parent_id
-                    WHERE actor_role.actor_id = $1
-                ),
-                -- We filter out policies that don't apply to the actor's type or principal ID
-                policy AS (
-                    -- global and actor-type based policies
-                    SELECT policy.*
-                    FROM policy
-                    WHERE principal_id IS NULL
-                      AND (actor_type IS NULL OR actor_type = $2)
-
-                    UNION ALL
-
-                    -- actor type policies
-                    SELECT policy.*
-                    FROM policy
-                    JOIN principals
-                      ON policy.principal_id = principals.id
-                     AND policy.principal_type = principals.principal_type
-                    WHERE policy.actor_type IS NULL OR policy.actor_type = $2
-                )
-                SELECT
-                    policy.id,
-                    policy.effect,
-                    policy.principal_id,
-                    policy.principal_type,
-                    policy.actor_type,
-                    policy.resource_constraint,
-                    array_agg(policy_action.action_name)
-                FROM policy
-                JOIN policy_action ON policy.id = policy_action.policy_id
-                GROUP BY
-                    policy.id, policy.effect, policy.principal_id, policy.principal_type,
-                    policy.actor_type, policy.resource_constraint
-                ",
-                [
-                    &actor_id as &(dyn ToSql + Sync),
-                    &PrincipalType::from(actor_id.actor_type()),
-                ],
-            )
-            .await
-            .change_context(PolicyError::StoreError)?
-            .map_err(|error| Report::new(error).change_context(PolicyError::StoreError))
-            .and_then(async |row| -> Result<_, Report<PolicyError>> {
-                let policy_id = PolicyId::new(row.get(0));
-                let effect = row.get(1);
-                let principal_uuid: Option<Uuid> = row.get(2);
-                let principal_type: Option<PrincipalType> = row.get(3);
-                let actor_type: Option<PrincipalType> = row.get(4);
-                let resource_constraint = row
-                    .get::<_, Option<Json<ResourceConstraint>>>(5)
-                    .map(|json| json.0);
-                let actions = row.get(6);
-
-                let principal_id = match (principal_uuid, principal_type) {
-                    (Some(uuid), Some(principal_type)) => {
-                        Some(PrincipalId::new(uuid, principal_type))
-                    }
-                    (None, None) => None,
-                    (Some(_), None) | (None, Some(_)) => {
-                        return Err(Report::new(PolicyError::InvalidPrincipalConstraint));
-                    }
-                };
-
-                let actor_type = actor_type
-                    .map(|principal_type| {
-                        principal_type_into_actor_type(principal_type)
-                            .ok_or(PolicyError::InvalidPrincipalConstraint)
-                    })
-                    .transpose()?;
-
-                let principal_constraint = match (principal_id, actor_type) {
-                    (None, None) => None,
-                    (None, Some(actor_type)) => Some(PrincipalConstraint::ActorType { actor_type }),
-                    (Some(PrincipalId::Actor(actor)), None) => {
-                        Some(PrincipalConstraint::Actor { actor })
-                    }
-                    (Some(PrincipalId::ActorGroup(actor_group)), actor_type) => {
-                        Some(PrincipalConstraint::ActorGroup {
-                            actor_group,
-                            actor_type,
-                        })
-                    }
-                    (Some(PrincipalId::Role(role)), actor_type) => {
-                        Some(PrincipalConstraint::Role { role, actor_type })
-                    }
-                    _ => return Err(Report::new(PolicyError::InvalidPrincipalConstraint)),
-                };
-
-                Ok((
-                    policy_id,
-                    Policy {
-                        id: policy_id,
-                        effect,
-                        principal: principal_constraint,
-                        actions,
-                        resource: resource_constraint,
-                        constraints: None,
-                    },
-                ))
-            })
-            .try_collect::<HashMap<_, _>>()
-            .await
-            .change_context(PolicyError::StoreError)
     }
 }

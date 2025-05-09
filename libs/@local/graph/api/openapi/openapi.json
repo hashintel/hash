@@ -2910,13 +2910,13 @@
         }
       }
     },
-    "/policies": {
+    "/policies/query": {
       "post": {
         "tags": [
           "Graph",
           "Policy"
         ],
-        "operationId": "get_policies",
+        "operationId": "query_policies",
         "parameters": [
           {
             "name": "X-Authenticated-User-Actor-Id",
@@ -2938,12 +2938,101 @@
         },
         "responses": {
           "200": {
-            "description": "List of policies",
+            "description": "List of policies matching the filter",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "array",
                   "items": {}
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
+    "/policies/resolve/actor": {
+      "post": {
+        "tags": [
+          "Graph",
+          "Policy"
+        ],
+        "operationId": "resolve_policies_for_actor",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {}
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "List of policies found for the actor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {}
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
+    "/policies/{policy_id}": {
+      "get": {
+        "tags": [
+          "Graph",
+          "Policy"
+        ],
+        "operationId": "get_policy_by_id",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          },
+          {
+            "name": "policy_id",
+            "in": "path",
+            "description": "The ID of the policy to find",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "nullable": true
                 }
               }
             }
