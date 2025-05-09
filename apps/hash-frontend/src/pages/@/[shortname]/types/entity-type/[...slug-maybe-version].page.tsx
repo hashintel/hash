@@ -1,12 +1,12 @@
 import type {
   ActorEntityUuid,
   EntityTypeWithMetadata,
-  OntologyTypeVersion,
   WebId,
 } from "@blockprotocol/type-system";
 import {
   componentsFromVersionedUrl,
   currentTimestamp,
+  parseOntologyTypeVersion,
 } from "@blockprotocol/type-system";
 import { GlobalStyles } from "@mui/system";
 import { Buffer } from "buffer/";
@@ -49,7 +49,7 @@ const Page: NextPageWithLayout = () => {
     "entity-type",
     string,
     "v" | undefined,
-    `${number}` | undefined,
+    string | undefined,
   ];
 
   const entityTypeBaseUrl = !isDraft
@@ -106,7 +106,7 @@ const Page: NextPageWithLayout = () => {
   }, [router.query.draft]);
 
   const requestedVersion = requestedVersionString
-    ? (Number.parseInt(requestedVersionString, 10) as OntologyTypeVersion)
+    ? parseOntologyTypeVersion(requestedVersionString)
     : null;
 
   if (!routeNamespace) {
@@ -124,7 +124,7 @@ const Page: NextPageWithLayout = () => {
         webId={routeNamespace.webId}
         draftEntityType={draftEntityType}
         entityTypeBaseUrl={entityTypeBaseUrl}
-        key={`${entityTypeBaseUrl}-${requestedVersion}`}
+        key={`${entityTypeBaseUrl}-${requestedVersion?.toString()}`}
         requestedVersion={requestedVersion}
       />
       <GlobalStyles

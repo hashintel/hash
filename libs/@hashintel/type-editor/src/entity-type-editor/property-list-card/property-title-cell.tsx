@@ -1,5 +1,6 @@
 import type {
   EntityTypeWithMetadata,
+  OntologyTypeVersion,
   PropertyType,
 } from "@blockprotocol/type-system";
 import { extractBaseUrl } from "@blockprotocol/type-system";
@@ -27,8 +28,8 @@ interface PropertyTitleCellProps {
   inheritanceChain?: EntityTypeWithMetadata[];
   lines: boolean[];
   expanded?: boolean;
-  currentVersion: number;
-  latestVersion: number;
+  currentVersion: OntologyTypeVersion;
+  latestVersion: OntologyTypeVersion;
   setExpanded?: (expanded: boolean) => void;
   onUpdateVersion: () => void;
 }

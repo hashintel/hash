@@ -1,4 +1,7 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  OntologyTypeVersion,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import {
   ArrowUpRightRegularIcon,
   EntityOrTypeIcon,
@@ -20,9 +23,9 @@ export const TypeChipLabel = ({
   versionedUrl,
 }: {
   children: ReactNode;
-  currentVersion?: number;
+  currentVersion?: OntologyTypeVersion;
   icon?: string;
-  latestVersion?: number;
+  latestVersion?: OntologyTypeVersion;
   versionedUrl?: VersionedUrl;
   onUpdate?: () => void;
 }) => {

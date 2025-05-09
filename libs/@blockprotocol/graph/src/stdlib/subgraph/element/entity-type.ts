@@ -44,7 +44,9 @@ export const getEntityTypeById = (
     extractBaseUrl(entityTypeId),
     extractVersion(entityTypeId),
   ];
-  const vertex = (subgraph.vertices as OntologyVertices)[baseUrl]?.[version];
+  const vertex = (subgraph.vertices as OntologyVertices)[baseUrl]?.[
+    version.toString()
+  ];
 
   if (!vertex) {
     return undefined;
@@ -70,7 +72,7 @@ export const getEntityTypeByVertexId = (
   vertexId: OntologyTypeVertexId,
 ): EntityTypeWithMetadata | undefined => {
   const vertex = (subgraph.vertices as OntologyVertices)[vertexId.baseId]?.[
-    vertexId.revisionId
+    vertexId.revisionId.toString()
   ];
 
   if (!vertex) {

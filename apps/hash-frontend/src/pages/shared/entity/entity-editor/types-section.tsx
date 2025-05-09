@@ -1,8 +1,13 @@
 import { useQuery } from "@apollo/client";
 import type { EntityTypeRootType } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
-import type { Entity, VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  Entity,
+  OntologyTypeVersion,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import {
+  compareOntologyTypeVersions,
   componentsFromVersionedUrl,
   mustHaveAtLeastOne,
 } from "@blockprotocol/type-system";
@@ -38,7 +43,7 @@ type MinimalTypeData = {
   entityTypeTitle: string;
   icon?: string;
   isLink: boolean;
-  version: number;
+  version: OntologyTypeVersion;
 };
 
 export const TypeButton = ({
@@ -229,7 +234,8 @@ export const TypesSection = () => {
       const newerEntityType = latestEntityTypes.find(
         (type) =>
           type.metadata.recordId.baseUrl === baseUrl &&
-          type.metadata.recordId.version > version,
+          compareOntologyTypeVersions(type.metadata.recordId.version, version) >
+            0,
       );
 
       const { icon } = getDisplayFieldsForClosedEntityType(currentTypeMetadata);

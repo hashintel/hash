@@ -56,10 +56,10 @@ export const addOutwardEdgeToSubgraphByMutation = (
 
   /* eslint-disable no-param-reassign -- We want to mutate the input here */
   (subgraph.edges as UntypedEdges)[sourceBaseId] ??= {};
-  (subgraph.edges as UntypedEdges)[sourceBaseId]![at] ??= [];
+  (subgraph.edges as UntypedEdges)[sourceBaseId]![at.toString()] ??= [];
   const outwardEdgesAtVersion: OutwardEdge[] = (subgraph.edges as UntypedEdges)[
     sourceBaseId
-  ]![at]!;
+  ]![at.toString()]!;
 
   if (
     !outwardEdgesAtVersion.find((otherOutwardEdge: OutwardEdge) =>
@@ -106,7 +106,7 @@ export const inferPropertyTypeEdgesInSubgraphByMutation = (
 ) => {
   for (const { baseId, revisionId } of propertyTypeVertexIds) {
     const vertex = (subgraph.vertices as OntologyVertices)[baseId]?.[
-      revisionId
+      revisionId.toString()
     ];
 
     if (!vertex) {
@@ -138,7 +138,7 @@ export const inferPropertyTypeEdgesInSubgraphByMutation = (
         // We expect all vertices to be present before adding edges.
         if (
           !(subgraph.vertices as OntologyVertices)[targetBaseUrl]?.[
-            targetRevisionId
+            targetRevisionId.toString()
           ]
         ) {
           continue;
@@ -188,7 +188,7 @@ export const inferEntityTypeEdgesInSubgraphByMutation = (
 ) => {
   for (const { baseId, revisionId } of entityTypeVertexIds) {
     const vertex = (subgraph.vertices as OntologyVertices)[baseId]?.[
-      revisionId
+      revisionId.toString()
     ];
 
     if (!vertex) {
@@ -227,7 +227,7 @@ export const inferEntityTypeEdgesInSubgraphByMutation = (
         // We expect all vertices to be present before adding edges.
         if (
           !(subgraph.vertices as OntologyVertices)[targetBaseUrl]?.[
-            targetRevisionId
+            targetRevisionId.toString()
           ]
         ) {
           continue;
@@ -321,7 +321,7 @@ export const inferEntityEdgesInSubgraphByMutation = (
       // We expect all vertices to be present before adding edges.
       if (
         (subgraph.vertices as OntologyVertices)[entityTypeBaseUrl]?.[
-          entityTypeRevisionId
+          entityTypeRevisionId.toString()
         ]
       ) {
         // Add IS_OF_TYPE edges for the entity and entity type

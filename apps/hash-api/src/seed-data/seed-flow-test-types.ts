@@ -1,5 +1,6 @@
 import {
   type EntityTypeWithMetadata,
+  makeOntologyTypeVersion,
   type PropertyTypeWithMetadata,
   type ProvidedEntityEditionProvenance,
   versionedUrlFromComponents,
@@ -69,7 +70,7 @@ const createSystemPropertyTypeIfNotExists: ImpureGraphFunction<
     shortname: webShortname,
   });
 
-  const versionNumber = 1;
+  const versionNumber = makeOntologyTypeVersion({ major: 1 });
 
   const propertyTypeId = versionedUrlFromComponents(baseUrl, versionNumber);
 
@@ -123,7 +124,7 @@ const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
     shortname: webShortname,
   });
 
-  const versionNumber = 1;
+  const versionNumber = makeOntologyTypeVersion({ major: 1 });
 
   const entityTypeId = versionedUrlFromComponents(baseUrl, versionNumber);
 

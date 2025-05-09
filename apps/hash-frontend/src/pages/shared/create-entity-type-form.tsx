@@ -1,6 +1,9 @@
 import { useLazyQuery, useQuery } from "@apollo/client";
 import type { EntityType, VersionedUrl } from "@blockprotocol/type-system";
-import { ENTITY_TYPE_META_SCHEMA } from "@blockprotocol/type-system";
+import {
+  ENTITY_TYPE_META_SCHEMA,
+  makeOntologyTypeVersion,
+} from "@blockprotocol/type-system";
 import { Callout, TextField } from "@hashintel/design-system";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { Box, Stack } from "@mui/material";
@@ -192,7 +195,7 @@ export const CreateEntityTypeForm = ({
     const { baseUrl, versionedUrl } = generateTypeUrlsForUser({
       title: data.title,
       kind: "entity-type",
-      version: 1,
+      version: makeOntologyTypeVersion({ major: 1 }),
     });
 
     const entityType: EntityType = {
@@ -309,7 +312,7 @@ export const CreateEntityTypeForm = ({
                     entityTypeId: generateTypeUrlsForUser({
                       kind: "entity-type",
                       title: titleToValidate,
-                      version: 1,
+                      version: makeOntologyTypeVersion({ major: 1 }),
                     }).versionedUrl,
                     graphResolveDepths: {
                       constrainsValuesOn: { outgoing: 0 },

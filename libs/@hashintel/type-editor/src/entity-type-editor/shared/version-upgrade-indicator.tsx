@@ -1,3 +1,4 @@
+import type { OntologyTypeVersion } from "@blockprotocol/type-system";
 import { faArrowsRotate } from "@fortawesome/free-solid-svg-icons";
 import {
   ArrowRightRegularIcon,
@@ -9,8 +10,8 @@ import { Stack, svgIconClasses, Tooltip, Typography } from "@mui/material";
 import { ChipIconButton } from "./chip-icon-button";
 
 type VersionUpgradeIndicatorProps = {
-  currentVersion: number;
-  latestVersion: number;
+  currentVersion: OntologyTypeVersion;
+  latestVersion: OntologyTypeVersion;
   onUpdateVersion: () => void;
   mode?: "tooltip" | "inline";
 };
@@ -65,7 +66,7 @@ export const VersionUpgradeIndicator = ({
           title={
             <Stack direction="row" gap={1} alignItems="center">
               <Typography variant="smallTextLabels" fontWeight={500}>
-                Update v{currentVersion}
+                Update v{currentVersion.toString()}
               </Typography>
               <ArrowRightRegularIcon
                 sx={{
@@ -74,7 +75,7 @@ export const VersionUpgradeIndicator = ({
                 }}
               />
               <Typography variant="smallTextLabels" fontWeight={500}>
-                v{latestVersion}
+                v{latestVersion.toString()}
               </Typography>
             </Stack>
           }
@@ -89,7 +90,7 @@ export const VersionUpgradeIndicator = ({
             color="gray.50"
             fontWeight={500}
           >
-            v{currentVersion}
+            v{currentVersion.toString()}
           </Typography>
           <ArrowRightRegularIcon
             sx={{ color: ({ palette }) => palette.gray[50], fontSize: 14 }}
@@ -99,7 +100,7 @@ export const VersionUpgradeIndicator = ({
             color="blue.70"
             fontWeight={500}
           >
-            v{latestVersion}
+            v{latestVersion.toString()}
           </Typography>
           {updateButton}
         </>

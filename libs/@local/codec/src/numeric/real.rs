@@ -24,8 +24,6 @@
 
 #[cfg(feature = "postgres")]
 use core::error::Error;
-#[cfg(feature = "serde")]
-use core::str::FromStr as _;
 use core::{fmt, ops};
 
 #[cfg(feature = "postgres")]
@@ -93,6 +91,11 @@ impl Real {
 
     #[must_use]
     pub fn to_i32(&self) -> Option<i32> {
+        self.0.to_int().value().try_into().ok()
+    }
+
+    #[must_use]
+    pub fn to_u32(&self) -> Option<u32> {
         self.0.to_int().value().try_into().ok()
     }
 
@@ -246,15 +249,6 @@ impl de::Visitor<'_> for RealVisitor {
         E: de::Error,
     {
         Real::try_from(value).map_err(E::custom)
-    }
-
-    fn visit_str<E>(self, value: &str) -> Result<Real, E>
-    where
-        E: de::Error,
-    {
-        dashu_float::DBig::from_str(value)
-            .map(Real)
-            .map_err(E::custom)
     }
 }
 

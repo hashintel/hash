@@ -1,3 +1,8 @@
+import {
+  incrementOntologyTypeVersion,
+  makeOntologyTypeVersion,
+  type OntologyTypeVersion,
+} from "@blockprotocol/type-system";
 import { faSmile } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
 import type { EntityTypeEditorFormData } from "@hashintel/type-editor";
@@ -32,7 +37,7 @@ export const EditBarTypeEditor = ({
   errorMessage,
 }: {
   gentleErrorStyling: boolean;
-  currentVersion: number;
+  currentVersion: OntologyTypeVersion;
   discardButtonProps: Partial<ButtonProps>;
   errorMessage?: string;
 }) => {
@@ -40,9 +45,10 @@ export const EditBarTypeEditor = ({
     useEntityTypeFormState<EntityTypeEditorFormData>();
   const frozenVersion = useFrozenValue(currentVersion);
   const ref = useFreezeScrollWhileTransitioning();
+  const zeroVersion = makeOntologyTypeVersion({ major: 0 });
 
   const collapseIn =
-    currentVersion === 0 || Object.keys(dirtyFields).length > 0;
+    currentVersion === zeroVersion || Object.keys(dirtyFields).length > 0;
 
   const frozenDiscardButtonProps = useFrozenValue(discardButtonProps);
 
@@ -51,10 +57,10 @@ export const EditBarTypeEditor = ({
   let label;
   if (errorMessage) {
     label = `before saving${errorMessage ? `: ${errorMessage}` : ""}`;
-  } else if (frozenVersion === 0) {
+  } else if (frozenVersion === zeroVersion) {
     label = "– this type has not yet been created";
   } else {
-    label = `Version ${frozenVersion} -> ${frozenVersion + 1}`;
+    label = `Version ${frozenVersion.toString()} -> ${incrementOntologyTypeVersion(frozenVersion).toString()}`;
   }
 
   return (
@@ -66,7 +72,7 @@ export const EditBarTypeEditor = ({
         <EditBarContents
           hideConfirm={!!errorMessage}
           icon={
-            frozenVersion === 0 ? (
+            frozenVersion === zeroVersion ? (
               <FontAwesomeIcon icon={faSmile} sx={{ fontSize: 14 }} />
             ) : (
               <PencilSimpleLine />
@@ -76,7 +82,9 @@ export const EditBarTypeEditor = ({
           label={label}
           discardButtonProps={{
             children:
-              frozenVersion === 0 ? "Discard this type" : "Discard changes",
+              frozenVersion === zeroVersion
+                ? "Discard this type"
+                : "Discard changes",
             disabled: frozenSubmitting,
             sx: errorMessage
               ? ({ palette }) => ({
@@ -94,7 +102,8 @@ export const EditBarTypeEditor = ({
             ...frozenDiscardButtonProps,
           }}
           confirmButtonProps={{
-            children: frozenVersion === 0 ? "Create" : "Publish update",
+            children:
+              frozenVersion === zeroVersion ? "Create" : "Publish update",
             loading: frozenSubmitting,
             disabled: frozenSubmitting,
           }}

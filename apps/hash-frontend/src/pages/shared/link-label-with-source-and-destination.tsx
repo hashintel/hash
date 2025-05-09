@@ -561,7 +561,7 @@ const LinkTypeInner = ({
           ml: 0.5,
         }}
       >
-        v{extractVersion(linkEntityType.$id)}
+        v{extractVersion(linkEntityType.$id).toString()}
       </Box>
     </ContentTypography>
   </Box>

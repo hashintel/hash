@@ -1,9 +1,13 @@
+import type {
+  BaseUrl,
+  DataType,
+  OntologyTypeVersion,
+  StringConstraints,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import {
-  type BaseUrl,
+  compareOntologyTypeVersions,
   componentsFromVersionedUrl,
-  type DataType,
-  type StringConstraints,
-  type VersionedUrl,
 } from "@blockprotocol/type-system";
 // eslint-disable-next-line no-restricted-imports -- TODO needs fixing if this package to be used from npm
 import type { ClosedDataTypeDefinition } from "@local/hash-graph-sdk/ontology";
@@ -44,7 +48,7 @@ export type DataTypeForSelector = {
   label: DataType["label"];
   type: string;
   title: string;
-  version: number;
+  version: OntologyTypeVersion;
 };
 
 const isDataType = (
@@ -305,7 +309,7 @@ const DataTypeLabel = (props: {
 const DataTypeFlatView = (props: {
   allowSelectingAbstractTypes?: boolean;
   dataType: DataTypeForSelector;
-  latestVersionByBaseUrl: Record<BaseUrl, number>;
+  latestVersionByBaseUrl: Record<BaseUrl, OntologyTypeVersion>;
   onSelect: (dataTypeId: VersionedUrl) => void;
   selectedDataTypeIds?: VersionedUrl[];
 }) => {
@@ -337,7 +341,8 @@ const DataTypeFlatView = (props: {
 
   const selected = !!selectedDataTypeIds?.includes(dataType.$id);
 
-  const isEarlierVersion = version < latestVersion;
+  const isEarlierVersion =
+    compareOntologyTypeVersions(version, latestVersion) < 0;
 
   if (!selected && isEarlierVersion) {
     return null;
@@ -388,7 +393,7 @@ const DataTypeTreeView = (props: {
   dataType: DataTypeForSelector;
   depth?: number;
   isOnlyRoot?: boolean;
-  latestVersionByBaseUrl: Record<BaseUrl, number>;
+  latestVersionByBaseUrl: Record<BaseUrl, OntologyTypeVersion>;
   selectedDataTypeIds?: VersionedUrl[];
   onSelect: (dataTypeId: VersionedUrl) => void;
 }) => {
@@ -436,7 +441,8 @@ const DataTypeTreeView = (props: {
     throw new Error(`No latest version found for baseUrl: ${baseUrl}`);
   }
 
-  const isEarlierVersion = version < latestVersion;
+  const isEarlierVersion =
+    compareOntologyTypeVersions(version, latestVersion) < 0;
 
   if (!selected && isEarlierVersion) {
     return null;
@@ -623,7 +629,7 @@ export const DataTypeSelector = (props: DataTypeSelectorProps) => {
     const stack = [...dataTypes];
 
     const seenDataTypes = new Set<VersionedUrl>();
-    const latestByBaseUrl: Record<BaseUrl, number> = {};
+    const latestByBaseUrl: Record<BaseUrl, OntologyTypeVersion> = {};
 
     while (stack.length > 0) {
       const current = stack.pop()!;
@@ -636,7 +642,10 @@ export const DataTypeSelector = (props: DataTypeSelectorProps) => {
 
       const currentLatest = latestByBaseUrl[baseUrl];
 
-      if (!currentLatest || currentLatest < version) {
+      if (
+        !currentLatest ||
+        compareOntologyTypeVersions(currentLatest, version) < 0
+      ) {
         latestByBaseUrl[baseUrl] = version;
       }
 

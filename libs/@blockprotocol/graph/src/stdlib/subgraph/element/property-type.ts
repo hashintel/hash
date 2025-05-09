@@ -52,7 +52,9 @@ export const getPropertyTypeById = (
     extractBaseUrl(propertyTypeId),
     extractVersion(propertyTypeId),
   ];
-  const vertex = (subgraph.vertices as OntologyVertices)[baseUrl]?.[version];
+  const vertex = (subgraph.vertices as OntologyVertices)[baseUrl]?.[
+    version.toString()
+  ];
 
   if (!vertex) {
     return undefined;
@@ -78,7 +80,7 @@ export const getPropertyTypeByVertexId = (
   vertexId: OntologyTypeVertexId,
 ): PropertyTypeWithMetadata | undefined => {
   const vertex = (subgraph.vertices as OntologyVertices)[vertexId.baseId]?.[
-    vertexId.revisionId
+    vertexId.revisionId.toString()
   ];
 
   if (!vertex) {

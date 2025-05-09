@@ -9,6 +9,7 @@ import type {
 import {
   atLeastOne,
   extractVersion,
+  makeOntologyTypeVersion,
   mustHaveAtLeastOne,
 } from "@blockprotocol/type-system";
 import { EntityOrTypeIcon } from "@hashintel/design-system";
@@ -329,7 +330,7 @@ export const EntityType = ({
   }
 
   const currentVersion = draftEntityType
-    ? 0
+    ? makeOntologyTypeVersion({ major: 0 })
     : extractVersion(entityType.schema.$id);
 
   const convertToLinkType = wrapHandleSubmit(async (data) => {

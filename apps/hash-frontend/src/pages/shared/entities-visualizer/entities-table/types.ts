@@ -2,6 +2,7 @@ import type {
   ActorEntityUuid,
   BaseUrl,
   EntityId,
+  OntologyTypeVersion,
   PropertyMetadata,
   PropertyValue,
   VersionedUrl,
@@ -35,7 +36,7 @@ export interface EntitiesTableRow {
     icon?: string;
     isLink: boolean;
     title: string;
-    version?: number;
+    version?: OntologyTypeVersion;
   }[];
   archived?: boolean;
   lastEdited: string;
@@ -121,7 +122,7 @@ export type EntityTypeTableFilterData = {
   entityTypeId: VersionedUrl;
   title: string;
   count: number;
-  version?: number;
+  version?: OntologyTypeVersion;
 };
 
 export type WebTableFilterData = {

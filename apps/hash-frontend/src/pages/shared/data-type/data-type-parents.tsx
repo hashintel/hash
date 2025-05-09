@@ -1,9 +1,14 @@
 import type {
   BaseUrl,
   DataType,
+  OntologyTypeVersion,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import { extractBaseUrl, extractVersion } from "@blockprotocol/type-system";
+import {
+  compareOntologyTypeVersions,
+  extractBaseUrl,
+  extractVersion,
+} from "@blockprotocol/type-system";
 import {
   buildDataTypeTreesForSelector,
   DataTypeSelector,
@@ -21,7 +26,7 @@ import type { DataTypeFormData } from "./data-type-form";
 
 type DataTypeParent = {
   dataType: DataType;
-  latestVersion: number;
+  latestVersion: OntologyTypeVersion;
 };
 
 export const DataTypeParentCard = ({
@@ -41,7 +46,10 @@ export const DataTypeParentCard = ({
   const { $id, title } = dataType;
 
   const currentVersion = extractVersion($id);
-  const newVersion = currentVersion < latestVersion ? latestVersion : undefined;
+  const newVersion =
+    compareOntologyTypeVersions(currentVersion, latestVersion) < 0
+      ? latestVersion
+      : undefined;
 
   const { control, setValue } = useFormContext<DataTypeFormData>();
 
@@ -61,7 +69,7 @@ export const DataTypeParentCard = ({
         const targetBaseUrl = extractBaseUrl($id);
 
         if (targetBaseUrl === extractBaseUrl(parentId)) {
-          return `${targetBaseUrl}v/${newVersion}` as const;
+          return `${targetBaseUrl}v/${newVersion.toString()}` as const;
         }
         return parentId;
       }),
@@ -123,7 +131,10 @@ export const DataTypesParents = ({
           if (
             dataTypeOption.metadata.recordId.baseUrl ===
               parentDataType.metadata.recordId.baseUrl &&
-            dataTypeOption.metadata.recordId.version > latestVersion
+            compareOntologyTypeVersions(
+              dataTypeOption.metadata.recordId.version,
+              latestVersion,
+            ) > 0
           ) {
             latestVersion = dataTypeOption.metadata.recordId.version;
           }

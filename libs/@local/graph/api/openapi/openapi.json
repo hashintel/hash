@@ -8466,18 +8466,13 @@
             "$ref": "#/components/schemas/BaseUrl"
           },
           "version": {
-            "type": "integer",
-            "format": "int32",
-            "description": "The version number component specifying the exact version of the type",
-            "minimum": 0
+            "$ref": "#/components/schemas/OntologyTypeVersion"
           }
         }
       },
       "OntologyTypeVersion": {
-        "type": "integer",
-        "format": "int32",
-        "description": "A strongly-typed wrapper for ontology type version numbers.\n\n[`OntologyTypeVersion`] represents the version number component of a [`VersionedUrl`].\nIt ensures that version numbers are always valid unsigned integers and provides\ntype safety throughout the system.\n\n# Examples\n\n```\nuse type_system::ontology::id::OntologyTypeVersion;\n\nlet version = OntologyTypeVersion::new(1);\nassert_eq!(version.inner(), 1);\n```",
-        "minimum": 0
+        "type": "string",
+        "description": "A strongly-typed wrapper for ontology type version numbers.\n\n[`OntologyTypeVersion`] represents the version number component of a [`VersionedUrl`].\nIt ensures that version numbers are always valid unsigned integers and provides\ntype safety throughout the system.\n\n# Examples\n\n```\nuse type_system::ontology::id::OntologyTypeVersion;\n\nlet version = OntologyTypeVersion::new(1);\nassert_eq!(version.inner(), 1);\n```"
       },
       "OntologyTypeVertexId": {
         "oneOf": [

@@ -1,4 +1,4 @@
-import type { EntityRevisionId, Subgraph } from "@blockprotocol/graph";
+import type { EntityVertexId, Subgraph } from "@blockprotocol/graph";
 import {
   getEntityRevision,
   getEntityTypeById,
@@ -6,7 +6,6 @@ import {
 } from "@blockprotocol/graph/stdlib";
 import type {
   BaseUrl,
-  EntityId,
   EntityTypeIdDiff,
   EntityTypeWithMetadata,
   PropertyDiff,
@@ -24,8 +23,8 @@ import type { EntityDiff } from "../../../../../graphql/api-types.gen";
 import type { HistoryEvent } from "./shared/types";
 
 export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
-  const firstEditionIdentifier = [...subgraph.roots].sort((a, b) =>
-    a.revisionId < b.revisionId ? -1 : 1,
+  const firstEditionIdentifier = [...(subgraph.roots as EntityVertexId[])].sort(
+    (a, b) => (a.revisionId < b.revisionId ? -1 : 1),
   )[0];
 
   if (!firstEditionIdentifier) {
@@ -34,8 +33,8 @@ export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
 
   const firstEntityEdition = getEntityRevision(
     subgraph,
-    firstEditionIdentifier.baseId as EntityId,
-    firstEditionIdentifier.revisionId as Timestamp,
+    firstEditionIdentifier.baseId,
+    firstEditionIdentifier.revisionId,
   );
 
   if (!firstEntityEdition) {
@@ -267,7 +266,7 @@ export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
           property: propertyProvenance,
         },
         propertyType: propertyTypeWithMetadata.propertyType,
-        timestamp: firstEditionIdentifier.revisionId as EntityRevisionId,
+        timestamp: firstEditionIdentifier.revisionId,
         type: "property-update",
         diff: {
           op: "added",
@@ -304,7 +303,7 @@ export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
     number: "1",
     entity: firstEntityEdition,
     entityTypes: firstEntityTypes.map((type) => type.schema),
-    timestamp: firstEditionIdentifier.revisionId as EntityRevisionId,
+    timestamp: firstEditionIdentifier.revisionId,
     provenance: {
       edition: firstEntityEdition.metadata.provenance.edition,
     },

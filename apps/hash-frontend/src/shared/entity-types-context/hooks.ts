@@ -4,6 +4,7 @@ import type {
   EntityTypeWithMetadata,
   VersionedUrl,
 } from "@blockprotocol/type-system";
+import { compareOntologyTypeVersions } from "@blockprotocol/type-system";
 import { useMemo } from "react";
 
 import { isTypeArchived } from "../is-archived";
@@ -47,8 +48,10 @@ export const useLatestEntityTypesOptional = (params?: {
       const existingEntityType = latestEntityTypesMap.get(baseUrl);
       if (
         !existingEntityType ||
-        existingEntityType.metadata.recordId.version <
-          entityType.metadata.recordId.version
+        compareOntologyTypeVersions(
+          existingEntityType.metadata.recordId.version,
+          entityType.metadata.recordId.version,
+        ) < 0
       ) {
         latestEntityTypesMap.set(baseUrl, entityType);
       }

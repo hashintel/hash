@@ -16,3 +16,8 @@ export type Brand<Base, Kind extends string> = Base extends BrandedBase<
 >
   ? BrandedBase<NestedBase, NestedKind & { [_ in Kind]: true }>
   : BrandedBase<Base, { [_ in Kind]: true }>;
+
+/**
+ * The type-branding type to support opaque (name based) types
+ */
+export type Opaque<Kind extends string> = Brand<symbol, Kind>;

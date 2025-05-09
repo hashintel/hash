@@ -267,7 +267,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
 
           // If it's the block entity, rewrite the textual-content property of the latest edition to a plain string
           newVertices[entityIdOrTypeId] = {
-            ...entityOrTypeEditionMap,
+            ...(entityOrTypeEditionMap as KnowledgeGraphEditionMap<HashEntity>),
             [latestSubgraphEditionTimestamp]: {
               kind: "entity",
               inner: new HashEntity({
@@ -290,7 +290,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
       } else {
         // The entity is in the store and the store version is newer – add the newer edition to the subgraph
         newVertices[entityIdOrTypeId] = {
-          ...entityOrTypeEditionMap,
+          ...(entityOrTypeEditionMap as KnowledgeGraphEditionMap<HashEntity>),
           [draftEntityEditionTimestamp as string]: {
             kind: "entity",
             // TODO: `Entity` should not be created here

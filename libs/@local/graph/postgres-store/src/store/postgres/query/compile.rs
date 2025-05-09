@@ -879,10 +879,6 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         parameter: &'p Parameter<'f>,
     ) -> (Expression, ParameterType) {
         let parameter_type = match parameter {
-            Parameter::Integer(number) => {
-                self.artifacts.parameters.push(number);
-                ParameterType::Integer
-            }
             Parameter::Decimal(number) => {
                 self.artifacts.parameters.push(number);
                 ParameterType::Decimal

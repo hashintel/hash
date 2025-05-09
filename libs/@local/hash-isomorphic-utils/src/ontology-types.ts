@@ -1,12 +1,14 @@
 import type {
   BaseUrl,
   EntityType,
+  OntologyTypeVersion,
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import {
   atLeastOne,
   componentsFromVersionedUrl,
   extractBaseUrl,
+  incrementOntologyTypeVersion,
   versionedUrlFromComponents,
 } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
@@ -108,7 +110,7 @@ export const generateLinkMapWithConsistentSelfReferences = (
                   return {
                     $ref: versionedUrlFromComponents(
                       baseUrl,
-                      currentVersion + 1,
+                      incrementOntologyTypeVersion(currentVersion),
                     ),
                   };
                 }
@@ -138,7 +140,7 @@ export const rewriteSchemasToNextVersion = (
 
     baseUrlToNewVersion[baseUrl] = versionedUrlFromComponents(
       baseUrl,
-      version + 1,
+      incrementOntologyTypeVersion(version),
     );
   }
 
@@ -191,22 +193,22 @@ const hashFormattedVersionedUrlRegExp =
   /https?:\/\/.+\/@(.+)\/types\/(entity-type|data-type|property-type)\/.+\/v\/\d+$/;
 
 export type DeconstructedVersionedUrl = {
-  baseUrl: string;
+  baseUrl: BaseUrl;
   hostname: string;
   kind?: SchemaKind;
   isHashFormatted: boolean;
-  version: number;
+  version: OntologyTypeVersion;
   webShortname?: string;
 };
 
 export const deconstructVersionedUrl = (
   url: VersionedUrl,
 ): {
-  baseUrl: string;
+  baseUrl: BaseUrl;
   hostname: string;
   kind?: SchemaKind;
   isHashFormatted: boolean;
-  version: number;
+  version: OntologyTypeVersion;
   webShortname?: string;
 } => {
   const { baseUrl, version } = componentsFromVersionedUrl(url);

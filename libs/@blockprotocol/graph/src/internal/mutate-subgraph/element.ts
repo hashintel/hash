@@ -46,7 +46,8 @@ export const addDataTypeVerticesToSubgraphByMutation = (
     };
 
     (subgraph.vertices as OntologyVertices)[baseUrl] ??= {};
-    (subgraph.vertices as OntologyVertices)[baseUrl]![version] = dataTypeVertex;
+    (subgraph.vertices as OntologyVertices)[baseUrl]![version.toString()] =
+      dataTypeVertex;
 
     vertexIds.push({ baseId: baseUrl, revisionId: version });
   }
@@ -82,7 +83,7 @@ export const addPropertyTypeVerticesToSubgraphByMutation = (
     };
 
     (subgraph.vertices as OntologyVertices)[baseUrl] ??= {};
-    (subgraph.vertices as OntologyVertices)[baseUrl]![version] =
+    (subgraph.vertices as OntologyVertices)[baseUrl]![version.toString()] =
       propertyTypeVertex;
 
     vertexIds.push({ baseId: baseUrl, revisionId: version });
@@ -119,7 +120,7 @@ export const addEntityTypeVerticesToSubgraphByMutation = (
     };
 
     (subgraph.vertices as OntologyVertices)[baseUrl] ??= {};
-    (subgraph.vertices as OntologyVertices)[baseUrl]![version] =
+    (subgraph.vertices as OntologyVertices)[baseUrl]![version.toString()] =
       entityTypeVertex;
 
     vertexIds.push({ baseId: baseUrl, revisionId: version });

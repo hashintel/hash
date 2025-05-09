@@ -4,6 +4,7 @@ import type {
   OriginProvenance,
   PropertyObject,
   ProvidedEntityEditionProvenance,
+  VersionedUrl,
   WebId,
 } from "@blockprotocol/type-system";
 import type { Connection, LinearDocument, Team } from "@linear/sdk";
@@ -50,7 +51,7 @@ const createHashEntity = async (params: {
   graphApiClient: GraphApi;
   partialEntity: PartialEntity;
   outgoingLinks: {
-    linkEntityTypeId: `${string}v/${number}`;
+    linkEntityTypeId: VersionedUrl;
     destinationEntityId: EntityId;
   }[];
   webId: WebId;
@@ -138,7 +139,7 @@ const createOrUpdateHashEntity = async (params: {
   graphApiClient: GraphApi;
   partialEntity: PartialEntity;
   outgoingLinks: {
-    linkEntityTypeId: `${string}v/${number}`;
+    linkEntityTypeId: VersionedUrl;
     destinationEntityId: EntityId;
   }[];
   webId: WebId;

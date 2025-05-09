@@ -8,6 +8,7 @@ import type {
   VersionedUrl,
   WebId,
 } from "@blockprotocol/type-system";
+import { makeOntologyTypeVersion } from "@blockprotocol/type-system";
 import type {
   EditorOntologyFunctions,
   EntityTypeEditorProps,
@@ -103,7 +104,7 @@ export const useEditorOntologyFunctions = (
       const { versionedUrl } = generateTypeUrlsForUser({
         kind,
         title,
-        version: 1,
+        version: makeOntologyTypeVersion({ major: 1 }),
       });
 
       const res = await (kind === "entity-type"

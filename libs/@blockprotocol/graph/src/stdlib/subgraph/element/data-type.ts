@@ -42,7 +42,9 @@ export const getDataTypeById = (
     extractBaseUrl(dataTypeId),
     extractVersion(dataTypeId),
   ];
-  const vertex = (subgraph.vertices as OntologyVertices)[baseUrl]?.[version];
+  const vertex = (subgraph.vertices as OntologyVertices)[baseUrl]?.[
+    version.toString()
+  ];
 
   if (!vertex) {
     return undefined;
@@ -68,7 +70,7 @@ export const getDataTypeByVertexId = (
   vertexId: OntologyTypeVertexId,
 ): DataTypeWithMetadata | undefined => {
   const vertex = (subgraph.vertices as OntologyVertices)[vertexId.baseId]?.[
-    vertexId.revisionId
+    vertexId.revisionId.toString()
   ];
 
   if (!vertex) {

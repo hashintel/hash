@@ -3,6 +3,7 @@ import type {
   PropertyTypeWithMetadata,
   VersionedUrl,
 } from "@blockprotocol/type-system";
+import { compareOntologyTypeVersions } from "@blockprotocol/type-system";
 import type { FunctionComponent, PropsWithChildren } from "react";
 import { createContext, useContext, useMemo } from "react";
 
@@ -51,7 +52,10 @@ export const usePropertyTypes = (params?: {
           filteredPropertyTypeVersionsByBaseUrl[baseUrl]?.[0];
         if (
           firstVersionHeld &&
-          firstVersionHeld.metadata.recordId.version > version
+          compareOntologyTypeVersions(
+            firstVersionHeld.metadata.recordId.version,
+            version,
+          ) > 0
         ) {
           continue;
         }

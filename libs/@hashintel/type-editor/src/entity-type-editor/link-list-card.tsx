@@ -185,9 +185,7 @@ const LinkTypeRow = ({
                   currentVersion={currentVersion}
                   latestVersion={latestVersion}
                   onUpdateVersion={() => {
-                    if (latestVersion) {
-                      onUpdateVersion(`${baseUrl}v/${latestVersion}`);
-                    }
+                    onUpdateVersion(`${baseUrl}v/${latestVersion.toString()}`);
                   }}
                 />
               </Box>

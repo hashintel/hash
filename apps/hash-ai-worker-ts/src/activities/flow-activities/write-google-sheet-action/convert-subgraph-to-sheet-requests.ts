@@ -14,6 +14,7 @@ import type {
   BaseUrl,
   EntityId,
   EntityType,
+  OntologyTypeVersion,
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import {
@@ -186,7 +187,7 @@ type EntitySheetRequests = {
     sheetId: number;
     rows: sheets_v4.Schema$RowData[];
     typeTitle: string;
-    typeVersion: number;
+    typeVersion: OntologyTypeVersion;
   };
 };
 

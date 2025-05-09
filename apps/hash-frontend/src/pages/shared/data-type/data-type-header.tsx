@@ -1,7 +1,8 @@
-import type { DataType } from "@blockprotocol/type-system";
+import type { DataType, OntologyTypeVersion } from "@blockprotocol/type-system";
 import {
   extractBaseUrl,
   extractVersion,
+  makeOntologyTypeVersion,
   versionedUrlFromComponents,
 } from "@blockprotocol/type-system";
 import {
@@ -20,12 +21,12 @@ import { useTextSize } from "../use-text-size";
 import { DataTypeDescription } from "./data-type-header/data-type-description";
 
 interface DataTypeHeaderProps {
-  currentVersion: number;
+  currentVersion: OntologyTypeVersion;
   dataTypeSchema: DataType;
   isDraft: boolean;
   isInSlide?: boolean;
   isReadOnly: boolean;
-  latestVersion?: number | null;
+  latestVersion?: OntologyTypeVersion | null;
 }
 
 export const DataTypeHeader = ({
@@ -43,7 +44,7 @@ export const DataTypeHeader = ({
 
   const latestVersionUrl = versionedUrlFromComponents(
     extractBaseUrl(dataTypeSchema.$id),
-    latestVersion ?? 0,
+    latestVersion ?? makeOntologyTypeVersion({ major: 0 }),
   );
 
   const { slideContainerRef, pushToSlideStack } = useSlideStack();
@@ -76,7 +77,7 @@ export const DataTypeHeader = ({
                 color="inherit"
                 sx={{ fontSize: 11, fontWeight: 600 }}
               >
-                {`v${currentVersion}–> v${latestVersion} available`}
+                {`v${currentVersion.toString()}–> v${latestVersion.toString()} available`}
               </Typography>
             </Link>
           )}
