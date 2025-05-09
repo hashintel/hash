@@ -11,6 +11,7 @@ import {
   createMachineActorEntity,
   getMachineIdByIdentifier,
 } from "@local/hash-backend-utils/machine-actors";
+import { getWebByShortname } from "@local/hash-graph-sdk/principal/web";
 import type { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { SystemTypeWebShortname } from "@local/hash-isomorphic-utils/ontology-types";
 
@@ -19,7 +20,6 @@ import { logger } from "../../logger";
 import {
   addActorGroupMember,
   createAiActor,
-  findWebByShortname,
 } from "../account-permission-management";
 import type { ImpureGraphContext } from "../context-types";
 import { createOrg, getOrgByShortname } from "../knowledge/system-types/org";
@@ -78,13 +78,19 @@ export const getOrCreateOwningWebId = async (
   const systemActorMachineId = await context.graphApi
     .getOrCreateSystemActor(webShortname)
     .then(({ data }) => data as MachineId);
-  const foundWeb = await findWebByShortname(
-    context,
-    { actorId: systemAccountId },
-    {
-      shortname: webShortname,
-    },
-  );
+
+  const foundWeb = await getWebByShortname(
+    context.graphApi,
+    { actorId: systemActorMachineId },
+    webShortname,
+  ).then((web) => {
+    if (!web) {
+      throw new NotFoundError(
+        `Failed to get web for shortname: ${webShortname}`,
+      );
+    }
+    return web;
+  });
 
   logger.debug(
     `Found org entity with shortname ${webShortname}, webId: ${foundWeb.webId}, machine actor accountId: ${systemActorMachineId}`,

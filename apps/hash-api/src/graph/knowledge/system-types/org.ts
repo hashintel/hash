@@ -7,6 +7,7 @@ import {
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import { createWebMachineActorEntity } from "@local/hash-backend-utils/machine-actors";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { getWebById } from "@local/hash-graph-sdk/principal/web";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
@@ -21,7 +22,7 @@ import type {
 } from "@local/hash-isomorphic-utils/system-types/shared";
 
 import { logger } from "../../../logger";
-import { createOrgWeb, getWeb } from "../../account-permission-management";
+import { createOrgWeb } from "../../account-permission-management";
 import type {
   ImpureGraphFunction,
   PureGraphFunction,
@@ -132,8 +133,15 @@ export const createOrg: ImpureGraphFunction<
   let orgWebMachineId: MachineId;
   if (params.webId) {
     orgWebId = params.webId;
-    const { machineId } = await getWeb(ctx, authentication, {
-      webId: orgWebId,
+    const { machineId } = await getWebById(
+      ctx.graphApi,
+      authentication,
+      orgWebId,
+    ).then((web) => {
+      if (!web) {
+        throw new Error(`Failed to get web for shortname: ${orgWebId}`);
+      }
+      return web;
     });
     orgWebMachineId = machineId;
   } else {

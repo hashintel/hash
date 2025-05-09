@@ -6,7 +6,6 @@ import type {
   UserId,
   WebId,
 } from "@blockprotocol/type-system";
-import { NotFoundError } from "@local/hash-backend-utils/error";
 import type {
   RoleAssignmentStatus,
   RoleUnassignmentStatus,
@@ -84,52 +83,6 @@ export const createAiActor: ImpureGraphFunction<
   Promise<AiId>
 > = async ({ graphApi }, { actorId }, params) =>
   graphApi.createAiActor(actorId, params).then(({ data }) => data as AiId);
-
-export const getWeb: ImpureGraphFunction<
-  {
-    webId: WebId;
-  },
-  Promise<{ webId: WebId; machineId: MachineId; shortname?: string }>
-> = async ({ graphApi }, { actorId }, params) =>
-  graphApi
-    .getWeb(actorId, params.webId)
-    .then(({ data }) => ({
-      webId: params.webId,
-      machineId: data.machineId as MachineId,
-      shortname: data.shortname,
-    }))
-    .catch((error) => {
-      if (error.response?.status === 404) {
-        throw new NotFoundError(
-          `No web with id ${params.webId} found in the graph.`,
-        );
-      } else {
-        throw error;
-      }
-    });
-
-export const findWebByShortname: ImpureGraphFunction<
-  {
-    shortname: string;
-  },
-  Promise<{ webId: WebId; machineId: MachineId; shortname: string }>
-> = async ({ graphApi }, { actorId }, params) =>
-  graphApi
-    .getWebByShortname(actorId, params.shortname)
-    .then(({ data }) => ({
-      webId: data.webId as WebId,
-      machineId: data.machineId as MachineId,
-      shortname: params.shortname,
-    }))
-    .catch((error) => {
-      if (error.response?.status === 404) {
-        throw new NotFoundError(
-          `No web with shortname ${params.shortname} found in the graph.`,
-        );
-      } else {
-        throw error;
-      }
-    });
 
 export const createOrgWeb: ImpureGraphFunction<
   {
