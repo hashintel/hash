@@ -12929,6 +12929,12 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@rust/hashql-hir@workspace:libs/@local/hashql/hir":
+  version: 0.0.0-use.local
+  resolution: "@rust/hashql-hir@workspace:libs/@local/hashql/hir"
+  languageName: unknown
+  linkType: soft
+
 "@rust/hashql-syntax-jexpr@npm:0.0.0-private, @rust/hashql-syntax-jexpr@workspace:libs/@local/hashql/syntax-jexpr":
   version: 0.0.0-use.local
   resolution: "@rust/hashql-syntax-jexpr@workspace:libs/@local/hashql/syntax-jexpr"
