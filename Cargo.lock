@@ -3865,6 +3865,9 @@ dependencies = [
 [[package]]
 name = "hashql-hir"
 version = "0.0.0"
+dependencies = [
+ "hashql-core",
+]
 
 [[package]]
 name = "hashql-syntax-jexpr"

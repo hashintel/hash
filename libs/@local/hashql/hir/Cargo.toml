@@ -7,6 +7,14 @@ publish.workspace = true
 version.workspace = true
 
 [dependencies]
+# Public workspace dependencies
+
+# Public third-party dependencies
+
+# Private workspace dependencies
+hashql-core.workspace = true
+
+# Private third-party dependencies
 
 [lints]
 workspace = true
