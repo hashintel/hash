@@ -19,144 +19,103 @@
 //! These symbols provide pointer equality guarantees when interned from a `Heap`,
 //! which allows for efficient symbol comparison operations.
 #![expect(non_upper_case_globals, clippy::min_ident_chars)]
-use super::Symbol;
+use hashql_macros::symbol_table;
 
-/// Macro for defining groups of static symbol constants.
-///
-/// This macro creates modules containing static `Symbol` instances and
-/// generates tables that group these symbols for efficient lookup.
-///
-/// The macro supports several forms:
-/// - Basic symbol: uses the identifier name as the symbol value
-/// - Custom symbol: allows specifying a custom string value with the `name: "value"` syntax
-/// - Special handling for Rust keywords using the `r#` prefix
-///
-/// For each symbol group, this macro also creates a corresponding table of references
-/// to all symbols in that group.
-macro_rules! symbols {
-    (@sym) => {};
-    (@sym $name:ident $(, $($rest:tt)*)?) => {
-        pub static $name: super::Symbol<'static> = super::Symbol::new_unchecked(stringify!($name));
-        $(symbols!(@sym $($rest)*);)?
-    };
-    (@sym $name:ident : $value:literal $(, $($rest:tt)*)?) => {
-        pub static $name: super::Symbol<'static> = super::Symbol::new_unchecked($value);
-        $(symbols!(@sym $($rest)*);)?
-    };
-    (@table $module:ident $table:ident #($($name:ident)*)) => {
-        const $table: &[&Symbol<'static>] = &[
-            $(&$module::$name),*
-        ];
-    };
-    (@table $module:ident $table:ident #($($acc:tt)*) $name:ident $(: $value:literal)? $(, $($rest:tt)*)?) => {
-        symbols!(@table $module $table #($($acc)* $name) $($($rest)*)?);
-    };
-    ($module:ident; $table:ident; $($items:tt)*) => {
-        pub mod $module {
-            symbols!(@sym $($items)*);
-        }
-
-        symbols!(@table $module $table #() $($items)*);
-    };
-}
-
-symbols![lexical; LEXICAL;
-    BaseUrl,
-    Boolean,
-    Dict,
-    E,
-    Err,
-    Integer,
-    Intersection,
-    List,
-    Never,
-    None,
-    Null,
-    Number,
-    Ok,
-    R,
-    Result,
-    Some,
-    String,
-    T,
-    U,
-    Union,
-    Unknown,
-    Url,
-    access,
-    add,
-    and,
-    bit_and,
-    bit_not,
-    bit_or,
-    bit_shl,
-    bit_shr,
-    bit_xor,
-    div,
-    eq,
-    gt,
-    gte,
-    index,
-    input,
-    kernel,
-    lt,
-    lte,
-    math,
-    mul,
-    ne,
-    not,
-    or,
-    pow,
-    r#fn: "fn",
-    r#if: "if",
-    r#is: "is",
-    r#let: "let",
-    r#mod: "mod",
-    r#newtype: "newtype",
-    r#type: "type",
-    r#use: "use",
-    special_form,
-    sub,
-];
-
-symbols![digit; DIGITS;
-    zero: "0",
-    one: "1",
-    two: "2",
-    three: "3",
-    four: "4",
-    five: "5",
-    six: "6",
-    seven: "7",
-    eight: "8",
-    nine: "9",
-];
-
-symbols![symbol; SYMBOLS;
-    add: "+",
-    ampersand: "&",
-    and: "&&",
-    asterisk: "*",
-    backets: "[]",
-    bit_shl: "<<",
-    bit_shr: ">>",
-    caret: "^",
-    slash: "/",
-    dot: ".",
-    eq: "==",
-    gt: ">",
-    gte: ">=",
-    lt: "<",
-    lte: "<=",
-    ne: "!=",
-    not: "!",
-    or: "||",
-    pipe: "|",
-    sub: "-",
-    tilde: "~",
-];
-
-pub(crate) const TABLES: &[&[&Symbol<'static>]] = &[LEXICAL, DIGITS, SYMBOLS];
+symbol_table!(
+    lexical: {
+        BaseUrl,
+        Boolean,
+        Dict,
+        E,
+        Err,
+        Integer,
+        Intersection,
+        List,
+        Never,
+        None,
+        Null,
+        Number,
+        Ok,
+        R,
+        Result,
+        Some,
+        String,
+        T,
+        U,
+        Union,
+        Unknown,
+        Url,
+        access,
+        add,
+        and,
+        bit_and,
+        bit_not,
+        bit_or,
+        bit_shl,
+        bit_shr,
+        bit_xor,
+        div,
+        eq,
+        gt,
+        gte,
+        index,
+        input,
+        kernel,
+        lt,
+        lte,
+        math,
+        mul,
+        ne,
+        not,
+        or,
+        pow,
+        r#fn,
+        r#if,
+        r#is,
+        r#let,
+        r#mod,
+        r#newtype,
+        r#type,
+        r#use,
+        special_form,
+        sub,
+    },
+    digit: {
+        zero: "0",
+        one: "1",
+        two: "2",
+        three: "3",
+        four: "4",
+        five: "5",
+        six: "6",
+        seven: "7",
+        eight: "8",
+        nine: "9",
+    },
+    symbol: {
+        add: "+",
+        ampersand: "&",
+        and: "&&",
+        asterisk: "*",
+        backets: "[]",
+        bit_shl: "<<",
+        bit_shr: ">>",
+        caret: "^",
+        slash: "/",
+        dot: ".",
+        eq: "==",
+        gt: ">",
+        gte: ">=",
+        lt: "<",
+        lte: "<=",
+        ne: "!=",
+        not: "!",
+        or: "||",
+        pipe: "|",
+        sub: "-",
+        tilde: "~",
+    }
+);
 
 #[cfg(test)]
 mod test {
@@ -186,10 +145,8 @@ mod test {
     #[test]
     fn ensure_no_collisions() {
         let mut set = std::collections::HashSet::new();
-        for &table in TABLES {
-            for &symbol in table {
-                assert!(set.insert(symbol.0));
-            }
+        for &symbol in TABLES {
+            assert!(set.insert(symbol.0));
         }
     }
 }

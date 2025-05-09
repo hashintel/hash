@@ -29,6 +29,7 @@ bitvec         = { workspace = true, features = ["alloc"] }
 bumpalo        = { workspace = true }
 derive_more    = { workspace = true, features = ["debug"] }
 ena            = { workspace = true }
+hashql-macros  = { version = "0.0.0", path = "../macros" }
 roaring        = { workspace = true, features = ["std", "simd"] }
 rpds           = { workspace = true }
 serde          = { workspace = true, optional = true, features = ["alloc", "derive"] }

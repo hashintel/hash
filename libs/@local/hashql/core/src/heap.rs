@@ -142,12 +142,10 @@ impl Heap {
 
     fn prime_symbols(&self) {
         let mut strings = self.strings.lock().expect("lock should not be poisoned");
-        strings.reserve(TABLES.iter().map(|table| table.len()).sum());
+        strings.reserve(TABLES.len());
 
-        for &table in TABLES {
-            for &symbol in table {
-                assert!(strings.insert(symbol.as_str()));
-            }
+        for symbol in TABLES {
+            assert!(strings.insert(symbol.as_str()));
         }
 
         drop(strings);
