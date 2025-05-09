@@ -158,6 +158,7 @@ impl Iterator for ItemsIterator {
 // $(category: { item })*,
 #[proc_macro]
 pub fn symbol_table(input: TokenStream) -> TokenStream {
+    // We need to create these separately to escape macro-hygiene
     let tables_const = Ident::new("TABLES", Span::call_site());
     let krate = Ident::new("crate", Span::call_site());
     let new_unchecked_ident = Ident::new("new_unchecked", Span::call_site());
