@@ -413,7 +413,7 @@ where
         ("policy_id" = Uuid, Path, description = "The ID of the policy to find"),
     ),
     responses(
-        (status = 200, content_type = "application/json", body = Option<Value>),
+        (status = 200, content_type = "application/json", description = "The policy with the specified id or `null`", body = Option<Value>),
 
         (status = 500, description = "Store error occurred"),
     )

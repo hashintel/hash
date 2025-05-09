@@ -127,9 +127,9 @@ pub trait PolicyStore {
     ///
     /// Note that this does not resolve indirect policies (e.g., policies applying to roles held by
     /// a specific actor). For resolving all policies applicable to an actor, including indirect
-    /// ones, use [`find_policies_for_actor`].
+    /// ones, use [`resolve_policies_for_actor`].
     ///
-    /// [`find_policies_for_actor`]: Self::find_policies_for_actor
+    /// [`resolve_policies_for_actor`]: Self::resolve_policies_for_actor
     ///
     /// # Errors
     ///
