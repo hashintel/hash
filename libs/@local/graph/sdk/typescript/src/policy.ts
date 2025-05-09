@@ -10,15 +10,17 @@ import type { AuthenticationContext } from "./authentication-context.js";
 
 /**
  * Retrieves a policy by its ID.
+ *
+ * Returns the policy if it exists, or `null` if not found.
  */
 export const getPolicyById = (
   graphAPI: GraphApi,
   authentication: AuthenticationContext,
   policyId: PolicyId,
-): Promise<Policy | undefined> =>
+): Promise<Policy | null> =>
   graphAPI
     .getPolicyById(authentication.actorId, policyId)
-    .then(({ data: policy }) => (policy as Policy | null) ?? undefined);
+    .then(({ data: policy }) => policy as Policy | null);
 
 /**
  * Queries for policies in the local store that match the provided filter.

@@ -142,7 +142,8 @@ pub trait PolicyStore {
         filter: &PolicyFilter,
     ) -> Result<Vec<Policy>, Report<GetPoliciesError>>;
 
-    /// Searches for policies that apply to the given actor.
+    /// Resolves all policies that apply to the given actor, including both direct and indirect
+    /// associations.
     ///
     /// This method queries the underlying policy store to find policies that are relevant to the
     /// specified actor. The policies returned may include those that apply to the actor directly,
@@ -156,8 +157,8 @@ pub trait PolicyStore {
     ///
     /// # Errors
     ///
-    /// - [`ActorNotFound`] if the actor does not exist
-    /// - [`StoreError`] if the underlying store returns an error
+    /// - [`ActorNotFound`] if the target actor does not exist in the store.
+    /// - [`StoreError`] if the underlying store encounters an error during resolution.
     ///
     /// [`ActorNotFound`]: GetPoliciesError::ActorNotFound
     /// [`StoreError`]: GetPoliciesError::StoreError

@@ -78,7 +78,7 @@ describe("Policy CRUD", () => {
         authentication,
         "00000000-0000-0000-0000-000000000000" as PolicyId,
       ),
-    ).toBeUndefined();
+    ).toBeNull();
   });
 
   it("can find policies for an actor", async () => {
