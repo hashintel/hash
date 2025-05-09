@@ -4,7 +4,7 @@ import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user"
 import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
 import { Logger } from "@local/hash-backend-utils/logger";
 import {
-  getPolicy,
+  getPolicyById,
   queryPolicies,
   resolvePoliciesForActor,
 } from "@local/hash-graph-sdk/policy";
@@ -69,11 +69,11 @@ describe("Policy CRUD", () => {
     const authentication = { actorId: testUser.accountId };
 
     expect(
-      await getPolicy(graphApi, authentication, testPolicy.id),
+      await getPolicyById(graphApi, authentication, testPolicy.id),
     ).toStrictEqual(testPolicy);
 
     expect(
-      await getPolicy(
+      await getPolicyById(
         graphApi,
         authentication,
         "00000000-0000-0000-0000-000000000000" as PolicyId,
