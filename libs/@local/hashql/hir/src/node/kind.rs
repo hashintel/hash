@@ -5,14 +5,23 @@ use super::{
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum NodeKind<'heap> {
-    Call(Call<'heap>),
+    // Basic values and data
+    Data(Data<'heap>),
+
+    // Variables and binding constructs
     Variable(Variable<'heap>),
     Let(Let<'heap>),
     Input(Input<'heap>),
-    Closure(Closure<'heap>),
-    Branch(Branch<'heap>),
-    Data(Data<'heap>),
-    Access(Access<'heap>),
+
+    // Operations and access
     Operation(Operation<'heap>),
+    Access(Access<'heap>),
+    Call(Call<'heap>),
+
+    // Control flow
+    Branch(Branch<'heap>),
+    Closure(Closure<'heap>),
+
+    // High-level structures
     Graph(Graph<'heap>),
 }
