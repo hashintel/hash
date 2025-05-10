@@ -335,6 +335,109 @@
         }
       }
     },
+    "/actor-groups/{actor_group_id}/permissions/{permission}": {
+      "get": {
+        "tags": [
+          "Graph",
+          "Actor Group"
+        ],
+        "operationId": "check_account_group_permission",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          },
+          {
+            "name": "actor_group_id",
+            "in": "path",
+            "description": "The ID of the actor group to check if the actor has the permission",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorGroupEntityUuid"
+            }
+          },
+          {
+            "name": "permission",
+            "in": "path",
+            "description": "The permission to check for",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/AccountGroupPermission"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Information if the actor can add an owner",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PermissionResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error occurred"
+          }
+        }
+      }
+    },
+    "/actor-groups/{actor_group_id}/relations": {
+      "get": {
+        "tags": [
+          "Graph",
+          "Actor Group"
+        ],
+        "operationId": "get_actor_group_relations",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          },
+          {
+            "name": "actor_group_id",
+            "in": "path",
+            "description": "The ID of the actor group to get relations from",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorGroupEntityUuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of members and administrators of the actor group",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AccountGroupRelationAndSubject"
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission denied"
+          },
+          "500": {
+            "description": "Internal error occurred"
+          }
+        }
+      }
+    },
     "/actor-groups/{actor_group_id}/roles/{role_name}/actors": {
       "get": {
         "tags": [
@@ -581,109 +684,6 @@
           },
           "500": {
             "description": "Store error occurred"
-          }
-        }
-      }
-    },
-    "/actor_groups/{actor_group_id}/permissions/{permission}": {
-      "get": {
-        "tags": [
-          "Graph",
-          "Actor Group"
-        ],
-        "operationId": "check_account_group_permission",
-        "parameters": [
-          {
-            "name": "X-Authenticated-User-Actor-Id",
-            "in": "header",
-            "description": "The ID of the actor which is used to authorize the request",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ActorEntityUuid"
-            }
-          },
-          {
-            "name": "actor_group_id",
-            "in": "path",
-            "description": "The ID of the actor group to check if the actor has the permission",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ActorGroupEntityUuid"
-            }
-          },
-          {
-            "name": "permission",
-            "in": "path",
-            "description": "The permission to check for",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/AccountGroupPermission"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Information if the actor can add an owner",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PermissionResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal error occurred"
-          }
-        }
-      }
-    },
-    "/actor_groups/{actor_group_id}/relations": {
-      "get": {
-        "tags": [
-          "Graph",
-          "Actor Group"
-        ],
-        "operationId": "get_actor_group_relations",
-        "parameters": [
-          {
-            "name": "X-Authenticated-User-Actor-Id",
-            "in": "header",
-            "description": "The ID of the actor which is used to authorize the request",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ActorEntityUuid"
-            }
-          },
-          {
-            "name": "actor_group_id",
-            "in": "path",
-            "description": "The ID of the actor group to get relations from",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ActorGroupEntityUuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "List of members and administrators of the actor group",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/AccountGroupRelationAndSubject"
-                  }
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Permission denied"
-          },
-          "500": {
-            "description": "Internal error occurred"
           }
         }
       }
