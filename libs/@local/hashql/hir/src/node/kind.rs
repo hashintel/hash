@@ -10,7 +10,7 @@ pub enum NodeKind<'heap> {
     Closure,
     // If - currently unsupported
     Data(Data),
-    Access(Access),
+    Access(Access<'heap>),
 
     // Type Assertions
     Is, // Type Assertion (optimized out later after typechk)
