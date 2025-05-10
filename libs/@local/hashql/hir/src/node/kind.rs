@@ -1,24 +1,18 @@
-use super::{access::Access, data::Data, variable::Variable};
+use super::{
+    access::Access, branch::Branch, call::Call, closure::Closure, data::Data, graph::Graph,
+    input::Input, r#let::Let, operation::Operation, variable::Variable,
+};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum NodeKind<'heap> {
-    Call,
-
+    Call(Call<'heap>),
     Variable(Variable<'heap>),
-    Binding, // local binding
-    Input,
-    Closure,
-    // If - currently unsupported
+    Let(Let<'heap>),
+    Input(Input<'heap>),
+    Closure(Closure<'heap>),
+    Branch(Branch<'heap>),
     Data(Data<'heap>),
     Access(Access<'heap>),
-
-    // Type Assertions
-    Is, // Type Assertion (optimized out later after typechk)
-
-    // These ones are new
-    Constructor, // ctor for opaque values
-    BinaryOperation,
-    UnaryOperation,
-    // TODO: graph operations
-    Graph,
+    Operation(Operation<'heap>),
+    Graph(Graph<'heap>),
 }

@@ -1,10 +1,9 @@
 use hashql_core::{intern::Interned, span::SpanId, symbol::Ident};
 
-use super::{Node, NodeId};
+use super::Node;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct LocalVariable<'heap> {
-    pub id: NodeId,
     pub span: SpanId,
 
     // Generic arguments(?) - should these be included?!
@@ -14,7 +13,6 @@ pub struct LocalVariable<'heap> {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct QualifiedVariable<'heap> {
-    pub id: NodeId,
     pub span: SpanId,
 
     pub path: Interned<'heap, [Ident<'heap>]>,
@@ -29,7 +27,6 @@ pub enum VariableKind<'heap> {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Variable<'heap> {
-    pub id: NodeId,
     pub span: SpanId,
 
     pub kind: VariableKind<'heap>,
