@@ -14,7 +14,7 @@ use hashql_core::span::SpanId;
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum BranchKind {
     /// Conditional branching with if/else (currently a placeholder)
-    If(!),
+    Never(!),
 }
 
 /// A branch node in the HashQL HIR.
@@ -30,5 +30,5 @@ pub struct Branch<'heap> {
 
     pub kind: BranchKind,
 
-    _marker: PhantomData<&'heap ()>,
+    pub _marker: PhantomData<&'heap ()>,
 }

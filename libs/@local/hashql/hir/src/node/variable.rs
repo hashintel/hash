@@ -1,6 +1,7 @@
 use hashql_core::{intern::Interned, span::SpanId, symbol::Ident};
 
 use super::Node;
+use crate::path::QualifiedPath;
 
 /// A reference to a locally defined variable in the HashQL HIR.
 ///
@@ -30,7 +31,7 @@ pub struct LocalVariable<'heap> {
 pub struct QualifiedVariable<'heap> {
     pub span: SpanId,
 
-    pub path: Interned<'heap, [Ident<'heap>]>,
+    pub path: QualifiedPath<'heap>,
     pub arguments: Interned<'heap, [Node<'heap>]>,
 }
 
