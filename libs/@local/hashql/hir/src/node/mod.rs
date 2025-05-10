@@ -31,8 +31,8 @@ impl NodeId {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Node<'heap> {
-    id: NodeId,
-    span: SpanId,
+    pub id: NodeId,
+    pub span: SpanId,
 
-    kind: NodeKind<'heap>,
+    pub kind: NodeKind<'heap>,
 }

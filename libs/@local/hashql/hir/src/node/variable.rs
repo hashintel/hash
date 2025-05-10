@@ -4,33 +4,33 @@ use super::{Node, NodeId};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct LocalVariable<'heap> {
-    id: NodeId,
-    span: SpanId,
+    pub id: NodeId,
+    pub span: SpanId,
 
     // Generic arguments(?) - should these be included?!
-    name: Ident<'heap>,
-    arguments: Interned<'heap, [Node<'heap>]>,
+    pub name: Ident<'heap>,
+    pub arguments: Interned<'heap, [Node<'heap>]>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct GlobalVariable<'heap> {
-    id: NodeId,
-    span: SpanId,
+pub struct QualifiedVariable<'heap> {
+    pub id: NodeId,
+    pub span: SpanId,
 
-    path: Interned<'heap, [Ident<'heap>]>,
-    arguments: Interned<'heap, [Node<'heap>]>,
+    pub path: Interned<'heap, [Ident<'heap>]>,
+    pub arguments: Interned<'heap, [Node<'heap>]>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum VariableKind<'heap> {
     Local(LocalVariable<'heap>),
-    Global(GlobalVariable<'heap>),
+    Qualified(QualifiedVariable<'heap>),
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Variable<'heap> {
-    id: NodeId,
-    span: SpanId,
+    pub id: NodeId,
+    pub span: SpanId,
 
-    kind: VariableKind<'heap>,
+    pub kind: VariableKind<'heap>,
 }

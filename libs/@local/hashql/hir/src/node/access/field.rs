@@ -4,9 +4,9 @@ use crate::node::{Node, NodeId};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct FieldAccess<'heap> {
-    id: NodeId,
-    span: SpanId,
+    pub id: NodeId,
+    pub span: SpanId,
 
-    expr: Interned<'heap, Node<'heap>>,
-    field: Symbol<'heap>,
+    pub expr: Interned<'heap, Node<'heap>>,
+    pub field: Symbol<'heap>,
 }

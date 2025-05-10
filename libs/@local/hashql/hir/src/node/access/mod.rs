@@ -14,8 +14,8 @@ pub enum AccessKind<'heap> {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Access<'heap> {
-    id: NodeId,
-    span: SpanId,
+    pub id: NodeId,
+    pub span: SpanId,
 
-    kind: AccessKind<'heap>,
+    pub kind: AccessKind<'heap>,
 }

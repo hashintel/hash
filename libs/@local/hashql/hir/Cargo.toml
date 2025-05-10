@@ -8,11 +8,11 @@ version.workspace = true
 
 [dependencies]
 # Public workspace dependencies
+hashql-core = { workspace = true, public = true }
 
 # Public third-party dependencies
 
 # Private workspace dependencies
-hashql-core.workspace = true
 
 # Private third-party dependencies
 

@@ -9,7 +9,7 @@ pub enum NodeKind<'heap> {
     Input,
     Closure,
     // If - currently unsupported
-    Data(Data),
+    Data(Data<'heap>),
     Access(Access<'heap>),
 
     // Type Assertions
