@@ -8,6 +8,7 @@ import type {
 } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
+import { getWebById } from "@local/hash-graph-sdk/principal/web";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
@@ -38,9 +39,12 @@ export const getWebMachineId = async (
     webId: WebId;
   },
 ): Promise<MachineId> =>
-  context.graphApi
-    .getWeb(authentication.actorId, webId)
-    .then(({ data }) => data.machineId as MachineId);
+  getWebById(context.graphApi, authentication, webId).then((web) => {
+    if (!web) {
+      throw new NotFoundError(`Failed to get web for shortname: ${webId}`);
+    }
+    return web.machineId;
+  });
 
 /**
  * Retrieve a machine actor's accountId by its unique identifier

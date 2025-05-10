@@ -28,7 +28,6 @@ use hash_graph_store::{
     account::{AccountStore as _, CreateOrgWebParams, GetTeamResponse, GetWebResponse},
     pool::StorePool,
 };
-use hash_status::Status;
 use hash_temporal_client::TemporalClient;
 use serde::Deserialize;
 use type_system::principal::{
@@ -38,7 +37,6 @@ use type_system::principal::{
 };
 use utoipa::{OpenApi, ToSchema};
 
-use super::status::status_to_response;
 use crate::rest::{AuthenticatedUserHeader, PermissionResponse, status::report_to_response};
 
 #[derive(OpenApi)]
@@ -49,14 +47,14 @@ use crate::rest::{AuthenticatedUserHeader, PermissionResponse, status::report_to
         assign_actor_group_role,
         unassign_actor_group_role,
 
-        get_web,
+        get_web_by_id,
         get_web_by_shortname,
         create_org_web,
         check_web_permission,
         modify_web_authorization_relationships,
         get_web_authorization_relationships,
 
-        get_instance_admins_team,
+        get_team_by_name,
     ),
     components(
         schemas(
@@ -128,7 +126,7 @@ impl ActorGroupResource {
                         .nest(
                             "/:web_id",
                             Router::new()
-                                .route("/", get(get_web::<S, A>))
+                                .route("/", get(get_web_by_id::<S, A>))
                                 .route("/permissions/:permission", get(check_web_permission::<A>))
                                 .route(
                                     "/relationships",
@@ -143,7 +141,7 @@ impl ActorGroupResource {
                 )
                 .nest(
                     "/teams",
-                    Router::new().route("/instance-admins", get(get_instance_admins_team::<S, A>)),
+                    Router::new().route("/name/:name", get(get_team_by_name::<S, A>)),
                 ),
         )
     }
@@ -206,7 +204,6 @@ where
     ),
     responses(
         (status = 200, content_type = "application/json", description = "The web was retrieved successfully", body = GetWebResponse),
-        (status = 404, content_type = "application/json", description = "The web was not found"),
 
         (status = 500, description = "Store error occurred"),
     )
@@ -215,39 +212,31 @@ where
     level = "info",
     skip(store_pool, authorization_api_pool, temporal_client)
 )]
-async fn get_web<S, A>(
+async fn get_web_by_id<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     Path(web_id): Path<WebId>,
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
-) -> Result<Json<GetWebResponse>, Response>
+) -> Result<Json<Option<GetWebResponse>>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
     for<'p, 'a> S::Store<'p, A::Api<'a>>: PrincipalStore,
 {
-    let authorization_api = authorization_api_pool
-        .acquire()
-        .await
-        .map_err(report_to_response)?;
-
-    let mut store = store_pool
-        .acquire(authorization_api, temporal_client.0)
-        .await
-        .map_err(report_to_response)?;
-
-    store
-        .find_web(actor_id, web_id)
+    store_pool
+        .acquire(
+            authorization_api_pool
+                .acquire()
+                .await
+                .map_err(report_to_response)?,
+            temporal_client.0,
+        )
         .await
         .map_err(report_to_response)?
-        .ok_or_else(|| {
-            status_to_response(Status::new(
-                hash_status::StatusCode::NotFound,
-                None,
-                Vec::<()>::new(),
-            ))
-        })
+        .get_web_by_id(actor_id, web_id)
+        .await
+        .map_err(report_to_response)
         .map(Json)
 }
 
@@ -261,7 +250,6 @@ where
     ),
     responses(
         (status = 200, content_type = "application/json", description = "The web was retrieved successfully", body = GetWebResponse),
-        (status = 404, content_type = "application/json", description = "The web was not found"),
 
         (status = 500, description = "Store error occurred"),
     )
@@ -276,33 +264,25 @@ async fn get_web_by_shortname<S, A>(
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
-) -> Result<Json<GetWebResponse>, Response>
+) -> Result<Json<Option<GetWebResponse>>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
     for<'p, 'a> S::Store<'p, A::Api<'a>>: PrincipalStore,
 {
-    let authorization_api = authorization_api_pool
-        .acquire()
-        .await
-        .map_err(report_to_response)?;
-
-    let mut store = store_pool
-        .acquire(authorization_api, temporal_client.0)
-        .await
-        .map_err(report_to_response)?;
-
-    store
-        .find_web_by_shortname(actor_id, &shortname)
+    store_pool
+        .acquire(
+            authorization_api_pool
+                .acquire()
+                .await
+                .map_err(report_to_response)?,
+            temporal_client.0,
+        )
         .await
         .map_err(report_to_response)?
-        .ok_or_else(|| {
-            status_to_response(Status::new(
-                hash_status::StatusCode::NotFound,
-                None,
-                Vec::<()>::new(),
-            ))
-        })
+        .get_web_by_shortname(actor_id, &shortname)
+        .await
+        .map_err(report_to_response)
         .map(Json)
 }
 
@@ -685,14 +665,14 @@ where
 
 #[utoipa::path(
     get,
-    path = "/actor-groups/teams/instance-admins",
+    path = "/actor-groups/teams/name/{name}",
     tag = "Team",
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("name" = String, Path, description = "The ID of the team to retrieve"),
     ),
     responses(
-        (status = 200, content_type = "application/json", description = "The team was retrieved successfully", body = GetTeamResponse),
-        (status = 404, content_type = "application/json", description = "The team was not found"),
+        (status = 200, content_type = "application/json", description = "The team was retrieved successfully", body = Option<GetTeamResponse>),
 
         (status = 500, description = "Store error occurred"),
     )
@@ -701,37 +681,30 @@ where
     level = "info",
     skip(store_pool, authorization_api_pool, temporal_client)
 )]
-async fn get_instance_admins_team<S, A>(
+async fn get_team_by_name<S, A>(
     AuthenticatedUserHeader(actor): AuthenticatedUserHeader,
+    Path(name): Path<String>,
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
-) -> Result<Json<GetTeamResponse>, Response>
+) -> Result<Json<Option<GetTeamResponse>>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
     for<'p, 'a> S::Store<'p, A::Api<'a>>: PrincipalStore,
 {
-    let authorization_api = authorization_api_pool
-        .acquire()
-        .await
-        .map_err(report_to_response)?;
-
-    let mut store = store_pool
-        .acquire(authorization_api, temporal_client.0)
-        .await
-        .map_err(report_to_response)?;
-
-    store
-        .find_team_by_name(actor, "instance-admins")
+    store_pool
+        .acquire(
+            authorization_api_pool
+                .acquire()
+                .await
+                .map_err(report_to_response)?,
+            temporal_client.0,
+        )
         .await
         .map_err(report_to_response)?
-        .ok_or_else(|| {
-            status_to_response(Status::new(
-                hash_status::StatusCode::NotFound,
-                None,
-                Vec::<()>::new(),
-            ))
-        })
+        .get_team_by_name(actor, &name)
+        .await
+        .map_err(report_to_response)
         .map(Json)
 }

@@ -5,9 +5,9 @@ import {
   createMachineActorEntity,
   getMachineIdByIdentifier,
 } from "@local/hash-backend-utils/machine-actors";
+import { getWebById } from "@local/hash-graph-sdk/principal/web";
 
 import { logger } from "../../../../logger";
-import { getWeb } from "../../../account-permission-management";
 import { createHashInstance } from "../../../knowledge/system-types/hash-instance";
 import { systemAccountId } from "../../../system-account";
 import {
@@ -98,8 +98,17 @@ const migrate: MigrationFunction = async ({
       });
     } catch (err) {
       if (err instanceof NotFoundError) {
-        const { webId, machineId } = await getWeb(context, authentication, {
-          webId: userAccountId,
+        const { webId, machineId } = await getWebById(
+          context.graphApi,
+          authentication,
+          userAccountId,
+        ).then((web) => {
+          if (!web) {
+            throw new NotFoundError(
+              `Failed to get web for account ID: ${userAccountId}`,
+            );
+          }
+          return web;
         });
 
         await createMachineActorEntity(context, {
@@ -133,8 +142,17 @@ const migrate: MigrationFunction = async ({
       });
     } catch (err) {
       if (err instanceof NotFoundError) {
-        const { webId, machineId } = await getWeb(context, authentication, {
-          webId: orgAccountGroupId,
+        const { webId, machineId } = await getWebById(
+          context.graphApi,
+          authentication,
+          orgAccountGroupId,
+        ).then((web) => {
+          if (!web) {
+            throw new NotFoundError(
+              `Failed to get web for organization ID: ${orgAccountGroupId}`,
+            );
+          }
+          return web;
         });
 
         await createMachineActorEntity(context, {

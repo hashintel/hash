@@ -12,13 +12,13 @@
     "version": "0.0.0"
   },
   "paths": {
-    "/actor-groups/teams/instance-admins": {
+    "/actor-groups/teams/name/{name}": {
       "get": {
         "tags": [
           "Graph",
           "Team"
         ],
-        "operationId": "get_instance_admins_team",
+        "operationId": "get_team_by_name",
         "parameters": [
           {
             "name": "X-Authenticated-User-Actor-Id",
@@ -28,6 +28,15 @@
             "schema": {
               "$ref": "#/components/schemas/ActorEntityUuid"
             }
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "description": "The ID of the team to retrieve",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -36,13 +45,15 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GetTeamResponse"
+                  "allOf": [
+                    {
+                      "$ref": "#/components/schemas/GetTeamResponse"
+                    }
+                  ],
+                  "nullable": true
                 }
               }
             }
-          },
-          "404": {
-            "description": "The team was not found"
           },
           "500": {
             "description": "Store error occurred"
@@ -174,9 +185,6 @@
               }
             }
           },
-          "404": {
-            "description": "The web was not found"
-          },
           "500": {
             "description": "Store error occurred"
           }
@@ -189,7 +197,7 @@
           "Graph",
           "Web"
         ],
-        "operationId": "get_web",
+        "operationId": "get_web_by_id",
         "parameters": [
           {
             "name": "X-Authenticated-User-Actor-Id",
@@ -220,9 +228,6 @@
                 }
               }
             }
-          },
-          "404": {
-            "description": "The web was not found"
           },
           "500": {
             "description": "Store error occurred"

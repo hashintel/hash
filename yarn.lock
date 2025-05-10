@@ -560,7 +560,7 @@ __metadata:
     react-dom: "npm:19.1.0"
     react-dropzone: "npm:14.3.8"
     react-full-screen: "npm:1.1.1"
-    react-hook-form: "npm:7.56.2"
+    react-hook-form: "npm:7.56.3"
     react-markdown: "npm:9.1.0"
     react-pdf: "npm:9.2.1"
     react-responsive-carousel: "npm:3.2.23"
@@ -7106,14 +7106,14 @@ __metadata:
     eslint-plugin-storybook: "npm:0.11.3"
     react: "npm:19.1.0"
     react-dom: "npm:19.1.0"
-    react-hook-form: "npm:7.56.2"
+    react-hook-form: "npm:7.56.3"
     typescript: "npm:5.7.3"
   peerDependencies:
     "@mui/material": ^5.14.0
     "@mui/system": ^5.14.0
     react: ^19.0.0
     react-dom: ^19.0.0
-    react-hook-form: 7.56.2
+    react-hook-form: 7.56.3
   languageName: unknown
   linkType: soft
 
@@ -7140,7 +7140,7 @@ __metadata:
     material-ui-popup-state: "npm:4.1.0"
     react: "npm:19.1.0"
     react-dom: "npm:19.1.0"
-    react-hook-form: "npm:7.56.2"
+    react-hook-form: "npm:7.56.3"
     rooks: "npm:7.14.1"
     setimmediate: "npm:1.0.5"
     typescript: "npm:5.7.3"
@@ -7149,7 +7149,7 @@ __metadata:
     "@mui/system": ^5.14.0
     react: ^19.0.0
     react-dom: ^19.0.0
-    react-hook-form: 7.56.2
+    react-hook-form: 7.56.3
   languageName: unknown
   linkType: soft
 
@@ -8859,7 +8859,7 @@ __metadata:
     eslint: "npm:9.20.1"
     it-stream-types: "npm:2.0.2"
     libp2p: "npm:2.8.5"
-    multiformats: "npm:13.3.2"
+    multiformats: "npm:13.3.3"
     rimraf: "npm:6.0.1"
     typescript: "npm:5.7.3"
     uint8arraylist: "npm:2.4.8"
@@ -8905,7 +8905,7 @@ __metadata:
     exponential-backoff: "npm:3.1.2"
     googleapis: "npm:133.0.0"
     logform: "npm:2.7.0"
-    redis: "npm:4.7.0"
+    redis: "npm:4.7.1"
     rimraf: "npm:6.0.1"
     slonik: "npm:24.2.0"
     typescript: "npm:5.7.3"
@@ -12142,14 +12142,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@redis/client@npm:1.6.0":
-  version: 1.6.0
-  resolution: "@redis/client@npm:1.6.0"
+"@redis/client@npm:1.6.1":
+  version: 1.6.1
+  resolution: "@redis/client@npm:1.6.1"
   dependencies:
     cluster-key-slot: "npm:1.1.2"
     generic-pool: "npm:3.9.0"
     yallist: "npm:4.0.0"
-  checksum: 10c0/c80a01b4f72d32284515dac6d1aefe0e9c881d08b8db33281f87b51650c1c116b18074a29ca81599d15dccb37b29eef9b26a75a5755150ae27d163e680c34bf6
+  checksum: 10c0/216c61f5aa2fef212386c2ef5b5f6d10f44244f6928682f370e190402d23338e11260377c08e87dd6d678408fa7c0a6b7bb5571ecadb830abfa3d7355b9eff1e
   languageName: node
   linkType: hard
 
@@ -34549,10 +34549,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"multiformats@npm:13.3.2, multiformats@npm:^13.0.0, multiformats@npm:^13.3.1":
-  version: 13.3.2
-  resolution: "multiformats@npm:13.3.2"
-  checksum: 10c0/a2c6f17b04d6a9cd5d0cb7d07e32dc4f3be82804d44fc056357a98e449340a7ad37d0789da41186ccd8c953e0cf783be3b71f03a00b0a84788689f544ecade46
+"multiformats@npm:13.3.3, multiformats@npm:^13.0.0, multiformats@npm:^13.3.1":
+  version: 13.3.3
+  resolution: "multiformats@npm:13.3.3"
+  checksum: 10c0/0e465f7dd7e3bff2592d756c74ef2ba488a655254306a0a7073da8fe53e444b7d5f328d58f353b375bfa2eb98bf97bf2d80ce3c2b84e4a965c5bc8a7646b73f6
   languageName: node
   linkType: hard
 
@@ -38203,12 +38203,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-hook-form@npm:7.56.2":
-  version: 7.56.2
-  resolution: "react-hook-form@npm:7.56.2"
+"react-hook-form@npm:7.56.3":
+  version: 7.56.3
+  resolution: "react-hook-form@npm:7.56.3"
   peerDependencies:
     react: ^16.8.0 || ^17 || ^18 || ^19
-  checksum: 10c0/9eeca7525c5c0b1356670e7cc77687298c7280a31c99bca396596124371467c310cad22f2c10efd9c75b4570d07740ee1c6ad481d59c1b725c7600767f0a35af
+  checksum: 10c0/9467b027fd030d93ba3c8de85853d381ca92ba70bfdb9d0569a63dae44c1459082f5863a4ceb8690789a7185a588516182904db4c72546119c966bf25316d591
   languageName: node
   linkType: hard
 
@@ -38803,17 +38803,17 @@ __metadata:
   languageName: node
   linkType: hard
 
-"redis@npm:4.7.0":
-  version: 4.7.0
-  resolution: "redis@npm:4.7.0"
+"redis@npm:4.7.1":
+  version: 4.7.1
+  resolution: "redis@npm:4.7.1"
   dependencies:
     "@redis/bloom": "npm:1.2.0"
-    "@redis/client": "npm:1.6.0"
+    "@redis/client": "npm:1.6.1"
     "@redis/graph": "npm:1.1.1"
     "@redis/json": "npm:1.0.7"
     "@redis/search": "npm:1.2.0"
     "@redis/time-series": "npm:1.1.0"
-  checksum: 10c0/a05632a58adbcaa4566238073cd6d00ed008522d2ef015a31aaef200c184a4eff4fa007c514eda91dda1e1205350b5901d0c7b58824dbfa593feb81a0087bf4d
+  checksum: 10c0/36fc11b7b305e73cafd0a32c5e7070aef72d3a33f2b34f609a1c295afb7d1a022d74eeda96e8d887ef596bbe8ce10811450d02b63175a338d2ff258ff34bd237
   languageName: node
   linkType: hard
 

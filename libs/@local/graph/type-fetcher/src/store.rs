@@ -942,20 +942,20 @@ where
         self.store.create_ai_actor(actor_id, params).await
     }
 
-    async fn find_web(
+    async fn get_web_by_id(
         &mut self,
         actor_id: ActorEntityUuid,
         web_id: WebId,
     ) -> Result<Option<GetWebResponse>, Report<WebRetrievalError>> {
-        self.store.find_web(actor_id, web_id).await
+        self.store.get_web_by_id(actor_id, web_id).await
     }
 
-    async fn find_web_by_shortname(
+    async fn get_web_by_shortname(
         &mut self,
         actor_id: ActorEntityUuid,
         shortname: &str,
     ) -> Result<Option<GetWebResponse>, Report<WebRetrievalError>> {
-        self.store.find_web_by_shortname(actor_id, shortname).await
+        self.store.get_web_by_shortname(actor_id, shortname).await
     }
 
     async fn create_org_web(
@@ -974,12 +974,12 @@ where
         self.store.create_team(actor_id, params).await
     }
 
-    async fn find_team_by_name(
+    async fn get_team_by_name(
         &mut self,
         actor_id: ActorEntityUuid,
         name: &str,
     ) -> Result<Option<GetTeamResponse>, Report<TeamRetrievalError>> {
-        self.store.find_team_by_name(actor_id, name).await
+        self.store.get_team_by_name(actor_id, name).await
     }
 
     async fn identify_subject_id(
