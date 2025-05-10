@@ -167,25 +167,6 @@ pub trait PolicyStore {
         authenticated_actor: ActorEntityUuid,
         actor_id: ActorId,
     ) -> Result<Vec<Policy>, Report<GetPoliciesError>>;
-}
-
-#[trait_variant::make(PrincipalStore: Send)]
-pub trait LocalPrincipalStore {
-    /// Searches for the system account and returns its ID.
-    ///
-    /// If the system account does not exist, it is created. Calling this function
-    /// also implies basic permissions on the system account, so it can be used to
-    /// further configure the system.
-    ///
-    /// # Errors
-    ///
-    /// - [`StoreError`] if the underlying store returns an error
-    ///
-    /// [`StoreError`]: GetSystemAccountError::StoreError
-    async fn get_or_create_system_actor(
-        &mut self,
-        identifier: &str,
-    ) -> Result<MachineId, Report<GetSystemAccountError>>;
 
     /// Ensures that the system actor policies are present.
     ///
@@ -206,7 +187,26 @@ pub trait LocalPrincipalStore {
     /// [`ReadPoliciesFailed`]: EnsureSystemPoliciesError::ReadPoliciesFailed
     /// [`AddRequiredPoliciesFailed`]: EnsureSystemPoliciesError::AddRequiredPoliciesFailed
     /// [`RemoveOldPolicyFailed`]: EnsureSystemPoliciesError::RemoveOldPolicyFailed
-    async fn ensure_system_policies(&mut self) -> Result<(), Report<EnsureSystemPoliciesError>>;
+    async fn seed_system_policies(&mut self) -> Result<(), Report<EnsureSystemPoliciesError>>;
+}
+
+#[trait_variant::make(PrincipalStore: Send)]
+pub trait LocalPrincipalStore {
+    /// Searches for the system account and returns its ID.
+    ///
+    /// If the system account does not exist, it is created. Calling this function
+    /// also implies basic permissions on the system account, so it can be used to
+    /// further configure the system.
+    ///
+    /// # Errors
+    ///
+    /// - [`StoreError`] if the underlying store returns an error
+    ///
+    /// [`StoreError`]: GetSystemAccountError::StoreError
+    async fn get_or_create_system_actor(
+        &mut self,
+        identifier: &str,
+    ) -> Result<MachineId, Report<GetSystemAccountError>>;
 
     /// Creates a new web and returns its ID.
     ///
