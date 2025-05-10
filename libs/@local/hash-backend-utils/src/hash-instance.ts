@@ -5,6 +5,7 @@ import type {
 } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { getTeamByName } from "@local/hash-graph-sdk/principal/team";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -30,12 +31,21 @@ export const getInstanceAdminsTeam = async (
   ctx: { graphApi: GraphApi },
   authentication: { actorId: ActorEntityUuid },
 ): Promise<{ teamId: TeamId; webId: WebId }> =>
-  ctx.graphApi
-    .getInstanceAdminsTeam(authentication.actorId)
-    .then(({ data }) => ({
-      teamId: data.teamId as TeamId,
-      webId: data.parentId.id as WebId,
-    }));
+  getTeamByName(ctx.graphApi, authentication, "instance-admins").then(
+    (team) => {
+      if (!team) {
+        throw new NotFoundError("Failed to get instance admins team");
+      }
+      if (team.parentId.actorGroupType !== "web") {
+        throw new Error("Instance admins parent is not a web");
+      }
+      return {
+        teamId: team.teamId,
+        webId: team.parentId.id,
+        name: team.name,
+      };
+    },
+  );
 
 export const getHashInstanceFromEntity = ({
   entity,

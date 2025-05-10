@@ -138,7 +138,7 @@ pub trait AccountStore {
     /// # Errors
     ///
     /// - If reading the web failed.
-    fn find_web(
+    fn get_web_by_id(
         &mut self,
         actor_id: ActorEntityUuid,
         web_id: WebId,
@@ -149,7 +149,7 @@ pub trait AccountStore {
     /// # Errors
     ///
     /// - If reading the web failed.
-    fn find_web_by_shortname(
+    fn get_web_by_shortname(
         &mut self,
         actor_id: ActorEntityUuid,
         shortname: &str,
@@ -182,7 +182,7 @@ pub trait AccountStore {
     /// # Errors
     ///
     /// - If reading the team failed.
-    fn find_team_by_name(
+    fn get_team_by_name(
         &mut self,
         actor_id: ActorEntityUuid,
         name: &str,
