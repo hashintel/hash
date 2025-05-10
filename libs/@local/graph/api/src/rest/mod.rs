@@ -8,6 +8,8 @@ pub mod data_type;
 pub mod entity;
 pub mod entity_type;
 pub mod middleware;
+pub mod permissions;
+pub mod principal;
 pub mod property_type;
 pub mod status;
 
@@ -206,6 +208,7 @@ where
         entity_type::EntityTypeResource::routes::<S, A>(),
         entity::EntityResource::routes::<S, A>(),
         actor_group::ActorGroupResource::routes::<S, A>(),
+        permissions::PermissionResource::routes::<S, A>(),
     ]
 }
 
@@ -217,6 +220,7 @@ fn api_documentation() -> Vec<openapi::OpenApi> {
         entity_type::EntityTypeResource::openapi(),
         entity::EntityResource::openapi(),
         actor_group::ActorGroupResource::openapi(),
+        permissions::PermissionResource::openapi(),
     ]
 }
 
