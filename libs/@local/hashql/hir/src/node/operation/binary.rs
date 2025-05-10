@@ -9,33 +9,33 @@ use crate::node::Node;
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub enum BinOpKind {
     /// The `+` operator (addition)
-    Add,
+    Add(!),
     /// The `-` operator (subtraction)
-    Sub,
+    Sub(!),
     /// The `*` operator (multiplication)
-    Mul,
+    Mul(!),
     /// The `/` operator (division)
-    Div,
+    Div(!),
     /// The `%` operator (remainder)
-    Rem,
+    Rem(!),
     /// The `%%`/`⟲` operator (modulo)
-    Mod,
+    Mod(!),
     /// The `**`/`↑` operator (exponentiation)
-    Pow,
+    Pow(!),
     /// The `&&` operator (logical and)
-    And,
+    And(!),
     /// The `||` operator (logical or)
-    Or,
+    Or(!),
     /// The `^` operator (bitwise xor)
-    BitXor,
+    BitXor(!),
     /// The `&` operator (bitwise and)
-    BitAnd,
+    BitAnd(!),
     /// The `|` operator (bitwise or)
-    BitOr,
+    BitOr(!),
     /// The `<<` operator (shift left)
-    BitShl,
+    BitShl(!),
     /// The `>>` operator (shift right)
-    BitShr,
+    BitShr(!),
     /// The `==` operator (equality)
     Eq,
     /// The `<` operator (less than)

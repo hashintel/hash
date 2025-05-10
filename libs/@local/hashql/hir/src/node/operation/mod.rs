@@ -18,7 +18,7 @@ pub enum OperationKind<'heap> {
     /// Operations with two operands (arithmetic, comparison, logic)
     Binary(BinaryOperation<'heap>),
     /// Operations with a single operand (negation, not)
-    Unary(UnaryOperation<'heap>),
+    Unary(UnaryOperation<'heap>, !),
 }
 
 /// An operation node in the HashQL HIR.

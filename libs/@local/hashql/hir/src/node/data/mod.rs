@@ -15,13 +15,13 @@ pub use self::{dict::Dict, list::List, literal::Literal, r#struct::Struct, tuple
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum DataKind<'heap> {
     /// A struct value with named fields
-    Struct(Struct<'heap>),
+    Struct(Struct<'heap>, !),
     /// A dictionary with dynamically computed keys
-    Dict(Dict<'heap>),
+    Dict(Dict<'heap>, !),
     /// A tuple with positionally-accessed elements
-    Tuple(Tuple<'heap>),
+    Tuple(Tuple<'heap>, !),
     /// A homogeneous list of elements
-    List(List<'heap>),
+    List(List<'heap>, !),
     /// A primitive literal value
     Literal(Literal<'heap>),
 }
