@@ -36,6 +36,25 @@ impl HirId {
     pub const PLACEHOLDER: Self = <Self as id::Id>::MAX;
 }
 
+/// A node in the HashQL High-Level Intermediate Representation (HIR).
+///
+/// The HIR is an optimized, more refined representation of the program derived from the AST.
+/// While the AST closely mirrors the source syntax, the HIR represents a more semantically
+/// meaningful structure that's better suited for type checking, optimization, and code generation.
+///
+/// Key differences between HIR and AST:
+/// - Special forms (like `let`, `if`, etc.) are fully expanded in the HIR
+/// - Syntactic sugar is desugared and normalized
+/// - The HIR uses interned references for better memory efficiency
+/// - Nodes are more compact and optimized for compiler operations
+///
+/// Each HIR node has:
+/// - A unique identifier for tracking through compilation phases
+/// - A span linking to its origin in source code for error reporting
+/// - A specific kind that determines the node's semantics and structure
+///
+/// The HIR is designed to be immutable after construction and uses arena allocation
+/// through the `'heap` lifetime for efficient memory management.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Node<'heap> {
     pub id: HirId,
