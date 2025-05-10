@@ -12932,6 +12932,8 @@ __metadata:
 "@rust/hashql-hir@workspace:libs/@local/hashql/hir":
   version: 0.0.0-use.local
   resolution: "@rust/hashql-hir@workspace:libs/@local/hashql/hir"
+  dependencies:
+    "@rust/hashql-core": "npm:0.0.0-private"
   languageName: unknown
   linkType: soft
 

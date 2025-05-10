@@ -2,5 +2,8 @@
   "name": "@rust/hashql-hir",
   "version": "0.0.0-private",
   "private": true,
-  "license": "AGPL-3"
+  "license": "AGPL-3",
+  "dependencies": {
+    "@rust/hashql-core": "0.0.0-private"
+  }
 }
