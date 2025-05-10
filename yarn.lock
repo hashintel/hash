@@ -292,7 +292,7 @@ __metadata:
     "@types/lodash": "npm:4.17.16"
     "@types/md5": "npm:2.3.5"
     "@types/mime-types": "npm:2.1.4"
-    "@types/node": "npm:22.15.14"
+    "@types/node": "npm:22.15.17"
     "@types/papaparse": "npm:5.3.16"
     "@types/sanitize-html": "npm:2.16.0"
     "@vitest/coverage-istanbul": "npm:3.1.3"
@@ -643,7 +643,7 @@ __metadata:
     "@local/eslint": "npm:0.0.0-private"
     "@local/hash-backend-utils": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
-    "@types/node": "npm:22.15.14"
+    "@types/node": "npm:22.15.17"
     "@types/set-interval-async": "npm:1.0.3"
     eslint: "npm:9.20.1"
     set-interval-async: "npm:2.0.3"
@@ -662,7 +662,7 @@ __metadata:
     "@local/hash-backend-utils": "npm:0.0.0-private"
     "@local/hash-isomorphic-utils": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
-    "@types/node": "npm:22.15.14"
+    "@types/node": "npm:22.15.17"
     eslint: "npm:9.20.1"
     hot-shots: "npm:8.5.2"
     tsx: "npm:4.19.4"
@@ -711,7 +711,7 @@ __metadata:
     "@local/tsconfig": "npm:0.0.0-private"
     "@modelcontextprotocol/sdk": "npm:1.11.1"
     "@types/dotenv-flow": "npm:3.3.3"
-    "@types/node": "npm:22.15.14"
+    "@types/node": "npm:22.15.17"
     chokidar-cli: "npm:3.0.0"
     dotenv-flow: "npm:3.3.0"
     eslint: "npm:9.20.1"
@@ -735,7 +735,7 @@ __metadata:
     "@modelcontextprotocol/sdk": "npm:1.11.1"
     "@notionhq/client": "npm:2.3.0"
     "@types/dotenv-flow": "npm:3.3.3"
-    "@types/node": "npm:22.15.14"
+    "@types/node": "npm:22.15.17"
     chokidar-cli: "npm:3.0.0"
     dotenv-flow: "npm:3.3.0"
     eslint: "npm:9.20.1"
@@ -4273,7 +4273,7 @@ __metadata:
     "@local/eslint": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     "@types/lodash.isequal": "npm:4.5.8"
-    "@types/node": "npm:22.15.14"
+    "@types/node": "npm:22.15.17"
     "@types/react": "npm:19.1.3"
     ajv: "npm:8.17.1"
     ajv-formats: "npm:3.0.1"
@@ -4343,7 +4343,7 @@ __metadata:
     "@rollup/plugin-node-resolve": "npm:16.0.1"
     "@rollup/plugin-typescript": "npm:12.1.2"
     "@rollup/plugin-wasm": "npm:6.2.2"
-    "@types/node": "npm:22.15.14"
+    "@types/node": "npm:22.15.17"
     "@types/react": "npm:19.1.3"
     "@vitest/coverage-istanbul": "npm:3.1.3"
     eslint: "npm:9.20.1"
@@ -8814,7 +8814,7 @@ __metadata:
     "@local/tsconfig": "npm:0.0.0-private"
     "@types/babel__core": "npm:^7"
     "@types/eslint__eslintrc": "npm:2.1.2"
-    "@types/node": "npm:22.15.14"
+    "@types/node": "npm:22.15.17"
     effect: "npm:3.13.11"
     eslint: "npm:9.20.1"
     eslint-config-airbnb: "npm:19.0.4"
@@ -8853,7 +8853,7 @@ __metadata:
     "@multiformats/dns": "npm:1.0.6"
     "@multiformats/multiaddr": "npm:12.4.0"
     "@rust/harpc-wire-protocol": "npm:0.0.0-private"
-    "@types/node": "npm:22.15.14"
+    "@types/node": "npm:22.15.17"
     "@vitest/coverage-istanbul": "npm:3.1.3"
     effect: "npm:3.13.11"
     eslint: "npm:9.20.1"
@@ -8893,7 +8893,7 @@ __metadata:
     "@temporalio/worker": "npm:1.11.7"
     "@temporalio/workflow": "npm:1.11.7"
     "@types/dotenv-flow": "npm:3.3.3"
-    "@types/node": "npm:22.15.14"
+    "@types/node": "npm:22.15.17"
     "@types/uuid": "npm:9.0.8"
     "@types/wait-on": "npm:5.3.4"
     "@vitest/coverage-istanbul": "npm:3.1.3"
@@ -8923,7 +8923,7 @@ __metadata:
     "@local/tsconfig": "npm:0.0.0-private"
     "@openapitools/openapi-generator-cli": "npm:2.20.0"
     "@rust/hash-graph-api": "npm:0.0.0-private"
-    "@types/node": "npm:22.15.14"
+    "@types/node": "npm:22.15.17"
     axios: "npm:1.9.0"
     fix-esm-import-path: "npm:1.10.1"
     rimraf: "npm:6.0.1"
@@ -8974,7 +8974,7 @@ __metadata:
     "@temporalio/workflow": "npm:1.11.7"
     "@types/big.js": "npm:6.2.2"
     "@types/lodash-es": "npm:4.17.12"
-    "@types/node": "npm:22.15.14"
+    "@types/node": "npm:22.15.17"
     "@types/pluralize": "npm:0.0.33"
     "@vitest/coverage-istanbul": "npm:3.1.3"
     apollo-server-express: "npm:3.9.0"
@@ -9010,7 +9010,7 @@ __metadata:
   resolution: "@local/internal-api-client@workspace:libs/@local/internal-api-client/typescript"
   dependencies:
     "@openapitools/openapi-generator-cli": "npm:2.20.0"
-    "@types/node": "npm:22.15.14"
+    "@types/node": "npm:22.15.17"
     axios: "npm:1.9.0"
     rimraf: "npm:6.0.1"
     typescript: "npm:5.7.3"
@@ -9053,7 +9053,7 @@ __metadata:
     "@local/eslint": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     "@types/lodash-es": "npm:4.17.12"
-    "@types/node": "npm:22.15.14"
+    "@types/node": "npm:22.15.17"
     "@types/yargs": "npm:17.0.33"
     eslint: "npm:9.20.1"
     execa: "npm:5.1.1"
@@ -17971,12 +17971,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:*, @types/node@npm:22.15.14, @types/node@npm:>=13.7.0, @types/node@npm:^22.9.0":
-  version: 22.15.14
-  resolution: "@types/node@npm:22.15.14"
+"@types/node@npm:*, @types/node@npm:22.15.17, @types/node@npm:>=13.7.0, @types/node@npm:^22.9.0":
+  version: 22.15.17
+  resolution: "@types/node@npm:22.15.17"
   dependencies:
     undici-types: "npm:~6.21.0"
-  checksum: 10c0/a977c1518d53e3b85e8c56fe619d6eca4bc79224d24e7068f55589b3b4a60b8390c859290068b9a00d8a07bee809535afaa952fc31544dff8f8de8975d94c531
+  checksum: 10c0/fb92aa10b628683c5b965749f955bc2322485ecb0ea6c2f4cae5f2c7537a16834607e67083a9e9281faaae8d7dee9ada8d6a5c0de9a52c17d82912ef00c0fdd4
   languageName: node
   linkType: hard
 
