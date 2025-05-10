@@ -254,17 +254,6 @@ where
         }
     }
 
-    async fn ensure_system_policies(&mut self) -> Result<(), Report<EnsureSystemPoliciesError>> {
-        let system_machine_actor = Box::pin(self.get_or_create_system_actor("h"))
-            .await
-            .change_context(EnsureSystemPoliciesError::CreatingSystemMachineFailed)
-            .map(ActorId::Machine)?;
-
-        self.ensure_system_policies_impl(system_machine_actor)
-            .await
-            .change_context(EnsureSystemPoliciesError::CreatingSystemMachineFailed)
-    }
-
     #[expect(
         clippy::too_many_lines,
         reason = "The majority is SpiceDB and its error handling which will be removed soon"
@@ -1078,6 +1067,18 @@ where
             })
             .try_collect::<Vec<_>>()
             .await
+    }
+
+    async fn seed_system_policies(&mut self) -> Result<(), Report<EnsureSystemPoliciesError>> {
+        let system_machine_actor = self
+            .get_or_create_system_actor("h")
+            .await
+            .change_context(EnsureSystemPoliciesError::CreatingSystemMachineFailed)
+            .map(ActorId::Machine)?;
+
+        self.ensure_system_policies_impl(system_machine_actor)
+            .await
+            .change_context(EnsureSystemPoliciesError::CreatingSystemMachineFailed)
     }
 }
 

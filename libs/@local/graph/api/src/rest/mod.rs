@@ -2,7 +2,6 @@
 //!
 //! Handler methods are grouped by routes that make up the REST API.
 
-pub mod actor;
 pub mod actor_group;
 pub mod data_type;
 pub mod entity;
@@ -202,25 +201,25 @@ where
     for<'pool, 'api> S::Store<'pool, A::Api<'api>>: RestApiStore + PrincipalStore + PolicyStore,
 {
     vec![
-        actor::ActorResource::routes::<S, A>(),
         data_type::DataTypeResource::routes::<S, A>(),
         property_type::PropertyTypeResource::routes::<S, A>(),
         entity_type::EntityTypeResource::routes::<S, A>(),
         entity::EntityResource::routes::<S, A>(),
         actor_group::ActorGroupResource::routes::<S, A>(),
         permissions::PermissionResource::routes::<S, A>(),
+        principal::PrincipalResource::routes::<S, A>(),
     ]
 }
 
 fn api_documentation() -> Vec<openapi::OpenApi> {
     vec![
-        actor::ActorResource::openapi(),
         data_type::DataTypeResource::openapi(),
         property_type::PropertyTypeResource::openapi(),
         entity_type::EntityTypeResource::openapi(),
         entity::EntityResource::openapi(),
         actor_group::ActorGroupResource::openapi(),
         permissions::PermissionResource::openapi(),
+        principal::PrincipalResource::openapi(),
     ]
 }
 

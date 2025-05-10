@@ -194,10 +194,6 @@ where
         self.store.get_or_create_system_actor(identifier).await
     }
 
-    async fn ensure_system_policies(&mut self) -> Result<(), Report<EnsureSystemPoliciesError>> {
-        self.store.ensure_system_policies().await
-    }
-
     async fn create_web(
         &mut self,
         actor: ActorId,
@@ -278,6 +274,10 @@ where
         self.store
             .resolve_policies_for_actor(authenticated_actor, actor_id)
             .await
+    }
+
+    async fn seed_system_policies(&mut self) -> Result<(), Report<EnsureSystemPoliciesError>> {
+        self.store.seed_system_policies().await
     }
 }
 
