@@ -507,6 +507,7 @@ impl<'env, 'heap> TranslationUnit<'env, '_, 'heap> {
                     variants: self.env.intern_type_ids(&variants),
                 })
             }
+            node::r#type::TypeKind::Dummy => TypeKind::Never,
         }
     }
 

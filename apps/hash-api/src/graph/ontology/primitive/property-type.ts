@@ -96,7 +96,9 @@ export const createPropertyType: ImpureGraphFunction<
     },
   );
 
-  return { schema, metadata: metadata as PropertyTypeMetadata };
+  // TODO: Avoid casting through `unknown` when new codegen is in place
+  //   see https://linear.app/hash/issue/H-4463/utilize-new-codegen-and-replace-custom-defined-node-types
+  return { schema, metadata: metadata as unknown as PropertyTypeMetadata };
 };
 
 export const getPropertyTypes: ImpureGraphFunction<
@@ -234,9 +236,15 @@ export const updatePropertyType: ImpureGraphFunction<
       $schema: PROPERTY_TYPE_META_SCHEMA,
       kind: "propertyType" as const,
       ...schema,
-      $id: ontologyTypeRecordIdToVersionedUrl(recordId as OntologyTypeRecordId),
+      $id: ontologyTypeRecordIdToVersionedUrl(
+        // TODO: Avoid casting through `unknown` when new codegen is in place
+        //   see https://linear.app/hash/issue/H-4463/utilize-new-codegen-and-replace-custom-defined-node-types
+        recordId as unknown as OntologyTypeRecordId,
+      ),
     },
-    metadata: metadata as PropertyTypeMetadata,
+    // TODO: Avoid casting through `unknown` when new codegen is in place
+    //   see https://linear.app/hash/issue/H-4463/utilize-new-codegen-and-replace-custom-defined-node-types
+    metadata: metadata as unknown as PropertyTypeMetadata,
   };
 };
 

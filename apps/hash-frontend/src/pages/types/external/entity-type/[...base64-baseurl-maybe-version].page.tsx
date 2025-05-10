@@ -1,4 +1,5 @@
-import type { BaseUrl, OntologyTypeVersion } from "@blockprotocol/type-system";
+import type { BaseUrl } from "@blockprotocol/type-system";
+import { parseOntologyTypeVersion } from "@blockprotocol/type-system";
 import { useRouter } from "next/router";
 
 import type { NextPageWithLayout } from "../../../../shared/layout";
@@ -15,14 +16,14 @@ const Page: NextPageWithLayout = () => {
   const entityTypeBaseUrl = atob(base64EncodedBaseUrl) as BaseUrl;
 
   const requestedVersion = requestedVersionString
-    ? (parseInt(requestedVersionString, 10) as OntologyTypeVersion)
+    ? parseOntologyTypeVersion(requestedVersionString)
     : null;
 
   return (
     <EntityType
       entityTypeBaseUrl={entityTypeBaseUrl}
       isInSlide={false}
-      key={`${entityTypeBaseUrl}-${requestedVersion}`}
+      key={`${entityTypeBaseUrl}-${requestedVersion?.toString()}`}
       requestedVersion={requestedVersion}
     />
   );

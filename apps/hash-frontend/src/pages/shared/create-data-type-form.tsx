@@ -1,6 +1,9 @@
 import { useLazyQuery } from "@apollo/client";
 import type { DataType, VersionedUrl } from "@blockprotocol/type-system";
-import { DATA_TYPE_META_SCHEMA } from "@blockprotocol/type-system";
+import {
+  DATA_TYPE_META_SCHEMA,
+  makeOntologyTypeVersion,
+} from "@blockprotocol/type-system";
 import { Callout, TextField } from "@hashintel/design-system";
 import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
 import { Box, Stack } from "@mui/material";
@@ -102,7 +105,7 @@ export const CreateDataTypeForm = ({
     const { baseUrl, versionedUrl } = generateTypeUrlsForUser({
       title: data.title,
       kind: "data-type",
-      version: 1,
+      version: makeOntologyTypeVersion({ major: 1 }),
     });
 
     const primitiveType =
@@ -207,7 +210,7 @@ export const CreateDataTypeForm = ({
                     dataTypeId: generateTypeUrlsForUser({
                       kind: "data-type",
                       title: titleToValidate,
-                      version: 1,
+                      version: makeOntologyTypeVersion({ major: 1 }),
                     }).versionedUrl,
                     ...zeroedGraphResolveDepths,
                   },

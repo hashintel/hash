@@ -1,0 +1,9 @@
+//@ run: pass
+//@ description: Tests that a `use` statement for a non-existent module (`kernel::foo`) is handled by dummy replacement, allowing lowering to continue.
+[
+  "use",
+  "kernel::foo",
+  //~^ ERROR Module 'foo' not found
+  "*",
+  ["add", { "#literal": 1 }, { "#literal": 2 }]
+]

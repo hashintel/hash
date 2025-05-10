@@ -1,0 +1,17 @@
+[31m[import-resolver::unresolved-variable] Error:[0m Unresolved variable
+   ╭─[ <unknown>:5:11 ]
+   │
+ 5 │   "Foo<T: Bar>",
+   │           ─┬─  
+   │            ╰─── Cannot find variable 'Bar'
+   │ 
+   │ Help: The name 'Bar' doesn't exist in this scope.
+   │       
+   │       Perhaps you meant one of these imported items?
+   │         - `BaseUrl`
+   │         - `Err`
+   │         - `String`
+   │         - and 16 more imported items
+   │ 
+   │ Note: Variables must be defined before they can be used. This could be a typo, a variable used outside its scope, or a missing declaration. If it's a function or type from another module, you might need to import it first.
+───╯

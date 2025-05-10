@@ -1,0 +1,14 @@
+//@ run: fail
+//@ description: Tests that unresolved variables have specialized error messages
+[
+  "use",
+  "::math",
+  { "#struct": { "add": "fooo" } },
+  [
+    "let",
+    "foo",
+    { "#literal": 42 },
+    "föo"
+    //~^ ERROR Cannot find variable 'föo'
+  ]
+]

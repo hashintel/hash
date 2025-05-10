@@ -1,3 +1,5 @@
+// This file was generated from `libs/@local/graph/authorization/tests/codegen.rs`
+
 import type { ActorId, ActorType, ActorGroupId, BaseUrl, EntityUuid, OntologyTypeVersion, RoleId, WebId } from "@blockprotocol/type-system-rs/types";
 import type { VersionedUrl } from "@blockprotocol/type-system-rs";
 export type Effect = "permit" | "forbid";

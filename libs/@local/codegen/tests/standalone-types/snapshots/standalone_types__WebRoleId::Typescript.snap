@@ -1,6 +1,0 @@
----
-source: libs/@local/codegen/tests/standalone-types/main.rs
-expression: generated
----
-import type { Brand } from "@local/advanced-types/brand";
-export type WebRoleId = Brand<string, "WebRoleId">;

@@ -1,9 +1,0 @@
----
-source: libs/@local/codegen/tests/standalone-types/main.rs
-expression: generated
----
-export type ActorGroup = {
-	actorGroupType: "web"
-} & Web | {
-	actorGroupType: "team"
-} & Team;

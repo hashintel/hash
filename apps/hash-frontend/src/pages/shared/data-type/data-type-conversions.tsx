@@ -6,7 +6,10 @@ import type {
   DataTypeWithMetadata,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import { extractBaseUrl } from "@blockprotocol/type-system";
+import {
+  compareOntologyTypeVersions,
+  extractBaseUrl,
+} from "@blockprotocol/type-system";
 import { typedEntries, typedValues } from "@local/advanced-types/typed-entries";
 import { createConversionFunction } from "@local/hash-isomorphic-utils/data-types";
 import { formatNumber } from "@local/hash-isomorphic-utils/format-number";
@@ -64,8 +67,10 @@ export const DataTypeConversions = ({
 
       if (
         !currentLatest ||
-        dataTypeOption.metadata.recordId.version >
-          currentLatest.metadata.recordId.version
+        compareOntologyTypeVersions(
+          dataTypeOption.metadata.recordId.version,
+          currentLatest.metadata.recordId.version,
+        ) > 0
       ) {
         latestDataTypeByBaseUrl[dataTypeOption.metadata.recordId.baseUrl] =
           dataTypeOption;

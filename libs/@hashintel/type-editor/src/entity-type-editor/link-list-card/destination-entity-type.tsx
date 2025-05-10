@@ -35,7 +35,7 @@ export const DestinationEntityType = ({
           latestVersion={latestVersion}
           onUpdate={
             updateVersion
-              ? () => updateVersion(`${baseUrl}v/${latestVersion}`)
+              ? () => updateVersion(`${baseUrl}v/${latestVersion.toString()}`)
               : undefined
           }
           versionedUrl={entityTypeSchema.$id}

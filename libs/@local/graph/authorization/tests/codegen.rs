@@ -1,4 +1,4 @@
-use std::{fs, io};
+use std::{fs, io, path::Path};
 
 use hash_codegen::{
     TypeCollection,
@@ -44,7 +44,10 @@ fn index() -> io::Result<()> {
         snapshot_path => "../types",
         prepend_module_to_snapshot => false,
     }, {
-        insta::assert_binary_snapshot!(".d.ts", generator.write().into_bytes());
+        insta::assert_binary_snapshot!(
+            ".d.ts",
+            format!("// This file was generated from `{}`\n\n{}", file!(), generator.write()).into_bytes()
+        );
     });
 
     // We require a `.js` file as otherwise `tsc` won't find the `.d.ts` file
@@ -52,7 +55,11 @@ fn index() -> io::Result<()> {
         .create(true)
         .write(true)
         .truncate(true)
-        .open("types/index.snap.js")?;
+        .open(
+            Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("types")
+                .join("index.snap.js"),
+        )?;
 
     Ok(())
 }

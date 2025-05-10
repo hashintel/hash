@@ -1074,7 +1074,7 @@ describe("complex resolve depths", () => {
 
     expect(
       (subgraph.vertices as OntologyVertices)[personType.baseId]![
-        personType.revisionId
+        personType.revisionId.toString()
       ]!.inner.metadata.recordId.baseUrl,
     ).toStrictEqual(personTypeBaseId);
 
@@ -1096,7 +1096,7 @@ describe("complex resolve depths", () => {
 
     expect(
       (subgraph.vertices as OntologyVertices)[linkType.baseId]![
-        linkType.revisionId
+        linkType.revisionId.toString()
       ]!.inner.metadata.recordId.baseUrl,
     ).toStrictEqual(friendshipTypeBaseId);
   });

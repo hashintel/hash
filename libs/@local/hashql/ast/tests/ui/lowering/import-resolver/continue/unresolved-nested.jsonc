@@ -1,0 +1,9 @@
+//@ run: pass
+//@ description: Tests that unresolved nested type variables are handled by dummy replacement, allowing lowering to continue.
+[
+  "type",
+  "Foo<T: Bar>",
+  //~^ ERROR Cannot find variable 'Bar'
+  "Number",
+  "_"
+]

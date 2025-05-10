@@ -124,7 +124,7 @@ export const rewriteTypeTitles = (context: PreprocessContext) => {
                 // same title, and then also from its other revisions
                 currentTypeRevision.title = `${typeName}${index}V${extractVersion(
                   currentTypeRevision.$id,
-                )}`;
+                ).toString()}`;
               }
             } else {
               // We only have one revision of this type, so we only need to differentiate it from the other types with
@@ -137,7 +137,7 @@ export const rewriteTypeTitles = (context: PreprocessContext) => {
           for (const type of mustBeDefined(
             Object.values(baseUrlToTypes).pop(),
           )) {
-            type.title = `${typeName}V${extractVersion(type.$id)}`;
+            type.title = `${typeName}V${extractVersion(type.$id).toString()}`;
           }
         }
       } else {

@@ -1,3 +1,5 @@
+// This file was generated from `libs/@blockprotocol/type-system/rust/tests/codegen.rs`
+
 import type { Real } from "@rust/hash-codec/types";
 import type { Brand } from "@local/advanced-types/brand";
 export type DraftId = Brand<string, "DraftId">;
@@ -7,7 +9,7 @@ export type PropertyValue = null | boolean | string | Real | PropertyValue[] | {
 	[key: string]: PropertyValue
 };
 export type BaseUrl = Brand<string, "BaseUrl">;
-export type OntologyTypeVersion = Brand<number, "OntologyTypeVersion">;
+export type OntologyTypeVersion = Brand<string, "OntologyTypeVersion">;
 export type Principal = {
 	principalType: "actor"
 } & Actor | {

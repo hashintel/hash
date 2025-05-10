@@ -5,5 +5,5 @@
   { "#literal": true },
   ["use", "math", { "#tuple": ["bit_shl"] }, "bit_shl"],
   "bit_shl"
-  //~^ ERROR 'bit_shl' needs to be imported first
+  //~^ ERROR Cannot find variable 'bit_shl'
 ]

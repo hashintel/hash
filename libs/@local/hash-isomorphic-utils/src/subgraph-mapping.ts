@@ -209,7 +209,7 @@ export const mapGraphApiSubgraphToSubgraph = <
 
 export const serializeSubgraph = (subgraph: Subgraph): SerializedSubgraph => ({
   roots: subgraph.roots,
-  vertices: serializeGraphVertices(subgraph.vertices),
+  vertices: serializeGraphVertices(subgraph.vertices as Vertices<HashEntity>),
   edges: subgraph.edges,
   depths: subgraph.depths,
   temporalAxes: subgraph.temporalAxes,
@@ -231,7 +231,7 @@ export const deserializeSubgraph = <
 
 export const mapGraphApiEntityTypesToEntityTypes = (
   entityTypes: GraphApiEntityTypeWithMetadata[],
-) => entityTypes as EntityTypeWithMetadata[];
+) => entityTypes as unknown as EntityTypeWithMetadata[];
 
 export const mapGraphApiClosedEntityTypesToClosedEntityTypes = (
   closedEntityTypes: GraphApiClosedEntityType[],
@@ -247,11 +247,11 @@ export const mapGraphApiClosedMultiEntityTypesToClosedMultiEntityTypes = (
 
 export const mapGraphApiPropertyTypesToPropertyTypes = (
   propertyTypes: GraphApiPropertyTypeWithMetadata[],
-) => propertyTypes as PropertyTypeWithMetadata[];
+) => propertyTypes as unknown as PropertyTypeWithMetadata[];
 
 export const mapGraphApiDataTypesToDataTypes = (
   dataTypes: GraphApiDataTypeWithMetadata[],
-) => dataTypes as DataTypeWithMetadata[];
+) => dataTypes as unknown as DataTypeWithMetadata[];
 
 export const mapGraphApiDataTypeConversions = (
   conversions: Record<

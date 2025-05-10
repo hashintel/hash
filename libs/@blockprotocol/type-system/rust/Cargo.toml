@@ -32,7 +32,6 @@ utoipa           = { workspace = true, public = true, features = ["url"], option
 uuid             = { workspace = true, public = true, features = ["v5", "serde", "std"] }
 
 # Private workspace dependencies
-hash-codegen = { workspace = true, optional = true }
 
 # Private third-party dependencies
 derive_more    = { workspace = true, features = ["display", "error", "from"] }
@@ -44,6 +43,7 @@ simple-mermaid = { workspace = true }
 thiserror      = { workspace = true }
 
 [dev-dependencies]
+hash-codegen         = { workspace = true }
 hash-graph-test-data = { workspace = true }
 insta                = { workspace = true }
 pretty_assertions    = { workspace = true }
@@ -54,7 +54,7 @@ name              = "codegen"
 required-features = ["codegen"]
 
 [features]
-codegen  = ["dep:hash-codegen", "dep:specta", "hash-codec/codegen"]
+codegen  = ["dep:specta", "hash-codec/codegen"]
 postgres = ["dep:postgres-types", "hash-graph-temporal-versioning/postgres"]
 utoipa   = ["dep:utoipa", "hash-graph-temporal-versioning/utoipa"]
 

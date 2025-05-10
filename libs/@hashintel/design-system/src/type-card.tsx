@@ -1,3 +1,4 @@
+import type { OntologyTypeVersion } from "@blockprotocol/type-system";
 import { faArrowsRotate } from "@fortawesome/free-solid-svg-icons";
 import {
   Box,
@@ -31,12 +32,15 @@ interface TypeCardProps {
   isLink: boolean;
   onClick?: () => void;
   LinkComponent?: ElementType;
-  newVersionConfig?: { newVersion: number; onUpdateVersion: () => void };
+  newVersionConfig?: {
+    newVersion: OntologyTypeVersion;
+    onUpdateVersion: () => void;
+  };
   onDelete?: () => void;
   swappableOnly?: boolean;
   title: string;
   url: string;
-  version: number;
+  version: OntologyTypeVersion;
 }
 
 export const TypeCard = ({
@@ -98,15 +102,15 @@ export const TypeCard = ({
         <Typography variant="smallTextLabels" fontWeight={600} ml={1}>
           {title}
           <Typography variant="microText" color="gray.50" ml={0.5}>
-            {` v${version}`}
+            {` v${version.toString()}`}
           </Typography>
         </Typography>
 
-        {newVersionConfig && (
+        {newVersionConfig && newVersion !== undefined && (
           <Tooltip
             title={
               <>
-                Update to <b>v{newVersion}</b> available
+                Update to <b>v{newVersion.toString()}</b> available
               </>
             }
             disableInteractive

@@ -1,7 +1,11 @@
-import type { EntityType } from "@blockprotocol/type-system";
+import type {
+  EntityType,
+  OntologyTypeVersion,
+} from "@blockprotocol/type-system";
 import {
   extractBaseUrl,
   extractVersion,
+  makeOntologyTypeVersion,
   versionedUrlFromComponents,
 } from "@blockprotocol/type-system";
 import {
@@ -28,13 +32,13 @@ import { EntityTypeInverse } from "../entity-type-inverse";
 import { EntityTypePlural } from "../entity-type-plural";
 
 interface EntityTypeHeaderProps {
-  currentVersion: number;
+  currentVersion: OntologyTypeVersion;
   entityTypeSchema: EntityType;
   isDraft: boolean;
   isLink: boolean;
   isInSlide?: boolean;
   isReadonly: boolean;
-  latestVersion?: number | null;
+  latestVersion?: OntologyTypeVersion | null;
 }
 
 export const EntityTypeHeader = ({
@@ -53,7 +57,7 @@ export const EntityTypeHeader = ({
 
   const latestVersionUrl = versionedUrlFromComponents(
     extractBaseUrl(entityTypeSchema.$id),
-    latestVersion ?? 0,
+    latestVersion ?? makeOntologyTypeVersion({ major: 0 }),
   );
 
   const { control } = useEntityTypeFormContext<EntityTypeEditorFormData>();
@@ -88,7 +92,7 @@ export const EntityTypeHeader = ({
                 color="inherit"
                 sx={{ fontSize: 11, fontWeight: 600 }}
               >
-                {`v${currentVersion} –> v${latestVersion} available`}
+                {`v${currentVersion.toString()} –> v${latestVersion.toString()} available`}
               </Typography>
             </Link>
           )}

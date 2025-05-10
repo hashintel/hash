@@ -1,5 +1,11 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import { extractBaseUrl, extractVersion } from "@blockprotocol/type-system";
+import {
+  atLeastOne,
+  compareOntologyTypeVersions,
+  componentsFromVersionedUrl,
+  extractBaseUrl,
+  extractVersion,
+} from "@blockprotocol/type-system";
 import { useMemo } from "react";
 
 import type { EntityTypesByVersionedUrl } from "../../shared/entity-types-options-context";
@@ -11,16 +17,23 @@ export const useTypeVersions = (
   typeOptions?: PropertyTypesByVersionedUrl | EntityTypesByVersionedUrl,
 ) => {
   return useMemo(() => {
-    const baseUrl = extractBaseUrl(typeId);
+    const { baseUrl, version } = componentsFromVersionedUrl(typeId);
 
-    const versions = typedValues(typeOptions ?? {}).filter(
-      (type) => baseUrl === extractBaseUrl(type.schema.$id),
+    const versions = atLeastOne(
+      typedValues(typeOptions ?? {})
+        .filter((type) => baseUrl === extractBaseUrl(type.schema.$id))
+        .map((options) => extractVersion(options.schema.$id)),
     );
 
-    const latestVersion = Math.max(
-      ...versions.map((version) => extractVersion(version.schema.$id)),
-    );
+    const latestVersion =
+      versions === undefined
+        ? version
+        : versions.reduce(
+            (max, current) =>
+              compareOntologyTypeVersions(current, max) > 0 ? current : max,
+            versions[0],
+          );
 
-    return [extractVersion(typeId), latestVersion, baseUrl] as const;
+    return [version, latestVersion, baseUrl] as const;
   }, [typeId, typeOptions]);
 };

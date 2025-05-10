@@ -22,47 +22,35 @@ graph TD
     10[<a href="../hash_graph_type_fetcher">hash-graph-type-fetcher</a>]
     11[<a href="../hash_graph_types">hash-graph-types</a>]
     12[<a href="../hash_graph_validation">hash-graph-validation</a>]
-    13[<a href="../harpc_client">harpc-client</a>]
-    14[<a href="../harpc_net">harpc-net</a>]
-    15[<a href="../harpc_server">harpc-server</a>]
-    16[<a href="../harpc_system">harpc-system</a>]
-    17[<a href="../harpc_tower">harpc-tower</a>]
-    18[<a href="../harpc_types">harpc-types</a>]
-    19[<a href="../harpc_wire_protocol">harpc-wire-protocol</a>]
-    20[<a href="../hash_temporal_client">hash-temporal-client</a>]
-    21[<a href="../error_stack">error-stack</a>]
-    22[<a href="../hash_graph_benches">hash-graph-benches</a>]
-    23[<a href="../hash_graph_integration">hash-graph-integration</a>]
-    24[<a href="../hash_graph_test_data">hash-graph-test-data</a>]
+    13[<a href="../harpc_server">harpc-server</a>]
+    14[<a href="../harpc_types">harpc-types</a>]
+    15[<a href="../harpc_wire_protocol">harpc-wire-protocol</a>]
+    16[<a href="../hash_temporal_client">hash-temporal-client</a>]
+    17[<a href="../error_stack">error-stack</a>]
+    18[<a href="../hash_graph_benches">hash-graph-benches</a>]
+    19[<a href="../hash_graph_integration">hash-graph-integration</a>]
     0 --> 9
     1 --> 8
-    1 -.-> 24
-    2 --> 3
-    2 --> 19
-    3 -.-> 1
+    2 -.-> 3
+    2 --> 15
     4 --> 6
     4 --> 10
-    4 --> 15
-    5 --> 3
+    4 --> 13
+    5 --> 1
     6 --> 12
     7 --> 5
     7 --> 11
-    7 --> 20
+    7 --> 16
     8 --> 2
     9 --> 4
     10 --> 7
     11 --> 1
     12 --> 7
-    13 --> 16
-    14 --> 2
-    15 -.-> 1
-    15 -.-> 13
-    16 --> 17
-    17 -.-> 14
-    17 --> 14
-    19 -.-> 18
-    19 --> 18
-    19 --> 21
-    20 --> 1
-    22 -.-> 4
-    23 -.-> 6
+    13 -.-> 1
+    13 --> 14
+    15 -.-> 14
+    15 --> 14
+    15 --> 17
+    16 --> 1
+    18 -.-> 4
+    19 -.-> 6

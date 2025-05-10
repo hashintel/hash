@@ -21,7 +21,6 @@ tokio-util = { workspace = true, public = true, optional = true, features = ["co
 utoipa     = { workspace = true, public = true, optional = true }
 
 # Private workspace dependencies
-hash-codegen = { workspace = true, optional = true }
 
 # Private third-party dependencies
 dashu-base     = { workspace = true, optional = true, features = ["std"] }
@@ -33,17 +32,18 @@ simple-mermaid = { workspace = true }
 time           = { workspace = true, optional = true, features = ["macros", "serde", "parsing", "formatting"] }
 
 [dev-dependencies]
-harpc-types = { workspace = true }
-insta       = { workspace = true }
-serde       = { workspace = true, features = ["derive"] }
-serde_json  = { workspace = true }
+harpc-types  = { workspace = true }
+hash-codegen = { workspace = true }
+insta        = { workspace = true }
+serde        = { workspace = true, features = ["derive"] }
+serde_json   = { workspace = true }
 
 [[test]]
 name              = "codegen"
 required-features = ["codegen", "numeric"]
 
 [features]
-codegen = ["dep:hash-codegen", "dep:specta"]
+codegen = ["dep:specta"]
 bytes = [
     "dep:serde",
     "dep:derive-where",

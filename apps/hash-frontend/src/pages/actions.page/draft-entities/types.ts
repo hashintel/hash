@@ -1,11 +1,11 @@
-import type { BaseUrl } from "@blockprotocol/type-system";
+import type { BaseUrl, OntologyTypeVersion } from "@blockprotocol/type-system";
 
 type EntityTypeDisplayInfo = {
   baseUrl: BaseUrl;
   icon: string | undefined;
   isLink: boolean;
   title: string;
-  version: number;
+  version: OntologyTypeVersion;
 };
 
 export type EntityTypeDisplayInfoByBaseUrl = Record<

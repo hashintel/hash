@@ -1,0 +1,8 @@
+//@ run: pass
+//@ description: Tests that an unresolved value (function `bit_shl`) is handled by dummy replacement, allowing lowering to continue.
+[
+  "bit_shl",
+  //~^ ERROR Cannot find variable 'bit_shl'
+  { "#literal": 1 },
+  { "#literal": 4 }
+]

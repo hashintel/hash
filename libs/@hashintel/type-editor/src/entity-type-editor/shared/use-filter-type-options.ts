@@ -3,7 +3,11 @@ import type {
   EntityType,
   PropertyType,
 } from "@blockprotocol/type-system";
-import { extractBaseUrl, extractVersion } from "@blockprotocol/type-system";
+import {
+  compareOntologyTypeVersions,
+  extractBaseUrl,
+  extractVersion,
+} from "@blockprotocol/type-system";
 import { useMemo } from "react";
 
 /**
@@ -34,7 +38,10 @@ export const useFilterTypeOptions = <T extends PropertyType | EntityType>({
       const existingOption = filteredTypeOptions.get(optionBaseUrl);
       if (
         !existingOption ||
-        extractVersion(existingOption.$id) < extractVersion(option.$id)
+        compareOntologyTypeVersions(
+          extractVersion(existingOption.$id),
+          extractVersion(option.$id),
+        ) < 0
       ) {
         filteredTypeOptions.set(optionBaseUrl, option);
       }

@@ -16,22 +16,10 @@ use hash_codegen::{
 };
 use insta::assert_snapshot;
 use libtest_mimic::{Arguments, Trial};
-use type_system::principal;
 
 #[derive(Debug)]
 pub enum CodegenTarget {
     Typescript,
-}
-
-fn register_types(collection: &mut TypeCollection) {
-    // We currently have to manually specify the branded types
-    collection.make_branded::<principal::actor::UserId>();
-    collection.make_branded::<principal::actor::MachineId>();
-    collection.make_branded::<principal::actor::AiId>();
-    collection.make_branded::<principal::actor_group::WebId>();
-    collection.make_branded::<principal::actor_group::TeamId>();
-    collection.make_branded::<principal::role::WebRoleId>();
-    collection.make_branded::<principal::role::TeamRoleId>();
 }
 
 fn find_available_types() -> Vec<(TypeId, Cow<'static, str>)> {
@@ -41,8 +29,7 @@ fn find_available_types() -> Vec<(TypeId, Cow<'static, str>)> {
         .collect::<Vec<_>>()
 }
 fn test_single_type(test_name: &str, type_id: TypeId) {
-    let mut collection = TypeCollection::default();
-    register_types(&mut collection);
+    let collection = TypeCollection::default();
 
     let settings = TypeScriptGeneratorSettings::default();
     let mut generator = TypeScriptGenerator::new(&settings, &collection);

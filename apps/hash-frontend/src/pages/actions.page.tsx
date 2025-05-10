@@ -1,9 +1,10 @@
 import { useQuery } from "@apollo/client";
 import type { EntityRootType } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
+import type { EntityId } from "@blockprotocol/type-system";
 import {
+  compareOntologyTypeVersions,
   componentsFromVersionedUrl,
-  type EntityId,
   extractEntityUuidFromEntityId,
 } from "@blockprotocol/type-system";
 import { CheckRegularIcon } from "@hashintel/design-system";
@@ -169,7 +170,10 @@ const ActionsPage = () => {
 
         const existingEntry = displayInfoByBaseUrl[baseUrl];
 
-        if (existingEntry && existingEntry.version >= version) {
+        if (
+          existingEntry &&
+          compareOntologyTypeVersions(existingEntry.version, version) >= 0
+        ) {
           continue;
         }
 

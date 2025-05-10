@@ -491,7 +491,9 @@ export const EntitiesTable: FunctionComponent<
                     ? { entityTypeIcon: value.icon }
                     : { inbuiltIcon: value.isLink ? "bpLink" : "bpAsterisk" },
                   iconFill: theme.palette.blue[70],
-                  suffix: value.version ? `v${value.version}` : undefined,
+                  suffix: value.version
+                    ? `v${value.version.toString()}`
+                    : undefined,
                   onClick: disableTypeClick
                     ? undefined
                     : () => {
@@ -720,7 +722,7 @@ export const EntitiesTable: FunctionComponent<
             id: entityTypeId,
             label: title,
             count,
-            labelSuffix: version ? `v${version}` : undefined,
+            labelSuffix: version ? `v${version.toString()}` : undefined,
           }),
         ),
         selectedFilterItemIds: selectedEntityTypeIds,

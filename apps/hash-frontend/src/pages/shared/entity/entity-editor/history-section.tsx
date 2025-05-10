@@ -1,5 +1,6 @@
 import { useQuery } from "@apollo/client";
-import type { EntityId, Timestamp } from "@blockprotocol/type-system";
+import type { EntityVertexId } from "@blockprotocol/graph";
+import type { EntityId } from "@blockprotocol/type-system";
 import { splitEntityId } from "@blockprotocol/type-system";
 import { Chip, Skeleton, WhiteCard } from "@hashintel/design-system";
 import type { DiffEntityInput } from "@local/hash-graph-sdk/entity";
@@ -70,9 +71,9 @@ export const HistorySection = ({ entityId }: { entityId: EntityId }) => {
      *   Once back references from live editions to drafts they were created from are available (H-3030),
      *   we can follow these references to construct the history.
      */
-    const editions = [...editionsData.getEntitySubgraph.subgraph.roots].sort(
-      (a, b) => (a.revisionId > b.revisionId ? 1 : -1),
-    );
+    const editions = [
+      ...(editionsData.getEntitySubgraph.subgraph.roots as EntityVertexId[]),
+    ].sort((a, b) => (a.revisionId > b.revisionId ? 1 : -1));
 
     if (!editions.length) {
       return [];
@@ -86,11 +87,11 @@ export const HistorySection = ({ entityId }: { entityId: EntityId }) => {
       }
 
       diffInputs.push({
-        firstEntityId: edition.baseId as EntityId,
-        firstDecisionTime: edition.revisionId as Timestamp,
+        firstEntityId: edition.baseId,
+        firstDecisionTime: edition.revisionId,
         firstTransactionTime: null,
-        secondEntityId: nextEdition.baseId as EntityId,
-        secondDecisionTime: nextEdition.revisionId as Timestamp,
+        secondEntityId: nextEdition.baseId,
+        secondDecisionTime: nextEdition.revisionId,
         secondTransactionTime: null,
       });
     }

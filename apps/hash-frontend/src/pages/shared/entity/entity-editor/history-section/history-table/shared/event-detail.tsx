@@ -122,7 +122,8 @@ export const EventDetail = ({
           </Box>
           {event.op === "upgraded" && (
             <Box ml={0.5}>
-              from v{entityType.oldVersion} to v{entityType.version}
+              from v{entityType.oldVersion?.toString()} to v
+              {entityType.version.toString()}
             </Box>
           )}
         </>

@@ -90,11 +90,11 @@ describe("extractBaseUrl", () => {
   );
 });
 
-const extractVersionCases: [VersionedUrl, number][] = [
-  ["http://example.com/v/0" as VersionedUrl, 0],
-  ["http://example.com/sandwich/v/1" as VersionedUrl, 1],
-  ["file://localhost/documents/myfolder/v/10" as VersionedUrl, 10],
-  ["ftp://rms@example.com/foo/v/5" as VersionedUrl, 5],
+const extractVersionCases: [VersionedUrl, string][] = [
+  ["http://example.com/v/0" as VersionedUrl, "0"],
+  ["http://example.com/sandwich/v/1" as VersionedUrl, "1"],
+  ["file://localhost/documents/myfolder/v/10" as VersionedUrl, "10"],
+  ["ftp://rms@example.com/foo/v/5" as VersionedUrl, "5"],
 ];
 
 describe("extractVersion", () => {

@@ -1,4 +1,4 @@
-import type { BaseUrl } from "@blockprotocol/type-system";
+import type { BaseUrl, OntologyTypeVersion } from "@blockprotocol/type-system";
 import { faArrowRight } from "@fortawesome/free-solid-svg-icons";
 import {
   AlertModal,
@@ -26,13 +26,13 @@ export type EntityTypeChangeDetails = {
   proposedChange:
     | {
         entityTypeTitle: string;
-        currentVersion: number;
+        currentVersion: OntologyTypeVersion;
         type: "Update";
-        newVersion: number;
+        newVersion: OntologyTypeVersion;
       }
     | {
         entityTypeTitle: string;
-        currentVersion: number;
+        currentVersion: OntologyTypeVersion;
         type: "Remove";
       };
   linkChanges: {
@@ -262,13 +262,13 @@ const ModalHeader = ({
       </Box>
       {" entity type "}
       <Box component="span" fontWeight={600}>
-        v{proposedChange.currentVersion}
+        v{proposedChange.currentVersion.toString()}
       </Box>
       {proposedChange.type === "Update" && (
         <>
           <FontAwesomeIcon icon={faArrowRight} sx={{ color: "gray.50" }} />
           <Box component="span" fontWeight={700} color="gray.90">
-            v{proposedChange.newVersion}
+            v{proposedChange.newVersion.toString()}
           </Box>
         </>
       )}

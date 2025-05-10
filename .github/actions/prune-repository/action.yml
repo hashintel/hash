@@ -32,10 +32,6 @@ runs:
           if echo "$DEPENDENCIES" | grep -q "@rust/hashql-ast"; then
             SCOPES="$SCOPES @rust/hashql-compiletest"
           fi
-
-          if echo "$DEPENDENCIES" | grep -q "@rust/hash-codegen"; then
-            SCOPES="$SCOPES @blockprotocol/type-system-rs"
-          fi
         done <<< "${{ inputs.scope }}"
 
         # Deduplicate scopes
