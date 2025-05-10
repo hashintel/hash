@@ -1,11 +1,11 @@
 use hashql_ast::node::{
-    expr::{
-        Expr, ExprKind, FieldExpr, IndexExpr, LiteralExpr,
-        literal::{IntegerLiteral, LiteralKind},
-    },
+    expr::{Expr, ExprKind, FieldExpr, IndexExpr, LiteralExpr},
     id::NodeId,
 };
-use hashql_core::symbol::{Ident, IdentKind};
+use hashql_core::{
+    literal::{IntegerLiteral, LiteralKind},
+    symbol::{Ident, IdentKind},
+};
 use winnow::{
     ModalResult, Parser as _,
     ascii::{digit1, multispace0},

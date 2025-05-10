@@ -21,7 +21,10 @@
 
 use core::fmt::{self, Display, Formatter, FormattingOptions};
 
-use hashql_core::span::SpanId;
+use hashql_core::{
+    literal::{FloatLiteral, IntegerLiteral, LiteralKind, StringLiteral},
+    span::SpanId,
+};
 
 use crate::node::{
     expr::{
@@ -32,7 +35,6 @@ use crate::node::{
         closure::{ClosureParam, ClosureSignature},
         dict::DictEntry,
         list::ListElement,
-        literal::{FloatLiteral, IntegerLiteral, LiteralKind, StringLiteral},
         r#struct::StructEntry,
         tuple::TupleElement,
         r#use::{Glob, UseBinding, UseKind},

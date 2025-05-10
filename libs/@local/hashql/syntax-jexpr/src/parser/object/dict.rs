@@ -1,11 +1,8 @@
 use hashql_ast::node::{
-    expr::{
-        DictExpr, Expr, ExprKind, LiteralExpr,
-        dict::DictEntry,
-        literal::{LiteralKind, StringLiteral},
-    },
+    expr::{DictExpr, Expr, ExprKind, LiteralExpr, dict::DictEntry},
     id::NodeId,
 };
+use hashql_core::literal::{LiteralKind, StringLiteral};
 use text_size::TextRange;
 
 use super::{

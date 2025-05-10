@@ -29,6 +29,7 @@ bitvec         = { workspace = true, features = ["alloc"] }
 bumpalo        = { workspace = true }
 derive_more    = { workspace = true, features = ["debug"] }
 ena            = { workspace = true }
+lexical        = { workspace = true, features = ["parse-integers", "parse-floats", "format"] }
 roaring        = { workspace = true, features = ["std", "simd"] }
 rpds           = { workspace = true }
 serde          = { workspace = true, optional = true, features = ["alloc", "derive"] }

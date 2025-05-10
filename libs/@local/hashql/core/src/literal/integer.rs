@@ -1,14 +1,15 @@
-use hashql_core::symbol::Symbol;
 use lexical::{
     FromLexicalWithOptions as _, ParseIntegerOptions, ParseIntegerOptionsBuilder, format,
 };
 
 use super::float;
+use crate::symbol::Symbol;
 
 const PARSE: ParseIntegerOptions = match ParseIntegerOptionsBuilder::new().build() {
     Ok(options) => options,
     Err(_) => panic!("Failed to build ParseIntegerOptions"),
 };
+
 /// A literal representation of an integer number.
 ///
 /// Represents an integer number exactly as it appears in the source code,
@@ -147,9 +148,7 @@ impl IntegerLiteral<'_> {
 
 #[cfg(test)]
 mod tests {
-    use hashql_core::heap::Heap;
-
-    use crate::node::expr::literal::IntegerLiteral;
+    use crate::{heap::Heap, literal::IntegerLiteral};
 
     #[test]
     fn parse_unsigned_integers() {

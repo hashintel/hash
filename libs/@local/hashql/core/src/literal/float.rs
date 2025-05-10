@@ -1,5 +1,6 @@
-use hashql_core::symbol::Symbol;
 use lexical::{FromLexicalWithOptions as _, ParseFloatOptions, ParseFloatOptionsBuilder, format};
+
+use crate::symbol::Symbol;
 
 pub(crate) const PARSE: ParseFloatOptions = match ParseFloatOptionsBuilder::new().build() {
     Ok(options) => options,
@@ -86,9 +87,7 @@ impl FloatLiteral<'_> {
 
 #[cfg(test)]
 mod tests {
-    use hashql_core::heap::Heap;
-
-    use crate::node::expr::literal::FloatLiteral;
+    use crate::{heap::Heap, literal::FloatLiteral};
 
     #[test]
     #[expect(clippy::float_cmp)]
