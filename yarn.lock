@@ -502,7 +502,7 @@ __metadata:
     "@tldraw/tlvalidate": "npm:2.0.0-alpha.12"
     "@types/dotenv-flow": "npm:3.3.3"
     "@types/gapi": "npm:0.0.47"
-    "@types/google.accounts": "npm:0.0.15"
+    "@types/google.accounts": "npm:0.0.16"
     "@types/google.picker": "npm:0.0.50"
     "@types/iframe-resizer": "npm:3.5.13"
     "@types/jsonpath": "npm:0.2.4"
@@ -17642,10 +17642,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/google.accounts@npm:0.0.15":
-  version: 0.0.15
-  resolution: "@types/google.accounts@npm:0.0.15"
-  checksum: 10c0/678c1a9fa5b51249d5b1e3516d7fa3dd506bec37284eb838262412616ad229086779e9efa4fbfdb79024e1107556ad35b961162b5c75fda60181b1ace3bcafda
+"@types/google.accounts@npm:0.0.16":
+  version: 0.0.16
+  resolution: "@types/google.accounts@npm:0.0.16"
+  checksum: 10c0/a179216e8afbd9d249bbdb6784027b076be1375bad6a506123d0d41199016e7f2b04ac867ad17269aa5943254d3bb0f92b20d952b136d677a1ba91dd3d462b78
   languageName: node
   linkType: hard
 
