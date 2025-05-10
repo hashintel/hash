@@ -3,9 +3,8 @@ use hashql_core::{intern::Interned, span::SpanId};
 use crate::node::Node;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct IndexAccess<'heap> {
+pub struct Tuple<'heap> {
     pub span: SpanId,
 
-    pub expr: Interned<'heap, Node<'heap>>,
-    pub index: Interned<'heap, Node<'heap>>,
+    pub fields: Interned<'heap, [Node<'heap>]>,
 }

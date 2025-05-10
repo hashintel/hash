@@ -18,10 +18,10 @@ id::newtype!(
     /// The value space is restricted to 0..=0xFFFF_FF00, reserving the last 256 for niches.
     /// As real pattern types are an experimental feature in Rust, these can currently only be
     /// used by directly modifying and accessing the `NodeId`'s internal value.
-    pub struct NodeId(u32 is 0..=0xFFFF_FF00)
+    pub struct HirId(u32 is 0..=0xFFFF_FF00)
 );
 
-impl NodeId {
+impl HirId {
     /// A placeholder ID used during initial parsing.
     ///
     /// When parsing, we initially give all AST nodes this placeholder ID. After resolving special
@@ -31,7 +31,7 @@ impl NodeId {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Node<'heap> {
-    pub id: NodeId,
+    pub id: HirId,
     pub span: SpanId,
 
     pub kind: NodeKind<'heap>,
