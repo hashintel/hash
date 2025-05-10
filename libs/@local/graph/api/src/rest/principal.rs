@@ -116,7 +116,7 @@ impl PrincipalResource {
                     )
                     .nest(
                         "/teams",
-                        Router::new().route("/instance-admins", get(get_team_by_name::<S, A>)),
+                        Router::new().route("/name/:name", get(get_team_by_name::<S, A>)),
                     )
                     .nest(
                         "/:actor_group_id",

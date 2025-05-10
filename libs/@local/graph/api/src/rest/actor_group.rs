@@ -13,9 +13,7 @@ use error_stack::{Report, ResultExt as _};
 use hash_graph_authorization::{
     AuthorizationApi as _, AuthorizationApiPool,
     backend::{ModifyRelationshipOperation, PermissionAssertion},
-    policies::store::{
-        CreateWebResponse, PrincipalStore, RoleAssignmentStatus, RoleUnassignmentStatus,
-    },
+    policies::store::PrincipalStore,
     schema::{
         AccountGroupAdministratorSubject, AccountGroupMemberSubject, AccountGroupPermission,
         AccountGroupRelationAndSubject, WebDataTypeViewerSubject, WebEntityCreatorSubject,
@@ -24,17 +22,9 @@ use hash_graph_authorization::{
     },
     zanzibar::Consistency,
 };
-use hash_graph_store::{
-    account::{AccountStore as _, CreateOrgWebParams, GetTeamResponse, GetWebResponse},
-    pool::StorePool,
-};
-use hash_temporal_client::TemporalClient;
+use hash_graph_store::pool::StorePool;
 use serde::Deserialize;
-use type_system::principal::{
-    actor::ActorEntityUuid,
-    actor_group::{ActorGroupEntityUuid, ActorGroupId, TeamId, WebId},
-    role::RoleName,
-};
+use type_system::principal::actor_group::{ActorGroupEntityUuid, WebId};
 use utoipa::{OpenApi, ToSchema};
 
 use super::{OpenApiQuery, QueryLogger};
@@ -283,7 +273,7 @@ where
 
 #[utoipa::path(
     get,
-    path = "/actor_groups/{actor_group_id}/permissions/{permission}",
+    path = "/actor-groups/{actor_group_id}/permissions/{permission}",
     tag = "Actor Group",
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
@@ -343,7 +333,7 @@ where
 
 #[utoipa::path(
     get,
-    path = "/actor_groups/{actor_group_id}/relations",
+    path = "/actor-groups/{actor_group_id}/relations",
     tag = "Actor Group",
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
