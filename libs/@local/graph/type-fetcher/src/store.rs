@@ -5,11 +5,15 @@ use std::collections::{HashMap, HashSet};
 use error_stack::{Report, ResultExt as _};
 use hash_graph_authorization::{
     AuthorizationApi,
-    policies::store::{
-        CreateWebParameter, CreateWebResponse, PrincipalStore, RoleAssignmentStatus,
-        RoleUnassignmentStatus,
-        error::{
-            EnsureSystemPoliciesError, GetSystemAccountError, RoleAssignmentError, WebCreationError,
+    policies::{
+        Policy, PolicyId,
+        store::{
+            CreateWebParameter, CreateWebResponse, PolicyFilter, PolicyStore, PrincipalStore,
+            RoleAssignmentStatus, RoleUnassignmentStatus,
+            error::{
+                EnsureSystemPoliciesError, GetPoliciesError, GetSystemAccountError,
+                RoleAssignmentError, WebCreationError,
+            },
         },
     },
     schema::{
@@ -239,6 +243,40 @@ where
     ) -> Result<RoleUnassignmentStatus, Report<RoleAssignmentError>> {
         self.store
             .unassign_role(actor_id, actor_to_unassign, actor_group_id, name)
+            .await
+    }
+}
+
+impl<S, A> PolicyStore for FetchingStore<S, A>
+where
+    S: PolicyStore + Sync,
+    A: Send + Sync,
+{
+    async fn get_policy_by_id(
+        &self,
+        authenticated_actor: ActorEntityUuid,
+        policy_id: PolicyId,
+    ) -> Result<Option<Policy>, Report<GetPoliciesError>> {
+        self.store
+            .get_policy_by_id(authenticated_actor, policy_id)
+            .await
+    }
+
+    async fn query_policies(
+        &self,
+        authenticated_actor: ActorEntityUuid,
+        filter: &PolicyFilter,
+    ) -> Result<Vec<Policy>, Report<GetPoliciesError>> {
+        self.store.query_policies(authenticated_actor, filter).await
+    }
+
+    async fn resolve_policies_for_actor(
+        &self,
+        authenticated_actor: ActorEntityUuid,
+        actor_id: ActorId,
+    ) -> Result<Vec<Policy>, Report<GetPoliciesError>> {
+        self.store
+            .resolve_policies_for_actor(authenticated_actor, actor_id)
             .await
     }
 }

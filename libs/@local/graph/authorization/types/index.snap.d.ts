@@ -79,3 +79,11 @@ export type EntityTypeResourceFilter = {
 	type: "isVersion"
 	version: OntologyTypeVersion
 };
+export interface PolicyFilter {
+	principal?: PrincipalFilter;
+}
+export type PrincipalFilter = {
+	filter: "unconstrained"
+} | {
+	filter: "constrained"
+} & PrincipalConstraint;

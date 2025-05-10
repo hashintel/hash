@@ -155,6 +155,8 @@ impl Error for PolicyStoreError {}
 pub enum GetPoliciesError {
     #[display("Actor with ID `{actor_id}` does not exist")]
     ActorNotFound { actor_id: ActorId },
+    #[display("Invalid principal constraint")]
+    InvalidPrincipalConstraint,
     #[display("Store operation failed")]
     StoreError,
 }

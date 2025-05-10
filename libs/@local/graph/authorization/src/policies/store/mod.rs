@@ -89,6 +89,86 @@ pub enum RoleUnassignmentStatus {
     NotAssigned,
 }
 
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(feature = "codegen", derive(specta::Type))]
+#[serde(rename_all = "kebab-case", tag = "filter", deny_unknown_fields)]
+pub enum PrincipalFilter {
+    Unconstrained,
+    Constrained(PrincipalConstraint),
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(feature = "codegen", derive(specta::Type))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct PolicyFilter {
+    pub principal: Option<PrincipalFilter>,
+}
+
+#[trait_variant::make(Send)]
+pub trait PolicyStore {
+    /// Retrieves a policy by its ID.
+    ///
+    /// # Errors
+    ///
+    /// - [`StoreError`] if the underlying store returns an error
+    ///
+    /// [`StoreError`]: GetPoliciesError::StoreError
+    async fn get_policy_by_id(
+        &self,
+        authenticated_actor: ActorEntityUuid,
+        policy_id: PolicyId,
+    ) -> Result<Option<Policy>, Report<GetPoliciesError>>;
+
+    /// Queries for policies in the local store that match the provided filter.
+    ///
+    /// This method queries the underlying policy store using the given [`PolicyFilter`] and returns
+    /// a list of matching [`Policy`] objects. The filter can be used to specify criteria such as
+    /// policy type, subject, resource, or action.
+    ///
+    /// Note that this does not resolve indirect policies (e.g., policies applying to roles held by
+    /// a specific actor). For resolving all policies applicable to an actor, including indirect
+    /// ones, use [`resolve_policies_for_actor`].
+    ///
+    /// [`resolve_policies_for_actor`]: Self::resolve_policies_for_actor
+    ///
+    /// # Errors
+    ///
+    /// - [`StoreError`] if the underlying store returns an error
+    ///
+    /// [`StoreError`]: GetPoliciesError::StoreError
+    async fn query_policies(
+        &self,
+        authenticated_actor: ActorEntityUuid,
+        filter: &PolicyFilter,
+    ) -> Result<Vec<Policy>, Report<GetPoliciesError>>;
+
+    /// Resolves all policies that apply to the given actor, including both direct and indirect
+    /// associations.
+    ///
+    /// This method queries the underlying policy store to find policies that are relevant to the
+    /// specified actor. The policies returned may include those that apply to the actor directly,
+    /// as well as policies that apply to any roles the actor has.
+    ///
+    /// This provides a complete set of policies that apply to an actor, including all policies that
+    ///   - apply to the actor itself,
+    ///   - apply to the actor's roles,
+    ///   - apply to the actor's groups, and
+    ///   - apply to the actor's parent groups (for teams).
+    ///
+    /// # Errors
+    ///
+    /// - [`ActorNotFound`] if the target actor does not exist in the store.
+    /// - [`StoreError`] if the underlying store encounters an error during resolution.
+    ///
+    /// [`ActorNotFound`]: GetPoliciesError::ActorNotFound
+    /// [`StoreError`]: GetPoliciesError::StoreError
+    async fn resolve_policies_for_actor(
+        &self,
+        authenticated_actor: ActorEntityUuid,
+        actor_id: ActorId,
+    ) -> Result<Vec<Policy>, Report<GetPoliciesError>>;
+}
+
 #[trait_variant::make(PrincipalStore: Send)]
 pub trait LocalPrincipalStore {
     /// Searches for the system account and returns its ID.
@@ -216,7 +296,7 @@ pub trait LocalPrincipalStore {
     ) -> Result<RoleUnassignmentStatus, Report<RoleAssignmentError>>;
 }
 
-pub trait PolicyStore {
+pub trait OldPolicyStore {
     /// Creates a new user within the given web and returns its ID.
     ///
     /// # Errors
@@ -415,7 +495,7 @@ pub struct MemoryPolicyStore {
     policies: HashMap<PrincipalIndex, HashMap<PolicyId, Policy>>,
 }
 
-impl PolicyStore for MemoryPolicyStore {
+impl OldPolicyStore for MemoryPolicyStore {
     fn create_user(&mut self, web_id: WebId) -> Result<UserId, Report<ActorCreationError>> {
         ensure!(
             self.teams.contains_key(&ActorGroupId::Web(web_id)),

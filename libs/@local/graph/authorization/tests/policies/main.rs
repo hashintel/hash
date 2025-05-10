@@ -16,7 +16,7 @@ use hash_graph_authorization::policies::{
     Authorized, ContextBuilder, PartialResourceId, PolicySet, Request, RequestContext,
     action::ActionName,
     resource::{EntityResource, EntityTypeId, EntityTypeResource},
-    store::{MemoryPolicyStore, PolicyStore},
+    store::{MemoryPolicyStore, OldPolicyStore},
 };
 use type_system::{
     knowledge::entity::id::EntityUuid,
@@ -44,7 +44,7 @@ struct TestWeb {
 
 impl TestWeb {
     fn generate(
-        policy_store: &mut impl PolicyStore,
+        policy_store: &mut impl OldPolicyStore,
         context: &mut ContextBuilder,
         shortname: impl Into<String>,
     ) -> Result<Self, Box<dyn Error>> {
@@ -87,7 +87,7 @@ struct TestUser {
 
 impl TestUser {
     fn generate(
-        policy_store: &mut impl PolicyStore,
+        policy_store: &mut impl OldPolicyStore,
         context: &mut ContextBuilder,
         shortname: impl Into<String>,
     ) -> Result<Self, Box<dyn Error>> {
@@ -130,7 +130,7 @@ struct TestMachine {
 impl TestMachine {
     fn generate(
         web_id: WebId,
-        policy_store: &mut impl PolicyStore,
+        policy_store: &mut impl OldPolicyStore,
         context: &mut ContextBuilder,
         name: impl Into<String>,
     ) -> Result<Self, Box<dyn Error>> {
@@ -169,7 +169,7 @@ struct TestSystem {
 
 impl TestSystem {
     fn generate(
-        policy_store: &mut impl PolicyStore,
+        policy_store: &mut impl OldPolicyStore,
         context: &mut ContextBuilder,
     ) -> Result<Self, Box<dyn Error>> {
         let web = TestWeb::generate(policy_store, context, "h")?;

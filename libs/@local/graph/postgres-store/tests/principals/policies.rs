@@ -1,4 +1,5 @@
 use core::error::Error;
+use std::collections::{HashMap, HashSet};
 
 use hash_graph_authorization::{
     AuthorizationApi,
@@ -7,7 +8,7 @@ use hash_graph_authorization::{
         action::ActionName,
         principal::PrincipalConstraint,
         resource::{EntityResourceConstraint, EntityResourceFilter, ResourceConstraint},
-        store::{CreateWebParameter, PrincipalStore as _},
+        store::{CreateWebParameter, PolicyStore as _, PrincipalStore as _},
     },
 };
 use hash_graph_postgres_store::store::{AsClient, PostgresStore};
@@ -357,40 +358,55 @@ async fn global_policies() -> Result<(), Box<dyn Error>> {
 
     // Every actor should get global policies
     let user1_policies = client
-        .get_policies_for_actor(ActorId::User(env.user1))
-        .await?;
+        .resolve_policies_for_actor(actor_id.into(), ActorId::User(env.user1))
+        .await?
+        .into_iter()
+        .map(|policy| policy.id)
+        .collect::<HashSet<_>>();
     let user2_policies = client
-        .get_policies_for_actor(ActorId::User(env.user2))
-        .await?;
+        .resolve_policies_for_actor(actor_id.into(), ActorId::User(env.user2))
+        .await?
+        .into_iter()
+        .map(|policy| policy.id)
+        .collect::<HashSet<_>>();
     let machine_policies = client
-        .get_policies_for_actor(ActorId::Machine(env.machine_id))
-        .await?;
+        .resolve_policies_for_actor(actor_id.into(), ActorId::Machine(env.machine_id))
+        .await?
+        .into_iter()
+        .map(|policy| policy.id)
+        .collect::<HashSet<_>>();
     let ai_policies = client
-        .get_policies_for_actor(ActorId::Ai(env.ai_id))
-        .await?;
+        .resolve_policies_for_actor(actor_id.into(), ActorId::Ai(env.ai_id))
+        .await?
+        .into_iter()
+        .map(|policy| policy.id)
+        .collect::<HashSet<_>>();
     let nonexisting_policies = client
-        .get_policies_for_actor(ActorId::User(UserId::new(Uuid::new_v4())))
-        .await?;
+        .resolve_policies_for_actor(actor_id.into(), ActorId::User(UserId::new(Uuid::new_v4())))
+        .await?
+        .into_iter()
+        .map(|policy| policy.id)
+        .collect::<HashSet<_>>();
 
     // All actors should have the global policy
     assert!(
-        user1_policies.contains_key(&env.policies.global),
+        user1_policies.contains(&env.policies.global),
         "User1 should have global policy"
     );
     assert!(
-        user2_policies.contains_key(&env.policies.global),
+        user2_policies.contains(&env.policies.global),
         "User2 should have global policy"
     );
     assert!(
-        machine_policies.contains_key(&env.policies.global),
+        machine_policies.contains(&env.policies.global),
         "Machine should have global policy"
     );
     assert!(
-        ai_policies.contains_key(&env.policies.global),
+        ai_policies.contains(&env.policies.global),
         "AI should have global policy"
     );
     assert!(
-        nonexisting_policies.contains_key(&env.policies.global),
+        nonexisting_policies.contains(&env.policies.global),
         "Non-existent actor should have global policy"
     );
 
@@ -406,51 +422,66 @@ async fn actor_type_policies() -> Result<(), Box<dyn Error>> {
 
     // Test user type policies
     let user1_policies = client
-        .get_policies_for_actor(ActorId::User(env.user1))
-        .await?;
+        .resolve_policies_for_actor(actor_id.into(), ActorId::User(env.user1))
+        .await?
+        .into_iter()
+        .map(|policy| policy.id)
+        .collect::<HashSet<_>>();
     let user2_policies = client
-        .get_policies_for_actor(ActorId::User(env.user2))
-        .await?;
+        .resolve_policies_for_actor(actor_id.into(), ActorId::User(env.user2))
+        .await?
+        .into_iter()
+        .map(|policy| policy.id)
+        .collect::<HashSet<_>>();
     let machine_policies = client
-        .get_policies_for_actor(ActorId::Machine(env.machine_id))
-        .await?;
+        .resolve_policies_for_actor(actor_id.into(), ActorId::Machine(env.machine_id))
+        .await?
+        .into_iter()
+        .map(|policy| policy.id)
+        .collect::<HashSet<_>>();
     let nonexisting_machine_policies = client
-        .get_policies_for_actor(ActorId::Machine(MachineId::new(Uuid::new_v4())))
-        .await?;
+        .resolve_policies_for_actor(
+            actor_id.into(),
+            ActorId::Machine(MachineId::new(Uuid::new_v4())),
+        )
+        .await?
+        .into_iter()
+        .map(|policy| policy.id)
+        .collect::<HashSet<_>>();
 
     // Users should have user type policies, machines should not
     assert!(
-        user1_policies.contains_key(&env.policies.user_type),
+        user1_policies.contains(&env.policies.user_type),
         "User1 should have user type policy"
     );
     assert!(
-        user2_policies.contains_key(&env.policies.user_type),
+        user2_policies.contains(&env.policies.user_type),
         "User2 should have user type policy"
     );
     assert!(
-        !machine_policies.contains_key(&env.policies.user_type),
+        !machine_policies.contains(&env.policies.user_type),
         "Machine should not have user type policy"
     );
     assert!(
-        !nonexisting_machine_policies.contains_key(&env.policies.user_type),
+        !nonexisting_machine_policies.contains(&env.policies.user_type),
         "Non-existent machine should not have access"
     );
 
     // Machines should have machine type policies, users should not
     assert!(
-        !user1_policies.contains_key(&env.policies.machine_type),
+        !user1_policies.contains(&env.policies.machine_type),
         "User1 should not have machine type policy"
     );
     assert!(
-        !user2_policies.contains_key(&env.policies.machine_type),
+        !user2_policies.contains(&env.policies.machine_type),
         "User2 should not have machine type policy"
     );
     assert!(
-        machine_policies.contains_key(&env.policies.machine_type),
+        machine_policies.contains(&env.policies.machine_type),
         "Machine should have machine type policy"
     );
     assert!(
-        nonexisting_machine_policies.contains_key(&env.policies.machine_type),
+        nonexisting_machine_policies.contains(&env.policies.machine_type),
         "Non-existent machine should have machine type policy"
     );
 
@@ -466,26 +497,35 @@ async fn specific_actor_policies() -> Result<(), Box<dyn Error>> {
 
     // user1 has a specific policy assigned
     let user1_policies = client
-        .get_policies_for_actor(ActorId::User(env.user1))
-        .await?;
+        .resolve_policies_for_actor(actor_id.into(), ActorId::User(env.user1))
+        .await?
+        .into_iter()
+        .map(|policy| policy.id)
+        .collect::<HashSet<_>>();
     let user2_policies = client
-        .get_policies_for_actor(ActorId::User(env.user2))
-        .await?;
+        .resolve_policies_for_actor(actor_id.into(), ActorId::User(env.user2))
+        .await?
+        .into_iter()
+        .map(|policy| policy.id)
+        .collect::<HashSet<_>>();
     let nonexisting_user_policies = client
-        .get_policies_for_actor(ActorId::User(UserId::new(Uuid::new_v4())))
-        .await?;
+        .resolve_policies_for_actor(actor_id.into(), ActorId::User(UserId::new(Uuid::new_v4())))
+        .await?
+        .into_iter()
+        .map(|policy| policy.id)
+        .collect::<HashSet<_>>();
 
     // User1 should have its specific policy, user2 should not
     assert!(
-        user1_policies.contains_key(&env.policies.user1),
+        user1_policies.contains(&env.policies.user1),
         "User1 should have its specific policy"
     );
     assert!(
-        !user2_policies.contains_key(&env.policies.user1),
+        !user2_policies.contains(&env.policies.user1),
         "User2 should not have User1's policy"
     );
     assert!(
-        !nonexisting_user_policies.contains_key(&env.policies.user1),
+        !nonexisting_user_policies.contains(&env.policies.user1),
         "Non-existent user should not have User1's policy"
     );
 
@@ -501,21 +541,27 @@ async fn role_based_policies() -> Result<(), Box<dyn Error>> {
 
     // Test role-based policies
     let user1_policies = client
-        .get_policies_for_actor(ActorId::User(env.user1))
-        .await?;
+        .resolve_policies_for_actor(actor_id.into(), ActorId::User(env.user1))
+        .await?
+        .into_iter()
+        .map(|policy| policy.id)
+        .collect::<HashSet<_>>();
     let user2_policies = client
-        .get_policies_for_actor(ActorId::User(env.user2))
-        .await?;
+        .resolve_policies_for_actor(actor_id.into(), ActorId::User(env.user2))
+        .await?
+        .into_iter()
+        .map(|policy| policy.id)
+        .collect::<HashSet<_>>();
 
     // User1 has web1_role, should have its policies
     assert!(
-        user1_policies.contains_key(&env.policies.web1_role),
+        user1_policies.contains(&env.policies.web1_role),
         "User1 should have web1_role policy"
     );
 
     // User2 has web2_role and should have type-constrained policy for that role
     assert!(
-        user2_policies.contains_key(&env.policies.web2_role_user),
+        user2_policies.contains(&env.policies.web2_role_user),
         "User2 should have web2_role_user policy"
     );
 
@@ -529,17 +575,20 @@ async fn role_based_policies() -> Result<(), Box<dyn Error>> {
         .await?;
 
     let machine_policies = client
-        .get_policies_for_actor(ActorId::Machine(special_machine_id))
-        .await?;
+        .resolve_policies_for_actor(actor_id.into(), ActorId::Machine(special_machine_id))
+        .await?
+        .into_iter()
+        .map(|policy| policy.id)
+        .collect::<HashSet<_>>();
 
     // Machine has web1_role but should still get role-based policies without actor type constraints
     assert!(
-        machine_policies.contains_key(&env.policies.web1_role),
+        machine_policies.contains(&env.policies.web1_role),
         "Machine with web1_role should get its policies"
     );
     // Machine has web2_role but should not get role-based policies with actor type constraints
     assert!(
-        !machine_policies.contains_key(&env.policies.web2_role_user),
+        !machine_policies.contains(&env.policies.web2_role_user),
         "Machine with web2_role should not get its policies"
     );
 
@@ -556,21 +605,27 @@ async fn team_hierarchy_policies() -> Result<(), Box<dyn Error>> {
     // Test team hierarchies
     // User2 has team1_role, AI has nested_team_role which is under team1
     let user2_policies = client
-        .get_policies_for_actor(ActorId::User(env.user2))
-        .await?;
+        .resolve_policies_for_actor(actor_id.into(), ActorId::User(env.user2))
+        .await?
+        .into_iter()
+        .map(|policy| policy.id)
+        .collect::<HashSet<_>>();
     let ai_policies = client
-        .get_policies_for_actor(ActorId::Ai(env.ai_id))
-        .await?;
+        .resolve_policies_for_actor(actor_id.into(), ActorId::Ai(env.ai_id))
+        .await?
+        .into_iter()
+        .map(|policy| policy.id)
+        .collect::<HashSet<_>>();
 
     // User2 should have team1's policies
     assert!(
-        user2_policies.contains_key(&env.policies.team1),
+        user2_policies.contains(&env.policies.team1),
         "User2 should have team1 policy"
     );
 
     // AI with nested_team_role should inherit policies from parent team1
     assert!(
-        ai_policies.contains_key(&env.policies.team1),
+        ai_policies.contains(&env.policies.team1),
         "AI should inherit team1 policy through team hierarchy"
     );
 
@@ -587,19 +642,22 @@ async fn policy_count_and_content() -> Result<(), Box<dyn Error>> {
     let nonexistent_id = UserId::new(Uuid::new_v4());
 
     let user1_policies = client
-        .get_policies_for_actor(ActorId::User(env.user1))
-        .await?;
+        .resolve_policies_for_actor(actor_id.into(), ActorId::User(env.user1))
+        .await?
+        .into_iter()
+        .map(|policy| (policy.id, policy))
+        .collect::<HashMap<_, _>>();
     let user2_policies = client
-        .get_policies_for_actor(ActorId::User(env.user2))
+        .resolve_policies_for_actor(actor_id.into(), ActorId::User(env.user2))
         .await?;
     let machine_policies = client
-        .get_policies_for_actor(ActorId::Machine(env.machine_id))
+        .resolve_policies_for_actor(actor_id.into(), ActorId::Machine(env.machine_id))
         .await?;
     let ai_policies = client
-        .get_policies_for_actor(ActorId::Ai(env.ai_id))
+        .resolve_policies_for_actor(actor_id.into(), ActorId::Ai(env.ai_id))
         .await?;
     let nonexistent_policies = client
-        .get_policies_for_actor(ActorId::User(nonexistent_id))
+        .resolve_policies_for_actor(actor_id.into(), ActorId::User(nonexistent_id))
         .await?;
 
     // Verify that we have at least one policy for each actor
@@ -641,10 +699,13 @@ async fn role_assignment_changes() -> Result<(), Box<dyn Error>> {
 
     // Initial policy count
     let user2_policies = client
-        .get_policies_for_actor(ActorId::User(env.user2))
-        .await?;
+        .resolve_policies_for_actor(actor_id.into(), ActorId::User(env.user2))
+        .await?
+        .into_iter()
+        .map(|policy| policy.id)
+        .collect::<HashSet<_>>();
     let initial_count = user2_policies.len();
-    let has_web2_policy = user2_policies.contains_key(&env.policies.web2_role_user);
+    let has_web2_policy = user2_policies.contains(&env.policies.web2_role_user);
     assert!(
         has_web2_policy,
         "User2 should initially have web2_role_user policy"
@@ -657,10 +718,13 @@ async fn role_assignment_changes() -> Result<(), Box<dyn Error>> {
 
     // Should have fewer policies now
     let updated_policies = client
-        .get_policies_for_actor(ActorId::User(env.user2))
-        .await?;
+        .resolve_policies_for_actor(actor_id.into(), ActorId::User(env.user2))
+        .await?
+        .into_iter()
+        .map(|policy| policy.id)
+        .collect::<HashSet<_>>();
     assert!(
-        !updated_policies.contains_key(&env.policies.web2_role_user),
+        !updated_policies.contains(&env.policies.web2_role_user),
         "User2 should no longer have web2_role_user policy after role removal"
     );
     assert!(
@@ -675,8 +739,11 @@ async fn role_assignment_changes() -> Result<(), Box<dyn Error>> {
 
     // Should have different policies now after adding a new role
     let final_policies = client
-        .get_policies_for_actor(ActorId::User(env.user2))
-        .await?;
+        .resolve_policies_for_actor(actor_id.into(), ActorId::User(env.user2))
+        .await?
+        .into_iter()
+        .map(|policy| policy.id)
+        .collect::<HashSet<_>>();
 
     // We should have more policies after adding a role
     assert!(
@@ -697,7 +764,7 @@ async fn role_assignment_changes() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn resource_constraints_are_preserved() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (mut client, _actor_id) = db.seed([]).await?;
+    let (mut client, actor_id) = db.seed([]).await?;
 
     let user_id = client.create_user(None).await?;
     client.register_action(ActionName::All).await?;
@@ -721,8 +788,11 @@ async fn resource_constraints_are_preserved() -> Result<(), Box<dyn Error>> {
         .await?;
 
     let policies = client
-        .get_policies_for_actor(ActorId::User(user_id))
-        .await?;
+        .resolve_policies_for_actor(actor_id.into(), ActorId::User(user_id))
+        .await?
+        .into_iter()
+        .map(|policy| (policy.id, policy))
+        .collect::<HashMap<_, _>>();
 
     // Ensure resource constraint is preserved
     assert!(
@@ -836,19 +906,22 @@ async fn deep_team_hierarchy() -> Result<(), Box<dyn Error>> {
 
     // User should get all policies through the hierarchy
     let policies = client
-        .get_policies_for_actor(ActorId::User(user_id))
-        .await?;
+        .resolve_policies_for_actor(actor_id.into(), ActorId::User(user_id))
+        .await?
+        .into_iter()
+        .map(|policy| policy.id)
+        .collect::<HashSet<_>>();
 
     assert!(
-        policies.contains_key(&web_policy_id),
+        policies.contains(&web_policy_id),
         "User should inherit web team policy"
     );
     assert!(
-        policies.contains_key(&team1_policy_id),
+        policies.contains(&team1_policy_id),
         "User should inherit team1 policy"
     );
     assert!(
-        policies.contains_key(&team5_policy_id),
+        policies.contains(&team5_policy_id),
         "User should have direct team5 policy"
     );
 

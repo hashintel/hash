@@ -20,12 +20,13 @@ use hash_graph_authorization::{
         RequestContext,
         action::ActionName,
         principal::PrincipalConstraint,
+        resource::ResourceConstraint,
         store::{
-            CreateWebParameter, CreateWebResponse, PrincipalStore, RoleAssignmentStatus,
-            RoleUnassignmentStatus,
+            CreateWebParameter, CreateWebResponse, PolicyFilter, PolicyStore, PrincipalFilter,
+            PrincipalStore, RoleAssignmentStatus, RoleUnassignmentStatus,
             error::{
-                EnsureSystemPoliciesError, GetSystemAccountError, RoleAssignmentError,
-                WebCreationError,
+                EnsureSystemPoliciesError, GetPoliciesError, GetSystemAccountError,
+                RoleAssignmentError, WebCreationError,
             },
         },
     },
@@ -71,8 +72,8 @@ use type_system::{
         provenance::{OntologyEditionProvenance, OntologyOwnership, OntologyProvenance},
     },
     principal::{
-        PrincipalType,
-        actor::{ActorEntityUuid, ActorId, AiId, MachineId},
+        PrincipalId, PrincipalType,
+        actor::{ActorEntityUuid, ActorId, ActorType, AiId, MachineId},
         actor_group::{ActorGroupEntityUuid, ActorGroupId, TeamId, WebId},
         role::RoleName,
     },
@@ -119,8 +120,8 @@ where
         system_machine_actor: ActorId,
     ) -> Result<(), Report<EnsureSystemPoliciesError>> {
         tracing::info!("Seeding system policies");
-        for (policy_id, policy) in self
-            .get_policies_for_actor(system_machine_actor)
+        for policy in self
+            .resolve_policies_for_actor(system_machine_actor.into(), system_machine_actor)
             .await
             .change_context(EnsureSystemPoliciesError::ReadPoliciesFailed)?
         {
@@ -128,7 +129,7 @@ where
                 Some(PrincipalConstraint::Actor { actor }) if actor == system_machine_actor => {
                     // TODO: Implement logic for handling removal of old policies to avoid
                     //       that we re-create policies that are already present.
-                    self.remove_policy(policy_id)
+                    self.remove_policy(policy.id)
                         .await
                         .change_context(EnsureSystemPoliciesError::RemoveOldPolicyFailed)?;
                 }
@@ -278,14 +279,14 @@ where
             .await
             .change_context(WebCreationError::StoreError)?;
         let policies = self
-            .get_policies_for_actor(actor)
+            .resolve_policies_for_actor(actor.into(), actor)
             .await
             .change_context(WebCreationError::StoreError)?;
 
         let web_id = WebId::new(parameter.id.unwrap_or_else(Uuid::new_v4));
 
         let policy_set = PolicySet::default()
-            .with_policies(policies.values())
+            .with_policies(&policies)
             .change_context(WebCreationError::StoreError)?;
         match policy_set
             .evaluate(
@@ -753,6 +754,330 @@ where
         } else {
             Ok(status)
         }
+    }
+}
+
+struct PolicyParts {
+    id: PolicyId,
+    effect: Effect,
+    principal_uuid: Option<Uuid>,
+    principal_type: Option<PrincipalType>,
+    actor_type: Option<PrincipalType>,
+    resource_constraint: Option<ResourceConstraint>,
+    actions: Vec<ActionName>,
+}
+impl PolicyParts {
+    fn into_policy(self) -> Result<Policy, Report<GetPoliciesError>> {
+        let principal_id = match (self.principal_uuid, self.principal_type) {
+            (Some(uuid), Some(principal_type)) => Some(PrincipalId::new(uuid, principal_type)),
+            (None, None) => None,
+            (Some(_), None) | (None, Some(_)) => {
+                return Err(Report::new(GetPoliciesError::InvalidPrincipalConstraint));
+            }
+        };
+
+        let actor_type = self
+            .actor_type
+            .map(|principal_type| match principal_type {
+                PrincipalType::User => Ok(ActorType::User),
+                PrincipalType::Machine => Ok(ActorType::Machine),
+                PrincipalType::Ai => Ok(ActorType::Ai),
+                _ => Err(GetPoliciesError::InvalidPrincipalConstraint),
+            })
+            .transpose()?;
+
+        let principal_constraint = match (principal_id, actor_type) {
+            (None, None) => None,
+            (None, Some(actor_type)) => Some(PrincipalConstraint::ActorType { actor_type }),
+            (Some(PrincipalId::Actor(actor)), None) => Some(PrincipalConstraint::Actor { actor }),
+            (Some(PrincipalId::ActorGroup(actor_group)), actor_type) => {
+                Some(PrincipalConstraint::ActorGroup {
+                    actor_group,
+                    actor_type,
+                })
+            }
+            (Some(PrincipalId::Role(role)), actor_type) => {
+                Some(PrincipalConstraint::Role { role, actor_type })
+            }
+            _ => return Err(Report::new(GetPoliciesError::InvalidPrincipalConstraint)),
+        };
+
+        Ok(Policy {
+            id: self.id,
+            effect: self.effect,
+            principal: principal_constraint,
+            actions: self.actions,
+            resource: self.resource_constraint,
+            constraints: None,
+        })
+    }
+}
+
+impl<C, A> PolicyStore for PostgresStore<C, A>
+where
+    C: AsClient,
+    A: AuthorizationApi + Send + Sync,
+{
+    async fn get_policy_by_id(
+        &self,
+        _authenticated_actor: ActorEntityUuid,
+        policy_id: PolicyId,
+    ) -> Result<Option<Policy>, Report<GetPoliciesError>> {
+        self.as_client()
+            .query_opt(
+                "
+                SELECT
+                    policy.id,
+                    policy.effect,
+                    policy.principal_id,
+                    policy.principal_type,
+                    policy.actor_type,
+                    policy.resource_constraint,
+                    array_agg(policy_action.action_name)
+                FROM policy
+                JOIN policy_action ON policy.id = policy_action.policy_id
+                WHERE policy.id = $1
+                GROUP BY
+                    policy.id, policy.effect, policy.principal_id, policy.principal_type,
+                    policy.actor_type, policy.resource_constraint
+                ",
+                &[&policy_id],
+            )
+            .await
+            .change_context(GetPoliciesError::StoreError)?
+            .map(|row| {
+                PolicyParts {
+                    id: row.get(0),
+                    effect: row.get(1),
+                    principal_uuid: row.get(2),
+                    principal_type: row.get(3),
+                    actor_type: row.get(4),
+                    resource_constraint: row
+                        .get::<_, Option<Json<ResourceConstraint>>>(5)
+                        .map(|json| json.0),
+                    actions: row.get(6),
+                }
+                .into_policy()
+            })
+            .transpose()
+    }
+
+    async fn query_policies(
+        &self,
+        _authenticated_actor: ActorEntityUuid,
+        filter: &PolicyFilter,
+    ) -> Result<Vec<Policy>, Report<GetPoliciesError>> {
+        let mut filters = Vec::new();
+        let mut parameters = Vec::<Box<dyn ToSql + Send + Sync>>::new();
+
+        if let Some(principal) = &filter.principal {
+            let (principal_id, actor_type) = match principal {
+                PrincipalFilter::Constrained(PrincipalConstraint::ActorType { actor_type }) => {
+                    (None, Some(*actor_type))
+                }
+                PrincipalFilter::Constrained(PrincipalConstraint::Actor { actor }) => {
+                    (Some(PrincipalId::Actor(*actor)), None)
+                }
+                PrincipalFilter::Constrained(PrincipalConstraint::ActorGroup {
+                    actor_group,
+                    actor_type,
+                }) => (Some(PrincipalId::ActorGroup(*actor_group)), *actor_type),
+                PrincipalFilter::Constrained(PrincipalConstraint::Role { role, actor_type }) => {
+                    (Some(PrincipalId::Role(*role)), *actor_type)
+                }
+                PrincipalFilter::Unconstrained => (None, None),
+            };
+            if let Some(principal_id) = principal_id {
+                parameters.push(Box::new(principal_id));
+                parameters.push(Box::new(principal_id.principal_type()));
+                filters.push(format!(
+                    "policy.principal_id = ${} AND policy.principal_type = ${}",
+                    parameters.len() - 1,
+                    parameters.len()
+                ));
+            } else {
+                filters.push(
+                    "policy.principal_id IS NULL AND policy.principal_type IS NULL".to_owned(),
+                );
+            }
+
+            if let Some(actor_type) = actor_type {
+                parameters.push(Box::new(PrincipalType::from(actor_type)));
+                filters.push(format!("policy.actor_type = ${}", parameters.len()));
+            } else {
+                filters.push("policy.actor_type IS NULL".to_owned());
+            }
+        }
+
+        let base_query = "
+            SELECT
+                policy.id,
+                policy.effect,
+                policy.principal_id,
+                policy.principal_type,
+                policy.actor_type,
+                policy.resource_constraint,
+                array_agg(policy_action.action_name)
+            FROM policy
+            JOIN policy_action ON policy.id = policy_action.policy_id
+            "
+        .to_owned();
+        let group_by_query = "
+            GROUP BY
+                policy.id,
+                policy.effect,
+                policy.principal_id,
+                policy.principal_type,
+                policy.actor_type,
+                policy.resource_constraint
+            ";
+
+        let query = if filters.is_empty() {
+            format!("{base_query} {group_by_query}")
+        } else {
+            format!(
+                "{base_query} WHERE {} {group_by_query}",
+                filters.join(" AND ")
+            )
+        };
+
+        self.as_client()
+            .query_raw(&query, parameters)
+            .await
+            .change_context(GetPoliciesError::StoreError)?
+            .map_err(|error| Report::new(error).change_context(GetPoliciesError::StoreError))
+            .and_then(async |row| -> Result<_, Report<GetPoliciesError>> {
+                PolicyParts {
+                    id: PolicyId::new(row.get(0)),
+                    effect: row.get(1),
+                    principal_uuid: row.get(2),
+                    principal_type: row.get(3),
+                    actor_type: row.get(4),
+                    resource_constraint: row
+                        .get::<_, Option<Json<ResourceConstraint>>>(5)
+                        .map(|json| json.0),
+                    actions: row.get(6),
+                }
+                .into_policy()
+            })
+            .try_collect()
+            .await
+    }
+
+    async fn resolve_policies_for_actor(
+        &self,
+        _authenticated_actor: ActorEntityUuid,
+        actor_id: ActorId,
+    ) -> Result<Vec<Policy>, Report<GetPoliciesError>> {
+        // The below query does several things. It:
+        //   1. gets all principals that the actor can act as
+        //   2. gets all policies that apply to those principals
+        //   3. TODO: filters the policies based on the action -- currently not implemented
+        //   4. TODO: filters the policies based on the resource -- currently not implemented
+        //
+        // Principals are retrieved by:
+        //   - the actor itself, filtered by the actor ID and actor type
+        //   - all roles assigned to the actor, filtered by the actor ID
+        //   - all actor groups associated with those roles, determined by the role's actor group ID
+        //   - all parent actor groups of those actor groups (for teams), determined by the actor
+        //     group hierarchy
+        //
+        // The actions are associated in the `policy_action` table. We join that table and aggregate
+        // the actions for each policy. All actions are included, but the action hierarchy is used
+        // to determine which actions are relevant to the actor.
+        self.as_client()
+            .query_raw(
+                "
+                WITH principals AS (
+                    -- The actor itself
+                    SELECT id, principal_type
+                    FROM actor
+                    WHERE id = $1 AND principal_type = $2
+
+                    UNION ALL
+
+                    -- All roles directly assigned to the actor
+                    SELECT role.id, role.principal_type
+                    FROM actor_role
+                    JOIN role ON actor_role.role_id = role.id
+                    WHERE actor_role.actor_id = $1
+
+                    UNION ALL
+
+                    -- Direct actor group of each role - always included
+                    SELECT actor_group.id, actor_group.principal_type
+                    FROM actor_role
+                    JOIN role ON actor_role.role_id = role.id
+                    JOIN actor_group ON actor_group.id = role.actor_group_id
+                    WHERE actor_role.actor_id = $1
+
+                    UNION ALL
+
+                    -- All parent actor groups of actor groups (recursively through hierarchy)
+                    SELECT parent.id, parent.principal_type
+                    FROM actor_role
+                    JOIN role ON actor_role.role_id = role.id
+                    JOIN team_hierarchy
+                      ON team_hierarchy.child_id = role.actor_group_id
+                    JOIN actor_group parent ON parent.id = team_hierarchy.parent_id
+                    WHERE actor_role.actor_id = $1
+                ),
+                -- We filter out policies that don't apply to the actor's type or principal ID
+                policy AS (
+                    -- global and actor-type based policies
+                    SELECT policy.*
+                    FROM policy
+                    WHERE principal_id IS NULL
+                      AND (actor_type IS NULL OR actor_type = $2)
+
+                    UNION ALL
+
+                    -- actor type policies
+                    SELECT policy.*
+                    FROM policy
+                    JOIN principals
+                      ON policy.principal_id = principals.id
+                     AND policy.principal_type = principals.principal_type
+                    WHERE policy.actor_type IS NULL OR policy.actor_type = $2
+                )
+                SELECT
+                    policy.id,
+                    policy.effect,
+                    policy.principal_id,
+                    policy.principal_type,
+                    policy.actor_type,
+                    policy.resource_constraint,
+                    array_agg(policy_action.action_name)
+                FROM policy
+                JOIN policy_action ON policy.id = policy_action.policy_id
+                GROUP BY
+                    policy.id, policy.effect, policy.principal_id, policy.principal_type,
+                    policy.actor_type, policy.resource_constraint
+                ",
+                [
+                    &actor_id as &(dyn ToSql + Sync),
+                    &PrincipalType::from(actor_id.actor_type()),
+                ],
+            )
+            .await
+            .change_context(GetPoliciesError::StoreError)?
+            .map_err(|error| Report::new(error).change_context(GetPoliciesError::StoreError))
+            .and_then(async |row| -> Result<_, Report<GetPoliciesError>> {
+                PolicyParts {
+                    id: row.get(0),
+                    effect: row.get(1),
+                    principal_uuid: row.get(2),
+                    principal_type: row.get(3),
+                    actor_type: row.get(4),
+                    resource_constraint: row
+                        .get::<_, Option<Json<ResourceConstraint>>>(5)
+                        .map(|json| json.0),
+                    actions: row.get(6),
+                }
+                .into_policy()
+            })
+            .try_collect::<Vec<_>>()
+            .await
     }
 }
 
