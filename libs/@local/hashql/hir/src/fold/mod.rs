@@ -38,8 +38,9 @@ pub trait Fold<'heap> {
 
     fn interner(&self) -> &Interner<'heap>;
 
-    fn fold_id(&mut self, id: HirId) -> Self::Output<HirId> {
-        Try::from_output(id)
+    #[expect(unused_variables, reason = "trait definition")]
+    fn visit_id(&mut self, id: HirId) {
+        // do nothing, no fields to walk
     }
 
     fn fold_type_id(&mut self, id: TypeId) -> Self::Output<TypeId> {
@@ -250,7 +251,13 @@ pub fn walk_node<'heap, T: Fold<'heap> + ?Sized>(
         NodeKind::Graph(graph) => NodeKind::Graph(visitor.fold_graph(graph)?),
     };
 
-    Try::from_output(visitor.interner().intern_node(PartialNode { span, kind }))
+    let interner = visitor.interner();
+
+    let node = interner.intern_node(PartialNode { span, kind });
+
+    visitor.visit_id(node.id);
+
+    Try::from_output(node)
 }
 
 pub fn walk_nested_node<'heap, T: Fold<'heap> + ?Sized>(

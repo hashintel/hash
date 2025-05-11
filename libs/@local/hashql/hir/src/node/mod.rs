@@ -64,6 +64,7 @@ pub struct Node<'heap> {
     pub id: HirId,
     pub span: SpanId,
 
+    // Consider if we want to intern the `NodeKind` separately
     pub kind: &'heap NodeKind<'heap>,
 }
 
