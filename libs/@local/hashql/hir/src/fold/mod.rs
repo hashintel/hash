@@ -1,3 +1,51 @@
+//! HIR visitor for transforming the contents of nodes.
+//!
+//! This module provides a [`Fold`] trait for transforming HIR trees by creating new nodes
+//! rather than modifying existing ones. This approach is necessary because the HIR uses
+//! interned data which is immutable by design.
+//!
+//! The fold pattern offers several advantages:
+//!
+//! 1. **Interning-Compatible**: Works with the interned, immutable nature of HIR nodes by creating
+//!    new nodes rather than modifying existing ones.
+//!
+//! 2. **Fallible Operations**: Uses the [`Try`] trait to support operations that can fail, with
+//!    early return of errors.
+//!
+//! 3. **Efficiency**: Employs copy-on-write optimizations via [`Beef`] to minimize copying when
+//!    transformations don't modify all elements.
+//!
+//! 4. **Traversal Control**: Provides fine control over how deeply to traverse the tree via the
+//!    [`NestedFilter`] type.
+//!
+//! # Performance Considerations
+//!
+//! Due to the overhead of creating new nodes and reinterning data, [`Fold`] is inherently
+//! slower than [`Visitor`]. Therefore:
+//!
+//! - **Prefer [`Visitor`] whenever possible** if you only need to analyze the HIR without
+//!   modifications
+//! - Use [`Fold`] only when you need to transform the HIR structure
+//! - Consider using [`NestedFilter`] to limit traversal depth for better performance
+//!
+//! Even with optimizations like [`Beef`], the creation of new nodes and reinterning processes
+//! introduce performance costs that aren't present in the read-only [`Visitor`] pattern.
+//!
+//! # Use Cases
+//!
+//! The [`Fold`] pattern is designed for:
+//!
+//! - **Transformations**: Modify the structure or content of the HIR
+//! - **Optimizations**: Replace expressions with more efficient equivalents
+//! - **Lowering**: Convert high-level constructs to simpler representations
+//! - **Normalization**: Standardize code patterns for later phases
+//! - **Code generation**: Prepare HIR for conversion to lower-level IRs
+//!
+//! Unlike visitors, folders own the nodes they process and return transformed versions.
+//! This makes them suitable for transformation passes that need to modify the HIR structure.
+//!
+//! [`Visitor`]: crate::visit::Visitor
+
 pub mod beef;
 pub mod nested;
 
@@ -28,14 +76,56 @@ use crate::{
     path::QualifiedPath,
 };
 
+/// Trait for transforming HIR nodes.
+///
+/// The [`Fold`] trait provides methods to transform each type of node in the HIR tree. Unlike
+/// visitors, folders take ownership of nodes and return potentially modified versions. This pattern
+/// is required due to the interned, immutable nature of HIR nodes - we create new nodes rather than
+/// modifying existing ones.
+///
+/// Each method's default implementation transforms the node's children via the corresponding
+/// `walk_*` function. For example, `fold_node` by default calls `walk_node`.
+///
+/// # Performance Note
+///
+/// [`Fold`] operations are inherently slower than [`Visitor`] operations due to the overhead
+/// of creating new nodes and reinterning data. Always prefer [`Visitor`] when you only need
+/// to analyze the HIR without modifying it.
+///
+/// # Use Cases
+///
+/// Use the [`Fold`] trait when you need to:
+/// - Transform the HIR by creating modified versions of nodes
+/// - Perform optimizations or simplifications
+/// - Lower complex constructs to simpler ones
+/// - Apply code transformations that change the structure
+/// - Handle potential failures during transformation
+///
+/// # Implementation Requirements
+///
+/// Implementors must provide:
+/// - [`interner`](Self::interner) to access the interner for re-interning modified structures
+/// - Optionally override individual `fold_*` methods to transform specific node types
+///
+/// When overriding methods, you have three options for each node:
+/// 1. Transform it directly and return a new version
+/// 2. Call the corresponding `walk_*` function to apply standard recursion
+/// 3. Mix the two approaches by selectively transforming only certain parts
+///
+/// [`Visitor`]: crate::visit::Visitor
 pub trait Fold<'heap> {
-    type Residual;
-    type Output<T>: Try<Output = T, Residual = Self::Residual> + FromResidual<Self::Residual>
+    /// The error/failure type (e.g., `E` in [`Result<T, E>`])
+    type Error;
+    /// The output type that wraps a transformation (must implement [`Try`],
+    /// such as [`Result<T, E>`] or [`Option<T>`]).
+    type Output<T>: Try<Output = T, Residual = Self::Error> + FromResidual<Self::Error>
     where
         T: 'heap;
 
+    /// Controls how deeply to process nested nodes
     type NestedFilter: NestedFilter = nested::Shallow;
 
+    /// Access the interner for re-interning modified structures
     fn interner(&self) -> &Interner<'heap>;
 
     #[expect(unused_variables, reason = "trait definition")]

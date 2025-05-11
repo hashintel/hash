@@ -1,10 +1,29 @@
 //! This module provides a copy-on-write slice implementation optimized for interned data.
 //!
-//! The primary type is [`Beef`], which allows efficient element-wise modification
-//! of interned slices by only copying the underlying data when a modification
-//! actually occurs.
+//! The primary type is [`Beef`] (a play on words, as it is a slice of [`Cow`]), which allows
+//! efficient element-wise modification of interned slices by only copying the underlying data when
+//! a modification actually occurs.
 //!
-//! The name "Beef" is a wordplay - it's a "slice" of a "`CoW`" (Copy-on-Write).
+//! Since the HIR uses immutable, interned data structures, we need a way to efficiently transform
+//! collections of nodes without excessive copying. [`Beef`] achieves this by:
+//!
+//! 1. Starting with the original interned slice (zero-copy)
+//! 2. Only allocating and copying when the first modification occurs
+//! 3. Reusing that allocation for subsequent modifications
+//! 4. Never copying if no modifications are made at all
+//!
+//! # Use Cases
+//!
+//! [`Beef`] is particularly useful for:
+//!
+//! - **Transformation passes** that often don't modify every element in a collection
+//! - **Optimization passes** that only change a small subset of nodes
+//! - **Any operation** on collections that might leave most elements unchanged
+//!
+//! This approach aligns with the HIR's design principles: immutability by default,
+//! with explicit and efficient paths for transformations when needed.
+//!
+//! [`Cow`]: std::borrow::Cow
 
 use core::{hash::Hash, ops::Try};
 
@@ -21,19 +40,21 @@ enum BeefData<'heap, T> {
 
 /// A Copy-on-Write slice optimized for element-wise operations on interned data.
 ///
-/// `Beef` (a play on `CoW` - Copy on Write - as in a "slice of `CoW`") provides efficient
+/// [`Beef`] (a play on [`Cow`] - Copy on Write - as in a "slice of [`Cow`]") provides efficient
 /// element-wise transformation capabilities while minimizing copying. It only
 /// transitions from a shared interned state to an owned state when an actual
 /// modification occurs.
 ///
 /// This is particularly useful in scenarios in which no modifications occur, allowing for zero-copy
-/// operations. For comparison, given a `SmallVec<T>` as comparison, `Beef` is consistently about
-/// 25x faster, whenever no modifications occur, with a negligible overhead in case of modification
-/// (5-10%). The overhead is only present due to the fact that we have branching logic to transition
-/// between the stages, which is negligible in most cases.
+/// operations. For comparison, given a [`SmallVec<T>`] as comparison, [`Beef`] is consistently
+/// about 25x faster, whenever no modifications occur, with a negligible overhead in case of
+/// modification (5-10%). The overhead is only present due to the fact that we have branching logic
+/// to transition between the stages, which is negligible in most cases.
 ///
 /// This is particularly useful for transformation passes that often don't modify
 /// every element, allowing zero-copy operations when no changes are needed.
+///
+/// [`Cow`]: std::borrow::Cow
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Beef<'heap, T>(BeefData<'heap, T>);
 
@@ -71,7 +92,8 @@ where
     /// The implementation is optimized to:
     /// 1. Avoid copying if no elements change
     /// 2. Only perform the copy operation once, at the first modification
-    /// 3. Efficiently handle both small slices (using `SmallVec` inline storage) and larger slices
+    /// 3. Efficiently handle both small slices (using [`SmallVec`] inline storage) and larger
+    ///    slices
     ///
     /// # Examples
     ///
@@ -163,7 +185,7 @@ where
     /// - `U`: A type implementing [`Try`] with compatible residual type, representing the overall
     ///   result
     ///
-    /// This method works with various `Try` types including `Result<T, E>` and `Option<T>`.
+    /// This method works with various [`Try`] types including [`Result<T, E>`] and [`Option<T>`].
     ///
     /// # Examples
     ///

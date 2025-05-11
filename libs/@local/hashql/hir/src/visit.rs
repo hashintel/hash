@@ -1,3 +1,57 @@
+//! HIR visitor for walking the contents of nodes.
+//!
+//! This module provides a [`Visitor`] trait that enables traversal of the HIR tree without
+//! modification. Unlike the AST visitor, the HIR visitor operates on interned data, which
+//! is immutable by design.
+//!
+//! Here are key characteristics of the HIR visitor pattern:
+//!
+//! 1. **Immutable Traversal**: Due to the interned nature of HIR nodes, visitors cannot mutate
+//!    nodes in-place. For transformations, use the [`Fold`] trait instead.
+//!
+//! 2. **Depth-First**: Visitors perform a depth-first traversal of the HIR tree.
+//!
+//! 3. **Child Control**: Each overridden visit method has full control over what happens with its
+//!    node. It can do its own traversal of the node's children, call `walk_*` to apply the default
+//!    traversal algorithm, or prevent deeper traversal by doing nothing.
+//!
+//! 4. **Non-Destructive**: Visitors don't modify the HIR tree, making them safe for analysis passes
+//!    that need to preserve the original structure.
+//!
+//! # Use Cases
+//!
+//! The [`Visitor`] pattern is ideal for:
+//!
+//! - **Analysis passes**: Examine nodes without modifying them
+//! - **Information gathering**: Collect data about the HIR (e.g., variable usage, call sites)
+//! - **Validation**: Check semantic rules and constraints
+//! - **Type checking**: Verify type correctness without modification
+//! - **Linting**: Detect potential issues or style violations
+//!
+//! For transformations that need to modify the HIR, use the [`Fold`] trait instead.
+//!
+//! # Usage
+//!
+//! ```ignore
+//! struct MyVisitor {
+//!     // State to track during traversal
+//! }
+//!
+//! impl<'heap> Visitor<'heap> for MyVisitor {
+//!     fn visit_variable(&mut self, variable: &'heap Variable<'heap>) {
+//!         // Do something with variable
+//!
+//!         // Continue traversal with the default algorithm
+//!         walk_variable(self, variable);
+//!     }
+//! }
+//!
+//! // Apply the visitor to a node
+//! let mut visitor = MyVisitor { /* ... */ };
+//! visitor.visit_node(&some_node);
+//! ```
+//!
+//! [`Fold`]: crate::fold::Fold
 use hashql_core::{span::SpanId, symbol::Ident, r#type::TypeId};
 
 use crate::{
@@ -21,6 +75,38 @@ use crate::{
     path::QualifiedPath,
 };
 
+/// Trait for visiting HIR nodes without modifying them.
+///
+/// The [`Visitor`] trait provides methods to traverse each type of node in the HIR tree.
+/// Due to the interned nature of HIR nodes, visitors cannot modify nodes directly.
+/// For transformations, use the [`Fold`] trait instead.
+///
+/// Each method's default implementation recursively visits the substructure of the
+/// input via the corresponding `walk_*` method. For example, the `visit_node` method
+/// by default calls `walk_node`.
+///
+/// # Use Cases
+///
+/// Use the [`Visitor`] trait when you need to:
+/// - Analyze the HIR without modifying it
+/// - Collect information about nodes (e.g., find all variables of a certain type)
+/// - Validate semantic constraints
+/// - Perform type checking or other analyses
+///
+/// # Implementation
+///
+/// To implement a visitor:
+/// 1. Create a type that implements this trait
+/// 2. Override methods for the node types you want to process specially
+/// 3. When overriding a method, you can:
+///    - Process the node before/after visiting children
+///    - Selectively visit only certain children
+///    - Skip child traversal entirely
+///
+/// Due to the immutable, interned nature of the HIR, all references to HIR nodes
+/// have the same lifetime as the heap where they're allocated.
+///
+/// [`Fold`]: crate::fold::Fold
 pub trait Visitor<'heap> {
     #[expect(unused_variables, reason = "trait definition")]
     fn visit_id(&mut self, id: HirId) {
