@@ -5,7 +5,8 @@
     never_type,
     exhaustive_patterns,
     try_trait_v2,
-    associated_type_defaults
+    associated_type_defaults,
+    array_chunks
 )]
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
     exhaustive_patterns,

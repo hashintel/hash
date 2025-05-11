@@ -6,9 +6,9 @@ use hashql_core::{
 use crate::node::{Node, PartialNode};
 
 pub struct Interner<'heap> {
-    idents: InternSet<'heap, [Ident<'heap>]>,
-    nodes: InternSet<'heap, [Node<'heap>]>,
-    node: InternMap<'heap, Node<'heap>>,
+    pub idents: InternSet<'heap, [Ident<'heap>]>,
+    pub nodes: InternSet<'heap, [Node<'heap>]>,
+    pub node: InternMap<'heap, Node<'heap>>,
 }
 
 impl<'heap> Interner<'heap> {

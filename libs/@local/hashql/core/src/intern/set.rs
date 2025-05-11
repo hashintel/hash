@@ -1,5 +1,5 @@
 #![expect(clippy::type_repetition_in_bounds)]
-use core::{fmt::Debug, hash::Hash, hint::cold_path};
+use core::{hash::Hash, hint::cold_path};
 
 use super::Interned;
 use crate::{collection::ConcurrentHashSet, heap::Heap};
@@ -242,7 +242,7 @@ where
 
 impl<'heap, T> InternSet<'heap, [T]>
 where
-    T: Debug + Copy + Eq + Hash,
+    T: Copy + Eq + Hash,
 {
     /// Assertion that ensures T is not a zero-sized type.
     ///

@@ -1,10 +1,11 @@
+pub mod beef;
+pub mod nested;
+
 use core::ops::{FromResidual, Try};
 
-use hashql_core::{
-    collection::SmallVec, intern::Interned, span::SpanId, symbol::Ident, r#type::TypeId,
-};
+use hashql_core::{intern::Interned, span::SpanId, symbol::Ident, r#type::TypeId};
 
-use self::nested::NestedFilter;
+use self::{beef::Beef, nested::NestedFilter};
 use crate::{
     intern::Interner,
     node::{
@@ -26,31 +27,6 @@ use crate::{
     },
     path::QualifiedPath,
 };
-
-pub mod nested {
-    pub trait NestedFilter {
-        const DEEP: bool;
-        const LIST: bool;
-    }
-
-    pub struct Shallow(());
-    impl NestedFilter for Shallow {
-        const DEEP: bool = false;
-        const LIST: bool = false;
-    }
-
-    pub struct Deep(());
-    impl NestedFilter for Deep {
-        const DEEP: bool = true;
-        const LIST: bool = false;
-    }
-
-    pub struct DeepRecursive(());
-    impl NestedFilter for DeepRecursive {
-        const DEEP: bool = false;
-        const LIST: bool = true;
-    }
-}
 
 pub trait Fold<'heap> {
     type Residual;
@@ -235,21 +211,14 @@ pub fn walk_idents<'heap, T: Fold<'heap> + ?Sized>(
     visitor: &mut T,
     idents: Interned<'heap, [Ident<'heap>]>,
 ) -> T::Output<Interned<'heap, [Ident<'heap>]>> {
-    if !T::NestedFilter::LIST {
-        return Try::from_output(idents);
-    }
-
     if idents.is_empty() {
         return Try::from_output(idents);
     }
 
-    let mut replacement = SmallVec::with_capacity(idents.len());
+    let mut idents = Beef::new(idents);
+    idents.try_map::<_, T::Output<()>>(|ident| visitor.fold_ident(ident))?;
 
-    for &ident in idents {
-        replacement.push(visitor.fold_ident(ident)?);
-    }
-
-    Try::from_output(visitor.interner().intern_idents(&replacement))
+    Try::from_output(idents.finish(&visitor.interner().idents))
 }
 
 pub fn walk_qualified_path<'heap, T: Fold<'heap> + ?Sized>(
@@ -299,21 +268,14 @@ pub fn walk_nodes<'heap, T: Fold<'heap> + ?Sized>(
     visitor: &mut T,
     nodes: Interned<'heap, [Node<'heap>]>,
 ) -> T::Output<Interned<'heap, [Node<'heap>]>> {
-    if !T::NestedFilter::LIST {
-        return Try::from_output(nodes);
-    }
-
     if nodes.is_empty() {
         return Try::from_output(nodes);
     }
 
-    let mut replacement = SmallVec::with_capacity(nodes.len());
+    let mut nodes = Beef::new(nodes);
+    nodes.try_map::<_, T::Output<()>>(|node| visitor.fold_nested_node(node))?;
 
-    for node in nodes {
-        replacement.push(visitor.fold_nested_node(*node)?);
-    }
-
-    Try::from_output(visitor.interner().intern_nodes(&replacement))
+    Try::from_output(nodes.finish(&visitor.interner().nodes))
 }
 
 pub fn walk_data<'heap, T: Fold<'heap> + ?Sized>(
