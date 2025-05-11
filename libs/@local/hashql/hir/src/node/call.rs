@@ -15,6 +15,6 @@ use super::Node;
 pub struct Call<'heap> {
     pub span: SpanId,
 
-    pub function: Interned<'heap, Node<'heap>>,
+    pub function: Node<'heap>,
     pub arguments: Interned<'heap, [Node<'heap>]>,
 }

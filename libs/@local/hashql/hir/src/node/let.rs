@@ -1,4 +1,4 @@
-use hashql_core::{intern::Interned, span::SpanId, symbol::Ident};
+use hashql_core::{span::SpanId, symbol::Ident};
 
 use super::Node;
 
@@ -12,7 +12,7 @@ pub struct Let<'heap> {
     pub span: SpanId,
 
     pub name: Ident<'heap>,
-    pub value: Interned<'heap, Node<'heap>>,
+    pub value: Node<'heap>,
 
-    pub body: Interned<'heap, Node<'heap>>,
+    pub body: Node<'heap>,
 }

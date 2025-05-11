@@ -10,7 +10,11 @@ pub mod r#let;
 pub mod operation;
 pub mod variable;
 
-use hashql_core::{id, span::SpanId};
+use hashql_core::{
+    id::{self, HasId},
+    intern::{Decompose, Interned},
+    span::SpanId,
+};
 
 use self::kind::NodeKind;
 
@@ -58,6 +62,35 @@ impl HirId {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Node<'heap> {
     pub id: HirId,
+    pub span: SpanId,
+
+    pub kind: &'heap NodeKind<'heap>,
+}
+
+impl HasId for Node<'_> {
+    type Id = HirId;
+
+    fn id(&self) -> Self::Id {
+        self.id
+    }
+}
+
+impl<'heap> Decompose<'heap> for Node<'heap> {
+    type Partial = PartialNode<'heap>;
+
+    fn from_parts(id: Self::Id, partial: Interned<'heap, Self::Partial>) -> Self {
+        let Interned(partial, _) = partial;
+
+        Self {
+            id,
+            span: partial.span,
+            kind: &partial.kind,
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct PartialNode<'heap> {
     pub span: SpanId,
 
     pub kind: NodeKind<'heap>,

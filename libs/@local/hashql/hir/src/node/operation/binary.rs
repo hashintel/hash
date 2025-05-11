@@ -1,4 +1,4 @@
-use hashql_core::{intern::Interned, span::SpanId};
+use hashql_core::span::SpanId;
 
 use crate::node::Node;
 
@@ -71,6 +71,6 @@ pub struct BinaryOperation<'heap> {
     pub span: SpanId,
 
     pub op: BinOp,
-    pub left: Interned<'heap, Node<'heap>>,
-    pub right: Interned<'heap, Node<'heap>>,
+    pub left: Node<'heap>,
+    pub right: Node<'heap>,
 }

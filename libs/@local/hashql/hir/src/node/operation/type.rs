@@ -1,4 +1,4 @@
-use hashql_core::{intern::Interned, span::SpanId, r#type::TypeId};
+use hashql_core::{span::SpanId, r#type::TypeId};
 
 use crate::node::Node;
 
@@ -25,7 +25,7 @@ use crate::node::Node;
 pub struct TypeAssertion<'heap> {
     pub span: SpanId,
 
-    pub value: Interned<'heap, Node<'heap>>,
+    pub value: Node<'heap>,
     pub r#type: TypeId,
 
     pub force: bool,
@@ -43,7 +43,7 @@ pub struct TypeAssertion<'heap> {
 pub struct TypeConstructor<'heap> {
     pub span: SpanId,
 
-    pub value: Interned<'heap, Node<'heap>>,
+    pub value: Node<'heap>,
     pub r#type: TypeId,
 }
 

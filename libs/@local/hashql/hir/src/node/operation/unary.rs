@@ -1,4 +1,4 @@
-use hashql_core::{intern::Interned, span::SpanId};
+use hashql_core::span::SpanId;
 
 use crate::node::Node;
 
@@ -36,5 +36,5 @@ pub struct UnaryOperation<'heap> {
     pub span: SpanId,
 
     pub op: UnOp,
-    pub expr: Interned<'heap, Node<'heap>>,
+    pub expr: Node<'heap>,
 }

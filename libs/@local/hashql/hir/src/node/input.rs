@@ -1,4 +1,4 @@
-use hashql_core::{intern::Interned, span::SpanId, symbol::Ident, r#type::TypeId};
+use hashql_core::{span::SpanId, symbol::Ident, r#type::TypeId};
 
 use super::Node;
 
@@ -18,5 +18,5 @@ pub struct Input<'heap> {
 
     pub name: Ident<'heap>,
     pub r#type: TypeId,
-    pub default: Option<Interned<'heap, Node<'heap>>>,
+    pub default: Option<Node<'heap>>,
 }
