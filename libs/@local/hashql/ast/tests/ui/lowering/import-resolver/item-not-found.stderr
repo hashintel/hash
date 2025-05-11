@@ -9,7 +9,7 @@
    │ 
    │ Help: Check the spelling and ensure the item is exported and available in this context.
    │       
-   │       Possible alternatives are `lt`, `bit_not`, `sub` and 37 others.
+   │       Possible alternatives are `sqrt`, `lt`, `bit_not` and 46 others.
    │ 
    │ Note: Items must be defined and accessible from the importing location. Make sure the item exists and is public.
 ───╯
