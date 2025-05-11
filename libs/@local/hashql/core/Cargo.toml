@@ -24,13 +24,11 @@ text-size          = { workspace = true, public = true }
 # Private workspace dependencies
 
 # Private third-party dependencies
-archery        = { workspace = true }
 bitvec         = { workspace = true, features = ["alloc"] }
 bumpalo        = { workspace = true }
 derive_more    = { workspace = true, features = ["debug"] }
 ena            = { workspace = true }
 roaring        = { workspace = true, features = ["std", "simd"] }
-rpds           = { workspace = true }
 serde          = { workspace = true, optional = true, features = ["alloc", "derive"] }
 simple-mermaid = { workspace = true }
 strsim         = "0.11.1"
