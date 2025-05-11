@@ -25,7 +25,7 @@
 //!
 //! [`Cow`]: std::borrow::Cow
 
-use core::{hash::Hash, ops::Try};
+use core::{fmt, fmt::Debug, hash::Hash, ops::Try};
 
 use hashql_core::{
     collection::SmallVec,
@@ -55,7 +55,7 @@ enum BeefData<'heap, T> {
 /// every element, allowing zero-copy operations when no changes are needed.
 ///
 /// [`Cow`]: std::borrow::Cow
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Clone)]
 pub struct Beef<'heap, T>(BeefData<'heap, T>);
 
 impl<'heap, T> Beef<'heap, T>
@@ -346,6 +346,22 @@ where
             BeefData::Owned(slice) => interner.intern_slice(&slice),
             BeefData::Interned(slice) => slice,
         }
+    }
+}
+
+impl<T> Debug for Beef<'_, T>
+where
+    T: Debug,
+{
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let mut debug = fmt.debug_tuple("Beef");
+
+        match &self.0 {
+            BeefData::Owned(owned) => debug.field(owned),
+            BeefData::Interned(interned) => debug.field(interned),
+        };
+
+        debug.finish()
     }
 }
 
