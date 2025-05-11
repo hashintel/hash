@@ -361,6 +361,8 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
         successful &= self.import_absolute_static("↑", ["math", "pow"]);
         successful &= self.import_absolute_static("sqrt", ["math", "sqrt"]);
         successful &= self.import_absolute_static("√", ["math", "sqrt"]);
+        successful &= self.import_absolute_static("cbrt", ["math", "cbrt"]);
+        successful &= self.import_absolute_static("∛", ["math", "cbrt"]);
 
         // Bitwise operators
         successful &= self.import_absolute_static("&", ["math", "bit_and"]);

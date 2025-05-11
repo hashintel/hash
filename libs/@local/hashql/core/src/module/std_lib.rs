@@ -384,6 +384,11 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
                     // Square root
                     self.alloc_intrinsic_value(id, "::math::sqrt", None),
                     self.alloc_intrinsic_value(id, "::math::sqrt", Some("√")),
+                    // Cube Root
+                    self.alloc_intrinsic_value(id, "::math::cbrt", None),
+                    self.alloc_intrinsic_value(id, "::math::cbrt", Some("∛")),
+                    // Arbitrary Root
+                    self.alloc_intrinsic_value(id, "::math::root", None),
                     // Bitwise operations
                     self.alloc_intrinsic_value(id, "::math::bit_and", None),
                     self.alloc_intrinsic_value(id, "::math::bit_and", Some("&")),
