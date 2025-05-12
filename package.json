@@ -51,7 +51,7 @@
     "lint:constraints": "yarn constraints",
     "lint:eslint": "CARGO_TERM_PROGRESS_WHEN=never turbo --continue=always lint:eslint --",
     "lint:license-in-workspaces": "yarn workspace @local/repo-chores exe scripts/check-license-in-workspaces.ts",
-    "lint:markdownlint": "mise exec --env dev markdownlint-cli2-- markdownlint-cli2",
+    "lint:markdownlint": "mise exec --env dev markdownlint-cli2 -- markdownlint-cli2",
     "lint:format": "biome format",
     "lint:taplo": "taplo fmt --check",
     "lint:tsc": "mise run lint:tsc",
