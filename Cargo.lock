@@ -3867,6 +3867,7 @@ name = "hashql-hir"
 version = "0.0.0"
 dependencies = [
  "hashql-core",
+ "simple-mermaid",
 ]
 
 [[package]]
