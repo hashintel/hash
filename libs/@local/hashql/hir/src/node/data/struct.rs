@@ -11,7 +11,7 @@ use crate::node::Node;
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct StructField<'heap> {
     pub name: Ident<'heap>,
-    pub value: Interned<'heap, Node<'heap>>,
+    pub value: Node<'heap>,
 }
 
 /// A struct expression in the HashQL HIR.

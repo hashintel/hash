@@ -130,3 +130,12 @@ impl<'heap, T> IntoIterator for Interned<'heap, [T]> {
         self.0.iter()
     }
 }
+
+impl<'heap, T> IntoIterator for &Interned<'heap, [T]> {
+    type IntoIter = core::slice::Iter<'heap, T>;
+    type Item = &'heap T;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter()
+    }
+}

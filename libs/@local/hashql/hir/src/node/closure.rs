@@ -29,5 +29,5 @@ pub struct Closure<'heap> {
     pub span: SpanId,
 
     pub signature: ClosureSignature<'heap>,
-    pub body: Interned<'heap, Node<'heap>>,
+    pub body: Node<'heap>,
 }

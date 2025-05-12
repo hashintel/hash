@@ -32,5 +32,5 @@ pub struct Graph<'heap> {
 
     pub kind: GraphKind,
 
-    _marker: PhantomData<&'heap ()>,
+    pub _marker: PhantomData<&'heap ()>,
 }

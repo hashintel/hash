@@ -1,4 +1,4 @@
-use hashql_core::{intern::Interned, span::SpanId, symbol::Symbol};
+use hashql_core::{span::SpanId, symbol::Ident};
 
 use crate::node::Node;
 
@@ -9,6 +9,6 @@ use crate::node::Node;
 pub struct FieldAccess<'heap> {
     pub span: SpanId,
 
-    pub expr: Interned<'heap, Node<'heap>>,
-    pub field: Symbol<'heap>,
+    pub expr: Node<'heap>,
+    pub field: Ident<'heap>,
 }

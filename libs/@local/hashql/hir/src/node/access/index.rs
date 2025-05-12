@@ -1,4 +1,4 @@
-use hashql_core::{intern::Interned, span::SpanId};
+use hashql_core::span::SpanId;
 
 use crate::node::Node;
 
@@ -10,6 +10,6 @@ use crate::node::Node;
 pub struct IndexAccess<'heap> {
     pub span: SpanId,
 
-    pub expr: Interned<'heap, Node<'heap>>,
-    pub index: Interned<'heap, Node<'heap>>,
+    pub expr: Node<'heap>,
+    pub index: Node<'heap>,
 }

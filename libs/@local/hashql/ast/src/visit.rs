@@ -134,7 +134,7 @@ pub trait Visitor<'heap> {
         // do nothing, no fields to walk
     }
 
-    fn visit_ident(&mut self, ident: &mut Ident) {
+    fn visit_ident(&mut self, ident: &mut Ident<'heap>) {
         walk_ident(self, ident);
     }
 
@@ -254,7 +254,7 @@ pub trait Visitor<'heap> {
         walk_use_expr(self, expr);
     }
 
-    fn visit_use_expr_binding(&mut self, binding: &mut UseBinding) {
+    fn visit_use_expr_binding(&mut self, binding: &mut UseBinding<'heap>) {
         walk_use_expr_binding(self, binding);
     }
 
@@ -737,7 +737,7 @@ pub fn walk_use_expr_binding<'heap, T: Visitor<'heap> + ?Sized>(
         span,
         name,
         alias,
-    }: &mut UseBinding,
+    }: &mut UseBinding<'heap>,
 ) {
     visitor.visit_id(id);
     visitor.visit_span(span);

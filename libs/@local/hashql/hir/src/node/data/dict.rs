@@ -9,8 +9,8 @@ use crate::node::Node;
 /// rather than static identifiers, allowing for runtime-determined property access.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct DictField<'heap> {
-    pub key: Interned<'heap, Node<'heap>>,
-    pub value: Interned<'heap, Node<'heap>>,
+    pub key: Node<'heap>,
+    pub value: Node<'heap>,
 }
 
 /// A dictionary expression in the HashQL HIR.
