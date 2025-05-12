@@ -1,4 +1,4 @@
-use hashql_core::symbol::Symbol;
+use crate::symbol::Symbol;
 
 /// A literal representation of a string value.
 ///

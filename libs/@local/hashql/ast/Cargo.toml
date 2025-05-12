@@ -20,7 +20,6 @@ derive_more             = { workspace = true, features = ["display"] }
 enum-iterator.workspace = true
 foldhash                = { workspace = true }
 hashbrown               = { workspace = true }
-lexical                 = { workspace = true, features = ["parse-integers", "parse-floats", "format"] }
 simple-mermaid          = { workspace = true }
 strsim                  = "0.11.1"
 tracing.workspace       = true

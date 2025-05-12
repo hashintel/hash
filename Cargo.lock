@@ -3777,7 +3777,6 @@ dependencies = [
  "hashql-compiletest",
  "hashql-core",
  "hashql-diagnostics",
- "lexical",
  "simple-mermaid",
  "strsim",
  "tracing",
@@ -3831,6 +3830,7 @@ dependencies = [
  "hashbrown 0.15.3",
  "hashql-diagnostics",
  "insta",
+ "lexical",
  "orx-concurrent-vec",
  "pretty",
  "roaring",
@@ -3865,6 +3865,10 @@ dependencies = [
 [[package]]
 name = "hashql-hir"
 version = "0.0.0"
+dependencies = [
+ "hashql-core",
+ "simple-mermaid",
+]
 
 [[package]]
 name = "hashql-syntax-jexpr"

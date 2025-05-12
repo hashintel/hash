@@ -1,11 +1,57 @@
-pub mod float;
-pub mod integer;
-pub mod string;
-
-use hashql_core::{heap, span::SpanId};
-
+//! Literal value representations for the HashQL language.
+//!
+//! This module provides representations for all literal types that can appear in
+//! HashQL source code. Each literal type preserves its original textual representation
+//! to maintain precision and avoid data loss during parsing and manipulation.
+//!
+//! The literals in this module adhere to the JSON specification (RFC 8259) for
+//! their string representation and provide convenient conversion methods to standard
+//! Rust types when needed.
+//!
+//! # Design
+//!
+//! All literal types in this module:
+//! - Preserve the exact textual representation from the source
+//! - Store their values as interned symbols
+//! - Provide conversion methods to standard Rust primitive types
+//! - Handle potential precision and overflow concerns
+//!
+//! # Examples
+//!
+//! Using integer literals:
+//! ```
+//! # use hashql_core::{heap::Heap, literal::IntegerLiteral};
+//! # let heap = Heap::new();
+//! let int_literal = IntegerLiteral {
+//!     value: heap.intern_symbol("42"),
+//! };
+//!
+//! assert_eq!(int_literal.as_i32(), Some(42));
+//! assert_eq!(int_literal.as_f64(), 42.0);
+//! ```
+//!
+//! Using float literals:
+//! ```
+//! # use hashql_core::{heap::Heap, literal::FloatLiteral};
+//! # let heap = Heap::new();
+//! let float_literal = FloatLiteral {
+//!     value: heap.intern_symbol("3.14159"),
+//! };
+//!
+//! assert!((float_literal.as_f64() - 3.14159).abs() < f64::EPSILON);
+//! ```
+//!
+//! # Provided Types
+//!
+//! - [`LiteralKind`]: An enum representing all possible literal kinds
+//! - [`IntegerLiteral`]: Representation of integer literals
+//! - [`FloatLiteral`]: Representation of floating-point literals
+//! - [`StringLiteral`]: Representation of string literals
 pub use self::{float::FloatLiteral, integer::IntegerLiteral, string::StringLiteral};
-use crate::node::{id::NodeId, r#type::Type};
+
+mod float;
+mod integer;
+mod string;
 
 /// Represents the different kinds of literal values in the language.
 ///
@@ -118,41 +164,4 @@ pub enum LiteralKind<'heap> {
     /// "world"
     /// ```
     String(StringLiteral<'heap>),
-}
-
-/// A literal expression in the HashQL Abstract Syntax Tree.
-///
-/// Represents a constant value directly expressed in the source code.
-/// Literals are the most basic form of expressions and produce a value
-/// without any computation.
-///
-/// Each literal has a type that describes its data type in the type system,
-/// which is used for type checking and inference.
-///
-/// # Examples
-///
-/// ## J-Expr
-///
-/// ```json
-/// {"#literal": 123}
-/// {"#literal": "hello"}
-/// {"#literal": true}
-/// {"#literal": null}
-/// ```
-///
-/// ## Documentation Format
-///
-/// ```text
-/// 123
-/// "hello"
-/// true
-/// null
-/// ```
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct LiteralExpr<'heap> {
-    pub id: NodeId,
-    pub span: SpanId,
-
-    pub kind: LiteralKind<'heap>,
-    pub r#type: Option<heap::Box<'heap, Type<'heap>>>,
 }
