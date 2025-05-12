@@ -30,7 +30,7 @@ use futures::{SinkExt as _, channel::mpsc::Sender};
 use hash_codec::numeric::Real;
 use hash_graph_authorization::{
     AuthorizationApiPool,
-    policies::store::PrincipalStore,
+    policies::store::{PolicyStore, PrincipalStore},
     schema::{
         AccountGroupPermission, DataTypePermission, EntityPermission, EntityTypePermission,
         PropertyTypePermission,
@@ -197,7 +197,7 @@ fn api_resources<S, A>() -> Vec<Router>
 where
     S: StorePool + Send + Sync + 'static,
     A: AuthorizationApiPool + Send + Sync + 'static,
-    for<'pool, 'api> S::Store<'pool, A::Api<'api>>: RestApiStore + PrincipalStore,
+    for<'pool, 'api> S::Store<'pool, A::Api<'api>>: RestApiStore + PrincipalStore + PolicyStore,
 {
     vec![
         actor::ActorResource::routes::<S, A>(),
@@ -366,7 +366,7 @@ pub fn rest_api_router<S, A>(dependencies: RestRouterDependencies<S, A>) -> Rout
 where
     S: StorePool + Send + Sync + 'static,
     A: AuthorizationApiPool + Send + Sync + 'static,
-    for<'p, 'a> S::Store<'p, A::Api<'a>>: RestApiStore + PrincipalStore,
+    for<'p, 'a> S::Store<'p, A::Api<'a>>: RestApiStore + PrincipalStore + PolicyStore,
 {
     // All api resources are merged together into a super-router.
     let merged_routes = api_resources::<S, A>()
