@@ -1805,7 +1805,7 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
         Ok(response)
     }
 
-    async fn find_web(
+    async fn get_web_by_id(
         &mut self,
         _actor_id: ActorEntityUuid,
         web_id: WebId,
@@ -1842,7 +1842,7 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
         }))
     }
 
-    async fn find_web_by_shortname(
+    async fn get_web_by_shortname(
         &mut self,
         _actor_id: ActorEntityUuid,
         shortname: &str,
@@ -1960,7 +1960,7 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
         }
     }
 
-    async fn find_team_by_name(
+    async fn get_team_by_name(
         &mut self,
         _actor_id: ActorEntityUuid,
         name: &str,
