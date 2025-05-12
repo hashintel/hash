@@ -10,8 +10,8 @@
    │       Perhaps you meant one of these imported items?
    │         - `List`
    │         - `Dict`
-   │         - `input`
-   │         - and 41 more imported items
+   │         - `cbrt`
+   │         - and 48 more imported items
    │       
    │       Additionally, items with a similar name exist in other modules:
    │         - `::math::bit_shl`

@@ -292,6 +292,7 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
     /// - Comparison operators (==, !=, <, >, etc.)
     ///
     /// In debug builds, this function asserts that all prelude imports are successful.
+    #[expect(clippy::non_ascii_literal)]
     pub fn import_prelude(&mut self) {
         self.import_modules();
 
@@ -354,12 +355,19 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
         successful &= self.import_absolute_static("-", ["math", "sub"]);
         successful &= self.import_absolute_static("*", ["math", "mul"]);
         successful &= self.import_absolute_static("/", ["math", "div"]);
-        successful &= self.import_absolute_static("%", ["math", "mod"]);
-        successful &= self.import_absolute_static("^", ["math", "pow"]);
+        successful &= self.import_absolute_static("%", ["math", "rem"]);
+        successful &= self.import_absolute_static("mod", ["math", "mod"]);
+        successful &= self.import_absolute_static("**", ["math", "pow"]);
+        successful &= self.import_absolute_static("↑", ["math", "pow"]);
+        successful &= self.import_absolute_static("sqrt", ["math", "sqrt"]);
+        successful &= self.import_absolute_static("√", ["math", "sqrt"]);
+        successful &= self.import_absolute_static("cbrt", ["math", "cbrt"]);
+        successful &= self.import_absolute_static("∛", ["math", "cbrt"]);
 
         // Bitwise operators
         successful &= self.import_absolute_static("&", ["math", "bit_and"]);
         successful &= self.import_absolute_static("|", ["math", "bit_or"]);
+        successful &= self.import_absolute_static("^", ["math", "bit_xor"]);
         successful &= self.import_absolute_static("~", ["math", "bit_not"]);
         successful &= self.import_absolute_static("<<", ["math", "bit_shl"]);
         successful &= self.import_absolute_static(">>", ["math", "bit_shr"]);

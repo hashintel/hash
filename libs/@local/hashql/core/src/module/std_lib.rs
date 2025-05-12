@@ -351,6 +351,7 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
         })
     }
 
+    #[expect(clippy::non_ascii_literal)]
     fn math_module(&self) -> ModuleId {
         self.registry.intern_module(|id| {
             let id = id.value();
@@ -371,17 +372,30 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
                     // Division
                     self.alloc_intrinsic_value(id, "::math::div", None),
                     self.alloc_intrinsic_value(id, "::math::div", Some("/")),
+                    // Remainder
+                    self.alloc_intrinsic_value(id, "::math::rem", None),
+                    self.alloc_intrinsic_value(id, "::math::rem", Some("%")),
                     // Modulo
                     self.alloc_intrinsic_value(id, "::math::mod", None),
-                    self.alloc_intrinsic_value(id, "::math::mod", Some("%")),
                     // Power
                     self.alloc_intrinsic_value(id, "::math::pow", None),
-                    self.alloc_intrinsic_value(id, "::math::pow", Some("^")),
+                    self.alloc_intrinsic_value(id, "::math::pow", Some("**")),
+                    self.alloc_intrinsic_value(id, "::math::pow", Some("↑")),
+                    // Square root
+                    self.alloc_intrinsic_value(id, "::math::sqrt", None),
+                    self.alloc_intrinsic_value(id, "::math::sqrt", Some("√")),
+                    // Cube Root
+                    self.alloc_intrinsic_value(id, "::math::cbrt", None),
+                    self.alloc_intrinsic_value(id, "::math::cbrt", Some("∛")),
+                    // Arbitrary Root
+                    self.alloc_intrinsic_value(id, "::math::root", None),
                     // Bitwise operations
                     self.alloc_intrinsic_value(id, "::math::bit_and", None),
                     self.alloc_intrinsic_value(id, "::math::bit_and", Some("&")),
                     self.alloc_intrinsic_value(id, "::math::bit_or", None),
                     self.alloc_intrinsic_value(id, "::math::bit_or", Some("|")),
+                    self.alloc_intrinsic_value(id, "::math::bit_xor", None),
+                    self.alloc_intrinsic_value(id, "::math::bit_xor", Some("^")),
                     self.alloc_intrinsic_value(id, "::math::bit_not", None),
                     self.alloc_intrinsic_value(id, "::math::bit_not", Some("~")),
                     self.alloc_intrinsic_value(id, "::math::bit_shl", None),
