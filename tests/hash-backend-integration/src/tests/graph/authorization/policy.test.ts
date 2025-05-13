@@ -1,7 +1,6 @@
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
 import { Logger } from "@local/hash-backend-utils/logger";
 import {
   createPolicy,
@@ -14,7 +13,6 @@ import {
 import type {
   Policy,
   PolicyCreationParams,
-  PolicyId,
 } from "@rust/hash-graph-authorization/types";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -182,6 +180,7 @@ describe("Policy CRUD", () => {
         },
       ],
     );
+    // The original policy should be restored
     expect(updatedPolicy).toStrictEqual(testPolicy);
   });
 
