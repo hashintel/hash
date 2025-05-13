@@ -12,7 +12,7 @@ use super::{
     variable::{VariableId, VariableLookup},
 };
 use crate::{
-    collection::FastHashMap,
+    collection::{FastHashMap, SmallVec},
     r#type::{
         PartialType, TypeId,
         environment::{Diagnostics, Environment, LatticeEnvironment, SimplifyEnvironment},
@@ -178,31 +178,40 @@ struct VariableOrdering {
 /// This aggregates all the equality, lower bound, and upper bound constraints
 /// for efficient processing during constraint solving.
 #[derive(Debug, PartialEq, Eq, Default)]
-struct VariableConstraint<L, R> {
+struct VariableConstraint {
     /// The exact type this variable must equal, if such a constraint exists
     equal: Option<TypeId>,
     /// Lower bound constraints (variable must be a supertype of these types)
-    lower: L,
+    lower: SmallVec<TypeId>,
     /// Upper bound constraints (variable must be a subtype of these types)
-    upper: R,
+    upper: SmallVec<TypeId>,
 }
 
-/// Constraint with unprocessed collections of lower and upper bounds.
-///
-/// Used during the initial phase of constraint collection before bounds are resolved.
-type UnresolvedVariableConstraint = VariableConstraint<Vec<TypeId>, Vec<TypeId>>;
+impl VariableConstraint {
+    fn finish(&self) -> EvaluatedVariableConstraint {
+        debug_assert!(
+            self.lower.len() <= 1,
+            "lower bound should be either empty or contain exactly one type"
+        );
+        debug_assert!(
+            self.upper.len() <= 1,
+            "upper bound should be either empty or contain exactly one type"
+        );
 
-/// Constraint with a resolved lower bound but unresolved upper bounds.
-///
-/// Used during the forward pass of constraint resolution when lower bounds
-/// have been processed but upper bounds are still being collected.
-type LowerResolvedVariableConstraint = VariableConstraint<Option<TypeId>, Vec<TypeId>>;
+        EvaluatedVariableConstraint {
+            equal: self.equal,
+            lower: self.lower.first().copied(),
+            upper: self.upper.last().copied(),
+        }
+    }
+}
 
-/// Fully resolved constraint with at most one lower and one upper bound.
-///
-/// The final form of constraints after both forward and backward passes,
-/// ready for final solving and validation.
-type ResolvedVariableConstraint = VariableConstraint<Option<TypeId>, Option<TypeId>>;
+#[derive(Debug, PartialEq, Eq, Default)]
+struct EvaluatedVariableConstraint {
+    equal: Option<TypeId>,
+    lower: Option<TypeId>,
+    upper: Option<TypeId>,
+}
 
 /// The main type inference solver that resolves constraints to determine concrete types.
 ///
@@ -345,10 +354,8 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     /// A map from variable kinds to their associated constraints, with each entry
     /// containing both the original variable (for error reporting) and the unresolved
     /// constraint information.
-    fn collect_constraints(
-        &mut self,
-    ) -> FastHashMap<VariableKind, (Variable, UnresolvedVariableConstraint)> {
-        let mut constraints: FastHashMap<VariableKind, (Variable, UnresolvedVariableConstraint)> =
+    fn collect_constraints(&mut self) -> FastHashMap<VariableKind, (Variable, VariableConstraint)> {
+        let mut constraints: FastHashMap<VariableKind, (Variable, VariableConstraint)> =
             FastHashMap::with_capacity_and_hasher(
                 self.unification.variables.len(),
                 foldhash::fast::RandomState::default(),
@@ -434,10 +441,10 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     /// # Returns
     ///
     /// A substitution map that maps variables to their equal types
-    fn apply_constraints_prepare_substitution<L, H>(
+    fn apply_constraints_prepare_substitution(
         &mut self,
         graph: &Graph,
-        variables: &FastHashMap<VariableKind, (Variable, VariableConstraint<L, H>)>,
+        variables: &FastHashMap<VariableKind, (Variable, VariableConstraint)>,
     ) -> Substitution {
         let mut substitution = Substitution::new(
             self.unification.lookup(),
@@ -533,8 +540,8 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     fn apply_constraints_forwards(
         &mut self,
         graph: &Graph,
-        mut variables: FastHashMap<VariableKind, (Variable, UnresolvedVariableConstraint)>,
-    ) -> FastHashMap<VariableKind, (Variable, LowerResolvedVariableConstraint)> {
+        mut variables: FastHashMap<VariableKind, (Variable, VariableConstraint)>,
+    ) -> FastHashMap<VariableKind, (Variable, VariableConstraint)> {
         let mut constraints = FastHashMap::with_capacity_and_hasher(
             variables.len(),
             foldhash::fast::RandomState::default(),
@@ -625,7 +632,8 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                     variable,
                     VariableConstraint {
                         equal,
-                        lower,
+                        lower: lower
+                            .map_or_else(SmallVec::new, |lower| SmallVec::from_slice(&[lower])),
                         upper,
                     },
                 ),
@@ -654,8 +662,8 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     fn apply_constraints_backwards(
         &mut self,
         graph: &Graph,
-        mut variables: FastHashMap<VariableKind, (Variable, LowerResolvedVariableConstraint)>,
-    ) -> FastHashMap<VariableKind, (Variable, ResolvedVariableConstraint)> {
+        mut variables: FastHashMap<VariableKind, (Variable, VariableConstraint)>,
+    ) -> FastHashMap<VariableKind, (Variable, VariableConstraint)> {
         let mut constraints = FastHashMap::with_capacity_and_hasher(
             variables.len(),
             foldhash::fast::RandomState::default(),
@@ -747,7 +755,8 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                     VariableConstraint {
                         equal,
                         lower,
-                        upper,
+                        upper: upper
+                            .map_or_else(SmallVec::new, |upper| SmallVec::from_slice(&[upper])),
                     },
                 ),
             );
@@ -779,7 +788,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     fn apply_constraints(
         &mut self,
         graph: &Graph,
-    ) -> FastHashMap<VariableKind, (Variable, ResolvedVariableConstraint)> {
+    ) -> FastHashMap<VariableKind, (Variable, VariableConstraint)> {
         // First collect all constraints by variable
         let constraints = self.collect_constraints();
 
@@ -803,7 +812,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     /// A map of variables to their inferred types
     fn solve_constraints(
         &mut self,
-        constraints: FastHashMap<VariableKind, (Variable, ResolvedVariableConstraint)>,
+        constraints: &FastHashMap<VariableKind, (Variable, VariableConstraint)>,
     ) -> FastHashMap<VariableKind, TypeId> {
         let mut substitutions = FastHashMap::default();
 
@@ -817,7 +826,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
             ),
         );
 
-        for (&kind, (_, constraint)) in &constraints {
+        for (&kind, (_, constraint)) in constraints {
             if let Some(constraint) = constraint.equal {
                 substitution.insert(kind, constraint);
             }
@@ -829,10 +838,13 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         // again *or* do it in a specific order. The substitutions have already been applied for the
         // lower and upper bounds respectively.
 
-        for (kind, (variable, constraint)) in constraints {
+        for (&kind, (variable, constraint)) in constraints {
+            let variable = *variable;
+            let constraint = constraint.finish();
+
             // First, verify that lower and upper bounds are compatible
             // (i.e., lower <: upper)
-            if let VariableConstraint {
+            if let EvaluatedVariableConstraint {
                 equal: _,
                 lower: Some(lower),
                 upper: Some(upper),
@@ -853,7 +865,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
             // Handle different constraint patterns to determine the final type
             match constraint {
                 // If there's no constraint, we can't infer anything
-                VariableConstraint {
+                EvaluatedVariableConstraint {
                     equal: None,
                     lower: None,
                     upper: None,
@@ -861,24 +873,24 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                     self.diagnostics.push(unconstrained_type_variable(variable));
                 }
                 // in case there's a single constraint we can simply just use that type
-                VariableConstraint {
+                EvaluatedVariableConstraint {
                     equal: Some(constraint),
                     lower: None,
                     upper: None,
                 }
-                | VariableConstraint {
+                | EvaluatedVariableConstraint {
                     equal: None,
                     lower: Some(constraint),
                     upper: None,
                 }
-                | VariableConstraint {
+                | EvaluatedVariableConstraint {
                     equal: None,
                     lower: None,
                     upper: Some(constraint),
                 } => {
                     substitutions.insert(kind, constraint);
                 }
-                VariableConstraint {
+                EvaluatedVariableConstraint {
                     equal: Some(equal),
                     lower,
                     upper,
@@ -913,7 +925,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
 
                     substitutions.insert(kind, equal);
                 }
-                VariableConstraint {
+                EvaluatedVariableConstraint {
                     equal: None,
                     lower: Some(lower),
                     upper: Some(_),
@@ -939,10 +951,10 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     /// Any error that is encountered during this process is deemed a compiler bug, as we have no
     /// span to associate with the error. This should usually never happen, as step 1 ensures every
     /// variable is registered.
-    fn verify_constrained<L, U>(
+    fn verify_constrained(
         &mut self,
         lookup: &VariableLookup,
-        constraints: &FastHashMap<VariableKind, (Variable, VariableConstraint<L, U>)>,
+        constraints: &FastHashMap<VariableKind, (Variable, VariableConstraint)>,
     ) {
         for &variable in &self.unification.variables {
             let root = lookup[variable];
@@ -1018,7 +1030,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         self.verify_constrained(&lookup, &constraints);
 
         // Step 6: Validate constraints and determine final types
-        let mut substitution = self.solve_constraints(constraints);
+        let mut substitution = self.solve_constraints(&constraints);
 
         // Step 7: Simplify the final substitutions
         self.simplify_substitutions(lookup.clone(), &mut substitution);

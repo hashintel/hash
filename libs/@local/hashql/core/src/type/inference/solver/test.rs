@@ -1,6 +1,6 @@
 use super::{Constraint, InferenceSolver, VariableConstraint};
 use crate::{
-    collection::FastHashMap,
+    collection::{FastHashMap, SmallVec},
     heap::Heap,
     span::SpanId,
     r#type::{
@@ -214,8 +214,8 @@ fn apply_constraints() {
         .expect("Should have one constraint");
 
     // Check that the constraint has the correct bounds
-    assert_eq!(constraint.lower, Some(string));
-    assert_eq!(constraint.upper, Some(number));
+    assert_eq!(constraint.lower, [string]);
+    assert_eq!(constraint.upper, [number]);
 }
 
 #[test]
@@ -251,8 +251,8 @@ fn apply_constraints_equality() {
         *constraint,
         VariableConstraint {
             equal: Some(string),
-            lower: None,
-            upper: None
+            lower: SmallVec::new(),
+            upper: SmallVec::new()
         }
     );
 }
@@ -305,8 +305,8 @@ fn apply_constraints_with_unification() {
         *constraint,
         VariableConstraint {
             equal: Some(string),
-            lower: None,
-            upper: Some(number),
+            lower: SmallVec::new(),
+            upper: SmallVec::from_slice(&[number]),
         }
     );
 }
@@ -326,15 +326,15 @@ fn solve_constraints() {
     let mut applied_constraints = FastHashMap::default();
     let constraint = VariableConstraint {
         equal: None,
-        lower: Some(string),
-        upper: Some(unknown),
+        lower: SmallVec::from_slice(&[string]),
+        upper: SmallVec::from_slice(&[unknown]),
     };
     applied_constraints.insert(variable.kind, (variable, constraint));
 
     let mut solver = InferenceSolver::new(&env, Unification::new(), vec![]);
 
     // Directly call solve_constraints
-    let substitutions = solver.solve_constraints(applied_constraints);
+    let substitutions = solver.solve_constraints(&applied_constraints);
 
     // Verify the substitution
     assert_eq!(substitutions.len(), 1);
@@ -355,14 +355,14 @@ fn solve_constraints_with_equality() {
     let mut applied_constraints = FastHashMap::default();
     let vc = VariableConstraint {
         equal: Some(string),
-        lower: None,
-        upper: None,
+        lower: SmallVec::new(),
+        upper: SmallVec::new(),
     };
     applied_constraints.insert(var.kind, (var, vc));
 
     let mut solver = InferenceSolver::new(&env, Unification::new(), vec![]);
 
-    let substitutions = solver.solve_constraints(applied_constraints);
+    let substitutions = solver.solve_constraints(&applied_constraints);
 
     assert_eq!(substitutions.len(), 1);
     assert_eq!(substitutions[&var.kind], string);
@@ -383,15 +383,15 @@ fn solve_constraints_with_incompatible_bounds() {
     let mut applied_constraints = FastHashMap::default();
     let vc = VariableConstraint {
         equal: None,
-        lower: Some(string),
-        upper: Some(number),
+        lower: SmallVec::from_slice(&[string]),
+        upper: SmallVec::from_slice(&[number]),
     };
     applied_constraints.insert(var.kind, (var, vc));
 
     let mut solver = InferenceSolver::new(&env, Unification::new(), vec![]);
 
     // These bounds are incompatible, so a diagnostic should be created
-    solver.solve_constraints(applied_constraints);
+    solver.solve_constraints(&applied_constraints);
 
     let diagnostics = solver.diagnostics.into_vec();
     assert_eq!(diagnostics.len(), 1);
@@ -417,14 +417,14 @@ fn solve_constraints_with_incompatible_equality() {
     let mut applied_constraints = FastHashMap::default();
     let vc = VariableConstraint {
         equal: Some(string),
-        lower: Some(number),
-        upper: None,
+        lower: SmallVec::from_slice(&[number]),
+        upper: SmallVec::new(),
     };
     applied_constraints.insert(var.kind, (var, vc));
 
     let mut solver = InferenceSolver::new(&env, Unification::new(), vec![]);
 
-    solver.solve_constraints(applied_constraints);
+    solver.solve_constraints(&applied_constraints);
 
     let diagnostics = solver.diagnostics.into_vec();
     assert_eq!(diagnostics.len(), 1);
@@ -450,15 +450,15 @@ fn solve_constraints_with_incompatible_upper_equal_constraint() {
     let mut applied_constraints = FastHashMap::default();
     let vc = VariableConstraint {
         equal: Some(string),
-        lower: None,
-        upper: Some(number),
+        lower: SmallVec::new(),
+        upper: SmallVec::from_slice(&[number]),
     };
     applied_constraints.insert(var.kind, (var, vc));
 
     let mut solver = InferenceSolver::new(&env, Unification::new(), vec![]);
 
     // This should exercise lines 916-929
-    solver.solve_constraints(applied_constraints);
+    solver.solve_constraints(&applied_constraints);
 
     // Should have a diagnostic for incompatible upper equal constraint
     let diagnostics = solver.diagnostics.into_vec();
@@ -689,11 +689,11 @@ fn bounds_at_lattice_extremes() {
 
     assert_eq!(applied.len(), 1);
     let (_, (_, constraint)) = applied.iter().next().expect("Should have one constraint");
-    assert_eq!(constraint.lower, Some(never));
-    assert_eq!(constraint.upper, Some(unknown));
+    assert_eq!(constraint.lower, [never]);
+    assert_eq!(constraint.upper, [unknown]);
 
     // These bounds should be compatible
-    let substitutions = solver.solve_constraints(applied);
+    let substitutions = solver.solve_constraints(&applied);
     assert!(solver.diagnostics.is_empty());
 
     // The variable should be inferred to the lower bound (Never)
