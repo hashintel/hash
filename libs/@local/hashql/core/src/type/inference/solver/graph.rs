@@ -4,13 +4,18 @@ use roaring::RoaringBitmap;
 use super::Unification;
 use crate::r#type::inference::variable::VariableId;
 
+#[derive(Debug, Clone)]
+struct Node {
+    id: VariableId,
+    edges: RoaringBitmap,
+}
+
 /// A graph representation of the type variables and their relationships.
 ///
 /// Simple compact adjacency list representation of the graph.
 #[derive(Debug, Clone)]
 pub(crate) struct Graph {
-    roots: Vec<VariableId>,
-    edges: Vec<RoaringBitmap>,
+    nodes: Vec<Node>,
 
     // Maps variable IDs to their index in the above vectors, the position corresponds to the index
     // of the variable.
@@ -32,8 +37,7 @@ impl Graph {
         );
 
         let mut index = 0;
-        let mut roots = Vec::with_capacity(length);
-        let mut edges = Vec::with_capacity(length);
+        let mut nodes = Vec::with_capacity(length);
         let mut lookup = Vec::with_capacity(length);
         lookup.resize(length, Self::SENTINEL);
 
@@ -46,8 +50,10 @@ impl Graph {
             if lookup[root.into_usize()] == Self::SENTINEL {
                 lookup[root.into_usize()] = index;
 
-                roots.push(root);
-                edges.push(RoaringBitmap::new());
+                nodes.push(Node {
+                    id: root,
+                    edges: RoaringBitmap::new(),
+                });
 
                 index += 1;
             }
@@ -55,61 +61,46 @@ impl Graph {
             lookup[id.into_usize()] = lookup[root.into_usize()];
         }
 
-        Self {
-            roots,
-            edges,
-            lookup,
-        }
+        Self { nodes, lookup }
     }
 
     #[cfg(test)]
     pub(crate) fn from_edges(
         nodes: impl IntoIterator<Item: AsRef<[u32]>, IntoIter: ExactSizeIterator>,
     ) -> Self {
-        let nodes = nodes.into_iter();
-        let node_count = nodes.len();
+        let iter = nodes.into_iter();
+        let node_count = iter.len();
 
-        let mut roots = Vec::with_capacity(node_count);
-        let mut edges = Vec::with_capacity(node_count);
+        let mut nodes = Vec::with_capacity(node_count);
         let mut lookup = Vec::with_capacity(node_count);
 
-        // The lookup is always 1:1
-        let mut index = 0;
-        lookup.resize_with(node_count, || {
-            let current = index;
-            index += 1;
-            current
-        });
-
         #[expect(clippy::cast_possible_truncation)]
-        for (index, node) in nodes.enumerate() {
-            roots.push(VariableId::from_index(index as u32));
-
+        for (index, node) in iter.enumerate() {
             let mut bitmap = RoaringBitmap::new();
             for &edge in node.as_ref() {
                 bitmap.insert(edge);
             }
 
-            edges.push(bitmap);
+            nodes.push(Node {
+                id: VariableId::from_index(index as u32),
+                edges: bitmap,
+            });
+            lookup.push(index);
         }
 
-        Self {
-            roots,
-            edges,
-            lookup,
-        }
+        Self { nodes, lookup }
     }
 
     pub(crate) fn nodes(&self) -> impl Iterator<Item = VariableId> {
-        self.roots.iter().copied()
+        self.nodes.iter().map(|node| node.id)
     }
 
     pub(crate) fn node(&self, index: usize) -> VariableId {
-        self.roots[index]
+        self.nodes[index].id
     }
 
     pub(crate) const fn node_count(&self) -> usize {
-        self.roots.len()
+        self.nodes.len()
     }
 
     #[inline]
@@ -133,10 +124,10 @@ impl Graph {
             return;
         }
 
-        self.edges[source_index].insert(target_index as u32);
+        self.nodes[source_index].edges.insert(target_index as u32);
     }
 
     pub(crate) fn outgoing_edges_by_index(&self, node: usize) -> impl Iterator<Item = usize> {
-        self.edges[node].iter().map(|edge| edge as usize)
+        self.nodes[node].edges.iter().map(|edge| edge as usize)
     }
 }
