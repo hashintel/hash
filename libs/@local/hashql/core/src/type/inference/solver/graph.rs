@@ -84,8 +84,6 @@ impl Graph {
     /// - Time: O(E + V), where E is the number of edges and V is the number of nodes
     /// - Space: O(V) for temporary data structures
     pub(crate) fn condense(&mut self, unification: &mut Unification) {
-        // Maps from root variable ID to new index in the condensed graph
-        let mut root_to_new_index = vec![Self::SENTINEL; self.nodes.len()];
         // Maps from old node index to new node index
         let mut old_to_new_index = vec![Self::SENTINEL; self.nodes.len()];
 
@@ -93,7 +91,6 @@ impl Graph {
         // it's important that this step happens at the beginning, before representatives are
         // populated, as otherwise we might map to the wrong root
         let mut current = 0;
-        #[expect(clippy::needless_range_loop)]
         for index in 0..self.nodes.len() {
             let node_id = self.nodes[index].id;
             let root_id = unification.table.find(node_id);
@@ -103,8 +100,9 @@ impl Graph {
             }
 
             self.nodes.swap(current, index);
-            root_to_new_index[root_id.into_usize()] = current;
-            old_to_new_index[index] = current;
+            // Re-use `self.lookup`, note that this means that `self.lookup` is now in a partially
+            // invalid state, which will be fixed at the end.
+            self.lookup[root_id.into_usize()] = current;
 
             current += 1;
         }
@@ -115,10 +113,11 @@ impl Graph {
 
         for (index, node) in self.nodes.iter().enumerate() {
             let root = unification.table.find(node.id);
-            let root_index = root_to_new_index[root.into_usize()];
+            let root_index = self.lookup[root.into_usize()];
             debug_assert_ne!(root_index, Self::SENTINEL);
 
             representatives[index] = root_index;
+            old_to_new_index[index] = root_index;
         }
 
         // Merge subordinate edges up into their representative
@@ -163,9 +162,18 @@ impl Graph {
         self.nodes.truncate(current);
 
         // Regenerate the lookup table to map variable IDs to their new indices
-        for index in &mut self.lookup {
-            *index = old_to_new_index[*index];
-            debug_assert_ne!(*index, Self::SENTINEL);
+        for (index, variable_root) in self.lookup.iter_mut().enumerate() {
+            let id = VariableId::from_index(index as u32);
+            let root = unification.table.find(id);
+
+            if id == root {
+                // We have already updated this entry before, therefore doing it again would lead to
+                // a discrepancy.
+                continue;
+            }
+
+            *variable_root = old_to_new_index[*variable_root];
+            debug_assert_ne!(*variable_root, Self::SENTINEL);
         }
     }
 
