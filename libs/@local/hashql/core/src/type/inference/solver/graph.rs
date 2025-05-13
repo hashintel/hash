@@ -1,3 +1,5 @@
+use core::mem;
+
 use ena::unify::UnifyKey as _;
 use roaring::RoaringBitmap;
 
@@ -62,6 +64,96 @@ impl Graph {
         }
 
         Self { nodes, lookup }
+    }
+
+    pub(crate) fn condense(&mut self, unification: &mut Unification) {
+        let mut root_lookup = vec![Self::SENTINEL; self.nodes.len()];
+        let mut root_mapping = vec![Self::SENTINEL; self.nodes.len()];
+
+        // Reorder the nodes so that the roots are at the beginning of the list
+        // it's important that this step happens at the beginning, before representatives are
+        // populated, as otherwise we might map to the wrong root
+        let mut current = 0;
+        #[expect(clippy::needless_range_loop)]
+        for index in 0..self.nodes.len() {
+            let node_id = self.nodes[index].id;
+            let root_id = unification.table.find(node_id);
+
+            if node_id != root_id {
+                continue;
+            }
+
+            self.nodes.swap(current, index);
+            root_lookup[root_id.into_usize()] = current;
+            root_mapping[index] = current;
+
+            current += 1;
+        }
+
+        // Figure out which node-index each old index flows to
+        let mut representatives = vec![Self::SENTINEL; self.nodes.len()];
+        for (index, node) in self.nodes.iter().enumerate() {
+            let root = unification.table.find(node.id);
+            let root_index = root_lookup[root.into_usize()];
+            debug_assert_ne!(root_index, Self::SENTINEL);
+
+            representatives[index] = root_index;
+        }
+
+        // Merge subordinate edges up into their representative
+        #[expect(clippy::tuple_array_conversions, reason = "readability")]
+        for (index, repr) in representatives.iter().copied().enumerate() {
+            if index == repr {
+                // This node is its own representative, so we don't need to do anything.
+                continue;
+            }
+
+            let [repr, node] = self
+                .nodes
+                .get_disjoint_mut([repr, index])
+                .unwrap_or_else(|_err| unreachable!());
+
+            // Union the edges of the node into it's representative
+            let edges = mem::take(&mut node.edges);
+            repr.edges |= edges;
+        }
+
+        // Rewrite the surviving bitmaps in place
+        let mut buffer = RoaringBitmap::new();
+        for (index, (node, repr)) in self
+            .nodes
+            .iter_mut()
+            .zip(representatives.iter().copied())
+            .enumerate()
+        {
+            // These are later removed and do not need any rewrite
+            if repr != index {
+                continue;
+            }
+
+            for target in &node.edges {
+                let target_repr = representatives[target as usize];
+
+                if target_repr == index {
+                    // self-loops are removed
+                    continue;
+                }
+
+                buffer.insert(target_repr as u32);
+            }
+
+            mem::swap(&mut node.edges, &mut buffer);
+            buffer.clear();
+        }
+
+        // Compact the representation, because we know that the roots are at the front this is
+        // simply a truncation
+        self.nodes.truncate(current);
+
+        // Regenerate the lookup table
+        for index in &mut self.lookup {
+            *index = root_mapping[*index];
+        }
     }
 
     #[cfg(test)]

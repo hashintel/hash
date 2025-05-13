@@ -290,7 +290,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     ///
     /// Additionally, structural edges (from constraints like `_1 <: (name: _2)` and `_2 <: 1`)
     /// are included in this analysis, as they can also create equality relationships.
-    fn solve_anti_symmetry(&mut self) {
+    fn solve_anti_symmetry(&mut self) -> Graph {
         // We first create a graph of all the inference variables, that's then used to see if there
         // are any variables that can be equalized.
         // We can do this because our type lattice is a partially ordered set, this we can make use
@@ -331,6 +331,9 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                 self.unification.unify(lhs, rhs);
             }
         }
+
+        graph.condense(&mut self.unification);
+        graph
     }
 
     /// Collects and organizes all constraints by variable.
