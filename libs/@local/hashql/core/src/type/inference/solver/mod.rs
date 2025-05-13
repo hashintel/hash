@@ -290,7 +290,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     ///
     /// Additionally, structural edges (from constraints like `_1 <: (name: _2)` and `_2 <: 1`)
     /// are included in this analysis, as they can also create equality relationships.
-    fn solve_anti_symmetry(&mut self) -> Graph {
+    fn solve_anti_symmetry(&mut self, graph: &mut Graph) {
         // We first create a graph of all the inference variables, that's then used to see if there
         // are any variables that can be equalized.
         // We can do this because our type lattice is a partially ordered set, this we can make use
@@ -303,8 +303,6 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         // therefore `lower -> upper`.
         // We also take into account any of the structural relationships, for example given: `_1 <:
         // (name: _2)`, and then `_2 <: 1`, this means that the following must hold: `_1 ≡ _2`.
-        let mut graph = Graph::new(&mut self.unification);
-
         for &constraint in &self.constraints {
             let (source, target) = match constraint {
                 Constraint::Ordering { lower, upper } => (lower, upper),
@@ -319,7 +317,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         }
 
         // Run Tarjan's SCC algorithm to find strongly connected components
-        let tarjan = Tarjan::new(&graph);
+        let tarjan = Tarjan::new(graph);
 
         // For each strongly connected component, unify all variables in the component
         // since they must be equal due to anti-symmetry of the subtyping relation
@@ -333,7 +331,6 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         }
 
         graph.condense(&mut self.unification);
-        graph
     }
 
     /// Collects and organizes all constraints by variable.
@@ -781,32 +778,16 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     /// A map of variables to their fully resolved constraints
     fn apply_constraints(
         &mut self,
+        graph: &Graph,
     ) -> FastHashMap<VariableKind, (Variable, ResolvedVariableConstraint)> {
         // First collect all constraints by variable
         let constraints = self.collect_constraints();
 
-        // Build the constraint graph representing variable dependencies
-        let mut graph = Graph::new(&mut self.unification);
-
-        // Build the graph over the constraints
-        for &constraint in &self.constraints {
-            let (source, target) = match constraint {
-                Constraint::Ordering { lower, upper } => (lower, upper),
-                Constraint::StructuralEdge { source, target } => (source, target),
-                _ => continue,
-            };
-
-            graph.insert_edge(
-                self.unification.lookup[&source.kind],
-                self.unification.lookup[&target.kind],
-            );
-        }
-
         // Perform the forward pass to resolve lower bounds
-        let constraints = self.apply_constraints_forwards(&graph, constraints);
+        let constraints = self.apply_constraints_forwards(graph, constraints);
 
         // Perform the backward pass to resolve upper bounds
-        self.apply_constraints_backwards(&graph, constraints)
+        self.apply_constraints_backwards(graph, constraints)
     }
 
     /// Validates all constraints and computes final type substitutions.
@@ -1020,8 +1001,10 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         // Step 1: Register all variables with the unification system
         self.upsert_variables();
 
+        let mut graph = Graph::new(&mut self.unification);
+
         // Step 2: Solve anti-symmetry constraints (A <: B and B <: A implies A = B)
-        self.solve_anti_symmetry();
+        self.solve_anti_symmetry(&mut graph);
 
         let lookup = self.unification.lookup();
         // Set the variable substitutions in the lattice, this makes sure that `equal` constraints
@@ -1029,7 +1012,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         self.lattice.set_variables(lookup.clone());
 
         // Step 3 & 4: Apply constraints through forward and backward passes
-        let constraints = self.apply_constraints();
+        let constraints = self.apply_constraints(&graph);
 
         // Step 5: Verify that all variables have been constrained
         self.verify_constrained(&lookup, &constraints);

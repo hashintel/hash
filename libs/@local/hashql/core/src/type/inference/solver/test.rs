@@ -7,7 +7,10 @@ use crate::{
         PartialType,
         environment::{AnalysisEnvironment, Environment, InferenceEnvironment},
         error::TypeCheckDiagnosticCategory,
-        inference::{Variable, VariableKind, solver::Unification},
+        inference::{
+            Variable, VariableKind,
+            solver::{Unification, graph::Graph},
+        },
         kind::{
             PrimitiveType, StructType, TypeKind, UnionType,
             infer::HoleId,
@@ -120,7 +123,9 @@ fn solve_anti_symmetry() {
     let mut solver = InferenceSolver::new(&env, Unification::new(), constraints);
 
     solver.upsert_variables();
-    solver.solve_anti_symmetry();
+
+    let mut graph = Graph::new(&mut solver.unification);
+    solver.solve_anti_symmetry(&mut graph);
 
     assert!(solver.unification.is_unioned(kind1.kind, kind2.kind));
 }
@@ -156,7 +161,8 @@ fn solve_anti_symmetry_with_cycles() {
     let mut solver = InferenceSolver::new(&env, Unification::new(), constraints);
 
     solver.upsert_variables();
-    solver.solve_anti_symmetry();
+    let mut graph = Graph::new(&mut solver.unification);
+    solver.solve_anti_symmetry(&mut graph);
 
     // All three variables should be unified
     assert!(
@@ -194,8 +200,12 @@ fn apply_constraints() {
     ];
 
     let mut solver = InferenceSolver::new(&env, Unification::new(), constraints);
+    solver.upsert_variables();
 
-    let applied_constraints = solver.apply_constraints();
+    let mut graph = Graph::new(&mut solver.unification);
+    solver.solve_anti_symmetry(&mut graph);
+
+    let applied_constraints = solver.apply_constraints(&graph);
 
     assert_eq!(applied_constraints.len(), 1);
     let (_, (_, constraint)) = applied_constraints
@@ -224,8 +234,12 @@ fn apply_constraints_equality() {
     }];
 
     let mut solver = InferenceSolver::new(&env, Unification::new(), constraints);
+    solver.upsert_variables();
 
-    let applied_constraints = solver.apply_constraints();
+    let mut graph = Graph::new(&mut solver.unification);
+    solver.solve_anti_symmetry(&mut graph);
+
+    let applied_constraints = solver.apply_constraints(&graph);
 
     assert_eq!(applied_constraints.len(), 1);
     let (_, (_, constraint)) = applied_constraints
@@ -272,8 +286,12 @@ fn apply_constraints_with_unification() {
     unification.unify(variable1.kind, variable2.kind);
 
     let mut solver = InferenceSolver::new(&env, unification, constraints);
+    solver.upsert_variables();
 
-    let applied_constraints = solver.apply_constraints();
+    let mut graph = Graph::new(&mut solver.unification);
+    solver.solve_anti_symmetry(&mut graph);
+
+    let applied_constraints = solver.apply_constraints(&graph);
 
     // Only one entry since the variables are unified
     assert_eq!(applied_constraints.len(), 1);
@@ -525,9 +543,13 @@ fn redundant_constraints() {
     ];
 
     let mut solver = InferenceSolver::new(&env, Unification::new(), constraints);
+    solver.upsert_variables();
+
+    let mut graph = Graph::new(&mut solver.unification);
+    solver.solve_anti_symmetry(&mut graph);
 
     // Apply the constraints
-    let applied = solver.apply_constraints();
+    let applied = solver.apply_constraints(&graph);
 
     // Despite having duplicate constraints, there should be one entry with one equality
     assert_eq!(applied.len(), 1);
@@ -568,7 +590,8 @@ fn cyclic_ordering_constraints() {
 
     // Directly call the anti-symmetry solver
     solver.upsert_variables();
-    solver.solve_anti_symmetry();
+    let mut graph = Graph::new(&mut solver.unification);
+    solver.solve_anti_symmetry(&mut graph);
 
     // Verify all variables are unified
     assert!(
@@ -616,7 +639,8 @@ fn cyclic_structural_edges_constraints() {
 
     // Directly call the anti-symmetry solver
     solver.upsert_variables();
-    solver.solve_anti_symmetry();
+    let mut graph = Graph::new(&mut solver.unification);
+    solver.solve_anti_symmetry(&mut graph);
 
     // Verify all variables are unified
     assert!(
@@ -655,9 +679,13 @@ fn bounds_at_lattice_extremes() {
     ];
 
     let mut solver = InferenceSolver::new(&env, Unification::new(), constraints);
+    solver.upsert_variables();
+
+    let mut graph = Graph::new(&mut solver.unification);
+    solver.solve_anti_symmetry(&mut graph);
 
     // Apply the constraints
-    let applied = solver.apply_constraints();
+    let applied = solver.apply_constraints(&graph);
 
     assert_eq!(applied.len(), 1);
     let (_, (_, constraint)) = applied.iter().next().expect("Should have one constraint");
