@@ -93,6 +93,15 @@ pub enum RoleUnassignmentStatus {
     NotAssigned,
 }
 
+/// Parameters passed to [`PolicyStore::create_policy`].
+///
+/// This struct is used to create a new policy in the backing store. It contains the effect of the
+/// policy, the principal to which it applies, the actions that are allowed or denied, and the
+/// resource to which it applies.
+///
+/// See [`create_policy`] for more details.
+///
+/// [`create_policy`]: PolicyStore::create_policy
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
