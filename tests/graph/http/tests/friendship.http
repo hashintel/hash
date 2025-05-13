@@ -1,7 +1,7 @@
 # This file either runs with JetBrains' http requests or using httpYac (https://httpyac.github.io).
 
 ### Get system user
-GET http://127.0.0.1:4000/system/actor/h
+GET http://127.0.0.1:4000/actors/system/h
 Content-Type: application/json
 
 > {%
@@ -47,7 +47,7 @@ X-Authenticated-User-Actor-Id: {{system_machine_id}}
 %}
 
 ### Check permission for adding member to account group
-GET http://127.0.0.1:4000/actor_groups/{{account_group_id}}/permissions/add_member
+GET http://127.0.0.1:4000/actor-groups/{{account_group_id}}/permissions/add_member
 X-Authenticated-User-Actor-Id: {{user_id}}
 
 > {%
@@ -69,7 +69,7 @@ X-Authenticated-User-Actor-Id: {{user_id}}
 %}
 
 ### Get account group members
-GET http://127.0.0.1:4000/actor_groups/{{account_group_id}}/relations
+GET http://127.0.0.1:4000/actor-groups/{{account_group_id}}/relations
 X-Authenticated-User-Actor-Id: {{user_id}}
 
 > {%
@@ -90,7 +90,7 @@ X-Authenticated-User-Actor-Id: {{user_id}}
 %}
 
 ### Get account group members
-GET http://127.0.0.1:4000/actor_groups/{{account_group_id}}/relations
+GET http://127.0.0.1:4000/actor-groups/{{account_group_id}}/relations
 X-Authenticated-User-Actor-Id: {{user_id}}
 
 > {%
