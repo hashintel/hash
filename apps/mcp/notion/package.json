@@ -22,7 +22,7 @@
     "@modelcontextprotocol/sdk": "1.11.1",
     "@notionhq/client": "2.3.0",
     "dotenv-flow": "3.3.0",
-    "notion-to-md": "3.1.8",
+    "notion-to-md": "3.1.9",
     "zod": "3.24.4",
     "zod-to-json-schema": "3.24.5"
   },

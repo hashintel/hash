@@ -739,7 +739,7 @@ __metadata:
     chokidar-cli: "npm:3.0.0"
     dotenv-flow: "npm:3.3.0"
     eslint: "npm:9.20.1"
-    notion-to-md: "npm:3.1.8"
+    notion-to-md: "npm:3.1.9"
     rimraf: "npm:6.0.1"
     shx: "npm:0.4.0"
     tsx: "npm:4.19.4"
@@ -35089,13 +35089,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"notion-to-md@npm:3.1.8":
-  version: 3.1.8
-  resolution: "notion-to-md@npm:3.1.8"
+"notion-to-md@npm:3.1.9":
+  version: 3.1.9
+  resolution: "notion-to-md@npm:3.1.9"
   dependencies:
     markdown-table: "npm:^2.0.0"
     node-fetch: "npm:2"
-  checksum: 10c0/5209f9b5d3c8c2513592b5558048c363dc959ce3a1add6764ea3c6a4a765b958e9252c463f2879bd22979aeb13fe4cf410c3e1be060e7739d80cdb12575fa503
+  checksum: 10c0/8ad7c544ed5ade9cfe409cfd6a160bc82f26e95723e567db28d007e938da17323592cf0232d821eaea86f41d5dac9c7a2b5663ffc596bf49e7caaefccaecbbb2
   languageName: node
   linkType: hard
 
