@@ -8,11 +8,12 @@ use hash_graph_authorization::{
     policies::{
         Policy, PolicyId,
         store::{
-            CreateWebParameter, CreateWebResponse, PolicyFilter, PolicyStore, PrincipalStore,
-            RoleAssignmentStatus, RoleUnassignmentStatus,
+            CreateWebParameter, CreateWebResponse, PolicyCreationParams, PolicyFilter, PolicyStore,
+            PolicyUpdateOperation, PrincipalStore, RoleAssignmentStatus, RoleUnassignmentStatus,
             error::{
-                EnsureSystemPoliciesError, GetPoliciesError, GetSystemAccountError,
-                RoleAssignmentError, WebCreationError,
+                CreatePolicyError, EnsureSystemPoliciesError, GetPoliciesError,
+                GetSystemAccountError, RemovePolicyError, RoleAssignmentError, UpdatePolicyError,
+                WebCreationError,
             },
         },
     },
@@ -248,6 +249,14 @@ where
     S: PolicyStore + Sync,
     A: Send + Sync,
 {
+    async fn create_policy(
+        &mut self,
+        authenticated_actor: ActorEntityUuid,
+        policy: PolicyCreationParams,
+    ) -> Result<PolicyId, Report<CreatePolicyError>> {
+        self.store.create_policy(authenticated_actor, policy).await
+    }
+
     async fn get_policy_by_id(
         &self,
         authenticated_actor: ActorEntityUuid,
@@ -273,6 +282,27 @@ where
     ) -> Result<Vec<Policy>, Report<GetPoliciesError>> {
         self.store
             .resolve_policies_for_actor(authenticated_actor, actor_id)
+            .await
+    }
+
+    async fn update_policy_by_id(
+        &mut self,
+        authenticated_actor: ActorEntityUuid,
+        policy_id: PolicyId,
+        operations: &[PolicyUpdateOperation],
+    ) -> Result<Policy, Report<UpdatePolicyError>> {
+        self.store
+            .update_policy_by_id(authenticated_actor, policy_id, operations)
+            .await
+    }
+
+    async fn delete_policy_by_id(
+        &mut self,
+        authenticated_actor: ActorEntityUuid,
+        policy_id: PolicyId,
+    ) -> Result<(), Report<RemovePolicyError>> {
+        self.store
+            .delete_policy_by_id(authenticated_actor, policy_id)
             .await
     }
 

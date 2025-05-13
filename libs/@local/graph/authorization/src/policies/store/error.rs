@@ -1,10 +1,13 @@
 use core::error::Error;
 
 use type_system::principal::{
+    PrincipalId,
     actor::ActorId,
     actor_group::{ActorGroupId, TeamId, WebId},
     role::RoleName,
 };
+
+use crate::policies::{PolicyId, action::ActionName};
 
 #[derive(Debug, derive_more::Display)]
 #[display("Could not get system account: {_variant}")]
@@ -149,6 +152,51 @@ pub enum PolicyStoreError {
 }
 
 impl Error for PolicyStoreError {}
+
+#[derive(Debug, derive_more::Display)]
+#[display("Policy operation failed: {_variant}")]
+pub enum CreatePolicyError {
+    #[display("Principal with ID `{id}` doesn't exist")]
+    PrincipalNotFound { id: PrincipalId },
+    #[display("Action `{id}` doesn't exist")]
+    ActionNotFound { id: ActionName },
+    #[display("Policy with ID `{id}` already exists")]
+    PolicyAlreadyExists { id: PolicyId },
+    #[display("No actions specified in policy")]
+    PolicyHasNoActions,
+    #[display("Invalid principal constraint")]
+    InvalidPrincipalConstraint,
+    #[display("Store operation failed")]
+    StoreError,
+}
+
+impl Error for CreatePolicyError {}
+
+#[derive(Debug, derive_more::Display)]
+#[display("Could not remove policy: {_variant}")]
+pub enum RemovePolicyError {
+    #[display("Policy with ID `{id}` does not exist")]
+    PolicyNotFound { id: PolicyId },
+    #[display("Store operation failed")]
+    StoreError,
+}
+
+impl Error for RemovePolicyError {}
+
+#[derive(Debug, derive_more::Display)]
+#[display("Could not update policy: {_variant}")]
+pub enum UpdatePolicyError {
+    #[display("Policy with ID `{id}` does not exist")]
+    PolicyNotFound { id: PolicyId },
+    #[display("Action `{id}` doesn't exist")]
+    ActionNotFound { id: ActionName },
+    #[display("No actions specified in policy")]
+    PolicyHasNoActions,
+    #[display("Store operation failed")]
+    StoreError,
+}
+
+impl Error for UpdatePolicyError {}
 
 #[derive(Debug, derive_more::Display)]
 #[display("Could not get policies for actor: {_variant}")]

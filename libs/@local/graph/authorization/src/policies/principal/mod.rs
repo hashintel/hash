@@ -3,6 +3,7 @@ use alloc::sync::Arc;
 use cedar_policy_core::ast;
 use error_stack::{Report, ResultExt as _, bail};
 use type_system::principal::{
+    PrincipalId,
     actor::{ActorId, ActorType, AiId, MachineId, UserId},
     actor_group::{ActorGroupId, TeamId, WebId},
     role::{RoleId, TeamRoleId, WebRoleId},
@@ -16,26 +17,23 @@ pub mod role;
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
-#[serde(
-    tag = "type",
-    rename_all = "camelCase",
-    rename_all_fields = "camelCase",
-    deny_unknown_fields
-)]
+#[serde(tag = "type", rename_all = "camelCase", deny_unknown_fields)]
 pub enum PrincipalConstraint {
+    #[serde(rename_all = "camelCase")]
     Actor {
         #[serde(flatten)]
         actor: ActorId,
     },
-    ActorType {
-        actor_type: ActorType,
-    },
+    #[serde(rename_all = "camelCase")]
+    ActorType { actor_type: ActorType },
+    #[serde(rename_all = "camelCase")]
     ActorGroup {
         #[serde(flatten)]
         actor_group: ActorGroupId,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         actor_type: Option<ActorType>,
     },
+    #[serde(rename_all = "camelCase")]
     Role {
         #[serde(flatten)]
         role: RoleId,
@@ -80,6 +78,19 @@ fn actor_type_from_cedar(
 }
 
 impl PrincipalConstraint {
+    #[must_use]
+    pub const fn to_parts(&self) -> (Option<PrincipalId>, Option<ActorType>) {
+        match self {
+            Self::ActorType { actor_type } => (None, Some(*actor_type)),
+            Self::Actor { actor } => (Some(PrincipalId::Actor(*actor)), None),
+            Self::ActorGroup {
+                actor_group,
+                actor_type,
+            } => (Some(PrincipalId::ActorGroup(*actor_group)), *actor_type),
+            Self::Role { role, actor_type } => (Some(PrincipalId::Role(*role)), *actor_type),
+        }
+    }
+
     pub(crate) fn try_from_cedar(
         constraint: &ast::PrincipalConstraint,
     ) -> Result<Option<Self>, Report<InvalidPrincipalConstraint>> {

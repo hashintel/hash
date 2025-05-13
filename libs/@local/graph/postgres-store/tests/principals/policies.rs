@@ -4,11 +4,11 @@ use std::collections::{HashMap, HashSet};
 use hash_graph_authorization::{
     AuthorizationApi,
     policies::{
-        Effect, Policy, PolicyId,
+        Effect, PolicyId,
         action::ActionName,
         principal::PrincipalConstraint,
         resource::{EntityResourceConstraint, EntityResourceFilter, ResourceConstraint},
-        store::{CreateWebParameter, PolicyStore as _, PrincipalStore as _},
+        store::{CreateWebParameter, PolicyCreationParams, PolicyStore as _, PrincipalStore as _},
     },
 };
 use hash_graph_postgres_store::store::{AsClient, PostgresStore};
@@ -204,114 +204,122 @@ async fn setup_policy_test_environment(
 
     // 1. Global policies (no principal constraint)
     let global_policy_id = client
-        .create_policy(Policy {
-            id: PolicyId::new(Uuid::new_v4()),
-            effect: Effect::Permit,
-            principal: None,
-            actions: vec![ActionName::All],
-            resource: None,
-            constraints: None,
-        })
+        .create_policy(
+            actor_id.into(),
+            PolicyCreationParams {
+                effect: Effect::Permit,
+                principal: None,
+                actions: vec![ActionName::All],
+                resource: None,
+            },
+        )
         .await?;
 
     // 2. Actor type specific policies
     let user_type_policy_id = client
-        .create_policy(Policy {
-            id: PolicyId::new(Uuid::new_v4()),
-            effect: Effect::Permit,
-            principal: Some(PrincipalConstraint::ActorType {
-                actor_type: ActorType::User,
-            }),
-            actions: vec![ActionName::View],
-            resource: None,
-            constraints: None,
-        })
+        .create_policy(
+            actor_id.into(),
+            PolicyCreationParams {
+                effect: Effect::Permit,
+                principal: Some(PrincipalConstraint::ActorType {
+                    actor_type: ActorType::User,
+                }),
+                actions: vec![ActionName::View],
+                resource: None,
+            },
+        )
         .await?;
 
     let machine_type_policy_id = client
-        .create_policy(Policy {
-            id: PolicyId::new(Uuid::new_v4()),
-            effect: Effect::Permit,
-            principal: Some(PrincipalConstraint::ActorType {
-                actor_type: ActorType::Machine,
-            }),
-            actions: vec![ActionName::Update],
-            resource: None,
-            constraints: None,
-        })
+        .create_policy(
+            actor_id.into(),
+            PolicyCreationParams {
+                effect: Effect::Permit,
+                principal: Some(PrincipalConstraint::ActorType {
+                    actor_type: ActorType::Machine,
+                }),
+                actions: vec![ActionName::Update],
+                resource: None,
+            },
+        )
         .await?;
 
     // 3. Specific actor policies
     let user1_policy_id = client
-        .create_policy(Policy {
-            id: PolicyId::new(Uuid::new_v4()),
-            effect: Effect::Permit,
-            principal: Some(PrincipalConstraint::Actor {
-                actor: ActorId::User(user1_id),
-            }),
-            actions: vec![ActionName::Create],
-            resource: None,
-            constraints: None,
-        })
+        .create_policy(
+            actor_id.into(),
+            PolicyCreationParams {
+                effect: Effect::Permit,
+                principal: Some(PrincipalConstraint::Actor {
+                    actor: ActorId::User(user1_id),
+                }),
+                actions: vec![ActionName::Create],
+                resource: None,
+            },
+        )
         .await?;
 
     // 4. Role-based policies
     let web1_role_policy_id = client
-        .create_policy(Policy {
-            id: PolicyId::new(Uuid::new_v4()),
-            effect: Effect::Permit,
-            principal: Some(PrincipalConstraint::Role {
-                role: web_1_role_id,
-                actor_type: None,
-            }),
-            actions: vec![ActionName::Instantiate],
-            resource: None,
-            constraints: None,
-        })
+        .create_policy(
+            actor_id.into(),
+            PolicyCreationParams {
+                effect: Effect::Permit,
+                principal: Some(PrincipalConstraint::Role {
+                    role: web_1_role_id,
+                    actor_type: None,
+                }),
+                actions: vec![ActionName::Instantiate],
+                resource: None,
+            },
+        )
         .await?;
 
     // 5. Team-based policies
     let team1_policy_id = client
-        .create_policy(Policy {
-            id: PolicyId::new(Uuid::new_v4()),
-            effect: Effect::Permit,
-            principal: Some(PrincipalConstraint::ActorGroup {
-                actor_group: ActorGroupId::Team(team_1_id),
-                actor_type: None,
-            }),
-            actions: vec![ActionName::ViewEntity],
-            resource: None,
-            constraints: None,
-        })
+        .create_policy(
+            actor_id.into(),
+            PolicyCreationParams {
+                effect: Effect::Permit,
+                principal: Some(PrincipalConstraint::ActorGroup {
+                    actor_group: ActorGroupId::Team(team_1_id),
+                    actor_type: None,
+                }),
+                actions: vec![ActionName::ViewEntity],
+                resource: None,
+            },
+        )
         .await?;
 
     // 6. Role with actor type constraint
     let web2_role_user_policy_id = client
-        .create_policy(Policy {
-            id: PolicyId::new(Uuid::new_v4()),
-            effect: Effect::Permit,
-            principal: Some(PrincipalConstraint::Role {
-                role: web_2_role_id,
-                actor_type: Some(ActorType::User),
-            }),
-            actions: vec![ActionName::Create],
-            resource: None,
-            constraints: None,
-        })
+        .create_policy(
+            actor_id.into(),
+            PolicyCreationParams {
+                effect: Effect::Permit,
+                principal: Some(PrincipalConstraint::Role {
+                    role: web_2_role_id,
+                    actor_type: Some(ActorType::User),
+                }),
+                actions: vec![ActionName::Create],
+                resource: None,
+            },
+        )
         .await?;
 
     // 7. Deny policies for testing priority
     let deny_user1_policy_id = client
-        .create_policy(Policy {
-            id: PolicyId::new(Uuid::new_v4()),
-            effect: Effect::Forbid,
-            principal: Some(PrincipalConstraint::Actor {
-                actor: ActorId::User(user1_id),
-            }),
-            actions: vec![ActionName::Update],
-            resource: None,
-            constraints: None,
-        })
+        .create_policy(
+            actor_id.into(),
+            PolicyCreationParams {
+                effect: Effect::Forbid,
+                principal: Some(PrincipalConstraint::Actor {
+                    actor: ActorId::User(user1_id),
+                }),
+                actions: vec![ActionName::Update],
+                resource: None,
+            },
+        )
         .await?;
 
     Ok(TestPolicyEnvironment {
@@ -771,20 +779,21 @@ async fn resource_constraints_are_preserved() -> Result<(), Box<dyn Error>> {
 
     // Create a policy with resource constraints
     let resource_policy_id = client
-        .create_policy(Policy {
-            id: PolicyId::new(Uuid::new_v4()),
-            effect: Effect::Permit,
-            principal: Some(PrincipalConstraint::Actor {
-                actor: ActorId::User(user_id),
-            }),
-            actions: vec![ActionName::All],
-            resource: Some(ResourceConstraint::Entity(EntityResourceConstraint::Any {
-                filter: EntityResourceFilter::All {
-                    filters: Vec::new(),
-                },
-            })),
-            constraints: None,
-        })
+        .create_policy(
+            actor_id.into(),
+            PolicyCreationParams {
+                effect: Effect::Permit,
+                principal: Some(PrincipalConstraint::Actor {
+                    actor: ActorId::User(user_id),
+                }),
+                actions: vec![ActionName::All],
+                resource: Some(ResourceConstraint::Entity(EntityResourceConstraint::Any {
+                    filter: EntityResourceFilter::All {
+                        filters: Vec::new(),
+                    },
+                })),
+            },
+        )
         .await?;
 
     let policies = client
@@ -863,45 +872,48 @@ async fn deep_team_hierarchy() -> Result<(), Box<dyn Error>> {
 
     // Create policies
     let web_policy_id = client
-        .create_policy(Policy {
-            id: PolicyId::new(Uuid::new_v4()),
-            effect: Effect::Permit,
-            principal: Some(PrincipalConstraint::ActorGroup {
-                actor_group: ActorGroupId::Web(web_id),
-                actor_type: None,
-            }),
-            actions: vec![ActionName::All],
-            resource: None,
-            constraints: None,
-        })
+        .create_policy(
+            actor_id.into(),
+            PolicyCreationParams {
+                effect: Effect::Permit,
+                principal: Some(PrincipalConstraint::ActorGroup {
+                    actor_group: ActorGroupId::Web(web_id),
+                    actor_type: None,
+                }),
+                actions: vec![ActionName::All],
+                resource: None,
+            },
+        )
         .await?;
 
     let team1_policy_id = client
-        .create_policy(Policy {
-            id: PolicyId::new(Uuid::new_v4()),
-            effect: Effect::Permit,
-            principal: Some(PrincipalConstraint::ActorGroup {
-                actor_group: ActorGroupId::Team(team1_id),
-                actor_type: None,
-            }),
-            actions: vec![ActionName::All],
-            resource: None,
-            constraints: None,
-        })
+        .create_policy(
+            actor_id.into(),
+            PolicyCreationParams {
+                effect: Effect::Permit,
+                principal: Some(PrincipalConstraint::ActorGroup {
+                    actor_group: ActorGroupId::Team(team1_id),
+                    actor_type: None,
+                }),
+                actions: vec![ActionName::All],
+                resource: None,
+            },
+        )
         .await?;
 
     let team5_policy_id = client
-        .create_policy(Policy {
-            id: PolicyId::new(Uuid::new_v4()),
-            effect: Effect::Permit,
-            principal: Some(PrincipalConstraint::ActorGroup {
-                actor_group: ActorGroupId::Team(team5_id),
-                actor_type: None,
-            }),
-            actions: vec![ActionName::All],
-            resource: None,
-            constraints: None,
-        })
+        .create_policy(
+            actor_id.into(),
+            PolicyCreationParams {
+                effect: Effect::Permit,
+                principal: Some(PrincipalConstraint::ActorGroup {
+                    actor_group: ActorGroupId::Team(team5_id),
+                    actor_type: None,
+                }),
+                actions: vec![ActionName::All],
+                resource: None,
+            },
+        )
         .await?;
 
     // User should get all policies through the hierarchy

@@ -71,7 +71,6 @@ pub enum Effect {
     postgres(transparent)
 )]
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[repr(transparent)]
 pub struct PolicyId(Uuid);
 

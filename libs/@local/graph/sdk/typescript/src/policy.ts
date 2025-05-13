@@ -2,11 +2,29 @@ import type { ActorId } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import type {
   Policy,
+  PolicyCreationParams,
   PolicyFilter,
   PolicyId,
+  PolicyUpdateOperation,
 } from "@rust/hash-graph-authorization/types";
 
 import type { AuthenticationContext } from "./authentication-context.js";
+
+/**
+ * Creates a new policy in the backing store.
+ *
+ * Inserts the [`Policy`] as specified in the [`PolicyCreationParams`] and returns its
+ * [`PolicyId`] if successful. The implementation must ensure the referenced principal
+ * exists and the policy has at least one action.
+ */
+export const createPolicy = (
+  graphAPI: GraphApi,
+  authentication: AuthenticationContext,
+  policy: PolicyCreationParams,
+): Promise<PolicyId> =>
+  graphAPI
+    .createPolicy(authentication.actorId, policy)
+    .then(({ data: policyId }) => policyId as PolicyId);
 
 /**
  * Retrieves a policy by its ID.
@@ -63,3 +81,30 @@ export const resolvePoliciesForActor = (
   graphAPI
     .resolvePoliciesForActor(authentication.actorId, actorId)
     .then(({ data: policies }) => policies as Policy[]);
+
+/**
+ * Updates the policy specified by it's ID.
+ *
+ * All specified operations are applied to the policy in the order they are provided.
+ */
+export const updatePolicyById = (
+  graphAPI: GraphApi,
+  authentication: AuthenticationContext,
+  policyId: PolicyId,
+  operations: PolicyUpdateOperation[],
+): Promise<Policy> =>
+  graphAPI
+    .updatePolicyById(authentication.actorId, policyId, operations)
+    .then(({ data: policy }) => policy as Policy);
+
+/**
+ * Permanently removes the policy specified by it's ID.
+ */
+export const deletePolicyById = (
+  graphAPI: GraphApi,
+  authentication: AuthenticationContext,
+  policyId: PolicyId,
+): Promise<void> =>
+  graphAPI
+    .deletePolicyById(authentication.actorId, policyId)
+    .then(({ data }) => data);

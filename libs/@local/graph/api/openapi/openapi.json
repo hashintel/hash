@@ -2950,6 +2950,47 @@
         }
       }
     },
+    "/policies": {
+      "post": {
+        "tags": [
+          "Graph",
+          "Permission"
+        ],
+        "operationId": "create_policy",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {}
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The policy ID of the created policy",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
     "/policies/query": {
       "post": {
         "tags": [
@@ -3093,6 +3134,94 @@
                 }
               }
             }
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Graph",
+          "Permission"
+        ],
+        "operationId": "update_policy_by_id",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          },
+          {
+            "name": "policy_id",
+            "in": "path",
+            "description": "The ID of the policy to update",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {}
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The updated policy",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Graph",
+          "Permission"
+        ],
+        "operationId": "delete_policy_by_id",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          },
+          {
+            "name": "policy_id",
+            "in": "path",
+            "description": "The ID of the policy to delete",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The policy was removed successfully"
           },
           "500": {
             "description": "Store error occurred"
