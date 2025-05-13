@@ -85,7 +85,8 @@ impl Graph {
     /// - Space: O(V) for temporary data structures
     pub(crate) fn condense(&mut self, unification: &mut Unification) {
         // Maps from old node index to new node index
-        let mut old_to_new_index = vec![Self::SENTINEL; self.nodes.len()];
+        let mut new_to_old: Vec<_> = (0..self.nodes.len()).collect();
+        let mut old_to_new = new_to_old.clone();
 
         // Reorder the nodes so that the roots are at the beginning of the list
         // it's important that this step happens at the beginning, before representatives are
@@ -100,6 +101,15 @@ impl Graph {
             }
 
             self.nodes.swap(current, index);
+
+            new_to_old.swap(current, index);
+
+            let old_left = new_to_old[current];
+            let old_right = new_to_old[index];
+
+            old_to_new[old_left] = current;
+            old_to_new[old_right] = index;
+
             // Re-use `self.lookup`, note that this means that `self.lookup` is now in a partially
             // invalid state, which will be fixed at the end.
             self.lookup[root_id.into_usize()] = current;
@@ -117,7 +127,6 @@ impl Graph {
             debug_assert_ne!(root_index, Self::SENTINEL);
 
             representatives[index] = root_index;
-            old_to_new_index[index] = root_index;
         }
 
         // Merge subordinate edges up into their representative
@@ -143,7 +152,8 @@ impl Graph {
         for (index, node) in self.nodes[..current].iter_mut().enumerate() {
             // Build a new bitmap with remapped edge targets
             for target in &node.edges {
-                let target_repr = representatives[target as usize];
+                let redirected = old_to_new[target as usize];
+                let target_repr = representatives[redirected];
 
                 if target_repr == index {
                     // Self-loops are removed
@@ -164,18 +174,17 @@ impl Graph {
 
         // Regenerate the lookup table to map variable IDs to their new indices
         #[expect(clippy::cast_possible_truncation)]
-        for (index, variable_root) in self.lookup.iter_mut().enumerate() {
+        for index in 0..self.lookup.len() {
             let id = VariableId::from_index(index as u32);
             let root = unification.table.find(id);
 
             if id == root {
-                // We have already updated this entry before, therefore doing it again would lead to
-                // a discrepancy.
                 continue;
             }
 
-            *variable_root = old_to_new_index[*variable_root];
-            debug_assert_ne!(*variable_root, Self::SENTINEL);
+            // We've already adjusted the lookup for the root node
+            self.lookup[index] = self.lookup[root.into_usize()];
+            debug_assert_ne!(self.lookup[index], Self::SENTINEL);
         }
     }
 
@@ -218,6 +227,7 @@ impl Graph {
         self.nodes.len()
     }
 
+    #[cfg(test)]
     #[expect(clippy::cast_possible_truncation)]
     pub(crate) fn edge_count(&self) -> usize {
         self.nodes
@@ -265,6 +275,7 @@ mod tests {
         kind::infer::HoleId,
     };
 
+    #[expect(clippy::cast_sign_loss)]
     fn insert_edges(
         graph: &mut Graph,
         variables: &[VariableId],
@@ -311,6 +322,7 @@ mod tests {
 
     // The expected has the format `(sources - unified, targets)
     #[track_caller]
+    #[expect(clippy::cast_sign_loss)]
     fn assert_condensed(graph: &Graph, variables: &[VariableId], expected: &[(&[i32], &[i32])]) {
         let expected_edges: usize = expected.iter().map(|(_, targets)| targets.len()).sum();
 
@@ -443,6 +455,383 @@ mod tests {
             &[
                 (&[0, 1], &[2]), // AB → C
                 (&[2], &[]),     // C has no outgoing edges
+            ],
+        );
+    }
+
+    #[test]
+    fn self_loop_elimination() {
+        let mut unification = Unification::new();
+
+        // Create a graph with A→B, B→A and then unify A+B
+        let (mut graph, variables) = build_graph(
+            &mut unification,
+            [
+                &[1] as &[_], // A → B
+                &[0],         // B → A
+            ],
+        );
+
+        // Before unification
+        assert_eq!(graph.node_count(), 2);
+        assert_eq!(graph.edge_count(), 2);
+
+        // Unify A and B
+        unify(&mut unification, 0, 1);
+
+        // Condense the graph
+        graph.condense(&mut unification);
+
+        // After condensing:
+        // - Should have 1 node (AB)
+        // - Should have 0 edges (self-loops eliminated)
+        assert_condensed(
+            &graph,
+            &variables,
+            &[
+                (&[0, 1], &[]), // AB with no outgoing edges (self-loop eliminated)
+            ],
+        );
+    }
+
+    #[test]
+    fn multiple_equivalence_classes() {
+        let mut unification = Unification::new();
+
+        // Create a graph with nodes A,B,C,D,E,F and edges
+        let (mut graph, variables) = build_graph(
+            &mut unification,
+            [
+                &[2] as &[_], // A → C
+                &[4],         // B → E
+                &[],          // C has no outgoing edges
+                &[5],         // D → F
+                &[],          // E has no outgoing edges
+                &[],          // F has no outgoing edges
+            ],
+        );
+
+        // Add an extra edge from A to F
+        graph.insert_edge(variables[0], variables[5]);
+
+        // Create three equivalence classes: A+B, C+D, E+F
+        unify(&mut unification, 0, 1); // A+B
+        unify(&mut unification, 2, 3); // C+D
+        unify(&mut unification, 4, 5); // E+F
+
+        // Condense the graph
+        graph.condense(&mut unification);
+
+        // After condensing:
+        // - Should have 3 nodes (AB, CD, EF)
+        // - Original edges A→C, B→E, D→F, A→F become AB→CD, AB→EF, CD→EF
+        assert_condensed(
+            &graph,
+            &variables,
+            &[
+                (&[0, 1], &[2, 5]), // AB → CD, EF
+                (&[2, 3], &[4]),    // CD → EF
+                (&[4, 5], &[]),     // EF has no outgoing edges
+            ],
+        );
+    }
+
+    #[test]
+    fn cyclic_graph_unification() {
+        let mut unification = Unification::new();
+
+        // Create a graph with cycle A→B→C→D→A
+        let (mut graph, variables) = build_graph(
+            &mut unification,
+            [
+                &[1] as &[_], // A → B
+                &[2],         // B → C
+                &[3],         // C → D
+                &[0],         // D → A (closing the cycle)
+            ],
+        );
+
+        // Unify alternate nodes: A+C, B+D
+        unify(&mut unification, 0, 2); // A+C
+        unify(&mut unification, 1, 3); // B+D
+
+        // Condense the graph
+        graph.condense(&mut unification);
+
+        // After condensing:
+        // - Should have 2 nodes (AC, BD)
+        // - Cycle should be preserved as AC→BD→AC
+        assert_condensed(
+            &graph,
+            &variables,
+            &[
+                (&[0, 2], &[1]), // AC → BD
+                (&[1, 3], &[0]), // BD → AC
+            ],
+        );
+    }
+
+    #[test]
+    fn complete_unification() {
+        let mut unification = Unification::new();
+
+        // Create a graph where all nodes are connected to each other
+        let (mut graph, variables) = build_graph(
+            &mut unification,
+            [
+                &[1, 2, 3, 4] as &[_], // A → B,C,D,E
+                &[0, 2, 3, 4],         // B → A,C,D,E
+                &[0, 1, 3, 4],         // C → A,B,D,E
+                &[0, 1, 2, 4],         // D → A,B,C,E
+                &[0, 1, 2, 3],         // E → A,B,C,D
+            ],
+        );
+
+        // Unify all nodes into a single equivalence class
+        for i in 1..variables.len() {
+            unify(&mut unification, 0, i);
+        }
+
+        // Condense the graph
+        graph.condense(&mut unification);
+
+        // After condensing:
+        // - Should have 1 node
+        // - Should have 0 edges (all self-loops eliminated)
+        assert_condensed(
+            &graph,
+            &variables,
+            &[
+                (&[0, 1, 2, 3, 4], &[]), // All nodes unified with no outgoing edges
+            ],
+        );
+    }
+
+    #[test]
+    fn incremental_condensation() {
+        let mut unification = Unification::new();
+
+        // Create a graph with 6 nodes in a star pattern from A
+        let (mut graph, variables) = build_graph(
+            &mut unification,
+            [
+                &[1, 2, 3, 4, 5] as &[_], // A → B,C,D,E,F
+                &[],                      // B has no outgoing edges
+                &[],                      // C has no outgoing edges
+                &[],                      // D has no outgoing edges
+                &[],                      // E has no outgoing edges
+                &[],                      // F has no outgoing edges
+            ],
+        );
+
+        // First step: unify B+C+D
+        unify(&mut unification, 1, 2);
+        unify(&mut unification, 2, 3);
+
+        // First condensation
+        graph.condense(&mut unification);
+
+        // After first condensation: A, BCD, E, F
+        assert_condensed(
+            &graph,
+            &variables,
+            &[
+                (&[0], &[1, 4, 5]), // A → BCD, E, F
+                (&[1, 2, 3], &[]),  // BCD has no outgoing edges
+                (&[4], &[]),        // E has no outgoing edges
+                (&[5], &[]),        // F has no outgoing edges
+            ],
+        );
+
+        // Second step: unify E+F
+        unify(&mut unification, 4, 5);
+
+        // Second condensation
+        graph.condense(&mut unification);
+
+        // After second condensation: A, BCD, EF
+        assert_condensed(
+            &graph,
+            &variables,
+            &[
+                (&[0], &[1, 4]),   // A → BCD, EF
+                (&[1, 2, 3], &[]), // BCD has no outgoing edges
+                (&[4, 5], &[]),    // EF has no outgoing edges
+            ],
+        );
+
+        // Final step: unify A with BCD
+        unify(&mut unification, 0, 1);
+
+        // Final condensation
+        graph.condense(&mut unification);
+
+        // After final condensation: ABCD, EF
+        assert_condensed(
+            &graph,
+            &variables,
+            &[
+                (&[0, 1, 2, 3], &[4]), // ABCD → EF
+                (&[4, 5], &[]),        // EF has no outgoing edges
+            ],
+        );
+    }
+
+    #[test]
+    fn complex_edge_merging() {
+        let mut unification = Unification::new();
+
+        // Create a graph where multiple nodes in same class have edges to different targets
+        let (mut graph, variables) = build_graph(
+            &mut unification,
+            [
+                &[2, 3] as &[_], // A → C,D
+                &[3, 4],         // B → D,E
+                &[],             // C has no outgoing edges
+                &[],             // D has no outgoing edges
+                &[],             // E has no outgoing edges
+            ],
+        );
+
+        // Unify A+B
+        unify(&mut unification, 0, 1);
+
+        // Condense the graph
+        graph.condense(&mut unification);
+
+        // After condensing:
+        // - Should have 4 nodes (AB, C, D, E)
+        // - AB should have edges to C, D, and E
+        assert_condensed(
+            &graph,
+            &variables,
+            &[
+                (&[0, 1], &[2, 3, 4]), // AB → C,D,E
+                (&[2], &[]),           // C has no outgoing edges
+                (&[3], &[]),           // D has no outgoing edges
+                (&[4], &[]),           // E has no outgoing edges
+            ],
+        );
+    }
+
+    #[test]
+    fn disconnected_components() {
+        let mut unification = Unification::new();
+
+        // Create a graph with two disconnected components
+        let (mut graph, variables) = build_graph(
+            &mut unification,
+            [
+                &[1] as &[_], // A → B (component 1)
+                &[],          // B has no outgoing edges
+                &[3],         // C → D (component 2)
+                &[],          // D has no outgoing edges
+                &[5],         // E → F (component 3)
+                &[],          // F has no outgoing edges
+                &[7],         // G → H (component 4)
+                &[],          // H has no outgoing edges
+            ],
+        );
+
+        // Unify nodes across components: A+C, E+G, B+D+F+H
+        unify(&mut unification, 0, 2); // A+C
+        unify(&mut unification, 4, 6); // E+G
+
+        // Unify all right-side nodes
+        unify(&mut unification, 1, 3); // B+D
+        unify(&mut unification, 3, 5); // D+F
+        unify(&mut unification, 5, 7); // F+H
+
+        // Condense the graph
+        graph.condense(&mut unification);
+
+        // After condensing:
+        // - Should have 3 nodes (AC, EG, BDFH)
+        // - AC→BDFH, EG→BDFH
+        assert_condensed(
+            &graph,
+            &variables,
+            &[
+                (&[0, 2], &[1]),      // AC → BDFH
+                (&[4, 6], &[1]),      // EG → BDFH
+                (&[1, 3, 5, 7], &[]), // BDFH has no outgoing edges
+            ],
+        );
+    }
+
+    #[test]
+    fn node_order_preservation() {
+        let mut unification = Unification::new();
+
+        // Create a graph with multiple nodes
+        let (mut graph, variables) = build_graph(
+            &mut unification,
+            [
+                &[1, 2] as &[_], // A → B,C
+                &[3, 4],         // B → D,E
+                &[5],            // C → F
+                &[],             // D has no outgoing edges
+                &[],             // E has no outgoing edges
+                &[],             // F has no outgoing edges
+            ],
+        );
+
+        // Unify nodes such that the representatives are not the first nodes in their class
+        // A+C, B+E
+        unify(&mut unification, 0, 2);
+        unify(&mut unification, 1, 4);
+
+        // Condense the graph
+        graph.condense(&mut unification);
+
+        // After condensing:
+        // - Original edges A→B, A→C, B→D, B→E, C→F should become:
+        // - AC→BE, AC→D, AC→F, BE→D
+        assert_condensed(
+            &graph,
+            &variables,
+            &[
+                (&[0, 2], &[1, 5]), // AC → BE, F
+                (&[1, 4], &[3]),    // BE → D
+                (&[3], &[]),        // D has no outgoing edges
+                (&[5], &[]),        // F has no outgoing edges
+            ],
+        );
+    }
+
+    #[test]
+    fn edge_redirection() {
+        let mut unification = Unification::new();
+
+        // Create a graph with A→B→C→D→E→A (cyclic)
+        let (mut graph, variables) = build_graph(
+            &mut unification,
+            [
+                &[1] as &[_], // A → B
+                &[2],         // B → C
+                &[3],         // C → D
+                &[4],         // D → E
+                &[0],         // E → A (closing the cycle)
+            ],
+        );
+
+        // Unify non-adjacent nodes: A+C+E, B+D
+        unify(&mut unification, 0, 2);
+        unify(&mut unification, 0, 4);
+        unify(&mut unification, 1, 3);
+
+        // Condense the graph
+        graph.condense(&mut unification);
+
+        // After condensing:
+        // - Should have 2 nodes (ACE, BD)
+        // - The cycle should become ACE→BD→ACE
+        assert_condensed(
+            &graph,
+            &variables,
+            &[
+                (&[0, 2, 4], &[1]), // ACE → BD
+                (&[1, 3], &[0]),    // BD → ACE
             ],
         );
     }
