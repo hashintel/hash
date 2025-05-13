@@ -17,17 +17,17 @@ export type PrincipalConstraint = {
 	type: "actor"
 } & ActorId | {
 	type: "actorType"
-	actor_type: ActorType
+	actorType: ActorType
 } | {
 	type: "actorGroup"
-	actor_type?: ActorType
+	actorType?: ActorType
 } & ActorGroupId | {
 	type: "role"
-	actor_type?: ActorType
+	actorType?: ActorType
 } & RoleId;
 export type ResourceConstraint = {
 	type: "web"
-	web_id: WebId
+	webId: WebId
 } | {
 	type: "entity"
 } & EntityResourceConstraint | {
@@ -38,7 +38,7 @@ export type EntityResourceConstraint = {
 } | {
 	id: EntityUuid
 } | {
-	web_id: WebId
+	webId: WebId
 	filter: EntityResourceFilter
 };
 export type EntityResourceFilter = {
@@ -52,7 +52,7 @@ export type EntityResourceFilter = {
 	filter: EntityResourceFilter
 } | {
 	type: "isOfType"
-	entity_type: VersionedUrl
+	entityType: VersionedUrl
 };
 export type EntityTypeId = string;
 export type EntityTypeResourceConstraint = {
@@ -60,7 +60,7 @@ export type EntityTypeResourceConstraint = {
 } | {
 	id: EntityTypeId
 } | {
-	web_id: WebId
+	webId: WebId
 	filter: EntityTypeResourceFilter
 };
 export type EntityTypeResourceFilter = {
@@ -74,14 +74,27 @@ export type EntityTypeResourceFilter = {
 	filter: EntityTypeResourceFilter
 } | {
 	type: "isBaseUrl"
-	base_url: BaseUrl
+	baseUrl: BaseUrl
 } | {
 	type: "isVersion"
 	version: OntologyTypeVersion
 };
+export interface PolicyCreationParams {
+	effect: Effect;
+	principal?: PrincipalConstraint;
+	actions: ActionName[];
+	resource?: ResourceConstraint;
+}
 export interface PolicyFilter {
 	principal?: PrincipalFilter;
 }
+export type PolicyUpdateOperation = {
+	type: "addAction"
+	action: ActionName
+} | {
+	type: "removeAction"
+	action: ActionName
+};
 export type PrincipalFilter = {
 	filter: "unconstrained"
 } | {
