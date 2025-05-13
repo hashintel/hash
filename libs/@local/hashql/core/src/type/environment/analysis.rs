@@ -80,7 +80,7 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
     }
 
     pub fn take_diagnostics(&mut self) -> Option<Diagnostics> {
-        core::mem::take(&mut self.diagnostics)
+        self.diagnostics.as_mut().map(core::mem::take)
     }
 
     pub fn fatal_diagnostics(&self) -> usize {

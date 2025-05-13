@@ -334,7 +334,8 @@ fn solve_constraints() {
     let mut solver = InferenceSolver::new(&env, Unification::new(), vec![]);
 
     // Directly call solve_constraints
-    let substitutions = solver.solve_constraints(&applied_constraints);
+    let mut substitutions = FastHashMap::default();
+    solver.solve_constraints(&applied_constraints, &mut substitutions);
 
     // Verify the substitution
     assert_eq!(substitutions.len(), 1);
@@ -362,7 +363,8 @@ fn solve_constraints_with_equality() {
 
     let mut solver = InferenceSolver::new(&env, Unification::new(), vec![]);
 
-    let substitutions = solver.solve_constraints(&applied_constraints);
+    let mut substitutions = FastHashMap::default();
+    solver.solve_constraints(&applied_constraints, &mut substitutions);
 
     assert_eq!(substitutions.len(), 1);
     assert_eq!(substitutions[&var.kind], string);
@@ -391,7 +393,8 @@ fn solve_constraints_with_incompatible_bounds() {
     let mut solver = InferenceSolver::new(&env, Unification::new(), vec![]);
 
     // These bounds are incompatible, so a diagnostic should be created
-    solver.solve_constraints(&applied_constraints);
+    let mut substitutions = FastHashMap::default();
+    solver.solve_constraints(&applied_constraints, &mut substitutions);
 
     let diagnostics = solver.diagnostics.into_vec();
     assert_eq!(diagnostics.len(), 1);
@@ -424,7 +427,8 @@ fn solve_constraints_with_incompatible_equality() {
 
     let mut solver = InferenceSolver::new(&env, Unification::new(), vec![]);
 
-    solver.solve_constraints(&applied_constraints);
+    let mut substitutions = FastHashMap::default();
+    solver.solve_constraints(&applied_constraints, &mut substitutions);
 
     let diagnostics = solver.diagnostics.into_vec();
     assert_eq!(diagnostics.len(), 1);
@@ -458,7 +462,8 @@ fn solve_constraints_with_incompatible_upper_equal_constraint() {
     let mut solver = InferenceSolver::new(&env, Unification::new(), vec![]);
 
     // This should exercise lines 916-929
-    solver.solve_constraints(&applied_constraints);
+    let mut substitutions = FastHashMap::default();
+    solver.solve_constraints(&applied_constraints, &mut substitutions);
 
     // Should have a diagnostic for incompatible upper equal constraint
     let diagnostics = solver.diagnostics.into_vec();
@@ -693,7 +698,8 @@ fn bounds_at_lattice_extremes() {
     assert_eq!(constraint.upper, [unknown]);
 
     // These bounds should be compatible
-    let substitutions = solver.solve_constraints(&applied);
+    let mut substitutions = FastHashMap::default();
+    solver.solve_constraints(&applied, &mut substitutions);
     assert!(solver.diagnostics.is_empty());
 
     // The variable should be inferred to the lower bound (Never)

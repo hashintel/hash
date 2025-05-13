@@ -813,9 +813,8 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     fn solve_constraints(
         &mut self,
         constraints: &FastHashMap<VariableKind, (Variable, VariableConstraint)>,
-    ) -> FastHashMap<VariableKind, TypeId> {
-        let mut substitutions = FastHashMap::default();
-
+        substitutions: &mut FastHashMap<VariableKind, TypeId>,
+    ) {
         // Prepare a substitution map using the existing equality constraints
         // This allows us to use these equalities when verifying other constraints
         let mut substitution = Substitution::new(
@@ -938,8 +937,6 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         }
 
         self.lattice.clear_substitution();
-
-        substitutions
     }
 
     /// Verifies that all variables in the system have been constrained.
@@ -1010,27 +1007,50 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     /// - Diagnostics reporting any errors encountered during solving
     #[must_use]
     pub fn solve(mut self) -> (Substitution, Diagnostics) {
+        // TODO: actually... this is the perfect space to use a bump allocator
+
         // Step 1: Register all variables with the unification system
         self.upsert_variables();
 
         let mut graph = Graph::new(&mut self.unification);
 
-        // Step 2: Solve anti-symmetry constraints (A <: B and B <: A implies A = B)
-        self.solve_anti_symmetry(&mut graph);
+        let mut substitution = FastHashMap::with_capacity_and_hasher(
+            self.unification.lookup.len(),
+            foldhash::fast::RandomState::default(),
+        );
 
-        let lookup = self.unification.lookup();
-        // Set the variable substitutions in the lattice, this makes sure that `equal` constraints
-        // are more lax when comparing equal values.
-        self.lattice.set_variables(lookup.clone());
+        let mut lookup = VariableLookup::new(FastHashMap::default());
+        let mut first_run = true;
 
-        // Step 3 & 4: Apply constraints through forward and backward passes
-        let constraints = self.apply_constraints(&graph);
+        while first_run || !self.constraints.is_empty() {
+            // Clear the diagnostics this round, so that they do not pollute the next round
+            self.diagnostics.clear();
+            self.lattice.take_diagnostics();
+            first_run = false; // Ensure that we run at least once, this is required, so that `verify_constrained` can be called, and a diagnostic can be issued.
 
-        // Step 5: Verify that all variables have been constrained
-        self.verify_constrained(&lookup, &constraints);
+            // Step 2: Solve anti-symmetry constraints (A <: B and B <: A implies A = B)
+            self.solve_anti_symmetry(&mut graph);
 
-        // Step 6: Validate constraints and determine final types
-        let mut substitution = self.solve_constraints(&constraints);
+            lookup = self.unification.lookup();
+            // Set the variable substitutions in the lattice, this makes sure that `equal`
+            // constraints are more lax when comparing equal values.
+            self.lattice.set_variables(lookup.clone());
+
+            // TODO: these constraints need to persist throughout the entire process
+            // Step 3 & 4: Apply constraints through forward and backward passes
+            let constraints = self.apply_constraints(&graph);
+
+            // Step 5: Verify that all variables have been constrained
+            self.verify_constrained(&lookup, &constraints);
+
+            // Step 6: Validate constraints and determine final types
+            substitution.clear();
+            self.solve_constraints(&constraints, &mut substitution);
+
+            self.constraints.clear();
+
+            // TODO: any deferred constraints here
+        }
 
         // Step 7: Simplify the final substitutions
         self.simplify_substitutions(lookup.clone(), &mut substitution);

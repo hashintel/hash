@@ -22,6 +22,11 @@ impl Diagnostics {
         }
     }
 
+    pub fn clear(&mut self) {
+        self.inner.clear();
+        self.fatal = 0;
+    }
+
     /// Returns the number of fatal errors in the diagnostics collection.
     #[must_use]
     pub const fn fatal(&self) -> usize {
