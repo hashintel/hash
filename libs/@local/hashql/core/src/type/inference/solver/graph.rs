@@ -122,8 +122,9 @@ impl Graph {
 
         // Merge subordinate edges up into their representative
         // Only consider non-root nodes (nodes which are after current)
-        #[expect(clippy::tuple_array_conversions, reason = "readability")]
         for (index, repr) in representatives[current..].iter().copied().enumerate() {
+            let index = index + current; // The index is offset from `current`
+
             let [repr, node] = self
                 .nodes
                 .get_disjoint_mut([repr, index])
@@ -162,6 +163,7 @@ impl Graph {
         self.nodes.truncate(current);
 
         // Regenerate the lookup table to map variable IDs to their new indices
+        #[expect(clippy::cast_possible_truncation)]
         for (index, variable_root) in self.lookup.iter_mut().enumerate() {
             let id = VariableId::from_index(index as u32);
             let root = unification.table.find(id);
@@ -216,6 +218,14 @@ impl Graph {
         self.nodes.len()
     }
 
+    #[expect(clippy::cast_possible_truncation)]
+    pub(crate) fn edge_count(&self) -> usize {
+        self.nodes
+            .iter()
+            .map(|node| node.edges.len() as usize)
+            .sum()
+    }
+
     #[inline]
     fn lookup_id(&self, id: VariableId) -> usize {
         let index = self.lookup[id.into_usize()];
@@ -242,5 +252,198 @@ impl Graph {
 
     pub(crate) fn outgoing_edges_by_index(&self, node: usize) -> impl Iterator<Item = usize> {
         self.nodes[node].edges.iter().map(|edge| edge as usize)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use core::borrow::Borrow;
+
+    use super::Graph;
+    use crate::r#type::{
+        inference::{VariableKind, solver::Unification, variable::VariableId},
+        kind::infer::HoleId,
+    };
+
+    fn insert_edges(
+        graph: &mut Graph,
+        variables: &[VariableId],
+        edges: impl IntoIterator<Item: IntoIterator<Item: Borrow<i32>>>,
+    ) {
+        let edges = edges.into_iter();
+
+        for (source, targets) in edges.enumerate() {
+            for target in targets {
+                assert!(*target.borrow() >= 0);
+                graph.insert_edge(variables[source], variables[*target.borrow() as usize]);
+            }
+        }
+    }
+
+    #[expect(clippy::cast_possible_truncation)]
+    fn build_graph(
+        unification: &mut Unification,
+        edges: impl IntoIterator<Item: IntoIterator<Item: Borrow<i32>>, IntoIter: ExactSizeIterator>,
+    ) -> (Graph, Vec<VariableId>) {
+        let edges = edges.into_iter();
+
+        let mut variables = Vec::with_capacity(edges.len());
+        for index in 0..edges.len() {
+            let id = unification.upsert_variable(VariableKind::Hole(HoleId::new(index as u32)));
+
+            variables.push(id);
+        }
+
+        let mut graph = Graph::new(unification);
+
+        insert_edges(&mut graph, &variables, edges);
+
+        (graph, variables)
+    }
+
+    #[expect(clippy::cast_possible_truncation)]
+    fn unify(unification: &mut Unification, left: usize, right: usize) {
+        unification.unify(
+            VariableKind::Hole(HoleId::new(left as u32)),
+            VariableKind::Hole(HoleId::new(right as u32)),
+        );
+    }
+
+    // The expected has the format `(sources - unified, targets)
+    #[track_caller]
+    fn assert_condensed(graph: &Graph, variables: &[VariableId], expected: &[(&[i32], &[i32])]) {
+        let expected_edges: usize = expected.iter().map(|(_, targets)| targets.len()).sum();
+
+        assert_eq!(
+            graph.node_count(),
+            expected.len(),
+            "Expected node count to match"
+        );
+        assert_eq!(
+            graph.edge_count(),
+            expected_edges,
+            "Expected edge count to match"
+        );
+
+        for &(node, targets) in expected {
+            // Check that each node in the condensed group now maps to the same variable
+            let [first, rest @ ..] = node else {
+                panic!("Expected at least one element")
+            };
+
+            let first = graph.lookup_id(variables[*first as usize]);
+            for &item in rest {
+                assert_eq!(
+                    graph.lookup_id(variables[item as usize]),
+                    first,
+                    "Expected all nodes to map to the same variable"
+                );
+            }
+
+            // Check if the target exists in the outgoing edges of the first node
+            for target in targets {
+                let target_id = graph.lookup_id(variables[*target as usize]);
+                assert!(
+                    graph
+                        .outgoing_edges_by_index(first)
+                        .any(|target| target == target_id),
+                    "Expected target to exist in outgoing edges"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn empty_graph_condense() {
+        let mut unification = Unification::new();
+        let mut graph = Graph::new(&mut unification);
+
+        // Condense an empty graph - should not panic
+        graph.condense(&mut unification);
+
+        assert_eq!(graph.node_count(), 0);
+        assert_eq!(graph.edge_count(), 0);
+    }
+
+    #[test]
+    fn single_node_condense() {
+        let mut unification = Unification::new();
+        let (mut graph, variables) = build_graph(&mut unification, [&[] as &[_]]);
+
+        // Condense the graph - nothing should change
+        graph.condense(&mut unification);
+
+        assert_eq!(graph.node_count(), 1);
+        assert_eq!(graph.edge_count(), 0);
+        assert_eq!(graph.lookup_id(variables[0]), 0);
+    }
+
+    #[test]
+    fn no_unification_condense() {
+        let mut unification = Unification::new();
+
+        // Create a simple graph A→B→C with no unifications
+        let (mut graph, variables) = build_graph(
+            &mut unification,
+            [
+                &[1] as &[_], // A → B
+                &[2],         // B → C
+                &[],          // C has no outgoing edges
+            ],
+        );
+
+        assert_eq!(graph.node_count(), 3);
+        assert_eq!(graph.edge_count(), 2);
+
+        // Condense - should not change the graph since no unification happened
+        graph.condense(&mut unification);
+
+        // After condensing - should be the same
+        assert_condensed(
+            &graph,
+            &variables,
+            &[
+                (&[0], &[1]), // A → B
+                (&[1], &[2]), // B → C
+                (&[2], &[]),  // C has no outgoing edges
+            ],
+        );
+    }
+
+    #[test]
+    fn two_node_unification() {
+        let mut unification = Unification::new();
+
+        // Create a graph with A→C, B→C and then unify A+B
+        let (mut graph, variables) = build_graph(
+            &mut unification,
+            [
+                &[2] as &[_], // A → C
+                &[2],         // B → C
+                &[],          // C has no outgoing edges
+            ],
+        );
+
+        // Unify A and B
+        unify(&mut unification, 0, 1);
+
+        // Before condensing
+        assert_eq!(graph.node_count(), 3);
+        assert_eq!(graph.edge_count(), 2);
+
+        // Condense the graph
+        graph.condense(&mut unification);
+
+        // After condensing:
+        // - Should have 2 nodes (AB, C)
+        // - Should have 1 edge (AB→C)
+        assert_condensed(
+            &graph,
+            &variables,
+            &[
+                (&[0, 1], &[2]), // AB → C
+                (&[2], &[]),     // C has no outgoing edges
+            ],
+        );
     }
 }
