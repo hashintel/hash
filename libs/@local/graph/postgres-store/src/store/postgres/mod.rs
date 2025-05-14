@@ -1215,6 +1215,18 @@ where
                             Report::new(error).change_context(policy_error)
                         })?;
                 }
+                PolicyUpdateOperation::SetResourceConstraint {
+                    resource_constraint,
+                } => {
+                    transaction
+                        .as_client()
+                        .execute(
+                            "UPDATE policy SET resource_constraint = $1 WHERE id = $2",
+                            &[&resource_constraint.as_ref().map(Json), &policy_id],
+                        )
+                        .await
+                        .change_context(UpdatePolicyError::StoreError)?;
+                }
             }
         }
 

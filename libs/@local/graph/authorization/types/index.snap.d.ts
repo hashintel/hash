@@ -89,11 +89,14 @@ export interface PolicyFilter {
 	principal?: PrincipalFilter;
 }
 export type PolicyUpdateOperation = {
-	type: "addAction"
+	type: "add-action"
 	action: ActionName
 } | {
-	type: "removeAction"
+	type: "remove-action"
 	action: ActionName
+} | {
+	type: "set-resource-constraint"
+	resourceConstraint: (ResourceConstraint | null)
 };
 export type PrincipalFilter = {
 	filter: "unconstrained"
