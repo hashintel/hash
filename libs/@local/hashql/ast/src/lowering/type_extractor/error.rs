@@ -733,13 +733,16 @@ pub(crate) fn unused_generic_parameter(
 ) -> TypeExtractorDiagnostic {
     let mut diagnostic = Diagnostic::new(
         TypeExtractorDiagnosticCategory::UnusedGenericParameter,
-        Severity::WARNING,
+        Severity::ERROR,
     );
 
     diagnostic.labels.push(
         Label::new(
             param_span,
-            format!("Generic parameter `{}` declared here...", param.name),
+            format!(
+                "Generic parameter `{}` declared here...",
+                demangle(&param.name)
+            ),
         )
         .with_order(0),
     );
@@ -753,13 +756,13 @@ pub(crate) fn unused_generic_parameter(
     diagnostic.help = Some(Help::new(format!(
         "Generic parameter `{}` is declared but not referenced. Either remove the unused \
          parameter or incorporate it into your type definition.",
-        param.name
+        demangle(&param.name)
     )));
 
     diagnostic.note = Some(Note::new(
         "Each generic parameter should serve a purpose in parameterizing the type. Unused \
          parameters can make code harder to understand and may indicate a design oversight or \
-         incomplete implementation.",
+         incomplete implementation and are therefore considered errors.",
     ));
 
     diagnostic

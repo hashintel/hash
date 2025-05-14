@@ -1,5 +1,5 @@
 //@ run: pass
-//@ description: Test if we can properly re-declare the option type
+//@ description: Test if we can properly re-declare the Result type
 // biome-ignore format: readability
 ["newtype", "Ok<T>", { "#struct": {"value": "T"} },
 ["newtype", "Err<E>", { "#struct": {"value": "E"} },

@@ -1,0 +1,13 @@
+[31m[type-extractor::unused-generic-parameter] Error:[0m Generic parameter not used in type definition
+   ╭─[ <unknown>:6:21 ]
+   │
+ 6 │ ["type", "Option<T, E>", ["|", {"#tuple": ["Some<T>"]}, {"#tuple": ["None"]}],
+   │                     ┬    ──────────────────────────┬─────────────────────────  
+   │                     ╰────────────────────────────────────────────────────────── Generic parameter `E` declared here...
+   │                                                    │                           
+   │                                                    ╰─────────────────────────── ...but never used in this type definition
+   │ 
+   │ Help: Generic parameter `E` is declared but not referenced. Either remove the unused parameter or incorporate it into your type definition.
+   │ 
+   │ Note: Each generic parameter should serve a purpose in parameterizing the type. Unused parameters can make code harder to understand and may indicate a design oversight or incomplete implementation and are therefore considered errors.
+───╯
