@@ -73,6 +73,8 @@ impl<'graph, A> Tarjan<'graph, A>
 where
     A: Allocator,
 {
+    const EXPECTED_SCC_RATIO: usize = 4;
+
     /// Creates a new Tarjan algorithm instance for the given graph in the given allocator.
     ///
     /// Initializes all the necessary data structures to track the state of the algorithm.
@@ -88,12 +90,18 @@ where
         Self {
             graph,
             next_discovery_index: 0,
-            node_stack: Vec::with_capacity_in(node_count / 4, allocator.clone()),
+            node_stack: Vec::with_capacity_in(
+                node_count / Self::EXPECTED_SCC_RATIO,
+                allocator.clone(),
+            ),
             on_node_stack: bitbox![0; node_count],
             discovery_time: alloc::vec::from_elem_in(0, node_count, allocator.clone()),
             visited: bitbox![0; node_count],
             lowlink: alloc::vec::from_elem_in(0, node_count, allocator.clone()),
-            strongly_connected_components: Vec::with_capacity_in(node_count / 4, allocator),
+            strongly_connected_components: Vec::with_capacity_in(
+                node_count / Self::EXPECTED_SCC_RATIO,
+                allocator,
+            ),
         }
     }
 
