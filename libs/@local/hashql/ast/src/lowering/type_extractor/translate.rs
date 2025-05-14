@@ -132,10 +132,11 @@ pub(crate) enum Identity<'heap> {
     Nominal(Symbol<'heap>),
 }
 
+/// Structure of Arrays (`SoA`) of spanned generic arguments
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct SpannedGenericArguments<'heap> {
-    pub value: TinyVec<GenericArgument<'heap>>,
-    pub spans: TinyVec<SpanId>,
+    value: TinyVec<GenericArgument<'heap>>,
+    spans: TinyVec<SpanId>,
 }
 
 impl<'heap> SpannedGenericArguments<'heap> {
@@ -144,6 +145,15 @@ impl<'heap> SpannedGenericArguments<'heap> {
             value: TinyVec::new(),
             spans: TinyVec::new(),
         }
+    }
+
+    pub(crate) fn from_parts(
+        value: TinyVec<GenericArgument<'heap>>,
+        spans: TinyVec<SpanId>,
+    ) -> Self {
+        debug_assert_eq!(value.len(), spans.len());
+
+        Self { value, spans }
     }
 
     pub(crate) const fn len(&self) -> usize {

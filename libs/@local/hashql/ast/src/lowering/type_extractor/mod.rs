@@ -90,10 +90,7 @@ impl<'env, 'heap> TypeExtractor<'env, 'heap> {
             spans.push(*span);
         }
 
-        SpannedGenericArguments {
-            value: arguments,
-            spans,
-        }
+        SpannedGenericArguments::from_parts(arguments, spans)
     }
 
     fn setup_locals(
