@@ -5,7 +5,10 @@ use core::mem;
 
 use hashql_core::{
     collection::{FastHashMap, TinyVec},
-    module::{ModuleRegistry, locals::LocalTypes},
+    module::{
+        ModuleRegistry,
+        locals::{LocalTypeDef, LocalTypes},
+    },
     symbol::Symbol,
     r#type::{TypeId, environment::Environment, kind::generic::GenericArgument},
 };
@@ -211,7 +214,10 @@ impl<'env, 'heap> TypeExtractor<'env, 'heap> {
 
             unit.bound_generics = &variable.arguments;
 
-            output.insert(name, unit.variable(variable));
+            output.insert(LocalTypeDef {
+                id: unit.variable(variable),
+                name,
+            });
         }
 
         self.diagnostics.extend(unit.diagnostics);
