@@ -1,4 +1,5 @@
-use alloc::alloc::{Allocator, Global};
+use alloc::alloc::Global;
+use core::alloc::Allocator;
 
 use hashbrown::{HashMap, HashSet};
 
