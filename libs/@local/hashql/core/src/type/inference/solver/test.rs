@@ -205,13 +205,11 @@ fn apply_constraints() {
     let mut graph = Graph::new(&mut solver.unification);
     solver.solve_anti_symmetry(&mut graph);
 
-    let applied_constraints = solver.apply_constraints(&graph);
+    let mut variables = FastHashMap::default();
+    solver.apply_constraints(&graph, &mut variables);
 
-    assert_eq!(applied_constraints.len(), 1);
-    let (_, (_, constraint)) = applied_constraints
-        .iter()
-        .next()
-        .expect("Should have one constraint");
+    assert_eq!(variables.len(), 1);
+    let (_, (_, constraint)) = variables.iter().next().expect("Should have one constraint");
 
     // Check that the constraint has the correct bounds
     assert_eq!(constraint.lower, [string]);
@@ -239,13 +237,11 @@ fn apply_constraints_equality() {
     let mut graph = Graph::new(&mut solver.unification);
     solver.solve_anti_symmetry(&mut graph);
 
-    let applied_constraints = solver.apply_constraints(&graph);
+    let mut variables = FastHashMap::default();
+    solver.apply_constraints(&graph, &mut variables);
 
-    assert_eq!(applied_constraints.len(), 1);
-    let (_, (_, constraint)) = applied_constraints
-        .iter()
-        .next()
-        .expect("Should have one constraint");
+    assert_eq!(variables.len(), 1);
+    let (_, (_, constraint)) = variables.iter().next().expect("Should have one constraint");
 
     assert_eq!(
         *constraint,
@@ -268,22 +264,22 @@ fn apply_constraints_with_unification() {
     let hole1 = HoleId::new(1);
     let hole2 = HoleId::new(2);
 
-    let variable1 = Variable::synthetic(VariableKind::Hole(hole1));
-    let variable2 = Variable::synthetic(VariableKind::Hole(hole2));
+    let var1 = Variable::synthetic(VariableKind::Hole(hole1));
+    let var2 = Variable::synthetic(VariableKind::Hole(hole2));
 
     let constraints = vec![
         Constraint::Equals {
-            variable: variable1,
+            variable: var1,
             r#type: string,
         },
         Constraint::UpperBound {
-            variable: variable2,
+            variable: var2,
             bound: number,
         },
     ];
 
     let mut unification = Unification::new();
-    unification.unify(variable1.kind, variable2.kind);
+    unification.unify(var1.kind, var2.kind);
 
     let mut solver = InferenceSolver::new(&env, unification, constraints);
     solver.upsert_variables();
@@ -291,14 +287,12 @@ fn apply_constraints_with_unification() {
     let mut graph = Graph::new(&mut solver.unification);
     solver.solve_anti_symmetry(&mut graph);
 
-    let applied_constraints = solver.apply_constraints(&graph);
+    let mut variables = FastHashMap::default();
+    solver.apply_constraints(&graph, &mut variables);
 
     // Only one entry since the variables are unified
-    assert_eq!(applied_constraints.len(), 1);
-    let (_, (_, constraint)) = applied_constraints
-        .iter()
-        .next()
-        .expect("Expected a constraint");
+    assert_eq!(variables.len(), 1);
+    let (_, (_, constraint)) = variables.iter().next().expect("Expected a constraint");
 
     // Both constraints should be applied to the root variable
     assert_eq!(
@@ -553,12 +547,14 @@ fn redundant_constraints() {
     let mut graph = Graph::new(&mut solver.unification);
     solver.solve_anti_symmetry(&mut graph);
 
+    let mut variables = FastHashMap::default();
+
     // Apply the constraints
-    let applied = solver.apply_constraints(&graph);
+    solver.apply_constraints(&graph, &mut variables);
 
     // Despite having duplicate constraints, there should be one entry with one equality
-    assert_eq!(applied.len(), 1);
-    let (_, (_, constraint)) = applied.iter().next().expect("Should have one constraint");
+    assert_eq!(variables.len(), 1);
+    let (_, (_, constraint)) = variables.iter().next().expect("Should have one constraint");
     assert_eq!(constraint.equal, Some(string));
 }
 
@@ -690,16 +686,17 @@ fn bounds_at_lattice_extremes() {
     solver.solve_anti_symmetry(&mut graph);
 
     // Apply the constraints
-    let applied = solver.apply_constraints(&graph);
+    let mut variables = FastHashMap::default();
+    solver.apply_constraints(&graph, &mut variables);
 
-    assert_eq!(applied.len(), 1);
-    let (_, (_, constraint)) = applied.iter().next().expect("Should have one constraint");
+    assert_eq!(variables.len(), 1);
+    let (_, (_, constraint)) = variables.iter().next().expect("Should have one constraint");
     assert_eq!(constraint.lower, [never]);
     assert_eq!(constraint.upper, [unknown]);
 
     // These bounds should be compatible
     let mut substitutions = FastHashMap::default();
-    solver.solve_constraints(&applied, &mut substitutions);
+    solver.solve_constraints(&variables, &mut substitutions);
     assert!(solver.diagnostics.is_empty());
 
     // The variable should be inferred to the lower bound (Never)
@@ -714,31 +711,32 @@ fn collect_constraints_with_structural_edge() {
     let hole1 = HoleId::new(1);
     let hole2 = HoleId::new(2);
 
-    let variable1 = Variable::synthetic(VariableKind::Hole(hole1));
-    let variable2 = Variable::synthetic(VariableKind::Hole(hole2));
+    let var1 = Variable::synthetic(VariableKind::Hole(hole1));
+    let var2 = Variable::synthetic(VariableKind::Hole(hole2));
 
     // Create a structural edge constraint
     let constraints = vec![Constraint::StructuralEdge {
-        source: variable1,
-        target: variable2,
+        source: var1,
+        target: var2,
     }];
 
     let mut solver = InferenceSolver::new(&env, Unification::new(), constraints);
 
     // This should exercise lines 410-418
-    let collected = solver.collect_constraints();
+    let mut variables = FastHashMap::default();
+    solver.collect_constraints(&mut variables);
 
     // Both variables should be in the map even though they don't have direct bounds
-    assert!(collected.contains_key(&variable1.kind));
-    assert!(collected.contains_key(&variable2.kind));
+    assert!(variables.contains_key(&var1.kind));
+    assert!(variables.contains_key(&var2.kind));
 
     // They should have default constraint values (all None/empty)
-    let (_, var1_constraints) = &collected[&variable1.kind];
+    let (_, var1_constraints) = &variables[&var1.kind];
     assert!(var1_constraints.equal.is_none());
     assert!(var1_constraints.lower.is_empty());
     assert!(var1_constraints.upper.is_empty());
 
-    let (_, var2_constraints) = &collected[&variable2.kind];
+    let (_, var2_constraints) = &variables[&var2.kind];
     assert!(var2_constraints.equal.is_none());
     assert!(var2_constraints.lower.is_empty());
     assert!(var2_constraints.upper.is_empty());
