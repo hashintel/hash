@@ -35,7 +35,13 @@ pub(crate) struct StructEmpty {}
 #[derive(specta::Type)]
 pub(crate) struct StructOptional {
     required: String,
-    optional: Option<i32>,
+    nullable: Option<i32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    optional_ser: Option<f32>,
+    #[serde(default)]
+    optional_de: Option<f32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    optional_ser_de: Option<f32>,
 }
 
 // Struct with nested structs

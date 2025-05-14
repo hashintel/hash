@@ -4,5 +4,8 @@ expression: generated
 ---
 export interface StructOptional {
 	required: string;
-	optional?: number;
+	nullable: (number | null);
+	optional_ser?: number;
+	optional_de?: number;
+	optional_ser_de?: number;
 }

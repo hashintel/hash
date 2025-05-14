@@ -124,6 +124,7 @@ pub enum PrincipalFilter {
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PolicyFilter {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub principal: Option<PrincipalFilter>,
 }
 

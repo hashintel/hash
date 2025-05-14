@@ -604,7 +604,7 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
                 SPAN,
                 self.ast.vec_from_array([
                     self.visit_type(optional),
-                    self.ast.ts_type_undefined_keyword(SPAN),
+                    self.ast.ts_type_null_keyword(SPAN),
                 ]),
             ),
         )
@@ -619,7 +619,7 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
             Type::Tuple(tuple) => self.visit_tuple(tuple),
             Type::List(list) => self.visit_list(list),
             Type::Map(map) => self.visit_map(map),
-            Type::Optional(optional) => self.visit_optional(optional),
+            Type::Nullable(optional) => self.visit_optional(optional),
         }
     }
 }

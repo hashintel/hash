@@ -33,5 +33,11 @@ pub(crate) struct TupleNested {
 // Struct with optional tuple field
 #[derive(specta::Type)]
 pub(crate) struct TupleOptional {
-    optional: Option<(f32, f32)>,
+    nullable: Option<(f32, f32)>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    optional_ser: Option<(f32, f32)>,
+    #[serde(default)]
+    optional_de: Option<(f32, f32)>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    optional_ser_de: Option<(f32, f32)>,
 }

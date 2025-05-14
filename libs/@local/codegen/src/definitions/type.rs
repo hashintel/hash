@@ -30,7 +30,7 @@ pub enum Type {
     Tuple(Tuple),
     List(List),
     Map(Map),
-    Optional(Box<Self>),
+    Nullable(Box<Self>),
 }
 
 impl Type {
@@ -56,7 +56,7 @@ impl Type {
                 Self::List(List::from_specta(list_type, type_collection))
             }
             specta::DataType::Nullable(nullable) => {
-                Self::Optional(Box::new(Self::from_specta(nullable, type_collection)))
+                Self::Nullable(Box::new(Self::from_specta(nullable, type_collection)))
             }
             specta::DataType::Map(map_type) => {
                 Self::Map(Map::from_specta(map_type, type_collection))

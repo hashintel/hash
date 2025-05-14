@@ -6,9 +6,9 @@ export type Effect = "permit" | "forbid";
 export interface Policy {
 	id: PolicyId;
 	effect: Effect;
-	principal?: PrincipalConstraint;
+	principal: (PrincipalConstraint | null);
 	actions: ActionName[];
-	resource?: ResourceConstraint;
+	resource: (ResourceConstraint | null);
 }
 import type { Brand } from "@local/advanced-types/brand";
 export type PolicyId = Brand<string, "PolicyId">;
@@ -81,9 +81,9 @@ export type EntityTypeResourceFilter = {
 };
 export interface PolicyCreationParams {
 	effect: Effect;
-	principal?: PrincipalConstraint;
+	principal: (PrincipalConstraint | null);
 	actions: ActionName[];
-	resource?: ResourceConstraint;
+	resource: (ResourceConstraint | null);
 }
 export interface PolicyFilter {
 	principal?: PrincipalFilter;

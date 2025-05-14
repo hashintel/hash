@@ -3,8 +3,8 @@ source: libs/@local/codegen/tests/standalone-types/main.rs
 expression: generated
 ---
 export interface ListOptionals {
-	optional_strings: (string | undefined)[];
-	optional_integers: (number | undefined)[];
-	optional_arrays: (number[] | undefined)[];
-	optional_sets: (string[] | undefined)[];
+	optional_strings: (string | null)[];
+	optional_integers: (number | null)[];
+	optional_arrays: (number[] | null)[];
+	optional_sets: (string[] | null)[];
 }
