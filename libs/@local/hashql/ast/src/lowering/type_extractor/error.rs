@@ -762,7 +762,8 @@ pub(crate) fn unused_generic_parameter(
     diagnostic.note = Some(Note::new(
         "Each generic parameter should serve a purpose in parameterizing the type. Unused \
          parameters can make code harder to understand and may indicate a design oversight or \
-         incomplete implementation and are therefore considered errors.",
+         incomplete implementation. They are unconstrained variables, and therefore considered \
+         erroneous.",
     ));
 
     diagnostic
