@@ -7,7 +7,7 @@ mod topo;
 use bumpalo::Bump;
 use ena::unify::{InPlaceUnificationTable, NoError, UnifyKey as _};
 
-use self::{graph::Graph, tarjan::Tarjan, topo::topological_sort};
+use self::{graph::Graph, tarjan::Tarjan, topo::topological_sort_in};
 use super::{
     Constraint, Substitution, Variable, VariableKind,
     variable::{VariableId, VariableLookup},
@@ -300,7 +300,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     ///
     /// Additionally, structural edges (from constraints like `_1 <: (name: _2)` and `_2 <: 1`)
     /// are included in this analysis, as they can also create equality relationships.
-    fn solve_anti_symmetry(&mut self, graph: &mut Graph) {
+    fn solve_anti_symmetry(&mut self, graph: &mut Graph, bump: &Bump) {
         // We first create a graph of all the inference variables, that's then used to see if there
         // are any variables that can be equalized.
         // We can do this because our type lattice is a partially ordered set, this we can make use
@@ -327,7 +327,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         }
 
         // Run Tarjan's SCC algorithm to find strongly connected components
-        let tarjan = Tarjan::new(graph);
+        let tarjan = Tarjan::new_in(graph, bump);
 
         // For each strongly connected component, unify all variables in the component
         // since they must be equal due to anti-symmetry of the subtyping relation
@@ -542,7 +542,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
 
         // Does a forwards pass over the graph to apply any lower constraints in order
         // Process nodes in topological order to ensure dependencies are resolved first
-        let topo = topological_sort(graph).expect("expected dag after anti-symmetry run");
+        let topo = topological_sort_in(graph, bump).expect("expected dag after anti-symmetry run");
 
         for index in topo {
             let id = graph.node(index);
@@ -647,7 +647,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
 
         // We do a backwards pass over the graph to apply any upper constraints in order
         // Process nodes in reverse topological order for upper bound resolution
-        let topo = topological_sort(graph).expect("expected dag after anti-symmetry run");
+        let topo = topological_sort_in(graph, bump).expect("expected dag after anti-symmetry run");
 
         for index in topo.into_iter().rev() {
             let id = graph.node(index);
@@ -964,8 +964,9 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     pub fn solve(mut self) -> (Substitution, Diagnostics) {
         // This is the perfect use of a bump allocator, which is suited for phase-based memory
         // allocation, each iteration requires some additional memory for temporary data structures,
-        // which we can reclaim and re-use, reducing the overall allocator usage. Without overhead
-        // of trying to recycle data structures through iterations.
+        // which we can reclaim and re-use, reducing the overall allocator usage. We always use the
+        // same amount of memory through each pass (or slightly less/more), therefore the bump arena
+        // will quickly equalize starting in the second iteration.
         let mut bump = Bump::new();
 
         // Step 1: Register all variables with the unification system
@@ -987,7 +988,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
             first_run = false; // Ensure that we run at least once, this is required, so that `verify_constrained` can be called, and a diagnostic can be issued.
 
             // Step 2: Solve anti-symmetry constraints (A <: B and B <: A implies A = B)
-            self.solve_anti_symmetry(&mut graph);
+            self.solve_anti_symmetry(&mut graph, &bump);
 
             lookup = self.unification.lookup();
             // Set the variable substitutions in the lattice, this makes sure that `equal`

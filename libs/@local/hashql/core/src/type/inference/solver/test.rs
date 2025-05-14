@@ -127,7 +127,8 @@ fn solve_anti_symmetry() {
     solver.upsert_variables();
 
     let mut graph = Graph::new(&mut solver.unification);
-    solver.solve_anti_symmetry(&mut graph);
+    let bump = Bump::new();
+    solver.solve_anti_symmetry(&mut graph, &bump);
 
     assert!(solver.unification.is_unioned(kind1.kind, kind2.kind));
 }
@@ -164,7 +165,8 @@ fn solve_anti_symmetry_with_cycles() {
 
     solver.upsert_variables();
     let mut graph = Graph::new(&mut solver.unification);
-    solver.solve_anti_symmetry(&mut graph);
+    let bump = Bump::new();
+    solver.solve_anti_symmetry(&mut graph, &bump);
 
     // All three variables should be unified
     assert!(
@@ -205,7 +207,8 @@ fn apply_constraints() {
     solver.upsert_variables();
 
     let mut graph = Graph::new(&mut solver.unification);
-    solver.solve_anti_symmetry(&mut graph);
+    let bump = Bump::new();
+    solver.solve_anti_symmetry(&mut graph, &bump);
 
     let mut variables = FastHashMap::default();
     let bump = Bump::new();
@@ -238,10 +241,10 @@ fn apply_constraints_equality() {
     solver.upsert_variables();
 
     let mut graph = Graph::new(&mut solver.unification);
-    solver.solve_anti_symmetry(&mut graph);
+    let bump = Bump::new();
+    solver.solve_anti_symmetry(&mut graph, &bump);
 
     let mut variables = FastHashMap::default();
-    let bump = Bump::new();
     solver.apply_constraints(&graph, &bump, &mut variables);
 
     assert_eq!(variables.len(), 1);
@@ -289,10 +292,10 @@ fn apply_constraints_with_unification() {
     solver.upsert_variables();
 
     let mut graph = Graph::new(&mut solver.unification);
-    solver.solve_anti_symmetry(&mut graph);
+    let bump = Bump::new();
+    solver.solve_anti_symmetry(&mut graph, &bump);
 
     let mut variables = FastHashMap::default();
-    let bump = Bump::new();
     solver.apply_constraints(&graph, &bump, &mut variables);
 
     // Only one entry since the variables are unified
@@ -550,10 +553,10 @@ fn redundant_constraints() {
     solver.upsert_variables();
 
     let mut graph = Graph::new(&mut solver.unification);
-    solver.solve_anti_symmetry(&mut graph);
+    let bump = Bump::new();
+    solver.solve_anti_symmetry(&mut graph, &bump);
 
     let mut variables = FastHashMap::default();
-    let bump = Bump::new();
 
     // Apply the constraints
     solver.apply_constraints(&graph, &bump, &mut variables);
@@ -598,7 +601,8 @@ fn cyclic_ordering_constraints() {
     // Directly call the anti-symmetry solver
     solver.upsert_variables();
     let mut graph = Graph::new(&mut solver.unification);
-    solver.solve_anti_symmetry(&mut graph);
+    let bump = Bump::new();
+    solver.solve_anti_symmetry(&mut graph, &bump);
 
     // Verify all variables are unified
     assert!(
@@ -647,7 +651,8 @@ fn cyclic_structural_edges_constraints() {
     // Directly call the anti-symmetry solver
     solver.upsert_variables();
     let mut graph = Graph::new(&mut solver.unification);
-    solver.solve_anti_symmetry(&mut graph);
+    let bump = Bump::new();
+    solver.solve_anti_symmetry(&mut graph, &bump);
 
     // Verify all variables are unified
     assert!(
@@ -689,11 +694,11 @@ fn bounds_at_lattice_extremes() {
     solver.upsert_variables();
 
     let mut graph = Graph::new(&mut solver.unification);
-    solver.solve_anti_symmetry(&mut graph);
+    let bump = Bump::new();
+    solver.solve_anti_symmetry(&mut graph, &bump);
 
     // Apply the constraints
     let mut variables = FastHashMap::default();
-    let bump = Bump::new();
     solver.apply_constraints(&graph, &bump, &mut variables);
 
     assert_eq!(variables.len(), 1);
