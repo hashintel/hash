@@ -109,7 +109,6 @@ pub struct PolicyCreationParams {
     pub effect: Effect,
     pub principal: Option<PrincipalConstraint>,
     pub actions: Vec<ActionName>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub resource: Option<ResourceConstraint>,
 }
 

@@ -83,7 +83,7 @@ export interface PolicyCreationParams {
 	effect: Effect;
 	principal: (PrincipalConstraint | null);
 	actions: ActionName[];
-	resource?: ResourceConstraint;
+	resource: (ResourceConstraint | null);
 }
 export interface PolicyFilter {
 	principal?: PrincipalFilter;
