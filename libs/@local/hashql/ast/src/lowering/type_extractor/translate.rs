@@ -211,9 +211,6 @@ pub(crate) struct TranslationUnit<'env, 'ty, 'heap> {
 }
 
 impl<'env, 'heap> TranslationUnit<'env, '_, 'heap> {
-    // TODO: we need to find the generics that are actually used and only apply them, if there are
-    // any generics that are unused - well that's an error!
-
     /// Creates a nominal (named) type with its underlying representation
     ///
     /// Nominal types are identified by their name rather than structure, but still have an
