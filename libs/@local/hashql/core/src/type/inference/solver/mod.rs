@@ -136,7 +136,7 @@ impl Unification {
 
 /// Represents the direction of a type bound constraint.
 ///
-/// Type constraints in the inference system are often directional, establishing
+/// Type constraints in the inference system are directional, establishing
 /// either an upper bound (subtype relationship) or a lower bound (supertype relationship).
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 enum Bound {
@@ -207,28 +207,40 @@ impl VariableConstraint {
     }
 }
 
+/// Represents the final, evaluated constraints for a variable after processing.
+///
+/// This contains at most one constraint of each kind (equality, lower bound, upper bound)
+/// after all the constraints have been evaluated and merged.
 #[derive(Debug, PartialEq, Eq, Default)]
 struct EvaluatedVariableConstraint {
+    /// The final equality constraint, if any
     equal: Option<TypeId>,
+    /// The final lower bound constraint, if any
     lower: Option<TypeId>,
+    /// The final upper bound constraint, if any
     upper: Option<TypeId>,
 }
 
 /// The main type inference solver that resolves constraints to determine concrete types.
 ///
-/// This solver implements a multi-phase constraint solving algorithm that handles
-/// complex type relationships including subtyping, equality constraints, and structural
-/// dependencies. It works with a lattice-based type system where types form a partial
-/// order.
+/// The constraint solver implements a fix-point iteration algorithm to determine the
+/// most specific types for each type variable in the system. It handles equality
+/// constraints, subtyping relationships, and structural dependencies. It works with
+/// a lattice-based type system where types form a partial order.
 ///
-/// The solver operates in several phases:
+/// The solver performs these steps:
 ///
-/// 1. Anti-symmetry resolution - Identify variables that should be equal
-/// 2. Constraint collection - Aggregate all constraints by variable
-/// 3. Forward pass - Resolve lower bounds in topological order
-/// 4. Backward pass - Resolve upper bounds in reverse topological order
-/// 5. Final resolution - Validate constraints and compute substitutions
-/// 6. Simplification - Reduce types to their simplest form
+/// 1. Variable registration - Register all variables with the unification system
+/// 2. Fix-point iteration - Process constraints until no new ones are generated:
+///    1. Anti-symmetry resolution - Identify variables that should be equal
+///    2. Variable substitution setup - Configure the lattice environment
+///    3. Constraint collection - Gather all constraints by variable
+///    4. Forward constraint pass - Resolve lower bounds in topological order
+///    5. Backward constraint pass - Resolve upper bounds in reverse topological order
+///    6. Constraint verification - Ensure all variables are constrained
+///    7. Constraint validation - Check and resolve the final constraints
+/// 3. Simplification - Reduce the final type substitutions to their simplest form
+/// 4. Diagnostic collection - Gather all error information from the solving process
 pub struct InferenceSolver<'env, 'heap> {
     /// Environment for performing lattice operations (meet, join, subtyping)
     lattice: LatticeEnvironment<'env, 'heap>,
@@ -728,9 +740,8 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     /// in multiple phases:
     ///
     /// 1. Collect constraints for each variable
-    /// 2. Build a directed graph of variable relationships
-    /// 3. Resolve lower bounds via a forward pass
-    /// 4. Resolve upper bounds via a backward pass
+    /// 2. Resolve lower bounds via a forward pass
+    /// 3. Resolve upper bounds via a backward pass
     ///
     /// This approach ensures that constraints are propagated correctly through the
     /// dependency graph, even with complex type relationships.
@@ -744,13 +755,13 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         bump: &Bump,
         variables: &mut FastHashMap<VariableKind, (Variable, VariableConstraint)>,
     ) {
-        // First collect all constraints by variable
+        // Step 2.3: First collect all constraints by variable
         self.collect_constraints(variables);
 
-        // Perform the forward pass to resolve lower bounds
+        // Step 2.4: Perform the forward pass to resolve lower bounds
         self.apply_constraints_forwards(graph, bump, variables);
 
-        // Perform the backward pass to resolve upper bounds
+        // Step 2.5: Perform the backward pass to resolve upper bounds
         self.apply_constraints_backwards(graph, bump, variables);
     }
 
@@ -943,17 +954,23 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
 
     /// Solves type inference constraints and produces a type substitution.
     ///
-    /// This is the main entry point for the inference solver. It coordinates the
-    /// entire constraint solving process:
+    /// This is the main entry point for the inference solver. It implements a fix-point
+    /// iteration algorithm that continues solving until no new constraints are generated:
     ///
     /// 1. Registers all variables in the unification system
-    /// 2. Solves anti-symmetry constraints to identify variables that must be equal
-    /// 3. Sets up variable substitutions in the lattice environment
-    /// 4. Applies constraints through forward and backward passes
-    /// 5. Verifies that all variables are constrained
-    /// 6. Validates constraints and computes substitutions
-    /// 7. Simplifies the final substitutions for better readability
-    /// 8. Collects any diagnostics generated during solving
+    /// 2. Repeatedly processes constraints until reaching a fix-point:
+    ///    1. Solves anti-symmetry constraints (where A <: B and B <: A implies A = B)
+    ///    2. Sets up variable substitutions in the lattice environment
+    ///    3. Collects constraints for each variable
+    ///    4. Applies forward constraint pass to resolve lower bounds
+    ///    5. Applies backward constraint pass to resolve upper bounds
+    ///    6. Verifies all variables are constrained
+    ///    7. Validates constraints and computes substitutions
+    /// 3. Simplifies the final substitutions for better readability
+    /// 4. Collects any diagnostics generated during solving
+    ///
+    /// The fix-point approach handles complex interdependencies between type variables
+    /// by allowing newly generated constraints to trigger additional iterations.
     ///
     /// # Returns
     ///
@@ -963,10 +980,10 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     #[must_use]
     pub fn solve(mut self) -> (Substitution, Diagnostics) {
         // This is the perfect use of a bump allocator, which is suited for phase-based memory
-        // allocation, each iteration requires some additional memory for temporary data structures,
-        // which we can reclaim and re-use, reducing the overall allocator usage. We always use the
-        // same amount of memory through each pass (or slightly less/more), therefore the bump arena
-        // will quickly equalize starting in the second iteration.
+        // allocation. Each fix-point iteration requires temporary data structures that we can
+        // reclaim and re-use, reducing memory usage. The bump allocator's memory consumption
+        // stabilizes after the first iteration since each pass uses approximately
+        // the same amount of memory.
         let mut bump = Bump::new();
 
         // Step 1: Register all variables with the unification system
@@ -979,29 +996,34 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         let mut substitution = fast_hash_map(self.unification.lookup.len());
 
         let mut lookup = VariableLookup::new(FastHashMap::default());
-        let mut first_run = true;
+        // Ensure that we run at least once, this is required, so that `verify_constrained` can
+        // be called, and a diagnostic can be issued.
+        let mut force_validation_pass = true;
 
-        while first_run || !self.constraints.is_empty() {
+        // Step 2: Fix-point iteration - continue solving until no new constraints are generated
+        while force_validation_pass || !self.constraints.is_empty() {
+            force_validation_pass = false;
+
             // Clear the diagnostics this round, so that they do not pollute the next round
             self.diagnostics.clear();
             self.lattice.take_diagnostics();
-            first_run = false; // Ensure that we run at least once, this is required, so that `verify_constrained` can be called, and a diagnostic can be issued.
 
-            // Step 2: Solve anti-symmetry constraints (A <: B and B <: A implies A = B)
+            // Step 2.1: Solve anti-symmetry constraints (A <: B and B <: A implies A = B)
             self.solve_anti_symmetry(&mut graph, &bump);
 
             lookup = self.unification.lookup();
-            // Set the variable substitutions in the lattice, this makes sure that `equal`
-            // constraints are more lax when comparing equal values.
+            // Step 2.2: Set the variable substitutions in the lattice
+            // This makes sure that `equal` constraints are more lax when comparing equal values
             self.lattice.set_variables(lookup.clone());
 
-            // Step 3 & 4: Apply constraints through forward and backward passes
+            // Steps 2.3, 2.4, 2.5: Apply constraints through collection, forward, and backward
+            // passes
             self.apply_constraints(&graph, &bump, &mut variables);
 
-            // Step 5: Verify that all variables have been constrained
+            // Step 2.6: Verify that all variables have been constrained
             self.verify_constrained(&lookup, &variables);
 
-            // Step 6: Validate constraints and determine final types
+            // Step 2.7: Validate constraints and determine final types
             substitution.clear();
             self.solve_constraints(&variables, &mut substitution);
 
@@ -1009,14 +1031,15 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
 
             // TODO: any deferred constraints here
 
+            // Reset the bump allocator for the next iteration to avoid memory growth
             bump.reset();
         }
 
-        // Step 7: Simplify the final substitutions
+        // Step 3: Simplify the final substitutions
         self.simplify_substitutions(lookup.clone(), &mut substitution);
         let substitution = Substitution::new(lookup, substitution);
 
-        // Step 8: Collect all diagnostics from the solving process
+        // Step 4: Collect all diagnostics from the solving process
         let mut diagnostics = self.diagnostics;
         diagnostics.merge(self.lattice.take_diagnostics());
         if let Some(simplify) = self.simplify.take_diagnostics() {
