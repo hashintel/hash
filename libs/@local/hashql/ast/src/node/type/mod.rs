@@ -1,3 +1,5 @@
+pub mod visit;
+
 use hashql_core::{heap, span::SpanId, symbol::Ident};
 
 use super::{id::NodeId, path::Path};

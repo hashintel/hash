@@ -6,7 +6,7 @@
 //! the module registry to support both local and global type references.
 
 use hashql_core::{
-    collection::{FastHashMap, SmallVec, TinyVec},
+    collection::{FastHashMap, FastHashSet, SmallVec, TinyVec, fast_hash_set},
     intern::Provisioned,
     module::{
         ModuleRegistry,
@@ -38,9 +38,57 @@ use crate::{
     },
     node::{
         self,
+        generic::GenericConstraint,
         path::{Path, PathSegmentArgument},
+        r#type::visit::{TypeVisitor, walk_generic_constraint, walk_path},
     },
 };
+
+struct GenericArgumentVisitor<'env, 'heap> {
+    scope: &'env [GenericArgument<'heap>],
+    used: FastHashSet<GenericArgument<'heap>>,
+}
+
+impl<'env, 'heap> GenericArgumentVisitor<'env, 'heap> {
+    fn new(scope: &'env [GenericArgument<'heap>]) -> Self {
+        Self {
+            scope,
+            used: fast_hash_set(scope.len()),
+        }
+    }
+}
+
+impl<'heap> TypeVisitor<'heap> for GenericArgumentVisitor<'_, 'heap> {
+    fn visit_generic_constraint(&mut self, generic_constraint: &GenericConstraint<'heap>) {
+        walk_generic_constraint(self, generic_constraint);
+
+        // generic constraints without a bound act as local variables
+        if generic_constraint.bound.is_none() {
+            // This is a variable, check if we're using this one
+            if let Some(&argument) = self
+                .scope
+                .iter()
+                .find(|argument| argument.name == generic_constraint.name.value)
+            {
+                self.used.insert(argument);
+            }
+        }
+    }
+
+    fn visit_path(&mut self, path: &Path<'heap>) {
+        walk_path(self, path);
+
+        // If the path is an ident, it can act as a generic argument
+        if let Some((ident, _)) = path.as_generic_ident()
+            && let Some(&argument) = self
+                .scope
+                .iter()
+                .find(|argument| argument.name == ident.value)
+        {
+            self.used.insert(argument);
+        }
+    }
+}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) enum VariableReference<'env, 'heap> {
@@ -110,6 +158,9 @@ pub(crate) struct TranslationUnit<'env, 'ty, 'heap> {
 }
 
 impl<'env, 'heap> TranslationUnit<'env, '_, 'heap> {
+    // TODO: we need to find the generics that are actually used and only apply them, if there are
+    // any generics that are unused - well that's an error!
+
     /// Creates a nominal (named) type with its underlying representation
     ///
     /// Nominal types are identified by their name rather than structure, but still have an
@@ -386,6 +437,43 @@ impl<'env, 'heap> TranslationUnit<'env, '_, 'heap> {
         )
     }
 
+    fn union(
+        &mut self,
+        span: SpanId,
+        union: &node::r#type::UnionType<'heap>,
+        arguments: &GenericArguments<'heap>,
+    ) -> TypeKind<'heap> {
+        let mut variants = SmallVec::with_capacity(union.types.len());
+
+        let mut unbound: FastHashSet<_> = arguments.iter().copied().collect();
+
+        for r#type in &union.types {
+            let mut finder = GenericArgumentVisitor::new(arguments);
+            finder.visit_type(r#type);
+
+            unbound -= &finder.used;
+
+            // only take the arguments that are actually used in the type
+            let arguments = arguments
+                .iter()
+                .copied()
+                .filter(|argument| finder.used.contains(argument))
+                .collect();
+
+            variants.push(self.reference(Reference::Type(r#type), arguments));
+        }
+
+        if !unbound.is_empty() {
+            todo!("Implement error handling");
+
+            return TypeKind::Never;
+        }
+
+        TypeKind::Union(UnionType {
+            variants: self.env.intern_type_ids(&variants),
+        })
+    }
+
     /// Translates an AST type kind into the core type system representation
     ///
     /// This is the main translation function that handles all the different type kinds (infer,
@@ -485,17 +573,7 @@ impl<'env, 'heap> TranslationUnit<'env, '_, 'heap> {
                     arguments: self.env.intern_generic_arguments(&mut arguments),
                 })
             }
-            node::r#type::TypeKind::Union(union_type) => {
-                let mut variants = SmallVec::with_capacity(union_type.types.len());
-
-                for r#type in &union_type.types {
-                    variants.push(self.reference(Reference::Type(r#type), arguments.clone()));
-                }
-
-                TypeKind::Union(UnionType {
-                    variants: self.env.intern_type_ids(&variants),
-                })
-            }
+            node::r#type::TypeKind::Union(union_type) => self.union(span, union_type, &arguments),
             node::r#type::TypeKind::Intersection(intersection_type) => {
                 let mut variants = SmallVec::with_capacity(intersection_type.types.len());
 
