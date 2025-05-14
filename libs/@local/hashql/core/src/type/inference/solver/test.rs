@@ -1,3 +1,5 @@
+use bumpalo::Bump;
+
 use super::{Constraint, InferenceSolver, VariableConstraint};
 use crate::{
     collection::{FastHashMap, SmallVec},
@@ -206,7 +208,8 @@ fn apply_constraints() {
     solver.solve_anti_symmetry(&mut graph);
 
     let mut variables = FastHashMap::default();
-    solver.apply_constraints(&graph, &mut variables);
+    let bump = Bump::new();
+    solver.apply_constraints(&graph, &bump, &mut variables);
 
     assert_eq!(variables.len(), 1);
     let (_, (_, constraint)) = variables.iter().next().expect("Should have one constraint");
@@ -238,7 +241,8 @@ fn apply_constraints_equality() {
     solver.solve_anti_symmetry(&mut graph);
 
     let mut variables = FastHashMap::default();
-    solver.apply_constraints(&graph, &mut variables);
+    let bump = Bump::new();
+    solver.apply_constraints(&graph, &bump, &mut variables);
 
     assert_eq!(variables.len(), 1);
     let (_, (_, constraint)) = variables.iter().next().expect("Should have one constraint");
@@ -288,7 +292,8 @@ fn apply_constraints_with_unification() {
     solver.solve_anti_symmetry(&mut graph);
 
     let mut variables = FastHashMap::default();
-    solver.apply_constraints(&graph, &mut variables);
+    let bump = Bump::new();
+    solver.apply_constraints(&graph, &bump, &mut variables);
 
     // Only one entry since the variables are unified
     assert_eq!(variables.len(), 1);
@@ -548,9 +553,10 @@ fn redundant_constraints() {
     solver.solve_anti_symmetry(&mut graph);
 
     let mut variables = FastHashMap::default();
+    let bump = Bump::new();
 
     // Apply the constraints
-    solver.apply_constraints(&graph, &mut variables);
+    solver.apply_constraints(&graph, &bump, &mut variables);
 
     // Despite having duplicate constraints, there should be one entry with one equality
     assert_eq!(variables.len(), 1);
@@ -687,7 +693,8 @@ fn bounds_at_lattice_extremes() {
 
     // Apply the constraints
     let mut variables = FastHashMap::default();
-    solver.apply_constraints(&graph, &mut variables);
+    let bump = Bump::new();
+    solver.apply_constraints(&graph, &bump, &mut variables);
 
     assert_eq!(variables.len(), 1);
     let (_, (_, constraint)) = variables.iter().next().expect("Should have one constraint");

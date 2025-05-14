@@ -4,6 +4,7 @@ mod tarjan;
 mod test;
 mod topo;
 
+use bumpalo::Bump;
 use ena::unify::{InPlaceUnificationTable, NoError, UnifyKey as _};
 
 use self::{graph::Graph, tarjan::Tarjan, topo::topological_sort};
@@ -12,7 +13,7 @@ use super::{
     variable::{VariableId, VariableLookup},
 };
 use crate::{
-    collection::{FastHashMap, SmallVec},
+    collection::{FastHashMap, SmallVec, fast_hash_map, fast_hash_map_in},
     r#type::{
         PartialType, TypeId,
         environment::{Diagnostics, Environment, LatticeEnvironment, SimplifyEnvironment},
@@ -441,13 +442,8 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         graph: &Graph,
         variables: &FastHashMap<VariableKind, (Variable, VariableConstraint)>,
     ) -> Substitution {
-        let mut substitution = Substitution::new(
-            self.unification.lookup(),
-            FastHashMap::with_capacity_and_hasher(
-                variables.len(),
-                foldhash::fast::RandomState::default(),
-            ),
-        );
+        let mut substitution =
+            Substitution::new(self.unification.lookup(), fast_hash_map(variables.len()));
 
         for node in graph.nodes() {
             let kind = self.unification.variables[node.into_usize()];
@@ -474,15 +470,13 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     ///
     /// A map from variable IDs to the list of ordering constraints where that
     /// variable appears in the specified position.
-    fn apply_constraints_prepare_constraints(
+    fn apply_constraints_prepare_constraints<'bump>(
         &mut self,
         lookup_by: Bound,
-    ) -> FastHashMap<VariableId, Vec<VariableOrdering>> {
-        let mut lookup: FastHashMap<VariableId, Vec<VariableOrdering>> =
-            FastHashMap::with_capacity_and_hasher(
-                self.unification.variables.len(),
-                foldhash::fast::RandomState::default(),
-            );
+        heap: &'bump Bump,
+    ) -> FastHashMap<VariableId, Vec<VariableOrdering>, &'bump Bump> {
+        let mut lookup: FastHashMap<VariableId, Vec<VariableOrdering>, &'bump Bump> =
+            fast_hash_map_in(self.unification.variables.len(), heap);
 
         for &constraint in &self.constraints {
             let Constraint::Ordering { lower, upper } = constraint else {
@@ -535,6 +529,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     fn apply_constraints_forwards(
         &mut self,
         graph: &Graph,
+        bump: &Bump,
         variables: &mut FastHashMap<VariableKind, (Variable, VariableConstraint)>,
     ) {
         // Create a substitution from known equality constraints
@@ -543,7 +538,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
 
         // We're currently looking through `lower`, therefore, look for any variables for which
         // `a <: b`, where `b` is the current node.
-        let lookup = self.apply_constraints_prepare_constraints(Bound::Upper);
+        let lookup = self.apply_constraints_prepare_constraints(Bound::Upper, bump);
 
         // Does a forwards pass over the graph to apply any lower constraints in order
         // Process nodes in topological order to ensure dependencies are resolved first
@@ -639,6 +634,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     fn apply_constraints_backwards(
         &mut self,
         graph: &Graph,
+        bump: &Bump,
         variables: &mut FastHashMap<VariableKind, (Variable, VariableConstraint)>,
     ) {
         // Create a substitution from known equality and lower bound constraints
@@ -647,7 +643,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
 
         // We're currently looking through `upper`, therefore, look for any variables for which
         // `a <: b`, where `a` is the current node.
-        let lookup = self.apply_constraints_prepare_constraints(Bound::Lower);
+        let lookup = self.apply_constraints_prepare_constraints(Bound::Lower, bump);
 
         // We do a backwards pass over the graph to apply any upper constraints in order
         // Process nodes in reverse topological order for upper bound resolution
@@ -745,16 +741,17 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     fn apply_constraints(
         &mut self,
         graph: &Graph,
+        bump: &Bump,
         variables: &mut FastHashMap<VariableKind, (Variable, VariableConstraint)>,
     ) {
         // First collect all constraints by variable
         self.collect_constraints(variables);
 
         // Perform the forward pass to resolve lower bounds
-        self.apply_constraints_forwards(graph, variables);
+        self.apply_constraints_forwards(graph, bump, variables);
 
         // Perform the backward pass to resolve upper bounds
-        self.apply_constraints_backwards(graph, variables);
+        self.apply_constraints_backwards(graph, bump, variables);
     }
 
     /// Validates all constraints and computes final type substitutions.
@@ -965,22 +962,20 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     /// - Diagnostics reporting any errors encountered during solving
     #[must_use]
     pub fn solve(mut self) -> (Substitution, Diagnostics) {
-        // TODO: actually... this is the perfect space to use a bump allocator
+        // This is the perfect use of a bump allocator, which is suited for phase-based memory
+        // allocation, each iteration requires some additional memory for temporary data structures,
+        // which we can reclaim and re-use, reducing the overall allocator usage. Without overhead
+        // of trying to recycle data structures through iterations.
+        let mut bump = Bump::new();
 
         // Step 1: Register all variables with the unification system
         self.upsert_variables();
 
         let mut graph = Graph::new(&mut self.unification);
 
-        let mut substitution = FastHashMap::with_capacity_and_hasher(
-            self.unification.lookup.len(),
-            foldhash::fast::RandomState::default(),
-        );
-
-        let mut variables = FastHashMap::with_capacity_and_hasher(
-            self.unification.lookup.len(),
-            foldhash::fast::RandomState::default(),
-        );
+        // These need to be initialized *after* upsert, to ensure that the capacity is correct
+        let mut variables = fast_hash_map(self.unification.lookup.len());
+        let mut substitution = fast_hash_map(self.unification.lookup.len());
 
         let mut lookup = VariableLookup::new(FastHashMap::default());
         let mut first_run = true;
@@ -999,9 +994,8 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
             // constraints are more lax when comparing equal values.
             self.lattice.set_variables(lookup.clone());
 
-            // TODO: these constraints need to persist throughout the entire process
             // Step 3 & 4: Apply constraints through forward and backward passes
-            self.apply_constraints(&graph, &mut variables);
+            self.apply_constraints(&graph, &bump, &mut variables);
 
             // Step 5: Verify that all variables have been constrained
             self.verify_constrained(&lookup, &variables);
@@ -1013,6 +1007,8 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
             self.constraints.clear();
 
             // TODO: any deferred constraints here
+
+            bump.reset();
         }
 
         // Step 7: Simplify the final substitutions
