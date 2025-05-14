@@ -83,7 +83,7 @@ export interface Team {
 export type TeamId = Brand<ActorGroupEntityUuid, "TeamId">;
 export interface Web {
 	id: WebId;
-	shortname?: string;
+	shortname: (string | null);
 	roles: WebRoleId[];
 }
 export type WebId = Brand<ActorGroupEntityUuid | ActorEntityUuid, "WebId">;
