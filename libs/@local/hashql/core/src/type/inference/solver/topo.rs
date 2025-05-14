@@ -1,10 +1,12 @@
 use alloc::collections::VecDeque;
+use core::alloc::Allocator;
 
 use roaring::RoaringBitmap;
 
 use super::graph::Graph;
 
-/// Performs a topological sort on a directed graph using Kahn's algorithm.
+/// Performs a topological sort on a directed graph using Kahn's algorithm in the specified
+/// allocator.
 ///
 /// # Algorithm
 ///
@@ -42,9 +44,15 @@ use super::graph::Graph;
 /// Communications of the ACM, 5(11), 558–562.
 /// DOI: [10.1145/368996.369025](https://doi.org/10.1145/368996.369025)
 #[expect(clippy::cast_possible_truncation)]
-pub(crate) fn topological_sort(graph: &Graph) -> Result<Vec<usize>, RoaringBitmap> {
+pub(crate) fn topological_sort_in<A>(
+    graph: &Graph,
+    allocator: A,
+) -> Result<Vec<usize, A>, RoaringBitmap>
+where
+    A: Allocator + Clone,
+{
     // Calculate in-degree (number of incoming edges) for each node
-    let mut indegree = vec![0_u32; graph.node_count()];
+    let mut indegree = alloc::vec::from_elem_in(0_u32, graph.node_count(), allocator.clone());
     for source in 0..graph.node_count() {
         for target in graph.outgoing_edges_by_index(source) {
             indegree[target] += 1;
@@ -52,7 +60,7 @@ pub(crate) fn topological_sort(graph: &Graph) -> Result<Vec<usize>, RoaringBitma
     }
 
     // Initialize queue with nodes that have no dependencies (in-degree = 0)
-    let mut queue = VecDeque::new();
+    let mut queue = VecDeque::with_capacity_in(graph.node_count(), allocator.clone());
     for (node, &degree) in indegree.iter().enumerate() {
         if degree == 0 {
             queue.push_back(node);
@@ -60,7 +68,7 @@ pub(crate) fn topological_sort(graph: &Graph) -> Result<Vec<usize>, RoaringBitma
     }
 
     // Process nodes in order of zero in-degree
-    let mut order = Vec::with_capacity(graph.node_count());
+    let mut order = Vec::with_capacity_in(graph.node_count(), allocator);
     while let Some(source) = queue.pop_front() {
         order.push(source);
 
@@ -89,6 +97,11 @@ pub(crate) fn topological_sort(graph: &Graph) -> Result<Vec<usize>, RoaringBitma
         .collect();
 
     Err(cycle)
+}
+
+#[cfg(test)]
+pub(crate) fn topological_sort(graph: &Graph) -> Result<Vec<usize>, RoaringBitmap> {
+    topological_sort_in(graph, alloc::alloc::Global)
 }
 
 #[cfg(test)]

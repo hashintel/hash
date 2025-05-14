@@ -1,3 +1,6 @@
+use alloc::alloc::Global;
+use core::alloc::Allocator;
+
 use bitvec::{bitbox, boxed::BitBox};
 use roaring::RoaringBitmap;
 
@@ -20,7 +23,7 @@ use super::graph::Graph;
 /// - Tarjan, R. E. (1972). Depth-first search and linear graph algorithms. SIAM Journal on
 ///   Computing, 1(2), 146-160.
 #[derive(Debug, Clone)]
-pub(crate) struct Tarjan<'graph> {
+pub(crate) struct Tarjan<'graph, A: Allocator = Global> {
     /// The directed graph
     graph: &'graph Graph,
 
@@ -29,7 +32,7 @@ pub(crate) struct Tarjan<'graph> {
     next_discovery_index: usize,
 
     /// Stack of nodes in the current DFS path, used to identify SCCs.
-    node_stack: Vec<usize>,
+    node_stack: Vec<usize, A>,
 
     /// Bit vector tracking which nodes are currently on the stack.
     /// Provides O(1) membership testing compared to searching the stack.
@@ -37,7 +40,7 @@ pub(crate) struct Tarjan<'graph> {
 
     /// Discovery time for each node, recording when it was first visited.
     /// `discovery_time[node]` = the discovery index of `node`.
-    discovery_time: Vec<usize>,
+    discovery_time: Vec<usize, A>,
 
     /// Bit vector tracking which nodes have been visited.
     /// Using a `BitBox` instead of a `Vec<bool>` or `Option<usize>` reduces memory usage from 8
@@ -46,38 +49,59 @@ pub(crate) struct Tarjan<'graph> {
 
     /// The lowest discovery time reachable from each node following tree edges and at most one
     /// back edge. This is key to identifying the root nodes of SCCs.
-    lowlink: Vec<usize>,
+    lowlink: Vec<usize, A>,
 
     /// Collection of all identified strongly connected components.
     /// Each component is represented as a `RoaringBitmap` where set bits indicate nodes in the
     /// component.
-    strongly_connected_components: Vec<RoaringBitmap>,
+    strongly_connected_components: Vec<RoaringBitmap, A>,
 }
 
+#[cfg(test)]
 impl<'graph> Tarjan<'graph> {
     /// Creates a new Tarjan algorithm instance for the given graph.
     ///
     /// Initializes all the necessary data structures to track the state of the algorithm.
     /// The capacities of vectors are pre-allocated based on the graph size to minimize
-    /// reallocations during execution.
-    ///
-    /// # Arguments
-    ///
-    /// * `graph` - The directed graph represented as a slice of `BitBoxe`s where each `BitBox`
-    ///   represents the outgoing edges from a node.
-    #[expect(clippy::integer_division, clippy::integer_division_remainder_used)]
+    /// re-allocations during execution.
     pub(crate) fn new(graph: &'graph Graph) -> Self {
+        Self::new_in(graph, alloc::alloc::Global)
+    }
+}
+
+impl<'graph, A> Tarjan<'graph, A>
+where
+    A: Allocator,
+{
+    const EXPECTED_SCC_RATIO: usize = 4;
+
+    /// Creates a new Tarjan algorithm instance for the given graph in the given allocator.
+    ///
+    /// Initializes all the necessary data structures to track the state of the algorithm.
+    /// The capacities of vectors are pre-allocated based on the graph size to minimize
+    /// re-allocations during execution.
+    #[expect(clippy::integer_division, clippy::integer_division_remainder_used)]
+    pub(crate) fn new_in(graph: &'graph Graph, allocator: A) -> Self
+    where
+        A: Clone,
+    {
         let node_count = graph.node_count();
 
-        Tarjan {
+        Self {
             graph,
             next_discovery_index: 0,
-            node_stack: Vec::with_capacity(node_count / 4),
+            node_stack: Vec::with_capacity_in(
+                node_count / Self::EXPECTED_SCC_RATIO,
+                allocator.clone(),
+            ),
             on_node_stack: bitbox![0; node_count],
-            discovery_time: vec![0; node_count],
+            discovery_time: alloc::vec::from_elem_in(0, node_count, allocator.clone()),
             visited: bitbox![0; node_count],
-            lowlink: vec![0; node_count],
-            strongly_connected_components: Vec::with_capacity(node_count / 4),
+            lowlink: alloc::vec::from_elem_in(0, node_count, allocator.clone()),
+            strongly_connected_components: Vec::with_capacity_in(
+                node_count / Self::EXPECTED_SCC_RATIO,
+                allocator,
+            ),
         }
     }
 
@@ -97,7 +121,7 @@ impl<'graph> Tarjan<'graph> {
     ///
     /// * Time: O(V + E) where V is the number of vertices and E is the number of edges
     /// * Space: O(V) additional space beyond the input graph
-    pub(crate) fn compute(mut self) -> Vec<RoaringBitmap> {
+    pub(crate) fn compute(mut self) -> Vec<RoaringBitmap, A> {
         let total_nodes = self.graph.node_count();
 
         for node in 0..total_nodes {

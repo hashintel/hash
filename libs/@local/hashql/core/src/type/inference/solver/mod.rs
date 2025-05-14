@@ -4,15 +4,16 @@ mod tarjan;
 mod test;
 mod topo;
 
+use bumpalo::Bump;
 use ena::unify::{InPlaceUnificationTable, NoError, UnifyKey as _};
 
-use self::{graph::Graph, tarjan::Tarjan, topo::topological_sort};
+use self::{graph::Graph, tarjan::Tarjan, topo::topological_sort_in};
 use super::{
     Constraint, Substitution, Variable, VariableKind,
     variable::{VariableId, VariableLookup},
 };
 use crate::{
-    collection::FastHashMap,
+    collection::{FastHashMap, SmallVec, fast_hash_map, fast_hash_map_in},
     r#type::{
         PartialType, TypeId,
         environment::{Diagnostics, Environment, LatticeEnvironment, SimplifyEnvironment},
@@ -135,7 +136,7 @@ impl Unification {
 
 /// Represents the direction of a type bound constraint.
 ///
-/// Type constraints in the inference system are often directional, establishing
+/// Type constraints in the inference system are directional, establishing
 /// either an upper bound (subtype relationship) or a lower bound (supertype relationship).
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 enum Bound {
@@ -178,47 +179,68 @@ struct VariableOrdering {
 /// This aggregates all the equality, lower bound, and upper bound constraints
 /// for efficient processing during constraint solving.
 #[derive(Debug, PartialEq, Eq, Default)]
-struct VariableConstraint<L, R> {
+struct VariableConstraint {
     /// The exact type this variable must equal, if such a constraint exists
     equal: Option<TypeId>,
     /// Lower bound constraints (variable must be a supertype of these types)
-    lower: L,
+    lower: SmallVec<TypeId>,
     /// Upper bound constraints (variable must be a subtype of these types)
-    upper: R,
+    upper: SmallVec<TypeId>,
 }
 
-/// Constraint with unprocessed collections of lower and upper bounds.
-///
-/// Used during the initial phase of constraint collection before bounds are resolved.
-type UnresolvedVariableConstraint = VariableConstraint<Vec<TypeId>, Vec<TypeId>>;
+impl VariableConstraint {
+    fn finish(&self) -> EvaluatedVariableConstraint {
+        debug_assert!(
+            self.lower.len() <= 1,
+            "lower bound should be either empty or contain exactly one type"
+        );
+        debug_assert!(
+            self.upper.len() <= 1,
+            "upper bound should be either empty or contain exactly one type"
+        );
 
-/// Constraint with a resolved lower bound but unresolved upper bounds.
-///
-/// Used during the forward pass of constraint resolution when lower bounds
-/// have been processed but upper bounds are still being collected.
-type LowerResolvedVariableConstraint = VariableConstraint<Option<TypeId>, Vec<TypeId>>;
+        EvaluatedVariableConstraint {
+            equal: self.equal,
+            lower: self.lower.first().copied(),
+            upper: self.upper.last().copied(),
+        }
+    }
+}
 
-/// Fully resolved constraint with at most one lower and one upper bound.
+/// Represents the final, evaluated constraints for a variable after processing.
 ///
-/// The final form of constraints after both forward and backward passes,
-/// ready for final solving and validation.
-type ResolvedVariableConstraint = VariableConstraint<Option<TypeId>, Option<TypeId>>;
+/// This contains at most one constraint of each kind (equality, lower bound, upper bound)
+/// after all the constraints have been evaluated and merged.
+#[derive(Debug, PartialEq, Eq, Default)]
+struct EvaluatedVariableConstraint {
+    /// The final equality constraint, if any
+    equal: Option<TypeId>,
+    /// The final lower bound constraint, if any
+    lower: Option<TypeId>,
+    /// The final upper bound constraint, if any
+    upper: Option<TypeId>,
+}
 
 /// The main type inference solver that resolves constraints to determine concrete types.
 ///
-/// This solver implements a multi-phase constraint solving algorithm that handles
-/// complex type relationships including subtyping, equality constraints, and structural
-/// dependencies. It works with a lattice-based type system where types form a partial
-/// order.
+/// The constraint solver implements a fix-point iteration algorithm to determine the
+/// most specific types for each type variable in the system. It handles equality
+/// constraints, subtyping relationships, and structural dependencies. It works with
+/// a lattice-based type system where types form a partial order.
 ///
-/// The solver operates in several phases:
+/// The solver performs these steps:
 ///
-/// 1. Anti-symmetry resolution - Identify variables that should be equal
-/// 2. Constraint collection - Aggregate all constraints by variable
-/// 3. Forward pass - Resolve lower bounds in topological order
-/// 4. Backward pass - Resolve upper bounds in reverse topological order
-/// 5. Final resolution - Validate constraints and compute substitutions
-/// 6. Simplification - Reduce types to their simplest form
+/// 1. Variable registration - Register all variables with the unification system
+/// 2. Fix-point iteration - Process constraints until no new ones are generated:
+///    1. Anti-symmetry resolution - Identify variables that should be equal
+///    2. Variable substitution setup - Configure the lattice environment
+///    3. Constraint collection - Gather all constraints by variable
+///    4. Forward constraint pass - Resolve lower bounds in topological order
+///    5. Backward constraint pass - Resolve upper bounds in reverse topological order
+///    6. Constraint verification - Ensure all variables are constrained
+///    7. Constraint validation - Check and resolve the final constraints
+/// 3. Simplification - Reduce the final type substitutions to their simplest form
+/// 4. Diagnostic collection - Gather all error information from the solving process
 pub struct InferenceSolver<'env, 'heap> {
     /// Environment for performing lattice operations (meet, join, subtyping)
     lattice: LatticeEnvironment<'env, 'heap>,
@@ -290,7 +312,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     ///
     /// Additionally, structural edges (from constraints like `_1 <: (name: _2)` and `_2 <: 1`)
     /// are included in this analysis, as they can also create equality relationships.
-    fn solve_anti_symmetry(&mut self) {
+    fn solve_anti_symmetry(&mut self, graph: &mut Graph, bump: &Bump) {
         // We first create a graph of all the inference variables, that's then used to see if there
         // are any variables that can be equalized.
         // We can do this because our type lattice is a partially ordered set, this we can make use
@@ -303,8 +325,6 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         // therefore `lower -> upper`.
         // We also take into account any of the structural relationships, for example given: `_1 <:
         // (name: _2)`, and then `_2 <: 1`, this means that the following must hold: `_1 ≡ _2`.
-        let mut graph = Graph::new(&mut self.unification);
-
         for &constraint in &self.constraints {
             let (source, target) = match constraint {
                 Constraint::Ordering { lower, upper } => (lower, upper),
@@ -319,7 +339,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         }
 
         // Run Tarjan's SCC algorithm to find strongly connected components
-        let tarjan = Tarjan::new(&graph);
+        let tarjan = Tarjan::new_in(graph, bump);
 
         // For each strongly connected component, unify all variables in the component
         // since they must be equal due to anti-symmetry of the subtyping relation
@@ -331,6 +351,8 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                 self.unification.unify(lhs, rhs);
             }
         }
+
+        graph.condense(&mut self.unification);
     }
 
     /// Collects and organizes all constraints by variable.
@@ -347,13 +369,8 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     /// constraint information.
     fn collect_constraints(
         &mut self,
-    ) -> FastHashMap<VariableKind, (Variable, UnresolvedVariableConstraint)> {
-        let mut constraints: FastHashMap<VariableKind, (Variable, UnresolvedVariableConstraint)> =
-            FastHashMap::with_capacity_and_hasher(
-                self.unification.variables.len(),
-                foldhash::fast::RandomState::default(),
-            );
-
+        constraints: &mut FastHashMap<VariableKind, (Variable, VariableConstraint)>,
+    ) {
         for &constraint in &self.constraints {
             match constraint {
                 Constraint::UpperBound { variable, bound } => {
@@ -421,8 +438,6 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                 }
             }
         }
-
-        constraints
     }
 
     /// Prepares a substitution map from known equality constraints.
@@ -434,18 +449,13 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     /// # Returns
     ///
     /// A substitution map that maps variables to their equal types
-    fn apply_constraints_prepare_substitution<L, H>(
+    fn apply_constraints_prepare_substitution(
         &mut self,
         graph: &Graph,
-        variables: &FastHashMap<VariableKind, (Variable, VariableConstraint<L, H>)>,
+        variables: &FastHashMap<VariableKind, (Variable, VariableConstraint)>,
     ) -> Substitution {
-        let mut substitution = Substitution::new(
-            self.unification.lookup(),
-            FastHashMap::with_capacity_and_hasher(
-                variables.len(),
-                foldhash::fast::RandomState::default(),
-            ),
-        );
+        let mut substitution =
+            Substitution::new(self.unification.lookup(), fast_hash_map(variables.len()));
 
         for node in graph.nodes() {
             let kind = self.unification.variables[node.into_usize()];
@@ -472,15 +482,13 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     ///
     /// A map from variable IDs to the list of ordering constraints where that
     /// variable appears in the specified position.
-    fn apply_constraints_prepare_constraints(
+    fn apply_constraints_prepare_constraints<'bump>(
         &mut self,
         lookup_by: Bound,
-    ) -> FastHashMap<VariableId, Vec<VariableOrdering>> {
-        let mut lookup: FastHashMap<VariableId, Vec<VariableOrdering>> =
-            FastHashMap::with_capacity_and_hasher(
-                self.unification.variables.len(),
-                foldhash::fast::RandomState::default(),
-            );
+        heap: &'bump Bump,
+    ) -> FastHashMap<VariableId, Vec<VariableOrdering>, &'bump Bump> {
+        let mut lookup: FastHashMap<VariableId, Vec<VariableOrdering>, &'bump Bump> =
+            fast_hash_map_in(self.unification.variables.len(), heap);
 
         for &constraint in &self.constraints {
             let Constraint::Ordering { lower, upper } = constraint else {
@@ -533,30 +541,26 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     fn apply_constraints_forwards(
         &mut self,
         graph: &Graph,
-        mut variables: FastHashMap<VariableKind, (Variable, UnresolvedVariableConstraint)>,
-    ) -> FastHashMap<VariableKind, (Variable, LowerResolvedVariableConstraint)> {
-        let mut constraints = FastHashMap::with_capacity_and_hasher(
-            variables.len(),
-            foldhash::fast::RandomState::default(),
-        );
-
+        bump: &Bump,
+        variables: &mut FastHashMap<VariableKind, (Variable, VariableConstraint)>,
+    ) {
         // Create a substitution from known equality constraints
-        let substitution = self.apply_constraints_prepare_substitution(graph, &variables);
+        let substitution = self.apply_constraints_prepare_substitution(graph, variables);
         self.lattice.set_substitution(substitution);
 
         // We're currently looking through `lower`, therefore, look for any variables for which
         // `a <: b`, where `b` is the current node.
-        let lookup = self.apply_constraints_prepare_constraints(Bound::Upper);
+        let lookup = self.apply_constraints_prepare_constraints(Bound::Upper, bump);
 
         // Does a forwards pass over the graph to apply any lower constraints in order
         // Process nodes in topological order to ensure dependencies are resolved first
-        let topo = topological_sort(graph).expect("expected dag after anti-symmetry run");
+        let topo = topological_sort_in(graph, bump).expect("expected dag after anti-symmetry run");
 
         for index in topo {
             let id = graph.node(index);
             let kind = self.unification.variables[id.into_usize()];
 
-            let Some((variable, mut variable_constraint)) = variables.remove(&kind) else {
+            let Some((_, variable_constraint)) = variables.get_mut(&kind) else {
                 tracing::warn!(?kind, "variable is unconstrained");
                 continue;
             };
@@ -594,20 +598,17 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
             }
 
             // Now that we have all bounds, unify them
-            let VariableConstraint {
-                equal,
-                lower,
-                upper,
-            } = variable_constraint;
 
             // Compute the meet (greatest lower bound) of all lower bounds
-            let lower = lower
-                .into_iter()
+            let lower = variable_constraint
+                .lower
+                .iter()
+                .copied()
                 .reduce(|lhs, rhs| self.lattice.meet(lhs, rhs));
 
             // If there's no equality constraint but we have a lower bound,
             // add the lower bound to the substitution map for future resolution
-            if equal.is_none()
+            if variable_constraint.equal.is_none()
                 && let Some(lower) = lower
             {
                 // insert into substitution map
@@ -619,23 +620,14 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                 substitution.insert(kind, lower);
             }
 
-            constraints.insert(
-                kind,
-                (
-                    variable,
-                    VariableConstraint {
-                        equal,
-                        lower,
-                        upper,
-                    },
-                ),
-            );
+            variable_constraint.lower.clear();
+            if let Some(lower) = lower {
+                variable_constraint.lower.push(lower);
+            }
         }
 
         // Clear substitution to avoid unintended effects in later operations
         self.lattice.clear_substitution();
-
-        constraints
     }
 
     /// Performs the backward pass of constraint resolution.
@@ -654,30 +646,26 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     fn apply_constraints_backwards(
         &mut self,
         graph: &Graph,
-        mut variables: FastHashMap<VariableKind, (Variable, LowerResolvedVariableConstraint)>,
-    ) -> FastHashMap<VariableKind, (Variable, ResolvedVariableConstraint)> {
-        let mut constraints = FastHashMap::with_capacity_and_hasher(
-            variables.len(),
-            foldhash::fast::RandomState::default(),
-        );
-
+        bump: &Bump,
+        variables: &mut FastHashMap<VariableKind, (Variable, VariableConstraint)>,
+    ) {
         // Create a substitution from known equality and lower bound constraints
-        let substitution = self.apply_constraints_prepare_substitution(graph, &variables);
+        let substitution = self.apply_constraints_prepare_substitution(graph, variables);
         self.lattice.set_substitution(substitution);
 
         // We're currently looking through `upper`, therefore, look for any variables for which
         // `a <: b`, where `a` is the current node.
-        let lookup = self.apply_constraints_prepare_constraints(Bound::Lower);
+        let lookup = self.apply_constraints_prepare_constraints(Bound::Lower, bump);
 
         // We do a backwards pass over the graph to apply any upper constraints in order
         // Process nodes in reverse topological order for upper bound resolution
-        let topo = topological_sort(graph).expect("expected dag after anti-symmetry run");
+        let topo = topological_sort_in(graph, bump).expect("expected dag after anti-symmetry run");
 
         for index in topo.into_iter().rev() {
             let id = graph.node(index);
             let kind = self.unification.variables[id.into_usize()];
 
-            let Some((variable, mut variable_constraint)) = variables.remove(&kind) else {
+            let Some((_, variable_constraint)) = variables.get_mut(&kind) else {
                 tracing::warn!(?kind, "variable is unconstrained");
                 continue;
             };
@@ -714,21 +702,16 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                 }
             }
 
-            // Now that we have all bounds, unify them
-            let VariableConstraint {
-                equal,
-                lower,
-                upper,
-            } = variable_constraint;
-
             // Compute the join (least upper bound) of all upper bounds
-            let upper = upper
-                .into_iter()
+            let upper = variable_constraint
+                .upper
+                .iter()
+                .copied()
                 .reduce(|lhs, rhs| self.lattice.join(lhs, rhs));
 
             // If there's no equality constraint but we have an upper bound,
             // add the upper bound to the substitution map for future resolution
-            if equal.is_none()
+            if variable_constraint.equal.is_none()
                 && let Some(upper) = upper
             {
                 // Insert into substitution map, so that future resolvers can use it
@@ -740,23 +723,14 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                 substitution.insert(kind, upper);
             }
 
-            constraints.insert(
-                kind,
-                (
-                    variable,
-                    VariableConstraint {
-                        equal,
-                        lower,
-                        upper,
-                    },
-                ),
-            );
+            variable_constraint.upper.clear();
+            if let Some(upper) = upper {
+                variable_constraint.upper.push(upper);
+            }
         }
 
         // Clear substitution to avoid unintended effects in later operations
         self.lattice.clear_substitution();
-
-        constraints
     }
 
     /// Coordinates the entire constraint resolution process.
@@ -766,9 +740,8 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     /// in multiple phases:
     ///
     /// 1. Collect constraints for each variable
-    /// 2. Build a directed graph of variable relationships
-    /// 3. Resolve lower bounds via a forward pass
-    /// 4. Resolve upper bounds via a backward pass
+    /// 2. Resolve lower bounds via a forward pass
+    /// 3. Resolve upper bounds via a backward pass
     ///
     /// This approach ensures that constraints are propagated correctly through the
     /// dependency graph, even with complex type relationships.
@@ -778,32 +751,18 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     /// A map of variables to their fully resolved constraints
     fn apply_constraints(
         &mut self,
-    ) -> FastHashMap<VariableKind, (Variable, ResolvedVariableConstraint)> {
-        // First collect all constraints by variable
-        let constraints = self.collect_constraints();
+        graph: &Graph,
+        bump: &Bump,
+        variables: &mut FastHashMap<VariableKind, (Variable, VariableConstraint)>,
+    ) {
+        // Step 2.3: First collect all constraints by variable
+        self.collect_constraints(variables);
 
-        // Build the constraint graph representing variable dependencies
-        let mut graph = Graph::new(&mut self.unification);
+        // Step 2.4: Perform the forward pass to resolve lower bounds
+        self.apply_constraints_forwards(graph, bump, variables);
 
-        // Build the graph over the constraints
-        for &constraint in &self.constraints {
-            let (source, target) = match constraint {
-                Constraint::Ordering { lower, upper } => (lower, upper),
-                Constraint::StructuralEdge { source, target } => (source, target),
-                _ => continue,
-            };
-
-            graph.insert_edge(
-                self.unification.lookup[&source.kind],
-                self.unification.lookup[&target.kind],
-            );
-        }
-
-        // Perform the forward pass to resolve lower bounds
-        let constraints = self.apply_constraints_forwards(&graph, constraints);
-
-        // Perform the backward pass to resolve upper bounds
-        self.apply_constraints_backwards(&graph, constraints)
+        // Step 2.5: Perform the backward pass to resolve upper bounds
+        self.apply_constraints_backwards(graph, bump, variables);
     }
 
     /// Validates all constraints and computes final type substitutions.
@@ -819,10 +778,9 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     /// A map of variables to their inferred types
     fn solve_constraints(
         &mut self,
-        constraints: FastHashMap<VariableKind, (Variable, ResolvedVariableConstraint)>,
-    ) -> FastHashMap<VariableKind, TypeId> {
-        let mut substitutions = FastHashMap::default();
-
+        constraints: &FastHashMap<VariableKind, (Variable, VariableConstraint)>,
+        substitutions: &mut FastHashMap<VariableKind, TypeId>,
+    ) {
         // Prepare a substitution map using the existing equality constraints
         // This allows us to use these equalities when verifying other constraints
         let mut substitution = Substitution::new(
@@ -833,7 +791,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
             ),
         );
 
-        for (&kind, (_, constraint)) in &constraints {
+        for (&kind, (_, constraint)) in constraints {
             if let Some(constraint) = constraint.equal {
                 substitution.insert(kind, constraint);
             }
@@ -845,10 +803,13 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         // again *or* do it in a specific order. The substitutions have already been applied for the
         // lower and upper bounds respectively.
 
-        for (kind, (variable, constraint)) in constraints {
+        for (&kind, (variable, constraint)) in constraints {
+            let variable = *variable;
+            let constraint = constraint.finish();
+
             // First, verify that lower and upper bounds are compatible
             // (i.e., lower <: upper)
-            if let VariableConstraint {
+            if let EvaluatedVariableConstraint {
                 equal: _,
                 lower: Some(lower),
                 upper: Some(upper),
@@ -869,7 +830,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
             // Handle different constraint patterns to determine the final type
             match constraint {
                 // If there's no constraint, we can't infer anything
-                VariableConstraint {
+                EvaluatedVariableConstraint {
                     equal: None,
                     lower: None,
                     upper: None,
@@ -877,24 +838,24 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                     self.diagnostics.push(unconstrained_type_variable(variable));
                 }
                 // in case there's a single constraint we can simply just use that type
-                VariableConstraint {
+                EvaluatedVariableConstraint {
                     equal: Some(constraint),
                     lower: None,
                     upper: None,
                 }
-                | VariableConstraint {
+                | EvaluatedVariableConstraint {
                     equal: None,
                     lower: Some(constraint),
                     upper: None,
                 }
-                | VariableConstraint {
+                | EvaluatedVariableConstraint {
                     equal: None,
                     lower: None,
                     upper: Some(constraint),
                 } => {
                     substitutions.insert(kind, constraint);
                 }
-                VariableConstraint {
+                EvaluatedVariableConstraint {
                     equal: Some(equal),
                     lower,
                     upper,
@@ -929,7 +890,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
 
                     substitutions.insert(kind, equal);
                 }
-                VariableConstraint {
+                EvaluatedVariableConstraint {
                     equal: None,
                     lower: Some(lower),
                     upper: Some(_),
@@ -942,8 +903,6 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         }
 
         self.lattice.clear_substitution();
-
-        substitutions
     }
 
     /// Verifies that all variables in the system have been constrained.
@@ -955,14 +914,14 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     /// Any error that is encountered during this process is deemed a compiler bug, as we have no
     /// span to associate with the error. This should usually never happen, as step 1 ensures every
     /// variable is registered.
-    fn verify_constrained<L, U>(
+    fn verify_constrained(
         &mut self,
         lookup: &VariableLookup,
-        constraints: &FastHashMap<VariableKind, (Variable, VariableConstraint<L, U>)>,
+        variables: &FastHashMap<VariableKind, (Variable, VariableConstraint)>,
     ) {
         for &variable in &self.unification.variables {
             let root = lookup[variable];
-            if !constraints.contains_key(&root) {
+            if !variables.contains_key(&root) {
                 self.diagnostics
                     .push(unconstrained_type_variable_floating(&self.lattice));
             }
@@ -995,17 +954,23 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
 
     /// Solves type inference constraints and produces a type substitution.
     ///
-    /// This is the main entry point for the inference solver. It coordinates the
-    /// entire constraint solving process:
+    /// This is the main entry point for the inference solver. It implements a fix-point
+    /// iteration algorithm that continues solving until no new constraints are generated:
     ///
     /// 1. Registers all variables in the unification system
-    /// 2. Solves anti-symmetry constraints to identify variables that must be equal
-    /// 3. Sets up variable substitutions in the lattice environment
-    /// 4. Applies constraints through forward and backward passes
-    /// 5. Verifies that all variables are constrained
-    /// 6. Validates constraints and computes substitutions
-    /// 7. Simplifies the final substitutions for better readability
-    /// 8. Collects any diagnostics generated during solving
+    /// 2. Repeatedly processes constraints until reaching a fix-point:
+    ///    1. Solves anti-symmetry constraints (where A <: B and B <: A implies A = B)
+    ///    2. Sets up variable substitutions in the lattice environment
+    ///    3. Collects constraints for each variable
+    ///    4. Applies forward constraint pass to resolve lower bounds
+    ///    5. Applies backward constraint pass to resolve upper bounds
+    ///    6. Verifies all variables are constrained
+    ///    7. Validates constraints and computes substitutions
+    /// 3. Simplifies the final substitutions for better readability
+    /// 4. Collects any diagnostics generated during solving
+    ///
+    /// The fix-point approach handles complex interdependencies between type variables
+    /// by allowing newly generated constraints to trigger additional iterations.
     ///
     /// # Returns
     ///
@@ -1014,31 +979,67 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     /// - Diagnostics reporting any errors encountered during solving
     #[must_use]
     pub fn solve(mut self) -> (Substitution, Diagnostics) {
+        // This is the perfect use of a bump allocator, which is suited for phase-based memory
+        // allocation. Each fix-point iteration requires temporary data structures that we can
+        // reclaim and re-use, reducing memory usage. The bump allocator's memory consumption
+        // stabilizes after the first iteration since each pass uses approximately
+        // the same amount of memory.
+        let mut bump = Bump::new();
+
         // Step 1: Register all variables with the unification system
         self.upsert_variables();
 
-        // Step 2: Solve anti-symmetry constraints (A <: B and B <: A implies A = B)
-        self.solve_anti_symmetry();
+        let mut graph = Graph::new(&mut self.unification);
 
-        let lookup = self.unification.lookup();
-        // Set the variable substitutions in the lattice, this makes sure that `equal` constraints
-        // are more lax when comparing equal values.
-        self.lattice.set_variables(lookup.clone());
+        // These need to be initialized *after* upsert, to ensure that the capacity is correct
+        let mut variables = fast_hash_map(self.unification.lookup.len());
+        let mut substitution = fast_hash_map(self.unification.lookup.len());
 
-        // Step 3 & 4: Apply constraints through forward and backward passes
-        let constraints = self.apply_constraints();
+        let mut lookup = VariableLookup::new(FastHashMap::default());
+        // Ensure that we run at least once, this is required, so that `verify_constrained` can
+        // be called, and a diagnostic can be issued.
+        let mut force_validation_pass = true;
 
-        // Step 5: Verify that all variables have been constrained
-        self.verify_constrained(&lookup, &constraints);
+        // Step 2: Fix-point iteration - continue solving until no new constraints are generated
+        while force_validation_pass || !self.constraints.is_empty() {
+            force_validation_pass = false;
 
-        // Step 6: Validate constraints and determine final types
-        let mut substitution = self.solve_constraints(constraints);
+            // Clear the diagnostics this round, so that they do not pollute the next round
+            self.diagnostics.clear();
+            self.lattice.take_diagnostics();
 
-        // Step 7: Simplify the final substitutions
+            // Step 2.1: Solve anti-symmetry constraints (A <: B and B <: A implies A = B)
+            self.solve_anti_symmetry(&mut graph, &bump);
+
+            lookup = self.unification.lookup();
+            // Step 2.2: Set the variable substitutions in the lattice
+            // This makes sure that `equal` constraints are more lax when comparing equal values
+            self.lattice.set_variables(lookup.clone());
+
+            // Steps 2.3, 2.4, 2.5: Apply constraints through collection, forward, and backward
+            // passes
+            self.apply_constraints(&graph, &bump, &mut variables);
+
+            // Step 2.6: Verify that all variables have been constrained
+            self.verify_constrained(&lookup, &variables);
+
+            // Step 2.7: Validate constraints and determine final types
+            substitution.clear();
+            self.solve_constraints(&variables, &mut substitution);
+
+            self.constraints.clear();
+
+            // TODO: any deferred constraints here
+
+            // Reset the bump allocator for the next iteration to avoid memory growth
+            bump.reset();
+        }
+
+        // Step 3: Simplify the final substitutions
         self.simplify_substitutions(lookup.clone(), &mut substitution);
         let substitution = Substitution::new(lookup, substitution);
 
-        // Step 8: Collect all diagnostics from the solving process
+        // Step 4: Collect all diagnostics from the solving process
         let mut diagnostics = self.diagnostics;
         diagnostics.merge(self.lattice.take_diagnostics());
         if let Some(simplify) = self.simplify.take_diagnostics() {

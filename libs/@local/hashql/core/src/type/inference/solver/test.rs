@@ -1,13 +1,18 @@
+use bumpalo::Bump;
+
 use super::{Constraint, InferenceSolver, VariableConstraint};
 use crate::{
-    collection::FastHashMap,
+    collection::{FastHashMap, SmallVec},
     heap::Heap,
     span::SpanId,
     r#type::{
         PartialType,
         environment::{AnalysisEnvironment, Environment, InferenceEnvironment},
         error::TypeCheckDiagnosticCategory,
-        inference::{Variable, VariableKind, solver::Unification},
+        inference::{
+            Variable, VariableKind,
+            solver::{Unification, graph::Graph},
+        },
         kind::{
             PrimitiveType, StructType, TypeKind, UnionType,
             infer::HoleId,
@@ -120,7 +125,10 @@ fn solve_anti_symmetry() {
     let mut solver = InferenceSolver::new(&env, Unification::new(), constraints);
 
     solver.upsert_variables();
-    solver.solve_anti_symmetry();
+
+    let mut graph = Graph::new(&mut solver.unification);
+    let bump = Bump::new();
+    solver.solve_anti_symmetry(&mut graph, &bump);
 
     assert!(solver.unification.is_unioned(kind1.kind, kind2.kind));
 }
@@ -156,7 +164,9 @@ fn solve_anti_symmetry_with_cycles() {
     let mut solver = InferenceSolver::new(&env, Unification::new(), constraints);
 
     solver.upsert_variables();
-    solver.solve_anti_symmetry();
+    let mut graph = Graph::new(&mut solver.unification);
+    let bump = Bump::new();
+    solver.solve_anti_symmetry(&mut graph, &bump);
 
     // All three variables should be unified
     assert!(
@@ -194,18 +204,22 @@ fn apply_constraints() {
     ];
 
     let mut solver = InferenceSolver::new(&env, Unification::new(), constraints);
+    solver.upsert_variables();
 
-    let applied_constraints = solver.apply_constraints();
+    let mut graph = Graph::new(&mut solver.unification);
+    let bump = Bump::new();
+    solver.solve_anti_symmetry(&mut graph, &bump);
 
-    assert_eq!(applied_constraints.len(), 1);
-    let (_, (_, constraint)) = applied_constraints
-        .iter()
-        .next()
-        .expect("Should have one constraint");
+    let mut variables = FastHashMap::default();
+    let bump = Bump::new();
+    solver.apply_constraints(&graph, &bump, &mut variables);
+
+    assert_eq!(variables.len(), 1);
+    let (_, (_, constraint)) = variables.iter().next().expect("Should have one constraint");
 
     // Check that the constraint has the correct bounds
-    assert_eq!(constraint.lower, Some(string));
-    assert_eq!(constraint.upper, Some(number));
+    assert_eq!(constraint.lower, [string]);
+    assert_eq!(constraint.upper, [number]);
 }
 
 #[test]
@@ -224,21 +238,24 @@ fn apply_constraints_equality() {
     }];
 
     let mut solver = InferenceSolver::new(&env, Unification::new(), constraints);
+    solver.upsert_variables();
 
-    let applied_constraints = solver.apply_constraints();
+    let mut graph = Graph::new(&mut solver.unification);
+    let bump = Bump::new();
+    solver.solve_anti_symmetry(&mut graph, &bump);
 
-    assert_eq!(applied_constraints.len(), 1);
-    let (_, (_, constraint)) = applied_constraints
-        .iter()
-        .next()
-        .expect("Should have one constraint");
+    let mut variables = FastHashMap::default();
+    solver.apply_constraints(&graph, &bump, &mut variables);
+
+    assert_eq!(variables.len(), 1);
+    let (_, (_, constraint)) = variables.iter().next().expect("Should have one constraint");
 
     assert_eq!(
         *constraint,
         VariableConstraint {
             equal: Some(string),
-            lower: None,
-            upper: None
+            lower: SmallVec::new(),
+            upper: SmallVec::new()
         }
     );
 }
@@ -254,41 +271,44 @@ fn apply_constraints_with_unification() {
     let hole1 = HoleId::new(1);
     let hole2 = HoleId::new(2);
 
-    let variable1 = Variable::synthetic(VariableKind::Hole(hole1));
-    let variable2 = Variable::synthetic(VariableKind::Hole(hole2));
+    let var1 = Variable::synthetic(VariableKind::Hole(hole1));
+    let var2 = Variable::synthetic(VariableKind::Hole(hole2));
 
     let constraints = vec![
         Constraint::Equals {
-            variable: variable1,
+            variable: var1,
             r#type: string,
         },
         Constraint::UpperBound {
-            variable: variable2,
+            variable: var2,
             bound: number,
         },
     ];
 
     let mut unification = Unification::new();
-    unification.unify(variable1.kind, variable2.kind);
+    unification.unify(var1.kind, var2.kind);
 
     let mut solver = InferenceSolver::new(&env, unification, constraints);
+    solver.upsert_variables();
 
-    let applied_constraints = solver.apply_constraints();
+    let mut graph = Graph::new(&mut solver.unification);
+    let bump = Bump::new();
+    solver.solve_anti_symmetry(&mut graph, &bump);
+
+    let mut variables = FastHashMap::default();
+    solver.apply_constraints(&graph, &bump, &mut variables);
 
     // Only one entry since the variables are unified
-    assert_eq!(applied_constraints.len(), 1);
-    let (_, (_, constraint)) = applied_constraints
-        .iter()
-        .next()
-        .expect("Expected a constraint");
+    assert_eq!(variables.len(), 1);
+    let (_, (_, constraint)) = variables.iter().next().expect("Expected a constraint");
 
     // Both constraints should be applied to the root variable
     assert_eq!(
         *constraint,
         VariableConstraint {
             equal: Some(string),
-            lower: None,
-            upper: Some(number),
+            lower: SmallVec::new(),
+            upper: SmallVec::from_slice(&[number]),
         }
     );
 }
@@ -308,15 +328,16 @@ fn solve_constraints() {
     let mut applied_constraints = FastHashMap::default();
     let constraint = VariableConstraint {
         equal: None,
-        lower: Some(string),
-        upper: Some(unknown),
+        lower: SmallVec::from_slice(&[string]),
+        upper: SmallVec::from_slice(&[unknown]),
     };
     applied_constraints.insert(variable.kind, (variable, constraint));
 
     let mut solver = InferenceSolver::new(&env, Unification::new(), vec![]);
 
     // Directly call solve_constraints
-    let substitutions = solver.solve_constraints(applied_constraints);
+    let mut substitutions = FastHashMap::default();
+    solver.solve_constraints(&applied_constraints, &mut substitutions);
 
     // Verify the substitution
     assert_eq!(substitutions.len(), 1);
@@ -337,14 +358,15 @@ fn solve_constraints_with_equality() {
     let mut applied_constraints = FastHashMap::default();
     let vc = VariableConstraint {
         equal: Some(string),
-        lower: None,
-        upper: None,
+        lower: SmallVec::new(),
+        upper: SmallVec::new(),
     };
     applied_constraints.insert(var.kind, (var, vc));
 
     let mut solver = InferenceSolver::new(&env, Unification::new(), vec![]);
 
-    let substitutions = solver.solve_constraints(applied_constraints);
+    let mut substitutions = FastHashMap::default();
+    solver.solve_constraints(&applied_constraints, &mut substitutions);
 
     assert_eq!(substitutions.len(), 1);
     assert_eq!(substitutions[&var.kind], string);
@@ -365,15 +387,16 @@ fn solve_constraints_with_incompatible_bounds() {
     let mut applied_constraints = FastHashMap::default();
     let vc = VariableConstraint {
         equal: None,
-        lower: Some(string),
-        upper: Some(number),
+        lower: SmallVec::from_slice(&[string]),
+        upper: SmallVec::from_slice(&[number]),
     };
     applied_constraints.insert(var.kind, (var, vc));
 
     let mut solver = InferenceSolver::new(&env, Unification::new(), vec![]);
 
     // These bounds are incompatible, so a diagnostic should be created
-    solver.solve_constraints(applied_constraints);
+    let mut substitutions = FastHashMap::default();
+    solver.solve_constraints(&applied_constraints, &mut substitutions);
 
     let diagnostics = solver.diagnostics.into_vec();
     assert_eq!(diagnostics.len(), 1);
@@ -399,14 +422,15 @@ fn solve_constraints_with_incompatible_equality() {
     let mut applied_constraints = FastHashMap::default();
     let vc = VariableConstraint {
         equal: Some(string),
-        lower: Some(number),
-        upper: None,
+        lower: SmallVec::from_slice(&[number]),
+        upper: SmallVec::new(),
     };
     applied_constraints.insert(var.kind, (var, vc));
 
     let mut solver = InferenceSolver::new(&env, Unification::new(), vec![]);
 
-    solver.solve_constraints(applied_constraints);
+    let mut substitutions = FastHashMap::default();
+    solver.solve_constraints(&applied_constraints, &mut substitutions);
 
     let diagnostics = solver.diagnostics.into_vec();
     assert_eq!(diagnostics.len(), 1);
@@ -432,15 +456,16 @@ fn solve_constraints_with_incompatible_upper_equal_constraint() {
     let mut applied_constraints = FastHashMap::default();
     let vc = VariableConstraint {
         equal: Some(string),
-        lower: None,
-        upper: Some(number),
+        lower: SmallVec::new(),
+        upper: SmallVec::from_slice(&[number]),
     };
     applied_constraints.insert(var.kind, (var, vc));
 
     let mut solver = InferenceSolver::new(&env, Unification::new(), vec![]);
 
     // This should exercise lines 916-929
-    solver.solve_constraints(applied_constraints);
+    let mut substitutions = FastHashMap::default();
+    solver.solve_constraints(&applied_constraints, &mut substitutions);
 
     // Should have a diagnostic for incompatible upper equal constraint
     let diagnostics = solver.diagnostics.into_vec();
@@ -525,13 +550,20 @@ fn redundant_constraints() {
     ];
 
     let mut solver = InferenceSolver::new(&env, Unification::new(), constraints);
+    solver.upsert_variables();
+
+    let mut graph = Graph::new(&mut solver.unification);
+    let bump = Bump::new();
+    solver.solve_anti_symmetry(&mut graph, &bump);
+
+    let mut variables = FastHashMap::default();
 
     // Apply the constraints
-    let applied = solver.apply_constraints();
+    solver.apply_constraints(&graph, &bump, &mut variables);
 
     // Despite having duplicate constraints, there should be one entry with one equality
-    assert_eq!(applied.len(), 1);
-    let (_, (_, constraint)) = applied.iter().next().expect("Should have one constraint");
+    assert_eq!(variables.len(), 1);
+    let (_, (_, constraint)) = variables.iter().next().expect("Should have one constraint");
     assert_eq!(constraint.equal, Some(string));
 }
 
@@ -568,7 +600,9 @@ fn cyclic_ordering_constraints() {
 
     // Directly call the anti-symmetry solver
     solver.upsert_variables();
-    solver.solve_anti_symmetry();
+    let mut graph = Graph::new(&mut solver.unification);
+    let bump = Bump::new();
+    solver.solve_anti_symmetry(&mut graph, &bump);
 
     // Verify all variables are unified
     assert!(
@@ -616,7 +650,9 @@ fn cyclic_structural_edges_constraints() {
 
     // Directly call the anti-symmetry solver
     solver.upsert_variables();
-    solver.solve_anti_symmetry();
+    let mut graph = Graph::new(&mut solver.unification);
+    let bump = Bump::new();
+    solver.solve_anti_symmetry(&mut graph, &bump);
 
     // Verify all variables are unified
     assert!(
@@ -655,17 +691,24 @@ fn bounds_at_lattice_extremes() {
     ];
 
     let mut solver = InferenceSolver::new(&env, Unification::new(), constraints);
+    solver.upsert_variables();
+
+    let mut graph = Graph::new(&mut solver.unification);
+    let bump = Bump::new();
+    solver.solve_anti_symmetry(&mut graph, &bump);
 
     // Apply the constraints
-    let applied = solver.apply_constraints();
+    let mut variables = FastHashMap::default();
+    solver.apply_constraints(&graph, &bump, &mut variables);
 
-    assert_eq!(applied.len(), 1);
-    let (_, (_, constraint)) = applied.iter().next().expect("Should have one constraint");
-    assert_eq!(constraint.lower, Some(never));
-    assert_eq!(constraint.upper, Some(unknown));
+    assert_eq!(variables.len(), 1);
+    let (_, (_, constraint)) = variables.iter().next().expect("Should have one constraint");
+    assert_eq!(constraint.lower, [never]);
+    assert_eq!(constraint.upper, [unknown]);
 
     // These bounds should be compatible
-    let substitutions = solver.solve_constraints(applied);
+    let mut substitutions = FastHashMap::default();
+    solver.solve_constraints(&variables, &mut substitutions);
     assert!(solver.diagnostics.is_empty());
 
     // The variable should be inferred to the lower bound (Never)
@@ -680,31 +723,32 @@ fn collect_constraints_with_structural_edge() {
     let hole1 = HoleId::new(1);
     let hole2 = HoleId::new(2);
 
-    let variable1 = Variable::synthetic(VariableKind::Hole(hole1));
-    let variable2 = Variable::synthetic(VariableKind::Hole(hole2));
+    let var1 = Variable::synthetic(VariableKind::Hole(hole1));
+    let var2 = Variable::synthetic(VariableKind::Hole(hole2));
 
     // Create a structural edge constraint
     let constraints = vec![Constraint::StructuralEdge {
-        source: variable1,
-        target: variable2,
+        source: var1,
+        target: var2,
     }];
 
     let mut solver = InferenceSolver::new(&env, Unification::new(), constraints);
 
     // This should exercise lines 410-418
-    let collected = solver.collect_constraints();
+    let mut variables = FastHashMap::default();
+    solver.collect_constraints(&mut variables);
 
     // Both variables should be in the map even though they don't have direct bounds
-    assert!(collected.contains_key(&variable1.kind));
-    assert!(collected.contains_key(&variable2.kind));
+    assert!(variables.contains_key(&var1.kind));
+    assert!(variables.contains_key(&var2.kind));
 
     // They should have default constraint values (all None/empty)
-    let (_, var1_constraints) = &collected[&variable1.kind];
+    let (_, var1_constraints) = &variables[&var1.kind];
     assert!(var1_constraints.equal.is_none());
     assert!(var1_constraints.lower.is_empty());
     assert!(var1_constraints.upper.is_empty());
 
-    let (_, var2_constraints) = &collected[&variable2.kind];
+    let (_, var2_constraints) = &variables[&var2.kind];
     assert!(var2_constraints.equal.is_none());
     assert!(var2_constraints.lower.is_empty());
     assert!(var2_constraints.upper.is_empty());
