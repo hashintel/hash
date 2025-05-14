@@ -240,7 +240,7 @@ fn instantiate() -> Result<(), Box<dyn Error>> {
     let system = TestSystem::generate(&mut policy_store, &mut context)?;
 
     let machine_type = EntityTypeResource {
-        web_id: system.web.id,
+        web_id: Some(system.web.id),
         id: Cow::Owned(EntityTypeId::new(VersionedUrl::from_str(
             "https://hash.ai/@h/types/entity-type/machine/v/2",
         )?)),
@@ -248,7 +248,7 @@ fn instantiate() -> Result<(), Box<dyn Error>> {
     context.add_entity_type(&machine_type);
 
     let document_type = EntityTypeResource {
-        web_id: system.web.id,
+        web_id: Some(system.web.id),
         id: Cow::Owned(EntityTypeId::new(VersionedUrl::from_str(
             "https://hash.ai/@h/types/entity-type/document/v/1",
         )?)),
@@ -343,7 +343,7 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
     let user = TestUser::generate(&mut policy_store, &mut context, "alice")?;
 
     let machine_type = EntityTypeResource {
-        web_id: system.web.id,
+        web_id: Some(system.web.id),
         id: Cow::Owned(EntityTypeId::new(VersionedUrl::from_str(
             "https://hash.ai/@h/types/entity-type/machine/v/2",
         )?)),
@@ -351,7 +351,7 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
     context.add_entity_type(&machine_type);
 
     let document_type = EntityTypeResource {
-        web_id: system.web.id,
+        web_id: Some(system.web.id),
         id: Cow::Owned(EntityTypeId::new(VersionedUrl::from_str(
             "https://hash.ai/@h/types/entity-type/document/v/1",
         )?)),
@@ -359,7 +359,7 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
     context.add_entity_type(&document_type);
 
     let web_type = EntityTypeResource {
-        web_id: user.web.id,
+        web_id: Some(user.web.id),
         id: Cow::Owned(EntityTypeId::new(VersionedUrl::from_str(
             "https://hash.ai/@alice/types/entity-type/custom/v/1",
         )?)),
@@ -528,7 +528,7 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
     )?;
 
     let web_type = EntityTypeResource {
-        web_id: org_web.id,
+        web_id: Some(org_web.id),
         id: Cow::Owned(EntityTypeId::new(VersionedUrl::from_str(
             "https://hash.ai/@alice/types/entity-type/custom/v/1",
         )?)),

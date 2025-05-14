@@ -16,8 +16,8 @@ use hash_graph_authorization::{
     AuthorizationApi,
     backend::ModifyRelationshipOperation,
     policies::{
-        Authorized, Effect, PartialResourceId, Policy, PolicyId, PolicySet, Request,
-        RequestContext,
+        Authorized, ContextBuilder, Effect, PartialResourceId, Policy, PolicyId, PolicySet,
+        Request, RequestContext,
         action::ActionName,
         principal::PrincipalConstraint,
         resource::ResourceConstraint,
@@ -266,9 +266,12 @@ where
         actor: ActorId,
         parameter: CreateWebParameter,
     ) -> Result<CreateWebResponse, Report<WebCreationError>> {
-        let context = self
-            .build_principal_context(actor)
+        let mut context_builder = ContextBuilder::default();
+        self.build_principal_context(actor, &mut context_builder)
             .await
+            .change_context(WebCreationError::StoreError)?;
+        let context = context_builder
+            .build()
             .change_context(WebCreationError::StoreError)?;
         let policies = self
             .resolve_policies_for_actor(actor.into(), actor)

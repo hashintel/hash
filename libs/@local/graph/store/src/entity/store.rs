@@ -390,7 +390,7 @@ pub trait EntityStore {
         params: CreateEntityParams<R>,
     ) -> impl Future<Output = Result<Entity, Report<InsertionError>>> + Send
     where
-        R: IntoIterator<Item = EntityRelationAndSubject> + Send,
+        R: IntoIterator<Item = EntityRelationAndSubject> + Send + Sync,
     {
         self.create_entities(actor_id, vec![params])
             .map_ok(|mut entities| {
@@ -407,7 +407,7 @@ pub trait EntityStore {
         params: Vec<CreateEntityParams<R>>,
     ) -> impl Future<Output = Result<Vec<Entity>, Report<InsertionError>>> + Send
     where
-        R: IntoIterator<Item = EntityRelationAndSubject> + Send;
+        R: IntoIterator<Item = EntityRelationAndSubject> + Send + Sync;
 
     /// Validates an [`Entity`].
     ///

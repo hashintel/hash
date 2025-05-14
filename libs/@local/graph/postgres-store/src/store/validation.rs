@@ -32,7 +32,7 @@ use type_system::{
             ClosedDataType, ConversionDefinition, ConversionExpression, DataTypeUuid,
             schema::DataTypeReference,
         },
-        entity_type::{ClosedEntityType, EntityTypeUuid},
+        entity_type::{ClosedEntityType, ClosedEntityTypeWithMetadata, EntityTypeUuid},
         property_type::{PropertyType, PropertyTypeUuid},
     },
     principal::actor::ActorEntityUuid,
@@ -121,10 +121,11 @@ where
 
 #[derive(Debug, Default)]
 pub struct StoreCache {
-    data_types: CacheHashMap<DataTypeUuid, DataTypeWithMetadata>,
+    data_types_with_metadata: CacheHashMap<DataTypeUuid, DataTypeWithMetadata>,
     closed_data_types: CacheHashMap<DataTypeUuid, ClosedDataType>,
     property_types: CacheHashMap<PropertyTypeUuid, PropertyType>,
-    entity_types: CacheHashMap<EntityTypeUuid, ClosedEntityType>,
+    closed_entity_types_with_metadata: CacheHashMap<EntityTypeUuid, ClosedEntityTypeWithMetadata>,
+    closed_entity_types: CacheHashMap<EntityTypeUuid, ClosedEntityType>,
     entities: CacheHashMap<EntityId, Entity>,
     conversions: CacheHashMap<(DataTypeUuid, DataTypeUuid), Vec<ConversionExpression>>,
 }
@@ -174,12 +175,20 @@ where
         &self,
         data_type_uuid: DataTypeUuid,
     ) -> Result<Arc<DataTypeWithMetadata>, Report<QueryError>> {
-        if let Some(cached) = self.cache.data_types.get(&data_type_uuid).await {
+        if let Some(cached) = self
+            .cache
+            .data_types_with_metadata
+            .get(&data_type_uuid)
+            .await
+        {
             return cached;
         }
 
         if let Err(error) = self.authorize_data_type(data_type_uuid).await {
-            self.cache.data_types.deny(data_type_uuid).await;
+            self.cache
+                .data_types_with_metadata
+                .deny(data_type_uuid)
+                .await;
             return Err(error);
         }
 
@@ -198,7 +207,11 @@ where
             )
             .await?;
 
-        let schema = self.cache.data_types.grant(data_type_uuid, schema).await;
+        let schema = self
+            .cache
+            .data_types_with_metadata
+            .grant(data_type_uuid, schema)
+            .await;
 
         Ok(schema)
     }
@@ -437,7 +450,7 @@ where
     async fn fetch_entity_type(
         &self,
         type_id: &VersionedUrl,
-    ) -> Result<ClosedEntityType, Report<QueryError>> {
+    ) -> Result<ClosedEntityTypeWithMetadata, Report<QueryError>> {
         let mut schemas = self
             .store
             .read_closed_schemas(
@@ -475,6 +488,58 @@ where
     }
 }
 
+impl<C, A> OntologyTypeProvider<ClosedEntityTypeWithMetadata>
+    for StoreProvider<'_, PostgresStore<C, A>>
+where
+    C: AsClient,
+    A: AuthorizationApi,
+{
+    type Value = Arc<ClosedEntityTypeWithMetadata>;
+
+    #[expect(refining_impl_trait)]
+    async fn provide_type(
+        &self,
+        type_id: &VersionedUrl,
+    ) -> Result<Arc<ClosedEntityTypeWithMetadata>, Report<QueryError>> {
+        let entity_type_id = EntityTypeUuid::from_url(type_id);
+
+        if let Some(cached) = self
+            .cache
+            .closed_entity_types_with_metadata
+            .get(&entity_type_id)
+            .await
+        {
+            return cached;
+        }
+
+        if let Err(error) = self.authorize_entity_type(entity_type_id).await {
+            self.cache
+                .closed_entity_types_with_metadata
+                .deny(entity_type_id)
+                .await;
+            return Err(error);
+        }
+
+        let schema = match self.fetch_entity_type(type_id).await {
+            Ok(schema) => schema,
+            Err(error) => {
+                self.cache
+                    .closed_entity_types_with_metadata
+                    .malformed(entity_type_id)
+                    .await;
+                return Err(error);
+            }
+        };
+
+        let schema = self
+            .cache
+            .closed_entity_types_with_metadata
+            .grant(entity_type_id, schema)
+            .await;
+        Ok(schema)
+    }
+}
+
 impl<C, A> OntologyTypeProvider<ClosedEntityType> for StoreProvider<'_, PostgresStore<C, A>>
 where
     C: AsClient,
@@ -489,24 +554,27 @@ where
     ) -> Result<Arc<ClosedEntityType>, Report<QueryError>> {
         let entity_type_id = EntityTypeUuid::from_url(type_id);
 
-        if let Some(cached) = self.cache.entity_types.get(&entity_type_id).await {
+        if let Some(cached) = self.cache.closed_entity_types.get(&entity_type_id).await {
             return cached;
         }
 
         if let Err(error) = self.authorize_entity_type(entity_type_id).await {
-            self.cache.entity_types.deny(entity_type_id).await;
+            self.cache.closed_entity_types.deny(entity_type_id).await;
             return Err(error);
         }
 
-        let schema = match self.fetch_entity_type(type_id).await {
-            Ok(schema) => schema,
-            Err(error) => {
-                self.cache.entity_types.malformed(entity_type_id).await;
-                return Err(error);
-            }
-        };
+        let schema = <Self as OntologyTypeProvider<ClosedEntityTypeWithMetadata>>::provide_type(
+            self, type_id,
+        )
+        .await?
+        .schema
+        .clone();
 
-        let schema = self.cache.entity_types.grant(entity_type_id, schema).await;
+        let schema = self
+            .cache
+            .closed_entity_types
+            .grant(entity_type_id, schema)
+            .await;
         Ok(schema)
     }
 }

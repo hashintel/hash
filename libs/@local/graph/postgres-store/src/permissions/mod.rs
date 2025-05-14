@@ -6,7 +6,7 @@ use futures::TryStreamExt as _;
 use hash_graph_authorization::{
     AuthorizationApi,
     policies::{
-        Context, ContextBuilder,
+        ContextBuilder,
         action::ActionName,
         store::{RoleAssignmentStatus, RoleUnassignmentStatus},
     },
@@ -1260,9 +1260,8 @@ where
     pub async fn build_principal_context(
         &self,
         actor_id: ActorId,
-    ) -> Result<Context, Report<PrincipalError>> {
-        let mut context_builder = ContextBuilder::default();
-
+        context_builder: &mut ContextBuilder,
+    ) -> Result<(), Report<PrincipalError>> {
         let actor = self
             .get_actor(actor_id)
             .await?
@@ -1344,8 +1343,6 @@ where
                 context_builder.add_actor_group(&actor_group);
             });
 
-        context_builder
-            .build()
-            .change_context(PrincipalError::ContextBuilderError)
+        Ok(())
     }
 }
