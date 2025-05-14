@@ -9,7 +9,6 @@ use futures::{StreamExt as _, TryStreamExt as _, stream};
 use hash_graph_authorization::{
     AuthorizationApi,
     backend::ModifyRelationshipOperation,
-    policies::ContextBuilder,
     schema::{
         EntityOwnerSubject, EntityPermission, EntityRelationAndSubject, EntityTypePermission,
         WebPermission,
@@ -805,8 +804,6 @@ where
             cache: StoreCache::default(),
             authorization: Some((actor_id, Consistency::FullyConsistent)),
         };
-
-        let mut context_builder = ContextBuilder::default();
 
         let mut validation_reports = HashMap::<usize, EntityValidationReport>::new();
         for (index, mut params) in params.into_iter().enumerate() {
