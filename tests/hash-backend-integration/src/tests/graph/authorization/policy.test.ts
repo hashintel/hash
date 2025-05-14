@@ -1,6 +1,7 @@
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
+import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import {
   createPolicy,
@@ -13,11 +14,9 @@ import {
 import type {
   Policy,
   PolicyCreationParams,
-  ResourceConstraint,
 } from "@rust/hash-graph-authorization/types";
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { resetGraph } from "../../test-server";
 import { createTestImpureGraphContext, createTestUser } from "../../util";
 
