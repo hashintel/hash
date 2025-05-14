@@ -10,7 +10,6 @@ import type { HASHInstance as HashInstanceEntity } from "@local/hash-isomorphic-
 
 import { logger } from "../../../logger";
 import type { ImpureGraphFunction } from "../../context-types";
-import { modifyEntityTypeAuthorizationRelationships } from "../../ontology/primitive/entity-type";
 import { createEntity } from "../primitive/entity";
 
 /**
@@ -103,23 +102,6 @@ export const createHashInstance: ImpureGraphFunction<
       },
     ],
   });
-
-  await modifyEntityTypeAuthorizationRelationships(ctx, authentication, [
-    {
-      operation: "touch",
-      relationship: {
-        relation: "instantiator",
-        subject: {
-          kind: "accountGroup",
-          subjectId: teamId,
-        },
-        resource: {
-          kind: "entityType",
-          resourceId: systemEntityTypes.hashInstance.entityTypeId,
-        },
-      },
-    },
-  ]);
 
   return getHashInstanceFromEntity({ entity });
 };

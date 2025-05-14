@@ -8,7 +8,6 @@ import { createEntity } from "../../../knowledge/primitive/entity";
 import { getOrgByShortname } from "../../../knowledge/system-types/org";
 import type { MigrationFunction } from "../types";
 import {
-  anyUserInstantiator,
   createSystemEntityTypeIfNotExists,
   createSystemPropertyTypeIfNotExists,
   getCurrentHashDataTypeId,
@@ -171,7 +170,6 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
     },
   );
 
@@ -191,7 +189,6 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
     },
   );
 
@@ -209,7 +206,6 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
     },
   );
 
@@ -227,7 +223,6 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
     },
   );
 
@@ -290,7 +285,6 @@ const migrate: MigrationFunction = async ({
     },
     webShortname: "h",
     migrationState,
-    instantiator: anyUserInstantiator,
   });
 
   /**

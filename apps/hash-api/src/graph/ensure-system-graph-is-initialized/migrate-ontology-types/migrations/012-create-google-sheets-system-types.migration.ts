@@ -7,7 +7,6 @@ import {
 import { enabledIntegrations } from "../../../../integrations/enabled-integrations";
 import type { MigrationFunction } from "../types";
 import {
-  anyUserInstantiator,
   createSystemDataTypeIfNotExists,
   createSystemEntityTypeIfNotExists,
   createSystemPropertyTypeIfNotExists,
@@ -90,7 +89,6 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "google",
       migrationState,
-      instantiator: anyUserInstantiator,
     },
   );
 
@@ -110,7 +108,6 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
     });
 
   const fileIdPropertyType = await createSystemPropertyTypeIfNotExists(
@@ -177,7 +174,6 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
     },
   );
 
@@ -211,7 +207,6 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "google",
       migrationState,
-      instantiator: anyUserInstantiator,
     },
   );
 

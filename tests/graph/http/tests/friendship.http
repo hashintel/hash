@@ -12,6 +12,31 @@ Content-Type: application/json
 %}
 
 
+### Create global instantiation policy
+POST http://127.0.0.1:4000/policies
+Content-Type: application/json
+X-Authenticated-User-Actor-Id: {{system_machine_id}}
+
+{
+  "effect": "permit",
+  "principal": null,
+  "actions": ["instantiate"],
+  "resource": {
+    "type": "entityType",
+    "filter": {
+      "type": "all",
+      "filters": []
+    }
+  }
+}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+  });
+%}
+
+
 ### Create account
 POST http://127.0.0.1:4000/actors/user
 Content-Type: application/json
@@ -775,26 +800,6 @@ X-Authenticated-User-Actor-Id: {{user_id}}
     });
 %}
 
-### Allow the friendship entity link type to be instantiated by the account
-POST http://127.0.0.1:4000/entity-types/relationships
-Content-Type: application/json
-Accept: application/json
-X-Authenticated-User-Actor-Id: {{user_id}}
-
-[
-  {
-    "operation": "create",
-    "resource": "{{friendship_link_entity_type_id}}",
-    "relationAndSubject": {
-      "relation": "instantiator",
-      "subject": {
-        "kind": "account",
-        "subjectId": "{{user_id}}"
-      }
-    }
-  }
-]
-
 ### Get Friendship entity type
 POST http://127.0.0.1:4000/entity-types/query
 Content-Type: application/json
@@ -900,26 +905,6 @@ X-Authenticated-User-Actor-Id: {{user_id}}
         client.assert(response.status === 200, "Response status is not 200");
     });
 %}
-
-### Allow the person entity type to be instantiated by the account
-POST http://127.0.0.1:4000/entity-types/relationships
-Content-Type: application/json
-Accept: application/json
-X-Authenticated-User-Actor-Id: {{user_id}}
-
-[
-  {
-    "operation": "create",
-    "resource": "{{person_entity_type_id}}",
-    "relationAndSubject": {
-      "relation": "instantiator",
-      "subject": {
-        "kind": "account",
-        "subjectId": "{{user_id}}"
-      }
-    }
-  }
-]
 
 ### Get Person entity type
 POST http://127.0.0.1:4000/entity-types/query
@@ -1035,26 +1020,6 @@ X-Authenticated-User-Actor-Id: {{user_id}}
         client.assert(response.status === 200, "Response status is not 200");
     });
 %}
-
-### Allow the person entity type to be instantiated by the account
-POST http://127.0.0.1:4000/entity-types/relationships
-Content-Type: application/json
-Accept: application/json
-X-Authenticated-User-Actor-Id: {{user_id}}
-
-[
-  {
-    "operation": "create",
-    "resource": "{{person_entity_type_2_id}}",
-    "relationAndSubject": {
-      "relation": "instantiator",
-      "subject": {
-        "kind": "account",
-        "subjectId": "{{user_id}}"
-      }
-    }
-  }
-]
 
 ### Get all latest entity types
 POST http://127.0.0.1:4000/entity-types/query

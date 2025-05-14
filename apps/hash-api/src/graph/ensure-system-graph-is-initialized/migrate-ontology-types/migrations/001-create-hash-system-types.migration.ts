@@ -8,7 +8,6 @@ import {
 import { systemAccountId } from "../../../system-account";
 import type { MigrationFunction } from "../types";
 import {
-  anyUserInstantiator,
   createSystemEntityTypeIfNotExists,
   createSystemPropertyTypeIfNotExists,
   getCurrentHashDataTypeId,
@@ -110,10 +109,13 @@ const migrate: MigrationFunction = async ({
     },
     webShortname: "h",
     migrationState,
-    instantiator: {
-      kind: "account",
-      subjectId: systemAccountId,
-    },
+    instantiators: [
+      {
+        type: "actor",
+        actorType: "machine",
+        id: systemAccountId,
+      },
+    ],
   });
 
   /** File entity type */
@@ -261,7 +263,6 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
     },
   );
 
@@ -280,7 +281,6 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
     },
   );
 
@@ -314,7 +314,6 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
     },
   );
 
@@ -344,7 +343,6 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
     },
   );
 
@@ -362,7 +360,6 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
     },
   );
 
@@ -401,7 +398,6 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
     });
 
   const profileBioEntityType = await createSystemEntityTypeIfNotExists(
@@ -425,7 +421,6 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
     },
   );
 
@@ -517,7 +512,6 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
     },
   );
 
@@ -535,7 +529,6 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
     },
   );
 
@@ -553,7 +546,6 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
     },
   );
 
@@ -617,10 +609,12 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: {
-        kind: "account",
-        subjectId: systemAccountId,
-      },
+      instantiators: [
+        {
+          type: "actorType",
+          actorType: "machine",
+        },
+      ],
     },
   );
 
@@ -662,7 +656,6 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
     },
   );
 
@@ -678,7 +671,6 @@ const migrate: MigrationFunction = async ({
     },
     webShortname: "h",
     migrationState,
-    instantiator: anyUserInstantiator,
   });
 
   /** Twitter Account entity type */
@@ -693,7 +685,6 @@ const migrate: MigrationFunction = async ({
     },
     webShortname: "h",
     migrationState,
-    instantiator: anyUserInstantiator,
   });
 
   /** TikTok Account entity type */
@@ -708,7 +699,6 @@ const migrate: MigrationFunction = async ({
     },
     webShortname: "h",
     migrationState,
-    instantiator: anyUserInstantiator,
   });
 
   /** Facebook Account entity type */
@@ -723,7 +713,6 @@ const migrate: MigrationFunction = async ({
     },
     webShortname: "h",
     migrationState,
-    instantiator: anyUserInstantiator,
   });
 
   /** Instagram Account entity type */
@@ -738,7 +727,6 @@ const migrate: MigrationFunction = async ({
     },
     webShortname: "h",
     migrationState,
-    instantiator: anyUserInstantiator,
   });
 
   /** GitHub Account entity type */
@@ -753,7 +741,6 @@ const migrate: MigrationFunction = async ({
     },
     webShortname: "h",
     migrationState,
-    instantiator: anyUserInstantiator,
   });
 
   /** User entity type */
@@ -827,7 +814,6 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
     },
   );
 
@@ -843,7 +829,6 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
     });
 
   const userEntityType = await createSystemEntityTypeIfNotExists(
@@ -916,10 +901,12 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: {
-        kind: "account",
-        subjectId: systemAccountId,
-      },
+      instantiators: [
+        {
+          type: "actorType",
+          actorType: "machine",
+        },
+      ],
     },
   );
 
@@ -944,7 +931,6 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
     },
   );
 
@@ -1020,7 +1006,6 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
     },
   );
 
@@ -1065,7 +1050,6 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
     },
   );
 
@@ -1091,7 +1075,6 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
     },
   );
 
@@ -1201,7 +1184,6 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
     });
 
   const _canvasEntityType = await createSystemEntityTypeIfNotExists(
@@ -1225,7 +1207,6 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
     },
   );
 
@@ -1252,7 +1233,6 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
     },
   );
 
@@ -1329,7 +1309,6 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
     });
 
   const usesUserSecretLinkEntityType = await createSystemEntityTypeIfNotExists(
@@ -1346,7 +1325,6 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
     },
   );
 
@@ -1376,7 +1354,6 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
     },
   );
 
@@ -1422,7 +1399,6 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
     },
   );
 
@@ -1470,7 +1446,6 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
     },
   );
 
@@ -1489,7 +1464,6 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
     },
   );
 
@@ -1533,7 +1507,6 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
     },
   );
 
@@ -1573,7 +1546,6 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
     },
   );
 
@@ -1591,7 +1563,6 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
     });
 
   const occurredInBlockLinkEntityType = await createSystemEntityTypeIfNotExists(
@@ -1608,7 +1579,6 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
     },
   );
 
@@ -1624,7 +1594,6 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
     });
 
   const occurredInTextLinkEntityType = await createSystemEntityTypeIfNotExists(
@@ -1641,7 +1610,6 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
     },
   );
 
@@ -1659,7 +1627,6 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
     },
   );
 
@@ -1705,7 +1672,6 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
     });
 
   /** Comment Notification entity type */
@@ -1722,7 +1688,6 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
     });
 
   const repliedToCommentLinkEntityType =
@@ -1737,7 +1702,6 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
     });
 
   const _commentNotificationEntityType =
@@ -1782,7 +1746,6 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
     });
 
   /**

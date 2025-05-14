@@ -229,12 +229,6 @@ export const updateEntityTypesResolver: ResolverFn<
               kind: "public",
             },
           },
-          {
-            relation: "instantiator",
-            subject: {
-              kind: "public",
-            },
-          },
         ],
       })),
     },

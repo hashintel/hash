@@ -160,12 +160,11 @@ export const ensureSystemWebEntitiesExist = async ({
        * Linear actions
        */
       await createMachineActorEntity(context, {
-        machineId: systemActorMachineId,
+        actor: { actorType: "machine", id: systemActorMachineId },
         identifier: webShortname,
         logger,
         webId,
         displayName,
-        systemAccountId,
         machineEntityTypeId,
       });
     } else {
@@ -297,10 +296,9 @@ export const ensureSystemEntitiesExist = async (params: {
       await createMachineActorEntity(context, {
         identifier: aiIdentifier,
         logger,
-        machineId: aiAssistantAccountId,
+        actor: { actorType: "ai", id: aiAssistantAccountId },
         webId: hashWebId,
         displayName: "HASH AI",
-        systemAccountId,
       });
     } else {
       throw error;

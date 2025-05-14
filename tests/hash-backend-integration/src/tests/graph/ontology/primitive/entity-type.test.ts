@@ -514,7 +514,6 @@ describe("Entity type CRU", () => {
               subjectId: "updateFromWeb",
             },
           },
-          { relation: "instantiator", subject: { kind: "public" } },
         ],
         provenance: {
           actorType: "machine",

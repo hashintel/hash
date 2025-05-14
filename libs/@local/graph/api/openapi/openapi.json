@@ -6064,8 +6064,7 @@
         "type": "string",
         "enum": [
           "update",
-          "view",
-          "instantiate"
+          "view"
         ]
       },
       "EntityTypeQueryToken": {
@@ -6161,24 +6160,6 @@
               },
               "subject": {
                 "$ref": "#/components/schemas/EntityTypeViewerSubject"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "subject",
-              "relation"
-            ],
-            "properties": {
-              "relation": {
-                "type": "string",
-                "enum": [
-                  "instantiator"
-                ]
-              },
-              "subject": {
-                "$ref": "#/components/schemas/EntityTypeInstantiatorSubject"
               }
             }
           }

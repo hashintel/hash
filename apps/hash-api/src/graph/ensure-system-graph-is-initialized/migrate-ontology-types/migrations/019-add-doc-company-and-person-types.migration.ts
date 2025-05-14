@@ -7,7 +7,6 @@ import {
 
 import type { MigrationFunction } from "../types";
 import {
-  anyUserInstantiator,
   createSystemDataTypeIfNotExists,
   createSystemEntityTypeIfNotExists,
   createSystemPropertyTypeIfNotExists,
@@ -223,7 +222,6 @@ const migrate: MigrationFunction = async ({
   //       description: "The entity that published something",
   //     },
   //     migrationState,
-  //     instantiator: anyUserInstantiator,
   //     webShortname: "h",
   //   },
   // );
@@ -242,7 +240,6 @@ const migrate: MigrationFunction = async ({
   //       description: "The place in which something was published",
   //     },
   //     migrationState,
-  //     instantiator: anyUserInstantiator,
   //     webShortname: "h",
   //   },
   // );
@@ -260,7 +257,6 @@ const migrate: MigrationFunction = async ({
         description: "Something that something is affiliated with.",
       },
       migrationState,
-      instantiator: anyUserInstantiator,
       webShortname: "h",
     },
   );
@@ -286,7 +282,6 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      instantiator: anyUserInstantiator,
       migrationState,
       webShortname: "h",
     },
@@ -310,7 +305,6 @@ const migrate: MigrationFunction = async ({
   //         },
   //       ],
   //     },
-  //     instantiator: anyUserInstantiator,
   //     migrationState,
   //     webShortname: "h",
   //   },
@@ -335,7 +329,6 @@ const migrate: MigrationFunction = async ({
   //         },
   //       ],
   //     },
-  //     instantiator: anyUserInstantiator,
   //     migrationState,
   //     webShortname: "h",
   //   },
@@ -352,7 +345,6 @@ const migrate: MigrationFunction = async ({
   //       description:
   //         "An institution of higher education and research, typically offering undergraduate and postgraduate degrees across a wide range of disciplines, and often engaging in the creation and dissemination of knowledge.",
   //     },
-  //     instantiator: anyUserInstantiator,
   //     migrationState,
   //     webShortname: "h",
   //   },
@@ -394,7 +386,6 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      instantiator: anyUserInstantiator,
       migrationState,
       webShortname: "h",
     },
@@ -454,7 +445,6 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      instantiator: anyUserInstantiator,
       migrationState,
       webShortname: "h",
     },
@@ -477,7 +467,6 @@ const migrate: MigrationFunction = async ({
           },
         ],
       },
-      instantiator: anyUserInstantiator,
       migrationState,
       webShortname: "h",
     },
@@ -537,7 +526,6 @@ const migrate: MigrationFunction = async ({
           // },
         ],
       },
-      instantiator: anyUserInstantiator,
       migrationState,
       webShortname: "h",
     },

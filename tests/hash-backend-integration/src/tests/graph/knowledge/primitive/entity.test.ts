@@ -113,12 +113,6 @@ describe("Entity CRU", () => {
               kind: "public",
             },
           },
-          {
-            relation: "instantiator",
-            subject: {
-              kind: "public",
-            },
-          },
         ],
       })
         .then((val) => {
@@ -200,12 +194,6 @@ describe("Entity CRU", () => {
       relationships: [
         {
           relation: "viewer",
-          subject: {
-            kind: "public",
-          },
-        },
-        {
-          relation: "instantiator",
           subject: {
             kind: "public",
           },
