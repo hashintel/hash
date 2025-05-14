@@ -72,7 +72,8 @@ use type_system::{
         InheritanceDepth,
         data_type::schema::DataTypeReference,
         entity_type::{
-            ClosedEntityType, ClosedMultiEntityType, EntityTypeUuid, EntityTypeWithMetadata,
+            ClosedEntityType, ClosedEntityTypeWithMetadata, ClosedMultiEntityType, EntityTypeUuid,
+            EntityTypeWithMetadata,
         },
         id::{BaseUrl, OntologyTypeUuid, OntologyTypeVersion, VersionedUrl},
     },
@@ -777,7 +778,7 @@ where
         params: Vec<CreateEntityParams<R>>,
     ) -> Result<Vec<Entity>, Report<InsertionError>>
     where
-        R: IntoIterator<Item = EntityRelationAndSubject> + Send,
+        R: IntoIterator<Item = EntityRelationAndSubject> + Send + Sync,
     {
         let transaction_time = Timestamp::<TransactionTime>::now().remove_nanosecond();
         let mut relationships = Vec::with_capacity(params.len());
@@ -809,16 +810,21 @@ where
             let entity_type = ClosedMultiEntityType::from_multi_type_closed_schema(
                 stream::iter(&params.entity_type_ids)
                     .then(|entity_type_url| async {
-                        OntologyTypeProvider::<ClosedEntityType>::provide_type(
+                        OntologyTypeProvider::<ClosedEntityTypeWithMetadata>::provide_type(
                             &validator_provider,
                             entity_type_url,
                         )
                         .await
-                        .map(|entity_type| (*entity_type).clone())
                     })
-                    .try_collect::<Vec<ClosedEntityType>>()
+                    .try_collect::<Vec<_>>()
                     .await
-                    .change_context(InsertionError)?,
+                    .change_context(InsertionError)?
+                    .into_iter()
+                    .map(|closed| {
+                        // TODO: Add schema to policy context
+                        //   see https://linear.app/hash/issue/H-4429/use-policies-seeded-from-node-to-check-permissions
+                        closed.schema.clone()
+                    }),
             )
             .change_context(InsertionError)?;
 

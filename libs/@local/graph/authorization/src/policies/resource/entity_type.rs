@@ -48,7 +48,7 @@ impl fmt::Display for EntityTypeId {
 
 #[derive(Debug)]
 pub struct EntityTypeResource<'a> {
-    pub web_id: WebId,
+    pub web_id: Option<WebId>,
     pub id: Cow<'a, EntityTypeId>,
 }
 
@@ -67,7 +67,11 @@ impl EntityTypeResource<'_> {
                 ),
             ],
             HashSet::new(),
-            iter::once(self.web_id.to_euid()).collect(),
+            self.web_id
+                .as_ref()
+                .into_iter()
+                .map(WebId::to_euid)
+                .collect(),
             iter::empty(),
             Extensions::none(),
         )

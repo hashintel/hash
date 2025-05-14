@@ -4,7 +4,7 @@ use utoipa::{
     openapi::{Ref, RefOr, Schema, schema},
 };
 
-use super::EntityType;
+use super::{ClosedEntityType, EntityType};
 use crate::ontology::{
     OntologyTemporalMetadata, OntologyTypeWithMetadata,
     id::OntologyTypeRecordId,
@@ -87,6 +87,8 @@ impl ToSchema<'static> for EntityTypeMetadata {
 }
 
 pub type EntityTypeWithMetadata = OntologyTypeWithMetadata<EntityType>;
+
+pub type ClosedEntityTypeWithMetadata = OntologyTypeWithMetadata<ClosedEntityType>;
 
 #[cfg(target_arch = "wasm32")]
 #[expect(dead_code, reason = "Used in the generated TypeScript types")]

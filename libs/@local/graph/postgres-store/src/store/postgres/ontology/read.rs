@@ -15,11 +15,13 @@ use hash_graph_temporal_versioning::RightBoundedTemporalInterval;
 use postgres_types::Json;
 use tokio_postgres::GenericClient as _;
 use type_system::ontology::{
-    EntityTypeWithMetadata,
-    entity_type::{ClosedEntityType, EntityTypeUuid},
-    id::{OntologyTypeUuid, VersionedUrl},
+    EntityTypeWithMetadata, OntologyTemporalMetadata,
+    entity_type::{ClosedEntityTypeWithMetadata, EntityTypeMetadata, EntityTypeUuid},
+    id::{OntologyTypeRecordId, OntologyTypeUuid, VersionedUrl},
+    provenance::OntologyProvenance,
 };
 
+use super::PostgresOntologyOwnership;
 use crate::store::postgres::{
     AsClient, PostgresStore,
     query::{
@@ -63,7 +65,7 @@ impl<C: AsClient, A: Send + Sync> PostgresStore<C, A> {
         filter: &Filter<'f, EntityTypeWithMetadata>,
         temporal_axes: Option<&'f QueryTemporalAxes>,
     ) -> Result<
-        impl Stream<Item = Result<(EntityTypeUuid, ClosedEntityType), Report<QueryError>>>,
+        impl Stream<Item = Result<(EntityTypeUuid, ClosedEntityTypeWithMetadata), Report<QueryError>>>,
         Report<QueryError>,
     > {
         let mut compiler = SelectCompiler::new(temporal_axes, false);
@@ -75,6 +77,14 @@ impl<C: AsClient, A: Send + Sync> PostgresStore<C, A> {
         );
         let closed_schema_index =
             compiler.add_selection_path(&EntityTypeQueryPath::ClosedSchema(None));
+        let base_url_index = compiler.add_selection_path(&EntityTypeQueryPath::BaseUrl);
+        let version_index = compiler.add_selection_path(&EntityTypeQueryPath::Version);
+        let additional_metadata_index =
+            compiler.add_selection_path(&EntityTypeQueryPath::AdditionalMetadata);
+        let transaction_time_index =
+            compiler.add_selection_path(&EntityTypeQueryPath::TransactionTime);
+        let provenance_index =
+            compiler.add_selection_path(&EntityTypeQueryPath::EditionProvenance(None));
 
         compiler.add_filter(filter).change_context(QueryError)?;
         let (statement, parameters) = compiler.compile();
@@ -87,7 +97,30 @@ impl<C: AsClient, A: Send + Sync> PostgresStore<C, A> {
             .map(move |row| {
                 let row = row.change_context(QueryError)?;
                 let Json(schema) = row.get(closed_schema_index);
-                Ok((row.get(ontology_id_index), schema))
+                Ok((
+                    row.get(ontology_id_index),
+                    ClosedEntityTypeWithMetadata {
+                        schema,
+                        metadata: EntityTypeMetadata {
+                            record_id: OntologyTypeRecordId {
+                                base_url: row.get(base_url_index),
+                                version: row.get(version_index),
+                            },
+                            ownership: row
+                                .get::<_, Json<PostgresOntologyOwnership>>(
+                                    additional_metadata_index,
+                                )
+                                .0
+                                .into(),
+                            temporal_versioning: OntologyTemporalMetadata {
+                                transaction_time: row.get(transaction_time_index),
+                            },
+                            provenance: OntologyProvenance {
+                                edition: row.get(provenance_index),
+                            },
+                        },
+                    },
+                ))
             }))
     }
 

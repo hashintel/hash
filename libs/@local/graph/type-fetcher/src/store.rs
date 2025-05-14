@@ -1465,7 +1465,7 @@ where
         params: Vec<CreateEntityParams<R>>,
     ) -> Result<Vec<Entity>, Report<InsertionError>>
     where
-        R: IntoIterator<Item = EntityRelationAndSubject> + Send,
+        R: IntoIterator<Item = EntityRelationAndSubject> + Send + Sync,
     {
         let type_ids = params
             .iter()

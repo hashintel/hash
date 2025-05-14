@@ -479,6 +479,48 @@ impl OntologyTypeSchema for EntityType {
     }
 }
 
+impl OntologyTypeSchema for ClosedEntityType {
+    type Metadata = EntityTypeMetadata;
+
+    fn id(&self) -> &VersionedUrl {
+        &self.id
+    }
+
+    fn references(&self) -> Vec<OntologyTypeReference> {
+        let inheritance = self
+            .all_of
+            .iter()
+            .map(|reference| OntologyTypeReference::EntityTypeReference((&reference.id).into()));
+        let links = self.constraints.links.iter().flat_map(
+            |(link_entity_type, destination_constraint_entity_types)| {
+                iter::once(OntologyTypeReference::EntityTypeReference(
+                    link_entity_type.into(),
+                ))
+                .chain(destination_constraint_entity_types.items.iter().flat_map(
+                    |items| {
+                        items
+                            .possibilities
+                            .iter()
+                            .map(OntologyTypeReference::EntityTypeReference)
+                    },
+                ))
+            },
+        );
+        let properties =
+            self.constraints
+                .properties
+                .values()
+                .map(|property_def| match property_def {
+                    ValueOrArray::Value(url) => OntologyTypeReference::PropertyTypeReference(url),
+                    ValueOrArray::Array(array) => {
+                        OntologyTypeReference::PropertyTypeReference(&array.items)
+                    }
+                });
+
+        inheritance.chain(links).chain(properties).collect()
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[serde(deny_unknown_fields)]

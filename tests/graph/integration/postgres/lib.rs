@@ -762,7 +762,7 @@ where
         params: Vec<CreateEntityParams<R>>,
     ) -> Result<Vec<Entity>, Report<InsertionError>>
     where
-        R: IntoIterator<Item = EntityRelationAndSubject> + Send,
+        R: IntoIterator<Item = EntityRelationAndSubject> + Send + Sync,
     {
         self.store.create_entities(actor_id, params).await
     }

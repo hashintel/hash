@@ -4,7 +4,7 @@ pub mod schema;
 use uuid::Uuid;
 
 pub use self::{
-    metadata::{EntityTypeMetadata, EntityTypeWithMetadata},
+    metadata::{ClosedEntityTypeWithMetadata, EntityTypeMetadata, EntityTypeWithMetadata},
     schema::{ClosedEntityType, ClosedMultiEntityType, EntityType},
 };
 use super::id::{OntologyTypeUuid, VersionedUrl};
