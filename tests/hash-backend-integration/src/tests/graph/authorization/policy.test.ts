@@ -13,9 +13,11 @@ import {
 import type {
   Policy,
   PolicyCreationParams,
+  ResourceConstraint,
 } from "@rust/hash-graph-authorization/types";
 import { beforeAll, describe, expect, it } from "vitest";
 
+import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { resetGraph } from "../../test-server";
 import { createTestImpureGraphContext, createTestUser } from "../../util";
 
@@ -122,22 +124,27 @@ describe("Policy CRUD", () => {
       testPolicy.id,
       [
         {
-          type: "addAction",
+          type: "add-action",
           action: "view",
         },
         {
-          type: "addAction",
+          type: "add-action",
           action: "create",
         },
         {
-          type: "removeAction",
+          type: "remove-action",
           action: "instantiate",
+        },
+        {
+          type: "set-resource-constraint",
+          resourceConstraint: null,
         },
       ],
     );
 
     expect(testPolicy).not.toEqual(updatedPolicy);
     expect(updatedPolicy.actions.length).toBe(2);
+    expect(updatedPolicy.resource).toBeNull();
 
     updatedPolicy = await updatePolicyById(
       graphApi,
@@ -145,18 +152,29 @@ describe("Policy CRUD", () => {
       testPolicy.id,
       [
         {
-          type: "removeAction",
+          type: "remove-action",
           action: "create",
+        },
+        {
+          type: "set-resource-constraint",
+          resourceConstraint: {
+            type: "entity",
+            id: extractEntityUuidFromEntityId(testUser.entity.entityId),
+          },
         },
       ],
     );
     expect(updatedPolicy.actions).toStrictEqual(["view"]);
+    expect(updatedPolicy.resource).toStrictEqual({
+      type: "entity",
+      id: extractEntityUuidFromEntityId(testUser.entity.entityId),
+    });
 
     // At least one action must exist ...
     await expect(
       updatePolicyById(graphApi, authentication, testPolicy.id, [
         {
-          type: "removeAction",
+          type: "remove-action",
           action: "view",
         },
       ]),
@@ -171,12 +189,19 @@ describe("Policy CRUD", () => {
       testPolicy.id,
       [
         {
-          type: "removeAction",
+          type: "remove-action",
           action: "view",
         },
         {
-          type: "addAction",
+          type: "add-action",
           action: "instantiate",
+        },
+        {
+          type: "set-resource-constraint",
+          resourceConstraint: {
+            type: "web",
+            webId: testUser.accountId,
+          },
         },
       ],
     );

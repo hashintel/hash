@@ -109,6 +109,7 @@ pub struct PolicyCreationParams {
     pub effect: Effect,
     pub principal: Option<PrincipalConstraint>,
     pub actions: Vec<ActionName>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub resource: Option<ResourceConstraint>,
 }
 
@@ -130,10 +131,18 @@ pub struct PolicyFilter {
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
-#[serde(tag = "type", rename_all = "camelCase", deny_unknown_fields)]
+#[serde(tag = "type", rename_all = "kebab-case", deny_unknown_fields)]
 pub enum PolicyUpdateOperation {
-    AddAction { action: ActionName },
-    RemoveAction { action: ActionName },
+    AddAction {
+        action: ActionName,
+    },
+    RemoveAction {
+        action: ActionName,
+    },
+    #[serde(rename_all = "camelCase")]
+    SetResourceConstraint {
+        resource_constraint: Option<ResourceConstraint>,
+    },
 }
 
 #[trait_variant::make(Send)]
