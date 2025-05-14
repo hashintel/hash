@@ -922,7 +922,9 @@ where
                     principal_uuid: row.get(2),
                     principal_type: row.get(3),
                     actor_type: row.get(4),
-                    resource_constraint: row.get::<_, Json<Option<ResourceConstraint>>>(5).0,
+                    resource_constraint: row
+                        .get::<_, Option<Json<ResourceConstraint>>>(5)
+                        .map(|json| json.0),
                     actions: row.get(6),
                 }
                 .into_policy()
@@ -1220,7 +1222,7 @@ where
                         .as_client()
                         .execute(
                             "UPDATE policy SET resource_constraint = $1 WHERE id = $2",
-                            &[&Json(resource_constraint), &policy_id],
+                            &[&resource_constraint.as_ref().map(Json), &policy_id],
                         )
                         .await
                         .change_context(UpdatePolicyError::StoreError)?;
