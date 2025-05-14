@@ -8,6 +8,17 @@ use crate::node::{
     path::{Path, PathSegmentArgument},
 };
 
+/// A visitor for traversing and operating on HashQL type AST nodes.
+///
+/// This trait provides methods for visiting all type-related nodes in the HashQL AST.
+/// Each method corresponds to a specific type of node and can be overridden to implement
+/// custom behavior when that node type is encountered during traversal.
+///
+/// By default, each method simply delegates to the corresponding `walk_*` function,
+/// which handles recursively visiting child nodes. To create a custom visitor,
+/// override only the methods for the node types you're interested in.
+///
+/// For more information see the expression [`Visitor`](crate::visit::Visitor)
 pub trait TypeVisitor<'heap> {
     #[expect(unused_variables, reason = "trait definition")]
     fn visit_name(&mut self, ident: Ident<'heap>) {
