@@ -50,9 +50,6 @@ impl<'heap> LocalTypes<'heap> {
         for LocalTypeDef { id, .. } in &mut self.storage {
             *id = instantiate.instantiate(*id);
             instantiate.clear_provisioned();
-
-            // The problem is that for any type, the generic arguments would change, so we'd need to
-            // recover them?
         }
 
         instantiate.take_diagnostics()
