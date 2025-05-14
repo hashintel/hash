@@ -15,7 +15,12 @@ use std::collections::HashSet;
 use error_stack::{Report, ResultExt as _};
 use hash_graph_authorization::{
     AuthorizationApi, NoAuthorization,
-    policies::{Effect, Policy, PolicyId, action::ActionName, principal::PrincipalConstraint},
+    policies::{
+        Effect,
+        action::ActionName,
+        principal::PrincipalConstraint,
+        store::{PolicyCreationParams, PolicyStore as _},
+    },
 };
 use hash_graph_postgres_store::{
     Environment, load_env,
@@ -28,7 +33,6 @@ use hash_graph_store::pool::StorePool;
 use hash_tracing::logging::env_filter;
 use tokio_postgres::NoTls;
 use type_system::principal::actor::ActorId;
-use uuid::Uuid;
 
 pub fn init_logging() {
     // It's likely that the initialization failed due to a previous initialization attempt. In this
@@ -115,14 +119,15 @@ impl DatabaseTestWrapper<NoAuthorization> {
 
         if registered_actions.contains(&ActionName::CreateWeb) {
             transaction
-                .create_policy(Policy {
-                    id: PolicyId::new(Uuid::new_v4()),
-                    effect: Effect::Permit,
-                    principal: Some(PrincipalConstraint::Actor { actor }),
-                    actions: vec![ActionName::CreateWeb],
-                    resource: None,
-                    constraints: None,
-                })
+                .create_policy(
+                    actor.into(),
+                    PolicyCreationParams {
+                        effect: Effect::Permit,
+                        principal: Some(PrincipalConstraint::Actor { actor }),
+                        actions: vec![ActionName::CreateWeb],
+                        resource: None,
+                    },
+                )
                 .await
                 .change_context(StoreError)?;
         }

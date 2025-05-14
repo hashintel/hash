@@ -22,11 +22,13 @@ use hash_graph_authorization::{
         principal::PrincipalConstraint,
         resource::ResourceConstraint,
         store::{
-            CreateWebParameter, CreateWebResponse, PolicyFilter, PolicyStore, PrincipalFilter,
-            PrincipalStore, RoleAssignmentStatus, RoleUnassignmentStatus,
+            CreateWebParameter, CreateWebResponse, PolicyCreationParams, PolicyFilter, PolicyStore,
+            PolicyUpdateOperation, PrincipalFilter, PrincipalStore, RoleAssignmentStatus,
+            RoleUnassignmentStatus,
             error::{
-                EnsureSystemPoliciesError, GetPoliciesError, GetSystemAccountError,
-                RoleAssignmentError, WebCreationError,
+                CreatePolicyError, EnsureSystemPoliciesError, GetPoliciesError,
+                GetSystemAccountError, RemovePolicyError, RoleAssignmentError, UpdatePolicyError,
+                WebCreationError,
             },
         },
     },
@@ -129,7 +131,7 @@ where
                 Some(PrincipalConstraint::Actor { actor }) if actor == system_machine_actor => {
                     // TODO: Implement logic for handling removal of old policies to avoid
                     //       that we re-create policies that are already present.
-                    self.remove_policy(policy.id)
+                    self.delete_policy_by_id(system_machine_actor.into(), policy.id)
                         .await
                         .change_context(EnsureSystemPoliciesError::RemoveOldPolicyFailed)?;
                 }
@@ -143,16 +145,17 @@ where
             .await
             .change_context(EnsureSystemPoliciesError::SynchronizeActions)?;
 
-        self.create_policy(Policy {
-            id: PolicyId::new(Uuid::new_v4()),
-            effect: Effect::Permit,
-            principal: Some(PrincipalConstraint::Actor {
-                actor: system_machine_actor,
-            }),
-            actions: vec![ActionName::CreateWeb],
-            resource: None,
-            constraints: None,
-        })
+        self.create_policy(
+            system_machine_actor.into(),
+            PolicyCreationParams {
+                effect: Effect::Permit,
+                principal: Some(PrincipalConstraint::Actor {
+                    actor: system_machine_actor,
+                }),
+                actions: vec![ActionName::CreateWeb],
+                resource: None,
+            },
+        )
         .await
         .change_context(EnsureSystemPoliciesError::AddRequiredPoliciesFailed)?;
 
@@ -755,6 +758,7 @@ struct PolicyParts {
     resource_constraint: Option<ResourceConstraint>,
     actions: Vec<ActionName>,
 }
+
 impl PolicyParts {
     fn into_policy(self) -> Result<Policy, Report<GetPoliciesError>> {
         let principal_id = match (self.principal_uuid, self.principal_type) {
@@ -807,6 +811,83 @@ where
     C: AsClient,
     A: AuthorizationApi + Send + Sync,
 {
+    async fn create_policy(
+        &mut self,
+        _authenticated_actor: ActorEntityUuid,
+        policy: PolicyCreationParams,
+    ) -> Result<PolicyId, Report<CreatePolicyError>> {
+        if policy.actions.is_empty() {
+            return Err(Report::new(CreatePolicyError::PolicyHasNoActions));
+        }
+
+        let policy_id = PolicyId::new(Uuid::new_v4());
+        let (principal_id, actor_type) = policy
+            .principal
+            .as_ref()
+            .map(PrincipalConstraint::to_parts)
+            .unwrap_or_default();
+
+        let transaction = self
+            .as_mut_client()
+            .transaction()
+            .await
+            .change_context(CreatePolicyError::StoreError)?;
+
+        transaction
+            .execute(
+                "INSERT INTO policy (
+                    id, effect, principal_id, principal_type, actor_type, resource_constraint
+                ) VALUES (
+                    $1, $2, $3, $4, $5, $6
+                 )",
+                &[
+                    &policy_id,
+                    &policy.effect,
+                    &principal_id,
+                    &principal_id.map(PrincipalId::principal_type),
+                    &actor_type.map(PrincipalType::from),
+                    &policy.resource.as_ref().map(Json),
+                ],
+            )
+            .await
+            .map_err(|error| {
+                let policy_error = match (error.code(), principal_id) {
+                    (Some(&SqlState::UNIQUE_VIOLATION), _) => {
+                        CreatePolicyError::PolicyAlreadyExists { id: policy_id }
+                    }
+                    (Some(&SqlState::FOREIGN_KEY_VIOLATION), Some(principal_id)) => {
+                        CreatePolicyError::PrincipalNotFound { id: principal_id }
+                    }
+                    _ => CreatePolicyError::StoreError,
+                };
+                Report::new(error).change_context(policy_error)
+            })?;
+
+        for action in policy.actions {
+            transaction
+                .execute(
+                    "INSERT INTO policy_action (policy_id, action_name) VALUES ($1, $2)",
+                    &[&policy_id, &action],
+                )
+                .await
+                .map_err(|error| {
+                    let policy_error = match error.code() {
+                        Some(&SqlState::FOREIGN_KEY_VIOLATION) => {
+                            CreatePolicyError::ActionNotFound { id: action }
+                        }
+                        _ => CreatePolicyError::StoreError,
+                    };
+                    Report::new(error).change_context(policy_error)
+                })?;
+        }
+        transaction
+            .commit()
+            .await
+            .change_context(CreatePolicyError::StoreError)?;
+
+        Ok(policy_id)
+    }
+
     async fn get_policy_by_id(
         &self,
         _authenticated_actor: ActorEntityUuid,
@@ -822,9 +903,9 @@ where
                     policy.principal_type,
                     policy.actor_type,
                     policy.resource_constraint,
-                    array_agg(policy_action.action_name)
+                    array_remove(array_agg(policy_action.action_name), NULL)
                 FROM policy
-                JOIN policy_action ON policy.id = policy_action.policy_id
+                LEFT JOIN policy_action ON policy.id = policy_action.policy_id
                 WHERE policy.id = $1
                 GROUP BY
                     policy.id, policy.effect, policy.principal_id, policy.principal_type,
@@ -906,9 +987,9 @@ where
                 policy.principal_type,
                 policy.actor_type,
                 policy.resource_constraint,
-                array_agg(policy_action.action_name)
+                array_remove(array_agg(policy_action.action_name), NULL)
             FROM policy
-            JOIN policy_action ON policy.id = policy_action.policy_id
+            LEFT JOIN policy_action ON policy.id = policy_action.policy_id
             "
         .to_owned();
         let group_by_query = "
@@ -1036,9 +1117,9 @@ where
                     policy.principal_type,
                     policy.actor_type,
                     policy.resource_constraint,
-                    array_agg(policy_action.action_name)
+                    array_remove(array_agg(policy_action.action_name), NULL)
                 FROM policy
-                JOIN policy_action ON policy.id = policy_action.policy_id
+                LEFT JOIN policy_action ON policy.id = policy_action.policy_id
                 GROUP BY
                     policy.id, policy.effect, policy.principal_id, policy.principal_type,
                     policy.actor_type, policy.resource_constraint
@@ -1067,6 +1148,111 @@ where
             })
             .try_collect::<Vec<_>>()
             .await
+    }
+
+    async fn update_policy_by_id(
+        &mut self,
+        authenticated_actor: ActorEntityUuid,
+        policy_id: PolicyId,
+        operations: &[PolicyUpdateOperation],
+    ) -> Result<Policy, Report<UpdatePolicyError>> {
+        let transaction = self
+            .transaction()
+            .await
+            .change_context(UpdatePolicyError::StoreError)?;
+
+        // We check if the policy exists at all first
+        let policy_exists = transaction
+            .as_client()
+            .query_one(
+                "SELECT EXISTS (SELECT 1 FROM policy WHERE id = $1)",
+                &[&policy_id],
+            )
+            .await
+            .change_context(UpdatePolicyError::StoreError)?
+            .get::<_, bool>(0);
+        if !policy_exists {
+            return Err(Report::new(UpdatePolicyError::PolicyNotFound {
+                id: policy_id,
+            }));
+        }
+
+        for operation in operations {
+            match operation {
+                PolicyUpdateOperation::AddAction { action } => {
+                    transaction
+                        .as_client()
+                        .execute(
+                            "INSERT INTO policy_action (policy_id, action_name) VALUES ($1, $2)",
+                            &[&policy_id, action],
+                        )
+                        .await
+                        .map_err(|error| {
+                            let policy_error = match error.code() {
+                                Some(&SqlState::FOREIGN_KEY_VIOLATION) => {
+                                    UpdatePolicyError::ActionNotFound { id: *action }
+                                }
+                                _ => UpdatePolicyError::StoreError,
+                            };
+                            Report::new(error).change_context(policy_error)
+                        })?;
+                }
+                PolicyUpdateOperation::RemoveAction { action } => {
+                    transaction
+                        .as_client()
+                        .execute(
+                            "DELETE FROM policy_action WHERE policy_id = $1 AND action_name = $2",
+                            &[&policy_id, action],
+                        )
+                        .await
+                        .map_err(|error| {
+                            let policy_error = match error.code() {
+                                Some(&SqlState::FOREIGN_KEY_VIOLATION) => {
+                                    UpdatePolicyError::ActionNotFound { id: *action }
+                                }
+                                _ => UpdatePolicyError::StoreError,
+                            };
+                            Report::new(error).change_context(policy_error)
+                        })?;
+                }
+            }
+        }
+
+        let policy = transaction
+            .get_policy_by_id(authenticated_actor, policy_id)
+            .await
+            .change_context(UpdatePolicyError::StoreError)?
+            .ok_or_else(|| Report::new(UpdatePolicyError::PolicyNotFound { id: policy_id }))?;
+        if policy.actions.is_empty() {
+            return Err(Report::new(UpdatePolicyError::PolicyHasNoActions));
+        }
+
+        transaction
+            .commit()
+            .await
+            .change_context(UpdatePolicyError::StoreError)?;
+
+        Ok(policy)
+    }
+
+    async fn delete_policy_by_id(
+        &mut self,
+        _authenticated_actor: ActorEntityUuid,
+        policy_id: PolicyId,
+    ) -> Result<(), Report<RemovePolicyError>> {
+        let num_deleted = self
+            .as_mut_client()
+            .execute("DELETE FROM policy WHERE id = $1", &[&policy_id])
+            .await
+            .change_context(RemovePolicyError::StoreError)?;
+
+        if num_deleted > 0 {
+            Ok(())
+        } else {
+            Err(Report::new(RemovePolicyError::PolicyNotFound {
+                id: policy_id,
+            }))
+        }
     }
 
     async fn seed_system_policies(&mut self) -> Result<(), Report<EnsureSystemPoliciesError>> {

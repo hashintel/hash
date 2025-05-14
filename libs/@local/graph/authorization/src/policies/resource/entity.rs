@@ -26,17 +26,15 @@ pub struct EntityResource<'a> {
 
 #[derive(Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
-#[serde(
-    tag = "type",
-    rename_all = "camelCase",
-    rename_all_fields = "camelCase",
-    deny_unknown_fields
-)]
+#[serde(tag = "type", rename_all = "camelCase", deny_unknown_fields)]
 pub enum EntityResourceFilter {
+    #[serde(rename_all = "camelCase")]
     All { filters: Vec<Self> },
+    #[serde(rename_all = "camelCase")]
     Any { filters: Vec<Self> },
+    #[serde(rename_all = "camelCase")]
     Not { filter: Box<Self> },
-
+    #[serde(rename_all = "camelCase")]
     IsOfType { entity_type: VersionedUrl },
 }
 
@@ -170,14 +168,13 @@ impl ToCedarEntityId for EntityUuid {
 
 #[derive(Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
-#[serde(untagged, rename_all_fields = "camelCase", deny_unknown_fields)]
+#[serde(untagged, deny_unknown_fields)]
 pub enum EntityResourceConstraint {
-    Any {
-        filter: EntityResourceFilter,
-    },
-    Exact {
-        id: EntityUuid,
-    },
+    #[serde(rename_all = "camelCase")]
+    Any { filter: EntityResourceFilter },
+    #[serde(rename_all = "camelCase")]
+    Exact { id: EntityUuid },
+    #[serde(rename_all = "camelCase")]
     Web {
         web_id: WebId,
         filter: EntityResourceFilter,

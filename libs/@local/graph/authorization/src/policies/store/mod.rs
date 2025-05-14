@@ -19,11 +19,15 @@ use type_system::{
 use uuid::Uuid;
 
 use self::error::{
-    ActorCreationError, ContextCreationError, EnsureSystemPoliciesError, GetPoliciesError,
-    GetSystemAccountError, PolicyStoreError, RoleAssignmentError, TeamCreationError,
-    TeamRoleCreationError, WebCreationError, WebRoleCreationError,
+    ActorCreationError, ContextCreationError, CreatePolicyError, EnsureSystemPoliciesError,
+    GetPoliciesError, GetSystemAccountError, PolicyStoreError, RemovePolicyError,
+    RoleAssignmentError, TeamCreationError, TeamRoleCreationError, UpdatePolicyError,
+    WebCreationError, WebRoleCreationError,
 };
-use super::{ContextBuilder, Policy, PolicyId, principal::PrincipalConstraint};
+use super::{
+    ContextBuilder, Effect, Policy, PolicyId, action::ActionName, principal::PrincipalConstraint,
+    resource::ResourceConstraint,
+};
 
 #[derive(Debug, derive_more::Display)]
 #[display("Actor with ID `{actor}` already exists")]
@@ -89,6 +93,25 @@ pub enum RoleUnassignmentStatus {
     NotAssigned,
 }
 
+/// Parameters passed to [`PolicyStore::create_policy`].
+///
+/// This struct is used to create a new policy in the backing store. It contains the effect of the
+/// policy, the principal to which it applies, the actions that are allowed or denied, and the
+/// resource to which it applies.
+///
+/// See [`create_policy`] for more details.
+///
+/// [`create_policy`]: PolicyStore::create_policy
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(feature = "codegen", derive(specta::Type))]
+#[serde(rename_all = "kebab-case", deny_unknown_fields)]
+pub struct PolicyCreationParams {
+    pub effect: Effect,
+    pub principal: Option<PrincipalConstraint>,
+    pub actions: Vec<ActionName>,
+    pub resource: Option<ResourceConstraint>,
+}
+
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[serde(rename_all = "kebab-case", tag = "filter", deny_unknown_fields)]
@@ -104,8 +127,41 @@ pub struct PolicyFilter {
     pub principal: Option<PrincipalFilter>,
 }
 
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(feature = "codegen", derive(specta::Type))]
+#[serde(tag = "type", rename_all = "camelCase", deny_unknown_fields)]
+pub enum PolicyUpdateOperation {
+    AddAction { action: ActionName },
+    RemoveAction { action: ActionName },
+}
+
 #[trait_variant::make(Send)]
 pub trait PolicyStore {
+    /// Creates a new policy in the backing store.
+    ///
+    /// Inserts the [`Policy`] as specified in the [`PolicyCreationParams`] and returns its
+    /// [`PolicyId`] if successful. The implementation must ensure the referenced principal
+    /// exists and the policy has at least one action.
+    ///
+    /// # Errors
+    ///
+    /// - [`PolicyAlreadyExists`] if a policy with the same ID already exists
+    /// - [`PrincipalNotFound`] if the referenced principal does not exist
+    /// - [`PolicyHasNoActions`] if the policy is missing actions
+    /// - [`ActionNotFound`] if any of the actions do not exist
+    /// - [`StoreError`] if a database or storage level error occurs
+    ///
+    /// [`PolicyAlreadyExists`]: CreatePolicyError::PolicyAlreadyExists
+    /// [`PrincipalNotFound`]: CreatePolicyError::PrincipalNotFound
+    /// [`PolicyHasNoActions`]: CreatePolicyError::PolicyHasNoActions
+    /// [`ActionNotFound`]: CreatePolicyError::ActionNotFound
+    /// [`StoreError`]: CreatePolicyError::StoreError
+    async fn create_policy(
+        &mut self,
+        authenticated_actor: ActorEntityUuid,
+        policy: PolicyCreationParams,
+    ) -> Result<PolicyId, Report<CreatePolicyError>>;
+
     /// Retrieves a policy by its ID.
     ///
     /// # Errors
@@ -167,6 +223,45 @@ pub trait PolicyStore {
         authenticated_actor: ActorEntityUuid,
         actor_id: ActorId,
     ) -> Result<Vec<Policy>, Report<GetPoliciesError>>;
+
+    /// Updates the policy specified by it's ID.
+    ///
+    /// All specified operations are applied to the policy in the order they are provided.
+    ///
+    /// # Errors
+    ///
+    /// - [`PolicyNotFound`] if the policy does not exist
+    /// - [`ActionNotFound`] if any of the actions do not exist
+    /// - [`PolicyHasNoActions`] if the update would result in the policy not having any actions
+    /// - [`StoreError`] if a database or storage level error occurs
+    ///
+    /// [`PolicyNotFound`]: UpdatePolicyError::PolicyNotFound
+    /// [`ActionNotFound`]: UpdatePolicyError::ActionNotFound
+    /// [`PolicyHasNoActions`]: UpdatePolicyError::PolicyHasNoActions
+    /// [`StoreError`]: UpdatePolicyError::StoreError
+    async fn update_policy_by_id(
+        &mut self,
+        authenticated_actor: ActorEntityUuid,
+        policy_id: PolicyId,
+        operations: &[PolicyUpdateOperation],
+    ) -> Result<Policy, Report<UpdatePolicyError>>;
+
+    /// Updates the policy specified by it's ID.
+    ///
+    /// All specified operations are applied to the policy in the order they are provided.
+    ///
+    /// # Errors
+    ///
+    /// - [`PolicyNotFound`] if the policy does not exist
+    /// - [`StoreError`] if a database or storage level error occurs
+    ///
+    /// [`PolicyNotFound`]: RemovePolicyError::PolicyNotFound
+    /// [`StoreError`]: RemovePolicyError::StoreError
+    async fn delete_policy_by_id(
+        &mut self,
+        authenticated_actor: ActorEntityUuid,
+        policy_id: PolicyId,
+    ) -> Result<(), Report<RemovePolicyError>>;
 
     /// Ensures that the system actor policies are present.
     ///

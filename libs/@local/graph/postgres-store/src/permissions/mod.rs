@@ -6,13 +6,11 @@ use futures::TryStreamExt as _;
 use hash_graph_authorization::{
     AuthorizationApi,
     policies::{
-        Context, ContextBuilder, Policy, PolicyId,
+        Context, ContextBuilder,
         action::ActionName,
-        principal::PrincipalConstraint,
         store::{RoleAssignmentStatus, RoleUnassignmentStatus},
     },
 };
-use postgres_types::Json;
 use tokio_postgres::{GenericClient as _, error::SqlState};
 use type_system::principal::{
     PrincipalId, PrincipalType,
@@ -1238,125 +1236,6 @@ where
             Ok(())
         } else {
             Err(Report::new(ActionError::NotFound { id: action }))
-        }
-    }
-
-    /// Creates a new policy in the database.
-    ///
-    /// # Errors
-    ///
-    /// - [`PolicyAlreadyExists`] if a policy with the same ID already exists
-    /// - [`PrincipalNotFound`] if a principal referenced in the policy doesn't exist
-    /// - [`StoreError`] if a database error occurs
-    ///
-    /// [`PolicyAlreadyExists`]: PolicyError::PolicyAlreadyExists
-    /// [`PrincipalNotFound`]: PolicyError::PrincipalNotFound
-    /// [`StoreError`]: PolicyError::StoreError
-    pub async fn create_policy(&mut self, policy: Policy) -> Result<PolicyId, Report<PolicyError>> {
-        if policy.actions.is_empty() {
-            return Err(Report::new(PolicyError::PolicyHasNoActions));
-        }
-
-        let (principal_id, actor_type) = match policy.principal {
-            Some(PrincipalConstraint::ActorType { actor_type }) => (None, Some(actor_type)),
-            Some(PrincipalConstraint::Actor { actor }) => (Some(PrincipalId::Actor(actor)), None),
-            Some(PrincipalConstraint::ActorGroup {
-                actor_group,
-                actor_type,
-            }) => (Some(PrincipalId::ActorGroup(actor_group)), actor_type),
-            Some(PrincipalConstraint::Role { role, actor_type }) => {
-                (Some(PrincipalId::Role(role)), actor_type)
-            }
-            None => (None, None),
-        };
-        let principal_type = principal_id
-            .as_ref()
-            .copied()
-            .map(PrincipalId::principal_type);
-        let actor_type = actor_type.map(PrincipalType::from);
-
-        let transaction = self
-            .as_mut_client()
-            .transaction()
-            .await
-            .change_context(PolicyError::StoreError)?;
-
-        let policy_id = PolicyId::new(Uuid::new_v4());
-        transaction
-            .execute(
-                "INSERT INTO policy (
-                    id, effect, principal_id, principal_type, actor_type, resource_constraint
-                ) VALUES (
-                    $1, $2, $3, $4, $5, $6
-                 )",
-                &[
-                    &policy_id,
-                    &policy.effect,
-                    &principal_id,
-                    &principal_type,
-                    &actor_type,
-                    &policy.resource.as_ref().map(Json),
-                ],
-            )
-            .await
-            .map_err(|error| {
-                let policy_error = match (error.code(), principal_id) {
-                    (Some(&SqlState::UNIQUE_VIOLATION), _) => {
-                        PolicyError::PolicyAlreadyExists { id: policy_id }
-                    }
-                    (Some(&SqlState::FOREIGN_KEY_VIOLATION), Some(principal_id)) => {
-                        PolicyError::PrincipalNotFound { id: principal_id }
-                    }
-                    _ => PolicyError::StoreError,
-                };
-                Report::new(error).change_context(policy_error)
-            })?;
-
-        for action in policy.actions {
-            transaction
-                .execute(
-                    "INSERT INTO policy_action (policy_id, action_name) VALUES ($1, $2)",
-                    &[&policy_id, &action],
-                )
-                .await
-                .map_err(|error| {
-                    let policy_error = match error.code() {
-                        Some(&SqlState::FOREIGN_KEY_VIOLATION) => {
-                            PolicyError::ActionNotFound { id: action }
-                        }
-                        _ => PolicyError::StoreError,
-                    };
-                    Report::new(error).change_context(policy_error)
-                })?;
-        }
-        transaction
-            .commit()
-            .await
-            .change_context(PolicyError::StoreError)?;
-
-        Ok(policy_id)
-    }
-
-    /// Creates a new policy in the database.
-    ///
-    /// # Errors
-    ///
-    /// - [`PolicyNotFound`] if the policy with the given ID doesn't exist
-    /// - [`StoreError`] if a database error occurs
-    ///
-    /// [`PolicyNotFound`]: PolicyError::PolicyNotFound
-    /// [`StoreError`]: PolicyError::StoreError
-    pub async fn remove_policy(&mut self, policy_id: PolicyId) -> Result<(), Report<PolicyError>> {
-        let num_deleted = self
-            .as_mut_client()
-            .execute("DELETE FROM policy WHERE id = $1", &[&policy_id])
-            .await
-            .change_context(PolicyError::StoreError)?;
-
-        if num_deleted > 0 {
-            Ok(())
-        } else {
-            Err(Report::new(PolicyError::PolicyNotFound { id: policy_id }))
         }
     }
 

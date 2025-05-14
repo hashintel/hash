@@ -45,14 +45,12 @@ impl CedarExpressionVisitor for ResourceVariableVisitor {
 
 #[derive(Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
-#[serde(
-    tag = "type",
-    rename_all = "camelCase",
-    rename_all_fields = "camelCase",
-    deny_unknown_fields
-)]
+#[serde(tag = "type", rename_all = "camelCase", deny_unknown_fields)]
 pub enum ResourceConstraint {
-    Web { web_id: WebId },
+    #[serde(rename_all = "camelCase")]
+    Web {
+        web_id: WebId,
+    },
     Entity(EntityResourceConstraint),
     EntityType(EntityTypeResourceConstraint),
 }
