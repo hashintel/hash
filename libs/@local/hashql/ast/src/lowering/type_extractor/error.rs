@@ -86,6 +86,11 @@ const GENERIC_CONSTRAINT_NOT_ALLOWED: TerminalDiagnosticCategory = TerminalDiagn
     name: "Constraint not allowed in generic arguments",
 };
 
+const UNUSED_GENERIC_PARAMETER: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "unused-generic-parameter",
+    name: "Generic parameter not used in type definition",
+};
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum TypeExtractorDiagnosticCategory {
     DuplicateTypeAlias,
@@ -100,6 +105,7 @@ pub enum TypeExtractorDiagnosticCategory {
     InferWithArguments,
     DuplicateStructField,
     GenericConstraintNotAllowed,
+    UnusedGenericParameter,
     TypeCheck(TypeCheckDiagnosticCategory),
 }
 
@@ -126,6 +132,7 @@ impl DiagnosticCategory for TypeExtractorDiagnosticCategory {
             Self::InferWithArguments => Some(&INFER_WITH_ARGUMENTS),
             Self::DuplicateStructField => Some(&DUPLICATE_STRUCT_FIELD),
             Self::GenericConstraintNotAllowed => Some(&GENERIC_CONSTRAINT_NOT_ALLOWED),
+            Self::UnusedGenericParameter => Some(&UNUSED_GENERIC_PARAMETER),
             Self::TypeCheck(category) => Some(category),
         }
     }
@@ -709,6 +716,50 @@ pub(crate) fn duplicate_struct_fields(
          with the same name would create ambiguity when accessing fields through dot notation or \
          destructuring. The compiler enforces this constraint to ensure clear and predictable \
          access patterns for struct data.",
+    ));
+
+    diagnostic
+}
+
+/// Creates a diagnostic for a generic parameter that's declared but not used in a type definition.
+///
+/// This is emitted when a type declares a generic parameter but doesn't use it in its body,
+/// for example: `type Option<T, E> = Some<T> | None` where `E` is never referenced.
+pub(crate) fn unused_generic_parameter(
+    param: GenericArgument,
+    param_span: SpanId,
+
+    type_def_span: SpanId,
+) -> TypeExtractorDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        TypeExtractorDiagnosticCategory::UnusedGenericParameter,
+        Severity::WARNING,
+    );
+
+    diagnostic.labels.push(
+        Label::new(
+            param_span,
+            format!("Generic parameter `{}` declared here...", param.name),
+        )
+        .with_order(0),
+    );
+
+    diagnostic.labels.push(
+        Label::new(type_def_span, "...but never used in this type definition")
+            .with_order(1)
+            .with_color(Color::Ansi(AnsiColor::Blue)),
+    );
+
+    diagnostic.help = Some(Help::new(format!(
+        "Generic parameter `{}` is declared but not referenced. Either remove the unused \
+         parameter or incorporate it into your type definition.",
+        param.name
+    )));
+
+    diagnostic.note = Some(Note::new(
+        "Each generic parameter should serve a purpose in parameterizing the type. Unused \
+         parameters can make code harder to understand and may indicate a design oversight or \
+         incomplete implementation.",
     ));
 
     diagnostic

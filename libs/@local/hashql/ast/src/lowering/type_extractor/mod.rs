@@ -18,7 +18,7 @@ use self::{
         TypeExtractorDiagnostic, TypeExtractorDiagnosticCategory, duplicate_newtype,
         duplicate_type_alias,
     },
-    translate::{Identity, LocalVariable, Reference, TranslationUnit},
+    translate::{Identity, LocalVariable, Reference, SpannedGenericArguments, TranslationUnit},
 };
 use crate::{
     node::{
@@ -68,12 +68,13 @@ impl<'env, 'heap> TypeExtractor<'env, 'heap> {
     fn convert_generic_constraints(
         &self,
         constraints: &[GenericConstraint<'heap>],
-    ) -> TinyVec<GenericArgument<'heap>> {
+    ) -> SpannedGenericArguments<'heap> {
         let mut arguments = TinyVec::with_capacity(constraints.len());
+        let mut spans = TinyVec::with_capacity(constraints.len());
 
         for GenericConstraint {
             id: _,
-            span: _,
+            span,
             name,
             bound: _,
         } in constraints
@@ -85,9 +86,14 @@ impl<'env, 'heap> TypeExtractor<'env, 'heap> {
                 // provisioned
                 constraint: None,
             });
+
+            spans.push(*span);
         }
 
-        arguments
+        SpannedGenericArguments {
+            value: arguments,
+            spans,
+        }
     }
 
     fn setup_locals(
@@ -150,7 +156,7 @@ impl<'env, 'heap> TypeExtractor<'env, 'heap> {
             registry: self.registry,
             diagnostics,
             locals: &partial,
-            bound_generics: &TinyVec::new(),
+            bound_generics: &SpannedGenericArguments::empty(),
         };
 
         let alias_iter = self
@@ -181,8 +187,9 @@ impl<'env, 'heap> TypeExtractor<'env, 'heap> {
                 debug_assert_eq!(constraint.name.value, argument.name);
 
                 if let Some(bound) = &constraint.bound {
-                    argument.constraint =
-                        Some(unit.reference(Reference::Type(bound), TinyVec::new()));
+                    argument.constraint = Some(
+                        unit.reference(Reference::Type(bound), SpannedGenericArguments::empty()),
+                    );
                 }
             }
         }
@@ -198,7 +205,8 @@ impl<'env, 'heap> TypeExtractor<'env, 'heap> {
             registry: self.registry,
             diagnostics: Vec::new(),
             locals: &locals,
-            bound_generics: &TinyVec::new(),
+
+            bound_generics: &SpannedGenericArguments::empty(),
         };
 
         let mut output = LocalTypes::with_capacity(locals.len());
