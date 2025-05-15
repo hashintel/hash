@@ -70,12 +70,6 @@ describe("Block", () => {
             kind: "public",
           },
         },
-        {
-          relation: "instantiator",
-          subject: {
-            kind: "public",
-          },
-        },
       ],
     });
 

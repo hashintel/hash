@@ -1,3 +1,4 @@
+import type { ActorId } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import type { HashInstance } from "@local/hash-backend-utils/hash-instance";
 import {
@@ -5,12 +6,12 @@ import {
   getHashInstanceFromEntity,
   getInstanceAdminsTeam,
 } from "@local/hash-backend-utils/hash-instance";
+import { createPolicy, deletePolicyById } from "@local/hash-graph-sdk/policy";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { HASHInstance as HashInstanceEntity } from "@local/hash-isomorphic-utils/system-types/hashinstance";
 
 import { logger } from "../../../logger";
 import type { ImpureGraphFunction } from "../../context-types";
-import { modifyEntityTypeAuthorizationRelationships } from "../../ontology/primitive/entity-type";
 import { createEntity } from "../primitive/entity";
 
 /**
@@ -50,76 +51,79 @@ export const createHashInstance: ImpureGraphFunction<
     `Retrieved account group for hash instance admins with id: ${teamId}`,
   );
 
-  const entity = await createEntity<HashInstanceEntity>(ctx, authentication, {
-    webId,
-    properties: {
-      value: {
-        "https://hash.ai/@h/types/property-type/pages-are-enabled/": {
-          value: params.pagesAreEnabled ?? true,
-          metadata: {
-            dataTypeId:
-              "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
-          },
-        },
-        "https://hash.ai/@h/types/property-type/user-self-registration-is-enabled/":
-          {
-            value: params.userSelfRegistrationIsEnabled ?? true,
-            metadata: {
-              dataTypeId:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
-            },
-          },
-        "https://hash.ai/@h/types/property-type/user-registration-by-invitation-is-enabled/":
-          {
-            value: params.userRegistrationByInviteIsEnabled ?? true,
-            metadata: {
-              dataTypeId:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
-            },
-          },
-        "https://hash.ai/@h/types/property-type/org-self-registration-is-enabled/":
-          {
-            value: params.orgSelfRegistrationIsEnabled ?? true,
-            metadata: {
-              dataTypeId:
-                "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
-            },
-          },
-      },
+  const instantiationPolicy = await createPolicy(ctx.graphApi, authentication, {
+    effect: "permit",
+    principal: {
+      type: "actor",
+      ...({
+        actorType: ctx.provenance.actorType,
+        id: authentication.actorId,
+      } as ActorId),
     },
-    entityTypeIds: [systemEntityTypes.hashInstance.entityTypeId],
-    relationships: [
-      {
-        relation: "viewer",
-        subject: { kind: "public" },
-      },
-      {
-        relation: "administrator",
-        subject: {
-          kind: "accountGroup",
-          subjectId: teamId,
-          subjectSet: "member",
-        },
-      },
-    ],
+    actions: ["instantiate"],
+    resource: {
+      type: "entityType",
+      id: systemEntityTypes.hashInstance.entityTypeId,
+    },
   });
 
-  await modifyEntityTypeAuthorizationRelationships(ctx, authentication, [
-    {
-      operation: "touch",
-      relationship: {
-        relation: "instantiator",
-        subject: {
-          kind: "accountGroup",
-          subjectId: teamId,
-        },
-        resource: {
-          kind: "entityType",
-          resourceId: systemEntityTypes.hashInstance.entityTypeId,
+  try {
+    const entity = await createEntity<HashInstanceEntity>(ctx, authentication, {
+      webId,
+      properties: {
+        value: {
+          "https://hash.ai/@h/types/property-type/pages-are-enabled/": {
+            value: params.pagesAreEnabled ?? true,
+            metadata: {
+              dataTypeId:
+                "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
+            },
+          },
+          "https://hash.ai/@h/types/property-type/user-self-registration-is-enabled/":
+            {
+              value: params.userSelfRegistrationIsEnabled ?? true,
+              metadata: {
+                dataTypeId:
+                  "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
+              },
+            },
+          "https://hash.ai/@h/types/property-type/user-registration-by-invitation-is-enabled/":
+            {
+              value: params.userRegistrationByInviteIsEnabled ?? true,
+              metadata: {
+                dataTypeId:
+                  "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
+              },
+            },
+          "https://hash.ai/@h/types/property-type/org-self-registration-is-enabled/":
+            {
+              value: params.orgSelfRegistrationIsEnabled ?? true,
+              metadata: {
+                dataTypeId:
+                  "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
+              },
+            },
         },
       },
-    },
-  ]);
+      entityTypeIds: [systemEntityTypes.hashInstance.entityTypeId],
+      relationships: [
+        {
+          relation: "viewer",
+          subject: { kind: "public" },
+        },
+        {
+          relation: "administrator",
+          subject: {
+            kind: "accountGroup",
+            subjectId: teamId,
+            subjectSet: "member",
+          },
+        },
+      ],
+    });
 
-  return getHashInstanceFromEntity({ entity });
+    return getHashInstanceFromEntity({ entity });
+  } finally {
+    await deletePolicyById(ctx.graphApi, authentication, instantiationPolicy);
+  }
 };

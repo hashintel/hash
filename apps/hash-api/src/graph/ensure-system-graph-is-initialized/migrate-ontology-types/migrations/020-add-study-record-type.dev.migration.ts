@@ -7,7 +7,6 @@ import {
 
 import type { MigrationFunction } from "../types";
 import {
-  anyUserInstantiator,
   createSystemDataTypeIfNotExists,
   createSystemEntityTypeIfNotExists,
   createSystemPropertyTypeIfNotExists,
@@ -409,7 +408,6 @@ const migrate: MigrationFunction = async ({
         description: "A contact for something (an organization, project, etc.)",
       },
       migrationState,
-      instantiator: anyUserInstantiator,
       webShortname: "h",
     },
   );
@@ -428,7 +426,6 @@ const migrate: MigrationFunction = async ({
         },
       },
       migrationState,
-      instantiator: anyUserInstantiator,
       webShortname: "h",
     },
   );
@@ -448,7 +445,6 @@ const migrate: MigrationFunction = async ({
         },
       },
       migrationState,
-      instantiator: anyUserInstantiator,
       webShortname: "h",
     },
   );
@@ -587,7 +583,6 @@ const migrate: MigrationFunction = async ({
         ],
       },
       migrationState,
-      instantiator: anyUserInstantiator,
       webShortname: "h",
     });
 

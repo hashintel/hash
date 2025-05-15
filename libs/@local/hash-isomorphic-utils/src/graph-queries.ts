@@ -384,12 +384,6 @@ export const defaultEntityTypeAuthorizationRelationships: EntityTypeRelationAndS
         kind: "public",
       },
     },
-    {
-      relation: "instantiator",
-      subject: {
-        kind: "public",
-      },
-    },
   ];
 
 export const defaultDataTypeAuthorizationRelationships: DataTypeRelationAndSubjectBranded[] =

@@ -70,12 +70,6 @@ describe("Link entity", () => {
               kind: "public",
             },
           },
-          {
-            relation: "instantiator",
-            subject: {
-              kind: "public",
-            },
-          },
         ],
       },
     );
@@ -106,12 +100,6 @@ describe("Link entity", () => {
               kind: "public",
             },
           },
-          {
-            relation: "instantiator",
-            subject: {
-              kind: "public",
-            },
-          },
         ],
       }).then((linkEntityType) => {
         friendLinkEntityType = linkEntityType;
@@ -128,12 +116,6 @@ describe("Link entity", () => {
         relationships: [
           {
             relation: "viewer",
-            subject: {
-              kind: "public",
-            },
-          },
-          {
-            relation: "instantiator",
             subject: {
               kind: "public",
             },

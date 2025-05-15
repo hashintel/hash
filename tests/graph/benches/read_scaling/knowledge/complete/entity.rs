@@ -5,7 +5,14 @@ use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion, Sampling
 use criterion_macro::criterion;
 use hash_graph_authorization::{
     AuthorizationApi, NoAuthorization,
-    policies::store::{CreateWebParameter, LocalPrincipalStore as _},
+    policies::{
+        Effect,
+        action::ActionName,
+        resource::{EntityTypeResourceConstraint, EntityTypeResourceFilter, ResourceConstraint},
+        store::{
+            CreateWebParameter, LocalPrincipalStore as _, PolicyCreationParams, PolicyStore as _,
+        },
+    },
 };
 use hash_graph_store::{
     entity::{CreateEntityParams, EntityQuerySorting, EntityStore as _, GetEntitySubgraphParams},
@@ -90,6 +97,25 @@ async fn seed_db<A: AuthorizationApi>(
         )
         .await
         .expect("could not create web");
+
+    transaction
+        .create_policy(
+            system_account_id.into(),
+            PolicyCreationParams {
+                effect: Effect::Permit,
+                principal: None,
+                actions: vec![ActionName::Instantiate],
+                resource: Some(ResourceConstraint::EntityType(
+                    EntityTypeResourceConstraint::Any {
+                        filter: EntityTypeResourceFilter::All {
+                            filters: Vec::new(),
+                        },
+                    },
+                )),
+            },
+        )
+        .await
+        .expect("could not insert policy");
 
     seed(
         &mut transaction,
