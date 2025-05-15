@@ -12,6 +12,15 @@ export type ArcType = Omit<Edge<ArcData>, "style">;
 export type PlaceNodeData = {
   label: string;
   initialTokenCounts?: TokenCounts;
+  /**
+   * If the process is a subprocess, it represents the detail of a transition from the parent.
+   * It must contain at least one each of input and output places to that parent transition.
+   * This field indicates if this place corresponds to an input or output place to the transition in the parent.
+   */
+  parentProcessNode?: {
+    id: string;
+    type: "input" | "output";
+  };
   tokenCounts: TokenCounts;
   type: "place";
 };

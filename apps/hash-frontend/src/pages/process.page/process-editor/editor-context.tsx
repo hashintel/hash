@@ -2,6 +2,7 @@ import { useMutation } from "@apollo/client";
 import type {
   EntityId,
   PropertyObjectWithMetadata,
+  PropertyPatchOperation,
 } from "@blockprotocol/type-system";
 import { AlertModal } from "@hashintel/design-system";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
@@ -15,7 +16,6 @@ import type {
   PetriNetPropertiesWithMetadata,
   SubProcessOfPropertiesWithMetadata,
 } from "@local/hash-isomorphic-utils/system-types/petrinet";
-import type { nodes } from "jsonpath";
 import {
   createContext,
   type Dispatch,
@@ -42,6 +42,7 @@ import {
   updateEntityMutation,
 } from "../../../graphql/queries/knowledge/entity.queries";
 import { useActiveWorkspace } from "../../shared/workspace-context";
+import { updateSubProcessDefinitionForParentPlaces } from "./editor-context/sub-process-nodes";
 import {
   getPersistedNetsFromSubgraph,
   usePersistedNets,
@@ -84,6 +85,20 @@ type EditorContextValue = {
 };
 
 const EditorContext = createContext<EditorContextValue | undefined>(undefined);
+
+const stripUnwantedProperties = (node: NodeType) => {
+  const { selected: _, dragging: __, ...rest } = node;
+
+  return rest;
+};
+
+const areSetsEquivalent = (a: Set<string>, b: Set<string>) => {
+  if (a.size !== b.size) {
+    return false;
+  }
+
+  return a.isSubsetOf(b);
+};
 
 export const EditorContextProvider = ({
   children,
@@ -188,9 +203,8 @@ export const EditorContextProvider = ({
     }
 
     if (
-      JSON.stringify(
-        nodes.map(({ selected: _, dragging: __, ...node }) => node),
-      ) !== JSON.stringify(persistedNet.definition.nodes)
+      JSON.stringify(nodes.map(stripUnwantedProperties)) !==
+      JSON.stringify(persistedNet.definition.nodes)
     ) {
       return true;
     }
@@ -286,7 +300,7 @@ export const EditorContextProvider = ({
                   // @todo fix this
                   value: {
                     arcs,
-                    nodes,
+                    nodes: nodes.map(stripUnwantedProperties),
                     tokenTypes,
                   } satisfies PetriNetDefinitionObject,
                 },
@@ -318,7 +332,7 @@ export const EditorContextProvider = ({
                 },
                 value: {
                   arcs,
-                  nodes,
+                  nodes: nodes.map(stripUnwantedProperties),
                   tokenTypes,
                 } satisfies PetriNetDefinitionObject,
               },
@@ -347,73 +361,295 @@ export const EditorContextProvider = ({
     }
 
     /**
+     * If we have to make changes to places in a linked sub-process, we will need this.
+     * and it's cheaper to build it once here rather than finding labels repeatedly as and when we need them.
+     * There shouldn't be many places, so it doesn't really matter if we don't end up needing it.
+     */
+    const placeLabelsById: Record<string, string> = {};
+    for (const node of nodes) {
+      if (node.data.type === "place") {
+        placeLabelsById[node.id] = node.data.label;
+      }
+    }
+
+    /**
      * Handle sub-process changes. For any sub-process changed on a transition:
      * 1. Archive the previous sub-process, if there was one
      * 2. Create a new link to the new sub-process, if there is one
      */
     for (const node of nodes) {
-      if (node.data.type === "transition") {
-        const previousTransition = persistedNet?.definition.nodes.find(
-          (transition): transition is TransitionNodeType =>
-            transition.data.type === "transition" && transition.id === node.id,
+      if (node.data.type !== "transition") {
+        continue;
+      }
+
+      const previousTransition = persistedNet?.definition.nodes.find(
+        (transition): transition is TransitionNodeType =>
+          transition.data.type === "transition" && transition.id === node.id,
+      );
+
+      const previousSubProcessReference = previousTransition?.data.subProcess;
+
+      const subProcessIdentityHasChanged =
+        previousSubProcessReference?.subProcessEntityId !==
+        node.data.subProcess?.subProcessEntityId;
+
+      if (
+        subProcessIdentityHasChanged &&
+        previousSubProcessReference?.linkEntityId
+      ) {
+        /**
+         * Archive the link to the previous sub-process.
+         */
+        await archiveEntity({
+          variables: { entityId: previousSubProcessReference.linkEntityId },
+        });
+
+        const previousSubProcess = persistedNets.find(
+          (net) =>
+            net.entityId === previousSubProcessReference.subProcessEntityId,
         );
 
-        const previousSubProcess = previousTransition?.data.subProcess;
-
-        const subProcessHasChanged =
-          previousSubProcess?.subProcessEntityId !==
-          node.data.subProcess?.subProcessEntityId;
-
-        if (!subProcessHasChanged) {
-          continue;
+        if (!previousSubProcess) {
+          throw new Error(
+            `Sub-process ${previousSubProcessReference.subProcessEntityId} not found`,
+          );
         }
 
-        if (previousSubProcess?.linkEntityId) {
-          await archiveEntity({
-            variables: { entityId: previousSubProcess.linkEntityId },
+        /**
+         * Get the new nodes for the sub-process, with any links to parent places removed.
+         */
+        const updatedSubProcessNodes =
+          updateSubProcessDefinitionForParentPlaces({
+            subProcessNet: previousSubProcess,
+            inputPlaceLabelById: {},
+            outputPlaceLabelById: {},
           });
-        }
 
-        if (node.data.subProcess?.subProcessEntityId) {
-          await createEntity({
+        if (updatedSubProcessNodes) {
+          await updateEntity({
             variables: {
-              entityTypeIds: [
-                systemLinkEntityTypes.subProcessOf.linkEntityTypeId,
-              ],
-              linkData: {
-                leftEntityId: node.data.subProcess.subProcessEntityId,
-                rightEntityId: persistedEntityId,
-              },
-              properties: {
-                value: {
-                  "https://hash.ai/@h/types/property-type/transition-id/": {
-                    metadata: {
-                      dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+              entityUpdate: {
+                entityId: previousSubProcess.entityId,
+                propertyPatches: [
+                  {
+                    op: "replace",
+                    path: [
+                      systemPropertyTypes.definitionObject.propertyTypeBaseUrl,
+                    ],
+                    property: {
+                      // @ts-expect-error -- incompatibility between JsonValue and some of the Edge types
+                      // @todo fix this
+                      value: {
+                        ...previousSubProcess.definition,
+                        nodes: updatedSubProcessNodes,
+                      } satisfies PetriNetDefinitionObject,
+                      metadata: {
+                        dataTypeId: blockProtocolDataTypes.object.dataTypeId,
+                      },
                     },
-                    value: node.id,
                   },
-                  "https://hash.ai/@h/types/property-type/input-place-id/": {
-                    value: node.data.subProcess.inputPlaceIds.map((id) => ({
-                      metadata: {
-                        dataTypeId: blockProtocolDataTypes.text.dataTypeId,
-                      },
-                      value: id,
-                    })),
-                  },
-                  "https://hash.ai/@h/types/property-type/output-place-id/": {
-                    value: node.data.subProcess.outputPlaceIds.map((id) => ({
-                      metadata: {
-                        dataTypeId: blockProtocolDataTypes.text.dataTypeId,
-                      },
-                      value: id,
-                    })),
-                  },
-                },
-              } satisfies SubProcessOfPropertiesWithMetadata as PropertyObjectWithMetadata,
-              webId: activeWorkspaceWebId,
+                ],
+              },
             },
           });
         }
+      }
+
+      const { subProcessEntityId } = node.data.subProcess ?? {};
+
+      const subProcessDefinition = persistedNets.find(
+        (net) => net.entityId === subProcessEntityId,
+      );
+
+      if (subProcessEntityId && !subProcessDefinition) {
+        throw new Error(`Sub-process ${subProcessEntityId} not found`);
+      }
+
+      if (
+        subProcessIdentityHasChanged &&
+        subProcessEntityId &&
+        node.data.subProcess
+      ) {
+        /**
+         * Create the link from the sub-process to the parent process.
+         */
+        await createEntity({
+          variables: {
+            entityTypeIds: [
+              systemLinkEntityTypes.subProcessOf.linkEntityTypeId,
+            ],
+            linkData: {
+              leftEntityId: subProcessEntityId,
+              rightEntityId: persistedEntityId,
+            },
+            properties: {
+              value: {
+                "https://hash.ai/@h/types/property-type/transition-id/": {
+                  metadata: {
+                    dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+                  },
+                  value: node.id,
+                },
+                "https://hash.ai/@h/types/property-type/input-place-id/": {
+                  value: node.data.subProcess.inputPlaceIds.map((id) => ({
+                    metadata: {
+                      dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+                    },
+                    value: id,
+                  })),
+                },
+                "https://hash.ai/@h/types/property-type/output-place-id/": {
+                  value: node.data.subProcess.outputPlaceIds.map((id) => ({
+                    metadata: {
+                      dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+                    },
+                    value: id,
+                  })),
+                },
+              },
+            } satisfies SubProcessOfPropertiesWithMetadata as PropertyObjectWithMetadata,
+            webId: activeWorkspaceWebId,
+          },
+        });
+      }
+
+      if (!node.data.subProcess || !subProcessDefinition) {
+        /**
+         * If there is no linked sub-process now, we are done for this transition node.
+         */
+        continue;
+      }
+
+      /**
+       * If there is a linked sub-process, we need to check if the selected input or output places for the parent transition node have changed,
+       * so that we can make sure they are represented in the sub-process.
+       */
+
+      const subProcessInputPlaceIdsChanged = !areSetsEquivalent(
+        new Set<string>(node.data.subProcess.inputPlaceIds),
+        new Set<string>(
+          previousTransition?.data.subProcess?.inputPlaceIds ?? [],
+        ),
+      );
+
+      const subProcessOutputPlaceIdsChanged = !areSetsEquivalent(
+        new Set<string>(node.data.subProcess.outputPlaceIds),
+        new Set<string>(
+          previousTransition?.data.subProcess?.outputPlaceIds ?? [],
+        ),
+      );
+
+      if (subProcessInputPlaceIdsChanged || subProcessOutputPlaceIdsChanged) {
+        const existingLink = previousTransition?.data.subProcess?.linkEntityId;
+
+        if (existingLink) {
+          /**
+           * We need to update the existing link entity to represent the new input and output places.
+           */
+          const propertyPatches: PropertyPatchOperation[] = [];
+
+          if (subProcessInputPlaceIdsChanged) {
+            propertyPatches.push({
+              op: "replace",
+              path: [systemPropertyTypes.inputPlaceId.propertyTypeBaseUrl],
+              property: {
+                value: node.data.subProcess.inputPlaceIds.map((id) => ({
+                  metadata: {
+                    dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+                  },
+                  value: id,
+                })),
+              },
+            });
+          }
+
+          if (subProcessOutputPlaceIdsChanged) {
+            propertyPatches.push({
+              op: "replace",
+              path: [systemPropertyTypes.outputPlaceId.propertyTypeBaseUrl],
+              property: {
+                value: node.data.subProcess.outputPlaceIds.map((id) => ({
+                  metadata: {
+                    dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+                  },
+                  value: id,
+                })),
+              },
+            });
+          }
+
+          await updateEntity({
+            variables: {
+              entityUpdate: {
+                entityId: existingLink,
+                propertyPatches,
+              },
+            },
+          });
+        }
+
+        const inputPlaceLabelById: Record<string, string> = {};
+        const outputPlaceLabelById: Record<string, string> = {};
+
+        for (const placeId of node.data.subProcess.inputPlaceIds) {
+          const label = placeLabelsById[placeId];
+
+          if (!label) {
+            throw new Error(`Place ${placeId} not found when looking up label`);
+          }
+
+          inputPlaceLabelById[placeId] = label;
+        }
+
+        for (const placeId of node.data.subProcess.outputPlaceIds) {
+          const label = placeLabelsById[placeId];
+
+          if (!label) {
+            throw new Error(`Place ${placeId} not found when looking up label`);
+          }
+
+          outputPlaceLabelById[placeId] = label;
+        }
+
+        const newNodes = updateSubProcessDefinitionForParentPlaces({
+          subProcessNet: subProcessDefinition,
+          inputPlaceLabelById,
+          outputPlaceLabelById,
+        });
+
+        if (!newNodes) {
+          /**
+           * No changes to the sub-process necessary.
+           */
+          continue;
+        }
+
+        await updateEntity({
+          variables: {
+            entityUpdate: {
+              entityId: subProcessDefinition.entityId,
+              propertyPatches: [
+                {
+                  op: "replace",
+                  path: [
+                    systemPropertyTypes.definitionObject.propertyTypeBaseUrl,
+                  ],
+                  property: {
+                    // @ts-expect-error -- incompatibility between JsonValue and some of the Edge types
+                    // @todo fix this
+                    value: {
+                      ...subProcessDefinition.definition,
+                      nodes: newNodes,
+                    } satisfies PetriNetDefinitionObject,
+                    metadata: {
+                      dataTypeId: blockProtocolDataTypes.object.dataTypeId,
+                    },
+                  },
+                },
+              ],
+            },
+          },
+        });
       }
     }
 
@@ -430,9 +666,8 @@ export const EditorContextProvider = ({
     entityId,
     nodes,
     persistedNet?.definition.nodes,
+    persistedNets,
     refetchPersistedNets,
-    setEntityId,
-    setUserEditable,
     title,
     tokenTypes,
     updateEntity,

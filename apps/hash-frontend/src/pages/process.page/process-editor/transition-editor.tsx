@@ -1,5 +1,6 @@
 import type { EntityId } from "@blockprotocol/type-system";
 import { IconButton, Select, TextField } from "@hashintel/design-system";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
   Box,
   Checkbox,
@@ -11,6 +12,7 @@ import {
   Slider,
   Stack,
   Switch,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import { useCallback, useMemo, useState } from "react";
@@ -162,6 +164,7 @@ export const TransitionEditor = ({
 
         outputPlaces.push(outputPlace);
       }
+
       if (arc.target === transitionId) {
         const inputPlace = nodes.find(
           (option): option is PlaceNodeType =>
@@ -268,7 +271,7 @@ export const TransitionEditor = ({
       }));
 
       const newCondition: TransitionCondition = {
-        id: `condition-${Date.now()}`,
+        id: `condition-${generateUuid()}`,
         name: `Condition ${newConditionCount}`,
         probability: probabilities[newConditionCount - 1]!,
         outputEdgeId: outgoingEdges[0]!.id,
@@ -355,9 +358,11 @@ export const TransitionEditor = ({
 
   const handleSave = useCallback(() => {
     const dataToSave = { ...localData };
+
     if (dataToSave.conditions && dataToSave.conditions.length > 0) {
       dataToSave.conditions = normalizeProbabilities(dataToSave.conditions);
     }
+
     onUpdateTransition(transitionId, dataToSave);
     onClose();
   }, [transitionId, localData, onUpdateTransition, onClose]);
@@ -374,6 +379,8 @@ export const TransitionEditor = ({
       (net) => net.userEditable && ![entityId].includes(net.entityId),
     );
   }, [persistedNets, entityId]);
+
+  const subProcessOptionsAvailable = subProcessOptions.length > 0;
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
@@ -434,132 +441,194 @@ export const TransitionEditor = ({
             />
           </Box>
 
-          {subProcessOptions.length > 0 && (
-            <Box component="label">
-              <Typography component="div" variant="smallCaps" sx={{ mb: 0.5 }}>
-                Sub-process
-              </Typography>
-
-              <PersistedNetSelector
-                options={subProcessOptions}
-                placeholder="Select process to link"
-                value={localData.subProcess?.subProcessEntityId ?? null}
-                onSelect={(value) =>
-                  updateSubProcess({
-                    inputPlaceIds: allInputPlaces.map((place) => place.id),
-                    outputPlaceIds: allOutputPlaces.map((place) => place.id),
-                    ...localData.subProcess,
-                    subProcessEntityId: value.entityId,
-                    subProcessTitle: value.title,
-                  })
-                }
-              />
-            </Box>
-          )}
-
-          {localData.subProcess && (
-            <>
-              <Box sx={{ mt: 2 }}>
+          <Stack
+            gap={1}
+            sx={{
+              border: ({ palette }) => `1px solid ${palette.gray[20]}`,
+              borderRadius: 2,
+              p: 2,
+              display: subProcessOptionsAvailable ? "block" : "none",
+            }}
+          >
+            {subProcessOptionsAvailable && (
+              <Box component="label">
                 <Typography
                   component="div"
                   variant="smallCaps"
                   sx={{ mb: 0.5 }}
                 >
-                  Input places
+                  Sub-process
                 </Typography>
-                <Stack>
-                  {allInputPlaces.map((place) => (
-                    <FormControlLabel
-                      key={place.id}
-                      control={
-                        <Checkbox
-                          size="small"
-                          checked={
-                            localData.subProcess?.inputPlaceIds.includes(
-                              place.id,
-                            ) ?? false
-                          }
-                          onChange={(event) => {
-                            const isChecked = event.target.checked;
-                            const currentInputPlaceIds =
-                              localData.subProcess?.inputPlaceIds ?? [];
-                            const newInputPlaceIds = isChecked
-                              ? [...currentInputPlaceIds, place.id]
-                              : currentInputPlaceIds.filter(
-                                  (id) => id !== place.id,
-                                );
 
-                            updateSubProcess({
-                              ...localData.subProcess!,
-                              inputPlaceIds: newInputPlaceIds,
-                              outputPlaceIds:
-                                localData.subProcess?.outputPlaceIds ?? [],
-                              subProcessEntityId:
-                                localData.subProcess!.subProcessEntityId,
-                              subProcessTitle:
-                                localData.subProcess!.subProcessTitle,
-                            });
-                          }}
-                        />
-                      }
-                      label={place.data.label}
-                    />
-                  ))}
-                </Stack>
+                <PersistedNetSelector
+                  options={subProcessOptions}
+                  placeholder="Select process to link"
+                  value={localData.subProcess?.subProcessEntityId ?? null}
+                  onSelect={(value) =>
+                    updateSubProcess({
+                      inputPlaceIds: allInputPlaces.map((place) => place.id),
+                      outputPlaceIds: allOutputPlaces.map((place) => place.id),
+                      ...localData.subProcess,
+                      subProcessEntityId: value.entityId,
+                      subProcessTitle: value.title,
+                    })
+                  }
+                />
               </Box>
+            )}
 
-              <Box sx={{ mt: 2 }}>
-                <Typography
-                  component="div"
-                  variant="smallCaps"
-                  sx={{ mb: 0.5 }}
-                >
-                  Output places
-                </Typography>
-                <Stack>
-                  {allOutputPlaces.map((place) => (
-                    <FormControlLabel
-                      key={place.id}
-                      control={
-                        <Checkbox
-                          size="small"
-                          checked={
-                            localData.subProcess?.outputPlaceIds.includes(
-                              place.id,
-                            ) ?? false
+            {localData.subProcess && (
+              <>
+                <Box sx={{ mt: 2.5 }}>
+                  <Typography
+                    component="div"
+                    variant="smallCaps"
+                    sx={{
+                      mb: 1,
+                      fontWeight: 400,
+                      color: ({ palette }) => palette.common.black,
+                    }}
+                  >
+                    input places
+                  </Typography>
+                  <Stack gap={1}>
+                    {allInputPlaces.map((place) => {
+                      const isInputPlaceChecked =
+                        !!localData.subProcess?.inputPlaceIds.includes(
+                          place.id,
+                        );
+                      const onlyInputPlaceChecked =
+                        localData.subProcess?.inputPlaceIds.length === 1 &&
+                        isInputPlaceChecked;
+
+                      return (
+                        <Tooltip
+                          placement="top"
+                          key={place.id}
+                          title={
+                            onlyInputPlaceChecked
+                              ? "At least one input place must be represented in the sub-process."
+                              : ""
                           }
-                          onChange={(event) => {
-                            const isChecked = event.target.checked;
-                            const currentOutputPlaceIds =
-                              localData.subProcess?.outputPlaceIds ?? [];
-                            const newOutputPlaceIds = isChecked
-                              ? [...currentOutputPlaceIds, place.id]
-                              : currentOutputPlaceIds.filter(
-                                  (id) => id !== place.id,
-                                );
+                        >
+                          <FormControlLabel
+                            key={place.id}
+                            control={
+                              <Checkbox
+                                size="small"
+                                checked={isInputPlaceChecked}
+                                disabled={onlyInputPlaceChecked}
+                                onChange={(event) => {
+                                  const isChecked = event.target.checked;
+                                  const currentInputPlaceIds =
+                                    localData.subProcess?.inputPlaceIds ?? [];
+                                  const newInputPlaceIds = isChecked
+                                    ? [...currentInputPlaceIds, place.id]
+                                    : currentInputPlaceIds.filter(
+                                        (id) => id !== place.id,
+                                      );
 
-                            updateSubProcess({
-                              ...localData.subProcess!,
-                              inputPlaceIds:
-                                localData.subProcess?.inputPlaceIds ?? [],
-                              outputPlaceIds: newOutputPlaceIds,
-                              subProcessEntityId:
-                                localData.subProcess!.subProcessEntityId,
-                              subProcessTitle:
-                                localData.subProcess!.subProcessTitle,
-                            });
-                          }}
-                        />
-                      }
-                      label={place.data.label}
-                    />
-                  ))}
-                </Stack>
-              </Box>
-            </>
-          )}
+                                  updateSubProcess({
+                                    ...localData.subProcess!,
+                                    inputPlaceIds: newInputPlaceIds,
+                                    outputPlaceIds:
+                                      localData.subProcess?.outputPlaceIds ??
+                                      [],
+                                    subProcessEntityId:
+                                      localData.subProcess!.subProcessEntityId,
+                                    subProcessTitle:
+                                      localData.subProcess!.subProcessTitle,
+                                  });
+                                }}
+                                sx={{ mr: 0.8 }}
+                              />
+                            }
+                            label={place.data.label}
+                            sx={{ m: 0 }}
+                          />
+                        </Tooltip>
+                      );
+                    })}
+                  </Stack>
+                </Box>
 
-          <Divider />
+                <Box sx={{ mt: 2.5 }}>
+                  <Typography
+                    component="div"
+                    variant="smallCaps"
+                    sx={{
+                      mb: 1,
+                      fontWeight: 400,
+                      color: ({ palette }) => palette.common.black,
+                    }}
+                  >
+                    output places
+                  </Typography>
+                  <Stack gap={1}>
+                    {allOutputPlaces.map((place) => {
+                      const isOutputPlaceChecked =
+                        !!localData.subProcess?.outputPlaceIds.includes(
+                          place.id,
+                        );
+                      const onlyOutputPlaceChecked =
+                        localData.subProcess?.outputPlaceIds.length === 1 &&
+                        isOutputPlaceChecked;
+
+                      return (
+                        <Tooltip
+                          placement="top"
+                          key={place.id}
+                          title={
+                            onlyOutputPlaceChecked
+                              ? "At least one output place must be represented in the sub-process."
+                              : ""
+                          }
+                        >
+                          <FormControlLabel
+                            control={
+                              <Checkbox
+                                size="small"
+                                checked={isOutputPlaceChecked}
+                                disabled={onlyOutputPlaceChecked}
+                                onChange={(event) => {
+                                  const isChecked = event.target.checked;
+                                  const currentOutputPlaceIds =
+                                    localData.subProcess?.outputPlaceIds ?? [];
+                                  const newOutputPlaceIds = isChecked
+                                    ? [...currentOutputPlaceIds, place.id]
+                                    : currentOutputPlaceIds.filter(
+                                        (id) => id !== place.id,
+                                      );
+
+                                  updateSubProcess({
+                                    ...localData.subProcess!,
+                                    inputPlaceIds:
+                                      localData.subProcess?.inputPlaceIds ?? [],
+                                    outputPlaceIds: newOutputPlaceIds,
+                                    subProcessEntityId:
+                                      localData.subProcess!.subProcessEntityId,
+                                    subProcessTitle:
+                                      localData.subProcess!.subProcessTitle,
+                                  });
+                                }}
+                                sx={{ mr: 0.8 }}
+                              />
+                            }
+                            label={place.data.label}
+                            sx={{ m: 0 }}
+                          />
+                        </Tooltip>
+                      );
+                    })}
+                  </Stack>
+                </Box>
+              </>
+            )}
+          </Stack>
+
+          <Divider
+            sx={{ display: subProcessOptionsAvailable ? "none" : "block" }}
+          />
 
           <Box>
             <Box component="label">

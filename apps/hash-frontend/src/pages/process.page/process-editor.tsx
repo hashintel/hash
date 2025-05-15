@@ -1,5 +1,6 @@
 import "reactflow/dist/style.css";
 
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { Box, Stack } from "@mui/material";
 import type { DragEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -64,9 +65,7 @@ const ProcessEditorContent = () => {
 
   const {
     arcs,
-    entityId,
     nodes,
-    persistToGraph,
     setArcs,
     setEntityId,
     setNodes,
@@ -75,7 +74,6 @@ const ProcessEditorContent = () => {
     setTitle,
     setUserEditable,
     tokenTypes,
-    userEditable,
   } = useEditorContext();
 
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
@@ -188,9 +186,10 @@ const ProcessEditorContent = () => {
       });
 
       const newNode: NodeType = {
-        id: `${nodeType}_${nodes.length}`,
+        id: `${nodeType}_${generateUuid()}`,
         type: nodeType,
         position,
+        ...nodeDimensions[nodeType],
         data: {
           label: `${nodeType} ${nodes.length + 1}`,
           ...(nodeType === "place"
