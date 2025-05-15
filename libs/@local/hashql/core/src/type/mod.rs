@@ -10,6 +10,7 @@ pub mod pretty_print;
 pub(crate) mod recursion;
 #[cfg(test)]
 pub(crate) mod test;
+pub mod visit;
 
 use core::ops::Receiver;
 
