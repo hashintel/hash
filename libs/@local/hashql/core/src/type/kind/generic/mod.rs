@@ -1,7 +1,7 @@
 pub mod apply;
 pub mod param;
 
-use core::ops::Deref;
+use core::{cmp::Ordering, hash::Hash, ops::Deref};
 
 use pretty::RcDoc;
 
@@ -36,14 +36,43 @@ newtype!(
 
 newtype_producer!(pub struct GenericArgumentIdProducer(GenericArgumentId));
 
-// The name is stored in the environment, to allow for `!Drop`
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+// PartialEq, Eq, PartialOrd, Ord, Hash are derived, with `name` ignored
+#[derive(Debug, Copy, Clone)]
 pub struct GenericArgument<'heap> {
     pub id: GenericArgumentId,
     pub name: Symbol<'heap>,
 
     // The initial type constraint (if present)
     pub constraint: Option<TypeId>,
+}
+
+impl PartialEq for GenericArgument<'_> {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id && self.constraint == other.constraint
+    }
+}
+
+impl Eq for GenericArgument<'_> {}
+
+impl PartialOrd for GenericArgument<'_> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for GenericArgument<'_> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.id
+            .cmp(&other.id)
+            .then(self.constraint.cmp(&other.constraint))
+    }
+}
+
+impl Hash for GenericArgument<'_> {
+    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
+        self.constraint.hash(state);
+    }
 }
 
 impl PrettyPrint for GenericArgument<'_> {
@@ -461,4 +490,465 @@ impl PrettyPrint for Generic<'_> {
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    #![expect(clippy::min_ident_chars, clippy::missing_asserts_for_indexing)]
+    use crate::{
+        heap::Heap,
+        span::SpanId,
+        r#type::{
+            environment::{AnalysisEnvironment, Environment, LatticeEnvironment},
+            kind::{
+                Generic, GenericArgument, PrimitiveType, TypeKind,
+                test::{assert_equiv, generic, primitive},
+            },
+            lattice::test::assert_lattice_laws,
+            pretty_print::PrettyPrint as _,
+            test::instantiate,
+        },
+    };
+
+    #[test]
+    fn lattice_laws() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let number = generic!(env, primitive!(env, PrimitiveType::Number), []);
+        let string = generic!(env, primitive!(env, PrimitiveType::String), []);
+        let boolean = generic!(env, primitive!(env, PrimitiveType::Boolean), []);
+
+        assert_lattice_laws(&env, number, string, boolean);
+    }
+
+    #[test]
+    fn meet() {
+        // Meet should wrap the result of the underlying operation
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let mut lattice = LatticeEnvironment::new(&env);
+
+        let primitive_number = primitive!(env, PrimitiveType::Number);
+        let primitive_integer = primitive!(env, PrimitiveType::Integer);
+
+        let applied_number = generic!(env, primitive_number, []);
+        let applied_integer = generic!(env, primitive_integer, []);
+
+        assert_equiv!(
+            env,
+            [lattice.meet(applied_number, applied_integer)],
+            [applied_integer]
+        );
+
+        assert_equiv!(
+            env,
+            [lattice.meet(applied_number, primitive_integer)],
+            [applied_integer]
+        );
+
+        assert_equiv!(
+            env,
+            [lattice.meet(primitive_number, applied_integer)],
+            [primitive_integer]
+        );
+    }
+
+    #[test]
+    fn join() {
+        // Join should wrap the result of the underlying operation
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let mut lattice = LatticeEnvironment::new(&env);
+
+        let primitive_number = primitive!(env, PrimitiveType::Number);
+        let primitive_integer = primitive!(env, PrimitiveType::Integer);
+
+        let applied_number = generic!(env, primitive_number, []);
+        let applied_integer = generic!(env, primitive_integer, []);
+
+        assert_equiv!(
+            env,
+            [lattice.join(applied_number, applied_integer)],
+            [applied_number]
+        );
+
+        assert_equiv!(
+            env,
+            [lattice.join(applied_number, primitive_number)],
+            [applied_number]
+        );
+
+        assert_equiv!(
+            env,
+            [lattice.join(primitive_number, applied_number)],
+            [applied_number]
+        );
+    }
+
+    #[test]
+    fn join_generic_argument_merging() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let mut lattice = LatticeEnvironment::new(&env);
+        lattice.without_simplify();
+
+        // Create base types
+        let number = primitive!(env, PrimitiveType::Number);
+
+        // Create generic argument IDs
+        let argument1 = env.counter.generic_argument.next();
+        let argument2 = env.counter.generic_argument.next();
+
+        // Create Apply types with different substitutions
+        let generic1 = generic!(
+            env,
+            number,
+            [GenericArgument {
+                id: argument1,
+                name: heap.intern_symbol("T"),
+                constraint: None
+            }]
+        );
+
+        let generic2 = generic!(
+            env,
+            number,
+            [GenericArgument {
+                id: argument2,
+                name: heap.intern_symbol("U"),
+                constraint: None
+            }]
+        );
+
+        // Join the types
+        let result = lattice.join(generic1, generic2);
+
+        let generic = env
+            .r#type(result)
+            .kind
+            .generic()
+            .expect("should be generic");
+
+        assert_eq!(generic.arguments.len(), 2);
+
+        // Check that generic are sorted by argument ID
+        assert_eq!(generic.arguments[0].id, argument1);
+        assert_eq!(generic.arguments[1].id, argument2);
+    }
+
+    #[test]
+    fn join_same_generic_arguments() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let mut lattice = LatticeEnvironment::new(&env);
+        lattice.without_simplify();
+
+        // Create base types
+        let number = primitive!(env, PrimitiveType::Number);
+        let string = primitive!(env, PrimitiveType::String);
+        let boolean = primitive!(env, PrimitiveType::Boolean);
+
+        // Create generic argument IDs
+        let argument1 = env.counter.generic_argument.next();
+
+        // Create Apply types with different substitutions
+        let generic1 = generic!(
+            env,
+            number,
+            [GenericArgument {
+                id: argument1,
+                name: heap.intern_symbol("T"),
+                constraint: Some(string),
+            }]
+        );
+
+        let generic2 = generic!(
+            env,
+            number,
+            [GenericArgument {
+                id: argument1,
+                name: heap.intern_symbol("T"),
+                constraint: Some(boolean),
+            }]
+        );
+
+        // Join the types
+        let result = lattice.join(generic1, generic2);
+
+        let generic = env
+            .r#type(result)
+            .kind
+            .generic()
+            .expect("should be generic");
+
+        assert_eq!(generic.arguments.len(), 2);
+
+        // Check that substitutions are sorted by argument ID
+        assert_eq!(generic.arguments[0].id, argument1);
+        assert_eq!(generic.arguments[1].id, argument1);
+
+        // Check substitution values
+        assert_equiv!(
+            env,
+            [generic.arguments[0].constraint.expect("should be some")],
+            [string]
+        );
+        assert_equiv!(
+            env,
+            [generic.arguments[1].constraint.expect("should be some")],
+            [boolean]
+        );
+    }
+
+    #[test]
+    fn join_identical_generic_arguments() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let mut lattice = LatticeEnvironment::new(&env);
+        lattice.without_simplify();
+
+        // Create base types
+        let number = primitive!(env, PrimitiveType::Number);
+        let string = primitive!(env, PrimitiveType::String);
+
+        // Create generic argument IDs
+        let argument1 = env.counter.generic_argument.next();
+
+        // Create Apply types with different substitutions
+        let apply1 = generic!(
+            env,
+            number,
+            [GenericArgument {
+                id: argument1,
+                name: heap.intern_symbol("T"),
+                constraint: Some(string),
+            }]
+        );
+
+        let apply2 = generic!(
+            env,
+            number,
+            [GenericArgument {
+                id: argument1,
+                name: heap.intern_symbol("T"),
+                constraint: Some(string),
+            }]
+        );
+
+        // Join the types
+        let result = lattice.join(apply1, apply2);
+
+        let generic = env
+            .r#type(result)
+            .kind
+            .generic()
+            .expect("should be generic");
+
+        assert_eq!(generic.arguments.len(), 1);
+
+        // Check that arguments are sorted by argument ID
+        assert_eq!(generic.arguments[0].id, argument1);
+
+        // Check substitution values
+        assert_equiv!(
+            env,
+            [generic.arguments[0].constraint.expect("should be some")],
+            [string]
+        );
+    }
+
+    #[test]
+    fn join_swallow_generic_arguments() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let mut lattice = LatticeEnvironment::new(&env);
+        lattice.without_simplify();
+
+        // Create base types
+        let number = primitive!(env, PrimitiveType::Number);
+        let string = primitive!(env, PrimitiveType::String);
+
+        // Create generic argument IDs
+        let argument1 = env.counter.generic_argument.next();
+
+        // Create Apply types with different substitutions
+        let apply1 = generic!(
+            env,
+            number,
+            [GenericArgument {
+                id: argument1,
+                name: heap.intern_symbol("T"),
+                constraint: Some(string),
+            }]
+        );
+
+        let apply2 = generic!(
+            env,
+            number,
+            [GenericArgument {
+                id: argument1,
+                name: heap.intern_symbol("T"),
+                constraint: None,
+            }]
+        );
+
+        // Join the types
+        let result = lattice.join(apply1, apply2);
+
+        let generic = env
+            .r#type(result)
+            .kind
+            .generic()
+            .expect("should be generic");
+
+        assert_eq!(generic.arguments.len(), 1);
+
+        // Check that arguments are sorted by argument ID
+        assert_eq!(generic.arguments[0].id, argument1);
+
+        // Check substitution values
+        assert_equiv!(
+            env,
+            [generic.arguments[0].constraint.expect("should be some")],
+            [string]
+        );
+    }
+
+    // TODO: swallow None
+
+    #[test]
+    #[expect(clippy::too_many_lines)]
+    fn join_complex_substitution_merging() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let mut lattice = LatticeEnvironment::new(&env);
+        lattice.without_simplify();
+
+        // Create base types for substitution values
+        let number = primitive!(env, PrimitiveType::Number);
+        let integer = primitive!(env, PrimitiveType::Integer);
+        let string = primitive!(env, PrimitiveType::String);
+        let boolean = primitive!(env, PrimitiveType::Boolean);
+
+        // Create several generic argument IDs
+        let argument1 = env.counter.generic_argument.next();
+        let argument2 = env.counter.generic_argument.next();
+        let argument3 = env.counter.generic_argument.next();
+        let argument4 = env.counter.generic_argument.next();
+        let argument5 = env.counter.generic_argument.next();
+
+        // Create complex sets of substitutions for two Generic types:
+        // 1. Identical substitutions (arg1:string in both)
+        // 2. Same argument with different values (arg2:number and arg2:boolean)
+        // 3. Unique arguments (arg3 only in first, arg4 only in second)
+        // 4. Omitted unconstrained (arg5:number, `arg5:None`)
+        let generic1 = generic!(
+            env,
+            number,
+            [
+                GenericArgument {
+                    id: argument1,
+                    name: heap.intern_symbol("T"),
+                    constraint: Some(string),
+                },
+                GenericArgument {
+                    id: argument2,
+                    name: heap.intern_symbol("U"),
+                    constraint: Some(number),
+                },
+                GenericArgument {
+                    id: argument3,
+                    name: heap.intern_symbol("V"),
+                    constraint: Some(integer),
+                },
+                GenericArgument {
+                    id: argument5,
+                    name: heap.intern_symbol("X"),
+                    constraint: Some(number),
+                }
+            ]
+        );
+
+        let generic2 = generic!(
+            env,
+            number,
+            [
+                GenericArgument {
+                    id: argument1,
+                    name: heap.intern_symbol("T"),
+                    constraint: Some(string),
+                },
+                GenericArgument {
+                    id: argument2,
+                    name: heap.intern_symbol("U"),
+                    constraint: Some(boolean),
+                },
+                GenericArgument {
+                    id: argument4,
+                    name: heap.intern_symbol("W"),
+                    constraint: Some(integer),
+                },
+                GenericArgument {
+                    id: argument5,
+                    name: heap.intern_symbol("X"),
+                    constraint: None,
+                }
+            ]
+        );
+
+        // Join the types with complex generics
+        let result = lattice.join(generic1, generic2);
+        let generic = env
+            .r#type(result)
+            .kind
+            .generic()
+            .expect("should be an generic type");
+
+        // The result should have:
+        // - One generic for arg1 (deduped)
+        // - Two generics for arg2 (different values)
+        // - One generic for arg3 (from first Apply)
+        // - One generic for arg4 (from second Apply)
+        // So 5 total generics
+        assert_eq!(
+            *generic.arguments,
+            [
+                GenericArgument {
+                    id: argument1,
+                    name: heap.intern_symbol("T"),
+                    constraint: Some(string),
+                },
+                GenericArgument {
+                    id: argument2,
+                    name: heap.intern_symbol("U"),
+                    constraint: Some(number),
+                },
+                GenericArgument {
+                    id: argument2,
+                    name: heap.intern_symbol("U"),
+                    constraint: Some(boolean),
+                },
+                GenericArgument {
+                    id: argument3,
+                    name: heap.intern_symbol("V"),
+                    constraint: Some(integer),
+                },
+                GenericArgument {
+                    id: argument4,
+                    name: heap.intern_symbol("W"),
+                    constraint: Some(string),
+                },
+                GenericArgument {
+                    id: argument5,
+                    name: heap.intern_symbol("X"),
+                    constraint: Some(number),
+                }
+            ]
+        );
+    }
+}

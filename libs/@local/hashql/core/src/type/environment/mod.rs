@@ -111,11 +111,11 @@ impl<'heap> Environment<'heap> {
             return GenericArguments::empty();
         }
 
-        arguments.sort_unstable_by(|lhs, rhs| lhs.id.cmp(&rhs.id));
+        arguments.sort_unstable();
         // Unlike `intern_struct_fields`, where we error out on duplicates, we simply remove them
         // here, as any duplicate means they're the same argument and therefore not necessarily an
         // error.
-        let (dedupe, _) = arguments.partition_dedup_by_key(|argument| argument.id);
+        let (dedupe, _) = arguments.partition_dedup();
 
         GenericArguments::from_slice_unchecked(self.generic_arguments.intern_slice(dedupe))
     }
