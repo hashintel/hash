@@ -407,23 +407,36 @@ impl<'heap> Inference<'heap> for Generic<'heap> {
         let (guard_id, id) = env.provision(self.id);
         let (_guard, arguments) = env.instantiate_arguments(self.kind.arguments);
 
-        let base = env.instantiate(self.kind.base);
+        if arguments.is_empty() {
+            // When we have no generics at all, we can use regular instantiation for the base type
+            // because the result won't be generic
+            let base = env.instantiate(self.kind.base);
 
-        // If there are no effective arguments, this Generic is redundant and
-        // can potentially be simplified to just the base type, but only if it isn't referenced
-        // elsewhere
-        if arguments.is_empty() && !guard_id.is_used() {
-            return env.intern_provisioned(
-                id,
-                PartialType {
-                    span: self.span,
-                    kind: env.intern_kind(TypeKind::Generic(Self {
-                        base,
-                        arguments: GenericArguments::empty(),
-                    })),
-                },
-            );
+            // If there are no effective generics, this Generic is redundant and
+            // can potentially be simplified to just the base type
+            if guard_id.is_used() {
+                // However, if the type is referenced elsewhere, we must preserve the ID
+                // by closing the reference. We use an empty generics map which is
+                // semantically equivalent to having no generics
+                return env.intern_provisioned(
+                    id,
+                    PartialType {
+                        span: self.span,
+                        kind: env.intern_kind(TypeKind::Generic(Self {
+                            base,
+                            arguments: GenericArguments::empty(),
+                        })),
+                    },
+                );
+            }
+
+            return base;
         }
+
+        // For non-identity generics, we force instantiation of the base type
+        // to ensure we generate a new type instance that references the new arguments, instead of
+        // reusing an existing one.
+        let base = env.force_instantiate(self.kind.base);
 
         env.intern_provisioned(
             id,
