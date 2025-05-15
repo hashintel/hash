@@ -9,5 +9,5 @@
    │ 
    │ Help: Generic parameter `E` is declared but not referenced. Either remove the unused parameter or incorporate it into your type definition.
    │ 
-   │ Note: Each generic parameter should serve a purpose in parameterizing the type. Unused parameters can make code harder to understand and may indicate a design oversight or incomplete implementation and are therefore considered errors.
+   │ Note: Each generic parameter should serve a purpose in parameterizing the type. Unused parameters can make code harder to understand and may indicate a design oversight or incomplete implementation. They are unconstrained variables, and therefore considered erroneous.
 ───╯
