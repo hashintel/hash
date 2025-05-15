@@ -3,7 +3,7 @@ use core::ops::ControlFlow;
 use pretty::RcDoc;
 use smallvec::SmallVec;
 
-use super::{TypeKind, generic::GenericArguments};
+use super::TypeKind;
 use crate::{
     intern::Interned,
     math::cartesian_product,
@@ -60,7 +60,6 @@ impl<'heap> TupleType<'heap> {
 
     fn postprocess_lattice(
         self: Type<'heap, Self>,
-        other: Type<'heap, Self>,
         env: &Environment<'heap>,
         fields: &[TypeId],
     ) -> SmallVec<TypeId, 4> {
@@ -93,7 +92,7 @@ impl<'heap> Lattice<'heap> for TupleType<'heap> {
             fields.push(env.join(lhs, rhs));
         }
 
-        self.postprocess_lattice(other, env, &fields)
+        self.postprocess_lattice(env, &fields)
     }
 
     fn meet(
@@ -111,7 +110,7 @@ impl<'heap> Lattice<'heap> for TupleType<'heap> {
             fields.push(env.meet(lhs, rhs));
         }
 
-        self.postprocess_lattice(other, env, &fields)
+        self.postprocess_lattice(env, &fields)
     }
 
     fn is_bottom(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
@@ -370,12 +369,12 @@ mod test {
                 Constraint, Inference as _, PartialStructuralEdge, Variable, VariableKind,
             },
             kind::{
-                TypeKind,
-                generic::{GenericArgument, GenericArgumentId, GenericArguments},
+                Generic, GenericArgument, TypeKind,
+                generic::GenericArgumentId,
                 infer::HoleId,
                 intersection::IntersectionType,
                 primitive::PrimitiveType,
-                test::{assert_equiv, intersection, primitive, tuple, union},
+                test::{assert_equiv, generic, intersection, primitive, tuple, union},
                 union::UnionType,
             },
             lattice::{Lattice as _, test::assert_lattice_laws},
@@ -1249,57 +1248,54 @@ mod test {
         );
     }
 
-    // TODO: move to generics test suite
-    // #[test]
-    // fn collect_constraints_generic_params() {
-    //     let heap = Heap::new();
-    //     let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    #[test]
+    fn collect_constraints_generic_params() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
-    //     let arg1 = GenericArgumentId::new(0);
-    //     let arg2 = GenericArgumentId::new(1);
+        let arg1 = GenericArgumentId::new(0);
+        let arg2 = GenericArgumentId::new(1);
 
-    //     // Create generic parameter types
-    //     let param1 = instantiate_param(&env, arg1);
-    //     let param2 = instantiate_param(&env, arg2);
+        // Create generic parameter types
+        let param1 = instantiate_param(&env, arg1);
+        let param2 = instantiate_param(&env, arg2);
 
-    //     // Create tuples with generic parameters
-    //     tuple!(
-    //         env,
-    //         tuple_a,
-    //         [GenericArgument {
-    //             id: arg1,
-    //             name: heap.intern_symbol("T"),
-    //             constraint: None
-    //         }],
-    //         [param1]
-    //     );
+        // Create tuples with generic parameters
+        let tuple_a = generic!(
+            env,
+            tuple!(env, [param1]),
+            [GenericArgument {
+                id: arg1,
+                name: heap.intern_symbol("T"),
+                constraint: None
+            }]
+        );
 
-    //     tuple!(
-    //         env,
-    //         tuple_b,
-    //         [GenericArgument {
-    //             id: arg2,
-    //             name: heap.intern_symbol("U"),
-    //             constraint: None
-    //         }],
-    //         [param2]
-    //     );
+        let tuple_b = generic!(
+            env,
+            tuple!(env, [param2]),
+            [GenericArgument {
+                id: arg2,
+                name: heap.intern_symbol("U"),
+                constraint: None
+            }]
+        );
 
-    //     // Create an inference environment to collect constraints
-    //     let mut inference_env = InferenceEnvironment::new(&env);
+        // Create an inference environment to collect constraints
+        let mut inference_env = InferenceEnvironment::new(&env);
 
-    //     // Collect constraints between the generic tuples
-    //     tuple_a.collect_constraints(tuple_b, &mut inference_env);
+        // Collect constraints between the generic tuples
+        inference_env.collect_constraints(tuple_a, tuple_b);
 
-    //     let constraints = inference_env.take_constraints();
-    //     assert_eq!(
-    //         constraints,
-    //         [Constraint::Ordering {
-    //             lower: Variable::synthetic(VariableKind::Generic(arg1)),
-    //             upper: Variable::synthetic(VariableKind::Generic(arg2))
-    //         }]
-    //     );
-    // }
+        let constraints = inference_env.take_constraints();
+        assert_eq!(
+            constraints,
+            [Constraint::Ordering {
+                lower: Variable::synthetic(VariableKind::Generic(arg1)),
+                upper: Variable::synthetic(VariableKind::Generic(arg2))
+            }]
+        );
+    }
 
     #[test]
     fn collect_constraints_concrete() {
@@ -1426,47 +1422,46 @@ mod test {
         );
     }
 
-    // TODO: move to generics test suite
-    // #[test]
-    // fn collect_structural_edges_tuple_with_generic_args() {
-    //     let heap = Heap::new();
-    //     let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    #[test]
+    fn collect_structural_edges_tuple_with_generic_args() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
-    //     // Create a generic argument
-    //     let arg_id = GenericArgumentId::new(0);
-    //     let generic_arg = GenericArgument {
-    //         id: arg_id,
-    //         name: heap.intern_symbol("T"),
-    //         constraint: None,
-    //     };
+        // Create a generic argument
+        let arg_id = GenericArgumentId::new(0);
+        let generic_arg = GenericArgument {
+            id: arg_id,
+            name: heap.intern_symbol("T"),
+            constraint: None,
+        };
 
-    //     // Create an inference variable
-    //     let hole = HoleId::new(0);
-    //     let infer_var = instantiate_infer(&env, hole);
+        // Create an inference variable
+        let hole = HoleId::new(0);
+        let infer_var = instantiate_infer(&env, hole);
 
-    //     // Create a tuple with generic arguments: T<_0>
-    //     tuple!(env, tuple_type, [generic_arg], [infer_var]);
+        // Create a tuple with generic arguments: T<_0>
+        let tuple_type = generic!(env, tuple!(env, [infer_var]), [generic_arg]);
 
-    //     let mut inference_env = InferenceEnvironment::new(&env);
+        let mut inference_env = InferenceEnvironment::new(&env);
 
-    //     // Create a variable to use as the source in a structural edge
-    //     let edge_var = Variable::synthetic(VariableKind::Hole(HoleId::new(1)));
-    //     let partial_edge = PartialStructuralEdge::Source(edge_var);
+        // Create a variable to use as the source in a structural edge
+        let edge_var = Variable::synthetic(VariableKind::Hole(HoleId::new(1)));
+        let partial_edge = PartialStructuralEdge::Source(edge_var);
 
-    //     // Collect structural edges
-    //     tuple_type.collect_structural_edges(partial_edge, &mut inference_env);
+        // Collect structural edges
+        inference_env.collect_structural_edges(tuple_type, partial_edge);
 
-    //     // The generic arguments shouldn't affect the edge propagation behavior
-    //     // We expect: _1 -> _0
-    //     let constraints = inference_env.take_constraints();
-    //     assert_eq!(
-    //         constraints,
-    //         [Constraint::StructuralEdge {
-    //             source: edge_var,
-    //             target: Variable::synthetic(VariableKind::Hole(hole)),
-    //         }]
-    //     );
-    // }
+        // The generic arguments shouldn't affect the edge propagation behavior
+        // We expect: _1 -> _0
+        let constraints = inference_env.take_constraints();
+        assert_eq!(
+            constraints,
+            [Constraint::StructuralEdge {
+                source: edge_var,
+                target: Variable::synthetic(VariableKind::Hole(hole)),
+            }]
+        );
+    }
 
     #[test]
     fn collect_structural_edges_tuple_contravariant_context() {
@@ -1527,36 +1522,44 @@ mod test {
         );
     }
 
-    // TODO: move to generics test suite
-    // #[test]
-    // fn instantiate_tuple() {
-    //     let heap = Heap::new();
-    //     let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    #[test]
+    fn instantiate_tuple() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
-    //     let argument = env.counter.generic_argument.next();
+        let argument = env.counter.generic_argument.next();
 
-    //     tuple!(
-    //         env,
-    //         value,
-    //         [GenericArgument {
-    //             id: argument,
-    //             name: env.heap.intern_symbol("T"),
-    //             constraint: None
-    //         }],
-    //         [instantiate_param(&env, argument)]
-    //     );
+        let value = generic!(
+            env,
+            tuple!(env, [instantiate_param(&env, argument)]),
+            [GenericArgument {
+                id: argument,
+                name: env.heap.intern_symbol("T"),
+                constraint: None
+            }]
+        );
 
-    //     let mut instantiate = InstantiateEnvironment::new(&env);
-    //     let type_id = value.instantiate(&mut instantiate);
+        let mut instantiate = InstantiateEnvironment::new(&env);
+        let type_id = instantiate.instantiate(value);
 
-    //     let r#type = env.r#type(type_id).kind.tuple().expect("should be tuple");
-    //     assert_eq!(r#type.fields.len(), 1);
-    //     assert_eq!(r#type.arguments.len(), 1);
+        let generic = env
+            .r#type(type_id)
+            .kind
+            .generic()
+            .expect("should be generic");
+        assert_eq!(generic.arguments.len(), 1);
 
-    //     let field = env.r#type(r#type.fields[0]);
-    //     let param = field.kind.param().expect("should be param");
+        let r#type = env
+            .r#type(generic.base)
+            .kind
+            .tuple()
+            .expect("should be tuple");
 
-    //     assert_eq!(param.argument, r#type.arguments[0].id);
-    //     assert_ne!(param.argument, argument);
-    // }
+        assert_eq!(r#type.fields.len(), 1);
+        let field = env.r#type(r#type.fields[0]);
+        let param = field.kind.param().expect("should be param");
+
+        assert_eq!(param.argument, generic.arguments[0].id);
+        assert_ne!(param.argument, argument);
+    }
 }
