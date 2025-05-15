@@ -3,7 +3,7 @@ use core::ops::{ControlFlow, Deref};
 use pretty::RcDoc;
 use smallvec::SmallVec;
 
-use super::{TypeKind, generic::GenericArguments};
+use super::TypeKind;
 use crate::{
     collection::FastHashMap,
     intern::Interned,
@@ -116,7 +116,6 @@ impl PrettyPrint for StructFields<'_> {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct StructType<'heap> {
     pub fields: StructFields<'heap>,
-    pub arguments: GenericArguments<'heap>,
 }
 
 impl<'heap> StructType<'heap> {
@@ -156,7 +155,6 @@ impl<'heap> StructType<'heap> {
                         fields: env
                             .intern_struct_fields(&mut fields)
                             .unwrap_or_else(|_| unreachable!()),
-                        arguments: self.kind.arguments,
                     })),
                 })
             })
@@ -186,8 +184,6 @@ impl<'heap> StructType<'heap> {
                     // we've verified the fields are identical, so there will be no duplicates
                     unreachable!()
                 }),
-                // merge the two arguments together, as some of the fields may refer to either
-                arguments: self.kind.arguments.merge(&other.kind.arguments, env),
             })),
         });
 
@@ -456,7 +452,6 @@ impl<'heap> Lattice<'heap> for StructType<'heap> {
                     fields: env
                         .intern_struct_fields(&mut fields)
                         .unwrap_or_else(|_| unreachable!()),
-                    arguments: self.kind.arguments,
                 })),
             },
         )
@@ -500,8 +495,7 @@ impl<'heap> Inference<'heap> for StructType<'heap> {
     }
 
     fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {
-        let (_guard_id, id) = env.provision(self.id);
-        let (_guard, arguments) = env.instantiate_arguments(self.kind.arguments);
+        let (_guard, id) = env.provision(self.id);
 
         let mut fields = SmallVec::<_, 16>::with_capacity(self.kind.fields.len());
         for field in &*self.kind.fields {
@@ -519,7 +513,6 @@ impl<'heap> Inference<'heap> for StructType<'heap> {
                     fields: env
                         .intern_struct_fields(&mut fields)
                         .unwrap_or_else(|_| unreachable!()),
-                    arguments,
                 })),
             },
         )
@@ -532,14 +525,9 @@ impl PrettyPrint for StructType<'_> {
         env: &'env Environment,
         limit: RecursionDepthBoundary,
     ) -> RcDoc<'env, anstyle::Style> {
-        self.arguments
-            .pretty(env, limit)
-            .append(
-                RcDoc::text("(")
-                    .append(self.fields.pretty(env, limit))
-                    .append(RcDoc::text(")"))
-                    .group(),
-            )
+        RcDoc::text("(")
+            .append(self.fields.pretty(env, limit))
+            .append(RcDoc::text(")"))
             .group()
     }
 }
@@ -549,8 +537,6 @@ mod test {
     #![expect(clippy::min_ident_chars)]
     use core::assert_matches::assert_matches;
 
-    use anstream::adapter::strip_str;
-
     use super::{StructField, StructType};
     use crate::{
         heap::Heap,
@@ -559,14 +545,13 @@ mod test {
             PartialType,
             environment::{
                 AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
-                SimplifyEnvironment, instantiate::InstantiateEnvironment,
+                SimplifyEnvironment,
             },
             inference::{
                 Constraint, Inference as _, PartialStructuralEdge, Variable, VariableKind,
             },
             kind::{
                 TypeKind,
-                generic::{GenericArgument, GenericArgumentId, GenericArguments},
                 infer::HoleId,
                 intersection::IntersectionType,
                 primitive::PrimitiveType,
@@ -575,7 +560,7 @@ mod test {
             },
             lattice::{Lattice as _, test::assert_lattice_laws},
             pretty_print::PrettyPrint as _,
-            test::{instantiate, instantiate_infer, instantiate_param},
+            test::{instantiate, instantiate_infer},
         },
     };
 
@@ -587,7 +572,6 @@ mod test {
         r#struct!(
             env,
             a,
-            [],
             [
                 struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
                 struct_field!(env, "age", primitive!(env, PrimitiveType::Number))
@@ -597,7 +581,6 @@ mod test {
         r#struct!(
             env,
             b,
-            [],
             [
                 struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
                 struct_field!(env, "age", primitive!(env, PrimitiveType::Number))
@@ -612,7 +595,6 @@ mod test {
             a.join(b, &mut lattice_env),
             [r#struct!(
                 env,
-                [],
                 [
                     struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
                     struct_field!(env, "age", primitive!(env, PrimitiveType::Number))
@@ -629,7 +611,6 @@ mod test {
         r#struct!(
             env,
             a,
-            [],
             [
                 struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
                 struct_field!(env, "age", primitive!(env, PrimitiveType::Number))
@@ -639,7 +620,6 @@ mod test {
         r#struct!(
             env,
             b,
-            [],
             [
                 struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
                 struct_field!(env, "active", primitive!(env, PrimitiveType::Boolean))
@@ -654,7 +634,6 @@ mod test {
             a.join(b, &mut lattice_env),
             [r#struct!(
                 env,
-                [],
                 [
                     struct_field!(env, "active", primitive!(env, PrimitiveType::Boolean)),
                     struct_field!(env, "age", primitive!(env, PrimitiveType::Number)),
@@ -672,7 +651,6 @@ mod test {
         r#struct!(
             env,
             a,
-            [],
             [
                 struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
                 struct_field!(env, "value", primitive!(env, PrimitiveType::Integer))
@@ -682,7 +660,6 @@ mod test {
         r#struct!(
             env,
             b,
-            [],
             [
                 struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
                 struct_field!(env, "value", primitive!(env, PrimitiveType::Number))
@@ -697,7 +674,6 @@ mod test {
             a.join(b, &mut lattice_env),
             [r#struct!(
                 env,
-                [],
                 [
                     struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
                     struct_field!(env, "value", primitive!(env, PrimitiveType::Number))
@@ -714,7 +690,6 @@ mod test {
         r#struct!(
             env,
             a,
-            [],
             [
                 struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
                 struct_field!(env, "age", primitive!(env, PrimitiveType::Number))
@@ -724,7 +699,6 @@ mod test {
         r#struct!(
             env,
             b,
-            [],
             [
                 struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
                 struct_field!(env, "age", primitive!(env, PrimitiveType::Number))
@@ -739,7 +713,6 @@ mod test {
             a.meet(b, &mut lattice_env),
             [r#struct!(
                 env,
-                [],
                 [
                     struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
                     struct_field!(env, "age", primitive!(env, PrimitiveType::Number))
@@ -756,7 +729,6 @@ mod test {
         r#struct!(
             env,
             a,
-            [],
             [
                 struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
                 struct_field!(env, "age", primitive!(env, PrimitiveType::Number))
@@ -766,7 +738,6 @@ mod test {
         r#struct!(
             env,
             b,
-            [],
             [
                 struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
                 struct_field!(env, "active", primitive!(env, PrimitiveType::Boolean))
@@ -781,7 +752,6 @@ mod test {
             a.meet(b, &mut lattice_env),
             [r#struct!(
                 env,
-                [],
                 [struct_field!(
                     env,
                     "name",
@@ -799,7 +769,6 @@ mod test {
         r#struct!(
             env,
             a,
-            [],
             [
                 struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
                 struct_field!(env, "value", primitive!(env, PrimitiveType::Number))
@@ -809,7 +778,6 @@ mod test {
         r#struct!(
             env,
             b,
-            [],
             [
                 struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
                 struct_field!(env, "value", primitive!(env, PrimitiveType::Integer))
@@ -824,7 +792,6 @@ mod test {
             a.meet(b, &mut lattice_env),
             [r#struct!(
                 env,
-                [],
                 [
                     struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
                     struct_field!(env, "value", primitive!(env, PrimitiveType::Integer))
@@ -842,7 +809,6 @@ mod test {
         r#struct!(
             env,
             normal_struct,
-            [],
             [
                 struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
                 struct_field!(env, "age", primitive!(env, PrimitiveType::Number))
@@ -850,13 +816,12 @@ mod test {
         );
 
         // Create an empty struct (which is considered inhabited)
-        r#struct!(env, empty_struct, [], []);
+        r#struct!(env, empty_struct, []);
 
         // Create a struct with an uninhabited field
         r#struct!(
             env,
             never_struct,
-            [],
             [
                 struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
                 struct_field!(env, "error", instantiate(&env, TypeKind::Never))
@@ -889,7 +854,6 @@ mod test {
         r#struct!(
             env,
             struct_a,
-            [],
             [
                 struct_field!(env, "name", string),
                 struct_field!(env, "value", number)
@@ -899,7 +863,6 @@ mod test {
         r#struct!(
             env,
             struct_b,
-            [],
             [
                 struct_field!(env, "name", string),
                 struct_field!(env, "value", integer)
@@ -910,7 +873,6 @@ mod test {
         r#struct!(
             env,
             struct_c,
-            [],
             [
                 struct_field!(env, "name", string),
                 struct_field!(env, "value", integer),
@@ -919,7 +881,7 @@ mod test {
         );
 
         // Struct with fewer fields
-        r#struct!(env, struct_d, [], [struct_field!(env, "name", string)]);
+        r#struct!(env, struct_d, [struct_field!(env, "name", string)]);
 
         let mut analysis_env = AnalysisEnvironment::new(&env);
 
@@ -954,7 +916,6 @@ mod test {
         r#struct!(
             env,
             a,
-            [],
             [
                 struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
                 struct_field!(env, "value", primitive!(env, PrimitiveType::Number))
@@ -964,7 +925,6 @@ mod test {
         r#struct!(
             env,
             b,
-            [],
             [
                 struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
                 struct_field!(env, "value", primitive!(env, PrimitiveType::Number))
@@ -975,7 +935,6 @@ mod test {
         r#struct!(
             env,
             c,
-            [],
             [
                 struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
                 struct_field!(env, "value", primitive!(env, PrimitiveType::Boolean))
@@ -986,7 +945,6 @@ mod test {
         r#struct!(
             env,
             d,
-            [],
             [
                 struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
                 struct_field!(env, "age", primitive!(env, PrimitiveType::Number))
@@ -1014,7 +972,6 @@ mod test {
         r#struct!(
             env,
             a,
-            [],
             [
                 struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
                 struct_field!(env, "value", primitive!(env, PrimitiveType::Number))
@@ -1024,7 +981,6 @@ mod test {
         r#struct!(
             env,
             b,
-            [],
             [
                 struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
                 struct_field!(env, "value", primitive!(env, PrimitiveType::Number)),
@@ -1063,7 +1019,6 @@ mod test {
         r#struct!(
             env,
             normal_struct,
-            [],
             [
                 struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
                 struct_field!(env, "age", primitive!(env, PrimitiveType::Number))
@@ -1074,7 +1029,6 @@ mod test {
         r#struct!(
             env,
             never_struct,
-            [],
             [
                 struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
                 struct_field!(env, "error", instantiate(&env, TypeKind::Never))
@@ -1109,7 +1063,6 @@ mod test {
         // We need these to have different field structures for proper lattice testing
         let a = r#struct!(
             env,
-            [],
             [
                 struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
                 struct_field!(env, "value", primitive!(env, PrimitiveType::Number))
@@ -1118,7 +1071,6 @@ mod test {
 
         let b = r#struct!(
             env,
-            [],
             [
                 struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
                 struct_field!(env, "age", primitive!(env, PrimitiveType::Integer))
@@ -1127,7 +1079,6 @@ mod test {
 
         let c = r#struct!(
             env,
-            [],
             [
                 struct_field!(env, "id", primitive!(env, PrimitiveType::String)),
                 struct_field!(env, "active", primitive!(env, PrimitiveType::Boolean))
@@ -1151,7 +1102,6 @@ mod test {
         r#struct!(
             env,
             concrete_struct,
-            [],
             [
                 struct_field!(env, "name", string),
                 struct_field!(env, "value", number)
@@ -1166,7 +1116,6 @@ mod test {
         r#struct!(
             env,
             non_concrete_struct,
-            [],
             [
                 struct_field!(env, "name", string),
                 struct_field!(env, "value", infer_var)
@@ -1175,24 +1124,25 @@ mod test {
         assert!(!non_concrete_struct.is_concrete(&mut analysis_env));
 
         // Empty struct should be concrete
-        r#struct!(env, empty_struct, [], []);
+        r#struct!(env, empty_struct, []);
         assert!(empty_struct.is_concrete(&mut analysis_env));
 
-        // Struct with generic arguments should still be concrete if fields are concrete
-        r#struct!(
-            env,
-            struct_with_args,
-            [GenericArgument {
-                id: GenericArgumentId::new(0),
-                name: heap.intern_symbol("T"),
-                constraint: None
-            }],
-            [
-                struct_field!(env, "name", string),
-                struct_field!(env, "value", number)
-            ]
-        );
-        assert!(struct_with_args.is_concrete(&mut analysis_env));
+        // TODO: move to generic test suite
+        // // Struct with generic arguments should still be concrete if fields are concrete
+        // r#struct!(
+        //     env,
+        //     struct_with_args,
+        //     [GenericArgument {
+        //         id: GenericArgumentId::new(0),
+        //         name: heap.intern_symbol("T"),
+        //         constraint: None
+        //     }],
+        //     [
+        //         struct_field!(env, "name", string),
+        //         struct_field!(env, "value", number)
+        //     ]
+        // );
+        // assert!(struct_with_args.is_concrete(&mut analysis_env));
     }
 
     #[test]
@@ -1212,7 +1162,6 @@ mod test {
         r#struct!(
             env,
             struct_with_union,
-            [],
             [
                 struct_field!(env, "name", string),
                 struct_field!(env, "value", union_type)
@@ -1229,7 +1178,6 @@ mod test {
             [
                 r#struct!(
                     env,
-                    [],
                     [
                         struct_field!(env, "name", string),
                         struct_field!(env, "value", string)
@@ -1237,7 +1185,6 @@ mod test {
                 ),
                 r#struct!(
                     env,
-                    [],
                     [
                         struct_field!(env, "name", string),
                         struct_field!(env, "value", boolean)
@@ -1267,7 +1214,6 @@ mod test {
         r#struct!(
             env,
             struct_with_unions,
-            [],
             [
                 struct_field!(env, "type", union_type1),
                 struct_field!(env, "value", union_type2)
@@ -1284,7 +1230,6 @@ mod test {
             [
                 r#struct!(
                     env,
-                    [],
                     [
                         struct_field!(env, "type", number),
                         struct_field!(env, "value", string)
@@ -1292,7 +1237,6 @@ mod test {
                 ),
                 r#struct!(
                     env,
-                    [],
                     [
                         struct_field!(env, "type", integer),
                         struct_field!(env, "value", string)
@@ -1300,7 +1244,6 @@ mod test {
                 ),
                 r#struct!(
                     env,
-                    [],
                     [
                         struct_field!(env, "type", number),
                         struct_field!(env, "value", boolean)
@@ -1308,7 +1251,6 @@ mod test {
                 ),
                 r#struct!(
                     env,
-                    [],
                     [
                         struct_field!(env, "type", integer),
                         struct_field!(env, "value", boolean)
@@ -1334,7 +1276,6 @@ mod test {
         r#struct!(
             env,
             struct_with_intersection,
-            [],
             [struct_field!(env, "value", intersect_type)]
         );
 
@@ -1344,8 +1285,8 @@ mod test {
             env,
             result,
             [
-                r#struct!(env, [], [struct_field!(env, "value", number)]),
-                r#struct!(env, [], [struct_field!(env, "value", string)])
+                r#struct!(env, [struct_field!(env, "value", number)]),
+                r#struct!(env, [struct_field!(env, "value", string)])
             ]
         );
     }
@@ -1359,7 +1300,6 @@ mod test {
         r#struct!(
             env,
             inner1,
-            [],
             [struct_field!(
                 env,
                 "value",
@@ -1370,7 +1310,6 @@ mod test {
         r#struct!(
             env,
             inner2,
-            [],
             [struct_field!(
                 env,
                 "value",
@@ -1382,7 +1321,6 @@ mod test {
         r#struct!(
             env,
             outer1,
-            [],
             [
                 struct_field!(env, "nested", inner1.id),
                 struct_field!(env, "name", primitive!(env, PrimitiveType::String))
@@ -1392,7 +1330,6 @@ mod test {
         r#struct!(
             env,
             outer2,
-            [],
             [
                 struct_field!(env, "nested", inner2.id),
                 struct_field!(env, "name", primitive!(env, PrimitiveType::String))
@@ -1417,7 +1354,6 @@ mod test {
         r#struct!(
             env,
             a,
-            [],
             [
                 struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
                 struct_field!(env, "age", primitive!(env, PrimitiveType::Number))
@@ -1427,7 +1363,6 @@ mod test {
         r#struct!(
             env,
             b,
-            [],
             [
                 struct_field!(env, "id", primitive!(env, PrimitiveType::String)),
                 struct_field!(env, "active", primitive!(env, PrimitiveType::Boolean))
@@ -1443,7 +1378,6 @@ mod test {
             a.join(b, &mut lattice_env),
             [r#struct!(
                 env,
-                [],
                 [
                     struct_field!(env, "active", primitive!(env, PrimitiveType::Boolean)),
                     struct_field!(env, "age", primitive!(env, PrimitiveType::Number)),
@@ -1455,7 +1389,7 @@ mod test {
 
         // Meet of disjoint structs should have no fields
         let meet_result = a.meet(b, &mut lattice_env);
-        assert_equiv!(env, meet_result, [r#struct!(env, [], [])]);
+        assert_equiv!(env, meet_result, [r#struct!(env, [])]);
 
         // Test the is_disjoint_by_keys method indirectly through is_equivalent
         // Disjoint structs should not be equivalent
@@ -1472,7 +1406,6 @@ mod test {
         r#struct!(
             env,
             subtype,
-            [],
             [
                 struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
                 struct_field!(env, "value", number)
@@ -1485,7 +1418,6 @@ mod test {
         r#struct!(
             env,
             supertype,
-            [],
             [
                 struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
                 struct_field!(env, "value", infer_var)
@@ -1519,7 +1451,6 @@ mod test {
         r#struct!(
             env,
             subtype,
-            [],
             [
                 struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
                 struct_field!(env, "value", infer_var),
@@ -1533,7 +1464,6 @@ mod test {
         r#struct!(
             env,
             supertype,
-            [],
             [
                 struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
                 struct_field!(env, "value", number)
@@ -1569,7 +1499,6 @@ mod test {
         r#struct!(
             env,
             subtype,
-            [],
             [struct_field!(
                 env,
                 "name",
@@ -1583,7 +1512,6 @@ mod test {
         r#struct!(
             env,
             supertype,
-            [],
             [
                 struct_field!(env, "name", primitive!(env, PrimitiveType::String)),
                 struct_field!(env, "value", infer_var)
@@ -1613,11 +1541,10 @@ mod test {
         r#struct!(
             env,
             a,
-            [],
             [struct_field!(
                 env,
                 "nested",
-                r#struct!(env, [], [struct_field!(env, "data", infer_var)])
+                r#struct!(env, [struct_field!(env, "data", infer_var)])
             )]
         );
 
@@ -1627,11 +1554,10 @@ mod test {
         r#struct!(
             env,
             b,
-            [],
             [struct_field!(
                 env,
                 "nested",
-                r#struct!(env, [], [struct_field!(env, "data", number)])
+                r#struct!(env, [struct_field!(env, "data", number)])
             )]
         );
 
@@ -1649,56 +1575,57 @@ mod test {
         );
     }
 
-    #[test]
-    fn collect_constraints_generic_params() {
-        let heap = Heap::new();
-        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    // TODO: move this to the `Generic` test suite
+    // #[test]
+    // fn collect_constraints_generic_params() {
+    //     let heap = Heap::new();
+    //     let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
-        let arg1 = GenericArgumentId::new(0);
-        let arg2 = GenericArgumentId::new(1);
+    //     let arg1 = GenericArgumentId::new(0);
+    //     let arg2 = GenericArgumentId::new(1);
 
-        // Create generic parameter types
-        let param1 = instantiate_param(&env, arg1);
-        let param2 = instantiate_param(&env, arg2);
+    //     // Create generic parameter types
+    //     let param1 = instantiate_param(&env, arg1);
+    //     let param2 = instantiate_param(&env, arg2);
 
-        // Create structs with generic parameters
-        r#struct!(
-            env,
-            subtype,
-            [GenericArgument {
-                id: arg1,
-                name: heap.intern_symbol("T"),
-                constraint: None
-            }],
-            [struct_field!(env, "value", param1)]
-        );
+    //     // Create structs with generic parameters
+    //     r#struct!(
+    //         env,
+    //         subtype,
+    //         [GenericArgument {
+    //             id: arg1,
+    //             name: heap.intern_symbol("T"),
+    //             constraint: None
+    //         }],
+    //         [struct_field!(env, "value", param1)]
+    //     );
 
-        r#struct!(
-            env,
-            supertype,
-            [GenericArgument {
-                id: arg2,
-                name: heap.intern_symbol("U"),
-                constraint: None
-            }],
-            [struct_field!(env, "value", param2)]
-        );
+    //     r#struct!(
+    //         env,
+    //         supertype,
+    //         [GenericArgument {
+    //             id: arg2,
+    //             name: heap.intern_symbol("U"),
+    //             constraint: None
+    //         }],
+    //         [struct_field!(env, "value", param2)]
+    //     );
 
-        // Create an inference environment to collect constraints
-        let mut inference_env = InferenceEnvironment::new(&env);
+    //     // Create an inference environment to collect constraints
+    //     let mut inference_env = InferenceEnvironment::new(&env);
 
-        // Collect constraints between the generic structs
-        subtype.collect_constraints(supertype, &mut inference_env);
+    //     // Collect constraints between the generic structs
+    //     subtype.collect_constraints(supertype, &mut inference_env);
 
-        let constraints = inference_env.take_constraints();
-        assert_eq!(
-            constraints,
-            [Constraint::Ordering {
-                lower: Variable::synthetic(VariableKind::Generic(arg1)),
-                upper: Variable::synthetic(VariableKind::Generic(arg2))
-            }]
-        );
-    }
+    //     let constraints = inference_env.take_constraints();
+    //     assert_eq!(
+    //         constraints,
+    //         [Constraint::Ordering {
+    //             lower: Variable::synthetic(VariableKind::Generic(arg1)),
+    //             upper: Variable::synthetic(VariableKind::Generic(arg2))
+    //         }]
+    //     );
+    // }
 
     #[test]
     fn collect_constraints_concrete() {
@@ -1709,9 +1636,9 @@ mod test {
         let number = primitive!(env, PrimitiveType::Number);
 
         // Create structs with a covariant relationship in the field types
-        r#struct!(env, subtype, [], [struct_field!(env, "value", integer)]);
+        r#struct!(env, subtype, [struct_field!(env, "value", integer)]);
 
-        r#struct!(env, supertype, [], [struct_field!(env, "value", number)]);
+        r#struct!(env, supertype, [struct_field!(env, "value", number)]);
 
         let mut inference_env = InferenceEnvironment::new(&env);
 
@@ -1736,12 +1663,7 @@ mod test {
         let infer_var = instantiate_infer(&env, hole);
 
         // Create a struct with a field containing an inference variable: { value: _0 }
-        r#struct!(
-            env,
-            struct_type,
-            [],
-            [struct_field!(env, "value", infer_var)]
-        );
+        r#struct!(env, struct_type, [struct_field!(env, "value", infer_var)]);
 
         let mut inference_env = InferenceEnvironment::new(&env);
 
@@ -1779,7 +1701,6 @@ mod test {
         r#struct!(
             env,
             struct_type,
-            [],
             [
                 struct_field!(env, "x", infer_var1),
                 struct_field!(env, "y", infer_var2)
@@ -1823,12 +1744,11 @@ mod test {
         let infer_var = instantiate_infer(&env, hole);
 
         // Create a nested struct: { outer: { inner: _0 } }
-        let inner_struct = r#struct!(env, [], [struct_field!(env, "inner", infer_var)]);
+        let inner_struct = r#struct!(env, [struct_field!(env, "inner", infer_var)]);
 
         r#struct!(
             env,
             outer_struct,
-            [],
             [struct_field!(env, "outer", inner_struct)]
         );
 
@@ -1863,12 +1783,7 @@ mod test {
         let infer_var = instantiate_infer(&env, hole);
 
         // Create a struct with a field containing an inference variable
-        r#struct!(
-            env,
-            struct_type,
-            [],
-            [struct_field!(env, "value", infer_var)]
-        );
+        r#struct!(env, struct_type, [struct_field!(env, "value", infer_var)]);
 
         let mut inference_env = InferenceEnvironment::new(&env);
 
@@ -1899,7 +1814,7 @@ mod test {
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         // Create an empty struct: {}
-        r#struct!(env, empty_struct, [], []);
+        r#struct!(env, empty_struct, []);
 
         let mut inference_env = InferenceEnvironment::new(&env);
 
@@ -1932,7 +1847,6 @@ mod test {
         r#struct!(
             env,
             mixed_struct,
-            [],
             [
                 struct_field!(env, "concrete", string),
                 struct_field!(env, "inferred", infer_var)
@@ -1972,7 +1886,6 @@ mod test {
                 fields: env
                     .intern_struct_fields(&mut [struct_field!(env, "self", id.value())])
                     .expect("fields should be unique"),
-                arguments: GenericArguments::empty(),
             })),
         });
 
@@ -1983,119 +1896,121 @@ mod test {
 
         assert_matches!(
             r#type.kind,
-            TypeKind::Struct(StructType { fields, arguments }) if fields.len() == 1
+            TypeKind::Struct(StructType { fields }) if fields.len() == 1
                 && fields[0].name.as_str() == "self"
                 && fields[0].value == type_id
-                && arguments.is_empty()
         );
     }
 
-    #[test]
-    fn instantiate_struct() {
-        let heap = Heap::new();
-        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    // TODO: use new generic macro
+    // #[test]
+    // fn instantiate_struct() {
+    //     let heap = Heap::new();
+    //     let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
-        let argument = env.counter.generic_argument.next();
+    //     let argument = env.counter.generic_argument.next();
 
-        r#struct!(
-            env,
-            value,
-            [GenericArgument {
-                id: argument,
-                name: env.heap.intern_symbol("T"),
-                constraint: None
-            }],
-            [struct_field!(
-                env,
-                "name",
-                instantiate_param(&env, argument)
-            )]
-        );
+    //     r#struct!(
+    //         env,
+    //         value,
+    //         [GenericArgument {
+    //             id: argument,
+    //             name: env.heap.intern_symbol("T"),
+    //             constraint: None
+    //         }],
+    //         [struct_field!(
+    //             env,
+    //             "name",
+    //             instantiate_param(&env, argument)
+    //         )]
+    //     );
 
-        let mut instantiate = InstantiateEnvironment::new(&env);
-        let type_id = value.instantiate(&mut instantiate);
+    //     let mut instantiate = InstantiateEnvironment::new(&env);
+    //     let type_id = value.instantiate(&mut instantiate);
 
-        let r#type = env
-            .r#type(type_id)
-            .kind
-            .r#struct()
-            .expect("should be tuple");
-        assert_eq!(r#type.fields.len(), 1);
-        assert_eq!(r#type.arguments.len(), 1);
+    //     let r#type = env
+    //         .r#type(type_id)
+    //         .kind
+    //         .r#struct()
+    //         .expect("should be tuple");
+    //     assert_eq!(r#type.fields.len(), 1);
+    //     assert_eq!(r#type.arguments.len(), 1);
 
-        assert_eq!(r#type.fields[0].name.as_str(), "name");
-        let field = env.r#type(r#type.fields[0].value);
-        let param = field.kind.param().expect("should be param");
+    //     assert_eq!(r#type.fields[0].name.as_str(), "name");
+    //     let field = env.r#type(r#type.fields[0].value);
+    //     let param = field.kind.param().expect("should be param");
 
-        assert_eq!(param.argument, r#type.arguments[0].id);
-        assert_ne!(param.argument, argument);
-    }
+    //     assert_eq!(param.argument, r#type.arguments[0].id);
+    //     assert_ne!(param.argument, argument);
+    // }
 
-    #[test]
-    fn instantiate_struct_recursive() {
-        let heap = Heap::new();
-        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    // TODO: use the new macro for this
+    // #[test]
+    // fn instantiate_struct_recursive() {
+    //     let heap = Heap::new();
+    //     let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
-        let argument = env.counter.generic_argument.next();
+    //     let argument = env.counter.generic_argument.next();
 
-        let value = env.types.intern(|id| PartialType {
-            span: SpanId::SYNTHETIC,
-            kind: env.intern_kind(TypeKind::Struct(StructType {
-                fields: env
-                    .intern_struct_fields(&mut [struct_field!(env, "name", id.value())])
-                    .expect("should be valid"),
-                arguments: env.intern_generic_arguments(&mut [GenericArgument {
-                    id: argument,
-                    name: env.heap.intern_symbol("T"),
-                    constraint: None,
-                }]),
-            })),
-        });
+    //     let value = env.types.intern(|id| PartialType {
+    //         span: SpanId::SYNTHETIC,
+    //         kind: env.intern_kind(TypeKind::Struct(StructType {
+    //             fields: env
+    //                 .intern_struct_fields(&mut [struct_field!(env, "name", id.value())])
+    //                 .expect("should be valid"),
+    //             arguments: env.intern_generic_arguments(&mut [GenericArgument {
+    //                 id: argument,
+    //                 name: env.heap.intern_symbol("T"),
+    //                 constraint: None,
+    //             }]),
+    //         })),
+    //     });
 
-        let mut instantiate = InstantiateEnvironment::new(&env);
-        let type_id = instantiate.instantiate(value.id);
+    //     let mut instantiate = InstantiateEnvironment::new(&env);
+    //     let type_id = instantiate.instantiate(value.id);
 
-        let r#type = env
-            .r#type(type_id)
-            .kind
-            .r#struct()
-            .expect("should be tuple");
-        assert_eq!(r#type.fields.len(), 1);
-        assert_eq!(r#type.arguments.len(), 1);
+    //     let r#type = env
+    //         .r#type(type_id)
+    //         .kind
+    //         .r#struct()
+    //         .expect("should be tuple");
+    //     assert_eq!(r#type.fields.len(), 1);
+    //     assert_eq!(r#type.arguments.len(), 1);
 
-        assert_eq!(r#type.fields[0].name.as_str(), "name");
-        assert_eq!(r#type.fields[0].value, type_id);
-    }
+    //     assert_eq!(r#type.fields[0].name.as_str(), "name");
+    //     assert_eq!(r#type.fields[0].value, type_id);
+    // }
 
-    #[test]
-    fn instantiate_interdependent() {
-        let heap = Heap::new();
-        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    // TODO: move this to `Generic` test suite
+    // #[test]
+    // fn instantiate_interdependent() {
+    //     let heap = Heap::new();
+    //     let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
-        let t = env.counter.generic_argument.next();
-        let u = env.counter.generic_argument.next();
+    //     let t = env.counter.generic_argument.next();
+    //     let u = env.counter.generic_argument.next();
 
-        let value = r#struct!(
-            env,
-            [
-                GenericArgument {
-                    id: t,
-                    name: env.heap.intern_symbol("T"),
-                    constraint: None,
-                },
-                GenericArgument {
-                    id: u,
-                    name: env.heap.intern_symbol("U"),
-                    constraint: Some(instantiate_param(&env, t)),
-                }
-            ],
-            []
-        );
+    //     let value = r#struct!(
+    //         env,
+    //         [
+    //             GenericArgument {
+    //                 id: t,
+    //                 name: env.heap.intern_symbol("T"),
+    //                 constraint: None,
+    //             },
+    //             GenericArgument {
+    //                 id: u,
+    //                 name: env.heap.intern_symbol("U"),
+    //                 constraint: Some(instantiate_param(&env, t)),
+    //             }
+    //         ],
+    //         []
+    //     );
 
-        let mut instantiate = InstantiateEnvironment::new(&env);
-        let type_id = instantiate.instantiate(value);
+    //     let mut instantiate = InstantiateEnvironment::new(&env);
+    //     let type_id = instantiate.instantiate(value);
 
-        // The type is complicated enough that it isn't feasible to test it through assertions.
-        insta::assert_snapshot!(strip_str(&env.r#type(type_id).pretty_print(&env, 80)));
-    }
+    //     // The type is complicated enough that it isn't feasible to test it through assertions.
+    //     insta::assert_snapshot!(strip_str(&env.r#type(type_id).pretty_print(&env, 80)));
+    // }
 }

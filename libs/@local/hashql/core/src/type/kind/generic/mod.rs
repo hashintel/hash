@@ -444,5 +444,6 @@ impl PrettyPrint for Generic<'_> {
         self.arguments
             .pretty(env, limit)
             .append(limit.pretty(env, self.base))
+            .group()
     }
 }

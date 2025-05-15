@@ -27,19 +27,17 @@ macro_rules! tuple {
 }
 
 macro_rules! r#struct {
-    ($env:expr, $arguments:expr, $fields:expr) => {{
+    ($env:expr, $fields:expr) => {{
         let mut fields = $fields;
         let fields = $env
             .intern_struct_fields(&mut fields)
             .expect("should not have any duplicate fields");
-        let mut arguments = $arguments;
-        let arguments = $env.intern_generic_arguments(&mut arguments);
 
-        instantiate(&$env, TypeKind::Struct(StructType { fields, arguments }))
+        instantiate(&$env, TypeKind::Struct(StructType { fields }))
     }};
 
-    ($env:expr, $name:ident, $fields:expr, $arguments:expr) => {
-        let $name = r#struct!($env, $fields, $arguments);
+    ($env:expr, $name:ident, $fields:expr) => {
+        let $name = r#struct!($env, $fields);
         let $name = $env.r#type($name);
         let $name = $name.map(|kind| kind.r#struct().expect("should be a struct"));
     };
