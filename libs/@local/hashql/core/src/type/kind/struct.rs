@@ -1131,23 +1131,6 @@ mod test {
         // Empty struct should be concrete
         r#struct!(env, empty_struct, []);
         assert!(empty_struct.is_concrete(&mut analysis_env));
-
-        // TODO: move to generic test suite
-        // // Struct with generic arguments should still be concrete if fields are concrete
-        // r#struct!(
-        //     env,
-        //     struct_with_args,
-        //     [GenericArgument {
-        //         id: GenericArgumentId::new(0),
-        //         name: heap.intern_symbol("T"),
-        //         constraint: None
-        //     }],
-        //     [
-        //         struct_field!(env, "name", string),
-        //         struct_field!(env, "value", number)
-        //     ]
-        // );
-        // assert!(struct_with_args.is_concrete(&mut analysis_env));
     }
 
     #[test]

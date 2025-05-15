@@ -831,20 +831,6 @@ mod test {
         // Empty tuple should be concrete
         tuple!(env, empty_tuple, []);
         assert!(empty_tuple.is_concrete(&mut analysis_env));
-
-        // TODO: move to generics test suite
-        // // Tuple with generic arguments should still be concrete if fields are concrete
-        // tuple!(
-        //     env,
-        //     tuple_with_args,
-        //     [GenericArgument {
-        //         id: GenericArgumentId::new(0),
-        //         name: heap.intern_symbol("T"),
-        //         constraint: None
-        //     }],
-        //     [number, string]
-        // );
-        // assert!(tuple_with_args.is_concrete(&mut analysis_env));
     }
 
     #[test]
