@@ -11,9 +11,7 @@ use hash_graph_authorization::{
     backend::ModifyRelationshipOperation,
     policies::{
         Authorized, ContextBuilder, PartialResourceId, PolicySet, Request, RequestContext,
-        action::ActionName,
-        resource::{EntityTypeId, EntityTypeResource},
-        store::PolicyStore as _,
+        action::ActionName, store::PolicyStore as _,
     },
     schema::{EntityOwnerSubject, EntityPermission, EntityRelationAndSubject, WebPermission},
     zanzibar::{Consistency, Zookie},
@@ -75,11 +73,9 @@ use type_system::{
         InheritanceDepth,
         data_type::schema::DataTypeReference,
         entity_type::{
-            ClosedEntityType, ClosedEntityTypeWithMetadata, ClosedMultiEntityType, EntityTypeUuid,
-            EntityTypeWithMetadata,
+            ClosedEntityType, ClosedMultiEntityType, EntityTypeUuid, EntityTypeWithMetadata,
         },
         id::{BaseUrl, OntologyTypeUuid, OntologyTypeVersion, VersionedUrl},
-        provenance::OntologyOwnership,
     },
     principal::{actor::ActorEntityUuid, actor_group::WebId},
 };
@@ -802,7 +798,7 @@ where
 
         let transaction_time = Timestamp::<TransactionTime>::now().remove_nanosecond();
         let mut relationships = Vec::with_capacity(params.len());
-        let mut entity_type_ids = HashSet::new();
+        let mut entity_type_id_set = HashSet::new();
         let mut checked_web_ids = HashSet::new();
         let mut entity_edition_ids = Vec::with_capacity(params.len());
 
@@ -830,40 +826,26 @@ where
             let closed_entity_type = ClosedMultiEntityType::from_multi_type_closed_schema(
                 stream::iter(&params.entity_type_ids)
                     .then(|entity_type_url| async {
-                        OntologyTypeProvider::<ClosedEntityTypeWithMetadata>::provide_type(
+                        OntologyTypeProvider::<ClosedEntityType>::provide_type(
                             &validator_provider,
                             entity_type_url,
                         )
                         .await
+                        .map(|entity_type| ClosedEntityType::clone(&*entity_type))
                     })
-                    .try_collect::<Vec<_>>()
+                    .try_collect::<Vec<ClosedEntityType>>()
                     .await
                     .change_context(InsertionError)?
                     .into_iter()
-                    .map(|entity_type| {
-                        if entity_type_ids.insert(EntityTypeId::new(entity_type.schema.id.clone()))
-                        {
-                            policy_context_builder.add_entity_type(&EntityTypeResource {
-                                id: Cow::Owned(EntityTypeId::new(entity_type.schema.id.clone())),
-                                web_id: match entity_type.metadata.ownership {
-                                    OntologyOwnership::Local { web_id } => Some(web_id),
-                                    OntologyOwnership::Remote { .. } => None,
-                                },
-                            });
-                        }
-                        for parent in &entity_type.schema.all_of {
-                            if entity_type_ids.insert(EntityTypeId::new(parent.id.clone())) {
-                                policy_context_builder.add_entity_type(&EntityTypeResource {
-                                    id: Cow::Owned(EntityTypeId::new(parent.id.clone())),
-                                    // TODO: Use parent's web_id
-                                    web_id: match entity_type.metadata.ownership {
-                                        OntologyOwnership::Local { web_id } => Some(web_id),
-                                        OntologyOwnership::Remote { .. } => None,
-                                    },
-                                });
+                    .inspect(|entity_type| {
+                        if !entity_type_id_set.contains(&entity_type.id) {
+                            entity_type_id_set.insert(entity_type.id.clone());
+                            for parent in &entity_type.all_of {
+                                if !entity_type_id_set.contains(&parent.id) {
+                                    entity_type_id_set.insert(parent.id.clone());
+                                }
                             }
                         }
-                        entity_type.schema.clone()
                     }),
             )
             .change_context(InsertionError)?;
@@ -871,6 +853,10 @@ where
             closed_entity_types.push(closed_entity_type);
         }
 
+        let entity_type_ids = entity_type_id_set.into_iter().collect::<Vec<_>>();
+        self.build_entity_type_context(&entity_type_ids, &mut policy_context_builder)
+            .await
+            .change_context(InsertionError)?;
         let policy_context = policy_context_builder
             .build()
             .change_context(InsertionError)?;
@@ -1050,7 +1036,7 @@ where
                         actor,
                         action: ActionName::Instantiate,
                         resource: Some(&PartialResourceId::EntityType(Some(Cow::Borrowed(
-                            entity_type_id,
+                            entity_type_id.into(),
                         )))),
                         context: RequestContext::default(),
                     },
@@ -1770,7 +1756,7 @@ where
         let draft = params.draft.unwrap_or(was_draft_before);
         let archived = params.archived.unwrap_or(previous_entity.metadata.archived);
         let (entity_type_ids, affected_type_ids) = if params.entity_type_ids.is_empty() {
-            (previous_entity.metadata.entity_type_ids, HashSet::new())
+            (previous_entity.metadata.entity_type_ids, Vec::new())
         } else {
             let added_types = previous_entity
                 .metadata
@@ -1780,38 +1766,30 @@ where
                 .entity_type_ids
                 .difference(&previous_entity.metadata.entity_type_ids);
 
-            let mut affected_type_ids = HashSet::new();
+            let mut affected_type_id_set = HashSet::new();
             for entity_type_id in added_types.chain(removed_types) {
-                let entity_type =
-                    OntologyTypeProvider::<ClosedEntityTypeWithMetadata>::provide_type(
-                        &validator_provider,
-                        entity_type_id,
-                    )
-                    .await
-                    .change_context(UpdateError)?;
+                let entity_type = OntologyTypeProvider::<ClosedEntityType>::provide_type(
+                    &validator_provider,
+                    entity_type_id,
+                )
+                .await
+                .change_context(UpdateError)?;
 
-                if affected_type_ids.insert(EntityTypeId::new(entity_type.schema.id.clone())) {
-                    policy_context_builder.add_entity_type(&EntityTypeResource {
-                        id: Cow::Owned(EntityTypeId::new(entity_type.schema.id.clone())),
-                        web_id: match entity_type.metadata.ownership {
-                            OntologyOwnership::Local { web_id } => Some(web_id),
-                            OntologyOwnership::Remote { .. } => None,
-                        },
-                    });
-                }
-                for parent in &entity_type.schema.all_of {
-                    if affected_type_ids.insert(EntityTypeId::new(parent.id.clone())) {
-                        policy_context_builder.add_entity_type(&EntityTypeResource {
-                            id: Cow::Owned(EntityTypeId::new(parent.id.clone())),
-                            // TODO: Use parent's web_id
-                            web_id: match entity_type.metadata.ownership {
-                                OntologyOwnership::Local { web_id } => Some(web_id),
-                                OntologyOwnership::Remote { .. } => None,
-                            },
-                        });
+                if !affected_type_id_set.contains(&entity_type.id) {
+                    affected_type_id_set.insert(entity_type.id.clone());
+                    for parent in &entity_type.all_of {
+                        if !affected_type_id_set.contains(&parent.id) {
+                            affected_type_id_set.insert(parent.id.clone());
+                        }
                     }
                 }
             }
+
+            let affected_type_ids = affected_type_id_set.into_iter().collect::<Vec<_>>();
+            transaction
+                .build_entity_type_context(&affected_type_ids, &mut policy_context_builder)
+                .await
+                .change_context(UpdateError)?;
 
             (params.entity_type_ids, affected_type_ids)
         };
@@ -1827,7 +1805,7 @@ where
                             actor,
                             action: ActionName::Instantiate,
                             resource: Some(&PartialResourceId::EntityType(Some(Cow::Borrowed(
-                                entity_type_id,
+                                entity_type_id.into(),
                             )))),
                             context: RequestContext::default(),
                         },
