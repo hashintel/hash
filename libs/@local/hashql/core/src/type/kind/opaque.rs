@@ -3,7 +3,7 @@ use core::ops::ControlFlow;
 use pretty::RcDoc;
 use smallvec::SmallVec;
 
-use super::{TypeKind, generic::GenericArguments};
+use super::TypeKind;
 use crate::{
     symbol::Symbol,
     r#type::{
@@ -353,11 +353,11 @@ mod test {
                 Constraint, Inference as _, PartialStructuralEdge, Variable, VariableKind,
             },
             kind::{
-                Param, TypeKind,
-                generic::{GenericArgument, GenericArgumentId, GenericArguments},
+                Generic, Param, TypeKind,
+                generic::{GenericArgument, GenericArgumentId},
                 infer::HoleId,
                 primitive::PrimitiveType,
-                test::{assert_equiv, opaque, primitive, union},
+                test::{assert_equiv, generic, opaque, primitive, union},
                 union::UnionType,
             },
             lattice::{Lattice as _, test::assert_lattice_laws},
@@ -786,55 +786,50 @@ mod test {
         assert!(constraints.is_empty());
     }
 
-    // TODO: move to generics test suite
-    // #[test]
-    // fn collect_constraints_generic_params() {
-    //     let heap = Heap::new();
-    //     let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    #[test]
+    fn collect_constraints_generic_params() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
-    //     let arg1 = GenericArgumentId::new(0);
-    //     let arg2 = GenericArgumentId::new(1);
+        let arg1 = GenericArgumentId::new(0);
+        let arg2 = GenericArgumentId::new(1);
 
-    //     // Create generic parameter types
-    //     let param1 = instantiate_param(&env, arg1);
-    //     let param2 = instantiate_param(&env, arg2);
+        // Create generic parameter types
+        let param1 = instantiate_param(&env, arg1);
+        let param2 = instantiate_param(&env, arg2);
 
-    //     // Create opaque types with generic parameters
-    //     opaque!(
-    //         env,
-    //         opaque_a,
-    //         "Type",
-    //         param1,
-    //         [GenericArgument {
-    //             id: arg1,
-    //             name: heap.intern_symbol("T"),
-    //             constraint: None
-    //         }]
-    //     );
+        // Create opaque types with generic parameters
+        let opaque_a = generic!(
+            env,
+            opaque!(env, "Type", param1),
+            [GenericArgument {
+                id: arg1,
+                name: heap.intern_symbol("T"),
+                constraint: None
+            }]
+        );
 
-    //     opaque!(
-    //         env,
-    //         opaque_b,
-    //         "Type",
-    //         param2,
-    //         [GenericArgument {
-    //             id: arg2,
-    //             name: heap.intern_symbol("T"),
-    //             constraint: None
-    //         }]
-    //     );
+        let opaque_b = generic!(
+            env,
+            opaque!(env, "Type", param2),
+            [GenericArgument {
+                id: arg2,
+                name: heap.intern_symbol("T"),
+                constraint: None
+            }]
+        );
 
-    //     // Create an inference environment to collect constraints
-    //     let mut inference_env = InferenceEnvironment::new(&env);
+        // Create an inference environment to collect constraints
+        let mut inference_env = InferenceEnvironment::new(&env);
 
-    //     // Collect constraints between the two opaque types with generic parameters
-    //     opaque_a.collect_constraints(opaque_b, &mut inference_env);
+        // Collect constraints between the two opaque types with generic parameters
+        inference_env.collect_constraints(opaque_a, opaque_b);
 
-    //     // Due to invariance, we should get an equality constraint between the generic parameters
-    //     let constraints = inference_env.take_constraints();
-    //     assert!(constraints.is_empty());
-    //     assert!(inference_env.is_unioned(VariableKind::Generic(arg1),
-    // VariableKind::Generic(arg2))); }
+        // Due to invariance, we should get an equality constraint between the generic parameters
+        let constraints = inference_env.take_constraints();
+        assert!(constraints.is_empty());
+        assert!(inference_env.is_unioned(VariableKind::Generic(arg1), VariableKind::Generic(arg2)));
+    }
 
     #[test]
     fn collect_constraints_multiple_infer_vars() {
@@ -962,46 +957,49 @@ mod test {
         );
     }
 
-    // TODO: move to generics
-    // #[test]
-    // fn instantiate_opaque() {
-    //     let heap = Heap::new();
-    //     let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    #[test]
+    fn instantiate_opaque() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
-    //     let argument = env.counter.generic_argument.next();
-    //     let param = instantiate_param(&env, argument);
+        let argument = env.counter.generic_argument.next();
+        let param = instantiate_param(&env, argument);
 
-    //     opaque!(
-    //         env,
-    //         value,
-    //         "A",
-    //         param,
-    //         [GenericArgument {
-    //             id: argument,
-    //             name: heap.intern_symbol("T"),
-    //             constraint: None
-    //         }]
-    //     );
+        let value = generic!(
+            env,
+            opaque!(env, "A", param),
+            [GenericArgument {
+                id: argument,
+                name: heap.intern_symbol("T"),
+                constraint: None
+            }]
+        );
 
-    //     let mut instantiate = InstantiateEnvironment::new(&env);
-    //     let type_id = value.instantiate(&mut instantiate);
-    //     assert!(instantiate.take_diagnostics().is_empty());
+        let mut instantiate = InstantiateEnvironment::new(&env);
+        let type_id = instantiate.instantiate(value);
+        assert!(instantiate.take_diagnostics().is_empty());
 
-    //     let result = env.r#type(type_id);
-    //     let opaque = result.kind.opaque().expect("should be an opaque type");
-    //     let repr = env
-    //         .r#type(opaque.repr)
-    //         .kind
-    //         .param()
-    //         .expect("should be a param");
+        let result = env.r#type(type_id);
+        let generic = result.kind.generic().expect("should be a generic type");
 
-    //     assert_eq!(opaque.arguments.len(), 1);
-    //     assert_eq!(
-    //         *repr,
-    //         Param {
-    //             argument: opaque.arguments[0].id
-    //         }
-    //     );
-    //     assert_ne!(repr.argument, argument);
-    // }
+        let opaque = env
+            .r#type(generic.base)
+            .kind
+            .opaque()
+            .expect("should be an opaque type");
+        let repr = env
+            .r#type(opaque.repr)
+            .kind
+            .param()
+            .expect("should be a param");
+
+        assert_eq!(generic.arguments.len(), 1);
+        assert_eq!(
+            *repr,
+            Param {
+                argument: generic.arguments[0].id
+            }
+        );
+        assert_ne!(repr.argument, argument);
+    }
 }
