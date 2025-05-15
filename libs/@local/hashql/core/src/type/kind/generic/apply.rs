@@ -4,6 +4,7 @@ use pretty::RcDoc;
 
 use super::{GenericArgumentId, Param};
 use crate::{
+    collection::SmallVec,
     intern::Interned,
     span::SpanId,
     r#type::{
@@ -85,7 +86,7 @@ impl<'heap> GenericSubstitutions<'heap> {
     pub fn merge(&self, other: &Self, env: &Environment<'heap>) -> Self {
         // We can merge without de-duplication, because every argument has a unique ID.
         // What we need to do tho, is to re-sort them, so that the invariants are maintained.
-        let mut vec = Vec::with_capacity(self.len() + other.len());
+        let mut vec = SmallVec::with_capacity(self.len() + other.len());
 
         vec.extend_from_slice(self.as_slice());
         vec.extend_from_slice(other.as_slice());
