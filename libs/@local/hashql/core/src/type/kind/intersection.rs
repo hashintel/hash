@@ -644,14 +644,14 @@ mod test {
                 Constraint, Inference as _, PartialStructuralEdge, Variable, VariableKind,
             },
             kind::{
-                OpaqueType, Param, TypeKind,
+                Generic, OpaqueType, Param, TypeKind,
                 generic::{GenericArgument, GenericArgumentId},
                 infer::HoleId,
                 intrinsic::{DictType, IntrinsicType},
                 primitive::PrimitiveType,
                 test::{
-                    assert_equiv, assert_sorted_eq, dict, intersection, opaque, primitive, tuple,
-                    union,
+                    assert_equiv, assert_sorted_eq, dict, generic, intersection, opaque, primitive,
+                    tuple, union,
                 },
                 tuple::TupleType,
                 union::UnionType,
@@ -2208,71 +2208,74 @@ mod test {
     }
 
     // TODO: move to generic
-    // #[test]
-    // fn instantiate_intersection() {
-    //     let heap = Heap::new();
-    //     let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    #[test]
+    fn instantiate_intersection() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
-    //     let argument1 = env.counter.generic_argument.next();
-    //     let argument2 = env.counter.generic_argument.next();
+        let argument1 = env.counter.generic_argument.next();
+        let argument2 = env.counter.generic_argument.next();
 
-    //     let param1 = instantiate_param(&env, argument1);
-    //     let param2 = instantiate_param(&env, argument2);
+        let param1 = instantiate_param(&env, argument1);
+        let param2 = instantiate_param(&env, argument2);
 
-    //     let a = opaque!(
-    //         env,
-    //         "A",
-    //         param1,
-    //         [GenericArgument {
-    //             id: argument1,
-    //             name: heap.intern_symbol("T"),
-    //             constraint: None
-    //         }]
-    //     );
+        let a = generic!(
+            env,
+            opaque!(env, "A", param1),
+            [GenericArgument {
+                id: argument1,
+                name: heap.intern_symbol("T"),
+                constraint: None
+            }]
+        );
 
-    //     let b = opaque!(
-    //         env,
-    //         "A",
-    //         param2,
-    //         [GenericArgument {
-    //             id: argument2,
-    //             name: heap.intern_symbol("T"),
-    //             constraint: None
-    //         }]
-    //     );
+        let b = generic!(
+            env,
+            opaque!(env, "A", param2),
+            [GenericArgument {
+                id: argument2,
+                name: heap.intern_symbol("T"),
+                constraint: None
+            }]
+        );
 
-    //     intersection!(env, value, [a, b]);
+        intersection!(env, value, [a, b]);
 
-    //     let mut instantiate = InstantiateEnvironment::new(&env);
-    //     let type_id = value.instantiate(&mut instantiate);
-    //     assert!(instantiate.take_diagnostics().is_empty());
+        let mut instantiate = InstantiateEnvironment::new(&env);
+        let type_id = value.instantiate(&mut instantiate);
+        assert!(instantiate.take_diagnostics().is_empty());
 
-    //     let result = env.r#type(type_id);
-    //     let intersection = result
-    //         .kind
-    //         .intersection()
-    //         .expect("should be an intersection");
-    //     assert_eq!(intersection.variants.len(), 2);
+        let result = env.r#type(type_id);
+        let intersection = result
+            .kind
+            .intersection()
+            .expect("should be an intersection");
+        assert_eq!(intersection.variants.len(), 2);
 
-    //     let generic_arguments = [argument1, argument2];
+        let generic_arguments = [argument1, argument2];
 
-    //     for (index, &variant) in intersection.variants.iter().enumerate() {
-    //         let variant = env.r#type(variant);
-    //         let opaque = variant.kind.opaque().expect("should be an opaque type");
-    //         let repr = env
-    //             .r#type(opaque.repr)
-    //             .kind
-    //             .param()
-    //             .expect("should be a param");
+        for (index, &variant) in intersection.variants.iter().enumerate() {
+            let variant = env.r#type(variant);
+            let generic = variant.kind.generic().expect("should be a generic type");
+            let opaque = env
+                .r#type(generic.base)
+                .kind
+                .opaque()
+                .expect("should be an opaque type");
+            let repr = env
+                .r#type(opaque.repr)
+                .kind
+                .param()
+                .expect("should be a param");
 
-    //         assert_eq!(opaque.arguments.len(), 1);
-    //         assert_eq!(
-    //             *repr,
-    //             Param {
-    //                 argument: opaque.arguments[0].id
-    //             }
-    //         );
-    //         assert_ne!(repr.argument, generic_arguments[index]);
-    //     }
-    // }
+            assert_eq!(generic.arguments.len(), 1);
+            assert_eq!(
+                *repr,
+                Param {
+                    argument: generic.arguments[0].id
+                }
+            );
+            assert_ne!(repr.argument, generic_arguments[index]);
+        }
+    }
 }
