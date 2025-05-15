@@ -24,7 +24,7 @@ pub mod filter {
         /// union or intersection types. When `false`, the visitor will not follow these
         /// references.
         ///
-        /// # Warning
+        /// # Implementation Note
         ///
         /// When set to `true`, implementors must take care to handle recursive type cycles, as the
         /// visitor does not automatically detect cycles. Without proper handling, traversal
@@ -95,6 +95,32 @@ pub mod filter {
     }
 }
 
+/// A visitor for traversing and analyzing the type system.
+///
+/// To implement a custom type visitor, create a type that implements this trait
+/// and override the methods for the specific type kinds you want to process.
+///
+/// The default implementations call corresponding `walk_*` functions
+/// that recursively traverse the type structure, allowing you to focus only on the
+/// specific type nodes you want to analyze.
+///
+/// The associated [`Filter`](self::filter::Filter) type determines the traversal behavior and can
+/// be used to control the depth of traversal.
+///
+/// # Implementation Strategy
+///
+/// When implementing a [`Visitor`], follow these patterns:
+///
+/// - To process a type node, implement the corresponding `visit_*` method
+/// - To recursively process child types, call the corresponding `walk_*` function
+/// - To skip processing child types, don't call the `walk_*` function
+///
+/// # Implementation Note
+///
+/// When using [`Deep`](self::filter::Deep) or [`NoGenerics`](self::filter::NoGenerics) filters, or
+/// any filter that sets `DEEP` to true, be careful with recursive types. The visitor does not
+/// automatically detect cycles, so you must implement cycle detection to prevent infinite
+/// recursion.
 pub trait Visitor<'heap> {
     type Filter: filter::Filter = Deep;
 
