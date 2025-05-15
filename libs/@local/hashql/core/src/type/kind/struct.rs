@@ -554,6 +554,7 @@ mod test {
             },
             kind::{
                 Generic, GenericArgument, TypeKind,
+                generic::GenericArgumentId,
                 infer::HoleId,
                 intersection::IntersectionType,
                 primitive::PrimitiveType,
@@ -1579,57 +1580,54 @@ mod test {
         );
     }
 
-    // TODO: move this to the `Generic` test suite
-    // #[test]
-    // fn collect_constraints_generic_params() {
-    //     let heap = Heap::new();
-    //     let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    #[test]
+    fn collect_constraints_generic_params() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
-    //     let arg1 = GenericArgumentId::new(0);
-    //     let arg2 = GenericArgumentId::new(1);
+        let arg1 = GenericArgumentId::new(0);
+        let arg2 = GenericArgumentId::new(1);
 
-    //     // Create generic parameter types
-    //     let param1 = instantiate_param(&env, arg1);
-    //     let param2 = instantiate_param(&env, arg2);
+        // Create generic parameter types
+        let param1 = instantiate_param(&env, arg1);
+        let param2 = instantiate_param(&env, arg2);
 
-    //     // Create structs with generic parameters
-    //     r#struct!(
-    //         env,
-    //         subtype,
-    //         [GenericArgument {
-    //             id: arg1,
-    //             name: heap.intern_symbol("T"),
-    //             constraint: None
-    //         }],
-    //         [struct_field!(env, "value", param1)]
-    //     );
+        // Create structs with generic parameters
+        let subtype = generic!(
+            env,
+            r#struct!(env, [struct_field!(env, "value", param1)]),
+            [GenericArgument {
+                id: arg1,
+                name: heap.intern_symbol("T"),
+                constraint: None
+            }]
+        );
 
-    //     r#struct!(
-    //         env,
-    //         supertype,
-    //         [GenericArgument {
-    //             id: arg2,
-    //             name: heap.intern_symbol("U"),
-    //             constraint: None
-    //         }],
-    //         [struct_field!(env, "value", param2)]
-    //     );
+        let supertype = generic!(
+            env,
+            r#struct!(env, [struct_field!(env, "value", param2)]),
+            [GenericArgument {
+                id: arg2,
+                name: heap.intern_symbol("U"),
+                constraint: None
+            }]
+        );
 
-    //     // Create an inference environment to collect constraints
-    //     let mut inference_env = InferenceEnvironment::new(&env);
+        // Create an inference environment to collect constraints
+        let mut inference_env = InferenceEnvironment::new(&env);
 
-    //     // Collect constraints between the generic structs
-    //     subtype.collect_constraints(supertype, &mut inference_env);
+        // Collect constraints between the generic structs
+        inference_env.collect_constraints(subtype, supertype);
 
-    //     let constraints = inference_env.take_constraints();
-    //     assert_eq!(
-    //         constraints,
-    //         [Constraint::Ordering {
-    //             lower: Variable::synthetic(VariableKind::Generic(arg1)),
-    //             upper: Variable::synthetic(VariableKind::Generic(arg2))
-    //         }]
-    //     );
-    // }
+        let constraints = inference_env.take_constraints();
+        assert_eq!(
+            constraints,
+            [Constraint::Ordering {
+                lower: Variable::synthetic(VariableKind::Generic(arg1)),
+                upper: Variable::synthetic(VariableKind::Generic(arg2))
+            }]
+        );
+    }
 
     #[test]
     fn collect_constraints_concrete() {
