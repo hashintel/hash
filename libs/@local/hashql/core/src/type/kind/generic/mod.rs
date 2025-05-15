@@ -441,9 +441,6 @@ impl PrettyPrint for Generic<'_> {
         env: &'env Environment,
         limit: RecursionDepthBoundary,
     ) -> RcDoc<'env, anstyle::Style> {
-        self.arguments
-            .pretty(env, limit)
-            .append(limit.pretty(env, self.base))
-            .group()
+        limit.pretty_generic(self.arguments, env, self.base)
     }
 }

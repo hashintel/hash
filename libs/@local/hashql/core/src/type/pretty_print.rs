@@ -3,7 +3,7 @@ use std::io;
 use anstyle::{AnsiColor, Color, Style};
 use pretty::{RcDoc, Render, RenderAnnotated};
 
-use super::{environment::Environment, recursion::RecursionDepthBoundary};
+use super::{environment::Environment, kind::GenericArguments, recursion::RecursionDepthBoundary};
 
 pub(crate) const BLUE: Style = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Blue)));
 pub(crate) const CYAN: Style = Style::new().fg_color(Some(Color::Ansi(AnsiColor::Cyan)));
@@ -73,6 +73,18 @@ pub trait PrettyPrint {
         limit: RecursionDepthBoundary,
     ) -> RcDoc<'env, Style>;
 
+    fn pretty_generic<'env>(
+        &self,
+        arguments: GenericArguments,
+        env: &'env Environment,
+        limit: RecursionDepthBoundary,
+    ) -> RcDoc<'env, Style> {
+        arguments
+            .pretty(env, limit)
+            .append(self.pretty(env, limit))
+            .group()
+    }
+
     fn pretty_print(&self, env: &Environment, width: usize) -> String {
         let mut output = Vec::new();
         let mut writer = WriteColored::new(&mut output);
@@ -105,5 +117,14 @@ where
         limit: RecursionDepthBoundary,
     ) -> RcDoc<'env, Style> {
         T::pretty(self, env, limit)
+    }
+
+    fn pretty_generic<'env>(
+        &self,
+        arguments: GenericArguments,
+        env: &'env Environment,
+        limit: RecursionDepthBoundary,
+    ) -> RcDoc<'env, Style> {
+        T::pretty_generic(self, arguments, env, limit)
     }
 }

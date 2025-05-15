@@ -275,7 +275,17 @@ impl PrettyPrint for ClosureType<'_> {
         env: &'env Environment,
         limit: RecursionDepthBoundary,
     ) -> pretty::RcDoc<'env, anstyle::Style> {
+        self.pretty_generic(GenericArguments::empty(), env, limit)
+    }
+
+    fn pretty_generic<'env>(
+        &self,
+        arguments: GenericArguments,
+        env: &'env Environment,
+        limit: RecursionDepthBoundary,
+    ) -> RcDoc<'env, anstyle::Style> {
         RcDoc::text("fn")
+            .append(arguments.pretty(env, limit))
             .append("(")
             .append(RcDoc::intersperse(
                 self.params.iter().map(|&param| limit.pretty(env, param)),
@@ -309,12 +319,12 @@ mod test {
                 Constraint, Inference as _, PartialStructuralEdge, Variable, VariableKind,
             },
             kind::{
-                Param, TypeKind,
-                generic::{GenericArgument, GenericArgumentId, GenericArguments},
+                Generic, Param, TypeKind,
+                generic::{GenericArgument, GenericArgumentId},
                 infer::HoleId,
                 intersection::IntersectionType,
                 primitive::PrimitiveType,
-                test::{assert_equiv, closure, intersection, primitive, union},
+                test::{assert_equiv, closure, generic, intersection, primitive, union},
                 union::UnionType,
             },
             lattice::{Lattice as _, test::assert_lattice_laws},
@@ -1205,65 +1215,60 @@ mod test {
         assert!(inference_env.take_constraints().is_empty());
     }
 
-    // TODO: move to generic
-    // #[test]
-    // fn collect_constraints_with_generic_args() {
-    //     let heap = Heap::new();
-    //     let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    #[test]
+    fn collect_constraints_with_generic_args() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
-    //     // Set up generic arguments
-    //     let arg1 = GenericArgumentId::new(0);
-    //     let arg2 = GenericArgumentId::new(1);
+        // Set up generic arguments
+        let arg1 = GenericArgumentId::new(0);
+        let arg2 = GenericArgumentId::new(1);
 
-    //     // Create generic parameter types
-    //     let param1 = instantiate_param(&env, arg1);
-    //     let param2 = instantiate_param(&env, arg2);
+        // Create generic parameter types
+        let param1 = instantiate_param(&env, arg1);
+        let param2 = instantiate_param(&env, arg2);
 
-    //     // Create closures with generic parameters
-    //     closure!(
-    //         env,
-    //         fn_a,
-    //         [GenericArgument {
-    //             id: arg1,
-    //             name: heap.intern_symbol("T"),
-    //             constraint: None
-    //         }],
-    //         [param1],
-    //         param1
-    //     );
+        // Create closures with generic parameters
+        let fn_a = generic!(
+            env,
+            closure!(env, [param1], param1),
+            [GenericArgument {
+                id: arg1,
+                name: heap.intern_symbol("T"),
+                constraint: None
+            }]
+        );
 
-    //     closure!(
-    //         env,
-    //         fn_b,
-    //         [GenericArgument {
-    //             id: arg2,
-    //             name: heap.intern_symbol("T"),
-    //             constraint: None
-    //         }],
-    //         [param2],
-    //         param2
-    //     );
+        let fn_b = generic!(
+            env,
+            closure!(env, [param2], param2),
+            [GenericArgument {
+                id: arg2,
+                name: heap.intern_symbol("T"),
+                constraint: None
+            }]
+        );
 
-    //     let mut inference_env = InferenceEnvironment::new(&env);
+        let mut inference_env = InferenceEnvironment::new(&env);
 
-    //     // Collect constraints between closures with generic parameters
-    //     fn_a.collect_constraints(fn_b, &mut inference_env);
+        // Collect constraints between closures with generic parameters
+        inference_env.collect_constraints(fn_a, fn_b);
 
-    //     let constraints = inference_env.take_constraints();
-    //     assert_eq!(
-    //         constraints,
-    //         [
-    //             Constraint::Ordering {
-    //                 lower: Variable::synthetic(VariableKind::Generic(arg2)),
-    //                 upper: Variable::synthetic(VariableKind::Generic(arg1)),
-    //             },
-    //             Constraint::Ordering {
-    //                 lower: Variable::synthetic(VariableKind::Generic(arg1)),
-    //                 upper: Variable::synthetic(VariableKind::Generic(arg2)),
-    //             }
-    //         ]
-    //     );
-    // }
+        let constraints = inference_env.take_constraints();
+        assert_eq!(
+            constraints,
+            [
+                Constraint::Ordering {
+                    lower: Variable::synthetic(VariableKind::Generic(arg2)),
+                    upper: Variable::synthetic(VariableKind::Generic(arg1)),
+                },
+                Constraint::Ordering {
+                    lower: Variable::synthetic(VariableKind::Generic(arg1)),
+                    upper: Variable::synthetic(VariableKind::Generic(arg2)),
+                }
+            ]
+        );
+    }
 
     #[test]
     fn collect_structural_edges_param() {
@@ -1592,60 +1597,64 @@ mod test {
         );
     }
 
-    // TODO: move to generics macro
-    // #[test]
-    // fn instantiate_closure() {
-    //     let heap = Heap::new();
-    //     let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    #[test]
+    fn instantiate_closure() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
-    //     let argument = env.counter.generic_argument.next();
-    //     let param = instantiate_param(&env, argument);
+        let argument = env.counter.generic_argument.next();
+        let param = instantiate_param(&env, argument);
 
-    //     closure!(
-    //         env,
-    //         value,
-    //         [GenericArgument {
-    //             id: argument,
-    //             name: heap.intern_symbol("T"),
-    //             constraint: None
-    //         }],
-    //         [param],
-    //         param
-    //     );
+        let value = generic!(
+            env,
+            closure!(env, [param], param),
+            [GenericArgument {
+                id: argument,
+                name: heap.intern_symbol("T"),
+                constraint: None
+            }]
+        );
 
-    //     let mut instantiate = InstantiateEnvironment::new(&env);
-    //     let type_id = value.instantiate(&mut instantiate);
-    //     assert!(instantiate.take_diagnostics().is_empty());
+        let mut instantiate = InstantiateEnvironment::new(&env);
+        let type_id = instantiate.instantiate(value);
+        assert!(instantiate.take_diagnostics().is_empty());
 
-    //     let result = env.r#type(type_id);
-    //     let closure = result.kind.closure().expect("should be a closure type");
-    //     assert_eq!(closure.params.len(), 1);
+        let result = env.r#type(type_id);
 
-    //     let param = env
-    //         .r#type(closure.params[0])
-    //         .kind
-    //         .param()
-    //         .expect("should be a param type");
-    //     assert_eq!(
-    //         *param,
-    //         Param {
-    //             argument: closure.arguments[0].id
-    //         }
-    //     );
-    //     assert_ne!(param.argument, argument);
+        let generic = result.kind.generic().expect("should be a generic type");
 
-    //     let returns = env
-    //         .r#type(closure.returns)
-    //         .kind
-    //         .param()
-    //         .expect("should be a param type");
+        let closure = env
+            .r#type(generic.base)
+            .kind
+            .closure()
+            .expect("should be a closure type");
+        assert_eq!(closure.params.len(), 1);
 
-    //     assert_eq!(
-    //         *returns,
-    //         Param {
-    //             argument: closure.arguments[0].id
-    //         }
-    //     );
-    //     assert_ne!(returns.argument, argument);
-    // }
+        let param = env
+            .r#type(closure.params[0])
+            .kind
+            .param()
+            .expect("should be a param type");
+        assert_eq!(
+            *param,
+            Param {
+                argument: generic.arguments[0].id
+            }
+        );
+        assert_ne!(param.argument, argument);
+
+        let returns = env
+            .r#type(closure.returns)
+            .kind
+            .param()
+            .expect("should be a param type");
+
+        assert_eq!(
+            *returns,
+            Param {
+                argument: generic.arguments[0].id
+            }
+        );
+        assert_ne!(returns.argument, argument);
+    }
 }
