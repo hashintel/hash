@@ -24,8 +24,6 @@ use crate::{
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct TupleType<'heap> {
     pub fields: Interned<'heap, [TypeId]>,
-
-    pub arguments: GenericArguments<'heap>,
 }
 
 impl<'heap> TupleType<'heap> {
@@ -54,7 +52,6 @@ impl<'heap> TupleType<'heap> {
                     span: self.span,
                     kind: env.intern_kind(TypeKind::Tuple(Self {
                         fields: env.intern_type_ids(&fields),
-                        arguments: self.kind.arguments,
                     })),
                 })
             })
@@ -69,8 +66,6 @@ impl<'heap> TupleType<'heap> {
     ) -> SmallVec<TypeId, 4> {
         let kind = env.intern_kind(TypeKind::Tuple(Self {
             fields: env.intern_type_ids(fields),
-            // merge the two arguments together, as some of the fields may refer to either
-            arguments: self.kind.arguments.merge(&other.kind.arguments, env),
         }));
 
         let id = env.intern_type(PartialType {
@@ -276,7 +271,6 @@ impl<'heap> Lattice<'heap> for TupleType<'heap> {
                 span: self.span,
                 kind: env.intern_kind(TypeKind::Tuple(Self {
                     fields: env.intern_type_ids(&fields),
-                    arguments: self.kind.arguments,
                 })),
             },
         )
@@ -310,8 +304,7 @@ impl<'heap> Inference<'heap> for TupleType<'heap> {
     }
 
     fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {
-        let (_guard_id, id) = env.provision(self.id);
-        let (_guard, arguments) = env.instantiate_arguments(self.kind.arguments);
+        let (_guard, id) = env.provision(self.id);
 
         let mut fields = SmallVec::<_, 16>::with_capacity(self.kind.fields.len());
 
@@ -325,7 +318,6 @@ impl<'heap> Inference<'heap> for TupleType<'heap> {
                 span: self.span,
                 kind: env.intern_kind(TypeKind::Tuple(TupleType {
                     fields: env.intern_type_ids(&fields),
-                    arguments,
                 })),
             },
         )
@@ -338,28 +330,24 @@ impl PrettyPrint for TupleType<'_> {
         env: &'env Environment,
         limit: RecursionDepthBoundary,
     ) -> RcDoc<'env, anstyle::Style> {
-        let inner = if self.fields.is_empty() {
-            RcDoc::text("()")
-        } else if self.fields.len() == 1 {
-            RcDoc::text("(")
-                .append(limit.pretty(env, self.fields[0]))
+        match self.fields.as_ref() {
+            [] => RcDoc::text("()"),
+            &[field] => RcDoc::text("(")
+                .append(limit.pretty(env, field))
                 .append(RcDoc::text(",)"))
-                .group()
-        } else {
-            RcDoc::text("(")
+                .group(),
+            fields => RcDoc::text("(")
                 .append(
                     RcDoc::intersperse(
-                        self.fields.iter().map(|&field| limit.pretty(env, field)),
+                        fields.iter().map(|&field| limit.pretty(env, field)),
                         RcDoc::text(",").append(RcDoc::line()),
                     )
                     .nest(1)
                     .group(),
                 )
                 .append(RcDoc::text(")"))
-                .group()
-        };
-
-        self.arguments.pretty(env, limit).append(inner).group()
+                .group(),
+        }
     }
 }
 
@@ -404,7 +392,6 @@ mod test {
         tuple!(
             env,
             a,
-            [],
             [
                 primitive!(env, PrimitiveType::Number),
                 primitive!(env, PrimitiveType::String)
@@ -414,7 +401,6 @@ mod test {
         tuple!(
             env,
             b,
-            [],
             [
                 primitive!(env, PrimitiveType::Number),
                 primitive!(env, PrimitiveType::String)
@@ -429,7 +415,6 @@ mod test {
             a.join(b, &mut lattice_env),
             [tuple!(
                 env,
-                [],
                 [
                     primitive!(env, PrimitiveType::Number),
                     primitive!(env, PrimitiveType::String)
@@ -446,7 +431,6 @@ mod test {
         tuple!(
             env,
             a,
-            [],
             [
                 primitive!(env, PrimitiveType::Number),
                 primitive!(env, PrimitiveType::String)
@@ -455,7 +439,6 @@ mod test {
         tuple!(
             env,
             b,
-            [],
             [
                 primitive!(env, PrimitiveType::Number),
                 primitive!(env, PrimitiveType::String),
@@ -472,7 +455,6 @@ mod test {
             [
                 tuple!(
                     env,
-                    [],
                     [
                         primitive!(env, PrimitiveType::Number),
                         primitive!(env, PrimitiveType::String)
@@ -480,7 +462,6 @@ mod test {
                 ),
                 tuple!(
                     env,
-                    [],
                     [
                         primitive!(env, PrimitiveType::Number),
                         primitive!(env, PrimitiveType::String),
@@ -496,8 +477,8 @@ mod test {
         let heap = Heap::new();
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
-        tuple!(env, a, [], [primitive!(env, PrimitiveType::Number)]);
-        tuple!(env, b, [], [primitive!(env, PrimitiveType::Integer)]);
+        tuple!(env, a, [primitive!(env, PrimitiveType::Number)]);
+        tuple!(env, b, [primitive!(env, PrimitiveType::Integer)]);
 
         let mut lattice_env = LatticeEnvironment::new(&env);
 
@@ -509,7 +490,6 @@ mod test {
             result,
             [tuple!(
                 env,
-                [],
                 [
                     // Number ⊔ Integer = Number (number is supertype of integer)
                     primitive!(env, PrimitiveType::Number),
@@ -526,7 +506,6 @@ mod test {
         tuple!(
             env,
             a,
-            [],
             [
                 primitive!(env, PrimitiveType::Number),
                 primitive!(env, PrimitiveType::String)
@@ -535,7 +514,6 @@ mod test {
         tuple!(
             env,
             b,
-            [],
             [
                 primitive!(env, PrimitiveType::Integer),
                 primitive!(env, PrimitiveType::Boolean)
@@ -550,7 +528,6 @@ mod test {
             a.join(b, &mut lattice_env),
             [tuple!(
                 env,
-                [],
                 [
                     // Number ⊔ Integer = Number (number is supertype of integer)
                     primitive!(env, PrimitiveType::Number),
@@ -575,7 +552,6 @@ mod test {
         tuple!(
             env,
             a,
-            [],
             [
                 primitive!(env, PrimitiveType::Number),
                 primitive!(env, PrimitiveType::String)
@@ -585,7 +561,6 @@ mod test {
         tuple!(
             env,
             b,
-            [],
             [
                 primitive!(env, PrimitiveType::Number),
                 primitive!(env, PrimitiveType::String)
@@ -600,7 +575,6 @@ mod test {
             a.meet(b, &mut lattice_env),
             [tuple!(
                 env,
-                [],
                 [
                     primitive!(env, PrimitiveType::Number),
                     primitive!(env, PrimitiveType::String)
@@ -615,12 +589,11 @@ mod test {
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         // Create tuples of different lengths
-        tuple!(env, a, [], [primitive!(env, PrimitiveType::Number)]);
+        tuple!(env, a, [primitive!(env, PrimitiveType::Number)]);
 
         tuple!(
             env,
             b,
-            [],
             [
                 primitive!(env, PrimitiveType::Number),
                 primitive!(env, PrimitiveType::String)
@@ -642,7 +615,6 @@ mod test {
         tuple!(
             env,
             a,
-            [],
             [
                 primitive!(env, PrimitiveType::Number),
                 primitive!(env, PrimitiveType::String)
@@ -652,7 +624,6 @@ mod test {
         tuple!(
             env,
             b,
-            [],
             [
                 primitive!(env, PrimitiveType::Integer),
                 primitive!(env, PrimitiveType::Boolean)
@@ -666,7 +637,6 @@ mod test {
             a.meet(b, &mut lattice_env),
             [tuple!(
                 env,
-                [],
                 [
                     // Number ⊓ Integer = Integer (Integer is subtype of number)
                     primitive!(env, PrimitiveType::Integer),
@@ -686,7 +656,6 @@ mod test {
         tuple!(
             env,
             normal_tuple,
-            [],
             [
                 primitive!(env, PrimitiveType::Number),
                 primitive!(env, PrimitiveType::String)
@@ -694,12 +663,11 @@ mod test {
         );
 
         // Create an empty tuple (which is considered inhabited)
-        tuple!(env, empty_tuple, [], []);
+        tuple!(env, empty_tuple, []);
 
         tuple!(
             env,
             never_tuple,
-            [],
             [
                 primitive!(env, PrimitiveType::Number),
                 instantiate(&env, TypeKind::Never),
@@ -729,10 +697,10 @@ mod test {
         let integer = primitive!(env, PrimitiveType::Integer);
         let string = primitive!(env, PrimitiveType::String);
 
-        tuple!(env, tuple_number_string, [], [number, string]);
-        tuple!(env, tuple_integer_string, [], [integer, string]);
-        tuple!(env, tuple_number_number, [], [number, number]);
-        tuple!(env, tuple_different_length, [], [number, string, number]);
+        tuple!(env, tuple_number_string, [number, string]);
+        tuple!(env, tuple_integer_string, [integer, string]);
+        tuple!(env, tuple_number_number, [number, number]);
+        tuple!(env, tuple_different_length, [number, string, number]);
 
         let mut analysis_env = AnalysisEnvironment::new(&env);
 
@@ -764,7 +732,6 @@ mod test {
         tuple!(
             env,
             a,
-            [],
             [
                 primitive!(env, PrimitiveType::Number),
                 primitive!(env, PrimitiveType::String)
@@ -774,7 +741,6 @@ mod test {
         tuple!(
             env,
             b,
-            [],
             [
                 primitive!(env, PrimitiveType::Number),
                 primitive!(env, PrimitiveType::String)
@@ -785,7 +751,6 @@ mod test {
         tuple!(
             env,
             c,
-            [],
             [
                 primitive!(env, PrimitiveType::Number),
                 primitive!(env, PrimitiveType::Boolean)
@@ -793,7 +758,7 @@ mod test {
         );
 
         // Create a tuple with different length
-        tuple!(env, d, [], [primitive!(env, PrimitiveType::Number)]);
+        tuple!(env, d, [primitive!(env, PrimitiveType::Number)]);
 
         let mut analysis_env = AnalysisEnvironment::new(&env);
 
@@ -816,7 +781,6 @@ mod test {
         tuple!(
             env,
             tuple,
-            [],
             [
                 primitive!(env, PrimitiveType::Number),
                 primitive!(env, PrimitiveType::String)
@@ -840,9 +804,9 @@ mod test {
 
         // Create three distinct single-element tuples for testing lattice laws
         // We need these to have different element types for proper lattice testing
-        let a = tuple!(env, [], [primitive!(env, PrimitiveType::Number)]);
-        let b = tuple!(env, [], [primitive!(env, PrimitiveType::Integer)]);
-        let c = tuple!(env, [], [primitive!(env, PrimitiveType::String)]);
+        let a = tuple!(env, [primitive!(env, PrimitiveType::Number)]);
+        let b = tuple!(env, [primitive!(env, PrimitiveType::Integer)]);
+        let c = tuple!(env, [primitive!(env, PrimitiveType::String)]);
 
         // Test that tuple types satisfy lattice laws (associativity, commutativity, absorption)
         assert_lattice_laws(&env, a, b, c);
@@ -857,30 +821,31 @@ mod test {
         // Concrete tuple (with all concrete fields)
         let number = primitive!(env, PrimitiveType::Number);
         let string = primitive!(env, PrimitiveType::String);
-        tuple!(env, concrete_tuple, [], [number, string]);
+        tuple!(env, concrete_tuple, [number, string]);
         assert!(concrete_tuple.is_concrete(&mut analysis_env));
 
         // Non-concrete tuple (with at least one non-concrete field)
         let infer_var = instantiate_infer(&env, 0_u32);
-        tuple!(env, non_concrete_tuple, [], [number, infer_var]);
+        tuple!(env, non_concrete_tuple, [number, infer_var]);
         assert!(!non_concrete_tuple.is_concrete(&mut analysis_env));
 
         // Empty tuple should be concrete
-        tuple!(env, empty_tuple, [], []);
+        tuple!(env, empty_tuple, []);
         assert!(empty_tuple.is_concrete(&mut analysis_env));
 
-        // Tuple with generic arguments should still be concrete if fields are concrete
-        tuple!(
-            env,
-            tuple_with_args,
-            [GenericArgument {
-                id: GenericArgumentId::new(0),
-                name: heap.intern_symbol("T"),
-                constraint: None
-            }],
-            [number, string]
-        );
-        assert!(tuple_with_args.is_concrete(&mut analysis_env));
+        // TODO: move to generics test suite
+        // // Tuple with generic arguments should still be concrete if fields are concrete
+        // tuple!(
+        //     env,
+        //     tuple_with_args,
+        //     [GenericArgument {
+        //         id: GenericArgumentId::new(0),
+        //         name: heap.intern_symbol("T"),
+        //         constraint: None
+        //     }],
+        //     [number, string]
+        // );
+        // assert!(tuple_with_args.is_concrete(&mut analysis_env));
     }
 
     #[test]
@@ -892,7 +857,6 @@ mod test {
         tuple!(
             env,
             never_tuple,
-            [],
             [
                 primitive!(env, PrimitiveType::Number),
                 instantiate(&env, TypeKind::Never),
@@ -920,20 +884,18 @@ mod test {
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         // Create a nested tuple
-        tuple!(env, inner, [], [primitive!(env, PrimitiveType::Number)]);
+        tuple!(env, inner, [primitive!(env, PrimitiveType::Number)]);
         tuple!(
             env,
             outer,
-            [],
             [inner.id, primitive!(env, PrimitiveType::String)]
         );
 
         // Create another nested tuple with subtype relationship
-        tuple!(env, inner2, [], [primitive!(env, PrimitiveType::Integer)]);
+        tuple!(env, inner2, [primitive!(env, PrimitiveType::Integer)]);
         tuple!(
             env,
             outer2,
-            [],
             [inner2.id, primitive!(env, PrimitiveType::String)]
         );
 
@@ -951,8 +913,8 @@ mod test {
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         // Create tuples for testing
-        let a = tuple!(env, [], [primitive!(env, PrimitiveType::Number)]);
-        let b = tuple!(env, [], [primitive!(env, PrimitiveType::String)]);
+        let a = tuple!(env, [primitive!(env, PrimitiveType::Number)]);
+        let b = tuple!(env, [primitive!(env, PrimitiveType::String)]);
 
         // Create environment with simplification enabled (default)
         let mut env_with_simplify = LatticeEnvironment::new(&env);
@@ -970,7 +932,6 @@ mod test {
             [result_without_simplify],
             [tuple![
                 env,
-                [],
                 [intersection!(
                     env,
                     [
@@ -984,7 +945,7 @@ mod test {
         assert_equiv!(
             env,
             [result_with_simplify],
-            [tuple![env, [], [instantiate(&env, TypeKind::Never)]]]
+            [tuple![env, [instantiate(&env, TypeKind::Never)]]]
         );
     }
 
@@ -1000,7 +961,6 @@ mod test {
         tuple!(
             env,
             tuple_with_intersection,
-            [],
             [intersection!(env, [number, string])]
         );
 
@@ -1025,7 +985,7 @@ mod test {
         let mut analysis_env = AnalysisEnvironment::new(&env);
 
         // Create an empty tuple
-        tuple!(env, empty_tuple, [], []);
+        tuple!(env, empty_tuple, []);
 
         // Distribution should just return the original tuple since it's empty
         let result = empty_tuple.distribute_union(&mut analysis_env);
@@ -1047,7 +1007,7 @@ mod test {
         let union_type = union!(env, [string, boolean]);
 
         // Create a tuple with a union field
-        tuple!(env, tuple_with_union, [], [number, union_type]);
+        tuple!(env, tuple_with_union, [number, union_type]);
 
         // Distribute the union across the tuple
         let result = tuple_with_union.distribute_union(&mut analysis_env);
@@ -1057,8 +1017,8 @@ mod test {
             env,
             result,
             [
-                tuple!(env, [], [number, string]),
-                tuple!(env, [], [number, boolean])
+                tuple!(env, [number, string]),
+                tuple!(env, [number, boolean])
             ]
         );
     }
@@ -1080,7 +1040,7 @@ mod test {
         let union_type2 = union!(env, [string, boolean]);
 
         // Create a tuple with multiple union fields
-        tuple!(env, tuple_with_unions, [], [union_type1, union_type2]);
+        tuple!(env, tuple_with_unions, [union_type1, union_type2]);
 
         // Distribute the unions across the tuple
         let result = tuple_with_unions.distribute_union(&mut analysis_env);
@@ -1090,10 +1050,10 @@ mod test {
             env,
             result,
             [
-                tuple!(env, [], [number, string]),
-                tuple!(env, [], [integer, string]),
-                tuple!(env, [], [number, boolean]),
-                tuple!(env, [], [integer, boolean])
+                tuple!(env, [number, string]),
+                tuple!(env, [integer, string]),
+                tuple!(env, [number, boolean]),
+                tuple!(env, [integer, boolean])
             ]
         );
     }
@@ -1113,10 +1073,10 @@ mod test {
         let union_type = union!(env, [string, boolean]);
 
         // Create an inner tuple with a union field
-        tuple!(env, inner_tuple, [], [number, union_type]);
+        tuple!(env, inner_tuple, [number, union_type]);
 
         // Create an outer tuple containing the inner tuple
-        tuple!(env, outer_tuple, [], [inner_tuple.id]);
+        tuple!(env, outer_tuple, [inner_tuple.id]);
 
         // Distribute the unions across both tuples
         let result = outer_tuple.distribute_union(&mut analysis_env);
@@ -1127,8 +1087,8 @@ mod test {
             env,
             result,
             [
-                tuple!(env, [], [tuple!(env, [], [number, string])]),
-                tuple!(env, [], [tuple!(env, [], [number, boolean])])
+                tuple!(env, [tuple!(env, [number, string])]),
+                tuple!(env, [tuple!(env, [number, boolean])])
             ]
         );
     }
@@ -1145,7 +1105,7 @@ mod test {
 
         // Create a tuple with an intersection field
         let intersect_type = intersection!(env, [number, string]);
-        tuple!(env, tuple_with_intersection, [], [intersect_type]);
+        tuple!(env, tuple_with_intersection, [intersect_type]);
 
         let result = tuple_with_intersection.distribute_intersection(&mut analysis_env);
 
@@ -1153,8 +1113,8 @@ mod test {
             env,
             result,
             [
-                tuple!(env, [], [primitive!(env, PrimitiveType::Number)]),
-                tuple!(env, [], [primitive!(env, PrimitiveType::String)])
+                tuple!(env, [primitive!(env, PrimitiveType::Number)]),
+                tuple!(env, [primitive!(env, PrimitiveType::String)])
             ]
         );
     }
@@ -1166,12 +1126,12 @@ mod test {
 
         // Create a tuple type with an element containing a concrete type
         let number = primitive!(env, PrimitiveType::Number);
-        tuple!(env, concrete_tuple, [], [number]);
+        tuple!(env, concrete_tuple, [number]);
 
         // Create a tuple with an inference variable
         let hole = HoleId::new(0);
         let infer_var = instantiate_infer(&env, hole);
-        tuple!(env, infer_tuple, [], [infer_var]);
+        tuple!(env, infer_tuple, [infer_var]);
 
         // Create an inference environment to collect constraints
         let mut inference_env = InferenceEnvironment::new(&env);
@@ -1204,11 +1164,11 @@ mod test {
         let infer_var = instantiate_infer(&env, hole);
         let boolean = primitive!(env, PrimitiveType::Boolean);
         let string = primitive!(env, PrimitiveType::String);
-        tuple!(env, longer_tuple, [], [string, infer_var, boolean]);
+        tuple!(env, longer_tuple, [string, infer_var, boolean]);
 
         // Create a tuple with fewer elements
         let number = primitive!(env, PrimitiveType::Number);
-        tuple!(env, shorter_tuple, [], [string, number]);
+        tuple!(env, shorter_tuple, [string, number]);
 
         // Create an inference environment to collect constraints
         let mut inference_env = InferenceEnvironment::new(&env);
@@ -1237,12 +1197,12 @@ mod test {
 
         // Create a shorter tuple with one element
         let string = primitive!(env, PrimitiveType::String);
-        tuple!(env, shorter_tuple, [], [string]);
+        tuple!(env, shorter_tuple, [string]);
 
         // Create a longer tuple with two elements
         let hole = HoleId::new(0);
         let infer_var = instantiate_infer(&env, hole);
-        tuple!(env, longer_tuple, [], [string, infer_var]);
+        tuple!(env, longer_tuple, [string, infer_var]);
 
         let mut inference_env = InferenceEnvironment::new(&env);
 
@@ -1266,14 +1226,14 @@ mod test {
         let infer_var = instantiate_infer(&env, hole);
 
         // First tuple with nested inference variable
-        let inner_tuple_a = tuple!(env, [], [infer_var]);
-        tuple!(env, tuple_a, [], [inner_tuple_a]);
+        let inner_tuple_a = tuple!(env, [infer_var]);
+        tuple!(env, tuple_a, [inner_tuple_a]);
 
         let number = primitive!(env, PrimitiveType::Number);
 
         // Second tuple with nested concrete type
-        let inner_tuple_b = tuple!(env, [], [number]);
-        tuple!(env, tuple_b, [], [inner_tuple_b]);
+        let inner_tuple_b = tuple!(env, [number]);
+        tuple!(env, tuple_b, [inner_tuple_b]);
 
         let mut inference_env = InferenceEnvironment::new(&env);
 
@@ -1289,56 +1249,57 @@ mod test {
         );
     }
 
-    #[test]
-    fn collect_constraints_generic_params() {
-        let heap = Heap::new();
-        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    // TODO: move to generics test suite
+    // #[test]
+    // fn collect_constraints_generic_params() {
+    //     let heap = Heap::new();
+    //     let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
-        let arg1 = GenericArgumentId::new(0);
-        let arg2 = GenericArgumentId::new(1);
+    //     let arg1 = GenericArgumentId::new(0);
+    //     let arg2 = GenericArgumentId::new(1);
 
-        // Create generic parameter types
-        let param1 = instantiate_param(&env, arg1);
-        let param2 = instantiate_param(&env, arg2);
+    //     // Create generic parameter types
+    //     let param1 = instantiate_param(&env, arg1);
+    //     let param2 = instantiate_param(&env, arg2);
 
-        // Create tuples with generic parameters
-        tuple!(
-            env,
-            tuple_a,
-            [GenericArgument {
-                id: arg1,
-                name: heap.intern_symbol("T"),
-                constraint: None
-            }],
-            [param1]
-        );
+    //     // Create tuples with generic parameters
+    //     tuple!(
+    //         env,
+    //         tuple_a,
+    //         [GenericArgument {
+    //             id: arg1,
+    //             name: heap.intern_symbol("T"),
+    //             constraint: None
+    //         }],
+    //         [param1]
+    //     );
 
-        tuple!(
-            env,
-            tuple_b,
-            [GenericArgument {
-                id: arg2,
-                name: heap.intern_symbol("U"),
-                constraint: None
-            }],
-            [param2]
-        );
+    //     tuple!(
+    //         env,
+    //         tuple_b,
+    //         [GenericArgument {
+    //             id: arg2,
+    //             name: heap.intern_symbol("U"),
+    //             constraint: None
+    //         }],
+    //         [param2]
+    //     );
 
-        // Create an inference environment to collect constraints
-        let mut inference_env = InferenceEnvironment::new(&env);
+    //     // Create an inference environment to collect constraints
+    //     let mut inference_env = InferenceEnvironment::new(&env);
 
-        // Collect constraints between the generic tuples
-        tuple_a.collect_constraints(tuple_b, &mut inference_env);
+    //     // Collect constraints between the generic tuples
+    //     tuple_a.collect_constraints(tuple_b, &mut inference_env);
 
-        let constraints = inference_env.take_constraints();
-        assert_eq!(
-            constraints,
-            [Constraint::Ordering {
-                lower: Variable::synthetic(VariableKind::Generic(arg1)),
-                upper: Variable::synthetic(VariableKind::Generic(arg2))
-            }]
-        );
-    }
+    //     let constraints = inference_env.take_constraints();
+    //     assert_eq!(
+    //         constraints,
+    //         [Constraint::Ordering {
+    //             lower: Variable::synthetic(VariableKind::Generic(arg1)),
+    //             upper: Variable::synthetic(VariableKind::Generic(arg2))
+    //         }]
+    //     );
+    // }
 
     #[test]
     fn collect_constraints_concrete() {
@@ -1350,8 +1311,8 @@ mod test {
 
         // Create tuples with a covariant relationship in the element types
         // Integer is a subtype of Number in this type system
-        tuple!(env, integer_tuple, [], [integer]);
-        tuple!(env, number_tuple, [], [number]);
+        tuple!(env, integer_tuple, [integer]);
+        tuple!(env, number_tuple, [number]);
 
         let mut inference_env = InferenceEnvironment::new(&env);
 
@@ -1376,7 +1337,7 @@ mod test {
         let infer_var = instantiate_infer(&env, hole);
 
         // Create a tuple with an inference variable: (_0,)
-        tuple!(env, tuple_type, [], [infer_var]);
+        tuple!(env, tuple_type, [infer_var]);
 
         let mut inference_env = InferenceEnvironment::new(&env);
 
@@ -1405,7 +1366,7 @@ mod test {
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         // Create an empty tuple: ()
-        tuple!(env, empty_tuple, [], []);
+        tuple!(env, empty_tuple, []);
 
         let mut inference_env = InferenceEnvironment::new(&env);
 
@@ -1436,7 +1397,7 @@ mod test {
         let infer_var2 = instantiate_infer(&env, hole2);
 
         // Create a tuple with multiple inference variables: (_0, _1)
-        tuple!(env, tuple_type, [], [infer_var1, infer_var2]);
+        tuple!(env, tuple_type, [infer_var1, infer_var2]);
 
         let mut inference_env = InferenceEnvironment::new(&env);
 
@@ -1465,46 +1426,47 @@ mod test {
         );
     }
 
-    #[test]
-    fn collect_structural_edges_tuple_with_generic_args() {
-        let heap = Heap::new();
-        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    // TODO: move to generics test suite
+    // #[test]
+    // fn collect_structural_edges_tuple_with_generic_args() {
+    //     let heap = Heap::new();
+    //     let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
-        // Create a generic argument
-        let arg_id = GenericArgumentId::new(0);
-        let generic_arg = GenericArgument {
-            id: arg_id,
-            name: heap.intern_symbol("T"),
-            constraint: None,
-        };
+    //     // Create a generic argument
+    //     let arg_id = GenericArgumentId::new(0);
+    //     let generic_arg = GenericArgument {
+    //         id: arg_id,
+    //         name: heap.intern_symbol("T"),
+    //         constraint: None,
+    //     };
 
-        // Create an inference variable
-        let hole = HoleId::new(0);
-        let infer_var = instantiate_infer(&env, hole);
+    //     // Create an inference variable
+    //     let hole = HoleId::new(0);
+    //     let infer_var = instantiate_infer(&env, hole);
 
-        // Create a tuple with generic arguments: T<_0>
-        tuple!(env, tuple_type, [generic_arg], [infer_var]);
+    //     // Create a tuple with generic arguments: T<_0>
+    //     tuple!(env, tuple_type, [generic_arg], [infer_var]);
 
-        let mut inference_env = InferenceEnvironment::new(&env);
+    //     let mut inference_env = InferenceEnvironment::new(&env);
 
-        // Create a variable to use as the source in a structural edge
-        let edge_var = Variable::synthetic(VariableKind::Hole(HoleId::new(1)));
-        let partial_edge = PartialStructuralEdge::Source(edge_var);
+    //     // Create a variable to use as the source in a structural edge
+    //     let edge_var = Variable::synthetic(VariableKind::Hole(HoleId::new(1)));
+    //     let partial_edge = PartialStructuralEdge::Source(edge_var);
 
-        // Collect structural edges
-        tuple_type.collect_structural_edges(partial_edge, &mut inference_env);
+    //     // Collect structural edges
+    //     tuple_type.collect_structural_edges(partial_edge, &mut inference_env);
 
-        // The generic arguments shouldn't affect the edge propagation behavior
-        // We expect: _1 -> _0
-        let constraints = inference_env.take_constraints();
-        assert_eq!(
-            constraints,
-            [Constraint::StructuralEdge {
-                source: edge_var,
-                target: Variable::synthetic(VariableKind::Hole(hole)),
-            }]
-        );
-    }
+    //     // The generic arguments shouldn't affect the edge propagation behavior
+    //     // We expect: _1 -> _0
+    //     let constraints = inference_env.take_constraints();
+    //     assert_eq!(
+    //         constraints,
+    //         [Constraint::StructuralEdge {
+    //             source: edge_var,
+    //             target: Variable::synthetic(VariableKind::Hole(hole)),
+    //         }]
+    //     );
+    // }
 
     #[test]
     fn collect_structural_edges_tuple_contravariant_context() {
@@ -1516,7 +1478,7 @@ mod test {
         let infer_var = instantiate_infer(&env, hole);
 
         // Create a tuple with an inference variable: (_0,)
-        tuple!(env, tuple_type, [], [infer_var]);
+        tuple!(env, tuple_type, [infer_var]);
 
         let mut inference_env = InferenceEnvironment::new(&env);
 
@@ -1550,7 +1512,6 @@ mod test {
             span: SpanId::SYNTHETIC,
             kind: env.intern_kind(TypeKind::Tuple(TupleType {
                 fields: env.intern_type_ids(&[id.value()]),
-                arguments: GenericArguments::empty(),
             })),
         });
 
@@ -1561,41 +1522,41 @@ mod test {
 
         assert_matches!(
             r#type.kind,
-            TypeKind::Tuple(TupleType { fields, arguments }) if fields.len() == 1
+            TypeKind::Tuple(TupleType { fields }) if fields.len() == 1
                 && fields[0] == type_id
-                && arguments.is_empty()
         );
     }
 
-    #[test]
-    fn instantiate_tuple() {
-        let heap = Heap::new();
-        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    // TODO: move to generics test suite
+    // #[test]
+    // fn instantiate_tuple() {
+    //     let heap = Heap::new();
+    //     let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
-        let argument = env.counter.generic_argument.next();
+    //     let argument = env.counter.generic_argument.next();
 
-        tuple!(
-            env,
-            value,
-            [GenericArgument {
-                id: argument,
-                name: env.heap.intern_symbol("T"),
-                constraint: None
-            }],
-            [instantiate_param(&env, argument)]
-        );
+    //     tuple!(
+    //         env,
+    //         value,
+    //         [GenericArgument {
+    //             id: argument,
+    //             name: env.heap.intern_symbol("T"),
+    //             constraint: None
+    //         }],
+    //         [instantiate_param(&env, argument)]
+    //     );
 
-        let mut instantiate = InstantiateEnvironment::new(&env);
-        let type_id = value.instantiate(&mut instantiate);
+    //     let mut instantiate = InstantiateEnvironment::new(&env);
+    //     let type_id = value.instantiate(&mut instantiate);
 
-        let r#type = env.r#type(type_id).kind.tuple().expect("should be tuple");
-        assert_eq!(r#type.fields.len(), 1);
-        assert_eq!(r#type.arguments.len(), 1);
+    //     let r#type = env.r#type(type_id).kind.tuple().expect("should be tuple");
+    //     assert_eq!(r#type.fields.len(), 1);
+    //     assert_eq!(r#type.arguments.len(), 1);
 
-        let field = env.r#type(r#type.fields[0]);
-        let param = field.kind.param().expect("should be param");
+    //     let field = env.r#type(r#type.fields[0]);
+    //     let param = field.kind.param().expect("should be param");
 
-        assert_eq!(param.argument, r#type.arguments[0].id);
-        assert_ne!(param.argument, argument);
-    }
+    //     assert_eq!(param.argument, r#type.arguments[0].id);
+    //     assert_ne!(param.argument, argument);
+    // }
 }

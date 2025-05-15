@@ -995,13 +995,11 @@ fn contract() {
 
     let person1 = r#struct!(
         env,
-        [],
         [struct_field!(env, "name", instantiate_infer(&env, hole2))]
     );
 
     let person2 = r#struct!(
         env,
-        [],
         [struct_field!(env, "name", instantiate_infer(&env, hole1))]
     );
 
@@ -1033,7 +1031,6 @@ fn contract() {
                         value: id.value(),
                     }])
                     .expect("should be unique"),
-                arguments: env.intern_generic_arguments(&mut []),
             })),
         })
         .id;
@@ -1110,4 +1107,9 @@ fn pipeline_environment_to_solver() {
             .expect("should have inferred hole")],
         [number]
     );
+}
+
+#[test]
+fn generic_arguments() {
+    todo!()
 }

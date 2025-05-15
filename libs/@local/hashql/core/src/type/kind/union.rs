@@ -1689,8 +1689,8 @@ mod test {
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         // Create tuple types
-        let tuple1 = tuple!(env, [], [primitive!(env, PrimitiveType::Number)]);
-        let tuple2 = tuple!(env, [], [primitive!(env, PrimitiveType::String)]);
+        let tuple1 = tuple!(env, [primitive!(env, PrimitiveType::Number)]);
+        let tuple2 = tuple!(env, [primitive!(env, PrimitiveType::String)]);
 
         // Create a union of tuple types
         union!(env, union_type, [tuple1, tuple2]);
@@ -1702,7 +1702,7 @@ mod test {
         assert!(!union_type.is_top(&mut analysis_env));
 
         // Test subtyping with tuples in unions
-        let subtype_tuple = tuple!(env, [], [primitive!(env, PrimitiveType::Integer)]); // (Integer) <: (Number)
+        let subtype_tuple = tuple!(env, [primitive!(env, PrimitiveType::Integer)]); // (Integer) <: (Number)
         union!(env, subtype_union, [subtype_tuple, tuple2]);
 
         assert!(subtype_union.is_subtype_of(union_type, &mut analysis_env));

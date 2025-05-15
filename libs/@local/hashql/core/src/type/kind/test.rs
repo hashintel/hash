@@ -11,16 +11,14 @@ macro_rules! primitive {
 }
 
 macro_rules! tuple {
-    ($env:expr, $arguments:expr, $fields:expr) => {{
+    ($env:expr, $fields:expr) => {{
         let fields = $env.intern_type_ids(&$fields);
-        let mut arguments = $arguments;
-        let arguments = $env.intern_generic_arguments(&mut arguments);
 
-        instantiate(&$env, TypeKind::Tuple(TupleType { fields, arguments }))
+        instantiate(&$env, TypeKind::Tuple(TupleType { fields }))
     }};
 
-    ($env:expr, $name:ident, $fields:expr, $arguments:expr) => {
-        let $name = tuple!($env, $fields, $arguments);
+    ($env:expr, $name:ident, $fields:expr) => {
+        let $name = tuple!($env, $fields);
         let $name = $env.r#type($name);
         let $name = $name.map(|kind| kind.tuple().expect("should be a tuple"));
     };

@@ -103,6 +103,7 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
             | TypeKind::Union(_)
             | TypeKind::Intersection(_)
             | TypeKind::Apply(_)
+            | TypeKind::Generic(_)
             | TypeKind::Never
             | TypeKind::Unknown => Some(r#type),
             &TypeKind::Param(Param { argument }) => {

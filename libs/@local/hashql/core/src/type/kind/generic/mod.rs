@@ -361,7 +361,7 @@ impl<'heap> Generic<'heap> {
         }
     }
 
-    pub fn collect_structural_edges(
+    pub fn collect_argument_structural_edges(
         self,
         variable: PartialStructuralEdge,
         env: &mut InferenceEnvironment<'_, 'heap>,
@@ -398,7 +398,7 @@ impl<'heap> Inference<'heap> for Generic<'heap> {
         variable: PartialStructuralEdge,
         env: &mut InferenceEnvironment<'_, 'heap>,
     ) {
-        self.kind.collect_structural_edges(variable, env);
+        self.kind.collect_argument_structural_edges(variable, env);
 
         env.collect_structural_edges(self.kind.base, variable);
     }
