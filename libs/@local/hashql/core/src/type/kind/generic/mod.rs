@@ -20,7 +20,8 @@ use crate::{
         PartialType, Type, TypeId,
         environment::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
-            SimplifyEnvironment, instantiate::InstantiateEnvironment,
+            SimplifyEnvironment,
+            instantiate::{ArgumentsState, InstantiateEnvironment},
         },
         inference::{Inference, PartialStructuralEdge},
         lattice::Lattice,
@@ -405,11 +406,12 @@ impl<'heap> Inference<'heap> for Generic<'heap> {
 
     fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {
         let (guard_id, id) = env.provision(self.id);
-        let (_guard, arguments) = env.instantiate_arguments(self.kind.arguments);
+        let (_guard, arguments, state) = env.instantiate_arguments(self.kind.arguments);
 
-        if arguments.is_empty() {
-            // When we have no generics at all, we can use regular instantiation for the base type
-            // because the result won't be generic
+        if state == ArgumentsState::IdentitiesOnly || arguments.is_empty() {
+            // When we have no generics at all, or the generics simply all map to themselves, we can
+            // use regular instantiation for the base type because the result be any different /
+            // dependent on the generics.
             let base = env.instantiate(self.kind.base);
 
             // If there are no effective generics, this Generic is redundant and
