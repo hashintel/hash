@@ -2146,111 +2146,112 @@ mod tests {
         );
     }
 
-    #[test]
-    fn instantiate_list() {
-        let heap = Heap::new();
-        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    // TODO: move to generic
+    // #[test]
+    // fn instantiate_list() {
+    //     let heap = Heap::new();
+    //     let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
-        let argument = env.counter.generic_argument.next();
-        let param = instantiate_param(&env, argument);
+    //     let argument = env.counter.generic_argument.next();
+    //     let param = instantiate_param(&env, argument);
 
-        opaque!(
-            env,
-            value,
-            "A",
-            list!(env, param),
-            [GenericArgument {
-                id: argument,
-                name: heap.intern_symbol("T"),
-                constraint: None
-            }]
-        );
+    //     opaque!(
+    //         env,
+    //         value,
+    //         "A",
+    //         list!(env, param),
+    //         [GenericArgument {
+    //             id: argument,
+    //             name: heap.intern_symbol("T"),
+    //             constraint: None
+    //         }]
+    //     );
 
-        let mut instantiate = InstantiateEnvironment::new(&env);
-        let type_id = value.instantiate(&mut instantiate);
-        assert!(instantiate.take_diagnostics().is_empty());
+    //     let mut instantiate = InstantiateEnvironment::new(&env);
+    //     let type_id = value.instantiate(&mut instantiate);
+    //     assert!(instantiate.take_diagnostics().is_empty());
 
-        let result = env.r#type(type_id);
-        let opaque = result.kind.opaque().expect("should be an opaque type");
-        let element = env
-            .r#type(opaque.repr)
-            .kind
-            .intrinsic()
-            .expect("should be an intrinsic type")
-            .list()
-            .expect("should be a list")
-            .element;
-        let element = env.r#type(element).kind.param().expect("should be a param");
+    //     let result = env.r#type(type_id);
+    //     let opaque = result.kind.opaque().expect("should be an opaque type");
+    //     let element = env
+    //         .r#type(opaque.repr)
+    //         .kind
+    //         .intrinsic()
+    //         .expect("should be an intrinsic type")
+    //         .list()
+    //         .expect("should be a list")
+    //         .element;
+    //     let element = env.r#type(element).kind.param().expect("should be a param");
 
-        assert_eq!(opaque.arguments.len(), 1);
-        assert_eq!(
-            *element,
-            Param {
-                argument: opaque.arguments[0].id
-            }
-        );
-        assert_ne!(element.argument, argument);
-    }
+    //     assert_eq!(opaque.arguments.len(), 1);
+    //     assert_eq!(
+    //         *element,
+    //         Param {
+    //             argument: opaque.arguments[0].id
+    //         }
+    //     );
+    //     assert_ne!(element.argument, argument);
+    // }
 
-    #[test]
-    fn instantiate_dict() {
-        let heap = Heap::new();
-        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    // #[test]
+    // fn instantiate_dict() {
+    //     let heap = Heap::new();
+    //     let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
-        let argument = env.counter.generic_argument.next();
-        let param = instantiate_param(&env, argument);
+    //     let argument = env.counter.generic_argument.next();
+    //     let param = instantiate_param(&env, argument);
 
-        opaque!(
-            env,
-            value,
-            "A",
-            dict!(env, param, param),
-            [GenericArgument {
-                id: argument,
-                name: heap.intern_symbol("T"),
-                constraint: None
-            }]
-        );
+    //     opaque!(
+    //         env,
+    //         value,
+    //         "A",
+    //         dict!(env, param, param),
+    //         [GenericArgument {
+    //             id: argument,
+    //             name: heap.intern_symbol("T"),
+    //             constraint: None
+    //         }]
+    //     );
 
-        let mut instantiate = InstantiateEnvironment::new(&env);
-        let type_id = value.instantiate(&mut instantiate);
-        assert!(instantiate.take_diagnostics().is_empty());
+    //     let mut instantiate = InstantiateEnvironment::new(&env);
+    //     let type_id = value.instantiate(&mut instantiate);
+    //     assert!(instantiate.take_diagnostics().is_empty());
 
-        let result = env.r#type(type_id);
-        let opaque = result.kind.opaque().expect("should be an opaque type");
-        let dict = env
-            .r#type(opaque.repr)
-            .kind
-            .intrinsic()
-            .expect("should be an intrinsic type")
-            .dict()
-            .expect("should be a dict");
-        let key = env
-            .r#type(dict.key)
-            .kind
-            .param()
-            .expect("should be a param");
-        let value = env
-            .r#type(dict.value)
-            .kind
-            .param()
-            .expect("should be a param");
+    //     let result = env.r#type(type_id);
+    //     let opaque = result.kind.opaque().expect("should be an opaque type");
+    //     let dict = env
+    //         .r#type(opaque.repr)
+    //         .kind
+    //         .intrinsic()
+    //         .expect("should be an intrinsic type")
+    //         .dict()
+    //         .expect("should be a dict");
+    //     let key = env
+    //         .r#type(dict.key)
+    //         .kind
+    //         .param()
+    //         .expect("should be a param");
+    //     let value = env
+    //         .r#type(dict.value)
+    //         .kind
+    //         .param()
+    //         .expect("should be a param");
 
-        assert_eq!(opaque.arguments.len(), 1);
-        assert_eq!(
-            *key,
-            Param {
-                argument: opaque.arguments[0].id
-            }
-        );
-        assert_ne!(key.argument, argument);
+    //     assert_eq!(opaque.arguments.len(), 1);
+    //     assert_eq!(
+    //         *key,
+    //         Param {
+    //             argument: opaque.arguments[0].id
+    //         }
+    //     );
+    //     assert_ne!(key.argument, argument);
 
-        assert_eq!(
-            *value,
-            Param {
-                argument: opaque.arguments[0].id
-            }
-        );
-        assert_ne!(value.argument, argument);
-    }
+    //     assert_eq!(
+    //         *value,
+    //         Param {
+    //             argument: opaque.arguments[0].id
+    //         }
+    //     );
+    //     assert_ne!(value.argument, argument);
+    // }
 }

@@ -51,24 +51,20 @@ macro_rules! struct_field {
 }
 
 macro_rules! closure {
-    ($env:expr, $arguments:expr, $params:expr, $returns:expr) => {{
+    ($env:expr, $params:expr, $returns:expr) => {{
         let params = $env.intern_type_ids(&$params);
-
-        let mut arguments = $arguments;
-        let arguments = $env.intern_generic_arguments(&mut arguments);
 
         instantiate(
             &$env,
             TypeKind::Closure(ClosureType {
                 params,
                 returns: $returns,
-                arguments,
             }),
         )
     }};
 
-    ($env:expr, $name:ident, $arguments:expr, $params:expr, $returns:expr) => {
-        let $name = closure!($env, $arguments, $params, $returns);
+    ($env:expr, $name:ident, $params:expr, $returns:expr) => {
+        let $name = closure!($env, $params, $returns);
         let $name = $env.r#type($name);
         let $name = $name.map(|kind| kind.closure().expect("should be a closure"));
     };
@@ -156,25 +152,15 @@ macro_rules! assert_equiv {
 }
 
 macro_rules! opaque {
-    ($env:expr, $name:expr, $repr:expr, $arguments:expr) => {{
+    ($env:expr, $name:expr, $repr:expr) => {{
         let repr = $repr;
         let name = $env.heap.intern_symbol($name);
 
-        let mut arguments = $arguments;
-        let arguments = $env.intern_generic_arguments(&mut arguments);
-
-        instantiate(
-            &$env,
-            TypeKind::Opaque(OpaqueType {
-                name,
-                repr,
-                arguments,
-            }),
-        )
+        instantiate(&$env, TypeKind::Opaque(OpaqueType { name, repr }))
     }};
 
-    ($env:expr, $var_name:ident, $name:expr, $repr:expr, $arguments:expr) => {
-        let $var_name = opaque!($env, $name, $repr, $arguments);
+    ($env:expr, $var_name:ident, $name:expr, $repr:expr) => {
+        let $var_name = opaque!($env, $name, $repr);
         let $var_name = $env.r#type($var_name);
         let $var_name = $var_name.map(|kind| kind.opaque().expect("should be an opaque type"));
     };
