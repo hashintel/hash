@@ -117,7 +117,33 @@ impl<'heap> Environment<'heap> {
         // error.
         let (dedupe, _) = arguments.partition_dedup();
 
-        GenericArguments::from_slice_unchecked(self.generic_arguments.intern_slice(dedupe))
+        // If there are any `None` constraints, when `Some` constraints with the same id are
+        // present, remove them. This is relatively easy, as we know there's only ever a *single*
+        // `None` value out there, which is immediately followed by a `Some` value of the same id.
+        let mut write_index = 0;
+        let mut index = 0;
+        while index < dedupe.len() {
+            // Check if it is none and if we can lookahead.
+            if let [current, next] = dedupe[index..]
+                && current.id == next.id
+                && current.constraint.is_none()
+                && next.constraint.is_some()
+            {
+                // If that is the case increment the pointer, and therefore skip the element
+                index += 1;
+            }
+
+            if write_index != index {
+                dedupe[write_index] = dedupe[index];
+            }
+
+            write_index += 1;
+            index += 1;
+        }
+
+        GenericArguments::from_slice_unchecked(
+            self.generic_arguments.intern_slice(&dedupe[..write_index]),
+        )
     }
 
     #[inline]

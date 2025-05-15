@@ -496,14 +496,16 @@ mod tests {
         heap::Heap,
         span::SpanId,
         r#type::{
+            PartialType,
             environment::{AnalysisEnvironment, Environment, LatticeEnvironment},
             kind::{
-                Generic, GenericArgument, PrimitiveType, TypeKind,
-                test::{assert_equiv, generic, primitive},
+                Generic, GenericArgument, GenericArguments, PrimitiveType, StructType, TypeKind,
+                r#struct::StructField,
+                test::{assert_equiv, generic, primitive, r#struct, struct_field},
             },
             lattice::test::assert_lattice_laws,
             pretty_print::PrettyPrint as _,
-            test::instantiate,
+            test::{instantiate, instantiate_infer},
         },
     };
 
@@ -822,7 +824,7 @@ mod tests {
 
     #[test]
     #[expect(clippy::too_many_lines)]
-    fn join_complex_substitution_merging() {
+    fn join_complex_generic_merging() {
         let heap = Heap::new();
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
@@ -891,7 +893,7 @@ mod tests {
                 GenericArgument {
                     id: argument4,
                     name: heap.intern_symbol("W"),
-                    constraint: Some(integer),
+                    constraint: Some(string),
                 },
                 GenericArgument {
                     id: argument5,
@@ -912,8 +914,8 @@ mod tests {
         // The result should have:
         // - One generic for arg1 (deduped)
         // - Two generics for arg2 (different values)
-        // - One generic for arg3 (from first Apply)
-        // - One generic for arg4 (from second Apply)
+        // - One generic for arg3 (from first Generic)
+        // - One generic for arg4 (from second Generic)
         // So 5 total generics
         assert_eq!(
             *generic.arguments,
@@ -950,5 +952,67 @@ mod tests {
                 }
             ]
         );
+    }
+
+    #[test]
+    fn bottom() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Verify that `is_bottom` simply delegates to the base type
+        let apply_never = generic!(env, instantiate(&env, TypeKind::Never), []);
+        let mut analysis = AnalysisEnvironment::new(&env);
+        assert!(analysis.is_bottom(apply_never));
+
+        let apply_string = generic!(env, primitive!(env, PrimitiveType::String), []);
+        assert!(!analysis.is_bottom(apply_string));
+    }
+
+    #[test]
+    fn top() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Verify that `is_top` simply delegates to the base type
+        let apply_unknown = generic!(env, instantiate(&env, TypeKind::Unknown), []);
+        let mut analysis = AnalysisEnvironment::new(&env);
+        assert!(analysis.is_top(apply_unknown));
+
+        let apply_string = generic!(env, primitive!(env, PrimitiveType::String), []);
+        assert!(!analysis.is_top(apply_string));
+    }
+
+    #[test]
+    fn concrete() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // Verify that `is_concrete` simply delegates to the base type
+        let apply_never = generic!(env, instantiate(&env, TypeKind::Never), []);
+        let mut analysis = AnalysisEnvironment::new(&env);
+        assert!(analysis.is_concrete(apply_never));
+
+        let apply_infer = generic!(env, instantiate_infer(&env, 0_u32), []);
+        assert!(!analysis.is_concrete(apply_infer));
+    }
+
+    #[test]
+    fn recursive() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        // type that's `type A = Apply<(name: A), []>`
+        let recursive = env.types.intern(|id| PartialType {
+            span: SpanId::SYNTHETIC,
+            kind: env.intern_kind(TypeKind::Generic(Generic {
+                base: r#struct!(env, [struct_field!(env, "A", id.value())]),
+                arguments: GenericArguments::empty(),
+            })),
+        });
+        let mut analysis = AnalysisEnvironment::new(&env);
+        assert!(analysis.is_recursive(recursive.id));
+
+        let apply_infer = generic!(env, instantiate_infer(&env, 0_u32), []);
+        assert!(!analysis.is_recursive(apply_infer));
     }
 }
