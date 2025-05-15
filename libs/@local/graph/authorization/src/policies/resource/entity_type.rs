@@ -23,13 +23,21 @@ use crate::policies::cedar::{
 #[repr(transparent)]
 pub struct EntityTypeId(#[cfg_attr(feature = "codegen", specta(type = String))] VersionedUrl);
 
-#[expect(
-    unsafe_code,
-    reason = "There is no way to transmute from `&VersionedUrl` and `&EntityTypeId` without \
-              `unsafe`"
-)]
 impl From<&VersionedUrl> for &EntityTypeId {
+    #[expect(
+        unsafe_code,
+        reason = "There is no way to transmute from `&VersionedUrl` to `&EntityTypeId` without \
+                  `unsafe`"
+    )]
     fn from(url: &VersionedUrl) -> Self {
+        const {
+            // We cannot compile-check that `VersionedUrl` is the inner type of `EntityTypeId`,
+            // which in theory should be possible with `Facet`, but having a few checks
+            // here is better than none.
+            assert!(size_of::<VersionedUrl>() == size_of::<EntityTypeId>());
+            assert!(align_of::<VersionedUrl>() == align_of::<EntityTypeId>());
+        }
+
         // SAFETY: Self is `repr(transparent)`
         unsafe { &*ptr::from_ref::<VersionedUrl>(url).cast::<EntityTypeId>() }
     }
