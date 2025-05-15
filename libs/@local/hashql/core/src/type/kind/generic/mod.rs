@@ -11,7 +11,7 @@ pub use self::{
 };
 use super::TypeKind;
 use crate::{
-    collection::TinyVec,
+    collection::{SmallVec, TinyVec},
     intern::Interned,
     newtype, newtype_producer,
     span::SpanId,
@@ -110,7 +110,7 @@ impl<'heap> GenericArguments<'heap> {
     pub fn merge(&self, other: &Self, env: &Environment<'heap>) -> Self {
         // We can merge without de-duplication, because every argument has a unique ID.
         // What we need to do tho, is to re-sort them, so that the invariants are maintained.
-        let mut vec = Vec::with_capacity(self.len() + other.len());
+        let mut vec = SmallVec::with_capacity(self.len() + other.len());
 
         vec.extend_from_slice(self.as_slice());
         vec.extend_from_slice(other.as_slice());
@@ -184,7 +184,7 @@ impl<'heap> Generic<'heap> {
         other: Self,
         env: &mut LatticeEnvironment<'_, 'heap>,
         span: SpanId,
-    ) -> smallvec::SmallVec<TypeId, 4> {
+    ) -> TinyVec<TypeId> {
         // As we require to wrap the result in our own type, we call the function directly
         let self_base = env.r#type(self.base);
         let other_base = env.r#type(other.base);
@@ -201,7 +201,7 @@ impl<'heap> Generic<'heap> {
         other: Self,
         env: &mut LatticeEnvironment<'_, 'heap>,
         span: SpanId,
-    ) -> smallvec::SmallVec<TypeId, 4> {
+    ) -> TinyVec<TypeId> {
         // As we require to wrap the result in our own type, we call the function directly
         let self_base = env.r#type(self.base);
         let other_base = env.r#type(other.base);
@@ -219,7 +219,7 @@ impl<'heap> Lattice<'heap> for Generic<'heap> {
         self: Type<'heap, Self>,
         other: Type<'heap, Self>,
         env: &mut LatticeEnvironment<'_, 'heap>,
-    ) -> smallvec::SmallVec<TypeId, 4> {
+    ) -> TinyVec<TypeId> {
         self.kind.join_base(*other.kind, env, self.span)
     }
 
@@ -227,7 +227,7 @@ impl<'heap> Lattice<'heap> for Generic<'heap> {
         self: Type<'heap, Self>,
         other: Type<'heap, Self>,
         env: &mut LatticeEnvironment<'_, 'heap>,
-    ) -> smallvec::SmallVec<TypeId, 4> {
+    ) -> TinyVec<TypeId> {
         self.kind.meet_base(*other.kind, env, self.span)
     }
 
@@ -250,7 +250,7 @@ impl<'heap> Lattice<'heap> for Generic<'heap> {
     fn distribute_union(
         self: Type<'heap, Self>,
         env: &mut AnalysisEnvironment<'_, 'heap>,
-    ) -> smallvec::SmallVec<TypeId, 16> {
+    ) -> SmallVec<TypeId> {
         let base = env.distribute_union(self.kind.base);
 
         // Due to distribution rules, we know if there's a single element, it's the same as the
@@ -275,7 +275,7 @@ impl<'heap> Lattice<'heap> for Generic<'heap> {
     fn distribute_intersection(
         self: Type<'heap, Self>,
         env: &mut AnalysisEnvironment<'_, 'heap>,
-    ) -> smallvec::SmallVec<TypeId, 16> {
+    ) -> SmallVec<TypeId> {
         let base = env.distribute_intersection(self.kind.base);
 
         // Due to distribution rules, we know if there's a single element, it's the same as the
@@ -459,3 +459,6 @@ impl PrettyPrint for Generic<'_> {
         limit.pretty_generic(self.arguments, env, self.base)
     }
 }
+
+#[cfg(test)]
+mod tests {}
