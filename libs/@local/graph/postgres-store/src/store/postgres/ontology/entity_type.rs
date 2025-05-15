@@ -1754,7 +1754,8 @@ where
         self.build_principal_context(actor, &mut policy_context_builder)
             .await
             .change_context(QueryError)?;
-        self.build_entity_type_context(entity_type_ids, &mut policy_context_builder)
+        let unknown_entity_types = self
+            .build_entity_type_context(entity_type_ids, &mut policy_context_builder)
             .await
             .change_context(QueryError)?;
 
@@ -1762,21 +1763,26 @@ where
 
         entity_type_ids
             .iter()
-            .map(|entity_type_id| {
-                policy_set
-                    .evaluate(
-                        &Request {
-                            actor,
-                            action: ActionName::Instantiate,
-                            resource: Some(&PartialResourceId::EntityType(Some(Cow::Borrowed(
-                                entity_type_id.into(),
-                            )))),
-                            context: RequestContext::default(),
-                        },
-                        &policy_context,
-                    )
-                    .change_context(QueryError)
-                    .map(|authorized| match authorized {
+            .enumerate()
+            .map(|(index, entity_type_id)| {
+                Ok(if unknown_entity_types.contains(&index) {
+                    false
+                } else {
+                    let authorized = policy_set
+                        .evaluate(
+                            &Request {
+                                actor,
+                                action: ActionName::Instantiate,
+                                resource: Some(&PartialResourceId::EntityType(Some(
+                                    Cow::Borrowed(entity_type_id.into()),
+                                ))),
+                                context: RequestContext::default(),
+                            },
+                            &policy_context,
+                        )
+                        .change_context(QueryError)?;
+
+                    match authorized {
                         Authorized::Always => true,
                         Authorized::Never => false,
                         Authorized::Partial(partial) => {
@@ -1787,7 +1793,8 @@ where
                             );
                             false
                         }
-                    })
+                    }
+                })
             })
             .collect()
     }

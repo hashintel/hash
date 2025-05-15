@@ -2,7 +2,7 @@ use alloc::borrow::Cow;
 use core::str::FromStr as _;
 use std::collections::{HashMap, HashSet};
 
-use error_stack::{Report, ResultExt as _, TryReportIteratorExt as _, ensure};
+use error_stack::{Report, ResultExt as _, ensure};
 use futures::TryStreamExt as _;
 use hash_graph_authorization::{
     AuthorizationApi,
@@ -1354,17 +1354,24 @@ where
 
     /// Builds a context used to evaluate policies for a set of entity types.
     ///
+    /// Returns the set of indices of the entity types that were not found in the database.
+    ///
     /// # Errors
     ///
     /// - [`QueryError`] if a database error occurs
+    #[expect(
+        clippy::cast_possible_truncation,
+        clippy::cast_sign_loss,
+        reason = "The index is 1-based and is always less than or equal to the length of the array"
+    )]
     pub async fn build_entity_type_context(
         &self,
         entity_type_ids: &[VersionedUrl],
         context_builder: &mut ContextBuilder,
-    ) -> Result<(), Report<QueryError>> {
-        let () = self
+    ) -> Result<HashSet<usize>, Report<QueryError>> {
+        let not_found = self
             .as_client()
-            .query(
+            .query_raw(
                 "
                     SELECT input.idx
                     FROM unnest($1::text[]) WITH ORDINALITY AS input(url, idx)
@@ -1372,24 +1379,13 @@ where
                         SELECT 1 FROM entity_types
                         WHERE entity_types.schema ->> '$id' = input.url
                     )",
-                &[&entity_type_ids],
+                &[entity_type_ids],
             )
             .await
             .change_context(QueryError)?
-            .into_iter()
-            .map(|row| {
-                #[expect(
-                    clippy::cast_possible_truncation,
-                    clippy::cast_sign_loss,
-                    reason = "The index is 1-based and is always less than or equal to the length \
-                              of the array"
-                )]
-                Err(Report::new(QueryError).attach_printable(format!(
-                    "Entity type not found: `{}`",
-                    entity_type_ids[row.get::<_, i64>(0) as usize - 1]
-                )))
-            })
-            .try_collect_reports()
+            .map_ok(|row| row.get::<_, i64>(0) as usize - 1)
+            .try_collect()
+            .await
             .change_context(QueryError)?;
 
         self.as_client()
@@ -1440,6 +1436,6 @@ where
                 });
             });
 
-        Ok(())
+        Ok(not_found)
     }
 }
