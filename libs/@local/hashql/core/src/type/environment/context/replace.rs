@@ -1,12 +1,14 @@
 use alloc::rc::Rc;
 use core::{cell::RefCell, hash::Hash};
 
+use smallvec::SmallVec;
+
 use crate::collection::FastHashMap;
 
 pub struct ReplacementGuard<T: Copy + Eq + Hash> {
     inner: Rc<ReplacementScope<T>>,
 
-    items: Vec<(T, Option<T>)>,
+    items: SmallVec<(T, Option<T>), 4>,
 }
 
 impl<T> Drop for ReplacementGuard<T>
@@ -46,7 +48,7 @@ where
         ReplacementGuard { inner: self, items }
     }
 
-    pub(crate) fn exit(&self, items: &mut Vec<(T, Option<T>)>) {
+    pub(crate) fn exit(&self, items: &mut SmallVec<(T, Option<T>), 4>) {
         if items.is_empty() {
             return;
         }

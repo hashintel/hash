@@ -90,7 +90,7 @@ impl<'env, 'heap> InstantiateEnvironment<'env, 'heap> {
         ArgumentsState,
     ) {
         let mut replacements = SmallVec::<_, 16>::with_capacity(arguments.len());
-        let mut mapping = Vec::with_capacity(arguments.len());
+        let mut mapping = SmallVec::<_, 16>::with_capacity(arguments.len());
 
         let mut state = ArgumentsState::IdentitiesOnly;
 

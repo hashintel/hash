@@ -12,8 +12,8 @@ use crate::{
     r#type::{
         environment::LatticeEnvironment,
         kind::{
-            generic::GenericArguments, intersection::IntersectionType, primitive::PrimitiveType,
-            tuple::TupleType, union::UnionType,
+            intersection::IntersectionType, primitive::PrimitiveType, tuple::TupleType,
+            union::UnionType,
         },
     },
 };
