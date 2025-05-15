@@ -968,40 +968,39 @@ mod tests {
         );
     }
 
-    // TODO: use new `Generic` type
-    // #[test]
-    // fn simplify_instantiate_recursive() {
-    //     let heap = Heap::new();
-    //     let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    #[test]
+    fn simplify_instantiate_recursive() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
-    //     let t = env.counter.generic_argument.next();
+        let t = env.counter.generic_argument.next();
 
-    //     let recursive = env.types.intern(|recursive| PartialType {
-    //         span: SpanId::SYNTHETIC,
-    //         kind: env.intern_kind(TypeKind::Apply(Apply {
-    //             base: r#struct!(
-    //                 env,
-    //                 [GenericArgument {
-    //                     id: t,
-    //                     name: heap.intern_symbol("T"),
-    //                     constraint: None
-    //                 }],
-    //                 [struct_field!(env, "foo", recursive.value())]
-    //             ),
-    //             substitutions: env.intern_generic_substitutions(&mut [GenericSubstitution {
-    //                 argument: t,
-    //                 value: instantiate_param(&env, t),
-    //             }]),
-    //         })),
-    //     });
+        let recursive = env.types.intern(|recursive| PartialType {
+            span: SpanId::SYNTHETIC,
+            kind: env.intern_kind(TypeKind::Apply(Apply {
+                base: generic!(
+                    env,
+                    r#struct!(env, [struct_field!(env, "foo", recursive.value())]),
+                    [GenericArgument {
+                        id: t,
+                        name: heap.intern_symbol("T"),
+                        constraint: None
+                    }]
+                ),
+                substitutions: env.intern_generic_substitutions(&mut [GenericSubstitution {
+                    argument: t,
+                    value: instantiate_param(&env, t),
+                }]),
+            })),
+        });
 
-    //     let mut simplify = SimplifyEnvironment::new(&env);
-    //     let mut instantiate = InstantiateEnvironment::new(&env);
-    //     let result_id = simplify.simplify(instantiate.instantiate(recursive.id));
+        let mut simplify = SimplifyEnvironment::new(&env);
+        let mut instantiate = InstantiateEnvironment::new(&env);
+        let result_id = simplify.simplify(instantiate.instantiate(recursive.id));
 
-    //     // The type is complicated enough that it isn't feasible to test it through assertions.
-    //     insta::assert_snapshot!(strip_str(&env.r#type(result_id).pretty_print(&env, 80)));
-    // }
+        // The type is complicated enough that it isn't feasible to test it through assertions.
+        insta::assert_snapshot!(strip_str(&env.r#type(result_id).pretty_print(&env, 80)));
+    }
 
     #[test]
     fn collect_constraints() {
@@ -1467,121 +1466,124 @@ mod tests {
         insta::assert_snapshot!(strip_str(&env.r#type(result_id).pretty_print(&env, 80)));
     }
 
-    // #[test]
-    // fn instantiate_different_substitutions() {
-    //     let heap = Heap::new();
-    //     let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    #[test]
+    fn instantiate_different_substitutions() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
-    //     let foo_argument = env.counter.generic_argument.next();
+        let foo_argument = env.counter.generic_argument.next();
 
-    //     // type Foo<T> = (foo: T)
-    //     let foo = r#struct!(
-    //         env,
-    //         [GenericArgument {
-    //             id: foo_argument,
-    //             name: heap.intern_symbol("T"),
-    //             constraint: None
-    //         }],
-    //         [struct_field!(
-    //             env,
-    //             "foo",
-    //             instantiate_param(&env, foo_argument)
-    //         )]
-    //     );
+        // type Foo<T> = (foo: T)
+        let foo = generic!(
+            env,
+            r#struct!(
+                env,
+                [struct_field!(
+                    env,
+                    "foo",
+                    instantiate_param(&env, foo_argument)
+                )]
+            ),
+            [GenericArgument {
+                id: foo_argument,
+                name: heap.intern_symbol("T"),
+                constraint: None
+            }]
+        );
 
-    //     // type Bar = (bar: Foo<String>, baz: Foo<Number>)
-    //     let bar = r#struct!(
-    //         env,
-    //         [],
-    //         [
-    //             struct_field!(
-    //                 env,
-    //                 "bar",
-    //                 apply!(
-    //                     env,
-    //                     foo,
-    //                     [GenericSubstitution {
-    //                         argument: foo_argument,
-    //                         value: primitive!(env, PrimitiveType::String)
-    //                     }]
-    //                 )
-    //             ),
-    //             struct_field!(
-    //                 env,
-    //                 "baz",
-    //                 apply!(
-    //                     env,
-    //                     foo,
-    //                     [GenericSubstitution {
-    //                         argument: foo_argument,
-    //                         value: primitive!(env, PrimitiveType::Number)
-    //                     }]
-    //                 )
-    //             )
-    //         ]
-    //     );
+        // type Bar = (bar: Foo<String>, baz: Foo<Number>)
+        let bar = r#struct!(
+            env,
+            [
+                struct_field!(
+                    env,
+                    "bar",
+                    apply!(
+                        env,
+                        foo,
+                        [GenericSubstitution {
+                            argument: foo_argument,
+                            value: primitive!(env, PrimitiveType::String)
+                        }]
+                    )
+                ),
+                struct_field!(
+                    env,
+                    "baz",
+                    apply!(
+                        env,
+                        foo,
+                        [GenericSubstitution {
+                            argument: foo_argument,
+                            value: primitive!(env, PrimitiveType::Number)
+                        }]
+                    )
+                )
+            ]
+        );
 
-    //     let mut instantiate = InstantiateEnvironment::new(&env);
-    //     let result_id = instantiate.instantiate(bar);
+        let mut instantiate = InstantiateEnvironment::new(&env);
+        let result_id = instantiate.instantiate(bar);
 
-    //     // The type is complicated enough that it isn't feasible to test it through assertions.
-    //     insta::assert_snapshot!(strip_str(&env.r#type(result_id).pretty_print(&env, 80)));
-    // }
+        // The type is complicated enough that it isn't feasible to test it through assertions.
+        insta::assert_snapshot!(strip_str(&env.r#type(result_id).pretty_print(&env, 80)));
+    }
 
-    // #[test]
-    // fn instantiate_partial() {
-    //     let heap = Heap::new();
-    //     let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    #[test]
+    fn instantiate_partial() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
-    //     let t = env.counter.generic_argument.next();
-    //     let u = env.counter.generic_argument.next();
+        let t = env.counter.generic_argument.next();
+        let u = env.counter.generic_argument.next();
 
-    //     // type Foo<T, U> = (foo: Foo<T, String>)
-    //     let foo = env
-    //         .types
-    //         .intern(|foo| PartialType {
-    //             span: SpanId::SYNTHETIC,
-    //             kind: env.intern_kind(TypeKind::Struct(StructType {
-    //                 fields: env
-    //                     .intern_struct_fields(&mut [struct_field!(
-    //                         env,
-    //                         "foo",
-    //                         apply!(
-    //                             env,
-    //                             foo.value(),
-    //                             [
-    //                                 GenericSubstitution {
-    //                                     argument: t,
-    //                                     value: instantiate_param(&env, t)
-    //                                 },
-    //                                 GenericSubstitution {
-    //                                     argument: u,
-    //                                     value: primitive!(env, PrimitiveType::String)
-    //                                 }
-    //                             ]
-    //                         )
-    //                     )])
-    //                     .expect("should have no duplicates"),
-    //                 arguments: env.intern_generic_arguments(&mut [
-    //                     GenericArgument {
-    //                         id: t,
-    //                         name: heap.intern_symbol("T"),
-    //                         constraint: None,
-    //                     },
-    //                     GenericArgument {
-    //                         id: u,
-    //                         name: heap.intern_symbol("U"),
-    //                         constraint: None,
-    //                     },
-    //                 ]),
-    //             })),
-    //         })
-    //         .id;
+        // type Foo<T, U> = (foo: Foo<T, String>)
+        let foo = env
+            .types
+            .intern(|foo| PartialType {
+                span: SpanId::SYNTHETIC,
+                kind: env.intern_kind(TypeKind::Generic(Generic {
+                    base: r#struct!(
+                        env,
+                        [struct_field!(
+                            env,
+                            "foo",
+                            apply!(
+                                env,
+                                foo.value(),
+                                [
+                                    GenericSubstitution {
+                                        argument: t,
+                                        value: instantiate_param(&env, t)
+                                    },
+                                    GenericSubstitution {
+                                        argument: u,
+                                        value: primitive!(env, PrimitiveType::String)
+                                    }
+                                ]
+                            )
+                        )]
+                    ),
+                    arguments: env.intern_generic_arguments(&mut [
+                        GenericArgument {
+                            id: t,
+                            name: heap.intern_symbol("T"),
+                            constraint: None,
+                        },
+                        GenericArgument {
+                            id: u,
+                            name: heap.intern_symbol("U"),
+                            constraint: None,
+                        },
+                    ]),
+                })),
+            })
+            .id;
 
-    //     let mut instantiate = InstantiateEnvironment::new(&env);
-    //     let result_id = instantiate.instantiate(foo);
+        let mut instantiate = InstantiateEnvironment::new(&env);
+        let result_id = instantiate.instantiate(foo);
 
-    //     // The type is complicated enough that it isn't feasible to test it through assertions.
-    //     insta::assert_snapshot!(strip_str(&env.r#type(result_id).pretty_print(&env, 80)));
-    // }
+        // The type is complicated enough that it isn't feasible to test it through assertions.
+        insta::assert_snapshot!(strip_str(&env.r#type(result_id).pretty_print(&env, 80)));
+    }
 }

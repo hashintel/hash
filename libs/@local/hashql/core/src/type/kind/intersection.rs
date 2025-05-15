@@ -2207,7 +2207,6 @@ mod test {
         assert!(is_bottom);
     }
 
-    // TODO: move to generic
     #[test]
     fn instantiate_intersection() {
         let heap = Heap::new();

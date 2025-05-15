@@ -140,7 +140,6 @@ pub trait Lattice<'heap> {
     ///
     /// - `meet(Number, Integer | String) = Integer`
     ///   - Meeting Number with a union gives the intersection of meeting Number with each component
-    // TODO: test meet(Number, Integer | String) = Integer
     fn meet(
         self: Type<'heap, Self>,
         other: Type<'heap, Self>,

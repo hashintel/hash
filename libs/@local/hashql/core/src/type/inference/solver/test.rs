@@ -1108,8 +1108,3 @@ fn pipeline_environment_to_solver() {
         [number]
     );
 }
-
-#[test]
-fn generic_arguments() {
-    todo!()
-}
