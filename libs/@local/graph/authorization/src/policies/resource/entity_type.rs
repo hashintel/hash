@@ -1,5 +1,5 @@
 use alloc::{borrow::Cow, sync::Arc};
-use core::{error::Error, fmt, iter, str::FromStr as _};
+use core::{error::Error, fmt, iter, ptr, str::FromStr as _};
 use std::{collections::HashSet, sync::LazyLock};
 
 use cedar_policy_core::{ast, extensions::Extensions};
@@ -22,6 +22,18 @@ use crate::policies::cedar::{
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[repr(transparent)]
 pub struct EntityTypeId(#[cfg_attr(feature = "codegen", specta(type = String))] VersionedUrl);
+
+#[expect(
+    unsafe_code,
+    reason = "There is no way to transmute from `&VersionedUrl` and `&EntityTypeId` without \
+              `unsafe`"
+)]
+impl From<&VersionedUrl> for &EntityTypeId {
+    fn from(url: &VersionedUrl) -> Self {
+        // SAFETY: Self is `repr(transparent)`
+        unsafe { &*ptr::from_ref::<VersionedUrl>(url).cast::<EntityTypeId>() }
+    }
+}
 
 impl EntityTypeId {
     #[must_use]
@@ -48,8 +60,8 @@ impl fmt::Display for EntityTypeId {
 
 #[derive(Debug)]
 pub struct EntityTypeResource<'a> {
-    pub web_id: Option<WebId>,
     pub id: Cow<'a, EntityTypeId>,
+    pub web_id: Option<WebId>,
 }
 
 impl EntityTypeResource<'_> {

@@ -434,4 +434,15 @@ pub trait EntityTypeStore {
     fn reindex_entity_type_cache(
         &mut self,
     ) -> impl Future<Output = Result<(), Report<UpdateError>>> + Send;
+
+    /// Checks if the given entity types can be instantiated by the actor.
+    ///
+    /// # Errors
+    ///
+    /// - If reading the entity types fails.
+    fn can_instantiate_entity_types(
+        &self,
+        authenticated_user: ActorEntityUuid,
+        entity_type_ids: &[VersionedUrl],
+    ) -> impl Future<Output = Result<Vec<bool>, Report<QueryError>>> + Send;
 }

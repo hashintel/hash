@@ -750,6 +750,16 @@ impl<A: AuthorizationApi> EntityTypeStore for DatabaseApi<'_, A> {
     async fn reindex_entity_type_cache(&mut self) -> Result<(), Report<UpdateError>> {
         self.store.reindex_entity_type_cache().await
     }
+
+    async fn can_instantiate_entity_types(
+        &self,
+        authenticated_user: ActorEntityUuid,
+        entity_type_ids: &[VersionedUrl],
+    ) -> Result<Vec<bool>, Report<QueryError>> {
+        self.store
+            .can_instantiate_entity_types(authenticated_user, entity_type_ids)
+            .await
+    }
 }
 
 impl<A> EntityStore for DatabaseApi<'_, A>

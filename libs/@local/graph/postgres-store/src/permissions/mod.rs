@@ -1,3 +1,4 @@
+use alloc::borrow::Cow;
 use core::str::FromStr as _;
 use std::collections::{HashMap, HashSet};
 
@@ -8,15 +9,20 @@ use hash_graph_authorization::{
     policies::{
         ContextBuilder,
         action::ActionName,
+        resource::{EntityTypeId, EntityTypeResource},
         store::{RoleAssignmentStatus, RoleUnassignmentStatus},
     },
 };
+use hash_graph_store::error::QueryError;
 use tokio_postgres::{GenericClient as _, error::SqlState};
-use type_system::principal::{
-    PrincipalId, PrincipalType,
-    actor::{Actor, ActorEntityUuid, ActorId, Ai, AiId, Machine, MachineId, User, UserId},
-    actor_group::{ActorGroup, ActorGroupEntityUuid, ActorGroupId, Team, TeamId, Web, WebId},
-    role::{Role, RoleId, RoleName, TeamRole, TeamRoleId, WebRole, WebRoleId},
+use type_system::{
+    ontology::VersionedUrl,
+    principal::{
+        PrincipalId, PrincipalType,
+        actor::{Actor, ActorEntityUuid, ActorId, Ai, AiId, Machine, MachineId, User, UserId},
+        actor_group::{ActorGroup, ActorGroupEntityUuid, ActorGroupId, Team, TeamId, Web, WebId},
+        role::{Role, RoleId, RoleName, TeamRole, TeamRoleId, WebRole, WebRoleId},
+    },
 };
 use uuid::Uuid;
 
@@ -1341,6 +1347,69 @@ where
             .into_iter()
             .for_each(|actor_group| {
                 context_builder.add_actor_group(&actor_group);
+            });
+
+        Ok(())
+    }
+
+    /// Builds a context used to evaluate policies for a set of entity types.
+    ///
+    /// # Errors
+    ///
+    /// - [`QueryError`] if a database error occurs
+    pub async fn build_entity_type_context(
+        &self,
+        entity_type_ids: &[VersionedUrl],
+        context_builder: &mut ContextBuilder,
+    ) -> Result<(), Report<QueryError>> {
+        self.as_client()
+            .query(
+                "
+                WITH
+                    filtered AS (
+                        SELECT entity_types.ontology_id
+                        FROM entity_types
+                        WHERE entity_types.schema ->> '$id' = any($1)
+                    )
+
+                SELECT
+                    ontology_ids.base_url,
+                    ontology_ids.version,
+                    ontology_owned_metadata.web_id
+                FROM filtered
+                INNER JOIN ontology_ids
+                    ON filtered.ontology_id = ontology_ids.ontology_id
+                LEFT OUTER JOIN ontology_owned_metadata
+                    ON ontology_ids.ontology_id = ontology_owned_metadata.ontology_id
+
+                UNION
+
+                SELECT
+                    ontology_ids.base_url,
+                    ontology_ids.version,
+                    ontology_owned_metadata.web_id
+                FROM filtered
+                INNER JOIN
+                    entity_type_inherits_from
+                    ON filtered.ontology_id = source_entity_type_ontology_id
+                INNER JOIN ontology_ids
+                    ON target_entity_type_ontology_id = ontology_ids.ontology_id
+                LEFT OUTER JOIN ontology_owned_metadata
+                    ON ontology_ids.ontology_id = ontology_owned_metadata.ontology_id;
+                 ",
+                &[&entity_type_ids],
+            )
+            .await
+            .change_context(QueryError)?
+            .into_iter()
+            .for_each(|row| {
+                context_builder.add_entity_type(&EntityTypeResource {
+                    id: Cow::Owned(EntityTypeId::new(VersionedUrl {
+                        base_url: row.get(0),
+                        version: row.get(1),
+                    })),
+                    web_id: row.get(2),
+                });
             });
 
         Ok(())

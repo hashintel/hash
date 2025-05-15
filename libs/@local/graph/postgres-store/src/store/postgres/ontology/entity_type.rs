@@ -1,4 +1,4 @@
-use alloc::{collections::BTreeSet, sync::Arc};
+use alloc::{borrow::Cow, collections::BTreeSet, sync::Arc};
 use core::iter;
 use std::collections::{HashMap, HashSet};
 
@@ -7,6 +7,10 @@ use futures::{StreamExt as _, TryStreamExt as _};
 use hash_graph_authorization::{
     AuthorizationApi,
     backend::ModifyRelationshipOperation,
+    policies::{
+        Authorized, ContextBuilder, PartialResourceId, PolicySet, Request, RequestContext,
+        action::ActionName, store::PolicyStore as _,
+    },
     schema::{
         EntityTypeOwnerSubject, EntityTypePermission, EntityTypeRelationAndSubject, WebPermission,
     },
@@ -1727,6 +1731,65 @@ where
         transaction.commit().await.change_context(UpdateError)?;
 
         Ok(())
+    }
+
+    async fn can_instantiate_entity_types(
+        &self,
+        authenticated_user: ActorEntityUuid,
+        entity_type_ids: &[VersionedUrl],
+    ) -> Result<Vec<bool>, Report<QueryError>> {
+        let actor = self
+            .determine_actor(authenticated_user)
+            .await
+            .change_context(QueryError)?;
+        let policies = self
+            .resolve_policies_for_actor(actor.into(), actor)
+            .await
+            .change_context(QueryError)?;
+        let policy_set = PolicySet::default()
+            .with_policies(&policies)
+            .change_context(QueryError)?;
+
+        let mut policy_context_builder = ContextBuilder::default();
+        self.build_principal_context(actor, &mut policy_context_builder)
+            .await
+            .change_context(QueryError)?;
+        self.build_entity_type_context(entity_type_ids, &mut policy_context_builder)
+            .await
+            .change_context(QueryError)?;
+
+        let policy_context = policy_context_builder.build().change_context(QueryError)?;
+
+        entity_type_ids
+            .iter()
+            .map(|entity_type_id| {
+                policy_set
+                    .evaluate(
+                        &Request {
+                            actor,
+                            action: ActionName::Instantiate,
+                            resource: Some(&PartialResourceId::EntityType(Some(Cow::Borrowed(
+                                entity_type_id.into(),
+                            )))),
+                            context: RequestContext::default(),
+                        },
+                        &policy_context,
+                    )
+                    .change_context(QueryError)
+                    .map(|authorized| match authorized {
+                        Authorized::Always => true,
+                        Authorized::Never => false,
+                        Authorized::Partial(partial) => {
+                            tracing::error!(
+                                "Instantiation checking is not supported for partial \
+                                 authorization:\n
+                                {partial:#?}"
+                            );
+                            false
+                        }
+                    })
+            })
+            .collect()
     }
 }
 
