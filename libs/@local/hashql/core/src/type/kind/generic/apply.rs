@@ -285,6 +285,14 @@ impl<'heap> Lattice<'heap> for Apply<'heap> {
         env.is_subtype_of(self.kind.base, supertype.kind.base)
     }
 
+    fn is_equivalent(
+        self: Type<'heap, Self>,
+        other: Type<'heap, Self>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
+    ) -> bool {
+        env.is_equivalent(self.kind.base, other.kind.base)
+    }
+
     fn simplify(self: Type<'heap, Self>, env: &mut SimplifyEnvironment<'_, 'heap>) -> TypeId {
         let (guard, id) = env.provision(self.id);
 
