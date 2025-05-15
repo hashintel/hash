@@ -10,7 +10,7 @@ use crate::{
         environment::Environment,
         kind::{
             OpaqueType, Param, PrimitiveType, TypeKind, UnionType,
-            generic::{GenericArgument, GenericArguments},
+            generic::{Generic, GenericArgument},
         },
     },
 };
@@ -190,7 +190,6 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
                     .env
                     .intern_kind(TypeKind::Primitive(PrimitiveType::String)),
             }),
-            arguments: GenericArguments::empty(),
         }));
 
         // The intrinsics that are registered correspond to the constructor functions, in
@@ -206,7 +205,6 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
                 self.alloc_type(TypeKind::Opaque(OpaqueType {
                     name: self.heap.intern_symbol("::kernel::type::BaseUrl"),
                     repr: url,
-                    arguments: GenericArguments::empty(),
                 })),
                 &[],
             ),
@@ -227,13 +225,14 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
         let none = self.alloc_type(TypeKind::Opaque(OpaqueType {
             name: self.heap.intern_symbol("::kernel::type::None"),
             repr: self.alloc_type(TypeKind::Primitive(PrimitiveType::Null)),
-            arguments: GenericArguments::empty(),
         }));
 
-        let some = self.alloc_type(TypeKind::Opaque(OpaqueType {
-            name: self.heap.intern_symbol("::kernel::type::Some"),
-            repr: self.alloc_type(TypeKind::Param(Param {
-                argument: some_generic,
+        let some = self.alloc_type(TypeKind::Generic(Generic {
+            base: self.alloc_type(TypeKind::Opaque(OpaqueType {
+                name: self.heap.intern_symbol("::kernel::type::Some"),
+                repr: self.alloc_type(TypeKind::Param(Param {
+                    argument: some_generic,
+                })),
             })),
             arguments: self
                 .env
@@ -271,20 +270,24 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
             constraint: None,
         };
 
-        let ok = self.alloc_type(TypeKind::Opaque(OpaqueType {
-            name: self.heap.intern_symbol("::kernel::type::Ok"),
-            repr: self.alloc_type(TypeKind::Param(Param {
-                argument: value_generic,
+        let ok = self.alloc_type(TypeKind::Generic(Generic {
+            base: self.alloc_type(TypeKind::Opaque(OpaqueType {
+                name: self.heap.intern_symbol("::kernel::type::Ok"),
+                repr: self.alloc_type(TypeKind::Param(Param {
+                    argument: value_generic,
+                })),
             })),
             arguments: self
                 .env
                 .intern_generic_arguments(&mut [value_generic_argument]),
         }));
 
-        let err = self.alloc_type(TypeKind::Opaque(OpaqueType {
-            name: self.heap.intern_symbol("::kernel::type::Err"),
-            repr: self.alloc_type(TypeKind::Param(Param {
-                argument: error_generic,
+        let err = self.alloc_type(TypeKind::Generic(Generic {
+            base: self.alloc_type(TypeKind::Opaque(OpaqueType {
+                name: self.heap.intern_symbol("::kernel::type::Err"),
+                repr: self.alloc_type(TypeKind::Param(Param {
+                    argument: error_generic,
+                })),
             })),
             arguments: self
                 .env

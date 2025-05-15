@@ -16,10 +16,9 @@ use core::{ops::ControlFlow, ptr};
 use pretty::RcDoc;
 use smallvec::SmallVec;
 
-use self::generic::{Generic, GenericArguments, GenericSubstitutions};
 pub use self::{
     closure::ClosureType,
-    generic::{Apply, GenericArgument, Param},
+    generic::{Apply, Generic, GenericArgument, GenericArguments, GenericSubstitutions, Param},
     infer::Infer,
     intersection::IntersectionType,
     intrinsic::IntrinsicType,

@@ -537,6 +537,8 @@ mod test {
     #![expect(clippy::min_ident_chars)]
     use core::assert_matches::assert_matches;
 
+    use anstream::adapter::strip_str;
+
     use super::{StructField, StructType};
     use crate::{
         heap::Heap,
@@ -545,22 +547,24 @@ mod test {
             PartialType,
             environment::{
                 AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
-                SimplifyEnvironment,
+                SimplifyEnvironment, instantiate::InstantiateEnvironment,
             },
             inference::{
                 Constraint, Inference as _, PartialStructuralEdge, Variable, VariableKind,
             },
             kind::{
-                TypeKind,
+                Generic, GenericArgument, TypeKind,
                 infer::HoleId,
                 intersection::IntersectionType,
                 primitive::PrimitiveType,
-                test::{assert_equiv, intersection, primitive, r#struct, struct_field, union},
+                test::{
+                    assert_equiv, generic, intersection, primitive, r#struct, struct_field, union,
+                },
                 union::UnionType,
             },
             lattice::{Lattice as _, test::assert_lattice_laws},
             pretty_print::PrettyPrint as _,
-            test::{instantiate, instantiate_infer},
+            test::{instantiate, instantiate_infer, instantiate_param},
         },
     };
 
@@ -1902,115 +1906,125 @@ mod test {
         );
     }
 
-    // TODO: use new generic macro
-    // #[test]
-    // fn instantiate_struct() {
-    //     let heap = Heap::new();
-    //     let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    #[test]
+    fn instantiate_struct() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
-    //     let argument = env.counter.generic_argument.next();
+        let argument = env.counter.generic_argument.next();
 
-    //     r#struct!(
-    //         env,
-    //         value,
-    //         [GenericArgument {
-    //             id: argument,
-    //             name: env.heap.intern_symbol("T"),
-    //             constraint: None
-    //         }],
-    //         [struct_field!(
-    //             env,
-    //             "name",
-    //             instantiate_param(&env, argument)
-    //         )]
-    //     );
+        let id = generic!(
+            env,
+            r#struct!(
+                env,
+                [struct_field!(
+                    env,
+                    "name",
+                    instantiate_param(&env, argument)
+                )]
+            ),
+            [GenericArgument {
+                id: argument,
+                name: env.heap.intern_symbol("T"),
+                constraint: None
+            }]
+        );
 
-    //     let mut instantiate = InstantiateEnvironment::new(&env);
-    //     let type_id = value.instantiate(&mut instantiate);
+        let mut instantiate = InstantiateEnvironment::new(&env);
+        let type_id = instantiate.instantiate(id);
 
-    //     let r#type = env
-    //         .r#type(type_id)
-    //         .kind
-    //         .r#struct()
-    //         .expect("should be tuple");
-    //     assert_eq!(r#type.fields.len(), 1);
-    //     assert_eq!(r#type.arguments.len(), 1);
+        let generic = env
+            .r#type(type_id)
+            .kind
+            .generic()
+            .expect("should be generic");
+        assert_eq!(generic.arguments.len(), 1);
 
-    //     assert_eq!(r#type.fields[0].name.as_str(), "name");
-    //     let field = env.r#type(r#type.fields[0].value);
-    //     let param = field.kind.param().expect("should be param");
+        let r#type = env
+            .r#type(generic.base)
+            .kind
+            .r#struct()
+            .expect("should be struct");
 
-    //     assert_eq!(param.argument, r#type.arguments[0].id);
-    //     assert_ne!(param.argument, argument);
-    // }
+        assert_eq!(r#type.fields.len(), 1);
+        assert_eq!(r#type.fields[0].name.as_str(), "name");
+        let field = env.r#type(r#type.fields[0].value);
+        let param = field.kind.param().expect("should be param");
 
-    // TODO: use the new macro for this
-    // #[test]
-    // fn instantiate_struct_recursive() {
-    //     let heap = Heap::new();
-    //     let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        assert_eq!(param.argument, generic.arguments[0].id);
+        assert_ne!(param.argument, argument);
+    }
 
-    //     let argument = env.counter.generic_argument.next();
+    #[test]
+    fn instantiate_struct_recursive() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
-    //     let value = env.types.intern(|id| PartialType {
-    //         span: SpanId::SYNTHETIC,
-    //         kind: env.intern_kind(TypeKind::Struct(StructType {
-    //             fields: env
-    //                 .intern_struct_fields(&mut [struct_field!(env, "name", id.value())])
-    //                 .expect("should be valid"),
-    //             arguments: env.intern_generic_arguments(&mut [GenericArgument {
-    //                 id: argument,
-    //                 name: env.heap.intern_symbol("T"),
-    //                 constraint: None,
-    //             }]),
-    //         })),
-    //     });
+        let argument = env.counter.generic_argument.next();
 
-    //     let mut instantiate = InstantiateEnvironment::new(&env);
-    //     let type_id = instantiate.instantiate(value.id);
+        let value = env.types.intern(|id| PartialType {
+            span: SpanId::SYNTHETIC,
+            kind: env.intern_kind(TypeKind::Generic(Generic {
+                base: r#struct!(env, [struct_field!(env, "name", id.value())]),
+                arguments: env.intern_generic_arguments(&mut [GenericArgument {
+                    id: argument,
+                    name: env.heap.intern_symbol("T"),
+                    constraint: None,
+                }]),
+            })),
+        });
 
-    //     let r#type = env
-    //         .r#type(type_id)
-    //         .kind
-    //         .r#struct()
-    //         .expect("should be tuple");
-    //     assert_eq!(r#type.fields.len(), 1);
-    //     assert_eq!(r#type.arguments.len(), 1);
+        let mut instantiate = InstantiateEnvironment::new(&env);
+        let type_id = instantiate.instantiate(value.id);
 
-    //     assert_eq!(r#type.fields[0].name.as_str(), "name");
-    //     assert_eq!(r#type.fields[0].value, type_id);
-    // }
+        let generic = env
+            .r#type(type_id)
+            .kind
+            .generic()
+            .expect("should be generic");
 
-    // TODO: move this to `Generic` test suite
-    // #[test]
-    // fn instantiate_interdependent() {
-    //     let heap = Heap::new();
-    //     let env = Environment::new(SpanId::SYNTHETIC, &heap);
+        assert_eq!(generic.arguments.len(), 1);
 
-    //     let t = env.counter.generic_argument.next();
-    //     let u = env.counter.generic_argument.next();
+        let r#type = env
+            .r#type(generic.base)
+            .kind
+            .r#struct()
+            .expect("should be struct");
 
-    //     let value = r#struct!(
-    //         env,
-    //         [
-    //             GenericArgument {
-    //                 id: t,
-    //                 name: env.heap.intern_symbol("T"),
-    //                 constraint: None,
-    //             },
-    //             GenericArgument {
-    //                 id: u,
-    //                 name: env.heap.intern_symbol("U"),
-    //                 constraint: Some(instantiate_param(&env, t)),
-    //             }
-    //         ],
-    //         []
-    //     );
+        assert_eq!(r#type.fields.len(), 1);
+        assert_eq!(r#type.fields[0].name.as_str(), "name");
+        assert_eq!(r#type.fields[0].value, type_id);
+    }
 
-    //     let mut instantiate = InstantiateEnvironment::new(&env);
-    //     let type_id = instantiate.instantiate(value);
+    #[test]
+    fn instantiate_interdependent() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
-    //     // The type is complicated enough that it isn't feasible to test it through assertions.
-    //     insta::assert_snapshot!(strip_str(&env.r#type(type_id).pretty_print(&env, 80)));
-    // }
+        let t = env.counter.generic_argument.next();
+        let u = env.counter.generic_argument.next();
+
+        let value = generic!(
+            env,
+            r#struct!(env, []),
+            [
+                GenericArgument {
+                    id: t,
+                    name: env.heap.intern_symbol("T"),
+                    constraint: None,
+                },
+                GenericArgument {
+                    id: u,
+                    name: env.heap.intern_symbol("U"),
+                    constraint: Some(instantiate_param(&env, t)),
+                }
+            ]
+        );
+
+        let mut instantiate = InstantiateEnvironment::new(&env);
+        let type_id = instantiate.instantiate(value);
+
+        // The type is complicated enough that it isn't feasible to test it through assertions.
+        insta::assert_snapshot!(strip_str(&env.r#type(type_id).pretty_print(&env, 80)));
+    }
 }
