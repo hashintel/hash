@@ -1,10 +1,13 @@
 use crate::{
-    collection::{FastHashMap, FastHashSet},
+    collection::{FastHashMap, FastHashSet, TinyVec},
     symbol::Symbol,
     r#type::{
         TypeId,
         environment::{Diagnostics, Environment, instantiate::InstantiateEnvironment},
-        kind::{GenericArgument, generic::GenericSubstitutions},
+        kind::{
+            GenericArgument,
+            generic::{GenericArgumentId, GenericSubstitutions},
+        },
         visit::{Visitor, filter::Filter, walk_id},
     },
 };
@@ -17,13 +20,30 @@ impl Filter for GenericArgumentInstantiateFilter {
     const MEMBERS: bool = false;
 }
 
-struct GenericArgumentVisitor<'env, 'heap> {
+struct GenericArgumentInstantiateVisitor<'env, 'heap> {
     env: &'env Environment<'heap>,
     arguments: &'env mut [GenericArgument<'heap>],
+    unseen: FastHashSet<Symbol<'heap>>,
     visited: FastHashSet<TypeId>,
 }
 
-impl<'heap> Visitor<'heap> for GenericArgumentVisitor<'_, 'heap> {
+impl<'env, 'heap> GenericArgumentInstantiateVisitor<'env, 'heap> {
+    fn new(env: &'env Environment<'heap>, arguments: &'env mut [GenericArgument<'heap>]) -> Self {
+        let unseen = arguments
+            .iter()
+            .map(|&GenericArgument { name, .. }| name)
+            .collect();
+
+        Self {
+            env,
+            arguments,
+            unseen,
+            visited: FastHashSet::default(),
+        }
+    }
+}
+
+impl<'heap> Visitor<'heap> for GenericArgumentInstantiateVisitor<'_, 'heap> {
     type Filter = GenericArgumentInstantiateFilter;
 
     fn env(&self) -> &Environment<'heap> {
@@ -40,12 +60,18 @@ impl<'heap> Visitor<'heap> for GenericArgumentVisitor<'_, 'heap> {
 
     fn visit_generic_argument(&mut self, argument: GenericArgument<'heap>) {
         // Check if there's an argument of the same name in arguments and then set the id
-        if let Some(arg) = self
+        if let Some(found) = self
             .arguments
             .iter_mut()
             .find(|current| current.name == argument.name)
         {
-            arg.id = argument.id;
+            // TODO: is it a bug tho?! what happens if we instantiate a generic argument that's
+            // present in both!?
+            if !self.unseen.remove(&found.name) {
+                tracing::error!(%found.name, "Duplicate generic argument, this is likely a bug");
+            }
+
+            found.id = argument.id;
         }
     }
 
@@ -54,11 +80,12 @@ impl<'heap> Visitor<'heap> for GenericArgumentVisitor<'_, 'heap> {
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct LocalTypeDef<'heap> {
     pub id: TypeId,
 
     pub name: Symbol<'heap>,
+    pub arguments: TinyVec<GenericArgument<'heap>>,
 }
 
 #[derive(Debug)]
@@ -81,12 +108,14 @@ impl<'heap> LocalTypes<'heap> {
 
     pub fn insert(&mut self, def: LocalTypeDef<'heap>) {
         let index = self.storage.len();
+        let name = def.name;
+
         self.storage.push(def);
-        self.lookup.insert(def.name, index);
+        self.lookup.insert(name, index);
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = LocalTypeDef<'heap>> {
-        self.storage.iter().copied()
+    pub fn iter(&self) -> impl Iterator<Item = &LocalTypeDef<'heap>> {
+        self.storage.iter()
     }
 
     pub fn finish(&mut self, env: &Environment<'heap>) -> Diagnostics {
@@ -94,12 +123,15 @@ impl<'heap> LocalTypes<'heap> {
         // properly set-up) to split the individual types from each other.
         let mut instantiate = InstantiateEnvironment::new(env);
 
-        for LocalTypeDef { id, .. } in &mut self.storage {
+        for LocalTypeDef { id, arguments, .. } in &mut self.storage {
             *id = instantiate.instantiate(*id);
             instantiate.clear_provisioned();
 
-            // The problem is that for any type, the generic arguments would change, so we'd need to
-            // recover them?
+            let mut visitor = GenericArgumentInstantiateVisitor::new(env, arguments);
+            visitor.visit_id(*id);
+            if !visitor.unseen.is_empty() {
+                tracing::error!(?visitor.unseen, "During instantiation found generic arguments that haven't been visited, this is likely a bug");
+            }
         }
 
         instantiate.take_diagnostics()
