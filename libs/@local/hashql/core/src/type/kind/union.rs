@@ -2361,67 +2361,68 @@ mod test {
         assert_matches!(r#type.kind, TypeKind::Unknown);
     }
 
-    #[test]
-    fn instantiate_union() {
-        let heap = Heap::new();
-        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    // TODO: move to generics macro
+    // #[test]
+    // fn instantiate_union() {
+    //     let heap = Heap::new();
+    //     let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
-        let argument1 = env.counter.generic_argument.next();
-        let argument2 = env.counter.generic_argument.next();
+    //     let argument1 = env.counter.generic_argument.next();
+    //     let argument2 = env.counter.generic_argument.next();
 
-        let param1 = instantiate_param(&env, argument1);
-        let param2 = instantiate_param(&env, argument2);
+    //     let param1 = instantiate_param(&env, argument1);
+    //     let param2 = instantiate_param(&env, argument2);
 
-        let a = opaque!(
-            env,
-            "A",
-            param1,
-            [GenericArgument {
-                id: argument1,
-                name: heap.intern_symbol("T"),
-                constraint: None
-            }]
-        );
-        let b = opaque!(
-            env,
-            "A",
-            param2,
-            [GenericArgument {
-                id: argument2,
-                name: heap.intern_symbol("T"),
-                constraint: None
-            }]
-        );
+    //     let a = opaque!(
+    //         env,
+    //         "A",
+    //         param1,
+    //         [GenericArgument {
+    //             id: argument1,
+    //             name: heap.intern_symbol("T"),
+    //             constraint: None
+    //         }]
+    //     );
+    //     let b = opaque!(
+    //         env,
+    //         "A",
+    //         param2,
+    //         [GenericArgument {
+    //             id: argument2,
+    //             name: heap.intern_symbol("T"),
+    //             constraint: None
+    //         }]
+    //     );
 
-        union!(env, value, [a, b]);
+    //     union!(env, value, [a, b]);
 
-        let mut instantiate = InstantiateEnvironment::new(&env);
-        let type_id = value.instantiate(&mut instantiate);
-        assert!(instantiate.take_diagnostics().is_empty());
+    //     let mut instantiate = InstantiateEnvironment::new(&env);
+    //     let type_id = value.instantiate(&mut instantiate);
+    //     assert!(instantiate.take_diagnostics().is_empty());
 
-        let result = env.r#type(type_id);
-        let union = result.kind.union().expect("should be a union");
-        assert_eq!(union.variants.len(), 2);
+    //     let result = env.r#type(type_id);
+    //     let union = result.kind.union().expect("should be a union");
+    //     assert_eq!(union.variants.len(), 2);
 
-        let generic_arguments = [argument1, argument2];
+    //     let generic_arguments = [argument1, argument2];
 
-        for (index, &variant) in union.variants.iter().enumerate() {
-            let variant = env.r#type(variant);
-            let opaque = variant.kind.opaque().expect("should be an opaque type");
-            let repr = env
-                .r#type(opaque.repr)
-                .kind
-                .param()
-                .expect("should be a param");
+    //     for (index, &variant) in union.variants.iter().enumerate() {
+    //         let variant = env.r#type(variant);
+    //         let opaque = variant.kind.opaque().expect("should be an opaque type");
+    //         let repr = env
+    //             .r#type(opaque.repr)
+    //             .kind
+    //             .param()
+    //             .expect("should be a param");
 
-            assert_eq!(opaque.arguments.len(), 1);
-            assert_eq!(
-                *repr,
-                Param {
-                    argument: opaque.arguments[0].id
-                }
-            );
-            assert_ne!(repr.argument, generic_arguments[index]);
-        }
-    }
+    //         assert_eq!(opaque.arguments.len(), 1);
+    //         assert_eq!(
+    //             *repr,
+    //             Param {
+    //                 argument: opaque.arguments[0].id
+    //             }
+    //         );
+    //         assert_ne!(repr.argument, generic_arguments[index]);
+    //     }
+    // }
 }

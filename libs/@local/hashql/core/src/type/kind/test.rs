@@ -118,6 +118,20 @@ macro_rules! apply {
     };
 }
 
+macro_rules! generic {
+    ($env:expr, $base:expr, $arguments:expr) => {{
+        let mut arguments = $arguments;
+
+        instantiate(
+            &$env,
+            TypeKind::Generic(Generic {
+                base: $base,
+                arguments: $env.intern_generic_arguments(&mut arguments),
+            }),
+        )
+    }};
+}
+
 macro_rules! assert_kind {
     ($env:expr, $actual:expr, $expected:expr) => {
         assert_eq!($actual.len(), $expected.len());
@@ -229,6 +243,7 @@ pub(crate) use assert_kind;
 pub(crate) use assert_sorted_eq;
 pub(crate) use closure;
 pub(crate) use dict;
+pub(crate) use generic;
 pub(crate) use intersection;
 pub(crate) use list;
 pub(crate) use opaque;
