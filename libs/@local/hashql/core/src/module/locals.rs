@@ -7,8 +7,16 @@ use crate::{
     },
 };
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct LocalTypeDef<'heap> {
+    pub id: TypeId,
+
+    pub name: Symbol<'heap>,
+}
+
+#[derive(Debug)]
 pub struct LocalTypes<'heap> {
-    storage: Vec<(Symbol<'heap>, TypeId)>,
+    storage: Vec<LocalTypeDef<'heap>>,
     lookup: FastHashMap<Symbol<'heap>, usize>,
 }
 
@@ -24,13 +32,13 @@ impl<'heap> LocalTypes<'heap> {
         }
     }
 
-    pub fn insert(&mut self, symbol: Symbol<'heap>, type_id: TypeId) {
+    pub fn insert(&mut self, def: LocalTypeDef<'heap>) {
         let index = self.storage.len();
-        self.storage.push((symbol, type_id));
-        self.lookup.insert(symbol, index);
+        self.storage.push(def);
+        self.lookup.insert(def.name, index);
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = (Symbol<'heap>, TypeId)> {
+    pub fn iter(&self) -> impl Iterator<Item = LocalTypeDef<'heap>> {
         self.storage.iter().copied()
     }
 
@@ -39,8 +47,8 @@ impl<'heap> LocalTypes<'heap> {
         // properly set-up) to split the individual types from each other.
         let mut instantiate = InstantiateEnvironment::new(env);
 
-        for (_, type_id) in &mut self.storage {
-            *type_id = instantiate.instantiate(*type_id);
+        for LocalTypeDef { id, .. } in &mut self.storage {
+            *id = instantiate.instantiate(*id);
             instantiate.clear_provisioned();
         }
 

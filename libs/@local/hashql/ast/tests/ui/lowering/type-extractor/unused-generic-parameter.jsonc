@@ -1,0 +1,9 @@
+//@ run: fail
+//@ description: Test that we emit an issue if a generic parameter is unused
+// biome-ignore format: readability
+["newtype", "Some<T>", { "#struct": {"value": "T"} },
+["newtype", "None", "Null",
+["type", "Option<T, E>", ["|", {"#tuple": ["Some<T>"]}, {"#tuple": ["None"]}],
+//~^ ERROR Generic parameter `E` declared here...
+"_"
+]]]

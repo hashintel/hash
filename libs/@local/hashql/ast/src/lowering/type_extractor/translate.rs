@@ -6,7 +6,7 @@
 //! the module registry to support both local and global type references.
 
 use hashql_core::{
-    collection::{FastHashMap, SmallVec, TinyVec},
+    collection::{FastHashMap, FastHashSet, SmallVec, TinyVec, fast_hash_set},
     intern::Provisioned,
     module::{
         ModuleRegistry,
@@ -30,6 +30,7 @@ use hashql_core::{
 use super::error::{
     TypeExtractorDiagnostic, duplicate_struct_fields, generic_constraint_not_allowed,
     invalid_resolved_item, resolution_error, special_form_not_supported, unknown_intrinsic_type,
+    unused_generic_parameter,
 };
 use crate::{
     lowering::type_extractor::error::{
@@ -38,9 +39,57 @@ use crate::{
     },
     node::{
         self,
+        generic::GenericConstraint,
         path::{Path, PathSegmentArgument},
+        r#type::visit::{TypeVisitor, walk_generic_constraint, walk_path},
     },
 };
+
+struct GenericArgumentVisitor<'env, 'heap> {
+    scope: &'env [GenericArgument<'heap>],
+    used: FastHashSet<GenericArgument<'heap>>,
+}
+
+impl<'env, 'heap> GenericArgumentVisitor<'env, 'heap> {
+    fn new(scope: &'env [GenericArgument<'heap>]) -> Self {
+        Self {
+            scope,
+            used: fast_hash_set(scope.len()),
+        }
+    }
+}
+
+impl<'heap> TypeVisitor<'heap> for GenericArgumentVisitor<'_, 'heap> {
+    fn visit_generic_constraint(&mut self, generic_constraint: &GenericConstraint<'heap>) {
+        walk_generic_constraint(self, generic_constraint);
+
+        // generic constraints without a bound act as local variables
+        if generic_constraint.bound.is_none() {
+            // This is a variable, check if we're using this one
+            if let Some(&argument) = self
+                .scope
+                .iter()
+                .find(|argument| argument.name == generic_constraint.name.value)
+            {
+                self.used.insert(argument);
+            }
+        }
+    }
+
+    fn visit_path(&mut self, path: &Path<'heap>) {
+        walk_path(self, path);
+
+        // If the path is an ident, it can act as a generic argument
+        if let Some((ident, _)) = path.as_generic_ident()
+            && let Some(&argument) = self
+                .scope
+                .iter()
+                .find(|argument| argument.name == ident.value)
+        {
+            self.used.insert(argument);
+        }
+    }
+}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub(crate) enum VariableReference<'env, 'heap> {
@@ -83,7 +132,58 @@ pub(crate) enum Identity<'heap> {
     Nominal(Symbol<'heap>),
 }
 
-type GenericArguments<'heap> = TinyVec<GenericArgument<'heap>>;
+/// Structure of Arrays (`SoA`) of spanned generic arguments
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct SpannedGenericArguments<'heap> {
+    value: TinyVec<GenericArgument<'heap>>,
+    spans: TinyVec<SpanId>,
+}
+
+impl<'heap> SpannedGenericArguments<'heap> {
+    pub(crate) const fn empty() -> Self {
+        Self {
+            value: TinyVec::new(),
+            spans: TinyVec::new(),
+        }
+    }
+
+    pub(crate) fn from_parts(
+        value: TinyVec<GenericArgument<'heap>>,
+        spans: TinyVec<SpanId>,
+    ) -> Self {
+        debug_assert_eq!(value.len(), spans.len());
+
+        Self { value, spans }
+    }
+
+    pub(crate) const fn len(&self) -> usize {
+        self.value.len()
+    }
+
+    fn is_empty(&self) -> bool {
+        self.value.is_empty()
+    }
+
+    fn iter(&self) -> impl Iterator<Item = &GenericArgument<'heap>> {
+        self.value.iter()
+    }
+
+    pub(crate) fn iter_mut(&mut self) -> impl Iterator<Item = &mut GenericArgument<'heap>> {
+        self.value.iter_mut()
+    }
+
+    fn iter_spanned(&self) -> impl Iterator<Item = (GenericArgument<'heap>, SpanId)> {
+        self.value.iter().copied().zip(self.spans.iter().copied())
+    }
+}
+
+impl<'heap> FromIterator<(GenericArgument<'heap>, SpanId)> for SpannedGenericArguments<'heap> {
+    fn from_iter<T: IntoIterator<Item = (GenericArgument<'heap>, SpanId)>>(iter: T) -> Self {
+        let (value, spans) = iter.into_iter().collect();
+
+        Self { value, spans }
+    }
+}
 
 /// Represents a local type variable with its associated type information
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -92,7 +192,7 @@ pub(crate) struct LocalVariable<'ty, 'heap> {
     pub r#type: &'ty node::r#type::Type<'heap>,
     pub identity: Identity<'heap>,
 
-    pub arguments: GenericArguments<'heap>,
+    pub arguments: SpannedGenericArguments<'heap>,
 }
 
 /// Main context for type translation operations
@@ -106,7 +206,8 @@ pub(crate) struct TranslationUnit<'env, 'ty, 'heap> {
     pub diagnostics: Vec<TypeExtractorDiagnostic>,
 
     pub locals: &'env FastHashMap<Symbol<'heap>, LocalVariable<'ty, 'heap>>,
-    pub bound_generics: &'env GenericArguments<'heap>,
+
+    pub bound_generics: &'env SpannedGenericArguments<'heap>,
 }
 
 impl<'env, 'heap> TranslationUnit<'env, '_, 'heap> {
@@ -117,15 +218,15 @@ impl<'env, 'heap> TranslationUnit<'env, '_, 'heap> {
     fn nominal(
         &mut self,
         name: Symbol<'heap>,
-        mut arguments: GenericArguments<'heap>,
+        mut arguments: SpannedGenericArguments<'heap>,
         repr: Reference<'_, 'heap>,
     ) -> TypeKind<'heap> {
-        let repr = self.reference(repr, TinyVec::new());
+        let repr = self.reference(repr, SpannedGenericArguments::empty());
 
         let kind = OpaqueType {
             name,
             repr,
-            arguments: self.env.intern_generic_arguments(&mut arguments),
+            arguments: self.env.intern_generic_arguments(&mut arguments.value),
         };
 
         TypeKind::Opaque(kind)
@@ -156,7 +257,7 @@ impl<'env, 'heap> TranslationUnit<'env, '_, 'heap> {
 
         let variable = self.locals.get(&ident.value)?;
 
-        Some((variable.id.value(), &variable.arguments))
+        Some((variable.id.value(), &variable.arguments.value))
     }
 
     /// Converts a path segment argument into a type reference
@@ -215,7 +316,7 @@ impl<'env, 'heap> TranslationUnit<'env, '_, 'heap> {
                 continue;
             };
 
-            let value = self.reference(reference, TinyVec::new());
+            let value = self.reference(reference, SpannedGenericArguments::empty());
 
             substitutions.push(GenericSubstitution {
                 argument: parameter.id,
@@ -296,7 +397,7 @@ impl<'env, 'heap> TranslationUnit<'env, '_, 'heap> {
                     return TypeKind::Never;
                 };
 
-                let element = self.reference(reference, TinyVec::new());
+                let element = self.reference(reference, SpannedGenericArguments::empty());
 
                 TypeKind::Intrinsic(IntrinsicType::List(ListType { element }))
             }
@@ -314,11 +415,11 @@ impl<'env, 'heap> TranslationUnit<'env, '_, 'heap> {
 
                 let key = self
                     .convert_path_segment_argument(&parameters[0])
-                    .map(|key| self.reference(key, TinyVec::new()));
+                    .map(|key| self.reference(key, SpannedGenericArguments::empty()));
 
                 let value = self
                     .convert_path_segment_argument(&parameters[1])
-                    .map(|value| self.reference(value, TinyVec::new()));
+                    .map(|value| self.reference(value, SpannedGenericArguments::empty()));
 
                 let Some((key, value)) = Option::zip(key, value) else {
                     return TypeKind::Never;
@@ -386,6 +487,91 @@ impl<'env, 'heap> TranslationUnit<'env, '_, 'heap> {
         )
     }
 
+    fn verify_unbound_variables(
+        &mut self,
+        span: SpanId,
+        arguments: &SpannedGenericArguments<'heap>,
+        unbound: FastHashSet<GenericArgument<'heap>>,
+    ) -> Option<TypeKind<'heap>> {
+        let is_empty = unbound.is_empty();
+
+        for unbound_argument in unbound {
+            let (argument, argument_span) = arguments
+                .iter_spanned()
+                .find(|(argument, _)| *argument == unbound_argument)
+                .unwrap_or_else(|| unreachable!());
+
+            self.diagnostics
+                .push(unused_generic_parameter(argument, argument_span, span));
+        }
+
+        if !is_empty {
+            return Some(TypeKind::Never);
+        }
+
+        None
+    }
+
+    fn translate_children(
+        &mut self,
+        types: &[node::r#type::Type<'heap>],
+        arguments: &SpannedGenericArguments<'heap>,
+    ) -> (SmallVec<TypeId>, FastHashSet<GenericArgument<'heap>>) {
+        let mut variants = SmallVec::with_capacity(types.len());
+        let mut unbound: FastHashSet<_> = arguments.iter().copied().collect();
+
+        for r#type in types {
+            let mut finder = GenericArgumentVisitor::new(&arguments.value);
+            finder.visit_type(r#type);
+
+            unbound -= &finder.used;
+
+            // only take the arguments that are actually used in the type
+            let arguments = arguments
+                .iter_spanned()
+                .filter(|(argument, _)| finder.used.contains(argument))
+                .collect();
+
+            variants.push(self.reference(Reference::Type(r#type), arguments));
+        }
+
+        (variants, unbound)
+    }
+
+    fn union(
+        &mut self,
+        span: SpanId,
+        union: &node::r#type::UnionType<'heap>,
+        arguments: &SpannedGenericArguments<'heap>,
+    ) -> TypeKind<'heap> {
+        let (variants, unbound) = self.translate_children(&union.types, arguments);
+
+        if let Some(kind) = self.verify_unbound_variables(span, arguments, unbound) {
+            return kind;
+        }
+
+        TypeKind::Union(UnionType {
+            variants: self.env.intern_type_ids(&variants),
+        })
+    }
+
+    fn intersection(
+        &mut self,
+        span: SpanId,
+        intersection: &node::r#type::IntersectionType<'heap>,
+        arguments: &SpannedGenericArguments<'heap>,
+    ) -> TypeKind<'heap> {
+        let (variants, unbound) = self.translate_children(&intersection.types, arguments);
+
+        if let Some(kind) = self.verify_unbound_variables(span, arguments, unbound) {
+            return kind;
+        }
+
+        TypeKind::Intersection(IntersectionType {
+            variants: self.env.intern_type_ids(&variants),
+        })
+    }
+
     /// Translates an AST type kind into the core type system representation
     ///
     /// This is the main translation function that handles all the different type kinds (infer,
@@ -395,7 +581,7 @@ impl<'env, 'heap> TranslationUnit<'env, '_, 'heap> {
         &mut self,
         span: SpanId,
         kind: &node::r#type::TypeKind<'heap>,
-        mut arguments: GenericArguments<'heap>,
+        mut arguments: SpannedGenericArguments<'heap>,
     ) -> TypeKind<'heap> {
         match kind {
             node::r#type::TypeKind::Infer => {
@@ -426,12 +612,14 @@ impl<'env, 'heap> TranslationUnit<'env, '_, 'heap> {
                 for node::r#type::TupleField { r#type, .. } in &tuple_type.fields {
                     // The arguments are bound by the tuple type itself, therefore no downstream
                     // type needs to bind them
-                    elements.push(self.reference(Reference::Type(r#type), TinyVec::new()));
+                    elements.push(
+                        self.reference(Reference::Type(r#type), SpannedGenericArguments::empty()),
+                    );
                 }
 
                 TypeKind::Tuple(TupleType {
                     fields: self.env.intern_type_ids(&elements),
-                    arguments: self.env.intern_generic_arguments(&mut arguments),
+                    arguments: self.env.intern_generic_arguments(&mut arguments.value),
                 })
             }
             node::r#type::TypeKind::Struct(struct_type) => {
@@ -448,7 +636,8 @@ impl<'env, 'heap> TranslationUnit<'env, '_, 'heap> {
                 {
                     fields.push(StructField {
                         name: name.value,
-                        value: self.reference(Reference::Type(r#type), TinyVec::new()),
+                        value: self
+                            .reference(Reference::Type(r#type), SpannedGenericArguments::empty()),
                     });
 
                     spans.entry(name.value).or_insert(Vec::new()).push(*span);
@@ -482,30 +671,12 @@ impl<'env, 'heap> TranslationUnit<'env, '_, 'heap> {
 
                 TypeKind::Struct(StructType {
                     fields,
-                    arguments: self.env.intern_generic_arguments(&mut arguments),
+                    arguments: self.env.intern_generic_arguments(&mut arguments.value),
                 })
             }
-            node::r#type::TypeKind::Union(union_type) => {
-                let mut variants = SmallVec::with_capacity(union_type.types.len());
-
-                for r#type in &union_type.types {
-                    variants.push(self.reference(Reference::Type(r#type), arguments.clone()));
-                }
-
-                TypeKind::Union(UnionType {
-                    variants: self.env.intern_type_ids(&variants),
-                })
-            }
+            node::r#type::TypeKind::Union(union_type) => self.union(span, union_type, &arguments),
             node::r#type::TypeKind::Intersection(intersection_type) => {
-                let mut variants = SmallVec::with_capacity(intersection_type.types.len());
-
-                for r#type in &intersection_type.types {
-                    variants.push(self.reference(Reference::Type(r#type), arguments.clone()));
-                }
-
-                TypeKind::Intersection(IntersectionType {
-                    variants: self.env.intern_type_ids(&variants),
-                })
+                self.intersection(span, intersection_type, &arguments)
             }
             node::r#type::TypeKind::Dummy => TypeKind::Never,
         }
@@ -518,7 +689,7 @@ impl<'env, 'heap> TranslationUnit<'env, '_, 'heap> {
     pub(crate) fn reference(
         &mut self,
         reference: Reference<'_, 'heap>,
-        arguments: GenericArguments<'heap>,
+        arguments: SpannedGenericArguments<'heap>,
     ) -> TypeId {
         let kind = match reference {
             Reference::Variable(ident) => self.local_reference(ident, &[]),
