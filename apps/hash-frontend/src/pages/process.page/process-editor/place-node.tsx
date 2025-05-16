@@ -1,4 +1,5 @@
-import { Box } from "@mui/material";
+import { IconDiagramRegular } from "@hashintel/design-system";
+import { Box, Tooltip } from "@mui/material";
 import { Handle, type NodeProps, Position } from "reactflow";
 
 import { useEditorContext } from "./editor-context";
@@ -29,8 +30,24 @@ export const PlaceNode = ({ data, isConnectable }: NodeProps) => {
     ([_, count]) => count > 0,
   );
 
+  const { parentProcessNode } = data;
+
   return (
-    <div>
+    <Box sx={{ position: "relative" }}>
+      {parentProcessNode && (
+        <Tooltip title="Place from parent process">
+          <IconDiagramRegular
+            sx={{
+              fill: ({ palette }) => palette.gray[60],
+              position: "absolute",
+              top: 10,
+              left: nodeDimensions.place.width / 2 - 8,
+              fontSize: 16,
+              zIndex: 3,
+            }}
+          />
+        </Tooltip>
+      )}
       <Handle
         type="target"
         position={Position.Left}
@@ -75,6 +92,6 @@ export const PlaceNode = ({ data, isConnectable }: NodeProps) => {
         isConnectable={isConnectable}
         style={handleStyling}
       />
-    </div>
+    </Box>
   );
 };

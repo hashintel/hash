@@ -9,9 +9,9 @@ import { PersistedNetSelector } from "./persisted-net-selector";
 export const TitleAndNetSelect = () => {
   const {
     entityId,
-    loadPersistedNet,
     parentProcess,
     persistedNets,
+    switchToNet,
     setTitle,
     title,
   } = useEditorContext();
@@ -37,7 +37,7 @@ export const TitleAndNetSelect = () => {
             <Typography
               component="button"
               onClick={() => {
-                loadPersistedNet(parentProcessPersistedNet);
+                switchToNet(parentProcessPersistedNet);
               }}
               sx={({ palette, transitions }) => ({
                 background: "none",
@@ -74,7 +74,7 @@ export const TitleAndNetSelect = () => {
       </Stack>
 
       <PersistedNetSelector
-        onSelect={loadPersistedNet}
+        onSelect={switchToNet}
         options={persistedNets}
         value={entityId}
       />

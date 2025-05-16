@@ -12,6 +12,15 @@ export type ArcType = Omit<Edge<ArcData>, "style">;
 export type PlaceNodeData = {
   label: string;
   initialTokenCounts?: TokenCounts;
+  /**
+   * If the process is a subprocess, it represents the detail of a transition from the parent.
+   * It must contain at least one each of input and output places to that parent transition.
+   * This field indicates if this place corresponds to an input or output place to the transition in the parent.
+   */
+  parentProcessNode?: {
+    id: string;
+    type: "input" | "output";
+  };
   tokenCounts: TokenCounts;
   type: "place";
 };
@@ -31,9 +40,19 @@ export type TransitionNodeData = {
   delay?: number;
   description?: string;
   subProcess?: {
-    linkEntityId: EntityId;
+    linkEntityId?: EntityId;
     subProcessEntityId: EntityId;
     subProcessTitle: string;
+    /**
+     * The IDs of the input places for this transition which are represented in the subprocess (which should appear as starting places there).
+     * There must be at least one, but not all input places to this transition (in the parent) must appear in the subprocess.
+     */
+    inputPlaceIds: string[];
+    /**
+     * The IDs of the output places for this transition which are represented in the subprocess (which should appear as ending places there).
+     * There must be at least one, but not all output places to this transition (in the parent) must appear in the subprocess.
+     */
+    outputPlaceIds: string[];
   };
   /**
    * Although a reactflow {@link Node} has a 'type' field, the library types don't discriminate on this field in all methods,

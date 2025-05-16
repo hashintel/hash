@@ -689,6 +689,11 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/inclusion-criteria/" as BaseUrl,
   },
+  inputPlaceId: {
+    propertyTypeId: "https://hash.ai/@h/types/property-type/input-place-id/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/input-place-id/" as BaseUrl,
+  },
   inputUnitCost: {
     propertyTypeId:
       "https://hash.ai/@h/types/property-type/input-unit-cost/v/1",
@@ -809,6 +814,12 @@ export const systemPropertyTypes = {
       "https://hash.ai/@h/types/property-type/output-definitions/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@h/types/property-type/output-definitions/" as BaseUrl,
+  },
+  outputPlaceId: {
+    propertyTypeId:
+      "https://hash.ai/@h/types/property-type/output-place-id/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@h/types/property-type/output-place-id/" as BaseUrl,
   },
   outputUnitCost: {
     propertyTypeId:

@@ -96,6 +96,14 @@ export const getPersistedNetsFromSubgraph = (
             ],
           subProcessEntityId: subProcess.entityId,
           linkEntityId: subProcessOfLink.entityId,
+          inputPlaceIds:
+            subProcessOfLink.properties[
+              "https://hash.ai/@h/types/property-type/input-place-id/"
+            ],
+          outputPlaceIds:
+            subProcessOfLink.properties[
+              "https://hash.ai/@h/types/property-type/output-place-id/"
+            ],
         },
       );
     }

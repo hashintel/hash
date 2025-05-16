@@ -1,7 +1,7 @@
 import type { EntityId } from "@blockprotocol/type-system";
 import { Autocomplete, CaretDownSolidIcon } from "@hashintel/design-system";
 import { outlinedInputClasses } from "@mui/material";
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 
 import { MenuItem } from "../../../shared/ui";
 import type { PersistedNet } from "./types";
@@ -10,16 +10,20 @@ export const PersistedNetSelector = ({
   disabledOptions,
   onSelect,
   options,
+  placeholder,
   value,
 }: {
   disabledOptions?: EntityId[];
   onSelect: (option: PersistedNet) => void;
   options: PersistedNet[];
+  placeholder?: string;
   value: EntityId | null;
 }) => {
   const selectedOption = useMemo(() => {
     return options.find((option) => option.entityId === value);
   }, [options, value]);
+
+  const inputRef = useRef<HTMLInputElement>(null);
 
   if (options.length === 0) {
     return null;
@@ -47,7 +51,7 @@ export const PersistedNetSelector = ({
       inputHeight={40}
       inputProps={{
         endAdornment: <CaretDownSolidIcon sx={{ fontSize: 14 }} />,
-        placeholder: "Select a net to load",
+        placeholder: placeholder ?? "Select a net to load",
         sx: () => ({
           [`&.${outlinedInputClasses.root}`]: {
             py: 0.3,
@@ -59,6 +63,7 @@ export const PersistedNetSelector = ({
           },
         }),
       }}
+      inputRef={inputRef}
       isOptionEqualToValue={(option, selectedValue) =>
         option?.entityId === selectedValue?.entityId
       }
@@ -76,6 +81,7 @@ export const PersistedNetSelector = ({
         }
 
         onSelect(option);
+        inputRef.current?.blur();
       }}
       options={options}
       sx={{ maxWidth: 300 }}

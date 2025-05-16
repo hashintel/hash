@@ -47,6 +47,34 @@ const migrate: MigrationFunction = async ({
     },
   );
 
+  const inputPlaceIdPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Input Place ID",
+        description: "An identifier for an input place.",
+        possibleValues: [{ primitiveDataType: "text" }],
+      },
+      migrationState,
+      webShortname: "h",
+    },
+  );
+
+  const outputPlaceIdPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Output Place ID",
+        description: "An identifier for an output place.",
+        possibleValues: [{ primitiveDataType: "text" }],
+      },
+      migrationState,
+      webShortname: "h",
+    },
+  );
+
   const subProcessOfLinkEntityType = await createSystemEntityTypeIfNotExists(
     context,
     authentication,
@@ -62,6 +90,16 @@ const migrate: MigrationFunction = async ({
           {
             propertyType: transitionIdPropertyType,
             required: true,
+          },
+          {
+            propertyType: inputPlaceIdPropertyType,
+            required: true,
+            array: true,
+          },
+          {
+            propertyType: outputPlaceIdPropertyType,
+            required: true,
+            array: true,
           },
         ],
       },

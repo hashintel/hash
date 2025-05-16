@@ -1,5 +1,6 @@
 import "reactflow/dist/style.css";
 
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { Box, Stack } from "@mui/material";
 import type { DragEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -31,6 +32,7 @@ import { exampleCPN } from "./process-editor/examples";
 import { LogPane } from "./process-editor/log-pane";
 import { PlaceEditor } from "./process-editor/place-editor";
 import { PlaceNode } from "./process-editor/place-node";
+import { ProcessEditBar } from "./process-editor/process-edit-bar";
 import { Sidebar } from "./process-editor/sidebar";
 import {
   SimulationContextProvider,
@@ -63,9 +65,7 @@ const ProcessEditorContent = () => {
 
   const {
     arcs,
-    entityId,
     nodes,
-    persistToGraph,
     setArcs,
     setEntityId,
     setNodes,
@@ -74,7 +74,6 @@ const ProcessEditorContent = () => {
     setTitle,
     setUserEditable,
     tokenTypes,
-    userEditable,
   } = useEditorContext();
 
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
@@ -187,9 +186,10 @@ const ProcessEditorContent = () => {
       });
 
       const newNode: NodeType = {
-        id: `${nodeType}_${nodes.length}`,
+        id: `${nodeType}_${generateUuid()}`,
         type: nodeType,
         position,
+        ...nodeDimensions[nodeType],
         data: {
           label: `${nodeType} ${nodes.length + 1}`,
           ...(nodeType === "place"
@@ -473,6 +473,7 @@ const ProcessEditorContent = () => {
 
   return (
     <Stack sx={{ height: "100%" }}>
+      <ProcessEditBar />
       <TitleAndNetSelect />
 
       <Stack direction="row" sx={{ flex: 1 }}>
@@ -519,9 +520,6 @@ const ProcessEditorContent = () => {
             </Button>
             <Button onClick={handleResetAll} size="xs" variant="danger">
               New
-            </Button>
-            <Button onClick={persistToGraph} size="xs" variant="primary">
-              {entityId && userEditable ? "Update" : "Create"}
             </Button>
           </Stack>
 

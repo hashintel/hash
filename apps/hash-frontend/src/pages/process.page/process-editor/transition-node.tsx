@@ -1,5 +1,5 @@
 import { IconButton, IconDiagramRegular } from "@hashintel/design-system";
-import { Box, Typography } from "@mui/material";
+import { Box, Tooltip, Typography } from "@mui/material";
 import { Handle, type NodeProps, Position } from "reactflow";
 
 import { useEditorContext } from "./editor-context";
@@ -12,7 +12,7 @@ export const TransitionNode = ({
 }: NodeProps<TransitionNodeData>) => {
   const { label, description, subProcess } = data;
 
-  const { loadPersistedNet, persistedNets } = useEditorContext();
+  const { switchToNet, persistedNets } = useEditorContext();
 
   return (
     <div
@@ -29,34 +29,38 @@ export const TransitionNode = ({
       />
       <Box sx={transitionStyling}>
         {subProcess && (
-          <IconButton
-            onClick={(event) => {
-              event.stopPropagation();
-
-              const subProcessPersistedNet = persistedNets.find(
-                (net) => net.entityId === subProcess.subProcessEntityId,
-              );
-
-              if (subProcessPersistedNet) {
-                loadPersistedNet(subProcessPersistedNet);
-              } else {
-                throw new Error("Sub process not available locally");
-              }
-            }}
-            sx={{
-              position: "absolute",
-              top: 0,
-              left: 0,
-              "&:hover": {
-                background: "transparent",
-                "& svg": {
-                  fill: ({ palette }) => palette.blue[70],
-                },
-              },
-            }}
+          <Tooltip
+            title={`Switch to sub process ${subProcess.subProcessTitle}`}
           >
-            <IconDiagramRegular sx={{ fontSize: 12 }} />
-          </IconButton>
+            <IconButton
+              onClick={(event) => {
+                event.stopPropagation();
+
+                const subProcessPersistedNet = persistedNets.find(
+                  (net) => net.entityId === subProcess.subProcessEntityId,
+                );
+
+                if (subProcessPersistedNet) {
+                  switchToNet(subProcessPersistedNet);
+                } else {
+                  throw new Error("Sub process not available locally");
+                }
+              }}
+              sx={{
+                position: "absolute",
+                top: 0,
+                left: 0,
+                "&:hover": {
+                  background: "transparent",
+                  "& svg": {
+                    fill: ({ palette }) => palette.blue[70],
+                  },
+                },
+              }}
+            >
+              <IconDiagramRegular sx={{ fontSize: 12 }} />
+            </IconButton>
+          </Tooltip>
         )}
 
         {label}
