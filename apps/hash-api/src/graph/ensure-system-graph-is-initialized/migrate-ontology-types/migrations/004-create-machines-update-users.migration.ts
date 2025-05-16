@@ -3,10 +3,8 @@ import { atLeastOne } from "@blockprotocol/type-system";
 import { blockProtocolPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { getEntityTypeById } from "../../../ontology/primitive/entity-type";
-import { systemAccountId } from "../../../system-account";
 import type { MigrationFunction } from "../types";
 import {
-  anyUserInstantiator,
   createSystemEntityTypeIfNotExists,
   createSystemPropertyTypeIfNotExists,
   getCurrentHashLinkEntityTypeId,
@@ -35,7 +33,16 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: null,
+      instantiators: [
+        {
+          type: "actorType",
+          actorType: "machine",
+        },
+        {
+          type: "actorType",
+          actorType: "ai",
+        },
+      ],
     },
   );
 
@@ -74,10 +81,16 @@ const migrate: MigrationFunction = async ({
     },
     webShortname: "h",
     migrationState,
-    instantiator: {
-      kind: "account",
-      subjectId: systemAccountId,
-    },
+    instantiators: [
+      {
+        type: "actorType",
+        actorType: "machine",
+      },
+      {
+        type: "actorType",
+        actorType: "ai",
+      },
+    ],
   });
 
   /** Step 3: Update the User entity type to inherit from Actor */
@@ -196,7 +209,6 @@ const migrate: MigrationFunction = async ({
     },
     webShortname: "h",
     migrationState,
-    instantiator: anyUserInstantiator,
   });
 
   /** Step 6: Update the dependencies of entity types which we've updated above */

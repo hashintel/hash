@@ -3,7 +3,14 @@ use std::collections::{HashMap, HashSet, hash_map::Entry};
 
 use hash_graph_authorization::{
     AuthorizationApi,
-    policies::store::{CreateWebParameter, LocalPrincipalStore as _},
+    policies::{
+        Effect,
+        action::ActionName,
+        resource::{EntityTypeResourceConstraint, EntityTypeResourceFilter, ResourceConstraint},
+        store::{
+            CreateWebParameter, LocalPrincipalStore as _, PolicyCreationParams, PolicyStore as _,
+        },
+    },
 };
 use hash_graph_postgres_store::store::AsClient as _;
 use hash_graph_store::entity::{CreateEntityParams, EntityStore as _};
@@ -167,6 +174,25 @@ async fn seed_db<A: AuthorizationApi>(
             )
             .await
             .expect("could not create web");
+
+        transaction
+            .create_policy(
+                system_account_id.into(),
+                PolicyCreationParams {
+                    effect: Effect::Permit,
+                    principal: None,
+                    actions: vec![ActionName::Instantiate],
+                    resource: Some(ResourceConstraint::EntityType(
+                        EntityTypeResourceConstraint::Any {
+                            filter: EntityTypeResourceFilter::All {
+                                filters: Vec::new(),
+                            },
+                        },
+                    )),
+                },
+            )
+            .await
+            .expect("could not insert policy");
     }
 
     seed(

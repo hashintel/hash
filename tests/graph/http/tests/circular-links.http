@@ -12,6 +12,31 @@ Content-Type: application/json
 %}
 
 
+### Create global instantiation policy
+POST http://127.0.0.1:4000/policies
+Content-Type: application/json
+X-Authenticated-User-Actor-Id: {{system_machine_id}}
+
+{
+  "effect": "permit",
+  "principal": null,
+  "actions": ["instantiate"],
+  "resource": {
+    "type": "entityType",
+    "filter": {
+      "type": "all",
+      "filters": []
+    }
+  }
+}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+  });
+%}
+
+
 ### Create account
 POST http://127.0.0.1:4000/actors/user
 Content-Type: application/json
@@ -105,26 +130,6 @@ X-Authenticated-User-Actor-Id: {{user_id}}
     client.global.set("link_entity_type_id", `${response.body.recordId.baseUrl}v/${response.body.recordId.version}`);
 %}
 
-### Allow the link entity type to be instantiated by the account
-POST http://127.0.0.1:4000/entity-types/relationships
-Content-Type: application/json
-Accept: application/json
-X-Authenticated-User-Actor-Id: {{user_id}}
-
-[
-  {
-    "operation": "create",
-    "resource": "{{link_entity_type_id}}",
-    "relationAndSubject": {
-      "relation": "instantiator",
-      "subject": {
-        "kind": "account",
-        "subjectId": "{{user_id}}"
-      }
-    }
-  }
-]
-
 ### Insert entity type
 POST http://127.0.0.1:4000/entity-types
 Content-Type: application/json
@@ -175,26 +180,6 @@ X-Authenticated-User-Actor-Id: {{user_id}}
   });
   client.global.set("entity_type_id", `${response.body.recordId.baseUrl}v/${response.body.recordId.version}`);
 %}
-
-### Allow the entity type to be instantiated by the account
-POST http://127.0.0.1:4000/entity-types/relationships
-Content-Type: application/json
-Accept: application/json
-X-Authenticated-User-Actor-Id: {{user_id}}
-
-[
-  {
-    "operation": "create",
-    "resource": "{{entity_type_id}}",
-    "relationAndSubject": {
-      "relation": "instantiator",
-      "subject": {
-        "kind": "account",
-        "subjectId": "{{user_id}}"
-      }
-    }
-  }
-]
 
 
 ### Insert entity A

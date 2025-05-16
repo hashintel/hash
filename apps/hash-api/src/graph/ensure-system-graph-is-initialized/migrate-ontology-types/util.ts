@@ -39,11 +39,15 @@ import { NotFoundError } from "@local/hash-backend-utils/error";
 import type { UpdatePropertyType } from "@local/hash-graph-client";
 import type {
   DataTypeRelationAndSubjectBranded,
-  EntityTypeInstantiatorSubjectBranded,
   EntityTypeRelationAndSubjectBranded,
   PropertyTypeRelationAndSubjectBranded,
 } from "@local/hash-graph-sdk/authorization";
 import type { ConstructDataTypeParams } from "@local/hash-graph-sdk/ontology";
+import {
+  createPolicy,
+  queryPolicies,
+  updatePolicyById,
+} from "@local/hash-graph-sdk/policy";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -64,8 +68,14 @@ import {
   generateLinkMapWithConsistentSelfReferences,
   generateTypeBaseUrl,
 } from "@local/hash-isomorphic-utils/ontology-types";
+import type {
+  EntityTypeResourceFilter,
+  PolicyId,
+  PrincipalConstraint,
+  ResourceConstraint,
+} from "@rust/hash-graph-authorization/types";
 
-import type { ImpureGraphFunction } from "../../context-types";
+import type { GraphApi, ImpureGraphFunction } from "../../context-types";
 import { getEntities } from "../../knowledge/primitive/entity";
 import {
   createDataType,
@@ -79,6 +89,7 @@ import {
   createPropertyType,
   getPropertyTypeById,
 } from "../../ontology/primitive/property-type";
+import { systemAccountId } from "../../system-account";
 import type { PrimitiveDataTypeKey } from "../system-webs-and-entities";
 import { getOrCreateOwningWebId } from "../system-webs-and-entities";
 import type { MigrationState } from "./types";
@@ -528,16 +539,113 @@ export const generateSystemEntityTypeSchema = (
   };
 };
 
+/**
+ * Adds or removes an entity type from the global instantiate policy.
+
+ * We maintain a global `instantiate` policy for all entity types to avoid creating a policy per entity type.
+ * This policy permits everyone to instantiate entity types that are not explicitly restricted. This function
+ * allows us to add or remove exceptions to this policy.
+ */
+export const updateGlobalInstantiatePolicy = async (
+  graphApi: GraphApi,
+  params: {
+    op: "add-exception" | "remove-exception";
+    entityTypeBaseUrl: BaseUrl;
+  },
+) => {
+  let policyId: PolicyId | undefined = undefined;
+  let restrictionFilters: EntityTypeResourceFilter[] = [];
+
+  for (const policy of await queryPolicies(
+    graphApi,
+    { actorId: systemAccountId },
+    {
+      principal: {
+        filter: "unconstrained",
+      },
+    },
+  )) {
+    // We need to search for the specific policy shape:
+    // - `permit` effect
+    // - `instantiate` action
+    // - `webId` as specified in the params
+    // - `entityType` resource type with `not`-`any` filter type
+    // At some point this might be possible to do within a single query, but currently we don't have a way to do that
+    if (
+      policy.effect === "permit" &&
+      policy.actions.length === 1 &&
+      policy.actions[0] === "instantiate" &&
+      policy.resource &&
+      policy.resource.type === "entityType" &&
+      "filter" in policy.resource &&
+      policy.resource.filter.type === "not" &&
+      policy.resource.filter.filter.type === "any"
+    ) {
+      policyId = policy.id;
+      restrictionFilters = policy.resource.filter.filter.filters;
+      break;
+    }
+  }
+
+  switch (params.op) {
+    case "add-exception": {
+      restrictionFilters.push({
+        type: "isBaseUrl",
+        baseUrl: params.entityTypeBaseUrl,
+      });
+      break;
+    }
+    case "remove-exception": {
+      restrictionFilters = restrictionFilters.filter(
+        (filter) =>
+          !(
+            filter.type === "isBaseUrl" &&
+            filter.baseUrl === params.entityTypeBaseUrl
+          ),
+      );
+      break;
+    }
+  }
+
+  const resourceConstraint: ResourceConstraint = {
+    type: "entityType",
+    filter: {
+      type: "not",
+      filter: {
+        type: "any",
+        filters: restrictionFilters,
+      },
+    },
+  };
+
+  if (!policyId) {
+    await createPolicy(
+      graphApi,
+      { actorId: systemAccountId },
+      {
+        effect: "permit",
+        principal: null,
+        actions: ["instantiate"],
+        resource: resourceConstraint,
+      },
+    );
+  } else {
+    await updatePolicyById(graphApi, { actorId: systemAccountId }, policyId, [
+      { type: "set-resource-constraint", resourceConstraint },
+    ]);
+  }
+};
+
 export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
   {
     entityTypeDefinition: Omit<EntityTypeDefinition, "entityTypeId">;
-    instantiator: EntityTypeInstantiatorSubjectBranded | null;
+    instantiators?: PrincipalConstraint[];
   } & BaseCreateTypeIfNotExistsParameters,
   Promise<EntityTypeWithMetadata>
 > = async (
   context,
   authentication,
-  { entityTypeDefinition, instantiator, migrationState, webShortname },
+  { entityTypeDefinition, instantiators, migrationState, webShortname },
 ) => {
   const { title } = entityTypeDefinition;
   const baseUrl = generateSystemTypeBaseUrl({
@@ -591,11 +699,30 @@ export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
     },
   ];
 
-  if (instantiator) {
-    relationships.push({
-      relation: "instantiator",
-      subject: instantiator,
+  if (instantiators) {
+    await updateGlobalInstantiatePolicy(context.graphApi, {
+      op: "add-exception",
+      entityTypeBaseUrl: extractBaseUrl(entityTypeId),
     });
+
+    for (const instantiator of instantiators) {
+      await createPolicy(
+        context.graphApi,
+        { actorId: systemActorMachineId },
+        {
+          effect: "permit",
+          principal: instantiator,
+          actions: ["instantiate"],
+          resource: {
+            type: "entityType",
+            filter: {
+              type: "isBaseUrl",
+              baseUrl: extractBaseUrl(entityTypeId),
+            },
+          },
+        },
+      );
+    }
   }
 
   // The type was missing, try and create it
@@ -989,10 +1116,6 @@ export const getEntitiesByType: ImpureGraphFunction<
     includeDrafts: false,
     temporalAxes: currentTimeInstantTemporalAxes,
   });
-
-export const anyUserInstantiator: EntityTypeInstantiatorSubjectBranded = {
-  kind: "public",
-};
 
 export const getExistingUsersAndOrgs: ImpureGraphFunction<
   Record<string, never>,

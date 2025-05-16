@@ -494,7 +494,7 @@ impl PostgresStorePool {
                 SELECT
                     web.id,
                     web.shortname,
-                    array_agg(role.id) FILTER (WHERE role.id IS NOT NULL)
+                    array_remove(array_agg(role.id), NULL)
                 FROM web
                 LEFT OUTER JOIN role ON web.id = role.actor_group_id
                 GROUP BY web.id, web.shortname",
@@ -503,7 +503,7 @@ impl PostgresStorePool {
             .await
             .change_context(SnapshotDumpError::Query)?
             .map_ok(|row| {
-                let role_ids = row.get::<_, Option<Vec<WebRoleId>>>(2).unwrap_or_default();
+                let role_ids = row.get::<_, Vec<WebRoleId>>(2);
                 Principal::ActorGroup(ActorGroup::Web(Web {
                     id: row.get(0),
                     shortname: row.get(1),
@@ -530,7 +530,7 @@ impl PostgresStorePool {
                     parent.principal_type,
                     parent.id,
                     team.name,
-                    array_agg(role.id) FILTER (WHERE role.id IS NOT NULL)
+                    array_remove(array_agg(role.id), NULL)
                 FROM team
                 JOIN actor_group AS parent ON parent.id = parent_id
                 LEFT OUTER JOIN role ON team.id = role.actor_group_id
@@ -540,7 +540,7 @@ impl PostgresStorePool {
             .await
             .change_context(SnapshotDumpError::Query)?
             .map_ok(|row| {
-                let role_ids = row.get::<_, Option<Vec<TeamRoleId>>>(4).unwrap_or_default();
+                let role_ids = row.get::<_, Vec<TeamRoleId>>(4);
                 Principal::ActorGroup(ActorGroup::Team(Team {
                     id: row.get(0),
                     parent_id: match row.get(1) {

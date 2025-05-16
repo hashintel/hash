@@ -29,6 +29,7 @@ import {
   getClosedMultiEntityTypeFromMap,
   type HashEntity,
 } from "@local/hash-graph-sdk/entity";
+import { canInstantiateEntityTypes } from "@local/hash-graph-sdk/entity-type";
 import {
   createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,
@@ -109,12 +110,6 @@ describe("Entity CRU", () => {
         relationships: [
           {
             relation: "viewer",
-            subject: {
-              kind: "public",
-            },
-          },
-          {
-            relation: "instantiator",
             subject: {
               kind: "public",
             },
@@ -200,12 +195,6 @@ describe("Entity CRU", () => {
       relationships: [
         {
           relation: "viewer",
-          subject: {
-            kind: "public",
-          },
-        },
-        {
-          relation: "instantiator",
           subject: {
             kind: "public",
           },
@@ -529,6 +518,12 @@ describe("Entity CRU", () => {
   it("Cannot instantiate actor entity type", async () => {
     const authentication = { actorId: testUser.accountId };
 
+    expect(
+      await canInstantiateEntityTypes(graphContext.graphApi, authentication, [
+        systemEntityTypes.actor.entityTypeId,
+      ]),
+    ).toStrictEqual([false]);
+
     await expect(
       createEntity<Actor>(graphContext, authentication, {
         webId: testUser.accountId as WebId,
@@ -551,6 +546,12 @@ describe("Entity CRU", () => {
 
   it("Cannot instantiate user entity type", async () => {
     const authentication = { actorId: testUser.accountId };
+
+    expect(
+      await canInstantiateEntityTypes(graphContext.graphApi, authentication, [
+        systemEntityTypes.user.entityTypeId,
+      ]),
+    ).toStrictEqual([false]);
 
     await expect(
       createEntity<UserEntity>(graphContext, authentication, {
@@ -584,6 +585,12 @@ describe("Entity CRU", () => {
   it("Cannot instantiate machine entity type", async () => {
     const authentication = { actorId: testUser.accountId };
 
+    expect(
+      await canInstantiateEntityTypes(graphContext.graphApi, authentication, [
+        systemEntityTypes.machine.entityTypeId,
+      ]),
+    ).toStrictEqual([false]);
+
     await expect(
       createEntity<Machine>(graphContext, authentication, {
         webId: testUser.accountId as WebId,
@@ -613,6 +620,12 @@ describe("Entity CRU", () => {
   it("Cannot instantiate organization entity type", async () => {
     const authentication = { actorId: testUser.accountId };
 
+    expect(
+      await canInstantiateEntityTypes(graphContext.graphApi, authentication, [
+        systemEntityTypes.organization.entityTypeId,
+      ]),
+    ).toStrictEqual([false]);
+
     await expect(
       createEntity<Organization>(graphContext, authentication, {
         webId: testUser.accountId as WebId,
@@ -640,6 +653,12 @@ describe("Entity CRU", () => {
 
   it("Cannot instantiate hash-instance entity type", async () => {
     const authentication = { actorId: testUser.accountId };
+
+    expect(
+      await canInstantiateEntityTypes(graphContext.graphApi, authentication, [
+        systemEntityTypes.hashInstance.entityTypeId,
+      ]),
+    ).toStrictEqual([false]);
 
     await expect(
       createEntity<HASHInstance>(graphContext, authentication, {
