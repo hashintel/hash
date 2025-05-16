@@ -510,7 +510,12 @@ export const Entity = ({
     }
   }, [entityLabel, onEntityLabelChange]);
 
-  if (loading) {
+  if (
+    loading ||
+    !draftEntityTypesDetails ||
+    !draftEntitySubgraph ||
+    !entityLabel
+  ) {
     return <EntityPageLoadingState />;
   }
 
@@ -518,10 +523,6 @@ export const Entity = ({
     return (
       <NotFound resourceLabel={{ label: "entity", withArticle: "an entity" }} />
     );
-  }
-
-  if (!draftEntityTypesDetails || !draftEntitySubgraph || !entityLabel) {
-    return <NextErrorComponent statusCode={404} />;
   }
 
   const haveChangesBeenMade =
