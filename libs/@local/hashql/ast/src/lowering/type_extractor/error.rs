@@ -637,42 +637,6 @@ pub(crate) fn resolution_error(path: &Path, error: &ResolutionError) -> TypeExtr
     diagnostic
 }
 
-/// Creates a diagnostic for infer variable with arguments.
-///
-/// This diagnostic is generated when an inferred type ('_') is provided with type arguments,
-/// which doesn't make sense semantically.
-pub(crate) fn infer_with_arguments(infer_span: SpanId) -> TypeExtractorDiagnostic {
-    let mut diagnostic = Diagnostic::new(
-        TypeExtractorDiagnosticCategory::InferWithArguments,
-        Severity::ERROR,
-    );
-
-    diagnostic.labels.push(
-        Label::new(
-            infer_span,
-            "Type arguments cannot be used with '_' placeholder",
-        )
-        .with_color(Color::Ansi(AnsiColor::Red)),
-    );
-
-    diagnostic.help = Some(Help::new(
-        "To fix this error, you have two options:\n1. Remove these type arguments completely, \
-         or\n2. Replace the '_' placeholder with a proper generic type parameter that can accept \
-         arguments",
-    ));
-
-    diagnostic.note = Some(Note::new(
-        "The '_' placeholder (underscore) is a special symbol that tells the compiler to infer \
-         the type automatically based on context. Unlike generic types such as 'List' or 'Dict', \
-         the underscore isn't a type constructor and therefore cannot be parameterized with \
-         additional type arguments.\n\nIf you need to use generic type parameters, consider using \
-         a named type variable or a specific generic type constructor instead. For example, \
-         instead of '_<String>', use either 'T' or 'List<String>'.",
-    ));
-
-    diagnostic
-}
-
 /// Creates a diagnostic for duplicate struct fields.
 ///
 /// This diagnostic is generated when a struct type definition contains duplicate field names.

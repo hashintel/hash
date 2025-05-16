@@ -1,15 +1,15 @@
-[31m[type-extractor::infer-with-arguments] Error:[0m Inference placeholder with type arguments
-   ╭─[ <unknown>:6:4 ]
+[31m[type-extractor::unused-generic-parameter] Error:[0m Generic parameter not used in type definition
+   ╭─[ <unknown>:5:17 ]
    │
- 6 │   "_",
+ 5 │   "InvalidInfer<T>",
+   │                 ┬  
+   │                 ╰── Generic parameter `T` declared here...
+   │ 
+ 7 │   "_",
    │    ┬  
-   │    ╰── Type arguments cannot be used with '_' placeholder
+   │    ╰── ...but never used in this type definition
    │ 
-   │ Help: To fix this error, you have two options:
-   │       1. Remove these type arguments completely, or
-   │       2. Replace the '_' placeholder with a proper generic type parameter that can accept arguments
+   │ Help: Generic parameter `T` is declared but not referenced. Either remove the unused parameter or incorporate it into your type definition.
    │ 
-   │ Note: The '_' placeholder (underscore) is a special symbol that tells the compiler to infer the type automatically based on context. Unlike generic types such as 'List' or 'Dict', the underscore isn't a type constructor and therefore cannot be parameterized with additional type arguments.
-   │       
-   │       If you need to use generic type parameters, consider using a named type variable or a specific generic type constructor instead. For example, instead of '_<String>', use either 'T' or 'List<String>'.
+   │ Note: Each generic parameter should serve a purpose in parameterizing the type. Unused parameters can make code harder to understand and may indicate a design oversight or incomplete implementation. They are unconstrained variables, and therefore considered erroneous.
 ───╯

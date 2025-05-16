@@ -3,7 +3,10 @@ use core::ops::ControlFlow;
 use pretty::RcDoc;
 
 use super::{
-    Type, TypeId, environment::Environment, kind::TypeKind, pretty_print::PrettyPrint as _,
+    Type, TypeId,
+    environment::Environment,
+    kind::{GenericArguments, TypeKind},
+    pretty_print::PrettyPrint as _,
 };
 use crate::{collection::FastHashSet, intern::Interned};
 
@@ -23,6 +26,19 @@ impl RecursionDepthBoundary {
             RcDoc::text("...")
         } else {
             env.r#type(id).pretty(env, self.enter())
+        }
+    }
+
+    pub fn pretty_generic<'this>(
+        self,
+        arguments: GenericArguments,
+        env: &'this Environment,
+        id: TypeId,
+    ) -> RcDoc<'this, anstyle::Style> {
+        if self.depth >= self.limit {
+            RcDoc::text("...")
+        } else {
+            env.r#type(id).pretty_generic(arguments, env, self.enter())
         }
     }
 

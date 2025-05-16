@@ -3,7 +3,7 @@ use core::ops::ControlFlow;
 use pretty::RcDoc;
 use smallvec::SmallVec;
 
-use super::{TypeKind, generic::GenericArguments};
+use super::TypeKind;
 use crate::{
     symbol::Symbol,
     r#type::{
@@ -44,8 +44,6 @@ use crate::{
 pub struct OpaqueType<'heap> {
     pub name: Symbol<'heap>,
     pub repr: TypeId,
-
-    pub arguments: GenericArguments<'heap>,
 }
 
 impl<'heap> OpaqueType<'heap> {
@@ -65,7 +63,6 @@ impl<'heap> OpaqueType<'heap> {
     /// This enables proper constraint propagation without compromising nominal type safety.
     fn postprocess_lattice(
         self: Type<'heap, Self>,
-        other: Type<'heap, Self>,
         result: SmallVec<TypeId, 4>,
         env: &Environment<'heap>,
     ) -> SmallVec<TypeId, 4> {
@@ -75,9 +72,6 @@ impl<'heap> OpaqueType<'heap> {
             return SmallVec::new();
         }
 
-        // Merge the two arguments together, as the inner type may refer to either
-        let arguments = self.kind.arguments.merge(&other.kind.arguments, env);
-
         result
             .into_iter()
             .map(|repr| {
@@ -86,7 +80,6 @@ impl<'heap> OpaqueType<'heap> {
                     kind: env.intern_kind(TypeKind::Opaque(OpaqueType {
                         name: self.kind.name,
                         repr,
-                        arguments,
                     })),
                 })
             })
@@ -134,7 +127,7 @@ impl<'heap> Lattice<'heap> for OpaqueType<'heap> {
             // If any of the types aren't concrete, we effectively convert ourselves into a
             // "carrier" to defer evaluation of the term, once inference is completed we'll simplify
             // and postprocess the result.
-            self.postprocess_lattice(other, result, env.environment)
+            self.postprocess_lattice(result, env.environment)
         } else if env.is_equivalent(self.kind.repr, other.kind.repr) {
             SmallVec::from_slice(&[self.id])
         } else {
@@ -182,7 +175,7 @@ impl<'heap> Lattice<'heap> for OpaqueType<'heap> {
             // If any of the types aren't concrete, we effectively convert ourselves into a
             // "carrier" to defer evaluation of the term, once inference is completed we'll simplify
             // and postprocess the result.
-            self.postprocess_lattice(other, result, env.environment)
+            self.postprocess_lattice(result, env.environment)
         } else if env.is_equivalent(self.kind.repr, other.kind.repr) {
             SmallVec::from_slice(&[self.id])
         } else {
@@ -278,7 +271,6 @@ impl<'heap> Lattice<'heap> for OpaqueType<'heap> {
                 kind: env.intern_kind(TypeKind::Opaque(OpaqueType {
                     name: self.kind.name,
                     repr,
-                    arguments: self.kind.arguments,
                 })),
             },
         )
@@ -311,8 +303,7 @@ impl<'heap> Inference<'heap> for OpaqueType<'heap> {
     }
 
     fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {
-        let (_guard_id, id) = env.provision(self.id);
-        let (_guard, arguments) = env.instantiate_arguments(self.kind.arguments);
+        let (_guard, id) = env.provision(self.id);
 
         let repr = env.instantiate(self.kind.repr);
 
@@ -323,7 +314,6 @@ impl<'heap> Inference<'heap> for OpaqueType<'heap> {
                 kind: env.intern_kind(TypeKind::Opaque(OpaqueType {
                     name: self.kind.name,
                     repr,
-                    arguments,
                 })),
             },
         )
@@ -337,7 +327,6 @@ impl PrettyPrint for OpaqueType<'_> {
         limit: RecursionDepthBoundary,
     ) -> pretty::RcDoc<'env, anstyle::Style> {
         RcDoc::text(self.name.as_str().to_owned())
-            .append(self.arguments.pretty(env, limit))
             .append(RcDoc::text("["))
             .append(limit.pretty(env, self.repr).nest(1).group())
             .append(RcDoc::text("]"))
@@ -364,11 +353,11 @@ mod test {
                 Constraint, Inference as _, PartialStructuralEdge, Variable, VariableKind,
             },
             kind::{
-                Param, TypeKind,
-                generic::{GenericArgument, GenericArgumentId, GenericArguments},
+                Generic, Param, TypeKind,
+                generic::{GenericArgument, GenericArgumentId},
                 infer::HoleId,
                 primitive::PrimitiveType,
-                test::{assert_equiv, opaque, primitive, union},
+                test::{assert_equiv, generic, opaque, primitive, union},
                 union::UnionType,
             },
             lattice::{Lattice as _, test::assert_lattice_laws},
@@ -386,8 +375,8 @@ mod test {
         let a_repr = primitive!(env, PrimitiveType::Number);
         let b_repr = primitive!(env, PrimitiveType::String);
 
-        opaque!(env, a, "MyType", a_repr, []);
-        opaque!(env, b, "MyType", b_repr, []);
+        opaque!(env, a, "MyType", a_repr);
+        opaque!(env, b, "MyType", b_repr);
 
         let mut lattice_env = LatticeEnvironment::new(&env);
 
@@ -405,8 +394,8 @@ mod test {
         let hole = HoleId::new(0);
         let infer = instantiate_infer(&env, hole);
 
-        opaque!(env, a, "MyType", primitive!(env, PrimitiveType::Number), []);
-        opaque!(env, b, "MyType", infer, []);
+        opaque!(env, a, "MyType", primitive!(env, PrimitiveType::Number));
+        opaque!(env, b, "MyType", infer);
 
         let mut lattice_env = LatticeEnvironment::new(&env);
         lattice_env.set_inference_enabled(true);
@@ -420,14 +409,8 @@ mod test {
         let heap = Heap::new();
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
-        opaque!(env, a, "MyType", primitive!(env, PrimitiveType::Number), []);
-        opaque!(
-            env,
-            b,
-            "MyType",
-            primitive!(env, PrimitiveType::Integer),
-            []
-        );
+        opaque!(env, a, "MyType", primitive!(env, PrimitiveType::Number));
+        opaque!(env, b, "MyType", primitive!(env, PrimitiveType::Integer));
 
         let mut lattice_env = LatticeEnvironment::new(&env);
 
@@ -443,8 +426,8 @@ mod test {
         let a_repr = primitive!(env, PrimitiveType::Number);
         let b_repr = primitive!(env, PrimitiveType::Number); // Same representation, different name
 
-        opaque!(env, a, "TypeA", a_repr, []);
-        opaque!(env, b, "TypeB", b_repr, []);
+        opaque!(env, a, "TypeA", a_repr);
+        opaque!(env, b, "TypeB", b_repr);
 
         let mut lattice_env = LatticeEnvironment::new(&env);
 
@@ -457,7 +440,7 @@ mod test {
         let heap = Heap::new();
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
-        opaque!(env, a, "MyType", primitive!(env, PrimitiveType::Number), []);
+        opaque!(env, a, "MyType", primitive!(env, PrimitiveType::Number));
         opaque!(
             env,
             b,
@@ -468,8 +451,7 @@ mod test {
                     primitive!(env, PrimitiveType::Number),
                     primitive!(env, PrimitiveType::String)
                 ]
-            ),
-            []
+            )
         );
 
         let mut lattice_env = LatticeEnvironment::new(&env);
@@ -487,8 +469,8 @@ mod test {
         let hole = HoleId::new(0);
         let infer = instantiate_infer(&env, hole);
 
-        opaque!(env, a, "MyType", primitive!(env, PrimitiveType::Number), []);
-        opaque!(env, b, "MyType", infer, []);
+        opaque!(env, a, "MyType", primitive!(env, PrimitiveType::Number));
+        opaque!(env, b, "MyType", infer);
 
         let mut lattice_env = LatticeEnvironment::new(&env);
         lattice_env.set_inference_enabled(true);
@@ -506,8 +488,8 @@ mod test {
         let a_repr = primitive!(env, PrimitiveType::Number);
         let b_repr = primitive!(env, PrimitiveType::Number);
 
-        opaque!(env, a, "TypeA", a_repr, []);
-        opaque!(env, b, "TypeB", b_repr, []);
+        opaque!(env, a, "TypeA", a_repr);
+        opaque!(env, b, "TypeB", b_repr);
 
         let mut lattice_env = LatticeEnvironment::new(&env);
 
@@ -532,11 +514,11 @@ mod test {
         );
 
         // Number variant is a subtype of Number|String
-        opaque!(env, a, "MyType", a_repr, []);
-        opaque!(env, b, "MyType", b_repr, []);
+        opaque!(env, a, "MyType", a_repr);
+        opaque!(env, b, "MyType", b_repr);
 
         // Different name with same representation
-        opaque!(env, c, "DifferentType", a_repr, []);
+        opaque!(env, c, "DifferentType", a_repr);
 
         let mut analysis_env = AnalysisEnvironment::new(&env);
 
@@ -559,14 +541,14 @@ mod test {
         let a_repr = primitive!(env, PrimitiveType::Number);
         let b_repr = primitive!(env, PrimitiveType::Number);
 
-        opaque!(env, a, "MyType", a_repr, []);
-        opaque!(env, b, "MyType", b_repr, []);
+        opaque!(env, a, "MyType", a_repr);
+        opaque!(env, b, "MyType", b_repr);
 
         // Different name with same representation
-        opaque!(env, c, "DifferentType", a_repr, []);
+        opaque!(env, c, "DifferentType", a_repr);
 
         // Same name but different representation
-        opaque!(env, d, "MyType", primitive!(env, PrimitiveType::String), []);
+        opaque!(env, d, "MyType", primitive!(env, PrimitiveType::String));
 
         let mut analysis_env = AnalysisEnvironment::new(&env);
 
@@ -594,7 +576,7 @@ mod test {
             ]
         );
 
-        opaque!(env, a, "MyType", repr, []);
+        opaque!(env, a, "MyType", repr);
 
         let mut simplify_env = SimplifyEnvironment::new(&env);
 
@@ -604,8 +586,7 @@ mod test {
             [opaque!(
                 env,
                 "MyType",
-                primitive!(env, PrimitiveType::Number),
-                []
+                primitive!(env, PrimitiveType::Number)
             )]
         );
     }
@@ -619,16 +600,14 @@ mod test {
             env,
             a,
             "Outer",
-            opaque!(env, "Inner", primitive!(env, PrimitiveType::Number), []),
-            []
+            opaque!(env, "Inner", primitive!(env, PrimitiveType::Number))
         );
 
         opaque!(
             env,
             b,
             "Outer",
-            opaque!(env, "Inner", primitive!(env, PrimitiveType::String), []),
-            []
+            opaque!(env, "Inner", primitive!(env, PrimitiveType::String))
         );
 
         let mut lattice_env = LatticeEnvironment::new(&env);
@@ -640,14 +619,12 @@ mod test {
                 opaque!(
                     env,
                     "Outer",
-                    opaque!(env, "Inner", primitive!(env, PrimitiveType::Number), []),
-                    []
+                    opaque!(env, "Inner", primitive!(env, PrimitiveType::Number))
                 ),
                 opaque!(
                     env,
                     "Outer",
-                    opaque!(env, "Inner", primitive!(env, PrimitiveType::String), []),
-                    []
+                    opaque!(env, "Inner", primitive!(env, PrimitiveType::String))
                 )
             ]
         );
@@ -663,9 +640,9 @@ mod test {
         let string_repr = primitive!(env, PrimitiveType::String);
         let bool_repr = primitive!(env, PrimitiveType::Boolean);
 
-        let a = opaque!(env, "Type", number_repr, []);
-        let b = opaque!(env, "Type", string_repr, []);
-        let c = opaque!(env, "Type", bool_repr, []);
+        let a = opaque!(env, "Type", number_repr);
+        let b = opaque!(env, "Type", string_repr);
+        let c = opaque!(env, "Type", bool_repr);
 
         // Test lattice laws on these opaque types
         assert_lattice_laws(&env, a, b, c);
@@ -679,19 +656,19 @@ mod test {
 
         // Concrete opaque type (with primitive representation)
         let number_repr = primitive!(env, PrimitiveType::Number);
-        opaque!(env, concrete, "ConcreteType", number_repr, []);
+        opaque!(env, concrete, "ConcreteType", number_repr);
         assert!(concrete.is_concrete(&mut analysis_env));
 
         // Non-concrete opaque type (with inference variable in its representation)
         let hole = HoleId::new(0);
         let infer_var = instantiate_infer(&env, hole);
-        opaque!(env, non_concrete_type, "NonConcreteType", infer_var, []);
+        opaque!(env, non_concrete_type, "NonConcreteType", infer_var);
         assert!(!non_concrete_type.is_concrete(&mut analysis_env));
 
         // Nested non-concrete type (opaque type containing another opaque type with an inference
         // variable)
-        let nested_opaque = opaque!(env, "InnerType", infer_var, []);
-        opaque!(env, nested_non_concrete, "OuterType", nested_opaque, []);
+        let nested_opaque = opaque!(env, "InnerType", infer_var);
+        opaque!(env, nested_non_concrete, "OuterType", nested_opaque);
         assert!(!nested_non_concrete.is_concrete(&mut analysis_env));
     }
 
@@ -702,12 +679,12 @@ mod test {
 
         // Create an opaque type with a concrete representation
         let number = primitive!(env, PrimitiveType::Number);
-        opaque!(env, number_opaque, "TypeName", number, []);
+        opaque!(env, number_opaque, "TypeName", number);
 
         // Create another opaque type with the same name but an inference variable
         let hole = HoleId::new(0);
         let infer_var = instantiate_infer(&env, hole);
-        opaque!(env, infer_opaque, "TypeName", infer_var, []);
+        opaque!(env, infer_opaque, "TypeName", infer_var);
 
         // Create an inference environment to collect constraints
         let mut inference_env = InferenceEnvironment::new(&env);
@@ -734,12 +711,12 @@ mod test {
 
         // Create an opaque type with a concrete representation
         let number = primitive!(env, PrimitiveType::Number);
-        opaque!(env, type_a, "TypeA", number, []);
+        opaque!(env, type_a, "TypeA", number);
 
         // Create another opaque type with a different name and an inference variable
         let hole = HoleId::new(0);
         let infer_var = instantiate_infer(&env, hole);
-        opaque!(env, type_b, "TypeB", infer_var, []);
+        opaque!(env, type_b, "TypeB", infer_var);
 
         // Create an inference environment to collect constraints
         let mut inference_env = InferenceEnvironment::new(&env);
@@ -761,17 +738,11 @@ mod test {
         // Create a nested opaque type with an inference variable
         let hole = HoleId::new(0);
         let infer_var = instantiate_infer(&env, hole);
-        opaque!(
-            env,
-            outer_a,
-            "Outer",
-            opaque!(env, "Inner", infer_var, []),
-            []
-        );
+        opaque!(env, outer_a, "Outer", opaque!(env, "Inner", infer_var));
 
         // Create another nested opaque type with a concrete representation
         let number = primitive!(env, PrimitiveType::Number);
-        opaque!(env, outer_b, "Outer", opaque!(env, "Inner", number, []), []);
+        opaque!(env, outer_b, "Outer", opaque!(env, "Inner", number));
 
         // Create an inference environment to collect constraints
         let mut inference_env = InferenceEnvironment::new(&env);
@@ -799,8 +770,8 @@ mod test {
         let number = primitive!(env, PrimitiveType::Number);
         let string = primitive!(env, PrimitiveType::String);
 
-        opaque!(env, number_opaque, "Type", number, []);
-        opaque!(env, string_opaque, "Type", string, []);
+        opaque!(env, number_opaque, "Type", number);
+        opaque!(env, string_opaque, "Type", string);
 
         // Create an inference environment to collect constraints
         let mut inference_env = InferenceEnvironment::new(&env);
@@ -828,11 +799,9 @@ mod test {
         let param2 = instantiate_param(&env, arg2);
 
         // Create opaque types with generic parameters
-        opaque!(
+        let opaque_a = generic!(
             env,
-            opaque_a,
-            "Type",
-            param1,
+            opaque!(env, "Type", param1),
             [GenericArgument {
                 id: arg1,
                 name: heap.intern_symbol("T"),
@@ -840,11 +809,9 @@ mod test {
             }]
         );
 
-        opaque!(
+        let opaque_b = generic!(
             env,
-            opaque_b,
-            "Type",
-            param2,
+            opaque!(env, "Type", param2),
             [GenericArgument {
                 id: arg2,
                 name: heap.intern_symbol("T"),
@@ -856,7 +823,7 @@ mod test {
         let mut inference_env = InferenceEnvironment::new(&env);
 
         // Collect constraints between the two opaque types with generic parameters
-        opaque_a.collect_constraints(opaque_b, &mut inference_env);
+        inference_env.collect_constraints(opaque_a, opaque_b);
 
         // Due to invariance, we should get an equality constraint between the generic parameters
         let constraints = inference_env.take_constraints();
@@ -872,12 +839,12 @@ mod test {
         // Create an opaque type with an inference variable
         let hole_var1 = HoleId::new(0);
         let infer_var1 = instantiate_infer(&env, hole_var1);
-        opaque!(env, opaque_a, "Type", infer_var1, []);
+        opaque!(env, opaque_a, "Type", infer_var1);
 
         // Create another opaque type with another inference variable
         let hole_var2 = HoleId::new(1);
         let infer_var2 = instantiate_infer(&env, hole_var2);
-        opaque!(env, opaque_b, "Type", infer_var2, []);
+        opaque!(env, opaque_b, "Type", infer_var2);
 
         // Create an inference environment to collect constraints
         let mut inference_env = InferenceEnvironment::new(&env);
@@ -901,11 +868,11 @@ mod test {
         // Create an opaque type with an inference variable
         let hole_var1 = HoleId::new(0);
         let infer_var1 = instantiate_infer(&env, hole_var1);
-        opaque!(env, opaque_a, "Type", infer_var1, []);
+        opaque!(env, opaque_a, "Type", infer_var1);
 
         // Create another opaque type with a generic variable
         let arg = GenericArgumentId::new(0);
-        opaque!(env, opaque_b, "Type", instantiate_param(&env, arg), []);
+        opaque!(env, opaque_b, "Type", instantiate_param(&env, arg));
 
         // Create an inference environment to collect constraints
         let mut inference_env = InferenceEnvironment::new(&env);
@@ -932,7 +899,7 @@ mod test {
         let infer_var = instantiate_infer(&env, hole);
 
         // Create an opaque type with an inference variable: MyType[_0]
-        opaque!(env, opaque_type, "MyType", infer_var, []);
+        opaque!(env, opaque_type, "MyType", infer_var);
 
         let mut inference_env = InferenceEnvironment::new(&env);
 
@@ -975,7 +942,6 @@ mod test {
             kind: env.intern_kind(TypeKind::Opaque(OpaqueType {
                 name: heap.intern_symbol("RecursiveOpaque"),
                 repr: id.value(),
-                arguments: GenericArguments::empty(),
             })),
         });
 
@@ -986,9 +952,8 @@ mod test {
 
         assert_matches!(
             r#type.kind,
-            TypeKind::Opaque(OpaqueType { name, repr, arguments }) if name.as_str() == "RecursiveOpaque"
+            TypeKind::Opaque(OpaqueType { name, repr }) if name.as_str() == "RecursiveOpaque"
                 && *repr == type_id
-                && arguments.is_empty()
         );
     }
 
@@ -1000,11 +965,9 @@ mod test {
         let argument = env.counter.generic_argument.next();
         let param = instantiate_param(&env, argument);
 
-        opaque!(
+        let value = generic!(
             env,
-            value,
-            "A",
-            param,
+            opaque!(env, "A", param),
             [GenericArgument {
                 id: argument,
                 name: heap.intern_symbol("T"),
@@ -1013,22 +976,28 @@ mod test {
         );
 
         let mut instantiate = InstantiateEnvironment::new(&env);
-        let type_id = value.instantiate(&mut instantiate);
+        let type_id = instantiate.instantiate(value);
         assert!(instantiate.take_diagnostics().is_empty());
 
         let result = env.r#type(type_id);
-        let opaque = result.kind.opaque().expect("should be an opaque type");
+        let generic = result.kind.generic().expect("should be a generic type");
+
+        let opaque = env
+            .r#type(generic.base)
+            .kind
+            .opaque()
+            .expect("should be an opaque type");
         let repr = env
             .r#type(opaque.repr)
             .kind
             .param()
             .expect("should be a param");
 
-        assert_eq!(opaque.arguments.len(), 1);
+        assert_eq!(generic.arguments.len(), 1);
         assert_eq!(
             *repr,
             Param {
-                argument: opaque.arguments[0].id
+                argument: generic.arguments[0].id
             }
         );
         assert_ne!(repr.argument, argument);

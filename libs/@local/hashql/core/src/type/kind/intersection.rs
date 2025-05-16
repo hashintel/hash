@@ -644,14 +644,14 @@ mod test {
                 Constraint, Inference as _, PartialStructuralEdge, Variable, VariableKind,
             },
             kind::{
-                OpaqueType, Param, TypeKind,
+                Generic, OpaqueType, Param, TypeKind,
                 generic::{GenericArgument, GenericArgumentId},
                 infer::HoleId,
                 intrinsic::{DictType, IntrinsicType},
                 primitive::PrimitiveType,
                 test::{
-                    assert_equiv, assert_sorted_eq, dict, intersection, opaque, primitive, tuple,
-                    union,
+                    assert_equiv, assert_sorted_eq, dict, generic, intersection, opaque, primitive,
+                    tuple, union,
                 },
                 tuple::TupleType,
                 union::UnionType,
@@ -1462,8 +1462,8 @@ mod test {
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         // Create tuple types
-        let tuple1 = tuple!(env, [], [primitive!(env, PrimitiveType::Number)]);
-        let tuple2 = tuple!(env, [], [primitive!(env, PrimitiveType::String)]);
+        let tuple1 = tuple!(env, [primitive!(env, PrimitiveType::Number)]);
+        let tuple2 = tuple!(env, [primitive!(env, PrimitiveType::String)]);
 
         // Create an intersection of tuple types
         intersection!(env, intersection_type, [tuple1, tuple2]);
@@ -1474,7 +1474,7 @@ mod test {
         assert!(!intersection_type.is_top(&mut analysis_env));
 
         // Test subtyping with tuples in intersections
-        let tuple3 = tuple!(env, [], [primitive!(env, PrimitiveType::Number)]);
+        let tuple3 = tuple!(env, [primitive!(env, PrimitiveType::Number)]);
         intersection!(env, single_tuple, [tuple3]);
 
         // tuple1 & tuple2 <: tuple1
@@ -2103,7 +2103,7 @@ mod test {
         let infer_var2 = instantiate_infer(&env, hole2);
 
         // Create a tuple with an inference variable
-        let tuple_type = tuple!(env, [], [infer_var1]);
+        let tuple_type = tuple!(env, [infer_var1]);
 
         // Create an intersection with mixed types: tuple & infer_var2
         intersection!(env, mixed_intersection, [tuple_type, infer_var2]);
@@ -2218,10 +2218,9 @@ mod test {
         let param1 = instantiate_param(&env, argument1);
         let param2 = instantiate_param(&env, argument2);
 
-        let a = opaque!(
+        let a = generic!(
             env,
-            "A",
-            param1,
+            opaque!(env, "A", param1),
             [GenericArgument {
                 id: argument1,
                 name: heap.intern_symbol("T"),
@@ -2229,10 +2228,9 @@ mod test {
             }]
         );
 
-        let b = opaque!(
+        let b = generic!(
             env,
-            "A",
-            param2,
+            opaque!(env, "A", param2),
             [GenericArgument {
                 id: argument2,
                 name: heap.intern_symbol("T"),
@@ -2257,18 +2255,23 @@ mod test {
 
         for (index, &variant) in intersection.variants.iter().enumerate() {
             let variant = env.r#type(variant);
-            let opaque = variant.kind.opaque().expect("should be an opaque type");
+            let generic = variant.kind.generic().expect("should be a generic type");
+            let opaque = env
+                .r#type(generic.base)
+                .kind
+                .opaque()
+                .expect("should be an opaque type");
             let repr = env
                 .r#type(opaque.repr)
                 .kind
                 .param()
                 .expect("should be a param");
 
-            assert_eq!(opaque.arguments.len(), 1);
+            assert_eq!(generic.arguments.len(), 1);
             assert_eq!(
                 *repr,
                 Param {
-                    argument: opaque.arguments[0].id
+                    argument: generic.arguments[0].id
                 }
             );
             assert_ne!(repr.argument, generic_arguments[index]);

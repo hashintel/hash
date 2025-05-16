@@ -16,10 +16,9 @@ use core::{ops::ControlFlow, ptr};
 use pretty::RcDoc;
 use smallvec::SmallVec;
 
-use self::generic::GenericSubstitutions;
 pub use self::{
     closure::ClosureType,
-    generic::{Apply, GenericArgument, Param},
+    generic::{Apply, Generic, GenericArgument, GenericArguments, GenericSubstitutions, Param},
     infer::Infer,
     intersection::IntersectionType,
     intrinsic::IntrinsicType,
@@ -57,6 +56,7 @@ pub enum TypeKind<'heap> {
     Closure(ClosureType<'heap>),
 
     Apply(Apply<'heap>),
+    Generic(Generic<'heap>),
 
     Param(Param),
     Infer(Infer),
@@ -134,6 +134,14 @@ impl<'heap> TypeKind<'heap> {
     pub const fn apply(&self) -> Option<&Apply<'heap>> {
         match self {
             Self::Apply(r#type) => Some(r#type),
+            _ => None,
+        }
+    }
+
+    #[must_use]
+    pub const fn generic(&self) -> Option<&Generic<'heap>> {
+        match self {
+            Self::Generic(r#type) => Some(r#type),
             _ => None,
         }
     }
@@ -348,6 +356,47 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 let lhs = Apply {
                     base: self.id,
                     substitutions: GenericSubstitutions::empty(),
+                };
+
+                lhs.join_base(rhs, env, self.span)
+            }
+
+            // Generic ∨ _
+            (Self::Generic(lhs), Self::Generic(rhs)) => self.with(lhs).join(other.with(rhs), env),
+            (
+                Self::Generic(lhs),
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_)
+                | Self::Union(_)
+                | Self::Intersection(_)
+                | Self::Closure(_)
+                | Self::Apply(_),
+            ) => {
+                let rhs = Generic {
+                    base: other.id,
+                    arguments: GenericArguments::empty(),
+                };
+
+                lhs.join_base(rhs, env, self.span)
+            }
+            (
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_)
+                | Self::Union(_)
+                | Self::Intersection(_)
+                | Self::Closure(_)
+                | Self::Apply(_),
+                &Self::Generic(rhs),
+            ) => {
+                let lhs = Generic {
+                    base: self.id,
+                    arguments: GenericArguments::empty(),
                 };
 
                 lhs.join_base(rhs, env, self.span)
@@ -619,6 +668,46 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
 
                 lhs.meet_base(rhs, env, self.span)
             }
+            // Generic ∧ _
+            (Self::Generic(lhs), Self::Generic(rhs)) => self.with(lhs).meet(other.with(rhs), env),
+            (
+                &Self::Generic(lhs),
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_)
+                | Self::Union(_)
+                | Self::Intersection(_)
+                | Self::Closure(_)
+                | Self::Apply(_),
+            ) => {
+                let rhs = Generic {
+                    base: other.id,
+                    arguments: GenericArguments::empty(),
+                };
+
+                lhs.meet_base(rhs, env, self.span)
+            }
+            (
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_)
+                | Self::Union(_)
+                | Self::Intersection(_)
+                | Self::Closure(_)
+                | Self::Apply(_),
+                &Self::Generic(rhs),
+            ) => {
+                let lhs = Generic {
+                    base: self.id,
+                    arguments: GenericArguments::empty(),
+                };
+
+                lhs.meet_base(rhs, env, self.span)
+            }
 
             // Union ∧ _
             (Self::Union(lhs), Self::Union(rhs)) => self.with(lhs).meet(other.with(rhs), env),
@@ -699,6 +788,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             Self::Union(union_type) => self.with(union_type).is_bottom(env),
             Self::Intersection(intersection_type) => self.with(intersection_type).is_bottom(env),
             Self::Apply(apply) => self.with(apply).is_bottom(env),
+            Self::Generic(generic) => self.with(generic).is_bottom(env),
             &Self::Param(Param { argument }) => {
                 let Some(substitution) = env.substitution.argument(argument) else {
                     let _: ControlFlow<()> =
@@ -735,6 +825,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             Self::Union(union_type) => self.with(union_type).is_top(env),
             Self::Intersection(intersection_type) => self.with(intersection_type).is_top(env),
             Self::Apply(apply) => self.with(apply).is_top(env),
+            Self::Generic(generic) => self.with(generic).is_top(env),
             &Self::Param(Param { argument }) => {
                 let Some(substitution) = env.substitution.argument(argument) else {
                     let _: ControlFlow<()> =
@@ -771,6 +862,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             Self::Union(union_type) => self.with(union_type).is_concrete(env),
             Self::Intersection(intersection_type) => self.with(intersection_type).is_concrete(env),
             Self::Apply(apply) => self.with(apply).is_concrete(env),
+            Self::Generic(generic) => self.with(generic).is_concrete(env),
             &Self::Param(Param { argument }) => env.substitution.argument(argument).is_some(),
             &Self::Infer(Infer { hole }) => env.substitution.infer(hole).is_some(),
             Self::Never | Self::Unknown => true,
@@ -788,6 +880,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             Self::Intersection(intersection_type) => self.with(intersection_type).is_recursive(env),
             Self::Closure(closure_type) => self.with(closure_type).is_recursive(env),
             Self::Apply(apply) => self.with(apply).is_recursive(env),
+            Self::Generic(generic) => self.with(generic).is_recursive(env),
             &Self::Param(Param { argument }) => env
                 .substitution
                 .argument(argument)
@@ -816,6 +909,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 self.with(intersection_type).distribute_union(env)
             }
             Self::Apply(apply_type) => self.with(apply_type).distribute_union(env),
+            Self::Generic(generic_type) => self.with(generic_type).distribute_union(env),
             &Self::Param(Param { argument }) => env.substitution.argument(argument).map_or_else(
                 || SmallVec::from_slice(&[self.id]),
                 |substitution| env.distribute_union(substitution),
@@ -848,6 +942,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 self.with(intersection_type).distribute_intersection(env)
             }
             Self::Apply(apply_type) => self.with(apply_type).distribute_intersection(env),
+            Self::Generic(generic_type) => self.with(generic_type).distribute_intersection(env),
             &Self::Param(Param { argument }) => env.substitution.argument(argument).map_or_else(
                 || SmallVec::from_slice(&[self.id]),
                 |substitution| env.distribute_intersection(substitution),
@@ -1018,6 +1113,35 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 | Self::Union(_)
                 | Self::Intersection(_),
                 Self::Apply(rhs),
+            ) => return env.is_equivalent(self.id, rhs.base),
+
+            // Generic ≡ _
+            (Self::Generic(lhs), Self::Generic(rhs)) => {
+                return self.with(lhs).is_equivalent(other.with(rhs), env);
+            }
+            (
+                Self::Generic(lhs),
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_)
+                | Self::Closure(_)
+                | Self::Union(_)
+                | Self::Intersection(_)
+                | Self::Apply(_),
+            ) => return env.is_equivalent(lhs.base, other.id),
+            (
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_)
+                | Self::Closure(_)
+                | Self::Union(_)
+                | Self::Intersection(_)
+                | Self::Apply(_),
+                Self::Generic(rhs),
             ) => return env.is_equivalent(self.id, rhs.base),
 
             // Union ≡ _
@@ -1306,6 +1430,35 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 Self::Apply(rhs),
             ) => return env.is_subtype_of(self.id, rhs.base),
 
+            // Generic <: _
+            (Self::Generic(lhs), Self::Generic(rhs)) => {
+                return self.with(lhs).is_subtype_of(supertype.with(rhs), env);
+            }
+            (
+                Self::Generic(lhs),
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_)
+                | Self::Closure(_)
+                | Self::Union(_)
+                | Self::Intersection(_)
+                | Self::Apply(_),
+            ) => return env.is_subtype_of(lhs.base, supertype.id),
+            (
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_)
+                | Self::Closure(_)
+                | Self::Union(_)
+                | Self::Intersection(_)
+                | Self::Apply(_),
+                Self::Generic(rhs),
+            ) => return env.is_subtype_of(self.id, rhs.base),
+
             // Union <: _
             (Self::Union(lhs), Self::Union(rhs)) => {
                 return self.with(lhs).is_subtype_of(supertype.with(rhs), env);
@@ -1432,9 +1585,10 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             Self::Struct(struct_type) => self.with(struct_type).simplify(env),
             Self::Tuple(tuple_type) => self.with(tuple_type).simplify(env),
             Self::Closure(closure_type) => self.with(closure_type).simplify(env),
-            Self::Apply(apply_type) => self.with(apply_type).simplify(env),
             Self::Union(union_type) => self.with(union_type).simplify(env),
             Self::Intersection(intersection_type) => self.with(intersection_type).simplify(env),
+            Self::Apply(apply_type) => self.with(apply_type).simplify(env),
+            Self::Generic(generic_type) => self.with(generic_type).simplify(env),
             Self::Param(_) | Self::Never | Self::Unknown | Self::Infer(_) => self.id,
         };
 
@@ -1632,6 +1786,41 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 env.collect_constraints(self.id, rhs.base);
             }
 
+            // Generic <: _
+            (Self::Generic(lhs), Self::Generic(rhs)) => {
+                self.with(lhs).collect_constraints(supertype.with(rhs), env);
+            }
+            (
+                Self::Generic(lhs),
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_)
+                | Self::Closure(_)
+                | Self::Union(_)
+                | Self::Intersection(_)
+                | Self::Apply(_),
+            ) => {
+                lhs.collect_argument_constraints(self.span, env);
+                env.collect_constraints(lhs.base, supertype.id);
+            }
+            (
+                Self::Opaque(_)
+                | Self::Primitive(_)
+                | Self::Intrinsic(_)
+                | Self::Struct(_)
+                | Self::Tuple(_)
+                | Self::Closure(_)
+                | Self::Union(_)
+                | Self::Intersection(_)
+                | Self::Apply(_),
+                Self::Generic(rhs),
+            ) => {
+                rhs.collect_argument_constraints(supertype.span, env);
+                env.collect_constraints(self.id, rhs.base);
+            }
+
             // Union <: _
             (Self::Union(lhs), Self::Union(rhs)) => {
                 self.with(lhs).collect_constraints(supertype.with(rhs), env);
@@ -1826,6 +2015,7 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
             Self::Apply(apply_type) => self
                 .with(apply_type)
                 .collect_structural_edges(variable, env),
+            Self::Generic(generic) => self.with(generic).collect_structural_edges(variable, env),
             &Self::Param(Param { argument }) => env.add_structural_edge(
                 variable,
                 Variable {
@@ -1865,15 +2055,16 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
     /// (Only the ∀-bound type parameters are replaced)
     fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {
         match self.kind {
-            Self::Opaque(opaque_type) => self.with(opaque_type).instantiate(env),
-            Self::Primitive(primitive_type) => self.with(primitive_type).instantiate(env),
-            Self::Intrinsic(intrinsic_type) => self.with(intrinsic_type).instantiate(env),
-            Self::Struct(struct_type) => self.with(struct_type).instantiate(env),
-            Self::Tuple(tuple_type) => self.with(tuple_type).instantiate(env),
-            Self::Union(union_type) => self.with(union_type).instantiate(env),
-            Self::Intersection(intersection_type) => self.with(intersection_type).instantiate(env),
-            Self::Closure(closure_type) => self.with(closure_type).instantiate(env),
-            Self::Apply(apply_type) => self.with(apply_type).instantiate(env),
+            Self::Opaque(opaque) => self.with(opaque).instantiate(env),
+            Self::Primitive(primitive) => self.with(primitive).instantiate(env),
+            Self::Intrinsic(intrinsic) => self.with(intrinsic).instantiate(env),
+            Self::Struct(r#struct) => self.with(r#struct).instantiate(env),
+            Self::Tuple(tuple) => self.with(tuple).instantiate(env),
+            Self::Union(union) => self.with(union).instantiate(env),
+            Self::Intersection(intersection) => self.with(intersection).instantiate(env),
+            Self::Closure(closure) => self.with(closure).instantiate(env),
+            Self::Apply(apply) => self.with(apply).instantiate(env),
+            Self::Generic(generic) => self.with(generic).instantiate(env),
             &Self::Param(Param { argument }) => {
                 if let Some(argument) = env.lookup_argument(argument) {
                     env.intern_type(PartialType {
@@ -1906,6 +2097,7 @@ impl PrettyPrint for TypeKind<'_> {
             Self::Union(union_type) => union_type.pretty(env, limit),
             Self::Intersection(intersection_type) => intersection_type.pretty(env, limit),
             Self::Apply(apply_type) => apply_type.pretty(env, limit),
+            Self::Generic(generic) => generic.pretty(env, limit),
             Self::Param(param_type) => param_type.pretty(env, limit),
             Self::Infer(Infer { hole }) => RcDoc::text(format!("_{hole}")).annotate(GRAY),
             Self::Never => RcDoc::text("!").annotate(CYAN),

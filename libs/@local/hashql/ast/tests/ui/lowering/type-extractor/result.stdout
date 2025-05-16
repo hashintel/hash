@@ -1,11 +1,11 @@
-Expr#4294967040@90
+Expr#4294967040@76
   ExprKind (Underscore)
 
 ------------------------
 
-Err:0 = ::main::Err:0<E:0?12>[(value: ?12)]
+Err:0 = <E:0?12>::main::Err:0[?12]
 
-Ok:0 = ::main::Ok:0<T:0?11>[(value: ?11)]
+Ok:0 = <T:0?11>::main::Ok:0[?11]
 
-Result:0 = (<E:1?9>(::main::Err:0<E:0?10>[(value: ?10)] where<?10 = ?9>,)
- | <T:1?7>(::main::Ok:0<T:0?8>[(value: ?8)] where<?8 = ?7>,))
+Result:0 = <T:1?7, E:1?8>(<E:0?10>::main::Err:0[?10] where<?10 = ?8>
+ | <T:0?9>::main::Ok:0[?9] where<?9 = ?7>)

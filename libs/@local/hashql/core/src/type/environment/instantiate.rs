@@ -33,6 +33,12 @@ pub enum SubstitutionState {
     Mixed,
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum ArgumentsState {
+    IdentitiesOnly,
+    Mixed,
+}
+
 // This was moved out of the `InferenceEnvironment`, as the requirements (especially provision
 // scoping) are too different and there's nearly 0 overlap.
 #[derive(Debug)]
@@ -78,9 +84,15 @@ impl<'env, 'heap> InstantiateEnvironment<'env, 'heap> {
     pub fn instantiate_arguments(
         &mut self,
         arguments: GenericArguments<'heap>,
-    ) -> (ReplacementGuard<GenericArgumentId>, GenericArguments<'heap>) {
+    ) -> (
+        ReplacementGuard<GenericArgumentId>,
+        GenericArguments<'heap>,
+        ArgumentsState,
+    ) {
         let mut replacements = SmallVec::<_, 16>::with_capacity(arguments.len());
-        let mut mapping = Vec::with_capacity(arguments.len());
+        let mut mapping = SmallVec::<_, 16>::with_capacity(arguments.len());
+
+        let mut state = ArgumentsState::IdentitiesOnly;
 
         for generic in &*arguments {
             // Check if the argument already exists, this the case if `Apply` ran before this
@@ -89,6 +101,10 @@ impl<'env, 'heap> InstantiateEnvironment<'env, 'heap> {
             } else {
                 self.environment.counter.generic_argument.next()
             };
+
+            if generic.id != id {
+                state = ArgumentsState::Mixed;
+            }
 
             mapping.push((generic.id, id));
         }
@@ -110,7 +126,7 @@ impl<'env, 'heap> InstantiateEnvironment<'env, 'heap> {
 
         let arguments = self.environment.intern_generic_arguments(&mut replacements);
 
-        (guard, arguments)
+        (guard, arguments, state)
     }
 
     pub fn instantiate_substitutions(

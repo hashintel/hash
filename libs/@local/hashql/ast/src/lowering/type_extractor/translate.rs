@@ -18,8 +18,8 @@ use hashql_core::{
         PartialType, TypeId,
         environment::Environment,
         kind::{
-            Apply, GenericArgument, Infer, IntersectionType, IntrinsicType, OpaqueType, Param,
-            StructType, TupleType, TypeKind, UnionType,
+            Apply, Generic, GenericArgument, Infer, IntersectionType, IntrinsicType, OpaqueType,
+            Param, StructType, TupleType, TypeKind, UnionType,
             generic::GenericSubstitution,
             intrinsic::{DictType, ListType},
             r#struct::StructField,
@@ -34,8 +34,7 @@ use super::error::{
 };
 use crate::{
     lowering::type_extractor::error::{
-        generic_parameter_mismatch, infer_with_arguments, intrinsic_parameter_count_mismatch,
-        unbound_type_variable,
+        generic_parameter_mismatch, intrinsic_parameter_count_mismatch, unbound_type_variable,
     },
     node::{
         self,
@@ -215,19 +214,10 @@ impl<'env, 'heap> TranslationUnit<'env, '_, 'heap> {
     ///
     /// Nominal types are identified by their name rather than structure, but still have an
     /// underlying representation.
-    fn nominal(
-        &mut self,
-        name: Symbol<'heap>,
-        mut arguments: SpannedGenericArguments<'heap>,
-        repr: Reference<'_, 'heap>,
-    ) -> TypeKind<'heap> {
-        let repr = self.reference(repr, SpannedGenericArguments::empty());
+    fn nominal(&mut self, name: Symbol<'heap>, repr: Reference<'_, 'heap>) -> TypeKind<'heap> {
+        let repr = self.reference(repr);
 
-        let kind = OpaqueType {
-            name,
-            repr,
-            arguments: self.env.intern_generic_arguments(&mut arguments.value),
-        };
+        let kind = OpaqueType { name, repr };
 
         TypeKind::Opaque(kind)
     }
@@ -316,7 +306,7 @@ impl<'env, 'heap> TranslationUnit<'env, '_, 'heap> {
                 continue;
             };
 
-            let value = self.reference(reference, SpannedGenericArguments::empty());
+            let value = self.reference(reference);
 
             substitutions.push(GenericSubstitution {
                 argument: parameter.id,
@@ -397,7 +387,7 @@ impl<'env, 'heap> TranslationUnit<'env, '_, 'heap> {
                     return TypeKind::Never;
                 };
 
-                let element = self.reference(reference, SpannedGenericArguments::empty());
+                let element = self.reference(reference);
 
                 TypeKind::Intrinsic(IntrinsicType::List(ListType { element }))
             }
@@ -415,11 +405,11 @@ impl<'env, 'heap> TranslationUnit<'env, '_, 'heap> {
 
                 let key = self
                     .convert_path_segment_argument(&parameters[0])
-                    .map(|key| self.reference(key, SpannedGenericArguments::empty()));
+                    .map(|key| self.reference(key));
 
                 let value = self
                     .convert_path_segment_argument(&parameters[1])
-                    .map(|value| self.reference(value, SpannedGenericArguments::empty()));
+                    .map(|value| self.reference(value));
 
                 let Some((key, value)) = Option::zip(key, value) else {
                     return TypeKind::Never;
@@ -489,10 +479,16 @@ impl<'env, 'heap> TranslationUnit<'env, '_, 'heap> {
 
     fn verify_unbound_variables(
         &mut self,
-        span: SpanId,
+        r#type: &node::r#type::Type<'heap>,
         arguments: &SpannedGenericArguments<'heap>,
-        unbound: FastHashSet<GenericArgument<'heap>>,
     ) -> Option<TypeKind<'heap>> {
+        let mut unbound: FastHashSet<_> = arguments.iter().copied().collect();
+
+        let mut finder = GenericArgumentVisitor::new(&arguments.value);
+        finder.visit_type(r#type);
+
+        unbound -= &finder.used;
+
         let is_empty = unbound.is_empty();
 
         for unbound_argument in unbound {
@@ -501,8 +497,11 @@ impl<'env, 'heap> TranslationUnit<'env, '_, 'heap> {
                 .find(|(argument, _)| *argument == unbound_argument)
                 .unwrap_or_else(|| unreachable!());
 
-            self.diagnostics
-                .push(unused_generic_parameter(argument, argument_span, span));
+            self.diagnostics.push(unused_generic_parameter(
+                argument,
+                argument_span,
+                r#type.span,
+            ));
         }
 
         if !is_empty {
@@ -512,43 +511,18 @@ impl<'env, 'heap> TranslationUnit<'env, '_, 'heap> {
         None
     }
 
-    fn translate_children(
-        &mut self,
-        types: &[node::r#type::Type<'heap>],
-        arguments: &SpannedGenericArguments<'heap>,
-    ) -> (SmallVec<TypeId>, FastHashSet<GenericArgument<'heap>>) {
+    fn translate_children(&mut self, types: &[node::r#type::Type<'heap>]) -> SmallVec<TypeId> {
         let mut variants = SmallVec::with_capacity(types.len());
-        let mut unbound: FastHashSet<_> = arguments.iter().copied().collect();
 
         for r#type in types {
-            let mut finder = GenericArgumentVisitor::new(&arguments.value);
-            finder.visit_type(r#type);
-
-            unbound -= &finder.used;
-
-            // only take the arguments that are actually used in the type
-            let arguments = arguments
-                .iter_spanned()
-                .filter(|(argument, _)| finder.used.contains(argument))
-                .collect();
-
-            variants.push(self.reference(Reference::Type(r#type), arguments));
+            variants.push(self.reference(Reference::Type(r#type)));
         }
 
-        (variants, unbound)
+        variants
     }
 
-    fn union(
-        &mut self,
-        span: SpanId,
-        union: &node::r#type::UnionType<'heap>,
-        arguments: &SpannedGenericArguments<'heap>,
-    ) -> TypeKind<'heap> {
-        let (variants, unbound) = self.translate_children(&union.types, arguments);
-
-        if let Some(kind) = self.verify_unbound_variables(span, arguments, unbound) {
-            return kind;
-        }
+    fn union(&mut self, union: &node::r#type::UnionType<'heap>) -> TypeKind<'heap> {
+        let variants = self.translate_children(&union.types);
 
         TypeKind::Union(UnionType {
             variants: self.env.intern_type_ids(&variants),
@@ -557,15 +531,9 @@ impl<'env, 'heap> TranslationUnit<'env, '_, 'heap> {
 
     fn intersection(
         &mut self,
-        span: SpanId,
         intersection: &node::r#type::IntersectionType<'heap>,
-        arguments: &SpannedGenericArguments<'heap>,
     ) -> TypeKind<'heap> {
-        let (variants, unbound) = self.translate_children(&intersection.types, arguments);
-
-        if let Some(kind) = self.verify_unbound_variables(span, arguments, unbound) {
-            return kind;
-        }
+        let variants = self.translate_children(&intersection.types);
 
         TypeKind::Intersection(IntersectionType {
             variants: self.env.intern_type_ids(&variants),
@@ -577,29 +545,14 @@ impl<'env, 'heap> TranslationUnit<'env, '_, 'heap> {
     /// This is the main translation function that handles all the different type kinds (infer,
     /// path, tuple, struct, union, intersection) and converts them to the corresponding core type
     /// system representation.
-    fn type_kind(
-        &mut self,
-        span: SpanId,
-        kind: &node::r#type::TypeKind<'heap>,
-        mut arguments: SpannedGenericArguments<'heap>,
-    ) -> TypeKind<'heap> {
+    fn type_kind(&mut self, kind: &node::r#type::TypeKind<'heap>) -> TypeKind<'heap> {
         match kind {
             node::r#type::TypeKind::Infer => {
                 let hole = self.env.counter.hole.next();
 
-                if !arguments.is_empty() {
-                    self.diagnostics.push(infer_with_arguments(span));
-
-                    return TypeKind::Never;
-                }
-
                 TypeKind::Infer(Infer { hole })
             }
             node::r#type::TypeKind::Path(path) => {
-                if !arguments.is_empty() {
-                    unimplemented!("https://linear.app/hash/issue/H-4524/hashql-alias-type-variant")
-                }
-
                 if let Some((name, parameters)) = path.as_generic_ident() {
                     self.local_reference(name, parameters)
                 } else {
@@ -612,14 +565,11 @@ impl<'env, 'heap> TranslationUnit<'env, '_, 'heap> {
                 for node::r#type::TupleField { r#type, .. } in &tuple_type.fields {
                     // The arguments are bound by the tuple type itself, therefore no downstream
                     // type needs to bind them
-                    elements.push(
-                        self.reference(Reference::Type(r#type), SpannedGenericArguments::empty()),
-                    );
+                    elements.push(self.reference(Reference::Type(r#type)));
                 }
 
                 TypeKind::Tuple(TupleType {
                     fields: self.env.intern_type_ids(&elements),
-                    arguments: self.env.intern_generic_arguments(&mut arguments.value),
                 })
             }
             node::r#type::TypeKind::Struct(struct_type) => {
@@ -636,8 +586,7 @@ impl<'env, 'heap> TranslationUnit<'env, '_, 'heap> {
                 {
                     fields.push(StructField {
                         name: name.value,
-                        value: self
-                            .reference(Reference::Type(r#type), SpannedGenericArguments::empty()),
+                        value: self.reference(Reference::Type(r#type)),
                     });
 
                     spans.entry(name.value).or_insert(Vec::new()).push(*span);
@@ -669,14 +618,11 @@ impl<'env, 'heap> TranslationUnit<'env, '_, 'heap> {
                     }
                 };
 
-                TypeKind::Struct(StructType {
-                    fields,
-                    arguments: self.env.intern_generic_arguments(&mut arguments.value),
-                })
+                TypeKind::Struct(StructType { fields })
             }
-            node::r#type::TypeKind::Union(union_type) => self.union(span, union_type, &arguments),
+            node::r#type::TypeKind::Union(union_type) => self.union(union_type),
             node::r#type::TypeKind::Intersection(intersection_type) => {
-                self.intersection(span, intersection_type, &arguments)
+                self.intersection(intersection_type)
             }
             node::r#type::TypeKind::Dummy => TypeKind::Never,
         }
@@ -686,14 +632,10 @@ impl<'env, 'heap> TranslationUnit<'env, '_, 'heap> {
     ///
     /// This is a dispatcher method that handles both variable references and type references,
     /// converting them to an interned `TypeId`.
-    pub(crate) fn reference(
-        &mut self,
-        reference: Reference<'_, 'heap>,
-        arguments: SpannedGenericArguments<'heap>,
-    ) -> TypeId {
+    pub(crate) fn reference(&mut self, reference: Reference<'_, 'heap>) -> TypeId {
         let kind = match reference {
             Reference::Variable(ident) => self.local_reference(ident, &[]),
-            Reference::Type(r#type) => self.type_kind(r#type.span, &r#type.kind, arguments),
+            Reference::Type(r#type) => self.type_kind(&r#type.kind),
         };
 
         let partial = PartialType {
@@ -704,24 +646,40 @@ impl<'env, 'heap> TranslationUnit<'env, '_, 'heap> {
         self.env.intern_type(partial)
     }
 
+    fn variable_kind(&mut self, variable: &LocalVariable<'_, 'heap>) -> TypeKind<'heap> {
+        if let Identity::Nominal(name) = variable.identity {
+            self.nominal(name, Reference::Type(variable.r#type))
+        } else {
+            self.type_kind(&variable.r#type.kind)
+        }
+    }
+
+    fn generic_variable(&mut self, variable: &LocalVariable<'_, 'heap>) -> TypeKind<'heap> {
+        let mut arguments = variable.arguments.value.clone();
+
+        TypeKind::Generic(Generic {
+            base: self.env.intern_type(PartialType {
+                span: variable.r#type.span,
+                kind: self.env.intern_kind(self.variable_kind(variable)),
+            }),
+            arguments: self.env.intern_generic_arguments(&mut arguments),
+        })
+    }
+
     /// Converts a local variable to its `TypeId` representation
     ///
     /// This method handles creating the appropriate type for a local variable, taking into account
     /// whether it has nominal or structural identity.
     pub(crate) fn variable(&mut self, variable: &LocalVariable<'_, 'heap>) -> TypeId {
-        let kind = if let Identity::Nominal(name) = variable.identity {
-            self.nominal(
-                name,
-                variable.arguments.clone(),
-                Reference::Type(variable.r#type),
-            )
-        } else {
-            self.type_kind(
-                variable.r#type.span,
-                &variable.r#type.kind,
-                variable.arguments.clone(),
-            )
-        };
+        let kind = self
+            .verify_unbound_variables(variable.r#type, &variable.arguments)
+            .unwrap_or_else(|| {
+                if variable.arguments.is_empty() {
+                    self.variable_kind(variable)
+                } else {
+                    self.generic_variable(variable)
+                }
+            });
 
         let partial = PartialType {
             span: variable.r#type.span,

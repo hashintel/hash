@@ -11,35 +11,31 @@ macro_rules! primitive {
 }
 
 macro_rules! tuple {
-    ($env:expr, $arguments:expr, $fields:expr) => {{
+    ($env:expr, $fields:expr) => {{
         let fields = $env.intern_type_ids(&$fields);
-        let mut arguments = $arguments;
-        let arguments = $env.intern_generic_arguments(&mut arguments);
 
-        instantiate(&$env, TypeKind::Tuple(TupleType { fields, arguments }))
+        instantiate(&$env, TypeKind::Tuple(TupleType { fields }))
     }};
 
-    ($env:expr, $name:ident, $fields:expr, $arguments:expr) => {
-        let $name = tuple!($env, $fields, $arguments);
+    ($env:expr, $name:ident, $fields:expr) => {
+        let $name = tuple!($env, $fields);
         let $name = $env.r#type($name);
         let $name = $name.map(|kind| kind.tuple().expect("should be a tuple"));
     };
 }
 
 macro_rules! r#struct {
-    ($env:expr, $arguments:expr, $fields:expr) => {{
+    ($env:expr, $fields:expr) => {{
         let mut fields = $fields;
         let fields = $env
             .intern_struct_fields(&mut fields)
             .expect("should not have any duplicate fields");
-        let mut arguments = $arguments;
-        let arguments = $env.intern_generic_arguments(&mut arguments);
 
-        instantiate(&$env, TypeKind::Struct(StructType { fields, arguments }))
+        instantiate(&$env, TypeKind::Struct(StructType { fields }))
     }};
 
-    ($env:expr, $name:ident, $fields:expr, $arguments:expr) => {
-        let $name = r#struct!($env, $fields, $arguments);
+    ($env:expr, $name:ident, $fields:expr) => {
+        let $name = r#struct!($env, $fields);
         let $name = $env.r#type($name);
         let $name = $name.map(|kind| kind.r#struct().expect("should be a struct"));
     };
@@ -55,24 +51,20 @@ macro_rules! struct_field {
 }
 
 macro_rules! closure {
-    ($env:expr, $arguments:expr, $params:expr, $returns:expr) => {{
+    ($env:expr, $params:expr, $returns:expr) => {{
         let params = $env.intern_type_ids(&$params);
-
-        let mut arguments = $arguments;
-        let arguments = $env.intern_generic_arguments(&mut arguments);
 
         instantiate(
             &$env,
             TypeKind::Closure(ClosureType {
                 params,
                 returns: $returns,
-                arguments,
             }),
         )
     }};
 
-    ($env:expr, $name:ident, $arguments:expr, $params:expr, $returns:expr) => {
-        let $name = closure!($env, $arguments, $params, $returns);
+    ($env:expr, $name:ident, $params:expr, $returns:expr) => {
+        let $name = closure!($env, $params, $returns);
         let $name = $env.r#type($name);
         let $name = $name.map(|kind| kind.closure().expect("should be a closure"));
     };
@@ -126,6 +118,20 @@ macro_rules! apply {
     };
 }
 
+macro_rules! generic {
+    ($env:expr, $base:expr, $arguments:expr) => {{
+        let mut arguments = $arguments;
+
+        instantiate(
+            &$env,
+            TypeKind::Generic(Generic {
+                base: $base,
+                arguments: $env.intern_generic_arguments(&mut arguments),
+            }),
+        )
+    }};
+}
+
 macro_rules! assert_kind {
     ($env:expr, $actual:expr, $expected:expr) => {
         assert_eq!($actual.len(), $expected.len());
@@ -160,25 +166,15 @@ macro_rules! assert_equiv {
 }
 
 macro_rules! opaque {
-    ($env:expr, $name:expr, $repr:expr, $arguments:expr) => {{
+    ($env:expr, $name:expr, $repr:expr) => {{
         let repr = $repr;
         let name = $env.heap.intern_symbol($name);
 
-        let mut arguments = $arguments;
-        let arguments = $env.intern_generic_arguments(&mut arguments);
-
-        instantiate(
-            &$env,
-            TypeKind::Opaque(OpaqueType {
-                name,
-                repr,
-                arguments,
-            }),
-        )
+        instantiate(&$env, TypeKind::Opaque(OpaqueType { name, repr }))
     }};
 
-    ($env:expr, $var_name:ident, $name:expr, $repr:expr, $arguments:expr) => {
-        let $var_name = opaque!($env, $name, $repr, $arguments);
+    ($env:expr, $var_name:ident, $name:expr, $repr:expr) => {
+        let $var_name = opaque!($env, $name, $repr);
         let $var_name = $env.r#type($var_name);
         let $var_name = $var_name.map(|kind| kind.opaque().expect("should be an opaque type"));
     };
@@ -247,6 +243,7 @@ pub(crate) use assert_kind;
 pub(crate) use assert_sorted_eq;
 pub(crate) use closure;
 pub(crate) use dict;
+pub(crate) use generic;
 pub(crate) use intersection;
 pub(crate) use list;
 pub(crate) use opaque;

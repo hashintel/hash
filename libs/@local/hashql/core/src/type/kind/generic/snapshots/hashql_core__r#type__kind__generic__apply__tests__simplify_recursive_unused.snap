@@ -1,0 +1,35 @@
+---
+source: libs/@local/hashql/core/src/type/kind/generic/apply.rs
+expression: "strip_str(&env.r#type(result_id).pretty_print(&env, 80))"
+---
+(b:
+ (a:
+  (b:
+   (a:
+    (b:
+     (a:
+      (b:
+       (a:
+        (b:
+         (a:
+          (b:
+           (a:
+            (b:
+             (a:
+              (b:
+               (a:
+                (b:
+                 (a:
+                  (b:
+                   (a:
+                    (b:
+                     (a:
+                      (b:
+                       (a:
+                        (b:
+                         (a:
+                          (b:
+                           (a:
+                            (b:
+                             (a:
+                              (b: (a: (b: ...)))))))))))))))))))))))))))))))))

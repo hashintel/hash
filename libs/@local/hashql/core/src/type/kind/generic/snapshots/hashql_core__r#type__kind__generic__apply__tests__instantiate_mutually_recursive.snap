@@ -11,17 +11,9 @@ expression: "strip_str(&env.r#type(result_id).pretty_print(&env, 80))"
       <T?4>(b:
        <U?3>(a:
         <T?4>(b:
-         <U?3>(a:
-          <T?4>(b:
-           <U?3>(a:
-            <T?4>(b:
-             <U?3>(a:
-              <T?4>(b:
-               <U?3>(a:
-                <T?4>(b:
-                 <U?3>(a:
-                  <T?4>(b:
-                   <U?3>(a: <T?4>(b: <U?3>(a: ...) where<?3 = ?2>))
-                    where<?3 = ?2>)) where<?3 = ?2>)) where<?3 = ?2>))
-              where<?3 = ?2>)) where<?3 = ?2>)) where<?3 = ?2>))
-        where<?3 = ?2>)) where<?3 = ?2>)) where<?3 = ?2>)) where<?3 = ?2>)
+         <U?3>(a: <T?4>(b: ... where<?3 = ...>) where<?4 = ?3>, b: ?3)
+          where<?3 = ?2>) where<?4 = ?3>,
+        b: ?3) where<?3 = ?2>) where<?4 = ?3>,
+      b: ?3) where<?3 = ?2>) where<?4 = ?3>,
+    b: ?3) where<?3 = ?2>) where<?4 = ?3>,
+  b: ?3) where<?3 = ?2>)

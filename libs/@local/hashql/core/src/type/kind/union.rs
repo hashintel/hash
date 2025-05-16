@@ -638,13 +638,15 @@ mod test {
                 Constraint, Inference as _, PartialStructuralEdge, Variable, VariableKind,
             },
             kind::{
-                OpaqueType, Param, TypeKind,
+                Generic, OpaqueType, Param, TypeKind,
                 generic::{GenericArgument, GenericArgumentId},
                 infer::HoleId,
                 intersection::IntersectionType,
                 intrinsic::{DictType, IntrinsicType},
                 primitive::PrimitiveType,
-                test::{assert_equiv, dict, intersection, opaque, primitive, tuple, union},
+                test::{
+                    assert_equiv, dict, generic, intersection, opaque, primitive, tuple, union,
+                },
                 tuple::TupleType,
             },
             lattice::{Lattice as _, test::assert_lattice_laws},
@@ -1689,8 +1691,8 @@ mod test {
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
         // Create tuple types
-        let tuple1 = tuple!(env, [], [primitive!(env, PrimitiveType::Number)]);
-        let tuple2 = tuple!(env, [], [primitive!(env, PrimitiveType::String)]);
+        let tuple1 = tuple!(env, [primitive!(env, PrimitiveType::Number)]);
+        let tuple2 = tuple!(env, [primitive!(env, PrimitiveType::String)]);
 
         // Create a union of tuple types
         union!(env, union_type, [tuple1, tuple2]);
@@ -1702,7 +1704,7 @@ mod test {
         assert!(!union_type.is_top(&mut analysis_env));
 
         // Test subtyping with tuples in unions
-        let subtype_tuple = tuple!(env, [], [primitive!(env, PrimitiveType::Integer)]); // (Integer) <: (Number)
+        let subtype_tuple = tuple!(env, [primitive!(env, PrimitiveType::Integer)]); // (Integer) <: (Number)
         union!(env, subtype_union, [subtype_tuple, tuple2]);
 
         assert!(subtype_union.is_subtype_of(union_type, &mut analysis_env));
@@ -2372,20 +2374,18 @@ mod test {
         let param1 = instantiate_param(&env, argument1);
         let param2 = instantiate_param(&env, argument2);
 
-        let a = opaque!(
+        let a = generic!(
             env,
-            "A",
-            param1,
+            opaque!(env, "A", param1),
             [GenericArgument {
                 id: argument1,
                 name: heap.intern_symbol("T"),
                 constraint: None
             }]
         );
-        let b = opaque!(
+        let b = generic!(
             env,
-            "A",
-            param2,
+            opaque!(env, "A", param2),
             [GenericArgument {
                 id: argument2,
                 name: heap.intern_symbol("T"),
@@ -2407,18 +2407,24 @@ mod test {
 
         for (index, &variant) in union.variants.iter().enumerate() {
             let variant = env.r#type(variant);
-            let opaque = variant.kind.opaque().expect("should be an opaque type");
+            let generic = variant.kind.generic().expect("should be a generic type");
+
+            let opaque = env
+                .r#type(generic.base)
+                .kind
+                .opaque()
+                .expect("should be an opaque type");
             let repr = env
                 .r#type(opaque.repr)
                 .kind
                 .param()
                 .expect("should be a param");
 
-            assert_eq!(opaque.arguments.len(), 1);
+            assert_eq!(generic.arguments.len(), 1);
             assert_eq!(
                 *repr,
                 Param {
-                    argument: opaque.arguments[0].id
+                    argument: generic.arguments[0].id
                 }
             );
             assert_ne!(repr.argument, generic_arguments[index]);

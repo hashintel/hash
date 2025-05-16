@@ -12,8 +12,8 @@ use crate::{
     r#type::{
         environment::LatticeEnvironment,
         kind::{
-            generic::GenericArguments, intersection::IntersectionType, primitive::PrimitiveType,
-            tuple::TupleType, union::UnionType,
+            intersection::IntersectionType, primitive::PrimitiveType, tuple::TupleType,
+            union::UnionType,
         },
     },
 };
@@ -133,7 +133,6 @@ fn direct_circular_reference() {
             span: SpanId::SYNTHETIC,
             kind: env.intern_kind(TypeKind::Tuple(TupleType {
                 fields: env.intern_type_ids(&[tuple_id.value()]),
-                arguments: GenericArguments::empty(),
             })),
         })
         .id;
@@ -144,7 +143,6 @@ fn direct_circular_reference() {
             span: SpanId::SYNTHETIC,
             kind: env.intern_kind(TypeKind::Tuple(TupleType {
                 fields: env.intern_type_ids(&[id.value()]),
-                arguments: GenericArguments::empty(),
             })),
         })
         .id;
@@ -193,17 +191,14 @@ fn indirect_circular_reference() {
                                             span: SpanId::SYNTHETIC,
                                             kind: env.intern_kind(TypeKind::Tuple(TupleType {
                                                 fields: env.intern_type_ids(&[a_id.value()]),
-                                                arguments: GenericArguments::empty(),
                                             })),
                                         }
                                     })
                                     .id]),
-                                arguments: GenericArguments::empty(),
                             })),
                         }
                     })
                     .id]),
-                arguments: GenericArguments::empty(),
             })),
         })
         .id;
@@ -318,7 +313,6 @@ fn recursive_type_equivalence() {
             PartialType {
                 span: SpanId::SYNTHETIC,
                 kind: env.intern_kind(TypeKind::Tuple(TupleType {
-                    arguments: GenericArguments::empty(),
                     fields: env.intern_type_ids(&[number, id.value()]), // [value, next]
                 })),
             }
@@ -332,7 +326,6 @@ fn recursive_type_equivalence() {
             PartialType {
                 span: SpanId::SYNTHETIC,
                 kind: env.intern_kind(TypeKind::Tuple(TupleType {
-                    arguments: GenericArguments::empty(),
                     fields: env.intern_type_ids(&[number, id.value()]), // [value, next]
                 })),
             }
@@ -379,7 +372,6 @@ fn recursive_subtyping() {
             PartialType {
                 span: SpanId::SYNTHETIC,
                 kind: env.intern_kind(TypeKind::Tuple(TupleType {
-                    arguments: GenericArguments::empty(),
                     fields: env.intern_type_ids(&[integer, id.value()]), // [Integer, self]
                 })),
             }
@@ -393,7 +385,6 @@ fn recursive_subtyping() {
             PartialType {
                 span: SpanId::SYNTHETIC,
                 kind: env.intern_kind(TypeKind::Tuple(TupleType {
-                    arguments: GenericArguments::empty(),
                     fields: env.intern_type_ids(&[number, id.value()]), // [Number, self]
                 })),
             }
@@ -434,7 +425,6 @@ fn recursive_join_operation() {
             PartialType {
                 span: SpanId::SYNTHETIC,
                 kind: env.intern_kind(TypeKind::Tuple(TupleType {
-                    arguments: GenericArguments::empty(),
                     fields: env.intern_type_ids(&[integer, id.value()]), // [Integer, self]
                 })),
             }
@@ -448,7 +438,6 @@ fn recursive_join_operation() {
             PartialType {
                 span: SpanId::SYNTHETIC,
                 kind: env.intern_kind(TypeKind::Tuple(TupleType {
-                    arguments: GenericArguments::empty(),
                     fields: env.intern_type_ids(&[number, id.value()]), // [Number, self]
                 })),
             }
@@ -497,7 +486,6 @@ fn recursive_meet_operation() {
             PartialType {
                 span: SpanId::SYNTHETIC,
                 kind: env.intern_kind(TypeKind::Tuple(TupleType {
-                    arguments: GenericArguments::empty(),
                     fields: env.intern_type_ids(&[integer, id.value()]), // [Integer, self]
                 })),
             }
@@ -511,7 +499,6 @@ fn recursive_meet_operation() {
             PartialType {
                 span: SpanId::SYNTHETIC,
                 kind: env.intern_kind(TypeKind::Tuple(TupleType {
-                    arguments: GenericArguments::empty(),
                     fields: env.intern_type_ids(&[number, id.value()]), // [Number, self]
                 })),
             }
