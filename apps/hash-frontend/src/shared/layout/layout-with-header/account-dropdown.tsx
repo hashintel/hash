@@ -157,6 +157,13 @@ export const AccountDropdown: FunctionComponent<AccountDropdownProps> = ({
           >
             <ListItemText primary="Settings" />
           </MenuItem>,
+          <MenuItem
+            href="/settings/organizations"
+            key="organizations"
+            onClick={() => popupState.close()}
+          >
+            <ListItemText primary="Organizations" />
+          </MenuItem>,
           isInstanceAdmin ? (
             <MenuItem
               href="/admin"

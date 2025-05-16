@@ -76,7 +76,7 @@ export const useCreateGetCellContent = () => {
               data: {
                 kind: "chip-cell",
                 chips: expectsAnything
-                  ? [{ text: "Anything" }]
+                  ? [{ text: "Anything", icon: { inbuiltIcon: "bpAsterisk" } }]
                   : row.expectedEntityTypes.map(({ $id, title, icon }) => ({
                       text: title,
                       icon: icon

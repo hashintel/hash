@@ -34,6 +34,7 @@ import { EntityTypePlural } from "../entity-type-plural";
 interface EntityTypeHeaderProps {
   currentVersion: OntologyTypeVersion;
   entityTypeSchema: EntityType;
+  isArchived: boolean;
   isDraft: boolean;
   isLink: boolean;
   isInSlide?: boolean;
@@ -44,6 +45,7 @@ interface EntityTypeHeaderProps {
 export const EntityTypeHeader = ({
   currentVersion,
   entityTypeSchema,
+  isArchived,
   isDraft,
   isLink,
   isInSlide,
@@ -236,7 +238,7 @@ export const EntityTypeHeader = ({
               {isLink && <EntityTypeInverse readonly={isReadonly} />}
             </Stack>
           </Stack>
-          {!isDraft ? (
+          {!isDraft && !isArchived ? (
             <Button
               onClick={() => setShowExtendTypeModal(true)}
               variant="secondary"

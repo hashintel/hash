@@ -105,20 +105,20 @@ export const useHandleTypeChanges = ({
           newTypeDetails.closedMultiEntityTypesDefinitions,
       });
 
-      setDraftEntitySubgraph((prev) =>
-        createDraftEntitySubgraph({
-          currentSubgraph: prev,
-          entity,
-          entityTypeIds,
-          omitProperties: removedPropertiesBaseUrls,
-        }),
-      );
+      const newEntitySubgraph = createDraftEntitySubgraph({
+        currentSubgraph: entitySubgraph,
+        entity,
+        entityTypeIds,
+        omitProperties: removedPropertiesBaseUrls,
+      });
+
+      setDraftEntitySubgraph(newEntitySubgraph);
 
       if (linkEntityIdsToArchive.length > 0) {
         setDraftLinksToArchive((prev) => [...prev, ...linkEntityIdsToArchive]);
       }
 
-      const newEntity = getRoots(entitySubgraph)[0];
+      const newEntity = getRoots(newEntitySubgraph)[0];
 
       if (!newEntity) {
         throw new Error("Entity not found in subgraph");

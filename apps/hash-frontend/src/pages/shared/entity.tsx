@@ -20,7 +20,6 @@ import {
   blockProtocolEntityTypes,
   blockProtocolPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import NextErrorComponent from "next/error";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useSnackbar } from "../../components/hooks/use-snackbar";
@@ -510,7 +509,12 @@ export const Entity = ({
     }
   }, [entityLabel, onEntityLabelChange]);
 
-  if (loading) {
+  if (
+    loading ||
+    !draftEntityTypesDetails ||
+    !draftEntitySubgraph ||
+    !entityLabel
+  ) {
     return <EntityPageLoadingState />;
   }
 
@@ -518,10 +522,6 @@ export const Entity = ({
     return (
       <NotFound resourceLabel={{ label: "entity", withArticle: "an entity" }} />
     );
-  }
-
-  if (!draftEntityTypesDetails || !draftEntitySubgraph || !entityLabel) {
-    return <NextErrorComponent statusCode={404} />;
   }
 
   const haveChangesBeenMade =

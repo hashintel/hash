@@ -3,11 +3,13 @@ import type {
   VersionedUrl,
 } from "@blockprotocol/type-system";
 import { Chip, SelectorAutocomplete } from "@hashintel/design-system";
+import { pageEntityTypeIds } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import type { BoxProps } from "@mui/material";
 import { useMemo, useRef, useState } from "react";
 
 import { useLatestEntityTypesOptional } from "../../shared/entity-types-context/hooks";
 import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
+import { useEnabledFeatureFlags } from "./use-enabled-feature-flags";
 
 export const EntityTypeSelector = <Multiple extends boolean = false>({
   disableCreate,
@@ -47,15 +49,20 @@ export const EntityTypeSelector = <Multiple extends boolean = false>({
 
   const { latestEntityTypes } = useLatestEntityTypesOptional();
 
+  const enabledFeatureFlags = useEnabledFeatureFlags();
+
   const filteredEntityTypes = useMemo(
     () =>
       latestEntityTypes?.filter(
         ({ schema }) =>
           !excludeEntityTypeIds?.includes(schema.$id) &&
           (!excludeLinkTypes ||
-            !isSpecialEntityTypeLookup?.[schema.$id]?.isLink),
+            !isSpecialEntityTypeLookup?.[schema.$id]?.isLink) &&
+          (enabledFeatureFlags.pages ||
+            !pageEntityTypeIds.includes(schema.$id)),
       ),
     [
+      enabledFeatureFlags.pages,
       excludeEntityTypeIds,
       excludeLinkTypes,
       isSpecialEntityTypeLookup,
