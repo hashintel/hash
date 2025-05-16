@@ -1,5 +1,5 @@
 use alloc::{borrow::Cow, sync::Arc};
-use core::{error::Error, fmt, iter, str::FromStr as _};
+use core::{error::Error, fmt, iter, ptr, str::FromStr as _};
 use std::{collections::HashSet, sync::LazyLock};
 
 use cedar_policy_core::{ast, extensions::Extensions};
@@ -22,6 +22,26 @@ use crate::policies::cedar::{
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[repr(transparent)]
 pub struct EntityTypeId(#[cfg_attr(feature = "codegen", specta(type = String))] VersionedUrl);
+
+impl From<&VersionedUrl> for &EntityTypeId {
+    #[expect(
+        unsafe_code,
+        reason = "There is no way to transmute from `&VersionedUrl` to `&EntityTypeId` without \
+                  `unsafe`"
+    )]
+    fn from(url: &VersionedUrl) -> Self {
+        const {
+            // We cannot compile-check that `VersionedUrl` is the inner type of `EntityTypeId`,
+            // which in theory should be possible with `Facet`, but having a few checks
+            // here is better than none.
+            assert!(size_of::<VersionedUrl>() == size_of::<EntityTypeId>());
+            assert!(align_of::<VersionedUrl>() == align_of::<EntityTypeId>());
+        }
+
+        // SAFETY: Self is `repr(transparent)`
+        unsafe { &*ptr::from_ref::<VersionedUrl>(url).cast::<EntityTypeId>() }
+    }
+}
 
 impl EntityTypeId {
     #[must_use]
@@ -48,8 +68,8 @@ impl fmt::Display for EntityTypeId {
 
 #[derive(Debug)]
 pub struct EntityTypeResource<'a> {
-    pub web_id: Option<WebId>,
     pub id: Cow<'a, EntityTypeId>,
+    pub web_id: Option<WebId>,
 }
 
 impl EntityTypeResource<'_> {

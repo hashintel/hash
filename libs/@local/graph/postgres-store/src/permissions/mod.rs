@@ -1,22 +1,29 @@
+use alloc::borrow::Cow;
 use core::str::FromStr as _;
 use std::collections::{HashMap, HashSet};
 
-use error_stack::{Report, ResultExt as _, ensure};
+use error_stack::{Report, ResultExt as _, TryReportIteratorExt as _, ensure};
 use futures::TryStreamExt as _;
 use hash_graph_authorization::{
     AuthorizationApi,
     policies::{
         ContextBuilder,
         action::ActionName,
+        resource::{EntityTypeId, EntityTypeResource},
         store::{RoleAssignmentStatus, RoleUnassignmentStatus},
     },
 };
+use hash_graph_store::error::QueryError;
+use hash_status::StatusCode;
 use tokio_postgres::{GenericClient as _, error::SqlState};
-use type_system::principal::{
-    PrincipalId, PrincipalType,
-    actor::{Actor, ActorEntityUuid, ActorId, Ai, AiId, Machine, MachineId, User, UserId},
-    actor_group::{ActorGroup, ActorGroupEntityUuid, ActorGroupId, Team, TeamId, Web, WebId},
-    role::{Role, RoleId, RoleName, TeamRole, TeamRoleId, WebRole, WebRoleId},
+use type_system::{
+    ontology::VersionedUrl,
+    principal::{
+        PrincipalId, PrincipalType,
+        actor::{Actor, ActorEntityUuid, ActorId, Ai, AiId, Machine, MachineId, User, UserId},
+        actor_group::{ActorGroup, ActorGroupEntityUuid, ActorGroupId, Team, TeamId, Web, WebId},
+        role::{Role, RoleId, RoleName, TeamRole, TeamRoleId, WebRole, WebRoleId},
+    },
 };
 use uuid::Uuid;
 
@@ -539,7 +546,7 @@ where
                 "SELECT
                     web.id,
                     shortname,
-                    array_agg(role.id) FILTER (WHERE role.id IS NOT NULL)
+                    array_remove(array_agg(role.id), NULL)
                 FROM web
                 LEFT OUTER JOIN role ON web.id = role.actor_group_id
                 WHERE web.id = $1
@@ -549,7 +556,7 @@ where
             .await
             .change_context(PrincipalError::StoreError)?
             .map(|row| {
-                let role_ids = row.get::<_, Option<Vec<WebRoleId>>>(2).unwrap_or_default();
+                let role_ids = row.get::<_, Vec<WebRoleId>>(2);
                 Web {
                     id: row.get(0),
                     shortname: row.get(1),
@@ -669,7 +676,7 @@ where
                     parent.principal_type,
                     parent.id,
                     team.name,
-                    array_agg(role.id) FILTER (WHERE role.id IS NOT NULL)
+                    array_remove(array_agg(role.id), NULL)
                 FROM team
                 JOIN actor_group AS parent ON parent.id = parent_id
                 LEFT OUTER JOIN role ON team.id = role.actor_group_id
@@ -680,7 +687,7 @@ where
             .await
             .change_context(PrincipalError::StoreError)?
             .map(|row| {
-                let role_ids = row.get::<_, Option<Vec<TeamRoleId>>>(4).unwrap_or_default();
+                let role_ids = row.get::<_, Vec<TeamRoleId>>(4);
                 Team {
                     id: row.get(0),
                     parent_id: match row.get(1) {
@@ -1341,6 +1348,98 @@ where
             .into_iter()
             .for_each(|actor_group| {
                 context_builder.add_actor_group(&actor_group);
+            });
+
+        Ok(())
+    }
+
+    /// Builds a context used to evaluate policies for a set of entity types.
+    ///
+    /// # Errors
+    ///
+    /// - [`QueryError`] if a database error occurs
+    pub async fn build_entity_type_context(
+        &self,
+        entity_type_ids: &[VersionedUrl],
+        context_builder: &mut ContextBuilder,
+    ) -> Result<(), Report<QueryError>> {
+        let () = self
+            .as_client()
+            .query(
+                "
+                    SELECT input.idx
+                    FROM unnest($1::text[]) WITH ORDINALITY AS input(url, idx)
+                    WHERE NOT EXISTS (
+                        SELECT 1 FROM entity_types
+                        WHERE entity_types.schema ->> '$id' = input.url
+                    )",
+                &[&entity_type_ids],
+            )
+            .await
+            .change_context(QueryError)?
+            .into_iter()
+            .map(|row| {
+                #[expect(
+                    clippy::cast_possible_truncation,
+                    clippy::cast_sign_loss,
+                    reason = "The index is 1-based and is always less than or equal to the length \
+                              of the array"
+                )]
+                Err(Report::new(QueryError).attach_printable(format!(
+                    "Entity type not found: `{}`",
+                    entity_type_ids[row.get::<_, i64>(0) as usize - 1]
+                )))
+            })
+            .try_collect_reports()
+            .change_context(QueryError)
+            .attach(StatusCode::NotFound)?;
+
+        self.as_client()
+            .query(
+                "
+                WITH filtered AS (
+                    SELECT entity_types.ontology_id
+                    FROM entity_types
+                    WHERE entity_types.schema ->> '$id' = any($1)
+                )
+                SELECT
+                    ontology_ids.base_url,
+                    ontology_ids.version,
+                    ontology_owned_metadata.web_id
+                FROM filtered
+                INNER JOIN ontology_ids
+                    ON filtered.ontology_id = ontology_ids.ontology_id
+                LEFT OUTER JOIN ontology_owned_metadata
+                    ON ontology_ids.ontology_id = ontology_owned_metadata.ontology_id
+
+                UNION
+
+                SELECT
+                    ontology_ids.base_url,
+                    ontology_ids.version,
+                    ontology_owned_metadata.web_id
+                FROM filtered
+                INNER JOIN
+                    entity_type_inherits_from
+                    ON filtered.ontology_id = source_entity_type_ontology_id
+                INNER JOIN ontology_ids
+                    ON target_entity_type_ontology_id = ontology_ids.ontology_id
+                LEFT OUTER JOIN ontology_owned_metadata
+                    ON ontology_ids.ontology_id = ontology_owned_metadata.ontology_id;
+                 ",
+                &[&entity_type_ids],
+            )
+            .await
+            .change_context(QueryError)?
+            .into_iter()
+            .for_each(|row| {
+                context_builder.add_entity_type(&EntityTypeResource {
+                    id: Cow::Owned(EntityTypeId::new(VersionedUrl {
+                        base_url: row.get(0),
+                        version: row.get(1),
+                    })),
+                    web_id: row.get(2),
+                });
             });
 
         Ok(())

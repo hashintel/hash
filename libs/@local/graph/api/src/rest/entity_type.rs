@@ -67,6 +67,7 @@ use crate::rest::{
         get_entity_type_authorization_relationships,
         modify_entity_type_authorization_relationships,
         check_entity_type_permission,
+        can_instantiate_entity_types,
 
         create_entity_type,
         load_external_entity_type,
@@ -138,6 +139,10 @@ impl EntityTypeResource {
                 .route(
                     "/relationships",
                     post(modify_entity_type_authorization_relationships::<A>),
+                )
+                .route(
+                    "/permissions/instantiate",
+                    post(can_instantiate_entity_types::<S, A>),
                 )
                 .nest(
                     "/:entity_type_id",
@@ -1241,5 +1246,50 @@ where
             }
             report_to_response(report)
         })
+        .map(Json)
+}
+
+#[utoipa::path(
+    post,
+    path = "/entity-types/permissions/instantiate",
+    tag = "EntityType",
+    params(
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
+    ),
+    responses(
+        (status = 200, content_type = "application/json", description = "A list with the same indices as the input which determines which entity type can be instantiated", body = Vec<bool>),
+
+        (status = 500, description = "Store error occurred"),
+    ),
+    request_body = Vec<VersionedUrl>,
+)]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client)
+)]
+async fn can_instantiate_entity_types<S, A>(
+    AuthenticatedUserHeader(authenticated_user): AuthenticatedUserHeader,
+    store_pool: Extension<Arc<S>>,
+    authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    Json(entity_type_ids): Json<Vec<VersionedUrl>>,
+) -> Result<Json<Vec<bool>>, Response>
+where
+    S: StorePool + Send + Sync,
+    A: AuthorizationApiPool + Send + Sync,
+{
+    store_pool
+        .acquire(
+            authorization_api_pool
+                .acquire()
+                .await
+                .map_err(report_to_response)?,
+            temporal_client.0,
+        )
+        .await
+        .map_err(report_to_response)?
+        .can_instantiate_entity_types(authenticated_user, &entity_type_ids)
+        .await
+        .map_err(report_to_response)
         .map(Json)
 }
