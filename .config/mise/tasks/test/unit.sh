@@ -30,14 +30,14 @@ if [[ $COVERAGE == "true" || ${TEST_COVERAGE:-false} == 'true' || ${TEST_COVERAG
     )
 
     # under CI we use LCOV
-    if [[ ${CI:-0} == "1" ]]; then
+    if [[ ${CI:-0} == "1" || ${CI:-0} == "true" ]]; then
         RENDER="--lcov --output-path lcov.info"
     else
         RENDER="--html --open"
     fi
 
     cargo llvm-cov clean --workspace
-    cargo llvm-cov --ignore-filename-regex "$EXCLUSIONS" -p "$CRATE" --branch --no-clean nextest --all-features --all-targets --cargo-profile coverage $ARGUMENTS
+    cargo llvm-cov --ignore-filename-regex "$EXCLUSIONS" -p "$CRATE" --branch --no-report nextest --all-features --all-targets --cargo-profile coverage $ARGUMENTS
     cargo llvm-cov --ignore-filename-regex "$EXCLUSIONS" -p "$CRATE" --branch --no-clean $RENDER --doctests test --all-features --profile coverage --doc
 
     exit 0
