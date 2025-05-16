@@ -62,10 +62,12 @@ const CreateIssueRequestSchema = z.object({
     description:
       "The description of the issue to create. MUST be formatted as a ProseMirror document. Use checklists for todo items.",
   }),
-  parentIssueUuid: z.string({
-    description:
-      "The uuid of the parent issue this is a sub-issue of (not the H-XXXX format).",
-  }),
+  parentIssueUuid: z
+    .string({
+      description:
+        "The uuid of the parent issue this is a sub-issue of (not the H-XXXX format).",
+    })
+    .optional(),
 });
 
 const tools = [
