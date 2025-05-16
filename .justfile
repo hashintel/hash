@@ -143,20 +143,3 @@ miri *arguments:
 [no-cd]
 bench *arguments:
   cargo bench --all-features --all-targets {{arguments}}
-
-# Run the test suite and generate a coverage report
-[no-cd]
-coverage *arguments:
-  cargo llvm-cov nextest --all-features --all-targets --cargo-profile coverage {{arguments}}
-  cargo llvm-cov --all-features --profile coverage --doc
-
-# Run the test suite and optionally generate a coverage report when `$TEST_COVERAGE` is set to `true`
-[no-cd]
-test-or-coverage *arguments:
-  #!/usr/bin/env bash
-  set -eo pipefail
-  if [[ "$TEST_COVERAGE" = 'true' || "$TEST_COVERAGE" = '1' ]]; then
-    just coverage --lcov --output-path lcov.info {{arguments}}
-  else
-    just test --no-fail-fast {{arguments}}
-  fi
