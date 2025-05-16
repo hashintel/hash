@@ -111,11 +111,11 @@ impl<'heap> Environment<'heap> {
             return GenericArguments::empty();
         }
 
-        arguments.sort_unstable();
+        arguments.sort_unstable_by_key(GenericArgument::as_anonymous);
         // Unlike `intern_struct_fields`, where we error out on duplicates, we simply remove them
         // here, as any duplicate means they're the same argument and therefore not necessarily an
         // error.
-        let (dedupe, _) = arguments.partition_dedup();
+        let (dedupe, _) = arguments.partition_dedup_by_key(|argument| argument.as_anonymous());
 
         // If there are any `None` constraints, when `Some` constraints with the same id are
         // present, remove them. This is relatively easy, as we know there's only ever a *single*

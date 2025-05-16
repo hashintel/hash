@@ -1,7 +1,7 @@
 pub mod apply;
 pub mod param;
 
-use core::{cmp::Ordering, hash::Hash, ops::Deref};
+use core::{hash::Hash, ops::Deref};
 
 use pretty::RcDoc;
 
@@ -36,8 +36,14 @@ newtype!(
 
 newtype_producer!(pub struct GenericArgumentIdProducer(GenericArgumentId));
 
-// PartialEq, Eq, PartialOrd, Ord, Hash are derived, with `name` ignored
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct AnonymousGenericArgument {
+    pub id: GenericArgumentId,
+
+    pub constraint: Option<TypeId>,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct GenericArgument<'heap> {
     pub id: GenericArgumentId,
     pub name: Symbol<'heap>,
@@ -46,32 +52,13 @@ pub struct GenericArgument<'heap> {
     pub constraint: Option<TypeId>,
 }
 
-impl PartialEq for GenericArgument<'_> {
-    fn eq(&self, other: &Self) -> bool {
-        self.id == other.id && self.constraint == other.constraint
-    }
-}
-
-impl Eq for GenericArgument<'_> {}
-
-impl PartialOrd for GenericArgument<'_> {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other))
-    }
-}
-
-impl Ord for GenericArgument<'_> {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.id
-            .cmp(&other.id)
-            .then(self.constraint.cmp(&other.constraint))
-    }
-}
-
-impl Hash for GenericArgument<'_> {
-    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
-        self.id.hash(state);
-        self.constraint.hash(state);
+impl GenericArgument<'_> {
+    #[must_use]
+    pub const fn as_anonymous(&self) -> AnonymousGenericArgument {
+        AnonymousGenericArgument {
+            id: self.id,
+            constraint: self.constraint,
+        }
     }
 }
 
