@@ -20,7 +20,6 @@ import {
   blockProtocolEntityTypes,
   blockProtocolPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import NextErrorComponent from "next/error";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useSnackbar } from "../../components/hooks/use-snackbar";
