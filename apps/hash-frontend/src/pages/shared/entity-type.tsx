@@ -388,6 +388,8 @@ export const EntityType = ({
 
   const isReadonly = !draftEntityType && (!userPermissions.edit || !isLatest);
 
+  const isArchived = isTypeArchived(entityType);
+
   return (
     <>
       {!isInSlide && (
@@ -421,9 +423,7 @@ export const EntityType = ({
           >
             <TopContextBar
               actionMenuItems={[
-                ...(!isReadonly &&
-                remoteEntityType &&
-                !isTypeArchived(remoteEntityType)
+                ...(!isReadonly && remoteEntityType && !isArchived
                   ? [
                       <ArchiveMenuItem
                         key={entityType.schema.$id}
@@ -505,6 +505,7 @@ export const EntityType = ({
                   <EntityTypeHeader
                     currentVersion={currentVersion}
                     entityTypeSchema={entityType.schema}
+                    isArchived={isArchived}
                     isDraft={isDraft}
                     isInSlide={isInSlide}
                     isLink={isLink}
