@@ -1257,8 +1257,7 @@ where
                 )
                 .await
             {
-                validation_reports.entry(index).or_default().properties =
-                    property_validation.properties;
+                validation_report.properties = property_validation.properties;
             }
 
             validation_report.link = params
