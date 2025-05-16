@@ -184,9 +184,7 @@ impl<'env, 'heap> TypeExtractor<'env, 'heap> {
                 debug_assert_eq!(constraint.name.value, argument.name);
 
                 if let Some(bound) = &constraint.bound {
-                    argument.constraint = Some(
-                        unit.reference(Reference::Type(bound), SpannedGenericArguments::empty()),
-                    );
+                    argument.constraint = Some(unit.reference(Reference::Type(bound)));
                 }
             }
         }

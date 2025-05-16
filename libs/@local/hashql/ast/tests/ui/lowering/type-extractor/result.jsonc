@@ -1,8 +1,8 @@
 //@ run: pass
 //@ description: Test if we can properly re-declare the Result type
 // biome-ignore format: readability
-["newtype", "Ok<T>", { "#struct": {"value": "T"} },
-["newtype", "Err<E>", { "#struct": {"value": "E"} },
-["type", "Result<T, E>", ["|", {"#tuple": ["Ok<T>"]}, {"#tuple": ["Err<E>"]}],
+["newtype", "Ok<T>", "T",
+["newtype", "Err<E>", "E",
+["type", "Result<T, E>", ["|", "Ok<T>", "Err<E>"],
 "_"
 ]]]

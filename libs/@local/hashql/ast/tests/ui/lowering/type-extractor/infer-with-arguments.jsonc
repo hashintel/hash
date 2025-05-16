@@ -3,7 +3,7 @@
 [
   "type",
   "InvalidInfer<T>",
+  //~^ ERROR Generic parameter `T` declared here...
   "_",
-  //~^ ERROR Type arguments cannot be used with '_' placeholder
   "_"
 ]
