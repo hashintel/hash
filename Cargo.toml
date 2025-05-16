@@ -222,8 +222,8 @@ roaring                  = { version = "=0.10.12", default-features = false }
 rustc_version            = { version = "=0.4.1", default-features = false }
 scc                      = { version = "=2.3.4", default-features = false }
 semver                   = { version = "=1.0.26", default-features = false }
-sentry                   = { version = "=0.37.0", default-features = false, features = ["backtrace", "contexts", "debug-images", "panic", "reqwest", "rustls", "tower-http", "tracing"] }
-sentry-types             = { version = "=0.37.0", default-features = false }
+sentry                   = { version = "=0.38.1", default-features = false, features = ["backtrace", "contexts", "debug-images", "panic", "reqwest", "rustls", "tower-http", "tracing"] }
+sentry-types             = { version = "=0.38.1", default-features = false }
 seq-macro                = { version = "=0.3.6", default-features = false }
 serde                    = { version = "=1.0.219", default-features = false }
 serde_json               = { version = "=1.0.140" }
