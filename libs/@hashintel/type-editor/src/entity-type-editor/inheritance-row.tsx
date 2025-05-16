@@ -93,7 +93,11 @@ export const InheritanceRow = ({
 
   const entityTypeOptions = useFilterTypeOptions({
     typeOptions: entityTypesArray,
-    typesToExclude: [...directParents, { $id: linkEntityTypeUrl }],
+    typesToExclude: [
+      ...directParents,
+      { $id: entityTypeId },
+      { $id: linkEntityTypeUrl },
+    ],
   });
 
   const isReadonly = useIsReadonly();
