@@ -14,6 +14,7 @@ use hash_graph_authorization::{
     },
 };
 use hash_graph_store::error::QueryError;
+use hash_status::StatusCode;
 use tokio_postgres::{GenericClient as _, error::SqlState};
 use type_system::{
     ontology::VersionedUrl,
@@ -1390,7 +1391,8 @@ where
                 )))
             })
             .try_collect_reports()
-            .change_context(QueryError)?;
+            .change_context(QueryError)
+            .attach(StatusCode::NotFound)?;
 
         self.as_client()
             .query(
