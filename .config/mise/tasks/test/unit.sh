@@ -31,14 +31,22 @@ if [[ $COVERAGE == "true" || ${TEST_COVERAGE:-false} == 'true' || ${TEST_COVERAG
 
     # under CI we use LCOV
     if [[ ${CI:-0} == "1" || ${CI:-0} == "true" ]]; then
-        RENDER="--lcov --output-path lcov.info"
+        REPORT_FLAGS="--lcov --output-path lcov.info"
     else
-        RENDER="--html --open"
+        REPORT_FLAGS="--html --open"
+    fi
+
+    if [[ $POWERSET == "true" || ${TEST_POWERSET:-false} == 'true' || ${TEST_POWERSET:-false} == '1' ]]; then
+        CARGO_COMMAND="hack --optional-deps --feature-powerset"
+        NEXTEST_ARGS=""
+    else
+        CARGO_COMMAND=""
+        NEXTEST_ARGS="--all-features"
     fi
 
     cargo llvm-cov clean --workspace
-    cargo llvm-cov --ignore-filename-regex "$EXCLUSIONS" -p "$CRATE" --branch --no-report nextest --all-features --all-targets --cargo-profile coverage $ARGUMENTS
-    cargo llvm-cov --ignore-filename-regex "$EXCLUSIONS" -p "$CRATE" --branch --no-clean $RENDER --doctests test --all-features --profile coverage --doc
+    cargo $CARGO_COMMAND llvm-cov --ignore-filename-regex "$EXCLUSIONS" -p "$CRATE" --branch --no-report nextest $NEXTEST_ARGS --all-targets --cargo-profile coverage $ARGUMENTS
+    cargo llvm-cov --ignore-filename-regex "$EXCLUSIONS" -p "$CRATE" --branch --no-clean $REPORT_FLAGS --doctests test --all-features --profile coverage --doc
 
     exit 0
 fi
