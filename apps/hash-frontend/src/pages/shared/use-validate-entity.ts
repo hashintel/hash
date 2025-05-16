@@ -171,7 +171,7 @@ export const generateMinimalValidationReport = (
   validationReport: EntityValidationReport,
 ): MinimalEntityValidationReport | null => {
   if (!validationReport.properties) {
-    throw new Error(`No properties validation errors found`);
+    return null;
   }
 
   const reports = generatePropertyObjectValidationReports(validationReport);

@@ -3,6 +3,7 @@ import type {
   EntityRootType,
   Subgraph,
 } from "@blockprotocol/graph";
+import type { KnowledgeGraphEditionMap } from "@blockprotocol/graph/types";
 import type {
   BaseUrl,
   EntityMetadata,
@@ -24,7 +25,7 @@ export const createDraftEntitySubgraph = ({
   entity: HashEntity;
   entityTypeIds: [VersionedUrl, ...VersionedUrl[]];
   omitProperties: BaseUrl[];
-}) => {
+}): Subgraph<EntityRootType<HashEntity>> => {
   /**
    * @todo - This is a problem, subgraphs should probably be immutable, there will be a new identifier
    *   for the updated entity. This version will not match the one returned by the data store.
@@ -90,7 +91,9 @@ export const createDraftEntitySubgraph = ({
     vertices: {
       ...currentSubgraph?.vertices,
       [newEntity.metadata.recordId.entityId]: {
-        ...currentSubgraph?.vertices[newEntity.metadata.recordId.entityId],
+        ...(currentSubgraph?.vertices[
+          newEntity.metadata.recordId.entityId
+        ] as KnowledgeGraphEditionMap<HashEntity>),
         [newEntityRevisionId]: {
           kind: "entity",
           inner: newEntity,
