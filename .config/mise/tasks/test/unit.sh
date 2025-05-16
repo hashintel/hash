@@ -19,7 +19,7 @@ if [[ $PACKAGE != "@rust/"* ]]; then
 fi
 
 # Remove the package namespace from the package to get the crate name
-CRATE=${usage_package#*@rust/}
+CRATE=${PACKAGE#*@rust/}
 
 # Run coverage instead of unit tests if `TEST_COVERAGE` is set to `true` or `1`
 if [[ $COVERAGE == "true" || ${TEST_COVERAGE:-false} == 'true' || ${TEST_COVERAGE:-false} == '1' ]]; then
@@ -45,18 +45,18 @@ fi
 
 # Run unit tests with powerset if `TEST_POWERSET` is set to `true` or `1`
 if [[ $POWERSET == "true" || ${TEST_POWERSET:-false} == 'true' || ${TEST_POWERSET:-false} == '1' ]]; then
-    cargo hack --optional-deps --feature-powerset nextest run -p $CRATE $ARGUMENTS
-    cargo test --all-features --doc -p $CRATE
+    cargo hack --optional-deps --feature-powerset nextest run -p "$CRATE" $ARGUMENTS
+    cargo test --all-features --doc -p "$CRATE"
     exit 0
 fi
 
 LOGFILE=$(mktemp)
 trap 'rm -f "$LOGFILE"' EXIT
 
-cargo test --all-features --doc -p $CRATE >"$LOGFILE" 2>&1 &
+cargo test --all-features --doc -p "$CRATE" >"$LOGFILE" 2>&1 &
 DOC_PID=$!
 
-cargo nextest run -p $CRATE $ARGUMENTS
+cargo nextest run -p "$CRATE" $ARGUMENTS
 
 # replay what’s buffered so far
 cat "$LOGFILE"
