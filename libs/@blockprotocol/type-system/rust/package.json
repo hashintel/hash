@@ -41,6 +41,6 @@
     "@local/tsconfig": "0.0.0-private",
     "@rust/hash-codegen": "0.0.0-private",
     "@rust/hash-graph-test-data": "0.0.0-private",
-    "typescript": "5.7.3"
+    "typescript": "5.8.3"
   }
 }
