@@ -163,7 +163,7 @@ impl<'heap> SpannedGenericArguments<'heap> {
         self.value.is_empty()
     }
 
-    fn iter(&self) -> impl Iterator<Item = &GenericArgument<'heap>> {
+    pub(crate) fn iter(&self) -> impl Iterator<Item = &GenericArgument<'heap>> {
         self.value.iter()
     }
 

@@ -10,7 +10,7 @@ use hashql_core::{
         locals::{LocalTypeDef, LocalTypes},
     },
     symbol::Symbol,
-    r#type::{TypeId, environment::Environment, kind::generic::GenericArgument},
+    r#type::{TypeId, environment::Environment, kind::GenericArgument},
 };
 
 use self::{
@@ -220,6 +220,11 @@ impl<'env, 'heap> TypeExtractor<'env, 'heap> {
             output.insert(LocalTypeDef {
                 id: unit.variable(variable),
                 name,
+                arguments: variable
+                    .arguments
+                    .iter()
+                    .map(GenericArgument::as_reference)
+                    .collect(),
             });
         }
 

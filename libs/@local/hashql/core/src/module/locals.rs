@@ -79,6 +79,10 @@ impl PrettyPrint for LocalTypeDef<'_> {
             })
             .group()
             .append(RcDoc::line())
+            .append("=")
+            .append(RcDoc::line())
+            .append(limit.pretty(env, self.id))
+            .group()
     }
 }
 

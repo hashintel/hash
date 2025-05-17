@@ -69,11 +69,11 @@ impl Suite for AstLoweringTypeExtractorSuite {
         let mut locals: Vec<_> = locals.iter().collect();
         locals.sort_by_key(|&LocalTypeDef { name, .. }| name);
 
-        for LocalTypeDef { id, name } in locals {
+        for def in locals {
             let _: Result<(), _> = write!(
                 output,
-                "\n\n{name} = {}",
-                strip_str(&environment.r#type(id).pretty_print(&environment, 80))
+                "\n\n{}",
+                strip_str(&def.pretty_print(&environment, 80))
             );
         }
 
