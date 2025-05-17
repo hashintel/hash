@@ -1,0 +1,9 @@
+//@ run: fail
+//@ description: TODO
+[
+  "type",
+  "Foo",
+  "Some<String, Number>",
+  //~^ ERROR Remove this parameter
+  "_"
+]
