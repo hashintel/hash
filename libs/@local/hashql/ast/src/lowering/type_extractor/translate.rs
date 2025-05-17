@@ -20,7 +20,7 @@ use hashql_core::{
         kind::{
             Apply, Generic, GenericArgument, Infer, IntersectionType, IntrinsicType, OpaqueType,
             Param, StructType, TupleType, TypeKind, UnionType,
-            generic::GenericSubstitution,
+            generic::{GenericArgumentReference, GenericSubstitution},
             intrinsic::{DictType, ListType},
             r#struct::StructField,
         },
@@ -666,26 +666,45 @@ impl<'env, 'heap> TranslationUnit<'env, '_, 'heap> {
         })
     }
 
+    fn variable_verify(
+        &mut self,
+        variable: &LocalVariable<'_, 'heap>,
+    ) -> (TypeKind<'heap>, TinyVec<GenericArgumentReference<'heap>>) {
+        if let Some(kind) = self.verify_unbound_variables(variable.r#type, &variable.arguments) {
+            return (kind, TinyVec::new());
+        }
+
+        if variable.arguments.is_empty() {
+            return (self.variable_kind(variable), TinyVec::new());
+        }
+
+        (
+            self.generic_variable(variable),
+            variable
+                .arguments
+                .iter()
+                .map(GenericArgument::as_reference)
+                .collect(),
+        )
+    }
+
     /// Converts a local variable to its `TypeId` representation
     ///
     /// This method handles creating the appropriate type for a local variable, taking into account
     /// whether it has nominal or structural identity.
-    pub(crate) fn variable(&mut self, variable: &LocalVariable<'_, 'heap>) -> TypeId {
-        let kind = self
-            .verify_unbound_variables(variable.r#type, &variable.arguments)
-            .unwrap_or_else(|| {
-                if variable.arguments.is_empty() {
-                    self.variable_kind(variable)
-                } else {
-                    self.generic_variable(variable)
-                }
-            });
+    pub(crate) fn variable(
+        &mut self,
+        variable: &LocalVariable<'_, 'heap>,
+    ) -> (TypeId, TinyVec<GenericArgumentReference<'heap>>) {
+        let (kind, arguments) = self.variable_verify(variable);
 
         let partial = PartialType {
             span: variable.r#type.span,
             kind: self.env.intern_kind(kind),
         };
 
-        self.env.types.intern_provisioned(variable.id, partial).id
+        let id = self.env.types.intern_provisioned(variable.id, partial).id;
+
+        (id, arguments)
     }
 }

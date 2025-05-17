@@ -217,14 +217,12 @@ impl<'env, 'heap> TypeExtractor<'env, 'heap> {
 
             unit.bound_generics = &variable.arguments;
 
+            let (id, arguments) = unit.variable(variable);
+
             output.insert(LocalTypeDef {
-                id: unit.variable(variable),
+                id,
                 name,
-                arguments: variable
-                    .arguments
-                    .iter()
-                    .map(GenericArgument::as_reference)
-                    .collect(),
+                arguments,
             });
         }
 
