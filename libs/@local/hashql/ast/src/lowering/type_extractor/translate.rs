@@ -733,6 +733,9 @@ where
     ///
     /// This method handles creating the appropriate type for a local variable, taking into account
     /// whether it has nominal or structural identity.
+    ///
+    /// Returns the unitialized type, as well as the referenced arguments, this is always either all
+    /// the generics, or none in case an error occured and the type was coerced to `Never`.
     pub(crate) fn variable(
         &mut self,
         variable: &LocalVariable<'_, 'heap>,

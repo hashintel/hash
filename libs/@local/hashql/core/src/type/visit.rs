@@ -117,7 +117,7 @@ pub mod filter {
 ///
 /// # Implementation Note
 ///
-/// When using [`Deep`](self::filter::Deep) or [`NoGenerics`](self::filter::NoGenerics) filters, or
+/// When using [`Deep`] or [`NoGenerics`](self::filter::NoGenerics) filters, or
 /// any filter that sets `DEEP` to true, be careful with recursive types. The visitor does not
 /// automatically detect cycles, so you must implement cycle detection to prevent infinite
 /// recursion.
