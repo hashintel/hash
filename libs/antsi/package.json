@@ -7,6 +7,6 @@
   "scripts": {
     "fix:clippy": "just clippy --fix",
     "lint:clippy": "just clippy",
-    "test:unit": "just test --no-tests warn"
+    "test:unit": "mise run test:unit @rust/antsi -- --no-tests warn"
   }
 }
