@@ -40,7 +40,6 @@ impl Suite for AstLoweringTypeExtractorSuite {
         let registry = ModuleRegistry::new(&environment);
 
         let mut resolver = PreExpansionNameResolver::new(&registry);
-
         resolver.visit_expr(&mut expr);
 
         let mut expander = SpecialFormExpander::new(heap);
@@ -66,6 +65,14 @@ impl Suite for AstLoweringTypeExtractorSuite {
         let (locals, extractor_diagnostics) = extractor.finish();
         process_diagnostics(diagnostics, extractor_diagnostics)?;
 
+        let mut node_renumberer = NodeRenumberer::new();
+        node_renumberer.visit_expr(&mut expr);
+
+        let mut extractor = TypeExtractor::new(&environment, &registry, &locals);
+        extractor.visit_expr(&mut expr);
+
+        process_diagnostics(diagnostics, extractor.take_diagnostics())?;
+
         let mut output = expr.syntax_dump_to_string();
         output.push_str("\n------------------------");
 
@@ -79,14 +86,6 @@ impl Suite for AstLoweringTypeExtractorSuite {
                 strip_str(&def.pretty_print(&environment, 80))
             );
         }
-
-        let mut node_renumberer = NodeRenumberer::new();
-        node_renumberer.visit_expr(&mut expr);
-
-        let mut extractor = TypeExtractor::new(&environment, &registry, &locals);
-        extractor.visit_expr(&mut expr);
-
-        process_diagnostics(diagnostics, extractor.take_diagnostics())?;
 
         let types = extractor.into_types();
         let mut types: Vec<_> = types.into_iter().collect();

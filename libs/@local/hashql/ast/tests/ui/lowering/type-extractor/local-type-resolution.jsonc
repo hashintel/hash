@@ -4,5 +4,13 @@
   "type",
   "Person",
   { "#struct": { "name": "String", "age": "Number" } },
-  ["let", "alice", { "#type": "Person" }, { "name": "Alice", "age": 30 }, "_"]
+  [
+    "let",
+    "alice",
+    "Person",
+    {
+      "#struct": { "name": { "#literal": "Alice" }, "age": { "#literal": 30 } }
+    },
+    "_"
+  ]
 ]

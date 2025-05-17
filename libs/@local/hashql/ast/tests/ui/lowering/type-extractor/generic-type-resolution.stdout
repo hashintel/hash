@@ -1,0 +1,33 @@
+Expr#0@48
+  ExprKind (Let)
+    LetExpr#1@48 (name: number:0)
+      Expr#2@45
+        ExprKind (Struct)
+          StructExpr#3@35
+            StructEntry#13@34 (key: value)
+              Expr#14@33
+                ExprKind (Literal)
+                  LiteralExpr#15@32
+                    LiteralKind (Integer)
+                      IntegerLiteral (42)
+            Type#4@44
+              TypeKind (Path)
+                Path#5@44 (rooted: false)
+                  PathSegment#6@43 (name: Box:0)
+                    PathSegmentArgument (GenericArgument)
+                      GenericArgument#7@42
+                        Type#8@41
+                          TypeKind (Path)
+                            Path#9@41 (rooted: true)
+                              PathSegment#10@40 (name: kernel)
+                              PathSegment#11@40 (name: type)
+                              PathSegment#12@40 (name: Number)
+      Expr#16@47
+        ExprKind (Underscore)
+
+------------------------
+
+type Box:0<T:0?4> = <T:0?4>(value: ?4)
+------------------------
+
+4 = <T:0?5>(value: ?5) where<?5 = Number>

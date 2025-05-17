@@ -1,0 +1,59 @@
+Expr#0@47
+  ExprKind (Let)
+    LetExpr#1@47 (name: nested:0)
+      Expr#2@44
+        ExprKind (Struct)
+          StructExpr#3@43
+            StructEntry#4@42 (key: data)
+              Expr#5@41
+                ExprKind (List)
+                  ListExpr#6@40
+                    ListElement#7@32
+                      Expr#8@32
+                        ExprKind (Struct)
+                          StructExpr#9@31
+                            StructEntry#10@30 (key: value)
+                              Expr#11@29
+                                ExprKind (Literal)
+                                  LiteralExpr#12@28
+                                    LiteralKind (Integer)
+                                      IntegerLiteral (1)
+                    ListElement#13@39
+                      Expr#14@39
+                        ExprKind (Struct)
+                          StructExpr#15@38
+                            StructEntry#16@37 (key: value)
+                              Expr#17@36
+                                ExprKind (Literal)
+                                  LiteralExpr#18@35
+                                    LiteralKind (Integer)
+                                      IntegerLiteral (2)
+      Type#19@22
+        TypeKind (Struct)
+          StructType#20@22
+            StructField#21@21 (name: data)
+              Type#22@20
+                TypeKind (Path)
+                  Path#23@20 (rooted: true)
+                    PathSegment#24@19 (name: kernel)
+                    PathSegment#25@19 (name: type)
+                    PathSegment#26@19 (name: List)
+                      PathSegmentArgument (GenericArgument)
+                        GenericArgument#27@18
+                          Type#28@17
+                            TypeKind (Struct)
+                              StructType#29@17
+                                StructField#30@16 (name: value)
+                                  Type#31@15
+                                    TypeKind (Path)
+                                      Path#32@15 (rooted: true)
+                                        PathSegment#33@14 (name: kernel)
+                                        PathSegment#34@14 (name: type)
+                                        PathSegment#35@14 (name: Number)
+      Expr#36@46
+        ExprKind (Underscore)
+
+------------------------
+------------------------
+
+19 = (data: List<(value: Number)>)

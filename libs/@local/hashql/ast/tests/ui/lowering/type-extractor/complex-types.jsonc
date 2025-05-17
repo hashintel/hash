@@ -4,6 +4,6 @@
   "let",
   "person",
   { "#struct": { "name": "String", "age": "Number" } },
-  { "name": "Alice", "age": 30 },
+  { "#struct": { "name": { "#literal": "Alice" }, "age": { "#literal": 30 } } },
   "_"
 ]

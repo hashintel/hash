@@ -1,3 +1,9 @@
 //@ run: pass
 //@ description: Tests that global/intrinsic types are properly resolved
-["let", "numbers", "List<Number>", { "#list": [1, 2, 3] }, "_"]
+[
+  "let",
+  "numbers",
+  "List<Number>",
+  { "#list": [{ "#literal": 1 }, { "#literal": 2 }, { "#literal": 3 }] },
+  "_"
+]

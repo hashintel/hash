@@ -5,7 +5,10 @@ pub mod translate;
 use hashql_core::{
     collection::FastHashMap,
     module::{ModuleRegistry, locals::LocalTypes},
-    r#type::{TypeId, environment::Environment},
+    r#type::{
+        TypeId,
+        environment::{Environment, instantiate::InstantiateEnvironment},
+    },
 };
 
 pub use self::definition::TypeDefinitionExtractor;
@@ -20,6 +23,7 @@ use crate::{
 
 pub struct TypeExtractor<'env, 'heap> {
     unit: TranslationUnit<'env, 'heap, LocalTypes<'heap>>,
+    instantiate: InstantiateEnvironment<'env, 'heap>,
     types: FastHashMap<NodeId, TypeId>,
 }
 
@@ -38,6 +42,7 @@ impl<'env, 'heap> TypeExtractor<'env, 'heap> {
                 locals,
                 bound_generics: const { &SpannedGenericArguments::empty() },
             },
+            instantiate: InstantiateEnvironment::new(environment),
             types: FastHashMap::default(),
         }
     }
@@ -56,6 +61,9 @@ impl<'heap> Visitor<'heap> for TypeExtractor<'_, 'heap> {
     fn visit_type(&mut self, r#type: &mut Type<'heap>) {
         // We do not continue traversing types, that way we only catch the top type
         let id = self.unit.reference(Reference::Type(r#type));
+
+        let id = self.instantiate.instantiate(id);
+        self.instantiate.clear_provisioned();
 
         self.types
             .try_insert(r#type.id, id)
