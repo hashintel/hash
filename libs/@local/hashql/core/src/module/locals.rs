@@ -1,91 +1,85 @@
+use pretty::RcDoc;
+
 use crate::{
-    collection::{FastHashMap, FastHashSet, TinyVec},
+    collection::{FastHashMap, TinyVec},
     symbol::Symbol,
     r#type::{
         TypeId,
         environment::{Diagnostics, Environment, instantiate::InstantiateEnvironment},
-        kind::{
-            GenericArgument,
-            generic::{GenericArgumentId, GenericSubstitutions},
-        },
-        visit::{Visitor, filter::Filter, walk_id},
+        kind::generic::GenericArgumentReference,
+        pretty_print::PrettyPrint,
+        recursion::RecursionDepthBoundary,
     },
 };
-
-struct GenericArgumentInstantiateFilter;
-
-impl Filter for GenericArgumentInstantiateFilter {
-    const DEEP: bool = true;
-    const GENERIC_PARAMETERS: bool = false;
-    const MEMBERS: bool = false;
-}
-
-struct GenericArgumentInstantiateVisitor<'env, 'heap> {
-    env: &'env Environment<'heap>,
-    arguments: &'env mut [GenericArgument<'heap>],
-    unseen: FastHashSet<Symbol<'heap>>,
-    visited: FastHashSet<TypeId>,
-}
-
-impl<'env, 'heap> GenericArgumentInstantiateVisitor<'env, 'heap> {
-    fn new(env: &'env Environment<'heap>, arguments: &'env mut [GenericArgument<'heap>]) -> Self {
-        let unseen = arguments
-            .iter()
-            .map(|&GenericArgument { name, .. }| name)
-            .collect();
-
-        Self {
-            env,
-            arguments,
-            unseen,
-            visited: FastHashSet::default(),
-        }
-    }
-}
-
-impl<'heap> Visitor<'heap> for GenericArgumentInstantiateVisitor<'_, 'heap> {
-    type Filter = GenericArgumentInstantiateFilter;
-
-    fn env(&self) -> &Environment<'heap> {
-        self.env
-    }
-
-    fn visit_id(&mut self, id: TypeId) {
-        if !self.visited.insert(id) {
-            return;
-        }
-
-        walk_id(self, id);
-    }
-
-    fn visit_generic_argument(&mut self, argument: GenericArgument<'heap>) {
-        // Check if there's an argument of the same name in arguments and then set the id
-        if let Some(found) = self
-            .arguments
-            .iter_mut()
-            .find(|current| current.name == argument.name)
-        {
-            // TODO: is it a bug tho?! what happens if we instantiate a generic argument that's
-            // present in both!?
-            if !self.unseen.remove(&found.name) {
-                tracing::error!(%found.name, "Duplicate generic argument, this is likely a bug");
-            }
-
-            found.id = argument.id;
-        }
-    }
-
-    fn visit_generic_substitutions(&mut self, _: GenericSubstitutions<'heap>) {
-        // do not traverse down the substitutions, we're not interested in those nested types
-    }
-}
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct LocalTypeDef<'heap> {
     pub id: TypeId,
 
     pub name: Symbol<'heap>,
-    pub arguments: TinyVec<GenericArgument<'heap>>,
+    pub arguments: TinyVec<GenericArgumentReference<'heap>>,
+}
+
+impl<'heap> LocalTypeDef<'heap> {
+    fn instantiate(&mut self, env: &mut InstantiateEnvironment<'_, 'heap>) {
+        self.id = env.instantiate(self.id);
+        env.clear_provisioned();
+
+        let Some(generic) = env.r#type(self.id).kind.generic() else {
+            debug_assert!(
+                self.arguments.is_empty(),
+                "Not a generic type, but has arguments attached to it?"
+            );
+
+            return;
+        };
+
+        debug_assert_eq!(
+            generic.arguments.len(),
+            self.arguments.len(),
+            "Unexpected number of generics"
+        );
+
+        for argument in &mut self.arguments {
+            // Find the argument with the same name, for the small number of expected
+            // generics we have a linear scan is the fastest, we cannot zip, because the type
+            // implementation reserves the right to re-order the generic arguments.
+            let Some(generic_argument) = generic
+                .arguments
+                .iter()
+                .find(|generic_argument| generic_argument.name == argument.name)
+            else {
+                unreachable!()
+            };
+
+            *argument = generic_argument.as_reference();
+        }
+    }
+}
+
+impl PrettyPrint for LocalTypeDef<'_> {
+    fn pretty<'env>(
+        &self,
+        env: &'env Environment,
+        limit: RecursionDepthBoundary,
+    ) -> pretty::RcDoc<'env, anstyle::Style> {
+        RcDoc::text("type")
+            .append(RcDoc::line())
+            .append(RcDoc::as_string(self.name))
+            .append(match self.arguments.as_slice() {
+                [] => RcDoc::nil(),
+                _ => RcDoc::text("<")
+                    .append(RcDoc::intersperse(
+                        self.arguments
+                            .iter()
+                            .map(|argument| argument.pretty(env, limit)),
+                        RcDoc::text(",").append(RcDoc::line()),
+                    ))
+                    .append(RcDoc::text(">")),
+            })
+            .group()
+            .append(RcDoc::line())
+    }
 }
 
 #[derive(Debug)]
@@ -123,15 +117,8 @@ impl<'heap> LocalTypes<'heap> {
         // properly set-up) to split the individual types from each other.
         let mut instantiate = InstantiateEnvironment::new(env);
 
-        for LocalTypeDef { id, arguments, .. } in &mut self.storage {
-            *id = instantiate.instantiate(*id);
-            instantiate.clear_provisioned();
-
-            let mut visitor = GenericArgumentInstantiateVisitor::new(env, arguments);
-            visitor.visit_id(*id);
-            if !visitor.unseen.is_empty() {
-                tracing::error!(?visitor.unseen, "During instantiation found generic arguments that haven't been visited, this is likely a bug");
-            }
+        for def in &mut self.storage {
+            def.instantiate(&mut instantiate);
         }
 
         instantiate.take_diagnostics()

@@ -3,8 +3,8 @@ use super::{
     Type, TypeId,
     environment::Environment,
     kind::{
-        Apply, ClosureType, GenericArgument, Infer, IntersectionType, IntrinsicType, OpaqueType,
-        Param, PrimitiveType, StructType, TupleType, TypeKind, UnionType,
+        Apply, ClosureType, Generic, GenericArgument, Infer, IntersectionType, IntrinsicType,
+        OpaqueType, Param, PrimitiveType, StructType, TupleType, TypeKind, UnionType,
         generic::{GenericArguments, GenericSubstitution, GenericSubstitutions},
         intrinsic::{DictType, ListType},
         r#struct::{StructField, StructFields},
@@ -203,6 +203,10 @@ pub trait Visitor<'heap> {
         walk_apply(self, apply);
     }
 
+    fn visit_generic(&mut self, generic: Type<'heap, Generic<'heap>>) {
+        walk_generic(self, generic);
+    }
+
     #[expect(unused_variables, reason = "trait definition")]
     fn visit_param(&mut self, param: Type<'heap, Param>) {
         // do nothing, no fields to walk
@@ -278,6 +282,7 @@ pub fn walk_type<'heap, V: Visitor<'heap> + ?Sized>(
         }
         TypeKind::Closure(closure) => visitor.visit_closure(r#type.with(closure)),
         TypeKind::Apply(apply) => visitor.visit_apply(r#type.with(apply)),
+        TypeKind::Generic(generic) => visitor.visit_generic(r#type.with(generic)),
         TypeKind::Param(param) => visitor.visit_param(r#type.with(param)),
         TypeKind::Infer(infer) => visitor.visit_infer(r#type.with(infer)),
         TypeKind::Never | TypeKind::Unknown => {}
@@ -289,15 +294,9 @@ pub fn walk_opaque<'heap, V: Visitor<'heap> + ?Sized>(
     Type {
         id: _,
         span: _,
-        kind: &OpaqueType {
-            name: _,
-            repr,
-            arguments,
-        },
+        kind: &OpaqueType { name: _, repr },
     }: Type<'heap, OpaqueType>,
 ) {
-    visitor.visit_generic_arguments(arguments);
-
     if V::Filter::GENERIC_PARAMETERS {
         visitor.visit_id(repr);
     }
@@ -349,10 +348,9 @@ pub fn walk_struct<'heap, V: Visitor<'heap> + ?Sized>(
     Type {
         id: _,
         span: _,
-        kind: &StructType { fields, arguments },
+        kind: &StructType { fields },
     }: Type<'heap, StructType>,
 ) {
-    visitor.visit_generic_arguments(arguments);
     visitor.visit_struct_fields(fields);
 }
 
@@ -381,11 +379,9 @@ pub fn walk_tuple<'heap, V: Visitor<'heap> + ?Sized>(
     Type {
         id: _,
         span: _,
-        kind: &TupleType { fields, arguments },
+        kind: &TupleType { fields },
     }: Type<'heap, TupleType>,
 ) {
-    visitor.visit_generic_arguments(arguments);
-
     if !V::Filter::MEMBERS {
         return;
     }
@@ -426,16 +422,9 @@ pub fn walk_closure<'heap, V: Visitor<'heap> + ?Sized>(
     Type {
         id: _,
         span: _,
-        kind:
-            &ClosureType {
-                params,
-                returns,
-                arguments,
-            },
+        kind: &ClosureType { params, returns },
     }: Type<'heap, ClosureType>,
 ) {
-    visitor.visit_generic_arguments(arguments);
-
     if !V::Filter::MEMBERS {
         return;
     }
@@ -458,6 +447,18 @@ pub fn walk_apply<'heap, V: Visitor<'heap> + ?Sized>(
         },
     }: Type<'heap, Apply>,
 ) {
-    visitor.visit_id(base);
     visitor.visit_generic_substitutions(substitutions);
+    visitor.visit_id(base);
+}
+
+pub fn walk_generic<'heap, V: Visitor<'heap> + ?Sized>(
+    visitor: &mut V,
+    Type {
+        id: _,
+        span: _,
+        kind: &Generic { base, arguments },
+    }: Type<'heap, Generic>,
+) {
+    visitor.visit_generic_arguments(arguments);
+    visitor.visit_id(base);
 }
