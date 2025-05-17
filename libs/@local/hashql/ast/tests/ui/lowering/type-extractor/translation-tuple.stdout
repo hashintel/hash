@@ -3,4 +3,4 @@ Expr#4294967040@19
 
 ------------------------
 
-Pair:0 = (Number, String)
+type Pair:0 = (Number, String)

@@ -3,4 +3,4 @@ Expr#4294967040@25
 
 ------------------------
 
-Person:0 = (age: Number, name: String)
+type Person:0 = (age: Number, name: String)

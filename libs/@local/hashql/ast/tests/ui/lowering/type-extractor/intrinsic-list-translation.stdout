@@ -3,4 +3,4 @@ Expr#4294967040@18
 
 ------------------------
 
-Numbers:0 = List<Number>
+type Numbers:0 = List<Number>

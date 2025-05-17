@@ -3,8 +3,8 @@ Expr#4294967040@43
 
 ------------------------
 
-A:0 = Number
+type A:0 = Number
 
-B:0 = Number
+type B:0 = Number
 
-Same:0 = (Number, Number)
+type Same:0 = (Number, Number)

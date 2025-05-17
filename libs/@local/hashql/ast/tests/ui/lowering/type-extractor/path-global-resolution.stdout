@@ -3,4 +3,4 @@ Expr#4294967040@17
 
 ------------------------
 
-Global:0 = Number
+type Global:0 = Number

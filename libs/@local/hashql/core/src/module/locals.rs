@@ -26,11 +26,8 @@ impl<'heap> LocalTypeDef<'heap> {
         env.clear_provisioned();
 
         let Some(generic) = env.r#type(self.id).kind.generic() else {
-            debug_assert!(
-                self.arguments.is_empty(),
-                "Not a generic type, but has arguments attached to it?"
-            );
-
+            // This can happen in the case that an error occured (an unbound variable), therefore no
+            // assert.
             return;
         };
 
