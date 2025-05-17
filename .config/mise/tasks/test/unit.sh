@@ -58,21 +58,5 @@ if [[ $POWERSET == "true" || ${TEST_POWERSET:-false} == 'true' || ${TEST_POWERSE
     exit 0
 fi
 
-LOGFILE=$(mktemp)
-trap 'rm -f "$LOGFILE"' EXIT
-
-cargo test --all-features --doc -p "$CRATE" >"$LOGFILE" 2>&1 &
-DOC_PID=$!
-
 cargo nextest run -p "$CRATE" $ARGUMENTS
-
-# replay what’s buffered so far
-cat "$LOGFILE"
-
-# now stream any new doc-test output until it completes
-tail -n 0 -f "$LOGFILE" &
-TAIL_PID=$!
-
-# wait for the doc-tests to finish, then kill the tail
-wait $DOC_PID
-kill $TAIL_PID 2>/dev/null || true
+cargo test --all-features --doc -p "$CRATE"
