@@ -21,7 +21,7 @@ use self::{
     ast_lowering_node_renumberer::AstLoweringNodeRenumbererSuite,
     ast_lowering_pre_expansion_name_resolver::AstLoweringNameResolverSuite,
     ast_lowering_special_form_expander::AstLoweringSpecialFormExpanderSuite,
-    ast_lowering_type_extractor::AstLoweringTypeExtractorSuite,
+    ast_lowering_type_extractor::AstLoweringTypeDefinitionExtractorSuite,
     parse_syntax_dump::ParseSyntaxDumpSuite,
 };
 
@@ -48,7 +48,7 @@ const SUITES: &[&dyn Suite] = &[
     &AstLoweringNameManglerSuite,
     &AstLoweringImportResolverSuite,
     &AstLoweringImportResolverContinueSuite,
-    &AstLoweringTypeExtractorSuite,
+    &AstLoweringTypeDefinitionExtractorSuite,
     &AstLoweringGenericConstraintSanitizerSuite,
 ];
 

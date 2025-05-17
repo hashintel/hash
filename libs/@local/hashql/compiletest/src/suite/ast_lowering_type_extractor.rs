@@ -6,7 +6,7 @@ use hashql_ast::{
     lowering::{
         import_resolver::ImportResolver, name_mangler::NameMangler,
         pre_expansion_name_resolver::PreExpansionNameResolver,
-        special_form_expander::SpecialFormExpander, type_extractor::TypeExtractor,
+        special_form_expander::SpecialFormExpander, type_extractor::TypeDefinitionExtractor,
     },
     node::expr::Expr,
     visit::Visitor as _,
@@ -20,11 +20,11 @@ use hashql_core::{
 
 use super::{Suite, SuiteDiagnostic, common::process_diagnostics};
 
-pub(crate) struct AstLoweringTypeExtractorSuite;
+pub(crate) struct AstLoweringTypeDefinitionExtractorSuite;
 
-impl Suite for AstLoweringTypeExtractorSuite {
+impl Suite for AstLoweringTypeDefinitionExtractorSuite {
     fn name(&self) -> &'static str {
-        "ast/lowering/type-extractor"
+        "ast/lowering/type-definition-extractor"
     }
 
     fn run<'heap>(
@@ -57,7 +57,7 @@ impl Suite for AstLoweringTypeExtractorSuite {
         mangler.visit_expr(&mut expr);
 
         let mut extractor =
-            TypeExtractor::new(&environment, &registry, heap.intern_symbol("::main"));
+            TypeDefinitionExtractor::new(&environment, &registry, heap.intern_symbol("::main"));
         extractor.visit_expr(&mut expr);
 
         let (locals, extractor_diagnostics) = extractor.finish();
