@@ -18,12 +18,12 @@ use crate::{
     visit::Visitor,
 };
 
-pub struct TypeConverter<'env, 'heap> {
+pub struct TypeExtractor<'env, 'heap> {
     unit: TranslationUnit<'env, 'heap, LocalTypes<'heap>>,
     types: FastHashMap<NodeId, TypeId>,
 }
 
-impl<'env, 'heap> TypeConverter<'env, 'heap> {
+impl<'env, 'heap> TypeExtractor<'env, 'heap> {
     #[must_use]
     pub fn new(
         environment: &'env Environment<'heap>,
@@ -45,9 +45,14 @@ impl<'env, 'heap> TypeConverter<'env, 'heap> {
     pub fn take_diagnostics(&mut self) -> Vec<TypeExtractorDiagnostic> {
         core::mem::take(&mut self.unit.diagnostics)
     }
+
+    #[must_use]
+    pub fn into_types(self) -> FastHashMap<NodeId, TypeId> {
+        self.types
+    }
 }
 
-impl<'heap> Visitor<'heap> for TypeConverter<'_, 'heap> {
+impl<'heap> Visitor<'heap> for TypeExtractor<'_, 'heap> {
     fn visit_type(&mut self, r#type: &mut Type<'heap>) {
         // We do not continue traversing types, that way we only catch the top type
         let id = self.unit.reference(Reference::Type(r#type));
