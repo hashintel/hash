@@ -194,22 +194,42 @@ pub(crate) struct LocalVariable<'ty, 'heap> {
     pub arguments: SpannedGenericArguments<'heap>,
 }
 
+pub(crate) trait LocalVariableResolver<'heap> {
+    fn find_by_ident(&self, ident: Ident<'heap>) -> Option<(TypeId, &[GenericArgument<'heap>])>;
+    fn names(&self) -> impl IntoIterator<Item = Symbol<'heap>>;
+}
+
+impl<'heap> LocalVariableResolver<'heap> for FastHashMap<Symbol<'heap>, LocalVariable<'_, 'heap>> {
+    fn find_by_ident(&self, ident: Ident<'heap>) -> Option<(TypeId, &[GenericArgument<'heap>])> {
+        let variable = self.get(&ident.value)?;
+
+        Some((variable.id.value(), &variable.arguments.value))
+    }
+
+    fn names(&self) -> impl IntoIterator<Item = Symbol<'heap>> {
+        self.keys().copied()
+    }
+}
+
 /// Main context for type translation operations
 ///
 /// The translation unit maintains all the context needed for translating AST type
 /// nodes into the core type system, including environment, registry access,
 /// and tracking of local variables and bound generic parameters.
-pub(crate) struct TranslationUnit<'env, 'ty, 'heap> {
+pub(crate) struct TranslationUnit<'env, 'heap, L> {
     pub env: &'env Environment<'heap>,
     pub registry: &'env ModuleRegistry<'heap>,
     pub diagnostics: Vec<TypeExtractorDiagnostic>,
 
-    pub locals: &'env FastHashMap<Symbol<'heap>, LocalVariable<'ty, 'heap>>,
+    pub locals: &'env L,
 
     pub bound_generics: &'env SpannedGenericArguments<'heap>,
 }
 
-impl<'env, 'heap> TranslationUnit<'env, '_, 'heap> {
+impl<'env, 'heap, L> TranslationUnit<'env, 'heap, L>
+where
+    L: LocalVariableResolver<'heap>,
+{
     /// Creates a nominal (named) type with its underlying representation
     ///
     /// Nominal types are identified by their name rather than structure, but still have an
@@ -245,9 +265,7 @@ impl<'env, 'heap> TranslationUnit<'env, '_, 'heap> {
             return Some((param, &[]));
         }
 
-        let variable = self.locals.get(&ident.value)?;
-
-        Some((variable.id.value(), &variable.arguments.value))
+        self.locals.find_by_ident(ident)
     }
 
     /// Converts a path segment argument into a type reference
@@ -337,7 +355,7 @@ impl<'env, 'heap> TranslationUnit<'env, '_, 'heap> {
             self.diagnostics.push(unbound_type_variable(
                 ident.span,
                 ident.value,
-                self.locals.keys().copied(),
+                self.locals.names(),
             ));
 
             return TypeKind::Never;
