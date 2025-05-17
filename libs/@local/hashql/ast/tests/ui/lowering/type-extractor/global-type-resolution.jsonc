@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Tests that global/intrinsic types are properly resolved
+["let", "numbers", "List<Number>", { "#list": [1, 2, 3] }, "_"]
