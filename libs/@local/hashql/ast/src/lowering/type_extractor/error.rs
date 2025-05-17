@@ -145,6 +145,7 @@ impl DiagnosticCategory for TypeExtractorDiagnosticCategory {
 ///
 /// This diagnostic is generated when the type extractor finds a duplicate type alias name
 /// which should have been prevented by the name mangler at an earlier stage.
+#[coverage(off)] // Compiler Bugs should never be hit
 pub(crate) fn duplicate_type_alias(
     original_span: SpanId,
     duplicate_span: SpanId,
@@ -213,6 +214,7 @@ pub(crate) fn generic_constraint_not_allowed(
 ///
 /// This diagnostic is generated when the type extractor finds a duplicate newtype name
 /// which should have been prevented by the name mangler at an earlier stage.
+#[coverage(off)] // Compiler Bugs should never be hit
 pub(crate) fn duplicate_newtype(
     original_span: SpanId,
     duplicate_span: SpanId,
@@ -370,6 +372,7 @@ where
 ///
 /// This diagnostic is generated when a variable reference cannot be resolved within
 /// the current scope, which should have been caught by an earlier pass.
+#[coverage(off)] // Compiler Bugs should never be hit
 pub(crate) fn unbound_type_variable<'heap>(
     span: SpanId,
     name: Symbol<'heap>,
@@ -515,6 +518,7 @@ pub(crate) fn intrinsic_parameter_count_mismatch(
 /// Creates a diagnostic for an unknown intrinsic type.
 ///
 /// This diagnostic is generated when a reference to an unknown intrinsic type is encountered.
+#[coverage(off)] // Compiler Bugs should never be hit
 pub(crate) fn unknown_intrinsic_type(
     span: SpanId,
     name: &str,
@@ -567,6 +571,7 @@ pub(crate) fn unknown_intrinsic_type(
 ///
 /// This diagnostic is generated when a resolution succeeds but produces an item
 /// of the wrong kind, which indicates a compiler bug.
+#[coverage(off)] // Compiler Bugs should never be hit
 pub(crate) fn invalid_resolved_item(
     span: SpanId,
     expected: Universe,
@@ -613,6 +618,7 @@ pub(crate) fn invalid_resolved_item(
 /// Creates a diagnostic for a resolution error.
 ///
 /// This diagnostic is generated when path resolution fails due to a compiler bug.
+#[coverage(off)] // Compiler Bugs should never be hit
 pub(crate) fn resolution_error(path: &Path, error: &ResolutionError) -> TypeExtractorDiagnostic {
     let mut diagnostic = Diagnostic::new(
         TypeExtractorDiagnosticCategory::ResolutionError,
