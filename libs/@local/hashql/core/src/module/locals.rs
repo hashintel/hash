@@ -100,6 +100,16 @@ impl<'heap> LocalTypes<'heap> {
         }
     }
 
+    #[must_use]
+    pub fn get(&self, name: Symbol<'heap>) -> Option<&LocalTypeDef<'heap>> {
+        self.lookup.get(&name).map(|&index| &self.storage[index])
+    }
+
+    #[must_use]
+    pub fn names(&self) -> impl IntoIterator<Item = Symbol<'heap>> + use<'_, 'heap> {
+        self.lookup.keys().copied()
+    }
+
     pub fn insert(&mut self, def: LocalTypeDef<'heap>) {
         let index = self.storage.len();
         let name = def.name;

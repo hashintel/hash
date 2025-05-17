@@ -8,7 +8,10 @@ use hashql_core::{
     },
     span::SpanId,
     symbol::Symbol,
-    r#type::{error::TypeCheckDiagnosticCategory, kind::GenericArgument},
+    r#type::{
+        error::TypeCheckDiagnosticCategory,
+        kind::{GenericArgument, generic::GenericArgumentReference},
+    },
 };
 use hashql_diagnostics::{
     Diagnostic,
@@ -243,22 +246,28 @@ pub(crate) fn duplicate_newtype(
     diagnostic
 }
 
+fn demangle_unwrap(symbol: Symbol<'_>) -> &str {
+    let inner = symbol.unwrap();
+
+    inner.rsplit_once(':').map_or(inner, |(name, _)| name)
+}
+
 fn demangle<'s>(symbol: &'s Symbol) -> &'s str {
-    symbol
-        .as_str()
-        .rsplit_once(':')
-        .map_or(symbol.as_str(), |(name, _)| name)
+    demangle_unwrap(*symbol)
 }
 
 /// Creates a diagnostic for incorrect generic parameter count.
 ///
 /// This diagnostic is generated when a type is provided with an incorrect number of generic
 /// parameters. It handles both too many and too few parameters cases.
-pub(crate) fn generic_parameter_mismatch(
+pub(crate) fn generic_parameter_mismatch<'heap, T>(
     variable: &VariableReference,
-    parameters: &[GenericArgument<'_>],
-    arguments: &[PathSegmentArgument<'_>],
-) -> TypeExtractorDiagnostic {
+    parameters: &[T],
+    arguments: &[PathSegmentArgument<'heap>],
+) -> TypeExtractorDiagnostic
+where
+    T: Into<GenericArgumentReference<'heap>> + Copy,
+{
     let mut diagnostic = Diagnostic::new(
         TypeExtractorDiagnosticCategory::GenericParameterMismatch,
         Severity::ERROR,
@@ -305,11 +314,14 @@ pub(crate) fn generic_parameter_mismatch(
 
     let mut index = -1;
 
-    for missing in missing {
+    for &missing in missing {
         diagnostic.labels.push(
             Label::new(
                 variable.span(),
-                format!("Missing parameter `{}`", demangle(&missing.name)),
+                format!(
+                    "Missing parameter `{}`",
+                    demangle_unwrap(missing.into().name)
+                ),
             )
             .with_order(index)
             .with_color(Color::Ansi(AnsiColor::Yellow)),
@@ -330,7 +342,7 @@ pub(crate) fn generic_parameter_mismatch(
 
     let params = parameters
         .iter()
-        .map(|param| demangle(&param.name))
+        .map(|&param| demangle_unwrap(param.into().name))
         .intersperse(", ")
         .collect::<String>();
 

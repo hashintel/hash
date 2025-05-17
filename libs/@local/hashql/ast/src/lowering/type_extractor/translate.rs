@@ -11,6 +11,7 @@ use hashql_core::{
     module::{
         ModuleRegistry,
         item::{IntrinsicItem, Item, ItemKind, Universe},
+        locals::LocalTypes,
     },
     span::SpanId,
     symbol::{Ident, Symbol},
@@ -195,12 +196,16 @@ pub(crate) struct LocalVariable<'ty, 'heap> {
 }
 
 pub(crate) trait LocalVariableResolver<'heap> {
-    fn find_by_ident(&self, ident: Ident<'heap>) -> Option<(TypeId, &[GenericArgument<'heap>])>;
+    type GenericArgument: Into<GenericArgumentReference<'heap>> + Copy;
+
+    fn find_by_ident(&self, ident: Ident<'heap>) -> Option<(TypeId, &[Self::GenericArgument])>;
     fn names(&self) -> impl IntoIterator<Item = Symbol<'heap>>;
 }
 
 impl<'heap> LocalVariableResolver<'heap> for FastHashMap<Symbol<'heap>, LocalVariable<'_, 'heap>> {
-    fn find_by_ident(&self, ident: Ident<'heap>) -> Option<(TypeId, &[GenericArgument<'heap>])> {
+    type GenericArgument = GenericArgument<'heap>;
+
+    fn find_by_ident(&self, ident: Ident<'heap>) -> Option<(TypeId, &[Self::GenericArgument])> {
         let variable = self.get(&ident.value)?;
 
         Some((variable.id.value(), &variable.arguments.value))
@@ -208,6 +213,20 @@ impl<'heap> LocalVariableResolver<'heap> for FastHashMap<Symbol<'heap>, LocalVar
 
     fn names(&self) -> impl IntoIterator<Item = Symbol<'heap>> {
         self.keys().copied()
+    }
+}
+
+impl<'heap> LocalVariableResolver<'heap> for LocalTypes<'heap> {
+    type GenericArgument = GenericArgumentReference<'heap>;
+
+    fn find_by_ident(&self, ident: Ident<'heap>) -> Option<(TypeId, &[Self::GenericArgument])> {
+        let def = self.get(ident.value)?;
+
+        Some((def.id, &def.arguments))
+    }
+
+    fn names(&self) -> impl IntoIterator<Item = Symbol<'heap>> {
+        self.names()
     }
 }
 
@@ -247,7 +266,7 @@ where
     /// This method first checks if the identifier refers to a bound generic parameter, and if so,
     /// creates a parameter reference. Otherwise, it looks for a local variable with that name and
     /// returns its type ID and generic arguments.
-    fn find_local(&self, ident: Ident<'heap>) -> Option<(TypeId, &'env [GenericArgument<'heap>])> {
+    fn find_local(&self, ident: Ident<'heap>) -> Option<(TypeId, &'env [L::GenericArgument])> {
         // Look through the generics, and see if there are any generics, that have a fitting name
         if let Some(&generic) = self
             .bound_generics
@@ -301,13 +320,16 @@ where
     /// This creates a type application by substituting concrete types for the generic parameters of
     /// the base type. It maps the provided parameters to the expected arguments and creates the
     /// appropriate substitutions.
-    fn apply_reference(
+    fn apply_reference<T>(
         &mut self,
         variable: &VariableReference<'_, 'heap>,
         base: TypeId,
-        parameters: &[GenericArgument<'heap>],
+        parameters: &[T],
         arguments: &[PathSegmentArgument<'heap>],
-    ) -> TypeKind<'heap> {
+    ) -> TypeKind<'heap>
+    where
+        T: Into<GenericArgumentReference<'heap>> + Copy,
+    {
         if arguments.len() != parameters.len() {
             self.diagnostics
                 .push(generic_parameter_mismatch(variable, parameters, arguments));
@@ -319,6 +341,7 @@ where
 
         let mut error = false;
         for (&parameter, argument) in parameters.iter().zip(arguments.iter()) {
+            let parameter = parameter.into();
             let Some(reference) = self.convert_path_segment_argument(argument) else {
                 error = true;
                 continue;

@@ -42,6 +42,15 @@ pub struct GenericArgumentReference<'heap> {
     pub name: Symbol<'heap>,
 }
 
+impl<'heap> From<GenericArgument<'heap>> for GenericArgumentReference<'heap> {
+    fn from(argument: GenericArgument<'heap>) -> Self {
+        Self {
+            id: argument.id,
+            name: argument.name,
+        }
+    }
+}
+
 impl PrettyPrint for GenericArgumentReference<'_> {
     fn pretty<'env>(
         &self,
