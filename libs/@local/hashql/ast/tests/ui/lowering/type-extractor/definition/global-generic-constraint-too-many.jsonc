@@ -1,5 +1,5 @@
 //@ run: fail
-//@ description: TODO
+//@ description: Tests that an error is properly reported when a generic type is provided with too many type parameters
 [
   "type",
   "Foo",
