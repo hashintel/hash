@@ -57,7 +57,7 @@ fi
 
 # Run unit tests with powerset if `TEST_POWERSET` is set to `true` or `1`
 if [[ $POWERSET == "true" || ${TEST_POWERSET:-false} == 'true' || ${TEST_POWERSET:-false} == '1' ]]; then
-    cargo hack --optional-deps --feature-powerset nextest run -p "$CRATE" $ARGUMENTS
+    cargo hack --optional-deps --feature-powerset nextest run -p "$CRATE" --all-targets $ARGUMENTS
     cargo test --all-features --doc -p "$CRATE"
     exit 0
 fi
