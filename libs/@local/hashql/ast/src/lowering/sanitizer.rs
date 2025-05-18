@@ -1,7 +1,7 @@
 use alloc::borrow::Cow;
 use core::mem;
 
-use hashql_core::{span::SpanId, symbol::Symbol};
+use hashql_core::{module::item::Universe, span::SpanId, symbol::Symbol};
 use hashql_diagnostics::{
     Diagnostic,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
@@ -64,41 +64,66 @@ fn invalid_generic_constraint(span: SpanId, name: Symbol) -> SanitizerDiagnostic
     );
 
     diagnostic.labels.push(
-        Label::new(
-            span,
-            format!("Remove this constraint from generic parameter '{name}'"),
-        )
-        .with_order(0),
+        Label::new(span, format!("Remove this constraint from '{name}'"))
+            .with_order(0)
+            .with_color(Color::Ansi(AnsiColor::Red)),
     );
 
     diagnostic.help = Some(Help::new(format!(
         "Generic constraints (like '{name}: Bound') are not allowed in this context. Use just the \
-         generic parameter name without bounds: '{name}'."
+         parameter name without bounds: '{name}'. For example, change 'T: Clone' to just 'T'."
     )));
 
     diagnostic.note = Some(Note::new(
         "Generic constraints with bounds can only be used in certain positions such as function \
-         declarations, type declarations and newtype declarations",
+         declarations, type declarations and newtype declarations. In other contexts, like usage \
+         sites, only the parameter name should be specified.",
     ));
 
     diagnostic
 }
-
-fn special_form_not_supported(span: SpanId) -> SanitizerDiagnostic {
+fn special_form_not_supported(path: &Path, universe: Universe) -> SanitizerDiagnostic {
     let mut diagnostic = Diagnostic::new(
         SanitizerDiagnosticCategory::InvalidSpecialForm,
         Severity::ERROR,
     );
 
+    // Primary label - the direct issue with context-specific message
+    let label_message = match universe {
+        Universe::Value => "Special form cannot be used as a value",
+        Universe::Type => "Special form cannot be used as a type",
+    };
+
     diagnostic.labels.push(
-        Label::new(span, "This special form could not be expanded")
+        Label::new(path.span, label_message)
+            .with_order(0)
             .with_color(Color::Ansi(AnsiColor::Red)),
     );
 
+    // Form the special form name for display
+    let special_form = path
+        .segments
+        .last()
+        .unwrap_or_else(|| unreachable!())
+        .name
+        .value;
+
+    // Customize help message based on universe
+    let context = match universe {
+        Universe::Value => "value expression",
+        Universe::Type => "type annotation or declaration",
+    };
+
+    diagnostic.help = Some(Help::new(format!(
+        "The special form '{special_form}' must be called directly with arguments. It cannot be \
+         used as a {context} or passed to other functions. Instead, use it in a direct function \
+         call syntax.",
+    )));
+
     diagnostic.note = Some(Note::new(
-        "You have used a special form function in a place where it couldn't be evaluated and \
-         expanded, such as a value position. Special forms must always be called as a function \
-         with arguments, as cannot be used as a value.",
+        "Special forms in HashQL are compile-time constructs that must be expanded during \
+         compilation. They can only be used in call position with their expected arguments, not \
+         as regular values, types, or function references.",
     ));
 
     diagnostic
@@ -106,6 +131,7 @@ fn special_form_not_supported(span: SpanId) -> SanitizerDiagnostic {
 
 pub struct Sanitizer {
     diagnostics: Vec<SanitizerDiagnostic>,
+    universe: Universe,
 
     special_form_diagnostics: usize,
     handled_special_form_diagnostics: usize,
@@ -116,6 +142,8 @@ impl Sanitizer {
     pub const fn new() -> Self {
         Self {
             diagnostics: Vec::new(),
+            universe: Universe::Value,
+
             special_form_diagnostics: 0,
             handled_special_form_diagnostics: 0,
         }
@@ -150,12 +178,16 @@ impl<'heap> Visitor<'heap> for Sanitizer {
             return;
         }
 
-        self.diagnostics.push(special_form_not_supported(path.span));
+        self.diagnostics
+            .push(special_form_not_supported(path, self.universe));
         self.special_form_diagnostics += 1;
     }
 
     fn visit_expr(&mut self, expr: &mut Expr<'heap>) {
+        let previous = self.universe;
+        self.universe = Universe::Value;
         walk_expr(self, expr);
+        self.universe = previous;
 
         if matches!(expr.kind, ExprKind::Path(_))
             && self.handled_special_form_diagnostics < self.special_form_diagnostics
@@ -166,7 +198,10 @@ impl<'heap> Visitor<'heap> for Sanitizer {
     }
 
     fn visit_type(&mut self, r#type: &mut Type<'heap>) {
+        let previous = self.universe;
+        self.universe = Universe::Type;
         walk_type(self, r#type);
+        self.universe = previous;
 
         if matches!(r#type.kind, TypeKind::Path(_))
             && self.handled_special_form_diagnostics < self.special_form_diagnostics

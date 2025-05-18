@@ -1,0 +1,9 @@
+//@ run: fail
+//@ description: Ensure that special forms in invalid type positions are sanitized and error out
+[
+  "type",
+  "A",
+  "::kernel::special_form::let",
+  //~^ ERROR Special form cannot be used as a type
+  "_"
+]

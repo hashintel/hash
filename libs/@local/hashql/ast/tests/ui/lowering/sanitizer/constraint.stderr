@@ -1,11 +1,11 @@
-[31m[generic-constraint-sanitizer::invalid-generic-constraint] Error:[0m Invalid generic constraint
+[31m[sanitizer::invalid-generic-constraint] Error:[0m Invalid generic constraint
    ╭─[ <unknown>:4:8 ]
    │
  4 │   "add<T: Number>",
    │        ────┬────  
-   │            ╰────── Remove this constraint from generic parameter 'T'
+   │            ╰────── Remove this constraint from 'T'
    │ 
-   │ Help: Generic constraints (like 'T: Bound') are not allowed in this context. Use just the generic parameter name without bounds: 'T'.
+   │ Help: Generic constraints (like 'T: Bound') are not allowed in this context. Use just the parameter name without bounds: 'T'. For example, change 'T: Clone' to just 'T'.
    │ 
-   │ Note: Generic constraints with bounds can only be used in certain positions such as function declarations, type declarations and newtype declarations
+   │ Note: Generic constraints with bounds can only be used in certain positions such as function declarations, type declarations and newtype declarations. In other contexts, like usage sites, only the parameter name should be specified.
 ───╯
