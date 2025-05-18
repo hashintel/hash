@@ -1,9 +1,8 @@
 pub mod error;
-pub mod generic_constraint_sanitizer;
 pub mod import_resolver;
 pub mod name_mangler;
 pub mod node_renumberer;
 pub mod pre_expansion_name_resolver;
+pub mod sanitizer;
 pub mod special_form_expander;
-pub mod special_form_santizier;
 pub mod type_extractor;
