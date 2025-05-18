@@ -541,7 +541,7 @@ __metadata:
     material-ui-popup-state: "npm:4.1.0"
     millify: "npm:6.1.0"
     next: "npm:15.3.2"
-    next-seo: "npm:6.6.0"
+    next-seo: "npm:6.7.1"
     nextjs-progressbar: "npm:0.0.16"
     notistack: "npm:2.0.8"
     papaparse: "npm:5.5.2"
@@ -34702,14 +34702,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"next-seo@npm:6.6.0":
-  version: 6.6.0
-  resolution: "next-seo@npm:6.6.0"
+"next-seo@npm:6.7.1":
+  version: 6.7.1
+  resolution: "next-seo@npm:6.7.1"
   peerDependencies:
     next: ^8.1.1-canary.54 || >=9.0.0
     react: ">=16.0.0"
     react-dom: ">=16.0.0"
-  checksum: 10c0/60eff5b6fdd83306d26968dfc23b5df502bf014b771b0910bf6cfec944de6f262d7d872ae3155717a31a1dd51ae48db007ce4c0f78f8b435deff37bdc63beb76
+  checksum: 10c0/d7d36d5e2ed16f74c01dc160293c97d73adf955304183fb067d394f83c5cd19adc7fcbb4df6721aacfebc51f4a88ff2777831189c06449c4e31ded92983d81b7
   languageName: node
   linkType: hard
 
