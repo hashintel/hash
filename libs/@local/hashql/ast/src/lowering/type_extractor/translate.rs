@@ -30,8 +30,7 @@ use hashql_core::{
 
 use super::error::{
     TypeExtractorDiagnostic, duplicate_struct_fields, generic_constraint_not_allowed,
-    invalid_resolved_item, resolution_error, special_form_not_supported, unknown_intrinsic_type,
-    unused_generic_parameter,
+    invalid_resolved_item, resolution_error, unknown_intrinsic_type, unused_generic_parameter,
 };
 use crate::{
     lowering::type_extractor::error::{
@@ -404,13 +403,6 @@ where
         name: &'static str,
         parameters: &[PathSegmentArgument<'heap>],
     ) -> TypeKind<'heap> {
-        if name.starts_with("::kernel::special_form") {
-            self.diagnostics
-                .push(special_form_not_supported(span, name));
-
-            return TypeKind::Never;
-        }
-
         match name {
             "::kernel::type::List" => {
                 if parameters.len() != 1 {
