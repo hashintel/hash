@@ -62,5 +62,5 @@ if [[ $POWERSET == "true" || ${TEST_POWERSET:-false} == 'true' || ${TEST_POWERSE
     exit 0
 fi
 
-cargo nextest run -p "$CRATE" $ARGUMENTS
+cargo nextest run -p "$CRATE" --all-targets $ARGUMENTS
 cargo test --all-features --doc -p "$CRATE"
