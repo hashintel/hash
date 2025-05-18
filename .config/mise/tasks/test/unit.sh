@@ -23,6 +23,10 @@ CRATE=${PACKAGE#*@rust/}
 
 # Run coverage instead of unit tests if `TEST_COVERAGE` is set to `true` or `1`
 if [[ $COVERAGE == "true" || ${TEST_COVERAGE:-false} == 'true' || ${TEST_COVERAGE:-false} == '1' ]]; then
+    # Exclude any crates that are not the current crate, this is required due to a limitation of llvm-cov, which doesn't allow
+    # for testing the current crate. Any dependency (that is part of the workspace) will be covered as well, tanking coverage.
+    # This is obviously not what's intended in 99% of the cases, as we want to test the coverage of the current crate only, and not it's coverage in any dependencies.
+    # See https://github.com/taiki-e/cargo-llvm-cov/issues/361 for more information on this issue.
     EXCLUSIONS=$(
         cargo metadata --format-version=1 --no-deps \
             | jq -r --arg crate "$CRATE" '.packages[] | select(.name != $crate) | .manifest_path | rtrimstr("/Cargo.toml") | gsub("/"; "\\/"; "g")' \
