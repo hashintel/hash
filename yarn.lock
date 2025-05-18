@@ -4974,13 +4974,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@effect/vitest@npm:0.21.5":
-  version: 0.21.5
-  resolution: "@effect/vitest@npm:0.21.5"
+"@effect/vitest@npm:0.22.1":
+  version: 0.22.1
+  resolution: "@effect/vitest@npm:0.22.1"
   peerDependencies:
-    effect: ^3.14.22
+    effect: ^3.15.1
     vitest: ^3.0.0
-  checksum: 10c0/72ff5e0d826956134194491dfbb58570adf0ab326d4010dc8fea1083eab27528c7970403a3aac1cd9d6242a69917f0761ff07a933131060e78eee8d0dc5335c9
+  checksum: 10c0/afaa457710b1e4443cb5428dcf45019e5876bfb4a01d3a579dd84bc0814d4d2b8e47436797ab8d1164ebb0209fef4784664b25e2273c862e912f6b1b7311cffb
   languageName: node
   linkType: hard
 
@@ -8842,7 +8842,7 @@ __metadata:
     "@chainsafe/libp2p-yamux": "npm:7.0.1"
     "@effect/platform": "npm:0.79.2"
     "@effect/platform-node": "npm:0.75.2"
-    "@effect/vitest": "npm:0.21.5"
+    "@effect/vitest": "npm:0.22.1"
     "@libp2p/crypto": "npm:5.1.1"
     "@libp2p/identify": "npm:3.0.29"
     "@libp2p/interface": "npm:2.9.0"
