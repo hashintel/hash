@@ -6,7 +6,7 @@ inputs:
     description: GitHub token for authentication
     required: true
   rust:
-    description: Install Rust
+    description: Should Rust be installed? Can either be `"true"` or `true`
     default: "true"
 
 runs:
