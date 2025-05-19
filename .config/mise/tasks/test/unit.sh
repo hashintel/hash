@@ -3,7 +3,7 @@
 set -euo pipefail
 
 #USAGE flag "--coverage" negate="--no-coverage" default="false" help="Run unit tests with coverage, also reads `$TEST_COVERAGE`"
-#USAGE flag "--test-strategy <strategy>" default="all" help="The test strategy to use" {
+#USAGE flag "--test-strategy <strategy>" default="all" help="The test strategy to use, use all if you just want to test with all features enabled (default), extremes if you want to test against all features and no features enabled, powerset if you want to test against all possible combinations of features" {
 #USAGE          choices "all" "extremes" "powerset"
 #USAGE }
 #USAGE arg "<package>" help="The package to run unit tests for"
@@ -12,7 +12,7 @@ set -euo pipefail
 PACKAGE=$usage_package
 COVERAGE=$usage_coverage
 STRATEGY=$usage_test_strategy
-declare -a "ARGUMENTS=($usage_arguments)"
+declare -a "ARGUMENTS=($usage_arguments)" # We're using "declare -a" here to allow for quoted arguments to be properly parsed as single array elements
 
 # Check if the package argument starts with `@rust/` if that isn't the case exit out
 if [[ $PACKAGE != "@rust/"* ]]; then
