@@ -25,7 +25,7 @@
     "@apps/hash-frontend": "0.0.0-private",
     "@apps/hash-realtime": "0.0.0-private",
     "@apps/hash-search-loader": "0.0.0-private",
-    "@apps/plugin-browser": "0.0.8",
+    "@apps/plugin-browser": "0.0.9",
     "@blockprotocol/graph": "0.4.0-canary.0",
     "@graphql-codegen/cli": "^5.0.3",
     "@local/eslint": "0.0.0-private",

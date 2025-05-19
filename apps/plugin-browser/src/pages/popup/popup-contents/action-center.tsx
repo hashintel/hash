@@ -109,22 +109,26 @@ export const ActionCenter = ({
                 PlusIcon,
               )}
             />
-            <MuiTab
-              value="automated"
-              {...generateCommonTabProps(
-                popupTab === "automated",
-                "Automated",
-                WandMagicSparklesIcon,
-              )}
-            />
-            <MuiTab
-              value="history"
-              {...generateCommonTabProps(
-                popupTab === "history",
-                "History",
-                ListRegularIcon,
-              )}
-            />
+            {user.enabledFeatureFlags.includes("ai") ? (
+              <>
+                <MuiTab
+                  value="automated"
+                  {...generateCommonTabProps(
+                    popupTab === "automated",
+                    "Automated",
+                    WandMagicSparklesIcon,
+                  )}
+                />
+                <MuiTab
+                  value="history"
+                  {...generateCommonTabProps(
+                    popupTab === "history",
+                    "History",
+                    ListRegularIcon,
+                  )}
+                />
+              </>
+            ) : null}
           </MuiTabs>
         </Box>
         <Avatar
