@@ -39,7 +39,7 @@ export const requestFileUpload: ResolverFn<
   },
   graphQLContext,
 ) => {
-  const { authentication, temporal } = graphQLContext;
+  const { authentication, temporal, user } = graphQLContext;
   const context = graphQLContextToImpureGraphContext(graphQLContext);
 
   if (size > maximumFileSizeInBytes) {
@@ -61,12 +61,14 @@ export const requestFileUpload: ResolverFn<
     },
   );
 
-  await triggerPdfAnalysisWorkflow({
-    entity,
-    temporalClient: temporal,
-    userAccountId: authentication.actorId,
-    webId: extractWebIdFromEntityId(entity.entityId),
-  });
+  if (user.enabledFeatureFlags.includes("ai")) {
+    await triggerPdfAnalysisWorkflow({
+      entity,
+      temporalClient: temporal,
+      userAccountId: authentication.actorId,
+      webId: extractWebIdFromEntityId(entity.entityId),
+    });
+  }
 
   return {
     presignedPut,

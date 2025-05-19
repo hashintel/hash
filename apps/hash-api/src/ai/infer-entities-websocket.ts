@@ -39,7 +39,12 @@ const inferEntitiesMessageHandler = async ({
 }) => {
   switch (message.type) {
     case "automatic-inference-request":
-    case "manual-inference-request":
+    case "manual-inference-request": {
+      if (!user.enabledFeatureFlags.includes("ai")) {
+        socket.send("Flows are not enabled for this user");
+        return;
+      }
+
       await handleInferEntitiesRequest({
         graphApiClient,
         temporalClient,
@@ -47,6 +52,7 @@ const inferEntitiesMessageHandler = async ({
         user,
       });
       return;
+    }
     case "cancel-inference-request":
       await handleCancelInferEntitiesRequest({
         graphApiClient,

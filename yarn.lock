@@ -751,7 +751,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@apps/plugin-browser@npm:0.0.8, @apps/plugin-browser@workspace:apps/plugin-browser":
+"@apps/plugin-browser@npm:0.0.9, @apps/plugin-browser@workspace:apps/plugin-browser":
   version: 0.0.0-use.local
   resolution: "@apps/plugin-browser@workspace:apps/plugin-browser"
   dependencies:
@@ -16694,7 +16694,7 @@ __metadata:
     "@apps/hash-frontend": "npm:0.0.0-private"
     "@apps/hash-realtime": "npm:0.0.0-private"
     "@apps/hash-search-loader": "npm:0.0.0-private"
-    "@apps/plugin-browser": "npm:0.0.8"
+    "@apps/plugin-browser": "npm:0.0.9"
     "@blockprotocol/graph": "npm:0.4.0-canary.0"
     "@blockprotocol/type-system": "npm:0.1.2-canary.0"
     "@graphql-codegen/cli": "npm:^5.0.3"
