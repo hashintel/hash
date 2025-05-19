@@ -50,12 +50,12 @@ impl Validator<EntityType> for EntityTypeValidator {
         }
 
         for links in value.constraints.links.values() {
-            if let Some((min, max)) = links.min_items.zip(links.max_items) {
-                if min > max {
-                    return Err(
-                        EntityTypeValidationError::IncompatibleLinkNumberConstraints { min, max },
-                    );
-                }
+            if let Some((min, max)) = links.min_items.zip(links.max_items)
+                && min > max
+            {
+                return Err(
+                    EntityTypeValidationError::IncompatibleLinkNumberConstraints { min, max },
+                );
             }
         }
 
@@ -86,12 +86,12 @@ impl Validator<ClosedEntityType> for EntityTypeValidator {
         }
 
         for links in value.constraints.links.values() {
-            if let Some((min, max)) = links.min_items.zip(links.max_items) {
-                if min > max {
-                    return Err(
-                        EntityTypeValidationError::IncompatibleLinkNumberConstraints { min, max },
-                    );
-                }
+            if let Some((min, max)) = links.min_items.zip(links.max_items)
+                && min > max
+            {
+                return Err(
+                    EntityTypeValidationError::IncompatibleLinkNumberConstraints { min, max },
+                );
             }
         }
 

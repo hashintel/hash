@@ -217,7 +217,6 @@ impl ResourceConstraint {
 }
 
 #[cfg(test)]
-#[expect(clippy::panic_in_result_fn, reason = "Assertions in test are expected")]
 mod tests {
     use core::error::Error;
 

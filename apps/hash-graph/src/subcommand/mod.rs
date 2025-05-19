@@ -101,10 +101,10 @@ where
             return Ok(());
         }
         ensure!(wait, HealthcheckError::NotHealthy);
-        if let Some(end_time) = expected_end_time {
-            if std::time::Instant::now() > end_time {
-                return Err(HealthcheckError::Timeout.into());
-            }
+        if let Some(end_time) = expected_end_time
+            && std::time::Instant::now() > end_time
+        {
+            return Err(HealthcheckError::Timeout.into());
         }
         sleep(Duration::from_secs(1)).await;
     }
