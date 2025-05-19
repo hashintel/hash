@@ -21,7 +21,7 @@
     "lint:clippy": "just clippy",
     "lint:tsc": "tsc --noEmit",
     "test:integration": "cargo hack nextest run --feature-powerset --all-targets --filterset \"kind(test) | kind(bench)\"",
-    "test:unit": "cargo hack nextest run --feature-powerset --all-targets --filterset \"not kind(test) & not kind(bench)\" && cargo test --all-features --doc"
+    "test:unit": "mise run test:unit @rust/hash-graph-authorization --test-strategy=powerset -- --all-targets --filterset 'not kind(test) & not kind(bench)'"
   },
   "dependencies": {
     "@blockprotocol/type-system-rs": "0.0.0-private",
