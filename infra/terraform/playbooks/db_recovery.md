@@ -4,7 +4,7 @@ Something went terribly wrong with the database, here’s how to recover.
 
 ## Identify snapshot to restore
 
-For the production DB located in `us-east-1` the snapshots are found [here](https://us-east-1.console.aws.amazon.com/rds/home?region=us-east-1#snapshots-list:tab=automated). Identify the snapshot to restore from, usually the one from the current morning or the day before if the incident happened.
+For the production DB located in `us-east-1` see the [snapshots](https://us-east-1.console.aws.amazon.com/rds/home?region=us-east-1#snapshots-list:tab=automated). Identify the snapshot to restore from, usually the one from the current morning or the day before if the incident happened.
 The snapshots for HASH would be prefixed with `rds:h-hash-prod-usea1-pg-`
 
 ## Restore database

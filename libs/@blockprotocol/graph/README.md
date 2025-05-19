@@ -72,7 +72,7 @@ To create a `GraphEmbedderHandler`, pass the constructor:
 
 These starting values should also be passed in a `graph` property object, if the block can be passed or assigned properties.
 
-See the [here](https://blockprotocol.org/spec/graph#message-definitions) or check the TypeScript types for message signatures.
+See the [message definitions](https://blockprotocol.org/spec/graph#message-definitions) or check the TypeScript types for message signatures.
 
 ```typescript
 import { GraphEmbedderHandler } from "@blockprotocol/graph";
