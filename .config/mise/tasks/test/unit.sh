@@ -12,7 +12,7 @@ set -euo pipefail
 PACKAGE=$usage_package
 COVERAGE=$usage_coverage
 STRATEGY=$usage_test_strategy
-ARGUMENTS=$usage_arguments
+declare -a "ARGUMENTS=($usage_arguments)"
 
 # Check if the package argument starts with `@rust/` if that isn't the case exit out
 if [[ $PACKAGE != "@rust/"* ]]; then
@@ -78,11 +78,11 @@ if [[ $COVERAGE == "true" || ${TEST_COVERAGE:-false} == 'true' || ${TEST_COVERAG
     fi
 
     cargo llvm-cov clean --workspace
-    cargo hack "${HACK_ARGUMENTS[@]}" llvm-cov "${LLVM_COV_ARGUMENTS[@]}" --no-report nextest "${NEXTEST_ARGUMENTS[@]}" --cargo-profile coverage $ARGUMENTS
+    cargo hack "${HACK_ARGUMENTS[@]}" llvm-cov "${LLVM_COV_ARGUMENTS[@]}" --no-report nextest "${NEXTEST_ARGUMENTS[@]}" --cargo-profile coverage "${ARGUMENTS[@]}"
     cargo llvm-cov "${LLVM_COV_ARGUMENTS[@]}" "${LLVM_COV_REPORT_ARGUMENTS[@]}" --no-clean --doctests test "${COMMON_ARGUMENTS[@]}" --all-features --profile coverage --doc
 
     exit 0
 fi
 
-cargo hack "${HACK_ARGUMENTS[@]}" nextest run "${NEXTEST_ARGUMENTS[@]}" $ARGUMENTS
+cargo hack "${HACK_ARGUMENTS[@]}" nextest run "${NEXTEST_ARGUMENTS[@]}" "${ARGUMENTS[@]}"
 cargo test "${COMMON_ARGUMENTS[@]}" --all-features --doc
