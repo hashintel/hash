@@ -404,15 +404,14 @@ where
     ) -> Result<bool, Report<QueryError>> {
         let url = ontology_type_reference.url();
 
-        if let Ok(connection_info) = self.connection_info() {
-            if connection_info
+        if let Ok(connection_info) = self.connection_info()
+            && connection_info
                 .domain_validator
                 .validate_url(url.base_url.as_str())
-            {
-                // If the domain is valid, we own the data type and it either exists or we cannot
-                // reference it.
-                return Ok(true);
-            }
+        {
+            // If the domain is valid, we own the data type and it either exists or we cannot
+            // reference it.
+            return Ok(true);
         }
 
         match ontology_type_reference {

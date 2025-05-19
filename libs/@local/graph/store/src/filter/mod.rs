@@ -647,32 +647,32 @@ impl<R: QueryRecord> FilterExpression<'_, R> {
     where
         D: DataTypeLookup + Sync,
     {
-        if let Self::Parameter { parameter, convert } = self {
-            if let Some(conversion) = convert.take() {
-                let &mut Parameter::Decimal(ref number) = parameter else {
-                    bail!(ParameterConversionError::InvalidParameterType {
-                        actual: ActualParameterType::Parameter(parameter.to_owned()),
-                        expected: ParameterType::Decimal,
-                    });
-                };
+        if let Self::Parameter { parameter, convert } = self
+            && let Some(conversion) = convert.take()
+        {
+            let &mut Parameter::Decimal(ref number) = parameter else {
+                bail!(ParameterConversionError::InvalidParameterType {
+                    actual: ActualParameterType::Parameter(parameter.to_owned()),
+                    expected: ParameterType::Decimal,
+                });
+            };
 
-                let conversions = provider
-                    .find_conversion(
-                        <&DataTypeReference>::from(&conversion.from),
-                        <&DataTypeReference>::from(&conversion.to),
-                    )
-                    .await
-                    .change_context_lazy(|| ParameterConversionError::NoConversionFound {
-                        from: conversion.from.clone(),
-                        to: conversion.to.clone(),
-                    })?;
-                let mut number = number.clone();
-                for conversion in conversions.borrow() {
-                    number = conversion.evaluate(number);
-                }
-
-                *parameter = Parameter::Decimal(number);
+            let conversions = provider
+                .find_conversion(
+                    <&DataTypeReference>::from(&conversion.from),
+                    <&DataTypeReference>::from(&conversion.to),
+                )
+                .await
+                .change_context_lazy(|| ParameterConversionError::NoConversionFound {
+                    from: conversion.from.clone(),
+                    to: conversion.to.clone(),
+                })?;
+            let mut number = number.clone();
+            for conversion in conversions.borrow() {
+                number = conversion.evaluate(number);
             }
+
+            *parameter = Parameter::Decimal(number);
         }
 
         Ok(())

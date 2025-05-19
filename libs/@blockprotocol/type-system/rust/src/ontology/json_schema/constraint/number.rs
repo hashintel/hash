@@ -319,34 +319,34 @@ impl ConstraintValidator<Real> for NumberConstraints {
     type Error = [NumberValidationError];
 
     fn is_valid(&self, value: &Real) -> bool {
-        if let Some(minimum) = &self.minimum {
-            if value < minimum {
-                return false;
-            }
+        if let Some(minimum) = &self.minimum
+            && value < minimum
+        {
+            return false;
         }
 
-        if let Some(exclusive_minimum) = &self.exclusive_minimum {
-            if value <= exclusive_minimum {
-                return false;
-            }
+        if let Some(exclusive_minimum) = &self.exclusive_minimum
+            && value <= exclusive_minimum
+        {
+            return false;
         }
 
-        if let Some(maximum) = &self.maximum {
-            if value > maximum {
-                return false;
-            }
+        if let Some(maximum) = &self.maximum
+            && value > maximum
+        {
+            return false;
         }
 
-        if let Some(exclusive_maximum) = &self.exclusive_maximum {
-            if value >= exclusive_maximum {
-                return false;
-            }
+        if let Some(exclusive_maximum) = &self.exclusive_maximum
+            && value >= exclusive_maximum
+        {
+            return false;
         }
 
-        if let Some(expected) = &self.multiple_of {
-            if !float_multiple_of(value, expected) {
-                return false;
-            }
+        if let Some(expected) = &self.multiple_of
+            && !float_multiple_of(value, expected)
+        {
+            return false;
         }
 
         true
@@ -355,49 +355,49 @@ impl ConstraintValidator<Real> for NumberConstraints {
     fn validate_value(&self, value: &Real) -> Result<(), Report<[NumberValidationError]>> {
         let mut status = ReportSink::new();
 
-        if let Some(minimum) = &self.minimum {
-            if value < minimum {
-                status.capture(NumberValidationError::Minimum {
-                    actual: value.clone(),
-                    expected: minimum.clone(),
-                });
-            }
+        if let Some(minimum) = &self.minimum
+            && value < minimum
+        {
+            status.capture(NumberValidationError::Minimum {
+                actual: value.clone(),
+                expected: minimum.clone(),
+            });
         }
 
-        if let Some(exclusive_minimum) = &self.exclusive_minimum {
-            if value <= exclusive_minimum {
-                status.capture(NumberValidationError::ExclusiveMinimum {
-                    actual: value.clone(),
-                    expected: exclusive_minimum.clone(),
-                });
-            }
+        if let Some(exclusive_minimum) = &self.exclusive_minimum
+            && value <= exclusive_minimum
+        {
+            status.capture(NumberValidationError::ExclusiveMinimum {
+                actual: value.clone(),
+                expected: exclusive_minimum.clone(),
+            });
         }
 
-        if let Some(maximum) = &self.maximum {
-            if value > maximum {
-                status.capture(NumberValidationError::Maximum {
-                    actual: value.clone(),
-                    expected: maximum.clone(),
-                });
-            }
+        if let Some(maximum) = &self.maximum
+            && value > maximum
+        {
+            status.capture(NumberValidationError::Maximum {
+                actual: value.clone(),
+                expected: maximum.clone(),
+            });
         }
 
-        if let Some(exclusive_maximum) = &self.exclusive_maximum {
-            if value >= exclusive_maximum {
-                status.capture(NumberValidationError::ExclusiveMaximum {
-                    actual: value.clone(),
-                    expected: exclusive_maximum.clone(),
-                });
-            }
+        if let Some(exclusive_maximum) = &self.exclusive_maximum
+            && value >= exclusive_maximum
+        {
+            status.capture(NumberValidationError::ExclusiveMaximum {
+                actual: value.clone(),
+                expected: exclusive_maximum.clone(),
+            });
         }
 
-        if let Some(expected) = &self.multiple_of {
-            if !float_multiple_of(value, expected) {
-                status.capture(NumberValidationError::MultipleOf {
-                    actual: value.clone(),
-                    expected: expected.clone(),
-                });
-            }
+        if let Some(expected) = &self.multiple_of
+            && !float_multiple_of(value, expected)
+        {
+            status.capture(NumberValidationError::MultipleOf {
+                actual: value.clone(),
+                expected: expected.clone(),
+            });
         }
 
         status.finish()

@@ -937,31 +937,29 @@ fn assert_equal_entities(lhs: &Entity, rhs: &Entity) {
     if let Some((lhs_time, rhs_time)) = lhs_metadata
         .first_non_draft_created_at_decision_time
         .zip(rhs_metadata.first_non_draft_created_at_decision_time)
+        && (lhs_time - rhs_time).abs() < Duration::milliseconds(1)
     {
-        if (lhs_time - rhs_time).abs() < Duration::milliseconds(1) {
-            cloned
-                .to_mut()
-                .metadata
-                .provenance
-                .inferred
-                .first_non_draft_created_at_decision_time =
-                rhs_metadata.first_non_draft_created_at_decision_time;
-        }
+        cloned
+            .to_mut()
+            .metadata
+            .provenance
+            .inferred
+            .first_non_draft_created_at_decision_time =
+            rhs_metadata.first_non_draft_created_at_decision_time;
     }
 
     if let Some((lhs_time, rhs_time)) = lhs_metadata
         .first_non_draft_created_at_transaction_time
         .zip(rhs_metadata.first_non_draft_created_at_transaction_time)
+        && (lhs_time - rhs_time).abs() < Duration::milliseconds(1)
     {
-        if (lhs_time - rhs_time).abs() < Duration::milliseconds(1) {
-            cloned
-                .to_mut()
-                .metadata
-                .provenance
-                .inferred
-                .first_non_draft_created_at_transaction_time =
-                rhs_metadata.first_non_draft_created_at_transaction_time;
-        }
+        cloned
+            .to_mut()
+            .metadata
+            .provenance
+            .inferred
+            .first_non_draft_created_at_transaction_time =
+            rhs_metadata.first_non_draft_created_at_transaction_time;
     }
 
     assert_eq!(*cloned, *rhs);

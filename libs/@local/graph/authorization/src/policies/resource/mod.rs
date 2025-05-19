@@ -217,7 +217,6 @@ impl ResourceConstraint {
 }
 
 #[cfg(test)]
-#[expect(clippy::panic_in_result_fn, reason = "Assertions in test are expected")]
 mod tests {
     use core::error::Error;
 
@@ -235,6 +234,7 @@ mod tests {
     };
 
     #[track_caller]
+    // #[expect(clippy::panic_in_result_fn, reason = "Assertions in test are expected")]
     pub(crate) fn check_resource(
         constraint: Option<ResourceConstraint>,
         value: JsonValue,
