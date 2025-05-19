@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       pr_number:
-        description: 'Pull request number to review'
+        description: Pull request number to review
         required: true
         type: number
 
@@ -127,12 +127,11 @@ jobs:
         with:
           fetch-depth: 2
 
-      - name: Install node and turbo
-        uses: jdx/mise-action@7a111ead46986ccad89a74ad013ba2a7c08c9e67 # v2.2.1
+      - name: Install tools
+        uses: ./.github/actions/install-tools
         with:
-          install_args: node npm:turbo
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          rust: false
 
       - name: Warm up repository
         uses: ./.github/actions/warm-up-repo
