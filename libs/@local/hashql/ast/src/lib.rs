@@ -46,15 +46,13 @@
 //! ## Workspace dependencies
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
 #![feature(
-    allocator_api,
-    box_into_boxed_slice,
-    formatting_options,
-    never_type,
-    decl_macro,
-    macro_metavar_expr,
-    let_chains,
+    // Language Features
     if_let_guard,
-    iter_intersperse
+    // Library Features
+    allocator_api,
+    coverage_attribute,
+    formatting_options,
+    iter_intersperse,
 )]
 #![cfg_attr(test, feature(assert_matches))]
 

@@ -37,6 +37,31 @@ newtype!(
 newtype_producer!(pub struct GenericArgumentIdProducer(GenericArgumentId));
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct GenericArgumentReference<'heap> {
+    pub id: GenericArgumentId,
+    pub name: Symbol<'heap>,
+}
+
+impl<'heap> From<GenericArgument<'heap>> for GenericArgumentReference<'heap> {
+    fn from(argument: GenericArgument<'heap>) -> Self {
+        Self {
+            id: argument.id,
+            name: argument.name,
+        }
+    }
+}
+
+impl PrettyPrint for GenericArgumentReference<'_> {
+    fn pretty<'env>(
+        &self,
+        _: &'env Environment,
+        _: RecursionDepthBoundary,
+    ) -> RcDoc<'env, anstyle::Style> {
+        RcDoc::text(format!("{}?{}", self.name, self.id)).annotate(ORANGE)
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct AnonymousGenericArgument {
     pub id: GenericArgumentId,
 
@@ -52,12 +77,20 @@ pub struct GenericArgument<'heap> {
     pub constraint: Option<TypeId>,
 }
 
-impl GenericArgument<'_> {
+impl<'heap> GenericArgument<'heap> {
     #[must_use]
     pub const fn as_anonymous(&self) -> AnonymousGenericArgument {
         AnonymousGenericArgument {
             id: self.id,
             constraint: self.constraint,
+        }
+    }
+
+    #[must_use]
+    pub const fn as_reference(&self) -> GenericArgumentReference<'heap> {
+        GenericArgumentReference {
+            id: self.id,
+            name: self.name,
         }
     }
 }

@@ -4,12 +4,9 @@ use anstream::adapter::strip_str;
 use hashql_ast::{
     format::SyntaxDump as _,
     lowering::{
-        import_resolver::ImportResolver,
-        name_mangler::NameMangler,
-        node_renumberer::NodeRenumberer,
+        import_resolver::ImportResolver, name_mangler::NameMangler,
         pre_expansion_name_resolver::PreExpansionNameResolver,
-        special_form_expander::SpecialFormExpander,
-        type_extractor::{TypeDefinitionExtractor, TypeExtractor},
+        special_form_expander::SpecialFormExpander, type_extractor::TypeDefinitionExtractor,
     },
     node::expr::Expr,
     visit::Visitor as _,
@@ -23,11 +20,11 @@ use hashql_core::{
 
 use super::{Suite, SuiteDiagnostic, common::process_diagnostics};
 
-pub(crate) struct AstLoweringTypeExtractorSuite;
+pub(crate) struct AstLoweringTypeDefinitionExtractorSuite;
 
-impl Suite for AstLoweringTypeExtractorSuite {
+impl Suite for AstLoweringTypeDefinitionExtractorSuite {
     fn name(&self) -> &'static str {
-        "ast/lowering/type-extractor"
+        "ast/lowering/type-definition-extractor"
     }
 
     fn run<'heap>(
@@ -40,6 +37,7 @@ impl Suite for AstLoweringTypeExtractorSuite {
         let registry = ModuleRegistry::new(&environment);
 
         let mut resolver = PreExpansionNameResolver::new(&registry);
+
         resolver.visit_expr(&mut expr);
 
         let mut expander = SpecialFormExpander::new(heap);
@@ -65,40 +63,17 @@ impl Suite for AstLoweringTypeExtractorSuite {
         let (locals, extractor_diagnostics) = extractor.finish();
         process_diagnostics(diagnostics, extractor_diagnostics)?;
 
-        let mut node_renumberer = NodeRenumberer::new();
-        node_renumberer.visit_expr(&mut expr);
-
-        let mut extractor = TypeExtractor::new(&environment, &registry, &locals);
-        extractor.visit_expr(&mut expr);
-
-        process_diagnostics(diagnostics, extractor.take_diagnostics())?;
-
         let mut output = expr.syntax_dump_to_string();
         output.push_str("\n------------------------");
 
-        let mut local_definitions: Vec<_> = locals.iter().collect();
-        local_definitions.sort_by_key(|&LocalTypeDef { name, .. }| name);
+        let mut locals: Vec<_> = locals.iter().collect();
+        locals.sort_by_key(|&LocalTypeDef { name, .. }| name);
 
-        for def in local_definitions {
+        for def in locals {
             let _: Result<(), _> = write!(
                 output,
                 "\n\n{}",
                 strip_str(&def.pretty_print(&environment, 80))
-            );
-        }
-
-        let types = extractor.into_types();
-        let mut types: Vec<_> = types.into_iter().collect();
-        types.sort_unstable();
-
-        output.push_str("\n------------------------");
-        for (node_id, type_id) in types {
-            let r#type = environment.r#type(type_id);
-
-            let _: Result<(), _> = write!(
-                output,
-                "\n\n{node_id} = {}",
-                strip_str(&r#type.pretty_print(&environment, 80))
             );
         }
 

@@ -3,4 +3,4 @@ Expr#4294967040@23
 
 ------------------------
 
-StringToNumber:0 = Dict<String, Number>
+type StringToNumber:0 = Dict<String, Number>

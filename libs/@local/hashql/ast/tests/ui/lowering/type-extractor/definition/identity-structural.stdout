@@ -1,6 +1,6 @@
-Expr#4294967040@18
+Expr#4294967040@13
   ExprKind (Underscore)
 
 ------------------------
 
-Numbers:0 = List<Number>
+type Alias:0 = Number

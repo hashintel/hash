@@ -1,0 +1,9 @@
+//@ run: fail
+//@ description: Tests that an error is properly reported when a generic type is provided with too many type parameters
+[
+  "type",
+  "Foo",
+  "Some<String, Number>",
+  //~^ ERROR Remove this parameter
+  "_"
+]

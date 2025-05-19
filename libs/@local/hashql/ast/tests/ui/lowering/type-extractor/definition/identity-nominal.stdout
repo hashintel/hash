@@ -3,4 +3,4 @@ Expr#4294967040@13
 
 ------------------------
 
-Distinct:0 = ::main::Distinct:0[Number]
+type Distinct:0 = ::main::Distinct:0[Number]

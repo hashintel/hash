@@ -1,0 +1,16 @@
+//@ run: pass
+//@ description: Tests that locally defined types are properly resolved
+[
+  "type",
+  "Person",
+  { "#struct": { "name": "String", "age": "Number" } },
+  [
+    "let",
+    "alice",
+    "Person",
+    {
+      "#struct": { "name": { "#literal": "Alice" }, "age": { "#literal": 30 } }
+    },
+    "_"
+  ]
+]

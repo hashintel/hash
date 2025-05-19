@@ -3,6 +3,6 @@ Expr#4294967040@25
 
 ------------------------
 
-First:0 = Number
+type Local:0 = Number
 
-Second:0 = Number
+type Reference:0 = Number

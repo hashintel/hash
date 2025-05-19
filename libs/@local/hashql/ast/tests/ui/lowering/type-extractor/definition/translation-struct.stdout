@@ -3,6 +3,4 @@ Expr#4294967040@25
 
 ------------------------
 
-Local:0 = Number
-
-Reference:0 = Number
+type Person:0 = (age: Number, name: String)

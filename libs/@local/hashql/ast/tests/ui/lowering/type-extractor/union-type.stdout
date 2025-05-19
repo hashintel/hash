@@ -1,0 +1,30 @@
+Expr#0@25
+  ExprKind (Let)
+    LetExpr#1@25 (name: value:0)
+      Expr#2@22
+        ExprKind (Literal)
+          LiteralExpr#3@21
+            LiteralKind (Integer)
+              IntegerLiteral (42)
+      Type#4@20
+        TypeKind (Union)
+          UnionType#5@20
+            Type#6@15
+              TypeKind (Path)
+                Path#7@15 (rooted: true)
+                  PathSegment#8@14 (name: kernel)
+                  PathSegment#9@14 (name: type)
+                  PathSegment#10@14 (name: Number)
+            Type#11@19
+              TypeKind (Path)
+                Path#12@19 (rooted: true)
+                  PathSegment#13@18 (name: kernel)
+                  PathSegment#14@18 (name: type)
+                  PathSegment#15@18 (name: String)
+      Expr#16@24
+        ExprKind (Underscore)
+
+------------------------
+------------------------
+
+4 = (String | Number)

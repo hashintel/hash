@@ -5,10 +5,6 @@ use hashql_diagnostics::{Diagnostic, category::DiagnosticCategory};
 
 pub type LoweringDiagnostic = Diagnostic<LoweringDiagnosticCategory, SpanId>;
 
-#[expect(
-    clippy::empty_enum,
-    reason = "Preparation for future diagnostic categories"
-)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum LoweringDiagnosticCategory {}
 

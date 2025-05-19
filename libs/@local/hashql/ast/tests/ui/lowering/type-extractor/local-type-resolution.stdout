@@ -1,0 +1,31 @@
+Expr#0@50
+  ExprKind (Let)
+    LetExpr#1@50 (name: alice:0)
+      Expr#2@47
+        ExprKind (Struct)
+          StructExpr#3@46
+            StructEntry#4@40 (key: name)
+              Expr#5@39
+                ExprKind (Literal)
+                  LiteralExpr#6@38
+                    LiteralKind (String)
+                      StringLiteral (Alice)
+            StructEntry#7@45 (key: age)
+              Expr#8@44
+                ExprKind (Literal)
+                  LiteralExpr#9@43
+                    LiteralKind (Integer)
+                      IntegerLiteral (30)
+      Type#10@35
+        TypeKind (Path)
+          Path#11@35 (rooted: false)
+            PathSegment#12@34 (name: Person:0)
+      Expr#13@49
+        ExprKind (Underscore)
+
+------------------------
+
+type Person:0 = (age: Number, name: String)
+------------------------
+
+10 = (age: Number, name: String)

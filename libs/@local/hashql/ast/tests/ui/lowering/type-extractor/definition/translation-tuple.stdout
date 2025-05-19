@@ -1,6 +1,6 @@
-Expr#4294967040@11
+Expr#4294967040@19
   ExprKind (Underscore)
 
 ------------------------
 
-Inferred:0 = _0
+type Pair:0 = (Number, String)

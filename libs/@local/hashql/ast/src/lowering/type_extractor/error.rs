@@ -8,7 +8,10 @@ use hashql_core::{
     },
     span::SpanId,
     symbol::Symbol,
-    r#type::{error::TypeCheckDiagnosticCategory, kind::GenericArgument},
+    r#type::{
+        error::TypeCheckDiagnosticCategory,
+        kind::{GenericArgument, generic::GenericArgumentReference},
+    },
 };
 use hashql_diagnostics::{
     Diagnostic,
@@ -142,6 +145,7 @@ impl DiagnosticCategory for TypeExtractorDiagnosticCategory {
 ///
 /// This diagnostic is generated when the type extractor finds a duplicate type alias name
 /// which should have been prevented by the name mangler at an earlier stage.
+#[coverage(off)] // Compiler Bugs should never be hit
 pub(crate) fn duplicate_type_alias(
     original_span: SpanId,
     duplicate_span: SpanId,
@@ -210,6 +214,7 @@ pub(crate) fn generic_constraint_not_allowed(
 ///
 /// This diagnostic is generated when the type extractor finds a duplicate newtype name
 /// which should have been prevented by the name mangler at an earlier stage.
+#[coverage(off)] // Compiler Bugs should never be hit
 pub(crate) fn duplicate_newtype(
     original_span: SpanId,
     duplicate_span: SpanId,
@@ -243,22 +248,28 @@ pub(crate) fn duplicate_newtype(
     diagnostic
 }
 
+fn demangle_unwrap(symbol: Symbol<'_>) -> &str {
+    let inner = symbol.unwrap();
+
+    inner.rsplit_once(':').map_or(inner, |(name, _)| name)
+}
+
 fn demangle<'s>(symbol: &'s Symbol) -> &'s str {
-    symbol
-        .as_str()
-        .rsplit_once(':')
-        .map_or(symbol.as_str(), |(name, _)| name)
+    demangle_unwrap(*symbol)
 }
 
 /// Creates a diagnostic for incorrect generic parameter count.
 ///
 /// This diagnostic is generated when a type is provided with an incorrect number of generic
 /// parameters. It handles both too many and too few parameters cases.
-pub(crate) fn generic_parameter_mismatch(
+pub(crate) fn generic_parameter_mismatch<'heap, T>(
     variable: &VariableReference,
-    parameters: &[GenericArgument<'_>],
-    arguments: &[PathSegmentArgument<'_>],
-) -> TypeExtractorDiagnostic {
+    parameters: &[T],
+    arguments: &[PathSegmentArgument<'heap>],
+) -> TypeExtractorDiagnostic
+where
+    T: Into<GenericArgumentReference<'heap>> + Copy,
+{
     let mut diagnostic = Diagnostic::new(
         TypeExtractorDiagnosticCategory::GenericParameterMismatch,
         Severity::ERROR,
@@ -305,11 +316,14 @@ pub(crate) fn generic_parameter_mismatch(
 
     let mut index = -1;
 
-    for missing in missing {
+    for &missing in missing {
         diagnostic.labels.push(
             Label::new(
                 variable.span(),
-                format!("Missing parameter `{}`", demangle(&missing.name)),
+                format!(
+                    "Missing parameter `{}`",
+                    demangle_unwrap(missing.into().name)
+                ),
             )
             .with_order(index)
             .with_color(Color::Ansi(AnsiColor::Yellow)),
@@ -330,7 +344,7 @@ pub(crate) fn generic_parameter_mismatch(
 
     let params = parameters
         .iter()
-        .map(|param| demangle(&param.name))
+        .map(|&param| demangle_unwrap(param.into().name))
         .intersperse(", ")
         .collect::<String>();
 
@@ -358,6 +372,7 @@ pub(crate) fn generic_parameter_mismatch(
 ///
 /// This diagnostic is generated when a variable reference cannot be resolved within
 /// the current scope, which should have been caught by an earlier pass.
+#[coverage(off)] // Compiler Bugs should never be hit
 pub(crate) fn unbound_type_variable<'heap>(
     span: SpanId,
     name: Symbol<'heap>,
@@ -503,6 +518,7 @@ pub(crate) fn intrinsic_parameter_count_mismatch(
 /// Creates a diagnostic for an unknown intrinsic type.
 ///
 /// This diagnostic is generated when a reference to an unknown intrinsic type is encountered.
+#[coverage(off)] // Compiler Bugs should never be hit
 pub(crate) fn unknown_intrinsic_type(
     span: SpanId,
     name: &str,
@@ -555,6 +571,7 @@ pub(crate) fn unknown_intrinsic_type(
 ///
 /// This diagnostic is generated when a resolution succeeds but produces an item
 /// of the wrong kind, which indicates a compiler bug.
+#[coverage(off)] // Compiler Bugs should never be hit
 pub(crate) fn invalid_resolved_item(
     span: SpanId,
     expected: Universe,
@@ -601,6 +618,7 @@ pub(crate) fn invalid_resolved_item(
 /// Creates a diagnostic for a resolution error.
 ///
 /// This diagnostic is generated when path resolution fails due to a compiler bug.
+#[coverage(off)] // Compiler Bugs should never be hit
 pub(crate) fn resolution_error(path: &Path, error: &ResolutionError) -> TypeExtractorDiagnostic {
     let mut diagnostic = Diagnostic::new(
         TypeExtractorDiagnosticCategory::ResolutionError,

@@ -1,0 +1,13 @@
+//@ run: pass
+//@ description: Tests that generic types are properly resolved
+[
+  "type",
+  "Box<T>",
+  { "#struct": { "value": "T" } },
+  [
+    "let",
+    "number",
+    { "#struct": { "value": { "#literal": 42 } }, "#type": "Box<Number>" },
+    "_"
+  ]
+]

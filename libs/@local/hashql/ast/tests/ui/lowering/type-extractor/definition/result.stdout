@@ -1,0 +1,13 @@
+Expr#4294967040@76
+  ExprKind (Underscore)
+
+------------------------
+
+type Err:0<E:0?12> = <E:0?12>::main::Err:0[?12]
+
+type Ok:0<T:0?11> = <T:0?11>::main::Ok:0[?11]
+
+type Result:0<T:1?7, E:1?8>
+=
+<T:1?7, E:1?8>(<E:0?10>::main::Err:0[?10] where<?10 = ?8>
+ | <T:0?9>::main::Ok:0[?9] where<?9 = ?7>)

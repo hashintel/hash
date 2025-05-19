@@ -1,17 +1,85 @@
+use pretty::RcDoc;
+
 use crate::{
-    collection::FastHashMap,
+    collection::{FastHashMap, TinyVec},
     symbol::Symbol,
     r#type::{
         TypeId,
         environment::{Diagnostics, Environment, instantiate::InstantiateEnvironment},
+        kind::generic::GenericArgumentReference,
+        pretty_print::PrettyPrint,
+        recursion::RecursionDepthBoundary,
     },
 };
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct LocalTypeDef<'heap> {
     pub id: TypeId,
 
     pub name: Symbol<'heap>,
+    pub arguments: TinyVec<GenericArgumentReference<'heap>>,
+}
+
+impl<'heap> LocalTypeDef<'heap> {
+    fn instantiate(&mut self, env: &mut InstantiateEnvironment<'_, 'heap>) {
+        self.id = env.instantiate(self.id);
+        env.clear_provisioned();
+
+        let Some(generic) = env.r#type(self.id).kind.generic() else {
+            debug_assert!(self.arguments.is_empty(), "Expected no generics");
+            return;
+        };
+
+        debug_assert_eq!(
+            generic.arguments.len(),
+            self.arguments.len(),
+            "Unexpected number of generics"
+        );
+
+        for argument in &mut self.arguments {
+            // Find the argument with the same name, for the small number of expected
+            // generics we have a linear scan is the fastest, we cannot zip, because the type
+            // implementation reserves the right to re-order the generic arguments.
+            let Some(generic_argument) = generic
+                .arguments
+                .iter()
+                .find(|generic_argument| generic_argument.name == argument.name)
+            else {
+                unreachable!()
+            };
+
+            *argument = generic_argument.as_reference();
+        }
+    }
+}
+
+impl PrettyPrint for LocalTypeDef<'_> {
+    fn pretty<'env>(
+        &self,
+        env: &'env Environment,
+        limit: RecursionDepthBoundary,
+    ) -> pretty::RcDoc<'env, anstyle::Style> {
+        RcDoc::text("type")
+            .append(RcDoc::line())
+            .append(RcDoc::as_string(self.name))
+            .append(match self.arguments.as_slice() {
+                [] => RcDoc::nil(),
+                _ => RcDoc::text("<")
+                    .append(RcDoc::intersperse(
+                        self.arguments
+                            .iter()
+                            .map(|argument| argument.pretty(env, limit)),
+                        RcDoc::text(",").append(RcDoc::line()),
+                    ))
+                    .append(RcDoc::text(">")),
+            })
+            .group()
+            .append(RcDoc::line())
+            .append("=")
+            .append(RcDoc::line())
+            .append(limit.pretty(env, self.id))
+            .group()
+    }
 }
 
 #[derive(Debug)]
@@ -32,14 +100,26 @@ impl<'heap> LocalTypes<'heap> {
         }
     }
 
-    pub fn insert(&mut self, def: LocalTypeDef<'heap>) {
-        let index = self.storage.len();
-        self.storage.push(def);
-        self.lookup.insert(def.name, index);
+    #[must_use]
+    pub fn get(&self, name: Symbol<'heap>) -> Option<&LocalTypeDef<'heap>> {
+        self.lookup.get(&name).map(|&index| &self.storage[index])
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = LocalTypeDef<'heap>> {
-        self.storage.iter().copied()
+    #[must_use]
+    pub fn names(&self) -> impl IntoIterator<Item = Symbol<'heap>> + use<'_, 'heap> {
+        self.lookup.keys().copied()
+    }
+
+    pub fn insert(&mut self, def: LocalTypeDef<'heap>) {
+        let index = self.storage.len();
+        let name = def.name;
+
+        self.storage.push(def);
+        self.lookup.insert(name, index);
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = &LocalTypeDef<'heap>> {
+        self.storage.iter()
     }
 
     pub fn finish(&mut self, env: &Environment<'heap>) -> Diagnostics {
@@ -47,9 +127,8 @@ impl<'heap> LocalTypes<'heap> {
         // properly set-up) to split the individual types from each other.
         let mut instantiate = InstantiateEnvironment::new(env);
 
-        for LocalTypeDef { id, .. } in &mut self.storage {
-            *id = instantiate.instantiate(*id);
-            instantiate.clear_provisioned();
+        for def in &mut self.storage {
+            def.instantiate(&mut instantiate);
         }
 
         instantiate.take_diagnostics()

@@ -1,6 +1,6 @@
-Expr#4294967040@17
+Expr#4294967040@18
   ExprKind (Underscore)
 
 ------------------------
 
-Global:0 = Number
+type Box:0<T:0?4> = <T:0?4>?4

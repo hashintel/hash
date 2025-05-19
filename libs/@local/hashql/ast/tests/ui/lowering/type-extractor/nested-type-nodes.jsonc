@@ -1,0 +1,18 @@
+//@ run: pass
+//@ description: Tests mapping of nested type nodes to type IDs
+[
+  "let",
+  "nested",
+  { "#struct": { "data": "List<(value: Number)>" } },
+  {
+    "#struct": {
+      "data": {
+        "#list": [
+          { "#struct": { "value": { "#literal": 1 } } },
+          { "#struct": { "value": { "#literal": 2 } } }
+        ]
+      }
+    }
+  },
+  "_"
+]
