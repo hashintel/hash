@@ -24,12 +24,13 @@ import { useStorageSync } from "../../shared/use-storage-sync";
 import { Automated } from "./action-center/automated";
 import { History } from "./action-center/history";
 import { OneOff } from "./action-center/one-off";
+import { generateTabA11yProps } from "./action-center/shared/tab-props";
 import { Avatar } from "./shared/avatar";
 import { popupWidth } from "./shared/sizing";
 
 const generateCommonTabProps = (
   active: boolean,
-  label: string,
+  label: "One-off" | "Automated" | "History",
   Icon: FunctionComponent<SvgIconProps>,
 ): MuiTabProps => ({
   disableRipple: true,
@@ -42,6 +43,7 @@ const generateCommonTabProps = (
       }}
     />
   ),
+  ...generateTabA11yProps(label),
   label: (
     <Typography sx={{ fontWeight: 500, fontSize: 14 }}>{label}</Typography>
   ),
@@ -56,6 +58,12 @@ const generateCommonTabProps = (
     color: active ? palette.blue[70] : palette.gray[70],
   }),
 });
+
+const popupTabIndex = {
+  "one-off": 0,
+  automated: 1,
+  history: 2,
+} as const;
 
 export const ActionCenter = ({
   activeBrowserTab,
@@ -74,6 +82,8 @@ export const ActionCenter = ({
       createDefaultSettings({ userWebWebId: user.webWebId })
         .automaticInferenceConfig,
     );
+
+  const tabValueAsNumber = popupTabIndex[popupTab];
 
   return (
     <Box sx={{ maxWidth: "100%", width: popupWidth, minHeight: 400 }}>
@@ -110,24 +120,24 @@ export const ActionCenter = ({
               )}
             />
             {user.enabledFeatureFlags.includes("ai") ? (
-              <>
-                <MuiTab
-                  value="automated"
-                  {...generateCommonTabProps(
-                    popupTab === "automated",
-                    "Automated",
-                    WandMagicSparklesIcon,
-                  )}
-                />
-                <MuiTab
-                  value="history"
-                  {...generateCommonTabProps(
-                    popupTab === "history",
-                    "History",
-                    ListRegularIcon,
-                  )}
-                />
-              </>
+              <MuiTab
+                value="automated"
+                {...generateCommonTabProps(
+                  popupTab === "automated",
+                  "Automated",
+                  WandMagicSparklesIcon,
+                )}
+              />
+            ) : null}
+            {user.enabledFeatureFlags.includes("ai") ? (
+              <MuiTab
+                value="history"
+                {...generateCommonTabProps(
+                  popupTab === "history",
+                  "History",
+                  ListRegularIcon,
+                )}
+              />
             ) : null}
           </MuiTabs>
         </Box>
@@ -143,15 +153,22 @@ export const ActionCenter = ({
       </Stack>
       <Box sx={{ maxHeight: 545, overflowY: "scroll" }}>
         {popupTab === "one-off" ? (
-          <OneOff activeTab={activeBrowserTab} user={user} />
+          <OneOff
+            activeTab={activeBrowserTab}
+            user={user}
+            index={0}
+            value={tabValueAsNumber}
+          />
         ) : popupTab === "automated" ? (
           <Automated
             automaticInferenceConfig={automaticInferenceConfig}
             setAutomaticInferenceConfig={setAutomaticInferenceConfig}
             user={user}
+            index={1}
+            value={tabValueAsNumber}
           />
         ) : (
-          <History />
+          <History index={2} value={tabValueAsNumber} />
         )}
       </Box>
     </Box>
