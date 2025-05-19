@@ -10,4 +10,4 @@ The grid size (square only) and number of mines can be set via the block's prope
 
 ## Credits
 
-Credit to [kurehajime](https://github.com/kurehajime) for the custom element – you can find the code [here](https://github.com/kurehajime/minesweeper_tag).
+Credit to [kurehajime](https://github.com/kurehajime) for the custom element – you can [find the code here](https://github.com/kurehajime/minesweeper_tag).
