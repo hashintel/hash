@@ -501,7 +501,9 @@ where
         let actor_to_assign_id = transaction
             .determine_actor(actor_to_assign)
             .await
-            .change_context(RoleAssignmentError::StoreError)?;
+            .change_context(RoleAssignmentError::StoreError)?
+            .ok_or(RoleAssignmentError::ActorNotProvided)
+            .attach(StatusCode::InvalidArgument)?;
         let actor_group_id = transaction
             .determine_actor_group(actor_group_id)
             .await
@@ -662,7 +664,9 @@ where
         let actor_to_unassign_id = transaction
             .determine_actor(actor_to_unassign)
             .await
-            .change_context(RoleAssignmentError::StoreError)?;
+            .change_context(RoleAssignmentError::StoreError)?
+            .ok_or(RoleAssignmentError::ActorNotProvided)
+            .attach(StatusCode::InvalidArgument)?;
         let actor_group_id = transaction
             .determine_actor_group(actor_group_id)
             .await
@@ -2248,7 +2252,9 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
         let actor_id = transaction
             .determine_actor(actor_id)
             .await
-            .change_context(AccountInsertionError)?;
+            .change_context(AccountInsertionError)?
+            .ok_or(AccountInsertionError)
+            .attach(StatusCode::Unauthenticated)?;
 
         let user_id = transaction
             .create_user(None)
@@ -2315,13 +2321,17 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
         let actor_id = transaction
             .determine_actor(actor_id)
             .await
-            .change_context(WebInsertionError)?;
+            .change_context(WebInsertionError)?
+            .ok_or(WebInsertionError)
+            .attach(StatusCode::Unauthenticated)?;
 
         let administrator = if let Some(administrator) = params.administrator {
             transaction
                 .determine_actor(administrator)
                 .await
                 .change_context(WebInsertionError)?
+                .ok_or(WebInsertionError)
+                .attach(StatusCode::InvalidArgument)?
         } else {
             actor_id
         };
@@ -2454,7 +2464,9 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
                 transaction
                     .determine_actor(actor_id)
                     .await
-                    .change_context(AccountGroupInsertionError)?,
+                    .change_context(AccountGroupInsertionError)?
+                    .ok_or(AccountGroupInsertionError)
+                    .attach(StatusCode::InvalidArgument)?,
                 admin_role,
             )
             .await
