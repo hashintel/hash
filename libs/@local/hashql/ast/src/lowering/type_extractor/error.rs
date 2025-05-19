@@ -49,11 +49,6 @@ const UNBOUND_TYPE_VARIABLE: TerminalDiagnosticCategory = TerminalDiagnosticCate
     name: "Unbound type variable",
 };
 
-const SPECIAL_FORM_NOT_SUPPORTED: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
-    id: "special-form-not-supported",
-    name: "Unsupported special form",
-};
-
 const INTRINSIC_PARAMETER_MISMATCH: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "intrinsic-parameter-mismatch",
     name: "Incorrect intrinsic type parameters",
@@ -100,7 +95,6 @@ pub enum TypeExtractorDiagnosticCategory {
     DuplicateNewtype,
     GenericParameterMismatch,
     UnboundTypeVariable,
-    SpecialFormNotSupported,
     IntrinsicParameterMismatch,
     UnknownIntrinsicType,
     InvalidResolution,
@@ -127,7 +121,6 @@ impl DiagnosticCategory for TypeExtractorDiagnosticCategory {
             Self::DuplicateNewtype => Some(&DUPLICATE_NEWTYPE),
             Self::GenericParameterMismatch => Some(&GENERIC_PARAMETER_MISMATCH),
             Self::UnboundTypeVariable => Some(&UNBOUND_TYPE_VARIABLE),
-            Self::SpecialFormNotSupported => Some(&SPECIAL_FORM_NOT_SUPPORTED),
             Self::IntrinsicParameterMismatch => Some(&INTRINSIC_PARAMETER_MISMATCH),
             Self::UnknownIntrinsicType => Some(&UNKNOWN_INTRINSIC_TYPE),
             Self::InvalidResolution => Some(&INVALID_RESOLUTION),
@@ -409,31 +402,6 @@ pub(crate) fn unbound_type_variable<'heap>(
          encountered a name that wasn't properly resolved earlier in compilation. The name \
          resolution pass should have caught this error or provided a more specific error message. \
          Please report this issue to the HashQL team with a minimal reproduction case.",
-    ));
-
-    diagnostic
-}
-
-/// Creates a diagnostic for a special form usage where it's no longer supported.
-///
-/// This diagnostic is generated when code attempts to use a special form in a context
-/// where they are no longer supported (likely after a language change).
-pub(crate) fn special_form_not_supported(span: SpanId, name: &str) -> TypeExtractorDiagnostic {
-    let mut diagnostic = Diagnostic::new(
-        TypeExtractorDiagnosticCategory::SpecialFormNotSupported,
-        Severity::ERROR,
-    );
-
-    diagnostic.labels.push(
-        Label::new(span, format!("Special form '{name}' not supported here"))
-            .with_color(Color::Ansi(AnsiColor::Red)),
-    );
-
-    diagnostic.note = Some(Note::new(
-        "This special form should have been handled by an earlier compilation stage. Before this \
-         step, special forms should have been replaced with native type syntax in the special \
-         form expander compilation pass or error out on invalid placement. This likely indicates \
-         an issue with the compiler, not with your code.",
     ));
 
     diagnostic

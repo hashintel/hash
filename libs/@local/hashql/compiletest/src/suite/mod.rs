@@ -1,9 +1,9 @@
-mod ast_lowering_generic_constraint_sanitizer;
 mod ast_lowering_import_resolver;
 mod ast_lowering_import_resolver_continue;
 mod ast_lowering_node_mangler;
 mod ast_lowering_node_renumberer;
 mod ast_lowering_pre_expansion_name_resolver;
+mod ast_lowering_sanitizer;
 mod ast_lowering_special_form_expander;
 mod ast_lowering_type_definition_extractor;
 mod ast_lowering_type_extractor;
@@ -15,12 +15,12 @@ use hashql_core::{heap::Heap, span::SpanId};
 use hashql_diagnostics::{Diagnostic, category::DiagnosticCategory, span::AbsoluteDiagnosticSpan};
 
 use self::{
-    ast_lowering_generic_constraint_sanitizer::AstLoweringGenericConstraintSanitizerSuite,
     ast_lowering_import_resolver::AstLoweringImportResolverSuite,
     ast_lowering_import_resolver_continue::AstLoweringImportResolverContinueSuite,
     ast_lowering_node_mangler::AstLoweringNameManglerSuite,
     ast_lowering_node_renumberer::AstLoweringNodeRenumbererSuite,
     ast_lowering_pre_expansion_name_resolver::AstLoweringNameResolverSuite,
+    ast_lowering_sanitizer::AstLoweringSanitizerSuite,
     ast_lowering_special_form_expander::AstLoweringSpecialFormExpanderSuite,
     ast_lowering_type_definition_extractor::AstLoweringTypeDefinitionExtractorSuite,
     ast_lowering_type_extractor::AstLoweringTypeExtractorSuite,
@@ -52,7 +52,7 @@ const SUITES: &[&dyn Suite] = &[
     &AstLoweringImportResolverContinueSuite,
     &AstLoweringTypeExtractorSuite,
     &AstLoweringTypeDefinitionExtractorSuite,
-    &AstLoweringGenericConstraintSanitizerSuite,
+    &AstLoweringSanitizerSuite,
 ];
 
 pub(crate) fn find_suite(name: &str) -> Option<&'static dyn Suite> {

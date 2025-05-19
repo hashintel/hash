@@ -1,0 +1,11 @@
+[31m[sanitizer::invalid-special-form] Error:[0m Invalid special form
+   ╭─[ <unknown>:5:4 ]
+   │
+ 5 │   "::kernel::special_form::let",
+   │    ─────────────┬─────────────  
+   │                 ╰─────────────── Special form cannot be used as a value
+   │ 
+   │ Help: The special form 'let' must be called directly with arguments. It cannot be used as a value expression or passed to other functions. Instead, use it in a direct function call syntax.
+   │ 
+   │ Note: Special forms in HashQL are compile-time constructs that must be expanded during compilation. They can only be used in call position with their expected arguments, not as regular values, types, or function references.
+───╯

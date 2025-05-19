@@ -1,8 +1,7 @@
 use hashql_ast::{
     format::SyntaxDump as _,
     lowering::{
-        generic_constraint_sanitizer::GenericConstraintSanitizer,
-        pre_expansion_name_resolver::PreExpansionNameResolver,
+        pre_expansion_name_resolver::PreExpansionNameResolver, sanitizer::Sanitizer,
         special_form_expander::SpecialFormExpander,
     },
     node::expr::Expr,
@@ -14,11 +13,11 @@ use hashql_core::{
 
 use super::{Suite, SuiteDiagnostic, common::process_diagnostics};
 
-pub(crate) struct AstLoweringGenericConstraintSanitizerSuite;
+pub(crate) struct AstLoweringSanitizerSuite;
 
-impl Suite for AstLoweringGenericConstraintSanitizerSuite {
+impl Suite for AstLoweringSanitizerSuite {
     fn name(&self) -> &'static str {
-        "ast/lowering/generic-constraint-sanitizer"
+        "ast/lowering/sanitizer"
     }
 
     fn run<'heap>(
@@ -39,7 +38,7 @@ impl Suite for AstLoweringGenericConstraintSanitizerSuite {
 
         process_diagnostics(diagnostics, expander.take_diagnostics())?;
 
-        let mut sanitizer = GenericConstraintSanitizer::new();
+        let mut sanitizer = Sanitizer::new();
         sanitizer.visit_expr(&mut expr);
 
         process_diagnostics(diagnostics, sanitizer.take_diagnostics())?;
