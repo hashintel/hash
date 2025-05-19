@@ -182,7 +182,9 @@ export const EntityType = ({
   const isDraft = !!draftEntityType;
 
   const { userPermissions, loading: loadingUserPermissions } =
-    useUserPermissionsOnEntityType(entityType?.schema.$id);
+    useUserPermissionsOnEntityType(
+      isDraft ? undefined : entityType?.schema.$id,
+    );
 
   const [entityTypeDependents, setEntityTypeDependents] = useState<
     Record<BaseUrl, EntityTypeDependent>
@@ -302,7 +304,7 @@ export const EntityType = ({
     }
   };
 
-  if (!entityType || !userPermissions) {
+  if (!entityType || (!userPermissions && !isDraft)) {
     if (loadingRemoteEntityType || loadingUserPermissions) {
       return <TypeEditorSkeleton />;
     } else if (isHrefExternal(entityTypeBaseUrl as string)) {
@@ -386,7 +388,7 @@ export const EntityType = ({
 
   const isLatest = !requestedVersion || requestedVersion === latestVersion;
 
-  const isReadonly = !draftEntityType && (!userPermissions.edit || !isLatest);
+  const isReadonly = !draftEntityType && (!userPermissions?.edit || !isLatest);
 
   const isArchived = isTypeArchived(entityType);
 
@@ -514,7 +516,7 @@ export const EntityType = ({
                   />
 
                   <EntityTypeTabs
-                    canCreateEntity={userPermissions.instantiate}
+                    canCreateEntity={!!userPermissions?.instantiate}
                     isDraft={isDraft}
                     isFile={isFile}
                     isImage={isImage}
