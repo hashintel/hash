@@ -3,13 +3,15 @@
 set -euo pipefail
 
 #USAGE flag "--coverage" negate="--no-coverage" default="false" help="Run unit tests with coverage, also reads `$TEST_COVERAGE`"
-#USAGE flag "--powerset" negate="--no-powerset" default="false" help="Run unit tests with powerset, also reads `$TEST_POWERSET`"
+#USAGE flag "--test-strategy <strategy>" default="all" help="The test strategy to use" {
+#USAGE          choices "all" "extremes" "powerset"
+#USAGE }
 #USAGE arg "<package>" help="The package to run unit tests for"
 #USAGE arg "[arguments]..." double_dash="required" default="" help="Additional arguments to pass to the test runner"
 
 PACKAGE=$usage_package
 COVERAGE=$usage_coverage
-POWERSET=$usage_powerset
+STRATEGY=$usage_test_strategy
 ARGUMENTS=$usage_arguments
 
 # Check if the package argument starts with `@rust/` if that isn't the case exit out
@@ -20,6 +22,37 @@ fi
 
 # Remove the package namespace from the package to get the crate name
 CRATE=${PACKAGE#*@rust/}
+
+declare -a COMMON_ARGUMENTS
+COMMON_ARGUMENTS+=("-p" "$CRATE")
+
+declare -a HACK_ARGUMENTS
+HACK_ARGUMENTS+=("${COMMON_ARGUMENTS[@]}")
+
+declare -a NEXTEST_ARGUMENTS
+NEXTEST_ARGUMENTS+=("${COMMON_ARGUMENTS[@]}")
+
+declare -a LLVM_COV_ARGUMENTS
+LLVM_COV_ARGUMENTS+=("${COMMON_ARGUMENTS[@]}")
+
+case $STRATEGY in
+    "all")
+        NEXTEST_ARGUMENTS+=("--all-features")
+        ;;
+    "extremes")
+        # find the features for this crate, so that we can enable all
+        FEATURES=$(cargo metadata --format-version=1 --no-deps | jq -r --arg crate "$CRATE" '.packages[] | select(.name == $crate) | .features | keys | join(",")')
+
+        HACK_ARGUMENTS+=("--feature-powerset" "--depth=1" "--group-features" "$FEATURES")
+        ;;
+    "powerset")
+        HACK_ARGUMENTS+=("--optional-deps" "--feature-powerset")
+        ;;
+    *)
+        echo "Error: Invalid strategy '$STRATEGY'"
+        exit 1
+        ;;
+esac
 
 # Run coverage instead of unit tests if `TEST_COVERAGE` is set to `true` or `1`
 if [[ $COVERAGE == "true" || ${TEST_COVERAGE:-false} == 'true' || ${TEST_COVERAGE:-false} == '1' ]]; then
@@ -33,34 +66,23 @@ if [[ $COVERAGE == "true" || ${TEST_COVERAGE:-false} == 'true' || ${TEST_COVERAG
             | paste -sd "|" -
     )
 
+    LLVM_COV_ARGUMENTS+=("--ignore-filename-regex" "$EXCLUSIONS" "--branch")
+
+    declare -a LLVM_COV_REPORT_ARGUMENTS
+
     # under CI we use LCOV
     if [[ ${CI:-0} == "1" || ${CI:-0} == "true" ]]; then
-        REPORT_FLAGS="--lcov --output-path lcov.info"
+        LLVM_COV_REPORT_ARGUMENTS+=("--lcov" "--output-path" "lcov.info")
     else
-        REPORT_FLAGS="--html --open"
-    fi
-
-    if [[ $POWERSET == "true" || ${TEST_POWERSET:-false} == 'true' || ${TEST_POWERSET:-false} == '1' ]]; then
-        CARGO_COMMAND="hack --optional-deps --feature-powerset"
-        NEXTEST_ARGS=""
-    else
-        CARGO_COMMAND=""
-        NEXTEST_ARGS="--all-features"
+        LLVM_COV_REPORT_ARGUMENTS+=("--html" "--open")
     fi
 
     cargo llvm-cov clean --workspace
-    cargo $CARGO_COMMAND llvm-cov --ignore-filename-regex "$EXCLUSIONS" -p "$CRATE" --branch --no-report nextest $NEXTEST_ARGS --all-targets --cargo-profile coverage $ARGUMENTS
-    cargo llvm-cov --ignore-filename-regex "$EXCLUSIONS" -p "$CRATE" --branch --no-clean $REPORT_FLAGS --doctests test --all-features --profile coverage --doc
+    cargo hack "${HACK_ARGUMENTS[@]}" llvm-cov "${LLVM_COV_ARGUMENTS[@]}" --no-report nextest "${NEXTEST_ARGUMENTS[@]}" --cargo-profile coverage $ARGUMENTS
+    cargo llvm-cov "${LLVM_COV_ARGUMENTS[@]}" "${LLVM_COV_REPORT_ARGUMENTS[@]}" --no-clean --doctests test "${COMMON_ARGUMENTS[@]}" --all-features --profile coverage --doc
 
     exit 0
 fi
 
-# Run unit tests with powerset if `TEST_POWERSET` is set to `true` or `1`
-if [[ $POWERSET == "true" || ${TEST_POWERSET:-false} == 'true' || ${TEST_POWERSET:-false} == '1' ]]; then
-    cargo hack --optional-deps --feature-powerset nextest run -p "$CRATE" --all-targets $ARGUMENTS
-    cargo test --all-features --doc -p "$CRATE"
-    exit 0
-fi
-
-cargo nextest run -p "$CRATE" --all-features --all-targets $ARGUMENTS
-cargo test --all-features --doc -p "$CRATE"
+cargo hack "${HACK_ARGUMENTS[@]}" nextest run "${NEXTEST_ARGUMENTS[@]}" $ARGUMENTS
+cargo test "${COMMON_ARGUMENTS[@]}" --all-features --doc
