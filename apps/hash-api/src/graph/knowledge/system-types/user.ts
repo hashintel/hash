@@ -7,7 +7,10 @@ import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import { getInstanceAdminsTeam } from "@local/hash-backend-utils/hash-instance";
 import { createWebMachineActorEntity } from "@local/hash-backend-utils/machine-actors";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
+import {
+  type FeatureFlag,
+  featureFlags,
+} from "@local/hash-isomorphic-utils/feature-flags";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -19,7 +22,10 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { User as UserEntity } from "@local/hash-isomorphic-utils/system-types/user";
+import type {
+  EnabledFeatureFlagsPropertyValue,
+  User as UserEntity,
+} from "@local/hash-isomorphic-utils/system-types/user";
 
 import type {
   KratosUserIdentity,
@@ -55,13 +61,24 @@ import {
 
 export type User = {
   accountId: UserId;
-  kratosIdentityId: string;
-  emails: string[];
-  shortname?: string;
   displayName?: string;
-  isAccountSignupComplete: boolean;
+  emails: string[];
+  enabledFeatureFlags: FeatureFlag[];
   entity: HashEntity<UserEntity>;
+  isAccountSignupComplete: boolean;
+  kratosIdentityId: string;
+  shortname?: string;
 };
+
+function assertFeatureFlags(
+  uncheckedFeatureFlags: EnabledFeatureFlagsPropertyValue,
+): asserts uncheckedFeatureFlags is FeatureFlag[] {
+  for (const maybeFlag of uncheckedFeatureFlags) {
+    if (!featureFlags.includes(maybeFlag as FeatureFlag)) {
+      throw new Error(`Invalid feature flag: ${maybeFlag}`);
+    }
+  }
+}
 
 function assertUserEntity(
   entity: HashEntity,
@@ -84,24 +101,30 @@ export const getUserFromEntity: PureGraphFunction<
   assertUserEntity(entity);
 
   const {
-    kratosIdentityId,
-    shortname,
     displayName,
     email: emails,
+    enabledFeatureFlags: maybeFeatureFlags,
+    kratosIdentityId,
+    shortname,
   } = simplifyProperties(entity.properties);
 
   const isAccountSignupComplete = !!shortname && !!displayName;
+
+  const enabledFeatureFlags = maybeFeatureFlags ?? [];
+
+  assertFeatureFlags(enabledFeatureFlags);
 
   return {
     accountId: extractWebIdFromEntityId(
       entity.metadata.recordId.entityId,
     ) as UserId,
-    shortname,
     displayName,
-    isAccountSignupComplete,
     emails,
-    kratosIdentityId,
+    enabledFeatureFlags,
     entity,
+    isAccountSignupComplete,
+    kratosIdentityId,
+    shortname,
   };
 };
 
