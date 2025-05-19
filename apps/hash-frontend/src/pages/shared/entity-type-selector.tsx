@@ -70,10 +70,10 @@ export const EntityTypeSelector = <Multiple extends boolean = false>({
     <SelectorAutocomplete<EntityTypeWithMetadata, Multiple>
       dropdownProps={{
         query: search,
-        creationProps: {
-          createButtonProps: disableCreate
-            ? null
-            : {
+        creationProps: disableCreate
+          ? undefined
+          : {
+              createButtonProps: {
                 onMouseDown: (evt) => {
                   evt.preventDefault();
                   evt.stopPropagation();
@@ -81,8 +81,8 @@ export const EntityTypeSelector = <Multiple extends boolean = false>({
                 },
                 disabled: disableCreateNewEmpty && search === "",
               },
-          variant: "entity type",
-        },
+              variant: "entity type",
+            },
       }}
       autoFocus={autoFocus}
       inputHeight={inputHeight}
