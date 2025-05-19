@@ -246,6 +246,7 @@ impl<A: AuthorizationApi> DatabaseTestWrapper<A> {
             .create_policy(
                 system_account_id.into(),
                 PolicyCreationParams {
+                    name: None,
                     effect: Effect::Permit,
                     principal: None,
                     actions: vec![ActionName::Instantiate],
