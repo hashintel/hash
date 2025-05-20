@@ -1,6 +1,5 @@
-use hashql_core::{intern::Interned, span::SpanId, symbol::Ident};
+use hashql_core::{intern::Interned, span::SpanId, symbol::Ident, r#type::TypeId};
 
-use super::Node;
 use crate::path::QualifiedPath;
 
 /// A reference to a locally defined variable in the HashQL HIR.
@@ -16,7 +15,7 @@ pub struct LocalVariable<'heap> {
     pub span: SpanId,
 
     pub name: Ident<'heap>,
-    pub arguments: Interned<'heap, [Node<'heap>]>,
+    pub arguments: Interned<'heap, [TypeId]>,
 }
 
 /// A reference to a variable accessed through a qualified path in the HashQL HIR.
@@ -32,7 +31,7 @@ pub struct QualifiedVariable<'heap> {
     pub span: SpanId,
 
     pub path: QualifiedPath<'heap>,
-    pub arguments: Interned<'heap, [Node<'heap>]>,
+    pub arguments: Interned<'heap, [TypeId]>,
 }
 
 /// The different kinds of variable references in the HashQL HIR.

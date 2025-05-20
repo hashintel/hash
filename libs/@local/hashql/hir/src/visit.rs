@@ -52,15 +52,19 @@
 //! ```
 //!
 //! [`Fold`]: crate::fold::Fold
-use hashql_core::{span::SpanId, symbol::Ident, r#type::TypeId};
+use hashql_core::{
+    span::SpanId,
+    symbol::Ident,
+    r#type::{TypeId, kind::generic::GenericArgumentReference},
+};
 
 use crate::{
     node::{
         HirId, Node,
         access::{Access, AccessKind, field::FieldAccess, index::IndexAccess},
         branch::{Branch, BranchKind},
-        call::Call,
-        closure::{Closure, ClosureSignature},
+        call::{Call, CallArgument},
+        closure::{Closure, ClosureParam, ClosureSignature},
         data::{Data, DataKind, Literal},
         graph::{Graph, GraphKind},
         input::Input,
@@ -115,6 +119,14 @@ pub trait Visitor<'heap> {
 
     #[expect(unused_variables, reason = "trait definition")]
     fn visit_type_id(&mut self, id: TypeId) {
+        // do nothing, no fields to walk
+    }
+
+    #[expect(unused_variables, reason = "trait definition")]
+    fn visit_generic_argument_reference(
+        &mut self,
+        reference: &'heap GenericArgumentReference<'heap>,
+    ) {
         // do nothing, no fields to walk
     }
 
@@ -203,6 +215,10 @@ pub trait Visitor<'heap> {
         walk_call(self, call);
     }
 
+    fn visit_call_argument(&mut self, argument: &'heap CallArgument<'heap>) {
+        walk_call_argument(self, argument);
+    }
+
     fn visit_branch(&mut self, branch: &'heap Branch<'heap>) {
         walk_branch(self, branch);
     }
@@ -213,6 +229,10 @@ pub trait Visitor<'heap> {
 
     fn visit_closure_signature(&mut self, signature: &'heap ClosureSignature<'heap>) {
         walk_closure_signature(self, signature);
+    }
+
+    fn visit_closure_param(&mut self, param: &'heap ClosureParam<'heap>) {
+        walk_closure_param(self, param);
     }
 
     fn visit_graph(&mut self, graph: &'heap Graph<'heap>) {
@@ -302,8 +322,8 @@ pub fn walk_local_variable<'heap, T: Visitor<'heap> + ?Sized>(
     visitor.visit_span(*span);
     visitor.visit_ident(name);
 
-    for argument in arguments {
-        visitor.visit_node(argument);
+    for &argument in arguments {
+        visitor.visit_type_id(argument);
     }
 }
 
@@ -318,8 +338,8 @@ pub fn walk_qualified_variable<'heap, T: Visitor<'heap> + ?Sized>(
     visitor.visit_span(*span);
     visitor.visit_qualified_path(path);
 
-    for argument in arguments {
-        visitor.visit_node(argument);
+    for &argument in arguments {
+        visitor.visit_type_id(argument);
     }
 }
 
@@ -474,8 +494,16 @@ pub fn walk_call<'heap, T: Visitor<'heap> + ?Sized>(
     visitor.visit_node(function);
 
     for argument in arguments {
-        visitor.visit_node(argument);
+        visitor.visit_call_argument(argument);
     }
+}
+
+pub fn walk_call_argument<'heap, T: Visitor<'heap> + ?Sized>(
+    visitor: &mut T,
+    CallArgument { span, value }: &'heap CallArgument<'heap>,
+) {
+    visitor.visit_span(*span);
+    visitor.visit_node(value);
 }
 
 pub fn walk_branch<'heap, T: Visitor<'heap> + ?Sized>(
@@ -511,15 +539,29 @@ pub fn walk_closure_signature<'heap, T: Visitor<'heap> + ?Sized>(
     ClosureSignature {
         span,
         r#type,
+        generics,
         params,
     }: &'heap ClosureSignature<'heap>,
 ) {
     visitor.visit_span(*span);
     visitor.visit_type_id(*r#type);
 
-    for param in params {
-        visitor.visit_ident(param);
+    for reference in generics {
+        visitor.visit_generic_argument_reference(reference);
     }
+
+    for param in params {
+        visitor.visit_closure_param(param);
+    }
+}
+
+pub fn walk_closure_param<'heap, T: Visitor<'heap> + ?Sized>(
+    visitor: &mut T,
+    ClosureParam { span, name }: &'heap ClosureParam<'heap>,
+) {
+    visitor.visit_span(*span);
+
+    visitor.visit_ident(name);
 }
 
 pub fn walk_graph<'heap, T: Visitor<'heap> + ?Sized>(

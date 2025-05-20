@@ -31,6 +31,7 @@ id::newtype!(
     /// used by directly modifying and accessing the `NodeId`'s internal value.
     pub struct HirId(u32 is 0..=0xFFFF_FF00)
 );
+id::newtype_producer!(pub(crate) struct HirIdProducer(HirId));
 
 impl HirId {
     /// A placeholder ID used during initial parsing.

@@ -9,6 +9,7 @@
     array_chunks
 )]
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
+pub mod convert;
 pub mod fold;
 pub mod intern;
 pub mod node;
