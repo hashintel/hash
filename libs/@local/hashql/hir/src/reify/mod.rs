@@ -21,7 +21,10 @@ use hashql_core::{
     r#type::{TypeId, environment::Environment},
 };
 
-use self::error::ReificationDiagnostic;
+use self::error::{
+    ReificationDiagnostic, dummy_expression, internal_error, underscore_expression,
+    unprocessed_expression, unsupported_construct,
+};
 use crate::{
     intern::Interner,
     node::{
@@ -90,7 +93,10 @@ impl<'heap> ReificationContext<'_, 'heap> {
         }: CallExpr<'heap>,
     ) -> Option<NodeKind<'heap>> {
         if !labeled_arguments.is_empty() {
-            todo!("issue diagnostic (compiler bug)");
+            self.diagnostics.push(internal_error(
+                span,
+                "labeled arguments in call expressions should have been processed earlier",
+            ));
             return None;
         }
 
@@ -162,7 +168,11 @@ impl<'heap> ReificationContext<'_, 'heap> {
                 PathSegmentArgument::Constraint(generic_constraint) => {
                     let def = &self.types.locals[generic_constraint.name.value];
                     if !def.value.arguments.is_empty() {
-                        todo!("report issue (compiler bug)");
+                        self.diagnostics.push(internal_error(
+                            generic_constraint.span,
+                            "generic constraints with arguments should have been rejected by the \
+                             sanitizer",
+                        ));
                         incomplete = true;
                         continue;
                     }
@@ -191,7 +201,11 @@ impl<'heap> ReificationContext<'_, 'heap> {
             }),
             Err(mut path) => {
                 if !path.rooted {
-                    todo!("issue diagnostic (compiler bug)")
+                    self.diagnostics.push(internal_error(
+                        span,
+                        "relative paths should have been resolved during import resolution",
+                    ));
+                    return None;
                 }
 
                 let arguments = mem::replace(
@@ -387,24 +401,93 @@ impl<'heap> ReificationContext<'_, 'heap> {
     fn expr(&mut self, expr: Expr<'heap>) -> Option<Node<'heap>> {
         let kind = match expr.kind {
             ExprKind::Call(call) => self.call_expr(call)?,
-            ExprKind::Struct(_) => panic!("unsupported construct (for now)"),
-            ExprKind::Dict(_) => panic!("unsupported construct (for now)"),
-            ExprKind::Tuple(_) => panic!("unsupported construct (for now)"),
-            ExprKind::List(_) => panic!("unsupported construct (for now)"),
+            ExprKind::Struct(_) => {
+                self.diagnostics.push(unsupported_construct(
+                    expr.span,
+                    "struct literal",
+                    "https://linear.app/hash/issue/H-4602/enable-struct-literal-construct",
+                ));
+
+                return None;
+            }
+            ExprKind::Dict(_) => {
+                self.diagnostics.push(unsupported_construct(
+                    expr.span,
+                    "dict literal",
+                    "https://linear.app/hash/issue/H-4603/enable-dict-literal-construct",
+                ));
+
+                return None;
+            }
+            ExprKind::Tuple(_) => {
+                self.diagnostics.push(unsupported_construct(
+                    expr.span,
+                    "tuple literal",
+                    "https://linear.app/hash/issue/H-4604/enable-tuple-literal-construct",
+                ));
+
+                return None;
+            }
+            ExprKind::List(_) => {
+                self.diagnostics.push(unsupported_construct(
+                    expr.span,
+                    "list literal",
+                    "https://linear.app/hash/issue/H-4605/enable-list-literal-construct",
+                ));
+
+                return None;
+            }
             ExprKind::Literal(literal) => self.literal_expr(literal),
             ExprKind::Path(path) => self.path(path)?,
             ExprKind::Let(r#let) => self.let_expr(r#let)?,
-            ExprKind::Type(_) => panic!("I should've been removed"),
-            ExprKind::NewType(_) => panic!("I should've been removed"),
-            ExprKind::Use(_) => panic!("I should've been removed"),
+            ExprKind::Type(_) => {
+                self.diagnostics.push(unprocessed_expression(
+                    expr.span,
+                    "type declaration",
+                    "type extraction",
+                ));
+
+                return None;
+            }
+            ExprKind::NewType(_) => {
+                self.diagnostics.push(unprocessed_expression(
+                    expr.span,
+                    "newtype declaration",
+                    "type extraction",
+                ));
+
+                return None;
+            }
+            ExprKind::Use(_) => {
+                self.diagnostics.push(unprocessed_expression(
+                    expr.span,
+                    "use declaration",
+                    "import resolution",
+                ));
+                return None;
+            }
             ExprKind::Input(input) => self.input_expr(input)?,
             ExprKind::Closure(closure) => self.closure_expr(closure)?,
-            ExprKind::If(_) => panic!("unsupported construct (for now)"),
+            ExprKind::If(_) => {
+                self.diagnostics.push(unsupported_construct(
+                    expr.span,
+                    "if expression",
+                    "https://linear.app/hash/issue/H-4606/implement-if-expressions",
+                ));
+                return None;
+            }
             ExprKind::Field(field) => self.field_expr(field)?,
             ExprKind::Index(index) => self.index_expr(index)?,
             ExprKind::Is(is) => self.is_expr(is)?,
-            ExprKind::Underscore => todo!("is no longer allowed here!"),
-            ExprKind::Dummy => panic!("I shouldn't even exist D:"),
+            ExprKind::Underscore => {
+                self.diagnostics.push(underscore_expression(expr.span));
+
+                return None;
+            }
+            ExprKind::Dummy => {
+                self.diagnostics.push(dummy_expression(expr.span));
+                return None;
+            }
         };
 
         Some(self.interner.intern_node(PartialNode {
