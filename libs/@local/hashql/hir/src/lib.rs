@@ -9,11 +9,15 @@
     array_chunks
 )]
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
-pub mod convert;
+
+extern crate alloc;
+
+pub mod error;
 pub mod fold;
 pub mod intern;
 pub mod node;
 pub mod path;
+pub mod reify;
 pub mod visit;
 
 #[cfg(test)]

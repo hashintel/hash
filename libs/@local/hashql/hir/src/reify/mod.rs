@@ -1,7 +1,9 @@
+pub mod error;
+
 use core::mem;
 
 use hashql_ast::{
-    lowering::type_extractor::{AnonymousTypes, ClosureSignatures},
+    lowering::ExtractedTypes,
     node::{
         expr::{
             CallExpr, ClosureExpr, Expr, ExprKind, FieldExpr, IndexExpr, InputExpr, IsExpr,
@@ -15,15 +17,15 @@ use hashql_core::{
     collection::SmallVec,
     heap,
     intern::Interned,
-    module::locals::TypeLocals,
     span::SpanId,
     r#type::{TypeId, environment::Environment},
 };
 
+use self::error::ReificationDiagnostic;
 use crate::{
     intern::Interner,
     node::{
-        HirIdProducer, Node, PartialNode,
+        Node, PartialNode,
         access::{Access, AccessKind, field::FieldAccess, index::IndexAccess},
         call::{Call, CallArgument},
         closure::{Closure, ClosureParam, ClosureSignature},
@@ -40,17 +42,17 @@ use crate::{
     path::QualifiedPath,
 };
 
-#[derive(Debug, Copy, Clone)]
-struct ConversionContext<'env, 'heap> {
-    producer: &'env HirIdProducer,
+// TODO: we might want to contemplate moving this into a separate crate, to completely separate
+// HashQL's AST and HIR. (like done in rustc)
+#[derive(Debug, Clone)]
+struct ReificationContext<'env, 'heap> {
     env: &'env Environment<'heap>,
     interner: &'env Interner<'heap>,
-    anon_types: &'env AnonymousTypes,
-    closure_signatures: &'env ClosureSignatures<'heap>,
-    local_types: &'env TypeLocals<'heap>,
+    types: &'env ExtractedTypes<'heap>,
+    diagnostics: Vec<ReificationDiagnostic>,
 }
 
-impl<'heap> ConversionContext<'_, 'heap> {
+impl<'heap> ReificationContext<'_, 'heap> {
     fn call_arguments(
         &mut self,
         args: heap::Vec<'heap, Argument<'heap>>,
@@ -121,7 +123,7 @@ impl<'heap> ConversionContext<'_, 'heap> {
                 kind: TypeOperationKind::Assertion(TypeAssertion {
                     span,
                     value: self.interner.intern_node(PartialNode { span, kind }),
-                    r#type: self.anon_types[r#type.id],
+                    r#type: self.types.anonymous[r#type.id],
                     force: false,
                 }),
             }),
@@ -155,10 +157,10 @@ impl<'heap> ConversionContext<'_, 'heap> {
         for argument in arguments {
             let node = match argument {
                 PathSegmentArgument::Argument(generic_argument) => {
-                    self.anon_types[generic_argument.r#type.id]
+                    self.types.anonymous[generic_argument.r#type.id]
                 }
                 PathSegmentArgument::Constraint(generic_constraint) => {
-                    let def = &self.local_types[generic_constraint.name.value];
+                    let def = &self.types.locals[generic_constraint.name.value];
                     if !def.value.arguments.is_empty() {
                         todo!("report issue (compiler bug)");
                         incomplete = true;
@@ -256,7 +258,7 @@ impl<'heap> ConversionContext<'_, 'heap> {
         let kind = NodeKind::Input(Input {
             span,
             name,
-            r#type: self.anon_types[r#type.id],
+            r#type: self.types.anonymous[r#type.id],
             default: if let Some(default) = default {
                 Some(self.expr(*default)?)
             } else {
@@ -277,7 +279,7 @@ impl<'heap> ConversionContext<'_, 'heap> {
             output: _,
         }: closure::ClosureSignature<'heap>,
     ) -> ClosureSignature<'heap> {
-        let r#type = &self.closure_signatures[id];
+        let r#type = &self.types.signatures[id];
         let params: SmallVec<_> = inputs
             .iter()
             .map(|param| ClosureParam {
@@ -375,7 +377,7 @@ impl<'heap> ConversionContext<'_, 'heap> {
                 kind: TypeOperationKind::Assertion(TypeAssertion {
                     span,
                     value,
-                    r#type: self.anon_types[r#type.id],
+                    r#type: self.types.anonymous[r#type.id],
                     force: false,
                 }),
             }),
@@ -413,9 +415,21 @@ impl<'heap> ConversionContext<'_, 'heap> {
 }
 
 impl<'heap> Node<'heap> {
-    pub fn from_ast(node: Expr<'heap>) -> Self {
-        // let producer = HirIdProducer::new();
-        // Self::from_ast_inner(&producer, node)
-        todo!()
+    pub fn from_ast(
+        expr: Expr<'heap>,
+        env: &Environment<'heap>,
+        interner: &Interner<'heap>,
+        types: &ExtractedTypes<'heap>,
+    ) -> (Option<Self>, Vec<ReificationDiagnostic>) {
+        let mut context = ReificationContext {
+            env,
+            interner,
+            types,
+            diagnostics: Vec::new(),
+        };
+
+        let node = context.expr(expr);
+
+        (node, context.diagnostics)
     }
 }

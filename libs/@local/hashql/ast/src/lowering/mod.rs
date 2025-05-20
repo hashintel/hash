@@ -25,18 +25,20 @@ pub mod sanitizer;
 pub mod special_form_expander;
 pub mod type_extractor;
 
+#[derive(Debug)]
+pub struct ExtractedTypes<'heap> {
+    pub locals: TypeLocals<'heap>,
+    pub anonymous: AnonymousTypes,
+    pub signatures: ClosureSignatures<'heap>,
+}
+
 pub fn lower<'heap>(
     module_name: Symbol<'heap>,
     expr: &mut Expr<'heap>,
 
     env: &Environment<'heap>,
     registry: &ModuleRegistry<'heap>,
-) -> (
-    TypeLocals<'heap>,
-    AnonymousTypes,
-    ClosureSignatures<'heap>,
-    Vec<LoweringDiagnostic>,
-) {
+) -> (ExtractedTypes<'heap>, Vec<LoweringDiagnostic>) {
     let mut diagnostics = Vec::new();
 
     let mut resolver = PreExpansionNameResolver::new(registry);
@@ -98,9 +100,11 @@ pub fn lower<'heap>(
     let (anonymous_types, closure_signatures) = extractor.into_types();
 
     (
-        named_types,
-        anonymous_types,
-        closure_signatures,
+        ExtractedTypes {
+            locals: named_types,
+            anonymous: anonymous_types,
+            signatures: closure_signatures,
+        },
         diagnostics,
     )
 }
