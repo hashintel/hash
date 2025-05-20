@@ -1060,7 +1060,7 @@ where
         actor_id: Option<ActorId>,
     ) -> Result<Vec<Policy>, Report<GetPoliciesError>> {
         let Some(actor_id) = actor_id else {
-            // If no actor is provided, only policies wihtout principal constraints are returned.
+            // If no actor is provided, only policies without principal constraints are returned.
             return self
                 .query_policies(
                     authenticated_actor,
