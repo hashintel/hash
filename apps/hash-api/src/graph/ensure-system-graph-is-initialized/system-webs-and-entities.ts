@@ -11,8 +11,10 @@ import {
   createMachineActorEntity,
   getMachineIdByIdentifier,
 } from "@local/hash-backend-utils/machine-actors";
+import { createPolicy, deletePolicyById } from "@local/hash-graph-sdk/policy";
 import { getWebByShortname } from "@local/hash-graph-sdk/principal/web";
 import type { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { SystemTypeWebShortname } from "@local/hash-isomorphic-utils/ontology-types";
 
 import { enabledIntegrations } from "../../integrations/enabled-integrations";
@@ -160,12 +162,11 @@ export const ensureSystemWebEntitiesExist = async ({
        * Linear actions
        */
       await createMachineActorEntity(context, {
-        machineId: systemActorMachineId,
+        actor: { actorType: "machine", id: systemActorMachineId },
         identifier: webShortname,
         logger,
         webId,
         displayName,
-        systemAccountId,
         machineEntityTypeId,
       });
     } else {
@@ -294,14 +295,49 @@ export const ensureSystemEntitiesExist = async (params: {
         ],
       );
 
+      const instantiationPolicyId = await createPolicy(
+        context.graphApi,
+        authentication,
+        {
+          effect: "permit",
+          principal: {
+            type: "actor",
+            actorType: "ai",
+            id: aiAssistantAccountId,
+          },
+          actions: ["instantiate"],
+          resource: {
+            type: "entityType",
+            filter: {
+              type: "any",
+              filters: [
+                {
+                  type: "isBaseUrl",
+                  baseUrl: systemEntityTypes.actor.entityTypeBaseUrl,
+                },
+                {
+                  type: "isBaseUrl",
+                  baseUrl: systemEntityTypes.machine.entityTypeBaseUrl,
+                },
+              ],
+            },
+          },
+        },
+      );
+
       await createMachineActorEntity(context, {
         identifier: aiIdentifier,
         logger,
-        machineId: aiAssistantAccountId,
+        actor: { actorType: "ai", id: aiAssistantAccountId },
         webId: hashWebId,
         displayName: "HASH AI",
-        systemAccountId,
       });
+
+      await deletePolicyById(
+        context.graphApi,
+        authentication,
+        instantiationPolicyId,
+      );
     } else {
       throw error;
     }

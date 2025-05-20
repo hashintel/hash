@@ -41,7 +41,6 @@ import type {
   ImpureGraphFunction,
   PureGraphFunction,
 } from "../../context-types";
-import { systemAccountId } from "../../system-account";
 import {
   createEntity,
   getEntityOutgoingLinks,
@@ -316,7 +315,6 @@ export const createUser: ImpureGraphFunction<
   });
 
   await createWebMachineActorEntity(ctx, {
-    systemAccountId,
     webId: userId,
     machineId,
     logger,
@@ -378,23 +376,8 @@ export const createUser: ImpureGraphFunction<
     },
   };
 
-  /** Grant permissions to the web machine actor to create a user entity */
-  await ctx.graphApi.modifyEntityTypeAuthorizationRelationships(
-    systemAccountId,
-    [
-      {
-        operation: "create",
-        resource: systemEntityTypes.user.entityTypeId,
-        relationAndSubject: {
-          subject: {
-            kind: "account",
-            subjectId: machineId,
-          },
-          relation: "instantiator",
-        },
-      },
-    ],
-  );
+  // TODO: Move User-Entity creation to Graph
+  //   see https://linear.app/hash/issue/H-4559/move-user-entity-creation-to-graph
 
   const { teamId: hashInstanceAdminsAccountGroupId } =
     await getInstanceAdminsTeam(ctx, authentication);
@@ -431,24 +414,6 @@ export const createUser: ImpureGraphFunction<
         },
       ],
     },
-  );
-
-  /** Remove permission from the web machine actor to create a user entity */
-  await ctx.graphApi.modifyEntityTypeAuthorizationRelationships(
-    systemAccountId,
-    [
-      {
-        operation: "delete",
-        resource: systemEntityTypes.user.entityTypeId,
-        relationAndSubject: {
-          subject: {
-            kind: "account",
-            subjectId: machineId,
-          },
-          relation: "instantiator",
-        },
-      },
-    ],
   );
 
   const user = getUserFromEntity({ entity });

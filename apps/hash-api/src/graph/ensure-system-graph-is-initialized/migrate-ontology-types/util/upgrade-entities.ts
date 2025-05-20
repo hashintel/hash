@@ -6,7 +6,6 @@ import type {
   ActorEntityUuid,
   BaseUrl,
   PropertyObjectWithMetadata,
-  VersionedUrl,
   WebId,
 } from "@blockprotocol/type-system";
 import {
@@ -33,7 +32,6 @@ import {
   getEntitySubgraphResponse,
   updateEntity,
 } from "../../../knowledge/primitive/entity";
-import { systemAccountId } from "../../../system-account";
 import type { MigrationState } from "../types";
 
 export const upgradeWebEntities = async ({
@@ -150,20 +148,10 @@ export const upgradeWebEntities = async ({
           newVersion,
         );
 
-        const currentEntityTypeId = versionedUrlFromComponents(
-          baseUrlBeingUpgraded,
-          matchingTypeRecordId.version,
-        );
-
         const migratePropertiesFunction =
           migrateProperties?.[baseUrlBeingUpgraded];
 
         let updateAuthentication = webBotAuthentication;
-
-        const temporaryEntityTypePermissionsGranted: Record<
-          VersionedUrl,
-          ActorEntityUuid
-        > = {};
 
         /**
          * Determine the actor that should update the entity.
@@ -198,101 +186,28 @@ export const upgradeWebEntities = async ({
         }
 
         /**
-         * We may need to temporarily grant the actor the ability to instantiate entities of both the old and new entityTypeId,
-         * because an actor cannot remove or add an entity type without being able to instantiate it.
-         * Some entity types have their instantiator restricted, e.g. User, Org, so that they can only be created in special circumstances.
-         * If the actor being used here doesn't already have permission we'll grant it and then remove it after the update.
-         */
-        for (const entityTypeId of [currentEntityTypeId, newEntityTypeId]) {
-          const relationships = await context.graphApi
-            .getEntityTypeAuthorizationRelationships(
-              systemAccountId,
-              entityTypeId,
-            )
-            .then(({ data }) => data);
-
-          const relationAndSubject = {
-            subject: {
-              kind: "account",
-              subjectId: updateAuthentication.actorId,
-            },
-            relation: "instantiator",
-          } as const;
-
-          if (
-            !relationships.find(
-              ({ subject, relation }) =>
-                relation === "instantiator" &&
-                ((subject.kind === "account" &&
-                  subject.subjectId === updateAuthentication.actorId) ||
-                  subject.kind === "public"),
-            )
-          ) {
-            await context.graphApi.modifyEntityTypeAuthorizationRelationships(
-              systemAccountId,
-              [
-                {
-                  operation: "create",
-                  resource: entityTypeId,
-                  relationAndSubject,
-                },
-              ],
-            );
-            temporaryEntityTypePermissionsGranted[entityTypeId] =
-              updateAuthentication.actorId;
-          }
-        }
-
-        /**
          * We've determined the actor, now perform the update.
          */
-        try {
-          await updateEntity(context, updateAuthentication, {
-            entity,
-            entityTypeIds: mustHaveAtLeastOne(
-              entity.metadata.entityTypeIds.map((entityTypeId) => {
-                const { baseUrl, version } =
-                  componentsFromVersionedUrl(entityTypeId);
+        await updateEntity(context, updateAuthentication, {
+          entity,
+          entityTypeIds: mustHaveAtLeastOne(
+            entity.metadata.entityTypeIds.map((entityTypeId) => {
+              const { baseUrl, version } =
+                componentsFromVersionedUrl(entityTypeId);
 
-                if (baseUrl === baseUrlBeingUpgraded) {
-                  return newEntityTypeId;
-                }
+              if (baseUrl === baseUrlBeingUpgraded) {
+                return newEntityTypeId;
+              }
 
-                return versionedUrlFromComponents(baseUrl, version);
-              }),
-            ),
-            propertyPatches: migratePropertiesFunction
-              ? propertyObjectToPatches(
-                  migratePropertiesFunction(entity.propertiesWithMetadata),
-                )
-              : undefined,
-          });
-        } finally {
-          for (const [entityTypeId, actorId] of Object.entries(
-            temporaryEntityTypePermissionsGranted,
-          )) {
-            /**
-             * If we updated a machine entity and granted its actor ID a
-             * new permission, we need to remove the temporary permission.
-             */
-            await context.graphApi.modifyEntityTypeAuthorizationRelationships(
-              systemAccountId,
-              [
-                {
-                  operation: "delete",
-                  resource: entityTypeId,
-                  relationAndSubject: {
-                    subject: {
-                      kind: "account",
-                      subjectId: actorId,
-                    },
-                    relation: "instantiator",
-                  },
-                },
-              ],
-            );
-          }
-        }
+              return versionedUrlFromComponents(baseUrl, version);
+            }),
+          ),
+          propertyPatches: migratePropertiesFunction
+            ? propertyObjectToPatches(
+                migratePropertiesFunction(entity.propertiesWithMetadata),
+              )
+            : undefined,
+        });
       }
     }),
   );

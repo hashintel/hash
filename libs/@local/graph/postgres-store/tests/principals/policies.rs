@@ -68,23 +68,23 @@ struct TestPolicyIds {
 /// The test environment creates the following structure:
 ///
 /// ```text
-///            ┌─────────┐
-///            │  web 1  │─────────────┐
-///            └────┬────┘             │
-///                 │                  │
-///       ┌─────────┴──────────┐       │
-///       │                    │       │
-///  ┌────┴────┐          ┌────┴────┐  │
-///  │team 1│──────────│team 2│  │
-///  └────┬────┘          └─────────┘  │
-///       │                            │
-///       │                            │
-///  ┌────┴─────┐                      │
-///  │nested_sub│                      │
-///  └──────────┘                      │
-///                                    │
-///           ┌─────────┐              │
-///           │  web 2  │──────────────┘
+///           ┌─────────┐
+///           │  web 1  │────────────┐
+///           └────┬────┘            │
+///                │                 │
+///       ┌────────┴──────────┐      │
+///       │                   │      │
+///  ┌────┴───┐          ┌────┴───┐  │
+///  │ team 1 │          │ team 2 │  │
+///  └────┬───┘          └────────┘  │
+///       │                          │
+///       │                          │
+/// ┌─────┴───────┐                  │
+/// │ nested_team │                  │
+/// └─────────────┘                  │
+///                                  │
+///           ┌─────────┐            │
+///           │  web 2  │────────────┘
 ///           └─────────┘
 ///
 /// ROLES:
@@ -207,6 +207,7 @@ async fn setup_policy_test_environment(
         .create_policy(
             actor_id.into(),
             PolicyCreationParams {
+                name: None,
                 effect: Effect::Permit,
                 principal: None,
                 actions: vec![ActionName::All],
@@ -220,6 +221,7 @@ async fn setup_policy_test_environment(
         .create_policy(
             actor_id.into(),
             PolicyCreationParams {
+                name: None,
                 effect: Effect::Permit,
                 principal: Some(PrincipalConstraint::ActorType {
                     actor_type: ActorType::User,
@@ -234,6 +236,7 @@ async fn setup_policy_test_environment(
         .create_policy(
             actor_id.into(),
             PolicyCreationParams {
+                name: None,
                 effect: Effect::Permit,
                 principal: Some(PrincipalConstraint::ActorType {
                     actor_type: ActorType::Machine,
@@ -249,6 +252,7 @@ async fn setup_policy_test_environment(
         .create_policy(
             actor_id.into(),
             PolicyCreationParams {
+                name: None,
                 effect: Effect::Permit,
                 principal: Some(PrincipalConstraint::Actor {
                     actor: ActorId::User(user1_id),
@@ -264,6 +268,7 @@ async fn setup_policy_test_environment(
         .create_policy(
             actor_id.into(),
             PolicyCreationParams {
+                name: None,
                 effect: Effect::Permit,
                 principal: Some(PrincipalConstraint::Role {
                     role: web_1_role_id,
@@ -280,6 +285,7 @@ async fn setup_policy_test_environment(
         .create_policy(
             actor_id.into(),
             PolicyCreationParams {
+                name: None,
                 effect: Effect::Permit,
                 principal: Some(PrincipalConstraint::ActorGroup {
                     actor_group: ActorGroupId::Team(team_1_id),
@@ -296,6 +302,7 @@ async fn setup_policy_test_environment(
         .create_policy(
             actor_id.into(),
             PolicyCreationParams {
+                name: None,
                 effect: Effect::Permit,
                 principal: Some(PrincipalConstraint::Role {
                     role: web_2_role_id,
@@ -312,6 +319,7 @@ async fn setup_policy_test_environment(
         .create_policy(
             actor_id.into(),
             PolicyCreationParams {
+                name: None,
                 effect: Effect::Forbid,
                 principal: Some(PrincipalConstraint::Actor {
                     actor: ActorId::User(user1_id),
@@ -782,6 +790,7 @@ async fn resource_constraints_are_preserved() -> Result<(), Box<dyn Error>> {
         .create_policy(
             actor_id.into(),
             PolicyCreationParams {
+                name: None,
                 effect: Effect::Permit,
                 principal: Some(PrincipalConstraint::Actor {
                     actor: ActorId::User(user_id),
@@ -875,6 +884,7 @@ async fn deep_team_hierarchy() -> Result<(), Box<dyn Error>> {
         .create_policy(
             actor_id.into(),
             PolicyCreationParams {
+                name: None,
                 effect: Effect::Permit,
                 principal: Some(PrincipalConstraint::ActorGroup {
                     actor_group: ActorGroupId::Web(web_id),
@@ -890,6 +900,7 @@ async fn deep_team_hierarchy() -> Result<(), Box<dyn Error>> {
         .create_policy(
             actor_id.into(),
             PolicyCreationParams {
+                name: None,
                 effect: Effect::Permit,
                 principal: Some(PrincipalConstraint::ActorGroup {
                     actor_group: ActorGroupId::Team(team1_id),
@@ -905,6 +916,7 @@ async fn deep_team_hierarchy() -> Result<(), Box<dyn Error>> {
         .create_policy(
             actor_id.into(),
             PolicyCreationParams {
+                name: None,
                 effect: Effect::Permit,
                 principal: Some(PrincipalConstraint::ActorGroup {
                     actor_group: ActorGroupId::Team(team5_id),

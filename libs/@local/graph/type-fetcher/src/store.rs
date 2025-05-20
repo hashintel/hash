@@ -260,11 +260,9 @@ where
     async fn get_policy_by_id(
         &self,
         authenticated_actor: ActorEntityUuid,
-        policy_id: PolicyId,
+        id: PolicyId,
     ) -> Result<Option<Policy>, Report<GetPoliciesError>> {
-        self.store
-            .get_policy_by_id(authenticated_actor, policy_id)
-            .await
+        self.store.get_policy_by_id(authenticated_actor, id).await
     }
 
     async fn query_policies(

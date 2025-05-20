@@ -11,7 +11,6 @@ import {
 } from "../../../knowledge/system-types/org";
 import type { MigrationFunction } from "../types";
 import {
-  anyUserInstantiator,
   createSystemEntityTypeIfNotExists,
   createSystemPropertyTypeIfNotExists,
   getCurrentHashPropertyTypeId,
@@ -135,7 +134,6 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
     });
 
   /**

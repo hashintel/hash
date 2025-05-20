@@ -250,6 +250,7 @@ mod tests {
 
         let policy = Policy {
             id: PolicyId::new(Uuid::new_v4()),
+            name: None,
             effect: Effect::Permit,
             principal: None,
             actions: vec![ActionName::All],

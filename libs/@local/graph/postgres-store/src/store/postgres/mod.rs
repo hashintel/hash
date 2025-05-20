@@ -148,6 +148,7 @@ where
         self.create_policy(
             system_machine_actor.into(),
             PolicyCreationParams {
+                name: Some("default-web-creator".to_owned()),
                 effect: Effect::Permit,
                 principal: Some(PrincipalConstraint::Actor {
                     actor: system_machine_actor,
@@ -754,6 +755,7 @@ where
 
 struct PolicyParts {
     id: PolicyId,
+    name: Option<String>,
     effect: Effect,
     principal_uuid: Option<Uuid>,
     principal_type: Option<PrincipalType>,
@@ -800,6 +802,7 @@ impl PolicyParts {
 
         Ok(Policy {
             id: self.id,
+            name: self.name,
             effect: self.effect,
             principal: principal_constraint,
             actions: self.actions,
@@ -839,12 +842,13 @@ where
         transaction
             .execute(
                 "INSERT INTO policy (
-                    id, effect, principal_id, principal_type, actor_type, resource_constraint
+                    id, name, effect, principal_id, principal_type, actor_type, resource_constraint
                 ) VALUES (
-                    $1, $2, $3, $4, $5, $6
+                    $1, $2, $3, $4, $5, $6, $7
                  )",
                 &[
                     &policy_id,
+                    &policy.name,
                     &policy.effect,
                     &principal_id,
                     &principal_id.map(PrincipalId::principal_type),
@@ -894,13 +898,13 @@ where
     async fn get_policy_by_id(
         &self,
         _authenticated_actor: ActorEntityUuid,
-        policy_id: PolicyId,
+        id: PolicyId,
     ) -> Result<Option<Policy>, Report<GetPoliciesError>> {
         self.as_client()
             .query_opt(
                 "
                 SELECT
-                    policy.id,
+                    policy.name,
                     policy.effect,
                     policy.principal_id,
                     policy.principal_type,
@@ -911,16 +915,17 @@ where
                 LEFT JOIN policy_action ON policy.id = policy_action.policy_id
                 WHERE policy.id = $1
                 GROUP BY
-                    policy.id, policy.effect, policy.principal_id, policy.principal_type,
+                    policy.name, policy.effect, policy.principal_id, policy.principal_type,
                     policy.actor_type, policy.resource_constraint
                 ",
-                &[&policy_id],
+                &[&id],
             )
             .await
             .change_context(GetPoliciesError::StoreError)?
             .map(|row| {
                 PolicyParts {
-                    id: row.get(0),
+                    id,
+                    name: row.get(0),
                     effect: row.get(1),
                     principal_uuid: row.get(2),
                     principal_type: row.get(3),
@@ -982,9 +987,15 @@ where
             }
         }
 
+        if let Some(name) = &filter.name {
+            parameters.push(Box::new(name));
+            filters.push(format!("policy.name = ${}", parameters.len()));
+        }
+
         let base_query = "
             SELECT
                 policy.id,
+                policy.name,
                 policy.effect,
                 policy.principal_id,
                 policy.principal_type,
@@ -998,6 +1009,7 @@ where
         let group_by_query = "
             GROUP BY
                 policy.id,
+                policy.name,
                 policy.effect,
                 policy.principal_id,
                 policy.principal_type,
@@ -1022,14 +1034,15 @@ where
             .and_then(async |row| -> Result<_, Report<GetPoliciesError>> {
                 PolicyParts {
                     id: PolicyId::new(row.get(0)),
-                    effect: row.get(1),
-                    principal_uuid: row.get(2),
-                    principal_type: row.get(3),
-                    actor_type: row.get(4),
+                    name: row.get(1),
+                    effect: row.get(2),
+                    principal_uuid: row.get(3),
+                    principal_type: row.get(4),
+                    actor_type: row.get(5),
                     resource_constraint: row
-                        .get::<_, Option<Json<ResourceConstraint>>>(5)
+                        .get::<_, Option<Json<ResourceConstraint>>>(6)
                         .map(|json| json.0),
-                    actions: row.get(6),
+                    actions: row.get(7),
                 }
                 .into_policy()
             })
@@ -1115,6 +1128,7 @@ where
                 )
                 SELECT
                     policy.id,
+                    policy.name,
                     policy.effect,
                     policy.principal_id,
                     policy.principal_type,
@@ -1124,8 +1138,8 @@ where
                 FROM policy
                 LEFT JOIN policy_action ON policy.id = policy_action.policy_id
                 GROUP BY
-                    policy.id, policy.effect, policy.principal_id, policy.principal_type,
-                    policy.actor_type, policy.resource_constraint
+                    policy.id, policy.name, policy.effect, policy.principal_id,
+                    policy.principal_type, policy.actor_type, policy.resource_constraint
                 ",
                 [
                     &actor_id as &(dyn ToSql + Sync),
@@ -1138,14 +1152,15 @@ where
             .and_then(async |row| -> Result<_, Report<GetPoliciesError>> {
                 PolicyParts {
                     id: row.get(0),
-                    effect: row.get(1),
-                    principal_uuid: row.get(2),
-                    principal_type: row.get(3),
-                    actor_type: row.get(4),
+                    name: row.get(1),
+                    effect: row.get(2),
+                    principal_uuid: row.get(3),
+                    principal_type: row.get(4),
+                    actor_type: row.get(5),
                     resource_constraint: row
-                        .get::<_, Option<Json<ResourceConstraint>>>(5)
+                        .get::<_, Option<Json<ResourceConstraint>>>(6)
                         .map(|json| json.0),
-                    actions: row.get(6),
+                    actions: row.get(7),
                 }
                 .into_policy()
             })
