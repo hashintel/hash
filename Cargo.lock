@@ -3854,6 +3854,7 @@ dependencies = [
  "hashql-ast",
  "hashql-core",
  "hashql-diagnostics",
+ "pretty",
  "simple-mermaid",
 ]
 

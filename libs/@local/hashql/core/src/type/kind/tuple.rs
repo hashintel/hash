@@ -7,6 +7,7 @@ use super::TypeKind;
 use crate::{
     intern::Interned,
     math::cartesian_product,
+    pretty::{PrettyPrint, PrettyRecursionBoundary},
     r#type::{
         PartialType, Type, TypeId,
         environment::{
@@ -16,8 +17,6 @@ use crate::{
         error::tuple_length_mismatch,
         inference::{Inference, PartialStructuralEdge},
         lattice::Lattice,
-        pretty_print::PrettyPrint,
-        recursion::RecursionDepthBoundary,
     },
 };
 
@@ -323,22 +322,22 @@ impl<'heap> Inference<'heap> for TupleType<'heap> {
     }
 }
 
-impl PrettyPrint for TupleType<'_> {
-    fn pretty<'env>(
+impl<'heap> PrettyPrint<'heap> for TupleType<'heap> {
+    fn pretty(
         &self,
-        env: &'env Environment,
-        limit: RecursionDepthBoundary,
-    ) -> RcDoc<'env, anstyle::Style> {
+        env: &Environment<'heap>,
+        boundary: &mut PrettyRecursionBoundary,
+    ) -> RcDoc<'heap, anstyle::Style> {
         match self.fields.as_ref() {
             [] => RcDoc::text("()"),
             &[field] => RcDoc::text("(")
-                .append(limit.pretty(env, field))
+                .append(boundary.pretty_type(env, field))
                 .append(RcDoc::text(",)"))
                 .group(),
             fields => RcDoc::text("(")
                 .append(
                     RcDoc::intersperse(
-                        fields.iter().map(|&field| limit.pretty(env, field)),
+                        fields.iter().map(|&field| boundary.pretty_type(env, field)),
                         RcDoc::text(",").append(RcDoc::line()),
                     )
                     .nest(1)
@@ -358,6 +357,7 @@ mod test {
     use super::TupleType;
     use crate::{
         heap::Heap,
+        pretty::PrettyPrint as _,
         span::SpanId,
         r#type::{
             PartialType,
@@ -378,7 +378,6 @@ mod test {
                 union::UnionType,
             },
             lattice::{Lattice as _, test::assert_lattice_laws},
-            pretty_print::PrettyPrint as _,
             test::{instantiate, instantiate_infer, instantiate_param},
         },
     };

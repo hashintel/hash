@@ -25,6 +25,7 @@ pub mod intern;
 pub mod literal;
 pub mod math;
 pub mod module;
+pub mod pretty;
 pub mod span;
 pub mod symbol;
 pub mod r#type;

@@ -14,8 +14,9 @@ use hashql_ast::{
 use hashql_core::{
     heap::Heap,
     module::{ModuleRegistry, locals::Local, namespace::ModuleNamespace},
+    pretty::PrettyPrint as _,
     span::SpanId,
-    r#type::{environment::Environment, pretty_print::PrettyPrint as _},
+    r#type::environment::Environment,
 };
 
 use super::{Suite, SuiteDiagnostic, common::process_diagnostics};

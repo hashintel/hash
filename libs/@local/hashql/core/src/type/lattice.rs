@@ -402,10 +402,12 @@ pub trait Lattice<'heap> {
 #[cfg(test)]
 pub(crate) mod test {
     #![expect(clippy::min_ident_chars)]
-    use crate::r#type::{
-        TypeId,
-        environment::{AnalysisEnvironment, Environment, LatticeEnvironment},
-        pretty_print::PrettyPrint as _,
+    use crate::{
+        pretty::PrettyPrint as _,
+        r#type::{
+            TypeId,
+            environment::{AnalysisEnvironment, Environment, LatticeEnvironment},
+        },
     };
 
     fn assert_idempotence(env: &Environment<'_>, a: TypeId) {

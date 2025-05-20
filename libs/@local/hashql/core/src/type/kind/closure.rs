@@ -6,6 +6,7 @@ use smallvec::SmallVec;
 use super::{TypeKind, generic::GenericArguments};
 use crate::{
     intern::Interned,
+    pretty::{PrettyPrint, PrettyRecursionBoundary},
     r#type::{
         PartialType, Type, TypeId,
         environment::{
@@ -15,8 +16,6 @@ use crate::{
         error::function_parameter_count_mismatch,
         inference::{Inference, PartialStructuralEdge},
         lattice::Lattice,
-        pretty_print::PrettyPrint,
-        recursion::RecursionDepthBoundary,
     },
 };
 
@@ -269,33 +268,35 @@ impl<'heap> Inference<'heap> for ClosureType<'heap> {
     }
 }
 
-impl PrettyPrint for ClosureType<'_> {
-    fn pretty<'env>(
+impl<'heap> PrettyPrint<'heap> for ClosureType<'heap> {
+    fn pretty(
         &self,
-        env: &'env Environment,
-        limit: RecursionDepthBoundary,
-    ) -> pretty::RcDoc<'env, anstyle::Style> {
-        self.pretty_generic(GenericArguments::empty(), env, limit)
+        env: &Environment<'heap>,
+        boundary: &mut PrettyRecursionBoundary,
+    ) -> RcDoc<'heap, anstyle::Style> {
+        self.pretty_generic(env, boundary, GenericArguments::empty())
     }
 
-    fn pretty_generic<'env>(
+    fn pretty_generic(
         &self,
-        arguments: GenericArguments,
-        env: &'env Environment,
-        limit: RecursionDepthBoundary,
-    ) -> RcDoc<'env, anstyle::Style> {
+        env: &Environment<'heap>,
+        boundary: &mut PrettyRecursionBoundary,
+        arguments: GenericArguments<'heap>,
+    ) -> RcDoc<'heap, anstyle::Style> {
         RcDoc::text("fn")
-            .append(arguments.pretty(env, limit))
+            .append(arguments.pretty(env, boundary))
             .append("(")
             .append(RcDoc::intersperse(
-                self.params.iter().map(|&param| limit.pretty(env, param)),
+                self.params
+                    .iter()
+                    .map(|&param| boundary.pretty_type(env, param)),
                 RcDoc::text(",").append(RcDoc::line()),
             ))
             .append(")")
             .append(RcDoc::line())
             .append("->")
             .append(RcDoc::line())
-            .append(limit.pretty(env, self.returns))
+            .append(boundary.pretty_type(env, self.returns))
             .group()
     }
 }
@@ -308,6 +309,7 @@ mod test {
     use super::ClosureType;
     use crate::{
         heap::Heap,
+        pretty::PrettyPrint as _,
         span::SpanId,
         r#type::{
             PartialType,
@@ -328,7 +330,6 @@ mod test {
                 union::UnionType,
             },
             lattice::{Lattice as _, test::assert_lattice_laws},
-            pretty_print::PrettyPrint as _,
             test::{instantiate, instantiate_infer, instantiate_param},
         },
     };

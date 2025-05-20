@@ -4,17 +4,18 @@ use pretty::RcDoc;
 use smallvec::SmallVec;
 
 use super::TypeKind;
-use crate::r#type::{
-    PartialType, Type, TypeId,
-    environment::{
-        AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
-        SimplifyEnvironment, instantiate::InstantiateEnvironment,
+use crate::{
+    pretty::{PrettyPrint, PrettyRecursionBoundary},
+    r#type::{
+        PartialType, Type, TypeId,
+        environment::{
+            AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
+            SimplifyEnvironment, instantiate::InstantiateEnvironment,
+        },
+        error::type_mismatch,
+        inference::{Inference, PartialStructuralEdge},
+        lattice::Lattice,
     },
-    error::type_mismatch,
-    inference::{Inference, PartialStructuralEdge},
-    lattice::Lattice,
-    pretty_print::PrettyPrint,
-    recursion::RecursionDepthBoundary,
 };
 
 /// Represents a list type.
@@ -181,15 +182,15 @@ impl<'heap> Inference<'heap> for ListType {
     }
 }
 
-impl PrettyPrint for ListType {
-    fn pretty<'env>(
+impl<'heap> PrettyPrint<'heap> for ListType {
+    fn pretty(
         &self,
-        env: &'env Environment,
-        limit: RecursionDepthBoundary,
-    ) -> RcDoc<'env, anstyle::Style> {
+        env: &Environment<'heap>,
+        boundary: &mut PrettyRecursionBoundary,
+    ) -> RcDoc<'heap, anstyle::Style> {
         RcDoc::text("List")
             .append(RcDoc::text("<"))
-            .append(limit.pretty(env, self.element))
+            .append(boundary.pretty_type(env, self.element))
             .append(RcDoc::text(">"))
     }
 }
@@ -475,19 +476,19 @@ impl<'heap> Inference<'heap> for DictType {
     }
 }
 
-impl PrettyPrint for DictType {
-    fn pretty<'env>(
+impl<'heap> PrettyPrint<'heap> for DictType {
+    fn pretty(
         &self,
-        env: &'env Environment,
-        limit: RecursionDepthBoundary,
-    ) -> RcDoc<'env, anstyle::Style> {
+        env: &Environment<'heap>,
+        boundary: &mut PrettyRecursionBoundary,
+    ) -> RcDoc<'heap, anstyle::Style> {
         RcDoc::text("Dict")
             .append(RcDoc::text("<"))
             .append(
                 RcDoc::intersperse(
                     [self.key, self.value]
                         .into_iter()
-                        .map(|id| limit.pretty(env, id)),
+                        .map(|id| boundary.pretty_type(env, id)),
                     RcDoc::text(",").append(RcDoc::line()),
                 )
                 .nest(1)
@@ -714,15 +715,15 @@ impl<'heap> Inference<'heap> for IntrinsicType {
     }
 }
 
-impl PrettyPrint for IntrinsicType {
-    fn pretty<'env>(
+impl<'heap> PrettyPrint<'heap> for IntrinsicType {
+    fn pretty(
         &self,
-        env: &'env Environment,
-        limit: RecursionDepthBoundary,
-    ) -> RcDoc<'env, anstyle::Style> {
+        env: &Environment<'heap>,
+        boundary: &mut PrettyRecursionBoundary,
+    ) -> RcDoc<'heap, anstyle::Style> {
         match self {
-            Self::List(list) => list.pretty(env, limit),
-            Self::Dict(dict) => dict.pretty(env, limit),
+            Self::List(list) => list.pretty(env, boundary),
+            Self::Dict(dict) => dict.pretty(env, boundary),
         }
     }
 }
@@ -734,6 +735,7 @@ mod tests {
     use super::{DictType, IntrinsicType, ListType};
     use crate::{
         heap::Heap,
+        pretty::PrettyPrint as _,
         span::SpanId,
         r#type::{
             PartialType,
@@ -754,7 +756,6 @@ mod tests {
                 union::UnionType,
             },
             lattice::{Lattice as _, test::assert_lattice_laws},
-            pretty_print::PrettyPrint as _,
             test::{instantiate, instantiate_infer, instantiate_param},
         },
     };

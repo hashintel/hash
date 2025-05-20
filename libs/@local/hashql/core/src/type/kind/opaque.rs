@@ -5,6 +5,7 @@ use smallvec::SmallVec;
 
 use super::TypeKind;
 use crate::{
+    pretty::{PrettyPrint, PrettyRecursionBoundary},
     symbol::Symbol,
     r#type::{
         PartialType, Type, TypeId,
@@ -15,8 +16,6 @@ use crate::{
         error::opaque_type_name_mismatch,
         inference::{Inference, PartialStructuralEdge},
         lattice::Lattice,
-        pretty_print::PrettyPrint,
-        recursion::RecursionDepthBoundary,
     },
 };
 
@@ -320,15 +319,15 @@ impl<'heap> Inference<'heap> for OpaqueType<'heap> {
     }
 }
 
-impl PrettyPrint for OpaqueType<'_> {
-    fn pretty<'env>(
+impl<'heap> PrettyPrint<'heap> for OpaqueType<'heap> {
+    fn pretty(
         &self,
-        env: &'env Environment,
-        limit: RecursionDepthBoundary,
-    ) -> pretty::RcDoc<'env, anstyle::Style> {
-        RcDoc::text(self.name.as_str().to_owned())
+        env: &Environment<'heap>,
+        boundary: &mut PrettyRecursionBoundary,
+    ) -> RcDoc<'heap, anstyle::Style> {
+        RcDoc::text(self.name.unwrap())
             .append(RcDoc::text("["))
-            .append(limit.pretty(env, self.repr).nest(1).group())
+            .append(boundary.pretty_type(env, self.repr).group().nest(1))
             .append(RcDoc::text("]"))
             .group()
     }
@@ -342,6 +341,7 @@ mod test {
     use super::OpaqueType;
     use crate::{
         heap::Heap,
+        pretty::PrettyPrint as _,
         span::SpanId,
         r#type::{
             PartialType,
@@ -361,7 +361,6 @@ mod test {
                 union::UnionType,
             },
             lattice::{Lattice as _, test::assert_lattice_laws},
-            pretty_print::PrettyPrint as _,
             test::{instantiate, instantiate_infer, instantiate_param},
         },
     };

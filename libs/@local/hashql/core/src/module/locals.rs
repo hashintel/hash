@@ -4,13 +4,12 @@ use pretty::RcDoc;
 
 use crate::{
     collection::{FastHashMap, TinyVec},
+    pretty::{PrettyPrint, PrettyRecursionBoundary},
     symbol::Symbol,
     r#type::{
         TypeId,
         environment::{Diagnostics, Environment, instantiate::InstantiateEnvironment},
         kind::generic::GenericArgumentReference,
-        pretty_print::PrettyPrint,
-        recursion::RecursionDepthBoundary,
     },
 };
 
@@ -53,19 +52,19 @@ impl<'heap> TypeDef<'heap> {
     }
 }
 
-impl PrettyPrint for TypeDef<'_> {
-    fn pretty<'env>(
+impl<'heap> PrettyPrint<'heap> for TypeDef<'heap> {
+    fn pretty(
         &self,
-        env: &'env Environment,
-        limit: RecursionDepthBoundary,
-    ) -> RcDoc<'env, anstyle::Style> {
+        env: &Environment<'heap>,
+        boundary: &mut PrettyRecursionBoundary,
+    ) -> RcDoc<'heap, anstyle::Style> {
         match self.arguments.as_slice() {
             [] => RcDoc::nil(),
             _ => RcDoc::text("<")
                 .append(RcDoc::intersperse(
                     self.arguments
                         .iter()
-                        .map(|argument| argument.pretty(env, limit)),
+                        .map(|argument| argument.pretty(env, boundary)),
                     RcDoc::text(",").append(RcDoc::line()),
                 ))
                 .append(RcDoc::text(">")),
@@ -74,7 +73,7 @@ impl PrettyPrint for TypeDef<'_> {
         .append(RcDoc::line())
         .append("=")
         .append(RcDoc::line())
-        .append(limit.pretty(env, self.id))
+        .append(boundary.pretty_type(env, self.id))
         .group()
     }
 }
@@ -85,19 +84,19 @@ pub struct Local<'heap, T> {
     pub value: T,
 }
 
-impl<T> PrettyPrint for Local<'_, T>
+impl<'heap, T> PrettyPrint<'heap> for Local<'heap, T>
 where
-    T: PrettyPrint,
+    T: PrettyPrint<'heap>,
 {
-    fn pretty<'env>(
+    fn pretty(
         &self,
-        env: &'env Environment,
-        limit: RecursionDepthBoundary,
-    ) -> pretty::RcDoc<'env, anstyle::Style> {
+        env: &Environment<'heap>,
+        boundary: &mut PrettyRecursionBoundary,
+    ) -> RcDoc<'heap, anstyle::Style> {
         RcDoc::text("type")
-            .append(" ")
+            .append(RcDoc::space())
             .append(RcDoc::as_string(self.name))
-            .append(self.value.pretty(env, limit))
+            .append(self.value.pretty(env, boundary))
     }
 }
 

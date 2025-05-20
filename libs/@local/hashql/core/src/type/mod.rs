@@ -6,7 +6,6 @@ pub mod error;
 pub mod inference;
 pub mod kind;
 pub mod lattice;
-pub mod pretty_print;
 pub(crate) mod recursion;
 #[cfg(test)]
 pub(crate) mod test;
@@ -14,11 +13,12 @@ pub mod visit;
 
 use core::ops::Receiver;
 
-use self::{kind::TypeKind, pretty_print::PrettyPrint, recursion::RecursionDepthBoundary};
+use self::{environment::Environment, kind::TypeKind};
 use crate::{
     id::HasId,
     intern::{Decompose, Interned},
     newtype,
+    pretty::{PrettyPrint, PrettyRecursionBoundary},
     span::SpanId,
 };
 
@@ -59,16 +59,25 @@ impl<'heap, K> Type<'heap, K> {
     }
 }
 
-impl<K> PrettyPrint for Type<'_, K>
+impl<'heap, K> PrettyPrint<'heap> for Type<'heap, K>
 where
-    K: PrettyPrint,
+    K: PrettyPrint<'heap>,
 {
-    fn pretty<'env>(
+    fn pretty(
         &self,
-        env: &'env environment::Environment,
-        limit: RecursionDepthBoundary,
-    ) -> pretty::RcDoc<'env, anstyle::Style> {
-        self.kind.pretty(env, limit)
+        env: &Environment<'heap>,
+        boundary: &mut PrettyRecursionBoundary,
+    ) -> pretty::RcDoc<'heap, anstyle::Style> {
+        self.kind.pretty(env, boundary)
+    }
+
+    fn pretty_generic(
+        &self,
+        env: &Environment<'heap>,
+        boundary: &mut PrettyRecursionBoundary,
+        arguments: kind::GenericArguments<'heap>,
+    ) -> pretty::RcDoc<'heap, anstyle::Style> {
+        self.kind.pretty_generic(env, boundary, arguments)
     }
 }
 

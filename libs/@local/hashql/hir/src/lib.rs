@@ -17,6 +17,7 @@ pub mod fold;
 pub mod intern;
 pub mod node;
 pub mod path;
+mod pretty;
 pub mod reify;
 pub mod visit;
 

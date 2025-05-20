@@ -6,6 +6,7 @@ use super::{GenericArgumentId, Param};
 use crate::{
     collection::SmallVec,
     intern::Interned,
+    pretty::{ORANGE, PrettyPrint, PrettyRecursionBoundary, RED},
     span::SpanId,
     r#type::{
         PartialType, Type, TypeId,
@@ -17,8 +18,6 @@ use crate::{
         inference::{Inference, PartialStructuralEdge},
         kind::TypeKind,
         lattice::Lattice,
-        pretty_print::{ORANGE, PrettyPrint, RED},
-        recursion::RecursionDepthBoundary,
     },
 };
 
@@ -28,12 +27,12 @@ pub struct GenericSubstitution {
     pub value: TypeId,
 }
 
-impl PrettyPrint for GenericSubstitution {
-    fn pretty<'env>(
+impl<'heap> PrettyPrint<'heap> for GenericSubstitution {
+    fn pretty(
         &self,
-        env: &'env Environment,
-        limit: RecursionDepthBoundary,
-    ) -> RcDoc<'env, anstyle::Style> {
+        env: &Environment<'heap>,
+        boundary: &mut PrettyRecursionBoundary,
+    ) -> RcDoc<'heap, anstyle::Style> {
         let name = format!("?{}", self.argument);
 
         RcDoc::text(name)
@@ -41,7 +40,7 @@ impl PrettyPrint for GenericSubstitution {
             .append(RcDoc::space())
             .append("=")
             .append(RcDoc::line())
-            .append(limit.pretty(env, self.value))
+            .append(boundary.pretty_type(env, self.value))
     }
 }
 
@@ -109,12 +108,12 @@ impl Deref for GenericSubstitutions<'_> {
     }
 }
 
-impl PrettyPrint for GenericSubstitutions<'_> {
-    fn pretty<'env>(
+impl<'heap> PrettyPrint<'heap> for GenericSubstitutions<'heap> {
+    fn pretty(
         &self,
-        env: &'env Environment,
-        limit: RecursionDepthBoundary,
-    ) -> RcDoc<'env, anstyle::Style> {
+        env: &Environment<'heap>,
+        boundary: &mut PrettyRecursionBoundary,
+    ) -> RcDoc<'heap, anstyle::Style> {
         match self.as_slice() {
             [] => RcDoc::text("<>"),
             slice => RcDoc::text("<")
@@ -122,7 +121,7 @@ impl PrettyPrint for GenericSubstitutions<'_> {
                     RcDoc::intersperse(
                         slice
                             .iter()
-                            .map(|substitution| substitution.pretty(env, limit)),
+                            .map(|substitution| substitution.pretty(env, boundary)),
                         RcDoc::text(",").append(RcDoc::line()),
                     )
                     .nest(1)
@@ -412,16 +411,16 @@ impl<'heap> Inference<'heap> for Apply<'heap> {
     }
 }
 
-impl PrettyPrint for Apply<'_> {
-    fn pretty<'env>(
+impl<'heap> PrettyPrint<'heap> for Apply<'heap> {
+    fn pretty(
         &self,
-        env: &'env Environment,
-        limit: RecursionDepthBoundary,
-    ) -> RcDoc<'env, anstyle::Style> {
-        limit.pretty(env, self.base).append(
+        env: &Environment<'heap>,
+        boundary: &mut PrettyRecursionBoundary,
+    ) -> RcDoc<'heap, anstyle::Style> {
+        boundary.pretty_type(env, self.base).append(
             RcDoc::line()
                 .append(RcDoc::text("where").annotate(RED))
-                .append(self.substitutions.pretty(env, limit))
+                .append(self.substitutions.pretty(env, boundary))
                 .group()
                 .nest(1),
         )
@@ -436,6 +435,7 @@ mod tests {
     use super::{Apply, GenericSubstitution};
     use crate::{
         heap::Heap,
+        pretty::PrettyPrint as _,
         span::SpanId,
         r#type::{
             PartialType,
@@ -456,7 +456,6 @@ mod tests {
                 },
             },
             lattice::test::assert_lattice_laws,
-            pretty_print::PrettyPrint as _,
             test::{instantiate, instantiate_infer, instantiate_param},
         },
     };

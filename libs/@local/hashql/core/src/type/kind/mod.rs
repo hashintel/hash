@@ -37,9 +37,8 @@ use super::{
     error::{no_type_inference, type_mismatch, type_parameter_not_found},
     inference::{Constraint, Inference, PartialStructuralEdge, Variable, VariableKind},
     lattice::Lattice,
-    pretty_print::{CYAN, GRAY, PrettyPrint},
-    recursion::RecursionDepthBoundary,
 };
+use crate::pretty::{CYAN, GRAY, PrettyPrint, PrettyRecursionBoundary};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum TypeKind<'heap> {
@@ -2081,27 +2080,54 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
     }
 }
 
-impl PrettyPrint for TypeKind<'_> {
-    fn pretty<'env>(
+impl<'heap> PrettyPrint<'heap> for TypeKind<'heap> {
+    fn pretty(
         &self,
-        env: &'env Environment,
-        limit: RecursionDepthBoundary,
-    ) -> RcDoc<'env, anstyle::Style> {
+        env: &Environment<'heap>,
+        boundary: &mut PrettyRecursionBoundary,
+    ) -> RcDoc<'heap, anstyle::Style> {
         match self {
-            Self::Opaque(opaque_type) => opaque_type.pretty(env, limit),
-            Self::Primitive(primitive_type) => primitive_type.pretty(env, limit),
-            Self::Intrinsic(intrinsic_type) => intrinsic_type.pretty(env, limit),
-            Self::Struct(struct_type) => struct_type.pretty(env, limit),
-            Self::Tuple(tuple_type) => tuple_type.pretty(env, limit),
-            Self::Closure(closure_type) => closure_type.pretty(env, limit),
-            Self::Union(union_type) => union_type.pretty(env, limit),
-            Self::Intersection(intersection_type) => intersection_type.pretty(env, limit),
-            Self::Apply(apply_type) => apply_type.pretty(env, limit),
-            Self::Generic(generic) => generic.pretty(env, limit),
-            Self::Param(param_type) => param_type.pretty(env, limit),
+            Self::Opaque(opaque) => opaque.pretty(env, boundary),
+            Self::Primitive(primitive) => primitive.pretty(env, boundary),
+            Self::Intrinsic(intrinsic) => intrinsic.pretty(env, boundary),
+            Self::Struct(r#struct) => r#struct.pretty(env, boundary),
+            Self::Tuple(tuple) => tuple.pretty(env, boundary),
+            Self::Closure(closure) => closure.pretty(env, boundary),
+            Self::Union(union) => union.pretty(env, boundary),
+            Self::Intersection(intersection) => intersection.pretty(env, boundary),
+            Self::Apply(apply) => apply.pretty(env, boundary),
+            Self::Generic(generic) => generic.pretty(env, boundary),
+            Self::Param(param) => param.pretty(env, boundary),
             Self::Infer(Infer { hole }) => RcDoc::text(format!("_{hole}")).annotate(GRAY),
             Self::Never => RcDoc::text("!").annotate(CYAN),
             Self::Unknown => RcDoc::text("?").annotate(CYAN),
+        }
+    }
+
+    fn pretty_generic(
+        &self,
+        env: &Environment<'heap>,
+        boundary: &mut PrettyRecursionBoundary,
+        arguments: GenericArguments<'heap>,
+    ) -> RcDoc<'heap, anstyle::Style> {
+        match self {
+            Self::Opaque(opaque) => opaque.pretty_generic(env, boundary, arguments),
+            Self::Primitive(primitive) => primitive.pretty_generic(env, boundary, arguments),
+            Self::Intrinsic(intrinsic) => intrinsic.pretty_generic(env, boundary, arguments),
+            Self::Struct(r#struct) => r#struct.pretty_generic(env, boundary, arguments),
+            Self::Tuple(tuple) => tuple.pretty_generic(env, boundary, arguments),
+            Self::Closure(closure) => closure.pretty_generic(env, boundary, arguments),
+            Self::Union(union) => union.pretty_generic(env, boundary, arguments),
+            Self::Intersection(intersection) => {
+                intersection.pretty_generic(env, boundary, arguments)
+            }
+            Self::Apply(apple) => apple.pretty_generic(env, boundary, arguments),
+            Self::Generic(generic) => generic.pretty_generic(env, boundary, arguments),
+            Self::Param(param) => param.pretty_generic(env, boundary, arguments),
+            Self::Infer(_) | Self::Never | Self::Unknown => arguments
+                .pretty(env, boundary)
+                .append(self.pretty(env, boundary))
+                .group(),
         }
     }
 }

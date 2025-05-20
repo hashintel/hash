@@ -8,6 +8,7 @@ use crate::{
     collection::FastHashMap,
     intern::Interned,
     math::cartesian_product,
+    pretty::{PrettyPrint, PrettyRecursionBoundary},
     symbol::Symbol,
     r#type::{
         PartialType, Type, TypeId,
@@ -18,8 +19,6 @@ use crate::{
         error::{missing_struct_field, struct_field_mismatch},
         inference::{Inference, PartialStructuralEdge},
         lattice::Lattice,
-        pretty_print::PrettyPrint,
-        recursion::RecursionDepthBoundary,
     },
 };
 
@@ -29,16 +28,16 @@ pub struct StructField<'heap> {
     pub value: TypeId,
 }
 
-impl PrettyPrint for StructField<'_> {
-    fn pretty<'env>(
+impl<'heap> PrettyPrint<'heap> for StructField<'heap> {
+    fn pretty(
         &self,
-        env: &'env Environment,
-        limit: RecursionDepthBoundary,
-    ) -> pretty::RcDoc<'env, anstyle::Style> {
-        RcDoc::text(self.name.as_str().to_owned())
+        env: &Environment<'heap>,
+        boundary: &mut PrettyRecursionBoundary,
+    ) -> RcDoc<'heap, anstyle::Style> {
+        RcDoc::text(self.name.unwrap())
             .append(RcDoc::text(":"))
-            .append(RcDoc::line())
-            .append(limit.pretty(env, self.value))
+            .append(RcDoc::space())
+            .append(boundary.pretty_type(env, self.value))
             .group()
     }
 }
@@ -95,16 +94,16 @@ impl<'heap> Deref for StructFields<'heap> {
     }
 }
 
-impl PrettyPrint for StructFields<'_> {
-    fn pretty<'env>(
+impl<'heap> PrettyPrint<'heap> for StructFields<'heap> {
+    fn pretty(
         &self,
-        env: &'env Environment,
-        limit: RecursionDepthBoundary,
-    ) -> RcDoc<'env, anstyle::Style> {
+        env: &Environment<'heap>,
+        boundary: &mut PrettyRecursionBoundary,
+    ) -> RcDoc<'heap, anstyle::Style> {
         match self.0 {
             Some(Interned([], _)) | None => RcDoc::text(":"),
             Some(Interned(fields, _)) => RcDoc::intersperse(
-                fields.iter().map(|field| field.pretty(env, limit)),
+                fields.iter().map(|field| field.pretty(env, boundary)),
                 RcDoc::text(",").append(RcDoc::line()),
             )
             .nest(1)
@@ -519,14 +518,14 @@ impl<'heap> Inference<'heap> for StructType<'heap> {
     }
 }
 
-impl PrettyPrint for StructType<'_> {
-    fn pretty<'env>(
+impl<'heap> PrettyPrint<'heap> for StructType<'heap> {
+    fn pretty(
         &self,
-        env: &'env Environment,
-        limit: RecursionDepthBoundary,
-    ) -> RcDoc<'env, anstyle::Style> {
+        env: &Environment<'heap>,
+        boundary: &mut PrettyRecursionBoundary,
+    ) -> RcDoc<'heap, anstyle::Style> {
         RcDoc::text("(")
-            .append(self.fields.pretty(env, limit))
+            .append(self.fields.pretty(env, boundary))
             .append(RcDoc::text(")"))
             .group()
     }
@@ -542,6 +541,7 @@ mod test {
     use super::{StructField, StructType};
     use crate::{
         heap::Heap,
+        pretty::PrettyPrint as _,
         span::SpanId,
         r#type::{
             PartialType,
@@ -564,7 +564,6 @@ mod test {
                 union::UnionType,
             },
             lattice::{Lattice as _, test::assert_lattice_laws},
-            pretty_print::PrettyPrint as _,
             test::{instantiate, instantiate_infer, instantiate_param},
         },
     };
