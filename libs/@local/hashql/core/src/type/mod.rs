@@ -103,10 +103,12 @@ impl<'heap> Decompose<'heap> for Type<'heap> {
     type Partial = PartialType<'heap>;
 
     fn from_parts(id: Self::Id, partial: Interned<'heap, Self::Partial>) -> Self {
+        let Interned(kind, _) = partial.kind;
+
         Type {
             id,
             span: partial.span,
-            kind: partial.kind.0,
+            kind,
         }
     }
 }

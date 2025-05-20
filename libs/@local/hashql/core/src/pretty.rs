@@ -69,25 +69,70 @@ where
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Default)]
+pub enum PrettyRecursionGuardStrategy {
+    DepthCounting,
+    #[default]
+    IdentityTracking,
+}
+
+#[derive(Debug)]
+enum RecursionGuardState {
+    Depth(usize),
+    Reference(FastHashSet<usize>),
+}
+
+impl RecursionGuardState {
+    fn enter<T>(&mut self, value: &T) -> bool {
+        match self {
+            Self::Depth(depth) => {
+                *depth += 1;
+                true
+            }
+            Self::Reference(set) => set.insert(core::ptr::from_ref(value).addr()),
+        }
+    }
+
+    fn exit<T>(&mut self, value: &T) {
+        match self {
+            Self::Depth(depth) => *depth -= 1,
+            Self::Reference(set) => {
+                set.remove(&core::ptr::from_ref(value).addr());
+            }
+        }
+    }
+
+    fn depth(&self) -> usize {
+        match self {
+            Self::Depth(depth) => *depth,
+            Self::Reference(set) => set.len(),
+        }
+    }
+}
+
+impl From<PrettyRecursionGuardStrategy> for RecursionGuardState {
+    fn from(tracking: PrettyRecursionGuardStrategy) -> Self {
+        match tracking {
+            PrettyRecursionGuardStrategy::DepthCounting => Self::Depth(0),
+            PrettyRecursionGuardStrategy::IdentityTracking => {
+                Self::Reference(FastHashSet::default())
+            }
+        }
+    }
+}
+
+#[derive(Debug)]
 pub struct PrettyRecursionBoundary {
-    visited: FastHashSet<usize>,
+    visited: RecursionGuardState,
     limit: Option<usize>,
 }
 
 impl PrettyRecursionBoundary {
     #[must_use]
-    pub fn new() -> Self {
+    pub fn new(tracking: PrettyRecursionGuardStrategy, limit: Option<usize>) -> Self {
         Self {
-            visited: FastHashSet::default(),
-            limit: None,
-        }
-    }
-
-    #[must_use]
-    pub fn with_limit(limit: usize) -> Self {
-        Self {
-            visited: FastHashSet::default(),
-            limit: Some(limit),
+            visited: tracking.into(),
+            limit,
         }
     }
 
@@ -100,23 +145,21 @@ impl PrettyRecursionBoundary {
     where
         T: PrettyPrint<'heap>,
     {
-        let address = (&raw const value).addr();
-
-        if !self.visited.insert(address) {
+        if !self.visited.enter(value) {
             return RcDoc::text("...");
         }
 
         if let Some(limit) = self.limit
-            && self.visited.len() >= limit
+            && self.visited.depth() >= limit
         {
             // proper cleanup
-            self.visited.remove(&address);
+            self.visited.exit(value);
             return RcDoc::text("...");
         }
 
         let document = call(value, env, self);
 
-        self.visited.remove(&address);
+        self.visited.exit(value);
         document
     }
 
@@ -140,10 +183,8 @@ impl PrettyRecursionBoundary {
     ) -> RcDoc<'heap, Style> {
         let r#type = env.r#type(id);
 
-        // using `kind` is strategic here, that way the reference is tracked
-        self.track(env, r#type.kind, |value, env, this| {
-            value.pretty_generic(env, this, arguments)
-        })
+        // untracked to properly allow for recursion detection
+        r#type.kind.pretty_generic(env, self, arguments)
     }
 
     #[inline]
@@ -155,10 +196,13 @@ impl PrettyRecursionBoundary {
     }
 }
 
-impl Default for PrettyRecursionBoundary {
-    fn default() -> Self {
-        Self::new()
-    }
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Default)]
+pub struct PrettyOptions {
+    pub indent: u8 = 4,
+    pub max_width: usize = 80,
+
+    pub recursion_limit: Option<usize> = Some(32),
+    pub recursion_strategy: PrettyRecursionGuardStrategy
 }
 
 pub trait PrettyPrint<'heap> {
@@ -180,16 +224,19 @@ pub trait PrettyPrint<'heap> {
             .group()
     }
 
-    fn pretty_print(&self, env: &Environment<'heap>, width: usize) -> String {
+    fn pretty_print(&self, env: &Environment<'heap>, options: PrettyOptions) -> String {
         let mut output = Vec::new();
         let mut writer = WriteColored::new(&mut output);
 
-        self.pretty(env, &mut PrettyRecursionBoundary::with_limit(32))
-            .render_raw(width, &mut writer)
-            .expect(
-                "should not fail during diagnostic rendering - if it does, this indicates a bug \
-                 in the pretty printer",
-            );
+        self.pretty(
+            env,
+            &mut PrettyRecursionBoundary::new(options.recursion_strategy, options.recursion_limit),
+        )
+        .render_raw(options.max_width, &mut writer)
+        .expect(
+            "should not fail during diagnostic rendering - if it does, this indicates a bug in \
+             the pretty printer",
+        );
 
         String::from_utf8(output)
             .expect("should never fail as all bytes come from valid UTF-8 strings")

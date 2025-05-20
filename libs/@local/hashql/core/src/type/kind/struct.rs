@@ -36,7 +36,7 @@ impl<'heap> PrettyPrint<'heap> for StructField<'heap> {
     ) -> RcDoc<'heap, anstyle::Style> {
         RcDoc::text(self.name.unwrap())
             .append(RcDoc::text(":"))
-            .append(RcDoc::space())
+            .append(RcDoc::line())
             .append(boundary.pretty_type(env, self.value))
             .group()
     }
@@ -541,7 +541,7 @@ mod test {
     use super::{StructField, StructType};
     use crate::{
         heap::Heap,
-        pretty::PrettyPrint as _,
+        pretty::{PrettyOptions, PrettyPrint as _},
         span::SpanId,
         r#type::{
             PartialType,
@@ -2005,6 +2005,9 @@ mod test {
         let type_id = instantiate.instantiate(value);
 
         // The type is complicated enough that it isn't feasible to test it through assertions.
-        insta::assert_snapshot!(strip_str(&env.r#type(type_id).pretty_print(&env, 80)));
+        insta::assert_snapshot!(strip_str(
+            &env.r#type(type_id)
+                .pretty_print(&env, PrettyOptions::default())
+        ));
     }
 }

@@ -12,7 +12,11 @@ use hashql_diagnostics::{
 use super::{
     Type, environment::Environment, inference::Variable, kind::generic::GenericArgumentId,
 };
-use crate::{pretty::PrettyPrint, span::SpanId, symbol::Symbol};
+use crate::{
+    pretty::{PrettyOptions, PrettyPrint},
+    span::SpanId,
+    symbol::Symbol,
+};
 
 pub type TypeCheckDiagnostic = Diagnostic<TypeCheckDiagnosticCategory, SpanId>;
 
@@ -179,7 +183,10 @@ where
     diagnostic.labels.push(
         Label::new(
             lhs.span,
-            format!("This is of type `{}`", lhs.kind.pretty_print(env, 80)),
+            format!(
+                "This is of type `{}`",
+                lhs.kind.pretty_print(env, PrettyOptions::default())
+            ),
         )
         .with_order(1),
     );
@@ -187,7 +194,10 @@ where
     diagnostic.labels.push(
         Label::new(
             rhs.span,
-            format!("This is of type `{}`", rhs.kind.pretty_print(env, 80)),
+            format!(
+                "This is of type `{}`",
+                rhs.kind.pretty_print(env, PrettyOptions::default())
+            ),
         )
         .with_order(2),
     );
@@ -419,7 +429,7 @@ where
         bad_variant.span,
         format!(
             "variant `{}` must be a subtype of at least one variant in the expected union",
-            bad_variant.kind.pretty_print(env, 80)
+            bad_variant.kind.pretty_print(env, PrettyOptions::default())
         ),
     ));
 
@@ -428,7 +438,7 @@ where
         expected_union.span,
         format!(
             "expected union containing at least one supertype variant for `{}`",
-            bad_variant.kind.pretty_print(env, 80)
+            bad_variant.kind.pretty_print(env, PrettyOptions::default())
         ),
     ));
 
@@ -440,8 +450,10 @@ where
 
     diagnostic.note = Some(Note::new(format!(
         "expected union: `{}`\nfound variant: `{}` which is not a subtype of any expected variants",
-        expected_union.kind.pretty_print(env, 80),
-        bad_variant.kind.pretty_print(env, 80),
+        expected_union
+            .kind
+            .pretty_print(env, PrettyOptions::default()),
+        bad_variant.kind.pretty_print(env, PrettyOptions::default()),
     )));
 
     diagnostic
@@ -528,7 +540,7 @@ where
             actual_type.span,
             format!(
                 "This type `{}` has values, but `!` has no values",
-                actual_type.kind.pretty_print(env, 80)
+                actual_type.kind.pretty_print(env, PrettyOptions::default())
             ),
         )
         .with_order(1),
@@ -566,7 +578,7 @@ where
             actual_type.span,
             format!(
                 "{} is more specific than `?`",
-                actual_type.kind.pretty_print(env, 80)
+                actual_type.kind.pretty_print(env, PrettyOptions::default())
             ),
         )
         .with_order(1),
@@ -604,7 +616,7 @@ where
         variant.span,
         format!(
             "variant `{}` must be a subtype of all variants in the expected intersection",
-            variant.kind.pretty_print(env, 80)
+            variant.kind.pretty_print(env, PrettyOptions::default())
         ),
     ));
 
@@ -613,7 +625,7 @@ where
         expected_intersection.span,
         format!(
             "expected intersection containing incompatible variants for `{}`",
-            variant.kind.pretty_print(env, 80)
+            variant.kind.pretty_print(env, PrettyOptions::default())
         ),
     ));
 
@@ -626,8 +638,10 @@ where
     diagnostic.note = Some(Note::new(format!(
         "expected intersection: `{}`\nfound variant: `{}` which is not a subtype of all expected \
          variants",
-        expected_intersection.kind.pretty_print(env, 80),
-        variant.kind.pretty_print(env, 80),
+        expected_intersection
+            .kind
+            .pretty_print(env, PrettyOptions::default()),
+        variant.kind.pretty_print(env, PrettyOptions::default()),
     )));
 
     diagnostic
@@ -861,7 +875,10 @@ where
     diagnostic.labels.push(
         Label::new(
             equals.span,
-            format!("Required to be exactly `{}`", equals.pretty_print(env, 80)),
+            format!(
+                "Required to be exactly `{}`",
+                equals.pretty_print(env, PrettyOptions::default())
+            ),
         )
         .with_order(2),
     );
@@ -872,7 +889,7 @@ where
             lower_bound.span,
             format!(
                 "But this lower bound `{}` is not a subtype of the equality constraint",
-                lower_bound.pretty_print(env, 80)
+                lower_bound.pretty_print(env, PrettyOptions::default())
             ),
         )
         .with_order(3),
@@ -883,8 +900,20 @@ where
         "Resolve this type conflict by either:\n1. Changing the equality constraint to be \
          compatible with `{}`\n2. Modifying the lower bound type to be a subtype of `{}`\n3. \
          Ensuring both types are compatible in the type hierarchy",
-        lower_bound.pretty_print(env, 60),
-        equals.pretty_print(env, 60)
+        lower_bound.pretty_print(
+            env,
+            PrettyOptions {
+                max_width: 60,
+                ..PrettyOptions::default()
+            }
+        ),
+        equals.pretty_print(
+            env,
+            PrettyOptions {
+                max_width: 60,
+                ..PrettyOptions::default()
+            }
+        )
     )));
 
     diagnostic.note = Some(Note::new(
@@ -925,7 +954,10 @@ where
     diagnostic.labels.push(
         Label::new(
             equal.span,
-            format!("Required to be exactly `{}`", equal.pretty_print(env, 80)),
+            format!(
+                "Required to be exactly `{}`",
+                equal.pretty_print(env, PrettyOptions::default())
+            ),
         )
         .with_order(2),
     );
@@ -936,7 +968,7 @@ where
             upper.span,
             format!(
                 "But this upper bound `{}` is not a supertype of the equality constraint",
-                upper.pretty_print(env, 80)
+                upper.pretty_print(env, PrettyOptions::default())
             ),
         )
         .with_order(3),
@@ -947,8 +979,20 @@ where
         "To fix this conflict, you can:\n1. Change the equality constraint `{}` to be a subtype \
          of the upper bound\n2. Adjust the upper bound `{}` to be a supertype of the equality \
          constraint\n3. Review your type annotations to ensure they're consistent",
-        equal.pretty_print(env, 60),
-        upper.pretty_print(env, 60)
+        equal.pretty_print(
+            env,
+            PrettyOptions {
+                max_width: 60,
+                ..PrettyOptions::default()
+            }
+        ),
+        upper.pretty_print(
+            env,
+            PrettyOptions {
+                max_width: 60,
+                ..PrettyOptions::default()
+            }
+        )
     )));
 
     diagnostic.note = Some(Note::new(
@@ -990,7 +1034,7 @@ where
             lower_bound.span,
             format!(
                 "Lower bound `{}` must be a subtype of the upper bound",
-                lower_bound.kind.pretty_print(env, 80)
+                lower_bound.kind.pretty_print(env, PrettyOptions::default())
             ),
         )
         .with_order(2),
@@ -1002,7 +1046,7 @@ where
             upper_bound.span,
             format!(
                 "Upper bound `{}` is not a supertype of the lower bound",
-                upper_bound.kind.pretty_print(env, 80)
+                upper_bound.kind.pretty_print(env, PrettyOptions::default())
             ),
         )
         .with_order(3),
@@ -1013,10 +1057,34 @@ where
         "These type bounds create an impossible constraint. To fix this:\n1. Modify `{}` to be a \
          proper subtype of `{}`\n2. Or adjust `{}` to be a supertype of `{}`\n3. Or check your \
          code for contradictory type assertions",
-        lower_bound.kind.pretty_print(env, 60),
-        upper_bound.kind.pretty_print(env, 60),
-        upper_bound.kind.pretty_print(env, 60),
-        lower_bound.kind.pretty_print(env, 60)
+        lower_bound.kind.pretty_print(
+            env,
+            PrettyOptions {
+                max_width: 60,
+                ..PrettyOptions::default()
+            }
+        ),
+        upper_bound.kind.pretty_print(
+            env,
+            PrettyOptions {
+                max_width: 60,
+                ..PrettyOptions::default()
+            }
+        ),
+        upper_bound.kind.pretty_print(
+            env,
+            PrettyOptions {
+                max_width: 60,
+                ..PrettyOptions::default()
+            }
+        ),
+        lower_bound.kind.pretty_print(
+            env,
+            PrettyOptions {
+                max_width: 60,
+                ..PrettyOptions::default()
+            }
+        )
     )));
 
     diagnostic.note = Some(Note::new(
@@ -1059,7 +1127,7 @@ where
             existing.span,
             format!(
                 "Previously constrained to be exactly `{}`",
-                existing.kind.pretty_print(env, 80)
+                existing.kind.pretty_print(env, PrettyOptions::default())
             ),
         )
         .with_order(2),
@@ -1071,7 +1139,7 @@ where
             new_type.span,
             format!(
                 "But here constrained to be exactly `{}`",
-                new_type.kind.pretty_print(env, 80)
+                new_type.kind.pretty_print(env, PrettyOptions::default())
             ),
         )
         .with_order(3),
@@ -1083,8 +1151,20 @@ where
          multiple conflicting equality constraints.\nTo fix this issue:\n1. Ensure consistent \
          type usage - either use `{}` everywhere\n2. Or use `{}` everywhere\n3. Add explicit type \
          conversions where needed\n4. Check type annotations for contradictory requirements",
-        existing.kind.pretty_print(env, 60),
-        new_type.kind.pretty_print(env, 60)
+        existing.kind.pretty_print(
+            env,
+            PrettyOptions {
+                max_width: 60,
+                ..PrettyOptions::default()
+            }
+        ),
+        new_type.kind.pretty_print(
+            env,
+            PrettyOptions {
+                max_width: 60,
+                ..PrettyOptions::default()
+            }
+        )
     )));
 
     diagnostic.note = Some(Note::new(

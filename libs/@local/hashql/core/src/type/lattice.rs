@@ -403,7 +403,7 @@ pub trait Lattice<'heap> {
 pub(crate) mod test {
     #![expect(clippy::min_ident_chars)]
     use crate::{
-        pretty::PrettyPrint as _,
+        pretty::{PrettyOptions, PrettyPrint as _},
         r#type::{
             TypeId,
             environment::{AnalysisEnvironment, Environment, LatticeEnvironment},
@@ -420,8 +420,9 @@ pub(crate) mod test {
         assert!(
             analysis.is_equivalent(join1, a),
             "{} != {}",
-            env.r#type(join1).pretty_print(env, 80),
-            env.r#type(a).pretty_print(env, 80)
+            env.r#type(join1)
+                .pretty_print(env, PrettyOptions::default()),
+            env.r#type(a).pretty_print(env, PrettyOptions::default())
         );
 
         let meet1 = lattice.meet(a, a);
@@ -429,8 +430,9 @@ pub(crate) mod test {
         assert!(
             analysis.is_equivalent(meet1, a),
             "{} != {}",
-            env.r#type(meet1).pretty_print(env, 80),
-            env.r#type(a).pretty_print(env, 80)
+            env.r#type(meet1)
+                .pretty_print(env, PrettyOptions::default()),
+            env.r#type(a).pretty_print(env, PrettyOptions::default())
         );
     }
 
@@ -445,8 +447,10 @@ pub(crate) mod test {
         assert!(
             analysis.is_equivalent(join1, join2),
             "{} != {}",
-            env.r#type(join1).pretty_print(env, 80),
-            env.r#type(join2).pretty_print(env, 80)
+            env.r#type(join1)
+                .pretty_print(env, PrettyOptions::default()),
+            env.r#type(join2)
+                .pretty_print(env, PrettyOptions::default())
         );
 
         let meet1 = lattice.meet(a, b);
@@ -455,8 +459,10 @@ pub(crate) mod test {
         assert!(
             analysis.is_equivalent(meet1, meet2),
             "{} != {}",
-            env.r#type(meet1).pretty_print(env, 80),
-            env.r#type(meet2).pretty_print(env, 80)
+            env.r#type(meet1)
+                .pretty_print(env, PrettyOptions::default()),
+            env.r#type(meet2)
+                .pretty_print(env, PrettyOptions::default())
         );
     }
 
@@ -474,8 +480,10 @@ pub(crate) mod test {
         assert!(
             analysis.is_equivalent(join1, join2),
             "{} != {}",
-            env.r#type(join1).pretty_print(env, 80),
-            env.r#type(join2).pretty_print(env, 80)
+            env.r#type(join1)
+                .pretty_print(env, PrettyOptions::default()),
+            env.r#type(join2)
+                .pretty_print(env, PrettyOptions::default())
         );
 
         let meet1_bc = lattice.meet(b, c);
@@ -487,8 +495,10 @@ pub(crate) mod test {
         assert!(
             analysis.is_equivalent(meet1, meet2),
             "{} != {}",
-            env.r#type(meet1).pretty_print(env, 80),
-            env.r#type(meet2).pretty_print(env, 80)
+            env.r#type(meet1)
+                .pretty_print(env, PrettyOptions::default()),
+            env.r#type(meet2)
+                .pretty_print(env, PrettyOptions::default())
         );
     }
 
@@ -503,8 +513,9 @@ pub(crate) mod test {
         assert!(
             analysis.is_equivalent(join1, a),
             "{} != {}",
-            env.r#type(join1).pretty_print(env, 80),
-            env.r#type(a).pretty_print(env, 80)
+            env.r#type(join1)
+                .pretty_print(env, PrettyOptions::default()),
+            env.r#type(a).pretty_print(env, PrettyOptions::default())
         );
 
         let join2 = lattice.join(a, b); // Number or String => Number or String
@@ -513,8 +524,9 @@ pub(crate) mod test {
         assert!(
             analysis.is_equivalent(meet2, a),
             "{} != {}",
-            env.r#type(meet2).pretty_print(env, 80),
-            env.r#type(a).pretty_print(env, 80)
+            env.r#type(meet2)
+                .pretty_print(env, PrettyOptions::default()),
+            env.r#type(a).pretty_print(env, PrettyOptions::default())
         );
     }
 

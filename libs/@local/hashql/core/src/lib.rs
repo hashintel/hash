@@ -13,7 +13,8 @@
     iter_map_windows,
     cold_path,
     type_alias_impl_trait,
-    associated_type_defaults
+    associated_type_defaults,
+    default_field_values
 )]
 
 extern crate alloc;

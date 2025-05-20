@@ -14,7 +14,7 @@ use hashql_ast::{
 use hashql_core::{
     heap::Heap,
     module::{ModuleRegistry, locals::Local, namespace::ModuleNamespace},
-    pretty::PrettyPrint as _,
+    pretty::{PrettyOptions, PrettyPrint as _},
     span::SpanId,
     r#type::environment::Environment,
 };
@@ -74,7 +74,7 @@ impl Suite for AstLoweringTypeDefinitionExtractorSuite {
             let _: Result<(), _> = write!(
                 output,
                 "\n\n{}",
-                strip_str(&def.pretty_print(&environment, 80))
+                strip_str(&def.pretty_print(&environment, PrettyOptions::default()))
             );
         }
 

@@ -1461,8 +1461,6 @@ mod test {
         let result = union_type.simplify(&mut simplify_env);
         let result_type = env.r#type(result);
 
-        println!("{}", result_type.pretty_print(&env, 80));
-
         // Result should be just Number, not a union
         assert_matches!(
             *result_type.kind,
