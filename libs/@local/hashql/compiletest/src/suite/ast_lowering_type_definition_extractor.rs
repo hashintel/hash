@@ -13,7 +13,7 @@ use hashql_ast::{
 };
 use hashql_core::{
     heap::Heap,
-    module::{ModuleRegistry, locals::LocalTypeDef, namespace::ModuleNamespace},
+    module::{ModuleRegistry, locals::Local, namespace::ModuleNamespace},
     span::SpanId,
     r#type::{environment::Environment, pretty_print::PrettyPrint as _},
 };
@@ -67,7 +67,7 @@ impl Suite for AstLoweringTypeDefinitionExtractorSuite {
         output.push_str("\n------------------------");
 
         let mut locals: Vec<_> = locals.iter().collect();
-        locals.sort_by_key(|&LocalTypeDef { name, .. }| name);
+        locals.sort_by_key(|&Local { name, .. }| name);
 
         for def in locals {
             let _: Result<(), _> = write!(
