@@ -3851,7 +3851,6 @@ dependencies = [
 name = "hashql-hir"
 version = "0.0.0"
 dependencies = [
- "hashql-ast",
  "hashql-core",
  "simple-mermaid",
 ]
