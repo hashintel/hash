@@ -8860,7 +8860,7 @@ __metadata:
     eslint: "npm:9.20.1"
     it-stream-types: "npm:2.0.2"
     libp2p: "npm:2.8.7"
-    multiformats: "npm:13.3.4"
+    multiformats: "npm:13.3.5"
     rimraf: "npm:6.0.1"
     typescript: "npm:5.7.3"
     uint8arraylist: "npm:2.4.8"
@@ -34508,14 +34508,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"multiformats@npm:13.3.4":
-  version: 13.3.4
-  resolution: "multiformats@npm:13.3.4"
-  checksum: 10c0/3ecdaa5ff11ebefe93e04a3a5983919b1d30de764fe7f00de9f80ddea0f75e1ba335e4b0875eadaed421dab195fb6f77b93ce173ee4c73e1e1461d2a622a2f58
-  languageName: node
-  linkType: hard
-
-"multiformats@npm:^13.0.0, multiformats@npm:^13.3.4":
+"multiformats@npm:13.3.5, multiformats@npm:^13.0.0, multiformats@npm:^13.3.4":
   version: 13.3.5
   resolution: "multiformats@npm:13.3.5"
   checksum: 10c0/e03d58b2a5870d5619dca546e7a5bc7cc0628f0990de9b29a1e6be7424e906a6492ec74c7117e24d104017e3696a632ac36b3b717b77fd90ffec5756a44fb641
