@@ -218,10 +218,9 @@ pub trait PrettyPrint<'heap> {
         boundary: &mut PrettyRecursionBoundary,
         arguments: GenericArguments<'heap>,
     ) -> RcDoc<'heap, Style> {
-        arguments
-            .pretty(env, boundary)
+        RcDoc::line_()
+            .append(arguments.pretty(env, boundary))
             .append(self.pretty(env, boundary))
-            .group()
     }
 
     fn pretty_print(&self, env: &Environment<'heap>, options: PrettyOptions) -> String {

@@ -290,12 +290,12 @@ impl<'heap> PrettyPrint<'heap> for ClosureType<'heap> {
                 self.params
                     .iter()
                     .map(|&param| boundary.pretty_type(env, param)),
-                RcDoc::text(",").append(RcDoc::line()),
+                RcDoc::text(",").append(RcDoc::softline()),
             ))
             .append(")")
-            .append(RcDoc::line())
+            .append(RcDoc::softline())
             .append("->")
-            .append(RcDoc::line())
+            .append(RcDoc::softline())
             .append(boundary.pretty_type(env, self.returns))
             .group()
     }

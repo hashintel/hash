@@ -39,7 +39,7 @@ impl<'heap> PrettyPrint<'heap> for GenericSubstitution {
             .annotate(ORANGE)
             .append(RcDoc::space())
             .append("=")
-            .append(RcDoc::line())
+            .append(RcDoc::softline())
             .append(boundary.pretty_type(env, self.value))
     }
 }
@@ -122,13 +122,13 @@ impl<'heap> PrettyPrint<'heap> for GenericSubstitutions<'heap> {
                         slice
                             .iter()
                             .map(|substitution| substitution.pretty(env, boundary)),
-                        RcDoc::text(",").append(RcDoc::line()),
+                        RcDoc::text(",").append(RcDoc::softline()),
                     )
-                    .nest(1)
-                    .group(),
+                    .nest(1),
                 )
                 .append(RcDoc::text(">")),
         }
+        .group()
     }
 }
 
@@ -418,7 +418,7 @@ impl<'heap> PrettyPrint<'heap> for Apply<'heap> {
         boundary: &mut PrettyRecursionBoundary,
     ) -> RcDoc<'heap, anstyle::Style> {
         boundary.pretty_type(env, self.base).append(
-            RcDoc::line()
+            RcDoc::softline()
                 .append(RcDoc::text("where").annotate(RED))
                 .append(self.substitutions.pretty(env, boundary))
                 .group()

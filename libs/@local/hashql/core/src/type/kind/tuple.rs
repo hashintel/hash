@@ -338,7 +338,7 @@ impl<'heap> PrettyPrint<'heap> for TupleType<'heap> {
                 .append(
                     RcDoc::intersperse(
                         fields.iter().map(|&field| boundary.pretty_type(env, field)),
-                        RcDoc::text(",").append(RcDoc::line()),
+                        RcDoc::text(",").append(RcDoc::softline()),
                     )
                     .nest(1)
                     .group(),

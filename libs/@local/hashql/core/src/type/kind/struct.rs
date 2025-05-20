@@ -36,7 +36,7 @@ impl<'heap> PrettyPrint<'heap> for StructField<'heap> {
     ) -> RcDoc<'heap, anstyle::Style> {
         RcDoc::text(self.name.unwrap())
             .append(RcDoc::text(":"))
-            .append(RcDoc::line())
+            .append(RcDoc::softline())
             .append(boundary.pretty_type(env, self.value))
             .group()
     }
@@ -104,7 +104,7 @@ impl<'heap> PrettyPrint<'heap> for StructFields<'heap> {
             Some(Interned([], _)) | None => RcDoc::text(":"),
             Some(Interned(fields, _)) => RcDoc::intersperse(
                 fields.iter().map(|field| field.pretty(env, boundary)),
-                RcDoc::text(",").append(RcDoc::line()),
+                RcDoc::text(",").append(RcDoc::softline()),
             )
             .nest(1)
             .group(),

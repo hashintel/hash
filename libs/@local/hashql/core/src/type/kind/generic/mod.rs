@@ -120,7 +120,7 @@ impl<'heap> PrettyPrint<'heap> for GenericArgument<'heap> {
         if let Some(constraint) = self.constraint {
             doc = doc.append(
                 RcDoc::text(":")
-                    .append(RcDoc::line())
+                    .append(RcDoc::softline())
                     .append(boundary.pretty_type(env, constraint))
                     .group(),
             );
@@ -208,7 +208,7 @@ impl<'heap> PrettyPrint<'heap> for GenericArguments<'heap> {
                         arguments
                             .iter()
                             .map(|argument| argument.pretty(env, boundary)),
-                        RcDoc::text(",").append(RcDoc::line()),
+                        RcDoc::text(",").append(RcDoc::softline()),
                     )
                     .nest(1)
                     .group(),

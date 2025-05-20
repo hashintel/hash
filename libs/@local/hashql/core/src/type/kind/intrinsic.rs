@@ -489,7 +489,7 @@ impl<'heap> PrettyPrint<'heap> for DictType {
                     [self.key, self.value]
                         .into_iter()
                         .map(|id| boundary.pretty_type(env, id)),
-                    RcDoc::text(",").append(RcDoc::line()),
+                    RcDoc::text(",").append(RcDoc::softline()),
                 )
                 .nest(1)
                 .group(),

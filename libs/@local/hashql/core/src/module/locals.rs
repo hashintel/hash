@@ -65,14 +65,14 @@ impl<'heap> PrettyPrint<'heap> for TypeDef<'heap> {
                     self.arguments
                         .iter()
                         .map(|argument| argument.pretty(env, boundary)),
-                    RcDoc::text(",").append(RcDoc::line()),
+                    RcDoc::text(",").append(RcDoc::softline()),
                 ))
                 .append(RcDoc::text(">")),
         }
         .group()
-        .append(RcDoc::line())
+        .append(RcDoc::softline())
         .append("=")
-        .append(RcDoc::line())
+        .append(RcDoc::softline())
         .append(boundary.pretty_type(env, self.id))
         .group()
     }
