@@ -165,6 +165,7 @@ impl PolicyExpressionTree {
     ) -> Result<(), Report<ParseGetAttrExpressionError>> {
         match expr.expr_kind() {
             ast::ExprKind::Var(ast::Var::Resource) => Ok(()),
+            ast::ExprKind::Unknown(unknown) if unknown.name == "resource" => Ok(()),
             _ => Err(Report::new(ParseGetAttrExpressionError::NoResourceVariable)
                 .attach_printable(Arc::clone(expr))),
         }
@@ -215,6 +216,9 @@ impl PolicyExpressionTree {
                 attr_type
             }
             ast::ExprKind::Var(ast::Var::Resource) => AttributeType::Resource,
+            ast::ExprKind::Unknown(unknown) if unknown.name == "resource" => {
+                AttributeType::Resource
+            }
             _ => {
                 return Err(
                     Report::new(ParseBinaryExpressionError::Left).attach_printable(Arc::clone(lhs))

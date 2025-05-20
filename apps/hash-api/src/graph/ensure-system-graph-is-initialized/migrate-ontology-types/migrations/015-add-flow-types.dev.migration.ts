@@ -8,7 +8,6 @@ import {
 import { getEntityTypeById } from "../../../ontology/primitive/entity-type";
 import type { MigrationFunction } from "../types";
 import {
-  anyUserInstantiator,
   createSystemEntityTypeIfNotExists,
   createSystemPropertyTypeIfNotExists,
   getCurrentHashSystemEntityTypeId,
@@ -133,7 +132,6 @@ const migrate: MigrationFunction = async ({
 
       webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
     },
   );
 
@@ -255,7 +253,6 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
     },
   );
 
@@ -309,7 +306,6 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
     },
   );
 
@@ -329,7 +325,6 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
     },
   );
 
@@ -367,7 +362,6 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
     },
   );
 
@@ -391,7 +385,6 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
     },
   );
 

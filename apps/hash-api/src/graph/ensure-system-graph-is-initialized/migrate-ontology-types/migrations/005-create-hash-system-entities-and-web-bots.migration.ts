@@ -114,10 +114,9 @@ const migrate: MigrationFunction = async ({
         await createMachineActorEntity(context, {
           identifier: `system-${webId}`,
           logger,
-          machineId,
+          actor: { actorType: "machine", id: machineId },
           webId,
           displayName: "HASH",
-          systemAccountId,
           machineEntityTypeId: currentMachineEntityTypeId,
         });
 
@@ -158,10 +157,9 @@ const migrate: MigrationFunction = async ({
         await createMachineActorEntity(context, {
           identifier: `system-${webId}`,
           logger,
-          machineId,
+          actor: { actorType: "machine", id: machineId },
           webId,
           displayName: "HASH",
-          systemAccountId,
           machineEntityTypeId: currentMachineEntityTypeId,
         });
 

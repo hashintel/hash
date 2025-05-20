@@ -54,7 +54,10 @@ beforeAll(async () => {
   const authentication = { actorId: testUser.accountId };
 
   testOrg = await createTestOrg(
-    graphContext,
+    {
+      ...graphContext,
+      provenance: { ...graphContext.provenance, actorType: "user" },
+    },
     authentication,
     "propertytestorg",
   );

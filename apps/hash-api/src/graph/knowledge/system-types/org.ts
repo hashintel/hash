@@ -1,4 +1,5 @@
 import type {
+  ActorId,
   EntityId,
   MachineId,
   OntologyTypeVersion,
@@ -12,6 +13,7 @@ import {
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import { createWebMachineActorEntity } from "@local/hash-backend-utils/machine-actors";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { createPolicy, deletePolicyById } from "@local/hash-graph-sdk/policy";
 import { getWebById } from "@local/hash-graph-sdk/principal/web";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
@@ -25,6 +27,7 @@ import type {
   OrganizationNamePropertyValueWithMetadata,
   OrganizationPropertiesWithMetadata,
 } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { PolicyId } from "@rust/hash-graph-authorization/types";
 
 import { logger } from "../../../logger";
 import { createOrgWeb } from "../../account-permission-management";
@@ -32,7 +35,6 @@ import type {
   ImpureGraphFunction,
   PureGraphFunction,
 } from "../../context-types";
-import { modifyEntityTypeAuthorizationRelationships } from "../../ontology/primitive/entity-type";
 import { systemAccountId } from "../../system-account";
 import {
   createEntity,
@@ -171,7 +173,6 @@ export const createOrg: ImpureGraphFunction<
         );
 
   await createWebMachineActorEntity(ctx, {
-    systemAccountId,
     webId: orgWebId,
     machineId: orgWebMachineId,
     machineEntityTypeId,
@@ -215,26 +216,28 @@ export const createOrg: ImpureGraphFunction<
           orgEntityTypeVersion,
         );
 
+  // TODO: Move org-entity creation to the graph
+  //   see https://linear.app/hash/issue/H-4557/move-org-entity-creation-to-graph
+  let temporaryInstantiationPolicy: PolicyId | undefined = undefined;
   try {
-    await modifyEntityTypeAuthorizationRelationships(
-      ctx,
+    temporaryInstantiationPolicy = await createPolicy(
+      ctx.graphApi,
       { actorId: systemAccountId },
-      [
-        {
-          operation: "touch",
-          relationship: {
-            relation: "instantiator",
-            subject: {
-              kind: "account",
-              subjectId: authentication.actorId,
-            },
-            resource: {
-              kind: "entityType",
-              resourceId: orgEntityTypeId,
-            },
-          },
+      {
+        effect: "permit",
+        principal: {
+          type: "actor",
+          ...({
+            actorType: ctx.provenance.actorType,
+            id: authentication.actorId,
+          } as ActorId),
         },
-      ],
+        actions: ["instantiate"],
+        resource: {
+          type: "entityType",
+          id: orgEntityTypeId,
+        },
+      },
     );
 
     const entity = await createEntity(ctx, authentication, {
@@ -264,27 +267,16 @@ export const createOrg: ImpureGraphFunction<
       permitOlderVersions: orgEntityTypeVersion !== undefined,
     });
   } finally {
-    if (authentication.actorId !== systemAccountId) {
-      await modifyEntityTypeAuthorizationRelationships(
-        ctx,
+    if (temporaryInstantiationPolicy) {
+      await deletePolicyById(
+        ctx.graphApi,
         { actorId: systemAccountId },
-        [
-          {
-            operation: "delete",
-            relationship: {
-              relation: "instantiator",
-              subject: {
-                kind: "account",
-                subjectId: authentication.actorId,
-              },
-              resource: {
-                kind: "entityType",
-                resourceId: orgEntityTypeId,
-              },
-            },
-          },
-        ],
-      );
+        temporaryInstantiationPolicy,
+      ).catch((error) => {
+        logger.error(
+          `Failed to delete temporary instantiation policy ${temporaryInstantiationPolicy}: ${error}`,
+        );
+      });
     }
   }
 };
