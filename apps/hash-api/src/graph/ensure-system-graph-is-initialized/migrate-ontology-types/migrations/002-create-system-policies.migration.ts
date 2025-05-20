@@ -1,17 +1,13 @@
-import {
-  createPolicy,
-  deletePolicyById,
-  queryPolicies,
-} from "@local/hash-graph-sdk/policy";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type {
-  EntityTypeResourceFilter,
-  PolicyCreationParams,
-} from "@rust/hash-graph-authorization/types";
+import type { EntityTypeResourceFilter } from "@rust/hash-graph-authorization/types";
 
 import type { MigrationFunction } from "../types";
+import {
+  createOrUpgradePolicies,
+  type NamedPartialPolicy,
+} from "../util/upgrade-policies";
 
-const MACHINE_INSTANTIATE_ONLY_FILTERS: EntityTypeResourceFilter[] = [
+const MACHINE_ONLY_INSTANTIATE_FILTERS: EntityTypeResourceFilter[] = [
   {
     type: "isBaseUrl",
     baseUrl: systemEntityTypes.actor.entityTypeBaseUrl,
@@ -33,10 +29,9 @@ const MACHINE_INSTANTIATE_ONLY_FILTERS: EntityTypeResourceFilter[] = [
 // A global policy that allows all users to instantiate any entity type
 // except for the base URL of the hash instance and machine entity types
 // (which are only allowed to be instantiated by machines).
-const PUBLIC_INSTANTIATE_POLICY: PolicyCreationParams = {
-  name: "default-instantiate",
+const AUTHENTICATED_INSTANTIATE_POLICY: NamedPartialPolicy = {
+  name: "authenticated-instantiate",
   effect: "permit",
-  principal: null,
   actions: ["instantiate"],
   resource: {
     type: "entityType",
@@ -49,26 +44,22 @@ const PUBLIC_INSTANTIATE_POLICY: PolicyCreationParams = {
             type: "isBaseUrl",
             baseUrl: systemEntityTypes.hashInstance.entityTypeBaseUrl,
           },
-          ...MACHINE_INSTANTIATE_ONLY_FILTERS,
+          ...MACHINE_ONLY_INSTANTIATE_FILTERS,
         ],
       },
     },
   },
 };
 
-const MACHINE_INSTANTIATE_POLICY: PolicyCreationParams = {
-  name: "machine-actors-instantiate",
+const MACHINE_ONLY_INSTANTIATE_POLICY: NamedPartialPolicy = {
+  name: "machine-only-instantiate",
   effect: "permit",
-  principal: {
-    type: "actorType",
-    actorType: "machine",
-  },
   actions: ["instantiate"],
   resource: {
     type: "entityType",
     filter: {
       type: "any",
-      filters: MACHINE_INSTANTIATE_ONLY_FILTERS,
+      filters: MACHINE_ONLY_INSTANTIATE_FILTERS,
     },
   },
 };
@@ -78,31 +69,20 @@ const migrate: MigrationFunction = async ({
   authentication,
   migrationState,
 }) => {
-  for (const policy of [
-    PUBLIC_INSTANTIATE_POLICY,
-    MACHINE_INSTANTIATE_POLICY,
-  ]) {
-    const [existingPolicy] = await queryPolicies(
-      context.graphApi,
+  await createOrUpgradePolicies({
+    authentication,
+    context,
+    policies: [MACHINE_ONLY_INSTANTIATE_POLICY],
+    principal: { type: "actorType", actorType: "machine" },
+  });
+
+  for (const actorType of ["user", "machine", "ai"] as const) {
+    await createOrUpgradePolicies({
       authentication,
-      {
-        name: policy.name,
-        principal: policy.principal
-          ? { filter: "constrained", ...policy.principal }
-          : { filter: "unconstrained" },
-      },
-    );
-
-    if (existingPolicy) {
-      // TODO: Properly update the policy to match the new one
-      await deletePolicyById(
-        context.graphApi,
-        authentication,
-        existingPolicy.id,
-      );
-    }
-
-    await createPolicy(context.graphApi, authentication, policy);
+      context,
+      policies: [AUTHENTICATED_INSTANTIATE_POLICY],
+      principal: { type: "actorType", actorType },
+    });
   }
 
   return migrationState;
