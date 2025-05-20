@@ -456,7 +456,7 @@ impl<'heap> SpecialFormExpander<'heap> {
         let path = self.lower_argument_to_path(mode, argument)?;
         let span = path.span;
 
-        let Some(name) = path.into_generic_ident() else {
+        let Ok(name) = path.into_generic_ident() else {
             self.diagnostics
                 .push(invalid_type_name_qualified_path(span, mode));
 

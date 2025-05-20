@@ -1,0 +1,14 @@
+//@ run: pass
+//@ description: Test closure type extraction
+[
+  "let",
+  "x",
+  [
+    "fn",
+    { "#tuple": ["T"] },
+    { "#struct": { "x": "T" } },
+    "_",
+    ["+", { "#literal": 1 }, { "#literal": 2 }]
+  ],
+  "_"
+]

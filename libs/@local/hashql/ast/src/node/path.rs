@@ -152,7 +152,8 @@ impl<'heap> Path<'heap> {
         Some(&segment.name)
     }
 
-    pub(crate) fn as_generic_ident(&self) -> Option<(Ident<'heap>, &[PathSegmentArgument<'heap>])> {
+    #[must_use]
+    pub fn as_generic_ident(&self) -> Option<(Ident<'heap>, &[PathSegmentArgument<'heap>])> {
         if !self.is_generic_ident() {
             return None;
         }
@@ -171,15 +172,20 @@ impl<'heap> Path<'heap> {
         Some(segment.name)
     }
 
-    pub(crate) fn into_generic_ident(
+    /// Tries to turn this path into a generic identifier
+    ///
+    /// # Errors
+    ///
+    /// Returns the unmodified path
+    pub fn into_generic_ident(
         mut self,
-    ) -> Option<(Ident<'heap>, heap::Vec<'heap, PathSegmentArgument<'heap>>)> {
+    ) -> Result<(Ident<'heap>, heap::Vec<'heap, PathSegmentArgument<'heap>>), Self> {
         if !self.is_generic_ident() {
-            return None;
+            return Err(self);
         }
 
         let segment = self.segments.pop().unwrap_or_else(|| unreachable!());
-        Some((segment.name, segment.arguments))
+        Ok((segment.name, segment.arguments))
     }
 
     /// Checks if this path is an absolute path that matches the provided sequence of identifiers.

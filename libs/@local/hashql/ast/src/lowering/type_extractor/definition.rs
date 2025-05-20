@@ -1,13 +1,18 @@
+use alloc::borrow::Cow;
 use core::mem;
 
 use hashql_core::{
-    collection::{FastHashMap, TinyVec},
+    collection::{FastHashMap, TinyVec, fast_hash_map},
     module::{
         ModuleRegistry,
-        locals::{LocalTypeDef, LocalTypes},
+        locals::{Local, Locals, TypeLocals},
     },
     symbol::Symbol,
-    r#type::{environment::Environment, kind::GenericArgument},
+    r#type::{
+        TypeId,
+        environment::Environment,
+        kind::generic::{GenericArgumentId, GenericArgumentReference},
+    },
 };
 
 use super::{
@@ -24,6 +29,12 @@ use crate::{
     },
     visit::{Visitor, walk_expr},
 };
+
+type LocalState<'env, 'heap> = (
+    FastHashMap<Symbol<'heap>, LocalVariable<'env, 'heap>>,
+    FastHashMap<GenericArgumentId, Option<TypeId>>,
+    Vec<TypeExtractorDiagnostic>,
+);
 
 pub struct TypeDefinitionExtractor<'env, 'heap> {
     environment: &'env Environment<'heap>,
@@ -71,12 +82,11 @@ impl<'env, 'heap> TypeDefinitionExtractor<'env, 'heap> {
             bound: _,
         } in constraints
         {
-            arguments.push(GenericArgument {
+            arguments.push(GenericArgumentReference {
                 id: self.environment.counter.generic_argument.next(),
                 name: name.value,
                 // Constraints are populated in a second pass, after all types have been
                 // provisioned
-                constraint: None,
             });
 
             spans.push(*span);
@@ -85,12 +95,7 @@ impl<'env, 'heap> TypeDefinitionExtractor<'env, 'heap> {
         SpannedGenericArguments::from_parts(arguments, spans)
     }
 
-    fn setup_locals(
-        &self,
-    ) -> (
-        FastHashMap<Symbol<'heap>, LocalVariable<'_, 'heap>>,
-        Vec<TypeExtractorDiagnostic>,
-    ) {
+    fn setup_locals(&self) -> LocalState<'_, 'heap> {
         let mut diagnostics = Vec::new();
 
         // Setup the translation unit and environment
@@ -98,11 +103,15 @@ impl<'env, 'heap> TypeDefinitionExtractor<'env, 'heap> {
             self.alias.len() + self.opaque.len(),
             foldhash::fast::RandomState::default(),
         );
+        let mut allocated_generic_constraints = 0;
 
         // This could be easier if we were to use a `FastHashMap` for the alias and opaque
         // respectively. The problem with that approach is that we're losing any kind of information
         // about the order of the types.
         for (name, expr) in &self.alias {
+            let arguments = self.convert_generic_constraints(&expr.constraints);
+            allocated_generic_constraints += arguments.len();
+
             // We need to defer evaluation of duplicates here, where we actually into a type.
             if let Err(error) = locals.try_insert(
                 *name,
@@ -110,7 +119,7 @@ impl<'env, 'heap> TypeDefinitionExtractor<'env, 'heap> {
                     id: self.environment.types.provision(),
                     r#type: &expr.value,
                     identity: Identity::Structural,
-                    arguments: self.convert_generic_constraints(&expr.constraints),
+                    arguments,
                 },
             ) {
                 let diagnostic =
@@ -120,6 +129,9 @@ impl<'env, 'heap> TypeDefinitionExtractor<'env, 'heap> {
         }
 
         for (name, expr) in &self.opaque {
+            let arguments = self.convert_generic_constraints(&expr.constraints);
+            allocated_generic_constraints += arguments.len();
+
             if let Err(error) = locals.try_insert(
                 *name,
                 LocalVariable {
@@ -130,7 +142,7 @@ impl<'env, 'heap> TypeDefinitionExtractor<'env, 'heap> {
                             .heap
                             .intern_symbol(&format!("{}::{}", self.module, name)),
                     ),
-                    arguments: self.convert_generic_constraints(&expr.constraints),
+                    arguments,
                 },
             ) {
                 let diagnostic = duplicate_newtype(error.entry.get().r#type.span, expr.span, *name);
@@ -138,14 +150,14 @@ impl<'env, 'heap> TypeDefinitionExtractor<'env, 'heap> {
             }
         }
 
-        let partial = locals.clone();
+        let mut constraints = fast_hash_map(allocated_generic_constraints);
 
         let mut unit = TranslationUnit {
             env: self.environment,
             registry: self.registry,
             diagnostics,
-            locals: &partial,
-            bound_generics: &SpannedGenericArguments::empty(),
+            locals: &locals,
+            bound_generics: Cow::Owned(SpannedGenericArguments::empty()),
         };
 
         let alias_iter = self
@@ -160,32 +172,37 @@ impl<'env, 'heap> TypeDefinitionExtractor<'env, 'heap> {
 
         // Given that we've finalized the list of arguments, take said list of arguments and
         // initialize the bounds
-        for (name, constraints) in alias_iter.chain(opaque_iter) {
-            let local = locals.get_mut(&name).unwrap_or_else(|| {
+        for (name, def_constraints) in alias_iter.chain(opaque_iter) {
+            let local = locals.get(&name).unwrap_or_else(|| {
                 unreachable!(
                     "Invariant violated: Expected key '{name}' to exist in the 'locals' HashMap, \
                      but it was not found. This indicates a bug in the type extraction logic.",
                 )
             });
 
-            debug_assert_eq!(constraints.len(), local.arguments.len());
+            debug_assert_eq!(def_constraints.len(), local.arguments.len());
 
-            unit.bound_generics = &partial[&name].arguments;
+            unit.bound_generics = Cow::Borrowed(&locals[&name].arguments);
 
-            for (constraint, argument) in constraints.iter().zip(local.arguments.iter_mut()) {
+            for (constraint, argument) in def_constraints.iter().zip(local.arguments.iter()) {
                 debug_assert_eq!(constraint.name.value, argument.name);
 
-                if let Some(bound) = &constraint.bound {
-                    argument.constraint = Some(unit.reference(Reference::Type(bound)));
-                }
+                let bound = constraint
+                    .bound
+                    .as_ref()
+                    .map(|bound| unit.reference(Reference::Type(bound)));
+
+                constraints.insert(argument.id, bound);
             }
         }
 
-        (locals, unit.diagnostics)
+        let diagnostics = unit.diagnostics;
+
+        (locals, constraints, diagnostics)
     }
 
-    fn translate(&mut self) -> LocalTypes<'heap> {
-        let (locals, diagnostics) = self.setup_locals();
+    fn translate(&mut self) -> TypeLocals<'heap> {
+        let (locals, constraints, diagnostics) = self.setup_locals();
 
         let mut unit = TranslationUnit {
             env: self.environment,
@@ -193,10 +210,10 @@ impl<'env, 'heap> TypeDefinitionExtractor<'env, 'heap> {
             diagnostics: Vec::new(),
             locals: &locals,
 
-            bound_generics: &SpannedGenericArguments::empty(),
+            bound_generics: Cow::Owned(SpannedGenericArguments::empty()),
         };
 
-        let mut output = LocalTypes::with_capacity(locals.len());
+        let mut output = Locals::with_capacity(locals.len());
 
         // We need to keep the iteration order consistent
         for name in self
@@ -207,14 +224,11 @@ impl<'env, 'heap> TypeDefinitionExtractor<'env, 'heap> {
         {
             let variable = &locals[&name];
 
-            unit.bound_generics = &variable.arguments;
+            unit.bound_generics = Cow::Borrowed(&variable.arguments);
 
-            let (id, arguments) = unit.variable(variable);
-
-            output.insert(LocalTypeDef {
-                id,
+            output.insert(Local {
                 name,
-                arguments,
+                value: unit.variable(variable, &constraints),
             });
         }
 
@@ -232,7 +246,7 @@ impl<'env, 'heap> TypeDefinitionExtractor<'env, 'heap> {
     }
 
     #[must_use]
-    pub fn finish(mut self) -> (LocalTypes<'heap>, Vec<TypeExtractorDiagnostic>) {
+    pub fn finish(mut self) -> (TypeLocals<'heap>, Vec<TypeExtractorDiagnostic>) {
         let locals = self.translate();
 
         (locals, self.diagnostics)

@@ -29,3 +29,4 @@ type Person:0 = (age: Number, name: String)
 ------------------------
 
 10 = (age: Number, name: String)
+------------------------

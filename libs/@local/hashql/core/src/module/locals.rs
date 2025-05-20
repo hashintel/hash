@@ -1,3 +1,5 @@
+use core::ops::Index;
+
 use pretty::RcDoc;
 
 use crate::{
@@ -13,15 +15,13 @@ use crate::{
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct LocalTypeDef<'heap> {
+pub struct TypeDef<'heap> {
     pub id: TypeId,
-
-    pub name: Symbol<'heap>,
     pub arguments: TinyVec<GenericArgumentReference<'heap>>,
 }
 
-impl<'heap> LocalTypeDef<'heap> {
-    fn instantiate(&mut self, env: &mut InstantiateEnvironment<'_, 'heap>) {
+impl<'heap> TypeDef<'heap> {
+    pub fn instantiate(&mut self, env: &mut InstantiateEnvironment<'_, 'heap>) {
         self.id = env.instantiate(self.id);
         env.clear_provisioned();
 
@@ -53,42 +53,61 @@ impl<'heap> LocalTypeDef<'heap> {
     }
 }
 
-impl PrettyPrint for LocalTypeDef<'_> {
+impl PrettyPrint for TypeDef<'_> {
+    fn pretty<'env>(
+        &self,
+        env: &'env Environment,
+        limit: RecursionDepthBoundary,
+    ) -> RcDoc<'env, anstyle::Style> {
+        match self.arguments.as_slice() {
+            [] => RcDoc::nil(),
+            _ => RcDoc::text("<")
+                .append(RcDoc::intersperse(
+                    self.arguments
+                        .iter()
+                        .map(|argument| argument.pretty(env, limit)),
+                    RcDoc::text(",").append(RcDoc::line()),
+                ))
+                .append(RcDoc::text(">")),
+        }
+        .group()
+        .append(RcDoc::line())
+        .append("=")
+        .append(RcDoc::line())
+        .append(limit.pretty(env, self.id))
+        .group()
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct Local<'heap, T> {
+    pub name: Symbol<'heap>,
+    pub value: T,
+}
+
+impl<T> PrettyPrint for Local<'_, T>
+where
+    T: PrettyPrint,
+{
     fn pretty<'env>(
         &self,
         env: &'env Environment,
         limit: RecursionDepthBoundary,
     ) -> pretty::RcDoc<'env, anstyle::Style> {
         RcDoc::text("type")
-            .append(RcDoc::line())
+            .append(" ")
             .append(RcDoc::as_string(self.name))
-            .append(match self.arguments.as_slice() {
-                [] => RcDoc::nil(),
-                _ => RcDoc::text("<")
-                    .append(RcDoc::intersperse(
-                        self.arguments
-                            .iter()
-                            .map(|argument| argument.pretty(env, limit)),
-                        RcDoc::text(",").append(RcDoc::line()),
-                    ))
-                    .append(RcDoc::text(">")),
-            })
-            .group()
-            .append(RcDoc::line())
-            .append("=")
-            .append(RcDoc::line())
-            .append(limit.pretty(env, self.id))
-            .group()
+            .append(self.value.pretty(env, limit))
     }
 }
 
 #[derive(Debug)]
-pub struct LocalTypes<'heap> {
-    storage: Vec<LocalTypeDef<'heap>>,
+pub struct Locals<'heap, T> {
+    storage: Vec<Local<'heap, T>>,
     lookup: FastHashMap<Symbol<'heap>, usize>,
 }
 
-impl<'heap> LocalTypes<'heap> {
+impl<'heap, T> Locals<'heap, T> {
     #[must_use]
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
@@ -101,16 +120,16 @@ impl<'heap> LocalTypes<'heap> {
     }
 
     #[must_use]
-    pub fn get(&self, name: Symbol<'heap>) -> Option<&LocalTypeDef<'heap>> {
+    pub fn get(&self, name: Symbol<'heap>) -> Option<&Local<'heap, T>> {
         self.lookup.get(&name).map(|&index| &self.storage[index])
     }
 
     #[must_use]
-    pub fn names(&self) -> impl IntoIterator<Item = Symbol<'heap>> + use<'_, 'heap> {
+    pub fn names(&self) -> impl IntoIterator<Item = Symbol<'heap>> + use<'_, 'heap, T> {
         self.lookup.keys().copied()
     }
 
-    pub fn insert(&mut self, def: LocalTypeDef<'heap>) {
+    pub fn insert(&mut self, def: Local<'heap, T>) {
         let index = self.storage.len();
         let name = def.name;
 
@@ -118,19 +137,31 @@ impl<'heap> LocalTypes<'heap> {
         self.lookup.insert(name, index);
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = &LocalTypeDef<'heap>> {
+    pub fn iter(&self) -> impl Iterator<Item = &Local<'heap, T>> {
         self.storage.iter()
     }
+}
 
+impl<'heap> Locals<'heap, TypeDef<'heap>> {
     pub fn finish(&mut self, env: &Environment<'heap>) -> Diagnostics {
         // Once finished we need to go over once to instantiate every call (now that everything is
         // properly set-up) to split the individual types from each other.
         let mut instantiate = InstantiateEnvironment::new(env);
 
         for def in &mut self.storage {
-            def.instantiate(&mut instantiate);
+            def.value.instantiate(&mut instantiate);
         }
 
         instantiate.take_diagnostics()
     }
 }
+
+impl<'heap, T> Index<Symbol<'heap>> for Locals<'heap, T> {
+    type Output = Local<'heap, T>;
+
+    fn index(&self, index: Symbol<'heap>) -> &Self::Output {
+        self.get(index).expect("local type not found")
+    }
+}
+
+pub type TypeLocals<'heap> = Locals<'heap, TypeDef<'heap>>;

@@ -8,10 +8,7 @@ use hashql_core::{
     },
     span::SpanId,
     symbol::Symbol,
-    r#type::{
-        error::TypeCheckDiagnosticCategory,
-        kind::{GenericArgument, generic::GenericArgumentReference},
-    },
+    r#type::{error::TypeCheckDiagnosticCategory, kind::generic::GenericArgumentReference},
 };
 use hashql_diagnostics::{
     Diagnostic,
@@ -676,7 +673,7 @@ pub(crate) fn duplicate_struct_fields(
 /// This is emitted when a type declares a generic parameter but doesn't use it in its body,
 /// for example: `type Option<T, E> = Some<T> | None` where `E` is never referenced.
 pub(crate) fn unused_generic_parameter(
-    param: GenericArgument,
+    param: GenericArgumentReference,
     param_span: SpanId,
 
     type_def_span: SpanId,

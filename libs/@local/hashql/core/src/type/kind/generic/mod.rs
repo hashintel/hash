@@ -42,6 +42,19 @@ pub struct GenericArgumentReference<'heap> {
     pub name: Symbol<'heap>,
 }
 
+impl<'heap> GenericArgumentReference<'heap> {
+    #[must_use]
+    pub const fn with_constraint(self, constraint: Option<TypeId>) -> GenericArgument<'heap> {
+        let Self { id, name } = self;
+
+        GenericArgument {
+            id,
+            name,
+            constraint,
+        }
+    }
+}
+
 impl<'heap> From<GenericArgument<'heap>> for GenericArgumentReference<'heap> {
     fn from(argument: GenericArgument<'heap>) -> Self {
         Self {

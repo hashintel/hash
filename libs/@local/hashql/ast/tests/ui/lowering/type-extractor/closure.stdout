@@ -1,0 +1,45 @@
+Expr#0@37
+  ExprKind (Let)
+    LetExpr#1@37 (name: x:0)
+      Expr#2@34
+        ExprKind (Closure)
+          ClosureExpr#3@34
+            ClosureSignature#4@34
+              Generics#5@12
+              ClosureParam#6@20 (name: x:1)
+                Type#7@19
+                  TypeKind (Path)
+                    Path#8@19 (rooted: true)
+                      PathSegment#9@18 (name: kernel)
+                      PathSegment#10@18 (name: type)
+                      PathSegment#11@18 (name: Number)
+              Type#12@24
+                TypeKind (Infer)
+            Expr#13@33
+              ExprKind (Call)
+                CallExpr#14@33
+                  Expr#15@28
+                    ExprKind (Path)
+                      Path#16@28 (rooted: true)
+                        PathSegment#17@27 (name: math)
+                        PathSegment#18@27 (name: add)
+                  Argument#19@30
+                    Expr#20@30
+                      ExprKind (Literal)
+                        LiteralExpr#21@29
+                          LiteralKind (Integer)
+                            IntegerLiteral (1)
+                  Argument#22@32
+                    Expr#23@32
+                      ExprKind (Literal)
+                        LiteralExpr#24@31
+                          LiteralKind (Integer)
+                            IntegerLiteral (2)
+      Expr#25@36
+        ExprKind (Underscore)
+
+------------------------
+------------------------
+------------------------
+
+4 = fn(Number) -> _0
