@@ -34,7 +34,7 @@ const MACHINE_INSTANTIATE_ONLY_FILTERS: EntityTypeResourceFilter[] = [
 // except for the base URL of the hash instance and machine entity types
 // (which are only allowed to be instantiated by machines).
 const PUBLIC_INSTANTIATE_POLICY: PolicyCreationParams = {
-  name: "instantiate",
+  name: "default-instantiate",
   effect: "permit",
   principal: null,
   actions: ["instantiate"],
@@ -57,7 +57,7 @@ const PUBLIC_INSTANTIATE_POLICY: PolicyCreationParams = {
 };
 
 const MACHINE_INSTANTIATE_POLICY: PolicyCreationParams = {
-  name: "instantiate",
+  name: "machine-actors-instantiate",
   effect: "permit",
   principal: {
     type: "actorType",
