@@ -784,7 +784,9 @@ where
         let actor = self
             .determine_actor(actor_id)
             .await
-            .change_context(InsertionError)?;
+            .change_context(InsertionError)?
+            .ok_or(InsertionError)
+            .attach(StatusCode::Unauthenticated)?;
         self.build_principal_context(actor, &mut policy_context_builder)
             .await
             .change_context(InsertionError)?;
@@ -1660,7 +1662,9 @@ where
         let actor = self
             .determine_actor(actor_id)
             .await
-            .change_context(UpdateError)?;
+            .change_context(UpdateError)?
+            .ok_or(UpdateError)
+            .attach(StatusCode::Unauthenticated)?;
         self.build_principal_context(actor, &mut policy_context_builder)
             .await
             .change_context(UpdateError)?;

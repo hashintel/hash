@@ -42,6 +42,7 @@ use hash_graph_store::{
 };
 use hash_graph_temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTime};
 use hash_graph_types::Embedding;
+use hash_status::StatusCode;
 use postgres_types::{Json, ToSql};
 use serde::Deserialize as _;
 use serde_json::Value as JsonValue;
@@ -1741,7 +1742,9 @@ where
         let actor = self
             .determine_actor(authenticated_user)
             .await
-            .change_context(QueryError)?;
+            .change_context(QueryError)?
+            .ok_or(QueryError)
+            .attach(StatusCode::Unauthenticated)?;
         let policies = self
             .resolve_policies_for_actor(actor.into(), actor)
             .await
