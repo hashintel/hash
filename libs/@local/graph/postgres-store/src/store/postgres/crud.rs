@@ -74,14 +74,14 @@ where
     type ReadPaginatedStream =
         impl Stream<Item = Result<Self::QueryResult, Report<QueryError>>> + Send + Sync;
 
-    #[tracing::instrument(level = "info", skip(self, filter, sorting))]
+    #[tracing::instrument(level = "info", skip(self, filters, sorting))]
     #[expect(
         clippy::type_complexity,
         reason = "The complexity comes from the `instrument` macro"
     )]
     async fn read_paginated(
         &self,
-        filter: &Filter<'_, R>,
+        filters: &[Filter<'_, R>],
         temporal_axes: Option<&QueryTemporalAxes>,
         sorting: &S,
         limit: Option<usize>,
@@ -94,7 +94,9 @@ where
             compiler.set_limit(limit);
         }
 
-        compiler.add_filter(filter).change_context(QueryError)?;
+        for filter in filters {
+            compiler.add_filter(filter).change_context(QueryError)?;
+        }
 
         let cursor_indices = sorting
             .compile(
@@ -135,10 +137,10 @@ where
 {
     type ReadStream = impl Stream<Item = Result<R, Report<QueryError>>> + Send + Sync;
 
-    #[tracing::instrument(level = "info", skip(self, filter))]
+    #[tracing::instrument(level = "info", skip(self, filters))]
     async fn read(
         &self,
-        filter: &Filter<'_, R>,
+        filters: &[Filter<'_, R>],
         temporal_axes: Option<&QueryTemporalAxes>,
         include_drafts: bool,
     ) -> Result<Self::ReadStream, Report<QueryError>> {
@@ -147,7 +149,9 @@ where
         let record_artifacts = R::parameters();
         let record_indices = R::compile(&mut compiler, &record_artifacts);
 
-        compiler.add_filter(filter).change_context(QueryError)?;
+        for filter in filters {
+            compiler.add_filter(filter).change_context(QueryError)?;
+        }
         let (statement, parameters) = compiler.compile();
 
         Ok(self
@@ -160,10 +164,10 @@ where
             .map_ok(move |row| R::decode(&row, &record_indices)))
     }
 
-    #[tracing::instrument(level = "info", skip(self, filter))]
+    #[tracing::instrument(level = "info", skip(self, filters))]
     async fn read_one(
         &self,
-        filter: &Filter<'_, R>,
+        filters: &[Filter<'_, R>],
         temporal_axes: Option<&QueryTemporalAxes>,
         include_drafts: bool,
     ) -> Result<R, Report<QueryError>> {
@@ -172,7 +176,9 @@ where
         let record_artifacts = R::parameters();
         let record_indices = R::compile(&mut compiler, &record_artifacts);
 
-        compiler.add_filter(filter).change_context(QueryError)?;
+        for filter in filters {
+            compiler.add_filter(filter).change_context(QueryError)?;
+        }
         let (statement, parameters) = compiler.compile();
 
         let rows = self

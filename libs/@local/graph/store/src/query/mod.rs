@@ -45,7 +45,7 @@ pub trait ReadPaginated<R: QueryRecord, S: Sorting + Sync>: Read<R> {
     )]
     fn read_paginated(
         &self,
-        filter: &Filter<'_, R>,
+        filters: &[Filter<'_, R>],
         temporal_axes: Option<&QueryTemporalAxes>,
         sorting: &S,
         limit: Option<usize>,
@@ -64,10 +64,10 @@ pub trait ReadPaginated<R: QueryRecord, S: Sorting + Sync>: Read<R> {
         clippy::type_complexity,
         reason = "simplification of type would lead to more unreadable code"
     )]
-    #[instrument(level = "info", skip(self, filter, sorting))]
+    #[instrument(level = "info", skip(self, filters, sorting))]
     fn read_paginated_vec(
         &self,
-        filter: &Filter<'_, R>,
+        filters: &[Filter<'_, R>],
         temporal_axes: Option<&QueryTemporalAxes>,
         sorting: &S,
         limit: Option<usize>,
@@ -83,7 +83,7 @@ pub trait ReadPaginated<R: QueryRecord, S: Sorting + Sync>: Read<R> {
     > + Send {
         async move {
             let (stream, artifacts) = self
-                .read_paginated(filter, temporal_axes, sorting, limit, include_drafts)
+                .read_paginated(filters, temporal_axes, sorting, limit, include_drafts)
                 .await?;
             Ok((stream.try_collect().await?, artifacts))
         }
@@ -96,25 +96,25 @@ pub trait Read<R: QueryRecord>: Sync {
 
     fn read(
         &self,
-        filter: &Filter<'_, R>,
+        filters: &[Filter<'_, R>],
         temporal_axes: Option<&QueryTemporalAxes>,
         include_drafts: bool,
     ) -> impl Future<Output = Result<Self::ReadStream, Report<QueryError>>> + Send;
 
-    #[instrument(level = "info", skip(self, filter))]
+    #[instrument(level = "info", skip(self, filters))]
     fn read_vec(
         &self,
-        filter: &Filter<'_, R>,
+        filters: &[Filter<'_, R>],
         temporal_axes: Option<&QueryTemporalAxes>,
         include_drafts: bool,
     ) -> impl Future<Output = Result<Vec<R>, Report<QueryError>>> + Send {
-        self.read(filter, temporal_axes, include_drafts)
+        self.read(filters, temporal_axes, include_drafts)
             .and_then(TryStreamExt::try_collect)
     }
 
     fn read_one(
         &self,
-        filter: &Filter<'_, R>,
+        filters: &[Filter<'_, R>],
         temporal_axes: Option<&QueryTemporalAxes>,
         include_drafts: bool,
     ) -> impl Future<Output = Result<R, Report<QueryError>>> + Send;

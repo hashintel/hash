@@ -613,7 +613,7 @@ impl PostgresStorePool {
                 .acquire(NoAuthorization, None)
                 .await
                 .change_context(SnapshotDumpError::Query)?,
-            &Filter::All(vec![]),
+            &[],
             None,
             true,
         )

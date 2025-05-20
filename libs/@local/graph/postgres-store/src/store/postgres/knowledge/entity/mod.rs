@@ -419,6 +419,7 @@ where
         temporal_axes: &QueryTemporalAxes,
     ) -> Result<(GetEntitiesResponse<'static>, Zookie<'static>), Report<QueryError>> {
         let mut root_entities = Vec::new();
+        let filters: [Filter<'_, Entity>; 1] = [params.filter];
 
         let (
             permissions,
@@ -451,9 +452,9 @@ where
                 )
             });
 
-            compiler
-                .add_filter(&params.filter)
-                .change_context(QueryError)?;
+            for filter in &filters {
+                compiler.add_filter(filter).change_context(QueryError)?;
+            }
 
             let (statement, parameters) = compiler.compile();
 
@@ -610,7 +611,7 @@ where
             let (rows, artifacts) =
                 ReadPaginated::<Entity, EntityQuerySorting>::read_paginated_vec(
                     self,
-                    &params.filter,
+                    &filters,
                     Some(temporal_axes),
                     &params.sorting,
                     params.limit,
@@ -1580,7 +1581,7 @@ where
 
         let entity_ids = Read::<Entity>::read(
             self,
-            &params.filter,
+            &[params.filter],
             Some(&temporal_axes),
             params.include_drafts,
         )
@@ -1641,7 +1642,7 @@ where
 
         Read::<Entity>::read_one(
             self,
-            &Filter::for_entity_by_entity_id(entity_id),
+            &[Filter::for_entity_by_entity_id(entity_id)],
             Some(&temporal_axes),
             entity_id.draft_id.is_some(),
         )
@@ -1710,7 +1711,7 @@ where
             *locked_row.decision_time.start();
         let previous_entity = Read::<Entity>::read_one(
             &transaction,
-            &Filter::Equal(
+            &[Filter::Equal(
                 Some(FilterExpression::Path {
                     path: EntityQueryPath::EditionId,
                 }),
@@ -1718,7 +1719,7 @@ where
                     parameter: Parameter::Uuid(locked_row.entity_edition_id.into_uuid()),
                     convert: None,
                 }),
-            ),
+            )],
             Some(&QueryTemporalAxes::DecisionTime {
                 pinned: PinnedTemporalAxis::new(locked_transaction_time),
                 variable: VariableTemporalAxis::new(

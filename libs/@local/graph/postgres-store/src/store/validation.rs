@@ -195,7 +195,7 @@ where
         let schema = self
             .store
             .read_one(
-                &Filter::for_data_type_uuid(data_type_uuid),
+                &[Filter::for_data_type_uuid(data_type_uuid)],
                 Some(
                     &QueryTemporalAxesUnresolved::DecisionTime {
                         pinned: PinnedTemporalAxisUnresolved::new(None),
@@ -397,7 +397,9 @@ where
         let schema = self
             .store
             .read_one(
-                &Filter::<PropertyTypeWithMetadata>::for_versioned_url(type_id),
+                &[Filter::<PropertyTypeWithMetadata>::for_versioned_url(
+                    type_id,
+                )],
                 Some(
                     &QueryTemporalAxesUnresolved::DecisionTime {
                         pinned: PinnedTemporalAxisUnresolved::new(None),
@@ -602,7 +604,7 @@ where
         let entity = self
             .store
             .read_one(
-                &Filter::for_entity_by_entity_id(entity_id),
+                &[Filter::for_entity_by_entity_id(entity_id)],
                 Some(
                     &QueryTemporalAxesUnresolved::DecisionTime {
                         pinned: PinnedTemporalAxisUnresolved::new(None),

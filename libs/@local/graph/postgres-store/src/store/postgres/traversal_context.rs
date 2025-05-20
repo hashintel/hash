@@ -39,12 +39,12 @@ where
     ) -> Result<(), Report<QueryError>> {
         for data_type in <Self as Read<DataTypeWithMetadata>>::read_vec(
             self,
-            &Filter::<DataTypeWithMetadata>::In(
+            &[Filter::<DataTypeWithMetadata>::In(
                 FilterExpression::Path {
                     path: DataTypeQueryPath::OntologyId,
                 },
                 ParameterList::DataTypeIds(data_type_ids),
-            ),
+            )],
             Some(&subgraph.temporal_axes.resolved),
             false,
         )
@@ -67,12 +67,12 @@ where
     ) -> Result<(), Report<QueryError>> {
         for property_type in <Self as Read<PropertyTypeWithMetadata>>::read_vec(
             self,
-            &Filter::<PropertyTypeWithMetadata>::In(
+            &[Filter::<PropertyTypeWithMetadata>::In(
                 FilterExpression::Path {
                     path: PropertyTypeQueryPath::OntologyId,
                 },
                 ParameterList::PropertyTypeIds(property_type_ids),
-            ),
+            )],
             Some(&subgraph.temporal_axes.resolved),
             false,
         )
@@ -95,12 +95,12 @@ where
     ) -> Result<(), Report<QueryError>> {
         for entity_type in <Self as Read<EntityTypeWithMetadata>>::read_vec(
             self,
-            &Filter::<EntityTypeWithMetadata>::In(
+            &[Filter::<EntityTypeWithMetadata>::In(
                 FilterExpression::Path {
                     path: EntityTypeQueryPath::OntologyId,
                 },
                 ParameterList::EntityTypeIds(entity_type_ids),
-            ),
+            )],
             Some(&subgraph.temporal_axes.resolved),
             false,
         )
@@ -124,12 +124,12 @@ where
     ) -> Result<(), Report<QueryError>> {
         let entities = <Self as Read<Entity>>::read_vec(
             self,
-            &Filter::<Entity>::In(
+            &[Filter::<Entity>::In(
                 FilterExpression::Path {
                     path: EntityQueryPath::EditionId,
                 },
                 ParameterList::EntityEditionIds(edition_ids),
-            ),
+            )],
             Some(&subgraph.temporal_axes.resolved),
             include_drafts,
         )
