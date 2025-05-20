@@ -915,8 +915,8 @@ where
                 LEFT JOIN policy_action ON policy.id = policy_action.policy_id
                 WHERE policy.id = $1
                 GROUP BY
-                    policy.id, policy.name, policy.effect, policy.principal_id,
-                    policy.principal_type, policy.actor_type, policy.resource_constraint
+                    policy.name, policy.effect, policy.principal_id, policy.principal_type,
+                    policy.actor_type, policy.resource_constraint
                 ",
                 &[&id],
             )
