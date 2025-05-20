@@ -119,7 +119,6 @@ impl<'heap> Visitor<'heap> for TypeExtractor<'_, 'heap> {
             .unwrap_or_else(|_err| unreachable!("The node renumberer should've run before this"));
     }
 
-    // TODO: Test this!
     fn visit_closure_sig(&mut self, sig: &mut ClosureSignature<'heap>) {
         // We do not continue one walking any closure signatures as we do not want to convert their
         // types
