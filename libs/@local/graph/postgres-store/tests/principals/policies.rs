@@ -374,31 +374,34 @@ async fn global_policies() -> Result<(), Box<dyn Error>> {
 
     // Every actor should get global policies
     let user1_policies = client
-        .resolve_policies_for_actor(actor_id.into(), ActorId::User(env.user1))
+        .resolve_policies_for_actor(actor_id.into(), Some(ActorId::User(env.user1)))
         .await?
         .into_iter()
         .map(|policy| policy.id)
         .collect::<HashSet<_>>();
     let user2_policies = client
-        .resolve_policies_for_actor(actor_id.into(), ActorId::User(env.user2))
+        .resolve_policies_for_actor(actor_id.into(), Some(ActorId::User(env.user2)))
         .await?
         .into_iter()
         .map(|policy| policy.id)
         .collect::<HashSet<_>>();
     let machine_policies = client
-        .resolve_policies_for_actor(actor_id.into(), ActorId::Machine(env.machine_id))
+        .resolve_policies_for_actor(actor_id.into(), Some(ActorId::Machine(env.machine_id)))
         .await?
         .into_iter()
         .map(|policy| policy.id)
         .collect::<HashSet<_>>();
     let ai_policies = client
-        .resolve_policies_for_actor(actor_id.into(), ActorId::Ai(env.ai_id))
+        .resolve_policies_for_actor(actor_id.into(), Some(ActorId::Ai(env.ai_id)))
         .await?
         .into_iter()
         .map(|policy| policy.id)
         .collect::<HashSet<_>>();
     let nonexisting_policies = client
-        .resolve_policies_for_actor(actor_id.into(), ActorId::User(UserId::new(Uuid::new_v4())))
+        .resolve_policies_for_actor(
+            actor_id.into(),
+            Some(ActorId::User(UserId::new(Uuid::new_v4()))),
+        )
         .await?
         .into_iter()
         .map(|policy| policy.id)
@@ -438,19 +441,19 @@ async fn actor_type_policies() -> Result<(), Box<dyn Error>> {
 
     // Test user type policies
     let user1_policies = client
-        .resolve_policies_for_actor(actor_id.into(), ActorId::User(env.user1))
+        .resolve_policies_for_actor(actor_id.into(), Some(ActorId::User(env.user1)))
         .await?
         .into_iter()
         .map(|policy| policy.id)
         .collect::<HashSet<_>>();
     let user2_policies = client
-        .resolve_policies_for_actor(actor_id.into(), ActorId::User(env.user2))
+        .resolve_policies_for_actor(actor_id.into(), Some(ActorId::User(env.user2)))
         .await?
         .into_iter()
         .map(|policy| policy.id)
         .collect::<HashSet<_>>();
     let machine_policies = client
-        .resolve_policies_for_actor(actor_id.into(), ActorId::Machine(env.machine_id))
+        .resolve_policies_for_actor(actor_id.into(), Some(ActorId::Machine(env.machine_id)))
         .await?
         .into_iter()
         .map(|policy| policy.id)
@@ -458,7 +461,7 @@ async fn actor_type_policies() -> Result<(), Box<dyn Error>> {
     let nonexisting_machine_policies = client
         .resolve_policies_for_actor(
             actor_id.into(),
-            ActorId::Machine(MachineId::new(Uuid::new_v4())),
+            Some(ActorId::Machine(MachineId::new(Uuid::new_v4()))),
         )
         .await?
         .into_iter()
@@ -513,19 +516,22 @@ async fn specific_actor_policies() -> Result<(), Box<dyn Error>> {
 
     // user1 has a specific policy assigned
     let user1_policies = client
-        .resolve_policies_for_actor(actor_id.into(), ActorId::User(env.user1))
+        .resolve_policies_for_actor(actor_id.into(), Some(ActorId::User(env.user1)))
         .await?
         .into_iter()
         .map(|policy| policy.id)
         .collect::<HashSet<_>>();
     let user2_policies = client
-        .resolve_policies_for_actor(actor_id.into(), ActorId::User(env.user2))
+        .resolve_policies_for_actor(actor_id.into(), Some(ActorId::User(env.user2)))
         .await?
         .into_iter()
         .map(|policy| policy.id)
         .collect::<HashSet<_>>();
     let nonexisting_user_policies = client
-        .resolve_policies_for_actor(actor_id.into(), ActorId::User(UserId::new(Uuid::new_v4())))
+        .resolve_policies_for_actor(
+            actor_id.into(),
+            Some(ActorId::User(UserId::new(Uuid::new_v4()))),
+        )
         .await?
         .into_iter()
         .map(|policy| policy.id)
@@ -557,13 +563,13 @@ async fn role_based_policies() -> Result<(), Box<dyn Error>> {
 
     // Test role-based policies
     let user1_policies = client
-        .resolve_policies_for_actor(actor_id.into(), ActorId::User(env.user1))
+        .resolve_policies_for_actor(actor_id.into(), Some(ActorId::User(env.user1)))
         .await?
         .into_iter()
         .map(|policy| policy.id)
         .collect::<HashSet<_>>();
     let user2_policies = client
-        .resolve_policies_for_actor(actor_id.into(), ActorId::User(env.user2))
+        .resolve_policies_for_actor(actor_id.into(), Some(ActorId::User(env.user2)))
         .await?
         .into_iter()
         .map(|policy| policy.id)
@@ -591,7 +597,7 @@ async fn role_based_policies() -> Result<(), Box<dyn Error>> {
         .await?;
 
     let machine_policies = client
-        .resolve_policies_for_actor(actor_id.into(), ActorId::Machine(special_machine_id))
+        .resolve_policies_for_actor(actor_id.into(), Some(ActorId::Machine(special_machine_id)))
         .await?
         .into_iter()
         .map(|policy| policy.id)
@@ -621,13 +627,13 @@ async fn team_hierarchy_policies() -> Result<(), Box<dyn Error>> {
     // Test team hierarchies
     // User2 has team1_role, AI has nested_team_role which is under team1
     let user2_policies = client
-        .resolve_policies_for_actor(actor_id.into(), ActorId::User(env.user2))
+        .resolve_policies_for_actor(actor_id.into(), Some(ActorId::User(env.user2)))
         .await?
         .into_iter()
         .map(|policy| policy.id)
         .collect::<HashSet<_>>();
     let ai_policies = client
-        .resolve_policies_for_actor(actor_id.into(), ActorId::Ai(env.ai_id))
+        .resolve_policies_for_actor(actor_id.into(), Some(ActorId::Ai(env.ai_id)))
         .await?
         .into_iter()
         .map(|policy| policy.id)
@@ -658,22 +664,22 @@ async fn policy_count_and_content() -> Result<(), Box<dyn Error>> {
     let nonexistent_id = UserId::new(Uuid::new_v4());
 
     let user1_policies = client
-        .resolve_policies_for_actor(actor_id.into(), ActorId::User(env.user1))
+        .resolve_policies_for_actor(actor_id.into(), Some(ActorId::User(env.user1)))
         .await?
         .into_iter()
         .map(|policy| (policy.id, policy))
         .collect::<HashMap<_, _>>();
     let user2_policies = client
-        .resolve_policies_for_actor(actor_id.into(), ActorId::User(env.user2))
+        .resolve_policies_for_actor(actor_id.into(), Some(ActorId::User(env.user2)))
         .await?;
     let machine_policies = client
-        .resolve_policies_for_actor(actor_id.into(), ActorId::Machine(env.machine_id))
+        .resolve_policies_for_actor(actor_id.into(), Some(ActorId::Machine(env.machine_id)))
         .await?;
     let ai_policies = client
-        .resolve_policies_for_actor(actor_id.into(), ActorId::Ai(env.ai_id))
+        .resolve_policies_for_actor(actor_id.into(), Some(ActorId::Ai(env.ai_id)))
         .await?;
     let nonexistent_policies = client
-        .resolve_policies_for_actor(actor_id.into(), ActorId::User(nonexistent_id))
+        .resolve_policies_for_actor(actor_id.into(), Some(ActorId::User(nonexistent_id)))
         .await?;
 
     // Verify that we have at least one policy for each actor
@@ -715,7 +721,7 @@ async fn role_assignment_changes() -> Result<(), Box<dyn Error>> {
 
     // Initial policy count
     let user2_policies = client
-        .resolve_policies_for_actor(actor_id.into(), ActorId::User(env.user2))
+        .resolve_policies_for_actor(actor_id.into(), Some(ActorId::User(env.user2)))
         .await?
         .into_iter()
         .map(|policy| policy.id)
@@ -734,7 +740,7 @@ async fn role_assignment_changes() -> Result<(), Box<dyn Error>> {
 
     // Should have fewer policies now
     let updated_policies = client
-        .resolve_policies_for_actor(actor_id.into(), ActorId::User(env.user2))
+        .resolve_policies_for_actor(actor_id.into(), Some(ActorId::User(env.user2)))
         .await?
         .into_iter()
         .map(|policy| policy.id)
@@ -755,7 +761,7 @@ async fn role_assignment_changes() -> Result<(), Box<dyn Error>> {
 
     // Should have different policies now after adding a new role
     let final_policies = client
-        .resolve_policies_for_actor(actor_id.into(), ActorId::User(env.user2))
+        .resolve_policies_for_actor(actor_id.into(), Some(ActorId::User(env.user2)))
         .await?
         .into_iter()
         .map(|policy| policy.id)
@@ -806,7 +812,7 @@ async fn resource_constraints_are_preserved() -> Result<(), Box<dyn Error>> {
         .await?;
 
     let policies = client
-        .resolve_policies_for_actor(actor_id.into(), ActorId::User(user_id))
+        .resolve_policies_for_actor(actor_id.into(), Some(ActorId::User(user_id)))
         .await?
         .into_iter()
         .map(|policy| (policy.id, policy))
@@ -930,7 +936,7 @@ async fn deep_team_hierarchy() -> Result<(), Box<dyn Error>> {
 
     // User should get all policies through the hierarchy
     let policies = client
-        .resolve_policies_for_actor(actor_id.into(), ActorId::User(user_id))
+        .resolve_policies_for_actor(actor_id.into(), Some(ActorId::User(user_id)))
         .await?
         .into_iter()
         .map(|policy| policy.id)
