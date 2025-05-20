@@ -1,0 +1,9 @@
+//@ run: fail
+//@ description: Tests that an error is properly reported when a generic type is used without providing required type parameters
+[
+  "type",
+  "Foo",
+  "Some",
+  //~^ ERROR Missing parameter `T`
+  "_"
+]

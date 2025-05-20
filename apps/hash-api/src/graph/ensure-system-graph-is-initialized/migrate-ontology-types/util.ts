@@ -39,7 +39,6 @@ import { NotFoundError } from "@local/hash-backend-utils/error";
 import type { UpdatePropertyType } from "@local/hash-graph-client";
 import type {
   DataTypeRelationAndSubjectBranded,
-  EntityTypeInstantiatorSubjectBranded,
   EntityTypeRelationAndSubjectBranded,
   PropertyTypeRelationAndSubjectBranded,
 } from "@local/hash-graph-sdk/authorization";
@@ -531,13 +530,12 @@ export const generateSystemEntityTypeSchema = (
 export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
   {
     entityTypeDefinition: Omit<EntityTypeDefinition, "entityTypeId">;
-    instantiator: EntityTypeInstantiatorSubjectBranded | null;
   } & BaseCreateTypeIfNotExistsParameters,
   Promise<EntityTypeWithMetadata>
 > = async (
   context,
   authentication,
-  { entityTypeDefinition, instantiator, migrationState, webShortname },
+  { entityTypeDefinition, migrationState, webShortname },
 ) => {
   const { title } = entityTypeDefinition;
   const baseUrl = generateSystemTypeBaseUrl({
@@ -590,13 +588,6 @@ export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
       },
     },
   ];
-
-  if (instantiator) {
-    relationships.push({
-      relation: "instantiator",
-      subject: instantiator,
-    });
-  }
 
   // The type was missing, try and create it
   if (isSelfHostedInstance) {
@@ -989,10 +980,6 @@ export const getEntitiesByType: ImpureGraphFunction<
     includeDrafts: false,
     temporalAxes: currentTimeInstantTemporalAxes,
   });
-
-export const anyUserInstantiator: EntityTypeInstantiatorSubjectBranded = {
-  kind: "public",
-};
 
 export const getExistingUsersAndOrgs: ImpureGraphFunction<
   Record<string, never>,

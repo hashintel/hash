@@ -587,22 +587,22 @@ impl EntityVisitor for EntityPreprocessor {
         };
 
         if self.components.num_items {
-            if let Some(min) = schema.min_items {
-                if array.value.len() < min {
-                    array_validation.num_items = Some(ArrayItemNumberMismatch::TooFew {
-                        actual: array.value.len(),
-                        min,
-                    });
-                }
+            if let Some(min) = schema.min_items
+                && array.value.len() < min
+            {
+                array_validation.num_items = Some(ArrayItemNumberMismatch::TooFew {
+                    actual: array.value.len(),
+                    min,
+                });
             }
 
-            if let Some(max) = schema.max_items {
-                if array.value.len() > max {
-                    array_validation.num_items = Some(ArrayItemNumberMismatch::TooMany {
-                        actual: array.value.len(),
-                        max,
-                    });
-                }
+            if let Some(max) = schema.max_items
+                && array.value.len() > max
+            {
+                array_validation.num_items = Some(ArrayItemNumberMismatch::TooMany {
+                    actual: array.value.len(),
+                    max,
+                });
             }
         }
 

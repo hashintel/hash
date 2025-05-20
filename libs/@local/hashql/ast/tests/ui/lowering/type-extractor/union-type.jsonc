@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Tests mapping of union type nodes to type IDs
+["let", "value", ["|", "Number", "String"], { "#literal": 42 }, "_"]

@@ -166,7 +166,7 @@ You can then safely remove the patch file from `.yarn/patches`.
 
 There is a mismatch between VSCode's eslint plugin and the eslint cli tool. Specifically the option
 `parserOptions.project` is not interpreted the same way as reported
-[here](https://github.com/typescript-eslint/typescript-eslint/issues/251). If VSCode complains about
+[in this issue](https://github.com/typescript-eslint/typescript-eslint/issues/251). If VSCode complains about
 a file not being "on the project" underlining an import statement, try to add the following to the
 plugin's settings:
 

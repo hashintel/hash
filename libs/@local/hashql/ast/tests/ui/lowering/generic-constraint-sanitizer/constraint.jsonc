@@ -1,8 +1,0 @@
-//@ run: fail
-//@ description: Generic constraints with bounds should be sanitized and error out
-[
-  "add<T: Number>",
-  //~^ ERROR Remove this constraint from generic parameter 'T'
-  { "#literal": 1 },
-  { "#literal": 2 }
-]

@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Tests mapping of type nodes in let bindings to type IDs
+["let", "x", "Number", { "#literal": 42 }, "_"]

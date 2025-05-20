@@ -9,6 +9,7 @@ import browser from "webextension-polyfill";
 import { clearError } from "../../shared/badge";
 import { useStorageSync } from "../shared/use-storage-sync";
 import { ActionCenter } from "./popup-contents/action-center";
+import { NotEnabled } from "./popup-contents/not-enabled";
 import {
   PopupUserContextProvider,
   useUserContext,
@@ -49,6 +50,11 @@ const Popup = () => {
 
   const loading = userLoading || !popupTabLoaded;
 
+  const userButNotEnabled =
+    user &&
+    !user.enabledFeatureFlags.includes("ai") &&
+    !user.enabledFeatureFlags.includes("notes");
+
   return (
     <ThemeProvider theme={theme}>
       <Box
@@ -74,6 +80,8 @@ const Popup = () => {
         )}
         {loading ? (
           <Box sx={{ height: 200 }} />
+        ) : userButNotEnabled ? (
+          <NotEnabled />
         ) : user ? (
           <ActionCenter
             activeBrowserTab={activeBrowserTab}

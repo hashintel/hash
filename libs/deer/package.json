@@ -8,7 +8,7 @@
     "fix:clippy": "just clippy --fix",
     "lint:clippy": "just clippy",
     "test:miri": "just miri",
-    "test:unit": "just test-or-coverage"
+    "test:unit": "mise run test:unit @rust/deer"
   },
   "dependencies": {
     "@rust/error-stack": "0.5.0"

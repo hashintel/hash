@@ -1,0 +1,6 @@
+Expr#4294967040@19
+  ExprKind (Underscore)
+
+------------------------
+
+type Pair:0 = (Number, String)

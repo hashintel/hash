@@ -445,25 +445,25 @@ impl ConstraintValidator<str> for StringConstraints {
     type Error = [StringValidationError];
 
     fn is_valid(&self, value: &str) -> bool {
-        if let Some(expected) = self.min_length {
-            if value.len() < expected {
-                return false;
-            }
+        if let Some(expected) = self.min_length
+            && value.len() < expected
+        {
+            return false;
         }
-        if let Some(expected) = self.max_length {
-            if value.len() > expected {
-                return false;
-            }
+        if let Some(expected) = self.max_length
+            && value.len() > expected
+        {
+            return false;
         }
-        if let Some(expected) = &self.pattern {
-            if !expected.is_match(value) {
-                return false;
-            }
+        if let Some(expected) = &self.pattern
+            && !expected.is_match(value)
+        {
+            return false;
         }
-        if let Some(expected) = self.format {
-            if expected.validate(value).is_err() {
-                return false;
-            }
+        if let Some(expected) = self.format
+            && expected.validate(value).is_err()
+        {
+            return false;
         }
 
         true
@@ -472,37 +472,37 @@ impl ConstraintValidator<str> for StringConstraints {
     fn validate_value(&self, value: &str) -> Result<(), Report<[StringValidationError]>> {
         let mut status = ReportSink::new();
 
-        if let Some(expected) = self.min_length {
-            if value.len() < expected {
-                status.capture(StringValidationError::MinLength {
-                    actual: value.to_owned(),
-                    expected,
-                });
-            }
+        if let Some(expected) = self.min_length
+            && value.len() < expected
+        {
+            status.capture(StringValidationError::MinLength {
+                actual: value.to_owned(),
+                expected,
+            });
         }
-        if let Some(expected) = self.max_length {
-            if value.len() > expected {
-                status.capture(StringValidationError::MaxLength {
-                    actual: value.to_owned(),
-                    expected,
-                });
-            }
+        if let Some(expected) = self.max_length
+            && value.len() > expected
+        {
+            status.capture(StringValidationError::MaxLength {
+                actual: value.to_owned(),
+                expected,
+            });
         }
-        if let Some(expected) = &self.pattern {
-            if !expected.is_match(value) {
-                status.capture(StringValidationError::Pattern {
-                    actual: value.to_owned(),
-                    expected: expected.clone(),
-                });
-            }
+        if let Some(expected) = &self.pattern
+            && !expected.is_match(value)
+        {
+            status.capture(StringValidationError::Pattern {
+                actual: value.to_owned(),
+                expected: expected.clone(),
+            });
         }
-        if let Some(expected) = self.format {
-            if let Err(error) = expected.validate(value) {
-                status.append(error.change_context(StringValidationError::Format {
-                    actual: value.to_owned(),
-                    expected,
-                }));
-            }
+        if let Some(expected) = self.format
+            && let Err(error) = expected.validate(value)
+        {
+            status.append(error.change_context(StringValidationError::Format {
+                actual: value.to_owned(),
+                expected,
+            }));
         }
 
         status.finish()

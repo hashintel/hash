@@ -260,11 +260,9 @@ where
     async fn get_policy_by_id(
         &self,
         authenticated_actor: ActorEntityUuid,
-        policy_id: PolicyId,
+        id: PolicyId,
     ) -> Result<Option<Policy>, Report<GetPoliciesError>> {
-        self.store
-            .get_policy_by_id(authenticated_actor, policy_id)
-            .await
+        self.store.get_policy_by_id(authenticated_actor, id).await
     }
 
     async fn query_policies(
@@ -404,15 +402,14 @@ where
     ) -> Result<bool, Report<QueryError>> {
         let url = ontology_type_reference.url();
 
-        if let Ok(connection_info) = self.connection_info() {
-            if connection_info
+        if let Ok(connection_info) = self.connection_info()
+            && connection_info
                 .domain_validator
                 .validate_url(url.base_url.as_str())
-            {
-                // If the domain is valid, we own the data type and it either exists or we cannot
-                // reference it.
-                return Ok(true);
-            }
+        {
+            // If the domain is valid, we own the data type and it either exists or we cannot
+            // reference it.
+            return Ok(true);
         }
 
         match ontology_type_reference {

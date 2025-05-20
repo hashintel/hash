@@ -119,17 +119,17 @@ impl DiagnosticAnnotation {
         }
 
         // If present, parse the category
-        if let Some(next) = value.strip_prefix('[') {
-            if let Some((category, next)) = next.split_once(']') {
-                value = next.trim();
+        if let Some(next) = value.strip_prefix('[')
+            && let Some((category, next)) = next.split_once(']')
+        {
+            value = next.trim();
 
-                if !category.is_empty() {
-                    annotation_category = Some(category.to_owned());
-                }
+            if !category.is_empty() {
+                annotation_category = Some(category.to_owned());
             }
-
-            // False-positive, therefore we do not advance the string
         }
+
+        // False-positive, therefore we do not advance the string
 
         let message = value.trim().to_owned();
 

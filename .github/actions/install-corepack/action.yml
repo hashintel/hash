@@ -1,0 +1,39 @@
+name: Install package manager via corepack
+description: Installs the package manager via corepack with caching enabled
+
+runs:
+  using: "composite"
+
+  steps:
+    - name: Find the current yarn version used
+      id: find-version
+      shell: bash
+      run: |
+        YARN_VERSION=$(cat package.json | jq -r '.packageManager | ltrimstr("yarn@")')
+        echo "version=$YARN_VERSION" >> $GITHUB_OUTPUT
+
+    - name: Restore yarn corepack cache
+      id: cache-restore
+      uses: actions/cache/restore@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+      with:
+        path: .yarn/corepack.tgz
+        key: yarn-corepack-${{ steps.find-version.outputs.version }}
+
+    - name: Download yarn corepack
+      if: steps.cache-restore.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        corepack pack yarn@${{ steps.find-version.outputs.version }}
+        mv corepack.tgz .yarn/corepack.tgz
+
+    - name: Save yarn corepack cache
+      uses: actions/cache/save@5a3ec84eff668545956fd18022155c47e93e2684 # v4.2.3
+      if: steps.cache-restore.outputs.cache-hit != 'true'
+      with:
+        path: .yarn/corepack.tgz
+        key: yarn-corepack-${{ steps.find-version.outputs.version }}
+
+    - name: Install yarn from corepack
+      shell: bash
+      run: |
+        COREPACK_ENABLE_NETWORK=0 corepack install -g .yarn/corepack.tgz

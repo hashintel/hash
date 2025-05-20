@@ -34,6 +34,7 @@ import type {
   EntityTypeRelationAndSubjectBranded,
   UserPermissionsOnEntityType,
 } from "@local/hash-graph-sdk/authorization";
+import { canInstantiateEntityTypes } from "@local/hash-graph-sdk/entity-type";
 import type {
   ClosedEntityTypeWithMetadata,
   ConstructEntityTypeParams,
@@ -109,11 +110,11 @@ export const checkPermissionsOnEntityType: ImpureGraphFunction<
         ),
     isPublicUser
       ? false
-      : await checkEntityTypePermission(
-          graphContext,
-          { actorId },
-          { entityTypeId, permission: "instantiate" },
-        ),
+      : (
+          await canInstantiateEntityTypes(graphContext.graphApi, { actorId }, [
+            entityTypeId,
+          ])
+        )[0],
   ]);
 
   return {

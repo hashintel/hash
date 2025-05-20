@@ -12,7 +12,8 @@
     generic_arg_infer,
     iter_map_windows,
     cold_path,
-    type_alias_impl_trait
+    type_alias_impl_trait,
+    associated_type_defaults
 )]
 
 extern crate alloc;

@@ -52,7 +52,10 @@ describe("Comment Notification", () => {
     );
 
     testOrg = await createTestOrg(
-      graphContext,
+      {
+        ...graphContext,
+        provenance: { ...graphContext.provenance, actorType: "user" },
+      },
       { actorId: triggerUser.accountId },
       "notif",
     );

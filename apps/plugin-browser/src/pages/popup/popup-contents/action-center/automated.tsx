@@ -13,6 +13,10 @@ import { SelectScope } from "./automated/select-scope";
 import { ModelSelector } from "./shared/model-selector";
 import { Section } from "./shared/section";
 import { SelectWebTarget } from "./shared/select-web-target";
+import {
+  generateTabPanelA11yProps,
+  type TabPanelProps,
+} from "./shared/tab-props";
 import { SwitchWithDarkMode } from "./switch-with-dark-mode";
 
 const DevelopmentTargetApiSwitcher = () => {
@@ -44,17 +48,18 @@ export const Automated = ({
   automaticInferenceConfig,
   setAutomaticInferenceConfig,
   user,
+  ...panelProps
 }: {
   automaticInferenceConfig: LocalStorage["automaticInferenceConfig"];
   setAutomaticInferenceConfig: (
     newAutomaticInferenceConfig: LocalStorage["automaticInferenceConfig"],
   ) => void;
   user: NonNullable<LocalStorage["user"]>;
-}) => {
+} & TabPanelProps) => {
   const { createAs, enabled, model, webId } = automaticInferenceConfig;
 
   return (
-    <Box>
+    <Box {...generateTabPanelA11yProps("Automated")} {...panelProps}>
       <Section
         description="Automatically identify entities and attributes for you as you browse"
         headerText="Auto-inference Actions"

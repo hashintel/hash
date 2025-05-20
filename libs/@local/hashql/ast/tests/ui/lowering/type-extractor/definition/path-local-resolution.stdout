@@ -1,0 +1,8 @@
+Expr#4294967040@25
+  ExprKind (Underscore)
+
+------------------------
+
+type Local:0 = Number
+
+type Reference:0 = Number

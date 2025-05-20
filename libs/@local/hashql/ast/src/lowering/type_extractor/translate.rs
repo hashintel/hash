@@ -11,6 +11,7 @@ use hashql_core::{
     module::{
         ModuleRegistry,
         item::{IntrinsicItem, Item, ItemKind, Universe},
+        locals::LocalTypes,
     },
     span::SpanId,
     symbol::{Ident, Symbol},
@@ -20,7 +21,7 @@ use hashql_core::{
         kind::{
             Apply, Generic, GenericArgument, Infer, IntersectionType, IntrinsicType, OpaqueType,
             Param, StructType, TupleType, TypeKind, UnionType,
-            generic::GenericSubstitution,
+            generic::{GenericArgumentReference, GenericSubstitution},
             intrinsic::{DictType, ListType},
             r#struct::StructField,
         },
@@ -29,8 +30,7 @@ use hashql_core::{
 
 use super::error::{
     TypeExtractorDiagnostic, duplicate_struct_fields, generic_constraint_not_allowed,
-    invalid_resolved_item, resolution_error, special_form_not_supported, unknown_intrinsic_type,
-    unused_generic_parameter,
+    invalid_resolved_item, resolution_error, unknown_intrinsic_type, unused_generic_parameter,
 };
 use crate::{
     lowering::type_extractor::error::{
@@ -163,7 +163,7 @@ impl<'heap> SpannedGenericArguments<'heap> {
         self.value.is_empty()
     }
 
-    fn iter(&self) -> impl Iterator<Item = &GenericArgument<'heap>> {
+    pub(crate) fn iter(&self) -> impl Iterator<Item = &GenericArgument<'heap>> {
         self.value.iter()
     }
 
@@ -194,22 +194,60 @@ pub(crate) struct LocalVariable<'ty, 'heap> {
     pub arguments: SpannedGenericArguments<'heap>,
 }
 
+pub(crate) trait LocalVariableResolver<'heap> {
+    type GenericArgument: Into<GenericArgumentReference<'heap>> + Copy;
+
+    fn find_by_ident(&self, ident: Ident<'heap>) -> Option<(TypeId, &[Self::GenericArgument])>;
+    fn names(&self) -> impl IntoIterator<Item = Symbol<'heap>>;
+}
+
+impl<'heap> LocalVariableResolver<'heap> for FastHashMap<Symbol<'heap>, LocalVariable<'_, 'heap>> {
+    type GenericArgument = GenericArgument<'heap>;
+
+    fn find_by_ident(&self, ident: Ident<'heap>) -> Option<(TypeId, &[Self::GenericArgument])> {
+        let variable = self.get(&ident.value)?;
+
+        Some((variable.id.value(), &variable.arguments.value))
+    }
+
+    fn names(&self) -> impl IntoIterator<Item = Symbol<'heap>> {
+        self.keys().copied()
+    }
+}
+
+impl<'heap> LocalVariableResolver<'heap> for LocalTypes<'heap> {
+    type GenericArgument = GenericArgumentReference<'heap>;
+
+    fn find_by_ident(&self, ident: Ident<'heap>) -> Option<(TypeId, &[Self::GenericArgument])> {
+        let def = self.get(ident.value)?;
+
+        Some((def.id, &def.arguments))
+    }
+
+    fn names(&self) -> impl IntoIterator<Item = Symbol<'heap>> {
+        self.names()
+    }
+}
+
 /// Main context for type translation operations
 ///
 /// The translation unit maintains all the context needed for translating AST type
 /// nodes into the core type system, including environment, registry access,
 /// and tracking of local variables and bound generic parameters.
-pub(crate) struct TranslationUnit<'env, 'ty, 'heap> {
+pub(crate) struct TranslationUnit<'env, 'heap, L> {
     pub env: &'env Environment<'heap>,
     pub registry: &'env ModuleRegistry<'heap>,
     pub diagnostics: Vec<TypeExtractorDiagnostic>,
 
-    pub locals: &'env FastHashMap<Symbol<'heap>, LocalVariable<'ty, 'heap>>,
+    pub locals: &'env L,
 
     pub bound_generics: &'env SpannedGenericArguments<'heap>,
 }
 
-impl<'env, 'heap> TranslationUnit<'env, '_, 'heap> {
+impl<'env, 'heap, L> TranslationUnit<'env, 'heap, L>
+where
+    L: LocalVariableResolver<'heap>,
+{
     /// Creates a nominal (named) type with its underlying representation
     ///
     /// Nominal types are identified by their name rather than structure, but still have an
@@ -227,7 +265,7 @@ impl<'env, 'heap> TranslationUnit<'env, '_, 'heap> {
     /// This method first checks if the identifier refers to a bound generic parameter, and if so,
     /// creates a parameter reference. Otherwise, it looks for a local variable with that name and
     /// returns its type ID and generic arguments.
-    fn find_local(&self, ident: Ident<'heap>) -> Option<(TypeId, &'env [GenericArgument<'heap>])> {
+    fn find_local(&self, ident: Ident<'heap>) -> Option<(TypeId, &'env [L::GenericArgument])> {
         // Look through the generics, and see if there are any generics, that have a fitting name
         if let Some(&generic) = self
             .bound_generics
@@ -245,9 +283,7 @@ impl<'env, 'heap> TranslationUnit<'env, '_, 'heap> {
             return Some((param, &[]));
         }
 
-        let variable = self.locals.get(&ident.value)?;
-
-        Some((variable.id.value(), &variable.arguments.value))
+        self.locals.find_by_ident(ident)
     }
 
     /// Converts a path segment argument into a type reference
@@ -283,13 +319,16 @@ impl<'env, 'heap> TranslationUnit<'env, '_, 'heap> {
     /// This creates a type application by substituting concrete types for the generic parameters of
     /// the base type. It maps the provided parameters to the expected arguments and creates the
     /// appropriate substitutions.
-    fn apply_reference(
+    fn apply_reference<T>(
         &mut self,
         variable: &VariableReference<'_, 'heap>,
         base: TypeId,
-        parameters: &[GenericArgument<'heap>],
+        parameters: &[T],
         arguments: &[PathSegmentArgument<'heap>],
-    ) -> TypeKind<'heap> {
+    ) -> TypeKind<'heap>
+    where
+        T: Into<GenericArgumentReference<'heap>> + Copy,
+    {
         if arguments.len() != parameters.len() {
             self.diagnostics
                 .push(generic_parameter_mismatch(variable, parameters, arguments));
@@ -301,6 +340,7 @@ impl<'env, 'heap> TranslationUnit<'env, '_, 'heap> {
 
         let mut error = false;
         for (&parameter, argument) in parameters.iter().zip(arguments.iter()) {
+            let parameter = parameter.into();
             let Some(reference) = self.convert_path_segment_argument(argument) else {
                 error = true;
                 continue;
@@ -337,7 +377,7 @@ impl<'env, 'heap> TranslationUnit<'env, '_, 'heap> {
             self.diagnostics.push(unbound_type_variable(
                 ident.span,
                 ident.value,
-                self.locals.keys().copied(),
+                self.locals.names(),
             ));
 
             return TypeKind::Never;
@@ -363,13 +403,6 @@ impl<'env, 'heap> TranslationUnit<'env, '_, 'heap> {
         name: &'static str,
         parameters: &[PathSegmentArgument<'heap>],
     ) -> TypeKind<'heap> {
-        if name.starts_with("::kernel::special_form") {
-            self.diagnostics
-                .push(special_form_not_supported(span, name));
-
-            return TypeKind::Never;
-        }
-
         match name {
             "::kernel::type::List" => {
                 if parameters.len() != 1 {
@@ -666,26 +699,48 @@ impl<'env, 'heap> TranslationUnit<'env, '_, 'heap> {
         })
     }
 
+    fn variable_verify(
+        &mut self,
+        variable: &LocalVariable<'_, 'heap>,
+    ) -> (TypeKind<'heap>, TinyVec<GenericArgumentReference<'heap>>) {
+        if let Some(kind) = self.verify_unbound_variables(variable.r#type, &variable.arguments) {
+            return (kind, TinyVec::new());
+        }
+
+        if variable.arguments.is_empty() {
+            return (self.variable_kind(variable), TinyVec::new());
+        }
+
+        (
+            self.generic_variable(variable),
+            variable
+                .arguments
+                .iter()
+                .map(GenericArgument::as_reference)
+                .collect(),
+        )
+    }
+
     /// Converts a local variable to its `TypeId` representation
     ///
     /// This method handles creating the appropriate type for a local variable, taking into account
     /// whether it has nominal or structural identity.
-    pub(crate) fn variable(&mut self, variable: &LocalVariable<'_, 'heap>) -> TypeId {
-        let kind = self
-            .verify_unbound_variables(variable.r#type, &variable.arguments)
-            .unwrap_or_else(|| {
-                if variable.arguments.is_empty() {
-                    self.variable_kind(variable)
-                } else {
-                    self.generic_variable(variable)
-                }
-            });
+    ///
+    /// Returns the unitialized type, as well as the referenced arguments, this is always either all
+    /// the generics, or none in case an error occured and the type was coerced to `Never`.
+    pub(crate) fn variable(
+        &mut self,
+        variable: &LocalVariable<'_, 'heap>,
+    ) -> (TypeId, TinyVec<GenericArgumentReference<'heap>>) {
+        let (kind, arguments) = self.variable_verify(variable);
 
         let partial = PartialType {
             span: variable.r#type.span,
             kind: self.env.intern_kind(kind),
         };
 
-        self.env.types.intern_provisioned(variable.id, partial).id
+        let id = self.env.types.intern_provisioned(variable.id, partial).id;
+
+        (id, arguments)
     }
 }

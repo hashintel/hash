@@ -1,0 +1,6 @@
+Expr#4294967040@32
+  ExprKind (Underscore)
+
+------------------------
+
+type Combined:0 = ((age: Number) & (name: String))

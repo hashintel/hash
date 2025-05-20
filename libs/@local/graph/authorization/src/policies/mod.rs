@@ -96,6 +96,8 @@ impl PolicyId {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Policy {
     pub id: PolicyId,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
     pub effect: Effect,
     pub principal: Option<PrincipalConstraint>,
     pub actions: Vec<ActionName>,
@@ -232,6 +234,7 @@ impl Policy {
                     .parse()
                     .change_context(InvalidPolicy::InvalidPolicyId)?,
             ),
+            name: None,
             effect: match policy.effect() {
                 ast::Effect::Permit => Effect::Permit,
                 ast::Effect::Forbid => Effect::Forbid,
@@ -399,6 +402,7 @@ mod tests {
 
             let policy = Policy {
                 id: PolicyId::new(Uuid::new_v4()),
+                name: None,
                 effect: Effect::Permit,
                 principal: Some(PrincipalConstraint::Actor {
                     actor: ActorId::User(user_id),

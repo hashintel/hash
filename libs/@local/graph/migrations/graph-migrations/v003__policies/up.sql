@@ -17,12 +17,13 @@ CREATE TABLE action_hierarchy (
 );
 
 -- Create an index to efficiently find the primary parent (depth=1) for each action
-CREATE UNIQUE INDEX idx_action_hierarchy_single_parent ON action_hierarchy (child_name) WHERE (
-    depth = 1
-);
+CREATE UNIQUE INDEX idx_action_hierarchy_single_parent ON action_hierarchy (child_name)
+WHERE depth = 1;
 
 CREATE TABLE IF NOT EXISTS policy (
     id UUID PRIMARY KEY,
+    name TEXT,
+
     effect POLICY_EFFECT NOT NULL,
 
     -- Principal references
@@ -36,6 +37,10 @@ CREATE TABLE IF NOT EXISTS policy (
     -- Resource specification
     resource_constraint JSONB
 );
+
+CREATE UNIQUE INDEX policy_unique_name_per_principal_idx
+ON policy (name, principal_id, principal_type, actor_type) NULLS NOT DISTINCT
+WHERE name IS NOT NULL;
 
 -- Policy-Action junction table for multiple actions per policy
 CREATE TABLE IF NOT EXISTS policy_action (
