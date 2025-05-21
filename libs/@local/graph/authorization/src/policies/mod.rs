@@ -26,7 +26,7 @@ pub(crate) use self::cedar::cedar_resource_type;
 use self::{
     action::ActionName,
     cedar::{FromCedarEntityUId as _, ToCedarEntityId as _},
-    principal::PrincipalConstraint,
+    principal::{PrincipalConstraint, actor::PublicActor},
     resource::{EntityTypeId, ResourceConstraint},
 };
 pub use self::{
@@ -96,6 +96,8 @@ impl PolicyId {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Policy {
     pub id: PolicyId,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
     pub effect: Effect,
     pub principal: Option<PrincipalConstraint>,
     pub actions: Vec<ActionName>,
@@ -133,7 +135,7 @@ pub enum PartialResourceId<'a> {
 
 #[derive(Debug)]
 pub struct Request<'a> {
-    pub actor: ActorId,
+    pub actor: Option<ActorId>,
     pub action: ActionName,
     pub resource: Option<&'a PartialResourceId<'a>>,
     pub context: RequestContext,
@@ -181,9 +183,10 @@ impl Request<'_> {
         ast::Request::new_with_unknowns(
             ast::EntityUIDEntry::Known {
                 euid: Arc::new(match self.actor {
-                    ActorId::User(user_id) => user_id.to_euid(),
-                    ActorId::Machine(machine_id) => machine_id.to_euid(),
-                    ActorId::Ai(ai_id) => ai_id.to_euid(),
+                    Some(ActorId::User(user_id)) => user_id.to_euid(),
+                    Some(ActorId::Machine(machine_id)) => machine_id.to_euid(),
+                    Some(ActorId::Ai(ai_id)) => ai_id.to_euid(),
+                    None => PublicActor.to_euid(),
                 }),
                 loc: None,
             },
@@ -232,6 +235,7 @@ impl Policy {
                     .parse()
                     .change_context(InvalidPolicy::InvalidPolicyId)?,
             ),
+            name: None,
             effect: match policy.effect() {
                 ast::Effect::Permit => Effect::Permit,
                 ast::Effect::Forbid => Effect::Forbid,
@@ -399,6 +403,7 @@ mod tests {
 
             let policy = Policy {
                 id: PolicyId::new(Uuid::new_v4()),
+                name: None,
                 effect: Effect::Permit,
                 principal: Some(PrincipalConstraint::Actor {
                     actor: ActorId::User(user_id),
@@ -463,7 +468,7 @@ mod tests {
             assert!(matches!(
                 policy_set.evaluate(
                     &Request {
-                        actor: actor_id,
+                        actor: Some(actor_id),
                         action: ActionName::View,
                         resource: Some(&resource_id),
                         context: RequestContext,
@@ -476,7 +481,7 @@ mod tests {
             assert!(matches!(
                 policy_set.evaluate(
                     &Request {
-                        actor: actor_id,
+                        actor: Some(actor_id),
                         action: ActionName::Update,
                         resource: Some(&resource_id),
                         context: RequestContext,

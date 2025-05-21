@@ -3,6 +3,7 @@ mod machine;
 mod user;
 
 use alloc::sync::Arc;
+use std::sync::LazyLock;
 
 use cedar_policy_core::ast;
 use error_stack::{Report, ResultExt as _};
@@ -12,6 +13,20 @@ use crate::policies::{
     cedar::{FromCedarEntityId as _, FromCedarEntityUId, ToCedarEntity, ToCedarEntityId},
     error::FromCedarRefernceError,
 };
+
+pub struct PublicActor;
+
+impl ToCedarEntityId for PublicActor {
+    fn to_cedar_entity_type(&self) -> &'static Arc<ast::EntityType> {
+        pub(crate) static ENTITY_TYPE: LazyLock<Arc<ast::EntityType>> =
+            LazyLock::new(|| crate::policies::cedar_resource_type(["Public"]));
+        &ENTITY_TYPE
+    }
+
+    fn to_eid(&self) -> ast::Eid {
+        ast::Eid::new("public")
+    }
+}
 
 impl FromCedarEntityUId for ActorId {
     fn from_euid(euid: &ast::EntityUID) -> Result<Self, Report<FromCedarRefernceError>> {

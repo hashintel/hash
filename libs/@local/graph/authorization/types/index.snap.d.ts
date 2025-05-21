@@ -5,6 +5,7 @@ import type { VersionedUrl } from "@blockprotocol/type-system-rs";
 export type Effect = "permit" | "forbid";
 export interface Policy {
 	id: PolicyId;
+	name?: string;
 	effect: Effect;
 	principal: (PrincipalConstraint | null);
 	actions: ActionName[];
@@ -80,12 +81,14 @@ export type EntityTypeResourceFilter = {
 	version: OntologyTypeVersion
 };
 export interface PolicyCreationParams {
+	name?: string;
 	effect: Effect;
 	principal: (PrincipalConstraint | null);
 	actions: ActionName[];
 	resource: (ResourceConstraint | null);
 }
 export interface PolicyFilter {
+	name?: string;
 	principal?: PrincipalFilter;
 }
 export type PolicyUpdateOperation = {

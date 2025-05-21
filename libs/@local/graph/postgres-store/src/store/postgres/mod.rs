@@ -123,7 +123,7 @@ where
     ) -> Result<(), Report<EnsureSystemPoliciesError>> {
         tracing::info!("Seeding system policies");
         for policy in self
-            .resolve_policies_for_actor(system_machine_actor.into(), system_machine_actor)
+            .resolve_policies_for_actor(system_machine_actor.into(), Some(system_machine_actor))
             .await
             .change_context(EnsureSystemPoliciesError::ReadPoliciesFailed)?
         {
@@ -148,6 +148,7 @@ where
         self.create_policy(
             system_machine_actor.into(),
             PolicyCreationParams {
+                name: Some("default-web-creator".to_owned()),
                 effect: Effect::Permit,
                 principal: Some(PrincipalConstraint::Actor {
                     actor: system_machine_actor,
@@ -274,7 +275,7 @@ where
             .build()
             .change_context(WebCreationError::StoreError)?;
         let policies = self
-            .resolve_policies_for_actor(actor.into(), actor)
+            .resolve_policies_for_actor(actor.into(), Some(actor))
             .await
             .change_context(WebCreationError::StoreError)?;
 
@@ -286,7 +287,7 @@ where
         match policy_set
             .evaluate(
                 &Request {
-                    actor,
+                    actor: Some(actor),
                     action: ActionName::CreateWeb,
                     resource: Some(&PartialResourceId::Web(Some(web_id))),
                     context: RequestContext::default(),
@@ -500,7 +501,9 @@ where
         let actor_to_assign_id = transaction
             .determine_actor(actor_to_assign)
             .await
-            .change_context(RoleAssignmentError::StoreError)?;
+            .change_context(RoleAssignmentError::StoreError)?
+            .ok_or(RoleAssignmentError::ActorNotProvided)
+            .attach(StatusCode::InvalidArgument)?;
         let actor_group_id = transaction
             .determine_actor_group(actor_group_id)
             .await
@@ -661,7 +664,9 @@ where
         let actor_to_unassign_id = transaction
             .determine_actor(actor_to_unassign)
             .await
-            .change_context(RoleAssignmentError::StoreError)?;
+            .change_context(RoleAssignmentError::StoreError)?
+            .ok_or(RoleAssignmentError::ActorNotProvided)
+            .attach(StatusCode::InvalidArgument)?;
         let actor_group_id = transaction
             .determine_actor_group(actor_group_id)
             .await
@@ -754,6 +759,7 @@ where
 
 struct PolicyParts {
     id: PolicyId,
+    name: Option<String>,
     effect: Effect,
     principal_uuid: Option<Uuid>,
     principal_type: Option<PrincipalType>,
@@ -800,6 +806,7 @@ impl PolicyParts {
 
         Ok(Policy {
             id: self.id,
+            name: self.name,
             effect: self.effect,
             principal: principal_constraint,
             actions: self.actions,
@@ -839,12 +846,13 @@ where
         transaction
             .execute(
                 "INSERT INTO policy (
-                    id, effect, principal_id, principal_type, actor_type, resource_constraint
+                    id, name, effect, principal_id, principal_type, actor_type, resource_constraint
                 ) VALUES (
-                    $1, $2, $3, $4, $5, $6
+                    $1, $2, $3, $4, $5, $6, $7
                  )",
                 &[
                     &policy_id,
+                    &policy.name,
                     &policy.effect,
                     &principal_id,
                     &principal_id.map(PrincipalId::principal_type),
@@ -894,13 +902,13 @@ where
     async fn get_policy_by_id(
         &self,
         _authenticated_actor: ActorEntityUuid,
-        policy_id: PolicyId,
+        id: PolicyId,
     ) -> Result<Option<Policy>, Report<GetPoliciesError>> {
         self.as_client()
             .query_opt(
                 "
                 SELECT
-                    policy.id,
+                    policy.name,
                     policy.effect,
                     policy.principal_id,
                     policy.principal_type,
@@ -911,16 +919,17 @@ where
                 LEFT JOIN policy_action ON policy.id = policy_action.policy_id
                 WHERE policy.id = $1
                 GROUP BY
-                    policy.id, policy.effect, policy.principal_id, policy.principal_type,
+                    policy.name, policy.effect, policy.principal_id, policy.principal_type,
                     policy.actor_type, policy.resource_constraint
                 ",
-                &[&policy_id],
+                &[&id],
             )
             .await
             .change_context(GetPoliciesError::StoreError)?
             .map(|row| {
                 PolicyParts {
-                    id: row.get(0),
+                    id,
+                    name: row.get(0),
                     effect: row.get(1),
                     principal_uuid: row.get(2),
                     principal_type: row.get(3),
@@ -982,9 +991,15 @@ where
             }
         }
 
+        if let Some(name) = &filter.name {
+            parameters.push(Box::new(name));
+            filters.push(format!("policy.name = ${}", parameters.len()));
+        }
+
         let base_query = "
             SELECT
                 policy.id,
+                policy.name,
                 policy.effect,
                 policy.principal_id,
                 policy.principal_type,
@@ -998,6 +1013,7 @@ where
         let group_by_query = "
             GROUP BY
                 policy.id,
+                policy.name,
                 policy.effect,
                 policy.principal_id,
                 policy.principal_type,
@@ -1022,14 +1038,15 @@ where
             .and_then(async |row| -> Result<_, Report<GetPoliciesError>> {
                 PolicyParts {
                     id: PolicyId::new(row.get(0)),
-                    effect: row.get(1),
-                    principal_uuid: row.get(2),
-                    principal_type: row.get(3),
-                    actor_type: row.get(4),
+                    name: row.get(1),
+                    effect: row.get(2),
+                    principal_uuid: row.get(3),
+                    principal_type: row.get(4),
+                    actor_type: row.get(5),
                     resource_constraint: row
-                        .get::<_, Option<Json<ResourceConstraint>>>(5)
+                        .get::<_, Option<Json<ResourceConstraint>>>(6)
                         .map(|json| json.0),
-                    actions: row.get(6),
+                    actions: row.get(7),
                 }
                 .into_policy()
             })
@@ -1039,9 +1056,22 @@ where
 
     async fn resolve_policies_for_actor(
         &self,
-        _authenticated_actor: ActorEntityUuid,
-        actor_id: ActorId,
+        authenticated_actor: ActorEntityUuid,
+        actor_id: Option<ActorId>,
     ) -> Result<Vec<Policy>, Report<GetPoliciesError>> {
+        let Some(actor_id) = actor_id else {
+            // If no actor is provided, only policies without principal constraints are returned.
+            return self
+                .query_policies(
+                    authenticated_actor,
+                    &PolicyFilter {
+                        name: None,
+                        principal: Some(PrincipalFilter::Unconstrained),
+                    },
+                )
+                .await;
+        };
+
         // The below query does several things. It:
         //   1. gets all principals that the actor can act as
         //   2. gets all policies that apply to those principals
@@ -1115,6 +1145,7 @@ where
                 )
                 SELECT
                     policy.id,
+                    policy.name,
                     policy.effect,
                     policy.principal_id,
                     policy.principal_type,
@@ -1124,8 +1155,8 @@ where
                 FROM policy
                 LEFT JOIN policy_action ON policy.id = policy_action.policy_id
                 GROUP BY
-                    policy.id, policy.effect, policy.principal_id, policy.principal_type,
-                    policy.actor_type, policy.resource_constraint
+                    policy.id, policy.name, policy.effect, policy.principal_id,
+                    policy.principal_type, policy.actor_type, policy.resource_constraint
                 ",
                 [
                     &actor_id as &(dyn ToSql + Sync),
@@ -1138,14 +1169,15 @@ where
             .and_then(async |row| -> Result<_, Report<GetPoliciesError>> {
                 PolicyParts {
                     id: row.get(0),
-                    effect: row.get(1),
-                    principal_uuid: row.get(2),
-                    principal_type: row.get(3),
-                    actor_type: row.get(4),
+                    name: row.get(1),
+                    effect: row.get(2),
+                    principal_uuid: row.get(3),
+                    principal_type: row.get(4),
+                    actor_type: row.get(5),
                     resource_constraint: row
-                        .get::<_, Option<Json<ResourceConstraint>>>(5)
+                        .get::<_, Option<Json<ResourceConstraint>>>(6)
                         .map(|json| json.0),
-                    actions: row.get(6),
+                    actions: row.get(7),
                 }
                 .into_policy()
             })
@@ -2233,7 +2265,9 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
         let actor_id = transaction
             .determine_actor(actor_id)
             .await
-            .change_context(AccountInsertionError)?;
+            .change_context(AccountInsertionError)?
+            .ok_or(AccountInsertionError)
+            .attach(StatusCode::Unauthenticated)?;
 
         let user_id = transaction
             .create_user(None)
@@ -2300,13 +2334,17 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
         let actor_id = transaction
             .determine_actor(actor_id)
             .await
-            .change_context(WebInsertionError)?;
+            .change_context(WebInsertionError)?
+            .ok_or(WebInsertionError)
+            .attach(StatusCode::Unauthenticated)?;
 
         let administrator = if let Some(administrator) = params.administrator {
             transaction
                 .determine_actor(administrator)
                 .await
                 .change_context(WebInsertionError)?
+                .ok_or(WebInsertionError)
+                .attach(StatusCode::InvalidArgument)?
         } else {
             actor_id
         };
@@ -2439,7 +2477,9 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
                 transaction
                     .determine_actor(actor_id)
                     .await
-                    .change_context(AccountGroupInsertionError)?,
+                    .change_context(AccountGroupInsertionError)?
+                    .ok_or(AccountGroupInsertionError)
+                    .attach(StatusCode::InvalidArgument)?,
                 admin_role,
             )
             .await

@@ -1,6 +1,6 @@
 {
   "name": "@apps/plugin-browser",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "private": true,
   "description": "A browser extension for gathering info from the web into your HASH account.",
   "repository": {
@@ -80,7 +80,7 @@
     "react-refresh": "0.17.0",
     "react-refresh-typescript": "2.0.10",
     "rimraf": "6.0.1",
-    "sass": "1.88.0",
+    "sass": "1.89.0",
     "sass-loader": "13.3.3",
     "source-map-loader": "3.0.2",
     "style-loader": "3.3.4",
@@ -89,7 +89,7 @@
     "tsconfig-paths-webpack-plugin": "4.2.0",
     "type-fest": "3.13.1",
     "typescript": "5.7.3",
-    "webpack": "5.99.8",
+    "webpack": "5.99.9",
     "webpack-cli": "4.10.0",
     "webpack-dev-server": "4.15.2",
     "zip-webpack-plugin": "4.0.3"

@@ -1,0 +1,46 @@
+Expr#0@27
+  ExprKind (Let)
+    LetExpr#1@27 (name: numbers:0)
+      Expr#2@24
+        ExprKind (List)
+          ListExpr#3@23
+            ListElement#4@18
+              Expr#5@18
+                ExprKind (Literal)
+                  LiteralExpr#6@17
+                    LiteralKind (Integer)
+                      IntegerLiteral (1)
+            ListElement#7@20
+              Expr#8@20
+                ExprKind (Literal)
+                  LiteralExpr#9@19
+                    LiteralKind (Integer)
+                      IntegerLiteral (2)
+            ListElement#10@22
+              Expr#11@22
+                ExprKind (Literal)
+                  LiteralExpr#12@21
+                    LiteralKind (Integer)
+                      IntegerLiteral (3)
+      Type#13@16
+        TypeKind (Path)
+          Path#14@16 (rooted: true)
+            PathSegment#15@15 (name: kernel)
+            PathSegment#16@15 (name: type)
+            PathSegment#17@15 (name: List)
+              PathSegmentArgument (GenericArgument)
+                GenericArgument#18@14
+                  Type#19@13
+                    TypeKind (Path)
+                      Path#20@13 (rooted: true)
+                        PathSegment#21@12 (name: kernel)
+                        PathSegment#22@12 (name: type)
+                        PathSegment#23@12 (name: Number)
+      Expr#24@26
+        ExprKind (Underscore)
+
+------------------------
+------------------------
+
+13 = List<Number>
+------------------------

@@ -106,8 +106,8 @@ approx                   = { version = "=0.5.1", default-features = false }
 ariadne                  = { version = "=0.5.1", default-features = false }
 async-scoped             = { version = "=0.9.0", default-features = false }
 async-trait              = { version = "=0.1.88", default-features = false }
-aws-config               = { version = "=1.6.2" }
-aws-sdk-s3               = { version = "=1.85.0", default-features = false }
+aws-config               = { version = "=1.6.3" }
+aws-sdk-s3               = { version = "=1.87.0", default-features = false }
 aws-types                = { version = "=1.3.7", default-features = false }
 axum                     = { version = "=0.7.5" }
 axum-core                = { version = "=0.5.0" }
@@ -187,7 +187,7 @@ mime                     = { version = "=0.3.17", default-features = false }
 multiaddr                = { version = "=0.18.2", default-features = false }
 multistream-select       = { version = "=0.13.0", default-features = false }
 napi                     = { version = "=2.16.17", default-features = false }
-napi-build               = { version = "=2.1.6", default-features = false }
+napi-build               = { version = "=2.2.0", default-features = false }
 napi-derive              = { version = "=2.16.13", default-features = false }
 nextest-filtering        = { version = "=0.15.0", default-features = false }
 nextest-metadata         = { version = "=0.12.2", default-features = false }

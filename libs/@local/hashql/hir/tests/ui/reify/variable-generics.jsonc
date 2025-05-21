@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Tests reification of variables with generic type parameters.
+"`+`<Number>"

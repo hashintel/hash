@@ -122,6 +122,7 @@ impl DatabaseTestWrapper<NoAuthorization> {
                 .create_policy(
                     actor.into(),
                     PolicyCreationParams {
+                        name: None,
                         effect: Effect::Permit,
                         principal: Some(PrincipalConstraint::Actor { actor }),
                         actions: vec![ActionName::CreateWeb],

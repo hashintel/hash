@@ -51,7 +51,12 @@ pub mod nested;
 
 use core::ops::{FromResidual, Try};
 
-use hashql_core::{intern::Interned, span::SpanId, symbol::Ident, r#type::TypeId};
+use hashql_core::{
+    intern::Interned,
+    span::SpanId,
+    symbol::Ident,
+    r#type::{TypeId, kind::generic::GenericArgumentReference},
+};
 
 use self::{beef::Beef, nested::NestedFilter};
 use crate::{
@@ -60,8 +65,8 @@ use crate::{
         HirId, Node, PartialNode,
         access::{Access, AccessKind, field::FieldAccess, index::IndexAccess},
         branch::Branch,
-        call::Call,
-        closure::{Closure, ClosureSignature},
+        call::{Call, CallArgument},
+        closure::{Closure, ClosureParam, ClosureSignature},
         data::{Data, DataKind, Literal},
         graph::Graph,
         input::Input,
@@ -135,6 +140,23 @@ pub trait Fold<'heap> {
 
     fn fold_type_id(&mut self, id: TypeId) -> Self::Output<TypeId> {
         Try::from_output(id)
+    }
+
+    // TODO: we might want to expand on these in the future, for now tho this is sufficient.
+    // Primarily this would require us to also fold symbols, have access to the environment (not
+    // only interner)
+    fn fold_type_ids(
+        &mut self,
+        ids: Interned<'heap, [TypeId]>,
+    ) -> Self::Output<Interned<'heap, [TypeId]>> {
+        Try::from_output(ids)
+    }
+
+    fn fold_generic_argument_references(
+        &mut self,
+        references: Interned<'heap, [GenericArgumentReference<'heap>]>,
+    ) -> Self::Output<Interned<'heap, [GenericArgumentReference<'heap>]>> {
+        Try::from_output(references)
     }
 
     fn fold_span(&mut self, span: SpanId) -> Self::Output<SpanId> {
@@ -269,6 +291,20 @@ pub trait Fold<'heap> {
         walk_call(self, call)
     }
 
+    fn fold_call_argument(
+        &mut self,
+        argument: CallArgument<'heap>,
+    ) -> Self::Output<CallArgument<'heap>> {
+        walk_call_argument(self, argument)
+    }
+
+    fn fold_call_arguments(
+        &mut self,
+        arguments: Interned<'heap, [CallArgument<'heap>]>,
+    ) -> Self::Output<Interned<'heap, [CallArgument<'heap>]>> {
+        walk_call_arguments(self, arguments)
+    }
+
     fn fold_branch(&mut self, branch: Branch<'heap>) -> Self::Output<Branch<'heap>> {
         walk_branch(self, branch)
     }
@@ -282,6 +318,20 @@ pub trait Fold<'heap> {
         signature: ClosureSignature<'heap>,
     ) -> Self::Output<ClosureSignature<'heap>> {
         walk_closure_signature(self, signature)
+    }
+
+    fn fold_closure_param(
+        &mut self,
+        param: ClosureParam<'heap>,
+    ) -> Self::Output<ClosureParam<'heap>> {
+        walk_closure_param(self, param)
+    }
+
+    fn fold_closure_params(
+        &mut self,
+        params: Interned<'heap, [ClosureParam<'heap>]>,
+    ) -> Self::Output<Interned<'heap, [ClosureParam<'heap>]>> {
+        walk_closure_params(self, params)
     }
 
     fn fold_graph(&mut self, graph: Graph<'heap>) -> Self::Output<Graph<'heap>> {
@@ -425,7 +475,7 @@ pub fn walk_local_variable<'heap, T: Fold<'heap> + ?Sized>(
 ) -> T::Output<LocalVariable<'heap>> {
     let span = visitor.fold_span(span)?;
     let ident = visitor.fold_ident(name)?;
-    let arguments = visitor.fold_nodes(arguments)?;
+    let arguments = visitor.fold_type_ids(arguments)?;
 
     Try::from_output(LocalVariable {
         span,
@@ -444,7 +494,7 @@ pub fn walk_qualified_variable<'heap, T: Fold<'heap> + ?Sized>(
 ) -> T::Output<QualifiedVariable<'heap>> {
     let span = visitor.fold_span(span)?;
     let path = visitor.fold_qualified_path(path)?;
-    let arguments = visitor.fold_nodes(arguments)?;
+    let arguments = visitor.fold_type_ids(arguments)?;
 
     Try::from_output(QualifiedVariable {
         span,
@@ -657,13 +707,37 @@ pub fn walk_call<'heap, T: Fold<'heap> + ?Sized>(
 ) -> T::Output<Call<'heap>> {
     let span = visitor.fold_span(span)?;
     let function = visitor.fold_nested_node(function)?;
-    let arguments = visitor.fold_nodes(arguments)?;
+    let arguments = visitor.fold_call_arguments(arguments)?;
 
     Try::from_output(Call {
         span,
         function,
         arguments,
     })
+}
+
+pub fn walk_call_argument<'heap, T: Fold<'heap> + ?Sized>(
+    visitor: &mut T,
+    CallArgument { span, value }: CallArgument<'heap>,
+) -> T::Output<CallArgument<'heap>> {
+    let span = visitor.fold_span(span)?;
+    let value = visitor.fold_nested_node(value)?;
+
+    Try::from_output(CallArgument { span, value })
+}
+
+pub fn walk_call_arguments<'heap, T: Fold<'heap> + ?Sized>(
+    visitor: &mut T,
+    arguments: Interned<'heap, [CallArgument<'heap>]>,
+) -> T::Output<Interned<'heap, [CallArgument<'heap>]>> {
+    if arguments.is_empty() {
+        return Try::from_output(arguments);
+    }
+
+    let mut arguments = Beef::new(arguments);
+    arguments.try_map::<_, T::Output<()>>(|argument| visitor.fold_call_argument(argument))?;
+
+    Try::from_output(arguments.finish(&visitor.interner().call_arguments))
 }
 
 pub fn walk_branch<'heap, T: Fold<'heap> + ?Sized>(
@@ -703,19 +777,47 @@ pub fn walk_closure_signature<'heap, T: Fold<'heap> + ?Sized>(
     ClosureSignature {
         span,
         r#type,
+        generics,
         params,
     }: ClosureSignature<'heap>,
 ) -> T::Output<ClosureSignature<'heap>> {
     let span = visitor.fold_span(span)?;
     let r#type = visitor.fold_type_id(r#type)?;
 
-    let params = visitor.fold_idents(params)?;
+    let generics = visitor.fold_generic_argument_references(generics)?;
+    let params = visitor.fold_closure_params(params)?;
 
     Try::from_output(ClosureSignature {
         span,
         r#type,
+        generics,
         params,
     })
+}
+
+pub fn walk_closure_param<'heap, T: Fold<'heap> + ?Sized>(
+    visitor: &mut T,
+    ClosureParam { span, name }: ClosureParam<'heap>,
+) -> T::Output<ClosureParam<'heap>> {
+    let span = visitor.fold_span(span)?;
+
+    let name = visitor.fold_ident(name)?;
+
+    Try::from_output(ClosureParam { span, name })
+}
+
+pub fn walk_closure_params<'heap, T: Fold<'heap> + ?Sized>(
+    visitor: &mut T,
+    params: Interned<'heap, [ClosureParam<'heap>]>,
+) -> T::Output<Interned<'heap, [ClosureParam<'heap>]>> {
+    if params.is_empty() {
+        return Try::from_output(params);
+    }
+
+    let mut params = Beef::new(params);
+    params.try_map::<_, T::Output<()>>(|param| visitor.fold_closure_param(param))?;
+
+    Try::from_output(params.finish(&visitor.interner().closure_params))
 }
 
 pub fn walk_graph<'heap, T: Fold<'heap> + ?Sized>(

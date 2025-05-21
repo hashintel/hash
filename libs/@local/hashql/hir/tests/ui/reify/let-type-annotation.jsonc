@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Tests reification of let expressions with explicit type annotations on the variable.
+["let", "x", "Integer", { "#literal": 5 }, "x"]

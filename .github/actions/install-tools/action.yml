@@ -3,7 +3,11 @@ description: Installs Node, Rust, and WASM tools
 
 inputs:
   token:
+    description: GitHub token for authentication
     required: true
+  rust:
+    description: Should Rust be installed? Can either be `"true"` or `true`
+    default: "true"
 
 runs:
   using: composite
@@ -17,6 +21,9 @@ runs:
         MISE_VERBOSE: 1
         GITHUB_TOKEN: ${{ inputs.token }}
 
+    - name: Install package manager via corepack
+      uses: ./.github/actions/install-corepack
+
     - name: Setup environment
       shell: bash
       run: |
@@ -25,6 +32,7 @@ runs:
         mise ls
 
     - name: "Install Rust"
+      if: ${{ inputs.rust == true || inputs.rust == 'true' }}
       shell: bash
       run: |
         COMPONENTS="$(yq '.toolchain.components[]' rust-toolchain.toml)"

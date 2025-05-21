@@ -27,7 +27,7 @@ export const createFileFromUrl: ResolverFn<
   },
   graphQLContext,
 ) => {
-  const { authentication, temporal } = graphQLContext;
+  const { authentication, temporal, user } = graphQLContext;
   const context = graphQLContextToImpureGraphContext(graphQLContext);
 
   const entity = await createFileFromExternalUrl(context, authentication, {
@@ -38,12 +38,14 @@ export const createFileFromUrl: ResolverFn<
     url,
   });
 
-  await triggerPdfAnalysisWorkflow({
-    entity,
-    temporalClient: temporal,
-    userAccountId: authentication.actorId,
-    webId: extractWebIdFromEntityId(entity.entityId),
-  });
+  if (user.enabledFeatureFlags.includes("ai")) {
+    await triggerPdfAnalysisWorkflow({
+      entity,
+      temporalClient: temporal,
+      userAccountId: authentication.actorId,
+      webId: extractWebIdFromEntityId(entity.entityId),
+    });
+  }
 
   return entity;
 };

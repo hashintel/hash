@@ -4,15 +4,16 @@ use alloc::borrow::Cow;
 use core::{borrow::Borrow as _, iter::once, mem};
 use std::collections::{HashMap, HashSet};
 
-use error_stack::{FutureExt as _, Report, ResultExt as _, TryReportStreamExt as _, bail, ensure};
+use error_stack::{FutureExt as _, Report, ResultExt as _, TryReportStreamExt as _, ensure};
 use futures::{StreamExt as _, TryStreamExt as _, stream};
 use hash_graph_authorization::{
     AuthorizationApi,
     backend::ModifyRelationshipOperation,
-    schema::{
-        EntityOwnerSubject, EntityPermission, EntityRelationAndSubject, EntityTypePermission,
-        WebPermission,
+    policies::{
+        Authorized, ContextBuilder, PartialResourceId, PolicySet, Request, RequestContext,
+        action::ActionName, store::PolicyStore as _,
     },
+    schema::{EntityOwnerSubject, EntityPermission, EntityRelationAndSubject, WebPermission},
     zanzibar::{Consistency, Zookie},
 };
 use hash_graph_store::{
@@ -72,8 +73,7 @@ use type_system::{
         InheritanceDepth,
         data_type::schema::DataTypeReference,
         entity_type::{
-            ClosedEntityType, ClosedEntityTypeWithMetadata, ClosedMultiEntityType, EntityTypeUuid,
-            EntityTypeWithMetadata,
+            ClosedEntityType, ClosedMultiEntityType, EntityTypeUuid, EntityTypeWithMetadata,
         },
         id::{BaseUrl, OntologyTypeUuid, OntologyTypeVersion, VersionedUrl},
     },
@@ -419,6 +419,7 @@ where
         temporal_axes: &QueryTemporalAxes,
     ) -> Result<(GetEntitiesResponse<'static>, Zookie<'static>), Report<QueryError>> {
         let mut root_entities = Vec::new();
+        let filters: [Filter<'_, Entity>; 1] = [params.filter];
 
         let (
             permissions,
@@ -451,9 +452,9 @@ where
                 )
             });
 
-            compiler
-                .add_filter(&params.filter)
-                .change_context(QueryError)?;
+            for filter in &filters {
+                compiler.add_filter(filter).change_context(QueryError)?;
+            }
 
             let (statement, parameters) = compiler.compile();
 
@@ -610,7 +611,7 @@ where
             let (rows, artifacts) =
                 ReadPaginated::<Entity, EntityQuerySorting>::read_paginated_vec(
                     self,
-                    &params.filter,
+                    &filters,
                     Some(temporal_axes),
                     &params.sorting,
                     params.limit,
@@ -780,9 +781,27 @@ where
     where
         R: IntoIterator<Item = EntityRelationAndSubject> + Send + Sync,
     {
+        let mut policy_context_builder = ContextBuilder::default();
+        let actor = self
+            .determine_actor(actor_id)
+            .await
+            .change_context(InsertionError)?
+            .ok_or(InsertionError)
+            .attach(StatusCode::Unauthenticated)?;
+        self.build_principal_context(actor, &mut policy_context_builder)
+            .await
+            .change_context(InsertionError)?;
+        let policies = self
+            .resolve_policies_for_actor(actor.into(), Some(actor))
+            .await
+            .change_context(InsertionError)?;
+        let policy_set = PolicySet::default()
+            .with_policies(&policies)
+            .change_context(InsertionError)?;
+
         let transaction_time = Timestamp::<TransactionTime>::now().remove_nanosecond();
         let mut relationships = Vec::with_capacity(params.len());
-        let mut entity_type_ids = HashMap::new();
+        let mut entity_type_id_set = HashSet::new();
         let mut checked_web_ids = HashSet::new();
         let mut entity_edition_ids = Vec::with_capacity(params.len());
 
@@ -805,29 +824,50 @@ where
             authorization: Some((actor_id, Consistency::FullyConsistent)),
         };
 
-        let mut validation_reports = HashMap::<usize, EntityValidationReport>::new();
-        for (index, mut params) in params.into_iter().enumerate() {
-            let entity_type = ClosedMultiEntityType::from_multi_type_closed_schema(
+        let mut closed_entity_types = Vec::new();
+        for params in &params {
+            let closed_entity_type = ClosedMultiEntityType::from_multi_type_closed_schema(
                 stream::iter(&params.entity_type_ids)
                     .then(|entity_type_url| async {
-                        OntologyTypeProvider::<ClosedEntityTypeWithMetadata>::provide_type(
+                        OntologyTypeProvider::<ClosedEntityType>::provide_type(
                             &validator_provider,
                             entity_type_url,
                         )
                         .await
+                        .map(|entity_type| ClosedEntityType::clone(&*entity_type))
                     })
-                    .try_collect::<Vec<_>>()
+                    .try_collect::<Vec<ClosedEntityType>>()
                     .await
                     .change_context(InsertionError)?
                     .into_iter()
-                    .map(|closed| {
-                        // TODO: Add schema to policy context
-                        //   see https://linear.app/hash/issue/H-4429/use-policies-seeded-from-node-to-check-permissions
-                        closed.schema.clone()
+                    .inspect(|entity_type| {
+                        if !entity_type_id_set.contains(&entity_type.id) {
+                            entity_type_id_set.insert(entity_type.id.clone());
+                            for parent in &entity_type.all_of {
+                                if !entity_type_id_set.contains(&parent.id) {
+                                    entity_type_id_set.insert(parent.id.clone());
+                                }
+                            }
+                        }
                     }),
             )
             .change_context(InsertionError)?;
 
+            closed_entity_types.push(closed_entity_type);
+        }
+
+        let entity_type_ids = entity_type_id_set.into_iter().collect::<Vec<_>>();
+        self.build_entity_type_context(&entity_type_ids, &mut policy_context_builder)
+            .await
+            .change_context(InsertionError)?;
+        let policy_context = policy_context_builder
+            .build()
+            .change_context(InsertionError)?;
+
+        let mut validation_reports = HashMap::<usize, EntityValidationReport>::new();
+        for (index, (mut params, entity_type)) in
+            params.into_iter().zip(closed_entity_types).enumerate()
+        {
             let mut preprocessor = EntityPreprocessor {
                 components: if params.draft {
                     ValidateEntityComponents::draft()
@@ -927,7 +967,6 @@ where
 
             for entity_type in &entity_type.all_of {
                 let entity_type_id = EntityTypeUuid::from_url(&entity_type.id);
-                entity_type_ids.insert(entity_type_id, entity_type.id.clone());
                 entity_is_of_type_rows.push(EntityIsOfTypeRow {
                     entity_edition_id,
                     entity_type_ontology_id: entity_type_id,
@@ -992,26 +1031,36 @@ where
         // We move out the cache, so we can re-use `&mut self` later.
         let store_cache = validator_provider.cache;
 
-        let (instantiate_permissions, zookie) = self
-            .authorization_api
-            .check_entity_types_permission(
-                actor_id,
-                EntityTypePermission::Instantiate,
-                entity_type_ids.keys().copied(),
-                Consistency::FullyConsistent,
-            )
-            .await
-            .change_context(InsertionError)?;
-        let forbidden_instantiations = instantiate_permissions
-            .iter()
-            .filter_map(|(entity_type_id, permission)| {
-                if *permission {
-                    None
-                } else {
-                    entity_type_ids.get(entity_type_id)
+        let mut forbidden_instantiations = Vec::new();
+        for entity_type_id in &entity_type_ids {
+            match policy_set
+                .evaluate(
+                    &Request {
+                        actor: Some(actor),
+                        action: ActionName::Instantiate,
+                        resource: Some(&PartialResourceId::EntityType(Some(Cow::Borrowed(
+                            entity_type_id.into(),
+                        )))),
+                        context: RequestContext::default(),
+                    },
+                    &policy_context,
+                )
+                .change_context(InsertionError)?
+            {
+                Authorized::Always => {}
+                Authorized::Never => {
+                    forbidden_instantiations.push(entity_type_id);
                 }
-            })
-            .collect::<Vec<_>>();
+                Authorized::Partial(partial) => {
+                    tracing::error!(
+                        "Instantiation checking is not supported for partial authorization:\n
+                         {partial:#?}"
+                    );
+                    forbidden_instantiations.push(entity_type_id);
+                }
+            }
+        }
+
         if !forbidden_instantiations.is_empty() {
             return Err(Report::new(InsertionError)
                 .attach(StatusCode::PermissionDenied)
@@ -1034,7 +1083,7 @@ where
                     actor_id,
                     WebPermission::CreateEntity,
                     checked_web_ids,
-                    Consistency::AtLeastAsFresh(&zookie),
+                    Consistency::FullyConsistent,
                 )
                 .await
                 .change_context(InsertionError)?;
@@ -1532,7 +1581,7 @@ where
 
         let entity_ids = Read::<Entity>::read(
             self,
-            &params.filter,
+            &[params.filter],
             Some(&temporal_axes),
             params.include_drafts,
         )
@@ -1593,7 +1642,7 @@ where
 
         Read::<Entity>::read_one(
             self,
-            &Filter::for_entity_by_entity_id(entity_id),
+            &[Filter::for_entity_by_entity_id(entity_id)],
             Some(&temporal_axes),
             entity_id.draft_id.is_some(),
         )
@@ -1610,32 +1659,28 @@ where
         actor_id: ActorEntityUuid,
         mut params: PatchEntityParams,
     ) -> Result<Entity, Report<UpdateError>> {
+        let mut policy_context_builder = ContextBuilder::default();
+        let actor = self
+            .determine_actor(actor_id)
+            .await
+            .change_context(UpdateError)?
+            .ok_or(UpdateError)
+            .attach(StatusCode::Unauthenticated)?;
+        self.build_principal_context(actor, &mut policy_context_builder)
+            .await
+            .change_context(UpdateError)?;
+        let policies = self
+            .resolve_policies_for_actor(actor.into(), Some(actor))
+            .await
+            .change_context(UpdateError)?;
+        let policy_set = PolicySet::default()
+            .with_policies(&policies)
+            .change_context(UpdateError)?;
+
         let transaction_time = Timestamp::now().remove_nanosecond();
         let decision_time = params
             .decision_time
             .map_or_else(|| transaction_time.cast(), Timestamp::remove_nanosecond);
-        let entity_type_ids = params
-            .entity_type_ids
-            .iter()
-            .map(EntityTypeUuid::from_url)
-            .collect::<Vec<_>>();
-
-        if !self
-            .authorization_api
-            .check_entity_types_permission(
-                actor_id,
-                EntityTypePermission::Instantiate,
-                entity_type_ids,
-                Consistency::FullyConsistent,
-            )
-            .await
-            .change_context(UpdateError)?
-            .0
-            .into_iter()
-            .all(|(_, permission)| permission)
-        {
-            bail!(Report::new(UpdateError).attach(StatusCode::PermissionDenied));
-        }
 
         self.authorization_api
             .check_entity_permission(
@@ -1666,7 +1711,7 @@ where
             *locked_row.decision_time.start();
         let previous_entity = Read::<Entity>::read_one(
             &transaction,
-            &Filter::Equal(
+            &[Filter::Equal(
                 Some(FilterExpression::Path {
                     path: EntityQueryPath::EditionId,
                 }),
@@ -1674,7 +1719,7 @@ where
                     parameter: Parameter::Uuid(locked_row.entity_edition_id.into_uuid()),
                     convert: None,
                 }),
-            ),
+            )],
             Some(&QueryTemporalAxes::DecisionTime {
                 pinned: PinnedTemporalAxis::new(locked_transaction_time),
                 variable: VariableTemporalAxis::new(
@@ -1688,6 +1733,12 @@ where
         .change_context(EntityDoesNotExist)
         .attach(params.entity_id)
         .change_context(UpdateError)?;
+
+        let validator_provider = StoreProvider {
+            store: &transaction,
+            cache: StoreCache::default(),
+            authorization: Some((actor_id, Consistency::FullyConsistent)),
+        };
 
         let mut first_non_draft_created_at_decision_time = previous_entity
             .metadata
@@ -1708,8 +1759,8 @@ where
             .is_some();
         let draft = params.draft.unwrap_or(was_draft_before);
         let archived = params.archived.unwrap_or(previous_entity.metadata.archived);
-        let (entity_type_ids, entity_types_updated) = if params.entity_type_ids.is_empty() {
-            (previous_entity.metadata.entity_type_ids, false)
+        let (entity_type_ids, affected_type_ids) = if params.entity_type_ids.is_empty() {
+            (previous_entity.metadata.entity_type_ids, Vec::new())
         } else {
             let added_types = previous_entity
                 .metadata
@@ -1719,28 +1770,83 @@ where
                 .entity_type_ids
                 .difference(&previous_entity.metadata.entity_type_ids);
 
-            let mut has_changed = false;
+            let mut affected_type_id_set = HashSet::new();
             for entity_type_id in added_types.chain(removed_types) {
-                has_changed = true;
+                let entity_type = OntologyTypeProvider::<ClosedEntityType>::provide_type(
+                    &validator_provider,
+                    entity_type_id,
+                )
+                .await
+                .change_context(UpdateError)?;
 
-                let entity_type_id = EntityTypeUuid::from_url(entity_type_id);
-                transaction
-                    .authorization_api
-                    .check_entity_type_permission(
-                        actor_id,
-                        EntityTypePermission::Instantiate,
-                        entity_type_id,
-                        Consistency::FullyConsistent,
-                    )
-                    .await
-                    .change_context(UpdateError)?
-                    .assert_permission()
-                    .change_context(UpdateError)
-                    .attach(StatusCode::PermissionDenied)?;
+                if !affected_type_id_set.contains(&entity_type.id) {
+                    affected_type_id_set.insert(entity_type.id.clone());
+                    for parent in &entity_type.all_of {
+                        if !affected_type_id_set.contains(&parent.id) {
+                            affected_type_id_set.insert(parent.id.clone());
+                        }
+                    }
+                }
             }
 
-            (params.entity_type_ids, has_changed)
+            let affected_type_ids = affected_type_id_set.into_iter().collect::<Vec<_>>();
+            transaction
+                .build_entity_type_context(&affected_type_ids, &mut policy_context_builder)
+                .await
+                .change_context(UpdateError)?;
+
+            (params.entity_type_ids, affected_type_ids)
         };
+
+        let policy_context = policy_context_builder.build().change_context(UpdateError)?;
+
+        if !affected_type_ids.is_empty() {
+            let mut forbidden_instantiations = Vec::new();
+            for entity_type_id in &affected_type_ids {
+                match policy_set
+                    .evaluate(
+                        &Request {
+                            actor: Some(actor),
+                            action: ActionName::Instantiate,
+                            resource: Some(&PartialResourceId::EntityType(Some(Cow::Borrowed(
+                                entity_type_id.into(),
+                            )))),
+                            context: RequestContext::default(),
+                        },
+                        &policy_context,
+                    )
+                    .change_context(UpdateError)?
+                {
+                    Authorized::Always => {}
+                    Authorized::Never => {
+                        forbidden_instantiations.push(entity_type_id);
+                    }
+                    Authorized::Partial(partial) => {
+                        tracing::error!(
+                            "Instantiation checking is not supported for partial authorization:\n
+                             {partial:#?}"
+                        );
+                        forbidden_instantiations.push(entity_type_id);
+                    }
+                }
+            }
+
+            if !forbidden_instantiations.is_empty() {
+                return Err(Report::new(UpdateError)
+                    .attach(StatusCode::PermissionDenied)
+                    .attach_printable(
+                        "The actor does not have permission to instantiate one or more entity \
+                         types",
+                    )
+                    .attach_printable(
+                        forbidden_instantiations
+                            .into_iter()
+                            .map(ToString::to_string)
+                            .collect::<Vec<_>>()
+                            .join(", "),
+                    ));
+            }
+        }
 
         let previous_properties = previous_entity.properties.clone();
         let previous_property_metadata = previous_entity.metadata.properties.clone();
@@ -1757,11 +1863,6 @@ where
             .patch(params.properties)
             .change_context(UpdateError)?;
 
-        let validator_provider = StoreProvider {
-            store: &transaction,
-            cache: StoreCache::default(),
-            authorization: Some((actor_id, Consistency::FullyConsistent)),
-        };
         let entity_type = ClosedMultiEntityType::from_multi_type_closed_schema(
             stream::iter(&entity_type_ids)
                 .then(|entity_type_url| async {
@@ -1814,7 +1915,7 @@ where
         if diff.is_empty()
             && was_draft_before == draft
             && archived == previous_entity.metadata.archived
-            && !entity_types_updated
+            && affected_type_ids.is_empty()
             && previous_property_metadata == property_metadata
             && params.confidence == previous_entity.metadata.confidence
         {

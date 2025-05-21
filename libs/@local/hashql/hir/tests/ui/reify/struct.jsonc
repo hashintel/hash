@@ -1,0 +1,4 @@
+//@ run: fail
+//@ description: Verifies error reporting for struct literals, which are planned but not yet implemented in reification.
+{ "#struct": { "a": { "#literal": 2 } } }
+//~^ ERROR `struct literal` not supported yet

@@ -8,7 +8,6 @@ use hash_graph_authorization::{
 use hash_graph_store::{
     entity::{EntityStore as _, EntityValidationReport, ValidateEntityComponents},
     error::InsertionError,
-    filter::Filter,
     query::Read,
 };
 use hash_graph_types::{
@@ -292,10 +291,9 @@ where
             .await
             .change_context(InsertionError)?;
 
-        let entities =
-            Read::<Entity>::read_vec(postgres_client, &Filter::All(Vec::new()), None, true)
-                .await
-                .change_context(InsertionError)?;
+        let entities = Read::<Entity>::read_vec(postgres_client, &[], None, true)
+            .await
+            .change_context(InsertionError)?;
 
         let validator_provider = StoreProvider {
             store: postgres_client,

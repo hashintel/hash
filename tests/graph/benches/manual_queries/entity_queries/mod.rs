@@ -162,10 +162,8 @@ impl GetEntitiesQuery<'_, '_, '_> {
             if modifies_actor_id {
                 parameters.push(format!("actor_id={actor_id}"));
             }
-            if modifies_limit {
-                if let Some(limit) = limit {
-                    parameters.push(format!("limit={limit}"));
-                }
+            if modifies_limit && let Some(limit) = limit {
+                parameters.push(format!("limit={limit}"));
             }
             if modifies_include_count {
                 parameters.push(format!("include_count={include_count}"));
@@ -263,10 +261,8 @@ impl GetEntitySubgraphQuery<'_, '_, '_> {
                 if modifies_actor_id {
                     parameters.push(format!("actor_id={actor_id}"));
                 }
-                if modifies_limit {
-                    if let Some(limit) = limit {
-                        parameters.push(format!("limit={limit}"));
-                    }
+                if modifies_limit && let Some(limit) = limit {
+                    parameters.push(format!("limit={limit}"));
                 }
                 if modifies_include_count {
                     parameters.push(format!("include_count={include_count}"));

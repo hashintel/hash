@@ -1,0 +1,8 @@
+Expr#4294967040@25
+  ExprKind (Underscore)
+
+------------------------
+
+type First:0 = Number
+
+type Second:0 = Number

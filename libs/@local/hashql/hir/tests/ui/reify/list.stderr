@@ -1,0 +1,11 @@
+[31m[reify::unsupported-construct] Error:[0m Unsupported language construct
+   ╭─[ <unknown>:3:1 ]
+   │
+ 3 │ { "#list": [{ "#literal": 2 }] }
+   │ ────────────────┬───────────────  
+   │                 ╰───────────────── `list literal` not supported yet
+   │ 
+   │ Help: The list literal syntax is valid HashQL code, but support for this feature is still in development. For now, you'll need to use alternative approaches to achieve the same result. Check issue https://linear.app/hash/issue/H-4605/enable-list-literal-construct for implementation status and updates.
+   │ 
+   │ Note: This is a temporary limitation. We're actively working on supporting list literal constructs and other advanced features to make HashQL more expressive and powerful.
+───╯

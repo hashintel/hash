@@ -1,54 +1,7 @@
 use core::ops::ControlFlow;
 
-use pretty::RcDoc;
-
-use super::{
-    Type, TypeId,
-    environment::Environment,
-    kind::{GenericArguments, TypeKind},
-    pretty_print::PrettyPrint as _,
-};
+use super::{Type, kind::TypeKind};
 use crate::{collection::FastHashSet, intern::Interned};
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct RecursionDepthBoundary {
-    pub depth: usize,
-    pub limit: usize,
-}
-
-impl RecursionDepthBoundary {
-    pub fn pretty<'this>(
-        self,
-        env: &'this Environment,
-        id: TypeId,
-    ) -> RcDoc<'this, anstyle::Style> {
-        if self.depth >= self.limit {
-            RcDoc::text("...")
-        } else {
-            env.r#type(id).pretty(env, self.enter())
-        }
-    }
-
-    pub fn pretty_generic<'this>(
-        self,
-        arguments: GenericArguments,
-        env: &'this Environment,
-        id: TypeId,
-    ) -> RcDoc<'this, anstyle::Style> {
-        if self.depth >= self.limit {
-            RcDoc::text("...")
-        } else {
-            env.r#type(id).pretty_generic(arguments, env, self.enter())
-        }
-    }
-
-    const fn enter(self) -> Self {
-        Self {
-            depth: self.depth + 1,
-            limit: self.limit,
-        }
-    }
-}
 
 /// Recursive Cycle
 ///

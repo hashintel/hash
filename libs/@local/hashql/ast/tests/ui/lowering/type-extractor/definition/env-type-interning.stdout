@@ -1,0 +1,10 @@
+Expr#4294967040@43
+  ExprKind (Underscore)
+
+------------------------
+
+type A:0 = Number
+
+type B:0 = Number
+
+type Same:0 = (Number, Number)

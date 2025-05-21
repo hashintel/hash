@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Tests the reification of field access expressions, verifying dot notation works correctly.
+["let", "x", { "#literal": 10 }, "x.a"]

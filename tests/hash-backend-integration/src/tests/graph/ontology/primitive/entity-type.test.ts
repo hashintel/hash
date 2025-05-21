@@ -83,7 +83,10 @@ beforeAll(async () => {
   const authentication = { actorId: testUser.accountId };
 
   testOrg = await createTestOrg(
-    graphContext,
+    {
+      ...graphContext,
+      provenance: { ...graphContext.provenance, actorType: "user" },
+    },
     authentication,
     "entitytypetestorg",
   );
@@ -514,7 +517,6 @@ describe("Entity type CRU", () => {
               subjectId: "updateFromWeb",
             },
           },
-          { relation: "instantiator", subject: { kind: "public" } },
         ],
         provenance: {
           actorType: "machine",

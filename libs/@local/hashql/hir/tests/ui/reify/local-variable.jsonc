@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Tests reification of referencing a locally defined variable.
+["let", "x", { "#literal": 2 }, "x"]

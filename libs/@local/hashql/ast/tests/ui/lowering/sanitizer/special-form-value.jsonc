@@ -1,0 +1,8 @@
+//@ run: fail
+//@ description: Ensure that special forms in invalid value positions are sanitized and error out
+[
+  "add",
+  "::kernel::special_form::let",
+  //~^ ERROR Special form cannot be used as a value
+  "a"
+]

@@ -42,6 +42,7 @@ use hash_graph_store::{
 };
 use hash_graph_temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTime};
 use hash_graph_types::Embedding;
+use hash_status::StatusCode;
 use postgres_types::{Json, ToSql};
 use serde::Deserialize as _;
 use serde_json::Value as JsonValue;
@@ -471,7 +472,7 @@ where
         let (data, artifacts) =
             ReadPaginated::<EntityTypeWithMetadata, VersionedUrlSorting>::read_paginated_vec(
                 self,
-                &params.filter,
+                &[params.filter],
                 Some(temporal_axes),
                 &VersionedUrlSorting {
                     cursor: params.after,
@@ -1022,7 +1023,7 @@ where
 
         Ok(self
             .read(
-                &params.filter,
+                &[params.filter],
                 Some(&params.temporal_axes.resolve()),
                 params.include_drafts,
             )
@@ -1677,22 +1678,18 @@ where
 
         let mut ontology_type_resolver = OntologyTypeResolver::default();
 
-        let entity_types = Read::<EntityTypeWithMetadata>::read_vec(
-            &transaction,
-            &Filter::All(Vec::new()),
-            None,
-            true,
-        )
-        .await
-        .change_context(UpdateError)?
-        .into_iter()
-        .map(|entity_type| {
-            let schema = Arc::new(entity_type.schema);
-            let entity_type_id = EntityTypeUuid::from_url(&schema.id);
-            ontology_type_resolver.add_unresolved_entity_type(entity_type_id, Arc::clone(&schema));
-            (entity_type_id, schema)
-        })
-        .collect::<Vec<_>>();
+        let entity_types = Read::<EntityTypeWithMetadata>::read_vec(&transaction, &[], None, true)
+            .await
+            .change_context(UpdateError)?
+            .into_iter()
+            .map(|entity_type| {
+                let schema = Arc::new(entity_type.schema);
+                let entity_type_id = EntityTypeUuid::from_url(&schema.id);
+                ontology_type_resolver
+                    .add_unresolved_entity_type(entity_type_id, Arc::clone(&schema));
+                (entity_type_id, schema)
+            })
+            .collect::<Vec<_>>();
 
         let entity_type_validator = EntityTypeValidator;
         let num_entity_types = entity_types.len();
@@ -1741,9 +1738,11 @@ where
         let actor = self
             .determine_actor(authenticated_user)
             .await
-            .change_context(QueryError)?;
+            .change_context(QueryError)?
+            .ok_or(QueryError)
+            .attach(StatusCode::Unauthenticated)?;
         let policies = self
-            .resolve_policies_for_actor(actor.into(), actor)
+            .resolve_policies_for_actor(actor.into(), Some(actor))
             .await
             .change_context(QueryError)?;
         let policy_set = PolicySet::default()
@@ -1766,7 +1765,7 @@ where
                 policy_set
                     .evaluate(
                         &Request {
-                            actor,
+                            actor: Some(actor),
                             action: ActionName::Instantiate,
                             resource: Some(&PartialResourceId::EntityType(Some(Cow::Borrowed(
                                 entity_type_id.into(),

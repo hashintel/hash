@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Tests the basic reification of input statements with type specification but no default value.
+["input", "limit", "Integer"]

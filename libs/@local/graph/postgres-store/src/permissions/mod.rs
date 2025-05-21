@@ -149,25 +149,36 @@ where
 
     /// Determines the type of an actor by its ID.
     ///
+    /// Returns `None` if the ID is the public actor.
+    ///
     /// # Errors
     ///
     /// - [`StoreError`] if a database error occurs
+    /// - [`ActorNotFound`] if the actor with the given ID doesn't exist
     ///
     /// [`StoreError`]: PrincipalError::StoreError
+    /// [`ActorNotFound`]: PrincipalError::ActorNotFound
     pub async fn determine_actor(
         &self,
         id: ActorEntityUuid,
-    ) -> Result<ActorId, Report<PrincipalError>> {
-        self.as_client()
-            .query_one("SELECT principal_type FROM actor WHERE id = $1", &[&id])
+    ) -> Result<Option<ActorId>, Report<PrincipalError>> {
+        if id.is_public_actor() {
+            return Ok(None);
+        }
+
+        let row = self
+            .as_client()
+            .query_opt("SELECT principal_type FROM actor WHERE id = $1", &[&id])
             .await
-            .map(|row| match row.get(0) {
-                PrincipalType::User => ActorId::User(UserId::new(id)),
-                PrincipalType::Machine => ActorId::Machine(MachineId::new(id)),
-                PrincipalType::Ai => ActorId::Ai(AiId::new(id)),
-                principal_type => unreachable!("Unexpected actor type: {principal_type:?}"),
-            })
-            .change_context(PrincipalError::StoreError)
+            .change_context(PrincipalError::StoreError)?
+            .ok_or(PrincipalError::ActorNotFound { id })?;
+
+        Ok(Some(match row.get(0) {
+            PrincipalType::User => ActorId::User(UserId::new(id)),
+            PrincipalType::Machine => ActorId::Machine(MachineId::new(id)),
+            PrincipalType::Ai => ActorId::Ai(AiId::new(id)),
+            principal_type => unreachable!("Unexpected actor type: {principal_type:?}"),
+        }))
     }
 
     /// Determines the type of an actor by its ID.

@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Tests reification of let expressions, verifying variable declaration and binding behavior.
+["let", "x", { "#literal": 2 }, "x"]

@@ -7,7 +7,10 @@ import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import { getInstanceAdminsTeam } from "@local/hash-backend-utils/hash-instance";
 import { createWebMachineActorEntity } from "@local/hash-backend-utils/machine-actors";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
+import {
+  type FeatureFlag,
+  featureFlags,
+} from "@local/hash-isomorphic-utils/feature-flags";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -19,7 +22,10 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { User as UserEntity } from "@local/hash-isomorphic-utils/system-types/user";
+import type {
+  EnabledFeatureFlagsPropertyValue,
+  User as UserEntity,
+} from "@local/hash-isomorphic-utils/system-types/user";
 
 import type {
   KratosUserIdentity,
@@ -35,7 +41,6 @@ import type {
   ImpureGraphFunction,
   PureGraphFunction,
 } from "../../context-types";
-import { systemAccountId } from "../../system-account";
 import {
   createEntity,
   getEntityOutgoingLinks,
@@ -55,13 +60,24 @@ import {
 
 export type User = {
   accountId: UserId;
-  kratosIdentityId: string;
-  emails: string[];
-  shortname?: string;
   displayName?: string;
-  isAccountSignupComplete: boolean;
+  emails: string[];
+  enabledFeatureFlags: FeatureFlag[];
   entity: HashEntity<UserEntity>;
+  isAccountSignupComplete: boolean;
+  kratosIdentityId: string;
+  shortname?: string;
 };
+
+function assertFeatureFlags(
+  uncheckedFeatureFlags: EnabledFeatureFlagsPropertyValue,
+): asserts uncheckedFeatureFlags is FeatureFlag[] {
+  for (const maybeFlag of uncheckedFeatureFlags) {
+    if (!featureFlags.includes(maybeFlag as FeatureFlag)) {
+      throw new Error(`Invalid feature flag: ${maybeFlag}`);
+    }
+  }
+}
 
 function assertUserEntity(
   entity: HashEntity,
@@ -84,24 +100,30 @@ export const getUserFromEntity: PureGraphFunction<
   assertUserEntity(entity);
 
   const {
-    kratosIdentityId,
-    shortname,
     displayName,
     email: emails,
+    enabledFeatureFlags: maybeFeatureFlags,
+    kratosIdentityId,
+    shortname,
   } = simplifyProperties(entity.properties);
 
   const isAccountSignupComplete = !!shortname && !!displayName;
+
+  const enabledFeatureFlags = maybeFeatureFlags ?? [];
+
+  assertFeatureFlags(enabledFeatureFlags);
 
   return {
     accountId: extractWebIdFromEntityId(
       entity.metadata.recordId.entityId,
     ) as UserId,
-    shortname,
     displayName,
-    isAccountSignupComplete,
     emails,
-    kratosIdentityId,
+    enabledFeatureFlags,
     entity,
+    isAccountSignupComplete,
+    kratosIdentityId,
+    shortname,
   };
 };
 
@@ -293,7 +315,6 @@ export const createUser: ImpureGraphFunction<
   });
 
   await createWebMachineActorEntity(ctx, {
-    systemAccountId,
     webId: userId,
     machineId,
     logger,
@@ -355,23 +376,8 @@ export const createUser: ImpureGraphFunction<
     },
   };
 
-  /** Grant permissions to the web machine actor to create a user entity */
-  await ctx.graphApi.modifyEntityTypeAuthorizationRelationships(
-    systemAccountId,
-    [
-      {
-        operation: "create",
-        resource: systemEntityTypes.user.entityTypeId,
-        relationAndSubject: {
-          subject: {
-            kind: "account",
-            subjectId: machineId,
-          },
-          relation: "instantiator",
-        },
-      },
-    ],
-  );
+  // TODO: Move User-Entity creation to Graph
+  //   see https://linear.app/hash/issue/H-4559/move-user-entity-creation-to-graph
 
   const { teamId: hashInstanceAdminsAccountGroupId } =
     await getInstanceAdminsTeam(ctx, authentication);
@@ -408,24 +414,6 @@ export const createUser: ImpureGraphFunction<
         },
       ],
     },
-  );
-
-  /** Remove permission from the web machine actor to create a user entity */
-  await ctx.graphApi.modifyEntityTypeAuthorizationRelationships(
-    systemAccountId,
-    [
-      {
-        operation: "delete",
-        resource: systemEntityTypes.user.entityTypeId,
-        relationAndSubject: {
-          subject: {
-            kind: "account",
-            subjectId: machineId,
-          },
-          relation: "instantiator",
-        },
-      },
-    ],
   );
 
   const user = getUserFromEntity({ entity });

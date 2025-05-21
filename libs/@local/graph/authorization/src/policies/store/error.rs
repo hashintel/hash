@@ -110,6 +110,8 @@ impl Error for TeamRoleCreationError {}
 #[derive(Debug, derive_more::Display)]
 #[display("Could change role assignment: {_variant}")]
 pub enum RoleAssignmentError {
+    #[display("Actor was not provided")]
+    ActorNotProvided,
     #[display("Actor with ID `{actor_id}` does not exist")]
     ActorNotFound { actor_id: ActorId },
     #[display("{name} role for `{actor_group_id}` does not exist")]

@@ -1,0 +1,22 @@
+Expr#0@16
+  ExprKind (Let)
+    LetExpr#1@16 (name: x:0)
+      Expr#2@13
+        ExprKind (Literal)
+          LiteralExpr#3@12
+            LiteralKind (Integer)
+              IntegerLiteral (42)
+      Type#4@11
+        TypeKind (Path)
+          Path#5@11 (rooted: true)
+            PathSegment#6@10 (name: kernel)
+            PathSegment#7@10 (name: type)
+            PathSegment#8@10 (name: Number)
+      Expr#9@15
+        ExprKind (Underscore)
+
+------------------------
+------------------------
+
+4 = Number
+------------------------

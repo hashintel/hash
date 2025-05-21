@@ -1,0 +1,2 @@
+#fn<T:0?4: Number>(foo:0: ?4, bar:0: ?4): ?4 ->
+    ::math::add(foo:0, bar:0)

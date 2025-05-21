@@ -8,7 +8,8 @@
     "fix:clippy": "just clippy --fix",
     "lint:clippy": "just clippy",
     "test:miri": "just miri",
-    "test:unit": "RUST_BACKTRACE=1 mise run test:unit @rust/error-stack"
+    "test:unit": "RUST_BACKTRACE=1 mise run test:unit @rust/error-stack --test-strategy=extremes",
+    "update-snapshots": "INSTA_FORCE_PASS=1 INSTA_UPDATE=new UPDATE_EXPECT=1 yarn test:unit"
   },
   "dependencies": {
     "@rust/error-stack-macros": "0.0.0-reserved-private"

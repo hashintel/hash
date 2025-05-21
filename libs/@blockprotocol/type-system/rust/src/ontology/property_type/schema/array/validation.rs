@@ -21,12 +21,10 @@ impl<T: Sync> Validator<PropertyValueArray<T>> for ArraySchemaValidator {
         &self,
         value: &'v PropertyValueArray<T>,
     ) -> Result<&'v Valid<PropertyValueArray<T>>, Self::Error> {
-        if let Some((min, max)) = value.min_items.zip(value.max_items) {
-            if min > max {
-                return Err(
-                    ArraySchemaValidationError::IncompatibleItemNumberConstraints { min, max },
-                );
-            }
+        if let Some((min, max)) = value.min_items.zip(value.max_items)
+            && min > max
+        {
+            return Err(ArraySchemaValidationError::IncompatibleItemNumberConstraints { min, max });
         }
 
         Ok(Valid::new_ref_unchecked(value))

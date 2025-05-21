@@ -1,0 +1,15 @@
+//@ run: fail
+//@ description: Tests that closures report unused generic parameters
+[
+  "let",
+  "x",
+  [
+    "fn",
+    { "#tuple": ["T"] },
+    //~^ ERROR Generic parameter `T` declared here...
+    { "#struct": { "x": "Number" } },
+    "_",
+    ["+", { "#literal": 1 }, { "#literal": 2 }]
+  ],
+  "_"
+]

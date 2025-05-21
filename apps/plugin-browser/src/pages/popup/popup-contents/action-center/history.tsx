@@ -4,6 +4,10 @@ import type { PropsWithChildren } from "react";
 
 import { AutomaticallyTriggered } from "./history/automatically-triggered";
 import { ManuallyTriggered } from "./history/manually-triggered";
+import {
+  generateTabPanelA11yProps,
+  type TabPanelProps,
+} from "./shared/tab-props";
 import { useFlowRuns } from "./shared/use-flow-runs";
 
 const HistorySection = ({ children }: PropsWithChildren) => (
@@ -22,7 +26,7 @@ const HistorySection = ({ children }: PropsWithChildren) => (
   </Box>
 );
 
-export const History = () => {
+export const History = (panelProps: TabPanelProps) => {
   const { flowRuns, loading } = useFlowRuns();
 
   if (loading) {
@@ -37,7 +41,7 @@ export const History = () => {
   }
 
   return (
-    <Box>
+    <Box {...generateTabPanelA11yProps("History")} {...panelProps}>
       <HistorySection>
         <ManuallyTriggered flowRuns={flowRuns} />
       </HistorySection>

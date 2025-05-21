@@ -3,7 +3,7 @@ pub mod param;
 
 use core::{hash::Hash, ops::Deref};
 
-use pretty::RcDoc;
+use pretty::{DocAllocator as _, RcAllocator, RcDoc};
 
 pub use self::{
     apply::{Apply, GenericSubstitution, GenericSubstitutions},
@@ -14,6 +14,7 @@ use crate::{
     collection::{SmallVec, TinyVec},
     intern::Interned,
     newtype, newtype_producer,
+    pretty::{ORANGE, PrettyPrint, PrettyRecursionBoundary},
     span::SpanId,
     symbol::Symbol,
     r#type::{
@@ -25,8 +26,6 @@ use crate::{
         },
         inference::{Inference, PartialStructuralEdge},
         lattice::Lattice,
-        pretty_print::{ORANGE, PrettyPrint},
-        recursion::RecursionDepthBoundary,
     },
 };
 
@@ -35,6 +34,44 @@ newtype!(
 );
 
 newtype_producer!(pub struct GenericArgumentIdProducer(GenericArgumentId));
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct GenericArgumentReference<'heap> {
+    pub id: GenericArgumentId,
+    pub name: Symbol<'heap>,
+}
+
+impl<'heap> GenericArgumentReference<'heap> {
+    #[must_use]
+    pub const fn with_constraint(self, constraint: Option<TypeId>) -> GenericArgument<'heap> {
+        let Self { id, name } = self;
+
+        GenericArgument {
+            id,
+            name,
+            constraint,
+        }
+    }
+}
+
+impl<'heap> From<GenericArgument<'heap>> for GenericArgumentReference<'heap> {
+    fn from(argument: GenericArgument<'heap>) -> Self {
+        Self {
+            id: argument.id,
+            name: argument.name,
+        }
+    }
+}
+
+impl<'heap> PrettyPrint<'heap> for GenericArgumentReference<'heap> {
+    fn pretty(
+        &self,
+        _: &Environment<'heap>,
+        _: &mut PrettyRecursionBoundary,
+    ) -> RcDoc<'heap, anstyle::Style> {
+        RcDoc::text(format!("{}?{}", self.name, self.id)).annotate(ORANGE)
+    }
+}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct AnonymousGenericArgument {
@@ -52,7 +89,7 @@ pub struct GenericArgument<'heap> {
     pub constraint: Option<TypeId>,
 }
 
-impl GenericArgument<'_> {
+impl<'heap> GenericArgument<'heap> {
     #[must_use]
     pub const fn as_anonymous(&self) -> AnonymousGenericArgument {
         AnonymousGenericArgument {
@@ -60,25 +97,32 @@ impl GenericArgument<'_> {
             constraint: self.constraint,
         }
     }
+
+    #[must_use]
+    pub const fn as_reference(&self) -> GenericArgumentReference<'heap> {
+        GenericArgumentReference {
+            id: self.id,
+            name: self.name,
+        }
+    }
 }
 
-impl PrettyPrint for GenericArgument<'_> {
-    fn pretty<'env>(
+impl<'heap> PrettyPrint<'heap> for GenericArgument<'heap> {
+    fn pretty(
         &self,
-        env: &'env Environment,
-        limit: RecursionDepthBoundary,
-    ) -> RcDoc<'env, anstyle::Style> {
+        env: &Environment<'heap>,
+        boundary: &mut PrettyRecursionBoundary,
+    ) -> RcDoc<'heap, anstyle::Style> {
         let name = format!("{}?{}", self.name, self.id);
 
-        let mut doc = RcDoc::text(name).annotate(ORANGE);
+        let mut doc = RcDoc::text(name).annotate(ORANGE).group();
 
         if let Some(constraint) = self.constraint {
-            doc = doc.append(
-                RcDoc::text(":")
-                    .append(RcDoc::line())
-                    .append(limit.pretty(env, constraint))
-                    .group(),
-            );
+            doc = doc
+                .append(RcDoc::text(":"))
+                .append(RcDoc::softline())
+                .append(boundary.pretty_type(env, constraint).group())
+                .group();
         }
 
         doc
@@ -149,25 +193,26 @@ impl<'heap> Deref for GenericArguments<'heap> {
     }
 }
 
-impl PrettyPrint for GenericArguments<'_> {
-    fn pretty<'env>(
+impl<'heap> PrettyPrint<'heap> for GenericArguments<'heap> {
+    fn pretty(
         &self,
-        env: &'env Environment,
-        limit: RecursionDepthBoundary,
-    ) -> RcDoc<'env, anstyle::Style> {
+        env: &Environment<'heap>,
+        boundary: &mut PrettyRecursionBoundary,
+    ) -> RcDoc<'heap, anstyle::Style> {
         match self.as_slice() {
-            [] => RcDoc::nil(),
-            arguments => RcDoc::text("<")
-                .append(
-                    RcDoc::intersperse(
-                        arguments.iter().map(|argument| argument.pretty(env, limit)),
-                        RcDoc::text(",").append(RcDoc::line()),
-                    )
-                    .nest(1)
-                    .group(),
-                )
-                .append(RcDoc::text(">")),
+            [] => return RcDoc::nil(),
+            arguments => RcAllocator.intersperse(
+                arguments
+                    .iter()
+                    .map(|argument| argument.pretty(env, boundary)),
+                RcDoc::text(",").append(RcDoc::softline()),
+            ),
         }
+        .nest(1)
+        .group()
+        .angles()
+        .group()
+        .into_doc()
     }
 }
 
@@ -466,13 +511,13 @@ impl<'heap> Inference<'heap> for Generic<'heap> {
     }
 }
 
-impl PrettyPrint for Generic<'_> {
-    fn pretty<'env>(
+impl<'heap> PrettyPrint<'heap> for Generic<'heap> {
+    fn pretty(
         &self,
-        env: &'env Environment,
-        limit: RecursionDepthBoundary,
-    ) -> RcDoc<'env, anstyle::Style> {
-        limit.pretty_generic(self.arguments, env, self.base)
+        env: &Environment<'heap>,
+        boundary: &mut PrettyRecursionBoundary,
+    ) -> RcDoc<'heap, anstyle::Style> {
+        boundary.pretty_generic_type(env, self.base, self.arguments)
     }
 }
 
@@ -481,6 +526,7 @@ mod tests {
     #![expect(clippy::missing_asserts_for_indexing)]
     use crate::{
         heap::Heap,
+        pretty::PrettyPrint as _,
         span::SpanId,
         r#type::{
             PartialType,
@@ -500,7 +546,6 @@ mod tests {
                 },
             },
             lattice::test::assert_lattice_laws,
-            pretty_print::PrettyPrint as _,
             test::{instantiate, instantiate_infer},
         },
     };

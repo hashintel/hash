@@ -26,10 +26,8 @@ impl Context {
     pub fn remove<T: 'static>(&mut self) -> Option<T> {
         let type_id = TypeId::of::<T>();
 
-        self.inner
-            .remove(&type_id)
-            .and_then(|value| value.downcast().ok())
-            .map(|value| *value)
+        let value = self.inner.remove(&type_id)?;
+        value.downcast().ok().map(|value| *value)
     }
 
     pub fn clear(&mut self) {

@@ -18,7 +18,7 @@ The type editor is currently in use within [HASH] and can either be tested by:
 
 This package may be consumed under the terms of its [LICENSE](LICENSE.md) by any other protocol-compliant [embedding application].
 
-The type editor exports `react-hook-form` methods which must be used to wrap the component in the required context. See [here](https://github.com/hashintel/hash/blob/12fecc40c71cf21350af50e198d58c8baadaadfc/apps/hash-frontend/src/pages/%5Bshortname%5D/types/entity-type/%5B...slug-maybe-version%5D.page.tsx#L228) for an example.
+The type editor exports `react-hook-form` methods which must be used to wrap the component in the required context. See [the source file](https://github.com/hashintel/hash/blob/12fecc40c71cf21350af50e198d58c8baadaadfc/apps/hash-frontend/src/pages/%5Bshortname%5D/types/entity-type/%5B...slug-maybe-version%5D.page.tsx#L228) for an example.
 
 ## Publishing
 

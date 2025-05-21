@@ -59,7 +59,7 @@
     "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/dotenv-flow": "3.3.3",
-    "@types/node": "22.15.17",
+    "@types/node": "22.15.21",
     "@types/uuid": "9.0.8",
     "@types/wait-on": "5.3.4",
     "@vitest/coverage-istanbul": "3.1.3",

@@ -1,0 +1,6 @@
+Expr#4294967040@23
+  ExprKind (Underscore)
+
+------------------------
+
+type Wrapper:0<T:0?4> = <T:0?4>List<?4>

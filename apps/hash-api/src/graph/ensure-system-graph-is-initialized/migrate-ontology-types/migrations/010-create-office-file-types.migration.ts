@@ -1,6 +1,5 @@
 import type { MigrationFunction } from "../types";
 import {
-  anyUserInstantiator,
   createSystemEntityTypeIfNotExists,
   getCurrentHashSystemEntityTypeId,
 } from "../util";
@@ -39,7 +38,6 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
     },
   );
 
@@ -56,7 +54,6 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
     },
   );
 
@@ -73,7 +70,6 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
     },
   );
 
@@ -101,7 +97,6 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
     },
   );
 
@@ -118,7 +113,6 @@ const migrate: MigrationFunction = async ({
       },
       webShortname: "h",
       migrationState,
-      instantiator: anyUserInstantiator,
     },
   );
 

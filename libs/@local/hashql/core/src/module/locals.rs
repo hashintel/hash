@@ -1,26 +1,117 @@
+use core::ops::Index;
+
+use pretty::{DocAllocator as _, RcAllocator, RcDoc};
+
 use crate::{
-    collection::FastHashMap,
+    collection::{FastHashMap, TinyVec},
+    pretty::{PrettyPrint, PrettyRecursionBoundary},
     symbol::Symbol,
     r#type::{
         TypeId,
         environment::{Diagnostics, Environment, instantiate::InstantiateEnvironment},
+        kind::generic::GenericArgumentReference,
     },
 };
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct LocalTypeDef<'heap> {
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct TypeDef<'heap> {
     pub id: TypeId,
+    pub arguments: TinyVec<GenericArgumentReference<'heap>>,
+}
 
+impl<'heap> TypeDef<'heap> {
+    pub fn instantiate(&mut self, env: &mut InstantiateEnvironment<'_, 'heap>) {
+        self.id = env.instantiate(self.id);
+        env.clear_provisioned();
+
+        let Some(generic) = env.r#type(self.id).kind.generic() else {
+            debug_assert!(self.arguments.is_empty(), "Expected no generics");
+            return;
+        };
+
+        debug_assert_eq!(
+            generic.arguments.len(),
+            self.arguments.len(),
+            "Unexpected number of generics"
+        );
+
+        for argument in &mut self.arguments {
+            // Find the argument with the same name, for the small number of expected
+            // generics we have a linear scan is the fastest, we cannot zip, because the type
+            // implementation reserves the right to re-order the generic arguments.
+            let Some(generic_argument) = generic
+                .arguments
+                .iter()
+                .find(|generic_argument| generic_argument.name == argument.name)
+            else {
+                unreachable!()
+            };
+
+            *argument = generic_argument.as_reference();
+        }
+    }
+}
+
+impl<'heap> PrettyPrint<'heap> for TypeDef<'heap> {
+    fn pretty(
+        &self,
+        env: &Environment<'heap>,
+        boundary: &mut PrettyRecursionBoundary,
+    ) -> RcDoc<'heap, anstyle::Style> {
+        match self.arguments.as_slice() {
+            [] => RcDoc::nil(),
+            _ => RcAllocator
+                .intersperse(
+                    self.arguments
+                        .iter()
+                        .map(|argument| argument.pretty(env, boundary)),
+                    RcDoc::text(",").append(RcDoc::softline()),
+                )
+                .nest(1)
+                .group()
+                .angles()
+                .into_doc(),
+        }
+        .group()
+        .append(RcDoc::softline())
+        .append("=")
+        .append(RcDoc::softline())
+        .append(boundary.pretty_type(env, self.id))
+        .group()
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct Local<'heap, T> {
     pub name: Symbol<'heap>,
+    pub value: T,
+}
+
+impl<'heap, T> PrettyPrint<'heap> for Local<'heap, T>
+where
+    T: PrettyPrint<'heap>,
+{
+    fn pretty(
+        &self,
+        env: &Environment<'heap>,
+        boundary: &mut PrettyRecursionBoundary,
+    ) -> RcDoc<'heap, anstyle::Style> {
+        RcDoc::text("type")
+            .append(RcDoc::space())
+            .append(RcDoc::text(self.name.unwrap()))
+            .group()
+            .append(self.value.pretty(env, boundary))
+            .group()
+    }
 }
 
 #[derive(Debug)]
-pub struct LocalTypes<'heap> {
-    storage: Vec<LocalTypeDef<'heap>>,
+pub struct Locals<'heap, T> {
+    storage: Vec<Local<'heap, T>>,
     lookup: FastHashMap<Symbol<'heap>, usize>,
 }
 
-impl<'heap> LocalTypes<'heap> {
+impl<'heap, T> Locals<'heap, T> {
     #[must_use]
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
@@ -32,26 +123,49 @@ impl<'heap> LocalTypes<'heap> {
         }
     }
 
-    pub fn insert(&mut self, def: LocalTypeDef<'heap>) {
+    #[must_use]
+    pub fn get(&self, name: Symbol<'heap>) -> Option<&Local<'heap, T>> {
+        self.lookup.get(&name).map(|&index| &self.storage[index])
+    }
+
+    #[must_use]
+    pub fn names(&self) -> impl IntoIterator<Item = Symbol<'heap>> + use<'_, 'heap, T> {
+        self.lookup.keys().copied()
+    }
+
+    pub fn insert(&mut self, def: Local<'heap, T>) {
         let index = self.storage.len();
+        let name = def.name;
+
         self.storage.push(def);
-        self.lookup.insert(def.name, index);
+        self.lookup.insert(name, index);
     }
 
-    pub fn iter(&self) -> impl Iterator<Item = LocalTypeDef<'heap>> {
-        self.storage.iter().copied()
+    pub fn iter(&self) -> impl Iterator<Item = &Local<'heap, T>> {
+        self.storage.iter()
     }
+}
 
+impl<'heap> Locals<'heap, TypeDef<'heap>> {
     pub fn finish(&mut self, env: &Environment<'heap>) -> Diagnostics {
         // Once finished we need to go over once to instantiate every call (now that everything is
         // properly set-up) to split the individual types from each other.
         let mut instantiate = InstantiateEnvironment::new(env);
 
-        for LocalTypeDef { id, .. } in &mut self.storage {
-            *id = instantiate.instantiate(*id);
-            instantiate.clear_provisioned();
+        for def in &mut self.storage {
+            def.value.instantiate(&mut instantiate);
         }
 
         instantiate.take_diagnostics()
     }
 }
+
+impl<'heap, T> Index<Symbol<'heap>> for Locals<'heap, T> {
+    type Output = Local<'heap, T>;
+
+    fn index(&self, index: Symbol<'heap>) -> &Self::Output {
+        self.get(index).expect("local type not found")
+    }
+}
+
+pub type TypeLocals<'heap> = Locals<'heap, TypeDef<'heap>>;

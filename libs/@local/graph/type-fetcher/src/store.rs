@@ -260,11 +260,9 @@ where
     async fn get_policy_by_id(
         &self,
         authenticated_actor: ActorEntityUuid,
-        policy_id: PolicyId,
+        id: PolicyId,
     ) -> Result<Option<Policy>, Report<GetPoliciesError>> {
-        self.store
-            .get_policy_by_id(authenticated_actor, policy_id)
-            .await
+        self.store.get_policy_by_id(authenticated_actor, id).await
     }
 
     async fn query_policies(
@@ -278,7 +276,7 @@ where
     async fn resolve_policies_for_actor(
         &self,
         authenticated_actor: ActorEntityUuid,
-        actor_id: ActorId,
+        actor_id: Option<ActorId>,
     ) -> Result<Vec<Policy>, Report<GetPoliciesError>> {
         self.store
             .resolve_policies_for_actor(authenticated_actor, actor_id)
@@ -404,15 +402,14 @@ where
     ) -> Result<bool, Report<QueryError>> {
         let url = ontology_type_reference.url();
 
-        if let Ok(connection_info) = self.connection_info() {
-            if connection_info
+        if let Ok(connection_info) = self.connection_info()
+            && connection_info
                 .domain_validator
                 .validate_url(url.base_url.as_str())
-            {
-                // If the domain is valid, we own the data type and it either exists or we cannot
-                // reference it.
-                return Ok(true);
-            }
+        {
+            // If the domain is valid, we own the data type and it either exists or we cannot
+            // reference it.
+            return Ok(true);
         }
 
         match ontology_type_reference {
@@ -896,7 +893,7 @@ where
 
     async fn read_paginated(
         &self,
-        filter: &Filter<'_, R>,
+        filters: &[Filter<'_, R>],
         temporal_axes: Option<&QueryTemporalAxes>,
         sorting: &S,
         limit: Option<usize>,
@@ -909,7 +906,7 @@ where
         Report<QueryError>,
     > {
         self.store
-            .read_paginated(filter, temporal_axes, sorting, limit, include_drafts)
+            .read_paginated(filters, temporal_axes, sorting, limit, include_drafts)
             .await
     }
 }
@@ -924,21 +921,23 @@ where
 
     async fn read(
         &self,
-        filter: &Filter<'_, R>,
+        filters: &[Filter<'_, R>],
         temporal_axes: Option<&QueryTemporalAxes>,
         include_drafts: bool,
     ) -> Result<Self::ReadStream, Report<QueryError>> {
-        self.store.read(filter, temporal_axes, include_drafts).await
+        self.store
+            .read(filters, temporal_axes, include_drafts)
+            .await
     }
 
     async fn read_one(
         &self,
-        filter: &Filter<'_, R>,
+        filters: &[Filter<'_, R>],
         temporal_axes: Option<&QueryTemporalAxes>,
         include_drafts: bool,
     ) -> Result<R, Report<QueryError>> {
         self.store
-            .read_one(filter, temporal_axes, include_drafts)
+            .read_one(filters, temporal_axes, include_drafts)
             .await
     }
 }

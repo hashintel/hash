@@ -106,6 +106,8 @@ pub enum RoleUnassignmentStatus {
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[serde(rename_all = "kebab-case", deny_unknown_fields)]
 pub struct PolicyCreationParams {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
     pub effect: Effect,
     pub principal: Option<PrincipalConstraint>,
     pub actions: Vec<ActionName>,
@@ -124,6 +126,8 @@ pub enum PrincipalFilter {
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PolicyFilter {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub principal: Option<PrincipalFilter>,
 }
@@ -181,7 +185,7 @@ pub trait PolicyStore {
     async fn get_policy_by_id(
         &self,
         authenticated_actor: ActorEntityUuid,
-        policy_id: PolicyId,
+        id: PolicyId,
     ) -> Result<Option<Policy>, Report<GetPoliciesError>>;
 
     /// Queries for policies in the local store that match the provided filter.
@@ -230,7 +234,7 @@ pub trait PolicyStore {
     async fn resolve_policies_for_actor(
         &self,
         authenticated_actor: ActorEntityUuid,
-        actor_id: ActorId,
+        actor_id: Option<ActorId>,
     ) -> Result<Vec<Policy>, Report<GetPoliciesError>>;
 
     /// Updates the policy specified by it's ID.

@@ -3,17 +3,18 @@ use core::ops::ControlFlow;
 use pretty::RcDoc;
 use smallvec::SmallVec;
 
-use crate::r#type::{
-    Type, TypeId,
-    environment::{
-        AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
-        SimplifyEnvironment, instantiate::InstantiateEnvironment,
+use crate::{
+    pretty::{BLUE, PrettyPrint, PrettyRecursionBoundary},
+    r#type::{
+        Type, TypeId,
+        environment::{
+            AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
+            SimplifyEnvironment, instantiate::InstantiateEnvironment,
+        },
+        error::type_mismatch,
+        inference::{Inference, PartialStructuralEdge},
+        lattice::Lattice,
     },
-    error::type_mismatch,
-    inference::{Inference, PartialStructuralEdge},
-    lattice::Lattice,
-    pretty_print::{BLUE, PrettyPrint},
-    recursion::RecursionDepthBoundary,
 };
 
 // TODO: in the future we should support refinements
@@ -215,12 +216,12 @@ impl PrimitiveType {
     }
 }
 
-impl PrettyPrint for PrimitiveType {
-    fn pretty<'env>(
+impl<'heap> PrettyPrint<'heap> for PrimitiveType {
+    fn pretty(
         &self,
-        _: &'env Environment,
-        _: RecursionDepthBoundary,
-    ) -> RcDoc<'env, anstyle::Style> {
+        _: &Environment<'heap>,
+        _: &mut PrettyRecursionBoundary,
+    ) -> RcDoc<'heap, anstyle::Style> {
         RcDoc::text(self.as_str()).annotate(BLUE)
     }
 }

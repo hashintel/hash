@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Tests reification of basic literal expressions without type annotations.
+{ "#literal": 2 }

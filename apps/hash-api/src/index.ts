@@ -272,9 +272,23 @@ const main = async () => {
     });
   }
 
+  const userProvenance: ProvidedEntityEditionProvenance = {
+    actorType: "user",
+    origin: {
+      type: "api",
+    },
+  };
+
+  const userActorContext = {
+    graphApi,
+    provenance: userProvenance,
+    uploadProvider,
+    temporalClient,
+  };
+
   // This will seed users, an org and pages.
   // Configurable through environment variables.
-  await seedOrgsAndUsers({ logger, context: machineActorContext });
+  await seedOrgsAndUsers({ logger, context: userActorContext });
 
   // Set sensible default security headers: https://www.npmjs.com/package/helmet
   // Temporarily disable contentSecurityPolicy for the GraphQL playground

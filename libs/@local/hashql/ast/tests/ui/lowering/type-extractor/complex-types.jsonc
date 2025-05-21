@@ -1,0 +1,9 @@
+//@ run: pass
+//@ description: Tests mapping of complex struct type nodes to type IDs
+[
+  "let",
+  "person",
+  { "#struct": { "name": "String", "age": "Number" } },
+  { "#struct": { "name": { "#literal": "Alice" }, "age": { "#literal": 30 } } },
+  "_"
+]

@@ -1,279 +1,130 @@
+pub mod definition;
 pub mod error;
 pub mod translate;
 
-use core::mem;
+use alloc::borrow::Cow;
+use core::ops::Index;
 
 use hashql_core::{
-    collection::{FastHashMap, TinyVec},
+    collection::FastHashMap,
     module::{
         ModuleRegistry,
-        locals::{LocalTypeDef, LocalTypes},
+        locals::{TypeDef, TypeLocals},
     },
-    symbol::Symbol,
-    r#type::{TypeId, environment::Environment, kind::generic::GenericArgument},
+    r#type::{
+        TypeId,
+        environment::{Environment, instantiate::InstantiateEnvironment},
+    },
 };
 
+pub use self::definition::TypeDefinitionExtractor;
 use self::{
-    error::{
-        TypeExtractorDiagnostic, TypeExtractorDiagnosticCategory, duplicate_newtype,
-        duplicate_type_alias,
-    },
-    translate::{Identity, LocalVariable, Reference, SpannedGenericArguments, TranslationUnit},
+    error::TypeExtractorDiagnostic,
+    translate::{Reference, SpannedGenericArguments, TranslationUnit},
 };
 use crate::{
-    node::{
-        expr::{Expr, ExprKind, NewTypeExpr, TypeExpr},
-        generic::GenericConstraint,
-    },
-    visit::{Visitor, walk_expr},
+    node::{expr::closure::ClosureSignature, id::NodeId, r#type::Type},
+    visit::Visitor,
 };
 
-pub struct TypeEnvironment<'heap> {
-    pub alias: FastHashMap<Symbol<'heap>, TypeId>,
-    pub opaque: FastHashMap<Symbol<'heap>, TypeId>,
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AnonymousTypes(FastHashMap<NodeId, TypeId>);
+
+impl Index<NodeId> for AnonymousTypes {
+    type Output = TypeId;
+
+    fn index(&self, index: NodeId) -> &Self::Output {
+        &self.0[&index]
+    }
+}
+
+impl IntoIterator for AnonymousTypes {
+    type IntoIter = hashbrown::hash_map::IntoIter<NodeId, TypeId>;
+    type Item = (NodeId, TypeId);
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ClosureSignatures<'heap>(FastHashMap<NodeId, TypeDef<'heap>>);
+
+impl<'heap> Index<NodeId> for ClosureSignatures<'heap> {
+    type Output = TypeDef<'heap>;
+
+    fn index(&self, index: NodeId) -> &Self::Output {
+        &self.0[&index]
+    }
+}
+
+impl<'heap> IntoIterator for ClosureSignatures<'heap> {
+    type IntoIter = hashbrown::hash_map::IntoIter<NodeId, TypeDef<'heap>>;
+    type Item = (NodeId, TypeDef<'heap>);
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
 }
 
 pub struct TypeExtractor<'env, 'heap> {
-    environment: &'env Environment<'heap>,
-    registry: &'env ModuleRegistry<'heap>,
+    unit: TranslationUnit<'env, 'heap, TypeLocals<'heap>>,
+    instantiate: InstantiateEnvironment<'env, 'heap>,
 
-    module: Symbol<'heap>,
-
-    alias: Vec<(Symbol<'heap>, TypeExpr<'heap>)>,
-    opaque: Vec<(Symbol<'heap>, NewTypeExpr<'heap>)>,
-
-    diagnostics: Vec<TypeExtractorDiagnostic>,
+    types: FastHashMap<NodeId, TypeId>,
+    closures: FastHashMap<NodeId, TypeDef<'heap>>,
 }
 
 impl<'env, 'heap> TypeExtractor<'env, 'heap> {
     #[must_use]
-    pub const fn new(
+    pub fn new(
         environment: &'env Environment<'heap>,
         registry: &'env ModuleRegistry<'heap>,
-        module: Symbol<'heap>,
+        locals: &'env TypeLocals<'heap>,
     ) -> Self {
         Self {
-            environment,
-            registry,
-
-            module,
-
-            alias: Vec::new(),
-            opaque: Vec::new(),
-
-            diagnostics: Vec::new(),
+            unit: TranslationUnit {
+                env: environment,
+                registry,
+                diagnostics: Vec::new(),
+                locals,
+                bound_generics: Cow::Owned(SpannedGenericArguments::empty()),
+            },
+            instantiate: InstantiateEnvironment::new(environment),
+            types: FastHashMap::default(),
+            closures: FastHashMap::default(),
         }
     }
 
-    fn convert_generic_constraints(
-        &self,
-        constraints: &[GenericConstraint<'heap>],
-    ) -> SpannedGenericArguments<'heap> {
-        let mut arguments = TinyVec::with_capacity(constraints.len());
-        let mut spans = TinyVec::with_capacity(constraints.len());
-
-        for GenericConstraint {
-            id: _,
-            span,
-            name,
-            bound: _,
-        } in constraints
-        {
-            arguments.push(GenericArgument {
-                id: self.environment.counter.generic_argument.next(),
-                name: name.value,
-                // Constraints are populated in a second pass, after all types have been
-                // provisioned
-                constraint: None,
-            });
-
-            spans.push(*span);
-        }
-
-        SpannedGenericArguments::from_parts(arguments, spans)
-    }
-
-    fn setup_locals(
-        &self,
-    ) -> (
-        FastHashMap<Symbol<'heap>, LocalVariable<'_, 'heap>>,
-        Vec<TypeExtractorDiagnostic>,
-    ) {
-        let mut diagnostics = Vec::new();
-
-        // Setup the translation unit and environment
-        let mut locals = FastHashMap::with_capacity_and_hasher(
-            self.alias.len() + self.opaque.len(),
-            foldhash::fast::RandomState::default(),
-        );
-
-        // This could be easier if we were to use a `FastHashMap` for the alias and opaque
-        // respectively. The problem with that approach is that we're losing any kind of information
-        // about the order of the types.
-        for (name, expr) in &self.alias {
-            // We need to defer evaluation of duplicates here, where we actually into a type.
-            if let Err(error) = locals.try_insert(
-                *name,
-                LocalVariable {
-                    id: self.environment.types.provision(),
-                    r#type: &expr.value,
-                    identity: Identity::Structural,
-                    arguments: self.convert_generic_constraints(&expr.constraints),
-                },
-            ) {
-                let diagnostic =
-                    duplicate_type_alias(error.entry.get().r#type.span, expr.span, *name);
-                diagnostics.push(diagnostic);
-            }
-        }
-
-        for (name, expr) in &self.opaque {
-            if let Err(error) = locals.try_insert(
-                *name,
-                LocalVariable {
-                    id: self.environment.types.provision(),
-                    r#type: &expr.value,
-                    identity: Identity::Nominal(
-                        self.environment
-                            .heap
-                            .intern_symbol(&format!("{}::{}", self.module, name)),
-                    ),
-                    arguments: self.convert_generic_constraints(&expr.constraints),
-                },
-            ) {
-                let diagnostic = duplicate_newtype(error.entry.get().r#type.span, expr.span, *name);
-                diagnostics.push(diagnostic);
-            }
-        }
-
-        let partial = locals.clone();
-
-        let mut unit = TranslationUnit {
-            env: self.environment,
-            registry: self.registry,
-            diagnostics,
-            locals: &partial,
-            bound_generics: &SpannedGenericArguments::empty(),
-        };
-
-        let alias_iter = self
-            .alias
-            .iter()
-            .map(|(name, expr)| (*name, &expr.constraints));
-
-        let opaque_iter = self
-            .opaque
-            .iter()
-            .map(|(name, expr)| (*name, &expr.constraints));
-
-        // Given that we've finalized the list of arguments, take said list of arguments and
-        // initialize the bounds
-        for (name, constraints) in alias_iter.chain(opaque_iter) {
-            let local = locals.get_mut(&name).unwrap_or_else(|| {
-                unreachable!(
-                    "Invariant violated: Expected key '{name}' to exist in the 'locals' HashMap, \
-                     but it was not found. This indicates a bug in the type extraction logic.",
-                )
-            });
-
-            debug_assert_eq!(constraints.len(), local.arguments.len());
-
-            unit.bound_generics = &partial[&name].arguments;
-
-            for (constraint, argument) in constraints.iter().zip(local.arguments.iter_mut()) {
-                debug_assert_eq!(constraint.name.value, argument.name);
-
-                if let Some(bound) = &constraint.bound {
-                    argument.constraint = Some(unit.reference(Reference::Type(bound)));
-                }
-            }
-        }
-
-        (locals, unit.diagnostics)
-    }
-
-    fn translate(&mut self) -> LocalTypes<'heap> {
-        let (locals, diagnostics) = self.setup_locals();
-
-        let mut unit = TranslationUnit {
-            env: self.environment,
-            registry: self.registry,
-            diagnostics: Vec::new(),
-            locals: &locals,
-
-            bound_generics: &SpannedGenericArguments::empty(),
-        };
-
-        let mut output = LocalTypes::with_capacity(locals.len());
-
-        // We need to keep the iteration order consistent
-        for name in self
-            .alias
-            .iter()
-            .map(|&(name, _)| name)
-            .chain(self.opaque.iter().map(|&(name, _)| name))
-        {
-            let variable = &locals[&name];
-
-            unit.bound_generics = &variable.arguments;
-
-            output.insert(LocalTypeDef {
-                id: unit.variable(variable),
-                name,
-            });
-        }
-
-        self.diagnostics.extend(unit.diagnostics);
-        self.diagnostics.extend(diagnostics);
-
-        let diagnostics = output.finish(self.environment);
-        self.diagnostics.extend(
-            diagnostics.into_vec().into_iter().map(|diagnostic| {
-                diagnostic.map_category(TypeExtractorDiagnosticCategory::TypeCheck)
-            }),
-        );
-
-        output
+    pub fn take_diagnostics(&mut self) -> Vec<TypeExtractorDiagnostic> {
+        core::mem::take(&mut self.unit.diagnostics)
     }
 
     #[must_use]
-    pub fn finish(mut self) -> (LocalTypes<'heap>, Vec<TypeExtractorDiagnostic>) {
-        let locals = self.translate();
-
-        (locals, self.diagnostics)
+    pub fn into_types(self) -> (AnonymousTypes, ClosureSignatures<'heap>) {
+        (AnonymousTypes(self.types), ClosureSignatures(self.closures))
     }
 }
 
 impl<'heap> Visitor<'heap> for TypeExtractor<'_, 'heap> {
-    fn visit_expr(&mut self, expr: &mut Expr<'heap>) {
-        if !matches!(expr.kind, ExprKind::Type(_) | ExprKind::NewType(_)) {
-            walk_expr(self, expr);
-            return;
-        }
+    fn visit_type(&mut self, r#type: &mut Type<'heap>) {
+        // We do not continue traversing types, that way we only catch the top type
+        let id = self.unit.reference(Reference::Type(r#type));
 
-        let body = match mem::replace(&mut expr.kind, ExprKind::Dummy) {
-            ExprKind::Type(mut expr) => {
-                let name = expr.name.value;
+        let id = self.instantiate.instantiate(id);
+        self.instantiate.clear_provisioned();
 
-                let body = mem::replace(&mut *expr.body, Expr::dummy());
+        self.types
+            .try_insert(r#type.id, id)
+            .unwrap_or_else(|_err| unreachable!("The node renumberer should've run before this"));
+    }
 
-                self.alias.push((name, expr));
+    fn visit_closure_sig(&mut self, sig: &mut ClosureSignature<'heap>) {
+        // We do not continue one walking any closure signatures as we do not want to convert their
+        // types
+        let mut def = self.unit.closure_signature(sig);
+        def.instantiate(&mut self.instantiate);
 
-                body
-            }
-            ExprKind::NewType(mut expr) => {
-                let name = expr.name.value;
-
-                let body = mem::replace(&mut *expr.body, Expr::dummy());
-
-                self.opaque.push((name, expr));
-
-                body
-            }
-            _ => unreachable!(),
-        };
-
-        *expr = body;
-        self.visit_expr(expr);
+        self.closures.insert(sig.id, def);
     }
 }

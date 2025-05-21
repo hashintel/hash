@@ -245,7 +245,7 @@ where
         )
         .await
         .map_err(report_to_response)?
-        .resolve_policies_for_actor(authenticated_actor_id, actor_id)
+        .resolve_policies_for_actor(authenticated_actor_id, Some(actor_id))
         .await
         .map_err(report_to_response)
         .map(Json)
