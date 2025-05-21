@@ -1,0 +1,17 @@
+//@ run: pass
+//@ description: Tests reification of complex nested expressions combining multiple constructs.
+["let", 
+  "x", 
+  { "#literal": 10 }, 
+  ["let", 
+    "y", 
+    { "#literal": 20 }, 
+    ["+", 
+      "x", 
+      ["*", 
+        "y",
+        { "#literal": 2, "#type": "Number" }
+      ]
+    ]
+  ]
+]

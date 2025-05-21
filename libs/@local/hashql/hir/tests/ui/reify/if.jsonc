@@ -1,4 +1,4 @@
 //@ run: fail
-//@ description: if statements are not supported yet
+//@ description: Verifies that an appropriate error is generated for if expressions, as they are not yet implemented.
 ["if", { "#literal": true }, { "#literal": 1 }, { "#literal": 2 }]
 //~^ ERROR `if expression` not supported yet

@@ -1,3 +1,3 @@
 //@ run: pass
-//@ description: literals with type annotations
+//@ description: Tests reification of literals with explicit type annotations, verifying type assertions are properly generated.
 { "#literal": 10, "#type": "Number" }

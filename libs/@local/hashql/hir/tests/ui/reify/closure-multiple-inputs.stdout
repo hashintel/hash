@@ -1,0 +1,2 @@
+#fn(name:0: String, age:0: Integer, scores:0: List<Number>): Number ->
+    ::math::add(::math::mul(age:0, 10), ::math::add(scores:0))

@@ -1,5 +1,5 @@
 //@ run: pass
-//@ description: Closures should be reified correctly.
+//@ description: Validates that closure expressions, including generic parameters and their usage in the body, are reified correctly.
 [
   "fn",
   { "#struct": { "T": "Number" } },

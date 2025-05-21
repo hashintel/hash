@@ -1,0 +1,9 @@
+//@ run: pass
+//@ description: Tests reification of function calls with multiple arguments of different types.
+[
+  "+",
+  { "#literal": "hello" },
+  { "#literal": ", " },
+  { "#literal": "world" },
+  { "#literal": "!" }
+]

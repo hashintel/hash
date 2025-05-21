@@ -1,4 +1,4 @@
 //@ run: fail
-//@ description: dict literals are unsupported in the current version
+//@ description: Verifies that an error is produced for dict literals, as they are currently unsupported.
 { "#dict": { "a": { "#literal": 2 } } }
 //~^ ERROR `dict literal` not supported yet

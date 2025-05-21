@@ -1,4 +1,4 @@
 //@ run: fail
-//@ description: Underscore is no longer valid
+//@ description: Tests that underscore placeholders are properly rejected when used as expressions.
 "_"
 //~^ ERROR `_` not allowed here
