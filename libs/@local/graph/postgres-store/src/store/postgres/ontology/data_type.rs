@@ -189,7 +189,7 @@ where
         let (data, artifacts) =
             ReadPaginated::<DataTypeWithMetadata, VersionedUrlSorting>::read_paginated_vec(
                 self,
-                &params.filter,
+                &[params.filter],
                 Some(temporal_axes),
                 &VersionedUrlSorting {
                     cursor: params.after,
@@ -679,7 +679,7 @@ where
 
         Ok(self
             .read(
-                &params.filter,
+                &[params.filter],
                 Some(&params.temporal_axes.resolve()),
                 params.include_drafts,
             )
@@ -1277,22 +1277,17 @@ where
 
         let mut ontology_type_resolver = OntologyTypeResolver::default();
 
-        let data_types = Read::<DataTypeWithMetadata>::read_vec(
-            &transaction,
-            &Filter::All(Vec::new()),
-            None,
-            true,
-        )
-        .await
-        .change_context(UpdateError)?
-        .into_iter()
-        .map(|data_type| {
-            let schema = Arc::new(data_type.schema);
-            let data_type_id = DataTypeUuid::from_url(&schema.id);
-            ontology_type_resolver.add_unresolved_data_type(data_type_id, Arc::clone(&schema));
-            (data_type_id, schema)
-        })
-        .collect::<Vec<_>>();
+        let data_types = Read::<DataTypeWithMetadata>::read_vec(&transaction, &[], None, true)
+            .await
+            .change_context(UpdateError)?
+            .into_iter()
+            .map(|data_type| {
+                let schema = Arc::new(data_type.schema);
+                let data_type_id = DataTypeUuid::from_url(&schema.id);
+                ontology_type_resolver.add_unresolved_data_type(data_type_id, Arc::clone(&schema));
+                (data_type_id, schema)
+            })
+            .collect::<Vec<_>>();
 
         let data_type_validator = DataTypeValidator;
         let num_data_types = data_types.len();

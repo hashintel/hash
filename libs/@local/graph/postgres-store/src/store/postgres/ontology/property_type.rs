@@ -133,7 +133,7 @@ where
         let (data, artifacts) =
             ReadPaginated::<PropertyTypeWithMetadata, VersionedUrlSorting>::read_paginated_vec(
                 self,
-                &params.filter,
+                &[params.filter],
                 Some(temporal_axes),
                 &VersionedUrlSorting {
                     cursor: params.after,
@@ -540,7 +540,7 @@ where
 
         Ok(self
             .read(
-                &params.filter,
+                &[params.filter],
                 Some(&params.temporal_axes.resolve()),
                 params.include_drafts,
             )

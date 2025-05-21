@@ -39,12 +39,7 @@ use hash_graph_authorization::{
         types::{RelationshipFilter, ResourceFilter},
     },
 };
-use hash_graph_store::{
-    error::InsertionError,
-    filter::{Filter, QueryRecord},
-    pool::StorePool,
-    query::Read,
-};
+use hash_graph_store::{error::InsertionError, filter::QueryRecord, pool::StorePool, query::Read};
 use hash_status::StatusCode;
 use postgres_types::ToSql;
 use serde::{Deserialize, Serialize};
@@ -613,7 +608,7 @@ impl PostgresStorePool {
                 .acquire(NoAuthorization, None)
                 .await
                 .change_context(SnapshotDumpError::Query)?,
-            &Filter::All(vec![]),
+            &[],
             None,
             true,
         )

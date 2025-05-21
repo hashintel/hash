@@ -893,7 +893,7 @@ where
 
     async fn read_paginated(
         &self,
-        filter: &Filter<'_, R>,
+        filters: &[Filter<'_, R>],
         temporal_axes: Option<&QueryTemporalAxes>,
         sorting: &S,
         limit: Option<usize>,
@@ -906,7 +906,7 @@ where
         Report<QueryError>,
     > {
         self.store
-            .read_paginated(filter, temporal_axes, sorting, limit, include_drafts)
+            .read_paginated(filters, temporal_axes, sorting, limit, include_drafts)
             .await
     }
 }
@@ -921,21 +921,23 @@ where
 
     async fn read(
         &self,
-        filter: &Filter<'_, R>,
+        filters: &[Filter<'_, R>],
         temporal_axes: Option<&QueryTemporalAxes>,
         include_drafts: bool,
     ) -> Result<Self::ReadStream, Report<QueryError>> {
-        self.store.read(filter, temporal_axes, include_drafts).await
+        self.store
+            .read(filters, temporal_axes, include_drafts)
+            .await
     }
 
     async fn read_one(
         &self,
-        filter: &Filter<'_, R>,
+        filters: &[Filter<'_, R>],
         temporal_axes: Option<&QueryTemporalAxes>,
         include_drafts: bool,
     ) -> Result<R, Report<QueryError>> {
         self.store
-            .read_one(filter, temporal_axes, include_drafts)
+            .read_one(filters, temporal_axes, include_drafts)
             .await
     }
 }
