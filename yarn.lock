@@ -719,7 +719,7 @@ __metadata:
     shx: "npm:0.4.0"
     tsx: "npm:4.19.4"
     typescript: "npm:5.7.3"
-    zod: "npm:3.25.7"
+    zod: "npm:3.25.13"
     zod-to-json-schema: "npm:3.24.5"
   bin:
     linear-mcp: ./dist/index.js
@@ -744,7 +744,7 @@ __metadata:
     shx: "npm:0.4.0"
     tsx: "npm:4.19.4"
     typescript: "npm:5.7.3"
-    zod: "npm:3.25.7"
+    zod: "npm:3.25.13"
     zod-to-json-schema: "npm:3.24.5"
   bin:
     notion-mcp: ./dist/index.js
@@ -9042,7 +9042,7 @@ __metadata:
     sort-package-json: "npm:2.15.1"
     tsx: "npm:4.19.4"
     typescript: "npm:5.7.3"
-    zod: "npm:3.25.7"
+    zod: "npm:3.25.13"
     zod-to-json-schema: "npm:3.24.5"
   languageName: unknown
   linkType: soft
@@ -45550,10 +45550,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"zod@npm:3.25.7, zod@npm:^3.23.8":
-  version: 3.25.7
-  resolution: "zod@npm:3.25.7"
-  checksum: 10c0/9bf497ed9b810d30b84ae032ec7882435d0fb9c94db08427592f56b711227726cfb7551ee7ca9f99135dfaff1fcff5ce261e25a6400f62b651ec23880cb41013
+"zod@npm:3.25.13, zod@npm:^3.23.8":
+  version: 3.25.13
+  resolution: "zod@npm:3.25.13"
+  checksum: 10c0/04d7d0bb769fa80cc657300e5c64a563dd91a998a88ce2d604d6e9d911df2f71fdea5c6b253136750c70a257a06b85132bbd4a8d039263b37ff02c3d57560418
   languageName: node
   linkType: hard
 
