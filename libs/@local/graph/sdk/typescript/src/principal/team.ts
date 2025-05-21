@@ -1,4 +1,9 @@
-import type { ActorGroupId, TeamId } from "@blockprotocol/type-system";
+import type {
+  ActorGroupId,
+  TeamId,
+  TeamRole,
+  TeamRoleId,
+} from "@blockprotocol/type-system";
 import type { GetTeamResponse, GraphApi } from "@local/hash-graph-client";
 
 import type { AuthenticationContext } from "../authentication-context.js";
@@ -28,3 +33,15 @@ export const getTeamByName = (
       name,
     };
   });
+
+/**
+ * Returns all roles assigned to the given team.
+ */
+export const getTeamRoles = (
+  graphAPI: GraphApi,
+  authentication: AuthenticationContext,
+  teamId: TeamId,
+): Promise<Record<TeamRoleId, TeamRole>> =>
+  graphAPI
+    .getTeamRoles(authentication.actorId, teamId)
+    .then(({ data: roles }) => roles as Record<TeamRoleId, TeamRole>);

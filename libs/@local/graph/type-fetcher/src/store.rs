@@ -12,8 +12,8 @@ use hash_graph_authorization::{
             PolicyUpdateOperation, PrincipalStore, RoleAssignmentStatus, RoleUnassignmentStatus,
             error::{
                 CreatePolicyError, EnsureSystemPoliciesError, GetPoliciesError,
-                GetSystemAccountError, RemovePolicyError, RoleAssignmentError, UpdatePolicyError,
-                WebCreationError,
+                GetSystemAccountError, RemovePolicyError, RoleAssignmentError, TeamRoleError,
+                UpdatePolicyError, WebCreationError, WebRoleError,
             },
         },
     },
@@ -90,7 +90,7 @@ use type_system::{
     principal::{
         actor::{ActorEntityUuid, ActorId, ActorType, AiId, MachineId},
         actor_group::{ActorGroupEntityUuid, TeamId, WebId},
-        role::RoleName,
+        role::{RoleName, TeamRole, TeamRoleId, WebRole, WebRoleId},
     },
     provenance::{OriginProvenance, OriginType},
 };
@@ -201,6 +201,22 @@ where
         parameter: CreateWebParameter,
     ) -> Result<CreateWebResponse, Report<WebCreationError>> {
         self.store.create_web(actor, parameter).await
+    }
+
+    async fn get_web_roles(
+        &mut self,
+        actor: ActorEntityUuid,
+        web_id: WebId,
+    ) -> Result<HashMap<WebRoleId, WebRole>, Report<WebRoleError>> {
+        self.store.get_web_roles(actor, web_id).await
+    }
+
+    async fn get_team_roles(
+        &mut self,
+        actor: ActorEntityUuid,
+        team_id: TeamId,
+    ) -> Result<HashMap<TeamRoleId, TeamRole>, Report<TeamRoleError>> {
+        self.store.get_team_roles(actor, team_id).await
     }
 
     async fn assign_role(

@@ -1,6 +1,7 @@
 //! Web routes for CRUD operations on permissions.
 
 use alloc::sync::Arc;
+use std::collections::HashMap;
 
 use axum::{
     Extension, Router,
@@ -25,7 +26,7 @@ use hash_temporal_client::TemporalClient;
 use type_system::principal::{
     actor::{ActorEntityUuid, ActorId, ActorType, AiId, MachineId, UserId},
     actor_group::{ActorGroupEntityUuid, ActorGroupId, TeamId, WebId},
-    role::RoleName,
+    role::{RoleName, TeamRole, TeamRoleId, WebRole, WebRoleId},
 };
 use utoipa::OpenApi;
 
@@ -41,7 +42,9 @@ use crate::rest::{AuthenticatedUserHeader, json::Json, status::report_to_respons
         create_org_web,
         get_web_by_id,
         get_web_by_shortname,
+        get_web_roles,
         get_team_by_name,
+        get_team_roles,
 
         get_actor_group_role_assignments,
         has_actor_group_role,
@@ -110,13 +113,20 @@ impl PrincipalResource {
                             .route("/", post(create_org_web::<S, A>))
                             .nest(
                                 "/:web_id",
-                                Router::new().route("/", get(get_web_by_id::<S, A>)),
+                                Router::new()
+                                    .route("/", get(get_web_by_id::<S, A>))
+                                    .route("/roles", get(get_web_roles::<S, A>)),
                             )
                             .route("/shortname/:shortname", get(get_web_by_shortname::<S, A>)),
                     )
                     .nest(
                         "/teams",
-                        Router::new().route("/name/:name", get(get_team_by_name::<S, A>)),
+                        Router::new()
+                            .nest(
+                                "/:team_id",
+                                Router::new().route("/roles", get(get_team_roles::<S, A>)),
+                            )
+                            .route("/name/:name", get(get_team_by_name::<S, A>)),
                     )
                     .nest(
                         "/:actor_group_id",
@@ -412,6 +422,52 @@ where
 
 #[utoipa::path(
     get,
+    path = "/actor-groups/webs/{web_id}/roles",
+    tag = "Web",
+    params(
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("web_id" = WebId, Path, description = "The ID of the web to retrieve"),
+    ),
+    responses(
+        (status = 200, content_type = "application/json", description = "The web roles were retrieved successfully", body = HashMap<String, Value>),
+
+        (status = 500, description = "Store error occurred"),
+    )
+)]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client)
+)]
+async fn get_web_roles<S, A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    Path(web_id): Path<WebId>,
+    authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    store_pool: Extension<Arc<S>>,
+) -> Result<Json<HashMap<WebRoleId, WebRole>>, Response>
+where
+    S: StorePool + Send + Sync,
+    A: AuthorizationApiPool + Send + Sync,
+    for<'p, 'a> S::Store<'p, A::Api<'a>>: PrincipalStore,
+{
+    store_pool
+        .acquire(
+            authorization_api_pool
+                .acquire()
+                .await
+                .map_err(report_to_response)?,
+            temporal_client.0,
+        )
+        .await
+        .map_err(report_to_response)?
+        .get_web_roles(actor_id, web_id)
+        .await
+        .map_err(report_to_response)
+        .map(Json)
+}
+
+#[utoipa::path(
+    get,
     path = "/actor-groups/teams/name/{name}",
     tag = "Team",
     params(
@@ -451,6 +507,52 @@ where
         .await
         .map_err(report_to_response)?
         .get_team_by_name(actor, &name)
+        .await
+        .map_err(report_to_response)
+        .map(Json)
+}
+
+#[utoipa::path(
+    get,
+    path = "/actor-groups/teams/{team_id}/roles",
+    tag = "Team",
+    params(
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("team_id" = TeamId, Path, description = "The ID of the team to retrieve"),
+    ),
+    responses(
+        (status = 200, content_type = "application/json", description = "The team roles were retrieved successfully", body = HashMap<String, Value>),
+
+        (status = 500, description = "Store error occurred"),
+    )
+)]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client)
+)]
+async fn get_team_roles<S, A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    Path(team_id): Path<TeamId>,
+    authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    store_pool: Extension<Arc<S>>,
+) -> Result<Json<HashMap<TeamRoleId, TeamRole>>, Response>
+where
+    S: StorePool + Send + Sync,
+    A: AuthorizationApiPool + Send + Sync,
+    for<'p, 'a> S::Store<'p, A::Api<'a>>: PrincipalStore,
+{
+    store_pool
+        .acquire(
+            authorization_api_pool
+                .acquire()
+                .await
+                .map_err(report_to_response)?,
+            temporal_client.0,
+        )
+        .await
+        .map_err(report_to_response)?
+        .get_team_roles(actor_id, team_id)
         .await
         .map_err(report_to_response)
         .map(Json)

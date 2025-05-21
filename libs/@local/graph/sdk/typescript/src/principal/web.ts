@@ -1,4 +1,9 @@
-import type { MachineId, WebId } from "@blockprotocol/type-system";
+import type {
+  MachineId,
+  WebId,
+  WebRole,
+  WebRoleId,
+} from "@blockprotocol/type-system";
 import type { GetWebResponse, GraphApi } from "@local/hash-graph-client";
 
 import type { AuthenticationContext } from "../authentication-context.js";
@@ -48,3 +53,15 @@ export const getWebByShortname = (
         shortname,
       };
     });
+
+/**
+ * Returns all roles assigned to the given web.
+ */
+export const getWebRoles = (
+  graphAPI: GraphApi,
+  authentication: AuthenticationContext,
+  webId: WebId,
+): Promise<Record<WebRoleId, WebRole>> =>
+  graphAPI
+    .getWebRoles(authentication.actorId, webId)
+    .then(({ data: roles }) => roles as Record<WebRoleId, WebRole>);

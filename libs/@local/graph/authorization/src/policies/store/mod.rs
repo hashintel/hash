@@ -21,8 +21,8 @@ use uuid::Uuid;
 use self::error::{
     ActorCreationError, ContextCreationError, CreatePolicyError, EnsureSystemPoliciesError,
     GetPoliciesError, GetSystemAccountError, PolicyStoreError, RemovePolicyError,
-    RoleAssignmentError, TeamCreationError, TeamRoleCreationError, UpdatePolicyError,
-    WebCreationError, WebRoleCreationError,
+    RoleAssignmentError, TeamCreationError, TeamRoleCreationError, TeamRoleError,
+    UpdatePolicyError, WebCreationError, WebRoleCreationError, WebRoleError,
 };
 use super::{
     ContextBuilder, Effect, Policy, PolicyId, action::ActionName, principal::PrincipalConstraint,
@@ -330,6 +330,36 @@ pub trait LocalPrincipalStore {
         actor: ActorId,
         parameter: CreateWebParameter,
     ) -> Result<CreateWebResponse, Report<WebCreationError>>;
+
+    /// Returns all roles assigned to the given web.
+    ///
+    /// # Errors
+    ///
+    /// - [`NotFound`] if the web does not exist
+    /// - [`StoreError`] if the underlying store returns an error
+    ///
+    /// [`NotFound`]: WebRoleError::NotFound
+    /// [`StoreError`]: WebRoleError::StoreError
+    async fn get_web_roles(
+        &mut self,
+        actor: ActorEntityUuid,
+        web_id: WebId,
+    ) -> Result<HashMap<WebRoleId, WebRole>, Report<WebRoleError>>;
+
+    /// Returns all roles assigned to the given team.
+    ///
+    /// # Errors
+    ///
+    /// - [`NotFound`] if the team does not exist
+    /// - [`StoreError`] if the underlying store returns an error
+    ///
+    /// [`NotFound`]: TeamRoleError::NotFound
+    /// [`StoreError`]: TeamRoleError::StoreError
+    async fn get_team_roles(
+        &mut self,
+        actor: ActorEntityUuid,
+        team_id: TeamId,
+    ) -> Result<HashMap<TeamRoleId, TeamRole>, Report<TeamRoleError>>;
 
     /// Assigns an actor to a role.
     ///

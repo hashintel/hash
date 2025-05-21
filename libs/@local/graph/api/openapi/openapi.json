@@ -61,6 +61,51 @@
         }
       }
     },
+    "/actor-groups/teams/{team_id}/roles": {
+      "get": {
+        "tags": [
+          "Graph",
+          "Team"
+        ],
+        "operationId": "get_team_roles",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          },
+          {
+            "name": "team_id",
+            "in": "path",
+            "description": "The ID of the team to retrieve",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/TeamId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The team roles were retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
     "/actor-groups/webs": {
       "post": {
         "tags": [
@@ -331,6 +376,51 @@
           },
           "403": {
             "description": "Permission denied"
+          }
+        }
+      }
+    },
+    "/actor-groups/webs/{web_id}/roles": {
+      "get": {
+        "tags": [
+          "Graph",
+          "Web"
+        ],
+        "operationId": "get_web_roles",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          },
+          {
+            "name": "web_id",
+            "in": "path",
+            "description": "The ID of the web to retrieve",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/WebId"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The web roles were retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {}
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Store error occurred"
           }
         }
       }

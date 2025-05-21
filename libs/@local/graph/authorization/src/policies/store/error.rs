@@ -77,6 +77,17 @@ pub enum WebCreationError {
 impl Error for WebCreationError {}
 
 #[derive(Debug, derive_more::Display)]
+#[display("Could not create web: {_variant}")]
+pub enum WebRoleError {
+    #[display("Web with ID `{web_id}` does not exist")]
+    NotFound { web_id: WebId },
+    #[display("Store operation failed")]
+    StoreError,
+}
+
+impl Error for WebRoleError {}
+
+#[derive(Debug, derive_more::Display)]
 #[display("Could not create web role: {_variant}")]
 pub enum WebRoleCreationError {
     #[display("Web with ID `{web_id}` does not exist")]
@@ -106,6 +117,17 @@ pub enum TeamRoleCreationError {
 }
 
 impl Error for TeamRoleCreationError {}
+
+#[derive(Debug, derive_more::Display)]
+#[display("Could not create web: {_variant}")]
+pub enum TeamRoleError {
+    #[display("Team with ID `{team_id}` does not exist")]
+    NotFound { team_id: TeamId },
+    #[display("Store operation failed")]
+    StoreError,
+}
+
+impl Error for TeamRoleError {}
 
 #[derive(Debug, derive_more::Display)]
 #[display("Could change role assignment: {_variant}")]

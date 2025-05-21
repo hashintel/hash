@@ -18,6 +18,7 @@ import { publicUserAccountId } from "@local/hash-backend-utils/public-user-accou
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
 import { beforeAll, describe, expect, it } from "vitest";
 
+import { getTeamRoles } from "@local/hash-graph-sdk/principal/team";
 import { resetGraph } from "../../../test-server";
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 
@@ -156,5 +157,28 @@ describe("Hash Instance", () => {
         actorGroupId: instanceAdminTeamId,
       }),
     ).toBeFalsy();
+  });
+
+  it("can read the hash instance team roles", async () => {
+    const teamRoleMap = await getTeamRoles(
+      graphContext.graphApi,
+      authentication,
+      instanceAdminTeamId,
+    );
+
+    expect(Object.keys(teamRoleMap).length).toStrictEqual(2);
+
+    const teamRoles = Object.values(teamRoleMap).map(({ teamId, name }) => ({
+      teamId,
+      name,
+    }));
+    expect(teamRoles).toContainEqual({
+      teamId: instanceAdminTeamId,
+      name: "member",
+    });
+    expect(teamRoles).toContainEqual({
+      teamId: instanceAdminTeamId,
+      name: "administrator",
+    });
   });
 });

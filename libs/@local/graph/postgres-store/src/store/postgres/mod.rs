@@ -27,8 +27,8 @@ use hash_graph_authorization::{
             RoleUnassignmentStatus,
             error::{
                 CreatePolicyError, EnsureSystemPoliciesError, GetPoliciesError,
-                GetSystemAccountError, RemovePolicyError, RoleAssignmentError, UpdatePolicyError,
-                WebCreationError,
+                GetSystemAccountError, RemovePolicyError, RoleAssignmentError, TeamRoleError,
+                UpdatePolicyError, WebCreationError, WebRoleError,
             },
         },
     },
@@ -77,7 +77,7 @@ use type_system::{
         PrincipalId, PrincipalType,
         actor::{ActorEntityUuid, ActorId, ActorType, AiId, MachineId},
         actor_group::{ActorGroupEntityUuid, ActorGroupId, TeamId, WebId},
-        role::RoleName,
+        role::{RoleName, TeamRole, TeamRoleId, WebRole, WebRoleId},
     },
 };
 use uuid::Uuid;
@@ -482,6 +482,72 @@ where
         } else {
             Ok(response)
         }
+    }
+
+    async fn get_web_roles(
+        &mut self,
+        _actor: ActorEntityUuid,
+        web_id: WebId,
+    ) -> Result<HashMap<WebRoleId, WebRole>, Report<WebRoleError>> {
+        let roles = self
+            .as_client()
+            .query_raw(
+                "
+                    SELECT role.id, role.name
+                    FROM role
+                    WHERE role.actor_group_id = $1 AND role.principal_type = 'web_role'
+                ",
+                &[&web_id],
+            )
+            .await
+            .change_context(WebRoleError::StoreError)?
+            .map_ok(|row| {
+                let id = row.get(0);
+                let name = row.get(1);
+                (id, WebRole { id, web_id, name })
+            })
+            .try_collect::<HashMap<_, _>>()
+            .await
+            .change_context(WebRoleError::StoreError)?;
+
+        if roles.is_empty() {
+            // We have at least one role per web, so if this is empty, the web does not exist
+            return Err(Report::new(WebRoleError::NotFound { web_id }));
+        }
+        Ok(roles)
+    }
+
+    async fn get_team_roles(
+        &mut self,
+        _actor: ActorEntityUuid,
+        team_id: TeamId,
+    ) -> Result<HashMap<TeamRoleId, TeamRole>, Report<TeamRoleError>> {
+        let roles = self
+            .as_client()
+            .query_raw(
+                "
+                    SELECT role.id, role.name
+                    FROM role
+                    WHERE role.actor_group_id = $1 AND role.principal_type = 'team_role'
+                ",
+                &[&team_id],
+            )
+            .await
+            .change_context(TeamRoleError::StoreError)?
+            .map_ok(|row| {
+                let id = row.get(0);
+                let name = row.get(1);
+                (id, TeamRole { id, team_id, name })
+            })
+            .try_collect::<HashMap<_, _>>()
+            .await
+            .change_context(TeamRoleError::StoreError)?;
+
+        if roles.is_empty() {
+            // We have at least one role per team, so if this is empty, the team does not exist
+            return Err(Report::new(TeamRoleError::NotFound { team_id }));
+        }
+        Ok(roles)
     }
 
     async fn assign_role(
