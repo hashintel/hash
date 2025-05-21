@@ -1,0 +1,4 @@
+//@ run: fail
+//@ description: list literals are unsupported in the current version
+{ "#list": [{ "#literal": 2 }] }
+//~^ ERROR `list literal` not supported yet

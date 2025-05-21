@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: reify field access
+["let", "x", { "#literal": 10 }, "x.a"]

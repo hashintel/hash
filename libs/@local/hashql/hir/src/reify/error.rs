@@ -102,6 +102,7 @@ pub(crate) fn unsupported_construct(
 ///
 /// This indicates that a fatal error occurred in a previous compilation phase,
 /// but the error wasn't properly handled.
+#[coverage(off)] // compiler bugs should never be hit
 pub(crate) fn dummy_expression(span: SpanId) -> ReificationDiagnostic {
     let mut diagnostic = Diagnostic::new(
         ReificationDiagnosticCategory::UnhandledError,
@@ -131,6 +132,7 @@ pub(crate) fn dummy_expression(span: SpanId) -> ReificationDiagnostic {
 
 /// Creates a diagnostic for an expression that should have been processed
 /// during an earlier compilation stage.
+#[coverage(off)] // compiler bugs should never be hit
 pub(crate) fn unprocessed_expression(
     span: SpanId,
     expr_kind: &str,
@@ -165,6 +167,7 @@ pub(crate) fn unprocessed_expression(
 }
 
 /// Creates a diagnostic for general internal compiler errors.
+#[coverage(off)] // compiler bugs should never be hit
 pub(crate) fn internal_error(span: SpanId, message: &str) -> ReificationDiagnostic {
     let mut diagnostic = Diagnostic::new(
         ReificationDiagnosticCategory::InternalError,

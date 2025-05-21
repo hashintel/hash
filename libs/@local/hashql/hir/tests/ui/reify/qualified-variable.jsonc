@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: qualified variable should be supported
+"::math::add"

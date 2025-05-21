@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: input statement should be supported
+["input", "limit", "Integer"]

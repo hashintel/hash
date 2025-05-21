@@ -1,0 +1,9 @@
+//@ run: pass
+//@ description: Closures should be reified correctly.
+[
+  "fn",
+  { "#struct": { "T": "Number" } },
+  { "#struct": { "foo": "T", "bar": "T" } },
+  "T",
+  ["+", "foo", "bar"]
+]

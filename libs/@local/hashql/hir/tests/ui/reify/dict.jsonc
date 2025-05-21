@@ -1,0 +1,4 @@
+//@ run: fail
+//@ description: dict literals are unsupported in the current version
+{ "#dict": { "a": { "#literal": 2 } } }
+//~^ ERROR `dict literal` not supported yet

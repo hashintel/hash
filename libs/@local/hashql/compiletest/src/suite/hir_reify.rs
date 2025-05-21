@@ -1,3 +1,4 @@
+use anstream::adapter::strip_str;
 use hashql_ast::{lowering::lower, node::expr::Expr};
 use hashql_core::{
     heap::Heap,
@@ -41,6 +42,6 @@ impl Suite for HirReifySuite {
 
         let node = node.expect("should be `Some` if there are non-fatal errors");
 
-        Ok(node.pretty_print(&environment, PrettyOptions::default()))
+        Ok(strip_str(&node.pretty_print(&environment, PrettyOptions::default())).to_string())
     }
 }

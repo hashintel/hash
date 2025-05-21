@@ -1,0 +1,4 @@
+//@ run: fail
+//@ description: Underscore is no longer valid
+"_"
+//~^ ERROR `_` not allowed here

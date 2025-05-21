@@ -1,0 +1,4 @@
+//@ run: fail
+//@ description: if statements are not supported yet
+["if", { "#literal": true }, { "#literal": 1 }, { "#literal": 2 }]
+//~^ ERROR `if expression` not supported yet

@@ -339,6 +339,8 @@ impl<'heap> PrettyPrint<'heap> for Call<'heap> {
                         .map(|argument| argument.value.pretty(env, boundary)),
                     RcDoc::text(",").append(RcDoc::softline()),
                 )
+                .group()
+                .parens()
                 .group(),
         )
     }
@@ -420,9 +422,15 @@ impl<'heap> PrettyPrint<'heap> for Closure<'heap> {
         .append(":")
         .append(RcDoc::softline())
         .append(pretty_print_type_id(closure.returns, env))
+        .append(RcDoc::softline())
         .append("->")
         .append(RcDoc::hardline())
-        .append(self.body.pretty(env, boundary).nest(4))
+        .append(
+            RcAllocator
+                .nil()
+                .append(self.body.pretty(env, boundary))
+                .indent(4),
+        )
     }
 }
 

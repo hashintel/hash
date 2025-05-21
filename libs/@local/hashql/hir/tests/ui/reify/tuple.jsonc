@@ -1,0 +1,4 @@
+//@ run: fail
+//@ description: tuple literals are unsupported in the current version
+{ "#tuple": [{ "#literal": 2 }] }
+//~^ ERROR `tuple literal` not supported yet

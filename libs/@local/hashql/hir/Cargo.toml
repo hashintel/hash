@@ -25,3 +25,12 @@ hashql-compiletest = { workspace = true }
 
 [lints]
 workspace = true
+
+[[test]]
+name    = "compiletest"
+harness = false
+
+[package.metadata.sync.turborepo]
+ignore-dev-dependencies = [
+    "@rust/hashql-compiletest",
+]

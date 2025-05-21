@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: reify index access
+["let", "x", { "#literal": 10 }, "x[0]"]

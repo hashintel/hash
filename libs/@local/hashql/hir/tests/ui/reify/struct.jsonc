@@ -1,0 +1,4 @@
+//@ run: fail
+//@ description: Struct literals are unsupported in the current version
+{ "#struct": { "a": { "#literal": 2 } } }
+//~^ ERROR `struct literal` not supported yet

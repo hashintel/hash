@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: local variable should be supported
+["let", "x", { "#literal": 2 }, "x"]

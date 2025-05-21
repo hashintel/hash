@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: input statement with defaults should be supported
+["input", "limit", "Integer", { "#literal": 10 }]
