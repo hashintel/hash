@@ -12898,6 +12898,7 @@ __metadata:
     "@rust/hashql-ast": "npm:0.0.0-private"
     "@rust/hashql-core": "npm:0.0.0-private"
     "@rust/hashql-diagnostics": "npm:0.0.0-private"
+    "@rust/hashql-hir": "npm:0.0.0-private"
     "@rust/hashql-syntax-jexpr": "npm:0.0.0-private"
   languageName: unknown
   linkType: soft
@@ -12918,11 +12919,13 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@rust/hashql-hir@workspace:libs/@local/hashql/hir":
+"@rust/hashql-hir@npm:0.0.0-private, @rust/hashql-hir@workspace:libs/@local/hashql/hir":
   version: 0.0.0-use.local
   resolution: "@rust/hashql-hir@workspace:libs/@local/hashql/hir"
   dependencies:
+    "@rust/hashql-ast": "npm:0.0.0-private"
     "@rust/hashql-core": "npm:0.0.0-private"
+    "@rust/hashql-diagnostics": "npm:0.0.0-private"
   languageName: unknown
   linkType: soft
 
