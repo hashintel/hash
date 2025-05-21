@@ -3853,6 +3853,7 @@ name = "hashql-hir"
 version = "0.0.0"
 dependencies = [
  "hashql-ast",
+ "hashql-compiletest",
  "hashql-core",
  "hashql-diagnostics",
  "pretty",
