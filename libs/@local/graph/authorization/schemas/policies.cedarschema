@@ -20,6 +20,9 @@ namespace HASH {
   entity User, Machine, Ai in [HASH::Web::Role, HASH::Team::Role] {
   };
 
+  entity Public {
+  };
+
   action all;
 
   action createWeb in [all] appliesTo {
@@ -33,12 +36,12 @@ namespace HASH {
   };
 
   action viewEntity in [view] appliesTo {
-    principal: [User, Machine, Ai],
+    principal: [User, Machine, Ai, Public],
     resource: [Entity],
   };
 
   action viewEntityType in [view] appliesTo {
-    principal: [User, Machine, Ai],
+    principal: [User, Machine, Ai, Public],
     resource: [EntityType],
   };
 

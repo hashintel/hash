@@ -1746,7 +1746,7 @@ where
             .ok_or(QueryError)
             .attach(StatusCode::Unauthenticated)?;
         let policies = self
-            .resolve_policies_for_actor(actor.into(), actor)
+            .resolve_policies_for_actor(actor.into(), Some(actor))
             .await
             .change_context(QueryError)?;
         let policy_set = PolicySet::default()
@@ -1769,7 +1769,7 @@ where
                 policy_set
                     .evaluate(
                         &Request {
-                            actor,
+                            actor: Some(actor),
                             action: ActionName::Instantiate,
                             resource: Some(&PartialResourceId::EntityType(Some(Cow::Borrowed(
                                 entity_type_id.into(),

@@ -271,7 +271,7 @@ fn instantiate() -> Result<(), Box<dyn Error>> {
     assert_matches!(
         system_web_machine_policy_set.evaluate(
             &Request {
-                actor: ActorId::Machine(system.web.machine.id),
+                actor: Some(ActorId::Machine(system.web.machine.id)),
                 action: ActionName::Instantiate,
                 resource: Some(&PartialResourceId::EntityType(Some(Cow::Borrowed(
                     &machine_type.id
@@ -285,7 +285,7 @@ fn instantiate() -> Result<(), Box<dyn Error>> {
     assert_matches!(
         system_machine_policy_set.evaluate(
             &Request {
-                actor: ActorId::Machine(system.machine.id),
+                actor: Some(ActorId::Machine(system.machine.id)),
                 action: ActionName::Instantiate,
                 resource: Some(&PartialResourceId::EntityType(Some(Cow::Borrowed(
                     &machine_type.id
@@ -300,7 +300,7 @@ fn instantiate() -> Result<(), Box<dyn Error>> {
     assert_matches!(
         system_machine_policy_set.evaluate(
             &Request {
-                actor: ActorId::Machine(system.machine.id),
+                actor: Some(ActorId::Machine(system.machine.id)),
                 action: ActionName::Instantiate,
                 resource: Some(&PartialResourceId::EntityType(Some(Cow::Borrowed(
                     &document_type.id
@@ -314,7 +314,7 @@ fn instantiate() -> Result<(), Box<dyn Error>> {
     assert_matches!(
         system_machine_policy_set.evaluate(
             &Request {
-                actor: ActorId::Machine(system.machine.id),
+                actor: Some(ActorId::Machine(system.machine.id)),
                 action: ActionName::Instantiate,
                 resource: Some(&PartialResourceId::EntityType(Some(Cow::Borrowed(
                     &document_type.id
@@ -390,7 +390,7 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
     assert_matches!(
         user_policy_set.evaluate(
             &Request {
-                actor: ActorId::User(user.id),
+                actor: Some(ActorId::User(user.id)),
                 action: ActionName::Instantiate,
                 resource: Some(&PartialResourceId::EntityType(Some(Cow::Borrowed(
                     &machine_type.id
@@ -404,7 +404,7 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
     assert_matches!(
         user_policy_set.evaluate(
             &Request {
-                actor: ActorId::User(user.id),
+                actor: Some(ActorId::User(user.id)),
                 action: ActionName::Instantiate,
                 resource: Some(&PartialResourceId::EntityType(Some(Cow::Borrowed(
                     &document_type.id
@@ -418,7 +418,7 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
     assert_matches!(
         user_policy_set.evaluate(
             &Request {
-                actor: ActorId::User(user.id),
+                actor: Some(ActorId::User(user.id)),
                 action: ActionName::Instantiate,
                 resource: Some(&PartialResourceId::EntityType(Some(Cow::Borrowed(
                     &web_type.id
@@ -433,7 +433,7 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
     assert_matches!(
         user_policy_set.evaluate(
             &Request {
-                actor: ActorId::User(user.id),
+                actor: Some(ActorId::User(user.id)),
                 action: ActionName::View,
                 resource: Some(&PartialResourceId::Entity(Some(web_entity.id))),
                 context: RequestContext::default(),
@@ -445,7 +445,7 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
     assert_matches!(
         user_machine_policy_set.evaluate(
             &Request {
-                actor: ActorId::Machine(user.web.machine.id),
+                actor: Some(ActorId::Machine(user.web.machine.id)),
                 action: ActionName::View,
                 resource: Some(&PartialResourceId::Entity(Some(web_entity.id))),
                 context: RequestContext::default(),
@@ -457,7 +457,7 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
     assert_matches!(
         user_machine_policy_set.evaluate(
             &Request {
-                actor: ActorId::Machine(system.machine.id),
+                actor: Some(ActorId::Machine(system.machine.id)),
                 action: ActionName::View,
                 resource: Some(&PartialResourceId::Entity(Some(web_entity.id))),
                 context: RequestContext::default(),
@@ -470,7 +470,7 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
     assert_matches!(
         user_policy_set.evaluate(
             &Request {
-                actor: ActorId::User(user.id),
+                actor: Some(ActorId::User(user.id)),
                 action: ActionName::Update,
                 resource: Some(&PartialResourceId::Entity(Some(web_entity.id))),
                 context: RequestContext::default(),
@@ -482,7 +482,7 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
     assert_matches!(
         user_machine_policy_set.evaluate(
             &Request {
-                actor: ActorId::Machine(user.web.machine.id),
+                actor: Some(ActorId::Machine(user.web.machine.id)),
                 action: ActionName::Update,
                 resource: Some(&PartialResourceId::Entity(Some(web_entity.id))),
                 context: RequestContext::default(),
@@ -494,7 +494,7 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
     assert_matches!(
         user_machine_policy_set.evaluate(
             &Request {
-                actor: ActorId::Machine(system.machine.id),
+                actor: Some(ActorId::Machine(system.machine.id)),
                 action: ActionName::Update,
                 resource: Some(&PartialResourceId::Entity(Some(web_entity.id))),
                 context: RequestContext::default(),
@@ -566,7 +566,7 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
     assert_matches!(
         org_machine_policy_set.evaluate(
             &Request {
-                actor: ActorId::Machine(org_web.machine.id),
+                actor: Some(ActorId::Machine(org_web.machine.id)),
                 action: ActionName::View,
                 resource: Some(&PartialResourceId::Entity(Some(user.web.machine.id.into()))),
                 context: RequestContext::default(),
@@ -579,7 +579,7 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
     assert_matches!(
         user_policy_set.evaluate(
             &Request {
-                actor: ActorId::User(user.id),
+                actor: Some(ActorId::User(user.id)),
                 action: ActionName::View,
                 resource: Some(&PartialResourceId::Entity(Some(web_entity.id))),
                 context: RequestContext::default(),
@@ -591,7 +591,7 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
     assert_matches!(
         org_machine_policy_set.evaluate(
             &Request {
-                actor: ActorId::Machine(org_web.machine.id),
+                actor: Some(ActorId::Machine(org_web.machine.id)),
                 action: ActionName::View,
                 resource: Some(&PartialResourceId::Entity(Some(web_entity.id))),
                 context: RequestContext::default(),
@@ -603,7 +603,7 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
     assert_matches!(
         system_machine_policy_set.evaluate(
             &Request {
-                actor: ActorId::Machine(user.web.machine.id),
+                actor: Some(ActorId::Machine(user.web.machine.id)),
                 action: ActionName::View,
                 resource: Some(&PartialResourceId::Entity(Some(web_entity.id))),
                 context: RequestContext::default(),
@@ -615,7 +615,7 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
     assert_matches!(
         system_machine_policy_set.evaluate(
             &Request {
-                actor: ActorId::Machine(system.web.machine.id),
+                actor: Some(ActorId::Machine(system.web.machine.id)),
                 action: ActionName::View,
                 resource: Some(&PartialResourceId::Entity(Some(web_entity.id))),
                 context: RequestContext::default(),
@@ -628,7 +628,7 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
     assert_matches!(
         user_policy_set.evaluate(
             &Request {
-                actor: ActorId::User(user.id),
+                actor: Some(ActorId::User(user.id)),
                 action: ActionName::Update,
                 resource: Some(&PartialResourceId::Entity(Some(web_entity.id))),
                 context: RequestContext::default(),
@@ -640,7 +640,7 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
     assert_matches!(
         org_machine_policy_set.evaluate(
             &Request {
-                actor: ActorId::Machine(org_web.machine.id),
+                actor: Some(ActorId::Machine(org_web.machine.id)),
                 action: ActionName::Update,
                 resource: Some(&PartialResourceId::Entity(Some(web_entity.id))),
                 context: RequestContext::default(),
@@ -652,7 +652,7 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
     assert_matches!(
         user_machine_policy_set.evaluate(
             &Request {
-                actor: ActorId::Machine(user.web.machine.id),
+                actor: Some(ActorId::Machine(user.web.machine.id)),
                 action: ActionName::Update,
                 resource: Some(&PartialResourceId::Entity(Some(web_entity.id))),
                 context: RequestContext::default(),
@@ -664,7 +664,7 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
     assert_matches!(
         system_machine_policy_set.evaluate(
             &Request {
-                actor: ActorId::Machine(system.web.machine.id),
+                actor: Some(ActorId::Machine(system.web.machine.id)),
                 action: ActionName::Update,
                 resource: Some(&PartialResourceId::Entity(Some(web_entity.id))),
                 context: RequestContext::default(),
@@ -697,7 +697,7 @@ fn instance_admin_without_access_permissions() -> Result<(), Box<dyn Error>> {
     assert_matches!(
         user_policy_set.evaluate(
             &Request {
-                actor: ActorId::User(user.id),
+                actor: Some(ActorId::User(user.id)),
                 action: ActionName::View,
                 resource: Some(&PartialResourceId::Entity(Some(
                     system.hash_instance_entity.id
@@ -711,7 +711,7 @@ fn instance_admin_without_access_permissions() -> Result<(), Box<dyn Error>> {
     assert_matches!(
         user_policy_set.evaluate(
             &Request {
-                actor: ActorId::User(user.id),
+                actor: Some(ActorId::User(user.id)),
                 action: ActionName::Update,
                 resource: Some(&PartialResourceId::Entity(Some(
                     system.hash_instance_entity.id
@@ -750,7 +750,7 @@ fn instance_admin_with_access_permissions() -> Result<(), Box<dyn Error>> {
     assert_matches!(
         user_policy_set.evaluate(
             &Request {
-                actor: ActorId::User(user.id),
+                actor: Some(ActorId::User(user.id)),
                 action: ActionName::View,
                 resource: Some(&PartialResourceId::Entity(Some(
                     system.hash_instance_entity.id
@@ -764,7 +764,7 @@ fn instance_admin_with_access_permissions() -> Result<(), Box<dyn Error>> {
     assert_matches!(
         user_policy_set.evaluate(
             &Request {
-                actor: ActorId::User(user.id),
+                actor: Some(ActorId::User(user.id)),
                 action: ActionName::Update,
                 resource: Some(&PartialResourceId::Entity(Some(
                     system.hash_instance_entity.id
@@ -802,7 +802,7 @@ fn partial_resource_evaluation() -> Result<(), Box<dyn Error>> {
 
     match user_policy_set.evaluate(
         &Request {
-            actor: ActorId::User(user.id),
+            actor: Some(ActorId::User(user.id)),
             action: ActionName::Instantiate,
             resource: Some(&PartialResourceId::EntityType(None)),
             context: RequestContext::default(),

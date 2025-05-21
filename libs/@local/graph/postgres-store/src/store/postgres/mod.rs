@@ -123,7 +123,7 @@ where
     ) -> Result<(), Report<EnsureSystemPoliciesError>> {
         tracing::info!("Seeding system policies");
         for policy in self
-            .resolve_policies_for_actor(system_machine_actor.into(), system_machine_actor)
+            .resolve_policies_for_actor(system_machine_actor.into(), Some(system_machine_actor))
             .await
             .change_context(EnsureSystemPoliciesError::ReadPoliciesFailed)?
         {
@@ -275,7 +275,7 @@ where
             .build()
             .change_context(WebCreationError::StoreError)?;
         let policies = self
-            .resolve_policies_for_actor(actor.into(), actor)
+            .resolve_policies_for_actor(actor.into(), Some(actor))
             .await
             .change_context(WebCreationError::StoreError)?;
 
@@ -287,7 +287,7 @@ where
         match policy_set
             .evaluate(
                 &Request {
-                    actor,
+                    actor: Some(actor),
                     action: ActionName::CreateWeb,
                     resource: Some(&PartialResourceId::Web(Some(web_id))),
                     context: RequestContext::default(),
@@ -1056,9 +1056,22 @@ where
 
     async fn resolve_policies_for_actor(
         &self,
-        _authenticated_actor: ActorEntityUuid,
-        actor_id: ActorId,
+        authenticated_actor: ActorEntityUuid,
+        actor_id: Option<ActorId>,
     ) -> Result<Vec<Policy>, Report<GetPoliciesError>> {
+        let Some(actor_id) = actor_id else {
+            // If no actor is provided, only policies without principal constraints are returned.
+            return self
+                .query_policies(
+                    authenticated_actor,
+                    &PolicyFilter {
+                        name: None,
+                        principal: Some(PrincipalFilter::Unconstrained),
+                    },
+                )
+                .await;
+        };
+
         // The below query does several things. It:
         //   1. gets all principals that the actor can act as
         //   2. gets all policies that apply to those principals

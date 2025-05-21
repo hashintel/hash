@@ -162,7 +162,7 @@ where
         &self,
         id: ActorEntityUuid,
     ) -> Result<Option<ActorId>, Report<PrincipalError>> {
-        if Uuid::from(id).is_nil() {
+        if id.is_public_actor() {
             return Ok(None);
         }
 

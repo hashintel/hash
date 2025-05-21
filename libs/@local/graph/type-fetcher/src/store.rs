@@ -276,7 +276,7 @@ where
     async fn resolve_policies_for_actor(
         &self,
         authenticated_actor: ActorEntityUuid,
-        actor_id: ActorId,
+        actor_id: Option<ActorId>,
     ) -> Result<Vec<Policy>, Report<GetPoliciesError>> {
         self.store
             .resolve_policies_for_actor(authenticated_actor, actor_id)

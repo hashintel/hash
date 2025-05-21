@@ -54,6 +54,16 @@ impl ActorEntityUuid {
     pub fn new(entity_uuid: impl Into<Uuid>) -> Self {
         Self(EntityUuid::new(entity_uuid))
     }
+
+    #[must_use]
+    pub fn public_actor() -> Self {
+        Self::new(Uuid::nil())
+    }
+
+    #[must_use]
+    pub fn is_public_actor(self) -> bool {
+        Uuid::from(self).is_nil()
+    }
 }
 
 impl From<ActorEntityUuid> for EntityUuid {

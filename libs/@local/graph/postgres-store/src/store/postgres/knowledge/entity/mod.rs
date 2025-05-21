@@ -791,7 +791,7 @@ where
             .await
             .change_context(InsertionError)?;
         let policies = self
-            .resolve_policies_for_actor(actor.into(), actor)
+            .resolve_policies_for_actor(actor.into(), Some(actor))
             .await
             .change_context(InsertionError)?;
         let policy_set = PolicySet::default()
@@ -1035,7 +1035,7 @@ where
             match policy_set
                 .evaluate(
                     &Request {
-                        actor,
+                        actor: Some(actor),
                         action: ActionName::Instantiate,
                         resource: Some(&PartialResourceId::EntityType(Some(Cow::Borrowed(
                             entity_type_id.into(),
@@ -1669,7 +1669,7 @@ where
             .await
             .change_context(UpdateError)?;
         let policies = self
-            .resolve_policies_for_actor(actor.into(), actor)
+            .resolve_policies_for_actor(actor.into(), Some(actor))
             .await
             .change_context(UpdateError)?;
         let policy_set = PolicySet::default()
@@ -1805,7 +1805,7 @@ where
                 match policy_set
                     .evaluate(
                         &Request {
-                            actor,
+                            actor: Some(actor),
                             action: ActionName::Instantiate,
                             resource: Some(&PartialResourceId::EntityType(Some(Cow::Borrowed(
                                 entity_type_id.into(),

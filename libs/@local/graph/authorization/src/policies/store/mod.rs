@@ -234,7 +234,7 @@ pub trait PolicyStore {
     async fn resolve_policies_for_actor(
         &self,
         authenticated_actor: ActorEntityUuid,
-        actor_id: ActorId,
+        actor_id: Option<ActorId>,
     ) -> Result<Vec<Policy>, Report<GetPoliciesError>>;
 
     /// Updates the policy specified by it's ID.
