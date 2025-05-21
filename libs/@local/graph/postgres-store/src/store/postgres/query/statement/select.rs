@@ -1055,6 +1055,107 @@ mod tests {
     }
 
     #[test]
+    #[expect(clippy::similar_names)]
+    fn two_linked_entities() {
+        let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
+        let pinned_timestamp = temporal_axes.pinned_timestamp();
+
+        let entity_a_uuid = Uuid::new_v4();
+        let entity_b_uuid = Uuid::new_v4();
+
+        let filter_a = Filter::Equal(
+            Some(FilterExpression::Path {
+                path: EntityQueryPath::EntityEdge {
+                    edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
+                    path: Box::new(EntityQueryPath::Uuid),
+                    direction: EdgeDirection::Outgoing,
+                },
+            }),
+            Some(FilterExpression::Parameter {
+                parameter: Parameter::Uuid(entity_a_uuid),
+                convert: None,
+            }),
+        );
+
+        let filter_b = Filter::Equal(
+            Some(FilterExpression::Path {
+                path: EntityQueryPath::EntityEdge {
+                    edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
+                    path: Box::new(EntityQueryPath::Uuid),
+                    direction: EdgeDirection::Outgoing,
+                },
+            }),
+            Some(FilterExpression::Parameter {
+                parameter: Parameter::Uuid(entity_b_uuid),
+                convert: None,
+            }),
+        );
+
+        let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
+        compiler
+            .add_filter(&filter_a)
+            .expect("Failed to add filter");
+        compiler
+            .add_filter(&filter_b)
+            .expect("Failed to add filter");
+
+        // For each filter, we have a dedicated join
+        test_compilation(
+            &compiler,
+            r#"
+            SELECT *
+            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+            LEFT OUTER JOIN "entity_has_right_entity" AS "entity_has_right_entity_0_1_0"
+              ON "entity_has_right_entity_0_1_0"."web_id" = "entity_temporal_metadata_0_0_0"."web_id"
+             AND "entity_has_right_entity_0_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
+            LEFT OUTER JOIN "entity_has_right_entity" AS "entity_has_right_entity_1_1_0"
+              ON "entity_has_right_entity_1_1_0"."web_id" = "entity_temporal_metadata_0_0_0"."web_id"
+             AND "entity_has_right_entity_1_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
+            WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
+              AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+              AND "entity_has_right_entity_0_1_0"."right_entity_uuid" = $3
+              AND "entity_has_right_entity_1_1_0"."right_entity_uuid" = $4
+            "#,
+            &[
+                &pinned_timestamp,
+                &temporal_axes.variable_interval(),
+                &entity_a_uuid,
+                &entity_b_uuid,
+            ],
+        );
+
+        let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
+        let combined_filter = Filter::All(vec![filter_a.clone(), filter_b.clone()]);
+        compiler
+            .add_filter(&combined_filter)
+            .expect("Failed to add filter");
+
+        // A combined filter re-uses the same join
+        test_compilation(
+            &compiler,
+            r#"
+            SELECT *
+            FROM "entity_temporal_metadata" AS "entity_temporal_metadata_0_0_0"
+            LEFT OUTER JOIN "entity_has_right_entity" AS "entity_has_right_entity_0_1_0"
+              ON "entity_has_right_entity_0_1_0"."web_id" = "entity_temporal_metadata_0_0_0"."web_id"
+             AND "entity_has_right_entity_0_1_0"."entity_uuid" = "entity_temporal_metadata_0_0_0"."entity_uuid"
+            WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
+              AND "entity_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
+              AND "entity_temporal_metadata_0_0_0"."decision_time" && $2
+              AND ("entity_has_right_entity_0_1_0"."right_entity_uuid" = $3)
+              AND ("entity_has_right_entity_0_1_0"."right_entity_uuid" = $4)
+            "#,
+            &[
+                &pinned_timestamp,
+                &temporal_axes.variable_interval(),
+                &entity_a_uuid,
+                &entity_b_uuid,
+            ],
+        );
+    }
+
+    #[test]
     fn filter_left_and_right() {
         let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
         let pinned_timestamp = temporal_axes.pinned_timestamp();
