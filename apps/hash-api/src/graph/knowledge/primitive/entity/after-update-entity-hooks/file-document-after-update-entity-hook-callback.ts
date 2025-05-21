@@ -95,6 +95,13 @@ export const parseTextFromFileAfterUpdateEntityHookCallback: AfterUpdateEntityHo
 
       const webMachineActorId = await getWebMachineId(context, authentication, {
         webId: fileEntityWebId,
+      }).then((maybeMachineId) => {
+        if (!maybeMachineId) {
+          throw new Error(
+            `Failed to get web bot account ID for web ID: ${fileEntityWebId}`,
+          );
+        }
+        return maybeMachineId;
       });
 
       try {

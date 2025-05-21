@@ -46,18 +46,15 @@ export type ActorType = "user" | "machine" | "ai";
 export interface Ai {
 	id: AiId;
 	identifier: string;
-	roles: RoleId[];
 }
 export type AiId = Brand<ActorEntityUuid, "AiId">;
 export interface Machine {
 	id: MachineId;
 	identifier: string;
-	roles: RoleId[];
 }
 export type MachineId = Brand<ActorEntityUuid, "MachineId">;
 export interface User {
 	id: UserId;
-	roles: RoleId[];
 }
 export type UserId = Brand<ActorEntityUuid & WebId, "UserId">;
 export type ActorGroup = {
@@ -78,13 +75,11 @@ export interface Team {
 	id: TeamId;
 	parentId: ActorGroupId;
 	name: string;
-	roles: TeamRoleId[];
 }
 export type TeamId = Brand<ActorGroupEntityUuid, "TeamId">;
 export interface Web {
 	id: WebId;
 	shortname: (string | null);
-	roles: WebRoleId[];
 }
 export type WebId = Brand<ActorGroupEntityUuid | ActorEntityUuid, "WebId">;
 export type Role = {

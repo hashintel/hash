@@ -311,7 +311,7 @@ pub trait LocalPrincipalStore {
     /// - [`StoreError`] if the underlying store returns an error
     ///
     /// [`StoreError`]: GetSystemAccountError::StoreError
-    async fn get_or_create_system_actor(
+    async fn get_or_create_system_machine(
         &mut self,
         identifier: &str,
     ) -> Result<MachineId, Report<GetSystemAccountError>>;

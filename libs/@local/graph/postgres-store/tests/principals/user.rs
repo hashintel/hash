@@ -1,6 +1,7 @@
 use core::{assert_matches::assert_matches, error::Error};
 
 use hash_graph_postgres_store::permissions::PrincipalError;
+use hash_graph_store::account::AccountStore as _;
 use pretty_assertions::assert_eq;
 use type_system::principal::{
     PrincipalId,
@@ -72,7 +73,7 @@ async fn get_non_existent_user() -> Result<(), Box<dyn Error>> {
     let (client, _actor_id) = db.seed([]).await?;
 
     let non_existent_id = UserId::new(Uuid::new_v4());
-    let result = client.get_user(non_existent_id).await?;
+    let result = client.get_user_by_id(non_existent_id).await?;
 
     assert!(
         result.is_none(),

@@ -3,6 +3,7 @@ import type {
   EntityId,
   ProvidedEntityEditionProvenance,
   Timestamp,
+  UserId,
   WebId,
 } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
@@ -74,7 +75,7 @@ export const createGraphChangeNotification = async (
     changedEntityId: EntityId;
     changedEntityEditionId: Timestamp;
     operation: "create" | "update";
-    notifiedUserAccountId: ActorEntityUuid;
+    notifiedUserAccountId: UserId;
   },
 ) => {
   const { graphApi } = context;
@@ -89,7 +90,14 @@ export const createGraphChangeNotification = async (
   const userAuthentication = { actorId: notifiedUserAccountId };
 
   const webMachineActorId = await getWebMachineId(context, userAuthentication, {
-    webId: notifiedUserAccountId as WebId,
+    webId: notifiedUserAccountId,
+  }).then((maybeMachineId) => {
+    if (!maybeMachineId) {
+      throw new Error(
+        `Failed to get web machine for user account ID: ${notifiedUserAccountId}`,
+      );
+    }
+    return maybeMachineId;
   });
 
   const { linkEntityRelationships, notificationEntityRelationships } =

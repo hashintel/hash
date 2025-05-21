@@ -5,6 +5,7 @@ use hash_graph_authorization::policies::{
     store::{CreateWebParameter, PrincipalStore as _},
 };
 use hash_graph_postgres_store::permissions::PrincipalError;
+use hash_graph_store::account::AccountStore as _;
 use pretty_assertions::assert_eq;
 use type_system::principal::{
     PrincipalId,
@@ -122,7 +123,7 @@ async fn get_non_existent_machine() -> Result<(), Box<dyn Error>> {
     let (client, _actor_id) = db.seed([]).await?;
 
     let non_existent_id = MachineId::new(Uuid::new_v4());
-    let result = client.get_machine(non_existent_id).await?;
+    let result = client.get_machine_by_id(non_existent_id).await?;
 
     assert!(
         result.is_none(),
@@ -139,7 +140,7 @@ async fn get_machine() -> Result<(), Box<dyn Error>> {
 
     let machine_id = client.create_machine(None, "test-machine").await?;
     let retrieved = client
-        .get_machine(machine_id)
+        .get_machine_by_identifier("test-machine")
         .await?
         .expect("Machine should exist");
 

@@ -45,7 +45,10 @@ export const createHashInstance: ImpureGraphFunction<
     throw new Error("HASH instance entity already exists.");
   }
 
-  const { teamId, webId } = await getInstanceAdminsTeam(ctx, authentication);
+  const { id: teamId, webId } = await getInstanceAdminsTeam(
+    ctx,
+    authentication,
+  );
 
   logger.info(
     `Retrieved account group for hash instance admins with id: ${teamId}`,

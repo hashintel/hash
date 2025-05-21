@@ -1,6 +1,7 @@
 import type {
   ActorEntityUuid,
   ActorId,
+  Entity,
   MachineId,
   ProvidedEntityEditionProvenance,
   VersionedUrl,
@@ -8,7 +9,7 @@ import type {
 } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
-import { getWebById } from "@local/hash-graph-sdk/principal/web";
+import { getMachineByIdentifier } from "@local/hash-graph-sdk/principal/web";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
@@ -19,7 +20,6 @@ import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph
 import type { Machine } from "@local/hash-isomorphic-utils/system-types/machine";
 import { backOff } from "exponential-backoff";
 
-import { NotFoundError } from "./error.js";
 import type { Logger } from "./logger.js";
 
 export type WebMachineActorIdentifier = `system-${WebId}`;
@@ -30,30 +30,29 @@ export type MachineActorIdentifier =
   | GlobalMachineActorIdentifier
   | WebMachineActorIdentifier;
 
-export const getWebMachineId = async (
-  context: { graphApi: GraphApi },
-  authentication: { actorId: ActorEntityUuid },
-  {
-    webId,
-  }: {
-    webId: WebId;
-  },
-): Promise<MachineId> =>
-  getWebById(context.graphApi, authentication, webId).then((web) => {
-    if (!web) {
-      throw new NotFoundError(`Failed to get web for shortname: ${webId}`);
-    }
-    return web.machineId;
-  });
-
-/**
- * Retrieve a machine actor's accountId by its unique identifier
- */
 export const getMachineIdByIdentifier = async (
   context: { graphApi: GraphApi },
   authentication: { actorId: ActorEntityUuid },
   { identifier }: { identifier: MachineActorIdentifier },
-): Promise<MachineId> => {
+): Promise<MachineId | null> =>
+  getMachineByIdentifier(context.graphApi, authentication, identifier).then(
+    (machineEntity) => machineEntity?.id ?? null,
+  );
+
+export const getWebMachineId = async (
+  context: { graphApi: GraphApi },
+  authentication: { actorId: ActorEntityUuid },
+  { webId }: { webId: WebId },
+): Promise<MachineId | null> =>
+  getMachineIdByIdentifier(context, authentication, {
+    identifier: `system-${webId}`,
+  });
+
+export const getMachineEntityByIdentifier = async (
+  context: { graphApi: GraphApi },
+  authentication: { actorId: ActorEntityUuid },
+  { identifier }: { identifier: MachineActorIdentifier },
+): Promise<Entity<Machine> | null> => {
   const [machineEntity, ...unexpectedEntities] = await backOff(
     () =>
       context.graphApi
@@ -88,7 +87,7 @@ export const getMachineIdByIdentifier = async (
         })
         .then(({ data: response }) =>
           response.entities.map((entity) =>
-            mapGraphApiEntityToEntity(entity, authentication.actorId),
+            mapGraphApiEntityToEntity<Machine>(entity, authentication.actorId),
           ),
         ),
     {
@@ -104,14 +103,17 @@ export const getMachineIdByIdentifier = async (
     );
   }
 
-  if (!machineEntity) {
-    throw new NotFoundError(
-      `Critical: No machine entity with identifier ${identifier} found in the graph.`,
-    );
-  }
-
-  return machineEntity.metadata.provenance.createdById as MachineId;
+  return machineEntity ?? null;
 };
+
+export const getWebMachineEntity = async (
+  context: { graphApi: GraphApi },
+  authentication: { actorId: ActorEntityUuid },
+  { webId }: { webId: WebId },
+): Promise<Entity<Machine> | null> =>
+  getMachineEntityByIdentifier(context, authentication, {
+    identifier: `system-${webId}`,
+  });
 
 /**
  * Creates a Machine entity for an existing machine account that already has permissions in the specified web.

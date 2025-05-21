@@ -3,9 +3,9 @@ import { NotFoundError } from "@local/hash-backend-utils/error";
 import { getHashInstance } from "@local/hash-backend-utils/hash-instance";
 import {
   createMachineActorEntity,
-  getMachineIdByIdentifier,
+  getWebMachineEntity,
+  getWebMachineId,
 } from "@local/hash-backend-utils/machine-actors";
-import { getWebById } from "@local/hash-graph-sdk/principal/web";
 
 import { logger } from "../../../../logger";
 import { createHashInstance } from "../../../knowledge/system-types/hash-instance";
@@ -88,89 +88,35 @@ const migrate: MigrationFunction = async ({
     {},
   );
 
-  for (const user of users) {
-    const userAccountId = extractWebIdFromEntityId(
-      user.metadata.recordId.entityId,
+  for (const principal of users.concat(orgs)) {
+    const webId = extractWebIdFromEntityId(
+      principal.metadata.recordId.entityId,
     );
-    try {
-      await getMachineIdByIdentifier(context, authentication, {
-        identifier: `system-${userAccountId}`,
+    const webMachine = await getWebMachineEntity(context, authentication, {
+      webId,
+    });
+    if (!webMachine) {
+      const machineId = await getWebMachineId(context, authentication, {
+        webId,
+      }).then((maybeMachineId) => {
+        if (!maybeMachineId) {
+          throw new NotFoundError(`Failed to get machine for web ID: ${webId}`);
+        }
+        return maybeMachineId;
       });
-    } catch (err) {
-      if (err instanceof NotFoundError) {
-        const { webId, machineId } = await getWebById(
-          context.graphApi,
-          authentication,
-          userAccountId,
-        ).then((web) => {
-          if (!web) {
-            throw new NotFoundError(
-              `Failed to get web for account ID: ${userAccountId}`,
-            );
-          }
-          return web;
-        });
 
-        await createMachineActorEntity(context, {
-          identifier: `system-${webId}`,
-          logger,
-          actor: { actorType: "machine", id: machineId },
-          webId,
-          displayName: "HASH",
-          machineEntityTypeId: currentMachineEntityTypeId,
-        });
-
-        logger.info(
-          `Created missing machine web actor for user ${user.metadata.recordId.entityId}`,
-        );
-      } else {
-        throw new Error(
-          `Unexpected error attempting to retrieve machine web actor for user ${user.metadata.recordId.entityId}`,
-        );
-      }
-    }
-  }
-
-  for (const org of orgs) {
-    const orgAccountGroupId = extractWebIdFromEntityId(
-      org.metadata.recordId.entityId,
-    );
-    try {
-      await getMachineIdByIdentifier(context, authentication, {
-        identifier: `system-${orgAccountGroupId}`,
+      await createMachineActorEntity(context, {
+        identifier: `system-${webId}`,
+        logger,
+        actor: { actorType: "machine", id: machineId },
+        webId,
+        displayName: "HASH",
+        machineEntityTypeId: currentMachineEntityTypeId,
       });
-    } catch (err) {
-      if (err instanceof NotFoundError) {
-        const { webId, machineId } = await getWebById(
-          context.graphApi,
-          authentication,
-          orgAccountGroupId,
-        ).then((web) => {
-          if (!web) {
-            throw new NotFoundError(
-              `Failed to get web for organization ID: ${orgAccountGroupId}`,
-            );
-          }
-          return web;
-        });
 
-        await createMachineActorEntity(context, {
-          identifier: `system-${webId}`,
-          logger,
-          actor: { actorType: "machine", id: machineId },
-          webId,
-          displayName: "HASH",
-          machineEntityTypeId: currentMachineEntityTypeId,
-        });
-
-        logger.info(
-          `Created missing machine web actor for org ${org.metadata.recordId.entityId}`,
-        );
-      } else {
-        throw new Error(
-          `Unexpected error attempting to retrieve machine web actor for organization ${org.metadata.recordId.entityId}`,
-        );
-      }
+      logger.info(
+        `Created missing web machine entity with ID: ${principal.metadata.recordId.entityId}`,
+      );
     }
   }
   /** End mop-up step, which can be deleted once all existing instances have been migrated */

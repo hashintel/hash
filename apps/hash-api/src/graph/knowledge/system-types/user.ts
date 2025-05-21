@@ -379,8 +379,10 @@ export const createUser: ImpureGraphFunction<
   // TODO: Move User-Entity creation to Graph
   //   see https://linear.app/hash/issue/H-4559/move-user-entity-creation-to-graph
 
-  const { teamId: hashInstanceAdminsAccountGroupId } =
-    await getInstanceAdminsTeam(ctx, authentication);
+  const { id: hashInstanceAdminsAccountGroupId } = await getInstanceAdminsTeam(
+    ctx,
+    authentication,
+  );
 
   const entity = await createEntity<UserEntity>(
     ctx,
@@ -421,7 +423,7 @@ export const createUser: ImpureGraphFunction<
   if (isInstanceAdmin) {
     const instanceAdmins = await getInstanceAdminsTeam(ctx, authentication);
     await addActorGroupMember(ctx, authentication, {
-      actorGroupId: instanceAdmins.teamId,
+      actorGroupId: instanceAdmins.id,
       actorId: user.accountId,
     });
   }

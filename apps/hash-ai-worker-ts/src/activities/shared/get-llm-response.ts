@@ -190,7 +190,7 @@ export const getLlmResponse = async <T extends LlmParams>(
     const { incurredInEntities } = usageTrackingParams;
 
     if (incurredInEntities.length > 0) {
-      const { teamId: hashInstanceAdminGroupId } = await getInstanceAdminsTeam(
+      const { id: hashInstanceAdminGroupId } = await getInstanceAdminsTeam(
         { graphApi: graphApiClient },
         { actorId: aiAssistantAccountId },
       );

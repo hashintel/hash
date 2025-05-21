@@ -88,7 +88,12 @@ export const linearWebhook: RequestHandler<
     req.context,
     { actorId: systemAccountId },
     { identifier: "linear" },
-  );
+  ).then((maybeMachineId) => {
+    if (!maybeMachineId) {
+      throw new Error("Failed to get linear bot account ID");
+    }
+    return maybeMachineId;
+  });
 
   const graphContext: ImpureGraphContext = {
     graphApi,

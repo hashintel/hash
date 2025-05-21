@@ -16,9 +16,9 @@ import {
 import { Logger } from "@local/hash-backend-utils/logger";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
+import { getTeamRoles } from "@local/hash-graph-sdk/principal/team";
 import { beforeAll, describe, expect, it } from "vitest";
 
-import { getTeamRoles } from "@local/hash-graph-sdk/principal/team";
 import { resetGraph } from "../../../test-server";
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 
@@ -52,7 +52,7 @@ describe("Hash Instance", () => {
   let instanceAdminTeamId: TeamId;
 
   it("can get the instance admin team id", async () => {
-    const { teamId } = await getInstanceAdminsTeam(graphContext, {
+    const { id: teamId } = await getInstanceAdminsTeam(graphContext, {
       actorId: systemAccountId,
     });
     instanceAdminTeamId = teamId;

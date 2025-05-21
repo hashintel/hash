@@ -28,8 +28,8 @@ use hash_graph_store::{
     account::{
         AccountGroupInsertionError, AccountInsertionError, AccountStore, CreateAiActorParams,
         CreateMachineActorParams, CreateOrgWebParams, CreateTeamParams, CreateUserActorParams,
-        CreateUserActorResponse, GetTeamResponse, GetWebResponse, QueryWebError,
-        TeamRetrievalError, WebInsertionError, WebRetrievalError,
+        CreateUserActorResponse, GetActorError, QueryWebError, TeamRetrievalError,
+        WebInsertionError, WebRetrievalError,
     },
     data_type::{
         ArchiveDataTypeParams, CountDataTypesParams, CreateDataTypeParams, DataTypeStore,
@@ -88,8 +88,8 @@ use type_system::{
         provenance::{OntologyOwnership, ProvidedOntologyEditionProvenance},
     },
     principal::{
-        actor::{ActorEntityUuid, ActorId, ActorType, AiId, MachineId},
-        actor_group::{ActorGroupEntityUuid, TeamId, WebId},
+        actor::{ActorEntityUuid, ActorId, ActorType, Ai, AiId, Machine, MachineId, User, UserId},
+        actor_group::{ActorGroupEntityUuid, Team, TeamId, Web, WebId},
         role::{RoleName, TeamRole, TeamRoleId, WebRole, WebRoleId},
     },
     provenance::{OriginProvenance, OriginType},
@@ -188,11 +188,11 @@ where
     S: PrincipalStore + Send,
     A: Send,
 {
-    async fn get_or_create_system_actor(
+    async fn get_or_create_system_machine(
         &mut self,
         identifier: &str,
     ) -> Result<MachineId, Report<GetSystemAccountError>> {
-        self.store.get_or_create_system_actor(identifier).await
+        self.store.get_or_create_system_machine(identifier).await
     }
 
     async fn create_web(
@@ -985,19 +985,61 @@ where
         self.store.create_ai_actor(actor_id, params).await
     }
 
-    async fn get_web_by_id(
-        &mut self,
+    async fn get_user_by_id(
+        &self,
         actor_id: ActorEntityUuid,
-        web_id: WebId,
-    ) -> Result<Option<GetWebResponse>, Report<WebRetrievalError>> {
-        self.store.get_web_by_id(actor_id, web_id).await
+        id: UserId,
+    ) -> Result<Option<User>, Report<GetActorError>> {
+        self.store.get_user_by_id(actor_id, id).await
+    }
+
+    async fn get_machine_by_id(
+        &self,
+        actor_id: ActorEntityUuid,
+        id: MachineId,
+    ) -> Result<Option<Machine>, Report<GetActorError>> {
+        self.store.get_machine_by_id(actor_id, id).await
+    }
+
+    async fn get_machine_by_identifier(
+        &self,
+        actor_id: ActorEntityUuid,
+        identifier: &str,
+    ) -> Result<Option<Machine>, Report<GetActorError>> {
+        self.store
+            .get_machine_by_identifier(actor_id, identifier)
+            .await
+    }
+
+    async fn get_ai_by_id(
+        &self,
+        actor_id: ActorEntityUuid,
+        id: AiId,
+    ) -> Result<Option<Ai>, Report<GetActorError>> {
+        self.store.get_ai_by_id(actor_id, id).await
+    }
+
+    async fn get_ai_by_identifier(
+        &self,
+        actor_id: ActorEntityUuid,
+        identifier: &str,
+    ) -> Result<Option<Ai>, Report<GetActorError>> {
+        self.store.get_ai_by_identifier(actor_id, identifier).await
+    }
+
+    async fn get_web_by_id(
+        &self,
+        actor_id: ActorEntityUuid,
+        id: WebId,
+    ) -> Result<Option<Web>, Report<WebRetrievalError>> {
+        self.store.get_web_by_id(actor_id, id).await
     }
 
     async fn get_web_by_shortname(
-        &mut self,
+        &self,
         actor_id: ActorEntityUuid,
         shortname: &str,
-    ) -> Result<Option<GetWebResponse>, Report<WebRetrievalError>> {
+    ) -> Result<Option<Web>, Report<WebRetrievalError>> {
         self.store.get_web_by_shortname(actor_id, shortname).await
     }
 
@@ -1017,11 +1059,19 @@ where
         self.store.create_team(actor_id, params).await
     }
 
+    async fn get_team_by_id(
+        &self,
+        actor_id: ActorEntityUuid,
+        id: TeamId,
+    ) -> Result<Option<Team>, Report<TeamRetrievalError>> {
+        self.store.get_team_by_id(actor_id, id).await
+    }
+
     async fn get_team_by_name(
-        &mut self,
+        &self,
         actor_id: ActorEntityUuid,
         name: &str,
-    ) -> Result<Option<GetTeamResponse>, Report<TeamRetrievalError>> {
+    ) -> Result<Option<Team>, Report<TeamRetrievalError>> {
         self.store.get_team_by_name(actor_id, name).await
     }
 

@@ -18,14 +18,14 @@ use hash_graph_authorization::{
 use hash_graph_store::{
     account::{
         AccountStore as _, CreateAiActorParams, CreateOrgWebParams, CreateUserActorParams,
-        CreateUserActorResponse, GetTeamResponse, GetWebResponse,
+        CreateUserActorResponse,
     },
     pool::StorePool,
 };
 use hash_temporal_client::TemporalClient;
 use type_system::principal::{
-    actor::{ActorEntityUuid, ActorId, ActorType, AiId, MachineId, UserId},
-    actor_group::{ActorGroupEntityUuid, ActorGroupId, TeamId, WebId},
+    actor::{ActorEntityUuid, ActorId, ActorType, AiId, Machine, MachineId, UserId},
+    actor_group::{ActorGroupEntityUuid, ActorGroupId, Team, TeamId, Web, WebId},
     role::{RoleName, TeamRole, TeamRoleId, WebRole, WebRoleId},
 };
 use utoipa::OpenApi;
@@ -37,7 +37,8 @@ use crate::rest::{AuthenticatedUserHeader, json::Json, status::report_to_respons
     paths(
         create_user_actor,
         create_ai_actor,
-        get_or_create_system_actor,
+        get_or_create_system_machine,
+        get_machine_by_identifier,
 
         create_org_web,
         get_web_by_id,
@@ -68,10 +69,8 @@ use crate::rest::{AuthenticatedUserHeader, json::Json, status::report_to_respons
             ActorGroupId,
             WebId,
             TeamId,
-            GetWebResponse,
             CreateOrgWebParams,
             CreateWebResponse,
-            GetTeamResponse,
 
             RoleName,
             RoleAssignmentStatus,
@@ -97,11 +96,25 @@ impl PrincipalResource {
             .nest(
                 "/actors",
                 Router::new()
-                    .route("/user", post(create_user_actor::<S, A>))
-                    .route("/ai", post(create_ai_actor::<S, A>))
-                    .route(
-                        "/system/:identifier",
-                        get(get_or_create_system_actor::<S, A>),
+                    .nest(
+                        "/user",
+                        Router::new().route("/", post(create_user_actor::<S, A>)),
+                    )
+                    .nest(
+                        "/machine",
+                        Router::new().nest(
+                            "/identifier",
+                            Router::new()
+                                .route("/:identifier", get(get_machine_by_identifier::<S, A>))
+                                .route(
+                                    "/system/:identifier",
+                                    get(get_or_create_system_machine::<S, A>),
+                                ),
+                        ),
+                    )
+                    .nest(
+                        "/ai",
+                        Router::new().route("/", post(create_ai_actor::<S, A>)),
                     ),
             )
             .nest(
@@ -130,17 +143,20 @@ impl PrincipalResource {
                     )
                     .nest(
                         "/:actor_group_id",
-                        Router::new()
-                            .route(
-                                "/roles/:role/actors",
-                                get(get_actor_group_role_assignments::<S, A>),
-                            )
-                            .route(
-                                "/roles/:role/actors/:actor_id",
-                                get(has_actor_group_role::<S, A>)
-                                    .post(assign_actor_group_role::<S, A>)
-                                    .delete(unassign_actor_group_role::<S, A>),
+                        Router::new().nest(
+                            "/roles",
+                            Router::new().nest(
+                                "/:role/actors",
+                                Router::new()
+                                    .route("/", get(get_actor_group_role_assignments::<S, A>))
+                                    .route(
+                                        "/:actor_id",
+                                        get(has_actor_group_role::<S, A>)
+                                            .post(assign_actor_group_role::<S, A>)
+                                            .delete(unassign_actor_group_role::<S, A>),
+                                    ),
                             ),
+                        ),
                     ),
             )
     }
@@ -148,7 +164,7 @@ impl PrincipalResource {
 
 #[utoipa::path(
     get,
-    path = "/actors/system/{identifier}",
+    path = "/actors/machine/identifier/system/{identifier}",
     tag = "Principal",
     params(
         ("identifier" = String, Path, description = "The identifier of the actor to get"),
@@ -163,7 +179,7 @@ impl PrincipalResource {
     level = "info",
     skip(store_pool, authorization_api_pool, temporal_client)
 )]
-async fn get_or_create_system_actor<S, A>(
+async fn get_or_create_system_machine<S, A>(
     authorization_api_pool: Extension<Arc<A>>,
     Path(identifier): Path<String>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
@@ -174,18 +190,63 @@ where
     A: AuthorizationApiPool + Send + Sync,
     for<'p, 'a> S::Store<'p, A::Api<'a>>: PrincipalStore,
 {
-    let authorization_api = authorization_api_pool
-        .acquire()
+    store_pool
+        .acquire(
+            authorization_api_pool
+                .acquire()
+                .await
+                .map_err(report_to_response)?,
+            temporal_client.0,
+        )
         .await
-        .map_err(report_to_response)?;
-
-    let mut store = store_pool
-        .acquire(authorization_api, temporal_client.0)
+        .map_err(report_to_response)?
+        .get_or_create_system_machine(&identifier)
         .await
-        .map_err(report_to_response)?;
+        .map_err(report_to_response)
+        .map(Json)
+}
 
-    store
-        .get_or_create_system_actor(&identifier)
+#[utoipa::path(
+    get,
+    path = "/actors/machine/identifier/{identifier}",
+    tag = "Web",
+    params(
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("identifier" = String, Path, description = "The identifier of the machine to get"),
+    ),
+    responses(
+        (status = 200, content_type = "application/json", description = "The web was retrieved successfully", body = Option<Value>),
+
+        (status = 500, description = "Store error occurred"),
+    )
+)]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client)
+)]
+async fn get_machine_by_identifier<S, A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    Path(identifier): Path<String>,
+    authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    store_pool: Extension<Arc<S>>,
+) -> Result<Json<Option<Machine>>, Response>
+where
+    S: StorePool + Send + Sync,
+    A: AuthorizationApiPool + Send + Sync,
+    for<'p, 'a> S::Store<'p, A::Api<'a>>: PrincipalStore,
+{
+    store_pool
+        .acquire(
+            authorization_api_pool
+                .acquire()
+                .await
+                .map_err(report_to_response)?,
+            temporal_client.0,
+        )
+        .await
+        .map_err(report_to_response)?
+        .get_machine_by_identifier(actor_id, &identifier)
         .await
         .map_err(report_to_response)
         .map(Json)
@@ -337,7 +398,7 @@ where
         ("web_id" = WebId, Path, description = "The ID of the web to retrieve"),
     ),
     responses(
-        (status = 200, content_type = "application/json", description = "The web was retrieved successfully", body = GetWebResponse),
+        (status = 200, content_type = "application/json", description = "The web was retrieved successfully", body = Option<Value>),
 
         (status = 500, description = "Store error occurred"),
     )
@@ -352,7 +413,7 @@ async fn get_web_by_id<S, A>(
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
-) -> Result<Json<Option<GetWebResponse>>, Response>
+) -> Result<Json<Option<Web>>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
@@ -383,7 +444,7 @@ where
         ("shortname" = String, Path, description = "The shortname of the web to retrieve"),
     ),
     responses(
-        (status = 200, content_type = "application/json", description = "The web was retrieved successfully", body = GetWebResponse),
+        (status = 200, content_type = "application/json", description = "The web was retrieved successfully", body = Option<Value>),
 
         (status = 500, description = "Store error occurred"),
     )
@@ -398,7 +459,7 @@ async fn get_web_by_shortname<S, A>(
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
-) -> Result<Json<Option<GetWebResponse>>, Response>
+) -> Result<Json<Option<Web>>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
@@ -475,7 +536,7 @@ where
         ("name" = String, Path, description = "The ID of the team to retrieve"),
     ),
     responses(
-        (status = 200, content_type = "application/json", description = "The team was retrieved successfully", body = Option<GetTeamResponse>),
+        (status = 200, content_type = "application/json", description = "The team was retrieved successfully", body = Option<Value>),
 
         (status = 500, description = "Store error occurred"),
     )
@@ -490,7 +551,7 @@ async fn get_team_by_name<S, A>(
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
-) -> Result<Json<Option<GetTeamResponse>>, Response>
+) -> Result<Json<Option<Team>>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,

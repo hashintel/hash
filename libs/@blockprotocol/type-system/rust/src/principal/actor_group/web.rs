@@ -58,5 +58,6 @@ impl From<WebId> for Uuid {
 pub struct Web {
     pub id: WebId,
     pub shortname: Option<String>,
+    #[cfg_attr(feature = "codegen", specta(skip))]
     pub roles: HashSet<WebRoleId>,
 }

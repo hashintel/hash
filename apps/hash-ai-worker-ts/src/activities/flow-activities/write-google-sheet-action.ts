@@ -366,7 +366,12 @@ export const writeGoogleSheetAction: FlowActionActivity<{
     { graphApi: graphApiClient },
     { actorId: userAccountId },
     { webId },
-  );
+  ).then((maybeMachineId) => {
+    if (!maybeMachineId) {
+      throw new Error(`Failed to get web bot account ID for web ID: ${webId}`);
+    }
+    return maybeMachineId;
+  });
 
   const provenance: ProvidedEntityEditionProvenance = {
     actorType: "machine",

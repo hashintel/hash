@@ -13,15 +13,12 @@ export const getAiAssistantAccountIdActivity = async (params: {
   const { authentication, graphApiClient, grantCreatePermissionForWeb } =
     params;
 
-  let aiAssistantAccountId: ActorEntityUuid;
-
-  try {
-    aiAssistantAccountId = await getMachineIdByIdentifier(
-      { graphApi: graphApiClient },
-      authentication,
-      { identifier: "hash-ai" },
-    );
-  } catch {
+  const aiAssistantAccountId = await getMachineIdByIdentifier(
+    { graphApi: graphApiClient },
+    authentication,
+    { identifier: "hash-ai" },
+  );
+  if (!aiAssistantAccountId) {
     return null;
   }
 
@@ -39,10 +36,15 @@ export const getAiAssistantAccountIdActivity = async (params: {
       const webMachineActorId = await getWebMachineId(
         { graphApi: graphApiClient },
         authentication,
-        {
-          webId: grantCreatePermissionForWeb,
-        },
-      );
+        { webId: grantCreatePermissionForWeb },
+      ).then((maybeMachineId) => {
+        if (!maybeMachineId) {
+          throw new Error(
+            `Failed to get web machine for web ID: ${grantCreatePermissionForWeb}`,
+          );
+        }
+        return maybeMachineId;
+      });
 
       await graphApiClient.modifyWebAuthorizationRelationships(
         webMachineActorId,

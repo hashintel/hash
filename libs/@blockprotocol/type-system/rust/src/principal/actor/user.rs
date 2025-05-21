@@ -80,5 +80,6 @@ impl From<UserId> for WebId {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct User {
     pub id: UserId,
+    #[cfg_attr(feature = "codegen", specta(skip))]
     pub roles: HashSet<RoleId>,
 }

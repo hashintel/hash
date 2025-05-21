@@ -7,6 +7,7 @@ import {
   extractEntityUuidFromEntityId,
   extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
+import { NotFoundError } from "@local/hash-backend-utils/error";
 import {
   getMachineIdByIdentifier,
   getWebMachineId,
@@ -155,7 +156,7 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
 
       const webAccountId = extractEntityUuidFromEntityId(
         userOrOrganizationEntity.metadata.recordId.entityId,
-      ) as ActorEntityUuid;
+      ) as WebId;
 
       /**
        * Add the Linear machine user to the web,
@@ -165,7 +166,12 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
         dataSources,
         authentication,
         { identifier: "linear" },
-      );
+      ).then((maybeMachineId) => {
+        if (!maybeMachineId) {
+          throw new NotFoundError("Failed to get linear bot");
+        }
+        return maybeMachineId;
+      });
 
       const linearBotHasPermission = await dataSources.graphApi
         .checkWebPermission(linearBotAccountId, webAccountId, "create_entity")
@@ -175,10 +181,15 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
         const webMachineActorId = await getWebMachineId(
           dataSources,
           authentication,
-          {
-            webId: webAccountId as WebId,
-          },
-        );
+          { webId: webAccountId },
+        ).then((maybeMachineId) => {
+          if (!maybeMachineId) {
+            throw new NotFoundError(
+              `Failed to get linear web machine with ID: ${webAccountId}`,
+            );
+          }
+          return maybeMachineId;
+        });
 
         await dataSources.graphApi.modifyWebAuthorizationRelationships(
           webMachineActorId,

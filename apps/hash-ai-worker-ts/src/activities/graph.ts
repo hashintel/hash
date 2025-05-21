@@ -272,6 +272,6 @@ export const createGraphActivities = ({
     return getInstanceAdminsTeam(
       { graphApi: graphApiClient },
       authentication,
-    ).then(({ teamId }) => teamId);
+    ).then(({ id }) => id);
   },
 });

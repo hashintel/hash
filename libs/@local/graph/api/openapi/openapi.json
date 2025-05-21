@@ -45,11 +45,6 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "allOf": [
-                    {
-                      "$ref": "#/components/schemas/GetTeamResponse"
-                    }
-                  ],
                   "nullable": true
                 }
               }
@@ -225,7 +220,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GetWebResponse"
+                  "nullable": true
                 }
               }
             }
@@ -269,7 +264,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/GetWebResponse"
+                  "nullable": true
                 }
               }
             }
@@ -823,13 +818,13 @@
         }
       }
     },
-    "/actors/system/{identifier}": {
+    "/actors/machine/identifier/system/{identifier}": {
       "get": {
         "tags": [
           "Graph",
           "Principal"
         ],
-        "operationId": "get_or_create_system_actor",
+        "operationId": "get_or_create_system_machine",
         "parameters": [
           {
             "name": "identifier",
@@ -848,6 +843,50 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/MachineId"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
+    "/actors/machine/identifier/{identifier}": {
+      "get": {
+        "tags": [
+          "Graph",
+          "Web"
+        ],
+        "operationId": "get_machine_by_identifier",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          },
+          {
+            "name": "identifier",
+            "in": "path",
+            "description": "The identifier of the machine to get",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The web was retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "nullable": true
                 }
               }
             }
@@ -7624,41 +7663,6 @@
             }
           }
         }
-      },
-      "GetTeamResponse": {
-        "type": "object",
-        "required": [
-          "teamId",
-          "parentId"
-        ],
-        "properties": {
-          "parentId": {
-            "$ref": "#/components/schemas/ActorGroupId"
-          },
-          "teamId": {
-            "$ref": "#/components/schemas/TeamId"
-          }
-        },
-        "additionalProperties": false
-      },
-      "GetWebResponse": {
-        "type": "object",
-        "required": [
-          "webId",
-          "machineId"
-        ],
-        "properties": {
-          "machineId": {
-            "$ref": "#/components/schemas/MachineId"
-          },
-          "shortname": {
-            "type": "string"
-          },
-          "webId": {
-            "$ref": "#/components/schemas/WebId"
-          }
-        },
-        "additionalProperties": false
       },
       "GraphElementVertexId": {
         "oneOf": [

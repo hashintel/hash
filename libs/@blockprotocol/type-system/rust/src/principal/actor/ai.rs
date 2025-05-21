@@ -58,5 +58,6 @@ impl From<AiId> for Uuid {
 pub struct Ai {
     pub id: AiId,
     pub identifier: String,
+    #[cfg_attr(feature = "codegen", specta(skip))]
     pub roles: HashSet<RoleId>,
 }
