@@ -2651,7 +2651,7 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
                 let role_ids = row.get::<_, Vec<WebRoleId>>(1);
                 Web {
                     id,
-                    shortname: Some(row.get(0)),
+                    shortname: row.get(0),
                     roles: role_ids.into_iter().collect(),
                 }
             }))
