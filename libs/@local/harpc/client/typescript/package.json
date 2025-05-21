@@ -35,7 +35,7 @@
     "effect": "3.13.11",
     "it-stream-types": "2.0.2",
     "libp2p": "2.8.7",
-    "multiformats": "13.3.5",
+    "multiformats": "13.3.6",
     "uint8arraylist": "2.4.8"
   },
   "devDependencies": {
