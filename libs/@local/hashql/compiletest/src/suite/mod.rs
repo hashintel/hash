@@ -8,6 +8,7 @@ mod ast_lowering_special_form_expander;
 mod ast_lowering_type_definition_extractor;
 mod ast_lowering_type_extractor;
 pub(crate) mod common;
+mod hir_reify;
 mod parse_syntax_dump;
 
 use hashql_ast::node::expr::Expr;
@@ -23,7 +24,7 @@ use self::{
     ast_lowering_sanitizer::AstLoweringSanitizerSuite,
     ast_lowering_special_form_expander::AstLoweringSpecialFormExpanderSuite,
     ast_lowering_type_definition_extractor::AstLoweringTypeDefinitionExtractorSuite,
-    ast_lowering_type_extractor::AstLoweringTypeExtractorSuite,
+    ast_lowering_type_extractor::AstLoweringTypeExtractorSuite, hir_reify::HirReifySuite,
     parse_syntax_dump::ParseSyntaxDumpSuite,
 };
 
@@ -53,6 +54,7 @@ const SUITES: &[&dyn Suite] = &[
     &AstLoweringTypeExtractorSuite,
     &AstLoweringTypeDefinitionExtractorSuite,
     &AstLoweringSanitizerSuite,
+    &HirReifySuite,
 ];
 
 pub(crate) fn find_suite(name: &str) -> Option<&'static dyn Suite> {
