@@ -1,6 +1,20 @@
-use hashql_core::{intern::Interned, span::SpanId, symbol::Ident, r#type::TypeId};
+use hashql_core::{
+    intern::Interned,
+    span::SpanId,
+    symbol::Ident,
+    r#type::{TypeId, kind::generic::GenericArgumentReference},
+};
 
 use super::Node;
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct ClosureParam<'heap> {
+    pub span: SpanId,
+
+    // see: https://linear.app/hash/issue/H-4587/hashql-add-argument-label-support-a-la-swift
+    // pub label: Option<Ident<'heap>>,
+    pub name: Ident<'heap>,
+}
 
 /// The signature of a closure in the HashQL HIR.
 ///
@@ -16,8 +30,14 @@ pub struct ClosureSignature<'heap> {
 
     // Always a `ClosureType`
     pub r#type: TypeId,
+
+    // The generics bound to this type, always in the order they have been specified
+    // TODO: I am unsure if they are even required. They are required for when binding to a generic
+    // path that goes back to a function. This doesn't happen in the ImportResolver, but in the HIR
+    // during type checking.
+    pub generics: Interned<'heap, [GenericArgumentReference<'heap>]>,
     // The names of the different parameters, always the same length as the `ClosureType` params
-    pub params: Interned<'heap, [Ident<'heap>]>,
+    pub params: Interned<'heap, [ClosureParam<'heap>]>,
 }
 
 /// A closure expression in the HashQL HIR.

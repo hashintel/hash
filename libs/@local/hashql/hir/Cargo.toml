@@ -8,14 +8,29 @@ version.workspace = true
 
 [dependencies]
 # Public workspace dependencies
+hashql-ast  = { workspace = true, public = true }
 hashql-core = { workspace = true, public = true }
 
 # Public third-party dependencies
 
 # Private workspace dependencies
+hashql-diagnostics = { workspace = true }
 
 # Private third-party dependencies
+pretty         = { workspace = true }
 simple-mermaid = { workspace = true }
+
+[dev-dependencies]
+hashql-compiletest = { workspace = true }
 
 [lints]
 workspace = true
+
+[[test]]
+name    = "compiletest"
+harness = false
+
+[package.metadata.sync.turborepo]
+ignore-dev-dependencies = [
+    "@rust/hashql-compiletest",
+]

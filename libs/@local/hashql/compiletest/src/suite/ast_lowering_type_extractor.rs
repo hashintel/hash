@@ -17,8 +17,9 @@ use hashql_ast::{
 use hashql_core::{
     heap::Heap,
     module::{ModuleRegistry, locals::Local, namespace::ModuleNamespace},
+    pretty::{PrettyOptions, PrettyPrint as _},
     span::SpanId,
-    r#type::{environment::Environment, pretty_print::PrettyPrint as _},
+    r#type::environment::Environment,
 };
 
 use super::{Suite, SuiteDiagnostic, common::process_diagnostics};
@@ -83,7 +84,7 @@ impl Suite for AstLoweringTypeExtractorSuite {
             let _: Result<(), _> = write!(
                 output,
                 "\n\n{}",
-                strip_str(&def.pretty_print(&environment, 80))
+                strip_str(&def.pretty_print(&environment, PrettyOptions::default()))
             );
         }
 
@@ -98,7 +99,7 @@ impl Suite for AstLoweringTypeExtractorSuite {
             let _: Result<(), _> = write!(
                 output,
                 "\n\n{node_id} = {}",
-                strip_str(&r#type.pretty_print(&environment, 80))
+                strip_str(&r#type.pretty_print(&environment, PrettyOptions::default()))
             );
         }
 
@@ -110,7 +111,7 @@ impl Suite for AstLoweringTypeExtractorSuite {
             let _: Result<(), _> = write!(
                 output,
                 "\n\n{node_id}{}",
-                strip_str(&def.pretty_print(&environment, 80))
+                strip_str(&def.pretty_print(&environment, PrettyOptions::default()))
             );
         }
 

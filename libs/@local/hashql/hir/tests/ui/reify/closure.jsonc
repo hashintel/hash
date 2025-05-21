@@ -1,0 +1,9 @@
+//@ run: pass
+//@ description: Validates that closure expressions, including generic parameters and their usage in the body, are reified correctly.
+[
+  "fn",
+  { "#struct": { "T": "Number" } },
+  { "#struct": { "foo": "T", "bar": "T" } },
+  "T",
+  ["+", "foo", "bar"]
+]

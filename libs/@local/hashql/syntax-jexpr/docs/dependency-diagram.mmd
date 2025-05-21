@@ -12,12 +12,15 @@ graph TD
     1[<a href="../hashql_compiletest">hashql-compiletest</a>]
     2[<a href="../hashql_core">hashql-core</a>]
     3[<a href="../hashql_diagnostics">hashql-diagnostics</a>]
-    4[hashql-syntax-jexpr]
-    class 4 root
-    5[<a href="../error_stack">error-stack</a>]
+    4[<a href="../hashql_hir">hashql-hir</a>]
+    5[hashql-syntax-jexpr]
+    class 5 root
+    6[<a href="../error_stack">error-stack</a>]
     0 -.-> 1
     1 --> 4
+    1 --> 5
     2 --> 3
-    3 --> 5
-    4 --> 0
-    4 --> 2
+    3 --> 6
+    4 -.-> 1
+    5 --> 0
+    5 --> 2

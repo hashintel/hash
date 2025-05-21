@@ -17,9 +17,10 @@ graph TD
     5[<a href="../hashql_syntax_jexpr">hashql-syntax-jexpr</a>]
     6[<a href="../error_stack">error-stack</a>]
     0 -.-> 1
+    1 --> 4
     1 --> 5
     2 --> 3
     3 --> 6
-    4 --> 2
+    4 -.-> 1
     5 --> 0
     5 --> 2

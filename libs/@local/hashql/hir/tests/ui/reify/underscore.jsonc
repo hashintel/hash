@@ -1,0 +1,4 @@
+//@ run: fail
+//@ description: Tests that underscore placeholders are properly rejected when used as expressions.
+"_"
+//~^ ERROR `_` not allowed here

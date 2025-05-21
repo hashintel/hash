@@ -4,6 +4,7 @@ use super::{Constraint, InferenceSolver, VariableConstraint};
 use crate::{
     collection::{FastHashMap, SmallVec},
     heap::Heap,
+    pretty::PrettyPrint as _,
     span::SpanId,
     r#type::{
         PartialType,
@@ -19,7 +20,6 @@ use crate::{
             r#struct::StructField,
             test::{assert_equiv, primitive, r#struct, struct_field, union},
         },
-        pretty_print::PrettyPrint as _,
         test::{instantiate, instantiate_infer},
     },
 };

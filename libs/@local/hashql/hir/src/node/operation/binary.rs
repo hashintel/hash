@@ -50,6 +50,20 @@ pub enum BinOpKind {
     Gte,
 }
 
+impl BinOpKind {
+    #[must_use]
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::Eq => "==",
+            Self::Lt => "<",
+            Self::Lte => "<=",
+            Self::Ne => "!=",
+            Self::Ge => ">=",
+            Self::Gte => ">",
+        }
+    }
+}
+
 /// A binary operator in the HashQL HIR.
 ///
 /// Represents a specific binary operation to be performed, such as addition,

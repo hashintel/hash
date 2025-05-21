@@ -13,7 +13,8 @@
     iter_map_windows,
     cold_path,
     type_alias_impl_trait,
-    associated_type_defaults
+    associated_type_defaults,
+    default_field_values
 )]
 
 extern crate alloc;
@@ -25,6 +26,7 @@ pub mod intern;
 pub mod literal;
 pub mod math;
 pub mod module;
+pub mod pretty;
 pub mod span;
 pub mod symbol;
 pub mod r#type;

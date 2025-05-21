@@ -1,0 +1,15 @@
+//@ run: pass
+//@ description: Tests reification of closures with multiple input parameters of different types.
+[
+  "fn",
+  { "#tuple": [] },
+  {
+    "#struct": {
+      "name": "String",
+      "age": "Integer",
+      "scores": "List<Number>"
+    }
+  },
+  "Number",
+  ["+", ["*", "age", { "#literal": 10 }], ["+", "scores"]]
+]

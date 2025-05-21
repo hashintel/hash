@@ -1,0 +1,16 @@
+//@ run: pass
+//@ description: Tests reification of function calls with multiple arguments of different types.
+[
+  "let",
+  "concat",
+  // polyfill so that we have an example function we can call, type checking will deny this either way because it's not a function
+  // but reification does not care about that, it only cares about the presence of a variable
+  { "#literal": null },
+  [
+    "concat",
+    { "#literal": "hello" },
+    { "#literal": ", " },
+    { "#literal": "world" },
+    { "#literal": "!" }
+  ]
+]

@@ -1,12 +1,13 @@
 use core::{assert_matches::debug_assert_matches, ops::ControlFlow};
 
 use bitvec::bitvec;
-use pretty::RcDoc;
+use pretty::{DocAllocator as _, RcAllocator, RcDoc};
 use smallvec::SmallVec;
 
 use super::TypeKind;
 use crate::{
     intern::Interned,
+    pretty::{PrettyPrint, PrettyRecursionBoundary},
     span::SpanId,
     r#type::{
         PartialType, Type, TypeId,
@@ -18,8 +19,6 @@ use crate::{
         error::{cannot_be_subtype_of_never, type_mismatch, union_variant_mismatch},
         inference::{Constraint, Inference, PartialStructuralEdge, Variable},
         lattice::Lattice,
-        pretty_print::PrettyPrint,
-        recursion::RecursionDepthBoundary,
     },
 };
 
@@ -145,8 +144,8 @@ impl<'heap> UnionType<'heap> {
         env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool
     where
-        T: PrettyPrint,
-        U: PrettyPrint,
+        T: PrettyPrint<'heap>,
+        U: PrettyPrint<'heap>,
     {
         // Empty union (corresponds to the Never type) is a subtype of any union type
         if self_variants.is_empty() {
@@ -196,8 +195,8 @@ impl<'heap> UnionType<'heap> {
         env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool
     where
-        T: PrettyPrint,
-        U: PrettyPrint,
+        T: PrettyPrint<'heap>,
+        U: PrettyPrint<'heap>,
     {
         // Empty unions are only equivalent to other empty unions
         // As an empty union corresponds to the `Never` type, therefore only `Never ≡ Never`
@@ -594,26 +593,26 @@ impl<'heap> Inference<'heap> for UnionType<'heap> {
     }
 }
 
-impl PrettyPrint for UnionType<'_> {
-    fn pretty<'env>(
+impl<'heap> PrettyPrint<'heap> for UnionType<'heap> {
+    fn pretty(
         &self,
-        env: &'env Environment,
-        limit: RecursionDepthBoundary,
-    ) -> pretty::RcDoc<'env, anstyle::Style> {
-        RcDoc::text("(")
-            .append(
-                RcDoc::intersperse(
-                    self.variants
-                        .iter()
-                        .map(|&variant| limit.pretty(env, variant)),
-                    RcDoc::line()
-                        .append(RcDoc::text("|"))
-                        .append(RcDoc::space()),
-                )
-                .nest(1)
-                .group(),
+        env: &Environment<'heap>,
+        boundary: &mut PrettyRecursionBoundary,
+    ) -> RcDoc<'heap, anstyle::Style> {
+        RcAllocator
+            .intersperse(
+                self.variants
+                    .iter()
+                    .map(|&variant| boundary.pretty_type(env, variant)),
+                RcDoc::line()
+                    .append(RcDoc::text("|"))
+                    .append(RcDoc::space()),
             )
-            .append(RcDoc::text(")"))
+            .nest(1)
+            .group()
+            .parens()
+            .group()
+            .into_doc()
     }
 }
 
@@ -627,6 +626,7 @@ mod test {
     use super::UnionType;
     use crate::{
         heap::Heap,
+        pretty::PrettyPrint as _,
         span::SpanId,
         r#type::{
             PartialType,
@@ -650,7 +650,6 @@ mod test {
                 tuple::TupleType,
             },
             lattice::{Lattice as _, test::assert_lattice_laws},
-            pretty_print::PrettyPrint as _,
             test::{instantiate, instantiate_infer, instantiate_param},
         },
     };
@@ -1461,8 +1460,6 @@ mod test {
         // Simplifying should collapse duplicates
         let result = union_type.simplify(&mut simplify_env);
         let result_type = env.r#type(result);
-
-        println!("{}", result_type.pretty_print(&env, 80));
 
         // Result should be just Number, not a union
         assert_matches!(

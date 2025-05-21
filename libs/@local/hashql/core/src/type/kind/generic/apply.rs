@@ -1,11 +1,12 @@
 use core::ops::Deref;
 
-use pretty::RcDoc;
+use pretty::{DocAllocator as _, RcAllocator, RcDoc};
 
 use super::{GenericArgumentId, Param};
 use crate::{
     collection::SmallVec,
     intern::Interned,
+    pretty::{ORANGE, PrettyPrint, PrettyRecursionBoundary, RED},
     span::SpanId,
     r#type::{
         PartialType, Type, TypeId,
@@ -17,8 +18,6 @@ use crate::{
         inference::{Inference, PartialStructuralEdge},
         kind::TypeKind,
         lattice::Lattice,
-        pretty_print::{ORANGE, PrettyPrint, RED},
-        recursion::RecursionDepthBoundary,
     },
 };
 
@@ -28,20 +27,22 @@ pub struct GenericSubstitution {
     pub value: TypeId,
 }
 
-impl PrettyPrint for GenericSubstitution {
-    fn pretty<'env>(
+impl<'heap> PrettyPrint<'heap> for GenericSubstitution {
+    fn pretty(
         &self,
-        env: &'env Environment,
-        limit: RecursionDepthBoundary,
-    ) -> RcDoc<'env, anstyle::Style> {
+        env: &Environment<'heap>,
+        boundary: &mut PrettyRecursionBoundary,
+    ) -> RcDoc<'heap, anstyle::Style> {
         let name = format!("?{}", self.argument);
 
         RcDoc::text(name)
             .annotate(ORANGE)
             .append(RcDoc::space())
             .append("=")
-            .append(RcDoc::line())
-            .append(limit.pretty(env, self.value))
+            .append(RcDoc::softline())
+            .group()
+            .append(boundary.pretty_type(env, self.value).group())
+            .group()
     }
 }
 
@@ -109,27 +110,26 @@ impl Deref for GenericSubstitutions<'_> {
     }
 }
 
-impl PrettyPrint for GenericSubstitutions<'_> {
-    fn pretty<'env>(
+impl<'heap> PrettyPrint<'heap> for GenericSubstitutions<'heap> {
+    fn pretty(
         &self,
-        env: &'env Environment,
-        limit: RecursionDepthBoundary,
-    ) -> RcDoc<'env, anstyle::Style> {
+        env: &Environment<'heap>,
+        boundary: &mut PrettyRecursionBoundary,
+    ) -> RcDoc<'heap, anstyle::Style> {
         match self.as_slice() {
-            [] => RcDoc::text("<>"),
-            slice => RcDoc::text("<")
-                .append(
-                    RcDoc::intersperse(
-                        slice
-                            .iter()
-                            .map(|substitution| substitution.pretty(env, limit)),
-                        RcDoc::text(",").append(RcDoc::line()),
-                    )
-                    .nest(1)
-                    .group(),
-                )
-                .append(RcDoc::text(">")),
+            [] => RcAllocator.nil(),
+            slice => RcAllocator.intersperse(
+                slice
+                    .iter()
+                    .map(|substitution| substitution.pretty(env, boundary)),
+                RcDoc::text(",").append(RcDoc::softline()),
+            ),
         }
+        .nest(1)
+        .group()
+        .angles()
+        .group()
+        .into_doc()
     }
 }
 
@@ -412,19 +412,19 @@ impl<'heap> Inference<'heap> for Apply<'heap> {
     }
 }
 
-impl PrettyPrint for Apply<'_> {
-    fn pretty<'env>(
+impl<'heap> PrettyPrint<'heap> for Apply<'heap> {
+    fn pretty(
         &self,
-        env: &'env Environment,
-        limit: RecursionDepthBoundary,
-    ) -> RcDoc<'env, anstyle::Style> {
-        limit.pretty(env, self.base).append(
-            RcDoc::line()
-                .append(RcDoc::text("where").annotate(RED))
-                .append(self.substitutions.pretty(env, limit))
-                .group()
-                .nest(1),
-        )
+        env: &Environment<'heap>,
+        boundary: &mut PrettyRecursionBoundary,
+    ) -> RcDoc<'heap, anstyle::Style> {
+        boundary
+            .pretty_type(env, self.base)
+            .append(RcDoc::softline())
+            .group()
+            .append(RcDoc::text("where").annotate(RED))
+            .append(self.substitutions.pretty(env, boundary).group())
+            .group()
     }
 }
 
@@ -436,6 +436,7 @@ mod tests {
     use super::{Apply, GenericSubstitution};
     use crate::{
         heap::Heap,
+        pretty::{PrettyOptions, PrettyPrint as _, PrettyRecursionGuardStrategy},
         span::SpanId,
         r#type::{
             PartialType,
@@ -456,7 +457,6 @@ mod tests {
                 },
             },
             lattice::test::assert_lattice_laws,
-            pretty_print::PrettyPrint as _,
             test::{instantiate, instantiate_infer, instantiate_param},
         },
     };
@@ -1000,7 +1000,13 @@ mod tests {
         let result_id = simplify.simplify(instantiate.instantiate(recursive.id));
 
         // The type is complicated enough that it isn't feasible to test it through assertions.
-        insta::assert_snapshot!(strip_str(&env.r#type(result_id).pretty_print(&env, 80)));
+        insta::assert_snapshot!(strip_str(&env.r#type(result_id).pretty_print(
+            &env,
+            PrettyOptions {
+                recursion_strategy: PrettyRecursionGuardStrategy::DepthCounting,
+                ..PrettyOptions::default()
+            }
+        )));
     }
 
     #[test]
@@ -1317,7 +1323,13 @@ mod tests {
         let result_id = SimplifyEnvironment::new(&env).simplify(result_id);
 
         // The type is complicated enough that it isn't feasible to test it through assertions.
-        insta::assert_snapshot!(strip_str(&env.r#type(result_id).pretty_print(&env, 80)));
+        insta::assert_snapshot!(strip_str(&env.r#type(result_id).pretty_print(
+            &env,
+            PrettyOptions {
+                recursion_strategy: PrettyRecursionGuardStrategy::DepthCounting,
+                ..PrettyOptions::default()
+            }
+        )));
     }
 
     #[test]
@@ -1393,7 +1405,13 @@ mod tests {
         let result_id = SimplifyEnvironment::new(&env).simplify(result_id);
 
         // The type is complicated enough that it isn't feasible to test it through assertions.
-        insta::assert_snapshot!(strip_str(&env.r#type(result_id).pretty_print(&env, 80)));
+        insta::assert_snapshot!(strip_str(&env.r#type(result_id).pretty_print(
+            &env,
+            PrettyOptions {
+                recursion_strategy: PrettyRecursionGuardStrategy::DepthCounting,
+                ..PrettyOptions::default()
+            }
+        )));
     }
 
     #[test]
@@ -1464,7 +1482,13 @@ mod tests {
         let result_id = SimplifyEnvironment::new(&env).simplify(result_id);
 
         // The type is complicated enough that it isn't feasible to test it through assertions.
-        insta::assert_snapshot!(strip_str(&env.r#type(result_id).pretty_print(&env, 80)));
+        insta::assert_snapshot!(strip_str(&env.r#type(result_id).pretty_print(
+            &env,
+            PrettyOptions {
+                recursion_strategy: PrettyRecursionGuardStrategy::DepthCounting,
+                ..PrettyOptions::default()
+            }
+        )));
     }
 
     #[test]
@@ -1527,7 +1551,13 @@ mod tests {
         let result_id = instantiate.instantiate(bar);
 
         // The type is complicated enough that it isn't feasible to test it through assertions.
-        insta::assert_snapshot!(strip_str(&env.r#type(result_id).pretty_print(&env, 80)));
+        insta::assert_snapshot!(strip_str(&env.r#type(result_id).pretty_print(
+            &env,
+            PrettyOptions {
+                recursion_strategy: PrettyRecursionGuardStrategy::DepthCounting,
+                ..PrettyOptions::default()
+            }
+        )));
     }
 
     #[test]
@@ -1585,6 +1615,12 @@ mod tests {
         let result_id = instantiate.instantiate(foo);
 
         // The type is complicated enough that it isn't feasible to test it through assertions.
-        insta::assert_snapshot!(strip_str(&env.r#type(result_id).pretty_print(&env, 80)));
+        insta::assert_snapshot!(strip_str(&env.r#type(result_id).pretty_print(
+            &env,
+            PrettyOptions {
+                recursion_strategy: PrettyRecursionGuardStrategy::DepthCounting,
+                ..PrettyOptions::default()
+            }
+        )));
     }
 }

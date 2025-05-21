@@ -3774,6 +3774,7 @@ dependencies = [
  "hashql-ast",
  "hashql-core",
  "hashql-diagnostics",
+ "hashql-hir",
  "hashql-syntax-jexpr",
  "indicatif",
  "line-index",
@@ -3841,7 +3842,11 @@ dependencies = [
 name = "hashql-hir"
 version = "0.0.0"
 dependencies = [
+ "hashql-ast",
+ "hashql-compiletest",
  "hashql-core",
+ "hashql-diagnostics",
+ "pretty",
  "simple-mermaid",
 ]
 

@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Tests reification of a simple function call expression.
+["+", { "#literal": 1 }, { "#literal": 2 }]

@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Tests reification of input statements with default values, ensuring both the type and default are properly handled.
+["input", "limit", "Integer", { "#literal": 10 }]
