@@ -2388,7 +2388,7 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
             .await
             .change_context(GetActorError)?
             .map(|row| {
-                let role_ids = row.get::<_, Vec<Uuid>>(1);
+                let role_ids = row.get::<_, Vec<Uuid>>(0);
                 let principal_types = row.get::<_, Vec<PrincipalType>>(1);
                 User {
                     id,
@@ -2648,7 +2648,7 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
             .await
             .change_context(WebRetrievalError)?
             .map(|row| {
-                let role_ids = row.get::<_, Vec<WebRoleId>>(3);
+                let role_ids = row.get::<_, Vec<WebRoleId>>(1);
                 Web {
                     id,
                     shortname: Some(row.get(0)),
@@ -2679,7 +2679,7 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
             .await
             .change_context(WebRetrievalError)?
             .map(|row| {
-                let role_ids = row.get::<_, Vec<WebRoleId>>(3);
+                let role_ids = row.get::<_, Vec<WebRoleId>>(1);
                 Web {
                     id: row.get(0),
                     shortname: Some(shortname.to_owned()),

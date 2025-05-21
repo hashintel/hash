@@ -70,10 +70,12 @@ async fn create_user_with_duplicate_id() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn get_non_existent_user() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (client, _actor_id) = db.seed([]).await?;
+    let (client, actor_id) = db.seed([]).await?;
 
     let non_existent_id = UserId::new(Uuid::new_v4());
-    let result = client.get_user_by_id(non_existent_id).await?;
+    let result = client
+        .get_user_by_id(actor_id.into(), non_existent_id)
+        .await?;
 
     assert!(
         result.is_none(),
