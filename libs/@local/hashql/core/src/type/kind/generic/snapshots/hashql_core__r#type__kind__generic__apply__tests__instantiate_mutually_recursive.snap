@@ -17,8 +17,8 @@ expression: "strip_str(&env.r#type(result_id).pretty_print(&env, PrettyOptions\n
             <T?4>(b: 
              <U?3>(a: 
               <T?4>(b: <U?3>(a: ... where<?4 = ...>, b: ?3) where<?3 = ?2>)
-               where<?4 = ?3>, b: ?3) where<?3 = ?2>) where<?4 = ?3>, b: ?3)
-            where<?3 = ?2>) where<?4 = ?3>, b: ?3) where<?3 = ?2>) where<?4 =
-          ?3>, b: ?3) where<?3 = ?2>) where<?4 = ?3>, b: ?3) where<?3 = ?2>)
-     where<?4 = ?3>, b: ?3) where<?3 = ?2>) where<?4 = ?3>, b: ?3) where<?3 =
-   ?2>)
+              where<?4 = ?3>, b: ?3) where<?3 = ?2>) where<?4 = ?3>, b: ?3)
+           where<?3 = ?2>) where<?4 = ?3>, b: ?3) where<?3 = ?2>) where<?4 =
+         ?3>, b: ?3) where<?3 = ?2>) where<?4 = ?3>, b: ?3) where<?3 = ?2>)
+    where<?4 = ?3>, b: ?3) where<?3 = ?2>) where<?4 = ?3>, b: ?3) where<?3 =
+  ?2>)

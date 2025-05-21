@@ -1,6 +1,6 @@
 use core::ops::Deref;
 
-use pretty::RcDoc;
+use pretty::{DocAllocator as _, RcAllocator, RcDoc};
 
 use super::{GenericArgumentId, Param};
 use crate::{
@@ -40,7 +40,9 @@ impl<'heap> PrettyPrint<'heap> for GenericSubstitution {
             .append(RcDoc::space())
             .append("=")
             .append(RcDoc::softline())
-            .append(boundary.pretty_type(env, self.value))
+            .group()
+            .append(boundary.pretty_type(env, self.value).group())
+            .group()
     }
 }
 
@@ -115,20 +117,19 @@ impl<'heap> PrettyPrint<'heap> for GenericSubstitutions<'heap> {
         boundary: &mut PrettyRecursionBoundary,
     ) -> RcDoc<'heap, anstyle::Style> {
         match self.as_slice() {
-            [] => RcDoc::text("<>"),
-            slice => RcDoc::text("<")
-                .append(
-                    RcDoc::intersperse(
-                        slice
-                            .iter()
-                            .map(|substitution| substitution.pretty(env, boundary)),
-                        RcDoc::text(",").append(RcDoc::softline()),
-                    )
-                    .nest(1),
-                )
-                .append(RcDoc::text(">")),
+            [] => RcAllocator.nil(),
+            slice => RcAllocator.intersperse(
+                slice
+                    .iter()
+                    .map(|substitution| substitution.pretty(env, boundary)),
+                RcDoc::text(",").append(RcDoc::softline()),
+            ),
         }
+        .nest(1)
         .group()
+        .angles()
+        .group()
+        .into_doc()
     }
 }
 
@@ -417,13 +418,13 @@ impl<'heap> PrettyPrint<'heap> for Apply<'heap> {
         env: &Environment<'heap>,
         boundary: &mut PrettyRecursionBoundary,
     ) -> RcDoc<'heap, anstyle::Style> {
-        boundary.pretty_type(env, self.base).append(
-            RcDoc::softline()
-                .append(RcDoc::text("where").annotate(RED))
-                .append(self.substitutions.pretty(env, boundary))
-                .group()
-                .nest(1),
-        )
+        boundary
+            .pretty_type(env, self.base)
+            .append(RcDoc::softline())
+            .group()
+            .append(RcDoc::text("where").annotate(RED))
+            .append(self.substitutions.pretty(env, boundary).group())
+            .group()
     }
 }
 

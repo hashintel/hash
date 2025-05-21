@@ -3,7 +3,7 @@ pub mod param;
 
 use core::{hash::Hash, ops::Deref};
 
-use pretty::RcDoc;
+use pretty::{DocAllocator as _, RcAllocator, RcDoc};
 
 pub use self::{
     apply::{Apply, GenericSubstitution, GenericSubstitutions},
@@ -115,15 +115,14 @@ impl<'heap> PrettyPrint<'heap> for GenericArgument<'heap> {
     ) -> RcDoc<'heap, anstyle::Style> {
         let name = format!("{}?{}", self.name, self.id);
 
-        let mut doc = RcDoc::text(name).annotate(ORANGE);
+        let mut doc = RcDoc::text(name).annotate(ORANGE).group();
 
         if let Some(constraint) = self.constraint {
-            doc = doc.append(
-                RcDoc::text(":")
-                    .append(RcDoc::softline())
-                    .append(boundary.pretty_type(env, constraint))
-                    .group(),
-            );
+            doc = doc
+                .append(RcDoc::text(":"))
+                .append(RcDoc::softline())
+                .append(boundary.pretty_type(env, constraint).group())
+                .group();
         }
 
         doc
@@ -201,20 +200,19 @@ impl<'heap> PrettyPrint<'heap> for GenericArguments<'heap> {
         boundary: &mut PrettyRecursionBoundary,
     ) -> RcDoc<'heap, anstyle::Style> {
         match self.as_slice() {
-            [] => RcDoc::nil(),
-            arguments => RcDoc::text("<")
-                .append(
-                    RcDoc::intersperse(
-                        arguments
-                            .iter()
-                            .map(|argument| argument.pretty(env, boundary)),
-                        RcDoc::text(",").append(RcDoc::softline()),
-                    )
-                    .nest(1)
-                    .group(),
-                )
-                .append(RcDoc::text(">")),
+            [] => RcAllocator.nil(),
+            arguments => RcAllocator.intersperse(
+                arguments
+                    .iter()
+                    .map(|argument| argument.pretty(env, boundary)),
+                RcDoc::text(",").append(RcDoc::softline()),
+            ),
         }
+        .nest(1)
+        .group()
+        .angles()
+        .group()
+        .into_doc()
     }
 }
 

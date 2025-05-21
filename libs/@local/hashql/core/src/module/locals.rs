@@ -1,6 +1,6 @@
 use core::ops::Index;
 
-use pretty::RcDoc;
+use pretty::{DocAllocator as _, RcAllocator, RcDoc};
 
 use crate::{
     collection::{FastHashMap, TinyVec},
@@ -60,14 +60,17 @@ impl<'heap> PrettyPrint<'heap> for TypeDef<'heap> {
     ) -> RcDoc<'heap, anstyle::Style> {
         match self.arguments.as_slice() {
             [] => RcDoc::nil(),
-            _ => RcDoc::text("<")
-                .append(RcDoc::intersperse(
+            _ => RcAllocator
+                .intersperse(
                     self.arguments
                         .iter()
                         .map(|argument| argument.pretty(env, boundary)),
                     RcDoc::text(",").append(RcDoc::softline()),
-                ))
-                .append(RcDoc::text(">")),
+                )
+                .nest(1)
+                .group()
+                .angles()
+                .into_doc(),
         }
         .group()
         .append(RcDoc::softline())
@@ -95,8 +98,10 @@ where
     ) -> RcDoc<'heap, anstyle::Style> {
         RcDoc::text("type")
             .append(RcDoc::space())
-            .append(RcDoc::as_string(self.name))
+            .append(RcDoc::text(self.name.unwrap()))
+            .group()
             .append(self.value.pretty(env, boundary))
+            .group()
     }
 }
 

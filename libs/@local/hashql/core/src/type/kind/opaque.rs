@@ -327,7 +327,7 @@ impl<'heap> PrettyPrint<'heap> for OpaqueType<'heap> {
     ) -> RcDoc<'heap, anstyle::Style> {
         RcDoc::text(self.name.unwrap())
             .append(RcDoc::text("["))
-            .append(boundary.pretty_type(env, self.repr).group().nest(1))
+            .append(boundary.pretty_type(env, self.repr).group())
             .append(RcDoc::text("]"))
             .group()
     }

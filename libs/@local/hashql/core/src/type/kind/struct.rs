@@ -36,8 +36,9 @@ impl<'heap> PrettyPrint<'heap> for StructField<'heap> {
     ) -> RcDoc<'heap, anstyle::Style> {
         RcDoc::text(self.name.unwrap())
             .append(RcDoc::text(":"))
+            .group()
             .append(RcDoc::softline())
-            .append(boundary.pretty_type(env, self.value))
+            .append(boundary.pretty_type(env, self.value).group())
             .group()
     }
 }

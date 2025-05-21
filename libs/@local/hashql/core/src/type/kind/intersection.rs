@@ -1,7 +1,7 @@
 use core::ops::ControlFlow;
 
 use bitvec::bitvec;
-use pretty::RcDoc;
+use pretty::{DocAllocator as _, RcAllocator, RcDoc};
 use smallvec::SmallVec;
 
 use super::TypeKind;
@@ -606,20 +606,20 @@ impl<'heap> PrettyPrint<'heap> for IntersectionType<'heap> {
         env: &Environment<'heap>,
         boundary: &mut PrettyRecursionBoundary,
     ) -> RcDoc<'heap, anstyle::Style> {
-        RcDoc::text("(")
-            .append(
-                RcDoc::intersperse(
-                    self.variants
-                        .iter()
-                        .map(|&variant| boundary.pretty_type(env, variant)),
-                    RcDoc::line()
-                        .append(RcDoc::text("&"))
-                        .append(RcDoc::space()),
-                )
-                .nest(1)
-                .group(),
+        RcAllocator
+            .intersperse(
+                self.variants
+                    .iter()
+                    .map(|&variant| boundary.pretty_type(env, variant)),
+                RcDoc::line()
+                    .append(RcDoc::text("&"))
+                    .append(RcDoc::space()),
             )
-            .append(RcDoc::text(")"))
+            .nest(1)
+            .group()
+            .parens()
+            .group()
+            .into_doc()
     }
 }
 

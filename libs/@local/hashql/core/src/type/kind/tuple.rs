@@ -1,6 +1,6 @@
 use core::ops::ControlFlow;
 
-use pretty::RcDoc;
+use pretty::{DocAllocator as _, RcAllocator, RcDoc};
 use smallvec::SmallVec;
 
 use super::TypeKind;
@@ -331,20 +331,19 @@ impl<'heap> PrettyPrint<'heap> for TupleType<'heap> {
         match self.fields.as_ref() {
             [] => RcDoc::text("()"),
             &[field] => RcDoc::text("(")
-                .append(boundary.pretty_type(env, field))
+                .append(boundary.pretty_type(env, field).group())
                 .append(RcDoc::text(",)"))
                 .group(),
-            fields => RcDoc::text("(")
-                .append(
-                    RcDoc::intersperse(
-                        fields.iter().map(|&field| boundary.pretty_type(env, field)),
-                        RcDoc::text(",").append(RcDoc::softline()),
-                    )
-                    .nest(1)
-                    .group(),
+            fields => RcAllocator
+                .intersperse(
+                    fields.iter().map(|&field| boundary.pretty_type(env, field)),
+                    RcDoc::text(",").append(RcDoc::softline()),
                 )
-                .append(RcDoc::text(")"))
-                .group(),
+                .nest(1)
+                .group()
+                .parens()
+                .group()
+                .into_doc(),
         }
     }
 }

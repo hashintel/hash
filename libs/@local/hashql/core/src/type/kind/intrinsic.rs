@@ -1,6 +1,6 @@
 use core::ops::ControlFlow;
 
-use pretty::RcDoc;
+use pretty::{DocAllocator as _, RcAllocator, RcDoc};
 use smallvec::SmallVec;
 
 use super::TypeKind;
@@ -190,8 +190,9 @@ impl<'heap> PrettyPrint<'heap> for ListType {
     ) -> RcDoc<'heap, anstyle::Style> {
         RcDoc::text("List")
             .append(RcDoc::text("<"))
-            .append(boundary.pretty_type(env, self.element))
+            .append(boundary.pretty_type(env, self.element).group())
             .append(RcDoc::text(">"))
+            .group()
     }
 }
 
@@ -483,18 +484,21 @@ impl<'heap> PrettyPrint<'heap> for DictType {
         boundary: &mut PrettyRecursionBoundary,
     ) -> RcDoc<'heap, anstyle::Style> {
         RcDoc::text("Dict")
-            .append(RcDoc::text("<"))
             .append(
-                RcDoc::intersperse(
-                    [self.key, self.value]
-                        .into_iter()
-                        .map(|id| boundary.pretty_type(env, id)),
-                    RcDoc::text(",").append(RcDoc::softline()),
-                )
-                .nest(1)
-                .group(),
+                RcAllocator
+                    .intersperse(
+                        [self.key, self.value]
+                            .into_iter()
+                            .map(|id| boundary.pretty_type(env, id)),
+                        RcDoc::text(",").append(RcDoc::softline()),
+                    )
+                    .nest(1)
+                    .group()
+                    .angles()
+                    .group()
+                    .into_doc(),
             )
-            .append(RcDoc::text(">"))
+            .group()
     }
 }
 

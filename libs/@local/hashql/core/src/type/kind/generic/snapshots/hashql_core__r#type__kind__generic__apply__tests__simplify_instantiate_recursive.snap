@@ -4,5 +4,5 @@ expression: "strip_str(&env.r#type(result_id).pretty_print(&env, PrettyOptions\n
 ---
 (foo: (foo: (foo: (foo: (foo: (foo: (foo: (foo: (foo: (foo: (foo: (foo: (foo:
              (foo: (foo: (foo: ...) where<>) where<>) where<>) where<>) where<>)
-           where<>) where<>) where<>) where<>) where<>) where<>) where<>)
-    where<>) where<>) where<>) where<>
+          where<>) where<>) where<>) where<>) where<>) where<>) where<>)
+   where<>) where<>) where<>) where<>

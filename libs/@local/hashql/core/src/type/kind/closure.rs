@@ -1,6 +1,6 @@
 use core::ops::ControlFlow;
 
-use pretty::RcDoc;
+use pretty::{DocAllocator as _, RcAllocator, RcDoc};
 use smallvec::SmallVec;
 
 use super::{TypeKind, generic::GenericArguments};
@@ -285,18 +285,24 @@ impl<'heap> PrettyPrint<'heap> for ClosureType<'heap> {
     ) -> RcDoc<'heap, anstyle::Style> {
         RcDoc::text("fn")
             .append(arguments.pretty(env, boundary))
-            .append("(")
-            .append(RcDoc::intersperse(
-                self.params
-                    .iter()
-                    .map(|&param| boundary.pretty_type(env, param)),
-                RcDoc::text(",").append(RcDoc::softline()),
-            ))
-            .append(")")
+            .group()
+            .append(
+                RcAllocator
+                    .intersperse(
+                        self.params
+                            .iter()
+                            .map(|&param| boundary.pretty_type(env, param)),
+                        RcDoc::text(",").append(RcDoc::softline()),
+                    )
+                    .parens()
+                    .group(),
+            )
+            .group()
             .append(RcDoc::softline())
             .append("->")
+            .group()
             .append(RcDoc::softline())
-            .append(boundary.pretty_type(env, self.returns))
+            .append(boundary.pretty_type(env, self.returns).group())
             .group()
     }
 }
