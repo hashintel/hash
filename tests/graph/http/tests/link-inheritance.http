@@ -1,7 +1,7 @@
 # This file either runs with JetBrains' http requests or using httpYac (https://httpyac.github.io).
 
 ### Get system user
-GET http://127.0.0.1:4000/actors/system/h
+GET http://127.0.0.1:4000/actors/machine/identifier/system/h
 Content-Type: application/json
 
 > {%

@@ -22,7 +22,7 @@ export const submitEarlyAccessFormResolver: ResolverFn<
   const { user } = graphQLContext;
   const context = graphQLContextToImpureGraphContext(graphQLContext);
 
-  const { teamId: adminAccountGroupId } = await getInstanceAdminsTeam(context, {
+  const { id: adminAccountGroupId } = await getInstanceAdminsTeam(context, {
     actorId: systemAccountId,
   });
 

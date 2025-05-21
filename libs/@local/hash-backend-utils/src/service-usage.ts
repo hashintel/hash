@@ -200,7 +200,7 @@ export const createUsageRecord = async (
    */
   const authentication = { actorId: userAccountId };
 
-  const { teamId: hashInstanceAdminGroupId } = await getInstanceAdminsTeam(
+  const { id: hashInstanceAdminGroupId } = await getInstanceAdminsTeam(
     context,
     authentication,
   );

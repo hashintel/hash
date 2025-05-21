@@ -16,6 +16,7 @@ import {
 import { Logger } from "@local/hash-backend-utils/logger";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
+import { getTeamRoles } from "@local/hash-graph-sdk/principal/team";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
@@ -51,7 +52,7 @@ describe("Hash Instance", () => {
   let instanceAdminTeamId: TeamId;
 
   it("can get the instance admin team id", async () => {
-    const { teamId } = await getInstanceAdminsTeam(graphContext, {
+    const { id: teamId } = await getInstanceAdminsTeam(graphContext, {
       actorId: systemAccountId,
     });
     instanceAdminTeamId = teamId;
@@ -156,5 +157,28 @@ describe("Hash Instance", () => {
         actorGroupId: instanceAdminTeamId,
       }),
     ).toBeFalsy();
+  });
+
+  it("can read the hash instance team roles", async () => {
+    const teamRoleMap = await getTeamRoles(
+      graphContext.graphApi,
+      authentication,
+      instanceAdminTeamId,
+    );
+
+    expect(Object.keys(teamRoleMap).length).toStrictEqual(2);
+
+    const teamRoles = Object.values(teamRoleMap).map(({ teamId, name }) => ({
+      teamId,
+      name,
+    }));
+    expect(teamRoles).toContainEqual({
+      teamId: instanceAdminTeamId,
+      name: "member",
+    });
+    expect(teamRoles).toContainEqual({
+      teamId: instanceAdminTeamId,
+      name: "administrator",
+    });
   });
 });

@@ -27,8 +27,8 @@ use hash_graph_authorization::{
             RoleUnassignmentStatus,
             error::{
                 CreatePolicyError, EnsureSystemPoliciesError, GetPoliciesError,
-                GetSystemAccountError, RemovePolicyError, RoleAssignmentError, UpdatePolicyError,
-                WebCreationError,
+                GetSystemAccountError, RemovePolicyError, RoleAssignmentError, TeamRoleError,
+                UpdatePolicyError, WebCreationError, WebRoleError,
             },
         },
     },
@@ -44,8 +44,8 @@ use hash_graph_store::{
     account::{
         AccountGroupInsertionError, AccountInsertionError, AccountStore, CreateAiActorParams,
         CreateMachineActorParams, CreateOrgWebParams, CreateTeamParams, CreateUserActorParams,
-        CreateUserActorResponse, GetTeamResponse, GetWebResponse, QueryWebError,
-        TeamRetrievalError, WebInsertionError, WebRetrievalError,
+        CreateUserActorResponse, GetActorError, QueryWebError, TeamRetrievalError,
+        WebInsertionError, WebRetrievalError,
     },
     error::{InsertionError, QueryError, UpdateError},
     query::ConflictBehavior,
@@ -75,9 +75,9 @@ use type_system::{
     },
     principal::{
         PrincipalId, PrincipalType,
-        actor::{ActorEntityUuid, ActorId, ActorType, AiId, MachineId},
-        actor_group::{ActorGroupEntityUuid, ActorGroupId, TeamId, WebId},
-        role::RoleName,
+        actor::{ActorEntityUuid, ActorId, ActorType, Ai, AiId, Machine, MachineId, User, UserId},
+        actor_group::{ActorGroupEntityUuid, ActorGroupId, Team, TeamId, Web, WebId},
+        role::{RoleId, RoleName, TeamRole, TeamRoleId, WebRole, WebRoleId},
     },
 };
 use uuid::Uuid;
@@ -169,7 +169,7 @@ where
     C: AsClient,
     A: AuthorizationApi + Send + Sync,
 {
-    async fn get_or_create_system_actor(
+    async fn get_or_create_system_machine(
         &mut self,
         identifier: &str,
     ) -> Result<MachineId, Report<GetSystemAccountError>> {
@@ -482,6 +482,72 @@ where
         } else {
             Ok(response)
         }
+    }
+
+    async fn get_web_roles(
+        &mut self,
+        _actor: ActorEntityUuid,
+        web_id: WebId,
+    ) -> Result<HashMap<WebRoleId, WebRole>, Report<WebRoleError>> {
+        let roles = self
+            .as_client()
+            .query_raw(
+                "
+                    SELECT role.id, role.name
+                    FROM role
+                    WHERE role.actor_group_id = $1 AND role.principal_type = 'web_role'
+                ",
+                &[&web_id],
+            )
+            .await
+            .change_context(WebRoleError::StoreError)?
+            .map_ok(|row| {
+                let id = row.get(0);
+                let name = row.get(1);
+                (id, WebRole { id, web_id, name })
+            })
+            .try_collect::<HashMap<_, _>>()
+            .await
+            .change_context(WebRoleError::StoreError)?;
+
+        if roles.is_empty() {
+            // We have at least one role per web, so if this is empty, the web does not exist
+            return Err(Report::new(WebRoleError::NotFound { web_id }));
+        }
+        Ok(roles)
+    }
+
+    async fn get_team_roles(
+        &mut self,
+        _actor: ActorEntityUuid,
+        team_id: TeamId,
+    ) -> Result<HashMap<TeamRoleId, TeamRole>, Report<TeamRoleError>> {
+        let roles = self
+            .as_client()
+            .query_raw(
+                "
+                    SELECT role.id, role.name
+                    FROM role
+                    WHERE role.actor_group_id = $1 AND role.principal_type = 'team_role'
+                ",
+                &[&team_id],
+            )
+            .await
+            .change_context(TeamRoleError::StoreError)?
+            .map_ok(|row| {
+                let id = row.get(0);
+                let name = row.get(1);
+                (id, TeamRole { id, team_id, name })
+            })
+            .try_collect::<HashMap<_, _>>()
+            .await
+            .change_context(TeamRoleError::StoreError)?;
+
+        if roles.is_empty() {
+            // We have at least one role per team, so if this is empty, the team does not exist
+            return Err(Report::new(TeamRoleError::NotFound { team_id }));
+        }
+        Ok(roles)
     }
 
     async fn assign_role(
@@ -1304,7 +1370,7 @@ where
 
     async fn seed_system_policies(&mut self) -> Result<(), Report<EnsureSystemPoliciesError>> {
         let system_machine_actor = self
-            .get_or_create_system_actor("h")
+            .get_or_create_system_machine("h")
             .await
             .change_context(EnsureSystemPoliciesError::CreatingSystemMachineFailed)
             .map(ActorId::Machine)?;
@@ -2313,6 +2379,209 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
             .change_context(AccountInsertionError)
     }
 
+    async fn get_user_by_id(
+        &self,
+        _actor_id: ActorEntityUuid,
+        id: UserId,
+    ) -> Result<Option<User>, Report<GetActorError>> {
+        Ok(self
+            .as_client()
+            .query_opt(
+                "
+                SELECT
+                    array_remove(array_agg(role.id), NULL),
+                    array_remove(array_agg(role.principal_type), NULL)
+                FROM user_actor
+                LEFT OUTER JOIN actor_role ON user_actor.id = actor_role.actor_id
+                LEFT OUTER JOIN role ON actor_role.role_id = role.id
+                WHERE user_actor.id = $1
+                GROUP BY user_actor.id",
+                &[&id],
+            )
+            .await
+            .change_context(GetActorError)?
+            .map(|row| {
+                let role_ids = row.get::<_, Vec<Uuid>>(0);
+                let principal_types = row.get::<_, Vec<PrincipalType>>(1);
+                User {
+                    id,
+                    roles: role_ids
+                        .into_iter()
+                        .zip(principal_types)
+                        .map(|(id, principal_type)| match principal_type {
+                            PrincipalType::WebRole => RoleId::Web(WebRoleId::new(id)),
+                            PrincipalType::TeamRole => RoleId::Team(TeamRoleId::new(id)),
+                            _ => unreachable!("Unexpected role type: {principal_type:?}"),
+                        })
+                        .collect(),
+                }
+            }))
+    }
+
+    async fn get_machine_by_id(
+        &self,
+        _actor_id: ActorEntityUuid,
+        id: MachineId,
+    ) -> Result<Option<Machine>, Report<GetActorError>> {
+        Ok(self
+            .as_client()
+            .query_opt(
+                "
+                SELECT
+                    machine_actor.identifier,
+                    array_remove(array_agg(role.id), NULL),
+                    array_remove(array_agg(role.principal_type), NULL)
+                FROM machine_actor
+                LEFT OUTER JOIN actor_role ON machine_actor.id = actor_role.actor_id
+                LEFT OUTER JOIN role ON actor_role.role_id = role.id
+                WHERE machine_actor.id = $1
+                GROUP BY machine_actor.id, machine_actor.identifier",
+                &[&id],
+            )
+            .await
+            .change_context(GetActorError)?
+            .map(|row| {
+                let role_ids = row.get::<_, Vec<Uuid>>(1);
+                let principal_types = row.get::<_, Vec<PrincipalType>>(2);
+                Machine {
+                    id,
+                    identifier: row.get(0),
+                    roles: role_ids
+                        .into_iter()
+                        .zip(principal_types)
+                        .map(|(id, principal_type)| match principal_type {
+                            PrincipalType::WebRole => RoleId::Web(WebRoleId::new(id)),
+                            PrincipalType::TeamRole => RoleId::Team(TeamRoleId::new(id)),
+                            _ => unreachable!("Unexpected role type: {principal_type:?}"),
+                        })
+                        .collect(),
+                }
+            }))
+    }
+
+    async fn get_machine_by_identifier(
+        &self,
+        _actor_id: ActorEntityUuid,
+        identifier: &str,
+    ) -> Result<Option<Machine>, Report<GetActorError>> {
+        Ok(self
+            .as_client()
+            .query_opt(
+                "
+                SELECT
+                    machine_actor.id,
+                    array_remove(array_agg(role.id), NULL),
+                    array_remove(array_agg(role.principal_type), NULL)
+                FROM machine_actor
+                LEFT OUTER JOIN actor_role ON machine_actor.id = actor_role.actor_id
+                LEFT OUTER JOIN role ON actor_role.role_id = role.id
+                WHERE machine_actor.identifier = $1
+                GROUP BY machine_actor.id, machine_actor.identifier",
+                &[&identifier],
+            )
+            .await
+            .change_context(GetActorError)?
+            .map(|row| {
+                let role_ids = row.get::<_, Vec<Uuid>>(1);
+                let principal_types = row.get::<_, Vec<PrincipalType>>(2);
+                Machine {
+                    id: row.get(0),
+                    identifier: identifier.to_owned(),
+                    roles: role_ids
+                        .into_iter()
+                        .zip(principal_types)
+                        .map(|(id, principal_type)| match principal_type {
+                            PrincipalType::WebRole => RoleId::Web(WebRoleId::new(id)),
+                            PrincipalType::TeamRole => RoleId::Team(TeamRoleId::new(id)),
+                            _ => unreachable!("Unexpected role type: {principal_type:?}"),
+                        })
+                        .collect(),
+                }
+            }))
+    }
+
+    async fn get_ai_by_id(
+        &self,
+        _actor_id: ActorEntityUuid,
+        id: AiId,
+    ) -> Result<Option<Ai>, Report<GetActorError>> {
+        Ok(self
+            .as_client()
+            .query_opt(
+                "
+                SELECT
+                    ai_actor.identifier,
+                    array_remove(array_agg(role.id), NULL),
+                    array_remove(array_agg(role.principal_type), NULL)
+                FROM ai_actor
+                LEFT OUTER JOIN actor_role ON ai_actor.id = actor_role.actor_id
+                LEFT OUTER JOIN role ON actor_role.role_id = role.id
+                WHERE ai_actor.id = $1
+                GROUP BY ai_actor.id, ai_actor.identifier",
+                &[&id],
+            )
+            .await
+            .change_context(GetActorError)?
+            .map(|row| {
+                let role_ids = row.get::<_, Vec<Uuid>>(1);
+                let principal_types = row.get::<_, Vec<PrincipalType>>(2);
+                Ai {
+                    id,
+                    identifier: row.get(0),
+                    roles: role_ids
+                        .into_iter()
+                        .zip(principal_types)
+                        .map(|(id, principal_type)| match principal_type {
+                            PrincipalType::WebRole => RoleId::Web(WebRoleId::new(id)),
+                            PrincipalType::TeamRole => RoleId::Team(TeamRoleId::new(id)),
+                            _ => unreachable!("Unexpected role type: {principal_type:?}"),
+                        })
+                        .collect(),
+                }
+            }))
+    }
+
+    async fn get_ai_by_identifier(
+        &self,
+        _actor_id: ActorEntityUuid,
+        identifier: &str,
+    ) -> Result<Option<Ai>, Report<GetActorError>> {
+        Ok(self
+            .as_client()
+            .query_opt(
+                "
+                SELECT
+                    ai_actor.id,
+                    array_remove(array_agg(role.id), NULL),
+                    array_remove(array_agg(role.principal_type), NULL)
+                FROM ai_actor
+                LEFT OUTER JOIN actor_role ON ai_actor.id = actor_role.actor_id
+                LEFT OUTER JOIN role ON actor_role.role_id = role.id
+                WHERE ai_actor.identifier = $1
+                GROUP BY ai_actor.id, ai_actor.identifier",
+                &[&identifier],
+            )
+            .await
+            .change_context(GetActorError)?
+            .map(|row| {
+                let role_ids = row.get::<_, Vec<Uuid>>(1);
+                let principal_types = row.get::<_, Vec<PrincipalType>>(2);
+                Ai {
+                    id: row.get(0),
+                    identifier: identifier.to_owned(),
+                    roles: role_ids
+                        .into_iter()
+                        .zip(principal_types)
+                        .map(|(id, principal_type)| match principal_type {
+                            PrincipalType::WebRole => RoleId::Web(WebRoleId::new(id)),
+                            PrincipalType::TeamRole => RoleId::Team(TeamRoleId::new(id)),
+                            _ => unreachable!("Unexpected role type: {principal_type:?}"),
+                        })
+                        .collect(),
+                }
+            }))
+    }
+
     async fn create_ai_actor(
         &mut self,
         _actor_id: ActorEntityUuid,
@@ -2371,79 +2640,65 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
     }
 
     async fn get_web_by_id(
-        &mut self,
+        &self,
         _actor_id: ActorEntityUuid,
-        web_id: WebId,
-    ) -> Result<Option<GetWebResponse>, Report<WebRetrievalError>> {
-        let Some(shortname) = self
-            .as_client()
-            .query_opt("SELECT shortname FROM web WHERE id = $1", &[&web_id])
-            .await
-            .change_context(WebRetrievalError)?
-            .map(|row| row.get(0))
-        else {
-            return Ok(None);
-        };
-
-        let Some(machine_id) = self
+        id: WebId,
+    ) -> Result<Option<Web>, Report<WebRetrievalError>> {
+        Ok(self
             .as_client()
             .query_opt(
-                "SELECT id FROM machine_actor WHERE identifier = $1",
-                &[&format!("system-{web_id}")],
+                "
+                SELECT
+                    web.shortname,
+                    array_remove(array_agg(role.id), NULL)
+                FROM web
+                LEFT OUTER JOIN role ON web.id = role.actor_group_id
+                WHERE web.id = $1
+                GROUP BY web.shortname
+                ",
+                &[&id],
             )
             .await
             .change_context(WebRetrievalError)?
-            .map(|row| row.get(0))
-        else {
-            return Ok(None);
-        };
-
-        tracing::info!("Found web with id {web_id} and machine id {machine_id}");
-
-        Ok(Some(GetWebResponse {
-            web_id,
-            machine_id,
-            shortname,
-        }))
+            .map(|row| {
+                let role_ids = row.get::<_, Vec<WebRoleId>>(1);
+                Web {
+                    id,
+                    shortname: row.get(0),
+                    roles: role_ids.into_iter().collect(),
+                }
+            }))
     }
 
     async fn get_web_by_shortname(
-        &mut self,
+        &self,
         _actor_id: ActorEntityUuid,
         shortname: &str,
-    ) -> Result<Option<GetWebResponse>, Report<WebRetrievalError>> {
-        let Some(web_id) = self
-            .as_client()
-            .query_opt("SELECT id FROM web WHERE shortname = $1", &[&shortname])
-            .await
-            .change_context(WebRetrievalError)?
-            .map(|row| row.get(0))
-        else {
-            return Ok(None);
-        };
-
-        let Some(machine_id) = self
+    ) -> Result<Option<Web>, Report<WebRetrievalError>> {
+        Ok(self
             .as_client()
             .query_opt(
-                "SELECT id FROM machine_actor WHERE identifier = $1",
-                &[&format!("system-{web_id}")],
+                "
+                SELECT
+                    web.id,
+                    array_remove(array_agg(role.id), NULL)
+                FROM web
+                LEFT OUTER JOIN role ON web.id = role.actor_group_id
+                WHERE web.shortname = $1
+                GROUP BY web.id
+                ",
+                &[&shortname],
             )
             .await
             .change_context(WebRetrievalError)?
-            .map(|row| row.get(0))
-        else {
-            return Ok(None);
-        };
-
-        tracing::info!(
-            "Found web with id {web_id} and machine id {machine_id} for shortname {shortname}"
-        );
-
-        Ok(Some(GetWebResponse {
-            web_id,
-            machine_id,
-            shortname: Some(shortname.to_owned()),
-        }))
+            .map(|row| {
+                let role_ids = row.get::<_, Vec<WebRoleId>>(1);
+                Web {
+                    id: row.get(0),
+                    shortname: Some(shortname.to_owned()),
+                    roles: role_ids.into_iter().collect(),
+                }
+            }))
     }
 
     #[tracing::instrument(level = "info", skip(self))]
@@ -2527,30 +2782,85 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
         }
     }
 
-    async fn get_team_by_name(
-        &mut self,
+    async fn get_team_by_id(
+        &self,
         _actor_id: ActorEntityUuid,
-        name: &str,
-    ) -> Result<Option<GetTeamResponse>, Report<TeamRetrievalError>> {
+        id: TeamId,
+    ) -> Result<Option<Team>, Report<TeamRetrievalError>> {
         Ok(self
             .as_client()
             .query_opt(
                 "
-                SELECT team.id, parent.principal_type, parent.id
+                SELECT
+                    parent.principal_type,
+                    parent.id,
+                    team.name,
+                    array_remove(array_agg(role.id), NULL)
                 FROM team
-                JOIN principal AS parent ON parent.id = team.parent_id
-                WHERE team.name = $1",
+                JOIN actor_group AS parent ON parent.id = parent_id
+                LEFT OUTER JOIN role ON team.id = role.actor_group_id
+                WHERE team.id = $1
+                GROUP BY team.id, parent.principal_type, parent.id
+                ",
+                &[&id],
+            )
+            .await
+            .change_context(TeamRetrievalError)?
+            .map(|row| {
+                let role_ids = row.get::<_, Vec<TeamRoleId>>(3);
+                Team {
+                    id,
+                    parent_id: match row.get(0) {
+                        PrincipalType::Web => ActorGroupId::Web(row.get(1)),
+                        PrincipalType::Team => ActorGroupId::Team(row.get(1)),
+                        principal_type => {
+                            unreachable!("Unexpected principal type {principal_type}")
+                        }
+                    },
+                    name: row.get(2),
+                    roles: role_ids.into_iter().collect(),
+                }
+            }))
+    }
+
+    async fn get_team_by_name(
+        &self,
+        _actor_id: ActorEntityUuid,
+        name: &str,
+    ) -> Result<Option<Team>, Report<TeamRetrievalError>> {
+        Ok(self
+            .as_client()
+            .query_opt(
+                "
+                SELECT
+                    team.id,
+                    parent.principal_type,
+                    parent.id,
+                    array_remove(array_agg(role.id), NULL)
+                FROM team
+                JOIN actor_group AS parent ON parent.id = parent_id
+                LEFT OUTER JOIN role ON team.id = role.actor_group_id
+                WHERE team.name = $1
+                GROUP BY team.id, parent.principal_type, parent.id
+                ",
                 &[&name],
             )
             .await
             .change_context(TeamRetrievalError)?
-            .map(|row| GetTeamResponse {
-                team_id: row.get(0),
-                parent_id: match row.get(1) {
-                    PrincipalType::Web => ActorGroupId::Web(row.get(2)),
-                    PrincipalType::Team => ActorGroupId::Team(row.get(2)),
-                    other => unreachable!("Unexpected actor group type: {other:?}"),
-                },
+            .map(|row| {
+                let role_ids = row.get::<_, Vec<TeamRoleId>>(3);
+                Team {
+                    id: row.get(0),
+                    parent_id: match row.get(1) {
+                        PrincipalType::Web => ActorGroupId::Web(row.get(2)),
+                        PrincipalType::Team => ActorGroupId::Team(row.get(2)),
+                        principal_type => {
+                            unreachable!("Unexpected principal type {principal_type}")
+                        }
+                    },
+                    name: name.to_owned(),
+                    roles: role_ids.into_iter().collect(),
+                }
             }))
     }
 

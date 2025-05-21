@@ -9,7 +9,7 @@ import { typedEntries } from "@local/advanced-types/typed-entries";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import {
   createMachineActorEntity,
-  getMachineIdByIdentifier,
+  getMachineEntityByIdentifier,
 } from "@local/hash-backend-utils/machine-actors";
 import { createPolicy, deletePolicyById } from "@local/hash-graph-sdk/policy";
 import { getWebByShortname } from "@local/hash-graph-sdk/principal/web";
@@ -78,7 +78,7 @@ export const getOrCreateOwningWebId = async (
    *  If this function is used again after the initial seeding, it's possible that we've created the org in the past.
    */
   const systemActorMachineId = await context.graphApi
-    .getOrCreateSystemActor(webShortname)
+    .getOrCreateSystemMachine(webShortname)
     .then(({ data }) => data as MachineId);
 
   const foundWeb = await getWebByShortname(
@@ -95,13 +95,13 @@ export const getOrCreateOwningWebId = async (
   });
 
   logger.debug(
-    `Found org entity with shortname ${webShortname}, webId: ${foundWeb.webId}, machine actor accountId: ${systemActorMachineId}`,
+    `Found org entity with shortname ${webShortname}, webId: ${foundWeb.id}, machine actor accountId: ${systemActorMachineId}`,
   );
-  owningWebs[webShortname].webId = foundWeb.webId;
+  owningWebs[webShortname].webId = foundWeb.id;
   owningWebs[webShortname].systemActorMachineId = systemActorMachineId;
 
   return {
-    webId: foundWeb.webId,
+    webId: foundWeb.id,
     systemActorMachineId,
   };
 };
@@ -128,11 +128,10 @@ export const ensureSystemWebEntitiesExist = async ({
 
   const authentication = { actorId: systemActorMachineId };
 
-  try {
-    await getMachineIdByIdentifier(context, authentication, {
-      identifier: webShortname,
-    });
-  } catch (error) {
+  const machine = await getMachineEntityByIdentifier(context, authentication, {
+    identifier: webShortname,
+  });
+  if (!machine) {
     let displayName;
 
     switch (webShortname) {
@@ -151,27 +150,23 @@ export const ensureSystemWebEntitiesExist = async ({
         );
     }
 
-    if (error instanceof NotFoundError) {
-      /**
-       * Create a machine entity associated with each machine actorId that created system types.
-       * These machines may also be added to other webs as needed (e.g. for integration workflows).
-       *
-       * Note: these are different from the web-scoped machine actors that EVERY org (system or not) has associated with.
-       *   - the web-scoped machine actors are for taking action in the web, e.g. to grant other bots permissions in it
-       *   - _these_ machine actors are for performing actions across the system related to the types they create, e.g.
-       * Linear actions
-       */
-      await createMachineActorEntity(context, {
-        actor: { actorType: "machine", id: systemActorMachineId },
-        identifier: webShortname,
-        logger,
-        webId,
-        displayName,
-        machineEntityTypeId,
-      });
-    } else {
-      throw error;
-    }
+    /**
+     * Create a machine entity associated with each machine actorId that created system types.
+     * These machines may also be added to other webs as needed (e.g. for integration workflows).
+     *
+     * Note: these are different from the web-scoped machine actors that EVERY org (system or not) has associated with.
+     *   - the web-scoped machine actors are for taking action in the web, e.g. to grant other bots permissions in it
+     *   - _these_ machine actors are for performing actions across the system related to the types they create, e.g.
+     * Linear actions
+     */
+    await createMachineActorEntity(context, {
+      actor: { actorType: "machine", id: systemActorMachineId },
+      identifier: webShortname,
+      logger,
+      webId,
+      displayName,
+      machineEntityTypeId,
+    });
 
     /**
      * Check that an Organization entity exists associated with the web.
@@ -241,106 +236,101 @@ export const ensureSystemEntitiesExist = async (params: {
   /**
    * Create the HASH _AI_ Machine actor and entity, which is added as needed to webs to run AI-related workflows.
    */
-  try {
-    await getMachineIdByIdentifier(context, authentication, {
+  const aiMachine = await getMachineEntityByIdentifier(
+    context,
+    authentication,
+    {
       identifier: "hash-ai",
-    });
-  } catch (error) {
-    if (error instanceof NotFoundError) {
-      const hashWebId = owningWebs.h.webId;
-      if (!hashWebId) {
-        throw new Error(
-          `Somehow reached the point of creating the HASH AI machine actor without a hash webId`,
-        );
-      }
-
-      const aiIdentifier = "hash-ai";
-      const aiAssistantAccountId = await createAiActor(
-        context,
-        authentication,
-        {
-          identifier: aiIdentifier,
-        },
+    },
+  );
+  if (!aiMachine) {
+    const hashWebId = owningWebs.h.webId;
+    if (!hashWebId) {
+      throw new Error(
+        `Somehow reached the point of creating the HASH AI machine actor without a hash webId`,
       );
-
-      await addActorGroupMember(context, authentication, {
-        actorId: aiAssistantAccountId,
-        actorGroupId: hashWebId as ActorGroupEntityUuid,
-      });
-      await context.graphApi.modifyWebAuthorizationRelationships(
-        systemAccountId,
-        [
-          {
-            operation: "create",
-            resource: hashWebId,
-            relationAndSubject: {
-              subject: {
-                kind: "account",
-                subjectId: aiAssistantAccountId,
-              },
-              relation: "entityCreator",
-            },
-          },
-          {
-            operation: "create",
-            resource: hashWebId,
-            relationAndSubject: {
-              subject: {
-                kind: "account",
-                subjectId: aiAssistantAccountId,
-              },
-              relation: "entityEditor",
-            },
-          },
-        ],
-      );
-
-      const instantiationPolicyId = await createPolicy(
-        context.graphApi,
-        authentication,
-        {
-          effect: "permit",
-          principal: {
-            type: "actor",
-            actorType: "ai",
-            id: aiAssistantAccountId,
-          },
-          actions: ["instantiate"],
-          resource: {
-            type: "entityType",
-            filter: {
-              type: "any",
-              filters: [
-                {
-                  type: "isBaseUrl",
-                  baseUrl: systemEntityTypes.actor.entityTypeBaseUrl,
-                },
-                {
-                  type: "isBaseUrl",
-                  baseUrl: systemEntityTypes.machine.entityTypeBaseUrl,
-                },
-              ],
-            },
-          },
-        },
-      );
-
-      await createMachineActorEntity(context, {
-        identifier: aiIdentifier,
-        logger,
-        actor: { actorType: "ai", id: aiAssistantAccountId },
-        webId: hashWebId,
-        displayName: "HASH AI",
-      });
-
-      await deletePolicyById(
-        context.graphApi,
-        authentication,
-        instantiationPolicyId,
-      );
-    } else {
-      throw error;
     }
+
+    const aiIdentifier = "hash-ai";
+    const aiAssistantAccountId = await createAiActor(context, authentication, {
+      identifier: aiIdentifier,
+    });
+
+    await addActorGroupMember(context, authentication, {
+      actorId: aiAssistantAccountId,
+      actorGroupId: hashWebId as ActorGroupEntityUuid,
+    });
+    await context.graphApi.modifyWebAuthorizationRelationships(
+      systemAccountId,
+      [
+        {
+          operation: "create",
+          resource: hashWebId,
+          relationAndSubject: {
+            subject: {
+              kind: "account",
+              subjectId: aiAssistantAccountId,
+            },
+            relation: "entityCreator",
+          },
+        },
+        {
+          operation: "create",
+          resource: hashWebId,
+          relationAndSubject: {
+            subject: {
+              kind: "account",
+              subjectId: aiAssistantAccountId,
+            },
+            relation: "entityEditor",
+          },
+        },
+      ],
+    );
+
+    const instantiationPolicyId = await createPolicy(
+      context.graphApi,
+      authentication,
+      {
+        effect: "permit",
+        principal: {
+          type: "actor",
+          actorType: "ai",
+          id: aiAssistantAccountId,
+        },
+        actions: ["instantiate"],
+        resource: {
+          type: "entityType",
+          filter: {
+            type: "any",
+            filters: [
+              {
+                type: "isBaseUrl",
+                baseUrl: systemEntityTypes.actor.entityTypeBaseUrl,
+              },
+              {
+                type: "isBaseUrl",
+                baseUrl: systemEntityTypes.machine.entityTypeBaseUrl,
+              },
+            ],
+          },
+        },
+      },
+    );
+
+    await createMachineActorEntity(context, {
+      identifier: aiIdentifier,
+      logger,
+      actor: { actorType: "ai", id: aiAssistantAccountId },
+      webId: hashWebId,
+      displayName: "HASH AI",
+    });
+
+    await deletePolicyById(
+      context.graphApi,
+      authentication,
+      instantiationPolicyId,
+    );
   }
 };
 

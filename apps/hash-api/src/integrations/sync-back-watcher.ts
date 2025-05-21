@@ -53,7 +53,12 @@ export const createIntegrationSyncBackWatcher = async (
           { graphApi: graphApiClient },
           { actorId: systemAccountId },
           { identifier: "linear" },
-        );
+        ).then((maybeMachineId) => {
+          if (!maybeMachineId) {
+            throw new Error("Failed to get linear bot");
+          }
+          return maybeMachineId;
+        });
 
         const entity = (
           await graphApiClient

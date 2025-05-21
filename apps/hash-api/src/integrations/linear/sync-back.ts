@@ -56,7 +56,12 @@ export const processEntityChange = async (
     { graphApi },
     { actorId: systemAccountId },
     { identifier: "linear" },
-  );
+  ).then((maybeMachineId) => {
+    if (!maybeMachineId) {
+      throw new Error("Failed to get linear bot");
+    }
+    return maybeMachineId;
+  });
 
   if (entity.metadata.provenance.edition.createdById === linearMachineActorId) {
     /**

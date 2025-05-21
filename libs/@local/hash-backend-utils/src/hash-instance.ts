@@ -1,8 +1,4 @@
-import type {
-  ActorEntityUuid,
-  TeamId,
-  WebId,
-} from "@blockprotocol/type-system";
+import type { ActorEntityUuid, Team, WebId } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { getTeamByName } from "@local/hash-graph-sdk/principal/team";
@@ -30,7 +26,7 @@ export type HashInstance = {
 export const getInstanceAdminsTeam = async (
   ctx: { graphApi: GraphApi },
   authentication: { actorId: ActorEntityUuid },
-): Promise<{ teamId: TeamId; webId: WebId }> =>
+): Promise<Omit<Team, "parentId"> & { webId: WebId }> =>
   getTeamByName(ctx.graphApi, authentication, "instance-admins").then(
     (team) => {
       if (!team) {
@@ -40,9 +36,8 @@ export const getInstanceAdminsTeam = async (
         throw new Error("Instance admins parent is not a web");
       }
       return {
-        teamId: team.teamId,
+        ...team,
         webId: team.parentId.id,
-        name: team.name,
       };
     },
   );
@@ -127,7 +122,7 @@ export const isUserHashInstanceAdmin = async (
     ctx.graphApi
       .hasActorGroupRole(
         authentication.actorId,
-        team.teamId,
+        team.id,
         "member",
         userAccountId,
       )

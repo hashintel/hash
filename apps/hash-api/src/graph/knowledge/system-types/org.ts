@@ -10,11 +10,16 @@ import {
   extractWebIdFromEntityId,
   versionedUrlFromComponents,
 } from "@blockprotocol/type-system";
-import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
-import { createWebMachineActorEntity } from "@local/hash-backend-utils/machine-actors";
+import {
+  EntityTypeMismatchError,
+  NotFoundError,
+} from "@local/hash-backend-utils/error";
+import {
+  createWebMachineActorEntity,
+  getWebMachineId,
+} from "@local/hash-backend-utils/machine-actors";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { createPolicy, deletePolicyById } from "@local/hash-graph-sdk/policy";
-import { getWebById } from "@local/hash-graph-sdk/principal/web";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
@@ -140,17 +145,16 @@ export const createOrg: ImpureGraphFunction<
   let orgWebMachineId: MachineId;
   if (params.webId) {
     orgWebId = params.webId;
-    const { machineId } = await getWebById(
-      ctx.graphApi,
-      authentication,
-      orgWebId,
-    ).then((web) => {
-      if (!web) {
-        throw new Error(`Failed to get web for shortname: ${orgWebId}`);
+    orgWebMachineId = await getWebMachineId(ctx, authentication, {
+      webId: orgWebId,
+    }).then((maybeMachineId) => {
+      if (!maybeMachineId) {
+        throw new NotFoundError(
+          `Failed to get machine for org ID: ${orgWebId}`,
+        );
       }
-      return web;
+      return maybeMachineId;
     });
-    orgWebMachineId = machineId;
   } else {
     const { webId, machineId } = await createOrgWeb(
       ctx,

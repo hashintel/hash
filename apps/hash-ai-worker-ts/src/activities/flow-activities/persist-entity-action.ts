@@ -100,7 +100,14 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
         { graphApi: graphApiClient },
         { actorId },
         { webId },
-      );
+      ).then((maybeMachineId) => {
+        if (!maybeMachineId) {
+          throw new Error(
+            `Failed to get web bot account ID for web ID: ${webId}`,
+          );
+        }
+        return maybeMachineId;
+      });
 
   if (!webBotActorId) {
     throw new Error(

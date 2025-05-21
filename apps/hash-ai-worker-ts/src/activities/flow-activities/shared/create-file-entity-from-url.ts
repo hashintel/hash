@@ -224,7 +224,14 @@ export const createFileEntityFromUrl = async (params: {
         { graphApi: graphApiClient },
         { actorId: userAuthentication.actorId },
         { webId },
-      );
+      ).then((maybeMachineId) => {
+        if (!maybeMachineId) {
+          throw new Error(
+            `Failed to get web machine for user account ID: ${userAuthentication.actorId}`,
+          );
+        }
+        return maybeMachineId;
+      });
 
   if (!webBotActorId) {
     throw new Error(

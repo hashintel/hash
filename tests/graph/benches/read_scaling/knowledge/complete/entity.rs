@@ -76,7 +76,7 @@ async fn seed_db<A: AuthorizationApi>(
     eprintln!("Seeding database: {}", store_wrapper.bench_db_name);
 
     let system_account_id = transaction
-        .get_or_create_system_actor("h")
+        .get_or_create_system_machine("h")
         .await
         .expect("could not read system account");
 

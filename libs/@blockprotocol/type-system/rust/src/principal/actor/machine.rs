@@ -58,5 +58,6 @@ impl From<MachineId> for Uuid {
 pub struct Machine {
     pub id: MachineId,
     pub identifier: String,
+    #[cfg_attr(feature = "codegen", specta(skip))]
     pub roles: HashSet<RoleId>,
 }

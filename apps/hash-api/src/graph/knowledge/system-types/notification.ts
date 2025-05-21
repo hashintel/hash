@@ -133,7 +133,15 @@ export const createMentionNotification: ImpureGraphFunction<
 
   const webMachineActorId = await getWebMachineId(context, userAuthentication, {
     webId,
+  }).then((maybeMachineId) => {
+    if (!maybeMachineId) {
+      throw new Error(
+        `Failed to get web machine for user account ID: ${userAuthentication.actorId}`,
+      );
+    }
+    return maybeMachineId;
   });
+
   const botAuthentication = { actorId: webMachineActorId };
 
   const { linkEntityRelationships, notificationEntityRelationships } =
@@ -399,6 +407,13 @@ export const createCommentNotification: ImpureGraphFunction<
 
   const webMachineActorId = await getWebMachineId(context, userAuthentication, {
     webId,
+  }).then((maybeMachineId) => {
+    if (!maybeMachineId) {
+      throw new Error(
+        `Failed to get web machine for user account ID: ${userAuthentication.actorId}`,
+      );
+    }
+    return maybeMachineId;
   });
   const authentication = { actorId: webMachineActorId };
 

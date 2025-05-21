@@ -227,7 +227,7 @@ impl<A: AuthorizationApi> DatabaseTestWrapper<A> {
             .expect("could not start test transaction");
 
         let system_account_id = store
-            .get_or_create_system_actor("h")
+            .get_or_create_system_machine("h")
             .await
             .change_context(InsertionError)?;
         let user_id = store

@@ -13,14 +13,17 @@ use hash_graph_authorization::{
         store::{RoleAssignmentStatus, RoleUnassignmentStatus},
     },
 };
-use hash_graph_store::error::QueryError;
+use hash_graph_store::{
+    account::{AccountStore as _, GetActorError},
+    error::QueryError,
+};
 use hash_status::StatusCode;
 use tokio_postgres::{GenericClient as _, error::SqlState};
 use type_system::{
     ontology::VersionedUrl,
     principal::{
         PrincipalId, PrincipalType,
-        actor::{Actor, ActorEntityUuid, ActorId, Ai, AiId, Machine, MachineId, User, UserId},
+        actor::{Actor, ActorEntityUuid, ActorId, AiId, MachineId, UserId},
         actor_group::{ActorGroup, ActorGroupEntityUuid, ActorGroupId, Team, TeamId, Web, WebId},
         role::{Role, RoleId, RoleName, TeamRole, TeamRoleId, WebRole, WebRoleId},
     },
@@ -206,14 +209,25 @@ where
     ///
     /// # Errors
     ///
-    /// - [`StoreError`] if a database error occurs
-    ///
-    /// [`StoreError`]: PrincipalError::StoreError
-    pub async fn get_actor(&self, id: ActorId) -> Result<Option<Actor>, Report<PrincipalError>> {
+    /// - [`GetActorError`] if a database error occurs
+    pub async fn get_actor(
+        &self,
+        authenticated_actor: ActorEntityUuid,
+        id: ActorId,
+    ) -> Result<Option<Actor>, Report<GetActorError>> {
         Ok(match id {
-            ActorId::User(id) => self.get_user(id).await?.map(Actor::User),
-            ActorId::Machine(id) => self.get_machine(id).await?.map(Actor::Machine),
-            ActorId::Ai(id) => self.get_ai(id).await?.map(Actor::Ai),
+            ActorId::User(id) => self
+                .get_user_by_id(authenticated_actor, id)
+                .await?
+                .map(Actor::User),
+            ActorId::Machine(id) => self
+                .get_machine_by_id(authenticated_actor, id)
+                .await?
+                .map(Actor::Machine),
+            ActorId::Ai(id) => self
+                .get_ai_by_id(authenticated_actor, id)
+                .await?
+                .map(Actor::Ai),
         })
     }
 
@@ -226,50 +240,6 @@ where
     /// [`StoreError`]: PrincipalError::StoreError
     pub async fn is_user(&self, user_id: impl Into<Uuid>) -> Result<bool, Report<PrincipalError>> {
         self.is_principal(ActorId::User(UserId::new(user_id))).await
-    }
-
-    /// Gets a user by its ID.
-    ///
-    /// # Errors
-    ///
-    /// - [`StoreError`] if a database error occurs
-    ///
-    /// [`StoreError`]: PrincipalError::StoreError
-    pub async fn get_user(&self, id: UserId) -> Result<Option<User>, Report<PrincipalError>> {
-        Ok(self
-            .as_client()
-            .query_opt(
-                "
-                SELECT user_actor.id,
-                       array_agg(role.id) FILTER (WHERE role.id IS NOT NULL),
-                       array_agg(role.principal_type) FILTER (WHERE role.id IS NOT NULL)
-                FROM user_actor
-                LEFT OUTER JOIN actor_role ON user_actor.id = actor_role.actor_id
-                LEFT OUTER JOIN role ON actor_role.role_id = role.id
-                    WHERE user_actor.id = $1
-                GROUP BY user_actor.id",
-                &[&id],
-            )
-            .await
-            .change_context(PrincipalError::StoreError)?
-            .map(|row| {
-                let role_ids = row.get::<_, Option<Vec<Uuid>>>(1).unwrap_or_default();
-                let principal_types = row
-                    .get::<_, Option<Vec<PrincipalType>>>(2)
-                    .unwrap_or_default();
-                User {
-                    id: row.get(0),
-                    roles: role_ids
-                        .into_iter()
-                        .zip(principal_types)
-                        .map(|(id, principal_type)| match principal_type {
-                            PrincipalType::WebRole => RoleId::Web(WebRoleId::new(id)),
-                            PrincipalType::TeamRole => RoleId::Team(TeamRoleId::new(id)),
-                            _ => unreachable!("Unexpected role type: {principal_type:?}"),
-                        })
-                        .collect(),
-                }
-            }))
     }
 
     /// Deletes a user from the system.
@@ -336,55 +306,6 @@ where
             .await
     }
 
-    /// Gets a machine by its ID.
-    ///
-    /// # Errors
-    ///
-    /// - [`StoreError`] if a database error occurs
-    ///
-    /// [`StoreError`]: PrincipalError::StoreError
-    pub async fn get_machine(
-        &self,
-        id: MachineId,
-    ) -> Result<Option<Machine>, Report<PrincipalError>> {
-        Ok(self
-            .as_client()
-            .query_opt(
-                "
-                SELECT machine_actor.id,
-                       machine_actor.identifier,
-                       array_agg(role.id) FILTER (WHERE role.id IS NOT NULL),
-                       array_agg(role.principal_type) FILTER (WHERE role.id IS NOT NULL)
-                FROM machine_actor
-                LEFT OUTER JOIN actor_role ON machine_actor.id = actor_role.actor_id
-                LEFT OUTER JOIN role ON actor_role.role_id = role.id
-                WHERE machine_actor.id = $1
-                GROUP BY machine_actor.id, machine_actor.identifier",
-                &[&id],
-            )
-            .await
-            .change_context(PrincipalError::StoreError)?
-            .map(|row| {
-                let role_ids = row.get::<_, Option<Vec<Uuid>>>(2).unwrap_or_default();
-                let principal_types = row
-                    .get::<_, Option<Vec<PrincipalType>>>(3)
-                    .unwrap_or_default();
-                Machine {
-                    id: row.get(0),
-                    identifier: row.get(1),
-                    roles: role_ids
-                        .into_iter()
-                        .zip(principal_types)
-                        .map(|(id, principal_type)| match principal_type {
-                            PrincipalType::WebRole => RoleId::Web(WebRoleId::new(id)),
-                            PrincipalType::TeamRole => RoleId::Team(TeamRoleId::new(id)),
-                            _ => unreachable!("Unexpected role type: {principal_type:?}"),
-                        })
-                        .collect(),
-                }
-            }))
-    }
-
     /// Deletes a machine from the system.
     ///
     /// # Errors
@@ -445,53 +366,6 @@ where
         self.is_principal(ActorId::Ai(AiId::new(ai_id))).await
     }
 
-    /// Gets an AI by its ID.
-    ///
-    /// # Errors
-    ///
-    /// - [`StoreError`] if a database error occurs
-    ///
-    /// [`StoreError`]: PrincipalError::StoreError
-    pub async fn get_ai(&self, id: AiId) -> Result<Option<Ai>, Report<PrincipalError>> {
-        Ok(self
-            .as_client()
-            .query_opt(
-                "
-                SELECT
-                    ai_actor.id,
-                    ai_actor.identifier,
-                    array_agg(role.id) FILTER (WHERE role.id IS NOT NULL),
-                    array_agg(role.principal_type) FILTER (WHERE role.id IS NOT NULL)
-                FROM ai_actor
-                LEFT OUTER JOIN actor_role ON ai_actor.id = actor_role.actor_id
-                LEFT OUTER JOIN role ON actor_role.role_id = role.id
-                WHERE ai_actor.id = $1
-                GROUP BY ai_actor.id, ai_actor.identifier",
-                &[&id],
-            )
-            .await
-            .change_context(PrincipalError::StoreError)?
-            .map(|row| {
-                let role_ids = row.get::<_, Option<Vec<Uuid>>>(2).unwrap_or_default();
-                let principal_types = row
-                    .get::<_, Option<Vec<PrincipalType>>>(3)
-                    .unwrap_or_default();
-                Ai {
-                    id: row.get(0),
-                    identifier: row.get(1),
-                    roles: role_ids
-                        .into_iter()
-                        .zip(principal_types)
-                        .map(|(id, principal_type)| match principal_type {
-                            PrincipalType::WebRole => RoleId::Web(WebRoleId::new(id)),
-                            PrincipalType::TeamRole => RoleId::Team(TeamRoleId::new(id)),
-                            _ => unreachable!("Unexpected role type: {principal_type:?}"),
-                        })
-                        .collect(),
-                }
-            }))
-    }
-
     /// Deletes an AI from the system.
     ///
     /// # Errors
@@ -541,39 +415,6 @@ where
     pub async fn is_web(&self, web_id: impl Into<Uuid>) -> Result<bool, Report<PrincipalError>> {
         self.is_principal(ActorGroupId::Web(WebId::new(web_id)))
             .await
-    }
-
-    /// Gets a web by its ID.
-    ///
-    /// # Errors
-    ///
-    /// - [`StoreError`] if a database error occurs
-    ///
-    /// [`StoreError`]: PrincipalError::StoreError
-    pub async fn get_web(&self, id: WebId) -> Result<Option<Web>, Report<PrincipalError>> {
-        Ok(self
-            .as_client()
-            .query_opt(
-                "SELECT
-                    web.id,
-                    shortname,
-                    array_remove(array_agg(role.id), NULL)
-                FROM web
-                LEFT OUTER JOIN role ON web.id = role.actor_group_id
-                WHERE web.id = $1
-                GROUP BY web.id, web.shortname",
-                &[&id],
-            )
-            .await
-            .change_context(PrincipalError::StoreError)?
-            .map(|row| {
-                let role_ids = row.get::<_, Vec<WebRoleId>>(2);
-                Web {
-                    id: row.get(0),
-                    shortname: row.get(1),
-                    roles: role_ids.into_iter().collect(),
-                }
-            }))
     }
 
     /// Deletes a web from the system.
@@ -669,49 +510,6 @@ where
     pub async fn is_team(&self, team_id: impl Into<Uuid>) -> Result<bool, Report<PrincipalError>> {
         self.is_principal(ActorGroupId::Team(TeamId::new(team_id)))
             .await
-    }
-
-    /// Gets a team by its ID.
-    ///
-    /// # Errors
-    ///
-    /// - [`StoreError`] if a database error occurs
-    ///
-    /// [`StoreError`]: PrincipalError::StoreError
-    pub async fn get_team(&self, id: TeamId) -> Result<Option<Team>, Report<PrincipalError>> {
-        Ok(self
-            .as_client()
-            .query_opt(
-                "SELECT
-                    team.id,
-                    parent.principal_type,
-                    parent.id,
-                    team.name,
-                    array_remove(array_agg(role.id), NULL)
-                FROM team
-                JOIN actor_group AS parent ON parent.id = parent_id
-                LEFT OUTER JOIN role ON team.id = role.actor_group_id
-                WHERE team.id = $1
-                GROUP BY team.id, parent.principal_type, parent.id, team.name",
-                &[&id],
-            )
-            .await
-            .change_context(PrincipalError::StoreError)?
-            .map(|row| {
-                let role_ids = row.get::<_, Vec<TeamRoleId>>(4);
-                Team {
-                    id: row.get(0),
-                    parent_id: match row.get(1) {
-                        PrincipalType::Web => ActorGroupId::Web(row.get(2)),
-                        PrincipalType::Team => ActorGroupId::Team(row.get(2)),
-                        principal_type => {
-                            unreachable!("Unexpected principal type {principal_type}")
-                        }
-                    },
-                    name: row.get(3),
-                    roles: role_ids.into_iter().collect(),
-                }
-            }))
     }
 
     /// Gets all parent actor groups for the given team.
@@ -1281,8 +1079,9 @@ where
         context_builder: &mut ContextBuilder,
     ) -> Result<(), Report<PrincipalError>> {
         let actor = self
-            .get_actor(actor_id)
-            .await?
+            .get_actor(actor_id.into(), actor_id)
+            .await
+            .change_context(PrincipalError::StoreError)?
             .ok_or(PrincipalError::PrincipalNotFound {
                 id: PrincipalId::Actor(actor_id),
             })?;

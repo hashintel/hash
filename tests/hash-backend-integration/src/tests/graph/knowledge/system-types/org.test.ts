@@ -6,6 +6,7 @@ import {
 } from "@apps/hash-api/src/graph/knowledge/system-types/org";
 import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
 import { Logger } from "@local/hash-backend-utils/logger";
+import { getWebRoles } from "@local/hash-graph-sdk/principal/web";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
@@ -61,5 +62,31 @@ describe("Org", () => {
     });
 
     expect(fetchedOrg).toEqual(createdOrg);
+  });
+
+  it("can read the org roles", async () => {
+    const authentication = { actorId: systemAccountId };
+
+    const orgRoleMap = await getWebRoles(
+      graphContext.graphApi,
+      authentication,
+      createdOrg.webId,
+    );
+
+    expect(Object.keys(orgRoleMap).length).toStrictEqual(2);
+
+    const orgRoles = Object.values(orgRoleMap).map(({ webId, name }) => ({
+      webId,
+      name,
+    }));
+
+    expect(orgRoles).toContainEqual({
+      webId: createdOrg.webId,
+      name: "member",
+    });
+    expect(orgRoles).toContainEqual({
+      webId: createdOrg.webId,
+      name: "administrator",
+    });
   });
 });

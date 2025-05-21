@@ -17,8 +17,10 @@ const migrate: MigrationFunction = async ({
    * Step 1. Ensure the `hashInstanceAdmins` account group has the `editor` permission on all user entities
    */
 
-  const { teamId: hashInstanceAdminsAccountGroupId } =
-    await getInstanceAdminsTeam(context, authentication);
+  const { id: hashInstanceAdminsAccountGroupId } = await getInstanceAdminsTeam(
+    context,
+    authentication,
+  );
 
   const userEntities = await getEntities(context, authentication, {
     filter: {

@@ -59,5 +59,6 @@ pub struct Team {
     pub id: TeamId,
     pub parent_id: ActorGroupId,
     pub name: String,
+    #[cfg_attr(feature = "codegen", specta(skip))]
     pub roles: HashSet<TeamRoleId>,
 }

@@ -5,6 +5,7 @@ use hash_graph_authorization::policies::{
     store::{CreateWebParameter, PrincipalStore as _},
 };
 use hash_graph_postgres_store::permissions::PrincipalError;
+use hash_graph_store::account::AccountStore as _;
 use pretty_assertions::assert_eq;
 use type_system::principal::{
     PrincipalId,
@@ -76,10 +77,12 @@ async fn create_ai_with_duplicate_id() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn get_non_existent_ai() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (client, _actor_id) = db.seed([]).await?;
+    let (client, actor_id) = db.seed([]).await?;
 
     let non_existent_id = AiId::new(Uuid::new_v4());
-    let result = client.get_ai(non_existent_id).await?;
+    let result = client
+        .get_ai_by_id(actor_id.into(), non_existent_id)
+        .await?;
 
     assert!(
         result.is_none(),

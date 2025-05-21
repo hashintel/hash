@@ -1,5 +1,10 @@
-import type { ActorGroupId, TeamId } from "@blockprotocol/type-system";
-import type { GetTeamResponse, GraphApi } from "@local/hash-graph-client";
+import type {
+  Team,
+  TeamId,
+  TeamRole,
+  TeamRoleId,
+} from "@blockprotocol/type-system";
+import type { GraphApi } from "@local/hash-graph-client";
 
 import type { AuthenticationContext } from "../authentication-context.js";
 
@@ -12,19 +17,23 @@ export const getTeamByName = (
   graphAPI: GraphApi,
   authentication: AuthenticationContext,
   name: "instance-admins",
-): Promise<{
-  teamId: TeamId;
-  parentId: ActorGroupId;
-  name: string;
-} | null> =>
+): Promise<Team | null> =>
   graphAPI.getTeamByName(authentication.actorId, name).then(({ data }) => {
-    const response = data as GetTeamResponse | null;
-    if (!response) {
+    const team = data as Team | null;
+    if (!team) {
       return null;
     }
-    return {
-      teamId: response.teamId as TeamId,
-      parentId: response.parentId as ActorGroupId,
-      name,
-    };
+    return team;
   });
+
+/**
+ * Returns all roles assigned to the given team.
+ */
+export const getTeamRoles = (
+  graphAPI: GraphApi,
+  authentication: AuthenticationContext,
+  teamId: TeamId,
+): Promise<Record<TeamRoleId, TeamRole>> =>
+  graphAPI
+    .getTeamRoles(authentication.actorId, teamId)
+    .then(({ data: roles }) => roles as Record<TeamRoleId, TeamRole>);

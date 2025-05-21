@@ -56,6 +56,11 @@ export const upgradeWebEntities = async ({
 }) => {
   const webBotAccountId = await getWebMachineId(context, authentication, {
     webId,
+  }).then((maybeMachineId) => {
+    if (!maybeMachineId) {
+      throw new Error(`Failed to get web bot account ID for web ID: ${webId}`);
+    }
+    return maybeMachineId;
   });
 
   const webBotAuthentication = { actorId: webBotAccountId as ActorEntityUuid };

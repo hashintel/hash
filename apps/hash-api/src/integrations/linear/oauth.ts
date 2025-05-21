@@ -253,7 +253,12 @@ export const oAuthLinearCallback: RequestHandler<
     req.context,
     authentication,
     { identifier: "linear" },
-  );
+  ).then((maybeMachineId) => {
+    if (!maybeMachineId) {
+      throw new Error("Failed to get linear bot");
+    }
+    return maybeMachineId;
+  });
 
   await createUserSecret({
     /**

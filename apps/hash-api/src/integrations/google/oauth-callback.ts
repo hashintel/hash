@@ -1,4 +1,5 @@
 import type { WebId } from "@blockprotocol/type-system";
+import { NotFoundError } from "@local/hash-backend-utils/error";
 import {
   createGoogleOAuth2Client,
   getGoogleAccountById,
@@ -78,7 +79,12 @@ export const googleOAuthCallback: RequestHandler<
     req.context,
     authentication,
     { identifier: "google" },
-  );
+  ).then((maybeMachineId) => {
+    if (!maybeMachineId) {
+      throw new NotFoundError("Failed to get google bot");
+    }
+    return maybeMachineId;
+  });
 
   /**
    * Create the Google Account entity if it doesn't exist

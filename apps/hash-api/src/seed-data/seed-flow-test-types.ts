@@ -176,7 +176,12 @@ const seedFlowTestTypes = async () => {
     context,
     { actorId: publicUserAccountId },
     { identifier: "h" },
-  );
+  ).then((maybeMachineId) => {
+    if (!maybeMachineId) {
+      throw new Error("Failed to get hash bot");
+    }
+    return maybeMachineId;
+  });
 
   const authentication = { actorId: hashBotActorId };
 

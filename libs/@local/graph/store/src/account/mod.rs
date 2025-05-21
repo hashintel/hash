@@ -5,8 +5,8 @@ use thiserror::Error;
 use type_system::{
     knowledge::entity::id::EntityUuid,
     principal::{
-        actor::{ActorEntityUuid, AiId, MachineId, UserId},
-        actor_group::{ActorGroupId, TeamId, WebId},
+        actor::{ActorEntityUuid, Ai, AiId, Machine, MachineId, User, UserId},
+        actor_group::{ActorGroupId, Team, TeamId, Web, WebId},
     },
 };
 
@@ -36,6 +36,10 @@ pub struct CreateUserActorResponse {
 pub struct CreateMachineActorParams {
     pub identifier: String,
 }
+
+#[derive(Debug, Error)]
+#[error("Could not retrieve actor")]
+pub struct GetActorError;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
@@ -67,24 +71,6 @@ pub struct WebRetrievalError;
 #[derive(Debug, Error)]
 #[error("Could not insert web")]
 pub struct WebInsertionError;
-
-#[derive(Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct GetWebResponse {
-    pub web_id: WebId,
-    pub machine_id: MachineId,
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
-    pub shortname: Option<String>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct GetTeamResponse {
-    pub team_id: TeamId,
-    pub parent_id: ActorGroupId,
-}
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
@@ -122,6 +108,61 @@ pub trait AccountStore {
         params: CreateMachineActorParams,
     ) -> impl Future<Output = Result<MachineId, Report<AccountInsertionError>>> + Send;
 
+    /// Returns a [`User`] actor by its [`UserId`].
+    ///
+    /// # Errors
+    ///
+    /// - [`GetActorError`] if the actor could not be retrieved.
+    fn get_user_by_id(
+        &self,
+        actor_id: ActorEntityUuid,
+        id: UserId,
+    ) -> impl Future<Output = Result<Option<User>, Report<GetActorError>>> + Send;
+
+    /// Returns a [`Machine`] actor by its [`MachineId`].
+    ///
+    /// # Errors
+    ///
+    /// - [`GetActorError`] if the actor could not be retrieved.
+    fn get_machine_by_id(
+        &self,
+        actor_id: ActorEntityUuid,
+        id: MachineId,
+    ) -> impl Future<Output = Result<Option<Machine>, Report<GetActorError>>> + Send;
+
+    /// Returns a [`Machine`] actor by its identifier.
+    ///
+    /// # Errors
+    ///
+    /// - [`GetActorError`] if the actor could not be retrieved.
+    fn get_machine_by_identifier(
+        &self,
+        actor_id: ActorEntityUuid,
+        identifier: &str,
+    ) -> impl Future<Output = Result<Option<Machine>, Report<GetActorError>>> + Send;
+
+    /// Returns a [`Ai`] actor by its [`AiId`].
+    ///
+    /// # Errors
+    ///
+    /// - [`GetActorError`] if the actor could not be retrieved.
+    fn get_ai_by_id(
+        &self,
+        actor_id: ActorEntityUuid,
+        id: AiId,
+    ) -> impl Future<Output = Result<Option<Ai>, Report<GetActorError>>> + Send;
+
+    /// Returns a [`Ai`] actor by its identifier.
+    ///
+    /// # Errors
+    ///
+    /// - [`GetActorError`] if the actor could not be retrieved.
+    fn get_ai_by_identifier(
+        &self,
+        actor_id: ActorEntityUuid,
+        identifier: &str,
+    ) -> impl Future<Output = Result<Option<Ai>, Report<GetActorError>>> + Send;
+
     /// Creates an AI actor with the specified [`ActorEntityUuid`] in the database.
     ///
     /// # Errors
@@ -139,10 +180,10 @@ pub trait AccountStore {
     ///
     /// - If reading the web failed.
     fn get_web_by_id(
-        &mut self,
+        &self,
         actor_id: ActorEntityUuid,
-        web_id: WebId,
-    ) -> impl Future<Output = Result<Option<GetWebResponse>, Report<WebRetrievalError>>> + Send;
+        id: WebId,
+    ) -> impl Future<Output = Result<Option<Web>, Report<WebRetrievalError>>> + Send;
 
     /// Retrieves the web as specified by the `shortname`.
     ///
@@ -150,10 +191,10 @@ pub trait AccountStore {
     ///
     /// - If reading the web failed.
     fn get_web_by_shortname(
-        &mut self,
+        &self,
         actor_id: ActorEntityUuid,
         shortname: &str,
-    ) -> impl Future<Output = Result<Option<GetWebResponse>, Report<WebRetrievalError>>> + Send;
+    ) -> impl Future<Output = Result<Option<Web>, Report<WebRetrievalError>>> + Send;
 
     /// Inserts the specified [`WebId`] into the database.
     ///
@@ -177,16 +218,27 @@ pub trait AccountStore {
         params: CreateTeamParams,
     ) -> impl Future<Output = Result<TeamId, Report<AccountGroupInsertionError>>> + Send;
 
+    /// Retrieves the team as specified by the `id`.
+    ///
+    /// # Errors
+    ///
+    /// - If reading the team failed.
+    fn get_team_by_id(
+        &self,
+        actor_id: ActorEntityUuid,
+        id: TeamId,
+    ) -> impl Future<Output = Result<Option<Team>, Report<TeamRetrievalError>>> + Send;
+
     /// Retrieves the team as specified by the `name`.
     ///
     /// # Errors
     ///
     /// - If reading the team failed.
     fn get_team_by_name(
-        &mut self,
+        &self,
         actor_id: ActorEntityUuid,
         name: &str,
-    ) -> impl Future<Output = Result<Option<GetTeamResponse>, Report<TeamRetrievalError>>> + Send;
+    ) -> impl Future<Output = Result<Option<Team>, Report<TeamRetrievalError>>> + Send;
 
     /// Returns either an [`Account`] or an [`AccountGroup`] for the specified
     /// [`WebId`].

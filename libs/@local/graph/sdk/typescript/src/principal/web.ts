@@ -1,5 +1,11 @@
-import type { MachineId, WebId } from "@blockprotocol/type-system";
-import type { GetWebResponse, GraphApi } from "@local/hash-graph-client";
+import type {
+  Machine,
+  Web,
+  WebId,
+  WebRole,
+  WebRoleId,
+} from "@blockprotocol/type-system";
+import type { GraphApi } from "@local/hash-graph-client";
 
 import type { AuthenticationContext } from "../authentication-context.js";
 
@@ -12,17 +18,13 @@ export const getWebById = (
   graphAPI: GraphApi,
   authentication: AuthenticationContext,
   webId: WebId,
-): Promise<{ webId: WebId; machineId: MachineId; shortname?: string } | null> =>
+): Promise<Web | null> =>
   graphAPI.getWebById(authentication.actorId, webId).then(({ data }) => {
-    const response = data as GetWebResponse | null;
-    if (!response) {
+    const web = data as Web | null;
+    if (!web) {
       return null;
     }
-    return {
-      webId,
-      machineId: response.machineId as MachineId,
-      shortname: response.shortname,
-    };
+    return web;
   });
 
 /**
@@ -34,17 +36,40 @@ export const getWebByShortname = (
   graphAPI: GraphApi,
   authentication: AuthenticationContext,
   shortname: string,
-): Promise<{ webId: WebId; machineId: MachineId; shortname: string } | null> =>
+): Promise<Web | null> =>
   graphAPI
     .getWebByShortname(authentication.actorId, shortname)
     .then(({ data }) => {
-      const response = data as GetWebResponse | null;
-      if (!response) {
+      const web = data as Web | null;
+      if (!web) {
         return null;
       }
-      return {
-        webId: response.webId as WebId,
-        machineId: response.machineId as MachineId,
-        shortname,
-      };
+      return web;
     });
+
+export const getMachineByIdentifier = (
+  graphAPI: GraphApi,
+  authentication: AuthenticationContext,
+  identifier: string,
+): Promise<Machine | null> =>
+  graphAPI
+    .getMachineByIdentifier(authentication.actorId, identifier)
+    .then(({ data }) => {
+      const machine = data as Machine | null;
+      if (!machine) {
+        return null;
+      }
+      return machine;
+    });
+
+/**
+ * Returns all roles assigned to the given web.
+ */
+export const getWebRoles = (
+  graphAPI: GraphApi,
+  authentication: AuthenticationContext,
+  webId: WebId,
+): Promise<Record<WebRoleId, WebRole>> =>
+  graphAPI
+    .getWebRoles(authentication.actorId, webId)
+    .then(({ data: roles }) => roles as Record<WebRoleId, WebRole>);

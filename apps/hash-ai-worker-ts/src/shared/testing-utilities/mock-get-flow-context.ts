@@ -137,7 +137,7 @@ vi.mock("@local/hash-backend-utils/temporal", async (importOriginal) => {
               flowTrigger: {
                 triggerDefinitionId: "userTrigger",
               },
-              webId: aliceUserAccountId as WebId,
+              webId: aliceUserAccountId,
               userAuthentication: {
                 actorId: aliceUserAccountId,
               },

@@ -65,7 +65,7 @@ export const requestFileUpload: ResolverFn<
     await triggerPdfAnalysisWorkflow({
       entity,
       temporalClient: temporal,
-      userAccountId: authentication.actorId,
+      userAccountId: user.accountId,
       webId: extractWebIdFromEntityId(entity.entityId),
     });
   }

@@ -14,6 +14,7 @@ import {
 import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
+import { getWebRoles } from "@local/hash-graph-sdk/principal/web";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
@@ -134,6 +135,34 @@ describe("User model class", () => {
         orgEntityUuid,
       }),
     ).toBe(true);
+  });
+
+  it("can read the user-web roles", async () => {
+    const authentication = { actorId: systemAccountId };
+
+    const UserWebRoleMap = await getWebRoles(
+      graphContext.graphApi,
+      authentication,
+      createdUser.accountId,
+    );
+
+    expect(Object.keys(UserWebRoleMap).length).toStrictEqual(2);
+
+    const userWebRoles = Object.values(UserWebRoleMap).map(
+      ({ webId, name }) => ({
+        webId,
+        name,
+      }),
+    );
+
+    expect(userWebRoles).toContainEqual({
+      webId: createdUser.accountId,
+      name: "member",
+    });
+    expect(userWebRoles).toContainEqual({
+      webId: createdUser.accountId,
+      name: "administrator",
+    });
   });
 
   afterAll(async () => {
