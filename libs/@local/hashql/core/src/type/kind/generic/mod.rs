@@ -200,7 +200,7 @@ impl<'heap> PrettyPrint<'heap> for GenericArguments<'heap> {
         boundary: &mut PrettyRecursionBoundary,
     ) -> RcDoc<'heap, anstyle::Style> {
         match self.as_slice() {
-            [] => RcAllocator.nil(),
+            [] => return RcDoc::nil(),
             arguments => RcAllocator.intersperse(
                 arguments
                     .iter()
