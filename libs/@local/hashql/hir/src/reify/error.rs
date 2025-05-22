@@ -112,7 +112,7 @@ pub(crate) fn dummy_expression(span: SpanId) -> ReificationDiagnostic {
         .push(Label::new(span, "fatal error occurred here").with_order(0));
 
     diagnostic.add_help(Help::new(
-        "The compiler encountered a serious error in an earlier phase but continued processing. \
+        "The compiler encountered a fatal error in an earlier phase but continued processing. \
          This should not happen and indicates a bug in the error handling system. The original \
          error message should appear above this one and contains more specific information about \
          what went wrong with your code.",
@@ -121,8 +121,7 @@ pub(crate) fn dummy_expression(span: SpanId) -> ReificationDiagnostic {
     diagnostic.add_note(Note::new(
         "HashQL compiles your code in several phases, and errors in early phases should prevent \
          later phases from running. When you see this message, it means the compiler tried to \
-         continue despite a fatal error. Please report this issue along with the full error \
-         output.",
+         continue despite a fatal error.",
     ));
 
     diagnostic
@@ -150,15 +149,15 @@ pub(crate) fn unprocessed_expression(
     );
 
     diagnostic.add_help(Help::new(format!(
-        "This is a compiler bug. The {expr_kind} expression should have been processed during an \
-         earlier phase ({phase_name}) but reached the final processing stage unchanged. This \
-         suggests a problem in the compiler pipeline."
+        "The {expr_kind} expression should have been processed during an earlier phase \
+         ({phase_name}) but reached the final processing stage unchanged. This suggests a problem \
+         in the compiler pipeline."
     )));
 
     diagnostic.add_note(Note::new(
         "The HashQL compiler transforms your code through several phases before generating the \
-         final output. Some language constructs should be handled by specific phases. Please \
-         report this issue with a minimal code example.",
+         final output. Some language constructs should be handled by specific phases and be \
+         removed from the AST before reaching the final processing stage.",
     ));
 
     diagnostic
@@ -176,13 +175,13 @@ pub(crate) fn internal_error(span: SpanId, message: &str) -> ReificationDiagnost
 
     diagnostic.add_help(Help::new(format!(
         "The compiler encountered an unexpected situation while processing your code: \
-         \"{message}\". This is a bug in the HashQL compiler, not an error in your code."
+         \"{message}\"."
     )));
 
     diagnostic.add_note(Note::new(
         "This indicates that an earlier compilation stage failed without reporting any errors. \
          The compiler continued with incomplete or invalid information, which was only detected \
-         during the final processing phase. Please report this issue with a minimal code example.",
+         during the final processing phase.",
     ));
 
     diagnostic

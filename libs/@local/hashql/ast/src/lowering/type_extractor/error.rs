@@ -157,8 +157,7 @@ pub(crate) fn duplicate_type_alias(
 
     diagnostic.add_note(Note::new(
         "This likely represents a compiler bug in the name mangling pass. The name mangler should \
-         have given these identical names unique internal identifiers to avoid this collision. \
-         Please report this issue to the HashQL team with a minimal reproduction case.",
+         have given these identical names unique internal identifiers to avoid this collision.",
     ));
 
     diagnostic
@@ -231,8 +230,7 @@ pub(crate) fn duplicate_newtype(
         "This likely represents a compiler bug in the name mangling pass. The compiler \
          encountered duplicate newtype definitions with the same name that should have been given \
          unique internal identifiers. The name mangler should have prevented this collision \
-         automatically. Please report this issue to the HashQL team with a minimal reproduction \
-         case.",
+         automatically.",
     ));
 
     diagnostic
@@ -397,8 +395,7 @@ pub(crate) fn unbound_type_variable<'heap>(
     diagnostic.add_note(Note::new(
         "This is likely a compiler bug in the name resolution system. The type checker has \
          encountered a name that wasn't properly resolved earlier in compilation. The name \
-         resolution pass should have caught this error or provided a more specific error message. \
-         Please report this issue to the HashQL team with a minimal reproduction case.",
+         resolution pass should have caught this error or provided a more specific error message.",
     ));
 
     diagnostic
@@ -525,8 +522,7 @@ pub(crate) fn unknown_intrinsic_type(
         "Available intrinsic types: `{available}`\n\nIntrinsic types are fundamental building \
          blocks provided by the language runtime. They form the basis of the type system and \
          cannot be redefined by user code.\n\nThis is likely a compiler bug. The import resolver \
-         should've caught this error beforehand. Please report this issue to the HashQL team with \
-         a minimal reproduction case that demonstrates how to trigger this error."
+         should've caught this error beforehand."
     )));
 
     diagnostic
@@ -573,8 +569,7 @@ pub(crate) fn invalid_resolved_item(
     diagnostic.add_note(Note::new(
         "This is likely a compiler bug in the import resolution system. The compiler has confused \
          types and values during name resolution. The import resolver should have caught this \
-         error before reaching this stage. Please report this issue to the HashQL team with a \
-         minimal reproduction case that demonstrates how to trigger this error.",
+         error before reaching this stage.",
     ));
 
     diagnostic
@@ -607,15 +602,13 @@ pub(crate) fn resolution_error(path: &Path, error: &ResolutionError) -> TypeExtr
             .with_color(Color::Ansi(AnsiColor::Red)),
     );
 
-    diagnostic.add_note(Note::new(format!(
+    diagnostic.add_note(Note::new(
         "This is likely a compiler bug in the name resolution system. During type checking, the \
          compiler failed to resolve a path that should have been properly processed by earlier \
          compilation stages. Either the path resolution should have succeeded or a more specific \
-         error should have been reported earlier in compilation. \n\nPlease report this issue to \
-         the HashQL team with a minimal reproduction case that triggers this error. Include the \
-         path you were trying to reference and any relevant type definitions.\n\nTechnical error \
-         details:\n{error:#?}"
-    )));
+         error should have been reported earlier in compilation.",
+    ));
+    diagnostic.add_note(Note::new(format!("Technical error details:\n{error:#?}")));
 
     diagnostic
 }

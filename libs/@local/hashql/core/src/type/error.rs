@@ -798,10 +798,8 @@ pub(crate) fn unconstrained_type_variable_floating(env: &Environment) -> TypeChe
     );
 
     diagnostic.add_help(Help::new(
-        "This is an internal compiler error, not a problem with your code. The type system \
-         encountered a variable that has no constraints, but also lacks source location \
-         information to properly report the error. Please report this issue to the HashQL team \
-         with a minimal reproduction case.",
+        "The type system encountered a variable that has no constraints, but also lacks source \
+         location information to properly report the error.",
     ));
 
     diagnostic.add_note(Note::new(
@@ -1192,11 +1190,9 @@ where
 {
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::TypeParameterNotFound,
-        // This is a compiler bug in the error reporting sequence
         Severity::Bug,
     );
 
-    // Primary label indicating the invalid reference
     diagnostic.labels.push(
         Label::new(
             param.span,
@@ -1205,7 +1201,6 @@ where
         .with_order(1),
     );
 
-    // Secondary label for context about error reporting
     diagnostic.labels.push(
         Label::new(
             env.source,
@@ -1214,21 +1209,17 @@ where
         .with_order(2),
     );
 
-    // Help message explaining the situation
     diagnostic.add_help(Help::new(
         "This error indicates your code contains an invalid type parameter reference that should \
          have been caught by an earlier validation step. While the code is indeed incorrect, the \
-         compiler should have reported this error in a more specific way at an earlier stage. \
-         Please report this issue to the HashQL team with a minimal reproduction case.",
+         compiler should have reported this error in a more specific way at an earlier stage.",
     ));
 
-    // Technical explanation with more details
     diagnostic.add_note(Note::new(format!(
         "Technical details: Parameter ?{argument} is referenced but not defined in the current \
          environment. This represents both an invalid program and a flaw in the error reporting \
          sequence. The compiler should validate all parameter references during an earlier \
-         compilation phase and provide more specific error messages. Please report this as a \
-         compiler issue so we can improve error reporting for similar cases.",
+         compilation phase and provide more specific error messages.",
     )));
 
     diagnostic

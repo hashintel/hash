@@ -111,7 +111,7 @@ pub(crate) fn generic_arguments_in_use_path(
 
     diagnostic.add_note(Note::new(
         "This error is still valid, but should've been caught in an earlier stage of the compiler \
-         pipeline. Please report this issue to the HashQL team with a minimal reproduction case.",
+         pipeline.",
     ));
 
     diagnostic
@@ -135,8 +135,7 @@ pub(crate) fn empty_path(span: SpanId) -> ImportResolverDiagnostic {
     diagnostic.add_note(Note::new(
         "Import statements require a non-empty path to identify what module or item you want to \
          bring into scope. This error is still valid, but should've been caught in an earlier \
-         stage of the compiler pipeline. Please report this issue to the HashQL team with a \
-         minimal reproduction case.",
+         stage of the compiler pipeline.",
     ));
 
     diagnostic
