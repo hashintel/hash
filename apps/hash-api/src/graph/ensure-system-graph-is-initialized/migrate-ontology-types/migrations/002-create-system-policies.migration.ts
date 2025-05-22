@@ -1,11 +1,53 @@
-import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { EntityTypeResourceFilter } from "@rust/hash-graph-authorization/types";
+import {
+  type BaseUrl,
+  compareOntologyTypeVersions,
+  extractVersion,
+  makeOntologyTypeVersion,
+  type VersionedUrl,
+} from "@blockprotocol/type-system";
+import {
+  systemEntityTypes,
+  systemLinkEntityTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import type {
+  EntityResourceFilter,
+  EntityTypeResourceFilter,
+} from "@rust/hash-graph-authorization/types";
 
 import type { MigrationFunction } from "../types";
 import {
   createOrUpgradePolicies,
   type NamedPartialPolicy,
 } from "../util/upgrade-policies";
+
+// TODO: Allow entity filter for only the BaseURL
+const createVersionedFilters = (
+  baseUrl: BaseUrl,
+  currentTypeId: VersionedUrl,
+): EntityResourceFilter[] => {
+  const versionMatch = currentTypeId.match(/\/v\/(\d+)$/);
+  if (baseUrl && versionMatch && versionMatch[1]) {
+    const currentVersion = extractVersion(currentTypeId);
+    const filters: EntityResourceFilter[] = [];
+    for (
+      let i = 1;
+      compareOntologyTypeVersions(
+        makeOntologyTypeVersion({ major: i }),
+        currentVersion,
+      ) <= 0;
+      i++
+    ) {
+      filters.push({
+        type: "isOfType",
+        entityType: `${baseUrl}v/${i}`,
+      });
+    }
+
+    return filters;
+  }
+  // Fallback to just the current type ID if parsing fails or format is unexpected
+  return [{ type: "isOfType", entityType: currentTypeId }];
+};
 
 const MACHINE_ONLY_INSTANTIATE_FILTERS: EntityTypeResourceFilter[] = [
   {
@@ -64,11 +106,74 @@ const MACHINE_ONLY_INSTANTIATE_POLICY: NamedPartialPolicy = {
   },
 };
 
+const PUBLIC_VIEW_ENTITY_POLICY: NamedPartialPolicy = {
+  name: "public-view-entity",
+  effect: "permit",
+  actions: ["viewEntity"],
+  resource: {
+    type: "entity",
+    filter: {
+      type: "any",
+      filters: [
+        ...createVersionedFilters(
+          systemEntityTypes.hashInstance.entityTypeBaseUrl,
+          systemEntityTypes.hashInstance.entityTypeId,
+        ),
+        ...createVersionedFilters(
+          systemEntityTypes.actor.entityTypeBaseUrl,
+          systemEntityTypes.actor.entityTypeId,
+        ),
+        ...createVersionedFilters(
+          systemEntityTypes.user.entityTypeBaseUrl,
+          systemEntityTypes.user.entityTypeId,
+        ),
+      ],
+    },
+  },
+};
+
+const AUTHENTICATED_VIEW_ENTITY_POLICY: NamedPartialPolicy = {
+  name: "authenticated-view-entity",
+  effect: "permit",
+  actions: ["viewEntity"],
+  resource: {
+    type: "entity",
+    filter: {
+      type: "any",
+      filters: [
+        ...createVersionedFilters(
+          systemEntityTypes.organization.entityTypeBaseUrl,
+          systemEntityTypes.organization.entityTypeId,
+        ),
+        ...createVersionedFilters(
+          systemEntityTypes.machine.entityTypeBaseUrl,
+          systemEntityTypes.machine.entityTypeId,
+        ),
+        ...createVersionedFilters(
+          systemEntityTypes.serviceFeature.entityTypeBaseUrl,
+          systemEntityTypes.serviceFeature.entityTypeId,
+        ),
+        ...createVersionedFilters(
+          systemLinkEntityTypes.isMemberOf.linkEntityTypeBaseUrl,
+          systemLinkEntityTypes.isMemberOf.linkEntityTypeId,
+        ),
+      ],
+    },
+  },
+};
+
 const migrate: MigrationFunction = async ({
   context,
   authentication,
   migrationState,
 }) => {
+  await createOrUpgradePolicies({
+    authentication,
+    context,
+    policies: [PUBLIC_VIEW_ENTITY_POLICY],
+    principal: null,
+  });
+
   await createOrUpgradePolicies({
     authentication,
     context,
@@ -80,7 +185,10 @@ const migrate: MigrationFunction = async ({
     await createOrUpgradePolicies({
       authentication,
       context,
-      policies: [AUTHENTICATED_INSTANTIATE_POLICY],
+      policies: [
+        AUTHENTICATED_INSTANTIATE_POLICY,
+        AUTHENTICATED_VIEW_ENTITY_POLICY,
+      ],
       principal: { type: "actorType", actorType },
     });
   }
