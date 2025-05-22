@@ -369,9 +369,9 @@ where
     /// Inserts a key-value pair into the specified universe map, panicking if the key already
     /// exists.
     ///
-    /// This method is a convenience wrapper around [`try_insert`] that panics with a default error
-    /// message if the key already exists in the map. It returns a mutable reference to the inserted
-    /// value when successful.
+    /// This method is a convenience wrapper around [`Self::try_insert`] that panics with a default
+    /// error message if the key already exists in the map. It returns a mutable reference to
+    /// the inserted value when successful.
     ///
     /// Use this method when you are certain that the key doesn't exist and want to enforce this
     /// invariant at runtime, treating a key collision as a programming error.
