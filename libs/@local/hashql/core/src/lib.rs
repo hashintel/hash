@@ -7,13 +7,13 @@
     allocator_api,
     assert_matches,
     cold_path,
+    default_field_values,
     iter_map_windows,
     slice_partition_dedup,
     variant_count,
     // Language Features
     arbitrary_self_types,
     associated_type_defaults,
-    default_field_values,
     never_type,
     type_alias_impl_trait,
 )]
