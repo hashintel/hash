@@ -186,7 +186,7 @@ pub(crate) fn unknown_special_form_length(
 ) -> SpecialFormExpanderDiagnostic {
     let mut diagnostic = Diagnostic::new(
         SpecialFormExpanderDiagnosticCategory::UnknownSpecialForm,
-        Severity::ERROR,
+        Severity::Error,
     );
 
     diagnostic
@@ -204,12 +204,12 @@ pub(crate) fn unknown_special_form_length(
         }
     }
 
-    diagnostic.help = Some(Help::new(
+    diagnostic.add_help(Help::new(
         "Special form paths must follow the pattern '::kernel::special_form::<name>' with exactly \
          3 segments",
     ));
 
-    diagnostic.note = Some(Note::new(format!(
+    diagnostic.add_note(Note::new(format!(
         "Found path with {} segments, but special form paths must have exactly 3 segments",
         path.segments.len()
     )));
@@ -223,7 +223,7 @@ pub(crate) fn unknown_special_form_name(
 ) -> SpecialFormExpanderDiagnostic {
     let mut diagnostic = Diagnostic::new(
         SpecialFormExpanderDiagnosticCategory::UnknownSpecialForm,
-        Severity::ERROR,
+        Severity::Error,
     );
 
     let function_name = &path.segments[2].name.value;
@@ -250,14 +250,14 @@ pub(crate) fn unknown_special_form_name(
         Cow::Borrowed("Special forms must use one of the predefined names shown in the note below")
     };
 
-    diagnostic.help = Some(Help::new(help));
+    diagnostic.add_help(Help::new(help));
 
     let names = enum_iterator::all::<SpecialFormKind>()
         .map(SpecialFormKind::as_str)
         .collect::<Vec<_>>()
         .join(", ");
 
-    diagnostic.note = Some(Note::new(format!(
+    diagnostic.add_note(Note::new(format!(
         "Available special forms include: {names}"
     )));
 
@@ -269,7 +269,7 @@ pub(crate) fn unknown_special_form_generics(
 ) -> SpecialFormExpanderDiagnostic {
     let mut diagnostic = Diagnostic::new(
         SpecialFormExpanderDiagnosticCategory::UnknownSpecialForm,
-        Severity::ERROR,
+        Severity::Error,
     );
 
     let (first, rest) = generics
@@ -287,12 +287,12 @@ pub(crate) fn unknown_special_form_generics(
             .push(Label::new(arg.span(), "... and these too").with_order((index + 1) as i32));
     }
 
-    diagnostic.help = Some(Help::new(
+    diagnostic.add_help(Help::new(
         "Special form paths must not include generic arguments. Remove the angle brackets and \
          their contents.",
     ));
 
-    diagnostic.note = Some(Note::new(
+    diagnostic.add_note(Note::new(
         "Special forms are built-in language constructs that don't support generics in their path \
          reference.",
     ));
@@ -308,7 +308,7 @@ pub(super) fn invalid_argument_length(
 ) -> SpecialFormExpanderDiagnostic {
     let mut diagnostic = Diagnostic::new(
         SpecialFormExpanderDiagnosticCategory::SpecialFormArgumentLength,
-        Severity::ERROR,
+        Severity::Error,
     );
 
     let actual = arguments.len();
@@ -371,9 +371,9 @@ pub(super) fn invalid_argument_length(
         SpecialFormKind::Index => "The index/2 form should look like: ([] object index)",
     };
 
-    diagnostic.help = Some(Help::new(help_text));
+    diagnostic.add_help(Help::new(help_text));
 
-    diagnostic.note = Some(Note::new(format!(
+    diagnostic.add_note(Note::new(format!(
         "The {kind} function has {} variant{}: {}",
         expected.len(),
         if expected.len() == 1 { "" } else { "s" },
@@ -389,7 +389,7 @@ pub(crate) fn labeled_arguments_not_supported(
 ) -> SpecialFormExpanderDiagnostic {
     let mut diagnostic = Diagnostic::new(
         SpecialFormExpanderDiagnosticCategory::LabeledArgumentsNotSupported,
-        Severity::ERROR,
+        Severity::Error,
     );
 
     diagnostic
@@ -410,12 +410,12 @@ pub(crate) fn labeled_arguments_not_supported(
         );
     }
 
-    diagnostic.help = Some(Help::new(
+    diagnostic.add_help(Help::new(
         "Special forms only accept positional arguments. Convert all labeled arguments to \
          positional arguments in the correct order.",
     ));
 
-    diagnostic.note = Some(Note::new(
+    diagnostic.add_note(Note::new(
         "Unlike regular functions, special forms have fixed parameter positions and cannot use \
          labeled arguments.",
     ));
@@ -482,7 +482,7 @@ pub(crate) fn invalid_type_expression(
 ) -> SpecialFormExpanderDiagnostic {
     let mut diagnostic = Diagnostic::new(
         SpecialFormExpanderDiagnosticCategory::InvalidTypeExpression,
-        Severity::ERROR,
+        Severity::Error,
     );
 
     let message = match kind {
@@ -512,9 +512,9 @@ pub(crate) fn invalid_type_expression(
         _ => "Replace this expression with a valid type reference, struct type, or tuple type",
     };
 
-    diagnostic.help = Some(Help::new(help_text));
+    diagnostic.add_help(Help::new(help_text));
 
-    diagnostic.note = Some(Note::new(TYPE_EXPRESSION_NOTE));
+    diagnostic.add_note(Note::new(TYPE_EXPRESSION_NOTE));
 
     diagnostic
 }
@@ -522,7 +522,7 @@ pub(crate) fn invalid_type_expression(
 pub(crate) fn invalid_type_call_function(span: SpanId) -> SpecialFormExpanderDiagnostic {
     let mut diagnostic = Diagnostic::new(
         SpecialFormExpanderDiagnosticCategory::InvalidTypeExpression,
-        Severity::ERROR,
+        Severity::Error,
     );
 
     diagnostic.labels.push(Label::new(
@@ -530,12 +530,12 @@ pub(crate) fn invalid_type_call_function(span: SpanId) -> SpecialFormExpanderDia
         "Function call with non-path callee cannot be used as a type",
     ));
 
-    diagnostic.help = Some(Help::new(
+    diagnostic.add_help(Help::new(
         "Only specific type constructors like intersection (&) and union (|) operators can be \
          used in type expressions.",
     ));
 
-    diagnostic.note = Some(Note::new(TYPE_EXPRESSION_NOTE));
+    diagnostic.add_note(Note::new(TYPE_EXPRESSION_NOTE));
 
     diagnostic
 }
@@ -543,7 +543,7 @@ pub(crate) fn invalid_type_call_function(span: SpanId) -> SpecialFormExpanderDia
 pub(crate) fn unsupported_type_constructor_function(span: SpanId) -> SpecialFormExpanderDiagnostic {
     let mut diagnostic = Diagnostic::new(
         SpecialFormExpanderDiagnosticCategory::InvalidTypeExpression,
-        Severity::ERROR,
+        Severity::Error,
     );
 
     diagnostic.labels.push(Label::new(
@@ -551,12 +551,12 @@ pub(crate) fn unsupported_type_constructor_function(span: SpanId) -> SpecialForm
         "This function cannot be used as a type constructor",
     ));
 
-    diagnostic.help = Some(Help::new(
+    diagnostic.add_help(Help::new(
         "Only specific type constructors like intersection (&) and union (|) operators can be \
          used in type expressions.",
     ));
 
-    diagnostic.note = Some(Note::new(
+    diagnostic.add_note(Note::new(
         "Currently supported type operations are:\n- Intersection: math::bit_and (written as & in \
          source)\n- Union: math::bit_or (written as | in source)",
     ));
@@ -586,7 +586,7 @@ pub(crate) fn invalid_binding_name_not_path(
 ) -> SpecialFormExpanderDiagnostic {
     let mut diagnostic = Diagnostic::new(
         SpecialFormExpanderDiagnosticCategory::InvalidBindingName,
-        Severity::ERROR,
+        Severity::Error,
     );
 
     diagnostic.labels.push(Label::new(
@@ -594,7 +594,7 @@ pub(crate) fn invalid_binding_name_not_path(
         "Replace this expression with a simple identifier",
     ));
 
-    diagnostic.help = Some(Help::new(format!(
+    diagnostic.add_help(Help::new(format!(
         "The {mode} binding name must be a simple identifier. Complex expressions are not allowed \
          in binding positions."
     )));
@@ -626,7 +626,7 @@ pub(crate) fn invalid_binding_name_not_path(
         }
     };
 
-    diagnostic.note = Some(Note::new(note));
+    diagnostic.add_note(Note::new(note));
 
     diagnostic
 }
@@ -637,19 +637,19 @@ pub(crate) fn invalid_let_name_qualified_path(
 ) -> SpecialFormExpanderDiagnostic {
     let mut diagnostic = Diagnostic::new(
         SpecialFormExpanderDiagnosticCategory::QualifiedBindingName,
-        Severity::ERROR,
+        Severity::Error,
     );
 
     diagnostic
         .labels
         .push(Label::new(span, "Replace this with a simple identifier"));
 
-    diagnostic.help = Some(Help::new(format!(
+    diagnostic.add_help(Help::new(format!(
         "{mode} binding names must be simple identifiers without any path qualification. \
          Qualified paths cannot be used as binding names."
     )));
 
-    diagnostic.note = Some(Note::new(
+    diagnostic.add_note(Note::new(
         "Valid identifiers are simple names like 'x', 'counter', '+', or 'user_name' without any \
          namespace qualification, generic parameters, or path separators.",
     ));
@@ -663,7 +663,7 @@ pub(crate) fn invalid_type_name_qualified_path(
 ) -> SpecialFormExpanderDiagnostic {
     let mut diagnostic = Diagnostic::new(
         SpecialFormExpanderDiagnosticCategory::QualifiedBindingName,
-        Severity::ERROR,
+        Severity::Error,
     );
 
     diagnostic.labels.push(Label::new(
@@ -671,12 +671,12 @@ pub(crate) fn invalid_type_name_qualified_path(
         "Replace this qualified path with a simple identifier",
     ));
 
-    diagnostic.help = Some(Help::new(format!(
+    diagnostic.add_help(Help::new(format!(
         "The {mode} binding requires a simple type name (like 'String' or 'MyType<T>'), not a \
          qualified path (like 'std::string::String'). Remove the path segments."
     )));
 
-    diagnostic.note = Some(Note::new(
+    diagnostic.add_note(Note::new(
         "Valid type names are simple identifiers, optionally followed by generic arguments (e.g., \
          'Identifier' or 'Container<Param>'). They cannot contain '::' path separators in this \
          context.",
@@ -688,19 +688,19 @@ pub(crate) fn invalid_type_name_qualified_path(
 pub(crate) fn type_with_existing_annotation(span: SpanId) -> SpecialFormExpanderDiagnostic {
     let mut diagnostic = Diagnostic::new(
         SpecialFormExpanderDiagnosticCategory::TypeWithExistingAnnotation,
-        Severity::ERROR,
+        Severity::Error,
     );
 
     diagnostic
         .labels
         .push(Label::new(span, "Remove this type annotation"));
 
-    diagnostic.help = Some(Help::new(
+    diagnostic.add_help(Help::new(
         "Type expressions used in special forms cannot have their own type annotations. The \
          expression itself defines a type and cannot be annotated with another type.",
     ));
 
-    diagnostic.note = Some(Note::new(
+    diagnostic.add_note(Note::new(
         "When constructing type expressions for special forms like 'type', 'newtype', or 'is', \
          the expression itself represents a type definition and cannot have a separate type \
          annotation.",
@@ -712,19 +712,19 @@ pub(crate) fn type_with_existing_annotation(span: SpanId) -> SpecialFormExpander
 pub(crate) fn invalid_use_import(span: SpanId) -> SpecialFormExpanderDiagnostic {
     let mut diagnostic = Diagnostic::new(
         SpecialFormExpanderDiagnosticCategory::InvalidUseImport,
-        Severity::ERROR,
+        Severity::Error,
     );
 
     diagnostic
         .labels
         .push(Label::new(span, "Replace with a valid import expression"));
 
-    diagnostic.help = Some(Help::new(
+    diagnostic.add_help(Help::new(
         "Use imports must be either a glob (*), a tuple of identifiers, or a struct of bindings. \
          Other expression types are not valid in this context.",
     ));
 
-    diagnostic.note = Some(Note::new(
+    diagnostic.add_note(Note::new(
         "Valid import expressions include:\n- Glob: *\n- Tuple of identifiers: (name1, name2)\n- \
          Struct with aliases: (name1: alias1, name2: alias2) or (name1: _, name2: _)",
     ));
@@ -735,19 +735,19 @@ pub(crate) fn invalid_use_import(span: SpanId) -> SpecialFormExpanderDiagnostic 
 pub(crate) fn use_imports_with_type_annotation(span: SpanId) -> SpecialFormExpanderDiagnostic {
     let mut diagnostic = Diagnostic::new(
         SpecialFormExpanderDiagnosticCategory::InvalidUseImport,
-        Severity::ERROR,
+        Severity::Error,
     );
 
     diagnostic
         .labels
         .push(Label::new(span, "Remove this type annotation"));
 
-    diagnostic.help = Some(Help::new(
+    diagnostic.add_help(Help::new(
         "Use import expressions cannot have type annotations. Import expressions define which \
          symbols to import, and do not have a meaningful type in this context.",
     ));
 
-    diagnostic.note = Some(Note::new(
+    diagnostic.add_note(Note::new(
         "Import expressions in the 'use' special form can only be a glob (*), a tuple of \
          identifiers, or a struct of bindings, none of which should have type annotations.",
     ));
@@ -758,19 +758,19 @@ pub(crate) fn use_imports_with_type_annotation(span: SpanId) -> SpecialFormExpan
 pub(crate) fn invalid_path_in_use_binding(span: SpanId) -> SpecialFormExpanderDiagnostic {
     let mut diagnostic = Diagnostic::new(
         SpecialFormExpanderDiagnosticCategory::InvalidUseImport,
-        Severity::ERROR,
+        Severity::Error,
     );
 
     diagnostic
         .labels
         .push(Label::new(span, "Use a simple identifier here"));
 
-    diagnostic.help = Some(Help::new(
+    diagnostic.add_help(Help::new(
         "Use binding names must be simple identifiers. Qualified paths or complex expressions \
          cannot be used in this context.",
     ));
 
-    diagnostic.note = Some(Note::new(
+    diagnostic.add_note(Note::new(
         "In tuple imports, each element must be a simple identifier. For example: (name1, name2) \
          is valid, but (path::to::name,) is not.",
     ));
@@ -784,7 +784,7 @@ pub(crate) fn use_path_with_generics(
 ) -> SpecialFormExpanderDiagnostic {
     let mut diagnostic = Diagnostic::new(
         SpecialFormExpanderDiagnosticCategory::UsePathWithGenerics,
-        Severity::ERROR,
+        Severity::Error,
     );
 
     diagnostic
@@ -802,12 +802,12 @@ pub(crate) fn use_path_with_generics(
         }
     }
 
-    diagnostic.help = Some(Help::new(
+    diagnostic.add_help(Help::new(
         "The 'use' special form does not support generic arguments in import paths. Remove all \
          generic arguments from the path.",
     ));
 
-    diagnostic.note = Some(Note::new(
+    diagnostic.add_note(Note::new(
         "Use statements in HashQL can only import modules or specific symbols, but cannot specify \
          generic parameters during import.",
     ));
@@ -818,19 +818,19 @@ pub(crate) fn use_path_with_generics(
 pub(crate) fn fn_generics_with_type_annotation(span: SpanId) -> SpecialFormExpanderDiagnostic {
     let mut diagnostic = Diagnostic::new(
         SpecialFormExpanderDiagnosticCategory::FnGenericsWithTypeAnnotation,
-        Severity::ERROR,
+        Severity::Error,
     );
 
     diagnostic
         .labels
         .push(Label::new(span, "Remove this type annotation"));
 
-    diagnostic.help = Some(Help::new(
+    diagnostic.add_help(Help::new(
         "Function generics declarations cannot have type annotations. Generic parameter lists \
          define type parameters for the function, and do not have a meaningful type themselves.",
     ));
 
-    diagnostic.note = Some(Note::new(
+    diagnostic.add_note(Note::new(
         "In the 'fn' special form, the generics argument should be either a tuple of identifiers \
          such as (T, U) or a struct of bounded type parameters such as (T: SomeBound, U: \
          OtherBound, V: _), where an underscore indicates no bound.",
@@ -842,19 +842,19 @@ pub(crate) fn fn_generics_with_type_annotation(span: SpanId) -> SpecialFormExpan
 pub(crate) fn invalid_fn_generics_expression(span: SpanId) -> SpecialFormExpanderDiagnostic {
     let mut diagnostic = Diagnostic::new(
         SpecialFormExpanderDiagnosticCategory::InvalidFnGenericsExpression,
-        Severity::ERROR,
+        Severity::Error,
     );
 
     diagnostic
         .labels
         .push(Label::new(span, "Use a valid generics expression"));
 
-    diagnostic.help = Some(Help::new(
+    diagnostic.add_help(Help::new(
         "Function generics must be specified as either a tuple of identifiers or a struct of \
          bounded type parameters. Other expression types are not valid in this context.",
     ));
 
-    diagnostic.note = Some(Note::new(
+    diagnostic.add_note(Note::new(
         "Valid generics expressions include:\n- Empty: ()\n- Tuple of identifiers: (T, U, V)\n- \
          Struct with bounds: (T: SomeBound, U: OtherBound) or (T: _, U: _) for unbounded types",
     ));
@@ -865,19 +865,19 @@ pub(crate) fn invalid_fn_generics_expression(span: SpanId) -> SpecialFormExpande
 pub(crate) fn invalid_fn_generic_param(span: SpanId) -> SpecialFormExpanderDiagnostic {
     let mut diagnostic = Diagnostic::new(
         SpecialFormExpanderDiagnosticCategory::InvalidFnGenericParam,
-        Severity::ERROR,
+        Severity::Error,
     );
 
     diagnostic
         .labels
         .push(Label::new(span, "Use a simple identifier here"));
 
-    diagnostic.help = Some(Help::new(
+    diagnostic.add_help(Help::new(
         "Generic type parameters must be simple identifiers. Qualified paths or complex \
          expressions cannot be used in this context.",
     ));
 
-    diagnostic.note = Some(Note::new(
+    diagnostic.add_note(Note::new(
         "In function generic parameter lists, each element must be a simple identifier. For \
          example: (T, U, V) is valid, but (some::path,) is not.",
     ));
@@ -888,20 +888,20 @@ pub(crate) fn invalid_fn_generic_param(span: SpanId) -> SpecialFormExpanderDiagn
 pub(crate) fn fn_params_with_type_annotation(span: SpanId) -> SpecialFormExpanderDiagnostic {
     let mut diagnostic = Diagnostic::new(
         SpecialFormExpanderDiagnosticCategory::FnParamsWithTypeAnnotation,
-        Severity::ERROR,
+        Severity::Error,
     );
 
     diagnostic
         .labels
         .push(Label::new(span, "Remove this type annotation"));
 
-    diagnostic.help = Some(Help::new(
+    diagnostic.add_help(Help::new(
         "Function parameter declarations cannot have type annotations at the struct level. The \
          struct itself represents the parameter list, and each field represents a parameter with \
          its type.",
     ));
 
-    diagnostic.note = Some(Note::new(
+    diagnostic.add_note(Note::new(
         "In the 'fn' special form, parameter lists should be structured as (param1: Type1, \
          param2: Type2), where the struct itself does not have a type annotation.",
     ));
@@ -912,20 +912,20 @@ pub(crate) fn fn_params_with_type_annotation(span: SpanId) -> SpecialFormExpande
 pub(crate) fn invalid_fn_params_expression(span: SpanId) -> SpecialFormExpanderDiagnostic {
     let mut diagnostic = Diagnostic::new(
         SpecialFormExpanderDiagnosticCategory::InvalidFnParamsExpression,
-        Severity::ERROR,
+        Severity::Error,
     );
 
     diagnostic
         .labels
         .push(Label::new(span, "Use a struct expression for parameters"));
 
-    diagnostic.help = Some(Help::new(
+    diagnostic.add_help(Help::new(
         "Function parameters must be specified as a struct where field names are parameter names \
          and field values are parameter types. Other expression types are not valid in this \
          context.",
     ));
 
-    diagnostic.note = Some(Note::new(
+    diagnostic.add_note(Note::new(
         "Valid parameter expression is a struct in the form: (param1: Type1, param2: Type2, ...)",
     ));
 
@@ -935,19 +935,19 @@ pub(crate) fn invalid_fn_params_expression(span: SpanId) -> SpecialFormExpanderD
 pub(crate) fn invalid_generic_argument_path(span: SpanId) -> SpecialFormExpanderDiagnostic {
     let mut diagnostic = Diagnostic::new(
         SpecialFormExpanderDiagnosticCategory::InvalidGenericArgumentPath,
-        Severity::ERROR,
+        Severity::Error,
     );
 
     diagnostic
         .labels
         .push(Label::new(span, "Replace with a simple identifier"));
 
-    diagnostic.help = Some(Help::new(
+    diagnostic.add_help(Help::new(
         "Generic arguments must be simple identifiers. Qualified paths cannot be used as generic \
          arguments in this context.",
     ));
 
-    diagnostic.note = Some(Note::new(
+    diagnostic.add_note(Note::new(
         "In generic parameter constraints, arguments should be simple identifiers like 'T', 'U', \
          or 'Element' without namespace qualification or path separators.",
     ));
@@ -958,19 +958,19 @@ pub(crate) fn invalid_generic_argument_path(span: SpanId) -> SpecialFormExpander
 pub(crate) fn invalid_generic_argument_type(span: SpanId) -> SpecialFormExpanderDiagnostic {
     let mut diagnostic = Diagnostic::new(
         SpecialFormExpanderDiagnosticCategory::InvalidGenericArgumentType,
-        Severity::ERROR,
+        Severity::Error,
     );
 
     diagnostic
         .labels
         .push(Label::new(span, "Use a simple type identifier here"));
 
-    diagnostic.help = Some(Help::new(
+    diagnostic.add_help(Help::new(
         "Generic argument types must be simple path identifiers. Complex types like structs, \
          tuples, or function types cannot be used as generic argument types in this context.",
     ));
 
-    diagnostic.note = Some(Note::new(
+    diagnostic.add_note(Note::new(
         "Valid generic argument types are simple identifiers that refer to type names, such as \
          'String', 'Number', or type parameters like 'T'.",
     ));
@@ -985,7 +985,7 @@ pub(crate) fn duplicate_generic_constraint(
 ) -> SpecialFormExpanderDiagnostic {
     let mut diagnostic = Diagnostic::new(
         SpecialFormExpanderDiagnosticCategory::DuplicateGenericConstraint,
-        Severity::ERROR,
+        Severity::Error,
     );
 
     diagnostic.labels.push(Label::new(
@@ -1001,12 +1001,12 @@ pub(crate) fn duplicate_generic_constraint(
         .with_order(1),
     );
 
-    diagnostic.help = Some(Help::new(
+    diagnostic.add_help(Help::new(
         "Each generic parameter can only be declared once in a function or type definition. \
          Remove the duplicate declaration or use a different name.",
     ));
 
-    diagnostic.note = Some(Note::new(
+    diagnostic.add_note(Note::new(
         "Generic parameter names must be unique within a single generic parameter list. For \
          example, in foo<T: Bound, U: OtherBound>, 'T' and 'U' are unique parameters.",
     ));
@@ -1021,7 +1021,7 @@ pub(crate) fn duplicate_closure_parameter(
 ) -> SpecialFormExpanderDiagnostic {
     let mut diagnostic = Diagnostic::new(
         SpecialFormExpanderDiagnosticCategory::DuplicateClosureParameter,
-        Severity::ERROR,
+        Severity::Error,
     );
 
     diagnostic.labels.push(Label::new(
@@ -1037,12 +1037,12 @@ pub(crate) fn duplicate_closure_parameter(
         .with_order(1),
     );
 
-    diagnostic.help = Some(Help::new(
+    diagnostic.add_help(Help::new(
         "Each function parameter must have a unique name. Rename this parameter or remove the \
          duplicate declaration.",
     ));
 
-    diagnostic.note = Some(Note::new(
+    diagnostic.add_note(Note::new(
         "Function parameters must have unique names within the same parameter list. For example, \
          in fn(x: Int, y: String): ReturnType body), 'x' and 'y' are unique parameters.",
     ));
@@ -1057,7 +1057,7 @@ pub(crate) fn duplicate_closure_generic(
 ) -> SpecialFormExpanderDiagnostic {
     let mut diagnostic = Diagnostic::new(
         SpecialFormExpanderDiagnosticCategory::DuplicateGenericConstraint,
-        Severity::ERROR,
+        Severity::Error,
     );
 
     diagnostic.labels.push(Label::new(
@@ -1073,12 +1073,12 @@ pub(crate) fn duplicate_closure_generic(
         .with_order(1),
     );
 
-    diagnostic.help = Some(Help::new(
+    diagnostic.add_help(Help::new(
         "Each generic parameter can only be declared once in a function definition. Remove the \
          duplicate declaration or use a different name.",
     ));
 
-    diagnostic.note = Some(Note::new(
+    diagnostic.add_note(Note::new(
         "Generic parameter names must be unique within a function's generic parameter list. For \
          example, in fn<T, U>(param: T): U -> body), 'T' and 'U' are unique parameters.",
     ));

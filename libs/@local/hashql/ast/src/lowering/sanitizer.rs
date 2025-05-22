@@ -60,7 +60,7 @@ impl DiagnosticCategory for SanitizerDiagnosticCategory {
 fn invalid_generic_constraint(span: SpanId, name: Symbol) -> SanitizerDiagnostic {
     let mut diagnostic = Diagnostic::new(
         SanitizerDiagnosticCategory::InvalidGenericConstraint,
-        Severity::ERROR,
+        Severity::Error,
     );
 
     diagnostic.labels.push(
@@ -69,12 +69,12 @@ fn invalid_generic_constraint(span: SpanId, name: Symbol) -> SanitizerDiagnostic
             .with_color(Color::Ansi(AnsiColor::Red)),
     );
 
-    diagnostic.help = Some(Help::new(format!(
+    diagnostic.add_help(Help::new(format!(
         "Generic constraints (like '{name}: Bound') are not allowed in this context. Use just the \
          parameter name without bounds: '{name}'. For example, change 'T: Clone' to just 'T'."
     )));
 
-    diagnostic.note = Some(Note::new(
+    diagnostic.add_note(Note::new(
         "Generic constraints with bounds can only be used in certain positions such as function \
          declarations, type declarations and newtype declarations. In other contexts, like usage \
          sites, only the parameter name should be specified.",
@@ -85,7 +85,7 @@ fn invalid_generic_constraint(span: SpanId, name: Symbol) -> SanitizerDiagnostic
 fn special_form_not_supported(path: &Path, universe: Universe) -> SanitizerDiagnostic {
     let mut diagnostic = Diagnostic::new(
         SanitizerDiagnosticCategory::InvalidSpecialForm,
-        Severity::ERROR,
+        Severity::Error,
     );
 
     // Primary label - the direct issue with context-specific message
@@ -114,13 +114,13 @@ fn special_form_not_supported(path: &Path, universe: Universe) -> SanitizerDiagn
         Universe::Type => "type annotation or declaration",
     };
 
-    diagnostic.help = Some(Help::new(format!(
+    diagnostic.add_help(Help::new(format!(
         "The special form '{special_form}' must be called directly with arguments. It cannot be \
          used as a {context} or passed to other functions. Instead, use it in a direct function \
          call syntax.",
     )));
 
-    diagnostic.note = Some(Note::new(
+    diagnostic.add_note(Note::new(
         "Special forms in HashQL are compile-time constructs that must be expanded during \
          compilation. They can only be used in call position with their expected arguments, not \
          as regular values, types, or function references.",

@@ -53,6 +53,7 @@ import {
   getBlockCollectionContentsStructuralQueryVariables,
 } from "../../shared/block-collection-contents";
 import { BlockCollectionContextProvider } from "../../shared/block-collection-context";
+import { NotFound } from "../../shared/not-found";
 import {
   TOP_CONTEXT_BAR_HEIGHT,
   TopContextBar,
@@ -290,11 +291,7 @@ const Page: NextPageWithLayout<PageProps> = () => {
   }
 
   if (error) {
-    return (
-      <PageSectionContainer {...pageSectionContainerProps}>
-        <h1>Error: {error.message}</h1>
-      </PageSectionContainer>
-    );
+    return <NotFound />;
   }
 
   if (

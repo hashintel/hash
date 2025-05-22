@@ -129,10 +129,7 @@ const sortOrderHumanReadable: Record<SortOrder, string> = {
 };
 
 export const PinnedEntityTypeTabContents: FunctionComponent<{
-  currentTab: Extract<
-    ProfilePageTab,
-    { kind: "pinned-entity-type" | "profile-pages" }
-  >;
+  currentTab: Extract<ProfilePageTab, { kind: "pinned-entity-type" }>;
   profile: User | Org;
   isEditable: boolean;
 }> = ({ currentTab, profile, isEditable }) => {

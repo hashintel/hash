@@ -28,47 +28,78 @@ pub type AbsoluteDiagnostic<C> = Diagnostic<C, AbsoluteDiagnosticSpan>;
 #[must_use = "A diagnostic must be reported"]
 pub struct Diagnostic<C, S> {
     pub category: C,
-    pub severity: Box<Severity>,
+    pub severity: Severity,
 
     pub message: Option<Cow<'static, str>>,
 
     pub labels: Vec<Label<S>>,
-    pub note: Option<Note>,
-    pub help: Option<Help>,
+    pub notes: Vec<Note>,
+    pub help: Vec<Help>,
 }
 
 impl<C, S> Diagnostic<C, S> {
-    pub fn new(category: impl Into<C>, severity: impl Into<Box<Severity>>) -> Self {
+    /// Creates a new diagnostic with the specified category and severity.
+    ///
+    /// Initializes an empty diagnostic that can be populated with message, labels, notes,
+    /// and help messages through the appropriate methods. The category and severity
+    /// determine how the diagnostic will be classified and displayed.
+    pub fn new(category: impl Into<C>, severity: Severity) -> Self {
         Self {
             category: category.into(),
-            severity: severity.into(),
+            severity,
             message: None,
             labels: Vec::new(),
-            note: None,
-            help: None,
+            notes: Vec::new(),
+            help: Vec::new(),
         }
     }
 
+    /// Transforms the diagnostic's category using the provided function.
+    ///
+    /// Takes the current category, applies the transformation function, and produces a new
+    /// [`Diagnostic`] with the transformed category while preserving all other fields such as
+    /// severity, message, labels, notes, and help messages.
     pub fn map_category<T>(self, func: impl FnOnce(C) -> T) -> Diagnostic<T, S> {
         Diagnostic {
             category: func(self.category),
             severity: self.severity,
             message: self.message,
             labels: self.labels,
-            note: self.note,
+            notes: self.notes,
             help: self.help,
         }
     }
 
+    /// Converts the diagnostic to use a boxed trait object for its category.
+    ///
+    /// Creates a new [`Diagnostic`] where the category is type-erased into a
+    /// `Box<dyn DiagnosticCategory>`.
     pub fn boxed<'a>(self) -> Diagnostic<Box<dyn DiagnosticCategory + 'a>, S>
     where
         C: DiagnosticCategory + 'a,
     {
         self.map_category(|category| Box::new(category) as Box<dyn DiagnosticCategory>)
     }
-}
 
-impl<C, S> Diagnostic<C, S> {
+    /// Adds a note to the diagnostic.
+    ///
+    /// Appends the provided [`Note`] to the diagnostic's collection of notes. Notes provide
+    /// additional context or information about the diagnostic that helps users understand
+    /// the issue.
+    pub fn add_note(&mut self, note: Note) -> &mut Self {
+        self.notes.push(note);
+        self
+    }
+
+    /// Adds a help message to the diagnostic.
+    ///
+    /// Appends the provided [`Help`] message to the diagnostic's collection of help messages.
+    /// Help messages suggest ways to fix or work around the issue described by the diagnostic.
+    pub fn add_help(&mut self, help: Help) -> &mut Self {
+        self.help.push(help);
+        self
+    }
+
     /// Resolve the diagnostic, into a proper diagnostic with span nodes.
     ///
     /// # Errors
@@ -93,7 +124,7 @@ impl<C, S> Diagnostic<C, S> {
             message: self.message,
 
             labels,
-            note: self.note,
+            notes: self.notes,
             help: self.help,
         })
     }
@@ -103,6 +134,12 @@ impl<C> Diagnostic<C, AbsoluteDiagnosticSpan>
 where
     C: DiagnosticCategory,
 {
+    /// Creates a formatted report for displaying the diagnostic to users.
+    ///
+    /// Converts this diagnostic into an ariadne [`Report`] that includes source code context,
+    /// colorized highlighting, and all the diagnostic information (message, labels, notes, and
+    /// help messages). The report can be written to a terminal or other output destination.
+    /// The visual appearance is controlled by the provided [`ReportConfig`].
     pub fn report(&self, config: ReportConfig) -> ariadne::Report<AbsoluteDiagnosticSpan> {
         // According to the examples, the span given to `Report::build` should be the span of the
         // primary (first) label.
@@ -114,7 +151,7 @@ where
 
         let mut generator = ColorGenerator::new();
 
-        let mut builder = ariadne::Report::build(self.severity.as_ref().kind(), span)
+        let mut builder = ariadne::Report::build(self.severity.kind(), span)
             .with_code(CanonicalDiagnosticCategoryId::new(&self.category));
 
         builder.set_message(
@@ -123,12 +160,20 @@ where
                 .unwrap_or_else(|| category_display_name(&self.category)),
         );
 
-        if let Some(note) = &self.note {
-            builder.set_note(note.colored(config.color));
+        for note in &self.notes {
+            builder.add_note(note.colored(config.color));
         }
 
-        if let Some(help) = &self.help {
-            builder.set_help(help.colored(config.color));
+        for note in self.severity.notes() {
+            builder.add_note(note.colored(config.color));
+        }
+
+        for help in &self.help {
+            builder.add_help(help.colored(config.color));
+        }
+
+        for help in self.severity.help() {
+            builder.add_help(help.colored(config.color));
         }
 
         for label in &self.labels {

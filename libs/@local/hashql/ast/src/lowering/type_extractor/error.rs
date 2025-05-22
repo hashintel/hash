@@ -143,7 +143,7 @@ pub(crate) fn duplicate_type_alias(
 ) -> TypeExtractorDiagnostic {
     let mut diagnostic = Diagnostic::new(
         TypeExtractorDiagnosticCategory::DuplicateTypeAlias,
-        Severity::COMPILER_BUG,
+        Severity::Bug,
     );
 
     diagnostic.labels.extend([
@@ -155,10 +155,9 @@ pub(crate) fn duplicate_type_alias(
             .with_color(Color::Ansi(AnsiColor::Red)),
     ]);
 
-    diagnostic.note = Some(Note::new(
+    diagnostic.add_note(Note::new(
         "This likely represents a compiler bug in the name mangling pass. The name mangler should \
-         have given these identical names unique internal identifiers to avoid this collision. \
-         Please report this issue to the HashQL team with a minimal reproduction case.",
+         have given these identical names unique internal identifiers to avoid this collision.",
     ));
 
     diagnostic
@@ -175,7 +174,7 @@ pub(crate) fn generic_constraint_not_allowed(
 ) -> TypeExtractorDiagnostic {
     let mut diagnostic = Diagnostic::new(
         TypeExtractorDiagnosticCategory::GenericConstraintNotAllowed,
-        Severity::ERROR,
+        Severity::Error,
     );
 
     diagnostic.labels.extend([
@@ -190,9 +189,9 @@ pub(crate) fn generic_constraint_not_allowed(
             .with_color(Color::Ansi(AnsiColor::Blue)),
     ]);
 
-    diagnostic.help = Some(Help::new(format!("Use `{name}` without a constraint")));
+    diagnostic.add_help(Help::new(format!("Use `{name}` without a constraint")));
 
-    diagnostic.note = Some(Note::new(
+    diagnostic.add_note(Note::new(
         "Type constraints cannot be specified at the usage site in HashQL. Constraints on type \
          parameters must be declared where the type is defined, not where it is used.",
     ));
@@ -212,7 +211,7 @@ pub(crate) fn duplicate_newtype(
 ) -> TypeExtractorDiagnostic {
     let mut diagnostic = Diagnostic::new(
         TypeExtractorDiagnosticCategory::DuplicateNewtype,
-        Severity::COMPILER_BUG,
+        Severity::Bug,
     );
 
     diagnostic.labels.extend([
@@ -227,12 +226,11 @@ pub(crate) fn duplicate_newtype(
             .with_color(Color::Ansi(AnsiColor::Red)),
     ]);
 
-    diagnostic.note = Some(Note::new(
+    diagnostic.add_note(Note::new(
         "This likely represents a compiler bug in the name mangling pass. The compiler \
          encountered duplicate newtype definitions with the same name that should have been given \
          unique internal identifiers. The name mangler should have prevented this collision \
-         automatically. Please report this issue to the HashQL team with a minimal reproduction \
-         case.",
+         automatically.",
     ));
 
     diagnostic
@@ -262,7 +260,7 @@ where
 {
     let mut diagnostic = Diagnostic::new(
         TypeExtractorDiagnosticCategory::GenericParameterMismatch,
-        Severity::ERROR,
+        Severity::Error,
     );
 
     let name = match variable {
@@ -346,9 +344,9 @@ where
         Ordering::Equal => format!("Use: {usage}"),
     };
 
-    diagnostic.help = Some(Help::new(help));
+    diagnostic.add_help(Help::new(help));
 
-    diagnostic.note = Some(Note::new(
+    diagnostic.add_note(Note::new(
         "Generic type parameters allow types to work with different data types while maintaining \
          type safety. Each generic type has specific requirements for the number and names of \
          type parameters it accepts. For example, List<T> requires exactly one type parameter, \
@@ -370,7 +368,7 @@ pub(crate) fn unbound_type_variable<'heap>(
 ) -> TypeExtractorDiagnostic {
     let mut diagnostic = Diagnostic::new(
         TypeExtractorDiagnosticCategory::UnboundTypeVariable,
-        Severity::COMPILER_BUG,
+        Severity::Bug,
     );
 
     diagnostic.labels.push(
@@ -391,14 +389,13 @@ pub(crate) fn unbound_type_variable<'heap>(
             .intersperse("`, `")
             .collect();
 
-        diagnostic.help = Some(Help::new(format!("Did you mean `{suggestions}`?")));
+        diagnostic.add_help(Help::new(format!("Did you mean `{suggestions}`?")));
     }
 
-    diagnostic.note = Some(Note::new(
+    diagnostic.add_note(Note::new(
         "This is likely a compiler bug in the name resolution system. The type checker has \
          encountered a name that wasn't properly resolved earlier in compilation. The name \
-         resolution pass should have caught this error or provided a more specific error message. \
-         Please report this issue to the HashQL team with a minimal reproduction case.",
+         resolution pass should have caught this error or provided a more specific error message.",
     ));
 
     diagnostic
@@ -416,7 +413,7 @@ pub(crate) fn intrinsic_parameter_count_mismatch(
 ) -> TypeExtractorDiagnostic {
     let mut diagnostic = Diagnostic::new(
         TypeExtractorDiagnosticCategory::IntrinsicParameterMismatch,
-        Severity::ERROR,
+        Severity::Error,
     );
 
     let message = if actual < expected {
@@ -454,7 +451,7 @@ pub(crate) fn intrinsic_parameter_count_mismatch(
         format!("Remove extra parameter(s): `{help_example}`")
     };
 
-    diagnostic.help = Some(Help::new(help_message));
+    diagnostic.add_help(Help::new(help_message));
 
     // Add a note explaining the purpose of the intrinsic type
     let note_message = match name {
@@ -475,7 +472,7 @@ pub(crate) fn intrinsic_parameter_count_mismatch(
         }
     };
 
-    diagnostic.note = Some(Note::new(note_message));
+    diagnostic.add_note(Note::new(note_message));
 
     diagnostic
 }
@@ -491,7 +488,7 @@ pub(crate) fn unknown_intrinsic_type(
 ) -> TypeExtractorDiagnostic {
     let mut diagnostic = Diagnostic::new(
         TypeExtractorDiagnosticCategory::UnknownIntrinsicType,
-        Severity::COMPILER_BUG,
+        Severity::Bug,
     );
 
     diagnostic.labels.push(
@@ -508,7 +505,7 @@ pub(crate) fn unknown_intrinsic_type(
 
     if similar.is_empty() {
         // Provide helpful guidance even without close matches
-        diagnostic.help = Some(Help::new(
+        diagnostic.add_help(Help::new(
             "Check the HashQL documentation for a complete list of available intrinsic types. \
              Make sure you're using the correct namespace and capitalization for the type you're \
              trying to use.",
@@ -516,17 +513,16 @@ pub(crate) fn unknown_intrinsic_type(
     } else {
         let suggestions: String = similar.into_iter().intersperse("`, `").collect();
 
-        diagnostic.help = Some(Help::new(format!("Did you mean `{suggestions}`?")));
+        diagnostic.add_help(Help::new(format!("Did you mean `{suggestions}`?")));
     }
 
     let available: String = available.iter().copied().intersperse("`, `").collect();
 
-    diagnostic.note = Some(Note::new(format!(
+    diagnostic.add_note(Note::new(format!(
         "Available intrinsic types: `{available}`\n\nIntrinsic types are fundamental building \
          blocks provided by the language runtime. They form the basis of the type system and \
          cannot be redefined by user code.\n\nThis is likely a compiler bug. The import resolver \
-         should've caught this error beforehand. Please report this issue to the HashQL team with \
-         a minimal reproduction case that demonstrates how to trigger this error."
+         should've caught this error beforehand."
     )));
 
     diagnostic
@@ -544,7 +540,7 @@ pub(crate) fn invalid_resolved_item(
 ) -> TypeExtractorDiagnostic {
     let mut diagnostic = Diagnostic::new(
         TypeExtractorDiagnosticCategory::InvalidResolution,
-        Severity::COMPILER_BUG,
+        Severity::Bug,
     );
 
     diagnostic.labels.push(
@@ -561,7 +557,7 @@ pub(crate) fn invalid_resolved_item(
         .with_color(Color::Ansi(AnsiColor::Red)),
     );
 
-    diagnostic.help = Some(Help::new(format!(
+    diagnostic.add_help(Help::new(format!(
         "Found a {actual:?} instead of a {}. This is an internal compiler issue with type \
          resolution, not a problem with your code.",
         match expected {
@@ -570,11 +566,10 @@ pub(crate) fn invalid_resolved_item(
         }
     )));
 
-    diagnostic.note = Some(Note::new(
+    diagnostic.add_note(Note::new(
         "This is likely a compiler bug in the import resolution system. The compiler has confused \
          types and values during name resolution. The import resolver should have caught this \
-         error before reaching this stage. Please report this issue to the HashQL team with a \
-         minimal reproduction case that demonstrates how to trigger this error.",
+         error before reaching this stage.",
     ));
 
     diagnostic
@@ -587,7 +582,7 @@ pub(crate) fn invalid_resolved_item(
 pub(crate) fn resolution_error(path: &Path, error: &ResolutionError) -> TypeExtractorDiagnostic {
     let mut diagnostic = Diagnostic::new(
         TypeExtractorDiagnosticCategory::ResolutionError,
-        Severity::COMPILER_BUG,
+        Severity::Bug,
     );
 
     let path_display = path
@@ -607,15 +602,13 @@ pub(crate) fn resolution_error(path: &Path, error: &ResolutionError) -> TypeExtr
             .with_color(Color::Ansi(AnsiColor::Red)),
     );
 
-    diagnostic.note = Some(Note::new(format!(
+    diagnostic.add_note(Note::new(
         "This is likely a compiler bug in the name resolution system. During type checking, the \
          compiler failed to resolve a path that should have been properly processed by earlier \
          compilation stages. Either the path resolution should have succeeded or a more specific \
-         error should have been reported earlier in compilation. \n\nPlease report this issue to \
-         the HashQL team with a minimal reproduction case that triggers this error. Include the \
-         path you were trying to reference and any relevant type definitions.\n\nTechnical error \
-         details:\n{error:#?}"
-    )));
+         error should have been reported earlier in compilation.",
+    ));
+    diagnostic.add_note(Note::new(format!("Technical error details:\n{error:#?}")));
 
     diagnostic
 }
@@ -630,7 +623,7 @@ pub(crate) fn duplicate_struct_fields(
 ) -> TypeExtractorDiagnostic {
     let mut diagnostic = Diagnostic::new(
         TypeExtractorDiagnosticCategory::DuplicateStructField,
-        Severity::ERROR,
+        Severity::Error,
     );
 
     diagnostic.labels.push(
@@ -653,12 +646,12 @@ pub(crate) fn duplicate_struct_fields(
         index -= 1;
     }
 
-    diagnostic.help = Some(Help::new(format!(
+    diagnostic.add_help(Help::new(format!(
         "To fix this error, you can either:\n1. Rename the duplicate `{field_name}` field to a \
          different name, or\n2. Remove the redundant field definition entirely if it's not needed"
     )));
 
-    diagnostic.note = Some(Note::new(
+    diagnostic.add_note(Note::new(
         "Struct types in HashQL require that each field has a unique name. Having multiple fields \
          with the same name would create ambiguity when accessing fields through dot notation or \
          destructuring. The compiler enforces this constraint to ensure clear and predictable \
@@ -680,7 +673,7 @@ pub(crate) fn unused_generic_parameter(
 ) -> TypeExtractorDiagnostic {
     let mut diagnostic = Diagnostic::new(
         TypeExtractorDiagnosticCategory::UnusedGenericParameter,
-        Severity::ERROR,
+        Severity::Error,
     );
 
     diagnostic.labels.push(
@@ -700,13 +693,13 @@ pub(crate) fn unused_generic_parameter(
             .with_color(Color::Ansi(AnsiColor::Blue)),
     );
 
-    diagnostic.help = Some(Help::new(format!(
+    diagnostic.add_help(Help::new(format!(
         "Generic parameter `{}` is declared but not referenced. Either remove the unused \
          parameter or incorporate it into your type definition.",
         demangle(&param.name)
     )));
 
-    diagnostic.note = Some(Note::new(
+    diagnostic.add_note(Note::new(
         "Each generic parameter should serve a purpose in parameterizing the type. Unused \
          parameters can make code harder to understand and may indicate a design oversight or \
          incomplete implementation. They are unconstrained variables, and therefore considered \

@@ -172,7 +172,7 @@ const UserProfileWebsSection: FunctionComponent<{ webs: Org[] }> = ({
 };
 
 const PinnedEntityTypeTabInfo: FunctionComponent<
-  Extract<ProfilePageTab, { kind: "pinned-entity-type" | "profile-pages" }>
+  Extract<ProfilePageTab, { kind: "pinned-entity-type" }>
 > = ({ entities }) => {
   const latestEntityUpdatedAt = useMemo(() => {
     const latestEntity = entities?.reduce<HashEntity | undefined>(
@@ -282,10 +282,10 @@ export const ProfilePageInfo: FunctionComponent<{
             </IconButton>
           </Fade>
         </Box>
-        {currentTab.kind === "profile" ? (
-          <ProfileTabInfoSection profile={profile} />
-        ) : (
+        {currentTab.kind === "pinned-entity-type" ? (
           <PinnedEntityTypeTabInfo {...currentTab} />
+        ) : (
+          <ProfileTabInfoSection profile={profile} />
         )}
       </Box>
       {profile?.kind === "user" && webs && webs.length > 0 ? (
