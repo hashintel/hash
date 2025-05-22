@@ -537,8 +537,6 @@ mod test {
     #![expect(clippy::min_ident_chars)]
     use core::assert_matches::assert_matches;
 
-    use anstream::adapter::strip_str;
-
     use super::{StructField, StructType};
     use crate::{
         heap::Heap,
@@ -2006,10 +2004,9 @@ mod test {
         let type_id = instantiate.instantiate(value);
 
         // The type is complicated enough that it isn't feasible to test it through assertions.
-        insta::assert_snapshot!(strip_str(
-            &env.r#type(type_id)
+        insta::assert_snapshot!(
+            env.r#type(type_id)
                 .pretty_print(&env, PrettyOptions::default())
-                .to_string()
-        ));
+        );
     }
 }

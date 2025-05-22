@@ -23,13 +23,15 @@ pub(crate) const GRAY: Style = Style::new().fg_color(Some(Color::Ansi(AnsiColor:
 
 struct WriteColoredFmt<'a, 'b> {
     stack: Vec<Style>,
+    colored: bool,
     formatter: &'a mut Formatter<'b>,
 }
 
 impl<'a, 'b> WriteColoredFmt<'a, 'b> {
-    const fn new(formatter: &'a mut Formatter<'b>) -> Self {
+    const fn new(formatter: &'a mut Formatter<'b>, colored: bool) -> Self {
         Self {
             stack: Vec::new(),
+            colored,
             formatter,
         }
     }
@@ -55,12 +57,20 @@ impl Render for WriteColoredFmt<'_, '_> {
 
 impl RenderAnnotated<'_, Style> for WriteColoredFmt<'_, '_> {
     fn push_annotation(&mut self, annotation: &'_ Style) -> Result<(), Self::Error> {
+        if !self.colored {
+            return Ok(());
+        }
+
         self.stack.push(*annotation);
 
         Display::fmt(annotation, self.formatter)
     }
 
     fn pop_annotation(&mut self) -> Result<(), Self::Error> {
+        if !self.colored {
+            return Ok(());
+        }
+
         if let Some(annotation) = self.stack.pop() {
             Display::fmt(&annotation.render_reset(), self.formatter)?;
         }
@@ -73,13 +83,15 @@ impl RenderAnnotated<'_, Style> for WriteColoredFmt<'_, '_> {
 
 struct WriteColoredIo<W> {
     stack: Vec<Style>,
+    colored: bool,
     inner: W,
 }
 
 impl<W> WriteColoredIo<W> {
-    const fn new(inner: W) -> Self {
+    const fn new(inner: W, colored: bool) -> Self {
         Self {
             stack: Vec::new(),
+            colored,
             inner,
         }
     }
@@ -110,11 +122,19 @@ where
     W: io::Write,
 {
     fn push_annotation(&mut self, annotation: &'_ Style) -> Result<(), Self::Error> {
+        if !self.colored {
+            return Ok(());
+        }
+
         self.stack.push(*annotation);
         annotation.write_to(&mut self.inner)
     }
 
     fn pop_annotation(&mut self) -> Result<(), Self::Error> {
+        if !self.colored {
+            return Ok(());
+        }
+
         if let Some(annotation) = self.stack.pop() {
             annotation.write_reset_to(&mut self.inner)?;
         }
@@ -286,6 +306,7 @@ impl PrettyRecursionBoundary {
 /// Formatting configuration for pretty-printing.
 ///
 /// Controls layout, wrapping, and recursion handling for document rendering.
+#[must_use = "pretty options don't do anything unless explicitly applied"]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Default)]
 pub struct PrettyOptions {
     /// Spaces per indentation level.
@@ -293,6 +314,9 @@ pub struct PrettyOptions {
 
     /// Width limit before line wrapping.
     pub max_width: usize = 80,
+
+    /// Whether to use color in output.
+    pub colored: bool = true,
 
     /// Maximum nesting depth before truncating with "...".
     ///
@@ -302,6 +326,65 @@ pub struct PrettyOptions {
 
     /// Method used to detect cycles in recursive structures.
     pub recursion_strategy: PrettyRecursionGuardStrategy
+}
+
+impl PrettyOptions {
+    /// Creates a new instance with default settings.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Sets the number of spaces per indentation level.
+    pub const fn with_indent(mut self, indent: u8) -> Self {
+        self.indent = indent;
+        self
+    }
+
+    /// Sets the maximum line width before wrapping.
+    pub const fn with_max_width(mut self, max_width: usize) -> Self {
+        self.max_width = max_width;
+        self
+    }
+
+    /// Controls whether ANSI color codes are used in output.
+    pub const fn with_colored(mut self, colored: bool) -> Self {
+        self.colored = colored;
+        self
+    }
+
+    /// Enables colored output.
+    pub const fn with_color(self) -> Self {
+        self.with_colored(true)
+    }
+
+    /// Disables colored output.
+    pub const fn without_color(self) -> Self {
+        self.with_colored(false)
+    }
+
+    /// Sets the maximum recursion depth.
+    pub const fn with_recursion_limit(mut self, limit: Option<usize>) -> Self {
+        self.recursion_limit = limit;
+        self
+    }
+
+    /// Sets the recursion detection strategy.
+    pub const fn with_recursion_strategy(mut self, strategy: PrettyRecursionGuardStrategy) -> Self {
+        self.recursion_strategy = strategy;
+        self
+    }
+
+    /// Sets the recursion strategy to depth counting.
+    pub const fn with_depth_tracking(mut self) -> Self {
+        self.recursion_strategy = PrettyRecursionGuardStrategy::DepthCounting;
+        self
+    }
+
+    /// Sets the recursion strategy to identity tracking.
+    pub const fn with_identity_tracking(mut self) -> Self {
+        self.recursion_strategy = PrettyRecursionGuardStrategy::IdentityTracking;
+        self
+    }
 }
 
 /// Format values as pretty-printed documents.
@@ -354,7 +437,7 @@ pub trait PrettyPrint<'heap> {
     where
         W: io::Write,
     {
-        let mut writer = WriteColoredIo::new(write);
+        let mut writer = WriteColoredIo::new(write, options.colored);
 
         self.pretty(
             env,
@@ -380,7 +463,7 @@ pub trait PrettyPrint<'heap> {
             fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
                 let Self(target, env, options) = self;
 
-                let mut writer = WriteColoredFmt::new(fmt);
+                let mut writer = WriteColoredFmt::new(fmt, options.colored);
 
                 target
                     .pretty(

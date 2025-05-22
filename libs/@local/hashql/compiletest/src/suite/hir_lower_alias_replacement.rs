@@ -1,6 +1,5 @@
 use core::fmt::Write as _;
 
-use anstream::adapter::strip_str;
 use hashql_ast::{lowering::lower, node::expr::Expr};
 use hashql_core::{
     heap::Heap,
@@ -45,7 +44,7 @@ impl Suite for HirLowerAliasReplacementSuite {
         let node = node.expect("should be `Some` if there are non-fatal errors");
 
         let mut output = node
-            .pretty_print(&environment, PrettyOptions::default())
+            .pretty_print(&environment, PrettyOptions::default().without_color())
             .to_string();
 
         output.push_str("\n\n--------------------------------------\n\n");
@@ -56,10 +55,10 @@ impl Suite for HirLowerAliasReplacementSuite {
         write!(
             &mut output,
             "{}",
-            node.pretty_print(&environment, PrettyOptions::default())
+            node.pretty_print(&environment, PrettyOptions::default().without_color())
         )
         .expect("infallible");
 
-        Ok(strip_str(&output).to_string())
+        Ok(output)
     }
 }
