@@ -60,7 +60,7 @@ pub(crate) fn system_actor_create_web_policy(
     system_machine_actor: ActorId,
 ) -> PolicyCreationParams {
     PolicyCreationParams {
-        name: Some("default-web-create".to_owned()),
+        name: Some("system-machine-create-web".to_owned()),
         effect: Effect::Permit,
         principal: Some(PrincipalConstraint::Actor {
             actor: system_machine_actor,
@@ -74,13 +74,25 @@ fn system_actor_view_entity_policies(
     system_machine_actor: ActorId,
 ) -> impl Iterator<Item = PolicyCreationParams> {
     iter::once(PolicyCreationParams {
-        name: Some("default-web-create".to_owned()),
+        name: Some("system-machine-view-entity".to_owned()),
         effect: Effect::Permit,
         principal: Some(PrincipalConstraint::Actor {
             actor: system_machine_actor,
         }),
         actions: vec![ActionName::CreateWeb],
-        resource: None,
+        resource: Some(ResourceConstraint::Entity(EntityResourceConstraint::Any {
+            filter: EntityResourceFilter::Any {
+                filters: create_version_filters(
+                    base_url!("https://hash.ai/@h/types/entity-type/sync-linear-data-with/"),
+                    1,
+                )
+                .chain(create_version_filters(
+                    base_url!("https://hash.ai/@h/types/entity-type/prospective-user/"),
+                    1,
+                ))
+                .collect(),
+            },
+        })),
     })
 }
 
