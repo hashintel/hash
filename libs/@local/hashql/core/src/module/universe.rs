@@ -1,3 +1,7 @@
+#![allow(
+    exported_private_dependencies,
+    reason = "equivalent is from hashbrown; false positive"
+)]
 use alloc::alloc::Global;
 use core::{
     alloc::Allocator,
@@ -424,7 +428,6 @@ where
     /// assert_eq!(realms.remove(Universe::Type, &"foo"), None);
     /// ```
     #[inline]
-    #[expect(exported_private_dependencies, reason = "equivalent is from hashbrown")]
     pub fn remove<Q>(&mut self, universe: Universe, key: &Q) -> Option<V>
     where
         Q: Hash + Equivalent<K> + ?Sized,
@@ -453,7 +456,6 @@ where
     /// assert!(!realms.contains_key(Universe::Value, &"foo"));
     /// ```
     #[inline]
-    #[expect(exported_private_dependencies, reason = "equivalent is from hashbrown")]
     pub fn contains_key<Q>(&self, universe: Universe, key: &Q) -> bool
     where
         Q: Hash + Equivalent<K> + ?Sized,
@@ -482,7 +484,6 @@ where
     /// assert_eq!(realms.get(Universe::Type, &"bar"), None);
     /// ```
     #[inline]
-    #[expect(exported_private_dependencies, reason = "equivalent is from hashbrown")]
     pub fn get<Q>(&self, universe: Universe, key: &Q) -> Option<&V>
     where
         Q: Hash + Equivalent<K> + ?Sized,
@@ -512,7 +513,6 @@ where
     /// assert_eq!(realms.get(Universe::Type, &"foo"), Some(&52));
     /// ```
     #[inline]
-    #[expect(exported_private_dependencies, reason = "equivalent is from hashbrown")]
     pub fn get_mut<Q>(&mut self, universe: Universe, key: &Q) -> Option<&mut V>
     where
         Q: Hash + Equivalent<K> + ?Sized,
@@ -891,7 +891,6 @@ where
     /// assert_eq!(realms.remove(Universe::Type, &"foo"), false); // No longer present
     /// ```
     #[inline]
-    #[expect(exported_private_dependencies, reason = "equivalent is from hashbrown")]
     pub fn remove<Q>(&mut self, universe: Universe, key: &Q) -> bool
     where
         Q: Hash + Equivalent<K> + ?Sized,
@@ -921,7 +920,6 @@ where
     /// assert!(!realms.contains(Universe::Value, &"foo"));
     /// ```
     #[inline]
-    #[expect(exported_private_dependencies, reason = "equivalent is from hashbrown")]
     pub fn contains<Q>(&self, universe: Universe, key: &Q) -> bool
     where
         Q: Hash + Equivalent<K> + ?Sized,
