@@ -1,3 +1,5 @@
+use core::mem::variant_count;
+
 /// Represents the conceptual space or "universe" an item belongs to.
 ///
 /// In HashQL, items exist in distinct conceptual spaces known as "universes".
@@ -17,4 +19,10 @@ pub enum Universe {
     Type,
     /// Represents items belonging to the value universe (e.g., concrete values, functions).
     Value,
+}
+
+const LENGTH: usize = variant_count::<Universe>();
+
+pub struct Segmented<T> {
+    data: [T; LENGTH],
 }
