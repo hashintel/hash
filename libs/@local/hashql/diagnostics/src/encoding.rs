@@ -1,200 +1,204 @@
-use core::{
-    fmt::{self, Display},
-    str::FromStr,
-};
+pub(crate) mod color_option {
+    #![expect(clippy::ref_option, clippy::trivially_copy_pass_by_ref)]
+    use anstyle::Color;
+    use serde::{Deserialize as _, Deserializer, Serialize as _, Serializer};
 
-use anstyle::{Ansi256Color, AnsiColor};
-use serde::{
-    Deserialize as _, Serialize as _,
-    de::{Visitor, value::StrDeserializer},
-    ser::SerializeSeq as _,
-};
-use serde_with::{DeserializeAs, SerializeAs};
+    #[derive(serde::Serialize, serde::Deserialize)]
+    #[serde(transparent)]
+    struct Wrapped(#[serde(with = "super::color")] Color);
 
-struct AnsiParseError;
+    pub(crate) fn serialize<S: Serializer>(
+        value: &Option<Color>,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error> {
+        value.map(Wrapped).serialize(serializer)
+    }
 
-impl Display for AnsiParseError {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt.write_str("invalid ANSI color, expected:")?;
+    pub(crate) fn deserialize<'de, D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> Result<Option<Color>, D::Error> {
+        let wrapped = Option::<Wrapped>::deserialize(deserializer)?;
 
-        for (index, color) in Ansi::ALL.into_iter().enumerate() {
-            if index != 0 {
-                fmt.write_str(", or")?;
+        Ok(wrapped.map(|wrapped| wrapped.0))
+    }
+}
+
+pub(crate) mod color {
+    #![expect(clippy::trivially_copy_pass_by_ref)]
+    use core::fmt;
+
+    use anstyle::{Color, RgbColor};
+    use anstyle_lossy::{color_to_rgb, palette};
+    use serde::{
+        Deserializer, Serializer,
+        de::{Unexpected, Visitor},
+    };
+
+    fn write_hex_digit(target: &mut u8, value: u8) {
+        match value {
+            0..=9 => *target = b'0' + value,
+            10..=15 => *target = b'A' + (value - 10),
+            _ => unreachable!(),
+        }
+    }
+
+    fn write_hex_u8(buffer: &mut [u8], value: u8) {
+        assert!(buffer.len() >= 2);
+
+        write_hex_digit(&mut buffer[0], value >> 4);
+        write_hex_digit(&mut buffer[1], value & 0xF);
+    }
+
+    pub(crate) fn serialize<S: Serializer>(
+        value: &Color,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error> {
+        let rbg = color_to_rgb(*value, palette::DEFAULT);
+
+        let mut buffer = [0_u8; 7];
+        buffer[0] = b'#';
+        write_hex_u8(&mut buffer[1..3], rbg.r());
+        write_hex_u8(&mut buffer[3..5], rbg.g());
+        write_hex_u8(&mut buffer[5..7], rbg.b());
+
+        // In theory we could "safely" use `unchecked` here, but unsafe code in an encoding /
+        // decoding context is a bit silly and we should avoid it unless we have a very good
+        // reason to do so.
+        let value = core::str::from_utf8(&buffer).unwrap_or_else(|_err| unreachable!());
+
+        serializer.serialize_str(value)
+    }
+
+    pub(crate) fn deserialize<'de, D: Deserializer<'de>>(
+        deserializer: D,
+    ) -> Result<Color, D::Error> {
+        struct ColorVisitor;
+
+        #[expect(clippy::min_ident_chars)]
+        impl Visitor<'_> for ColorVisitor {
+            type Value = Color;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("a hexadecimal color code")
             }
 
-            write!(fmt, " `{color}`")?;
-        }
+            #[expect(clippy::missing_asserts_for_indexing, reason = "false positive")]
+            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                let bytes = v.as_bytes();
 
-        Ok(())
-    }
-}
+                if bytes.len() != 7 && bytes.len() != 4 {
+                    return Err(E::invalid_length(v.len(), &"string of length 4 or 7"));
+                }
 
-#[derive(
-    Debug,
-    Copy,
-    Clone,
-    PartialEq,
-    Eq,
-    Hash,
-    serde_with::SerializeDisplay,
-    serde_with::DeserializeFromStr,
-)]
-struct Ansi(AnsiColor);
+                if bytes[0] != b'#' {
+                    return Err(E::invalid_value(
+                        Unexpected::Str(v),
+                        &"string starting with '#'",
+                    ));
+                }
 
-impl Ansi {
-    const ALL: [Self; 16] = [
-        Self(AnsiColor::Black),
-        Self(AnsiColor::Red),
-        Self(AnsiColor::Green),
-        Self(AnsiColor::Yellow),
-        Self(AnsiColor::Blue),
-        Self(AnsiColor::Magenta),
-        Self(AnsiColor::Cyan),
-        Self(AnsiColor::White),
-        Self(AnsiColor::BrightBlack),
-        Self(AnsiColor::BrightRed),
-        Self(AnsiColor::BrightGreen),
-        Self(AnsiColor::BrightYellow),
-        Self(AnsiColor::BrightBlue),
-        Self(AnsiColor::BrightMagenta),
-        Self(AnsiColor::BrightCyan),
-        Self(AnsiColor::BrightWhite),
-    ];
-}
+                let rgb = if v.len() == 4 {
+                    // For 3-digit hex colors (#RGB), each digit is duplicated to get the 6-digit
+                    // form (#RRGGBB) For example, #F00 becomes #FF0000
+                    let r = u8::from_ascii_radix(&bytes[1..2], 16).map_err(E::custom)?;
+                    let g = u8::from_ascii_radix(&bytes[2..3], 16).map_err(E::custom)?;
+                    let b = u8::from_ascii_radix(&bytes[3..4], 16).map_err(E::custom)?;
 
-impl Display for Ansi {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self.0 {
-            AnsiColor::Black => fmt.write_str("black"),
-            AnsiColor::Red => fmt.write_str("red"),
-            AnsiColor::Green => fmt.write_str("green"),
-            AnsiColor::Yellow => fmt.write_str("yellow"),
-            AnsiColor::Blue => fmt.write_str("blue"),
-            AnsiColor::Magenta => fmt.write_str("magenta"),
-            AnsiColor::Cyan => fmt.write_str("cyan"),
-            AnsiColor::White => fmt.write_str("white"),
-            AnsiColor::BrightBlack => fmt.write_str("bright-black"),
-            AnsiColor::BrightRed => fmt.write_str("bright-red"),
-            AnsiColor::BrightGreen => fmt.write_str("bright-green"),
-            AnsiColor::BrightYellow => fmt.write_str("bright-yellow"),
-            AnsiColor::BrightBlue => fmt.write_str("bright-blue"),
-            AnsiColor::BrightMagenta => fmt.write_str("bright-magenta"),
-            AnsiColor::BrightCyan => fmt.write_str("bright-cyan"),
-            AnsiColor::BrightWhite => fmt.write_str("bright-white"),
-        }
-    }
-}
+                    // Duplicate each digit
+                    RgbColor((r << 4) | r, (g << 4) | g, (b << 4) | b)
+                } else {
+                    let r = u8::from_ascii_radix(&bytes[1..3], 16).map_err(E::custom)?;
+                    let g = u8::from_ascii_radix(&bytes[3..5], 16).map_err(E::custom)?;
+                    let b = u8::from_ascii_radix(&bytes[5..7], 16).map_err(E::custom)?;
 
-impl FromStr for Ansi {
-    type Err = AnsiParseError;
+                    RgbColor(r, g, b)
+                };
 
-    fn from_str(ansi: &str) -> Result<Self, Self::Err> {
-        let color = if ansi.eq_ignore_ascii_case("black") {
-            AnsiColor::Black
-        } else if ansi.eq_ignore_ascii_case("red") {
-            AnsiColor::Red
-        } else if ansi.eq_ignore_ascii_case("green") {
-            AnsiColor::Green
-        } else if ansi.eq_ignore_ascii_case("yellow") {
-            AnsiColor::Yellow
-        } else if ansi.eq_ignore_ascii_case("blue") {
-            AnsiColor::Blue
-        } else if ansi.eq_ignore_ascii_case("magenta") {
-            AnsiColor::Magenta
-        } else if ansi.eq_ignore_ascii_case("cyan") {
-            AnsiColor::Cyan
-        } else if ansi.eq_ignore_ascii_case("white") {
-            AnsiColor::White
-        } else if ansi.eq_ignore_ascii_case("bright-black") {
-            AnsiColor::BrightBlack
-        } else if ansi.eq_ignore_ascii_case("bright-red") {
-            AnsiColor::BrightRed
-        } else if ansi.eq_ignore_ascii_case("bright-green") {
-            AnsiColor::BrightGreen
-        } else if ansi.eq_ignore_ascii_case("bright-yellow") {
-            AnsiColor::BrightYellow
-        } else if ansi.eq_ignore_ascii_case("bright-blue") {
-            AnsiColor::BrightBlue
-        } else if ansi.eq_ignore_ascii_case("bright-magenta") {
-            AnsiColor::BrightMagenta
-        } else if ansi.eq_ignore_ascii_case("bright-cyan") {
-            AnsiColor::BrightCyan
-        } else if ansi.eq_ignore_ascii_case("bright-white") {
-            AnsiColor::BrightWhite
-        } else {
-            return Err(AnsiParseError);
-        };
-
-        Ok(Self(color))
-    }
-}
-
-pub(crate) struct Color;
-
-impl SerializeAs<anstyle::Color> for Color {
-    fn serialize_as<S>(source: &anstyle::Color, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        match source {
-            anstyle::Color::Ansi(color) => Ansi(*color).serialize(serializer),
-            anstyle::Color::Ansi256(color) => serializer.serialize_u8(color.0),
-            anstyle::Color::Rgb(anstyle::RgbColor(red, green, blue)) => {
-                let mut seq = serializer.serialize_seq(Some(3))?;
-                seq.serialize_element(red)?;
-                seq.serialize_element(green)?;
-                seq.serialize_element(blue)?;
-                seq.end()
+                Ok(Color::Rgb(rgb))
             }
         }
-    }
-}
 
-struct ColorVisitor;
-
-impl<'de> Visitor<'de> for ColorVisitor {
-    type Value = anstyle::Color;
-
-    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str("a color")
+        deserializer.deserialize_str(ColorVisitor)
     }
 
-    fn visit_u8<E>(self, value: u8) -> Result<anstyle::Color, E> {
-        Ok(anstyle::Color::Ansi256(Ansi256Color(value)))
-    }
+    #[cfg(test)]
+    mod tests {
+        #![expect(clippy::non_ascii_literal)]
+        use anstyle::{Ansi256Color, AnsiColor, Color, RgbColor};
+        use rstest::rstest;
+        use serde_json::{from_value, json, to_value};
 
-    fn visit_seq<A>(self, mut seq: A) -> Result<anstyle::Color, A::Error>
-    where
-        A: serde::de::SeqAccess<'de>,
-    {
-        let red = seq
-            .next_element()?
-            .ok_or_else(|| serde::de::Error::invalid_length(0, &"3"))?;
-        let green = seq
-            .next_element()?
-            .ok_or_else(|| serde::de::Error::invalid_length(1, &"3"))?;
-        let blue = seq
-            .next_element()?
-            .ok_or_else(|| serde::de::Error::invalid_length(2, &"3"))?;
+        #[derive(Debug, Copy, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+        struct Example {
+            #[serde(with = "super")]
+            color: Color,
+        }
 
-        Ok(anstyle::Color::Rgb(anstyle::RgbColor(red, green, blue)))
-    }
+        #[rstest]
+        #[case(Color::Rgb(RgbColor(255, 0, 0)), "#FF0000")]
+        #[case(Color::Rgb(RgbColor(0, 255, 0)), "#00FF00")]
+        #[case(Color::Rgb(RgbColor(0, 0, 255)), "#0000FF")]
+        #[case(Color::Rgb(RgbColor(0, 0, 0)), "#000000")]
+        #[case(Color::Rgb(RgbColor(255, 255, 255)), "#FFFFFF")]
+        #[case(Color::Rgb(RgbColor(128, 0, 128)), "#800080")]
+        #[case(Color::Ansi(AnsiColor::Red), "#AA0000")]
+        #[case(Color::Ansi256(Ansi256Color(42)), "#00D787")]
+        fn serialize(#[case] color: Color, #[case] expected: &str) {
+            let value = Example { color };
+            let encoded = to_value(value).expect("should be able to serialize color");
+            assert_eq!(encoded, json!({"color": expected}));
+        }
 
-    fn visit_str<E>(self, string: &str) -> Result<Self::Value, E>
-    where
-        E: serde::de::Error,
-    {
-        Ansi::deserialize(StrDeserializer::new(string))
-            .map(|color| color.0)
-            .map(anstyle::Color::Ansi)
-    }
-}
+        #[rstest]
+        #[case("#FF0000", Color::Rgb(RgbColor(255, 0, 0)))]
+        #[case("#00FF00", Color::Rgb(RgbColor(0, 255, 0)))]
+        #[case("#0000FF", Color::Rgb(RgbColor(0, 0, 255)))]
+        #[case("#000000", Color::Rgb(RgbColor(0, 0, 0)))]
+        #[case("#FFFFFF", Color::Rgb(RgbColor(255, 255, 255)))]
+        #[case("#800080", Color::Rgb(RgbColor(128, 0, 128)))]
+        #[case("#F00", Color::Rgb(RgbColor(255, 0, 0)))]
+        #[case("#555", Color::Rgb(RgbColor(85, 85, 85)))]
+        fn deserialize(#[case] input: &str, #[case] expected: Color) {
+            let value = json!({"color": input});
+            let decoded: Example = from_value(value).expect("should be able to deserialize color");
+            assert_eq!(decoded.color, expected);
+        }
 
-impl<'de> DeserializeAs<'de, anstyle::Color> for Color {
-    fn deserialize_as<D>(deserializer: D) -> Result<anstyle::Color, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        deserializer.deserialize_any(ColorVisitor)
+        #[test]
+        fn roundtrip() {
+            let value = Example {
+                color: Color::Rgb(RgbColor(128, 64, 32)),
+            };
+
+            let json = to_value(value).expect("should serialize color");
+            let roundtrip: Example = from_value(json).expect("should deserialize color");
+
+            assert_eq!(
+                value, roundtrip,
+                "Color should be preserved through serialization and deserialization"
+            );
+        }
+
+        #[rstest]
+        #[case("#FF", "invalid length 3, expected string of length 4 or 7")]
+        #[case("#FFFFFFF", "invalid length 8, expected string of length 4 or 7")]
+        #[case("FF0000", "invalid length 6, expected string of length 4 or 7")]
+        #[case("^FF0000", "expected string starting with '#'")]
+        #[case("#GGHHII", "invalid digit found in string")]
+        #[case("#☢️🚀💥", "invalid length 15, expected string of length 4 or 7")]
+        fn invalid_input(#[case] input: &str, #[case] message: &str) {
+            let value = json!({"color": input});
+
+            let error = from_value::<Example>(value).expect_err("should error on invalid color");
+            let error = error.to_string();
+
+            assert!(
+                error.contains(message),
+                r#""{error}" should contain "{message}", but didn't."#
+            );
+        }
     }
 }

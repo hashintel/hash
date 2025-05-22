@@ -28,7 +28,7 @@ pub type AbsoluteDiagnostic<C> = Diagnostic<C, AbsoluteDiagnosticSpan>;
 #[must_use = "A diagnostic must be reported"]
 pub struct Diagnostic<C, S> {
     pub category: C,
-    pub severity: Box<Severity>,
+    pub severity: Severity,
 
     pub message: Option<Cow<'static, str>>,
 
@@ -38,10 +38,10 @@ pub struct Diagnostic<C, S> {
 }
 
 impl<C, S> Diagnostic<C, S> {
-    pub fn new(category: impl Into<C>, severity: impl Into<Box<Severity>>) -> Self {
+    pub fn new(category: impl Into<C>, severity: Severity) -> Self {
         Self {
             category: category.into(),
-            severity: severity.into(),
+            severity,
             message: None,
             labels: Vec::new(),
             note: None,
@@ -114,7 +114,7 @@ where
 
         let mut generator = ColorGenerator::new();
 
-        let mut builder = ariadne::Report::build(self.severity.as_ref().kind(), span)
+        let mut builder = ariadne::Report::build(self.severity.kind(), span)
             .with_code(CanonicalDiagnosticCategoryId::new(&self.category));
 
         builder.set_message(

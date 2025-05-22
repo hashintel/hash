@@ -11,7 +11,6 @@ use crate::{
 
 // See: https://docs.rs/serde_with/3.9.0/serde_with/guide/serde_as/index.html#gating-serde_as-on-features
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", cfg_eval, serde_with::serde_as)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Label<S> {
     span: S,
@@ -19,7 +18,7 @@ pub struct Label<S> {
 
     order: Option<i32>,
     priority: Option<i32>,
-    #[cfg_attr(feature = "serde", serde_as(as = "Option<crate::encoding::Color>"))]
+    #[cfg_attr(feature = "serde", serde(with = "crate::encoding::color_option"))]
     color: Option<Color>,
 }
 

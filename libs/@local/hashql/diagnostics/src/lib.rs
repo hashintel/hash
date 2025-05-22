@@ -2,13 +2,15 @@
 //!
 //! ## Workspace dependencies
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
-#![feature(cfg_eval, trait_alias)]
+#![feature(trait_alias, variant_count, int_from_ascii)]
 
 extern crate alloc;
 
 pub mod category;
 pub mod config;
 pub mod diagnostic;
+#[cfg(feature = "serde")]
+pub mod encoding;
 pub mod error;
 pub mod help;
 pub mod label;
@@ -18,7 +20,4 @@ pub mod span;
 
 pub use anstyle as color;
 
-#[cfg(feature = "serde")]
-pub(crate) mod encoding;
-
-pub use diagnostic::Diagnostic;
+pub use self::{diagnostic::Diagnostic, help::Help, note::Note, severity::Severity};
