@@ -79,7 +79,7 @@ fn system_actor_view_entity_policies(
         principal: Some(PrincipalConstraint::Actor {
             actor: system_machine_actor,
         }),
-        actions: vec![ActionName::CreateWeb],
+        actions: vec![ActionName::ViewEntity],
         resource: Some(ResourceConstraint::Entity(EntityResourceConstraint::Any {
             filter: EntityResourceFilter::Any {
                 filters: create_version_filters(
@@ -108,12 +108,6 @@ fn global_instantiate_policies() -> impl Iterator<Item = PolicyCreationParams> {
         [
             EntityTypeResourceFilter::IsBaseUrl {
                 base_url: base_url!("https://hash.ai/@h/types/entity-type/actor/"),
-            },
-            EntityTypeResourceFilter::IsBaseUrl {
-                base_url: base_url!("https://hash.ai/@h/types/entity-type/machine/"),
-            },
-            EntityTypeResourceFilter::IsBaseUrl {
-                base_url: base_url!("https://hash.ai/@h/types/entity-type/user/"),
             },
             EntityTypeResourceFilter::IsBaseUrl {
                 base_url: base_url!("https://hash.ai/@h/types/entity-type/organization/"),

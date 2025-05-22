@@ -9,7 +9,7 @@ use hash_graph_authorization::{
     backend::ModifyRelationshipOperation,
     policies::{
         Authorized, ContextBuilder, PartialResourceId, PolicySet, Request, RequestContext,
-        action::ActionName, store::PolicyStore as _,
+        action::ActionName, resource::EntityTypeId, store::PolicyStore as _,
     },
     schema::{
         EntityTypeOwnerSubject, EntityTypePermission, EntityTypeRelationAndSubject, WebPermission,
@@ -41,7 +41,7 @@ use hash_graph_store::{
     },
 };
 use hash_graph_temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTime};
-use hash_graph_types::Embedding;
+use hash_graph_types::{Embedding, ontology::OntologyTypeProvider};
 use hash_status::StatusCode;
 use postgres_types::{Json, ToSql};
 use serde::Deserialize as _;
@@ -1753,40 +1753,79 @@ where
         self.build_principal_context(actor, &mut policy_context_builder)
             .await
             .change_context(QueryError)?;
-        self.build_entity_type_context(entity_type_ids, &mut policy_context_builder)
+
+        let validator_provider = StoreProvider {
+            store: self,
+            cache: StoreCache::default(),
+            authorization: Some((authenticated_user, Consistency::FullyConsistent)),
+        };
+
+        let mut entity_type_id_set = HashMap::new();
+        for entity_type_id in entity_type_ids {
+            let entity_type = OntologyTypeProvider::<ClosedEntityType>::provide_type(
+                &validator_provider,
+                entity_type_id,
+            )
+            .await?;
+
+            entity_type_id_set.insert(
+                entity_type_id.clone(),
+                entity_type
+                    .all_of
+                    .iter()
+                    .map(|metadata| metadata.id.clone())
+                    .collect::<HashSet<_>>(),
+            );
+        }
+
+        let types_and_parents = entity_type_id_set
+            .iter()
+            .flat_map(|(base, parents)| iter::once(base.clone()).chain(parents.clone()))
+            .collect::<HashSet<_>>()
+            .into_iter()
+            .collect::<Vec<_>>();
+
+        self.build_entity_type_context(&types_and_parents, &mut policy_context_builder)
             .await
             .change_context(QueryError)?;
-
         let policy_context = policy_context_builder.build().change_context(QueryError)?;
 
-        entity_type_ids
-            .iter()
-            .map(|entity_type_id| {
-                policy_set
-                    .evaluate(
-                        &Request {
-                            actor: Some(actor),
-                            action: ActionName::Instantiate,
-                            resource: Some(&PartialResourceId::EntityType(Some(Cow::Borrowed(
-                                entity_type_id.into(),
-                            )))),
-                            context: RequestContext::default(),
-                        },
-                        &policy_context,
-                    )
-                    .change_context(QueryError)
-                    .map(|authorized| match authorized {
-                        Authorized::Always => true,
-                        Authorized::Never => false,
-                        Authorized::Partial(partial) => {
-                            tracing::error!(
-                                "Instantiation checking is not supported for partial \
-                                 authorization:\n
+        entity_type_id_set
+            .into_iter()
+            .map(|(base, parents)| {
+                // We need to check the base entity type and all its parents
+                // to see if the user can instantiate it.
+                for entity_type_id in iter::once(base).chain(parents) {
+                    let allowed = policy_set
+                        .evaluate(
+                            &Request {
+                                actor: Some(actor),
+                                action: ActionName::Instantiate,
+                                resource: Some(&PartialResourceId::EntityType(Some(Cow::Owned(
+                                    EntityTypeId::new(entity_type_id),
+                                )))),
+                                context: RequestContext::default(),
+                            },
+                            &policy_context,
+                        )
+                        .change_context(QueryError)
+                        .map(|authorized| match authorized {
+                            Authorized::Always => true,
+                            Authorized::Never => false,
+                            Authorized::Partial(partial) => {
+                                tracing::error!(
+                                    "Instantiation checking is not supported for partial \
+                                     authorization:\n
                                 {partial:#?}"
-                            );
-                            false
-                        }
-                    })
+                                );
+                                false
+                            }
+                        })?;
+                    if !allowed {
+                        return Ok(false);
+                    }
+                }
+                Ok(true)
             })
             .collect()
     }
