@@ -1,3 +1,10 @@
+//! Pretty printing for structured data with recursion control.
+//!
+//! This module implements a document model-based pretty printing system with
+//! configurable formatting, color support, and robust handling of recursive
+//! structures. The implementation uses the `pretty` crate as its document model.
+
+use core::fmt::{self, Display, Formatter};
 use std::io;
 
 use ::pretty::{RcDoc, Render, RenderAnnotated};
@@ -14,12 +21,62 @@ pub(crate) const RED: Style = Style::new().fg_color(Some(Color::Ansi(AnsiColor::
 pub(crate) const ORANGE: Style = Style::new().fg_color(Some(Color::Ansi(AnsiColor::BrightYellow)));
 pub(crate) const GRAY: Style = Style::new().fg_color(Some(Color::Ansi(AnsiColor::BrightBlack)));
 
-struct WriteColored<W> {
+struct WriteColoredFmt<'a, 'b> {
+    stack: Vec<Style>,
+    formatter: &'a mut Formatter<'b>,
+}
+
+impl<'a, 'b> WriteColoredFmt<'a, 'b> {
+    const fn new(formatter: &'a mut Formatter<'b>) -> Self {
+        Self {
+            stack: Vec::new(),
+            formatter,
+        }
+    }
+}
+
+#[expect(clippy::renamed_function_params)]
+impl Render for WriteColoredFmt<'_, '_> {
+    type Error = fmt::Error;
+
+    fn write_str(&mut self, string: &str) -> Result<usize, Self::Error> {
+        self.formatter.write_str(string)?;
+        Ok(string.len())
+    }
+
+    fn write_str_all(&mut self, string: &str) -> Result<(), Self::Error> {
+        self.formatter.write_str(string)
+    }
+
+    fn fail_doc(&self) -> Self::Error {
+        fmt::Error
+    }
+}
+
+impl RenderAnnotated<'_, Style> for WriteColoredFmt<'_, '_> {
+    fn push_annotation(&mut self, annotation: &'_ Style) -> Result<(), Self::Error> {
+        self.stack.push(*annotation);
+
+        Display::fmt(annotation, self.formatter)
+    }
+
+    fn pop_annotation(&mut self) -> Result<(), Self::Error> {
+        if let Some(annotation) = self.stack.pop() {
+            Display::fmt(&annotation.render_reset(), self.formatter)?;
+        }
+
+        self.stack.last().map_or(Ok(()), |annotation| {
+            Display::fmt(&annotation, self.formatter)
+        })
+    }
+}
+
+struct WriteColoredIo<W> {
     stack: Vec<Style>,
     inner: W,
 }
 
-impl<W> WriteColored<W> {
+impl<W> WriteColoredIo<W> {
     const fn new(inner: W) -> Self {
         Self {
             stack: Vec::new(),
@@ -29,7 +86,7 @@ impl<W> WriteColored<W> {
 }
 
 #[expect(clippy::renamed_function_params)]
-impl<W> Render for WriteColored<W>
+impl<W> Render for WriteColoredIo<W>
 where
     W: io::Write,
 {
@@ -48,7 +105,7 @@ where
     }
 }
 
-impl<W> RenderAnnotated<'_, Style> for WriteColored<W>
+impl<W> RenderAnnotated<'_, Style> for WriteColoredIo<W>
 where
     W: io::Write,
 {
@@ -69,9 +126,22 @@ where
     }
 }
 
+/// Strategy for detecting recursive structures during pretty-printing.
+///
+/// Determines how [`PrettyRecursionBoundary`] identifies already-visited values.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Default)]
 pub enum PrettyRecursionGuardStrategy {
+    /// Simple depth counter without identity tracking.
+    ///
+    /// Limits recursion based solely on nesting depth without tracking specific
+    /// object identities. Suitable for simpler cases where exact cycle detection
+    /// isn't required or desired.
     DepthCounting,
+
+    /// Tracks object identity to detect actual cycles.
+    ///
+    /// Records each visited object's address to precisely identify cycles in
+    /// recursive structures. This is the default strategy.
     #[default]
     IdentityTracking,
 }
@@ -121,6 +191,10 @@ impl From<PrettyRecursionGuardStrategy> for RecursionGuardState {
     }
 }
 
+/// Guard against infinite recursion during pretty-printing.
+///
+/// Tracks already-visited objects and enforces depth limits to prevent
+/// infinite recursion and control output size when printing recursive structures.
 #[derive(Debug)]
 pub struct PrettyRecursionBoundary {
     visited: RecursionGuardState,
@@ -128,6 +202,9 @@ pub struct PrettyRecursionBoundary {
 }
 
 impl PrettyRecursionBoundary {
+    /// Creates a new recursion boundary.
+    ///
+    /// Configures how cycles are detected and the maximum recursion depth.
     #[must_use]
     pub fn new(tracking: PrettyRecursionGuardStrategy, limit: Option<usize>) -> Self {
         Self {
@@ -163,6 +240,10 @@ impl PrettyRecursionBoundary {
         document
     }
 
+    /// Pretty-prints a type using its ID.
+    ///
+    /// Type system utility that resolves a type by ID and formats it with
+    /// recursion tracking.
     #[inline]
     pub fn pretty_type<'heap>(
         &mut self,
@@ -174,6 +255,9 @@ impl PrettyRecursionBoundary {
         self.pretty(env, r#type.kind) // using `kind` is strategic here, that way the reference is tracked
     }
 
+    /// Pretty-prints a generic type with applied type arguments.
+    ///
+    /// Type system utility that formats a generic type with its arguments.
     #[inline]
     pub fn pretty_generic_type<'heap>(
         &mut self,
@@ -187,6 +271,9 @@ impl PrettyRecursionBoundary {
         r#type.kind.pretty_generic(env, self, arguments)
     }
 
+    /// Pretty-prints a value with cycle detection.
+    ///
+    /// Main entry point for printing any value that implements [`PrettyPrint`].
     #[inline]
     pub fn pretty<'heap, T>(&mut self, env: &Environment<'heap>, value: &T) -> RcDoc<'heap, Style>
     where
@@ -196,22 +283,50 @@ impl PrettyRecursionBoundary {
     }
 }
 
+/// Formatting configuration for pretty-printing.
+///
+/// Controls layout, wrapping, and recursion handling for document rendering.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Default)]
 pub struct PrettyOptions {
+    /// Spaces per indentation level.
     pub indent: u8 = 4,
+
+    /// Width limit before line wrapping.
     pub max_width: usize = 80,
 
+    /// Maximum nesting depth before truncating with "...".
+    ///
+    /// Use [`None`] to disable limits, though this is risky with cyclic structures.
+    /// Do not use [`None`] on arbitrary user input.
     pub recursion_limit: Option<usize> = Some(32),
+
+    /// Method used to detect cycles in recursive structures.
     pub recursion_strategy: PrettyRecursionGuardStrategy
 }
 
+/// Format values as pretty-printed documents.
+///
+/// Enables structured formatting with proper indentation, line wrapping, and
+/// syntax highlighting. Implementations only need to define how their values
+/// convert to documents; the trait provides methods for rendering to different outputs.
+///
+/// Implementers need only define the [`Self::pretty`] method. The trait handles
+/// display, I/O, and recursion control through default implementations.
 pub trait PrettyPrint<'heap> {
+    /// Convert to a document representation.
+    ///
+    /// Core method that transforms the value into a document that can be
+    /// rendered with proper formatting, indentation, and syntax highlighting.
     fn pretty(
         &self,
         env: &Environment<'heap>,
         boundary: &mut PrettyRecursionBoundary,
     ) -> RcDoc<'heap, Style>;
 
+    /// Format with generic type arguments.
+    ///
+    /// Specialized for generic types. The default implementation renders
+    /// arguments before the value. Most implementations can use this default.
     fn pretty_generic(
         &self,
         env: &Environment<'heap>,
@@ -223,22 +338,63 @@ pub trait PrettyPrint<'heap> {
             .append(self.pretty(env, boundary))
     }
 
-    fn pretty_print(&self, env: &Environment<'heap>, options: PrettyOptions) -> String {
-        let mut output = Vec::new();
-        let mut writer = WriteColored::new(&mut output);
+    /// Write formatted output to a stream.
+    ///
+    /// Renders the value to an output stream with the specified formatting options.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`io::Error`] if writing fails.
+    fn pretty_print_into<W>(
+        &self,
+        write: &mut W,
+        env: &Environment<'heap>,
+        options: PrettyOptions,
+    ) -> io::Result<()>
+    where
+        W: io::Write,
+    {
+        let mut writer = WriteColoredIo::new(write);
 
         self.pretty(
             env,
             &mut PrettyRecursionBoundary::new(options.recursion_strategy, options.recursion_limit),
         )
         .render_raw(options.max_width, &mut writer)
-        .expect(
-            "should not fail during diagnostic rendering - if it does, this indicates a bug in \
-             the pretty printer",
+    }
+
+    /// Get a displayable representation.
+    ///
+    /// Returns a [`Display`] implementor for using in formatting contexts.
+    fn pretty_print(&self, env: &Environment<'heap>, options: PrettyOptions) -> impl Display {
+        struct PrettyPrinter<'a, 'b, 'heap, T: ?Sized>(
+            &'a T,
+            &'b Environment<'heap>,
+            PrettyOptions,
         );
 
-        String::from_utf8(output)
-            .expect("should never fail as all bytes come from valid UTF-8 strings")
+        impl<'a, T> Display for PrettyPrinter<'_, '_, 'a, T>
+        where
+            T: PrettyPrint<'a> + ?Sized,
+        {
+            fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+                let Self(target, env, options) = self;
+
+                let mut writer = WriteColoredFmt::new(fmt);
+
+                target
+                    .pretty(
+                        env,
+                        &mut PrettyRecursionBoundary::new(
+                            options.recursion_strategy,
+                            options.recursion_limit,
+                        ),
+                    )
+                    .render_raw(options.max_width, &mut writer)
+            }
+        }
+
+        PrettyPrinter(self, env, options)
     }
 }
 

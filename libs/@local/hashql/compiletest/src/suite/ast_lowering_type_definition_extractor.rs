@@ -74,7 +74,10 @@ impl Suite for AstLoweringTypeDefinitionExtractorSuite {
             let _: Result<(), _> = write!(
                 output,
                 "\n\n{}",
-                strip_str(&def.pretty_print(&environment, PrettyOptions::default()))
+                strip_str(
+                    &def.pretty_print(&environment, PrettyOptions::default())
+                        .to_string()
+                )
             );
         }
 

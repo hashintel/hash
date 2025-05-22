@@ -84,7 +84,10 @@ impl Suite for AstLoweringTypeExtractorSuite {
             let _: Result<(), _> = write!(
                 output,
                 "\n\n{}",
-                strip_str(&def.pretty_print(&environment, PrettyOptions::default()))
+                strip_str(
+                    &def.pretty_print(&environment, PrettyOptions::default())
+                        .to_string()
+                )
             );
         }
 
@@ -99,7 +102,11 @@ impl Suite for AstLoweringTypeExtractorSuite {
             let _: Result<(), _> = write!(
                 output,
                 "\n\n{node_id} = {}",
-                strip_str(&r#type.pretty_print(&environment, PrettyOptions::default()))
+                strip_str(
+                    &r#type
+                        .pretty_print(&environment, PrettyOptions::default())
+                        .to_string()
+                )
             );
         }
 
@@ -111,7 +118,10 @@ impl Suite for AstLoweringTypeExtractorSuite {
             let _: Result<(), _> = write!(
                 output,
                 "\n\n{node_id}{}",
-                strip_str(&def.pretty_print(&environment, PrettyOptions::default()))
+                strip_str(
+                    &def.pretty_print(&environment, PrettyOptions::default())
+                        .to_string()
+                )
             );
         }
 

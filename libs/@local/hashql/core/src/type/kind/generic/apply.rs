@@ -1000,13 +1000,17 @@ mod tests {
         let result_id = simplify.simplify(instantiate.instantiate(recursive.id));
 
         // The type is complicated enough that it isn't feasible to test it through assertions.
-        insta::assert_snapshot!(strip_str(&env.r#type(result_id).pretty_print(
-            &env,
-            PrettyOptions {
-                recursion_strategy: PrettyRecursionGuardStrategy::DepthCounting,
-                ..PrettyOptions::default()
-            }
-        )));
+        insta::assert_snapshot!(strip_str(
+            &env.r#type(result_id)
+                .pretty_print(
+                    &env,
+                    PrettyOptions {
+                        recursion_strategy: PrettyRecursionGuardStrategy::DepthCounting,
+                        ..PrettyOptions::default()
+                    }
+                )
+                .to_string()
+        ));
     }
 
     #[test]
@@ -1323,13 +1327,17 @@ mod tests {
         let result_id = SimplifyEnvironment::new(&env).simplify(result_id);
 
         // The type is complicated enough that it isn't feasible to test it through assertions.
-        insta::assert_snapshot!(strip_str(&env.r#type(result_id).pretty_print(
-            &env,
-            PrettyOptions {
-                recursion_strategy: PrettyRecursionGuardStrategy::DepthCounting,
-                ..PrettyOptions::default()
-            }
-        )));
+        insta::assert_snapshot!(strip_str(
+            &env.r#type(result_id)
+                .pretty_print(
+                    &env,
+                    PrettyOptions {
+                        recursion_strategy: PrettyRecursionGuardStrategy::DepthCounting,
+                        ..PrettyOptions::default()
+                    }
+                )
+                .to_string()
+        ));
     }
 
     #[test]
@@ -1405,13 +1413,17 @@ mod tests {
         let result_id = SimplifyEnvironment::new(&env).simplify(result_id);
 
         // The type is complicated enough that it isn't feasible to test it through assertions.
-        insta::assert_snapshot!(strip_str(&env.r#type(result_id).pretty_print(
-            &env,
-            PrettyOptions {
-                recursion_strategy: PrettyRecursionGuardStrategy::DepthCounting,
-                ..PrettyOptions::default()
-            }
-        )));
+        insta::assert_snapshot!(strip_str(
+            &env.r#type(result_id)
+                .pretty_print(
+                    &env,
+                    PrettyOptions {
+                        recursion_strategy: PrettyRecursionGuardStrategy::DepthCounting,
+                        ..PrettyOptions::default()
+                    }
+                )
+                .to_string()
+        ));
     }
 
     #[test]
@@ -1482,13 +1494,17 @@ mod tests {
         let result_id = SimplifyEnvironment::new(&env).simplify(result_id);
 
         // The type is complicated enough that it isn't feasible to test it through assertions.
-        insta::assert_snapshot!(strip_str(&env.r#type(result_id).pretty_print(
-            &env,
-            PrettyOptions {
-                recursion_strategy: PrettyRecursionGuardStrategy::DepthCounting,
-                ..PrettyOptions::default()
-            }
-        )));
+        insta::assert_snapshot!(strip_str(
+            &env.r#type(result_id)
+                .pretty_print(
+                    &env,
+                    PrettyOptions {
+                        recursion_strategy: PrettyRecursionGuardStrategy::DepthCounting,
+                        ..PrettyOptions::default()
+                    }
+                )
+                .to_string()
+        ));
     }
 
     #[test]
@@ -1551,13 +1567,17 @@ mod tests {
         let result_id = instantiate.instantiate(bar);
 
         // The type is complicated enough that it isn't feasible to test it through assertions.
-        insta::assert_snapshot!(strip_str(&env.r#type(result_id).pretty_print(
-            &env,
-            PrettyOptions {
-                recursion_strategy: PrettyRecursionGuardStrategy::DepthCounting,
-                ..PrettyOptions::default()
-            }
-        )));
+        insta::assert_snapshot!(strip_str(
+            &env.r#type(result_id)
+                .pretty_print(
+                    &env,
+                    PrettyOptions {
+                        recursion_strategy: PrettyRecursionGuardStrategy::DepthCounting,
+                        ..PrettyOptions::default()
+                    }
+                )
+                .to_string()
+        ));
     }
 
     #[test]
@@ -1615,12 +1635,16 @@ mod tests {
         let result_id = instantiate.instantiate(foo);
 
         // The type is complicated enough that it isn't feasible to test it through assertions.
-        insta::assert_snapshot!(strip_str(&env.r#type(result_id).pretty_print(
-            &env,
-            PrettyOptions {
-                recursion_strategy: PrettyRecursionGuardStrategy::DepthCounting,
-                ..PrettyOptions::default()
-            }
-        )));
+        insta::assert_snapshot!(strip_str(
+            &env.r#type(result_id)
+                .pretty_print(
+                    &env,
+                    PrettyOptions {
+                        recursion_strategy: PrettyRecursionGuardStrategy::DepthCounting,
+                        ..PrettyOptions::default()
+                    }
+                )
+                .to_string()
+        ));
     }
 }

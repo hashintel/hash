@@ -2009,6 +2009,7 @@ mod test {
         insta::assert_snapshot!(strip_str(
             &env.r#type(type_id)
                 .pretty_print(&env, PrettyOptions::default())
+                .to_string()
         ));
     }
 }
