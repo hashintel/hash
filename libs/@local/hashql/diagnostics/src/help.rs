@@ -1,15 +1,17 @@
+use alloc::borrow::Cow;
+
 use anstyle::Color;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Help {
-    message: Box<str>,
+    message: Cow<'static, str>,
     #[cfg_attr(feature = "serde", serde(with = "crate::encoding::color_option"))]
     color: Option<Color>,
 }
 
 impl Help {
-    pub fn new(message: impl Into<Box<str>>) -> Self {
+    pub fn new(message: impl Into<Cow<'static, str>>) -> Self {
         Self {
             message: message.into(),
             color: None,
@@ -17,8 +19,20 @@ impl Help {
     }
 
     #[must_use]
+    pub const fn new_const(message: &'static str) -> Self {
+        Self {
+            message: Cow::Borrowed(message),
+            color: None,
+        }
+    }
+
+    #[must_use]
     pub const fn message(&self) -> &str {
-        &self.message
+        // We cannot use `&self.message`, because that wouldn't be `const`
+        match &self.message {
+            Cow::Borrowed(message) => message,
+            Cow::Owned(message) => message.as_str(),
+        }
     }
 
     #[must_use]

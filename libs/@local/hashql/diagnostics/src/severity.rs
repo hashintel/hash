@@ -2,6 +2,8 @@ use core::{fmt::Display, mem};
 
 use anstyle::Color;
 
+use crate::{Help, Note};
+
 #[cfg(feature = "serde")]
 #[derive(Debug, serde::Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -244,6 +246,46 @@ impl Severity {
                 description: "Low-level debugging information.",
                 color: Color::Ansi256(anstyle::Ansi256Color(39)),
             },
+        }
+    }
+
+    pub(crate) const fn help(self) -> &'static [Help] {
+        match self {
+            Self::Bug => {
+                const {
+                    &[
+                        Help::new_const(
+                            "This is a bug in the compiler, not an issue with your code.",
+                        )
+                        .with_color(Color::Ansi(anstyle::AnsiColor::Green)),
+                        Help::new_const(
+                            "Please report this issue along with a minimal code example that \
+                             reproduces the error.",
+                        )
+                        .with_color(Color::Ansi(anstyle::AnsiColor::Blue)),
+                    ] as &[_]
+                }
+            }
+            _ => &[],
+        }
+    }
+
+    pub(crate) const fn notes(self) -> &'static [Note] {
+        match self {
+            Self::Bug => {
+                const {
+                    // TODO: in the future we might want to include a link to create the issue
+                    // directly
+                    &[Note::new_const(
+                        "Internal compiler errors indicate a bug in the compiler itself that \
+                         needs to be fixed.\n\nWe would appreciate if you could file a GitHub or \
+                         Linear issue and reference this error.\n\nWhen reporting this issue, \
+                         please include your query, any relevant type definitions, and the \
+                         complete error message shown above.",
+                    )] as &[_]
+                }
+            }
+            _ => &[],
         }
     }
 

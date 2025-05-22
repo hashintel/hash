@@ -33,8 +33,8 @@ pub struct Diagnostic<C, S> {
     pub message: Option<Cow<'static, str>>,
 
     pub labels: Vec<Label<S>>,
-    pub note: Option<Note>,
-    pub help: Option<Help>,
+    pub notes: Vec<Note>,
+    pub help: Vec<Help>,
 }
 
 impl<C, S> Diagnostic<C, S> {
@@ -44,8 +44,8 @@ impl<C, S> Diagnostic<C, S> {
             severity,
             message: None,
             labels: Vec::new(),
-            note: None,
-            help: None,
+            notes: Vec::new(),
+            help: Vec::new(),
         }
     }
 
@@ -55,7 +55,7 @@ impl<C, S> Diagnostic<C, S> {
             severity: self.severity,
             message: self.message,
             labels: self.labels,
-            note: self.note,
+            notes: self.notes,
             help: self.help,
         }
     }
@@ -66,9 +66,17 @@ impl<C, S> Diagnostic<C, S> {
     {
         self.map_category(|category| Box::new(category) as Box<dyn DiagnosticCategory>)
     }
-}
 
-impl<C, S> Diagnostic<C, S> {
+    pub fn add_note(&mut self, note: Note) -> &mut Self {
+        self.notes.push(note);
+        self
+    }
+
+    pub fn add_help(&mut self, help: Help) -> &mut Self {
+        self.help.push(help);
+        self
+    }
+
     /// Resolve the diagnostic, into a proper diagnostic with span nodes.
     ///
     /// # Errors
@@ -93,7 +101,7 @@ impl<C, S> Diagnostic<C, S> {
             message: self.message,
 
             labels,
-            note: self.note,
+            notes: self.notes,
             help: self.help,
         })
     }
@@ -123,12 +131,20 @@ where
                 .unwrap_or_else(|| category_display_name(&self.category)),
         );
 
-        if let Some(note) = &self.note {
-            builder.set_note(note.colored(config.color));
+        for note in &self.notes {
+            builder.add_note(note.colored(config.color));
         }
 
-        if let Some(help) = &self.help {
-            builder.set_help(help.colored(config.color));
+        for note in self.severity.notes() {
+            builder.add_note(note.colored(config.color));
+        }
+
+        for help in &self.help {
+            builder.add_help(help.colored(config.color));
+        }
+
+        for help in self.severity.help() {
+            builder.add_help(help.colored(config.color));
         }
 
         for label in &self.labels {
