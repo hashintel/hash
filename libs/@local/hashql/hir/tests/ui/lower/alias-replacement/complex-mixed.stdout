@@ -2,7 +2,7 @@
 #let b:0 = ::math::add(a:0, 5) in
 #let c:0 = a:0 in
 #let d:0 = b:0 in
-#let e:0 = c:0 in
+#let e:0 = a:0 in
 ::math::add(::math::mul(d:0, e:0), ::math::sub(a:0, b:0))
 
 --------------------------------------

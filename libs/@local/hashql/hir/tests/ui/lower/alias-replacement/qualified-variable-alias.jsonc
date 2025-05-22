@@ -3,6 +3,6 @@
 [
   "let",
   "x",
-  ["std", "math", "pi"],
+  "::math::add",
   ["let", "y", "x", ["*", "y", { "#literal": 2 }]]
 ]

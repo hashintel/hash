@@ -1,8 +1,7 @@
-#let x:0 = std::math::pi in
-#let y:0 = x:0 in
+#let x:0 = ::math::add in
+#let y:0 = ::math::add in
 ::math::mul(y:0, 2)
 
 --------------------------------------
 
-#let x:0 = std::math::pi in
-::math::mul(x:0, 2)
+::math::mul(::math::add, 2)
