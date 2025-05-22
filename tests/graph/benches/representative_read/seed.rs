@@ -145,15 +145,15 @@ async fn seed_db<A: AuthorizationApi>(
         .await
         .expect("Should be able to check actor")
     {
-        let system_account_id = transaction
-            .get_or_create_system_machine("h")
-            .await
-            .expect("could not read system account");
-
         transaction
             .seed_system_policies()
             .await
             .expect("Should be able to seed system policies");
+
+        let system_account_id = transaction
+            .get_or_create_system_machine("h")
+            .await
+            .expect("could not read system account");
 
         let user_id = transaction
             .create_user(Some(account_id.into()))

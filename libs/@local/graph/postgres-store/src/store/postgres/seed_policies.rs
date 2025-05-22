@@ -143,10 +143,8 @@ fn global_instantiate_policies() -> impl Iterator<Item = PolicyCreationParams> {
         actions: vec![ActionName::Instantiate],
         resource: Some(ResourceConstraint::EntityType(
             EntityTypeResourceConstraint::Any {
-                filter: EntityTypeResourceFilter::Not {
-                    filter: Box::new(EntityTypeResourceFilter::Any {
-                        filters: common_filters().collect(),
-                    }),
+                filter: EntityTypeResourceFilter::Any {
+                    filters: common_filters().collect(),
                 },
             },
         )),
