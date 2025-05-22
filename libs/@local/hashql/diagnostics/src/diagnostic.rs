@@ -38,6 +38,11 @@ pub struct Diagnostic<C, S> {
 }
 
 impl<C, S> Diagnostic<C, S> {
+    /// Creates a new diagnostic with the specified category and severity.
+    ///
+    /// Initializes an empty diagnostic that can be populated with message, labels, notes,
+    /// and help messages through the appropriate methods. The category and severity
+    /// determine how the diagnostic will be classified and displayed.
     pub fn new(category: impl Into<C>, severity: Severity) -> Self {
         Self {
             category: category.into(),
@@ -49,6 +54,11 @@ impl<C, S> Diagnostic<C, S> {
         }
     }
 
+    /// Transforms the diagnostic's category using the provided function.
+    ///
+    /// Takes the current category, applies the transformation function, and produces a new
+    /// [`Diagnostic`] with the transformed category while preserving all other fields such as
+    /// severity, message, labels, notes, and help messages.
     pub fn map_category<T>(self, func: impl FnOnce(C) -> T) -> Diagnostic<T, S> {
         Diagnostic {
             category: func(self.category),
@@ -60,6 +70,10 @@ impl<C, S> Diagnostic<C, S> {
         }
     }
 
+    /// Converts the diagnostic to use a boxed trait object for its category.
+    ///
+    /// Creates a new [`Diagnostic`] where the category is type-erased into a
+    /// `Box<dyn DiagnosticCategory>`.
     pub fn boxed<'a>(self) -> Diagnostic<Box<dyn DiagnosticCategory + 'a>, S>
     where
         C: DiagnosticCategory + 'a,
@@ -67,11 +81,20 @@ impl<C, S> Diagnostic<C, S> {
         self.map_category(|category| Box::new(category) as Box<dyn DiagnosticCategory>)
     }
 
+    /// Adds a note to the diagnostic.
+    ///
+    /// Appends the provided [`Note`] to the diagnostic's collection of notes. Notes provide
+    /// additional context or information about the diagnostic that helps users understand
+    /// the issue.
     pub fn add_note(&mut self, note: Note) -> &mut Self {
         self.notes.push(note);
         self
     }
 
+    /// Adds a help message to the diagnostic.
+    ///
+    /// Appends the provided [`Help`] message to the diagnostic's collection of help messages.
+    /// Help messages suggest ways to fix or work around the issue described by the diagnostic.
     pub fn add_help(&mut self, help: Help) -> &mut Self {
         self.help.push(help);
         self
@@ -111,6 +134,12 @@ impl<C> Diagnostic<C, AbsoluteDiagnosticSpan>
 where
     C: DiagnosticCategory,
 {
+    /// Creates a formatted report for displaying the diagnostic to users.
+    ///
+    /// Converts this diagnostic into an ariadne [`Report`] that includes source code context,
+    /// colorized highlighting, and all the diagnostic information (message, labels, notes, and
+    /// help messages). The report can be written to a terminal or other output destination.
+    /// The visual appearance is controlled by the provided [`ReportConfig`].
     pub fn report(&self, config: ReportConfig) -> ariadne::Report<AbsoluteDiagnosticSpan> {
         // According to the examples, the span given to `Report::build` should be the span of the
         // primary (first) label.
