@@ -3,13 +3,16 @@ use alloc::borrow::Cow;
 use hashql_core::span::SpanId;
 use hashql_diagnostics::{Diagnostic, category::DiagnosticCategory};
 
-use crate::reify::error::ReificationDiagnosticCategory;
+use crate::{
+    lower::error::LoweringDiagnosticCategory, reify::error::ReificationDiagnosticCategory,
+};
 
 pub type HirDiagnostic = Diagnostic<HirDiagnosticCategory, SpanId>;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum HirDiagnosticCategory {
     Reification(ReificationDiagnosticCategory),
+    Lowering(LoweringDiagnosticCategory),
 }
 
 impl DiagnosticCategory for HirDiagnosticCategory {
@@ -24,6 +27,7 @@ impl DiagnosticCategory for HirDiagnosticCategory {
     fn subcategory(&self) -> Option<&dyn DiagnosticCategory> {
         match self {
             Self::Reification(reify) => Some(reify),
+            Self::Lowering(lower) => Some(lower),
         }
     }
 }
