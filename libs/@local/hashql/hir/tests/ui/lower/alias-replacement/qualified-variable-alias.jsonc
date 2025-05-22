@@ -1,0 +1,8 @@
+//@ run: pass
+//@ description: Replace alias that references a qualified variable
+[
+  "let",
+  "x",
+  ["std", "math", "pi"],
+  ["let", "y", "x", ["*", "y", { "#literal": 2 }]]
+]

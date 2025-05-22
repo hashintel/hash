@@ -1,0 +1,13 @@
+//@ run: pass
+//@ description: Preserve let statements that are not simple aliases (complex expressions should remain)
+[
+  "let",
+  "x",
+  { "#literal": 5 },
+  [
+    "let",
+    "y",
+    ["+", "x", { "#literal": 3 }],
+    ["let", "z", "y", ["+", "x", "z"]]
+  ]
+]

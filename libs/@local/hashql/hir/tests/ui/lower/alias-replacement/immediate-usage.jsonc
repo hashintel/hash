@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Test alias that is defined and immediately used in the same expression
+["let", "x", { "#literal": 7 }, ["let", "y", "x", "y"]]

@@ -1,0 +1,18 @@
+//@ run: pass
+//@ description: Replace multiple independent aliases in the same scope
+[
+  "let",
+  "x",
+  { "#literal": 10 },
+  [
+    "let",
+    "y",
+    { "#literal": 20 },
+    [
+      "let",
+      "a",
+      "x",
+      ["let", "b", "y", ["+", ["*", "a", "b"], ["-", "x", "y"]]]
+    ]
+  ]
+]

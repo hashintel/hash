@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Remove unused alias completely when it's never referenced
+["let", "x", { "#literal": 42 }, ["let", "y", "x", { "#literal": 100 }]]

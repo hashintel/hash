@@ -1,0 +1,8 @@
+//@ run: pass
+//@ description: Replace nested aliases with their ultimate definition
+[
+  "let",
+  "x",
+  { "#literal": 42 },
+  ["let", "y", "x", ["let", "z", "y", ["+", "z", "x"]]]
+]

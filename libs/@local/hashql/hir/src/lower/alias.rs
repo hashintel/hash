@@ -6,7 +6,7 @@ use hashql_core::{
 };
 
 use crate::{
-    fold::{self, Fold, nested::Shallow},
+    fold::{self, Fold, nested::Deep},
     intern::Interner,
     node::{
         Node,
@@ -33,7 +33,7 @@ impl<'env, 'heap> AliasReplacement<'env, 'heap> {
 }
 
 impl<'heap> Fold<'heap> for AliasReplacement<'_, 'heap> {
-    type NestedFilter = Shallow;
+    type NestedFilter = Deep;
     type Output<T>
         = Result<T, !>
     where
@@ -67,10 +67,6 @@ impl<'heap> Fold<'heap> for AliasReplacement<'_, 'heap> {
 
         let r#let = fold::walk_let(self, r#let)?;
 
-        // We don't really need to do this, but it helps us to not pollute the scope with
-        // unnecessary aliases and therefore keep memory usage down.
-        self.scope.remove(Universe::Value, &r#let.name.value);
-
         Ok(r#let)
     }
 
@@ -94,10 +90,12 @@ impl<'heap> Fold<'heap> for AliasReplacement<'_, 'heap> {
         // that's the case we can safely remove it in favour of it's body, as all occurences have
         // already been replaced
         if let NodeKind::Let(r#let) = node.kind
-            && let NodeKind::Variable(variable) = r#let.value.kind
-            && let VariableKind::Local(local) = variable.kind
-            && self.scope.contains_key(Universe::Value, &local.name.value)
+            && self.scope.contains_key(Universe::Value, &r#let.name.value)
         {
+            // We don't really need to do this, but it helps us to not pollute the scope with
+            // unnecessary aliases and therefore keep memory usage down.
+            self.scope.remove(Universe::Value, &r#let.name.value);
+
             return Ok(r#let.body);
         }
 
