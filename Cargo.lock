@@ -3844,7 +3844,6 @@ dependencies = [
  "rstest",
  "serde",
  "serde_json",
- "serde_with",
  "simple-mermaid",
  "text-size",
 ]
