@@ -91,7 +91,7 @@ pub(crate) fn generic_arguments_in_use_path(
 ) -> ImportResolverDiagnostic {
     let mut diagnostic = Diagnostic::new(
         ImportResolverDiagnosticCategory::GenericArgumentsInUsePath,
-        Severity::COMPILER_BUG,
+        Severity::Bug,
     );
 
     // Add primary and secondary labels
@@ -104,12 +104,12 @@ pub(crate) fn generic_arguments_in_use_path(
             .with_color(Color::Ansi(AnsiColor::Blue)),
     ]);
 
-    diagnostic.help = Some(Help::new(
+    diagnostic.add_help(Help::new(
         "Use statements don't accept generic type parameters. Remove the angle brackets and type \
          parameters.\n\nExample: Use `module::Type` instead of `module::Type<T>`.",
     ));
 
-    diagnostic.note = Some(Note::new(
+    diagnostic.add_note(Note::new(
         "This error is still valid, but should've been caught in an earlier stage of the compiler \
          pipeline. Please report this issue to the HashQL team with a minimal reproduction case.",
     ));
@@ -119,10 +119,8 @@ pub(crate) fn generic_arguments_in_use_path(
 
 /// Error when a path has no segments
 pub(crate) fn empty_path(span: SpanId) -> ImportResolverDiagnostic {
-    let mut diagnostic = Diagnostic::new(
-        ImportResolverDiagnosticCategory::EmptyPath,
-        Severity::COMPILER_BUG,
-    );
+    let mut diagnostic =
+        Diagnostic::new(ImportResolverDiagnosticCategory::EmptyPath, Severity::Bug);
 
     diagnostic.labels.push(
         Label::new(span, "Specify a path here")
@@ -130,11 +128,11 @@ pub(crate) fn empty_path(span: SpanId) -> ImportResolverDiagnostic {
             .with_color(Color::Ansi(AnsiColor::Red)),
     );
 
-    diagnostic.help = Some(Help::new(
+    diagnostic.add_help(Help::new(
         "Add a valid path with at least one identifier, such as `module` or `module::item`.",
     ));
 
-    diagnostic.note = Some(Note::new(
+    diagnostic.add_note(Note::new(
         "Import statements require a non-empty path to identify what module or item you want to \
          bring into scope. This error is still valid, but should've been caught in an earlier \
          stage of the compiler pipeline. Please report this issue to the HashQL team with a \
@@ -150,7 +148,7 @@ pub(crate) fn generic_arguments_in_module(
 ) -> ImportResolverDiagnostic {
     let mut diagnostic = Diagnostic::new(
         ImportResolverDiagnosticCategory::GenericArgumentsInModule,
-        Severity::ERROR,
+        Severity::Error,
     );
 
     let mut spans = spans.into_iter();
@@ -172,13 +170,13 @@ pub(crate) fn generic_arguments_in_module(
         );
     }
 
-    diagnostic.help = Some(Help::new(
+    diagnostic.add_help(Help::new(
         "Generic arguments can only appear on the final type in a path. Remove them from this \
          module segment or move them to the final type in the path.\n\nCorrect: \
          `module::submodule::Type<T>`\nIncorrect: `module<T>::submodule::Type`",
     ));
 
-    diagnostic.note = Some(Note::new(
+    diagnostic.add_note(Note::new(
         "Module paths don't accept generic parameters because modules themselves aren't generic. \
          Only the final type in a path can have generic parameters.\n\nThe path resolution \
          happens before any generic type checking, so generic arguments can only be applied after \
@@ -275,7 +273,7 @@ pub(crate) fn unresolved_variable<'heap>(
 ) -> ImportResolverDiagnostic {
     let mut diagnostic = Diagnostic::new(
         ImportResolverDiagnosticCategory::UnresolvedVariable,
-        Severity::ERROR,
+        Severity::Error,
     );
 
     diagnostic.labels.push(
@@ -406,9 +404,9 @@ pub(crate) fn unresolved_variable<'heap>(
         let _: fmt::Result = writeln!(help, "     {absolute_path}");
     }
 
-    diagnostic.help = Some(Help::new(help));
+    diagnostic.add_help(Help::new(help));
 
-    diagnostic.note = Some(Note::new(
+    diagnostic.add_note(Note::new(
         "Variables must be defined before they can be used. This could be a typo, a variable used \
          outside its scope, or a missing declaration. If it's a function or type from another \
          module, you might need to import it first.",
@@ -427,7 +425,7 @@ pub(crate) fn from_resolution_error<'heap>(
 ) -> ImportResolverDiagnostic {
     let mut diagnostic = Diagnostic::new(
         ImportResolverDiagnosticCategory::UnresolvedImport,
-        Severity::ERROR,
+        Severity::Error,
     );
 
     let segments: Vec<_> = path
@@ -455,12 +453,12 @@ pub(crate) fn from_resolution_error<'heap>(
                 );
             }
 
-            diagnostic.help = Some(Help::new(format!(
+            diagnostic.add_help(Help::new(format!(
                 "This import path needs at least {expected} segments to be valid. Add the missing \
                  segments to complete the path."
             )));
 
-            diagnostic.note = Some(Note::new(
+            diagnostic.add_note(Note::new(
                 "Import paths must be complete to properly identify the item you want to import. \
                  Incomplete paths cannot be resolved.",
             ));
@@ -492,12 +490,12 @@ pub(crate) fn from_resolution_error<'heap>(
                 None => "not a module",
             };
 
-            diagnostic.help = Some(Help::new(format!(
+            diagnostic.add_help(Help::new(format!(
                 "'{}' is {universe}. Only modules can contain other items. Check your import path.",
                 FormatPath(path.rooted, &segments, Some(depth))
             )));
 
-            diagnostic.note = Some(Note::new(
+            diagnostic.add_note(Note::new(
                 "The '::' syntax can only be used with modules to access their members. Values \
                  and types cannot contain other items.",
             ));
@@ -533,9 +531,9 @@ pub(crate) fn from_resolution_error<'heap>(
                 help.push_str(&suggestion);
             }
 
-            diagnostic.help = Some(Help::new(help));
+            diagnostic.add_help(Help::new(help));
 
-            diagnostic.note = Some(Note::new(
+            diagnostic.add_note(Note::new(
                 "Packages must be installed and properly configured in your project dependencies \
                  before they can be imported.",
             ));
@@ -574,9 +572,9 @@ pub(crate) fn from_resolution_error<'heap>(
                 help.push_str(&suggestion);
             }
 
-            diagnostic.help = Some(Help::new(help));
+            diagnostic.add_help(Help::new(help));
 
-            diagnostic.note = Some(Note::new(
+            diagnostic.add_note(Note::new(
                 "Before using an item from another module, you must import it with a 'use' \
                  statement or access it with a fully qualified path.",
             ));
@@ -608,9 +606,9 @@ pub(crate) fn from_resolution_error<'heap>(
                 help.push_str(&suggestion);
             }
 
-            diagnostic.help = Some(Help::new(help));
+            diagnostic.add_help(Help::new(help));
 
-            diagnostic.note = Some(Note::new(
+            diagnostic.add_note(Note::new(
                 "Modules must be properly defined and exported from their parent module to be \
                  accessible.",
             ));
@@ -661,9 +659,9 @@ pub(crate) fn from_resolution_error<'heap>(
                 help.push_str(&suggestion);
             }
 
-            diagnostic.help = Some(Help::new(help));
+            diagnostic.add_help(Help::new(help));
 
-            diagnostic.note = Some(Note::new(
+            diagnostic.add_note(Note::new(
                 "Items must be defined and accessible from the importing location. Make sure the \
                  item exists and is public.",
             ));
@@ -689,14 +687,14 @@ pub(crate) fn from_resolution_error<'heap>(
                     .with_color(Color::Ansi(AnsiColor::Blue)),
             ]);
 
-            diagnostic.help = Some(Help::new(format!(
+            diagnostic.add_help(Help::new(format!(
                 "The name '{}' could refer to multiple different items in {}. Use a fully \
                  qualified path to specify which one you want.",
                 item.name,
                 FormatPath(path.rooted, &segments, None)
             )));
 
-            diagnostic.note = Some(Note::new(
+            diagnostic.add_note(Note::new(
                 "When multiple items with the same name are in scope, you must use a fully \
                  qualified path to avoid ambiguity. Consider using explicit imports instead of \
                  glob imports to prevent name conflicts.",
@@ -723,12 +721,12 @@ pub(crate) fn from_resolution_error<'heap>(
                     .with_color(Color::Ansi(AnsiColor::Blue)),
             ]);
 
-            diagnostic.help = Some(Help::new(
+            diagnostic.add_help(Help::new(
                 "This module exists but doesn't expose any items that can be imported. Check if \
                  you're importing the correct module or if the module has any public exports.",
             ));
 
-            diagnostic.note = Some(Note::new(
+            diagnostic.add_note(Note::new(
                 "To use items from a module, they must be marked as public/exported. If you're \
                  using a glob import pattern like 'module::*', try using specific imports instead \
                  to see what's available.",

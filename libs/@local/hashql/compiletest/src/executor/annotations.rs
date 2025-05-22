@@ -77,8 +77,8 @@ pub(crate) fn verify_annotations(
                 let mut sources = labels
                     .iter()
                     .map(|label| label.message())
-                    .chain(diagnostic.help.as_ref().map(Help::message))
-                    .chain(diagnostic.note.as_ref().map(Note::message))
+                    .chain(diagnostic.help.iter().map(Help::message))
+                    .chain(diagnostic.notes.iter().map(Note::message))
                     .chain(iter::once(canonical_name.as_str()));
 
                 sources.any(|source| source.contains(query))
@@ -87,7 +87,7 @@ pub(crate) fn verify_annotations(
                 // 4) Find if all the other expectations are fulfilled
                 // - severity
                 // - category
-                let severity_matches = annotation.severity == *diagnostic.severity;
+                let severity_matches = annotation.severity == diagnostic.severity;
 
                 let category_matches = annotation.category.as_ref().is_none_or(|category| {
                     let diagnostic_id =
@@ -188,13 +188,13 @@ mod tests {
 
         let diagnostics = vec![make_diagnostic(
             "test",
-            Severity::ERROR,
+            Severity::Error,
             "test error",
             make_span(6, 11),
         ) /* spans "line2" */];
 
         let annotations = vec![
-            make_annotation("error", Some(2), Severity::ERROR), // matches line2
+            make_annotation("error", Some(2), Severity::Error), // matches line2
         ];
 
         let mut sink = ReportSink::<TrialError>::new();
@@ -216,13 +216,13 @@ mod tests {
 
         let diagnostics = vec![make_diagnostic(
             "test",
-            Severity::ERROR,
+            Severity::Error,
             "test error",
             make_span(0, 5),
         ) /* spans "line1" */];
 
         let annotations = vec![
-            make_annotation("warning", Some(2), Severity::WARNING), // doesn't match
+            make_annotation("warning", Some(2), Severity::Warning), // doesn't match
         ];
 
         let mut sink = ReportSink::<TrialError>::new();
@@ -244,7 +244,7 @@ mod tests {
 
         let diagnostics = vec![make_diagnostic(
             "test",
-            Severity::ERROR,
+            Severity::Error,
             "test error",
             make_span(0, 5),
         ) /* spans "line1" */];
@@ -269,12 +269,12 @@ mod tests {
         let line_index = LineIndex::new(source);
 
         let diagnostics = vec![
-            make_diagnostic("test1", Severity::ERROR, "first error", make_span(0, 5)), // line1
-            make_diagnostic("test2", Severity::ERROR, "second error", make_span(6, 11)), // line2
+            make_diagnostic("test1", Severity::Error, "first error", make_span(0, 5)), // line1
+            make_diagnostic("test2", Severity::Error, "second error", make_span(6, 11)), // line2
         ];
 
         let annotations = vec![
-            make_annotation("error", Some(1), Severity::ERROR), // matches first diagnostic
+            make_annotation("error", Some(1), Severity::Error), // matches first diagnostic
         ];
 
         let mut sink = ReportSink::<TrialError>::new();
@@ -295,10 +295,10 @@ mod tests {
 
         // Create two diagnostics at the same line with similar messages
         let diagnostics = vec![
-            make_diagnostic("test1", Severity::ERROR, "error in line1", make_span(0, 5)), // line1
+            make_diagnostic("test1", Severity::Error, "error in line1", make_span(0, 5)), // line1
             make_diagnostic(
                 "test2",
-                Severity::ERROR,
+                Severity::Error,
                 "another error in line1",
                 make_span(0, 5),
             ), /* also line1 */
@@ -306,7 +306,7 @@ mod tests {
 
         // Only one annotation for the line
         let annotations = vec![
-            make_annotation("error", Some(1), Severity::ERROR), // matches both diagnostics
+            make_annotation("error", Some(1), Severity::Error), // matches both diagnostics
         ];
 
         let mut sink = ReportSink::<TrialError>::new();

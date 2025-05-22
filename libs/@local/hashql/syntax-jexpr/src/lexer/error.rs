@@ -83,7 +83,7 @@ pub(crate) fn from_hifijson_str_error(
     error: &hifijson::str::Error,
     span: SpanId,
 ) -> Diagnostic<LexerDiagnosticCategory, SpanId> {
-    let mut diagnostic = Diagnostic::new(LexerDiagnosticCategory::InvalidString, Severity::ERROR);
+    let mut diagnostic = Diagnostic::new(LexerDiagnosticCategory::InvalidString, Severity::Error);
 
     let (message, help) = match error {
         hifijson::str::Error::Control => (
@@ -104,14 +104,14 @@ pub(crate) fn from_hifijson_str_error(
     diagnostic.labels.push(Label::new(span, message));
 
     if let Some(help) = help {
-        diagnostic.help = Some(Help::new(help));
+        diagnostic.add_help(Help::new(help));
     }
 
     diagnostic
 }
 
 pub(crate) fn unexpected_eof(span: SpanId, expected: SyntaxKindSet) -> LexerDiagnostic {
-    let mut diagnostic = Diagnostic::new(LexerDiagnosticCategory::UnexpectedEof, Severity::ERROR);
+    let mut diagnostic = Diagnostic::new(LexerDiagnosticCategory::UnexpectedEof, Severity::Error);
 
     // Create a more specific label based on what was expected
     let label = if expected.is_empty() || expected.is_complete() {
@@ -141,7 +141,7 @@ pub(crate) fn unexpected_eof(span: SpanId, expected: SyntaxKindSet) -> LexerDiag
          properly closed."
     };
 
-    diagnostic.help = Some(Help::new(Cow::Borrowed(help)));
+    diagnostic.add_help(Help::new(Cow::Borrowed(help)));
 
     diagnostic
 }
@@ -151,7 +151,7 @@ pub(crate) fn unexpected_token(
     found: SyntaxKind,
     expected: SyntaxKindSet,
 ) -> LexerDiagnostic {
-    let mut diagnostic = Diagnostic::new(LexerDiagnosticCategory::UnexpectedToken, Severity::ERROR);
+    let mut diagnostic = Diagnostic::new(LexerDiagnosticCategory::UnexpectedToken, Severity::Error);
 
     // Create a specific label based on what was found vs what was expected
     let label = if expected.is_empty() {
@@ -188,7 +188,7 @@ pub(crate) fn unexpected_token(
          present."
     };
 
-    diagnostic.help = Some(Help::new(Cow::Borrowed(help)));
+    diagnostic.add_help(Help::new(Cow::Borrowed(help)));
 
     diagnostic
 }
@@ -200,14 +200,14 @@ pub(crate) fn from_hifijson_num_error(
     error: &hifijson::num::Error,
     span: SpanId,
 ) -> LexerDiagnostic {
-    let mut diagnostic = Diagnostic::new(LexerDiagnosticCategory::InvalidNumber, Severity::ERROR);
+    let mut diagnostic = Diagnostic::new(LexerDiagnosticCategory::InvalidNumber, Severity::Error);
 
     let message = match error {
         hifijson::num::Error::ExpectedDigit => "Missing digit in number",
     };
 
     diagnostic.labels.push(Label::new(span, message));
-    diagnostic.help = Some(Help::new(INVALID_NUMBER_HELP));
+    diagnostic.add_help(Help::new(INVALID_NUMBER_HELP));
 
     diagnostic
 }
@@ -218,13 +218,13 @@ const UNRECOGNIZED_CHAR_HELP: &str = "J-Expr only supports standard JSON syntax.
 
 pub(crate) fn from_unrecognized_character_error(span: SpanId) -> LexerDiagnostic {
     let mut diagnostic =
-        Diagnostic::new(LexerDiagnosticCategory::InvalidCharacter, Severity::ERROR);
+        Diagnostic::new(LexerDiagnosticCategory::InvalidCharacter, Severity::Error);
 
     diagnostic
         .labels
         .push(Label::new(span, "Unrecognized character"));
 
-    diagnostic.help = Some(Help::new(UNRECOGNIZED_CHAR_HELP));
+    diagnostic.add_help(Help::new(UNRECOGNIZED_CHAR_HELP));
 
     diagnostic
 }
@@ -233,13 +233,13 @@ const INVALID_UTF8_HELP: &str = "J-Expr requires valid UTF-8 encoded input. Chec
                                  characters or ensure your source is properly encoded as UTF-8.";
 
 pub(crate) fn from_invalid_utf8_error(span: SpanId) -> LexerDiagnostic {
-    let mut diagnostic = Diagnostic::new(LexerDiagnosticCategory::InvalidUtf8, Severity::ERROR);
+    let mut diagnostic = Diagnostic::new(LexerDiagnosticCategory::InvalidUtf8, Severity::Error);
 
     diagnostic
         .labels
         .push(Label::new(span, "Invalid UTF-8 byte sequence"));
 
-    diagnostic.help = Some(Help::new(INVALID_UTF8_HELP));
+    diagnostic.add_help(Help::new(INVALID_UTF8_HELP));
 
     diagnostic
 }

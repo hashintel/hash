@@ -108,14 +108,14 @@ const EMPTY_NOTE: &str = r##"Valid examples:
 "##;
 
 pub(crate) fn empty(span: SpanId) -> ArrayDiagnostic {
-    let mut diagnostic = Diagnostic::new(ArrayDiagnosticCategory::Empty, Severity::ERROR);
+    let mut diagnostic = Diagnostic::new(ArrayDiagnosticCategory::Empty, Severity::Error);
 
     diagnostic
         .labels
         .push(Label::new(span, "Empty array not allowed"));
 
-    diagnostic.help = Some(Help::new(EMPTY_HELP));
-    diagnostic.note = Some(Note::new(EMPTY_NOTE));
+    diagnostic.add_help(Help::new(EMPTY_HELP));
+    diagnostic.add_note(Note::new(EMPTY_NOTE));
 
     diagnostic
 }
@@ -125,7 +125,7 @@ const TRAILING_COMMA_HELP: &str = "J-Expr does not support trailing commas in ar
 
 #[expect(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
 pub(crate) fn trailing_commas(spans: &[SpanId]) -> ArrayDiagnostic {
-    let mut diagnostic = Diagnostic::new(ArrayDiagnosticCategory::TrailingComma, Severity::ERROR);
+    let mut diagnostic = Diagnostic::new(ArrayDiagnosticCategory::TrailingComma, Severity::Error);
 
     for (index, &span) in spans.iter().rev().enumerate() {
         let message = if index == 0 {
@@ -139,7 +139,7 @@ pub(crate) fn trailing_commas(spans: &[SpanId]) -> ArrayDiagnostic {
             .push(Label::new(span, message).with_order(index as i32));
     }
 
-    diagnostic.help = Some(Help::new(TRAILING_COMMA_HELP));
+    diagnostic.add_help(Help::new(TRAILING_COMMA_HELP));
 
     diagnostic
 }
@@ -149,7 +149,7 @@ const LEADING_COMMA_HELP: &str =
 
 #[expect(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
 pub(crate) fn leading_commas(spans: &[SpanId]) -> ArrayDiagnostic {
-    let mut diagnostic = Diagnostic::new(ArrayDiagnosticCategory::LeadingComma, Severity::ERROR);
+    let mut diagnostic = Diagnostic::new(ArrayDiagnosticCategory::LeadingComma, Severity::Error);
 
     for (index, &span) in spans.iter().rev().enumerate() {
         let message = if index == 0 {
@@ -163,7 +163,7 @@ pub(crate) fn leading_commas(spans: &[SpanId]) -> ArrayDiagnostic {
             .push(Label::new(span, message).with_order(index as i32));
     }
 
-    diagnostic.help = Some(Help::new(LEADING_COMMA_HELP));
+    diagnostic.add_help(Help::new(LEADING_COMMA_HELP));
 
     diagnostic
 }
@@ -174,7 +174,7 @@ const CONSECUTIVE_COMMA_HELP: &str =
 #[expect(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
 pub(crate) fn consecutive_commas(spans: &[SpanId]) -> ArrayDiagnostic {
     let mut diagnostic =
-        Diagnostic::new(ArrayDiagnosticCategory::ConsecutiveComma, Severity::ERROR);
+        Diagnostic::new(ArrayDiagnosticCategory::ConsecutiveComma, Severity::Error);
 
     for (index, &span) in spans.iter().rev().enumerate() {
         let message = if index == 0 {
@@ -188,7 +188,7 @@ pub(crate) fn consecutive_commas(spans: &[SpanId]) -> ArrayDiagnostic {
             .push(Label::new(span, message).with_order(index as i32));
     }
 
-    diagnostic.help = Some(Help::new(CONSECUTIVE_COMMA_HELP));
+    diagnostic.add_help(Help::new(CONSECUTIVE_COMMA_HELP));
 
     diagnostic
 }
@@ -205,7 +205,7 @@ pub(crate) fn labeled_argument_missing_prefix(
 ) -> ArrayDiagnostic {
     let mut diagnostic = Diagnostic::new(
         ArrayDiagnosticCategory::LabeledArgumentMissingPrefix,
-        Severity::ERROR,
+        Severity::Error,
     );
 
     diagnostic
@@ -216,9 +216,9 @@ pub(crate) fn labeled_argument_missing_prefix(
         "Add ':' prefix to '{}' to make it a valid labeled argument",
         actual.as_ref()
     );
-    diagnostic.help = Some(Help::new(help_message));
+    diagnostic.add_help(Help::new(help_message));
 
-    diagnostic.note = Some(Note::new(LABELED_ARGUMENT_PREFIX_NOTE));
+    diagnostic.add_note(Note::new(LABELED_ARGUMENT_PREFIX_NOTE));
 
     diagnostic
 }
@@ -233,7 +233,7 @@ pub(crate) fn labeled_argument_invalid_identifier<I>(
 ) -> ArrayDiagnostic {
     let mut diagnostic = Diagnostic::new(
         ArrayDiagnosticCategory::LabeledArgumentInvalidIdentifier,
-        Severity::ERROR,
+        Severity::Error,
     );
 
     diagnostic
@@ -244,10 +244,10 @@ pub(crate) fn labeled_argument_invalid_identifier<I>(
         crate::parser::string::error::convert_parse_error(spans, label_span, parse_error);
 
     if let Some(expected) = expected {
-        diagnostic.help = Some(Help::new(expected));
+        diagnostic.add_help(Help::new(expected));
     }
 
-    diagnostic.note = Some(Note::new(LABELED_ARGUMENT_IDENTIFIER_HELP));
+    diagnostic.add_note(Note::new(LABELED_ARGUMENT_IDENTIFIER_HELP));
 
     diagnostic
 }

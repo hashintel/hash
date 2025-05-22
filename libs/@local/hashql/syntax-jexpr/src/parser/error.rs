@@ -96,13 +96,13 @@ const EXPECTED_EOF_HELP: &str =
     "Remove this token or check for missing delimiters in the preceding expression";
 
 pub(crate) fn expected_eof(span: SpanId) -> ParserDiagnostic {
-    let mut diagnostic = Diagnostic::new(ParserDiagnosticCategory::ExpectedEof, Severity::ERROR);
+    let mut diagnostic = Diagnostic::new(ParserDiagnosticCategory::ExpectedEof, Severity::Error);
 
     diagnostic
         .labels
         .push(Label::new(span, "Extra content after expression"));
 
-    diagnostic.help = Some(Help::new(EXPECTED_EOF_HELP));
+    diagnostic.add_help(Help::new(EXPECTED_EOF_HELP));
 
     diagnostic
 }

@@ -254,11 +254,11 @@ impl Severity {
             Self::Bug => {
                 const {
                     &[
-                        Help::new_const(
+                        Help::from_static(
                             "This is a bug in the compiler, not an issue with your code.",
                         )
                         .with_color(Color::Ansi(anstyle::AnsiColor::Green)),
-                        Help::new_const(
+                        Help::from_static(
                             "Please report this issue along with a minimal code example that \
                              reproduces the error.",
                         )
@@ -276,7 +276,7 @@ impl Severity {
                 const {
                     // TODO: in the future we might want to include a link to create the issue
                     // directly
-                    &[Note::new_const(
+                    &[Note::from_static(
                         "Internal compiler errors indicate a bug in the compiler itself that \
                          needs to be fixed.\n\nWe would appreciate if you could file a GitHub or \
                          Linear issue and reference this error.\n\nWhen reporting this issue, \

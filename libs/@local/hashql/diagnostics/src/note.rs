@@ -20,7 +20,7 @@ impl Note {
     }
 
     #[must_use]
-    pub const fn new_const(message: &'static str) -> Self {
+    pub const fn from_static(message: &'static str) -> Self {
         Self {
             message: Cow::Borrowed(message),
             color: None,

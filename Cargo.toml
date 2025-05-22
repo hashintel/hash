@@ -73,7 +73,6 @@ hash-codec.path                     = "libs/@local/codec"
 hash-codegen.path                   = "libs/@local/codegen"
 hash-graph-api.path                 = "libs/@local/graph/api"
 hash-graph-authorization.path       = "libs/@local/graph/authorization"
-hash-graph-migrations.path          = "libs/@local/graph/migrations"
 hash-graph-migrations-macros.path   = "libs/@local/graph/migrations-macros"
 hash-graph-postgres-store.path      = "libs/@local/graph/postgres-store"
 hash-graph-store.path               = "libs/@local/graph/store"
@@ -98,7 +97,6 @@ type-system.path                    = "libs/@blockprotocol/type-system/rust"
 
 # External dependencies
 ada-url                  = { version = "=3.2.4", default-features = false }
-ahash                    = { version = "=0.8.12", default-features = false }
 ansi-to-html             = { version = "=0.2.2", default-features = false }
 anstyle                  = { version = "=1.0.10", default-features = false }
 anstyle-yansi            = { version = "=2.0.2", default-features = false }
@@ -200,7 +198,6 @@ owo-colors               = { version = "=4.2.0", default-features = false }
 oxc                      = { version = "=0.67.0", default-features = false, features = ["allocator_api"] }
 paste                    = { version = "=1.0.15", default-features = false }
 pdfium-render            = { version = "=0.8.26" }
-petgraph                 = { version = "=0.8.1", default-features = false }
 pin-project              = { version = "=1.1.10", default-features = false }
 pin-project-lite         = { version = "=0.2.16", default-features = false }
 postgres-protocol        = { version = "=0.6.8", default-features = false }

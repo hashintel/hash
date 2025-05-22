@@ -77,20 +77,20 @@ pub(crate) fn unsupported_construct(
 ) -> ReificationDiagnostic {
     let mut diagnostic = Diagnostic::new(
         ReificationDiagnosticCategory::UnsupportedConstruct,
-        Severity::ERROR,
+        Severity::Error,
     );
 
     diagnostic
         .labels
         .push(Label::new(span, format!("`{construct_name}` not supported yet")).with_order(0));
 
-    diagnostic.help = Some(Help::new(format!(
+    diagnostic.add_help(Help::new(format!(
         "The {construct_name} syntax is valid HashQL code, but support for this feature is still \
          in development. For now, you'll need to use alternative approaches to achieve the same \
          result. Check issue {issue_url} for implementation status and updates."
     )));
 
-    diagnostic.note = Some(Note::new(format!(
+    diagnostic.add_note(Note::new(format!(
         "This is a temporary limitation. We're actively working on supporting {construct_name} \
          constructs and other advanced features to make HashQL more expressive and powerful."
     )));
@@ -104,23 +104,21 @@ pub(crate) fn unsupported_construct(
 /// but the error wasn't properly handled.
 #[coverage(off)] // compiler bugs should never be hit
 pub(crate) fn dummy_expression(span: SpanId) -> ReificationDiagnostic {
-    let mut diagnostic = Diagnostic::new(
-        ReificationDiagnosticCategory::UnhandledError,
-        Severity::COMPILER_BUG,
-    );
+    let mut diagnostic =
+        Diagnostic::new(ReificationDiagnosticCategory::UnhandledError, Severity::Bug);
 
     diagnostic
         .labels
         .push(Label::new(span, "fatal error occurred here").with_order(0));
 
-    diagnostic.help = Some(Help::new(
+    diagnostic.add_help(Help::new(
         "The compiler encountered a serious error in an earlier phase but continued processing. \
          This should not happen and indicates a bug in the error handling system. The original \
          error message should appear above this one and contains more specific information about \
          what went wrong with your code.",
     ));
 
-    diagnostic.note = Some(Note::new(
+    diagnostic.add_note(Note::new(
         "HashQL compiles your code in several phases, and errors in early phases should prevent \
          later phases from running. When you see this message, it means the compiler tried to \
          continue despite a fatal error. Please report this issue along with the full error \
@@ -140,7 +138,7 @@ pub(crate) fn unprocessed_expression(
 ) -> ReificationDiagnostic {
     let mut diagnostic = Diagnostic::new(
         ReificationDiagnosticCategory::UnprocessedExpression,
-        Severity::COMPILER_BUG,
+        Severity::Bug,
     );
 
     diagnostic.labels.push(
@@ -151,13 +149,13 @@ pub(crate) fn unprocessed_expression(
         .with_order(0),
     );
 
-    diagnostic.help = Some(Help::new(format!(
+    diagnostic.add_help(Help::new(format!(
         "This is a compiler bug. The {expr_kind} expression should have been processed during an \
          earlier phase ({phase_name}) but reached the final processing stage unchanged. This \
          suggests a problem in the compiler pipeline."
     )));
 
-    diagnostic.note = Some(Note::new(
+    diagnostic.add_note(Note::new(
         "The HashQL compiler transforms your code through several phases before generating the \
          final output. Some language constructs should be handled by specific phases. Please \
          report this issue with a minimal code example.",
@@ -169,21 +167,19 @@ pub(crate) fn unprocessed_expression(
 /// Creates a diagnostic for general internal compiler errors.
 #[coverage(off)] // compiler bugs should never be hit
 pub(crate) fn internal_error(span: SpanId, message: &str) -> ReificationDiagnostic {
-    let mut diagnostic = Diagnostic::new(
-        ReificationDiagnosticCategory::InternalError,
-        Severity::COMPILER_BUG,
-    );
+    let mut diagnostic =
+        Diagnostic::new(ReificationDiagnosticCategory::InternalError, Severity::Bug);
 
     diagnostic
         .labels
         .push(Label::new(span, "compiler error occurred here").with_order(0));
 
-    diagnostic.help = Some(Help::new(format!(
+    diagnostic.add_help(Help::new(format!(
         "The compiler encountered an unexpected situation while processing your code: \
          \"{message}\". This is a bug in the HashQL compiler, not an error in your code."
     )));
 
-    diagnostic.note = Some(Note::new(
+    diagnostic.add_note(Note::new(
         "This indicates that an earlier compilation stage failed without reporting any errors. \
          The compiler continued with incomplete or invalid information, which was only detected \
          during the final processing phase. Please report this issue with a minimal code example.",
@@ -198,18 +194,18 @@ pub(crate) fn internal_error(span: SpanId, message: &str) -> ReificationDiagnost
 pub(crate) fn underscore_expression(span: SpanId) -> ReificationDiagnostic {
     let mut diagnostic = Diagnostic::new(
         ReificationDiagnosticCategory::UnderscoreExpression,
-        Severity::ERROR,
+        Severity::Error,
     );
 
     diagnostic
         .labels
         .push(Label::new(span, "`_` not allowed here").with_order(0));
 
-    diagnostic.help = Some(Help::new(
+    diagnostic.add_help(Help::new(
         "In expressions, `_` can only be used on the left-hand side of an assignment.",
     ));
 
-    diagnostic.note = Some(Note::new(
+    diagnostic.add_note(Note::new(
         "The underscore symbol `_` is a special placeholder that can only be used in specific \
          contexts. Currently, it's only valid as an assignment target, not as a value in \
          expressions.",
