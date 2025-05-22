@@ -7,7 +7,10 @@ use core::{
     ops::{Index, IndexMut},
 };
 
-use hashbrown::{Equivalent, HashMap, HashSet, hash_map::Entry};
+use hashbrown::{
+    Equivalent, HashMap, HashSet,
+    hash_map::{Entry, OccupiedError},
+};
 
 use crate::collection::{FastHashMap, FastHashSet};
 
@@ -313,6 +316,93 @@ where
         let map = self.of_mut(universe);
 
         map.insert(key, value)
+    }
+
+    /// Inserts a key-value pair into the specified universe map, but only if the key isn't already
+    /// present.
+    ///
+    /// Returns a mutable reference to the inserted value if the key wasn't present, or an
+    /// [`OccupiedError`] if the key already exists. The error contains both the key and value
+    /// that were attempted to be inserted.
+    ///
+    /// This method is useful when you need to handle the case of existing keys explicitly,
+    /// rather than silently overwriting values as with the standard `insert` method.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`OccupiedError`] if the key already exists in the map.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_core::{
+    ///     collection::FastHashMap,
+    ///     module::universe::{Realms, Universe},
+    /// };
+    ///
+    /// let mut realms = Realms::<FastHashMap<&str, i32>>::new();
+    ///
+    /// // Try to insert into the Type universe
+    /// let result = realms.try_insert(Universe::Type, "foo", 42);
+    /// assert!(result.is_ok());
+    ///
+    /// // Trying to insert with the same key will return an error
+    /// let result = realms.try_insert(Universe::Type, "foo", 100);
+    /// assert!(result.is_err());
+    /// ```
+    #[inline]
+    pub fn try_insert(
+        &mut self,
+        universe: Universe,
+        key: K,
+        value: V,
+    ) -> Result<&mut V, OccupiedError<'_, K, V, S, A>> {
+        let map = self.of_mut(universe);
+
+        map.try_insert(key, value)
+    }
+
+    /// Inserts a key-value pair into the specified universe map, panicking if the key already
+    /// exists.
+    ///
+    /// This method is a convenience wrapper around [`try_insert`] that panics with a default error
+    /// message if the key already exists in the map. It returns a mutable reference to the inserted
+    /// value when successful.
+    ///
+    /// Use this method when you are certain that the key doesn't exist and want to enforce this
+    /// invariant at runtime, treating a key collision as a programming error.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the key already exists in the map.
+    ///
+    /// # Examples
+    ///
+    /// ```should_panic
+    /// use hashql_core::{
+    ///     collection::FastHashMap,
+    ///     module::universe::{Realms, Universe},
+    /// };
+    ///
+    /// let mut realms = Realms::<FastHashMap<&str, i32>>::new();
+    ///
+    /// // This will insert the value and return a mutable reference
+    /// let value_ref = realms.insert_expect(Universe::Type, "foo", 42);
+    /// assert_eq!(*value_ref, 42);
+    ///
+    /// // This will panic because "foo" already exists
+    /// realms.insert_expect(Universe::Type, "foo", 100);
+    /// ```
+    #[inline]
+    pub fn insert_unique(&mut self, universe: Universe, key: K, value: V) -> &mut V
+    where
+        V: Debug,
+        K: Debug,
+    {
+        let map = self.of_mut(universe);
+
+        map.try_insert(key, value)
+            .expect("key should not already exist in the universe map")
     }
 
     /// Removes a key from the [`HashMap`] in the specified [`Universe`].
