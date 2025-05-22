@@ -174,7 +174,7 @@ where
     U: PrettyPrint<'heap>,
 {
     let mut diagnostic =
-        Diagnostic::new(TypeCheckDiagnosticCategory::TypeMismatch, Severity::ERROR);
+        Diagnostic::new(TypeCheckDiagnosticCategory::TypeMismatch, Severity::Error);
 
     diagnostic
         .labels
@@ -203,10 +203,10 @@ where
     );
 
     if let Some(text) = help {
-        diagnostic.help = Some(Help::new(text));
+        diagnostic.add_help(Help::new(text.to_owned()));
     }
 
-    diagnostic.note = Some(Note::new(
+    diagnostic.add_note(Note::new(
         "This type system uses a combination of nominal and structural typing. Types are \
          compatible when they have the same structure (same fields/elements with compatible \
          types) or when they represent the same named type. Union types must have at least one \
@@ -230,7 +230,7 @@ where
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::NoTypeInference,
         // This is a compiler bug, as we should've encountered the `Infer` at an earlier stage
-        Severity::COMPILER_BUG,
+        Severity::Bug,
     );
 
     diagnostic.labels.push(
@@ -249,12 +249,12 @@ where
         .with_order(2),
     );
 
-    diagnostic.help = Some(Help::new(
+    diagnostic.add_help(Help::new(
         "This error occurs when the type system cannot determine a specific type for an \
          expression. Add explicit type annotations to help the compiler understand your intent.",
     ));
 
-    diagnostic.note = Some(Note::new(
+    diagnostic.add_note(Note::new(
         "Type inference requires sufficient context to determine types. When a type variable has \
          no constraints from usage, the compiler cannot choose an appropriate type. Consider \
          adding an explicit type annotation or using the expression in a context that provides \
@@ -274,7 +274,7 @@ where
     K: PrettyPrint<'heap>,
 {
     let mut diagnostic =
-        Diagnostic::new(TypeCheckDiagnosticCategory::CircularType, Severity::WARNING);
+        Diagnostic::new(TypeCheckDiagnosticCategory::CircularType, Severity::Warning);
 
     diagnostic.labels.push(
         Label::new(span, "Circular type reference detected in this expression").with_order(3),
@@ -288,13 +288,13 @@ where
         .labels
         .push(Label::new(rhs.span, "... through this reference").with_order(2));
 
-    diagnostic.help = Some(Help::new(
+    diagnostic.add_help(Help::new(
         "While circular type references are allowed, they can lead to infinite type expansion and \
          potential issues with type checking and serialization. Consider removing the circular \
          dependency.",
     ));
 
-    diagnostic.note = Some(Note::new(
+    diagnostic.add_note(Note::new(
         "Circular type references create types that can expand infinitely. This may lead to \
          unpredictable behavior in some contexts like serialization, code generation, or when \
          working with external systems. While supported, use circular types with caution and \
@@ -316,7 +316,7 @@ where
 {
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::TupleLengthMismatch,
-        Severity::ERROR,
+        Severity::Error,
     );
 
     diagnostic
@@ -347,12 +347,12 @@ where
         .with_order(2),
     );
 
-    diagnostic.help = Some(Help::new(
+    diagnostic.add_help(Help::new(
         "Tuples must have the same number of elements to be compatible. You need to adjust one of \
          the tuples to match the other's length.",
     ));
 
-    diagnostic.note = Some(Note::new(
+    diagnostic.add_note(Note::new(
         "Unlike some collections, tuples have a fixed length that is part of their type. This \
          means (String, Number) and (String, Number, Boolean) are completely different types.",
     ));
@@ -375,7 +375,7 @@ where
 {
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::OpaqueTypeNameMismatch,
-        Severity::ERROR,
+        Severity::Error,
     );
 
     diagnostic.labels.push(
@@ -394,13 +394,13 @@ where
         .labels
         .push(Label::new(rhs.span, format!("This is type '{rhs_name}'")).with_order(2));
 
-    diagnostic.help = Some(Help::new(
+    diagnostic.add_help(Help::new(
         "Named types can only be used with other instances of the exact same type. This is \
          similar to how 'UserId' and 'PostId' would be different types even if they're both \
          numbers underneath.",
     ));
 
-    diagnostic.note = Some(Note::new(
+    diagnostic.add_note(Note::new(
         "This distinction prevents accidentally mixing up different types that happen to have the \
          same internal structure, helping catch logical errors in your code.",
     ));
@@ -421,7 +421,7 @@ where
 {
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::UnionVariantMismatch,
-        Severity::ERROR,
+        Severity::Error,
     );
 
     // Primary: point at the failing variant
@@ -442,13 +442,13 @@ where
         ),
     ));
 
-    diagnostic.help = Some(Help::new(
+    diagnostic.add_help(Help::new(
         "For a type `A | B` to be a subtype of `C | D`, every variant (A, B) must be a subtype of \
          at least one variant in the expected union (C, D).\nIn other words: (A <: C \u{2228} A \
          <: D) \u{2227} (B <: C \u{2228} B <: D)",
     ));
 
-    diagnostic.note = Some(Note::new(format!(
+    diagnostic.add_note(Note::new(format!(
         "expected union: `{}`\nfound variant: `{}` which is not a subtype of any expected variants",
         expected_union
             .kind
@@ -477,7 +477,7 @@ where
 {
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::FunctionParameterCountMismatch,
-        Severity::ERROR,
+        Severity::Error,
     );
 
     diagnostic
@@ -508,12 +508,12 @@ where
         .with_order(2),
     );
 
-    diagnostic.help = Some(Help::new(
+    diagnostic.add_help(Help::new(
         "Function types must have the same number of parameters to be compatible. Check that \
          you're using the correct function type with the right number of parameters.",
     ));
 
-    diagnostic.note = Some(Note::new(
+    diagnostic.add_note(Note::new(
         "In strongly typed languages, functions with different numbers of parameters are \
          considered different types, even if the parameters they do have are compatible.",
     ));
@@ -529,7 +529,7 @@ where
     K: PrettyPrint<'heap>,
 {
     let mut diagnostic =
-        Diagnostic::new(TypeCheckDiagnosticCategory::TypeMismatch, Severity::ERROR);
+        Diagnostic::new(TypeCheckDiagnosticCategory::TypeMismatch, Severity::Error);
 
     diagnostic
         .labels
@@ -546,12 +546,12 @@ where
         .with_order(1),
     );
 
-    diagnostic.help = Some(Help::new(
+    diagnostic.add_help(Help::new(
         "Only the `!` (Never) type itself can be a subtype of `!`. Any type with values cannot be \
          a subtype of `!`, which by definition has no values.",
     ));
 
-    diagnostic.note = Some(Note::new(
+    diagnostic.add_note(Note::new(
         "In type theory, the `!` type (also called 'bottom type' or 'Never') is a type with no \
          values. It can be a subtype of any type, but only `!` can be a subtype of `!`.",
     ));
@@ -567,7 +567,7 @@ where
     K: PrettyPrint<'heap>,
 {
     let mut diagnostic =
-        Diagnostic::new(TypeCheckDiagnosticCategory::TypeMismatch, Severity::ERROR);
+        Diagnostic::new(TypeCheckDiagnosticCategory::TypeMismatch, Severity::Error);
 
     diagnostic
         .labels
@@ -584,11 +584,11 @@ where
         .with_order(1),
     );
 
-    diagnostic.help = Some(Help::new(
+    diagnostic.add_help(Help::new(
         "Only the `?` (Unknown) type itself can be a supertype of `?`.",
     ));
 
-    diagnostic.note = Some(Note::new(
+    diagnostic.add_note(Note::new(
         "In type theory, the `?` type (also called 'top type' or 'Unknown') is a type that \
          encompasses all values. It can be a supertype of any type, but only `?` can be a \
          supertype of `?`.",
@@ -608,7 +608,7 @@ where
 {
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::IntersectionVariantMismatch,
-        Severity::ERROR,
+        Severity::Error,
     );
 
     // Primary: point at the failing variant
@@ -629,13 +629,13 @@ where
         ),
     ));
 
-    diagnostic.help = Some(Help::new(
+    diagnostic.add_help(Help::new(
         "For a type `A & B` to be a subtype of `C & D`, every variant (A, B) must be a subtype of \
          every variant in the expected intersection (C, D).\nIn other words: (A <: C) \u{2227} (A \
          <: D) \u{2227} (B <: C) \u{2227} (B <: D)",
     ));
 
-    diagnostic.note = Some(Note::new(format!(
+    diagnostic.add_note(Note::new(format!(
         "expected intersection: `{}`\nfound variant: `{}` which is not a subtype of all expected \
          variants",
         expected_intersection
@@ -661,7 +661,7 @@ where
 {
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::StructFieldMismatch,
-        Severity::ERROR,
+        Severity::Error,
     );
 
     diagnostic
@@ -676,12 +676,12 @@ where
         .labels
         .push(Label::new(rhs.span, "... than this struct").with_order(2));
 
-    diagnostic.help = Some(Help::new(
+    diagnostic.add_help(Help::new(
         "For structs to be equivalent, they must have exactly the same field names. Check that \
          both structs define the same set of fields.",
     ));
 
-    diagnostic.note = Some(Note::new(
+    diagnostic.add_note(Note::new(
         "When comparing structs for equivalence, they must have the exact same field names. \
          Subtyping allows a struct with more fields to be a subtype of one with fewer fields, but \
          for equivalence they must match exactly.",
@@ -704,7 +704,7 @@ where
 {
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::DuplicateStructField,
-        Severity::ERROR,
+        Severity::Error,
     );
 
     diagnostic.labels.push(
@@ -723,11 +723,11 @@ where
         .with_order(1),
     );
 
-    diagnostic.help = Some(Help::new(
+    diagnostic.add_help(Help::new(
         "Each field in a struct must have a unique name. Remove or rename duplicate fields.",
     ));
 
-    diagnostic.note = Some(Note::new(
+    diagnostic.add_note(Note::new(
         "Structs cannot have multiple fields with the same name, as this would make field access \
          ambiguous. Each field name must be unique within a struct.",
     ));
@@ -750,7 +750,7 @@ where
 {
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::MissingStructField,
-        Severity::ERROR,
+        Severity::Error,
     );
 
     diagnostic
@@ -769,12 +769,12 @@ where
         .with_order(2),
     );
 
-    diagnostic.help = Some(Help::new(
+    diagnostic.add_help(Help::new(
         "For a struct to be a subtype of another, it must contain all fields from the supertype. \
          Add the missing field to fix this error.",
     ));
 
-    diagnostic.note = Some(Note::new(
+    diagnostic.add_note(Note::new(
         "In structural subtyping, a subtype can have more fields than its supertype (width \
          subtyping), but it must include all fields from the supertype with compatible types.",
     ));
@@ -785,7 +785,7 @@ where
 pub(crate) fn unconstrained_type_variable_floating(env: &Environment) -> TypeCheckDiagnostic {
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::UnconstrainedTypeVariable,
-        Severity::COMPILER_BUG,
+        Severity::Bug,
     );
 
     // We don't have a specific span, so we have to report this as a general error
@@ -797,14 +797,12 @@ pub(crate) fn unconstrained_type_variable_floating(env: &Environment) -> TypeChe
         .with_order(1),
     );
 
-    diagnostic.help = Some(Help::new(
-        "This is an internal compiler error, not a problem with your code. The type system \
-         encountered a variable that has no constraints, but also lacks source location \
-         information to properly report the error. Please report this issue to the HashQL team \
-         with a minimal reproduction case.",
+    diagnostic.add_help(Help::new(
+        "The type system encountered a variable that has no constraints, but also lacks source \
+         location information to properly report the error.",
     ));
 
-    diagnostic.note = Some(Note::new(
+    diagnostic.add_note(Note::new(
         "During type inference, the compiler manages variables that represent unknown types. \
          These variables should either be resolved to concrete types or be reported with specific \
          source locations when unconstrained. This error indicates a bug in the type inference \
@@ -819,7 +817,7 @@ pub(crate) fn unconstrained_type_variable_floating(env: &Environment) -> TypeChe
 pub(crate) fn unconstrained_type_variable(variable: Variable) -> TypeCheckDiagnostic {
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::UnconstrainedTypeVariable,
-        Severity::ERROR,
+        Severity::Error,
     );
 
     // Point to the variable's location
@@ -831,13 +829,13 @@ pub(crate) fn unconstrained_type_variable(variable: Variable) -> TypeCheckDiagno
         .with_order(1),
     );
 
-    diagnostic.help = Some(Help::new(
+    diagnostic.add_help(Help::new(
         "Add an explicit type annotation to provide the necessary context. For example:\n- Change \
          `let x = ...` to `let x: Type = ...`\n- Provide type parameters like `function<T: \
          SomeType>(...)`\n- Use the value in a way that constrains its type",
     ));
 
-    diagnostic.note = Some(Note::new(
+    diagnostic.add_note(Note::new(
         "Type inference needs constraints that come from how variables are used. When a variable \
          lacks both usage context and explicit annotations, the type system cannot determine an \
          appropriate type. This commonly occurs with empty collections, unused variables, or \
@@ -859,7 +857,7 @@ where
 {
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::IncompatibleLowerEqualConstraint,
-        Severity::ERROR,
+        Severity::Error,
     );
 
     // Primary label - point to the variable's location
@@ -896,7 +894,7 @@ where
     );
 
     // Provide actionable help message
-    diagnostic.help = Some(Help::new(format!(
+    diagnostic.add_help(Help::new(format!(
         "Resolve this type conflict by either:\n1. Changing the equality constraint to be \
          compatible with `{}`\n2. Modifying the lower bound type to be a subtype of `{}`\n3. \
          Ensuring both types are compatible in the type hierarchy",
@@ -916,7 +914,7 @@ where
         )
     )));
 
-    diagnostic.note = Some(Note::new(
+    diagnostic.add_note(Note::new(
         "When a type variable has both lower bound and equality constraints, the lower bound must \
          be a subtype of the equality type (lower <: equal). This ensures the variable can \
          satisfy both constraints simultaneously. Check for inconsistent type annotations or \
@@ -938,7 +936,7 @@ where
 {
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::IncompatibleUpperEqualConstraint,
-        Severity::ERROR,
+        Severity::Error,
     );
 
     // Primary label - point to the variable's location
@@ -975,7 +973,7 @@ where
     );
 
     // Provide actionable help message
-    diagnostic.help = Some(Help::new(format!(
+    diagnostic.add_help(Help::new(format!(
         "To fix this conflict, you can:\n1. Change the equality constraint `{}` to be a subtype \
          of the upper bound\n2. Adjust the upper bound `{}` to be a supertype of the equality \
          constraint\n3. Review your type annotations to ensure they're consistent",
@@ -995,7 +993,7 @@ where
         )
     )));
 
-    diagnostic.note = Some(Note::new(
+    diagnostic.add_note(Note::new(
         "Type inference requires that when a variable has both an equality constraint and an \
          upper bound, the equality type must be a subtype of the upper bound (equal <: upper). \
          This error indicates your code has contradictory requirements for the same type variable.",
@@ -1016,7 +1014,7 @@ where
 {
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::BoundConstraintViolation,
-        Severity::ERROR,
+        Severity::Error,
     );
 
     // Primary label - point to the variable's location
@@ -1053,7 +1051,7 @@ where
     );
 
     // Provide actionable help
-    diagnostic.help = Some(Help::new(format!(
+    diagnostic.add_help(Help::new(format!(
         "These type bounds create an impossible constraint. To fix this:\n1. Modify `{}` to be a \
          proper subtype of `{}`\n2. Or adjust `{}` to be a supertype of `{}`\n3. Or check your \
          code for contradictory type assertions",
@@ -1087,7 +1085,7 @@ where
         )
     )));
 
-    diagnostic.note = Some(Note::new(
+    diagnostic.add_note(Note::new(
         "During type inference, when a variable has both upper and lower bounds, the relationship \
          'lower <: upper' must hold. This ensures a valid solution exists in the type system. \
          When this relationship is violated, it means your code is requiring contradictory types \
@@ -1109,7 +1107,7 @@ where
 {
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::ConflictingEqualityConstraints,
-        Severity::ERROR,
+        Severity::Error,
     );
 
     // Primary label - point to the variable's location
@@ -1146,7 +1144,7 @@ where
     );
 
     // Provide actionable help message
-    diagnostic.help = Some(Help::new(format!(
+    diagnostic.add_help(Help::new(format!(
         "A type variable can only be equal to one concrete type at a time. This variable has \
          multiple conflicting equality constraints.\nTo fix this issue:\n1. Ensure consistent \
          type usage - either use `{}` everywhere\n2. Or use `{}` everywhere\n3. Add explicit type \
@@ -1167,7 +1165,7 @@ where
         )
     )));
 
-    diagnostic.note = Some(Note::new(
+    diagnostic.add_note(Note::new(
         "During type inference, all constraints on a type variable must be satisfied \
          simultaneously. When equality constraints conflict (e.g., T = String and T = Number), no \
          valid solution exists. This typically occurs when you've specified different types for \
@@ -1192,11 +1190,9 @@ where
 {
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::TypeParameterNotFound,
-        // This is a compiler bug in the error reporting sequence
-        Severity::COMPILER_BUG,
+        Severity::Bug,
     );
 
-    // Primary label indicating the invalid reference
     diagnostic.labels.push(
         Label::new(
             param.span,
@@ -1205,7 +1201,6 @@ where
         .with_order(1),
     );
 
-    // Secondary label for context about error reporting
     diagnostic.labels.push(
         Label::new(
             env.source,
@@ -1214,21 +1209,17 @@ where
         .with_order(2),
     );
 
-    // Help message explaining the situation
-    diagnostic.help = Some(Help::new(
+    diagnostic.add_help(Help::new(
         "This error indicates your code contains an invalid type parameter reference that should \
          have been caught by an earlier validation step. While the code is indeed incorrect, the \
-         compiler should have reported this error in a more specific way at an earlier stage. \
-         Please report this issue to the HashQL team with a minimal reproduction case.",
+         compiler should have reported this error in a more specific way at an earlier stage.",
     ));
 
-    // Technical explanation with more details
-    diagnostic.note = Some(Note::new(format!(
+    diagnostic.add_note(Note::new(format!(
         "Technical details: Parameter ?{argument} is referenced but not defined in the current \
          environment. This represents both an invalid program and a flaw in the error reporting \
          sequence. The compiler should validate all parameter references during an earlier \
-         compilation phase and provide more specific error messages. Please report this as a \
-         compiler issue so we can improve error reporting for similar cases.",
+         compilation phase and provide more specific error messages.",
     )));
 
     diagnostic

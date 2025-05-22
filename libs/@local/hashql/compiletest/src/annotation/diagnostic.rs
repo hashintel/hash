@@ -2,20 +2,10 @@ use core::str::pattern::{Pattern as _, Searcher as _};
 
 use hashql_diagnostics::severity::Severity;
 
-type Severities = [&'static Severity; 6];
-const SUPPORTED_SEVERITIES: Severities = [
-    &Severity::COMPILER_BUG,
-    &Severity::CRITICAL,
-    &Severity::ERROR,
-    &Severity::WARNING,
-    &Severity::INFO,
-    &Severity::DEBUG,
-];
-
 #[derive(Debug, Clone, PartialEq, Eq, derive_more::Display)]
 pub(crate) enum DiagnosticParseError {
     /// No supported severity found in the annotation
-    #[display("missing severity, expected one of: {SUPPORTED_SEVERITIES:?}")]
+    #[display("missing severity, expected one of: {:?}", Severity::variants())]
     MissingSeverity,
     /// Pipe reference used without a previous diagnostic annotation line
     #[display("pipe reference used without a previous diagnostic annotation line")]
@@ -108,11 +98,11 @@ impl DiagnosticAnnotation {
         value = value.trim();
 
         // Figure out the severity
-        for severity in SUPPORTED_SEVERITIES {
+        for severity in Severity::variants() {
             if let Some(next) = value.strip_prefix(&severity.name().to_ascii_uppercase()) {
                 value = next.trim();
 
-                annotation_severity = Some((*severity).clone());
+                annotation_severity = Some(*severity);
 
                 break;
             }
@@ -158,7 +148,7 @@ mod tests {
         assert_eq!(
             annotation,
             DiagnosticAnnotation {
-                severity: Severity::ERROR,
+                severity: Severity::Error,
                 message: "message text".to_owned(),
                 category: None,
                 line: Some(10),
@@ -168,7 +158,7 @@ mod tests {
 
     #[test]
     fn severity_levels() {
-        for &severity in &SUPPORTED_SEVERITIES {
+        for &severity in Severity::variants() {
             let input = format!("{} test message", severity.name().to_ascii_uppercase());
             let annotation =
                 DiagnosticAnnotation::parse(&input, 5, Some(4)).expect("should successfully parse");
@@ -176,7 +166,7 @@ mod tests {
             assert_eq!(
                 annotation,
                 DiagnosticAnnotation {
-                    severity: severity.clone(),
+                    severity,
                     message: "test message".to_owned(),
                     category: None,
                     line: Some(5),
@@ -193,7 +183,7 @@ mod tests {
         assert_eq!(
             annotation,
             DiagnosticAnnotation {
-                severity: Severity::ERROR,
+                severity: Severity::Error,
                 message: "categorized error".to_owned(),
                 category: Some("E001".to_owned()),
                 line: Some(15),
@@ -209,7 +199,7 @@ mod tests {
         assert_eq!(
             annotation,
             DiagnosticAnnotation {
-                severity: Severity::ERROR,
+                severity: Severity::Error,
                 message: "missing semicolon".to_owned(),
                 category: None,
                 line: Some(17),
@@ -225,7 +215,7 @@ mod tests {
         assert_eq!(
             annotation,
             DiagnosticAnnotation {
-                severity: Severity::ERROR,
+                severity: Severity::Error,
                 message: "undefined variable".to_owned(),
                 category: None,
                 line: Some(23),
@@ -241,7 +231,7 @@ mod tests {
         assert_eq!(
             annotation,
             DiagnosticAnnotation {
-                severity: Severity::ERROR,
+                severity: Severity::Error,
                 message: "previous line error".to_owned(),
                 category: None,
                 line: Some(9),
@@ -265,7 +255,7 @@ mod tests {
         assert_eq!(
             annotation,
             DiagnosticAnnotation {
-                severity: Severity::WARNING,
+                severity: Severity::Warning,
                 message: "might occur anywhere".to_owned(),
                 category: None,
                 line: None,
@@ -282,7 +272,7 @@ mod tests {
         assert_eq!(
             annotation,
             DiagnosticAnnotation {
-                severity: Severity::ERROR,
+                severity: Severity::Error,
                 message: "complex error description".to_owned(),
                 category: Some("E100".to_owned()),
                 line: Some(13),
@@ -297,7 +287,7 @@ mod tests {
         assert_eq!(
             annotation,
             DiagnosticAnnotation {
-                severity: Severity::WARNING,
+                severity: Severity::Warning,
                 message: "previous line warning".to_owned(),
                 category: Some("W200".to_owned()),
                 line: Some(24),
@@ -314,7 +304,7 @@ mod tests {
         assert_eq!(
             annotation,
             DiagnosticAnnotation {
-                severity: Severity::ERROR,
+                severity: Severity::Error,
                 message: "spaced   message".to_owned(),
                 category: Some("E001".to_owned()),
                 line: Some(10),
@@ -338,7 +328,7 @@ mod tests {
         assert_eq!(
             annotation,
             DiagnosticAnnotation {
-                severity: Severity::ERROR,
+                severity: Severity::Error,
                 message: "[incomplete category".to_owned(),
                 category: None,
                 line: Some(10),
@@ -354,7 +344,7 @@ mod tests {
         assert_eq!(
             annotation,
             DiagnosticAnnotation {
-                severity: Severity::ERROR,
+                severity: Severity::Error,
                 message: String::new(),
                 category: None,
                 line: Some(10),
@@ -370,7 +360,7 @@ mod tests {
         assert_eq!(
             annotation,
             DiagnosticAnnotation {
-                severity: Severity::ERROR,
+                severity: Severity::Error,
                 message: "empty category".to_owned(),
                 category: None,
                 line: Some(10),

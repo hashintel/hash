@@ -119,15 +119,15 @@ pub(crate) fn invalid_expr<I>(
     error: ParseError<I, ContextError>,
 ) -> StringDiagnostic {
     let mut diagnostic =
-        Diagnostic::new(StringDiagnosticCategory::InvalidExpression, Severity::ERROR);
+        Diagnostic::new(StringDiagnosticCategory::InvalidExpression, Severity::Error);
 
     let (label, expected) = convert_parse_error(spans, parent, error);
 
     diagnostic.labels.push(label);
 
     if let Some(expected) = expected {
-        diagnostic.help = Some(Help::new(expected));
-        diagnostic.note = Some(Note::new(SYNTAX_ERROR_NOTE));
+        diagnostic.add_help(Help::new(expected));
+        diagnostic.add_note(Note::new(SYNTAX_ERROR_NOTE));
     }
 
     diagnostic
