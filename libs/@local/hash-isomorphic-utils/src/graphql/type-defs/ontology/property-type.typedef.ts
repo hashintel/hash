@@ -12,6 +12,7 @@ export const propertyTypeTypedef = gql`
     queryPropertyTypes(
       constrainsValuesOn: OutgoingEdgeResolveDepthInput!
       constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
+      filter: Filter
       latestOnly: Boolean = true
       includeArchived: Boolean = false
     ): GqlSubgraph!

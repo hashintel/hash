@@ -21,6 +21,7 @@ export const ProfilePageHeader: FunctionComponent<{
   tabs: ProfilePageTab[];
   currentTab: ProfilePageTab;
   refetchProfile: () => Promise<void>;
+  typesCount: number;
 }> = ({
   profile,
   isEditable,
@@ -28,6 +29,7 @@ export const ProfilePageHeader: FunctionComponent<{
   tabs,
   currentTab,
   refetchProfile,
+  typesCount,
 }) => {
   const [
     displayEditPinnedEntityTypesModal,
@@ -140,6 +142,7 @@ export const ProfilePageHeader: FunctionComponent<{
                 profile={profile}
                 tabs={tabs}
                 currentTab={currentTab}
+                typesCount={typesCount}
               />
               {isEditable ? (
                 <>

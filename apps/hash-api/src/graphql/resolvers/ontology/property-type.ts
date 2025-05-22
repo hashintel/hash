@@ -70,6 +70,7 @@ export const queryPropertyTypesResolver: ResolverFn<
   {
     constrainsValuesOn,
     constrainsPropertiesOn,
+    filter,
     latestOnly = true,
     includeArchived = false,
   },
@@ -77,6 +78,10 @@ export const queryPropertyTypesResolver: ResolverFn<
   __,
 ) => {
   const { graphApi } = dataSources;
+
+  const latestOnlyFilter = {
+    equal: [{ path: ["version"] }, { parameter: "latest" }],
+  };
 
   /**
    * @todo: get all latest property types in specified account.
@@ -88,10 +93,10 @@ export const queryPropertyTypesResolver: ResolverFn<
     authentication.actorId,
     {
       filter: latestOnly
-        ? {
-            equal: [{ path: ["version"] }, { parameter: "latest" }],
-          }
-        : { all: [] },
+        ? filter
+          ? { all: [filter, latestOnlyFilter] }
+          : latestOnlyFilter
+        : (filter ?? { all: [] }),
       graphResolveDepths: {
         ...zeroedGraphResolveDepths,
         constrainsValuesOn,

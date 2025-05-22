@@ -1,10 +1,20 @@
 import { useQuery } from "@apollo/client";
-import type { EntityRootType } from "@blockprotocol/graph";
+import type {
+  DataTypeRootType,
+  EntityRootType,
+  EntityTypeRootType,
+  PropertyTypeRootType,
+} from "@blockprotocol/graph";
 import {
   getEntityTypeAndDescendantsById,
   getRoots,
 } from "@blockprotocol/graph/stdlib";
-import type { BaseUrl } from "@blockprotocol/type-system";
+import type {
+  BaseUrl,
+  DataTypeWithMetadata,
+  EntityTypeWithMetadata,
+  PropertyTypeWithMetadata,
+} from "@blockprotocol/type-system";
 import { extractBaseUrl } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
@@ -21,8 +31,17 @@ import { useCallback, useMemo, useState } from "react";
 import type {
   GetEntitySubgraphQuery,
   GetEntitySubgraphQueryVariables,
+  QueryDataTypesQuery,
+  QueryDataTypesQueryVariables,
+  QueryEntityTypesQuery,
+  QueryEntityTypesQueryVariables,
+  QueryPropertyTypesQuery,
+  QueryPropertyTypesQueryVariables,
 } from "../../graphql/api-types.gen";
 import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
+import { queryDataTypesQuery } from "../../graphql/queries/ontology/data-type.queries";
+import { queryEntityTypesQuery } from "../../graphql/queries/ontology/entity-type.queries";
+import { queryPropertyTypesQuery } from "../../graphql/queries/ontology/property-type.queries";
 import {
   constructOrg,
   constructUser,
@@ -81,6 +100,111 @@ const ProfilePage: NextPageWithLayout = () => {
     }
   }, [userOrOrgSubgraph, userOrOrg]);
 
+  const profileWebId =
+    profile?.kind === "org" ? profile.webId : profile?.accountId;
+
+  const { data: entityTypesData, loading: entityTypesLoading } = useQuery<
+    QueryEntityTypesQuery,
+    QueryEntityTypesQueryVariables
+  >(queryEntityTypesQuery, {
+    fetchPolicy: "cache-and-network",
+    variables: {
+      filter: {
+        equal: [
+          {
+            path: ["webId"],
+          },
+          { parameter: profileWebId! },
+        ],
+      },
+      ...zeroedGraphResolveDepths,
+      includeArchived: true,
+      latestOnly: true,
+    },
+    skip: !profileWebId,
+  });
+
+  const { data: propertyTypesData, loading: propertyTypesLoading } = useQuery<
+    QueryPropertyTypesQuery,
+    QueryPropertyTypesQueryVariables
+  >(queryPropertyTypesQuery, {
+    fetchPolicy: "cache-and-network",
+    variables: {
+      filter: {
+        equal: [
+          {
+            path: ["webId"],
+          },
+          { parameter: profileWebId! },
+        ],
+      },
+
+      latestOnly: true,
+      ...zeroedGraphResolveDepths,
+      includeArchived: true,
+    },
+    skip: !profileWebId,
+  });
+
+  const { data: dataTypesData, loading: dataTypesLoading } = useQuery<
+    QueryDataTypesQuery,
+    QueryDataTypesQueryVariables
+  >(queryDataTypesQuery, {
+    fetchPolicy: "cache-and-network",
+    variables: {
+      filter: {
+        equal: [
+          {
+            path: ["webId"],
+          },
+          { parameter: profileWebId! },
+        ],
+      },
+      ...zeroedGraphResolveDepths,
+      includeArchived: true,
+      latestOnly: true,
+    },
+    skip: !profileWebId,
+  });
+
+  const webTypes = useMemo(() => {
+    const types: (
+      | PropertyTypeWithMetadata
+      | EntityTypeWithMetadata
+      | DataTypeWithMetadata
+    )[] = [];
+
+    if (propertyTypesData) {
+      const propertyTypes = getRoots<PropertyTypeRootType>(
+        mapGqlSubgraphFieldsFragmentToSubgraph(
+          propertyTypesData.queryPropertyTypes,
+        ),
+      );
+
+      types.push(...propertyTypes);
+    }
+
+    if (entityTypesData) {
+      const entityTypes = getRoots<EntityTypeRootType>(
+        mapGqlSubgraphFieldsFragmentToSubgraph(
+          entityTypesData.queryEntityTypes,
+        ),
+      );
+
+      types.push(...entityTypes);
+    }
+
+    if (dataTypesData) {
+      const dataTypes = getRoots<DataTypeRootType>(
+        mapGqlSubgraphFieldsFragmentToSubgraph(dataTypesData.queryDataTypes),
+      );
+
+      types.push(...dataTypes);
+    }
+
+    return types;
+  }, [propertyTypesData, entityTypesData, dataTypesData]);
+
   const profileNotFound = !profile && !loading;
 
   const enabledFeatureFlags = useEnabledFeatureFlags();
@@ -106,6 +230,10 @@ const ProfilePage: NextPageWithLayout = () => {
         kind: "pinned-entity-type",
         entityTypeBaseUrl,
       })),
+      {
+        kind: "types",
+        title: "Types",
+      },
     ],
     [pinnedEntityTypeBaseUrls],
   );
@@ -275,6 +403,7 @@ const ProfilePage: NextPageWithLayout = () => {
         tabs={tabsWithEntities}
         currentTab={currentTab}
         refetchProfile={refetchProfile}
+        typesCount={webTypes.length}
       />
       <ProfilePageContent
         profile={profile}
@@ -282,6 +411,10 @@ const ProfilePage: NextPageWithLayout = () => {
         refetchProfile={refetchProfile}
         setDisplayEditUserProfileInfoModal={setDisplayEditUserProfileInfoModal}
         currentTab={currentTab}
+        webTypes={webTypes}
+        webTypesLoading={
+          entityTypesLoading || propertyTypesLoading || dataTypesLoading
+        }
       />
       {profile && profile.kind === "user" ? (
         <EditUserProfileInfoModal
