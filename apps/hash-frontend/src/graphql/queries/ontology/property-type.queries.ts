@@ -24,12 +24,14 @@ export const queryPropertyTypesQuery = gql`
   query queryPropertyTypes(
     $constrainsValuesOn: OutgoingEdgeResolveDepthInput!
     $constrainsPropertiesOn: OutgoingEdgeResolveDepthInput!
+    $filter: Filter
     $latestOnly: Boolean = true
     $includeArchived: Boolean = false
   ) {
     queryPropertyTypes(
       constrainsValuesOn: $constrainsValuesOn
       constrainsPropertiesOn: $constrainsPropertiesOn
+      filter: $filter
       latestOnly: $latestOnly
       includeArchived: $includeArchived
     ) {

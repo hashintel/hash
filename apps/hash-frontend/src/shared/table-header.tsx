@@ -38,7 +38,7 @@ import { useCallback, useState } from "react";
 import type { GridRow } from "../components/grid/grid";
 import type { MinimalUser } from "../lib/user-and-org";
 import type { EntitiesTableRow } from "../pages/shared/entities-visualizer/entities-table/types";
-import type { TypesTableRow } from "../pages/types/[[...type-kind]].page/types-table";
+import type { TypesTableRow } from "../pages/shared/types-table";
 import { EarthAmericasRegularIcon } from "./icons/earth-americas-regular";
 import { FilterListIcon } from "./icons/filter-list-icon";
 import { HouseRegularIcon } from "./icons/house-regular-icon";
@@ -117,6 +117,7 @@ type TableHeaderProps<R extends GridRow> = {
   loading: boolean;
   numberOfExternalItems?: number;
   numberOfUserWebItems?: number;
+  onlyOneWeb?: boolean;
   onBulkActionCompleted?: () => void;
   selectedItems?: (
     | HashEntity
@@ -146,6 +147,7 @@ export const TableHeader = <R extends GridRow>({
   loading,
   numberOfExternalItems,
   numberOfUserWebItems,
+  onlyOneWeb,
   onBulkActionCompleted,
   selectedItems,
   setFilterState,
@@ -242,7 +244,11 @@ export const TableHeader = <R extends GridRow>({
         ) : hideFilters ? null : (
           <>
             <NoMaxWidthTooltip
-              title="Visible to you inside your personal web and organizations you belong to"
+              title={
+                onlyOneWeb
+                  ? "Visible to you in this web"
+                  : "Visible to you inside your personal web and organizations you belong to"
+              }
               placement="top"
             >
               <Chip
@@ -253,7 +259,9 @@ export const TableHeader = <R extends GridRow>({
                     }}
                   />
                 }
-                label={`${numberOfUserWebItems ?? "–"} in your webs`}
+                label={`${numberOfUserWebItems ?? "–"} in ${
+                  onlyOneWeb ? "this web" : "your webs"
+                }`}
                 sx={{
                   ...commonChipSx,
                   [`.${chipClasses.label}`]: {
@@ -263,55 +271,57 @@ export const TableHeader = <R extends GridRow>({
                 }}
               />
             </NoMaxWidthTooltip>
-            <NoMaxWidthTooltip
-              title={`${
-                filterState.includeGlobal ? "Hide" : "Show"
-              } public ${itemLabelPlural} from outside of your webs`}
-              placement="top"
-            >
-              <Chip
-                onMouseEnter={() => setPublicFilterHovered(true)}
-                onMouseLeave={() => setPublicFilterHovered(false)}
-                onClick={() => {
-                  setDisplayFilters(true);
-                  setFilterState((prev) => ({
-                    ...prev,
-                    includeGlobal: !prev.includeGlobal,
-                  }));
-                }}
-                icon={
-                  filterState.includeGlobal ? (
-                    publicFilterHovered ? (
-                      <EyeSlashRegularIcon
+            {onlyOneWeb ? null : (
+              <NoMaxWidthTooltip
+                title={`${
+                  filterState.includeGlobal ? "Hide" : "Show"
+                } public ${itemLabelPlural} from outside of your webs`}
+                placement="top"
+              >
+                <Chip
+                  onMouseEnter={() => setPublicFilterHovered(true)}
+                  onMouseLeave={() => setPublicFilterHovered(false)}
+                  onClick={() => {
+                    setDisplayFilters(true);
+                    setFilterState((prev) => ({
+                      ...prev,
+                      includeGlobal: !prev.includeGlobal,
+                    }));
+                  }}
+                  icon={
+                    filterState.includeGlobal ? (
+                      publicFilterHovered ? (
+                        <EyeSlashRegularIcon
+                          sx={{ fill: ({ palette }) => palette.primary.main }}
+                        />
+                      ) : (
+                        <CheckIcon
+                          sx={{ fill: ({ palette }) => palette.primary.main }}
+                        />
+                      )
+                    ) : publicFilterHovered ? (
+                      <EyeRegularIcon
                         sx={{ fill: ({ palette }) => palette.primary.main }}
                       />
                     ) : (
-                      <CheckIcon
-                        sx={{ fill: ({ palette }) => palette.primary.main }}
-                      />
+                      <EarthAmericasRegularIcon />
                     )
-                  ) : publicFilterHovered ? (
-                    <EyeRegularIcon
-                      sx={{ fill: ({ palette }) => palette.primary.main }}
-                    />
-                  ) : (
-                    <EarthAmericasRegularIcon />
-                  )
-                }
-                label={`${numberOfExternalItems ?? "–"} others`}
-                sx={({ palette }) => ({
-                  ...commonChipSx,
-                  [`.${chipClasses.label}`]: {
-                    color: palette.gray[70],
-                    fontSize: 13,
-                  },
-                  "&:hover": {
-                    background: palette.common.white,
-                    border: palette.common.white,
-                  },
-                })}
-              />
-            </NoMaxWidthTooltip>
+                  }
+                  label={`${numberOfExternalItems ?? "–"} others`}
+                  sx={({ palette }) => ({
+                    ...commonChipSx,
+                    [`.${chipClasses.label}`]: {
+                      color: palette.gray[70],
+                      fontSize: 13,
+                    },
+                    "&:hover": {
+                      background: palette.common.white,
+                      border: palette.common.white,
+                    },
+                  })}
+                />
+              </NoMaxWidthTooltip>
+            )}
           </>
         )}
         {loading && <LoadingSpinner size={16} color={theme.palette.blue[70]} />}
@@ -365,16 +375,18 @@ export const TableHeader = <R extends GridRow>({
                     }
                   />
                 ) : null}
-                <CheckboxFilter
-                  label="Include external"
-                  checked={filterState.includeGlobal}
-                  onChange={(checked) =>
-                    setFilterState((prev) => ({
-                      ...prev,
-                      includeGlobal: checked,
-                    }))
-                  }
-                />
+                {onlyOneWeb ? null : (
+                  <CheckboxFilter
+                    label="Include external"
+                    checked={filterState.includeGlobal}
+                    onChange={(checked) =>
+                      setFilterState((prev) => ({
+                        ...prev,
+                        includeGlobal: checked,
+                      }))
+                    }
+                  />
+                )}
               </Box>
             </Box>
           </Box>

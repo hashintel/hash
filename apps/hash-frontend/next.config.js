@@ -77,6 +77,10 @@ export default withSentryConfig(
             destination: `/entities?entityTypeIdOrBaseUrl=${pageEntityTypeBaseUrl}`,
           },
           {
+            source: "/@:shortname/types",
+            destination: "/@/:shortname?tab=Types",
+          },
+          {
             source: "/@:shortname/:path*",
             destination: "/@/:shortname/:path*",
           },

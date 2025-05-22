@@ -10,15 +10,19 @@ export const ProfilePageTabs: FunctionComponent<{
   profile?: User | Org;
   tabs: ProfilePageTab[];
   currentTab: ProfilePageTab;
-}> = ({ tabs, currentTab, profile }) => {
+  typesCount: number;
+}> = ({ tabs, currentTab, profile, typesCount }) => {
   const currentTabLabel =
-    currentTab.kind === "profile" ? currentTab.title : currentTab.pluralTitle;
+    currentTab.kind === "pinned-entity-type"
+      ? currentTab.pluralTitle
+      : currentTab.title;
 
   return (
     <Box sx={{ overflowX: "auto", overflowY: "hidden" }}>
       <Tabs value={currentTabLabel}>
         {tabs.map((tab) => {
-          const label = tab.kind === "profile" ? tab.title : tab.pluralTitle;
+          const label =
+            tab.kind === "pinned-entity-type" ? tab.pluralTitle : tab.title;
 
           return (
             <TabLink
@@ -31,12 +35,18 @@ export const ProfilePageTabs: FunctionComponent<{
               label={label ?? <Skeleton width={60} />}
               value={label ?? ""}
               href={`/@${profile?.shortname}${
-                tab.kind === "profile" ? "" : `?tab=${label}`
+                tab.kind === "profile"
+                  ? ""
+                  : tab.kind === "types"
+                    ? "/types"
+                    : `?tab=${label}`
               }`}
               count={
                 tab.kind === "pinned-entity-type"
                   ? tab.entities?.length
-                  : undefined
+                  : tab.kind === "types"
+                    ? typesCount
+                    : undefined
               }
             />
           );

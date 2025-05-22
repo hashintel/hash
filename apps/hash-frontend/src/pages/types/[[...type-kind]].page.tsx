@@ -16,11 +16,11 @@ import { getLayoutWithSidebar } from "../../shared/layout";
 import { usePropertyTypes } from "../../shared/property-types-context";
 import { CreateButton } from "../shared/create-button";
 import { TopContextBar } from "../shared/top-context-bar";
+import { TypesTable } from "../shared/types-table";
 import {
   tabTitles,
   TypesPageTabs,
 } from "./[[...type-kind]].page/types-page-tabs";
-import { TypesTable } from "./[[...type-kind]].page/types-table";
 
 type ParsedQueryKindParam =
   | "entity-type"

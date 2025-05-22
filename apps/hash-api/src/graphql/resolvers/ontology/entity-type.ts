@@ -96,7 +96,7 @@ export const queryEntityTypesResolver: ResolverFn<
           ? filter
             ? { all: [filter, latestOnlyFilter] }
             : latestOnlyFilter
-          : { all: [] },
+          : (filter ?? { all: [] }),
         graphResolveDepths: {
           ...zeroedGraphResolveDepths,
           constrainsValuesOn,

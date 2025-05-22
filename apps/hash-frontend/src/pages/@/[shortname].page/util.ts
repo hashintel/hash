@@ -12,6 +12,10 @@ export type ProfilePageTab =
       title: string;
     }
   | {
+      kind: "types";
+      title: string;
+    }
+  | {
       kind: "pinned-entity-type";
       entityTypeBaseUrl: BaseUrl;
       entityType?: EntityTypeWithMetadata;

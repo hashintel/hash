@@ -23,33 +23,33 @@ import {
   gridHeaderHeightWithBorder,
   gridHorizontalScrollbarHeight,
   type GridProps,
-} from "../../../components/grid/grid";
-import type { CustomIcon } from "../../../components/grid/utils/custom-grid-icons";
-import { useOrgs } from "../../../components/hooks/use-orgs";
-import { useUsers } from "../../../components/hooks/use-users";
-import { extractWebId } from "../../../lib/user-and-org";
-import { useEntityTypesContextRequired } from "../../../shared/entity-types-context/hooks/use-entity-types-context-required";
-import { isTypeArchived } from "../../../shared/is-archived";
-import { HEADER_HEIGHT } from "../../../shared/layout/layout-with-header/page-header";
-import { tableContentSx } from "../../../shared/table-content";
-import type { FilterState } from "../../../shared/table-header";
-import { TableHeader, tableHeaderHeight } from "../../../shared/table-header";
+} from "../../components/grid/grid";
+import type { CustomIcon } from "../../components/grid/utils/custom-grid-icons";
+import { useOrgs } from "../../components/hooks/use-orgs";
+import { useUsers } from "../../components/hooks/use-users";
+import { extractWebId } from "../../lib/user-and-org";
+import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
+import { isTypeArchived } from "../../shared/is-archived";
+import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
+import { tableContentSx } from "../../shared/table-content";
+import type { FilterState } from "../../shared/table-header";
+import { TableHeader, tableHeaderHeight } from "../../shared/table-header";
 import {
   isAiMachineActor,
   type MinimalActor,
   useActors,
-} from "../../../shared/use-actors";
-import { useAuthenticatedUser } from "../../shared/auth-info-context";
-import type { ChipCell } from "../../shared/chip-cell";
-import { createRenderChipCell } from "../../shared/chip-cell";
-import type { TextIconCell } from "../../shared/entities-visualizer/entities-table/text-icon-cell";
-import { createRenderTextIconCell } from "../../shared/entities-visualizer/entities-table/text-icon-cell";
-import { useSlideStack } from "../../shared/slide-stack";
-import { TableHeaderToggle } from "../../shared/table-header-toggle";
-import { TOP_CONTEXT_BAR_HEIGHT } from "../../shared/top-context-bar";
-import { TypeGraphVisualizer } from "../../shared/type-graph-visualizer";
-import type { VisualizerView } from "../../shared/visualizer-views";
-import { visualizerViewIcons } from "../../shared/visualizer-views";
+} from "../../shared/use-actors";
+import { useAuthenticatedUser } from "./auth-info-context";
+import type { ChipCell } from "./chip-cell";
+import { createRenderChipCell } from "./chip-cell";
+import type { TextIconCell } from "./entities-visualizer/entities-table/text-icon-cell";
+import { createRenderTextIconCell } from "./entities-visualizer/entities-table/text-icon-cell";
+import { useSlideStack } from "./slide-stack";
+import { TableHeaderToggle } from "./table-header-toggle";
+import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
+import { TypeGraphVisualizer } from "./type-graph-visualizer";
+import type { VisualizerView } from "./visualizer-views";
+import { visualizerViewIcons } from "./visualizer-views";
 
 export type TypesTableColumnId =
   | "title"
@@ -101,13 +101,15 @@ const typesTablesToTitle: Record<TypeTableKind, string> = {
 const firstColumnLeftPadding = 16;
 
 export const TypesTable: FunctionComponent<{
+  loading?: boolean;
+  onlyOneWeb?: boolean;
   types?: (
     | EntityTypeWithMetadata
     | PropertyTypeWithMetadata
     | DataTypeWithMetadata
   )[];
   kind: TypeTableKind;
-}> = ({ types, kind }) => {
+}> = ({ types, kind, onlyOneWeb, loading = false }) => {
   const router = useRouter();
 
   const [view, setView] = useState<VisualizerView>("Table");
@@ -141,11 +143,15 @@ export const TypesTable: FunctionComponent<{
             } as const,
           ]
         : []),
-      {
-        id: "webShortname",
-        title: "Web",
-        width: 280,
-      },
+      ...(onlyOneWeb
+        ? []
+        : [
+            {
+              id: "webShortname",
+              title: "Web",
+              width: 280,
+            } as const,
+          ]),
       ...(filterState.includeArchived
         ? [
             {
@@ -166,7 +172,7 @@ export const TypesTable: FunctionComponent<{
         width: 200,
       },
     ],
-    [filterState.includeArchived, kind],
+    [filterState.includeArchived, kind, onlyOneWeb],
   );
 
   const currentlyDisplayedColumnsRef = useRef<TypesTableColumn[] | null>(null);
@@ -223,7 +229,7 @@ export const TypesTable: FunctionComponent<{
       const isArchived = isTypeArchived(type);
 
       if (
-        (filterState.includeGlobal ? true : !isExternal) &&
+        (filterState.includeGlobal || onlyOneWeb ? true : !isExternal) &&
         (filterState.includeArchived ? true : !isArchived) &&
         (filterState.limitToWebs
           ? webShortname && filterState.limitToWebs.includes(webShortname)
@@ -239,7 +245,7 @@ export const TypesTable: FunctionComponent<{
     }
 
     return filtered;
-  }, [types, filterState, namespaces, internalWebIds]);
+  }, [types, filterState, namespaces, internalWebIds, onlyOneWeb]);
 
   const filteredRows = useMemo<TypesTableRow[] | undefined>(
     () =>
@@ -513,9 +519,10 @@ export const TypesTable: FunctionComponent<{
         currentlyDisplayedColumnsRef={currentlyDisplayedColumnsRef}
         currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
         filterState={filterState}
-        loading={false}
+        loading={loading}
         numberOfExternalItems={numberOfExternalItems}
-        numberOfUserWebItems={numberOfUserWebItems}
+        numberOfUserWebItems={onlyOneWeb ? types?.length : numberOfUserWebItems}
+        onlyOneWeb={onlyOneWeb}
         setFilterState={setFilterState}
         selectedItems={types?.filter((type) =>
           selectedRows.some(({ typeId }) => type.schema.$id === typeId),
@@ -532,7 +539,7 @@ export const TypesTable: FunctionComponent<{
               createRenderTextIconCell({ firstColumnLeftPadding }),
               createRenderChipCell({ firstColumnLeftPadding }),
             ]}
-            dataLoading={!types}
+            dataLoading={!types || loading}
             enableCheckboxSelection
             firstColumnLeftPadding={firstColumnLeftPadding}
             freezeColumns={1}
