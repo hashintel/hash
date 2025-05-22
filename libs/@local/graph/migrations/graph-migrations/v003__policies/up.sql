@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS policy (
     principal_id UUID,
     principal_type PRINCIPAL_TYPE,
     actor_type PRINCIPAL_TYPE,
-    FOREIGN KEY (principal_id, principal_type) REFERENCES principal (id, principal_type),
+    FOREIGN KEY (principal_id, principal_type) REFERENCES principal (id, principal_type) ON DELETE CASCADE,
     CONSTRAINT complete_principal CHECK ((principal_id IS NULL) = (principal_type IS NULL)),
     CONSTRAINT check_actor_type CHECK (actor_type IN ('user', 'machine', 'ai')),
 
