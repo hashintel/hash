@@ -1,8 +1,4 @@
-use super::{
-    ModuleId,
-    import::Import,
-    item::{Item, Universe},
-};
+use super::{ModuleId, Universe, import::Import, item::Item};
 
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct ResolutionSuggestion<T> {

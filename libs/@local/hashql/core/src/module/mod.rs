@@ -10,15 +10,17 @@ pub mod locals;
 pub mod namespace;
 mod resolver;
 mod std_lib;
+pub mod universe;
 
 use core::slice;
 use std::sync::RwLock;
 
 use strsim::jaro_winkler;
 
+pub use self::universe::Universe;
 use self::{
     error::{ResolutionError, ResolutionSuggestion},
-    item::{Item, ItemKind, Universe},
+    item::{Item, ItemKind},
     resolver::{Resolver, ResolverMode, ResolverOptions},
     std_lib::StandardLibrary,
 };

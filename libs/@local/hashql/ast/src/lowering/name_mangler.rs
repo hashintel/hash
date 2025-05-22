@@ -38,7 +38,7 @@ use core::fmt::Write as _;
 use hashql_core::{
     collection::FastHashMap,
     heap::{self, Heap},
-    module::item::Universe,
+    module::Universe,
     symbol::Symbol,
 };
 

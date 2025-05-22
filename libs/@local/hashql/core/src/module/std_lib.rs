@@ -1,6 +1,7 @@
 use super::{
     ModuleId, ModuleRegistry, PartialModule,
-    item::{IntrinsicItem, Item, ItemKind, Universe},
+    item::{IntrinsicItem, Item, ItemKind},
+    universe::Universe,
 };
 use crate::{
     heap::Heap,

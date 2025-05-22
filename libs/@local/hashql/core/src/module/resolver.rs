@@ -3,10 +3,10 @@ use core::{fmt::Debug, iter};
 use strsim::jaro_winkler;
 
 use super::{
-    Module, ModuleRegistry,
+    Module, ModuleRegistry, Universe,
     error::{ResolutionError, ResolutionSuggestion},
     import::Import,
-    item::{Item, ItemKind, Universe},
+    item::{Item, ItemKind},
 };
 use crate::symbol::Symbol;
 
@@ -419,8 +419,7 @@ mod test {
     use crate::{
         heap::Heap,
         module::{
-            ModuleId, ModuleRegistry, PartialModule,
-            item::Universe,
+            ModuleId, ModuleRegistry, PartialModule, Universe,
             namespace::{ImportOptions, ModuleNamespace, ResolutionMode},
             resolver::{Resolver, ResolverMode, ResolverOptions},
         },

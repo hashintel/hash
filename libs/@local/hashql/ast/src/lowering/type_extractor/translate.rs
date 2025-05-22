@@ -11,8 +11,8 @@ use hashql_core::{
     collection::{FastHashMap, FastHashSet, SmallVec, TinyVec, fast_hash_set},
     intern::Provisioned,
     module::{
-        ModuleRegistry,
-        item::{IntrinsicItem, Item, ItemKind, Universe},
+        ModuleRegistry, Universe,
+        item::{IntrinsicItem, Item, ItemKind},
         locals::{TypeDef, TypeLocals},
     },
     span::SpanId,
