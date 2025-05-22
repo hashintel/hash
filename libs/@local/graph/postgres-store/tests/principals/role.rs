@@ -1,10 +1,7 @@
 use core::{assert_matches::assert_matches, error::Error};
 
-use hash_graph_authorization::policies::{
-    action::ActionName,
-    store::{
-        CreateWebParameter, PrincipalStore as _, RoleAssignmentStatus, RoleUnassignmentStatus,
-    },
+use hash_graph_authorization::policies::store::{
+    CreateWebParameter, PrincipalStore as _, RoleAssignmentStatus, RoleUnassignmentStatus,
 };
 use hash_graph_postgres_store::permissions::PrincipalError;
 use pretty_assertions::assert_eq;
@@ -21,7 +18,7 @@ use crate::DatabaseTestWrapper;
 #[tokio::test]
 async fn create_role() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (mut client, actor_id) = db.seed([ActionName::All, ActionName::CreateWeb]).await?;
+    let (mut client, actor_id) = db.seed().await?;
 
     // First create a web to associate the role with
     let web_id = client
@@ -59,7 +56,7 @@ async fn create_role() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn create_role_with_id() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (mut client, actor_id) = db.seed([ActionName::All, ActionName::CreateWeb]).await?;
+    let (mut client, actor_id) = db.seed().await?;
 
     // First create a web to associate the role with
     let web_id = client
@@ -101,7 +98,7 @@ async fn create_role_with_id() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn create_role_with_nonexistent_team() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (mut client, _actor_id) = db.seed([]).await?;
+    let (mut client, _actor_id) = db.seed().await?;
 
     // Try to create a role with a non-existent team
     let non_existent_team_id = ActorGroupId::Web(WebId::new(Uuid::new_v4()));
@@ -120,7 +117,7 @@ async fn create_role_with_nonexistent_team() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn get_role() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (mut client, actor_id) = db.seed([ActionName::All, ActionName::CreateWeb]).await?;
+    let (mut client, actor_id) = db.seed().await?;
 
     // First create a web to associate the role with
     let web_id = client
@@ -155,7 +152,7 @@ async fn get_role() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn delete_role() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (mut client, actor_id) = db.seed([ActionName::All, ActionName::CreateWeb]).await?;
+    let (mut client, actor_id) = db.seed().await?;
 
     // First create a web to associate the role with
     let web_id = client
@@ -187,7 +184,7 @@ async fn delete_role() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn delete_nonexistent_role() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (mut client, _actor_id) = db.seed([]).await?;
+    let (mut client, _actor_id) = db.seed().await?;
 
     // Try to delete a non-existent role
     let non_existent_id = RoleId::Web(WebRoleId::new(Uuid::new_v4()));
@@ -204,7 +201,7 @@ async fn delete_nonexistent_role() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn assign_role_to_actor() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (mut client, actor_id) = db.seed([ActionName::All, ActionName::CreateWeb]).await?;
+    let (mut client, actor_id) = db.seed().await?;
 
     // Create a team, role, and user
     let web_id = client
@@ -257,7 +254,7 @@ async fn assign_role_to_actor() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn assign_role_to_nonexistent_actor() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (mut client, actor_id) = db.seed([ActionName::All, ActionName::CreateWeb]).await?;
+    let (mut client, actor_id) = db.seed().await?;
 
     // Create a team and role
     let web_id = client
@@ -295,7 +292,7 @@ async fn assign_role_to_nonexistent_actor() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn assign_nonexistent_role_to_actor() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (mut client, _actor_id) = db.seed([]).await?;
+    let (mut client, _actor_id) = db.seed().await?;
 
     // Create a user
     let user_id = client.create_user(None).await?;
@@ -317,7 +314,7 @@ async fn assign_nonexistent_role_to_actor() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn unassign_role_from_actor() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (mut client, actor_id) = db.seed([ActionName::All, ActionName::CreateWeb]).await?;
+    let (mut client, actor_id) = db.seed().await?;
 
     // Create a team, role, and user
     let web_id = client
@@ -378,7 +375,7 @@ async fn unassign_role_from_actor() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn get_actor_roles_empty() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (mut client, _actor_id) = db.seed([]).await?;
+    let (mut client, _actor_id) = db.seed().await?;
 
     // Create a user
     let user_id = client.create_user(None).await?;
@@ -393,7 +390,7 @@ async fn get_actor_roles_empty() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn get_role_actors_empty() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (mut client, actor_id) = db.seed([ActionName::All, ActionName::CreateWeb]).await?;
+    let (mut client, actor_id) = db.seed().await?;
 
     // First create a web to associate the role with
     let web_id = client
@@ -424,7 +421,7 @@ async fn get_role_actors_empty() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn create_web_team_role() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (mut client, actor_id) = db.seed([ActionName::All, ActionName::CreateWeb]).await?;
+    let (mut client, actor_id) = db.seed().await?;
 
     // Create a web team
     let web_id = client
@@ -461,7 +458,7 @@ async fn create_web_team_role() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn assign_role_to_machine() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (mut client, actor_id) = db.seed([ActionName::All, ActionName::CreateWeb]).await?;
+    let (mut client, actor_id) = db.seed().await?;
 
     // Create a web team, role, and machine
     let web_id = client

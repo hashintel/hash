@@ -8,7 +8,7 @@ use crate::DatabaseTestWrapper;
 #[tokio::test]
 async fn register_actions() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (mut client, _actor_id) = db.seed([]).await?;
+    let mut client = db.connection.transaction().await?;
 
     assert!(!client.has_action(ActionName::All).await?);
     client.register_action(ActionName::All).await?;
@@ -22,7 +22,7 @@ async fn register_actions() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn register_with_parent() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (mut client, _actor_id) = db.seed([]).await?;
+    let mut client = db.connection.transaction().await?;
 
     assert!(!client.has_action(ActionName::All).await?);
     client.register_action(ActionName::All).await?;
@@ -44,7 +44,7 @@ async fn register_with_parent() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn register_action_twice() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (mut client, _actor_id) = db.seed([]).await?;
+    let mut client = db.connection.transaction().await?;
 
     client.register_action(ActionName::All).await?;
     let result = client.register_action(ActionName::All).await;
@@ -65,7 +65,7 @@ async fn register_action_twice() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn register_with_non_existent_parent() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (mut client, _actor_id) = db.seed([]).await?;
+    let mut client = db.connection.transaction().await?;
 
     assert!(!client.has_action(ActionName::View).await?);
     let result = client.register_action(ActionName::View).await;
@@ -86,7 +86,7 @@ async fn register_with_non_existent_parent() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn unregister_non_existent_action() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (mut client, _actor_id) = db.seed([]).await?;
+    let mut client = db.connection.transaction().await?;
 
     assert!(!client.has_action(ActionName::All).await?);
     let result = client.unregister_action(ActionName::All).await;
@@ -107,7 +107,7 @@ async fn unregister_non_existent_action() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn action_hierarchy() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (mut client, _actor_id) = db.seed([]).await?;
+    let mut client = db.connection.transaction().await?;
 
     // Create a hierarchy: all -> view -> view entity
     client.register_action(ActionName::All).await?;
@@ -160,7 +160,7 @@ async fn action_hierarchy() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn cannot_delete_action_with_children() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (mut client, _actor_id) = db.seed([]).await?;
+    let mut client = db.connection.transaction().await?;
 
     // Create a simple parent-child hierarchy
     client.register_action(ActionName::All).await?;
@@ -185,7 +185,7 @@ async fn cannot_delete_action_with_children() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn get_empty_parent_actions() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (mut client, _actor_id) = db.seed([]).await?;
+    let mut client = db.connection.transaction().await?;
 
     client.register_action(ActionName::All).await?;
     let parent_actions = client.get_parent_actions(ActionName::All).await?;
@@ -202,7 +202,7 @@ async fn get_empty_parent_actions() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn get_parent_actions_non_existent() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (client, _actor_id) = db.seed([]).await?;
+    let client = db.connection.transaction().await?;
 
     // Try to get parent actions for an action that doesn't exist
     let result = client.get_parent_actions(ActionName::View).await;
@@ -222,7 +222,7 @@ async fn get_parent_actions_non_existent() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn complex_action_hierarchy() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (mut client, _actor_id) = db.seed([]).await?;
+    let mut client = db.connection.transaction().await?;
 
     // Create a more complex hierarchy:
     //                    All
