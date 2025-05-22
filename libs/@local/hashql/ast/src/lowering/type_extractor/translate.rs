@@ -779,8 +779,6 @@ where
         &mut self,
         signature: &ClosureSignature<'heap>,
     ) -> TypeDef<'heap> {
-        // TODO: we need to verify that every generic is actually used
-
         // Generate the required generic mappings and their constraints
         let mut generic_arguments = TinyVec::with_capacity(signature.generics.params.len());
         let mut generic_constraints = TinyVec::with_capacity(signature.generics.params.len());
