@@ -36,10 +36,14 @@ pub enum EnsureSystemPoliciesError {
     SynchronizeActions,
     #[display("Reading policies failed")]
     ReadPoliciesFailed,
+    #[display("Reading instance admin roles failed")]
+    ReadInstanceAdminRoles,
     #[display("Adding required policies failed")]
     AddRequiredPoliciesFailed,
     #[display("Removing old policy failed")]
     RemoveOldPolicyFailed,
+    #[display("system policies require a name")]
+    MissingPolicyName,
 }
 
 impl Error for EnsureSystemPoliciesError {}
@@ -70,6 +74,8 @@ pub enum WebCreationError {
     RoleAssignmentError,
     #[display("Could not create web machine")]
     MachineCreationError,
+    #[display("Could not create default policies")]
+    PolicyCreationError,
     #[display("Store operation failed")]
     StoreError,
 }
