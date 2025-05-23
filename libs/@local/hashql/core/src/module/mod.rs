@@ -15,8 +15,6 @@ pub mod universe;
 use core::slice;
 use std::sync::RwLock;
 
-
-
 pub use self::universe::Universe;
 use self::{
     error::{ResolutionError, ResolutionSuggestion},
