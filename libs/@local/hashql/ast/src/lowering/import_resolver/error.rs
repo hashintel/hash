@@ -7,10 +7,9 @@ use core::{
 use hashql_core::{
     collection::FastHashSet,
     module::{
-        ModuleRegistry,
+        ModuleRegistry, Universe,
         error::{ResolutionError, ResolutionSuggestion},
         import::Import,
-        item::Universe,
     },
     span::SpanId,
     symbol::{Ident, Symbol},

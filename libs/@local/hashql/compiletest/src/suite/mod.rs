@@ -8,6 +8,7 @@ mod ast_lowering_special_form_expander;
 mod ast_lowering_type_definition_extractor;
 mod ast_lowering_type_extractor;
 pub(crate) mod common;
+mod hir_lower_alias_replacement;
 mod hir_reify;
 mod parse_syntax_dump;
 
@@ -24,7 +25,8 @@ use self::{
     ast_lowering_sanitizer::AstLoweringSanitizerSuite,
     ast_lowering_special_form_expander::AstLoweringSpecialFormExpanderSuite,
     ast_lowering_type_definition_extractor::AstLoweringTypeDefinitionExtractorSuite,
-    ast_lowering_type_extractor::AstLoweringTypeExtractorSuite, hir_reify::HirReifySuite,
+    ast_lowering_type_extractor::AstLoweringTypeExtractorSuite,
+    hir_lower_alias_replacement::HirLowerAliasReplacementSuite, hir_reify::HirReifySuite,
     parse_syntax_dump::ParseSyntaxDumpSuite,
 };
 
@@ -44,17 +46,18 @@ pub(crate) trait Suite: Send + Sync + 'static {
 }
 
 const SUITES: &[&dyn Suite] = &[
-    &ParseSyntaxDumpSuite,
-    &AstLoweringNameResolverSuite,
-    &AstLoweringSpecialFormExpanderSuite,
-    &AstLoweringNodeRenumbererSuite,
-    &AstLoweringNameManglerSuite,
-    &AstLoweringImportResolverSuite,
     &AstLoweringImportResolverContinueSuite,
-    &AstLoweringTypeExtractorSuite,
-    &AstLoweringTypeDefinitionExtractorSuite,
+    &AstLoweringImportResolverSuite,
+    &AstLoweringNameManglerSuite,
+    &AstLoweringNameResolverSuite,
+    &AstLoweringNodeRenumbererSuite,
     &AstLoweringSanitizerSuite,
+    &AstLoweringSpecialFormExpanderSuite,
+    &AstLoweringTypeDefinitionExtractorSuite,
+    &AstLoweringTypeExtractorSuite,
+    &HirLowerAliasReplacementSuite,
     &HirReifySuite,
+    &ParseSyntaxDumpSuite,
 ];
 
 pub(crate) fn find_suite(name: &str) -> Option<&'static dyn Suite> {

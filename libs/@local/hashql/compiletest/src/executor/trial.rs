@@ -5,6 +5,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use anstream::adapter::strip_str;
 use error_stack::{
     Report, ReportSink, ResultExt as _, TryReportIteratorExt as _, TryReportTupleExt as _,
 };
@@ -275,7 +276,7 @@ impl Trial {
         }
 
         let (received_stdout, fatal_diagnostic) = match result {
-            Ok(stdout) => (Some(stdout), None),
+            Ok(stdout) => (Some(strip_str(&stdout).to_string()), None),
             Err(error) => (None, Some(error)),
         };
 

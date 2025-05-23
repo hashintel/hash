@@ -1,0 +1,23 @@
+//@ run: pass
+//@ description: Complex nested expression with mixed aliases and non-aliases to test comprehensive behavior
+[
+  "let",
+  "a",
+  { "#literal": 10 },
+  [
+    "let",
+    "b",
+    ["+", "a", { "#literal": 5 }],
+    [
+      "let",
+      "c",
+      "a",
+      [
+        "let",
+        "d",
+        "b",
+        ["let", "e", "c", ["+", ["*", "d", "e"], ["-", "a", "b"]]]
+      ]
+    ]
+  ]
+]

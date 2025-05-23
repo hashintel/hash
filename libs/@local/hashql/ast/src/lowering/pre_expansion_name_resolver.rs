@@ -94,8 +94,8 @@ use hashql_core::{
     collection::FastHashMap,
     heap::Heap,
     module::{
-        ModuleRegistry,
-        item::{IntrinsicItem, ItemKind, Universe},
+        ModuleRegistry, Universe,
+        item::{IntrinsicItem, ItemKind},
         namespace::{ModuleNamespace, ResolutionMode, ResolveOptions},
     },
     span::SpanId,

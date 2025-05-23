@@ -6,8 +6,8 @@ use hashql_core::{
     collection::FastHashSet,
     heap::Heap,
     module::{
+        Universe,
         error::ResolutionError,
-        item::Universe,
         namespace::{ImportOptions, ModuleNamespace, ResolutionMode, ResolveOptions},
     },
     symbol::{Ident, IdentKind, Symbol},

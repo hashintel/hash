@@ -1,3 +1,5 @@
+use core::fmt::Write as _;
+
 use hashql_ast::{lowering::lower, node::expr::Expr};
 use hashql_core::{
     heap::Heap,
@@ -6,15 +8,15 @@ use hashql_core::{
     span::SpanId,
     r#type::environment::Environment,
 };
-use hashql_hir::{intern::Interner, node::Node};
+use hashql_hir::{fold::Fold as _, intern::Interner, lower::alias::AliasReplacement, node::Node};
 
 use super::{Suite, SuiteDiagnostic, common::process_diagnostics};
 
-pub(crate) struct HirReifySuite;
+pub(crate) struct HirLowerAliasReplacementSuite;
 
-impl Suite for HirReifySuite {
+impl Suite for HirLowerAliasReplacementSuite {
     fn name(&self) -> &'static str {
-        "hir/reify"
+        "hir/lower/alias-replacement"
     }
 
     fn run<'heap>(
@@ -41,8 +43,22 @@ impl Suite for HirReifySuite {
 
         let node = node.expect("should be `Some` if there are non-fatal errors");
 
-        Ok(node
+        let mut output = node
             .pretty_print(&environment, PrettyOptions::default().without_color())
-            .to_string())
+            .to_string();
+
+        output.push_str("\n\n--------------------------------------\n\n");
+
+        let mut replacement = AliasReplacement::new(&interner);
+        let Ok(node) = replacement.fold_node(node);
+
+        write!(
+            &mut output,
+            "{}",
+            node.pretty_print(&environment, PrettyOptions::default().without_color())
+        )
+        .expect("infallible");
+
+        Ok(output)
     }
 }

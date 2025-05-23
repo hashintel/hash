@@ -2,10 +2,7 @@ use alloc::borrow::Cow;
 use core::cmp::Ordering;
 
 use hashql_core::{
-    module::{
-        error::ResolutionError,
-        item::{ItemKind, Universe},
-    },
+    module::{Universe, error::ResolutionError, item::ItemKind},
     span::SpanId,
     symbol::Symbol,
     r#type::{error::TypeCheckDiagnosticCategory, kind::generic::GenericArgumentReference},

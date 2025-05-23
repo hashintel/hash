@@ -3,10 +3,10 @@
 use ena::snapshot_vec::{Snapshot, SnapshotVec};
 
 use super::{
-    ModuleId, ModuleRegistry,
+    ModuleId, ModuleRegistry, Universe,
     error::ResolutionError,
     import::{Import, ImportDelegate},
-    item::{Item, ItemKind, Universe},
+    item::{Item, ItemKind},
     resolver::ResolveIter,
 };
 use crate::{
@@ -435,9 +435,9 @@ mod tests {
     use crate::{
         heap::Heap,
         module::{
-            ModuleId, ModuleRegistry, PartialModule,
+            ModuleId, ModuleRegistry, PartialModule, Universe,
             error::ResolutionError,
-            item::{IntrinsicItem, Item, ItemKind, Universe},
+            item::{IntrinsicItem, Item, ItemKind},
             namespace::{ImportOptions, ResolutionMode, ResolveOptions},
         },
         span::SpanId,

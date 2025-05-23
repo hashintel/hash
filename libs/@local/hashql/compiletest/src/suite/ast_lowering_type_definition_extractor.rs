@@ -1,6 +1,5 @@
 use core::fmt::Write as _;
 
-use anstream::adapter::strip_str;
 use hashql_ast::{
     format::SyntaxDump as _,
     lowering::{
@@ -74,7 +73,7 @@ impl Suite for AstLoweringTypeDefinitionExtractorSuite {
             let _: Result<(), _> = write!(
                 output,
                 "\n\n{}",
-                strip_str(&def.pretty_print(&environment, PrettyOptions::default()))
+                &def.pretty_print(&environment, PrettyOptions::default().without_color())
             );
         }
 

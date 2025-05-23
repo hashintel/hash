@@ -323,7 +323,7 @@ mod test {
         // 8 -> 1
         // 8 -> 7
 
-        let mut adjacency_list: [&mut [u32]; _] = [
+        let mut adjacency_list: [&mut [u32]; 8] = [
             &mut [2],    // 1 -> 2
             &mut [3, 8], // 2 -> 3, 2 -> 8
             &mut [4, 7], // 3 -> 4, 3 -> 7
@@ -343,7 +343,7 @@ mod test {
 
         let graph = create_graph(adjacency_list);
 
-        let mut expected: [&mut [u32]; _] = [&mut [1, 2, 8], &mut [3, 4, 5, 7], &mut [6]];
+        let mut expected: [&mut [u32]; 3] = [&mut [1, 2, 8], &mut [3, 4, 5, 7], &mut [6]];
 
         for component in &mut expected {
             for node in component.iter_mut() {

@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Replace alias with it's definition name
+["let", "x", { "#literal": 2 }, ["let", "y", "x", ["+", "x", "y"]]]

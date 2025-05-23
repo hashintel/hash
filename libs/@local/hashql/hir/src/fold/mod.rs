@@ -119,11 +119,11 @@ use crate::{
 ///
 /// [`Visitor`]: crate::visit::Visitor
 pub trait Fold<'heap> {
-    /// The error/failure type (e.g., `E` in [`Result<T, E>`])
-    type Error;
+    /// The residual type (e.g., [`Result<Infallible, E>`] for [`Result<T, E>`])
+    type Residual;
     /// The output type that wraps a transformation (must implement [`Try`],
     /// such as [`Result<T, E>`] or [`Option<T>`]).
-    type Output<T>: Try<Output = T, Residual = Self::Error> + FromResidual<Self::Error>
+    type Output<T>: Try<Output = T, Residual = Self::Residual> + FromResidual<Self::Residual>
     where
         T: 'heap;
 

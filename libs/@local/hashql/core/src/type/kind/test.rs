@@ -154,8 +154,8 @@ macro_rules! assert_equiv {
         $(equiv_env.set_substitution($substitution);)?
 
         for (&actual, &expected) in actual.iter().zip(expected.iter()) {
-            let actual_repr = &$env.r#type(actual).pretty_print(&equiv_env, crate::pretty::PrettyOptions::default());
-            let expected_repr = &$env.r#type(expected).pretty_print(&equiv_env, crate::pretty::PrettyOptions::default());
+            let actual_repr = &$env.r#type(actual).pretty_print(&equiv_env, crate::pretty::PrettyOptions::default()).to_string();
+            let expected_repr = &$env.r#type(expected).pretty_print(&equiv_env, crate::pretty::PrettyOptions::default()).to_string();
 
             assert!(
                 equiv_env.is_equivalent(actual, expected),

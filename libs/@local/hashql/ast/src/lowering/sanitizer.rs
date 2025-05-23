@@ -1,7 +1,7 @@
 use alloc::borrow::Cow;
 use core::mem;
 
-use hashql_core::{module::item::Universe, span::SpanId, symbol::Symbol};
+use hashql_core::{module::Universe, span::SpanId, symbol::Symbol};
 use hashql_diagnostics::{
     Diagnostic,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
