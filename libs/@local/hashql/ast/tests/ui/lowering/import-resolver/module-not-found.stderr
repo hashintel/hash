@@ -8,10 +8,6 @@
    │               ╰─────── In this path
    │ 
    │ Help: The module 'kernel::foo' doesn't exist in this scope. Check the spelling and ensure the module is available.
-   │       
-   │       Did you mean:
-   │         - type
-   │         - special_form
    │ 
    │ Note: Modules must be properly defined and exported from their parent module to be accessible.
 ───╯

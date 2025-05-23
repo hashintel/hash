@@ -11,11 +11,11 @@
    │         - Foo
    │       
    │       Or perhaps you meant one of these imported items:
-   │         - Err
    │         - Result
-   │         - Url
-   │         - Number
+   │         - Some
    │         - String
+   │         - Unknown
+   │         - Url
    │         (14 more available)
    │ 
    │ Note: Variables must be defined before they can be used. This could be a typo, a variable used outside its scope, or a missing declaration. If it's a function or type from another module, you might need to import it first.

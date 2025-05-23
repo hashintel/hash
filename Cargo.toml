@@ -226,7 +226,6 @@ seq-macro                = { version = "=0.3.6", default-features = false }
 serde                    = { version = "=1.0.219", default-features = false }
 serde_json               = { version = "=1.0.140" }
 serde_plain              = { version = "=1.0.2", default-features = false }
-serde_with               = { version = "=3.12.0", default-features = false }
 sha2                     = { version = "=0.10.9", default-features = false }
 similar-asserts          = { version = "=1.7.0", default-features = false }
 simple-mermaid           = { version = "=0.2.0", default-features = false }
