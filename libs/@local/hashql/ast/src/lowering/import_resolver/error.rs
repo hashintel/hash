@@ -10,6 +10,7 @@ use hashql_core::{
         ModuleRegistry, Universe,
         error::{ResolutionError, ResolutionSuggestion},
         import::Import,
+        item::Item,
     },
     similarity::did_you_mean,
     span::SpanId,
