@@ -45,10 +45,11 @@ fn create_version_filters(
     (1..=max_version).map(move |version| EntityResourceFilter::IsOfType {
         entity_type: VersionedUrl {
             base_url: if version < max_version {
-                base_url.as_ref().unwrap_or_else(|| unreachable!()).clone()
+                base_url.clone()
             } else {
-                base_url.take().unwrap_or_else(|| unreachable!())
-            },
+                base_url.take()
+            }
+            .unwrap_or_else(|| unreachable!()),
             version: OntologyTypeVersion::new(version),
         },
     })
