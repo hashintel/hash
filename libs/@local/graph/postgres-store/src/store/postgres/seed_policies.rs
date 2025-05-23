@@ -42,17 +42,15 @@ fn create_version_filters(
 ) -> impl Iterator<Item = EntityResourceFilter> {
     let mut base_url = Some(base_url);
 
-    (1..=max_version).filter_map(move |version| {
-        Some(EntityResourceFilter::IsOfType {
-            entity_type: VersionedUrl {
-                base_url: if version < max_version {
-                    base_url.as_ref()?.clone()
-                } else {
-                    base_url.take()?
-                },
-                version: OntologyTypeVersion::new(version),
+    (1..=max_version).map(move |version| EntityResourceFilter::IsOfType {
+        entity_type: VersionedUrl {
+            base_url: if version < max_version {
+                base_url.as_ref().unwrap_or_else(|| unreachable!()).clone()
+            } else {
+                base_url.take().unwrap_or_else(|| unreachable!())
             },
-        })
+            version: OntologyTypeVersion::new(version),
+        },
     })
 }
 
