@@ -7,11 +7,13 @@
     │ 
     │ Help: The name 'föo' doesn't exist in this scope.
     │       
-    │       Did you mean one of these local variables?
-    │         - `foo`
+    │       Did you mean one of these local variables:
+    │         - foo
     │       
-    │       Or perhaps you meant one of these imported items?
-    │         - `fooo`
+    │       Or perhaps you meant one of these imported items:
+    │         - fn
+    │         - fooo
+    │         (50 more available)
     │ 
     │ Note: Variables must be defined before they can be used. This could be a typo, a variable used outside its scope, or a missing declaration. If it's a function or type from another module, you might need to import it first.
 ────╯

@@ -3830,6 +3830,7 @@ dependencies = [
  "text-size",
  "tracing",
  "unicase",
+ "unicode-segmentation",
 ]
 
 [[package]]

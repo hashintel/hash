@@ -7,20 +7,12 @@
    │ 
    │ Help: The name 'bit_shl' doesn't exist in this scope.
    │       
-   │       Perhaps you meant one of these imported items?
-   │         - `List`
-   │         - `Dict`
-   │         - `cbrt`
-   │         - and 48 more imported items
+   │       Items with a similar name exist in other modules:
+   │         - ::math::bit_shl
    │       
-   │       Additionally, items with a similar name exist in other modules:
-   │         - `::math::bit_shl`
-   │       
-   │       To use an item like `::math::bit_shl`, you can either:
-   │       1. Add an import at the beginning of your file:
-   │            use ::math::bit_shl in
-   │       2. Use its fully qualified path directly in your code:
-   │            ::math::bit_shl
+   │       To use an item, you can either:
+   │         1. Import it: use ::math::bit_shl in
+   │         2. Use fully qualified path: ::math::bit_shl
    │ 
    │ Note: Variables must be defined before they can be used. This could be a typo, a variable used outside its scope, or a missing declaration. If it's a function or type from another module, you might need to import it first.
 ───╯

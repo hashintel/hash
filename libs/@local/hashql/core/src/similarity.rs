@@ -1,10 +1,11 @@
-use alloc::collections::BinaryHeap;
+use alloc::{alloc::Global, collections::BinaryHeap};
 use core::{cmp, cmp::Reverse};
 
 use rapidfuzz::distance::{damerau_levenshtein, postfix, prefix};
 use unicase::UniCase;
+use unicode_segmentation::UnicodeSegmentation as _;
 
-use crate::symbol::Symbol;
+use crate::{collection::FastHashSet, symbol::Symbol};
 
 const EDIT_WEIGHT: f64 = 0.45;
 const PREFIX_WEIGHT: f64 = 0.30;
@@ -93,6 +94,51 @@ fn edit_distance<'heap>(
         .map(|Reverse(Similarity { score: _, symbol })| symbol)
 }
 
+#[expect(clippy::float_arithmetic, clippy::cast_precision_loss)]
+fn sorted_word_match<'heap>(
+    lookup: Symbol<'heap>,
+    candidates: impl IntoIterator<Item: AsRef<Symbol<'heap>>> + Clone,
+    top_n: Option<usize>,
+) -> impl IntoIterator<Item = Symbol<'heap>> {
+    let candidates = candidates.into_iter();
+
+    let words: FastHashSet<_> = lookup.as_str().unicode_words().collect();
+    let words_len = words.len() as f64;
+
+    let mut heap = BinaryHeap::with_capacity(
+        top_n.map_or_else(|| candidates.size_hint().0, |top_n| top_n + 1),
+    );
+
+    let mut candidate = FastHashSet::<_, Global>::default();
+    for symbol in candidates {
+        let symbol = *symbol.as_ref();
+        candidate.extend(symbol.unwrap().unicode_words());
+        let mut candidate: FastHashSet<_> = symbol.as_str().unicode_words().collect();
+
+        let common = words.intersection(&candidate).count();
+
+        if common == 0 {
+            continue;
+        }
+
+        heap.push(Reverse(Similarity {
+            score: common as f64 / words_len,
+            symbol,
+        }));
+
+        if let Some(top_n) = top_n
+            && heap.len() > top_n
+        {
+            heap.pop();
+        }
+
+        candidate.clear();
+    }
+
+    heap.into_iter_sorted()
+        .map(|Reverse(Similarity { score: _, symbol })| symbol)
+}
+
 pub fn did_you_mean<'heap>(
     lookup: Symbol<'heap>,
     candidates: impl IntoIterator<Item: AsRef<Symbol<'heap>>> + Clone,
@@ -113,28 +159,20 @@ pub fn did_you_mean<'heap>(
         .collect();
 
     if !case_insensitive.is_empty() {
-        // first sort the results
+        // Case insensitive matches are sorted, as to stay consistent
         case_insensitive.sort_unstable();
         return case_insensitive;
     }
 
-    let edit_distance: Vec<_> = edit_distance(lookup, candidates.clone(), top_n, cutoff)
+    let similar: Vec<_> = edit_distance(lookup, candidates.clone(), top_n, cutoff)
         .into_iter()
         .collect();
 
-    if !edit_distance.is_empty() {
-        return edit_distance;
+    if !similar.is_empty() {
+        return similar;
     }
 
-    let mut symbols: Vec<_> = candidates
+    sorted_word_match(lookup, candidates, top_n)
         .into_iter()
-        .map(|symbol| *symbol.as_ref())
-        .collect();
-    symbols.sort_unstable();
-
-    if let Some(top_n) = top_n {
-        symbols.truncate(top_n);
-    }
-
-    symbols
+        .collect()
 }

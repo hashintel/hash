@@ -188,7 +188,6 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
                     if let Err(error) = result {
                         self.diagnostics.push(from_resolution_error(
                             Some(*span),
-                            self.namespace.registry,
                             path,
                             Some((name.span, name.value)),
                             error,
@@ -212,13 +211,8 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
                 );
 
                 if let Err(error) = result {
-                    self.diagnostics.push(from_resolution_error(
-                        Some(*span),
-                        self.namespace.registry,
-                        path,
-                        None,
-                        error,
-                    ));
+                    self.diagnostics
+                        .push(from_resolution_error(Some(*span), path, None, error));
 
                     // We cannot continue here, so we replace the body with `Dummy`, this way we
                     // can still report the error and continue in the control flow
@@ -280,6 +274,7 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
             Ok(item) => item,
             Err(ResolutionError::ImportNotFound {
                 depth: _,
+                name: _,
                 suggestions,
             }) if modules.is_empty() => {
                 self.diagnostics.push(unresolved_variable(
@@ -297,13 +292,8 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
                 return;
             }
             Err(error) => {
-                self.diagnostics.push(from_resolution_error(
-                    None,
-                    self.namespace.registry,
-                    path,
-                    None,
-                    error,
-                ));
+                self.diagnostics
+                    .push(from_resolution_error(None, path, None, error));
 
                 walk_path(self, path);
                 return;

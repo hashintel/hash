@@ -214,7 +214,7 @@ fn format_suggestions<'heap, T>(
 
     let mut result = String::from("\n\nDid you mean:");
     for suggestion in &good_suggestions {
-        write!(result, "\n  - {}", suggestion).unwrap_or_else(|_err| unreachable!());
+        write!(result, "\n  - {suggestion}").unwrap_or_else(|_err| unreachable!());
     }
 
     let remaining_count = suggestions.len().saturating_sub(good_suggestions.len());
@@ -272,117 +272,10 @@ pub(crate) fn unresolved_variable<'heap>(
         .with_color(Color::Ansi(AnsiColor::Red)),
     );
 
-    // Remove any suggestions that are already in the locals set
+    // Filter out suggestions that are already available locally
     suggestions.retain(|suggestion| !locals.contains(&suggestion.name));
-    let import_suggestions: FastHashSet<_> = suggestions
-        .iter()
-        .map(|suggestion| suggestion.name)
-        .collect();
 
-    // Find similar local variables
-
-    let mut help = format!("The name '{}' doesn't exist in this scope.", ident.value);
-
-    // Local variable suggestions section
-    let local_suggestions = did_you_mean(ident.value, locals, Some(3), None);
-    let has_local_suggestions = !local_suggestions.is_empty();
-    if has_local_suggestions {
-        help.push_str("\n\nDid you mean one of these local variables?\n");
-
-        let remaining = locals.len().saturating_sub(local_suggestions.len());
-
-        for local in local_suggestions {
-            let _: fmt::Result = writeln!(help, "  - `{local}`");
-        }
-
-        if remaining > 0 {
-            let _: fmt::Result = writeln!(help, "  - and {remaining} more similar variables");
-        }
-    }
-
-    // Imported item suggestions section
-    if !suggestions.is_empty() {
-        // Add a connector if we've already shown local suggestions
-        if has_local_suggestions {
-            help.push_str("\nOr perhaps you meant ");
-        } else {
-            help.push_str("\n\nPerhaps you meant ");
-        }
-
-        help.push_str("one of these imported items?\n");
-
-        // Sort and filter imported item suggestions by score
-        let good_suggestions = did_you_mean(
-            ident.value,
-            suggestions.iter().map(|suggestion| suggestion.name),
-            Some(3),
-            None,
-        );
-        let remaining = suggestions.len().saturating_sub(good_suggestions.len());
-
-        if good_suggestions.is_empty() {
-            // Fall back to showing any suggestions if none have high similarity
-            for suggestion in good_suggestions {
-                let _: fmt::Result = writeln!(help, "  - `{}`", suggestion);
-            }
-
-            if remaining > 3 {
-                let _: fmt::Result = writeln!(help, "  - and {remaining} more imported items");
-            }
-        } else {
-            for suggestion in &good_suggestions {
-                let _: fmt::Result = writeln!(help, "  - `{}`", suggestion);
-            }
-        }
-    }
-
-    // Check if there are any importable items by the same name (that aren't already imported)
-    let importable: Vec<_> = registry
-        .search_by_name(ident.value, universe)
-        .into_iter()
-        .filter(|item| !locals.contains(&item.name) && !import_suggestions.contains(&item.name))
-        .collect();
-
-    if !importable.is_empty() {
-        help.push_str("\nAdditionally, items with a similar name exist in other modules:\n");
-
-        // Display up to 3 importable items with their full paths
-        for item in importable.iter().take(3) {
-            let absolute_path: String = iter::once("") // Start with an empty string for leading "::"
-                .chain(item.absolute_path(registry).map(|symbol| symbol.unwrap()))
-                .intersperse("::")
-                .collect();
-
-            let _: fmt::Result = writeln!(help, "  - `{absolute_path}`");
-        }
-
-        if importable.len() > 3 {
-            let remaining = importable.len() - 3;
-            let _: fmt::Result =
-                writeln!(help, "  - and {remaining} more items available for import");
-        }
-    }
-
-    // Suggest how to use the first (best) match from the importable items
-    if let Some(item) = importable.first() {
-        let absolute_path: String = iter::once("")
-            .chain(item.absolute_path(registry).map(|symbol| symbol.unwrap()))
-            .intersperse("::")
-            .collect();
-
-        help.push_str("\nTo use an item like ");
-        let _: fmt::Result = write!(help, "`{absolute_path}`");
-        help.push_str(", you can either:\n");
-
-        // Option 1: Import statement
-        help.push_str("1. Add an import at the beginning of your file:\n");
-        let _: fmt::Result = writeln!(help, "     use {absolute_path} in");
-
-        // Option 2: Fully qualified path
-        help.push_str("2. Use its fully qualified path directly in your code:\n");
-        let _: fmt::Result = writeln!(help, "     {absolute_path}");
-    }
-
+    let help = build_unresolved_variable_help(registry, universe, ident, locals, &suggestions);
     diagnostic.add_help(Help::new(help));
 
     diagnostic.add_note(Note::new(
@@ -392,6 +285,147 @@ pub(crate) fn unresolved_variable<'heap>(
     ));
 
     diagnostic
+}
+
+fn build_unresolved_variable_help<'heap>(
+    registry: &ModuleRegistry<'heap>,
+    universe: Universe,
+    ident: Ident<'heap>,
+    locals: &FastHashSet<Symbol<'heap>>,
+    suggestions: &[ResolutionSuggestion<Import<'heap>>],
+) -> String {
+    let mut help = format!("The name '{}' doesn't exist in this scope.", ident.value);
+
+    let has_locals = add_local_suggestions(&mut help, ident.value, locals);
+    let has_imports = add_import_suggestions(&mut help, ident.value, suggestions, has_locals);
+    add_available_imports(
+        &mut help,
+        registry,
+        universe,
+        ident,
+        locals,
+        suggestions,
+        has_locals || has_imports,
+    );
+
+    help
+}
+
+fn add_local_suggestions(
+    help: &mut String,
+    name: Symbol<'_>,
+    locals: &FastHashSet<Symbol<'_>>,
+) -> bool {
+    let local_suggestions = did_you_mean(name, locals, Some(5), None);
+    if local_suggestions.is_empty() {
+        return false;
+    }
+
+    help.push_str("\n\nDid you mean one of these local variables:");
+    for suggestion in &local_suggestions {
+        let _: fmt::Result = write!(help, "\n  - {suggestion}");
+    }
+
+    let remaining = locals.len().saturating_sub(local_suggestions.len());
+    if remaining > 0 {
+        let _: fmt::Result = write!(help, "\n  ({remaining} more available)");
+    }
+
+    true
+}
+
+fn add_import_suggestions(
+    help: &mut String,
+    name: Symbol<'_>,
+    suggestions: &[ResolutionSuggestion<Import<'_>>],
+    has_local_suggestions: bool,
+) -> bool {
+    if suggestions.is_empty() {
+        return false;
+    }
+
+    let good_suggestions = did_you_mean(
+        name,
+        suggestions.iter().map(|suggestion| suggestion.name),
+        Some(5),
+        None,
+    );
+
+    if good_suggestions.is_empty() {
+        return false;
+    }
+
+    if has_local_suggestions {
+        help.push_str("\n\nOr perhaps you meant one of these imported items:");
+    } else {
+        help.push_str("\n\nDid you mean one of these imported items:");
+    }
+    for suggestion in &good_suggestions {
+        let _: fmt::Result = write!(help, "\n  - {suggestion}");
+    }
+
+    let remaining = suggestions.len().saturating_sub(good_suggestions.len());
+    if remaining > 0 {
+        let _: fmt::Result = write!(help, "\n  ({remaining} more available)");
+    }
+
+    true
+}
+
+fn add_available_imports<'heap>(
+    help: &mut String,
+    registry: &ModuleRegistry<'heap>,
+    universe: Universe,
+    ident: Ident<'heap>,
+    locals: &FastHashSet<Symbol<'heap>>,
+    suggestions: &[ResolutionSuggestion<Import<'heap>>],
+    has_previous: bool,
+) {
+    let imported_names: FastHashSet<_> = suggestions
+        .iter()
+        .map(|suggestion| suggestion.name)
+        .collect();
+
+    let importable: Vec<_> = registry
+        .search_by_name(ident.value, universe)
+        .into_iter()
+        .filter(|item| !locals.contains(&item.name) && !imported_names.contains(&item.name))
+        .collect();
+
+    if importable.is_empty() {
+        return;
+    }
+
+    if has_previous {
+        help.push_str("\n\nAdditionally, items with a similar name exist in other modules:");
+    } else {
+        help.push_str("\n\nItems with a similar name exist in other modules:");
+    }
+
+    for item in importable.iter().take(5) {
+        let absolute_path = format_absolute_path(item, registry);
+        let _: fmt::Result = write!(help, "\n  - {absolute_path}");
+    }
+
+    if importable.len() > 5 {
+        let remaining = importable.len() - 5;
+        let _: fmt::Result = write!(help, "\n  ({remaining} more available)");
+    }
+
+    // Show usage example for the first item
+    if let Some(item) = importable.first() {
+        let absolute_path = format_absolute_path(item, registry);
+        help.push_str("\n\nTo use an item, you can either:");
+        let _: fmt::Result = write!(help, "\n  1. Import it: use {absolute_path} in");
+        let _: fmt::Result = write!(help, "\n  2. Use fully qualified path: {absolute_path}");
+    }
+}
+
+fn format_absolute_path<'heap>(item: &Item<'heap>, registry: &ModuleRegistry<'heap>) -> String {
+    iter::once("")
+        .chain(item.absolute_path(registry).map(|symbol| symbol.unwrap()))
+        .intersperse("::")
+        .collect()
 }
 
 #[expect(clippy::too_many_lines)]
