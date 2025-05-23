@@ -842,6 +842,7 @@ mod tests {
             error,
             ResolutionError::ModuleNotFound {
                 depth: 1,
+                name: _,
                 suggestions
             } if suggestions.is_empty()
         );
