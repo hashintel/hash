@@ -3764,7 +3764,6 @@ dependencies = [
  "hashql-core",
  "hashql-diagnostics",
  "simple-mermaid",
- "strsim",
  "tracing",
 ]
 
@@ -3825,7 +3824,6 @@ dependencies = [
  "serde",
  "simple-mermaid",
  "smallvec 2.0.0-alpha.11",
- "strsim",
  "test-case",
  "text-size",
  "tracing",
