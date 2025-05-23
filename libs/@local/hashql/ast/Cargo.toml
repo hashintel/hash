@@ -21,7 +21,7 @@ enum-iterator.workspace = true
 foldhash                = { workspace = true }
 hashbrown               = { workspace = true }
 simple-mermaid          = { workspace = true }
-tracing.workspace       = true
+tracing                 = { workspace = true }
 
 [dev-dependencies]
 hashql-compiletest = { workspace = true }
