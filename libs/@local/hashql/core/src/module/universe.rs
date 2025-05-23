@@ -391,11 +391,11 @@ where
     /// let mut realms = Realms::<FastHashMap<&str, i32>>::new();
     ///
     /// // This will insert the value and return a mutable reference
-    /// let value_ref = realms.insert_expect(Universe::Type, "foo", 42);
+    /// let value_ref = realms.insert_unique(Universe::Type, "foo", 42);
     /// assert_eq!(*value_ref, 42);
     ///
     /// // This will panic because "foo" already exists
-    /// realms.insert_expect(Universe::Type, "foo", 100);
+    /// realms.insert_unique(Universe::Type, "foo", 100);
     /// ```
     #[inline]
     pub fn insert_unique(&mut self, universe: Universe, key: K, value: V) -> &mut V

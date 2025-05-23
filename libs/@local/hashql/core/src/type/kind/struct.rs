@@ -2006,7 +2006,7 @@ mod test {
         // The type is complicated enough that it isn't feasible to test it through assertions.
         insta::assert_snapshot!(
             env.r#type(type_id)
-                .pretty_print(&env, PrettyOptions::default())
+                .pretty_print(&env, PrettyOptions::default().without_color())
         );
     }
 }
