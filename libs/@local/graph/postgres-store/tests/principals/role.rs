@@ -1,7 +1,11 @@
 use core::{assert_matches::assert_matches, error::Error};
 
-use hash_graph_authorization::policies::store::{
-    CreateWebParameter, PrincipalStore as _, RoleAssignmentStatus, RoleUnassignmentStatus,
+use hash_graph_authorization::policies::{
+    principal::PrincipalConstraint,
+    store::{
+        CreateWebParameter, PolicyFilter, PolicyStore as _, PrincipalFilter, PrincipalStore as _,
+        RoleAssignmentStatus, RoleUnassignmentStatus,
+    },
 };
 use hash_graph_postgres_store::permissions::PrincipalError;
 use pretty_assertions::assert_eq;
@@ -173,6 +177,24 @@ async fn delete_role() -> Result<(), Box<dyn Error>> {
         .await?
         .expect("admin role should exist")
         .id();
+
+    let role_policies = client
+        .query_policies(
+            actor_id.into(),
+            &PolicyFilter {
+                name: None,
+                principal: Some(PrincipalFilter::Constrained(PrincipalConstraint::Role {
+                    role: role_id,
+                    actor_type: None,
+                })),
+            },
+        )
+        .await?;
+    for policy in role_policies {
+        client
+            .delete_policy_by_id(actor_id.into(), policy.id)
+            .await?;
+    }
 
     // Delete the role
     client.delete_role(role_id).await?;
