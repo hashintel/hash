@@ -100,18 +100,22 @@ fn sorted_word_match<'heap>(
     candidates: impl IntoIterator<Item: AsRef<Symbol<'heap>>> + Clone,
     top_n: Option<usize>,
 ) -> impl IntoIterator<Item = Symbol<'heap>> {
-    let candidates = candidates.into_iter();
+    // unlike other similarity functions, we need to collect the candidates first and sort them, so
+    // that the order stays deterministic across runs.
+    let mut candidates: Vec<_> = candidates
+        .into_iter()
+        .map(|value| *value.as_ref())
+        .collect();
+    candidates.sort_unstable();
 
     let words: FastHashSet<_> = lookup.as_str().unicode_words().collect();
     let words_len = words.len() as f64;
 
-    let mut heap = BinaryHeap::with_capacity(
-        top_n.map_or_else(|| candidates.size_hint().0, |top_n| top_n + 1),
-    );
+    let mut heap =
+        BinaryHeap::with_capacity(top_n.map_or_else(|| candidates.len(), |top_n| top_n + 1));
 
     let mut candidate = FastHashSet::<_, Global>::default();
     for symbol in candidates {
-        let symbol = *symbol.as_ref();
         candidate.extend(symbol.unwrap().unicode_words());
         let mut candidate: FastHashSet<_> = symbol.as_str().unicode_words().collect();
 
