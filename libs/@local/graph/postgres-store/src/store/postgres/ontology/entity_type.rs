@@ -1812,14 +1812,10 @@ where
                         .map(|authorized| match authorized {
                             Authorized::Always => true,
                             Authorized::Never => false,
-                            Authorized::Partial(partial) => {
-                                tracing::error!(
-                                    "Instantiation checking is not supported for partial \
-                                     authorization:\n
-                                {partial:#?}"
-                                );
-                                false
-                            }
+                            Authorized::Partial(partial) => unimplemented!(
+                                "Instantiation checking is not supported for partial \
+                                 authorization: {partial:#?}"
+                            ),
                         })?;
                     if !allowed {
                         return Ok(false);
