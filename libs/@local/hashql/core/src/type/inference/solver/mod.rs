@@ -9,7 +9,7 @@ use ena::unify::{InPlaceUnificationTable, NoError, UnifyKey as _};
 
 use self::{graph::Graph, tarjan::Tarjan, topo::topological_sort_in};
 use super::{
-    Constraint, SelectionConstraint, Substitution, Variable, VariableKind,
+    Constraint, SelectionConstraint, Subject, Substitution, Variable, VariableKind,
     variable::{VariableId, VariableLookup},
 };
 use crate::{
@@ -967,6 +967,69 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         for type_id in substitutions.values_mut() {
             *type_id = self.simplify.simplify(*type_id);
         }
+    }
+
+    fn solve_selection_constraints(
+        &mut self,
+        constraints: &mut Vec<Constraint<'heap>>,
+        selections: &mut Vec<SelectionConstraint<'heap>>,
+    ) -> bool {
+        // TODO: install substitutions
+
+        let mut made_progress = false;
+        // Solve selection constraints, we do this by iterating over the selection constraints, and
+        // then try solving them, if we can't solve them, we add them to the constraints vector
+        // again. We also keep track of the progress, if we haven't made any progress, we stop, as
+        // we've reached a fix-point, which is unsolvable. These then need to be reported.
+        for selection in selections.drain(..) {
+            match selection {
+                SelectionConstraint::Projection {
+                    subject,
+                    label,
+                    output,
+                } => {
+                    // Check if the subject is concrete, and can be accessed.
+                    let subject_type = subject.r#type(self.lattice.environment);
+                    if !self.lattice.is_concrete(subject_type.id) {
+                        // The variable is not yet concrete, and therefore cannot be used to
+                        // accurately solve the projection. Therefore we defer the constraint.
+                        // A non-concrete type means *any* type variable may be present within the
+                        // type.
+                        constraints.push(Constraint::Selection(selection));
+                        continue;
+                    }
+
+                    // Find the field
+                    let field = self.lattice.projection(subject_type.id, label);
+                    let field = self.lattice.r#type(field);
+
+                    match field.into_variable() {
+                        Some(field_variable) => {
+                            // discharge equality constraint between the field and the output type
+                            self.unification.unify(field_variable.kind, output.kind);
+                        }
+                        None => {
+                            // discharge equality constraint between the field and the output type
+                            constraints.push(Constraint::Equals {
+                                variable: output,
+                                r#type: field.id,
+                            });
+                        }
+                    }
+
+                    made_progress = true;
+                }
+                SelectionConstraint::Subscript {
+                    subject: _,
+                    index: _,
+                    output: _,
+                } => {
+                    todo!("https://linear.app/hash/issue/H-4545/hashql-implement-subscript-type-inferencechecking")
+                }
+            }
+        }
+
+        made_progress
     }
 
     /// Solves type inference constraints and produces a type substitution.

@@ -68,6 +68,13 @@ impl Subject {
             kind,
         });
     }
+
+    pub(crate) fn r#type<'heap>(self, env: &Environment<'heap>) -> Type<'heap> {
+        match self {
+            Self::Type(id) => env.r#type(id),
+            Self::Variable(variable) => variable.into_type(env),
+        }
+    }
 }
 
 /// Represents constraints for component selection operations in type inference.

@@ -13,7 +13,7 @@ pub mod visit;
 
 use core::ops::Receiver;
 
-use self::{environment::Environment, kind::TypeKind};
+use self::{environment::Environment, inference::Variable, kind::TypeKind};
 use crate::{
     id::HasId,
     intern::{Decompose, Interned},
@@ -56,6 +56,21 @@ impl<'heap, K> Type<'heap, K> {
             span: self.span,
             kind,
         }
+    }
+}
+
+impl<'heap> Type<'heap> {
+    pub const fn into_variable(self) -> Option<Variable> {
+        // This destructuring might look weird, but allows us to use `const fn`
+        let kind = match self.kind.into_variable() {
+            Some(kind) => kind,
+            None => return None,
+        };
+
+        Some(Variable {
+            span: self.span,
+            kind,
+        })
     }
 }
 

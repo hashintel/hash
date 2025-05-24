@@ -6,7 +6,11 @@ use ena::unify::UnifyKey;
 use crate::{
     collection::FastHashMap,
     span::SpanId,
-    r#type::kind::{Infer, Param, TypeKind, generic::GenericArgumentId, infer::HoleId},
+    r#type::{
+        PartialType, Type,
+        environment::Environment,
+        kind::{Infer, Param, TypeKind, generic::GenericArgumentId, infer::HoleId},
+    },
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -22,6 +26,15 @@ impl Variable {
             span: SpanId::SYNTHETIC,
             kind,
         }
+    }
+
+    pub fn into_type<'heap>(self, env: &Environment<'heap>) -> Type<'heap> {
+        let kind = self.kind.into_type_kind();
+
+        env.types.intern_partial(PartialType {
+            span: self.span,
+            kind: env.intern_kind(kind),
+        })
     }
 }
 
