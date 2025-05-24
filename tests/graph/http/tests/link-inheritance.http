@@ -1,5 +1,15 @@
 # This file either runs with JetBrains' http requests or using httpYac (https://httpyac.github.io).
 
+### Seed default policies
+GET http://127.0.0.1:4000/policies/seed
+Content-Type: application/json
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 204, "Response status is not 204");
+  });
+%}
+
 ### Get system user
 GET http://127.0.0.1:4000/actors/machine/identifier/system/h
 Content-Type: application/json
@@ -9,31 +19,6 @@ Content-Type: application/json
     client.assert(response.status === 200, "Response status is not 200");
   });
   client.global.set("system_machine_id", response.body);
-%}
-
-
-### Create global instantiation policy
-POST http://127.0.0.1:4000/policies
-Content-Type: application/json
-X-Authenticated-User-Actor-Id: {{system_machine_id}}
-
-{
-  "effect": "permit",
-  "principal": null,
-  "actions": ["instantiate"],
-  "resource": {
-    "type": "entityType",
-    "filter": {
-      "type": "all",
-      "filters": []
-    }
-  }
-}
-
-> {%
-  client.test("status", function() {
-    client.assert(response.status === 200, "Response status is not 200");
-  });
 %}
 
 

@@ -1,9 +1,6 @@
 use core::{assert_matches::assert_matches, error::Error};
 
-use hash_graph_authorization::policies::{
-    action::ActionName,
-    store::{CreateWebParameter, PrincipalStore as _},
-};
+use hash_graph_authorization::policies::store::{CreateWebParameter, PrincipalStore as _};
 use hash_graph_postgres_store::permissions::PrincipalError;
 use hash_graph_store::account::AccountStore as _;
 use pretty_assertions::assert_eq;
@@ -19,7 +16,7 @@ use crate::DatabaseTestWrapper;
 #[tokio::test]
 async fn create_ai() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (mut client, _actor_id) = db.seed([]).await?;
+    let (mut client, _actor_id) = db.seed().await?;
 
     let ai_id = client.create_ai(None, "test-ai").await?;
     assert!(client.is_ai(ai_id).await?);
@@ -30,7 +27,7 @@ async fn create_ai() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn create_ai_with_id() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (mut client, _actor_id) = db.seed([]).await?;
+    let (mut client, _actor_id) = db.seed().await?;
 
     let id = Uuid::new_v4();
     let ai_id = client.create_ai(Some(id), "test-ai").await?;
@@ -44,7 +41,7 @@ async fn create_ai_with_id() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn delete_ai() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (mut client, _actor_id) = db.seed([]).await?;
+    let (mut client, _actor_id) = db.seed().await?;
 
     let ai_id = client.create_ai(None, "test-ai").await?;
     assert!(client.is_ai(ai_id).await?);
@@ -58,7 +55,7 @@ async fn delete_ai() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn create_ai_with_duplicate_id() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (mut client, _actor_id) = db.seed([]).await?;
+    let (mut client, _actor_id) = db.seed().await?;
 
     let ai_id = client.create_ai(Some(Uuid::new_v4()), "test-ai").await?;
     let result = client.create_ai(Some(ai_id.into()), "test-ai2").await;
@@ -77,7 +74,7 @@ async fn create_ai_with_duplicate_id() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn get_non_existent_ai() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (client, actor_id) = db.seed([]).await?;
+    let (client, actor_id) = db.seed().await?;
 
     let non_existent_id = AiId::new(Uuid::new_v4());
     let result = client
@@ -95,7 +92,7 @@ async fn get_non_existent_ai() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn delete_non_existent_ai() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (mut client, _actor_id) = db.seed([]).await?;
+    let (mut client, _actor_id) = db.seed().await?;
 
     let non_existent_id = AiId::new(Uuid::new_v4());
     let result = client.delete_ai(non_existent_id).await;
@@ -113,7 +110,7 @@ async fn delete_non_existent_ai() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn create_web_ai_relation() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (mut client, actor_id) = db.seed([ActionName::All, ActionName::CreateWeb]).await?;
+    let (mut client, actor_id) = db.seed().await?;
 
     let ai_id = client.create_ai(None, "test-ai").await?;
     let web_id = client
@@ -138,7 +135,7 @@ async fn create_web_ai_relation() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn ai_role_assignment() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (mut client, actor_id) = db.seed([ActionName::All, ActionName::CreateWeb]).await?;
+    let (mut client, actor_id) = db.seed().await?;
 
     let ai_id = client.create_ai(None, "test-ai").await?;
     let web_id = client

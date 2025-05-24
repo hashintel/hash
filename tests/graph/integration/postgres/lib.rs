@@ -29,12 +29,7 @@ use std::collections::HashMap;
 use error_stack::{Report, ResultExt as _};
 use hash_graph_authorization::{
     AuthorizationApi, NoAuthorization,
-    policies::{
-        Effect,
-        action::ActionName,
-        resource::{EntityTypeResourceConstraint, EntityTypeResourceFilter, ResourceConstraint},
-        store::{LocalPrincipalStore as _, PolicyCreationParams, PolicyStore as _},
-    },
+    policies::store::{LocalPrincipalStore as _, PolicyStore as _},
     schema::{
         DataTypeRelationAndSubject, DataTypeViewerSubject, EntityRelationAndSubject,
         EntityTypeInstantiatorSubject, EntityTypeRelationAndSubject, EntityTypeSetting,
@@ -208,7 +203,6 @@ impl DatabaseTestWrapper<NoAuthorization> {
 }
 
 impl<A: AuthorizationApi> DatabaseTestWrapper<A> {
-    #[expect(clippy::too_many_lines)]
     pub async fn seed<D, P, E>(
         &mut self,
         data_types: D,
@@ -226,6 +220,11 @@ impl<A: AuthorizationApi> DatabaseTestWrapper<A> {
             .await
             .expect("could not start test transaction");
 
+        store
+            .seed_system_policies()
+            .await
+            .expect("Should be able to seed system policies");
+
         let system_account_id = store
             .get_or_create_system_machine("h")
             .await
@@ -241,26 +240,6 @@ impl<A: AuthorizationApi> DatabaseTestWrapper<A> {
             .await
             .change_context(InsertionError)?
             .user_id;
-
-        store
-            .create_policy(
-                system_account_id.into(),
-                PolicyCreationParams {
-                    name: None,
-                    effect: Effect::Permit,
-                    principal: None,
-                    actions: vec![ActionName::Instantiate],
-                    resource: Some(ResourceConstraint::EntityType(
-                        EntityTypeResourceConstraint::Any {
-                            filter: EntityTypeResourceFilter::All {
-                                filters: Vec::new(),
-                            },
-                        },
-                    )),
-                },
-            )
-            .await
-            .change_context(InsertionError)?;
 
         store
             .create_data_types(

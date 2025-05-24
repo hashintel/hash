@@ -10,17 +10,10 @@ mod team;
 mod user;
 mod web;
 
-use std::collections::HashSet;
-
 use error_stack::{Report, ResultExt as _};
 use hash_graph_authorization::{
     AuthorizationApi, NoAuthorization,
-    policies::{
-        Effect,
-        action::ActionName,
-        principal::PrincipalConstraint,
-        store::{PolicyCreationParams, PolicyStore as _},
-    },
+    policies::store::{PolicyStore as _, PrincipalStore as _},
 };
 use hash_graph_postgres_store::{
     Environment, load_env,
@@ -95,44 +88,22 @@ impl DatabaseTestWrapper<NoAuthorization> {
         }
     }
 
-    pub(crate) async fn seed<const N: usize>(
+    pub(crate) async fn seed(
         &mut self,
-        actions: [ActionName; N],
     ) -> Result<(PostgresStore<impl AsClient, impl AuthorizationApi>, ActorId), Report<StoreError>>
     {
         let mut transaction = self.connection.transaction().await?;
-        let actor = ActorId::Machine(
-            transaction
-                .create_machine(None, "test-root-machine")
-                .await
-                .change_context(StoreError)?,
-        );
 
-        let mut registered_actions = HashSet::new();
-        for action in actions {
-            transaction
-                .register_action(action)
-                .await
-                .change_context(StoreError)?;
-            registered_actions.insert(action);
-        }
+        transaction
+            .seed_system_policies()
+            .await
+            .change_context(StoreError)?;
 
-        if registered_actions.contains(&ActionName::CreateWeb) {
-            transaction
-                .create_policy(
-                    actor.into(),
-                    PolicyCreationParams {
-                        name: None,
-                        effect: Effect::Permit,
-                        principal: Some(PrincipalConstraint::Actor { actor }),
-                        actions: vec![ActionName::CreateWeb],
-                        resource: None,
-                    },
-                )
-                .await
-                .change_context(StoreError)?;
-        }
+        let actor = transaction
+            .get_or_create_system_machine("hash-graph")
+            .await
+            .change_context(StoreError)?;
 
-        Ok((transaction, actor))
+        Ok((transaction, ActorId::Machine(actor)))
     }
 }

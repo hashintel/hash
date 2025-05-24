@@ -12,6 +12,7 @@ use hash_graph_authorization::{
     },
 };
 use hash_graph_postgres_store::store::{AsClient, PostgresStore};
+use pretty_assertions::assert_eq;
 use type_system::principal::{
     actor::{ActorId, ActorType, AiId, MachineId, UserId},
     actor_group::{ActorGroupId, TeamId, WebId},
@@ -49,6 +50,39 @@ struct TestPolicyEnvironment {
 
     // Policies
     policies: TestPolicyIds,
+}
+
+impl TestPolicyEnvironment {
+    fn assert_policies(
+        &self,
+        policies: impl IntoIterator<Item = PolicyId>,
+        expected_policies: impl IntoIterator<Item = PolicyId>,
+    ) {
+        let all_policies: HashSet<_> = HashSet::from([
+            self.policies.global,
+            self.policies.user_type,
+            self.policies.machine_type,
+            self.policies.user1,
+            self.policies.web1_role,
+            self.policies.team1,
+            self.policies.web2_role_user,
+            self.policies.deny_user1,
+        ]);
+
+        let actual_policies = policies
+            .into_iter()
+            .collect::<HashSet<_>>()
+            .intersection(&all_policies)
+            .copied()
+            .collect::<HashSet<_>>();
+
+        let expected_policies: HashSet<_> = expected_policies.into_iter().collect();
+
+        assert_eq!(
+            actual_policies, expected_policies,
+            "Expected policies do not match actual policies"
+        );
+    }
 }
 
 /// Struct to hold all policy IDs for easier reference
@@ -108,13 +142,6 @@ async fn setup_policy_test_environment(
     client: &mut PostgresStore<impl AsClient, impl AuthorizationApi>,
     actor_id: ActorId,
 ) -> Result<TestPolicyEnvironment, Box<dyn Error>> {
-    // Register actions
-    client.register_action(ActionName::Create).await?;
-    client.register_action(ActionName::View).await?;
-    client.register_action(ActionName::ViewEntity).await?;
-    client.register_action(ActionName::Update).await?;
-    client.register_action(ActionName::Instantiate).await?;
-
     // Create web teams (top level)
     let web1_id = client
         .create_web(
@@ -368,7 +395,7 @@ async fn setup_policy_test_environment(
 #[tokio::test]
 async fn global_policies() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (mut client, actor_id) = db.seed([ActionName::All, ActionName::CreateWeb]).await?;
+    let (mut client, actor_id) = db.seed().await?;
 
     let env = setup_policy_test_environment(&mut client, actor_id).await?;
 
@@ -435,7 +462,7 @@ async fn global_policies() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn actor_type_policies() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (mut client, actor_id) = db.seed([ActionName::All, ActionName::CreateWeb]).await?;
+    let (mut client, actor_id) = db.seed().await?;
 
     let env = setup_policy_test_environment(&mut client, actor_id).await?;
 
@@ -510,7 +537,7 @@ async fn actor_type_policies() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn specific_actor_policies() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (mut client, actor_id) = db.seed([ActionName::All, ActionName::CreateWeb]).await?;
+    let (mut client, actor_id) = db.seed().await?;
 
     let env = setup_policy_test_environment(&mut client, actor_id).await?;
 
@@ -557,7 +584,7 @@ async fn specific_actor_policies() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn role_based_policies() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (mut client, actor_id) = db.seed([ActionName::All, ActionName::CreateWeb]).await?;
+    let (mut client, actor_id) = db.seed().await?;
 
     let env = setup_policy_test_environment(&mut client, actor_id).await?;
 
@@ -620,7 +647,7 @@ async fn role_based_policies() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn team_hierarchy_policies() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (mut client, actor_id) = db.seed([ActionName::All, ActionName::CreateWeb]).await?;
+    let (mut client, actor_id) = db.seed().await?;
 
     let env = setup_policy_test_environment(&mut client, actor_id).await?;
 
@@ -657,7 +684,7 @@ async fn team_hierarchy_policies() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn policy_count_and_content() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (mut client, actor_id) = db.seed([ActionName::All, ActionName::CreateWeb]).await?;
+    let (mut client, actor_id) = db.seed().await?;
 
     let env = setup_policy_test_environment(&mut client, actor_id).await?;
 
@@ -671,23 +698,61 @@ async fn policy_count_and_content() -> Result<(), Box<dyn Error>> {
         .collect::<HashMap<_, _>>();
     let user2_policies = client
         .resolve_policies_for_actor(actor_id.into(), Some(ActorId::User(env.user2)))
-        .await?;
+        .await?
+        .into_iter()
+        .map(|policy| (policy.id, policy))
+        .collect::<HashMap<_, _>>();
     let machine_policies = client
         .resolve_policies_for_actor(actor_id.into(), Some(ActorId::Machine(env.machine_id)))
-        .await?;
+        .await?
+        .into_iter()
+        .map(|policy| (policy.id, policy))
+        .collect::<HashMap<_, _>>();
     let ai_policies = client
         .resolve_policies_for_actor(actor_id.into(), Some(ActorId::Ai(env.ai_id)))
-        .await?;
+        .await?
+        .into_iter()
+        .map(|policy| (policy.id, policy))
+        .collect::<HashMap<_, _>>();
     let nonexistent_policies = client
         .resolve_policies_for_actor(actor_id.into(), Some(ActorId::User(nonexistent_id)))
-        .await?;
+        .await?
+        .into_iter()
+        .map(|policy| (policy.id, policy))
+        .collect::<HashMap<_, _>>();
 
     // Verify that we have at least one policy for each actor
-    assert_eq!(user1_policies.len(), 5);
-    assert_eq!(user2_policies.len(), 4);
-    assert_eq!(machine_policies.len(), 2);
-    assert_eq!(ai_policies.len(), 2);
-    assert_eq!(nonexistent_policies.len(), 2);
+    env.assert_policies(
+        user1_policies.keys().copied(),
+        [
+            env.policies.global,
+            env.policies.user_type,
+            env.policies.user1,
+            env.policies.deny_user1,
+            env.policies.web1_role,
+        ],
+    );
+    env.assert_policies(
+        user2_policies.keys().copied(),
+        [
+            env.policies.global,
+            env.policies.user_type,
+            env.policies.team1,
+            env.policies.web2_role_user,
+        ],
+    );
+    env.assert_policies(
+        machine_policies.keys().copied(),
+        [env.policies.global, env.policies.machine_type],
+    );
+    env.assert_policies(
+        ai_policies.keys().copied(),
+        [env.policies.global, env.policies.team1],
+    );
+    env.assert_policies(
+        nonexistent_policies.keys().copied(),
+        [env.policies.global, env.policies.user_type],
+    );
 
     // Verify policy content for one case - ensuring actions are preserved correctly
     let web1_role_policy = &user1_policies[&env.policies.web1_role];
@@ -715,7 +780,7 @@ async fn policy_count_and_content() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn role_assignment_changes() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (mut client, actor_id) = db.seed([ActionName::All, ActionName::CreateWeb]).await?;
+    let (mut client, actor_id) = db.seed().await?;
 
     let env = setup_policy_test_environment(&mut client, actor_id).await?;
 
@@ -773,23 +838,15 @@ async fn role_assignment_changes() -> Result<(), Box<dyn Error>> {
         "Adding a role should increase the number of policies"
     );
 
-    // Verify that we have the policies we expect
-    assert_eq!(
-        final_policies.len(),
-        updated_policies.len() + 1,
-        "Should have exactly one more policy after adding web1_role"
-    );
-
     Ok(())
 }
 
 #[tokio::test]
 async fn resource_constraints_are_preserved() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (mut client, actor_id) = db.seed([]).await?;
+    let (mut client, actor_id) = db.seed().await?;
 
     let user_id = client.create_user(None).await?;
-    client.register_action(ActionName::All).await?;
 
     // Create a policy with resource constraints
     let resource_policy_id = client
@@ -842,7 +899,7 @@ async fn resource_constraints_are_preserved() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn deep_team_hierarchy() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (mut client, actor_id) = db.seed([ActionName::All, ActionName::CreateWeb]).await?;
+    let (mut client, actor_id) = db.seed().await?;
 
     // Create a deep team hierarchy
     let web_id = client

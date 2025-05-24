@@ -1,9 +1,6 @@
 use core::{assert_matches::assert_matches, error::Error};
 
-use hash_graph_authorization::policies::{
-    action::ActionName,
-    store::{CreateWebParameter, PrincipalStore as _},
-};
+use hash_graph_authorization::policies::store::{CreateWebParameter, PrincipalStore as _};
 use hash_graph_postgres_store::permissions::PrincipalError;
 use hash_graph_store::account::AccountStore as _;
 use pretty_assertions::assert_eq;
@@ -18,7 +15,7 @@ use crate::DatabaseTestWrapper;
 #[tokio::test]
 async fn create_team() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (mut client, actor_id) = db.seed([ActionName::All, ActionName::CreateWeb]).await?;
+    let (mut client, actor_id) = db.seed().await?;
 
     let web_id = client
         .create_web(
@@ -50,7 +47,7 @@ async fn create_team() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn create_team_with_id() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (mut client, actor_id) = db.seed([ActionName::All, ActionName::CreateWeb]).await?;
+    let (mut client, actor_id) = db.seed().await?;
 
     let web_id = client
         .create_web(
@@ -78,7 +75,7 @@ async fn create_team_with_id() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn delete_team_with_hierarchy() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (mut client, actor_id) = db.seed([ActionName::All, ActionName::CreateWeb]).await?;
+    let (mut client, actor_id) = db.seed().await?;
 
     // Create a hierarchy: web -> mid_team -> bottom_team
     let web_id = client
@@ -138,7 +135,7 @@ async fn delete_team_with_hierarchy() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn delete_non_existent_team() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (mut client, _actor_id) = db.seed([]).await?;
+    let (mut client, _actor_id) = db.seed().await?;
 
     // Try to delete a non-existent team
     let non_existent_id = TeamId::new(Uuid::new_v4());
@@ -157,7 +154,7 @@ async fn delete_non_existent_team() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn can_delete_team_with_children() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (mut client, actor_id) = db.seed([ActionName::All, ActionName::CreateWeb]).await?;
+    let (mut client, actor_id) = db.seed().await?;
 
     // Create a simple parent-child hierarchy
     let web_id = client
@@ -192,7 +189,7 @@ async fn can_delete_team_with_children() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn create_team_with_duplicate_id() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (mut client, actor_id) = db.seed([ActionName::All, ActionName::CreateWeb]).await?;
+    let (mut client, actor_id) = db.seed().await?;
 
     // Create a parent team
     let web_id = client
@@ -252,7 +249,7 @@ async fn create_team_with_duplicate_id() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn get_team() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (mut client, actor_id) = db.seed([ActionName::All, ActionName::CreateWeb]).await?;
+    let (mut client, actor_id) = db.seed().await?;
 
     // Create a parent team and team
     let web_id = client
@@ -284,7 +281,7 @@ async fn get_team() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn get_non_existent_team() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (client, actor_id) = db.seed([]).await?;
+    let (client, actor_id) = db.seed().await?;
 
     // Try to get a non-existent team
     let non_existent_id = TeamId::new(Uuid::new_v4());

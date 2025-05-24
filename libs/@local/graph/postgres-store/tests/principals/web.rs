@@ -1,8 +1,7 @@
 use core::{assert_matches::assert_matches, error::Error};
 
-use hash_graph_authorization::policies::{
-    action::ActionName,
-    store::{CreateWebParameter, PrincipalStore as _, error::WebCreationError},
+use hash_graph_authorization::policies::store::{
+    CreateWebParameter, PrincipalStore as _, error::WebCreationError,
 };
 use hash_graph_postgres_store::permissions::PrincipalError;
 use hash_graph_store::account::AccountStore as _;
@@ -18,7 +17,7 @@ use crate::DatabaseTestWrapper;
 #[tokio::test]
 async fn create_web() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (mut client, actor_id) = db.seed([ActionName::All, ActionName::CreateWeb]).await?;
+    let (mut client, actor_id) = db.seed().await?;
 
     let response = client
         .create_web(
@@ -47,7 +46,7 @@ async fn create_web() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn create_web_with_id() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (mut client, actor_id) = db.seed([ActionName::All, ActionName::CreateWeb]).await?;
+    let (mut client, actor_id) = db.seed().await?;
 
     let id = Uuid::new_v4();
     let web_id = client
@@ -71,7 +70,7 @@ async fn create_web_with_id() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn delete_web() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (mut client, actor_id) = db.seed([ActionName::All, ActionName::CreateWeb]).await?;
+    let (mut client, actor_id) = db.seed().await?;
 
     let web_id = client
         .create_web(
@@ -96,7 +95,7 @@ async fn delete_web() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn create_web_with_duplicate_id() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (mut client, actor_id) = db.seed([ActionName::All, ActionName::CreateWeb]).await?;
+    let (mut client, actor_id) = db.seed().await?;
 
     let web_id = client
         .create_web(
@@ -134,7 +133,7 @@ async fn create_web_with_duplicate_id() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn get_non_existent_web() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (client, actor_id) = db.seed([]).await?;
+    let (client, actor_id) = db.seed().await?;
 
     let non_existent_id = WebId::new(Uuid::new_v4());
     let result = client
@@ -152,7 +151,7 @@ async fn get_non_existent_web() -> Result<(), Box<dyn Error>> {
 #[tokio::test]
 async fn delete_non_existent_web() -> Result<(), Box<dyn Error>> {
     let mut db = DatabaseTestWrapper::new().await;
-    let (mut client, _actor_id) = db.seed([]).await?;
+    let (mut client, _actor_id) = db.seed().await?;
 
     let non_existent_id = WebId::new(Uuid::new_v4());
     let result = client.delete_web(non_existent_id).await;

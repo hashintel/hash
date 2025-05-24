@@ -5,14 +5,7 @@ use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion, Sampling
 use criterion_macro::criterion;
 use hash_graph_authorization::{
     AuthorizationApi, NoAuthorization,
-    policies::{
-        Effect,
-        action::ActionName,
-        resource::{EntityTypeResourceConstraint, EntityTypeResourceFilter, ResourceConstraint},
-        store::{
-            CreateWebParameter, LocalPrincipalStore as _, PolicyCreationParams, PolicyStore as _,
-        },
-    },
+    policies::store::{CreateWebParameter, LocalPrincipalStore as _, PolicyStore as _},
 };
 use hash_graph_store::{
     entity::{CreateEntityParams, EntityQuerySorting, EntityStore as _, GetEntitySubgraphParams},
@@ -75,6 +68,11 @@ async fn seed_db<A: AuthorizationApi>(
     let now = std::time::SystemTime::now();
     eprintln!("Seeding database: {}", store_wrapper.bench_db_name);
 
+    transaction
+        .seed_system_policies()
+        .await
+        .expect("Should be able to seed system policies");
+
     let system_account_id = transaction
         .get_or_create_system_machine("h")
         .await
@@ -97,26 +95,6 @@ async fn seed_db<A: AuthorizationApi>(
         )
         .await
         .expect("could not create web");
-
-    transaction
-        .create_policy(
-            system_account_id.into(),
-            PolicyCreationParams {
-                name: None,
-                effect: Effect::Permit,
-                principal: None,
-                actions: vec![ActionName::Instantiate],
-                resource: Some(ResourceConstraint::EntityType(
-                    EntityTypeResourceConstraint::Any {
-                        filter: EntityTypeResourceFilter::All {
-                            filters: Vec::new(),
-                        },
-                    },
-                )),
-            },
-        )
-        .await
-        .expect("could not insert policy");
 
     seed(
         &mut transaction,
