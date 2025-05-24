@@ -1006,6 +1006,8 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                         Projection::Resolved(field) => field,
                     };
 
+                    made_progress = true;
+
                     let field = self.lattice.r#type(field);
 
                     match field.into_variable() {
@@ -1021,8 +1023,6 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                             });
                         }
                     }
-
-                    made_progress = true;
                 }
                 SelectionConstraint::Subscript {
                     subject: _,
