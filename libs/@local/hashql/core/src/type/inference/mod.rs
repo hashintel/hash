@@ -39,6 +39,21 @@ impl PartialStructuralEdge {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum Subject {
+    Variable(Variable),
+    Type(TypeId),
+}
+
+impl Subject {
+    const fn variable(self) -> Option<Variable> {
+        match self {
+            Self::Variable(variable) => Some(variable),
+            Self::Type(_) => None,
+        }
+    }
+}
+
 /// Represents constraints for component selection operations in type inference.
 ///
 /// Selection constraints arise from field projection (`record.field`) and subscript
@@ -48,52 +63,33 @@ impl PartialStructuralEdge {
 ///
 /// The constraint specifies that given a source (variable or concrete type) and
 /// a selection operation (field label or index), the result type should be
-/// unified with the specified output hole.
+/// unified with the specified output variable.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum SelectionConstraint<'heap> {
-    /// Field projection from an inference variable (`variable.label`).
+    /// Field projection constraint (`source.label`).
     ///
-    /// This constraint represents accessing a field from a variable whose type
-    /// is not yet fully determined. The constraint will be resolved once the
-    /// variable's type is known to have the specified field.
-    VariableProjection {
-        variable: Variable,
+    /// This constraint represents accessing a field from either an inference variable
+    /// or a concrete type. When the source is a variable, the constraint will be
+    /// resolved once the variable's type is known to have the specified field.
+    /// When the source is a concrete type, the constraint can typically be resolved
+    /// immediately if the type structure is known.
+    Projection {
+        subject: Subject,
         label: Symbol<'heap>,
         output: Variable,
     },
 
-    /// Field projection from a concrete type (`type.label`).
+    /// Subscript operation constraint (`source[index]`).
     ///
-    /// This constraint represents accessing a field from a known type.
-    /// The constraint can typically be resolved immediately if the type
-    /// structure is known.
-    TypeProjection {
-        r#type: TypeId,
-        label: Symbol<'heap>,
-        output: Variable,
-    },
-
-    /// Subscript operation on an inference variable (`variable[index]`).
-    ///
-    /// This constraint represents indexing into a variable whose type is not
-    /// yet fully determined. The constraint will be resolved once the variable's
-    /// type is known to support indexing with the given index type.
+    /// This constraint represents indexing into either an inference variable or
+    /// a concrete type. When the source is a variable, the constraint will be
+    /// resolved once the variable's type is known to support indexing with the
+    /// given index type. When the source is a concrete type, the constraint can
+    /// typically be resolved immediately if the type structure supports indexing.
     // see: https://linear.app/hash/issue/H-4545/hashql-implement-subscript-type-inferencechecking
-    VariableSubscript {
-        variable: Variable,
-        index: TypeId,
-        output: Variable,
-    },
-
-    /// Subscript operation on a concrete type (`type[index]`).
-    ///
-    /// This constraint represents indexing into a known type with a specific
-    /// index type. The constraint can typically be resolved immediately if
-    /// the type structure supports the indexing operation.
-    // see: https://linear.app/hash/issue/H-4545/hashql-implement-subscript-type-inferencechecking
-    TypeSubscript {
-        r#type: TypeId,
-        index: TypeId,
+    Subscript {
+        subject: Subject,
+        index: Subject,
         output: Variable,
     },
 }
@@ -109,42 +105,32 @@ pub enum SelectionConstraint<'heap> {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Constraint<'heap> {
     /// Constraints a variable with an upper bound (`variable <: bound`)
-    UpperBound {
-        variable: Variable,
-        bound: TypeId,
-    },
+    UpperBound { variable: Variable, bound: TypeId },
 
     /// Constraints a variable with a lower bound (`bound <: variable`)
-    LowerBound {
-        variable: Variable,
-        bound: TypeId,
-    },
+    LowerBound { variable: Variable, bound: TypeId },
 
     /// Constraints a variable to be equal to another type (`variable ≡ type`)
-    Equals {
-        variable: Variable,
-        r#type: TypeId,
-    },
+    Equals { variable: Variable, r#type: TypeId },
 
     /// Establishes an ordering between two variables (`lower <: upper`)
-    Ordering {
-        lower: Variable,
-        upper: Variable,
-    },
+    Ordering { lower: Variable, upper: Variable },
 
     /// Establishes a structural edge between two variables (`source -> target`)
     ///
     /// A structural edge is an edge, which explains that `source` flows into `target`, for example
     /// given: `_1 <: (name: _2)`, `_1` flows into `_2`.
-    StructuralEdge {
-        source: Variable,
-        target: Variable,
-    },
+    StructuralEdge { source: Variable, target: Variable },
 
+    /// Constraints for component selection operations (`subject.field` or `subject[index]`)
+    ///
+    /// Selection constraints handle field projection and subscript operations where the
+    /// result type must be inferred. These constraints are deferred until sufficient
+    /// type information is available to resolve the selection operation.
     Selection(SelectionConstraint<'heap>),
 }
 
-impl<'heap> Constraint<'heap> {
+impl Constraint<'_> {
     pub(crate) fn variables(self) -> impl IntoIterator<Item = Variable> {
         let array = match self {
             Self::LowerBound { variable, bound: _ }
@@ -152,33 +138,19 @@ impl<'heap> Constraint<'heap> {
             | Self::Equals {
                 variable,
                 r#type: _,
-            } => [Some(variable), None],
-            Self::Ordering { lower, upper } => [Some(lower), Some(upper)],
-            Self::StructuralEdge { source, target } => [Some(source), Some(target)],
-            Self::Selection(
-                SelectionConstraint::VariableProjection {
-                    variable,
-                    label: _,
-                    output,
-                }
-                | SelectionConstraint::VariableSubscript {
-                    variable,
-                    index: _,
-                    output,
-                },
-            ) => [Some(variable), Some(output)],
-            Self::Selection(
-                SelectionConstraint::TypeProjection {
-                    r#type: _,
-                    label: _,
-                    output,
-                }
-                | SelectionConstraint::TypeSubscript {
-                    r#type: _,
-                    index: _,
-                    output,
-                },
-            ) => [Some(output), None],
+            } => [Some(variable), None, None],
+            Self::Ordering { lower, upper } => [Some(lower), Some(upper), None],
+            Self::StructuralEdge { source, target } => [Some(source), Some(target), None],
+            Self::Selection(SelectionConstraint::Projection {
+                subject,
+                label: _,
+                output,
+            }) => [subject.variable(), Some(output), None],
+            Self::Selection(SelectionConstraint::Subscript {
+                subject,
+                index,
+                output,
+            }) => [subject.variable(), index.variable(), Some(output)],
         };
 
         array.into_iter().flatten()
