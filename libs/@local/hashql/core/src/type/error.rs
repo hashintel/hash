@@ -1,8 +1,10 @@
 use alloc::borrow::Cow;
+use core::fmt::Write as _;
 
 use hashql_diagnostics::{
     Diagnostic,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
+    color::{AnsiColor, Color},
     help::Help,
     label::Label,
     note::Note,
@@ -14,8 +16,9 @@ use super::{
 };
 use crate::{
     pretty::{PrettyOptions, PrettyPrint},
+    similarity::did_you_mean,
     span::SpanId,
-    symbol::Symbol,
+    symbol::{Ident, Symbol},
 };
 
 pub type TypeCheckDiagnostic = Diagnostic<TypeCheckDiagnosticCategory, SpanId>;
@@ -107,6 +110,26 @@ const TYPE_PARAMETER_NOT_FOUND: TerminalDiagnosticCategory = TerminalDiagnosticC
     name: "Type parameter not found",
 };
 
+const FIELD_NOT_FOUND: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "field-not-found",
+    name: "Field not found in type",
+};
+
+const INVALID_TUPLE_INDEX: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "invalid-tuple-index",
+    name: "Invalid tuple index",
+};
+
+const TUPLE_INDEX_OUT_OF_BOUNDS: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "tuple-index-out-of-bounds",
+    name: "Tuple index out of bounds",
+};
+
+const UNSUPPORTED_PROJECTION: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "unsupported-projection",
+    name: "Projection not supported on this type",
+};
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum TypeCheckDiagnosticCategory {
     TypeMismatch,
@@ -126,6 +149,10 @@ pub enum TypeCheckDiagnosticCategory {
     IncompatibleUpperEqualConstraint,
     ConflictingEqualityConstraints,
     TypeParameterNotFound,
+    FieldNotFound,
+    InvalidTupleIndex,
+    TupleIndexOutOfBounds,
+    UnsupportedProjection,
 }
 
 impl DiagnosticCategory for TypeCheckDiagnosticCategory {
@@ -143,8 +170,8 @@ impl DiagnosticCategory for TypeCheckDiagnosticCategory {
             Self::CircularType => Some(&CIRCULAR_TYPE),
             Self::TupleLengthMismatch => Some(&TUPLE_LENGTH_MISMATCH),
             Self::OpaqueTypeNameMismatch => Some(&OPAQUE_TYPE_NAME_MISMATCH),
-            Self::UnionVariantMismatch => Some(&UNION_VARIANT_MISMATCH),
             Self::FunctionParameterCountMismatch => Some(&FUNCTION_PARAMETER_COUNT_MISMATCH),
+            Self::UnionVariantMismatch => Some(&UNION_VARIANT_MISMATCH),
             Self::IntersectionVariantMismatch => Some(&INTERSECTION_VARIANT_MISMATCH),
             Self::StructFieldMismatch => Some(&STRUCT_FIELD_MISMATCH),
             Self::DuplicateStructField => Some(&DUPLICATE_STRUCT_FIELD),
@@ -156,6 +183,10 @@ impl DiagnosticCategory for TypeCheckDiagnosticCategory {
             Self::IncompatibleUpperEqualConstraint => Some(&INCOMPATIBLE_UPPER_EQUAL_CONSTRAINT),
             Self::ConflictingEqualityConstraints => Some(&CONFLICTING_EQUALITY_CONSTRAINTS),
             Self::TypeParameterNotFound => Some(&TYPE_PARAMETER_NOT_FOUND),
+            Self::FieldNotFound => Some(&FIELD_NOT_FOUND),
+            Self::InvalidTupleIndex => Some(&INVALID_TUPLE_INDEX),
+            Self::TupleIndexOutOfBounds => Some(&TUPLE_INDEX_OUT_OF_BOUNDS),
+            Self::UnsupportedProjection => Some(&UNSUPPORTED_PROJECTION),
         }
     }
 }
@@ -1220,6 +1251,234 @@ where
          environment. This represents both an invalid program and a flaw in the error reporting \
          sequence. The compiler should validate all parameter references during an earlier \
          compilation phase and provide more specific error messages.",
+    )));
+
+    diagnostic
+}
+
+pub(crate) fn field_not_found<'heap>(
+    r#type: Type<'heap>,
+    field: Ident<'heap>,
+
+    available_fields: impl ExactSizeIterator<Item = Symbol<'heap>> + Clone,
+
+    env: &Environment<'heap>,
+) -> TypeCheckDiagnostic {
+    let mut diagnostic =
+        Diagnostic::new(TypeCheckDiagnosticCategory::FieldNotFound, Severity::Error);
+
+    diagnostic.labels.push(
+        Label::new(
+            r#type.span,
+            format!("Field '{}' does not exist on this type", field),
+        )
+        .with_order(0)
+        .with_color(Color::Ansi(AnsiColor::Red)),
+    );
+
+    diagnostic.labels.push(
+        Label::new(field.span, "... which you're trying to access here")
+            .with_order(-1)
+            .with_color(Color::Ansi(AnsiColor::Blue)),
+    );
+
+    let mut help_message = format!(
+        "The field '{}' cannot be accessed because it doesn't exist on type '{}'.",
+        field,
+        r#type.pretty_print(&env, PrettyOptions::default())
+    );
+
+    let suggestions = did_you_mean(field.value, available_fields.clone(), Some(5), None);
+
+    if !suggestions.is_empty() {
+        help_message.push_str("\n\nDid you mean one of these fields:");
+        for suggestion in &suggestions {
+            write!(help_message, "\n  - {}", suggestion).expect("infallible");
+        }
+
+        let remaining = available_fields.len().saturating_sub(suggestions.len());
+        if remaining > 0 {
+            write!(help_message, "\n  ({} more available)", remaining).expect("infallible");
+        }
+    } else if available_fields.len() <= 10 {
+        help_message.push_str("\n\nAvailable fields:");
+        for field in available_fields {
+            write!(help_message, "\n  - {}", field).expect("infallible");
+        }
+    } else {
+        write!(
+            help_message,
+            "\n\nThis type has {} available fields. Use autocomplete or check the type definition \
+             for a complete list.",
+            available_fields.len()
+        )
+        .expect("infallible");
+    }
+
+    diagnostic.add_help(Help::new(help_message));
+
+    diagnostic.add_note(Note::new(
+        "Field access requires the field to be defined in the type's structure. Check the type \
+         definition for available fields, or verify that you're accessing the correct field name.",
+    ));
+
+    diagnostic
+}
+
+pub(crate) fn invalid_tuple_index<'heap>(
+    r#type: Type<'heap>,
+    field: Ident<'heap>,
+) -> TypeCheckDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        TypeCheckDiagnosticCategory::InvalidTupleIndex,
+        Severity::Error,
+    );
+
+    diagnostic.labels.push(
+        Label::new(
+            r#type.span,
+            format!("'{}' is not a valid tuple index", field),
+        )
+        .with_order(0)
+        .with_color(Color::Ansi(AnsiColor::Red)),
+    );
+
+    diagnostic.labels.push(
+        Label::new(field.span, "... which you're trying to access here")
+            .with_order(-1)
+            .with_color(Color::Ansi(AnsiColor::Blue)),
+    );
+
+    let help_message = format!(
+        "Tuple elements can only be accessed using numeric indices (0, 1, 2, etc.), but '{}' is \
+         not a valid number.",
+        field
+    );
+
+    diagnostic.add_help(Help::new(help_message));
+
+    diagnostic.add_note(Note::new(
+        "Tuples are ordered collections where elements are accessed by their position. Use a \
+         numeric index like `tuple.0` or `tuple.1` to access specific elements. Unlike structs, \
+         tuples don't have named fields.",
+    ));
+
+    diagnostic
+}
+
+pub(crate) fn tuple_index_out_of_bounds<'heap>(
+    r#type: Type<'heap>,
+    field: Ident<'heap>,
+    tuple_length: usize,
+) -> TypeCheckDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        TypeCheckDiagnosticCategory::TupleIndexOutOfBounds,
+        Severity::Error,
+    );
+
+    diagnostic.labels.push(
+        Label::new(
+            r#type.span,
+            format!("'{}' is out of bounds for this tuple", field),
+        )
+        .with_order(0)
+        .with_color(Color::Ansi(AnsiColor::Red)),
+    );
+
+    diagnostic.labels.push(
+        Label::new(field.span, "... which you're trying to access here")
+            .with_order(-1)
+            .with_color(Color::Ansi(AnsiColor::Blue)),
+    );
+
+    let help_message = if tuple_length == 0 {
+        "This tuple is empty and has no elements to access.".to_string()
+    } else if tuple_length == 1 {
+        "This tuple has only 1 element. Use index 0 to access it.".to_string()
+    } else {
+        format!(
+            "This tuple has {} elements with valid indices from 0 to {}.",
+            tuple_length,
+            tuple_length.saturating_sub(1)
+        )
+    };
+
+    diagnostic.add_help(Help::new(help_message));
+
+    diagnostic.add_note(Note::new(
+        "Tuple indices are zero-based, meaning the first element is at index 0, the second at \
+         index 1, and so on. The highest valid index is always one less than the tuple's length.",
+    ));
+
+    diagnostic
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+enum UnsupportedProjectionCategory {
+    Closure,
+    List,
+    Dict,
+    Primitive,
+}
+
+impl UnsupportedProjectionCategory {
+    fn plural_capitalized(self) -> &'static str {
+        match self {
+            UnsupportedProjectionCategory::Closure => "Closures",
+            UnsupportedProjectionCategory::List => "Lists",
+            UnsupportedProjectionCategory::Dict => "Dictionaries",
+            UnsupportedProjectionCategory::Primitive => "Primitive types",
+        }
+    }
+}
+
+pub(crate) fn unsupported_projection<'heap>(
+    r#type: Type<'heap>,
+    field: Ident<'heap>,
+    category: UnsupportedProjectionCategory,
+) -> TypeCheckDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        TypeCheckDiagnosticCategory::UnsupportedProjection,
+        Severity::Error,
+    );
+
+    diagnostic.labels.push(
+        Label::new(r#type.span, format!("Cannot access field '{}'", field))
+            .with_order(0)
+            .with_color(Color::Ansi(AnsiColor::Red)),
+    );
+
+    diagnostic.labels.push(
+        Label::new(field.span, "... which you're trying to access here")
+            .with_order(-1)
+            .with_color(Color::Ansi(AnsiColor::Blue)),
+    );
+
+    let help_message = match category {
+        UnsupportedProjectionCategory::Closure => {
+            "Closures are function values and don't have accessible fields. You can only call a \
+             closure, not access its internal properties."
+        }
+        UnsupportedProjectionCategory::List => {
+            "Lists are ordered collections accessed by numeric indices, not field names. Use \
+             indexing operations like `list[0]` to access elements."
+        }
+        UnsupportedProjectionCategory::Dict => {
+            "Dictionaries are key-value mappings accessed by their keys, not field names. Use \
+             indexing operations like `dict[key]` to access values."
+        }
+        UnsupportedProjectionCategory::Primitive => {
+            "Primitive types like numbers, strings, and booleans don't have fields. They are \
+             atomic values without internal structure that can be accessed."
+        }
+    };
+
+    diagnostic.add_help(Help::new(help_message));
+
+    diagnostic.add_note(Note::new(format!(
+        "Field access (using the dot operator) is only supported on structured types like structs \
+         and tuples. {} types don't have named fields that can be accessed this way.",
+        category.plural_capitalized()
     )));
 
     diagnostic
