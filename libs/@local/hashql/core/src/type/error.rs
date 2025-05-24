@@ -1268,48 +1268,50 @@ pub(crate) fn field_not_found<'heap>(
         Diagnostic::new(TypeCheckDiagnosticCategory::FieldNotFound, Severity::Error);
 
     diagnostic.labels.push(
-        Label::new(
-            r#type.span,
-            format!("Field '{}' does not exist on this type", field),
-        )
-        .with_order(0)
-        .with_color(Color::Ansi(AnsiColor::Red)),
+        Label::new(field.span, format!("Field '{field}' does not exist"))
+            .with_order(0)
+            .with_color(Color::Ansi(AnsiColor::Red)),
     );
 
     diagnostic.labels.push(
-        Label::new(field.span, "... which you're trying to access here")
+        Label::new(r#type.span, "... on this type")
             .with_order(-1)
             .with_color(Color::Ansi(AnsiColor::Blue)),
     );
 
-    let mut help_message = format!(
-        "The field '{}' cannot be accessed because it doesn't exist on type '{}'.",
-        field,
-        r#type.pretty_print(&env, PrettyOptions::default())
-    );
-
     let suggestions = did_you_mean(field.value, available_fields.clone(), Some(5), None);
 
+    let mut help_message = format!(
+        "The field '{field}' cannot be accessed on type '{}'.",
+        r#type.pretty_print(env, PrettyOptions::default())
+    );
+
     if !suggestions.is_empty() {
-        help_message.push_str("\n\nDid you mean one of these fields:");
+        write!(help_message, "\n\nDid you mean one of these?").expect("infallible");
+
         for suggestion in &suggestions {
-            write!(help_message, "\n  - {}", suggestion).expect("infallible");
+            write!(help_message, "\n  - {suggestion}").expect("infallible");
         }
 
         let remaining = available_fields.len().saturating_sub(suggestions.len());
         if remaining > 0 {
-            write!(help_message, "\n  ({} more available)", remaining).expect("infallible");
+            write!(help_message, "\n  ({remaining} more fields available)").expect("infallible");
         }
     } else if available_fields.len() <= 10 {
-        help_message.push_str("\n\nAvailable fields:");
+        write!(
+            help_message,
+            "\n\nChoose one of these available fields instead:"
+        )
+        .expect("infallible");
+
         for field in available_fields {
-            write!(help_message, "\n  - {}", field).expect("infallible");
+            write!(help_message, "\n  - {field}").expect("infallible");
         }
     } else {
         write!(
             help_message,
-            "\n\nThis type has {} available fields. Use autocomplete or check the type definition \
-             for a complete list.",
+            "\n\nReplace '{field}' with one of the {} available fields. Use autocomplete or check \
+             the type definition for the complete list.",
             available_fields.len()
         )
         .expect("infallible");
@@ -1318,8 +1320,9 @@ pub(crate) fn field_not_found<'heap>(
     diagnostic.add_help(Help::new(help_message));
 
     diagnostic.add_note(Note::new(
-        "Field access requires the field to be defined in the type's structure. Check the type \
-         definition for available fields, or verify that you're accessing the correct field name.",
+        "Field access in HashQL requires exact name matching - fields are case-sensitive and must \
+         be defined in the type's structure. Typos in field names are a common source of this \
+         error.",
     ));
 
     diagnostic
@@ -1328,6 +1331,7 @@ pub(crate) fn field_not_found<'heap>(
 pub(crate) fn invalid_tuple_index<'heap>(
     r#type: Type<'heap>,
     field: Ident<'heap>,
+    env: &Environment<'heap>,
 ) -> TypeCheckDiagnostic {
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::InvalidTupleIndex,
@@ -1335,24 +1339,22 @@ pub(crate) fn invalid_tuple_index<'heap>(
     );
 
     diagnostic.labels.push(
-        Label::new(
-            r#type.span,
-            format!("'{}' is not a valid tuple index", field),
-        )
-        .with_order(0)
-        .with_color(Color::Ansi(AnsiColor::Red)),
+        Label::new(field.span, format!("'{field}' is not a valid tuple index"))
+            .with_order(0)
+            .with_color(Color::Ansi(AnsiColor::Red)),
     );
 
     diagnostic.labels.push(
-        Label::new(field.span, "... which you're trying to access here")
+        Label::new(r#type.span, "... on this tuple type")
             .with_order(-1)
             .with_color(Color::Ansi(AnsiColor::Blue)),
     );
 
+    let type_str = r#type.pretty_print(env, PrettyOptions::default());
     let help_message = format!(
-        "Tuple elements can only be accessed using numeric indices (0, 1, 2, etc.), but '{}' is \
-         not a valid number.",
-        field
+        "Tuple elements can only be accessed using numeric indices (0, 1, 2, etc.), but '{field}' \
+         is not a valid number on type '{type_str}'. Replace '{field}' with a numeric index like \
+         `tuple.0`, `tuple.1`, `tuple.2`, etc."
     );
 
     diagnostic.add_help(Help::new(help_message));
@@ -1370,6 +1372,7 @@ pub(crate) fn tuple_index_out_of_bounds<'heap>(
     r#type: Type<'heap>,
     field: Ident<'heap>,
     tuple_length: usize,
+    env: &Environment<'heap>,
 ) -> TypeCheckDiagnostic {
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::TupleIndexOutOfBounds,
@@ -1377,30 +1380,43 @@ pub(crate) fn tuple_index_out_of_bounds<'heap>(
     );
 
     diagnostic.labels.push(
-        Label::new(
-            r#type.span,
-            format!("'{}' is out of bounds for this tuple", field),
-        )
-        .with_order(0)
-        .with_color(Color::Ansi(AnsiColor::Red)),
+        Label::new(field.span, format!("Index '{field}' is out of bounds"))
+            .with_order(0)
+            .with_color(Color::Ansi(AnsiColor::Red)),
     );
 
     diagnostic.labels.push(
-        Label::new(field.span, "... which you're trying to access here")
+        Label::new(r#type.span, "... on this tuple")
             .with_order(-1)
             .with_color(Color::Ansi(AnsiColor::Blue)),
     );
 
-    let help_message = if tuple_length == 0 {
-        "This tuple is empty and has no elements to access.".to_string()
+    let mut help_message = format!(
+        "The index '{field}' is out of bounds for type '{}'.",
+        r#type.pretty_print(env, PrettyOptions::default())
+    );
+
+    if tuple_length == 0 {
+        write!(
+            help_message,
+            "This tuple is empty - remove the field access or check if you meant to use a \
+             different variable."
+        )
+        .expect("infallible");
     } else if tuple_length == 1 {
-        "This tuple has only 1 element. Use index 0 to access it.".to_string()
+        write!(
+            help_message,
+            "Replace the index with 0 to access the single element in this tuple."
+        )
+        .expect("infallible");
     } else {
-        format!(
-            "This tuple has {} elements with valid indices from 0 to {}.",
-            tuple_length,
+        write!(
+            help_message,
+            "Replace with a valid index from 0 to {}. This tuple has {tuple_length} elements \
+             available.",
             tuple_length.saturating_sub(1)
         )
+        .expect("infallible");
     };
 
     diagnostic.add_help(Help::new(help_message));
@@ -1422,12 +1438,12 @@ pub(crate) enum UnsupportedProjectionCategory {
 }
 
 impl UnsupportedProjectionCategory {
-    fn plural_capitalized(self) -> &'static str {
+    const fn plural_capitalized(self) -> &'static str {
         match self {
-            UnsupportedProjectionCategory::Closure => "Closures",
-            UnsupportedProjectionCategory::List => "Lists",
-            UnsupportedProjectionCategory::Dict => "Dictionaries",
-            UnsupportedProjectionCategory::Primitive => "Primitive types",
+            Self::Closure => "Closures",
+            Self::List => "Lists",
+            Self::Dict => "Dictionaries",
+            Self::Primitive => "Primitive types",
         }
     }
 }
@@ -1436,6 +1452,7 @@ pub(crate) fn unsupported_projection<'heap>(
     r#type: Type<'heap>,
     field: Ident<'heap>,
     category: UnsupportedProjectionCategory,
+    env: &Environment<'heap>,
 ) -> TypeCheckDiagnostic {
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::UnsupportedProjection,
@@ -1443,41 +1460,63 @@ pub(crate) fn unsupported_projection<'heap>(
     );
 
     diagnostic.labels.push(
-        Label::new(r#type.span, format!("Cannot access field '{}'", field))
+        Label::new(field.span, format!("Cannot access field '{field}'"))
             .with_order(0)
             .with_color(Color::Ansi(AnsiColor::Red)),
     );
 
     diagnostic.labels.push(
-        Label::new(field.span, "... which you're trying to access here")
+        Label::new(r#type.span, "... on this type")
             .with_order(-1)
             .with_color(Color::Ansi(AnsiColor::Blue)),
     );
 
-    let help_message = match category {
+    let mut help_message = format!(
+        "Cannot access field '{field}' on type '{}'",
+        r#type.pretty_print(env, PrettyOptions::default())
+    );
+
+    match category {
         UnsupportedProjectionCategory::Closure => {
-            "Closures are function values and don't have accessible fields. You can only call a \
-             closure, not access its internal properties."
+            write!(
+                help_message,
+                "Remove the field access and call the closure directly. Closures are callable \
+                 functions, not objects with accessible properties."
+            )
+            .expect("infallible");
         }
         UnsupportedProjectionCategory::List => {
-            "Lists are ordered collections accessed by numeric indices, not field names. Use \
-             indexing operations like `list[0]` to access elements."
+            write!(
+                help_message,
+                "Replace the field access with array indexing like `list[0]` or `list[index]`. \
+                 Lists use numeric indices, not named fields."
+            )
+            .expect("infallible");
         }
         UnsupportedProjectionCategory::Dict => {
-            "Dictionaries are key-value mappings accessed by their keys, not field names. Use \
-             indexing operations like `dict[key]` to access values."
+            write!(
+                help_message,
+                "Replace the field access with key lookup like `dict[\"key\"]` or `dict[key]`. \
+                 Dictionaries map keys to values, not field names to properties."
+            )
+            .expect("infallible");
         }
         UnsupportedProjectionCategory::Primitive => {
-            "Primitive types like numbers, strings, and booleans don't have fields. They are \
-             atomic values without internal structure that can be accessed."
+            write!(
+                help_message,
+                "Remove the field access - primitive values like numbers, strings, and booleans \
+                 don't have internal fields. Use the value directly."
+            )
+            .expect("infallible");
         }
-    };
+    }
 
     diagnostic.add_help(Help::new(help_message));
 
     diagnostic.add_note(Note::new(format!(
-        "Field access (using the dot operator) is only supported on structured types like structs \
-         and tuples. {} types don't have named fields that can be accessed this way.",
+        "Field access with the dot operator (`.`) is reserved for structured data types that have \
+         named components. {} are accessed through different mechanisms - use the appropriate \
+         access method for the data type you're working with.",
         category.plural_capitalized()
     )));
 

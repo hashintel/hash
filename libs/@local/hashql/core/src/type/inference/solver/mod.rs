@@ -9,7 +9,7 @@ use ena::unify::{InPlaceUnificationTable, NoError, UnifyKey as _};
 
 use self::{graph::Graph, tarjan::Tarjan, topo::topological_sort_in};
 use super::{
-    Constraint, SelectionConstraint, Subject, Substitution, Variable, VariableKind,
+    Constraint, SelectionConstraint, Substitution, Variable, VariableKind,
     variable::{VariableId, VariableLookup},
 };
 use crate::{
