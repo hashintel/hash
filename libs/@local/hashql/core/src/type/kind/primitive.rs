@@ -5,6 +5,7 @@ use smallvec::SmallVec;
 
 use crate::{
     pretty::{BLUE, PrettyPrint, PrettyRecursionBoundary},
+    symbol::Symbol,
     r#type::{
         Type, TypeId,
         environment::{
@@ -13,7 +14,7 @@ use crate::{
         },
         error::type_mismatch,
         inference::{Inference, PartialStructuralEdge},
-        lattice::Lattice,
+        lattice::{Lattice, Projection},
     },
 };
 
@@ -62,6 +63,16 @@ impl<'heap> Lattice<'heap> for PrimitiveType {
 
             _ => SmallVec::from_slice(&[self.id, other.id]),
         }
+    }
+
+    fn projection(
+        self: Type<'heap, Self>,
+        field: Symbol<'heap>,
+        env: &mut LatticeEnvironment<'_, 'heap>,
+    ) -> Projection {
+        todo!("diagnostic error: primitive type cannot be projected");
+
+        Projection::Error
     }
 
     fn is_bottom(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> bool {

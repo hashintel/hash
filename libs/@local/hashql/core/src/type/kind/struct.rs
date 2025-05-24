@@ -18,7 +18,7 @@ use crate::{
         },
         error::{missing_struct_field, struct_field_mismatch},
         inference::{Inference, PartialStructuralEdge},
-        lattice::Lattice,
+        lattice::{Lattice, Projection},
     },
 };
 
@@ -261,6 +261,24 @@ impl<'heap> Lattice<'heap> for StructType<'heap> {
         }
 
         self.postprocess_lattice(other, env, &mut fields)
+    }
+
+    fn projection(
+        self: Type<'heap, Self>,
+        field: Symbol<'heap>,
+        env: &mut LatticeEnvironment<'_, 'heap>,
+    ) -> Projection {
+        if let Some(field) = self
+            .kind
+            .fields
+            .iter()
+            .find(|struct_field| struct_field.name == field)
+        {
+            return Projection::Resolved(field.value);
+        }
+
+        todo!("diagnostic error: field not found");
+        Projection::Error
     }
 
     fn is_bottom(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {

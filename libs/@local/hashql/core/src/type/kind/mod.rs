@@ -36,9 +36,12 @@ use super::{
     },
     error::{no_type_inference, type_mismatch, type_parameter_not_found},
     inference::{Constraint, Inference, PartialStructuralEdge, Variable, VariableKind},
-    lattice::Lattice,
+    lattice::{Lattice, Projection},
 };
-use crate::pretty::{CYAN, GRAY, PrettyPrint, PrettyRecursionBoundary};
+use crate::{
+    pretty::{CYAN, GRAY, PrettyPrint, PrettyRecursionBoundary},
+    symbol::Symbol,
+};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum TypeKind<'heap> {
@@ -772,6 +775,53 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 let rhs_variants = other.with(rhs).unnest(env);
 
                 IntersectionType::meet_variants(self.span, &lhs_variants, &rhs_variants, env)
+            }
+        }
+    }
+
+    fn projection(
+        self: Type<'heap, Self>,
+        field: Symbol<'heap>,
+        env: &mut LatticeEnvironment<'_, 'heap>,
+    ) -> Projection {
+        match self.kind {
+            TypeKind::Opaque(opaque_type) => self.with(opaque_type).projection(field, env),
+            TypeKind::Primitive(primitive_type) => self.with(primitive_type).projection(field, env),
+            TypeKind::Intrinsic(intrinsic_type) => self.with(intrinsic_type).projection(field, env),
+            TypeKind::Struct(struct_type) => self.with(struct_type).projection(field, env),
+            TypeKind::Tuple(tuple_type) => self.with(tuple_type).projection(field, env),
+            TypeKind::Union(union_type) => self.with(union_type).projection(field, env),
+            TypeKind::Intersection(intersection_type) => {
+                self.with(intersection_type).projection(field, env)
+            }
+            TypeKind::Closure(closure_type) => self.with(closure_type).projection(field, env),
+            TypeKind::Apply(apply) => self.with(apply).projection(field, env),
+            TypeKind::Generic(generic) => self.with(generic).projection(field, env),
+            &Self::Param(Param { argument }) => {
+                // We do not record diagnostics here, because if ever they're recorded after the
+                // fact, as projection runs *during* fix-point analysis.
+                let Some(substitution) = env.substitution.argument(argument) else {
+                    return Projection::Pending;
+                };
+
+                env.projection(substitution, field)
+            }
+            &Self::Infer(Infer { hole }) => {
+                let Some(substitution) = env.substitution.infer(hole) else {
+                    return Projection::Pending;
+                };
+
+                env.projection(substitution, field)
+            }
+            TypeKind::Never => {
+                todo!("diagnostic error: never type cannot be projected");
+
+                Projection::Error
+            }
+            TypeKind::Unknown => {
+                todo!("diagnostic error: unknown type cannot be projected");
+
+                Projection::Error
             }
         }
     }

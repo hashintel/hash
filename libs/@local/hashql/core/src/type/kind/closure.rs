@@ -15,7 +15,7 @@ use crate::{
         },
         error::function_parameter_count_mismatch,
         inference::{Inference, PartialStructuralEdge},
-        lattice::Lattice,
+        lattice::{Lattice, Projection},
     },
 };
 
@@ -97,6 +97,16 @@ impl<'heap> Lattice<'heap> for ClosureType<'heap> {
         let returns = env.meet(self.kind.returns, other.kind.returns);
 
         self.postprocess_lattice(env, &params, returns)
+    }
+
+    fn projection(
+        self: Type<'heap, Self>,
+        field: crate::symbol::Symbol<'heap>,
+        env: &mut LatticeEnvironment<'_, 'heap>,
+    ) -> Projection {
+        todo!("diagnostic error: closure type cannot be projected");
+
+        Projection::Error
     }
 
     fn is_bottom(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> bool {

@@ -14,7 +14,7 @@ use crate::{
         },
         error::type_mismatch,
         inference::{Inference, PartialStructuralEdge},
-        lattice::Lattice,
+        lattice::{Lattice, Projection},
     },
 };
 
@@ -51,6 +51,15 @@ impl<'heap> Lattice<'heap> for ListType {
             span: self.span,
             kind: env.intern_kind(TypeKind::Intrinsic(IntrinsicType::List(Self { element }))),
         })])
+    }
+
+    fn projection(
+        self: Type<'heap, Self>,
+        field: crate::symbol::Symbol<'heap>,
+        env: &mut LatticeEnvironment<'_, 'heap>,
+    ) -> Projection {
+        todo!("diagnostic error - lists cannot be projected");
+        Projection::Error
     }
 
     fn is_bottom(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
@@ -330,6 +339,15 @@ impl<'heap> Lattice<'heap> for DictType {
         }
     }
 
+    fn projection(
+        self: Type<'heap, Self>,
+        field: crate::symbol::Symbol<'heap>,
+        env: &mut LatticeEnvironment<'_, 'heap>,
+    ) -> Projection {
+        todo!("record diagnostic - dict cannot be projected");
+        Projection::Error
+    }
+
     fn is_bottom(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
         // Never bottom, as even with a `!` key or value a dict can be empty
         false
@@ -576,6 +594,17 @@ impl<'heap> Lattice<'heap> for IntrinsicType {
             (Self::List(lhs), Self::List(rhs)) => self.with(lhs).meet(other.with(rhs), env),
             (Self::Dict(lhs), Self::Dict(rhs)) => self.with(lhs).meet(other.with(rhs), env),
             (Self::List(_), Self::Dict(_)) | (Self::Dict(_), Self::List(_)) => SmallVec::new(),
+        }
+    }
+
+    fn projection(
+        self: Type<'heap, Self>,
+        field: crate::symbol::Symbol<'heap>,
+        env: &mut LatticeEnvironment<'_, 'heap>,
+    ) -> Projection {
+        match self.kind {
+            Self::List(inner) => self.with(inner).projection(field, env),
+            Self::Dict(inner) => self.with(inner).projection(field, env),
         }
     }
 
