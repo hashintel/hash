@@ -4,8 +4,7 @@ use super::{
 };
 use crate::{
     collection::{SmallVec, TinyVec},
-    span::SpanId,
-    symbol::{Ident, Symbol},
+    symbol::Ident,
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]

@@ -1417,7 +1417,7 @@ pub(crate) fn tuple_index_out_of_bounds<'heap>(
             tuple_length.saturating_sub(1)
         )
         .expect("infallible");
-    };
+    }
 
     diagnostic.add_help(Help::new(help_message));
 
@@ -1435,6 +1435,8 @@ pub(crate) enum UnsupportedProjectionCategory {
     List,
     Dict,
     Primitive,
+    Never,
+    Unknown,
 }
 
 impl UnsupportedProjectionCategory {
@@ -1444,16 +1446,21 @@ impl UnsupportedProjectionCategory {
             Self::List => "Lists",
             Self::Dict => "Dictionaries",
             Self::Primitive => "Primitive types",
+            Self::Never => "Never",
+            Self::Unknown => "Unknown",
         }
     }
 }
 
-pub(crate) fn unsupported_projection<'heap>(
-    r#type: Type<'heap>,
+pub(crate) fn unsupported_projection<'heap, K>(
+    r#type: Type<'heap, K>,
     field: Ident<'heap>,
     category: UnsupportedProjectionCategory,
     env: &Environment<'heap>,
-) -> TypeCheckDiagnostic {
+) -> TypeCheckDiagnostic
+where
+    K: PrettyPrint<'heap>,
+{
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::UnsupportedProjection,
         Severity::Error,
@@ -1472,7 +1479,7 @@ pub(crate) fn unsupported_projection<'heap>(
     );
 
     let mut help_message = format!(
-        "Cannot access field '{field}' on type '{}'",
+        "Cannot access field '{field}' on type '{}'.\n\n",
         r#type.pretty_print(env, PrettyOptions::default())
     );
 
@@ -1480,32 +1487,57 @@ pub(crate) fn unsupported_projection<'heap>(
         UnsupportedProjectionCategory::Closure => {
             write!(
                 help_message,
-                "Remove the field access and call the closure directly. Closures are callable \
-                 functions, not objects with accessible properties."
+                "Closures are functions that capture their environment and are meant to be \
+                 called, not accessed as objects. To use this closure, call it with arguments \
+                 like `closure(arg1, arg2)` instead of trying to access properties on it."
             )
             .expect("infallible");
         }
         UnsupportedProjectionCategory::List => {
             write!(
                 help_message,
-                "Replace the field access with array indexing like `list[0]` or `list[index]`. \
-                 Lists use numeric indices, not named fields."
+                "Lists are ordered collections accessed by numeric position, not by field names. \
+                 Use square bracket notation with an index: `list[0]` for the first element, \
+                 `list[index]` for a dynamic position."
             )
             .expect("infallible");
         }
         UnsupportedProjectionCategory::Dict => {
             write!(
                 help_message,
-                "Replace the field access with key lookup like `dict[\"key\"]` or `dict[key]`. \
-                 Dictionaries map keys to values, not field names to properties."
+                ". Dictionaries are key-value mappings where keys can be any type, not just field \
+                 names. Access values using square bracket notation: `dict[\"key\"]` for string \
+                 keys, `dict[key]` for variable keys."
             )
             .expect("infallible");
         }
         UnsupportedProjectionCategory::Primitive => {
             write!(
                 help_message,
-                "Remove the field access - primitive values like numbers, strings, and booleans \
-                 don't have internal fields. Use the value directly."
+                "Primitive types (numbers, strings, booleans, null) are atomic values without \
+                 internal structure. They don't have user-accessible fields. Use the value \
+                 directly."
+            )
+            .expect("infallible");
+        }
+        UnsupportedProjectionCategory::Never => {
+            write!(
+                help_message,
+                "The 'never' type represents values that cannot exist - typically indicating \
+                 unreachable code paths or overly restrictive type constraints. Since no actual \
+                 value of this type can ever be created, field access is impossible. Review your \
+                 type constraints, union intersections, or conditional logic to ensure this code \
+                 path is reachable."
+            )
+            .expect("infallible");
+        }
+        UnsupportedProjectionCategory::Unknown => {
+            write!(
+                help_message,
+                "The 'unknown' type represents values whose structure hasn't been determined yet. \
+                 Before accessing fields, narrow the type using type guards (`typeof`, \
+                 `instanceof`), pattern matching, explicit type assertions, or provide more \
+                 specific type annotations in your function signatures or variable declarations."
             )
             .expect("infallible");
         }

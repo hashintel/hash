@@ -13,7 +13,7 @@ use crate::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
             SimplifyEnvironment, instantiate::InstantiateEnvironment,
         },
-        error::type_mismatch,
+        error::{UnsupportedProjectionCategory, type_mismatch, unsupported_projection},
         inference::{Inference, PartialStructuralEdge},
         lattice::{Lattice, Projection},
     },
@@ -59,7 +59,13 @@ impl<'heap> Lattice<'heap> for ListType {
         field: Ident<'heap>,
         env: &mut LatticeEnvironment<'_, 'heap>,
     ) -> Projection {
-        todo!("diagnostic error - lists cannot be projected");
+        env.diagnostics.push(unsupported_projection(
+            self,
+            field,
+            UnsupportedProjectionCategory::List,
+            env,
+        ));
+
         Projection::Error
     }
 
@@ -345,7 +351,13 @@ impl<'heap> Lattice<'heap> for DictType {
         field: Ident<'heap>,
         env: &mut LatticeEnvironment<'_, 'heap>,
     ) -> Projection {
-        todo!("record diagnostic - dict cannot be projected");
+        env.diagnostics.push(unsupported_projection(
+            self,
+            field,
+            UnsupportedProjectionCategory::Dict,
+            env,
+        ));
+
         Projection::Error
     }
 

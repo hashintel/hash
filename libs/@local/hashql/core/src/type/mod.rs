@@ -59,12 +59,12 @@ impl<'heap, K> Type<'heap, K> {
     }
 }
 
-impl<'heap> Type<'heap> {
+impl Type<'_> {
+    #[must_use]
     pub const fn into_variable(self) -> Option<Variable> {
         // This destructuring might look weird, but allows us to use `const fn`
-        let kind = match self.kind.into_variable() {
-            Some(kind) => kind,
-            None => return None,
+        let Some(kind) = self.kind.into_variable() else {
+            return None;
         };
 
         Some(Variable {

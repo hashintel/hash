@@ -14,7 +14,10 @@ use crate::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
             SimplifyEnvironment, instantiate::InstantiateEnvironment,
         },
-        error::function_parameter_count_mismatch,
+        error::{
+            UnsupportedProjectionCategory, function_parameter_count_mismatch,
+            unsupported_projection,
+        },
         inference::{Inference, PartialStructuralEdge},
         lattice::{Lattice, Projection},
     },
@@ -105,7 +108,12 @@ impl<'heap> Lattice<'heap> for ClosureType<'heap> {
         field: Ident<'heap>,
         env: &mut LatticeEnvironment<'_, 'heap>,
     ) -> Projection {
-        todo!("diagnostic error: closure type cannot be projected");
+        env.diagnostics.push(unsupported_projection(
+            self,
+            field,
+            UnsupportedProjectionCategory::Closure,
+            env,
+        ));
 
         Projection::Error
     }

@@ -90,7 +90,7 @@ impl Subject {
 /// The constraint specifies that given a source (variable or concrete type) and
 /// a selection operation (field label or index), the result type should be
 /// unified with the specified output variable.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum SelectionConstraint<'heap> {
     /// Field projection constraint (`source.label`).
     ///
@@ -153,7 +153,7 @@ impl<'heap> SelectionConstraint<'heap> {
 ///
 /// The subtyping relation (`<:`) indicates that the left type is a subtype of the right type,
 /// meaning the left type can be used wherever the right type is expected.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Constraint<'heap> {
     /// Constraints a variable with an upper bound (`variable <: bound`)
     UpperBound { variable: Variable, bound: TypeId },

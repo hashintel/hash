@@ -12,7 +12,7 @@ use crate::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
             SimplifyEnvironment, instantiate::InstantiateEnvironment,
         },
-        error::type_mismatch,
+        error::{UnsupportedProjectionCategory, type_mismatch, unsupported_projection},
         inference::{Inference, PartialStructuralEdge},
         lattice::{Lattice, Projection},
     },
@@ -70,7 +70,12 @@ impl<'heap> Lattice<'heap> for PrimitiveType {
         field: Ident<'heap>,
         env: &mut LatticeEnvironment<'_, 'heap>,
     ) -> Projection {
-        todo!("diagnostic error: primitive type cannot be projected");
+        env.diagnostics.push(unsupported_projection(
+            self,
+            field,
+            UnsupportedProjectionCategory::Primitive,
+            env,
+        ));
 
         Projection::Error
     }

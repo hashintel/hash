@@ -34,7 +34,10 @@ use super::{
         AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
         SimplifyEnvironment, instantiate::InstantiateEnvironment,
     },
-    error::{no_type_inference, type_mismatch, type_parameter_not_found},
+    error::{
+        UnsupportedProjectionCategory, no_type_inference, type_mismatch, type_parameter_not_found,
+        unsupported_projection,
+    },
     inference::{Constraint, Inference, PartialStructuralEdge, Variable, VariableKind},
     lattice::{Lattice, Projection},
 };
@@ -814,12 +817,22 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 env.projection(substitution, field)
             }
             TypeKind::Never => {
-                todo!("diagnostic error: never type cannot be projected");
+                env.diagnostics.push(unsupported_projection(
+                    self,
+                    field,
+                    UnsupportedProjectionCategory::Never,
+                    env,
+                ));
 
                 Projection::Error
             }
             TypeKind::Unknown => {
-                todo!("diagnostic error: unknown type cannot be projected");
+                env.diagnostics.push(unsupported_projection(
+                    self,
+                    field,
+                    UnsupportedProjectionCategory::Unknown,
+                    env,
+                ));
 
                 Projection::Error
             }
