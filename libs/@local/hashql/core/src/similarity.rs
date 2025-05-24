@@ -184,7 +184,7 @@ fn sorted_word_match<'heap>(
 ///
 /// The edit distance matching uses an adaptive cutoff based on string length that becomes
 /// more permissive for shorter strings (where typos are more impactful) and more restrictive
-/// for longer identifiers. See [`calculate_cutoff`] for the mathematical formula.
+/// for longer identifiers. See `calculate_cutoff` for the mathematical formula.
 ///
 /// # Arguments
 ///
