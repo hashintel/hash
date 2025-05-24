@@ -21,6 +21,6 @@
     "eslint": "9.20.1",
     "quicktype": "16.0.43",
     "tsx": "4.19.4",
-    "typescript": "5.7.3"
+    "typescript": "5.8.3"
   }
 }
