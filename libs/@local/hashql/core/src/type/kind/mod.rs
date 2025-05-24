@@ -43,7 +43,7 @@ use super::{
 };
 use crate::{
     pretty::{CYAN, GRAY, PrettyPrint, PrettyRecursionBoundary},
-    symbol::{Ident, Symbol},
+    symbol::Ident,
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]

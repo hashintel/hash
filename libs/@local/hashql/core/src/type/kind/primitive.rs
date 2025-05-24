@@ -5,7 +5,7 @@ use smallvec::SmallVec;
 
 use crate::{
     pretty::{BLUE, PrettyPrint, PrettyRecursionBoundary},
-    symbol::{Ident, Symbol},
+    symbol::Ident,
     r#type::{
         Type, TypeId,
         environment::{

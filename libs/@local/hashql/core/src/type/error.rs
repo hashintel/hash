@@ -1256,14 +1256,17 @@ where
     diagnostic
 }
 
-pub(crate) fn field_not_found<'heap>(
-    r#type: Type<'heap>,
+pub(crate) fn struct_field_not_found<'heap, K>(
+    r#type: Type<'heap, K>,
     field: Ident<'heap>,
 
     available_fields: impl ExactSizeIterator<Item = Symbol<'heap>> + Clone,
 
     env: &Environment<'heap>,
-) -> TypeCheckDiagnostic {
+) -> TypeCheckDiagnostic
+where
+    K: PrettyPrint<'heap>,
+{
     let mut diagnostic =
         Diagnostic::new(TypeCheckDiagnosticCategory::FieldNotFound, Severity::Error);
 
@@ -1328,11 +1331,14 @@ pub(crate) fn field_not_found<'heap>(
     diagnostic
 }
 
-pub(crate) fn invalid_tuple_index<'heap>(
-    r#type: Type<'heap>,
+pub(crate) fn invalid_tuple_index<'heap, K>(
+    r#type: Type<'heap, K>,
     field: Ident<'heap>,
     env: &Environment<'heap>,
-) -> TypeCheckDiagnostic {
+) -> TypeCheckDiagnostic
+where
+    K: PrettyPrint<'heap>,
+{
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::InvalidTupleIndex,
         Severity::Error,
@@ -1368,12 +1374,15 @@ pub(crate) fn invalid_tuple_index<'heap>(
     diagnostic
 }
 
-pub(crate) fn tuple_index_out_of_bounds<'heap>(
-    r#type: Type<'heap>,
+pub(crate) fn tuple_index_out_of_bounds<'heap, K>(
+    r#type: Type<'heap, K>,
     field: Ident<'heap>,
     tuple_length: usize,
     env: &Environment<'heap>,
-) -> TypeCheckDiagnostic {
+) -> TypeCheckDiagnostic
+where
+    K: PrettyPrint<'heap>,
+{
     let mut diagnostic = Diagnostic::new(
         TypeCheckDiagnosticCategory::TupleIndexOutOfBounds,
         Severity::Error,

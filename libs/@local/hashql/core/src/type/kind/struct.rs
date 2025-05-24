@@ -16,7 +16,7 @@ use crate::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
             SimplifyEnvironment, instantiate::InstantiateEnvironment,
         },
-        error::{missing_struct_field, struct_field_mismatch},
+        error::{missing_struct_field, struct_field_mismatch, struct_field_not_found},
         inference::{Inference, PartialStructuralEdge},
         lattice::{Lattice, Projection},
     },
@@ -277,7 +277,13 @@ impl<'heap> Lattice<'heap> for StructType<'heap> {
             return Projection::Resolved(field.value);
         }
 
-        todo!("diagnostic error: field not found");
+        env.diagnostics.push(struct_field_not_found(
+            self,
+            field,
+            self.kind.fields.iter().map(|field| field.name),
+            env,
+        ));
+
         Projection::Error
     }
 

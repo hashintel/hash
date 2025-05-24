@@ -8,14 +8,14 @@ use crate::{
     intern::Interned,
     math::cartesian_product,
     pretty::{PrettyPrint, PrettyRecursionBoundary},
-    symbol::{Ident, Symbol},
+    symbol::Ident,
     r#type::{
         PartialType, Type, TypeId,
         environment::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
             SimplifyEnvironment, instantiate::InstantiateEnvironment,
         },
-        error::tuple_length_mismatch,
+        error::{invalid_tuple_index, tuple_index_out_of_bounds, tuple_length_mismatch},
         inference::{Inference, PartialStructuralEdge},
         lattice::{Lattice, Projection},
     },
@@ -121,16 +121,22 @@ impl<'heap> Lattice<'heap> for TupleType<'heap> {
         // tuples can only be indexed by numbers, therefore check if the symbols is just made of
         // numbers
         let Ok(index) = field.value.as_str().parse::<usize>() else {
-            todo!("diagnostic error: invalid index");
+            env.diagnostics.push(invalid_tuple_index(self, field, env));
             return Projection::Error;
         };
 
         if index >= self.kind.fields.len() {
-            todo!("diagnostic error: index out of bounds");
+            env.diagnostics.push(tuple_index_out_of_bounds(
+                self,
+                field,
+                self.kind.fields.len(),
+                env,
+            ));
+
             return Projection::Error;
         }
 
-        return Projection::Resolved(self.kind.fields[index]);
+        Projection::Resolved(self.kind.fields[index])
     }
 
     fn is_bottom(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
