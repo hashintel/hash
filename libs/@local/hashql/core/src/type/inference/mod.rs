@@ -11,7 +11,7 @@ use super::{
     environment::{InferenceEnvironment, instantiate::InstantiateEnvironment},
     kind::{generic::GenericArgumentId, infer::HoleId},
 };
-use crate::collection::FastHashMap;
+use crate::{collection::FastHashMap, symbol::Symbol};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum PartialStructuralEdge {
@@ -39,6 +39,65 @@ impl PartialStructuralEdge {
     }
 }
 
+/// Represents constraints for component selection operations in type inference.
+///
+/// Selection constraints arise from field projection (`record.field`) and subscript
+/// operations (`array[index]`) where the type of the selected component must be
+/// inferred. These constraints defer the resolution of the selection operation
+/// until sufficient type information is available.
+///
+/// The constraint specifies that given a source (variable or concrete type) and
+/// a selection operation (field label or index), the result type should be
+/// unified with the specified output hole.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum SelectionConstraint<'heap> {
+    /// Field projection from an inference variable (`variable.label`).
+    ///
+    /// This constraint represents accessing a field from a variable whose type
+    /// is not yet fully determined. The constraint will be resolved once the
+    /// variable's type is known to have the specified field.
+    VariableProjection {
+        variable: Variable,
+        label: Symbol<'heap>,
+        output: Variable,
+    },
+
+    /// Field projection from a concrete type (`type.label`).
+    ///
+    /// This constraint represents accessing a field from a known type.
+    /// The constraint can typically be resolved immediately if the type
+    /// structure is known.
+    TypeProjection {
+        r#type: TypeId,
+        label: Symbol<'heap>,
+        output: Variable,
+    },
+
+    /// Subscript operation on an inference variable (`variable[index]`).
+    ///
+    /// This constraint represents indexing into a variable whose type is not
+    /// yet fully determined. The constraint will be resolved once the variable's
+    /// type is known to support indexing with the given index type.
+    // see: https://linear.app/hash/issue/H-4545/hashql-implement-subscript-type-inferencechecking
+    VariableSubscript {
+        variable: Variable,
+        index: TypeId,
+        output: Variable,
+    },
+
+    /// Subscript operation on a concrete type (`type[index]`).
+    ///
+    /// This constraint represents indexing into a known type with a specific
+    /// index type. The constraint can typically be resolved immediately if
+    /// the type structure supports the indexing operation.
+    // see: https://linear.app/hash/issue/H-4545/hashql-implement-subscript-type-inferencechecking
+    TypeSubscript {
+        r#type: TypeId,
+        index: TypeId,
+        output: Variable,
+    },
+}
+
 /// Represents a constraint between types in the type inference system.
 ///
 /// During type checking, constraints are collected to determine if types are compatible
@@ -48,27 +107,44 @@ impl PartialStructuralEdge {
 /// The subtyping relation (`<:`) indicates that the left type is a subtype of the right type,
 /// meaning the left type can be used wherever the right type is expected.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum Constraint {
+pub enum Constraint<'heap> {
     /// Constraints a variable with an upper bound (`variable <: bound`)
-    UpperBound { variable: Variable, bound: TypeId },
+    UpperBound {
+        variable: Variable,
+        bound: TypeId,
+    },
 
     /// Constraints a variable with a lower bound (`bound <: variable`)
-    LowerBound { variable: Variable, bound: TypeId },
+    LowerBound {
+        variable: Variable,
+        bound: TypeId,
+    },
 
     /// Constraints a variable to be equal to another type (`variable ≡ type`)
-    Equals { variable: Variable, r#type: TypeId },
+    Equals {
+        variable: Variable,
+        r#type: TypeId,
+    },
 
     /// Establishes an ordering between two variables (`lower <: upper`)
-    Ordering { lower: Variable, upper: Variable },
+    Ordering {
+        lower: Variable,
+        upper: Variable,
+    },
 
     /// Establishes a structural edge between two variables (`source -> target`)
     ///
     /// A structural edge is an edge, which explains that `source` flows into `target`, for example
     /// given: `_1 <: (name: _2)`, `_1` flows into `_2`.
-    StructuralEdge { source: Variable, target: Variable },
+    StructuralEdge {
+        source: Variable,
+        target: Variable,
+    },
+
+    Selection(SelectionConstraint<'heap>),
 }
 
-impl Constraint {
+impl<'heap> Constraint<'heap> {
     pub(crate) fn variables(self) -> impl IntoIterator<Item = Variable> {
         let array = match self {
             Self::LowerBound { variable, bound: _ }
@@ -79,6 +155,30 @@ impl Constraint {
             } => [Some(variable), None],
             Self::Ordering { lower, upper } => [Some(lower), Some(upper)],
             Self::StructuralEdge { source, target } => [Some(source), Some(target)],
+            Self::Selection(
+                SelectionConstraint::VariableProjection {
+                    variable,
+                    label: _,
+                    output,
+                }
+                | SelectionConstraint::VariableSubscript {
+                    variable,
+                    index: _,
+                    output,
+                },
+            ) => [Some(variable), Some(output)],
+            Self::Selection(
+                SelectionConstraint::TypeProjection {
+                    r#type: _,
+                    label: _,
+                    output,
+                }
+                | SelectionConstraint::TypeSubscript {
+                    r#type: _,
+                    index: _,
+                    output,
+                },
+            ) => [Some(output), None],
         };
 
         array.into_iter().flatten()

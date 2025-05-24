@@ -251,7 +251,7 @@ pub struct InferenceSolver<'env, 'heap> {
     diagnostics: Diagnostics,
 
     /// The set of constraints to be solved
-    constraints: Vec<Constraint>,
+    constraints: Vec<Constraint<'heap>>,
     /// The unification system for tracking variable equivalence
     unification: Unification,
 }
@@ -274,7 +274,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     pub(crate) fn new(
         env: &'env Environment<'heap>,
         unification: Unification,
-        constraints: Vec<Constraint>,
+        constraints: Vec<Constraint<'heap>>,
     ) -> Self {
         let mut lattice = LatticeEnvironment::new(env);
         lattice.without_simplify();
@@ -436,6 +436,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                     let _: Result<_, _> = constraints
                         .try_insert(target_root, (target, VariableConstraint::default()));
                 }
+                Constraint::Selection(_) => todo!(),
             }
         }
     }

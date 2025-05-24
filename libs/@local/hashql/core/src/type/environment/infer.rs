@@ -15,7 +15,7 @@ pub struct InferenceEnvironment<'env, 'heap> {
     pub environment: &'env Environment<'heap>,
     boundary: RecursionBoundary<'heap>,
 
-    constraints: Vec<Constraint>,
+    constraints: Vec<Constraint<'heap>>,
     unification: Unification,
 
     variance: Variance,
@@ -32,7 +32,7 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
         }
     }
 
-    pub fn take_constraints(&mut self) -> Vec<Constraint> {
+    pub fn take_constraints(&mut self) -> Vec<Constraint<'heap>> {
         core::mem::take(&mut self.constraints)
     }
 
@@ -40,7 +40,7 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
         self.unification.is_unioned(lhs, rhs)
     }
 
-    pub fn add_constraint(&mut self, mut constraint: Constraint) {
+    pub fn add_constraint(&mut self, mut constraint: Constraint<'heap>) {
         for variable in constraint.variables() {
             // Ensure that each mentioned variable is registered in the unification table
             self.unification.upsert_variable(variable.kind);
@@ -70,6 +70,7 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
                     // `(name: _2) = _1` does not mean that `_2` is equal to `_1`.
                     return;
                 }
+                Constraint::Selection(_) => todo!(),
             };
         }
 
