@@ -130,6 +130,11 @@ const UNSUPPORTED_PROJECTION: TerminalDiagnosticCategory = TerminalDiagnosticCat
     name: "Projection not supported on this type",
 };
 
+const RECURSIVE_TYPE_PROJECTION: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "recursive-type-projection",
+    name: "Cannot project field on recursive type",
+};
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum TypeCheckDiagnosticCategory {
     TypeMismatch,
@@ -153,6 +158,7 @@ pub enum TypeCheckDiagnosticCategory {
     InvalidTupleIndex,
     TupleIndexOutOfBounds,
     UnsupportedProjection,
+    RecursiveTypeProjection,
 }
 
 impl DiagnosticCategory for TypeCheckDiagnosticCategory {
@@ -187,6 +193,7 @@ impl DiagnosticCategory for TypeCheckDiagnosticCategory {
             Self::InvalidTupleIndex => Some(&INVALID_TUPLE_INDEX),
             Self::TupleIndexOutOfBounds => Some(&TUPLE_INDEX_OUT_OF_BOUNDS),
             Self::UnsupportedProjection => Some(&UNSUPPORTED_PROJECTION),
+            Self::RecursiveTypeProjection => Some(&RECURSIVE_TYPE_PROJECTION),
         }
     }
 }
@@ -1560,6 +1567,52 @@ where
          access method for the data type you're working with.",
         category.plural_capitalized()
     )));
+
+    diagnostic
+}
+
+pub(crate) fn recursive_type_projection<'heap, K>(
+    r#type: Type<'heap, K>,
+    field: Ident<'heap>,
+    env: &Environment<'heap>,
+) -> TypeCheckDiagnostic
+where
+    K: PrettyPrint<'heap>,
+{
+    let mut diagnostic = Diagnostic::new(
+        TypeCheckDiagnosticCategory::RecursiveTypeProjection,
+        Severity::Error,
+    );
+
+    diagnostic.labels.push(
+        Label::new(field.span, format!("Cannot access field '{field}'"))
+            .with_order(0)
+            .with_color(Color::Ansi(AnsiColor::Red)),
+    );
+
+    diagnostic.labels.push(
+        Label::new(r#type.span, "... on this recursive type")
+            .with_order(-1)
+            .with_color(Color::Ansi(AnsiColor::Blue)),
+    );
+
+    let help_message = format!(
+        "Field projection is impossible on recursive type '{}' because it would require infinite \
+         type expansion.\n\nRecursive types like `A = A & T` where `T = (a: Number)` create \
+         definitions that reference themselves. Attempting to project a field like `A.a` would \
+         mean expanding A -> (A & T) -> ((A & T) & T) -> ... infinitely, which cannot be \
+         resolved.\n\nThis is mathematically impossible - there is no logical way to project \
+         fields on a type that infinitely expands.",
+        r#type.pretty_print(env, PrettyOptions::default())
+    );
+
+    diagnostic.add_help(Help::new(help_message));
+
+    diagnostic.add_note(Note::new(
+        "Recursive type definitions create mathematical impossibilities for field access. It is \
+         logically impossible to resolve field projection on types that expand infinitely - no \
+         algorithm or type system could ever make this work.",
+    ));
 
     diagnostic
 }

@@ -4,10 +4,10 @@ use smallvec::SmallVec;
 
 use super::{Diagnostics, Environment, SimplifyEnvironment};
 use crate::{
-    symbol::{Ident, Symbol},
+    symbol::Ident,
     r#type::{
         PartialType, Type, TypeId,
-        error::circular_type_reference,
+        error::{circular_type_reference, recursive_type_projection},
         inference::{Substitution, VariableKind, VariableLookup},
         kind::{IntersectionType, TypeKind, UnionType},
         lattice::{Lattice as _, Projection},
@@ -314,7 +314,15 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
     }
 
     pub fn projection(&mut self, id: TypeId, field: Ident<'heap>) -> Projection {
-        todo!()
+        let r#type = self.environment.r#type(id);
+
+        if self.boundary.enter(r#type, r#type).is_break() {
+            self.diagnostics
+                .push(recursive_type_projection(r#type, field, self));
+            return Projection::Error;
+        }
+
+        r#type.projection(field, self)
     }
 
     #[inline]

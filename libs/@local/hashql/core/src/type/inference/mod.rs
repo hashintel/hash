@@ -11,10 +11,7 @@ use super::{
     environment::{Environment, InferenceEnvironment, instantiate::InstantiateEnvironment},
     kind::{generic::GenericArgumentId, infer::HoleId},
 };
-use crate::{
-    collection::FastHashMap,
-    symbol::{Ident, Symbol},
-};
+use crate::{collection::FastHashMap, symbol::Ident};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum PartialStructuralEdge {

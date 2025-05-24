@@ -972,10 +972,10 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
 
     fn solve_selection_constraints(
         &mut self,
-        constraints: &mut Vec<Constraint<'heap>>,
+        substitution: Substitution,
         selections: &mut Vec<SelectionConstraint<'heap>>,
     ) -> bool {
-        // TODO: install substitutions
+        self.lattice.set_substitution(substitution);
 
         let mut made_progress = false;
         // Solve selection constraints, we do this by iterating over the selection constraints, and
@@ -995,12 +995,14 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                         Projection::Pending => {
                             // The projection is pending, we need to wait for it to be resolved.
                             // We add the constraint back to the list of constraints to be solved.
-                            constraints.push(Constraint::Selection(selection));
+                            self.constraints.push(Constraint::Selection(selection));
                             continue;
                         }
                         Projection::Error => {
-                            // The projection has failed, simply continue as the error has already
-                            // been reported.
+                            // While an error has occurred, we add the constraint back to the list,
+                            // so that another iteration can attempt to resolve it (it will fail).
+                            // This way we'll persist the error throughout fix-point iteration.
+                            self.constraints.push(Constraint::Selection(selection));
                             continue;
                         }
                         Projection::Resolved(field) => field,
@@ -1017,7 +1019,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                         }
                         None => {
                             // discharge equality constraint between the field and the output type
-                            constraints.push(Constraint::Equals {
+                            self.constraints.push(Constraint::Equals {
                                 variable: output,
                                 r#type: field.id,
                             });
@@ -1033,6 +1035,8 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                 }
             }
         }
+
+        self.lattice.clear_substitution();
 
         made_progress
     }
@@ -1085,10 +1089,12 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         // Ensure that we run at least once, this is required, so that `verify_constrained` can
         // be called, and a diagnostic can be issued.
         let mut force_validation_pass = true;
+        let mut made_progress = true;
 
         // Step 2: Fix-point iteration - continue solving until no new constraints are generated
-        while force_validation_pass || !self.constraints.is_empty() {
+        while force_validation_pass || (!self.constraints.is_empty() && made_progress) {
             force_validation_pass = false;
+            made_progress = false;
 
             // Clear the diagnostics this round, so that they do not pollute the next round
             self.diagnostics.clear();
@@ -1115,7 +1121,12 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
 
             self.constraints.clear();
 
-            // TODO: any deferred constraints here
+            if !selections.is_empty() {
+                // By making this conditional it means that we can save on the clone if not
+                // required.
+                let substitution = Substitution::new(lookup.clone(), substitution.clone());
+                made_progress = self.solve_selection_constraints(substitution, &mut selections);
+            }
 
             // Reset the bump allocator for the next iteration to avoid memory growth
             bump.reset();
