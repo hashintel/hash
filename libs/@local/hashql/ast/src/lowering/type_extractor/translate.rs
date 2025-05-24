@@ -201,7 +201,7 @@ pub(crate) trait LocalVariableResolver<'heap> {
     type GenericArgument: Into<GenericArgumentReference<'heap>> + Copy;
 
     fn find_by_ident(&self, ident: Ident<'heap>) -> Option<(TypeId, &[Self::GenericArgument])>;
-    fn names(&self) -> impl IntoIterator<Item = Symbol<'heap>>;
+    fn names(&self) -> impl IntoIterator<Item = Symbol<'heap>> + Clone;
 }
 
 impl<'heap> LocalVariableResolver<'heap> for FastHashMap<Symbol<'heap>, LocalVariable<'_, 'heap>> {
@@ -213,7 +213,7 @@ impl<'heap> LocalVariableResolver<'heap> for FastHashMap<Symbol<'heap>, LocalVar
         Some((variable.id.value(), &variable.arguments.value))
     }
 
-    fn names(&self) -> impl IntoIterator<Item = Symbol<'heap>> {
+    fn names(&self) -> impl IntoIterator<Item = Symbol<'heap>> + Clone {
         self.keys().copied()
     }
 }
@@ -227,7 +227,7 @@ impl<'heap> LocalVariableResolver<'heap> for TypeLocals<'heap> {
         Some((def.value.id, &def.value.arguments))
     }
 
-    fn names(&self) -> impl IntoIterator<Item = Symbol<'heap>> {
+    fn names(&self) -> impl IntoIterator<Item = Symbol<'heap>> + Clone {
         self.names()
     }
 }
@@ -456,6 +456,7 @@ where
             _ => {
                 self.diagnostics.push(unknown_intrinsic_type(
                     span,
+                    self.env.heap,
                     name,
                     &["::kernel::type::List", "::kernel::type::Dict"],
                 ));

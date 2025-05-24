@@ -10,7 +10,9 @@ use hashql_core::{
         ModuleRegistry, Universe,
         error::{ResolutionError, ResolutionSuggestion},
         import::Import,
+        item::Item,
     },
+    similarity::did_you_mean,
     span::SpanId,
     symbol::{Ident, Symbol},
 };
@@ -23,7 +25,6 @@ use hashql_diagnostics::{
     note::Note,
     severity::Severity,
 };
-use strsim::jaro_winkler;
 
 use crate::node::path::Path;
 
@@ -184,57 +185,47 @@ pub(crate) fn generic_arguments_in_module(
     diagnostic
 }
 
-/// Format suggestions for display in diagnostics
-fn format_suggestions<T>(
-    suggestions: &mut [ResolutionSuggestion<T>],
-    mut render: impl for<'a> FnMut(&'a T) -> Cow<'a, str>,
+fn format_suggestions<'heap, T>(
+    name: Symbol<'heap>,
+    suggestions: &[ResolutionSuggestion<'heap, T>],
 ) -> Option<String> {
     if suggestions.is_empty() {
         return None;
     }
 
-    // Sort by score (descending)
-    suggestions.sort_by(
-        |ResolutionSuggestion { score: lhs, .. }, ResolutionSuggestion { score: rhs, .. }| {
-            rhs.total_cmp(lhs)
-        },
+    let max_suggestions = match suggestions.len() {
+        0 => return None,
+        1..=3 => suggestions.len(),
+        4..=8 => 4,
+        _ => 5,
+    };
+
+    let good_suggestions = did_you_mean(
+        name,
+        suggestions
+            .iter()
+            .map(|ResolutionSuggestion { name, .. }| *name),
+        Some(max_suggestions),
+        None,
     );
 
-    // Good suggestions have a score above 0.7
-    let good_suggestions_len =
-        suggestions.partition_point(|&ResolutionSuggestion { score, .. }| score > 0.7);
-
-    if good_suggestions_len == 0 {
-        // Fall back to taking the top 3 suggestions regardless of score, these are never empty, due
-        // to the check above
-        let suggestion: String = suggestions
-            .iter()
-            .take(3)
-            .map(|suggestion| render(&suggestion.item))
-            .intersperse(Cow::Borrowed("`, `"))
-            .collect();
-
-        let remaining = suggestions.len().saturating_sub(3);
-        let suffix = match remaining {
-            0 => String::new(),
-            1 => format!(" and `{}`", render(&suggestions[3].item)),
-            _ => format!(" and {remaining} others"),
-        };
-
-        return Some(format!(
-            "\n\nPossible alternatives are `{suggestion}`{suffix}."
-        ));
+    if good_suggestions.is_empty() {
+        return None;
     }
 
-    // Format the good suggestions with markdown-style backticks
-    let suggestion: String = suggestions
-        .iter()
-        .take_while(|&&ResolutionSuggestion { score, .. }| score > 0.7)
-        .map(|suggestion| render(&suggestion.item))
-        .intersperse(Cow::Borrowed("`, `"))
-        .collect();
+    let mut result = String::from("\n\nDid you mean:");
+    for suggestion in &good_suggestions {
+        write!(result, "\n  - {suggestion}").unwrap_or_else(|_err| unreachable!());
+    }
 
-    Some(format!("\n\nDid you mean: `{suggestion}`?"))
+    let remaining_count = suggestions.len().saturating_sub(good_suggestions.len());
+    match remaining_count {
+        0 => {}
+        1 => result.push_str("\n(1 more available)"),
+        n => write!(result, "\n({n} more available)").unwrap_or_else(|_err| unreachable!()),
+    }
+
+    Some(result)
 }
 
 struct FormatPath<'a, 'heap>(bool, &'a [(SpanId, Symbol<'heap>)], Option<usize>);
@@ -261,7 +252,6 @@ impl Display for FormatPath<'_, '_> {
     }
 }
 
-#[expect(clippy::too_many_lines)]
 pub(crate) fn unresolved_variable<'heap>(
     registry: &ModuleRegistry<'heap>,
     universe: Universe,
@@ -283,125 +273,10 @@ pub(crate) fn unresolved_variable<'heap>(
         .with_color(Color::Ansi(AnsiColor::Red)),
     );
 
-    // Remove any suggestions that are already in the locals set
-    suggestions.retain(|suggestion| !locals.contains(&suggestion.item.name));
-    let import_suggestions: FastHashSet<_> = suggestions
-        .iter()
-        .map(|suggestion| suggestion.item.name)
-        .collect();
+    // Filter out suggestions that are already available locally
+    suggestions.retain(|suggestion| !locals.contains(&suggestion.name));
 
-    // Find similar local variables
-    let mut local_suggestions: Vec<_> = locals
-        .into_iter()
-        .filter_map(|&local| {
-            let score = jaro_winkler(ident.value.as_str(), local.as_str());
-            // Only include suggestions with a reasonably high similarity
-            (score > 0.7).then_some((local, score))
-        })
-        .collect();
-
-    // Sort by similarity score (highest first)
-    local_suggestions.sort_unstable_by(|&(_, lhs), &(_, rhs)| rhs.total_cmp(&lhs));
-
-    let mut help = format!("The name '{}' doesn't exist in this scope.", ident.value);
-
-    // Local variable suggestions section
-    if !local_suggestions.is_empty() {
-        help.push_str("\n\nDid you mean one of these local variables?\n");
-
-        for (local, _) in local_suggestions.iter().take(3) {
-            let _: fmt::Result = writeln!(help, "  - `{local}`");
-        }
-
-        if local_suggestions.len() > 3 {
-            let remaining = local_suggestions.len() - 3;
-            let _: fmt::Result = writeln!(help, "  - and {remaining} more similar variables");
-        }
-    }
-
-    // Imported item suggestions section
-    if !suggestions.is_empty() {
-        // Add a connector if we've already shown local suggestions
-        if local_suggestions.is_empty() {
-            help.push_str("\n\nPerhaps you meant ");
-        } else {
-            help.push_str("\nOr perhaps you meant ");
-        }
-
-        help.push_str("one of these imported items?\n");
-
-        // Sort and filter imported item suggestions by score
-        suggestions.sort_by(|lhs, rhs| rhs.score.total_cmp(&lhs.score));
-        let good_suggestions: Vec<_> = suggestions
-            .iter()
-            .filter(|suggestion| suggestion.score > 0.7)
-            .take(3)
-            .collect();
-
-        if good_suggestions.is_empty() {
-            // Fall back to showing any suggestions if none have high similarity
-            for suggestion in suggestions.iter().take(3) {
-                let _: fmt::Result = writeln!(help, "  - `{}`", suggestion.item.name);
-            }
-
-            if suggestions.len() > 3 {
-                let remaining = suggestions.len() - 3;
-                let _: fmt::Result = writeln!(help, "  - and {remaining} more imported items");
-            }
-        } else {
-            for suggestion in &good_suggestions {
-                let _: fmt::Result = writeln!(help, "  - `{}`", suggestion.item.name);
-            }
-        }
-    }
-
-    // Check if there are any importable items by the same name (that aren't already imported)
-    let importable: Vec<_> = registry
-        .search_by_name(ident.value, universe)
-        .into_iter()
-        .filter(|item| !locals.contains(&item.name) && !import_suggestions.contains(&item.name))
-        .collect();
-
-    if !importable.is_empty() {
-        help.push_str("\nAdditionally, items with a similar name exist in other modules:\n");
-
-        // Display up to 3 importable items with their full paths
-        for item in importable.iter().take(3) {
-            let absolute_path: String = iter::once("") // Start with an empty string for leading "::"
-                .chain(item.absolute_path(registry).map(|symbol| symbol.unwrap()))
-                .intersperse("::")
-                .collect();
-
-            let _: fmt::Result = writeln!(help, "  - `{absolute_path}`");
-        }
-
-        if importable.len() > 3 {
-            let remaining = importable.len() - 3;
-            let _: fmt::Result =
-                writeln!(help, "  - and {remaining} more items available for import");
-        }
-    }
-
-    // Suggest how to use the first (best) match from the importable items
-    if let Some(item) = importable.first() {
-        let absolute_path: String = iter::once("")
-            .chain(item.absolute_path(registry).map(|symbol| symbol.unwrap()))
-            .intersperse("::")
-            .collect();
-
-        help.push_str("\nTo use an item like ");
-        let _: fmt::Result = write!(help, "`{absolute_path}`");
-        help.push_str(", you can either:\n");
-
-        // Option 1: Import statement
-        help.push_str("1. Add an import at the beginning of your file:\n");
-        let _: fmt::Result = writeln!(help, "     use {absolute_path} in");
-
-        // Option 2: Fully qualified path
-        help.push_str("2. Use its fully qualified path directly in your code:\n");
-        let _: fmt::Result = writeln!(help, "     {absolute_path}");
-    }
-
+    let help = build_unresolved_variable_help(registry, universe, ident, locals, &suggestions);
     diagnostic.add_help(Help::new(help));
 
     diagnostic.add_note(Note::new(
@@ -413,13 +288,153 @@ pub(crate) fn unresolved_variable<'heap>(
     diagnostic
 }
 
+fn build_unresolved_variable_help<'heap>(
+    registry: &ModuleRegistry<'heap>,
+    universe: Universe,
+    ident: Ident<'heap>,
+    locals: &FastHashSet<Symbol<'heap>>,
+    suggestions: &[ResolutionSuggestion<Import<'heap>>],
+) -> String {
+    let mut help = format!("The name '{}' doesn't exist in this scope.", ident.value);
+
+    let has_locals = add_local_suggestions(&mut help, ident.value, locals);
+    let has_imports = add_import_suggestions(&mut help, ident.value, suggestions, has_locals);
+    add_available_imports(
+        &mut help,
+        registry,
+        universe,
+        ident,
+        locals,
+        suggestions,
+        has_locals || has_imports,
+    );
+
+    help
+}
+
+fn add_local_suggestions(
+    help: &mut String,
+    name: Symbol<'_>,
+    locals: &FastHashSet<Symbol<'_>>,
+) -> bool {
+    let local_suggestions = did_you_mean(name, locals, Some(5), None);
+    if local_suggestions.is_empty() {
+        return false;
+    }
+
+    help.push_str("\n\nDid you mean one of these local variables:");
+    for suggestion in &local_suggestions {
+        let _: fmt::Result = write!(help, "\n  - {suggestion}");
+    }
+
+    let remaining = locals.len().saturating_sub(local_suggestions.len());
+    if remaining > 0 {
+        let _: fmt::Result = write!(help, "\n  ({remaining} more available)");
+    }
+
+    true
+}
+
+fn add_import_suggestions(
+    help: &mut String,
+    name: Symbol<'_>,
+    suggestions: &[ResolutionSuggestion<Import<'_>>],
+    has_local_suggestions: bool,
+) -> bool {
+    if suggestions.is_empty() {
+        return false;
+    }
+
+    let good_suggestions = did_you_mean(
+        name,
+        suggestions.iter().map(|suggestion| suggestion.name),
+        Some(5),
+        None,
+    );
+
+    if good_suggestions.is_empty() {
+        return false;
+    }
+
+    if has_local_suggestions {
+        help.push_str("\n\nOr perhaps you meant one of these imported items:");
+    } else {
+        help.push_str("\n\nDid you mean one of these imported items:");
+    }
+    for suggestion in &good_suggestions {
+        let _: fmt::Result = write!(help, "\n  - {suggestion}");
+    }
+
+    let remaining = suggestions.len().saturating_sub(good_suggestions.len());
+    if remaining > 0 {
+        let _: fmt::Result = write!(help, "\n  ({remaining} more available)");
+    }
+
+    true
+}
+
+fn add_available_imports<'heap>(
+    help: &mut String,
+    registry: &ModuleRegistry<'heap>,
+    universe: Universe,
+    ident: Ident<'heap>,
+    locals: &FastHashSet<Symbol<'heap>>,
+    suggestions: &[ResolutionSuggestion<Import<'heap>>],
+    has_previous: bool,
+) {
+    let imported_names: FastHashSet<_> = suggestions
+        .iter()
+        .map(|suggestion| suggestion.name)
+        .collect();
+
+    let importable: Vec<_> = registry
+        .search_by_name(ident.value, universe)
+        .into_iter()
+        .filter(|item| !locals.contains(&item.name) && !imported_names.contains(&item.name))
+        .collect();
+
+    if importable.is_empty() {
+        return;
+    }
+
+    if has_previous {
+        help.push_str("\n\nAdditionally, items with a similar name exist in other modules:");
+    } else {
+        help.push_str("\n\nItems with a similar name exist in other modules:");
+    }
+
+    for item in importable.iter().take(5) {
+        let absolute_path = format_absolute_path(item, registry);
+        let _: fmt::Result = write!(help, "\n  - {absolute_path}");
+    }
+
+    if importable.len() > 5 {
+        let remaining = importable.len() - 5;
+        let _: fmt::Result = write!(help, "\n  ({remaining} more available)");
+    }
+
+    // Show usage example for the first item
+    if let Some(item) = importable.first() {
+        let absolute_path = format_absolute_path(item, registry);
+        help.push_str("\n\nTo use an item, you can either:");
+        let _: fmt::Result = write!(help, "\n  1. Import it: use {absolute_path} in");
+        let _: fmt::Result = write!(help, "\n  2. Use fully qualified path: {absolute_path}");
+    }
+}
+
+fn format_absolute_path<'heap>(item: &Item<'heap>, registry: &ModuleRegistry<'heap>) -> String {
+    iter::once("")
+        .chain(item.absolute_path(registry).map(|symbol| symbol.unwrap()))
+        .intersperse("::")
+        .collect()
+}
+
 #[expect(clippy::too_many_lines)]
 pub(crate) fn from_resolution_error<'heap>(
     use_span: Option<SpanId>,
-    registry: &ModuleRegistry<'heap>,
     path: &Path<'heap>,
     name: Option<(SpanId, Symbol<'heap>)>,
-    mut error: ResolutionError<'heap>,
+    error: ResolutionError<'heap>,
 ) -> ImportResolverDiagnostic {
     let mut diagnostic = Diagnostic::new(
         ImportResolverDiagnosticCategory::UnresolvedImport,
@@ -433,8 +448,8 @@ pub(crate) fn from_resolution_error<'heap>(
         .chain(name)
         .collect();
 
-    match &mut error {
-        &mut ResolutionError::InvalidQueryLength { expected } => {
+    match error {
+        ResolutionError::InvalidQueryLength { expected } => {
             diagnostic.labels.push(
                 // Primary label highlighting the problematic path
                 Label::new(path.span, "Expected more path segments")
@@ -462,7 +477,7 @@ pub(crate) fn from_resolution_error<'heap>(
             ));
         }
 
-        &mut ResolutionError::ModuleRequired { depth, found } => {
+        ResolutionError::ModuleRequired { depth, found } => {
             let (path_segment_span, _) = segments[depth];
 
             diagnostic.labels.extend([
@@ -499,8 +514,11 @@ pub(crate) fn from_resolution_error<'heap>(
             ));
         }
 
-        ResolutionError::PackageNotFound { depth, suggestions } => {
-            let depth = *depth;
+        ResolutionError::PackageNotFound {
+            depth,
+            name,
+            suggestions,
+        } => {
             let (package_span, package_name) = segments[depth];
 
             diagnostic.labels.push(
@@ -523,9 +541,7 @@ pub(crate) fn from_resolution_error<'heap>(
                             installed."
                 .to_owned();
 
-            if let Some(suggestion) = format_suggestions(suggestions, |&module| {
-                Cow::Owned(registry.modules.index(module).name.as_str().to_owned())
-            }) {
+            if let Some(suggestion) = format_suggestions(name, &suggestions) {
                 help.push_str(&suggestion);
             }
 
@@ -537,8 +553,11 @@ pub(crate) fn from_resolution_error<'heap>(
             ));
         }
 
-        ResolutionError::ImportNotFound { depth, suggestions } => {
-            let depth = *depth;
+        ResolutionError::ImportNotFound {
+            depth,
+            name,
+            suggestions,
+        } => {
             let (import_span, import_name) = segments[depth];
 
             diagnostic.labels.push(
@@ -564,9 +583,7 @@ pub(crate) fn from_resolution_error<'heap>(
                  is spelled correctly."
             );
 
-            if let Some(suggestion) =
-                format_suggestions(suggestions, |import| Cow::Borrowed(import.name.as_str()))
-            {
+            if let Some(suggestion) = format_suggestions(name, &suggestions) {
                 help.push_str(&suggestion);
             }
 
@@ -578,8 +595,11 @@ pub(crate) fn from_resolution_error<'heap>(
             ));
         }
 
-        ResolutionError::ModuleNotFound { depth, suggestions } => {
-            let depth = *depth;
+        ResolutionError::ModuleNotFound {
+            depth,
+            name,
+            suggestions,
+        } => {
             let (module_span, module_name) = segments[depth];
 
             diagnostic.labels.extend([
@@ -598,9 +618,7 @@ pub(crate) fn from_resolution_error<'heap>(
                 FormatPath(path.rooted, &segments, Some(depth))
             );
 
-            if let Some(suggestion) =
-                format_suggestions(suggestions, |item| Cow::Borrowed(item.name.as_str()))
-            {
+            if let Some(suggestion) = format_suggestions(name, &suggestions) {
                 help.push_str(&suggestion);
             }
 
@@ -612,8 +630,11 @@ pub(crate) fn from_resolution_error<'heap>(
             ));
         }
 
-        ResolutionError::ItemNotFound { depth, suggestions } => {
-            let depth = *depth;
+        ResolutionError::ItemNotFound {
+            depth,
+            name,
+            suggestions,
+        } => {
             let (item_span, item_name) = segments[depth];
 
             let label_text = if depth == 0 {
@@ -651,9 +672,7 @@ pub(crate) fn from_resolution_error<'heap>(
                             this context."
                 .to_owned();
 
-            if let Some(suggestion) =
-                format_suggestions(suggestions, |item| Cow::Borrowed(item.name.as_str()))
-            {
+            if let Some(suggestion) = format_suggestions(name, &suggestions) {
                 help.push_str(&suggestion);
             }
 
@@ -699,7 +718,7 @@ pub(crate) fn from_resolution_error<'heap>(
             ));
         }
 
-        &mut ResolutionError::ModuleEmpty { depth } => {
+        ResolutionError::ModuleEmpty { depth } => {
             let (module_span, _) = segments[depth];
 
             diagnostic.labels.extend([

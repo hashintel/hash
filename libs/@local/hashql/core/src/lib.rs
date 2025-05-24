@@ -6,6 +6,7 @@
     // Library Features
     allocator_api,
     assert_matches,
+    binary_heap_into_iter_sorted,
     cold_path,
     default_field_values,
     iter_map_windows,
@@ -28,6 +29,7 @@ pub mod literal;
 pub mod math;
 pub mod module;
 pub mod pretty;
+pub mod similarity;
 pub mod span;
 pub mod symbol;
 pub mod r#type;

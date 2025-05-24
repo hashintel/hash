@@ -73,6 +73,13 @@ impl<'heap> Symbol<'heap> {
     }
 }
 
+impl AsRef<Self> for Symbol<'_> {
+    #[inline]
+    fn as_ref(&self) -> &Self {
+        self
+    }
+}
+
 impl PartialEq for Symbol<'_> {
     fn eq(&self, other: &Self) -> bool {
         // Pointer equality implies string equality (due to the unique contents assumption)

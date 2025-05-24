@@ -1,12 +1,13 @@
 use super::{ModuleId, Universe, import::Import, item::Item};
+use crate::symbol::Symbol;
 
-#[derive(Debug, Copy, Clone, PartialEq)]
-pub struct ResolutionSuggestion<T> {
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct ResolutionSuggestion<'heap, T> {
     pub item: T,
-    pub score: f64,
+    pub name: Symbol<'heap>,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ResolutionError<'heap> {
     InvalidQueryLength {
         expected: usize,
@@ -18,21 +19,25 @@ pub enum ResolutionError<'heap> {
 
     PackageNotFound {
         depth: usize,
-        suggestions: Vec<ResolutionSuggestion<ModuleId>>,
+        name: Symbol<'heap>,
+        suggestions: Vec<ResolutionSuggestion<'heap, ModuleId>>,
     },
     ImportNotFound {
         depth: usize,
-        suggestions: Vec<ResolutionSuggestion<Import<'heap>>>,
+        name: Symbol<'heap>,
+        suggestions: Vec<ResolutionSuggestion<'heap, Import<'heap>>>,
     },
 
     ModuleNotFound {
         depth: usize,
-        suggestions: Vec<ResolutionSuggestion<Item<'heap>>>,
+        name: Symbol<'heap>,
+        suggestions: Vec<ResolutionSuggestion<'heap, Item<'heap>>>,
     },
 
     ItemNotFound {
         depth: usize,
-        suggestions: Vec<ResolutionSuggestion<Item<'heap>>>,
+        name: Symbol<'heap>,
+        suggestions: Vec<ResolutionSuggestion<'heap, Item<'heap>>>,
     },
 
     Ambiguous(Item<'heap>),

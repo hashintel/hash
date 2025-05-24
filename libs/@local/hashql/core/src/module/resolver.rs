@@ -1,7 +1,5 @@
 use core::{fmt::Debug, iter};
 
-use strsim::jaro_winkler;
-
 use super::{
     Module, ModuleRegistry, Universe,
     error::{ResolutionError, ResolutionSuggestion},
@@ -56,8 +54,8 @@ pub(crate) struct Resolver<'env, 'heap> {
 impl<'heap> Resolver<'_, 'heap> {
     fn suggest<T>(
         &self,
-        call: impl FnOnce() -> Vec<ResolutionSuggestion<T>>,
-    ) -> Vec<ResolutionSuggestion<T>> {
+        call: impl FnOnce() -> Vec<ResolutionSuggestion<'heap, T>>,
+    ) -> Vec<ResolutionSuggestion<'heap, T>> {
         if self.options.suggestions {
             call()
         } else {
@@ -81,9 +79,9 @@ impl<'heap> Resolver<'_, 'heap> {
         let Some(item) = item else {
             return Err(ResolutionError::ItemNotFound {
                 depth,
-                suggestions: self.suggest(|| {
-                    module.suggestions(name, |item| item.kind.universe() == Some(universe))
-                }),
+                name,
+                suggestions: self
+                    .suggest(|| module.suggestions(|item| item.kind.universe() == Some(universe))),
             });
         };
 
@@ -107,7 +105,8 @@ impl<'heap> Resolver<'_, 'heap> {
         if item.peek().is_none() {
             return Err(ResolutionError::ItemNotFound {
                 depth,
-                suggestions: self.suggest(|| module.suggestions(name, |_| true)),
+                name,
+                suggestions: self.suggest(|| module.suggestions(|_| true)),
             });
         }
 
@@ -133,8 +132,9 @@ impl<'heap> Resolver<'_, 'heap> {
         let Some(module) = candidate else {
             return Err(ResolutionError::ModuleNotFound {
                 depth,
+                name,
                 suggestions: self.suggest(|| {
-                    module.suggestions(name, |item| matches!(item.kind, ItemKind::Module(_)))
+                    module.suggestions(|item| matches!(item.kind, ItemKind::Module(_)))
                 }),
             });
         };
@@ -183,8 +183,9 @@ impl<'heap> Resolver<'_, 'heap> {
             let Some(&item) = module.items.iter().find(|item| item.name == name) else {
                 return Err(ResolutionError::ModuleNotFound {
                     depth,
+                    name,
                     suggestions: self.suggest(|| {
-                        module.suggestions(name, |item| matches!(item.kind, ItemKind::Module(_)))
+                        module.suggestions(|item| matches!(item.kind, ItemKind::Module(_)))
                     }),
                 });
             };
@@ -226,7 +227,8 @@ impl<'heap> Resolver<'_, 'heap> {
         let Some(module) = self.registry.find_by_name(name) else {
             return Err(ResolutionError::PackageNotFound {
                 depth: 0,
-                suggestions: self.suggest(|| self.registry.suggestions(name)),
+                name,
+                suggestions: self.suggest(|| self.registry.suggestions()),
             });
         };
 
@@ -247,16 +249,14 @@ impl<'heap> Resolver<'_, 'heap> {
         let Some(import) = import else {
             return Err(ResolutionError::ImportNotFound {
                 depth: 0,
+                name,
                 suggestions: self.suggest(|| {
                     imports
                         .iter()
                         .filter(|import| import.item.kind.universe() == Some(universe))
-                        .map(|&import| {
-                            let score = jaro_winkler(import.name.as_str(), name.as_str());
-                            ResolutionSuggestion {
-                                item: import,
-                                score,
-                            }
+                        .map(|&import| ResolutionSuggestion {
+                            item: import,
+                            name: import.name,
                         })
                         .collect()
                 }),
@@ -292,15 +292,13 @@ impl<'heap> Resolver<'_, 'heap> {
         if value.is_none() && r#type.is_none() && module.is_none() {
             return Err(ResolutionError::ImportNotFound {
                 depth: 0,
+                name,
                 suggestions: self.suggest(|| {
                     imports
                         .iter()
-                        .map(|&import| {
-                            let score = jaro_winkler(import.name.as_str(), name.as_str());
-                            ResolutionSuggestion {
-                                item: import,
-                                score,
-                            }
+                        .map(|&import| ResolutionSuggestion {
+                            item: import,
+                            name: import.name,
                         })
                         .collect()
                 }),
@@ -370,6 +368,7 @@ impl<'heap> Resolver<'_, 'heap> {
             let Some(module) = module else {
                 return Err(ResolutionError::ModuleNotFound {
                     depth: 0,
+                    name,
                     suggestions: self.suggest(|| {
                         // take every unique name from the imports (that are modules)
                         let mut names: Vec<_> = imports
@@ -377,14 +376,12 @@ impl<'heap> Resolver<'_, 'heap> {
                             .filter(|import| matches!(import.item.kind, ItemKind::Module(_)))
                             .map(|import| ResolutionSuggestion {
                                 item: import.item,
-                                score: jaro_winkler(import.item.name.as_str(), name.as_str()),
+                                name: import.name,
                             })
                             .collect();
 
-                        names.sort_unstable_by_key(|ResolutionSuggestion { item, score: _ }| {
-                            item.name
-                        });
-                        names.dedup_by_key(|ResolutionSuggestion { item, score: _ }| item.name);
+                        names.sort_unstable_by_key(|ResolutionSuggestion { item: _, name }| *name);
+                        names.dedup_by_key(|ResolutionSuggestion { item: _, name }| *name);
 
                         names
                     }),
@@ -505,7 +502,7 @@ mod test {
             ])
             .expect_err("Resolution should fail for non-existent item");
 
-        assert_matches!(error, ResolutionError::ItemNotFound { depth: 2, suggestions } if suggestions.is_empty());
+        assert_matches!(error, ResolutionError::ItemNotFound { depth: 2, name: _, suggestions } if suggestions.is_empty());
     }
 
     #[test]
@@ -648,7 +645,7 @@ mod test {
             ])
             .expect_err("Resolution should fail for non-existent module");
 
-        assert_matches!(error, ResolutionError::ModuleNotFound { depth: 1, suggestions } if suggestions.is_empty());
+        assert_matches!(error, ResolutionError::ModuleNotFound { depth: 1, name: _, suggestions } if suggestions.is_empty());
     }
 
     #[test]
@@ -717,7 +714,7 @@ mod test {
             .resolve_absolute([heap.intern_symbol("nonexistent_package")])
             .expect_err("Resolution should fail for non-existent package");
 
-        assert_matches!(error, ResolutionError::PackageNotFound { depth: 0, suggestions } if suggestions.is_empty());
+        assert_matches!(error, ResolutionError::PackageNotFound { depth: 0, name: _, suggestions } if suggestions.is_empty());
     }
 
     #[test]
@@ -805,7 +802,7 @@ mod test {
             ])
             .expect_err("Resolution should fail for non-existent module");
 
-        assert_matches!(error, ResolutionError::ModuleNotFound { depth: 1, suggestions } if suggestions.is_empty());
+        assert_matches!(error, ResolutionError::ModuleNotFound { depth: 1, name: _, suggestions } if suggestions.is_empty());
     }
 
     #[test]
@@ -963,7 +960,7 @@ mod test {
             )
             .expect_err("Resolution should fail for non-existent module");
 
-        assert_matches!(error, ResolutionError::ModuleNotFound { depth: 1, suggestions } if suggestions.is_empty());
+        assert_matches!(error, ResolutionError::ModuleNotFound { depth: 1, name: _, suggestions } if suggestions.is_empty());
     }
 
     #[test]

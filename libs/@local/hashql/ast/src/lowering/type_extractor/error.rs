@@ -2,7 +2,9 @@ use alloc::borrow::Cow;
 use core::cmp::Ordering;
 
 use hashql_core::{
+    heap::Heap,
     module::{Universe, error::ResolutionError, item::ItemKind},
+    similarity::did_you_mean,
     span::SpanId,
     symbol::Symbol,
     r#type::{error::TypeCheckDiagnosticCategory, kind::generic::GenericArgumentReference},
@@ -16,7 +18,6 @@ use hashql_diagnostics::{
     note::Note,
     severity::Severity,
 };
-use strsim::jaro_winkler;
 
 use super::translate::VariableReference;
 use crate::node::path::{Path, PathSegmentArgument};
@@ -361,7 +362,7 @@ where
 pub(crate) fn unbound_type_variable<'heap>(
     span: SpanId,
     name: Symbol<'heap>,
-    locals: impl IntoIterator<Item = Symbol<'heap>>,
+    locals: impl IntoIterator<Item = Symbol<'heap>> + Clone,
 ) -> TypeExtractorDiagnostic {
     let mut diagnostic = Diagnostic::new(
         TypeExtractorDiagnosticCategory::UnboundTypeVariable,
@@ -373,15 +374,11 @@ pub(crate) fn unbound_type_variable<'heap>(
             .with_color(Color::Ansi(AnsiColor::Red)),
     );
 
-    let suggestions: Vec<_> = locals
-        .into_iter()
-        .filter(|local| jaro_winkler(local.as_str(), name.as_str()) > 0.7)
-        .collect();
+    let suggestions = did_you_mean(name, locals, Some(3), None);
 
     if !suggestions.is_empty() {
         let suggestions: String = suggestions
             .iter()
-            .take(3)
             .map(demangle)
             .intersperse("`, `")
             .collect();
@@ -480,6 +477,7 @@ pub(crate) fn intrinsic_parameter_count_mismatch(
 #[coverage(off)] // Compiler Bugs should never be hit
 pub(crate) fn unknown_intrinsic_type(
     span: SpanId,
+    heap: &Heap,
     name: &str,
     available: &[&str],
 ) -> TypeExtractorDiagnostic {
@@ -493,12 +491,12 @@ pub(crate) fn unknown_intrinsic_type(
             .with_color(Color::Ansi(AnsiColor::Red)),
     );
 
-    let similar: Vec<_> = available
-        .iter()
-        .copied()
-        .filter(|intrinsic| jaro_winkler(intrinsic, name) > 0.7)
-        .take(3)
-        .collect();
+    let similar = did_you_mean(
+        heap.intern_symbol(name),
+        available.iter().map(|name| heap.intern_symbol(name)),
+        Some(3),
+        None,
+    );
 
     if similar.is_empty() {
         // Provide helpful guidance even without close matches
@@ -508,7 +506,7 @@ pub(crate) fn unknown_intrinsic_type(
              trying to use.",
         ));
     } else {
-        let suggestions: String = similar.into_iter().intersperse("`, `").collect();
+        let suggestions: String = similar.join("`, `");
 
         diagnostic.add_help(Help::new(format!("Did you mean `{suggestions}`?")));
     }

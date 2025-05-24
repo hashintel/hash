@@ -129,7 +129,7 @@ impl<'heap, T> Locals<'heap, T> {
     }
 
     #[must_use]
-    pub fn names(&self) -> impl IntoIterator<Item = Symbol<'heap>> + use<'_, 'heap, T> {
+    pub fn names(&self) -> impl IntoIterator<Item = Symbol<'heap>> + Clone + use<'_, 'heap, T> {
         self.lookup.keys().copied()
     }
 

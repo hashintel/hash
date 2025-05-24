@@ -1,7 +1,7 @@
 use alloc::borrow::Cow;
 use core::fmt::{self, Display};
 
-use hashql_core::span::SpanId;
+use hashql_core::{similarity::did_you_mean, span::SpanId};
 use hashql_diagnostics::{
     Diagnostic,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
@@ -10,7 +10,6 @@ use hashql_diagnostics::{
     note::Note,
     severity::Severity,
 };
-use strsim::jaro_winkler;
 
 use super::SpecialFormKind;
 use crate::node::{
@@ -226,7 +225,7 @@ pub(crate) fn unknown_special_form_name(
         Severity::Error,
     );
 
-    let function_name = &path.segments[2].name.value;
+    let function_name = path.segments[2].name.value;
     let function_span = path.segments[2].name.span;
 
     diagnostic.labels.push(Label::new(
@@ -238,17 +237,18 @@ pub(crate) fn unknown_special_form_name(
         .labels
         .push(Label::new(span, "This special form path is invalid").with_order(1));
 
-    let closest_match = enum_iterator::all::<SpecialFormKind>()
-        .map(|kind| (kind, jaro_winkler(function_name.as_str(), kind.as_str())))
-        .max_by(|&(_, lhs), &(_, rhs)| lhs.total_cmp(&rhs));
+    let mut closest_match = did_you_mean(
+        function_name,
+        enum_iterator::all::<SpecialFormKind>()
+            .map(|kind| path.segments.allocator().intern_symbol(kind.as_str())),
+        Some(1),
+        None,
+    );
 
-    let help = if let Some((kind, distance)) = closest_match
-        && distance > 0.7
-    {
-        Cow::Owned(format!("Did you mean to use '{kind}' instead?"))
-    } else {
-        Cow::Borrowed("Special forms must use one of the predefined names shown in the note below")
-    };
+    let help = closest_match.pop().map_or(
+        Cow::Borrowed("Special forms must use one of the predefined names shown in the note below"),
+        |kind| Cow::Owned(format!("Did you mean to use '{kind}' instead?")),
+    );
 
     diagnostic.add_help(Help::new(help));
 

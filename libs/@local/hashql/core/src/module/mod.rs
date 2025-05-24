@@ -15,8 +15,6 @@ pub mod universe;
 use core::slice;
 use std::sync::RwLock;
 
-use strsim::jaro_winkler;
-
 pub use self::universe::Universe;
 use self::{
     error::{ResolutionError, ResolutionSuggestion},
@@ -151,15 +149,14 @@ impl<'heap> ModuleRegistry<'heap> {
     }
 
     /// Finds suggestions for the given name in the root namespace.
-    fn suggestions(&self, name: Symbol<'heap>) -> Vec<ResolutionSuggestion<ModuleId>> {
+    fn suggestions(&self) -> Vec<ResolutionSuggestion<'heap, ModuleId>> {
         let root = self.root.read().expect("lock should not be poisoned");
 
         let mut results = Vec::with_capacity(root.len());
         for (&key, &module) in &*root {
-            let score = jaro_winkler(key.as_str(), name.as_str());
             results.push(ResolutionSuggestion {
                 item: module,
-                score,
+                name: key,
             });
         }
         drop(root);
@@ -306,9 +303,8 @@ pub struct Module<'heap> {
 impl<'heap> Module<'heap> {
     fn suggestions(
         &self,
-        name: Symbol<'heap>,
         mut select: impl FnMut(&Item<'heap>) -> bool,
-    ) -> Vec<ResolutionSuggestion<Item<'heap>>> {
+    ) -> Vec<ResolutionSuggestion<'heap, Item<'heap>>> {
         let mut similarities = Vec::with_capacity(self.items.len());
 
         for &item in self.items {
@@ -316,8 +312,10 @@ impl<'heap> Module<'heap> {
                 continue;
             }
 
-            let score = jaro_winkler(item.name.as_str(), name.as_str());
-            similarities.push(ResolutionSuggestion { item, score });
+            similarities.push(ResolutionSuggestion {
+                item,
+                name: item.name,
+            });
         }
 
         similarities
