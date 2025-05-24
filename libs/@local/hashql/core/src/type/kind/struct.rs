@@ -9,7 +9,7 @@ use crate::{
     intern::Interned,
     math::cartesian_product,
     pretty::{PrettyPrint, PrettyRecursionBoundary},
-    symbol::Symbol,
+    symbol::{Ident, Symbol},
     r#type::{
         PartialType, Type, TypeId,
         environment::{
@@ -265,14 +265,14 @@ impl<'heap> Lattice<'heap> for StructType<'heap> {
 
     fn projection(
         self: Type<'heap, Self>,
-        field: Symbol<'heap>,
+        field: Ident<'heap>,
         env: &mut LatticeEnvironment<'_, 'heap>,
     ) -> Projection {
         if let Some(field) = self
             .kind
             .fields
             .iter()
-            .find(|struct_field| struct_field.name == field)
+            .find(|struct_field| struct_field.name == field.value)
         {
             return Projection::Resolved(field.value);
         }

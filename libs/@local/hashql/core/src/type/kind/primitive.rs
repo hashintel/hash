@@ -5,7 +5,7 @@ use smallvec::SmallVec;
 
 use crate::{
     pretty::{BLUE, PrettyPrint, PrettyRecursionBoundary},
-    symbol::Symbol,
+    symbol::{Ident, Symbol},
     r#type::{
         Type, TypeId,
         environment::{
@@ -67,7 +67,7 @@ impl<'heap> Lattice<'heap> for PrimitiveType {
 
     fn projection(
         self: Type<'heap, Self>,
-        field: Symbol<'heap>,
+        field: Ident<'heap>,
         env: &mut LatticeEnvironment<'_, 'heap>,
     ) -> Projection {
         todo!("diagnostic error: primitive type cannot be projected");

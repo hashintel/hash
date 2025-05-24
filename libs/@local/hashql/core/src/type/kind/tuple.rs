@@ -8,7 +8,7 @@ use crate::{
     intern::Interned,
     math::cartesian_product,
     pretty::{PrettyPrint, PrettyRecursionBoundary},
-    symbol::Symbol,
+    symbol::{Ident, Symbol},
     r#type::{
         PartialType, Type, TypeId,
         environment::{
@@ -115,12 +115,12 @@ impl<'heap> Lattice<'heap> for TupleType<'heap> {
 
     fn projection(
         self: Type<'heap, Self>,
-        field: Symbol<'heap>,
+        field: Ident<'heap>,
         env: &mut LatticeEnvironment<'_, 'heap>,
     ) -> Projection {
         // tuples can only be indexed by numbers, therefore check if the symbols is just made of
         // numbers
-        let Ok(index) = field.as_str().parse::<usize>() else {
+        let Ok(index) = field.value.as_str().parse::<usize>() else {
             todo!("diagnostic error: invalid index");
             return Projection::Error;
         };

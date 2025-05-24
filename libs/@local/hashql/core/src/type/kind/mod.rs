@@ -40,7 +40,7 @@ use super::{
 };
 use crate::{
     pretty::{CYAN, GRAY, PrettyPrint, PrettyRecursionBoundary},
-    symbol::Symbol,
+    symbol::{Ident, Symbol},
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -781,7 +781,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
 
     fn projection(
         self: Type<'heap, Self>,
-        field: Symbol<'heap>,
+        field: Ident<'heap>,
         env: &mut LatticeEnvironment<'_, 'heap>,
     ) -> Projection {
         match self.kind {

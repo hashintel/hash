@@ -6,7 +6,7 @@ use smallvec::SmallVec;
 use super::TypeKind;
 use crate::{
     pretty::{PrettyPrint, PrettyRecursionBoundary},
-    symbol::Symbol,
+    symbol::{Ident, Symbol},
     r#type::{
         PartialType, Type, TypeId,
         environment::{
@@ -184,7 +184,7 @@ impl<'heap> Lattice<'heap> for OpaqueType<'heap> {
 
     fn projection(
         self: Type<'heap, Self>,
-        field: Symbol<'heap>,
+        field: Ident<'heap>,
         env: &mut LatticeEnvironment<'_, 'heap>,
     ) -> Projection {
         env.projection(self.kind.repr, field)

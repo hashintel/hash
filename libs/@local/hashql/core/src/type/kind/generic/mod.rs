@@ -16,7 +16,7 @@ use crate::{
     newtype, newtype_producer,
     pretty::{ORANGE, PrettyPrint, PrettyRecursionBoundary},
     span::SpanId,
-    symbol::Symbol,
+    symbol::{Ident, Symbol},
     r#type::{
         PartialType, Type, TypeId,
         environment::{
@@ -294,7 +294,7 @@ impl<'heap> Lattice<'heap> for Generic<'heap> {
 
     fn projection(
         self: Type<'heap, Self>,
-        field: Symbol<'heap>,
+        field: Ident<'heap>,
         env: &mut LatticeEnvironment<'_, 'heap>,
     ) -> Projection {
         env.projection(self.kind.base, field)

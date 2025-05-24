@@ -5,7 +5,7 @@ use super::{
 use crate::{
     collection::{SmallVec, TinyVec},
     span::SpanId,
-    symbol::Symbol,
+    symbol::{Ident, Symbol},
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -158,7 +158,7 @@ pub trait Lattice<'heap> {
 
     fn projection(
         self: Type<'heap, Self>,
-        field: Symbol<'heap>,
+        field: Ident<'heap>,
         env: &mut LatticeEnvironment<'_, 'heap>,
     ) -> Projection;
 

@@ -1414,7 +1414,7 @@ pub(crate) fn tuple_index_out_of_bounds<'heap>(
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-enum UnsupportedProjectionCategory {
+pub(crate) enum UnsupportedProjectionCategory {
     Closure,
     List,
     Dict,

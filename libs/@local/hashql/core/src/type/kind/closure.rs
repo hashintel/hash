@@ -7,6 +7,7 @@ use super::{TypeKind, generic::GenericArguments};
 use crate::{
     intern::Interned,
     pretty::{PrettyPrint, PrettyRecursionBoundary},
+    symbol::Ident,
     r#type::{
         PartialType, Type, TypeId,
         environment::{
@@ -101,7 +102,7 @@ impl<'heap> Lattice<'heap> for ClosureType<'heap> {
 
     fn projection(
         self: Type<'heap, Self>,
-        field: crate::symbol::Symbol<'heap>,
+        field: Ident<'heap>,
         env: &mut LatticeEnvironment<'_, 'heap>,
     ) -> Projection {
         todo!("diagnostic error: closure type cannot be projected");

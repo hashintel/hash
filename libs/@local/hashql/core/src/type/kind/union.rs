@@ -9,6 +9,7 @@ use crate::{
     intern::Interned,
     pretty::{PrettyPrint, PrettyRecursionBoundary},
     span::SpanId,
+    symbol::Ident,
     r#type::{
         PartialType, Type, TypeId,
         collection::TypeIdSet,
@@ -18,7 +19,7 @@ use crate::{
         },
         error::{cannot_be_subtype_of_never, type_mismatch, union_variant_mismatch},
         inference::{Constraint, Inference, PartialStructuralEdge, Variable},
-        lattice::Lattice,
+        lattice::{Lattice, Projection},
     },
 };
 
@@ -370,6 +371,57 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
         let rhs_variants = other.unnest(env);
 
         Self::meet_variants(self.span, &lhs_variants, &rhs_variants, env)
+    }
+
+    fn projection(
+        self: Type<'heap, Self>,
+        field: Ident<'heap>,
+        env: &mut LatticeEnvironment<'_, 'heap>,
+    ) -> Projection {
+        let variants = self.unnest(env);
+
+        let mut result = TypeIdSet::<16>::with_capacity(env.environment, variants.len());
+        let mut has_error = false;
+
+        for variant in variants {
+            let projection = env.projection(variant, field);
+
+            match projection {
+                // We can fast-"fail" here, because pending means that we'll defer anyway
+                Projection::Pending => return Projection::Pending,
+                Projection::Error => has_error = true,
+                Projection::Resolved(id) => result.push(id),
+            }
+        }
+
+        if has_error {
+            // We've already encountered an error, simply propagate it
+            return Projection::Error;
+        }
+
+        match &*result.finish() {
+            [] => {
+                // Empty union is never, therefore defer to never
+                env.projection(
+                    env.intern_type(PartialType {
+                        span: self.span,
+                        kind: env.intern_kind(TypeKind::Never),
+                    }),
+                    field,
+                )
+            }
+            &[variant] => Projection::Resolved(variant),
+            variants => {
+                let id = env.intern_type(PartialType {
+                    span: self.span,
+                    kind: env.intern_kind(TypeKind::Union(Self {
+                        variants: env.intern_type_ids(variants),
+                    })),
+                });
+
+                Projection::Resolved(id)
+            }
+        }
     }
 
     fn is_bottom(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> bool {

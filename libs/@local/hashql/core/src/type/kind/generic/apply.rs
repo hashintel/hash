@@ -8,6 +8,7 @@ use crate::{
     intern::Interned,
     pretty::{ORANGE, PrettyPrint, PrettyRecursionBoundary, RED},
     span::SpanId,
+    symbol::Ident,
     r#type::{
         PartialType, Type, TypeId,
         environment::{
@@ -214,7 +215,7 @@ impl<'heap> Lattice<'heap> for Apply<'heap> {
 
     fn projection(
         self: Type<'heap, Self>,
-        field: crate::symbol::Symbol<'heap>,
+        field: Ident<'heap>,
         env: &mut LatticeEnvironment<'_, 'heap>,
     ) -> Projection {
         env.projection(self.kind.base, field)

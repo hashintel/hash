@@ -4,7 +4,7 @@ use smallvec::SmallVec;
 
 use super::{Diagnostics, Environment, SimplifyEnvironment};
 use crate::{
-    symbol::Symbol,
+    symbol::{Ident, Symbol},
     r#type::{
         PartialType, Type, TypeId,
         error::circular_type_reference,
@@ -313,7 +313,7 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
         result
     }
 
-    pub fn projection(&mut self, id: TypeId, field: Symbol<'heap>) -> Projection {
+    pub fn projection(&mut self, id: TypeId, field: Ident<'heap>) -> Projection {
         todo!()
     }
 

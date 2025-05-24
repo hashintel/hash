@@ -6,6 +6,7 @@ use smallvec::SmallVec;
 use super::TypeKind;
 use crate::{
     pretty::{PrettyPrint, PrettyRecursionBoundary},
+    symbol::Ident,
     r#type::{
         PartialType, Type, TypeId,
         environment::{
@@ -55,7 +56,7 @@ impl<'heap> Lattice<'heap> for ListType {
 
     fn projection(
         self: Type<'heap, Self>,
-        field: crate::symbol::Symbol<'heap>,
+        field: Ident<'heap>,
         env: &mut LatticeEnvironment<'_, 'heap>,
     ) -> Projection {
         todo!("diagnostic error - lists cannot be projected");
@@ -341,7 +342,7 @@ impl<'heap> Lattice<'heap> for DictType {
 
     fn projection(
         self: Type<'heap, Self>,
-        field: crate::symbol::Symbol<'heap>,
+        field: Ident<'heap>,
         env: &mut LatticeEnvironment<'_, 'heap>,
     ) -> Projection {
         todo!("record diagnostic - dict cannot be projected");
@@ -599,7 +600,7 @@ impl<'heap> Lattice<'heap> for IntrinsicType {
 
     fn projection(
         self: Type<'heap, Self>,
-        field: crate::symbol::Symbol<'heap>,
+        field: Ident<'heap>,
         env: &mut LatticeEnvironment<'_, 'heap>,
     ) -> Projection {
         match self.kind {
