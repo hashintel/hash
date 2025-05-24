@@ -30,7 +30,7 @@
     "@types/dotenv-flow": "3.3.3",
     "@types/node": "22.15.21",
     "chokidar-cli": "3.0.0",
-    "eslint": "9.20.1",
+    "eslint": "9.27.0",
     "rimraf": "6.0.1",
     "shx": "0.4.0",
     "tsx": "4.19.4",
