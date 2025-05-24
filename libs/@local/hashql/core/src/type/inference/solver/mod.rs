@@ -22,6 +22,7 @@ use crate::{
             incompatible_lower_equal_constraint, incompatible_upper_equal_constraint,
             unconstrained_type_variable, unconstrained_type_variable_floating,
         },
+        lattice::Projection,
     },
 };
 
@@ -985,22 +986,26 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
             match selection {
                 SelectionConstraint::Projection {
                     subject,
-                    label,
+                    field,
                     output,
                 } => {
                     // Check if the subject is concrete, and can be accessed.
                     let subject_type = subject.r#type(self.lattice.environment);
-                    if !self.lattice.is_concrete(subject_type.id) {
-                        // The variable is not yet concrete, and therefore cannot be used to
-                        // accurately solve the projection. Therefore we defer the constraint.
-                        // A non-concrete type means *any* type variable may be present within the
-                        // type.
-                        constraints.push(Constraint::Selection(selection));
-                        continue;
-                    }
+                    let field = match self.lattice.projection(subject_type.id, field) {
+                        Projection::Pending => {
+                            // The projection is pending, we need to wait for it to be resolved.
+                            // We add the constraint back to the list of constraints to be solved.
+                            constraints.push(Constraint::Selection(selection));
+                            continue;
+                        }
+                        Projection::Error => {
+                            // The projection has failed, simply continue as the error has already
+                            // been reported.
+                            continue;
+                        }
+                        Projection::Resolved(field) => field,
+                    };
 
-                    // Find the field
-                    let field = self.lattice.projection(subject_type.id, label);
                     let field = self.lattice.r#type(field);
 
                     match field.into_variable() {

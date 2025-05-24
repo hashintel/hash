@@ -98,7 +98,7 @@ pub enum SelectionConstraint<'heap> {
     /// immediately if the type structure is known.
     Projection {
         subject: Subject,
-        label: Symbol<'heap>,
+        field: Symbol<'heap>,
         output: Variable,
     },
 
@@ -122,7 +122,7 @@ impl<'heap> SelectionConstraint<'heap> {
         match self {
             SelectionConstraint::Projection {
                 subject,
-                label: _,
+                field: _,
                 output: _,
             } => [Some(subject), None],
             SelectionConstraint::Subscript {
@@ -191,7 +191,7 @@ impl Constraint<'_> {
             Self::StructuralEdge { source, target } => [Some(source), Some(target), None],
             Self::Selection(SelectionConstraint::Projection {
                 subject,
-                label: _,
+                field: _,
                 output,
             }) => [subject.variable(), Some(output), None],
             Self::Selection(SelectionConstraint::Subscript {
