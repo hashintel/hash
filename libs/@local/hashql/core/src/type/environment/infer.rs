@@ -46,6 +46,7 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
             self.unification.upsert_variable(variable.kind);
         }
 
+        #[expect(clippy::match_same_arms, reason = "readability")]
         if self.variance == Variance::Invariant {
             constraint = match constraint {
                 Constraint::UpperBound { variable, bound }
@@ -70,7 +71,9 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
                     // `(name: _2) = _1` does not mean that `_2` is equal to `_1`.
                     return;
                 }
-                Constraint::Selection(_) => todo!(),
+                // Nothing happens when we have a selection constraint, as selection constraints are
+                // deferred constraints
+                Constraint::Selection(_) => constraint,
             };
         }
 

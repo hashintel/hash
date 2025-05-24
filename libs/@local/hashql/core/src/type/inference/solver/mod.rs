@@ -9,7 +9,7 @@ use ena::unify::{InPlaceUnificationTable, NoError, UnifyKey as _};
 
 use self::{graph::Graph, tarjan::Tarjan, topo::topological_sort_in};
 use super::{
-    Constraint, Substitution, Variable, VariableKind,
+    Constraint, SelectionConstraint, Substitution, Variable, VariableKind,
     variable::{VariableId, VariableLookup},
 };
 use crate::{
@@ -370,6 +370,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     fn collect_constraints(
         &mut self,
         constraints: &mut FastHashMap<VariableKind, (Variable, VariableConstraint)>,
+        selections: &mut Vec<SelectionConstraint<'heap>>,
     ) {
         for &constraint in &self.constraints {
             match constraint {
@@ -436,7 +437,21 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                     let _: Result<_, _> = constraints
                         .try_insert(target_root, (target, VariableConstraint::default()));
                 }
-                Constraint::Selection(_) => todo!(),
+                constraint @ Constraint::Selection(mut selection) => {
+                    // Try to "specialize" each constraint, meaning look if the type it's referring
+                    // to is just a variable, if that's the case, change the subject to the
+                    // variable.
+                    selection.specialize(self.lattice.environment);
+
+                    // Insert each variable in the selection into the constraints map
+                    for variable in constraint.variables() {
+                        let variable_root = self.unification.root(variable.kind);
+                        let _: Result<_, _> = constraints
+                            .try_insert(variable_root, (variable, VariableConstraint::default()));
+                    }
+
+                    selections.push(selection);
+                }
             }
         }
     }
@@ -755,9 +770,10 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         graph: &Graph,
         bump: &Bump,
         variables: &mut FastHashMap<VariableKind, (Variable, VariableConstraint)>,
+        selections: &mut Vec<SelectionConstraint<'heap>>,
     ) {
         // Step 2.3: First collect all constraints by variable
-        self.collect_constraints(variables);
+        self.collect_constraints(variables, selections);
 
         // Step 2.4: Perform the forward pass to resolve lower bounds
         self.apply_constraints_forwards(graph, bump, variables);
@@ -995,6 +1011,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         // These need to be initialized *after* upsert, to ensure that the capacity is correct
         let mut variables = fast_hash_map(self.unification.lookup.len());
         let mut substitution = fast_hash_map(self.unification.lookup.len());
+        let mut selections = Vec::with_capacity(self.unification.lookup.len());
 
         let mut lookup = VariableLookup::new(FastHashMap::default());
         // Ensure that we run at least once, this is required, so that `verify_constrained` can
@@ -1019,7 +1036,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
 
             // Steps 2.3, 2.4, 2.5: Apply constraints through collection, forward, and backward
             // passes
-            self.apply_constraints(&graph, &bump, &mut variables);
+            self.apply_constraints(&graph, &bump, &mut variables, &mut selections);
 
             // Step 2.6: Verify that all variables have been constrained
             self.verify_constrained(&lookup, &variables);

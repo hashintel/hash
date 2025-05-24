@@ -8,7 +8,7 @@ pub use self::{
 };
 use super::{
     Type, TypeId,
-    environment::{InferenceEnvironment, instantiate::InstantiateEnvironment},
+    environment::{Environment, InferenceEnvironment, instantiate::InstantiateEnvironment},
     kind::{generic::GenericArgumentId, infer::HoleId},
 };
 use crate::{collection::FastHashMap, symbol::Symbol};
@@ -52,6 +52,22 @@ impl Subject {
             Self::Type(_) => None,
         }
     }
+
+    fn specialize(&mut self, env: &Environment) {
+        let Self::Type(id) = *self else { return };
+
+        let r#type = env.r#type(id);
+
+        let Some(kind) = r#type.kind.into_variable() else {
+            // There's nothing we can specialize, because it's not a variable
+            return;
+        };
+
+        *self = Self::Variable(Variable {
+            span: r#type.span,
+            kind,
+        });
+    }
 }
 
 /// Represents constraints for component selection operations in type inference.
@@ -92,6 +108,31 @@ pub enum SelectionConstraint<'heap> {
         index: Subject,
         output: Variable,
     },
+}
+
+impl<'heap> SelectionConstraint<'heap> {
+    fn subjects_mut(&mut self) -> impl Iterator<Item = &mut Subject> {
+        match self {
+            SelectionConstraint::Projection {
+                subject,
+                label: _,
+                output: _,
+            } => [Some(subject), None],
+            SelectionConstraint::Subscript {
+                subject,
+                index,
+                output: _,
+            } => [Some(subject), Some(index)],
+        }
+        .into_iter()
+        .flatten()
+    }
+
+    fn specialize(&mut self, env: &Environment<'heap>) {
+        for subject in self.subjects_mut() {
+            subject.specialize(env);
+        }
+    }
 }
 
 /// Represents a constraint between types in the type inference system.

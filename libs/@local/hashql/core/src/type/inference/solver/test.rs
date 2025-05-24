@@ -212,7 +212,7 @@ fn apply_constraints() {
 
     let mut variables = FastHashMap::default();
     let bump = Bump::new();
-    solver.apply_constraints(&graph, &bump, &mut variables);
+    solver.apply_constraints(&graph, &bump, &mut variables, &mut Vec::new());
 
     assert_eq!(variables.len(), 1);
     let (_, (_, constraint)) = variables.iter().next().expect("Should have one constraint");
@@ -245,7 +245,7 @@ fn apply_constraints_equality() {
     solver.solve_anti_symmetry(&mut graph, &bump);
 
     let mut variables = FastHashMap::default();
-    solver.apply_constraints(&graph, &bump, &mut variables);
+    solver.apply_constraints(&graph, &bump, &mut variables, &mut Vec::new());
 
     assert_eq!(variables.len(), 1);
     let (_, (_, constraint)) = variables.iter().next().expect("Should have one constraint");
@@ -296,7 +296,7 @@ fn apply_constraints_with_unification() {
     solver.solve_anti_symmetry(&mut graph, &bump);
 
     let mut variables = FastHashMap::default();
-    solver.apply_constraints(&graph, &bump, &mut variables);
+    solver.apply_constraints(&graph, &bump, &mut variables, &mut Vec::new());
 
     // Only one entry since the variables are unified
     assert_eq!(variables.len(), 1);
@@ -559,7 +559,7 @@ fn redundant_constraints() {
     let mut variables = FastHashMap::default();
 
     // Apply the constraints
-    solver.apply_constraints(&graph, &bump, &mut variables);
+    solver.apply_constraints(&graph, &bump, &mut variables, &mut Vec::new());
 
     // Despite having duplicate constraints, there should be one entry with one equality
     assert_eq!(variables.len(), 1);
@@ -699,7 +699,7 @@ fn bounds_at_lattice_extremes() {
 
     // Apply the constraints
     let mut variables = FastHashMap::default();
-    solver.apply_constraints(&graph, &bump, &mut variables);
+    solver.apply_constraints(&graph, &bump, &mut variables, &mut Vec::new());
 
     assert_eq!(variables.len(), 1);
     let (_, (_, constraint)) = variables.iter().next().expect("Should have one constraint");
@@ -736,7 +736,7 @@ fn collect_constraints_with_structural_edge() {
 
     // This should exercise lines 410-418
     let mut variables = FastHashMap::default();
-    solver.collect_constraints(&mut variables);
+    solver.collect_constraints(&mut variables, &mut Vec::new());
 
     // Both variables should be in the map even though they don't have direct bounds
     assert!(variables.contains_key(&var1.kind));
