@@ -272,7 +272,7 @@ unicode-normalization    = { version = "=0.1.24", default-features = false }
 unicode-properties       = { version = "=0.1.3", default-features = false }
 url                      = { version = "=2.5.4", default-features = false }
 utoipa                   = { version = "=4.2.3", default-features = false }
-uuid                     = { version = "=1.16.0", default-features = false }
+uuid                     = { version = "=1.17.0", default-features = false }
 walkdir                  = { version = "=2.5.0", default-features = false }
 wasm-bindgen             = { version = "=0.2.100", default-features = false }
 wasm-bindgen-test        = { version = "=0.3.50", default-features = false }
