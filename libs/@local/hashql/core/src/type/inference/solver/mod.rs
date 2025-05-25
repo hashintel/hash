@@ -1,27 +1,23 @@
-//! Type inference constraint solver.
+//! Constraint-based type inference using fix-point iteration.
 //!
-//! Implements a constraint-based type inference system using a fix-point
-//! iteration algorithm. Handles subtyping relationships, equality constraints,
-//! and structural dependencies to determine the most specific types for type variables.
+//! Resolves subtyping relationships, equality constraints, and structural dependencies
+//! to determine the most specific types for type variables.
 //!
-//! The main entry point is [`InferenceSolver`], which coordinates the entire solving
-//! process through multiple phases:
+//! The main entry point is [`InferenceSolver`], which solves constraints through:
 //!
-//! 1. **Fix-point iteration** - Repeat until convergence:
-//!    1. Ensures variables are registered in the lattice environment
-//!    2. Solves anti-symmetry constraints (where A <: B and B <: A implies A = B)
-//!    3. Sets up variable substitutions in the lattice environment
-//!    4. Collects constraints for each variable
-//!    5. Applies forward constraint pass to resolve lower bounds
-//!    6. Applies backward constraint pass to resolve upper bounds
-//!    7. Verifies all variables are constrained
-//!    8. Validates constraints and computes substitutions
-//! 2. **Simplification** - Types are reduced to canonical forms
-//! 3. **Validation** - Final constraint system verification
-//! 4. **Diagnostic collection** - Gather all errors from the solving process
+//! 1. **Fix-point iteration** until convergence:
+//!    - Register variables in lattice environment
+//!    - Solve anti-symmetry constraints (`A <: B ∧ B <: A ⟹ A = B`)
+//!    - Set up variable substitutions
+//!    - Collect constraints per variable
+//!    - Apply forward/backward constraint passes
+//!    - Verify all variables are constrained
+//! 2. **Simplification** to canonical forms
+//! 3. **Validation** of final constraint system
+//! 4. **Diagnostic collection** for error reporting
 //!
-//! Operates on a lattice-based type system where types form a partial order, which enables
-//! efficient computation of meets (greatest lower bounds) and joins (least upper bounds).
+//! Operates on a lattice where types form a partial order, enabling efficient computation of meets
+//! (greatest lower bounds) and joins (least upper bounds).
 
 mod graph;
 mod tarjan;
@@ -52,22 +48,15 @@ use crate::{
     },
 };
 
-/// Manages variable unification during type inference using a union-find data structure.
+/// Union-find data structure for tracking variable equivalence classes.
 ///
-/// Tracks equivalence classes of type variables, allowing the solver to determine when multiple
-/// variables represent the same type. When variables are unified through constraints like
-/// anti-symmetry (`A <: B` and `B <: A`), they become part of the same equivalence class and share
-/// the same constraints.
+/// Variables unified through anti-symmetry constraints (`A <: B ∧ B <: A`) become part
+/// of the same equivalence class and share constraints.
 ///
-/// This unification table is maintained through:
-/// - A union-find tables
-/// - A bidirectional mapping between [`VariableKind`] and internal IDs
+/// Maintains:
+/// - Union-find table with path compression and union by rank
+/// - Bidirectional mapping between [`VariableKind`] and internal IDs
 /// - Canonical representatives for each equivalence class
-///
-/// # Performance
-///
-/// The union-find operations have nearly constant amortized time complexity due to path compression
-/// and union by rank optimizations provided by the underlying `ena` crate.
 #[derive(Debug)]
 pub(crate) struct Unification {
     /// The underlying union-find data structure that tracks variable equivalence classes
@@ -80,7 +69,7 @@ pub(crate) struct Unification {
 }
 
 impl Unification {
-    /// Creates a new empty unification table for type variables.
+    /// Creates a new unification table.
     pub(crate) fn new() -> Self {
         Self {
             table: InPlaceUnificationTable::new(),
@@ -89,13 +78,9 @@ impl Unification {
         }
     }
 
-    /// Inserts a variable into the unification system or returns its existing ID.
+    /// Returns the ID for a variable, inserting it if not present.
     ///
-    /// This method ensures that each unique [`VariableKind`] has exactly one corresponding ID in
-    /// the unification table, maintaining the invariant that variables can be looked up
-    /// consistently throughout the solving process.
-    ///
-    /// Any variable used should only be accessed through this method to ensure consistency.
+    /// Ensures each [`VariableKind`] has exactly one ID for consistent lookup.
     pub(crate) fn upsert_variable(&mut self, variable: VariableKind) -> VariableId {
         *self.lookup.entry(variable).or_insert_with_key(|&key| {
             let id = self.table.new_key(());
@@ -108,11 +93,7 @@ impl Unification {
 
     /// Unifies two variables into the same equivalence class.
     ///
-    /// After unification, both variables will have the same canonical representative. The merging
-    /// of the constraints must be handled separately. The root variable used is an implementation
-    /// detail and can only be accessed by finding the new root node of either.
-    /// If the constraints are not merged externally as well, constraints from either `lhs` or `rhs`
-    /// may be lost.
+    /// Constraint merging must be handled separately to avoid data loss.
     pub(crate) fn unify(&mut self, lhs: VariableKind, rhs: VariableKind) {
         let lhs = self.upsert_variable(lhs);
         let rhs = self.upsert_variable(rhs);
@@ -131,9 +112,6 @@ impl Unification {
     }
 
     /// Finds the canonical representative ID for a variable's equivalence class.
-    ///
-    /// This method performs path compression to ensure efficient future lookups and returns the
-    /// root ID that represents all variables in the same equivalence class.
     fn root_id(&mut self, variable: VariableKind) -> VariableId {
         let id = self.upsert_variable(variable);
 
@@ -141,21 +119,16 @@ impl Unification {
     }
 
     /// Finds the canonical [`VariableKind`] for a variable's equivalence class.
-    ///
-    /// This is the primary method for constraint application, as all operations should be performed
-    /// on the canonical representative to ensure consistency.
     fn root(&mut self, variable: VariableKind) -> VariableKind {
         let id = self.root_id(variable);
 
         self.variables[id.into_usize()]
     }
 
-    /// Creates a lookup table mapping each variable to its canonical representative.
+    /// Creates a lookup table mapping variables to their canonical representatives.
     ///
-    /// This method produces a [`VariableLookup`] that can be used throughout the ystem to
-    /// consistently resolve variables to their unified representatives. The lookup table is
-    /// typically created after all unification operations are complete. Any future modifications
-    /// won't be automatically reflected in the lookup table, it is simply a snapshot in time.
+    /// Returns a snapshot of the current unification state. Future modifications
+    /// are not reflected in the returned lookup table.
     #[expect(
         clippy::cast_possible_truncation,
         reason = "This cast is safe because the number of type variables are limited to \
@@ -176,59 +149,50 @@ impl Unification {
     }
 }
 
-/// Represents the direction of a type bound constraint in the lattice.
-///
-/// Constraints establish directional relationships in the type lattice, where variables
-/// can have both upper bounds (constraints from above) and lower bounds (constraints from below).
+/// Direction of a type bound constraint in the lattice.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 enum Bound {
-    /// An upper bound constraint where the variable must be a subtype of the bound.
-    /// For example, in `X <: T`, `T` is an upper bound on `X`.
+    /// Upper bound: variable must be a subtype of the bound (X <: T).
     Upper,
-    /// A lower bound constraint where the variable must be a supertype of the bound.
-    /// For example, in `T <: X`, `T` is a lower bound on `X`.
+    /// Lower bound: variable must be a supertype of the bound (T <: X).
     Lower,
 }
 
-/// A variable with its resolved unification information.
+/// Variable with resolved unification information.
 ///
-/// Bridges the gap between user-facing variables (with source spans for error reporting) and the
-/// internal unification system (with IDs and canonical kinds). Maintains all necessary information
-/// for both constraint processing and diagnostics.
+/// Contains both user-facing information (for error reporting) and internal
+/// unification data (IDs and canonical kinds).
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 struct ResolvedVariable {
-    /// The original variable from the source code (used for error reporting)
+    /// Original variable from source code (for error reporting)
     origin: Variable,
 
-    /// The internal ID for the variable in the unification system
+    /// Internal unification system ID
     id: VariableId,
-    /// The canonical kind of the variable after unification
+    /// Canonical kind after unification
     kind: VariableKind,
 }
 
-/// An ordering constraint representing a subtyping relationship.
-///
-/// This tracks a subtyping relationship where `lower <: upper`.
+/// Subtyping constraint where `lower <: upper`.
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 struct VariableOrdering {
-    /// The variable that must be a subtype
+    /// Variable that must be a subtype
     lower: ResolvedVariable,
-    /// The variable that must be a supertype
+    /// Variable that must be a supertype
     upper: ResolvedVariable,
 }
 
-/// Aggregated constraints for a single type variable during solving.
+/// Aggregated constraints for a single type variable.
 ///
-/// Collects all constraints that apply to a variable, organizing them
-/// by type (equality, lower bounds, upper bounds). Multiple constraints of the same type are
-/// collected and later reduced using lattice operations.
+/// Organizes constraints by type (equality, lower bounds, upper bounds).
+/// Multiple constraints of the same type are reduced using lattice operations.
 #[derive(Debug, PartialEq, Eq, Default)]
 struct VariableConstraint {
-    /// The exact type this variable must equal, if such a constraint exists
+    /// Exact type this variable must equal
     equal: Option<TypeId>,
-    /// Lower bound constraints (variable must be a supertype of these types)
+    /// Lower bound constraints (variable must be supertype of these)
     lower: SmallVec<TypeId>,
-    /// Upper bound constraints (variable must be a subtype of these types)
+    /// Upper bound constraints (variable must be subtype of these)
     upper: SmallVec<TypeId>,
 }
 
@@ -251,77 +215,65 @@ impl VariableConstraint {
     }
 }
 
-/// Final constraints for a variable after lattice reduction.
+/// Final constraints after lattice reduction.
 ///
-/// After processing multiple constraints of each type through lattice operations
-/// (meet for lower bounds, join for upper bounds), this structure contains the
-/// final constraint of each kind that determines the variable's inferred type.
+/// Contains the reduced constraints (meet for lower bounds, join for upper bounds)
+/// that determine the variable's inferred type.
 #[derive(Debug, PartialEq, Eq, Default)]
 struct EvaluatedVariableConstraint {
-    /// The final equality constraint, if any
+    /// Final equality constraint
     equal: Option<TypeId>,
-    /// The final lower bound constraint, if any
+    /// Final lower bound constraint
     lower: Option<TypeId>,
-    /// The final upper bound constraint, if any
+    /// Final upper bound constraint
     upper: Option<TypeId>,
 }
 
-/// The main type inference constraint solver.
+/// Constraint solver using fix-point iteration.
 ///
-/// Implements a fix-point iteration algorithm that resolves type constraints to determine the most
-/// specific types for each variable. Operates on a lattice-based type system where types form a
-/// partial order.
+/// Resolves type constraints to determine the most specific types for each variable.
+/// Operates on a lattice where types form a partial order.
 ///
-/// The solver handles multiple constraint types:
-/// - **Equality constraints**: Variable must equal a specific type
-/// - **Subtyping constraints**: Variable must be a subtype/supertype of another type
-/// - **Selection constraints**: Field access that depends on the structure of a type
-/// - **Ordering constraints**: Variables related through subtyping relationships
+/// Handles:
+/// - **Equality constraints**: Variable equals specific type
+/// - **Subtyping constraints**: Variable is subtype/supertype of another
+/// - **Selection constraints**: Field access depending on type structure
+/// - **Ordering constraints**: Variables related through subtyping
 ///
 /// # Algorithm
 ///
-/// The solving process uses fix-point iteration with these phases:
-///
-/// 1. **Fix-point iteration** - Repeat until convergence:
-///    1. Ensures variables are registered in the lattice environment
-///    2. Solves anti-symmetry constraints (where A <: B and B <: A implies A = B)
-///    3. Sets up variable substitutions in the lattice environment
-///    4. Collects constraints for each variable
-///    5. Applies forward constraint pass to resolve lower bounds
-///    6. Applies backward constraint pass to resolve upper bounds
-///    7. Verifies all variables are constrained
-///    8. Validates constraints and computes substitutions
-/// 2. **Simplification** - Types are reduced to canonical forms
-/// 3. **Validation** - Final constraint system verification
-/// 4. **Diagnostic collection** - Gather all errors from the solving process
+/// 1. **Fix-point iteration** until convergence:
+///    - Register variables in lattice environment
+///    - Solve anti-symmetry constraints (`A <: B ∧ B <: A ⟹ A = B`)
+///    - Set up variable substitutions
+///    - Collect constraints per variable
+///    - Apply forward/backward constraint passes
+///    - Verify all variables are constrained
+///    - Validate constraints and compute substitutions
+/// 2. **Simplification** to canonical forms
+/// 3. **Validation** of final constraint system
+/// 4. **Diagnostic collection** for error reporting
 pub struct InferenceSolver<'env, 'heap> {
-    /// Environment for performing lattice operations (meet, join, subtyping)
+    /// Environment for lattice operations (meet, join, subtyping)
     lattice: LatticeEnvironment<'env, 'heap>,
-    /// Environment for simplifying complex types
+    /// Environment for type simplification
     simplify: SimplifyEnvironment<'env, 'heap>,
 
-    /// Collected diagnostics for reporting type errors
+    /// Diagnostics for type error reporting
     diagnostics: Diagnostics,
     persistent_diagnostics: Diagnostics,
 
-    /// The set of constraints to be solved
+    /// Constraints to be solved
     constraints: Vec<Constraint<'heap>>,
-    /// The unification system for tracking variable equivalence
+    /// Unification system for tracking variable equivalence
     unification: Unification,
 }
 
 impl<'env, 'heap> InferenceSolver<'env, 'heap> {
-    /// Creates a new inference solver with the given environment and constraints.
+    /// Creates a new inference solver.
     ///
-    /// The solver is configured with a lattice environment that has simplification disabled
-    /// during constraint solving to maintain correctness. A final simplification pass is
-    /// performed after all constraints are resolved.
-    ///
-    /// # Arguments
-    ///
-    /// * `env` - The type environment containing type definitions and lattice operations
-    /// * `unification` - Pre-existing unification table (typically empty for new solving)
-    /// * `constraints` - The set of constraints to be solved
+    /// Configures a lattice environment with simplification disabled during solving
+    /// to maintain correctness. Simplification occurs after constraint resolution.
     pub(crate) fn new(
         env: &'env Environment<'heap>,
         unification: Unification,
@@ -344,10 +296,6 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     }
 
     /// Registers all constraint variables with the unification system.
-    ///
-    /// Ensures that every variable referenced in constraints has a consistent
-    /// internal representation before constraint processing begins. Also initializes
-    /// the constraint graph with variable nodes.
     fn upsert_variables(&mut self, graph: &mut Graph) {
         for constraint in &self.constraints {
             for variable in constraint.variables() {
@@ -358,18 +306,9 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         graph.expansion(&mut self.unification);
     }
 
-    /// Merges constraints from unified variables into a single constraint entry.
+    /// Merges constraints from unified variables.
     ///
-    /// When variables are unified during anti-symmetry resolution, their constraints
-    /// must be merged to ensure consistency. Handles the merging logic by combining bound
-    /// constraints and checking for conflicting equality constraints.
-    ///
-    /// # Arguments
-    ///
-    /// * `variables` - The constraint map to update with the merged entry
-    /// * `root` - The canonical representative for the unified variables
-    /// * `lhs` - Optional constraint entry from the first variable
-    /// * `rhs` - Optional constraint entry from the second variable
+    /// Combines bound constraints and detects conflicting equality constraints.
     fn unify_variables(
         &mut self,
         variables: &mut FastHashMap<VariableKind, (Variable, VariableConstraint)>,
@@ -431,16 +370,12 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
 
     /// Identifies and unifies variables that must be equal due to anti-symmetry.
     ///
-    /// In a type lattice, if `A <: B` and `B <: A`, then `A ≡ B` by the anti-symmetry property.
-    /// This method constructs a directed graph of subtyping and structural relationships, then uses
-    /// Tarjan's strongly connected components algorithm to identify variables that must be unified.
+    /// Uses Tarjan's algorithm on a graph of subtyping and structural relationships
+    /// to find strongly connected components. If `A <: B` and `B <: A`, then `A ≡ B`.
     ///
-    /// The graph includes:
-    /// - **Ordering constraints**: Direct subtyping relationships between variables
-    /// - **Structural edges**: Dependencies from field access and other structural constraints
-    ///
-    /// Variables in the same SCC are unified, and their constraints are merged to ensure
-    /// consistency throughout the solving process.
+    /// Graph includes:
+    /// - **Ordering constraints**: Direct subtyping between variables
+    /// - **Structural edges**: Dependencies from field access constraints
     fn solve_anti_symmetry(
         &mut self,
         graph: &mut Graph,
@@ -601,11 +536,10 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         }
     }
 
-    /// Creates an initial substitution map from equality constraints.
+    /// Creates substitution map from equality constraints.
     ///
-    /// Extracts variables that have equality constraints and creates a substitution map for use
-    /// during lattice operations. The substitution enables the lattice environment to resolve
-    /// variables to their known types during constraint processing.
+    /// Enables the lattice environment to resolve variables to known types during
+    /// constraint processing.
     fn apply_constraints_prepare_substitution(
         &mut self,
         graph: &Graph,
@@ -630,11 +564,10 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         substitution
     }
 
-    /// Organizes ordering constraints by the specified bound direction.
+    /// Groups ordering constraints by bound direction.
     ///
-    /// Creates a lookup table that groups ordering constraints by either the lower or upper
-    /// variable, which enables efficient retrieval of transitive constraints during the forward and
-    /// backward passes.
+    /// Creates lookup table for efficient retrieval of transitive constraints during
+    /// forward and backward passes.
     fn apply_constraints_prepare_constraints<'bump>(
         &mut self,
         lookup_by: Bound,
@@ -679,18 +612,15 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         lookup
     }
 
-    /// Resolves lower bounds through forward propagation in topological order.
+    /// Resolves lower bounds via forward propagation in topological order.
     ///
-    /// Processes variables from dependencies to dependents, ensuring that ower bounds are resolved
-    /// before they are used by dependent variables. For each variable:
-    ///
+    /// For each variable:
     /// 1. Collects transitive lower bounds from ordering constraints (if no equality constraint)
-    /// 2. Computes the meet (greatest lower bound) of all collected lower bounds
-    /// 3. Updates the substitution map for use by subsequent variables
-    /// 4. Replaces the variable's lower bound list with the computed meet
+    /// 2. Computes meet (greatest lower bound) of all collected bounds
+    /// 3. Updates substitution map for subsequent variables
+    /// 4. Replaces variable's lower bound list with computed meet
     ///
-    /// The topological ordering ensures that dependencies are resolved before dependents,
-    /// preventing cycles and ensuring convergence.
+    /// Topological ordering ensures dependencies resolve before dependents.
     fn apply_constraints_forwards(
         &mut self,
         graph: &Graph,
@@ -783,18 +713,15 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         self.lattice.clear_substitution();
     }
 
-    /// Resolves upper bounds through backward propagation in reverse topological order.
+    /// Resolves upper bounds via backward propagation in reverse topological order.
     ///
-    /// Processes variables from dependents to dependencies, ensuring that upper bounds are resolved
-    /// after their dependent variables. For each variable:
-    ///
+    /// For each variable:
     /// 1. Collects transitive upper bounds from ordering constraints (if no equality constraint)
-    /// 2. Computes the join (least upper bound) of all collected upper bounds
-    /// 3. Updates the substitution map for use by subsequent variables
-    /// 4. Replaces the variable's upper bound list with the computed join
+    /// 2. Computes join (least upper bound) of all collected bounds
+    /// 3. Updates substitution map for subsequent variables
+    /// 4. Replaces variable's upper bound list with computed join
     ///
-    /// The reverse topological ordering ensures that dependent relationships are properly
-    /// propagated through the constraint graph.
+    /// Reverse topological ordering ensures dependent relationships propagate correctly.
     fn apply_constraints_backwards(
         &mut self,
         graph: &Graph,
@@ -885,15 +812,12 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         self.lattice.clear_substitution();
     }
 
-    /// Coordinates the complete constraint application process.
+    /// Applies constraints to the type lattice.
     ///
-    /// Orchestrates the three-phase constraint resolution:
-    /// 1. **Collection**: Groups constraints by their target variables
-    /// 2. **Forward pass**: Resolves lower bounds in topological order
-    /// 3. **Backward pass**: Resolves upper bounds in reverse topological order
-    ///
-    /// The two-pass approach ensures that constraint dependencies are resolved correctly, even with
-    /// complex interdependencies between type variables.
+    /// Coordinates three-phase constraint resolution:
+    /// 1. **Collection**: Group constraints by target variables
+    /// 2. **Forward pass**: Resolve lower bounds in topological order
+    /// 3. **Backward pass**: Resolve upper bounds in reverse topological order
     fn apply_constraints(
         &mut self,
         graph: &Graph,
@@ -913,15 +837,12 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
 
     /// Validates constraints and determines final variable types.
     ///
-    /// Processes the resolved constraints from the forward and backward passes,
-    /// performing final validation and type determination. Verifies:
-    ///
+    /// Verifies:
     /// - **Bound compatibility**: Lower bounds are subtypes of upper bounds
-    /// - **Equality compatibility**: Equality constraints are compatible with bounds
-    /// - **Constraint coverage**: All variables have sufficient constraints for inference
+    /// - **Equality compatibility**: Equality constraints compatible with bounds
+    /// - **Constraint coverage**: All variables have sufficient constraints
     ///
-    /// Selects the most specific type for each variable based on the available constraints,
-    /// preferring equality constraints, then lower bounds, then upper bounds.
+    /// Selects most specific type per variable: equality > lower bounds > upper bounds.
     fn solve_constraints(
         &mut self,
         constraints: &FastHashMap<VariableKind, (Variable, VariableConstraint)>,
@@ -1051,10 +972,8 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         self.lattice.clear_substitution();
     }
 
-    /// Verifies that all registered variables have been constrained.
+    /// Verifies all registered variables have been constrained.
     ///
-    /// Checks that every variable in the unification system appears in the constraints map,
-    /// indicating that it received at least one constraint during the solving process.
     /// Variables without constraints generate floating variable diagnostics.
     fn verify_constrained(
         &mut self,
@@ -1070,11 +989,10 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         }
     }
 
-    /// Simplifies all computed type substitutions to their canonical forms.
+    /// Simplifies type substitutions to canonical forms.
     ///
-    /// Applies the type simplification environment to reduce complex types to their most concise
-    /// representation. Simplification improves both the readability of error messages and the
-    /// efficiency of subsequent operations by eliminating redundant type structure.
+    /// Reduces complex types to concise representations, improving error message readability and
+    /// eliminating redundant type structure.
     fn simplify_substitutions(
         &mut self,
         lookup: VariableLookup,
@@ -1090,20 +1008,15 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         }
     }
 
-    /// Attempts to resolve selection constraints (field access and subscript operations).
+    /// Resolves selection constraints (field access, subscript operations).
     ///
-    /// Selection constraints represent operations like field access (`obj.field`) that depend on
-    /// the structure of types. Tries to resolve each constraint by performing the corresponding
-    /// lattice projection. Successfully resolved constraints generate new equality or ordering
-    /// constraints.
-    ///
-    /// Constraints that cannot be resolved (due to pending type information) are added back to the
-    /// constraint list for the next iteration.
+    /// Performs lattice projections to resolve constraints. Successfully resolved constraints
+    /// generate new equality or ordering constraints. Unresolvable constraints are deferred
+    /// to the next iteration.
     ///
     /// # Returns
     ///
-    /// `true` if any constraints were successfully resolved, `false` if no progress
-    /// was made (indicating a potential fix-point).
+    /// `true` if any constraints were resolved, `false` if no progress was made.
     fn solve_selection_constraints(
         &mut self,
         substitution: Substitution,
@@ -1191,11 +1104,10 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         made_progress
     }
 
-    /// Verifies that the constraint system has been solved to a valid fix-point.
+    /// Verifies constraint system reached a valid fix-point.
     ///
-    /// After fix-point iteration completes, only selection constraints should remain in the
-    /// constraint list (as unresolvable constraints). All other constraint types should have
-    /// been processed and removed during the iteration.
+    /// Only selection constraints should remain as unresolvable constraints.
+    /// All other constraint types should have been processed and removed.
     fn verify_solved_constraint_system(&mut self) {
         for constraint in self.constraints.drain(..) {
             match constraint {
@@ -1210,35 +1122,25 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         }
     }
 
-    /// Solves the constraint system and produces type substitutions.
+    /// Solves the constraint system via fix-point iteration.
     ///
-    /// This is the main entry point for constraint solving. It implements a fix-point iteration
-    /// algorithm that processes constraints until no new ones are generated, handling complex
-    /// interdependencies between type variables.
+    /// # Algorithm
     ///
-    /// The algorithm proceeds in phases:
-    ///
-    /// 1. **Fix-point iteration** - Repeat until convergence:
-    ///    1. Ensures variables are registered in the lattice environment
-    ///    2. Solves anti-symmetry constraints (where A <: B and B <: A implies A = B)
-    ///    3. Sets up variable substitutions in the lattice environment
-    ///    4. Collects constraints for each variable
-    ///    5. Applies forward constraint pass to resolve lower bounds
-    ///    6. Applies backward constraint pass to resolve upper bounds
-    ///    7. Verifies all variables are constrained
-    ///    8. Validates constraints and computes substitutions
-    /// 2. **Simplification** - Types are reduced to canonical forms
-    /// 3. **Validation** - Final constraint system verification
-    /// 4. **Diagnostic collection** - Gather all errors from the solving process
-    ///
-    /// The fix-point approach allows complex constraint dependencies to be resolved iteratively,
-    /// with each pass potentially generating new constraints that are processed in subsequent
-    /// iterations.
+    /// 1. **Fix-point iteration** until convergence:
+    ///    - Register variables in lattice environment
+    ///    - Solve anti-symmetry constraints (`A <: B ∧ B <: A ⟹ A = B`)
+    ///    - Set up variable substitutions
+    ///    - Collect constraints per variable
+    ///    - Apply forward/backward constraint passes
+    ///    - Verify all variables are constrained
+    ///    - Validate constraints and compute substitutions
+    /// 2. **Simplification** to canonical forms
+    /// 3. **Validation** of final constraint system
+    /// 4. **Diagnostic collection** for error reporting
     ///
     /// # Returns
     ///
-    /// A tuple containing the computed substitution mapping variables to their
-    /// inferred types and any diagnostics encountered during solving.
+    /// Substitution mapping variables to inferred types and any diagnostics.
     #[must_use]
     pub fn solve(mut self) -> (Substitution, Diagnostics) {
         // This is the perfect use of a bump allocator, which is suited for phase-based memory
