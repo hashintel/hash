@@ -4,6 +4,7 @@ mod migration;
 mod ontology;
 mod pool;
 pub(crate) mod query;
+mod seed_policies;
 mod traversal_context;
 
 use alloc::sync::Arc;
@@ -112,58 +113,6 @@ pub struct PostgresStore<C, A> {
     pub settings: PostgresStoreSettings,
 }
 
-impl<C, A> PostgresStore<C, A>
-where
-    C: AsClient,
-    A: AuthorizationApi + Send + Sync,
-{
-    async fn ensure_system_policies_impl(
-        &mut self,
-        system_machine_actor: ActorId,
-    ) -> Result<(), Report<EnsureSystemPoliciesError>> {
-        tracing::info!("Seeding system policies");
-        for policy in self
-            .resolve_policies_for_actor(system_machine_actor.into(), Some(system_machine_actor))
-            .await
-            .change_context(EnsureSystemPoliciesError::ReadPoliciesFailed)?
-        {
-            match policy.principal {
-                Some(PrincipalConstraint::Actor { actor }) if actor == system_machine_actor => {
-                    // TODO: Implement logic for handling removal of old policies to avoid
-                    //       that we re-create policies that are already present.
-                    self.delete_policy_by_id(system_machine_actor.into(), policy.id)
-                        .await
-                        .change_context(EnsureSystemPoliciesError::RemoveOldPolicyFailed)?;
-                }
-                _ => {
-                    // We don't want to remove policies that are not for the system machine actor
-                }
-            }
-        }
-
-        self.synchronize_actions()
-            .await
-            .change_context(EnsureSystemPoliciesError::SynchronizeActions)?;
-
-        self.create_policy(
-            system_machine_actor.into(),
-            PolicyCreationParams {
-                name: Some("default-web-creator".to_owned()),
-                effect: Effect::Permit,
-                principal: Some(PrincipalConstraint::Actor {
-                    actor: system_machine_actor,
-                }),
-                actions: vec![ActionName::CreateWeb],
-                resource: None,
-            },
-        )
-        .await
-        .change_context(EnsureSystemPoliciesError::AddRequiredPoliciesFailed)?;
-
-        Ok(())
-    }
-}
-
 impl<C, A> PrincipalStore for PostgresStore<C, A>
 where
     C: AsClient,
@@ -209,7 +158,12 @@ where
             // We need to create the system web for the system machine actor, so the system machine
             // needs to be allowed to create webs.
             transaction
-                .ensure_system_policies_impl(ActorId::Machine(system_machine_id))
+                .create_policy(
+                    system_machine_id.into(),
+                    seed_policies::system_actor_create_web_policy(ActorId::Machine(
+                        system_machine_id,
+                    )),
+                )
                 .await
                 .change_context(GetSystemAccountError::CreateSystemAccountFailed)?;
 
@@ -330,8 +284,13 @@ where
             .await
             .change_context(WebCreationError::MachineCreationError)?;
 
+        let admin_role_id = Uuid::new_v4();
         let admin_role = transaction
-            .create_role(None, ActorGroupId::Web(web_id), RoleName::Administrator)
+            .create_role(
+                Some(admin_role_id),
+                ActorGroupId::Web(web_id),
+                RoleName::Administrator,
+            )
             .await
             .change_context(WebCreationError::RoleCreationError)?;
 
@@ -340,8 +299,13 @@ where
             .await
             .change_context(WebCreationError::RoleAssignmentError)?;
 
+        let member_role_id = Uuid::new_v4();
         let member_role = transaction
-            .create_role(None, ActorGroupId::Web(web_id), RoleName::Member)
+            .create_role(
+                Some(member_role_id),
+                ActorGroupId::Web(web_id),
+                RoleName::Member,
+            )
             .await
             .change_context(WebCreationError::RoleCreationError)?;
 
@@ -349,6 +313,28 @@ where
             .assign_role_by_id(machine_id, member_role)
             .await
             .change_context(WebCreationError::RoleAssignmentError)?;
+
+        let web_roles = [
+            WebRole {
+                id: WebRoleId::new(admin_role_id),
+                web_id,
+                name: RoleName::Administrator,
+            },
+            WebRole {
+                id: WebRoleId::new(member_role_id),
+                web_id,
+                name: RoleName::Member,
+            },
+        ];
+
+        for web_role in web_roles {
+            for policy in seed_policies::web_policies(&web_role) {
+                transaction
+                    .create_policy(actor.into(), policy)
+                    .await
+                    .change_context(WebCreationError::PolicyCreationError)?;
+            }
+        }
 
         let owner = if parameter.is_actor_web {
             // For user-webs we assign the administrator as the owner directly
@@ -1369,15 +1355,61 @@ where
     }
 
     async fn seed_system_policies(&mut self) -> Result<(), Report<EnsureSystemPoliciesError>> {
+        self.synchronize_actions()
+            .await
+            .change_context(EnsureSystemPoliciesError::SynchronizeActions)?;
+
         let system_machine_actor = self
             .get_or_create_system_machine("h")
             .await
             .change_context(EnsureSystemPoliciesError::CreatingSystemMachineFailed)
             .map(ActorId::Machine)?;
 
-        self.ensure_system_policies_impl(system_machine_actor)
+        let roles = self
+            .as_client()
+            .query_raw(
+                "
+                    SELECT role.id, role.actor_group_id, role.name
+                    FROM role
+                    WHERE role.principal_type = 'web_role'
+                ",
+                [] as [&(dyn ToSql + Sync); 0],
+            )
             .await
-            .change_context(EnsureSystemPoliciesError::CreatingSystemMachineFailed)
+            .change_context(EnsureSystemPoliciesError::AddRequiredPoliciesFailed)?
+            .map_ok(|row| WebRole {
+                id: row.get(0),
+                web_id: row.get(1),
+                name: row.get(2),
+            })
+            .try_collect::<Vec<_>>()
+            .await
+            .change_context(EnsureSystemPoliciesError::AddRequiredPoliciesFailed)?;
+
+        let hash_admins_team = self
+            .get_team_by_name(system_machine_actor.into(), "instance-admins")
+            .await
+            .change_context(EnsureSystemPoliciesError::ReadInstanceAdminRoles)?
+            .ok_or(EnsureSystemPoliciesError::ReadInstanceAdminRoles)?;
+        let hash_admins_team_roles = self
+            .get_team_roles(system_machine_actor.into(), hash_admins_team.id)
+            .await
+            .change_context(EnsureSystemPoliciesError::ReadInstanceAdminRoles)?;
+
+        self.update_seeded_policies(
+            system_machine_actor,
+            seed_policies::system_actor_policies(system_machine_actor)
+                .chain(seed_policies::global_policies())
+                .chain(roles.iter().flat_map(seed_policies::web_policies))
+                .chain(
+                    hash_admins_team_roles
+                        .values()
+                        .flat_map(seed_policies::instance_admins_policies),
+                ),
+        )
+        .await?;
+
+        Ok(())
     }
 }
 

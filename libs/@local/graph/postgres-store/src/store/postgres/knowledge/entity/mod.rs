@@ -1051,13 +1051,10 @@ where
                 Authorized::Never => {
                     forbidden_instantiations.push(entity_type_id);
                 }
-                Authorized::Partial(partial) => {
-                    tracing::error!(
-                        "Instantiation checking is not supported for partial authorization:\n
-                         {partial:#?}"
-                    );
-                    forbidden_instantiations.push(entity_type_id);
-                }
+                Authorized::Partial(partial) => unimplemented!(
+                    "Instantiation checking is not supported for partial authorization: \
+                     {partial:#?}"
+                ),
             }
         }
 
