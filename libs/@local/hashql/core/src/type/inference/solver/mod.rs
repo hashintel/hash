@@ -299,12 +299,14 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     ///
     /// This ensures that every variable has a consistent representation in the solver
     /// before we start processing constraints.
-    fn upsert_variables(&mut self) {
+    fn upsert_variables(&mut self, graph: &mut Graph) {
         for constraint in &self.constraints {
             for variable in constraint.variables() {
                 self.unification.upsert_variable(variable.kind);
             }
         }
+
+        graph.expansion(&mut self.unification);
     }
 
     fn unify_variables(
@@ -323,7 +325,8 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                 Some((lhs_kind, (lhs_variable, mut lhs_constraint))),
                 Some((_, (rhs_variable, mut rhs_constraint))),
             ) => {
-                // Not necessary per-sé, but allows us to survive the tracking round
+                // Not necessary per-se, but allows us to have more accurate variable tracking
+                // throughout the solver
                 let variable = if root == lhs_kind {
                     lhs_variable
                 } else {
@@ -359,6 +362,8 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                         Some(lhs)
                     }
                 };
+
+                variables.insert(root, (variable, lhs_constraint));
             }
         }
     }
@@ -1099,11 +1104,6 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                     match field.into_variable() {
                         Some(field_variable) => {
                             // given `a <: b` and `b <: a`, we'll condense down to `a = b`
-                            // TODO: the problem is that we don't know about this variable yet, we
-                            // need to grow the graph as well, if it doesn't exist
-                            self.unification.upsert_variable(output.kind);
-                            self.unification.upsert_variable(field_variable.kind);
-
                             self.constraints.push(Constraint::Ordering {
                                 lower: field_variable,
                                 upper: output,
@@ -1187,9 +1187,6 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         // the same amount of memory.
         let mut bump = Bump::new();
 
-        // Step 1: Register all variables with the unification system
-        self.upsert_variables();
-
         let mut graph = Graph::new(&mut self.unification);
 
         // These need to be initialized *after* upsert, to ensure that the capacity is correct
@@ -1211,6 +1208,9 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
             // Clear the diagnostics this round, so that they do not pollute the next round
             self.diagnostics.clear();
             self.lattice.take_diagnostics();
+
+            // Step 1: Register all variables with the unification system
+            self.upsert_variables(&mut graph);
 
             // Step 2.1: Solve anti-symmetry constraints (A <: B and B <: A implies A = B)
             self.solve_anti_symmetry(&mut graph, &mut variables, &bump);
