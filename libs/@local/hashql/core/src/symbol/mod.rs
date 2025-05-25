@@ -269,8 +269,8 @@ pub struct Ident<'heap> {
 }
 
 impl<'heap> Ident<'heap> {
-    #[must_use]
-    pub const fn synthetic(value: Symbol<'heap>) -> Self {
+    #[cfg(test)]
+    pub(crate) const fn synthetic(value: Symbol<'heap>) -> Self {
         Self {
             span: SpanId::SYNTHETIC,
             value,

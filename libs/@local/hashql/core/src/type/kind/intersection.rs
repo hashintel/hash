@@ -686,29 +686,32 @@ mod test {
         heap::Heap,
         pretty::PrettyPrint as _,
         span::SpanId,
+        symbol::Ident,
         r#type::{
             PartialType,
             environment::{
                 AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
                 SimplifyEnvironment, instantiate::InstantiateEnvironment,
             },
+            error::TypeCheckDiagnosticCategory,
             inference::{
                 Constraint, Inference as _, PartialStructuralEdge, Variable, VariableKind,
             },
             kind::{
-                Generic, OpaqueType, Param, TypeKind,
+                Generic, OpaqueType, Param, StructType, TypeKind,
                 generic::{GenericArgument, GenericArgumentId},
                 infer::HoleId,
                 intrinsic::{DictType, IntrinsicType},
                 primitive::PrimitiveType,
+                r#struct::StructField,
                 test::{
                     assert_equiv, assert_sorted_eq, dict, generic, intersection, opaque, primitive,
-                    tuple, union,
+                    r#struct, struct_field, tuple, union,
                 },
                 tuple::TupleType,
                 union::UnionType,
             },
-            lattice::{Lattice as _, test::assert_lattice_laws},
+            lattice::{Lattice as _, Projection, test::assert_lattice_laws},
             test::{instantiate, instantiate_infer, instantiate_param},
         },
     };
@@ -2327,5 +2330,104 @@ mod test {
             );
             assert_ne!(repr.argument, generic_arguments[index]);
         }
+    }
+
+    #[test]
+    fn projection_empty() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let intersection = intersection!(env, []);
+
+        let mut lattice = LatticeEnvironment::new(&env);
+        let projection =
+            lattice.projection(intersection, Ident::synthetic(heap.intern_symbol("foo")));
+        assert_eq!(projection, Projection::Error);
+
+        let diagnostics = lattice.take_diagnostics().into_vec();
+        assert_eq!(diagnostics.len(), 1);
+        assert_eq!(
+            diagnostics[0].category,
+            TypeCheckDiagnosticCategory::UnsupportedProjection
+        );
+    }
+
+    #[test]
+    fn projection_single_variant() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let string = primitive!(env, PrimitiveType::String);
+
+        let intersection =
+            intersection!(env, [r#struct!(env, [struct_field!(env, "foo", string)])]);
+
+        let mut lattice = LatticeEnvironment::new(&env);
+        let projection =
+            lattice.projection(intersection, Ident::synthetic(heap.intern_symbol("foo")));
+        assert_eq!(lattice.diagnostics.len(), 0);
+
+        assert_eq!(projection, Projection::Resolved(string));
+    }
+
+    #[test]
+    fn projection_propagate_error() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let string = primitive!(env, PrimitiveType::String);
+        let integer = primitive!(env, PrimitiveType::Integer);
+
+        let intersection = intersection!(env, [integer, string]);
+
+        let mut lattice = LatticeEnvironment::new(&env);
+        let projection =
+            lattice.projection(intersection, Ident::synthetic(heap.intern_symbol("foo")));
+        assert_eq!(lattice.diagnostics.len(), 2);
+        assert_eq!(projection, Projection::Error);
+    }
+
+    #[test]
+    fn projection_propagate_pending() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let string = primitive!(env, PrimitiveType::String);
+        let hole = env.counter.hole.next();
+
+        let intersection = intersection!(env, [instantiate_infer(&env, hole), string]);
+
+        let mut lattice = LatticeEnvironment::new(&env);
+        let projection =
+            lattice.projection(intersection, Ident::synthetic(heap.intern_symbol("foo")));
+        assert_eq!(lattice.diagnostics.len(), 0);
+        assert_eq!(projection, Projection::Pending);
+    }
+
+    #[test]
+    fn projection_union_values() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let string = primitive!(env, PrimitiveType::String);
+        let integer = primitive!(env, PrimitiveType::Integer);
+
+        let intersection = intersection!(
+            env,
+            [
+                r#struct!(env, [struct_field!(env, "foo", integer)]),
+                r#struct!(env, [struct_field!(env, "foo", string)])
+            ]
+        );
+
+        let mut lattice = LatticeEnvironment::new(&env);
+        let projection =
+            lattice.projection(intersection, Ident::synthetic(heap.intern_symbol("foo")));
+        assert_eq!(lattice.diagnostics.len(), 0);
+        let Projection::Resolved(id) = projection else {
+            panic!("expected resolved projection")
+        };
+
+        assert_equiv!(env, [id], [intersection!(env, [integer, string])]);
     }
 }
