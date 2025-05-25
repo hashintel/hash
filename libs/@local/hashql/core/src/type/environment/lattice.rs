@@ -322,7 +322,10 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
             return Projection::Error;
         }
 
-        r#type.projection(field, self)
+        let result = r#type.projection(field, self);
+
+        self.boundary.exit(r#type, r#type);
+        result
     }
 
     #[inline]

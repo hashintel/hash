@@ -60,6 +60,22 @@ impl VariableKind {
             Self::Generic(argument) => TypeKind::Param(Param { argument }),
         }
     }
+
+    #[must_use]
+    pub const fn hole(self) -> Option<HoleId> {
+        match self {
+            Self::Hole(hole) => Some(hole),
+            Self::Generic(_) => None,
+        }
+    }
+
+    #[must_use]
+    pub const fn generic(self) -> Option<GenericArgumentId> {
+        match self {
+            Self::Hole(_) => None,
+            Self::Generic(argument) => Some(argument),
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]

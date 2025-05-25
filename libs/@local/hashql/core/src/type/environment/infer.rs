@@ -1,13 +1,17 @@
 use core::ops::Deref;
 
 use super::{Environment, Variance};
-use crate::r#type::{
-    TypeId,
-    inference::{
-        Constraint, Inference as _, InferenceSolver, PartialStructuralEdge, Variable, VariableKind,
-        solver::Unification,
+use crate::{
+    span::SpanId,
+    symbol::Ident,
+    r#type::{
+        TypeId,
+        inference::{
+            Constraint, Inference as _, InferenceSolver, PartialStructuralEdge,
+            SelectionConstraint, Subject, Variable, VariableKind, solver::Unification,
+        },
+        recursion::RecursionBoundary,
     },
-    recursion::RecursionBoundary,
 };
 
 #[derive(Debug)]
@@ -93,6 +97,28 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
         };
 
         self.constraints.push(constraint);
+    }
+
+    pub fn add_projection(
+        &mut self,
+        span: SpanId,
+        r#type: TypeId,
+        field: Ident<'heap>,
+    ) -> Variable {
+        let hole = self.counter.hole.next();
+        let variable = Variable {
+            span,
+            kind: VariableKind::Hole(hole),
+        };
+
+        let projection = SelectionConstraint::Projection {
+            subject: Subject::Type(r#type),
+            field,
+            output: variable,
+        };
+        self.constraints.push(Constraint::Selection(projection));
+
+        variable
     }
 
     pub fn collect_constraints(&mut self, subtype: TypeId, supertype: TypeId) {

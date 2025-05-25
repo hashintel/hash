@@ -251,6 +251,7 @@ pub struct InferenceSolver<'env, 'heap> {
 
     /// Collected diagnostics for reporting type errors
     diagnostics: Diagnostics,
+    persistent_diagnostics: Diagnostics,
 
     /// The set of constraints to be solved
     constraints: Vec<Constraint<'heap>>,
@@ -287,6 +288,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
             simplify: SimplifyEnvironment::new(env),
 
             diagnostics: Diagnostics::new(),
+            persistent_diagnostics: Diagnostics::new(),
 
             constraints,
             unification,
@@ -305,6 +307,62 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         }
     }
 
+    fn unify_variables(
+        &mut self,
+        variables: &mut FastHashMap<VariableKind, (Variable, VariableConstraint)>,
+        root: VariableKind,
+        lhs: Option<(VariableKind, (Variable, VariableConstraint))>,
+        rhs: Option<(VariableKind, (Variable, VariableConstraint))>,
+    ) {
+        match (lhs, rhs) {
+            (None, None) => {}
+            (Some((_, value)), None) | (None, Some((_, value))) => {
+                variables.insert(root, value);
+            }
+            (
+                Some((lhs_kind, (lhs_variable, mut lhs_constraint))),
+                Some((_, (rhs_variable, mut rhs_constraint))),
+            ) => {
+                // Not necessary per-sé, but allows us to survive the tracking round
+                let variable = if root == lhs_kind {
+                    lhs_variable
+                } else {
+                    rhs_variable
+                };
+
+                let VariableConstraint {
+                    equal,
+                    lower,
+                    upper,
+                } = &mut lhs_constraint;
+
+                lower.append(&mut rhs_constraint.lower);
+                upper.append(&mut rhs_constraint.upper);
+
+                *equal = match (*equal, rhs_constraint.equal) {
+                    (None, None) => None,
+                    (Some(equal), None) | (None, Some(equal)) => Some(equal),
+                    (Some(lhs), Some(rhs)) if self.lattice.is_equivalent(lhs, rhs) => Some(lhs),
+                    (Some(lhs), Some(rhs)) => {
+                        // This is a persistent diagnostic because this constraint is "destructive",
+                        // meaning it won't be rerun.
+                        self.persistent_diagnostics
+                            .push(conflicting_equality_constraints(
+                                &self.lattice,
+                                variable,
+                                self.lattice.r#type(lhs),
+                                self.lattice.r#type(rhs),
+                            ));
+
+                        // We keep the type, so that we can continue inference, but we issue a
+                        // diagnostic to inform the user of the conflict
+                        Some(lhs)
+                    }
+                };
+            }
+        }
+    }
+
     /// Identifies and unifies variables that should be equal due to anti-symmetry.
     ///
     /// In a type lattice, if `A <: B` and `B <: A`, then `A = B` (anti-symmetry property).
@@ -314,7 +372,12 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     ///
     /// Additionally, structural edges (from constraints like `_1 <: (name: _2)` and `_2 <: 1`)
     /// are included in this analysis, as they can also create equality relationships.
-    fn solve_anti_symmetry(&mut self, graph: &mut Graph, bump: &Bump) {
+    fn solve_anti_symmetry(
+        &mut self,
+        graph: &mut Graph,
+        variables: &mut FastHashMap<VariableKind, (Variable, VariableConstraint)>,
+        bump: &Bump,
+    ) {
         // We first create a graph of all the inference variables, that's then used to see if there
         // are any variables that can be equalized.
         // We can do this because our type lattice is a partially ordered set, this we can make use
@@ -350,7 +413,14 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                 let lhs = self.unification.variables[lhs as usize];
                 let rhs = self.unification.variables[rhs as usize];
 
+                let lhs_entry = variables.remove_entry(&lhs);
+                let rhs_entry = variables.remove_entry(&rhs);
+
                 self.unification.unify(lhs, rhs);
+
+                // This is the new unified root
+                let root = self.unification.root(lhs);
+                self.unify_variables(variables, root, lhs_entry, rhs_entry);
             }
         }
 
@@ -411,12 +481,17 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                         Some(existing) if self.lattice.is_equivalent(existing, r#type) => {
                             // do nothing, this is fine
                         }
-                        Some(existing) => self.diagnostics.push(conflicting_equality_constraints(
-                            &self.lattice,
-                            variable,
-                            self.lattice.r#type(existing),
-                            self.lattice.r#type(r#type),
-                        )),
+                        Some(existing) => {
+                            // As this is a destructive operation (the constraint won't be re-run)
+                            // this is a persistent diagnostic
+                            self.persistent_diagnostics
+                                .push(conflicting_equality_constraints(
+                                    &self.lattice,
+                                    variable,
+                                    self.lattice.r#type(existing),
+                                    self.lattice.r#type(r#type),
+                                ));
+                        }
                     }
                 }
                 // Solved prior in anti-symmetry pass, we still insert them into the constraints
@@ -998,6 +1073,13 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                             // The projection is pending, we need to wait for it to be resolved.
                             // We add the constraint back to the list of constraints to be solved.
                             self.constraints.push(Constraint::Selection(selection));
+
+                            // In case we do not make any progress, add an error (will be cleared
+                            // every iteration)
+                            self.diagnostics.push(unresolved_selection_constraint(
+                                selection,
+                                self.lattice.environment,
+                            ));
                             continue;
                         }
                         Projection::Error => {
@@ -1016,8 +1098,20 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
 
                     match field.into_variable() {
                         Some(field_variable) => {
-                            // discharge equality constraint between the field and the output type
-                            self.unification.unify(field_variable.kind, output.kind);
+                            // given `a <: b` and `b <: a`, we'll condense down to `a = b`
+                            // TODO: the problem is that we don't know about this variable yet, we
+                            // need to grow the graph as well, if it doesn't exist
+                            self.unification.upsert_variable(output.kind);
+                            self.unification.upsert_variable(field_variable.kind);
+
+                            self.constraints.push(Constraint::Ordering {
+                                lower: field_variable,
+                                upper: output,
+                            });
+                            self.constraints.push(Constraint::Ordering {
+                                lower: output,
+                                upper: field_variable,
+                            });
                         }
                         None => {
                             // discharge equality constraint between the field and the output type
@@ -1047,11 +1141,9 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     fn verify_solved_constraint_system(&mut self) {
         for constraint in self.constraints.drain(..) {
             match constraint {
-                Constraint::Selection(selection) => {
-                    self.diagnostics.push(unresolved_selection_constraint(
-                        selection,
-                        self.lattice.environment,
-                    ));
+                Constraint::Selection(_) => {
+                    // these might still exist, because we haven't made any progress, but(!) they
+                    // should be the only ones that survive
                 }
                 _ => unreachable!(
                     "only selection constraints can be remaining on a fix-point system"
@@ -1121,7 +1213,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
             self.lattice.take_diagnostics();
 
             // Step 2.1: Solve anti-symmetry constraints (A <: B and B <: A implies A = B)
-            self.solve_anti_symmetry(&mut graph, &bump);
+            self.solve_anti_symmetry(&mut graph, &mut variables, &bump);
 
             lookup = self.unification.lookup();
             // Step 2.2: Set the variable substitutions in the lattice
@@ -1161,6 +1253,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
 
         // Step 5: Collect all diagnostics from the solving process
         let mut diagnostics = self.diagnostics;
+        diagnostics.merge(self.persistent_diagnostics);
         diagnostics.merge(self.lattice.take_diagnostics());
         if let Some(simplify) = self.simplify.take_diagnostics() {
             diagnostics.merge(simplify);

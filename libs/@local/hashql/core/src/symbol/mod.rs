@@ -268,6 +268,17 @@ pub struct Ident<'heap> {
     pub kind: IdentKind,
 }
 
+impl<'heap> Ident<'heap> {
+    #[must_use]
+    pub const fn synthetic(value: Symbol<'heap>) -> Self {
+        Self {
+            span: SpanId::SYNTHETIC,
+            value,
+            kind: IdentKind::Lexical,
+        }
+    }
+}
+
 impl AsRef<str> for Ident<'_> {
     fn as_ref(&self) -> &str {
         self.value.as_str()
