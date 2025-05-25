@@ -12,7 +12,10 @@ use hashql_diagnostics::{
 };
 
 use super::{
-    Type, environment::Environment, inference::Variable, kind::generic::GenericArgumentId,
+    Type,
+    environment::Environment,
+    inference::{SelectionConstraint, Variable},
+    kind::generic::GenericArgumentId,
 };
 use crate::{
     pretty::{PrettyOptions, PrettyPrint},
@@ -135,6 +138,11 @@ const RECURSIVE_TYPE_PROJECTION: TerminalDiagnosticCategory = TerminalDiagnostic
     name: "Cannot project field on recursive type",
 };
 
+const UNRESOLVED_SELECTION_CONSTRAINT: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "unresolved-selection-constraint",
+    name: "Unable to resolve selection constraint",
+};
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum TypeCheckDiagnosticCategory {
     TypeMismatch,
@@ -159,6 +167,7 @@ pub enum TypeCheckDiagnosticCategory {
     TupleIndexOutOfBounds,
     UnsupportedProjection,
     RecursiveTypeProjection,
+    UnresolvedSelectionConstraint,
 }
 
 impl DiagnosticCategory for TypeCheckDiagnosticCategory {
@@ -194,6 +203,7 @@ impl DiagnosticCategory for TypeCheckDiagnosticCategory {
             Self::TupleIndexOutOfBounds => Some(&TUPLE_INDEX_OUT_OF_BOUNDS),
             Self::UnsupportedProjection => Some(&UNSUPPORTED_PROJECTION),
             Self::RecursiveTypeProjection => Some(&RECURSIVE_TYPE_PROJECTION),
+            Self::UnresolvedSelectionConstraint => Some(&UNRESOLVED_SELECTION_CONSTRAINT),
         }
     }
 }
@@ -1611,8 +1621,103 @@ where
     diagnostic.add_note(Note::new(
         "Recursive type definitions create mathematical impossibilities for field access. It is \
          logically impossible to resolve field projection on types that expand infinitely - no \
-         algorithm or type system could ever make this work.",
+         computational system can handle infinite expansions.",
     ));
+
+    diagnostic
+}
+
+pub(crate) fn unresolved_selection_constraint<'heap>(
+    constraint: SelectionConstraint<'heap>,
+    env: &Environment<'heap>,
+) -> TypeCheckDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        TypeCheckDiagnosticCategory::UnresolvedSelectionConstraint,
+        Severity::Error,
+    );
+
+    match constraint {
+        SelectionConstraint::Projection {
+            subject,
+            field,
+            output,
+        } => {
+            diagnostic.labels.push(
+                Label::new(field.span, format!("Cannot resolve field access '{field}'"))
+                    .with_order(0)
+                    .with_color(Color::Ansi(AnsiColor::Red)),
+            );
+
+            diagnostic.labels.push(
+                Label::new(output.span, "... when projecting this unconstrained type")
+                    .with_order(-1)
+                    .with_color(Color::Ansi(AnsiColor::Yellow)),
+            );
+
+            let subject_type = subject.r#type(env);
+            diagnostic.labels.push(
+                Label::new(subject_type.span, "... using this field access")
+                    .with_order(-2)
+                    .with_color(Color::Ansi(AnsiColor::Blue)),
+            );
+
+            let help_message = format!(
+                "The type checker could not resolve field access '{field}' because the subject \
+                 type contains unconstrained type variables that remain unsolved after processing \
+                 all other constraints. This occurs when the subject type couldn't be determined \
+                 due to insufficient type information.\n\nTry adding explicit type annotations to \
+                 constrain the subject type."
+            );
+
+            diagnostic.add_help(Help::new(help_message));
+
+            diagnostic.add_note(Note::new(
+                "Selection constraints are resolved after all other type constraints have been \
+                 processed. If any type variables involved in the field access remain \
+                 unconstrained at this point, the selection operation cannot be validated.",
+            ));
+        }
+
+        SelectionConstraint::Subscript {
+            subject,
+            index,
+            output,
+        } => {
+            diagnostic.labels.push(
+                Label::new(output.span, "Subscript operation cannot be resolved")
+                    .with_order(0)
+                    .with_color(Color::Ansi(AnsiColor::Red)),
+            );
+
+            let subject_type = subject.r#type(env);
+            diagnostic.labels.push(
+                Label::new(subject_type.span, "... when indexing into this type")
+                    .with_order(-1)
+                    .with_color(Color::Ansi(AnsiColor::Blue)),
+            );
+
+            let index_type = index.r#type(env);
+            diagnostic.labels.push(
+                Label::new(index_type.span, "... using this index type")
+                    .with_order(-2)
+                    .with_color(Color::Ansi(AnsiColor::Cyan)),
+            );
+
+            diagnostic.add_help(Help::new(
+                "The type checker could not resolve the subscript operation because the subject \
+                 or index types contain unconstrained type variables that remain unsolved after \
+                 processing all other constraints. This occurs when either the subject type or \
+                 index type couldn't be determined due to insufficient type information.\n\nTry \
+                 adding explicit type annotations to constrain the subject and index types.",
+            ));
+
+            diagnostic.add_note(Note::new(
+                "Subscript operations are resolved after all other type constraints have been \
+                 processed. If any type variables involved in the indexing operation remain \
+                 unconstrained at this point, the subscript operation cannot be validated.",
+            ));
+        }
+    }
 
     diagnostic
 }

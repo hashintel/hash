@@ -21,6 +21,7 @@ use crate::{
             bound_constraint_violation, conflicting_equality_constraints,
             incompatible_lower_equal_constraint, incompatible_upper_equal_constraint,
             unconstrained_type_variable, unconstrained_type_variable_floating,
+            unresolved_selection_constraint,
         },
         lattice::Projection,
     },
@@ -978,6 +979,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         self.lattice.set_substitution(substitution);
 
         let mut made_progress = false;
+
         // Solve selection constraints, we do this by iterating over the selection constraints, and
         // then try solving them, if we can't solve them, we add them to the constraints vector
         // again. We also keep track of the progress, if we haven't made any progress, we stop, as
@@ -1026,12 +1028,13 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                         }
                     }
                 }
+                #[expect(clippy::todo)]
                 SelectionConstraint::Subscript {
                     subject: _,
                     index: _,
                     output: _,
                 } => {
-                    todo!("https://linear.app/hash/issue/H-4545/hashql-implement-subscript-type-inferencechecking")
+                    todo!("https://linear.app/hash/issue/H-4545/hashql-implement-subscript-type-inferencechecking");
                 }
             }
         }
@@ -1039,6 +1042,22 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         self.lattice.clear_substitution();
 
         made_progress
+    }
+
+    fn verify_solved_constraint_system(&mut self) {
+        for constraint in self.constraints.drain(..) {
+            match constraint {
+                Constraint::Selection(selection) => {
+                    self.diagnostics.push(unresolved_selection_constraint(
+                        selection,
+                        self.lattice.environment,
+                    ));
+                }
+                _ => unreachable!(
+                    "only selection constraints can be remaining on a fix-point system"
+                ),
+            }
+        }
     }
 
     /// Solves type inference constraints and produces a type substitution.
@@ -1056,7 +1075,8 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     ///    6. Verifies all variables are constrained
     ///    7. Validates constraints and computes substitutions
     /// 3. Simplifies the final substitutions for better readability
-    /// 4. Collects any diagnostics generated during solving
+    /// 4. Verifies that the system has been solved
+    /// 5. Collects any diagnostics generated during solving
     ///
     /// The fix-point approach handles complex interdependencies between type variables
     /// by allowing newly generated constraints to trigger additional iterations.
@@ -1136,7 +1156,10 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         self.simplify_substitutions(lookup.clone(), &mut substitution);
         let substitution = Substitution::new(lookup, substitution);
 
-        // Step 4: Collect all diagnostics from the solving process
+        // Step 4: Verify that the system has been solved
+        self.verify_solved_constraint_system();
+
+        // Step 5: Collect all diagnostics from the solving process
         let mut diagnostics = self.diagnostics;
         diagnostics.merge(self.lattice.take_diagnostics());
         if let Some(simplify) = self.simplify.take_diagnostics() {
