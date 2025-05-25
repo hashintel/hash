@@ -104,6 +104,7 @@ impl Unification {
     }
 
     /// Checks if two variables belong to the same equivalence class.
+    #[cfg(test)]
     pub(crate) fn is_unioned(&mut self, lhs: VariableKind, rhs: VariableKind) -> bool {
         let lhs = self.upsert_variable(lhs);
         let rhs = self.upsert_variable(rhs);
@@ -274,11 +275,9 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     ///
     /// Configures a lattice environment with simplification disabled during solving
     /// to maintain correctness. Simplification occurs after constraint resolution.
-    pub(crate) fn new(
-        env: &'env Environment<'heap>,
-        unification: Unification,
-        constraints: Vec<Constraint<'heap>>,
-    ) -> Self {
+    pub(crate) fn new(env: &'env Environment<'heap>, constraints: Vec<Constraint<'heap>>) -> Self {
+        let unification = Unification::new();
+
         let mut lattice = LatticeEnvironment::new(env);
         lattice.without_simplify();
         lattice.set_inference_enabled(true);
@@ -395,16 +394,19 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         // We also take into account any of the structural relationships, for example given: `_1 <:
         // (name: _2)`, and then `_2 <: 1`, this means that the following must hold: `_1 ≡ _2`.
         for &constraint in &self.constraints {
-            let (source, target) = match constraint {
-                Constraint::Ordering { lower, upper } => (lower, upper),
-                Constraint::StructuralEdge { source, target } => (source, target),
+            let edges = match constraint {
+                Constraint::Ordering { lower, upper } => [Some((lower, upper)), None],
+                Constraint::StructuralEdge { source, target } => [Some((source, target)), None],
+                Constraint::Unify { lhs, rhs } => [Some((lhs, rhs)), Some((rhs, lhs))],
                 _ => continue,
             };
 
-            let source = self.unification.lookup[&source.kind];
-            let target = self.unification.lookup[&target.kind];
+            for (source, target) in edges.into_iter().flatten() {
+                let source = self.unification.lookup[&source.kind];
+                let target = self.unification.lookup[&target.kind];
 
-            graph.insert_edge(source, target);
+                graph.insert_edge(source, target);
+            }
         }
 
         // Run Tarjan's SCC algorithm to find strongly connected components
@@ -516,6 +518,15 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                     let target_root = self.unification.root(target.kind);
                     let _: Result<_, _> = constraints
                         .try_insert(target_root, (target, VariableConstraint::default()));
+                }
+                Constraint::Unify { lhs, rhs } => {
+                    let lhs_root = self.unification.root(lhs.kind);
+                    let _: Result<_, _> =
+                        constraints.try_insert(lhs_root, (lhs, VariableConstraint::default()));
+
+                    let rhs_root = self.unification.root(rhs.kind);
+                    let _: Result<_, _> =
+                        constraints.try_insert(rhs_root, (rhs, VariableConstraint::default()));
                 }
                 constraint @ Constraint::Selection(mut selection) => {
                     // Try to "specialize" each constraint, meaning look if the type it's referring
@@ -1069,14 +1080,9 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
 
                     match field.into_variable() {
                         Some(field_variable) => {
-                            // given `a <: b` and `b <: a`, we'll condense down to `a = b`
-                            self.constraints.push(Constraint::Ordering {
-                                lower: field_variable,
-                                upper: output,
-                            });
-                            self.constraints.push(Constraint::Ordering {
-                                lower: output,
-                                upper: field_variable,
+                            self.constraints.push(Constraint::Unify {
+                                lhs: field_variable,
+                                rhs: output,
                             });
                         }
                         None => {

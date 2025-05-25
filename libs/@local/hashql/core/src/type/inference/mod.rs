@@ -152,6 +152,9 @@ impl<'heap> SelectionConstraint<'heap> {
 /// meaning the left type can be used wherever the right type is expected.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Constraint<'heap> {
+    /// Unifies two variables (`lhs ≡ rhs`)
+    Unify { lhs: Variable, rhs: Variable },
+
     /// Constraints a variable with an upper bound (`variable <: bound`)
     UpperBound { variable: Variable, bound: TypeId },
 
@@ -181,6 +184,7 @@ pub enum Constraint<'heap> {
 impl Constraint<'_> {
     pub(crate) fn variables(self) -> impl IntoIterator<Item = Variable> {
         let array = match self {
+            Self::Unify { lhs, rhs } => [Some(lhs), Some(rhs), None],
             Self::LowerBound { variable, bound: _ }
             | Self::UpperBound { variable, bound: _ }
             | Self::Equals {
