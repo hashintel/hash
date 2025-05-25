@@ -18,9 +18,9 @@ use hash_graph_api::{
     rpc::Dependencies,
 };
 use hash_graph_authorization::{
-    AuthorizationApi as _, AuthorizationApiPool, NoAuthorization,
+    AuthorizationApi as _, AuthorizationApiPool,
     backend::{SpiceDbOpenApi, ZanzibarBackend as _},
-    policies::store::PrincipalStore,
+    policies::store::{PolicyStore as _, PrincipalStore},
     zanzibar::ZanzibarClient,
 };
 use hash_graph_postgres_store::store::{
@@ -262,24 +262,6 @@ pub async fn server(args: ServerArgs) -> Result<(), Report<GraphError>> {
         tracing::error!(error = ?report, "Failed to connect to database");
         report
     })?;
-    _ = pool
-        .acquire(NoAuthorization, None)
-        .await
-        .change_context(GraphError)
-        .attach_printable("Connection to database failed")?;
-
-    let pool = if args.offline {
-        FetchingPool::new_offline(pool)
-    } else {
-        FetchingPool::new(
-            pool,
-            (
-                args.type_fetcher_address.type_fetcher_host,
-                args.type_fetcher_address.type_fetcher_port,
-            ),
-            DomainValidator::new(args.allowed_url_domain.clone()),
-        )
-    };
 
     let mut spicedb_client = SpiceDbOpenApi::new(
         format!("{}:{}", args.spicedb_host, args.spicedb_http_port),
@@ -308,6 +290,41 @@ pub async fn server(args: ServerArgs) -> Result<(), Report<GraphError>> {
         } else {
             Ok(None)
         }
+    };
+
+    pool.acquire(
+        zanzibar_client
+            .acquire()
+            .await
+            .change_context(GraphError)
+            .map_err(|report| {
+                tracing::error!(error = ?report, "Failed to acquire authorization client");
+                report
+            })?,
+        None,
+    )
+    .await
+    .change_context(GraphError)
+    .attach_printable("Connection to database failed")?
+    .seed_system_policies()
+    .await
+    .change_context(GraphError)
+    .map_err(|report| {
+        tracing::error!(error = ?report, "Failed to seed system policies");
+        report
+    })?;
+
+    let pool = if args.offline {
+        FetchingPool::new_offline(pool)
+    } else {
+        FetchingPool::new(
+            pool,
+            (
+                args.type_fetcher_address.type_fetcher_host,
+                args.type_fetcher_address.type_fetcher_port,
+            ),
+            DomainValidator::new(args.allowed_url_domain.clone()),
+        )
     };
 
     let (query_logger, _handle) = if let Some(query_log_file) = args.log_queries {

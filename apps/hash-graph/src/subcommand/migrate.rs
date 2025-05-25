@@ -1,6 +1,6 @@
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
-use hash_graph_authorization::{NoAuthorization, policies::store::PolicyStore as _};
+use hash_graph_authorization::NoAuthorization;
 use hash_graph_postgres_store::store::{
     DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, PostgresStoreSettings,
 };
@@ -33,16 +33,13 @@ pub async fn migrate(args: MigrateArgs) -> Result<(), Report<GraphError>> {
         report
     })?;
 
-    let mut store = pool
-        .acquire(NoAuthorization, None)
+    pool.acquire(NoAuthorization, None)
         .await
         .change_context(GraphError)
         .map_err(|report| {
             tracing::error!(error = ?report, "Failed to acquire database connection");
             report
-        })?;
-
-    store
+        })?
         .run_migrations()
         .await
         .change_context(GraphError)
@@ -51,12 +48,5 @@ pub async fn migrate(args: MigrateArgs) -> Result<(), Report<GraphError>> {
             report
         })?;
 
-    store
-        .seed_system_policies()
-        .await
-        .change_context(GraphError)
-        .map_err(|report| {
-            tracing::error!(error = ?report, "Failed to seed system policies");
-            report
-        })
+    Ok(())
 }
