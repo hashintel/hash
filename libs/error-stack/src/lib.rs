@@ -495,6 +495,7 @@ extern crate alloc;
 pub mod future;
 pub mod iter;
 
+mod any;
 mod compat;
 mod frame;
 mod macros;
@@ -524,6 +525,7 @@ pub use self::result::Result;
 #[cfg(feature = "unstable")]
 pub use self::sink::ReportSink;
 pub use self::{
+    any::{AnyErr, AnyReport},
     compat::IntoReportCompat,
     frame::{AttachmentKind, Frame, FrameKind},
     report::{IntoReport, Report},
