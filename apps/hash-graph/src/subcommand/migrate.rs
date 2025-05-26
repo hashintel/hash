@@ -1,9 +1,9 @@
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
 use hash_graph_authorization::{
-    AuthorizationApi as _, AuthorizationApiPool,
+    AuthorizationApi as _,
     backend::{SpiceDbOpenApi, ZanzibarBackend as _},
-    policies::store::{PolicyStore as _, PrincipalStore},
+    policies::store::PolicyStore as _,
     zanzibar::ZanzibarClient,
 };
 use hash_graph_postgres_store::store::{
@@ -36,6 +36,10 @@ pub struct MigrateArgs {
     pub spicedb_grpc_preshared_key: Option<String>,
 }
 
+#[expect(
+    clippy::significant_drop_tightening,
+    reason = "False positive. The only remaining statement is `Ok(())`."
+)]
 pub async fn migrate(args: MigrateArgs) -> Result<(), Report<GraphError>> {
     let pool = PostgresStorePool::new(
         &args.db_info,
@@ -91,5 +95,7 @@ pub async fn migrate(args: MigrateArgs) -> Result<(), Report<GraphError>> {
         .map_err(|report| {
             tracing::error!(error = ?report, "Failed to seed system policies");
             report
-        })
+        })?;
+
+    Ok(())
 }

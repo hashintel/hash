@@ -18,9 +18,7 @@ use hash_graph_api::{
     rpc::Dependencies,
 };
 use hash_graph_authorization::{
-    AuthorizationApi as _, AuthorizationApiPool,
-    backend::{SpiceDbOpenApi, ZanzibarBackend as _},
-    policies::store::{PolicyStore as _, PrincipalStore},
+    AuthorizationApiPool, backend::SpiceDbOpenApi, policies::store::PrincipalStore,
     zanzibar::ZanzibarClient,
 };
 use hash_graph_postgres_store::store::{
@@ -285,6 +283,7 @@ pub async fn server(args: ServerArgs) -> Result<(), Report<GraphError>> {
         }
     };
 
+    // Just test the connection; we don't need to use the store
     _ = pool
         .acquire(
             zanzibar_client
