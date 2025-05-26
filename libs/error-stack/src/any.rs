@@ -67,6 +67,13 @@ impl<C: ?Sized> From<Report<C>> for AnyReport {
     }
 }
 
+impl From<AnyReport> for Report<AnyErr> {
+    #[track_caller]
+    fn from(value: AnyReport) -> Self {
+        value.0
+    }
+}
+
 impl Default for AnyReport {
     fn default() -> Self {
         Self(Report::new(AnyErr))
