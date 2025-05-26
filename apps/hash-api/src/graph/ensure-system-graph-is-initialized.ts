@@ -9,8 +9,6 @@ export const ensureSystemGraphIsInitialized = async (params: {
   logger: Logger;
   context: ImpureGraphContext<false, true>;
 }) => {
-  await params.context.graphApi.seedSystemPolicies();
-
   await ensureHashSystemAccountExists(params);
 
   await migrateOntologyTypes(params);

@@ -32,8 +32,6 @@ use crate::rest::{AuthenticatedUserHeader, json::Json, status::report_to_respons
         resolve_policies_for_actor,
         update_policy_by_id,
         delete_policy_by_id,
-
-        seed_system_policies,
     ),
     tags(
         (name = "Permission", description = "Permission management API")
@@ -61,8 +59,7 @@ impl PermissionResource {
                         .delete(delete_policy_by_id::<S, A>),
                 )
                 .route("/query", post(query_policies::<S, A>))
-                .route("/resolve/actor", post(resolve_policies_for_actor::<S, A>))
-                .route("/seed", get(seed_system_policies::<S, A>)),
+                .route("/resolve/actor", post(resolve_policies_for_actor::<S, A>)),
         )
     }
 }
@@ -343,44 +340,4 @@ where
         .await
         .map_err(report_to_response)
         .map(|()| StatusCode::NO_CONTENT)
-}
-
-#[utoipa::path(
-    get,
-    path = "/policies/seed",
-    tag = "Permission",
-    responses(
-        (status = 204, content_type = "application/json", description = "The system policies were created successfully"),
-
-        (status = 500, description = "Store error occurred"),
-    )
-)]
-#[tracing::instrument(
-    level = "info",
-    skip(store_pool, authorization_api_pool, temporal_client)
-)]
-async fn seed_system_policies<S, A>(
-    authorization_api_pool: Extension<Arc<A>>,
-    temporal_client: Extension<Option<Arc<TemporalClient>>>,
-    store_pool: Extension<Arc<S>>,
-) -> Result<StatusCode, Response>
-where
-    S: StorePool + Send + Sync,
-    A: AuthorizationApiPool + Send + Sync,
-    for<'p, 'a> S::Store<'p, A::Api<'a>>: PolicyStore,
-{
-    store_pool
-        .acquire(
-            authorization_api_pool
-                .acquire()
-                .await
-                .map_err(report_to_response)?,
-            temporal_client.0,
-        )
-        .await
-        .map_err(report_to_response)?
-        .seed_system_policies()
-        .await
-        .map_err(report_to_response)?;
-    Ok(StatusCode::NO_CONTENT)
 }
