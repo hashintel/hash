@@ -17,7 +17,7 @@ use crate::{
         },
         error::{invalid_tuple_index, tuple_index_out_of_bounds, tuple_length_mismatch},
         inference::{Inference, PartialStructuralEdge},
-        lattice::{Lattice, Projection},
+        lattice::{Lattice, Projection, Subscript},
     },
 };
 
@@ -137,6 +137,15 @@ impl<'heap> Lattice<'heap> for TupleType<'heap> {
         }
 
         Projection::Resolved(self.kind.fields[index])
+    }
+
+    fn subscript(
+        self: Type<'heap, Self>,
+        _: Type<'heap>,
+        _: &mut LatticeEnvironment<'_, 'heap>,
+        _: &mut InferenceEnvironment<'_, 'heap>,
+    ) -> Subscript {
+        todo!("https://linear.app/hash/issue/H-4643/implement-and-issue-diagnostics-for-unsupported-subscript")
     }
 
     fn is_bottom(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {

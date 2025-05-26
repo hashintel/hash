@@ -19,7 +19,7 @@ use crate::{
         },
         error::{cannot_be_supertype_of_unknown, intersection_variant_mismatch, type_mismatch},
         inference::Inference,
-        lattice::{Lattice, Projection},
+        lattice::{Lattice, Projection, Subscript},
     },
 };
 
@@ -408,6 +408,15 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
                 Projection::Resolved(id)
             }
         }
+    }
+
+    fn subscript(
+        self: Type<'heap, Self>,
+        _: Type<'heap>,
+        _: &mut LatticeEnvironment<'_, 'heap>,
+        _: &mut InferenceEnvironment<'_, 'heap>,
+    ) -> Subscript {
+        todo!("https://linear.app/hash/issue/H-4645/implement-subscript-for-intersections")
     }
 
     fn is_bottom(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {

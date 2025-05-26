@@ -25,7 +25,7 @@ use crate::{
             instantiate::{ArgumentsState, InstantiateEnvironment},
         },
         inference::{Inference, PartialStructuralEdge},
-        lattice::{Lattice, Projection},
+        lattice::{Lattice, Projection, Subscript},
     },
 };
 
@@ -298,6 +298,15 @@ impl<'heap> Lattice<'heap> for Generic<'heap> {
         env: &mut LatticeEnvironment<'_, 'heap>,
     ) -> Projection {
         env.projection(self.kind.base, field)
+    }
+
+    fn subscript(
+        self: Type<'heap, Self>,
+        index: Type<'heap>,
+        env: &mut LatticeEnvironment<'_, 'heap>,
+        infer: &mut InferenceEnvironment<'_, 'heap>,
+    ) -> Subscript {
+        env.subscript(self.kind.base, index, infer)
     }
 
     fn is_bottom(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {

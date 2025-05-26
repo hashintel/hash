@@ -14,7 +14,7 @@ use crate::{
         },
         error::{UnsupportedProjectionCategory, type_mismatch, unsupported_projection},
         inference::{Inference, PartialStructuralEdge},
-        lattice::{Lattice, Projection},
+        lattice::{Lattice, Projection, Subscript},
     },
 };
 
@@ -78,6 +78,15 @@ impl<'heap> Lattice<'heap> for PrimitiveType {
         ));
 
         Projection::Error
+    }
+
+    fn subscript(
+        self: Type<'heap, Self>,
+        _: Type<'heap>,
+        _: &mut LatticeEnvironment<'_, 'heap>,
+        _: &mut InferenceEnvironment<'_, 'heap>,
+    ) -> Subscript {
+        todo!("https://linear.app/hash/issue/H-4643/implement-and-issue-diagnostics-for-unsupported-subscript");
     }
 
     fn is_bottom(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> bool {

@@ -15,7 +15,7 @@ use crate::{
         },
         error::{UnsupportedProjectionCategory, type_mismatch, unsupported_projection},
         inference::{Inference, PartialStructuralEdge},
-        lattice::{Lattice, Projection},
+        lattice::{Lattice, Projection, Subscript},
     },
 };
 
@@ -67,6 +67,15 @@ impl<'heap> Lattice<'heap> for ListType {
         ));
 
         Projection::Error
+    }
+
+    fn subscript(
+        self: Type<'heap, Self>,
+        index: Type<'heap>,
+        env: &mut LatticeEnvironment<'_, 'heap>,
+        infer: &mut InferenceEnvironment<'_, 'heap>,
+    ) -> Subscript {
+        todo!()
     }
 
     fn is_bottom(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
@@ -618,6 +627,18 @@ impl<'heap> Lattice<'heap> for IntrinsicType {
         match self.kind {
             Self::List(inner) => self.with(inner).projection(field, env),
             Self::Dict(inner) => self.with(inner).projection(field, env),
+        }
+    }
+
+    fn subscript(
+        self: Type<'heap, Self>,
+        index: Type<'heap>,
+        env: &mut LatticeEnvironment<'_, 'heap>,
+        infer: &mut InferenceEnvironment<'_, 'heap>,
+    ) -> Subscript {
+        match self.kind {
+            IntrinsicType::List(list_type) => self.with(list_type).subscript(index, env, infer),
+            IntrinsicType::Dict(dict_type) => self.with(dict_type).subscript(index, env, infer),
         }
     }
 
