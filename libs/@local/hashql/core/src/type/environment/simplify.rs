@@ -62,6 +62,11 @@ impl<'env, 'heap> SimplifyEnvironment<'env, 'heap> {
     }
 
     #[inline]
+    pub(crate) fn resolve_substitution(&self, id: Type<'heap>) -> Option<TypeId> {
+        self.analysis.resolve_substitution(id)
+    }
+
+    #[inline]
     pub(crate) fn resolve_type(&self, r#type: Type<'heap>) -> Option<Type<'heap>> {
         self.analysis.resolve_type(r#type)
     }

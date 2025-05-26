@@ -834,7 +834,17 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
         }
     }
 
-    fn is_bottom(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
+    fn is_bottom(mut self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
+        // If the type has already been resolved, substitute the resolved type
+        let Some(this) = env.resolve_type(self) else {
+            // We cannot determine if a type is bottom, if it hasn't been resolved yet
+            let _: ControlFlow<()> = env.record_diagnostic(|env| no_type_inference(env, self));
+
+            return false;
+        };
+
+        self = this;
+
         match self.kind {
             Self::Opaque(opaque_type) => self.with(opaque_type).is_bottom(env),
             Self::Primitive(primitive_type) => self.with(primitive_type).is_bottom(env),
@@ -846,32 +856,23 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             Self::Intersection(intersection_type) => self.with(intersection_type).is_bottom(env),
             Self::Apply(apply) => self.with(apply).is_bottom(env),
             Self::Generic(generic) => self.with(generic).is_bottom(env),
-            &Self::Param(Param { argument }) => {
-                let Some(substitution) = env.substitution.argument(argument) else {
-                    let _: ControlFlow<()> =
-                        env.record_diagnostic(|env| no_type_inference(env, self));
-
-                    return false;
-                };
-
-                env.is_bottom(substitution)
-            }
-            &Self::Infer(Infer { hole }) => {
-                let Some(substitution) = env.substitution.infer(hole) else {
-                    let _: ControlFlow<()> =
-                        env.record_diagnostic(|env| no_type_inference(env, self));
-
-                    return false;
-                };
-
-                env.is_bottom(substitution)
-            }
+            Self::Param(_) | Self::Infer(_) => unreachable!("should've been resolved"),
             Self::Never => true,
             Self::Unknown => false,
         }
     }
 
-    fn is_top(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
+    fn is_top(mut self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
+        // If the type has already been resolved, substitute the resolved type
+        let Some(this) = env.resolve_type(self) else {
+            // We cannot determine if a type is top, if it hasn't been resolved yet
+            let _: ControlFlow<()> = env.record_diagnostic(|env| no_type_inference(env, self));
+
+            return false;
+        };
+
+        self = this;
+
         match self.kind {
             Self::Opaque(opaque_type) => self.with(opaque_type).is_top(env),
             Self::Primitive(primitive_type) => self.with(primitive_type).is_top(env),
@@ -883,32 +884,21 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             Self::Intersection(intersection_type) => self.with(intersection_type).is_top(env),
             Self::Apply(apply) => self.with(apply).is_top(env),
             Self::Generic(generic) => self.with(generic).is_top(env),
-            &Self::Param(Param { argument }) => {
-                let Some(substitution) = env.substitution.argument(argument) else {
-                    let _: ControlFlow<()> =
-                        env.record_diagnostic(|env| no_type_inference(env, self));
-
-                    return false;
-                };
-
-                env.is_top(substitution)
-            }
-            &Self::Infer(Infer { hole }) => {
-                let Some(substitution) = env.substitution.infer(hole) else {
-                    let _: ControlFlow<()> =
-                        env.record_diagnostic(|env| no_type_inference(env, self));
-
-                    return false;
-                };
-
-                env.is_top(substitution)
-            }
+            Self::Param(_) | Self::Infer(_) => unreachable!("should've been resolved"),
             Self::Never => false,
             Self::Unknown => true,
         }
     }
 
-    fn is_concrete(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
+    fn is_concrete(mut self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
+        // If the type has already been resolved, substitute the resolved type
+        let Some(this) = env.resolve_type(self) else {
+            // An unresolved type is never concrete
+            return false;
+        };
+
+        self = this;
+
         match self.kind {
             Self::Opaque(opaque_type) => self.with(opaque_type).is_concrete(env),
             Self::Primitive(primitive_type) => self.with(primitive_type).is_concrete(env),
@@ -920,13 +910,20 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             Self::Intersection(intersection_type) => self.with(intersection_type).is_concrete(env),
             Self::Apply(apply) => self.with(apply).is_concrete(env),
             Self::Generic(generic) => self.with(generic).is_concrete(env),
-            &Self::Param(Param { argument }) => env.substitution.argument(argument).is_some(),
-            &Self::Infer(Infer { hole }) => env.substitution.infer(hole).is_some(),
+            Self::Param(_) | Self::Infer(_) => unreachable!("should've been resolved"),
             Self::Never | Self::Unknown => true,
         }
     }
 
-    fn is_recursive(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
+    fn is_recursive(mut self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
+        // If the type has already been resolved, substitute the resolved type
+        let Some(this) = env.resolve_type(self) else {
+            // An unresolved type cannot be recursive
+            return false;
+        };
+
+        self = this;
+
         match self.kind {
             Self::Opaque(opaque_type) => self.with(opaque_type).is_recursive(env),
             Self::Primitive(primitive_type) => self.with(primitive_type).is_recursive(env),
@@ -938,22 +935,23 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             Self::Closure(closure_type) => self.with(closure_type).is_recursive(env),
             Self::Apply(apply) => self.with(apply).is_recursive(env),
             Self::Generic(generic) => self.with(generic).is_recursive(env),
-            &Self::Param(Param { argument }) => env
-                .substitution
-                .argument(argument)
-                .is_some_and(|substitution| env.is_recursive(substitution)),
-            &Self::Infer(Infer { hole }) => env
-                .substitution
-                .infer(hole)
-                .is_some_and(|substitution| env.is_recursive(substitution)),
+            Self::Param(_) | Self::Infer(_) => unreachable!("should've been resolved"),
             Self::Never | Self::Unknown => false,
         }
     }
 
     fn distribute_union(
-        self: Type<'heap, Self>,
+        mut self: Type<'heap, Self>,
         env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16> {
+        // If the type has already been resolved, substitute the resolved type
+        let Some(this) = env.resolve_type(self) else {
+            // We cannot distribute over an unresolved type
+            return SmallVec::from_slice(&[self.id]);
+        };
+
+        self = this;
+
         match self.kind {
             Self::Opaque(opaque_type) => self.with(opaque_type).distribute_union(env),
             Self::Primitive(primitive_type) => self.with(primitive_type).distribute_union(env),
@@ -967,22 +965,23 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             }
             Self::Apply(apply_type) => self.with(apply_type).distribute_union(env),
             Self::Generic(generic_type) => self.with(generic_type).distribute_union(env),
-            &Self::Param(Param { argument }) => env.substitution.argument(argument).map_or_else(
-                || SmallVec::from_slice(&[self.id]),
-                |substitution| env.distribute_union(substitution),
-            ),
-            &Self::Infer(Infer { hole }) => env.substitution.infer(hole).map_or_else(
-                || SmallVec::from_slice(&[self.id]),
-                |substitution| env.distribute_union(substitution),
-            ),
+            Self::Param(_) | Self::Infer(_) => unreachable!("should've been resolved"),
             Self::Never | Self::Unknown => SmallVec::from_slice(&[self.id]),
         }
     }
 
     fn distribute_intersection(
-        self: Type<'heap, Self>,
+        mut self: Type<'heap, Self>,
         env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> SmallVec<TypeId, 16> {
+        // If the type has already been resolved, substitute the resolved type
+        let Some(this) = env.resolve_type(self) else {
+            // We cannot distribute over an unresolved type
+            return SmallVec::from_slice(&[self.id]);
+        };
+
+        self = this;
+
         match self.kind {
             Self::Opaque(opaque_type) => self.with(opaque_type).distribute_intersection(env),
             Self::Primitive(primitive_type) => {
@@ -1000,14 +999,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             }
             Self::Apply(apply_type) => self.with(apply_type).distribute_intersection(env),
             Self::Generic(generic_type) => self.with(generic_type).distribute_intersection(env),
-            &Self::Param(Param { argument }) => env.substitution.argument(argument).map_or_else(
-                || SmallVec::from_slice(&[self.id]),
-                |substitution| env.distribute_intersection(substitution),
-            ),
-            &Self::Infer(Infer { hole }) => env.substitution.infer(hole).map_or_else(
-                || SmallVec::from_slice(&[self.id]),
-                |substitution| env.distribute_intersection(substitution),
-            ),
+            Self::Param(_) | Self::Infer(_) => unreachable!("should've been resolved"),
             Self::Never | Self::Unknown => SmallVec::from_slice(&[self.id]),
         }
     }
@@ -1632,6 +1624,31 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
     }
 
     fn simplify(self: Type<'heap, Self>, env: &mut SimplifyEnvironment<'_, 'heap>) -> TypeId {
+        if let Some(substitution) = env.resolve_substitution(self) {
+            // We have a substitution available. Unlike other operations (which are
+            // non-destructive), we need to ensure that no-one is referencing the original type
+            // (which we're simplifying). This is only required if the type is *recursive* and this
+            // type is used during the recursion.
+            let (guard, id) = env.provision(self.id);
+
+            let inner = env.simplify(substitution);
+            if guard.is_used() {
+                // We cannot safely simplify this type, because the inner references it. To
+                // be able to close the type, we issue an empty generic type.
+                return env.intern_provisioned(
+                    id,
+                    PartialType {
+                        span: self.span,
+                        kind: env.intern_kind(TypeKind::Generic(Generic {
+                            base: inner,
+                            arguments: env.intern_generic_arguments(&mut []),
+                        })),
+                    },
+                );
+            }
+
+            return inner;
+        }
         // By running bottom/top checks *after* the per‐kind passes, we guarantee that
         // self‐referential intersections and coinductive unions get properly collapsed before we
         // ever declare a type `Never` or `Unknown`.
@@ -1646,7 +1663,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             Self::Intersection(intersection_type) => self.with(intersection_type).simplify(env),
             Self::Apply(apply_type) => self.with(apply_type).simplify(env),
             Self::Generic(generic_type) => self.with(generic_type).simplify(env),
-            Self::Param(_) | Self::Never | Self::Unknown | Self::Infer(_) => self.id,
+            Self::Param(_) | Self::Infer(_) | Self::Never | Self::Unknown => self.id,
         };
 
         if env.is_bottom(simplified) {
