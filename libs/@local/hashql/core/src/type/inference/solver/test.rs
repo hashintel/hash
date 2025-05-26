@@ -1636,11 +1636,19 @@ fn multi_subscript() {
 }
 
 #[test]
-fn early_subscript() {}
+fn early_subscript() {
+    // given:
+    //  T = _1
+    //  _1 = List<String>
+    //  T[0]
+}
 
 #[test]
 fn late_subscript() {
-    todo!()
+    // given:
+    //  T = _1
+    //  T[0]
+    //  _1 = List<String>
 }
 
 #[test]
@@ -1649,8 +1657,36 @@ fn recursive_subscript() {
 }
 
 #[test]
-fn unconstrained_subscript() {
-    todo!()
+fn unconstrained_element_subscript() {
+    // T = _1
+    // T[0]
+    let heap = Heap::new();
+    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+    let hole = env.counter.hole.next();
+
+    let mut environment = InferenceEnvironment::new(&env);
+
+    environment.add_subscript(
+        SpanId::SYNTHETIC,
+        instantiate_infer(&env, hole),
+        primitive!(env, PrimitiveType::Integer),
+    );
+
+    let solver = environment.into_solver();
+    let (_substitution, diagnostics) = solver.solve();
+
+    assert_eq!(diagnostics.len(), 2);
+    let diagnostics = diagnostics.into_vec();
+
+    assert_eq!(
+        diagnostics[0].category,
+        TypeCheckDiagnosticCategory::UnconstrainedTypeVariable
+    );
+    assert_eq!(
+        diagnostics[1].category,
+        TypeCheckDiagnosticCategory::UnresolvedSelectionConstraint
+    );
 }
 
 #[test]
