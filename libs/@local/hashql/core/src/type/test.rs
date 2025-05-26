@@ -3,19 +3,27 @@ use core::{assert_matches::assert_matches, fmt::Debug, iter};
 
 use super::{
     PartialType, TypeId, TypeKind,
-    environment::{AnalysisEnvironment, Environment, SimplifyEnvironment},
+    environment::{AnalysisEnvironment, Environment, InferenceEnvironment, SimplifyEnvironment},
     inference::{Substitution, VariableKind, VariableLookup},
-    kind::{Infer, Param, generic::GenericArgumentId, infer::HoleId, test::tuple},
+    kind::{
+        Infer, Param,
+        generic::GenericArgumentId,
+        infer::HoleId,
+        test::{primitive, tuple},
+    },
 };
 use crate::{
     heap::Heap,
     span::SpanId,
+    symbol::Ident,
     r#type::{
         environment::LatticeEnvironment,
+        error::TypeCheckDiagnosticCategory,
         kind::{
             intersection::IntersectionType, primitive::PrimitiveType, tuple::TupleType,
             union::UnionType,
         },
+        lattice::{Projection, Subscript},
     },
 };
 
@@ -553,4 +561,92 @@ fn recursive_simplify() {
 
     assert_eq!(tuple.fields.len(), 1);
     assert_eq!(tuple.fields[0], result_id);
+}
+
+#[test]
+fn never_projection() {
+    let heap = Heap::new();
+    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+    let mut lattice = LatticeEnvironment::new(&env);
+
+    let result = lattice.projection(
+        instantiate(&env, TypeKind::Never),
+        Ident::synthetic(heap.intern_symbol("foo")),
+    );
+    assert_eq!(result, Projection::Error);
+
+    let diagnostics = lattice.take_diagnostics().into_vec();
+    assert_eq!(diagnostics.len(), 1);
+    assert_eq!(
+        diagnostics[0].category,
+        TypeCheckDiagnosticCategory::UnsupportedProjection
+    );
+}
+
+#[test]
+fn never_subscript() {
+    let heap = Heap::new();
+    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+    let mut lattice = LatticeEnvironment::new(&env);
+    let mut inference = InferenceEnvironment::new(&env);
+
+    let result = lattice.subscript(
+        instantiate(&env, TypeKind::Never),
+        primitive!(env, PrimitiveType::String),
+        &mut inference,
+    );
+    assert_eq!(result, Subscript::Error);
+
+    let diagnostics = lattice.take_diagnostics().into_vec();
+    assert_eq!(diagnostics.len(), 1);
+    assert_eq!(
+        diagnostics[0].category,
+        TypeCheckDiagnosticCategory::UnsupportedSubscript
+    );
+}
+
+#[test]
+fn unknown_projection() {
+    let heap = Heap::new();
+    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+    let mut lattice = LatticeEnvironment::new(&env);
+
+    let result = lattice.projection(
+        instantiate(&env, TypeKind::Unknown),
+        Ident::synthetic(heap.intern_symbol("foo")),
+    );
+    assert_eq!(result, Projection::Error);
+
+    let diagnostics = lattice.take_diagnostics().into_vec();
+    assert_eq!(diagnostics.len(), 1);
+    assert_eq!(
+        diagnostics[0].category,
+        TypeCheckDiagnosticCategory::UnsupportedProjection
+    );
+}
+
+#[test]
+fn unknown_subscript() {
+    let heap = Heap::new();
+    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+    let mut lattice = LatticeEnvironment::new(&env);
+    let mut inference = InferenceEnvironment::new(&env);
+
+    let result = lattice.subscript(
+        instantiate(&env, TypeKind::Unknown),
+        primitive!(env, PrimitiveType::String),
+        &mut inference,
+    );
+    assert_eq!(result, Subscript::Error);
+
+    let diagnostics = lattice.take_diagnostics().into_vec();
+    assert_eq!(diagnostics.len(), 1);
+    assert_eq!(
+        diagnostics[0].category,
+        TypeCheckDiagnosticCategory::UnsupportedSubscript
+    );
 }

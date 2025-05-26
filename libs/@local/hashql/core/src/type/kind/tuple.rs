@@ -15,7 +15,10 @@ use crate::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
             SimplifyEnvironment, instantiate::InstantiateEnvironment,
         },
-        error::{invalid_tuple_index, tuple_index_out_of_bounds, tuple_length_mismatch},
+        error::{
+            UnsupportedSubscriptCategory, invalid_tuple_index, tuple_index_out_of_bounds,
+            tuple_length_mismatch, unsupported_subscript,
+        },
         inference::{Inference, PartialStructuralEdge},
         lattice::{Lattice, Projection, Subscript},
     },
@@ -141,11 +144,18 @@ impl<'heap> Lattice<'heap> for TupleType<'heap> {
 
     fn subscript(
         self: Type<'heap, Self>,
-        _: TypeId,
-        _: &mut LatticeEnvironment<'_, 'heap>,
+        index: TypeId,
+        env: &mut LatticeEnvironment<'_, 'heap>,
         _: &mut InferenceEnvironment<'_, 'heap>,
     ) -> Subscript {
-        todo!("https://linear.app/hash/issue/H-4643/implement-and-issue-diagnostics-for-unsupported-subscript")
+        env.diagnostics.push(unsupported_subscript(
+            self,
+            index,
+            UnsupportedSubscriptCategory::Tuple,
+            env,
+        ));
+
+        Subscript::Error
     }
 
     fn is_bottom(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
@@ -414,7 +424,7 @@ mod test {
                 test::{assert_equiv, generic, intersection, primitive, tuple, union},
                 union::UnionType,
             },
-            lattice::{Lattice as _, Projection, test::assert_lattice_laws},
+            lattice::{Lattice as _, Projection, Subscript, test::assert_lattice_laws},
             test::{instantiate, instantiate_infer, instantiate_param},
         },
     };
@@ -1639,6 +1649,29 @@ mod test {
         assert_eq!(
             diagnostics[0].category,
             TypeCheckDiagnosticCategory::InvalidTupleIndex
+        );
+    }
+
+    #[test]
+    fn subscript() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let mut lattice = LatticeEnvironment::new(&env);
+        let mut inference = InferenceEnvironment::new(&env);
+
+        let result = lattice.subscript(
+            tuple!(env, [primitive!(env, PrimitiveType::String)]),
+            primitive!(env, PrimitiveType::String),
+            &mut inference,
+        );
+        assert_eq!(result, Subscript::Error);
+
+        let diagnostics = lattice.take_diagnostics().into_vec();
+        assert_eq!(diagnostics.len(), 1);
+        assert_eq!(
+            diagnostics[0].category,
+            TypeCheckDiagnosticCategory::UnsupportedSubscript
         );
     }
 }

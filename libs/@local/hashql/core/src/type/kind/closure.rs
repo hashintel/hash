@@ -15,8 +15,8 @@ use crate::{
             SimplifyEnvironment, instantiate::InstantiateEnvironment,
         },
         error::{
-            UnsupportedProjectionCategory, function_parameter_count_mismatch,
-            unsupported_projection,
+            UnsupportedProjectionCategory, UnsupportedSubscriptCategory,
+            function_parameter_count_mismatch, unsupported_projection, unsupported_subscript,
         },
         inference::{Inference, PartialStructuralEdge},
         lattice::{Lattice, Projection, Subscript},
@@ -120,11 +120,18 @@ impl<'heap> Lattice<'heap> for ClosureType<'heap> {
 
     fn subscript(
         self: Type<'heap, Self>,
-        _: TypeId,
-        _: &mut LatticeEnvironment<'_, 'heap>,
+        index: TypeId,
+        env: &mut LatticeEnvironment<'_, 'heap>,
         _: &mut InferenceEnvironment<'_, 'heap>,
     ) -> Subscript {
-        todo!("https://linear.app/hash/issue/H-4643/implement-and-issue-diagnostics-for-unsupported-subscript");
+        env.diagnostics.push(unsupported_subscript(
+            self,
+            index,
+            UnsupportedSubscriptCategory::Closure,
+            env,
+        ));
+
+        Subscript::Error
     }
 
     fn is_bottom(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
@@ -345,12 +352,14 @@ mod test {
         heap::Heap,
         pretty::PrettyPrint as _,
         span::SpanId,
+        symbol::Ident,
         r#type::{
             PartialType,
             environment::{
                 AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
                 SimplifyEnvironment, instantiate::InstantiateEnvironment,
             },
+            error::TypeCheckDiagnosticCategory,
             inference::{
                 Constraint, Inference as _, PartialStructuralEdge, Variable, VariableKind,
             },
@@ -363,7 +372,7 @@ mod test {
                 test::{assert_equiv, closure, generic, intersection, primitive, union},
                 union::UnionType,
             },
-            lattice::{Lattice as _, test::assert_lattice_laws},
+            lattice::{Lattice as _, Projection, Subscript, test::assert_lattice_laws},
             test::{instantiate, instantiate_infer, instantiate_param},
         },
     };
@@ -1691,5 +1700,49 @@ mod test {
             }
         );
         assert_ne!(returns.argument, argument);
+    }
+
+    #[test]
+    fn projection() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let mut lattice = LatticeEnvironment::new(&env);
+
+        let result = lattice.projection(
+            closure!(env, [], primitive!(env, PrimitiveType::String)),
+            Ident::synthetic(heap.intern_symbol("foo")),
+        );
+        assert_eq!(result, Projection::Error);
+
+        let diagnostics = lattice.take_diagnostics().into_vec();
+        assert_eq!(diagnostics.len(), 1);
+        assert_eq!(
+            diagnostics[0].category,
+            TypeCheckDiagnosticCategory::UnsupportedProjection
+        );
+    }
+
+    #[test]
+    fn subscript() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let mut lattice = LatticeEnvironment::new(&env);
+        let mut inference = InferenceEnvironment::new(&env);
+
+        let result = lattice.subscript(
+            closure!(env, [], primitive!(env, PrimitiveType::String)),
+            primitive!(env, PrimitiveType::String),
+            &mut inference,
+        );
+        assert_eq!(result, Subscript::Error);
+
+        let diagnostics = lattice.take_diagnostics().into_vec();
+        assert_eq!(diagnostics.len(), 1);
+        assert_eq!(
+            diagnostics[0].category,
+            TypeCheckDiagnosticCategory::UnsupportedSubscript
+        );
     }
 }
