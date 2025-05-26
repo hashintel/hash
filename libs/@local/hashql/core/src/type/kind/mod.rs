@@ -1669,15 +1669,32 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
         result
     }
 
-    fn simplify(mut self: Type<'heap, Self>, env: &mut SimplifyEnvironment<'_, 'heap>) -> TypeId {
-        // If the type has already been resolved, substitute the resolved type
-        let Some(this) = env.resolve_type(self) else {
-            // We cannot further simplify an unresolved type
-            return self.id;
-        };
+    fn simplify(self: Type<'heap, Self>, env: &mut SimplifyEnvironment<'_, 'heap>) -> TypeId {
+        if let Some(substitution) = env.resolve_substitution(self) {
+            // We have a substitution available. Unlike other operations (which are
+            // non-destructive), we need to ensure that no-one is referencing the original type
+            // (which we're simplifying). This is only required if the type is *recursive* and this
+            // type is used during the recursion.
+            let (guard, id) = env.provision(self.id);
 
-        self = this;
+            let inner = env.simplify(substitution);
+            if guard.is_used() {
+                // We cannot safely simplify this type, because the inner references it. To
+                // be able to close the type, we issue an empty generic type.
+                return env.intern_provisioned(
+                    id,
+                    PartialType {
+                        span: self.span,
+                        kind: env.intern_kind(TypeKind::Generic(Generic {
+                            base: inner,
+                            arguments: env.intern_generic_arguments(&mut []),
+                        })),
+                    },
+                );
+            }
 
+            return inner;
+        }
         // By running bottom/top checks *after* the per‐kind passes, we guarantee that
         // self‐referential intersections and coinductive unions get properly collapsed before we
         // ever declare a type `Never` or `Unknown`.
@@ -1692,8 +1709,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
             Self::Intersection(intersection_type) => self.with(intersection_type).simplify(env),
             Self::Apply(apply_type) => self.with(apply_type).simplify(env),
             Self::Generic(generic_type) => self.with(generic_type).simplify(env),
-            Self::Param(_) | Self::Infer(_) => unreachable!("should've been resolved"),
-            Self::Never | Self::Unknown => self.id,
+            Self::Param(_) | Self::Infer(_) | Self::Never | Self::Unknown => self.id,
         };
 
         if env.is_bottom(simplified) {
