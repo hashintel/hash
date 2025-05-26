@@ -16,11 +16,12 @@ use crate::{
             solver::{Unification, graph::Graph},
         },
         kind::{
-            IntrinsicType, OpaqueType, PrimitiveType, StructType, TypeKind, UnionType,
+            IntersectionType, IntrinsicType, OpaqueType, PrimitiveType, StructType, TypeKind,
+            UnionType,
             infer::HoleId,
             intrinsic::ListType,
             r#struct::StructField,
-            test::{assert_equiv, list, primitive, r#struct, struct_field, union},
+            test::{assert_equiv, intersection, list, primitive, r#struct, struct_field, union},
         },
         test::{instantiate, instantiate_infer},
     },
@@ -1631,8 +1632,54 @@ fn single_subscript() {
 }
 
 #[test]
+#[ignore = "https://linear.app/hash/issue/H-4645/implement-subscript-for-intersections"]
 fn multi_subscript() {
-    todo!()
+    // given:
+    // T = List<List<String>>
+    // T[0]?[0]
+    let heap = Heap::new();
+    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+    let list = list!(env, list!(env, primitive!(env, PrimitiveType::String)));
+
+    let mut environment = InferenceEnvironment::new(&env);
+
+    let first = environment.add_subscript(
+        SpanId::SYNTHETIC,
+        list,
+        primitive!(env, PrimitiveType::Integer),
+    );
+
+    // remove `Null` from the first union
+    let second = environment.add_subscript(
+        SpanId::SYNTHETIC,
+        intersection!(
+            env,
+            [
+                first.into_type(&env).id,
+                list!(env, primitive!(env, PrimitiveType::String))
+            ]
+        ),
+        primitive!(env, PrimitiveType::Integer),
+    );
+
+    let solver = environment.into_solver();
+    let (substitution, diagnostics) = solver.solve();
+    assert!(diagnostics.is_empty());
+
+    assert_equiv!(
+        env,
+        [substitution
+            .infer(second.kind.hole().expect("variable should be hole"))
+            .expect("should have inferred variable")],
+        [union!(
+            env,
+            [
+                primitive!(env, PrimitiveType::String),
+                primitive!(env, PrimitiveType::Null)
+            ]
+        )]
+    );
 }
 
 #[test]
@@ -1641,6 +1688,39 @@ fn early_subscript() {
     //  T = _1
     //  _1 = List<String>
     //  T[0]
+    let heap = Heap::new();
+    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+    let hole = env.counter.hole.next();
+    let variable = instantiate_infer(&env, hole);
+
+    let mut environment = InferenceEnvironment::new(&env);
+
+    environment.collect_constraints(variable, list!(env, primitive!(env, PrimitiveType::String)));
+
+    let variable = environment.add_subscript(
+        SpanId::SYNTHETIC,
+        variable,
+        primitive!(env, PrimitiveType::Integer),
+    );
+
+    let solver = environment.into_solver();
+    let (substitution, diagnostics) = solver.solve();
+    assert!(diagnostics.is_empty());
+
+    assert_equiv!(
+        env,
+        [substitution
+            .infer(variable.kind.hole().expect("variable should be hole"))
+            .expect("should have inferred variable")],
+        [union!(
+            env,
+            [
+                primitive!(env, PrimitiveType::String),
+                primitive!(env, PrimitiveType::Null)
+            ]
+        )]
+    );
 }
 
 #[test]
@@ -1649,11 +1729,84 @@ fn late_subscript() {
     //  T = _1
     //  T[0]
     //  _1 = List<String>
+    let heap = Heap::new();
+    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+    let hole = env.counter.hole.next();
+    let hole_type = instantiate_infer(&env, hole);
+
+    let mut environment = InferenceEnvironment::new(&env);
+
+    let variable = environment.add_subscript(
+        SpanId::SYNTHETIC,
+        hole_type,
+        primitive!(env, PrimitiveType::Integer),
+    );
+
+    environment.collect_constraints(
+        hole_type,
+        list!(env, primitive!(env, PrimitiveType::String)),
+    );
+
+    let solver = environment.into_solver();
+    let (substitution, diagnostics) = solver.solve();
+    assert!(diagnostics.is_empty());
+
+    assert_equiv!(
+        env,
+        [substitution
+            .infer(variable.kind.hole().expect("variable should be hole"))
+            .expect("should have inferred variable")],
+        [union!(
+            env,
+            [
+                primitive!(env, PrimitiveType::String),
+                primitive!(env, PrimitiveType::Null)
+            ]
+        )]
+    );
 }
 
 #[test]
+#[ignore = "https://linear.app/hash/issue/H-4646/implement-and-issue-diagnostics-for-subscript-on-recursive-types"]
 fn recursive_subscript() {
-    todo!()
+    // given:
+    // T = T
+    // T[0]
+    let heap = Heap::new();
+    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+    let circular = env.types.intern(|id| PartialType {
+        span: SpanId::SYNTHETIC,
+        kind: env.intern_kind(TypeKind::Opaque(OpaqueType {
+            name: heap.intern_symbol("example"),
+            repr: id.value(),
+        })),
+    });
+
+    let mut environment = InferenceEnvironment::new(&env);
+
+    environment.add_subscript(
+        SpanId::SYNTHETIC,
+        circular.id,
+        primitive!(env, PrimitiveType::Integer),
+    );
+
+    let solver = environment.into_solver();
+    let (_substitution, diagnostics) = solver.solve();
+    assert_eq!(diagnostics.len(), 2);
+
+    let diagnostics = diagnostics.into_vec();
+    // The variable we've chosen for the projection
+    assert_eq!(
+        diagnostics[0].category,
+        TypeCheckDiagnosticCategory::UnconstrainedTypeVariable
+    );
+    // ... and the circular type it's referencing
+    assert_eq!(
+        diagnostics[1].category,
+        TypeCheckDiagnosticCategory::RecursiveTypeProjection
+    );
 }
 
 #[test]
