@@ -44,7 +44,8 @@ use crate::{
             unconstrained_type_variable, unconstrained_type_variable_floating,
             unresolved_selection_constraint,
         },
-        lattice::Projection,
+        kind::{PrimitiveType, TypeKind, UnionType},
+        lattice::{Projection, Subscript},
     },
 };
 
@@ -1098,13 +1099,67 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                         }
                     }
                 }
-                #[expect(clippy::todo)]
                 SelectionConstraint::Subscript {
-                    subject: _,
-                    index: _,
-                    output: _,
+                    subject,
+                    index,
+                    output,
                 } => {
-                    todo!("https://linear.app/hash/issue/H-4545/hashql-implement-subscript-type-inferencechecking");
+                    let subject_type = subject.r#type(self.lattice.environment);
+                    let index_type = index.r#type(self.lattice.environment);
+
+                    let value = match self.lattice.subscript(
+                        subject_type.id,
+                        index_type.id,
+                        &mut self.inference,
+                    ) {
+                        Subscript::Pending => {
+                            // The subscript is pending, we need to wait for it to be resolved.
+                            // We add the constraint back to the list of constraints to be solved.
+                            self.constraints.push(Constraint::Selection(selection));
+
+                            // In case we do not make any progress, add an error (will be cleared
+                            // every iteration)
+                            self.diagnostics.push(unresolved_selection_constraint(
+                                selection,
+                                self.lattice.environment,
+                            ));
+
+                            // We may have issued additional constraints
+                            self.inference.drain_constraints_into(&mut self.constraints);
+                            continue;
+                        }
+                        Subscript::Error => {
+                            // While an error has occurred, we add the constraint back to the list,
+                            // so that another iteration can attempt to resolve it (it will fail).
+                            // This way we'll persist the error throughout fix-point iteration.
+                            self.constraints.push(Constraint::Selection(selection));
+                            continue;
+                        }
+                        Subscript::Resolved(value) => value,
+                    };
+
+                    made_progress = true;
+
+                    // Unlike `Projection` we must always discharge an equality constraints, because
+                    // the value may be `Null` (in the future this might be changed to `Option`).
+                    self.constraints.push(Constraint::Equals {
+                        variable: output,
+                        // value | Null
+                        r#type: self.lattice.intern_type(PartialType {
+                            span: output.span,
+                            kind: self.lattice.intern_kind(TypeKind::Union(UnionType {
+                                variants: self.lattice.intern_type_ids(&[
+                                    value,
+                                    self.lattice.intern_type(PartialType {
+                                        span: output.span,
+                                        kind: self
+                                            .lattice
+                                            .intern_kind(TypeKind::Primitive(PrimitiveType::Null)),
+                                    }),
+                                ]),
+                            })),
+                        }),
+                    });
                 }
             }
         }

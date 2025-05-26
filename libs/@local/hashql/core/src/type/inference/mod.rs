@@ -109,7 +109,6 @@ pub enum SelectionConstraint<'heap> {
     /// resolved once the variable's type is known to support indexing with the
     /// given index type. When the source is a concrete type, the constraint can
     /// typically be resolved immediately if the type structure supports indexing.
-    // see: https://linear.app/hash/issue/H-4545/hashql-implement-subscript-type-inferencechecking
     Subscript {
         subject: Subject,
         index: Subject,

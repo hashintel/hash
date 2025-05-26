@@ -43,6 +43,10 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
         self
     }
 
+    pub(crate) fn drain_constraints_into(&mut self, target: &mut Vec<Constraint<'heap>>) {
+        target.append(&mut self.constraints);
+    }
+
     pub(crate) fn take_constraints(&mut self) -> Vec<Constraint<'heap>> {
         core::mem::take(&mut self.constraints)
     }
