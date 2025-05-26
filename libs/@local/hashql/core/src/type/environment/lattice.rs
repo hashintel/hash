@@ -331,7 +331,7 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
     pub fn subscript(
         &mut self,
         id: TypeId,
-        index: Type<'heap>,
+        index: TypeId,
         infer: &mut InferenceEnvironment<'_, 'heap>,
     ) -> Subscript {
         let r#type = self.environment.r#type(id);

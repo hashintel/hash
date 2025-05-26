@@ -172,7 +172,7 @@ pub trait Lattice<'heap> {
 
     fn subscript(
         self: Type<'heap, Self>,
-        index: Type<'heap>,
+        index: TypeId,
         env: &mut LatticeEnvironment<'_, 'heap>,
         infer: &mut InferenceEnvironment<'_, 'heap>,
     ) -> Subscript;

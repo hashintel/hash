@@ -289,7 +289,7 @@ impl<'heap> Lattice<'heap> for StructType<'heap> {
 
     fn subscript(
         self: Type<'heap, Self>,
-        _: Type<'heap>,
+        _: TypeId,
         _: &mut LatticeEnvironment<'_, 'heap>,
         _: &mut InferenceEnvironment<'_, 'heap>,
     ) -> Subscript {

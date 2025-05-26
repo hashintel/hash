@@ -3,7 +3,7 @@ use core::ops::ControlFlow;
 use pretty::{DocAllocator as _, RcAllocator, RcDoc};
 use smallvec::SmallVec;
 
-use super::TypeKind;
+use super::{PrimitiveType, TypeKind};
 use crate::{
     pretty::{PrettyPrint, PrettyRecursionBoundary},
     symbol::Ident,
@@ -71,11 +71,31 @@ impl<'heap> Lattice<'heap> for ListType {
 
     fn subscript(
         self: Type<'heap, Self>,
-        index: Type<'heap>,
+        index: TypeId,
         env: &mut LatticeEnvironment<'_, 'heap>,
         infer: &mut InferenceEnvironment<'_, 'heap>,
     ) -> Subscript {
-        todo!()
+        let number = env.intern_type(PartialType {
+            span: self.span,
+            kind: env.intern_kind(TypeKind::Primitive(PrimitiveType::Integer)),
+        });
+
+        // Check if `index` is concrete, if it isn't we need to issue a `Pending` and discharge a
+        // subtyping constraint.
+        if !env.is_concrete(index) {
+            infer.in_covariant(|infer| {
+                infer.collect_constraints(index, number);
+            });
+
+            return Subscript::Pending;
+        }
+
+        if env.is_subtype_of(index, number) {
+            return Subscript::Resolved(self.kind.element);
+        }
+
+        todo!("issue diagnostic");
+        Subscript::Error
     }
 
     fn is_bottom(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
@@ -370,6 +390,30 @@ impl<'heap> Lattice<'heap> for DictType {
         Projection::Error
     }
 
+    fn subscript(
+        self: Type<'heap, Self>,
+        index: TypeId,
+        env: &mut LatticeEnvironment<'_, 'heap>,
+        infer: &mut InferenceEnvironment<'_, 'heap>,
+    ) -> Subscript {
+        // Check if `index` and `key` are concrete, if not collect the constraints between them
+        if !env.is_concrete(index) || !env.is_concrete(self.kind.key) {
+            infer.in_invariant(|infer| {
+                infer.collect_constraints(index, self.kind.key);
+            });
+
+            return Subscript::Pending;
+        }
+
+        // Dict keys are invariant, and therefore the index must be equivalent to the key
+        if env.is_equivalent(index, self.kind.key) {
+            return Subscript::Resolved(self.kind.value);
+        }
+
+        todo!("issue diagnostic");
+        Subscript::Error
+    }
+
     fn is_bottom(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
         // Never bottom, as even with a `!` key or value a dict can be empty
         false
@@ -632,7 +676,7 @@ impl<'heap> Lattice<'heap> for IntrinsicType {
 
     fn subscript(
         self: Type<'heap, Self>,
-        index: Type<'heap>,
+        index: TypeId,
         env: &mut LatticeEnvironment<'_, 'heap>,
         infer: &mut InferenceEnvironment<'_, 'heap>,
     ) -> Subscript {
