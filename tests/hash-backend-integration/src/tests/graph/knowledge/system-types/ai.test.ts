@@ -17,7 +17,11 @@ const graphContext = createTestImpureGraphContext();
 
 describe("AI Assistant", () => {
   beforeAll(async () => {
-    await ensureSystemGraphIsInitialized({ logger, context: graphContext });
+    await ensureSystemGraphIsInitialized({
+      logger,
+      context: graphContext,
+      seedSystemPolicies: true,
+    });
   });
 
   afterAll(async () => {

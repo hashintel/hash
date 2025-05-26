@@ -36,7 +36,11 @@ const shortname = generateRandomShortname("userTest");
 
 describe("User model class", () => {
   beforeAll(async () => {
-    await ensureSystemGraphIsInitialized({ logger, context: graphContext });
+    await ensureSystemGraphIsInitialized({
+      logger,
+      context: graphContext,
+      seedSystemPolicies: true,
+    });
   });
 
   afterAll(async () => {
