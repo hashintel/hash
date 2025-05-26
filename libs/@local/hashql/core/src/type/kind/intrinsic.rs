@@ -3,7 +3,7 @@ use core::ops::ControlFlow;
 use pretty::{DocAllocator as _, RcAllocator, RcDoc};
 use smallvec::SmallVec;
 
-use super::TypeKind;
+use super::{PrimitiveType, TypeKind};
 use crate::{
     pretty::{PrettyPrint, PrettyRecursionBoundary},
     symbol::Ident,
@@ -13,9 +13,12 @@ use crate::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
             SimplifyEnvironment, instantiate::InstantiateEnvironment,
         },
-        error::{UnsupportedProjectionCategory, type_mismatch, unsupported_projection},
+        error::{
+            UnsupportedProjectionCategory, dict_subscript_mismatch, list_subscript_mismatch,
+            type_mismatch, unsupported_projection,
+        },
         inference::{Inference, PartialStructuralEdge},
-        lattice::{Lattice, Projection},
+        lattice::{Lattice, Projection, Subscript},
     },
 };
 
@@ -67,6 +70,36 @@ impl<'heap> Lattice<'heap> for ListType {
         ));
 
         Projection::Error
+    }
+
+    fn subscript(
+        self: Type<'heap, Self>,
+        index: TypeId,
+        env: &mut LatticeEnvironment<'_, 'heap>,
+        infer: &mut InferenceEnvironment<'_, 'heap>,
+    ) -> Subscript {
+        let number = env.intern_type(PartialType {
+            span: self.span,
+            kind: env.intern_kind(TypeKind::Primitive(PrimitiveType::Integer)),
+        });
+
+        // Check if `index` is concrete, if it isn't we need to issue a `Pending` and discharge a
+        // subtyping constraint.
+        if !env.is_concrete(index) {
+            infer.in_covariant(|infer| {
+                infer.collect_constraints(index, number);
+            });
+
+            return Subscript::Pending;
+        }
+
+        if env.is_subtype_of(index, number) {
+            return Subscript::Resolved(self.kind.element);
+        }
+
+        env.diagnostics
+            .push(list_subscript_mismatch(self, index, env));
+        Subscript::Error
     }
 
     fn is_bottom(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
@@ -361,6 +394,31 @@ impl<'heap> Lattice<'heap> for DictType {
         Projection::Error
     }
 
+    fn subscript(
+        self: Type<'heap, Self>,
+        index: TypeId,
+        env: &mut LatticeEnvironment<'_, 'heap>,
+        infer: &mut InferenceEnvironment<'_, 'heap>,
+    ) -> Subscript {
+        // Check if `index` and `key` are concrete, if not collect the constraints between them
+        if !env.is_concrete(index) || !env.is_concrete(self.kind.key) {
+            infer.in_invariant(|infer| {
+                infer.collect_constraints(index, self.kind.key);
+            });
+
+            return Subscript::Pending;
+        }
+
+        // Dict keys are invariant, and therefore the index must be equivalent to the key
+        if env.is_equivalent(index, self.kind.key) {
+            return Subscript::Resolved(self.kind.value);
+        }
+
+        env.diagnostics
+            .push(dict_subscript_mismatch(self, index, env));
+        Subscript::Error
+    }
+
     fn is_bottom(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
         // Never bottom, as even with a `!` key or value a dict can be empty
         false
@@ -621,6 +679,18 @@ impl<'heap> Lattice<'heap> for IntrinsicType {
         }
     }
 
+    fn subscript(
+        self: Type<'heap, Self>,
+        index: TypeId,
+        env: &mut LatticeEnvironment<'_, 'heap>,
+        infer: &mut InferenceEnvironment<'_, 'heap>,
+    ) -> Subscript {
+        match self.kind {
+            Self::List(list_type) => self.with(list_type).subscript(index, env, infer),
+            Self::Dict(dict_type) => self.with(dict_type).subscript(index, env, infer),
+        }
+    }
+
     fn is_bottom(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
         match self.kind {
             Self::List(inner) => self.with(inner).is_bottom(env),
@@ -783,12 +853,14 @@ mod tests {
         heap::Heap,
         pretty::PrettyPrint as _,
         span::SpanId,
+        symbol::Ident,
         r#type::{
             PartialType,
             environment::{
                 AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
                 SimplifyEnvironment, instantiate::InstantiateEnvironment,
             },
+            error::TypeCheckDiagnosticCategory,
             inference::{
                 Constraint, Inference as _, PartialStructuralEdge, Variable, VariableKind,
             },
@@ -2306,5 +2378,232 @@ mod tests {
             }
         );
         assert_ne!(value.argument, argument);
+    }
+
+    #[test]
+    fn list_projection() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let list = list!(env, primitive!(env, PrimitiveType::String));
+
+        let mut lattice = LatticeEnvironment::new(&env);
+        lattice.projection(list, Ident::synthetic(heap.intern_symbol("foo")));
+
+        let diagnostics = lattice.take_diagnostics();
+        assert_eq!(diagnostics.len(), 1);
+        let diagnostics = diagnostics.into_vec();
+
+        assert_eq!(
+            diagnostics[0].category,
+            TypeCheckDiagnosticCategory::UnsupportedProjection
+        );
+    }
+
+    #[test]
+    fn dict_projection() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let dict = dict!(
+            env,
+            primitive!(env, PrimitiveType::String),
+            primitive!(env, PrimitiveType::Number)
+        );
+
+        let mut lattice = LatticeEnvironment::new(&env);
+        lattice.projection(dict, Ident::synthetic(heap.intern_symbol("foo")));
+
+        let diagnostics = lattice.take_diagnostics();
+        assert_eq!(diagnostics.len(), 1);
+        let diagnostics = diagnostics.into_vec();
+
+        assert_eq!(
+            diagnostics[0].category,
+            TypeCheckDiagnosticCategory::UnsupportedProjection
+        );
+    }
+
+    #[test]
+    fn list_subscript() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let list = list!(env, primitive!(env, PrimitiveType::String));
+
+        let mut inference = InferenceEnvironment::new(&env);
+        let variable = inference.add_subscript(
+            SpanId::SYNTHETIC,
+            list,
+            primitive!(env, PrimitiveType::Integer),
+        );
+
+        let (substitution, diagnostics) = inference.into_solver().solve();
+        assert!(diagnostics.is_empty());
+
+        assert_equiv!(
+            env,
+            [substitution
+                .infer(variable.kind.hole().expect("variable should be hole"))
+                .expect("should have inferred variable")],
+            [union!(
+                env,
+                [
+                    primitive!(env, PrimitiveType::Null),
+                    primitive!(env, PrimitiveType::String)
+                ]
+            )]
+        );
+    }
+
+    #[test]
+    fn list_subscript_mismatch() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let list = list!(env, primitive!(env, PrimitiveType::String));
+
+        let mut inference = InferenceEnvironment::new(&env);
+        inference.add_subscript(
+            SpanId::SYNTHETIC,
+            list,
+            primitive!(env, PrimitiveType::String),
+        );
+
+        let (_, diagnostics) = inference.into_solver().solve();
+        assert_eq!(diagnostics.len(), 2);
+        let diagnostics = diagnostics.into_vec();
+
+        assert_eq!(
+            diagnostics[0].category,
+            TypeCheckDiagnosticCategory::UnconstrainedTypeVariable
+        );
+        assert_eq!(
+            diagnostics[1].category,
+            TypeCheckDiagnosticCategory::ListIndexTypeMismatch
+        );
+    }
+
+    #[test]
+    fn list_subscript_discharge_constraints() {
+        // If the key for either is unknown, discharge constraints
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let hole1 = env.counter.hole.next();
+
+        let list = list!(env, primitive!(env, PrimitiveType::Number));
+
+        let mut lattice = LatticeEnvironment::new(&env);
+        let mut inference = InferenceEnvironment::new(&env);
+
+        lattice.subscript(list, instantiate_infer(&env, hole1), &mut inference);
+
+        let constraints = inference.take_constraints();
+        assert_eq!(
+            constraints,
+            [Constraint::UpperBound {
+                variable: Variable::synthetic(VariableKind::Hole(hole1)),
+                bound: primitive!(env, PrimitiveType::Integer)
+            }]
+        );
+    }
+
+    #[test]
+    fn dict_subscript() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let dict = dict!(
+            env,
+            primitive!(env, PrimitiveType::Number),
+            primitive!(env, PrimitiveType::String)
+        );
+
+        let mut inference = InferenceEnvironment::new(&env);
+        let variable = inference.add_subscript(
+            SpanId::SYNTHETIC,
+            dict,
+            primitive!(env, PrimitiveType::Number),
+        );
+
+        let (substitution, diagnostics) = inference.into_solver().solve();
+        assert!(diagnostics.is_empty());
+
+        assert_equiv!(
+            env,
+            [substitution
+                .infer(variable.kind.hole().expect("variable should be hole"))
+                .expect("should have inferred variable")],
+            [union!(
+                env,
+                [
+                    primitive!(env, PrimitiveType::Null),
+                    primitive!(env, PrimitiveType::String)
+                ]
+            )]
+        );
+    }
+
+    #[test]
+    fn dict_subscript_mismatch() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let dict = dict!(
+            env,
+            primitive!(env, PrimitiveType::Number),
+            primitive!(env, PrimitiveType::String)
+        );
+
+        let mut inference = InferenceEnvironment::new(&env);
+        inference.add_subscript(
+            SpanId::SYNTHETIC,
+            dict,
+            primitive!(env, PrimitiveType::Integer),
+        );
+
+        let (_, diagnostics) = inference.into_solver().solve();
+        assert_eq!(diagnostics.len(), 2);
+        let diagnostics = diagnostics.into_vec();
+
+        assert_eq!(
+            diagnostics[0].category,
+            TypeCheckDiagnosticCategory::UnconstrainedTypeVariable
+        );
+        assert_eq!(
+            diagnostics[1].category,
+            TypeCheckDiagnosticCategory::DictKeyTypeMismatch
+        );
+    }
+
+    #[test]
+    fn dict_subscript_discharge_constraints() {
+        // If the key for either is unknown, discharge constraints
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let hole1 = env.counter.hole.next();
+        let hole2 = env.counter.hole.next();
+
+        let dict = dict!(
+            env,
+            instantiate_infer(&env, hole1),
+            primitive!(env, PrimitiveType::Number)
+        );
+
+        let mut lattice = LatticeEnvironment::new(&env);
+        let mut inference = InferenceEnvironment::new(&env);
+
+        lattice.subscript(dict, instantiate_infer(&env, hole2), &mut inference);
+
+        let constraints = inference.take_constraints();
+        assert_eq!(
+            constraints,
+            [Constraint::Unify {
+                lhs: Variable::synthetic(VariableKind::Hole(hole2)),
+                rhs: Variable::synthetic(VariableKind::Hole(hole1))
+            }]
+        );
     }
 }

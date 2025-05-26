@@ -37,14 +37,15 @@ use crate::{
     collection::{FastHashMap, SmallVec, fast_hash_map, fast_hash_map_in},
     r#type::{
         PartialType, TypeId,
-        environment::{Diagnostics, Environment, LatticeEnvironment, SimplifyEnvironment},
+        environment::{Diagnostics, InferenceEnvironment, LatticeEnvironment, SimplifyEnvironment},
         error::{
             bound_constraint_violation, conflicting_equality_constraints,
             incompatible_lower_equal_constraint, incompatible_upper_equal_constraint,
             unconstrained_type_variable, unconstrained_type_variable_floating,
             unresolved_selection_constraint,
         },
-        lattice::Projection,
+        kind::{PrimitiveType, TypeKind, UnionType},
+        lattice::{Projection, Subscript},
     },
 };
 
@@ -259,6 +260,8 @@ pub struct InferenceSolver<'env, 'heap> {
     lattice: LatticeEnvironment<'env, 'heap>,
     /// Environment for type simplification
     simplify: SimplifyEnvironment<'env, 'heap>,
+    /// Environment to discharge additional constraints
+    inference: InferenceEnvironment<'env, 'heap>,
 
     /// Diagnostics for type error reporting
     diagnostics: Diagnostics,
@@ -275,16 +278,18 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     ///
     /// Configures a lattice environment with simplification disabled during solving
     /// to maintain correctness. Simplification occurs after constraint resolution.
-    pub(crate) fn new(env: &'env Environment<'heap>, constraints: Vec<Constraint<'heap>>) -> Self {
+    pub(crate) fn new(mut inference: InferenceEnvironment<'env, 'heap>) -> Self {
         let unification = Unification::new();
+        let constraints = inference.take_constraints();
 
-        let mut lattice = LatticeEnvironment::new(env);
+        let mut lattice = LatticeEnvironment::new(inference.environment);
         lattice.without_simplify();
         lattice.set_inference_enabled(true);
 
         Self {
             lattice,
-            simplify: SimplifyEnvironment::new(env),
+            simplify: SimplifyEnvironment::new(inference.environment),
+            inference,
 
             diagnostics: Diagnostics::new(),
             persistent_diagnostics: Diagnostics::new(),
@@ -1017,6 +1022,8 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         for type_id in substitutions.values_mut() {
             *type_id = self.simplify.simplify(*type_id);
         }
+
+        self.simplify.clear_substitution();
     }
 
     /// Resolves selection constraints (field access, subscript operations).
@@ -1094,13 +1101,73 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                         }
                     }
                 }
-                #[expect(clippy::todo)]
                 SelectionConstraint::Subscript {
-                    subject: _,
-                    index: _,
-                    output: _,
+                    subject,
+                    index,
+                    output,
                 } => {
-                    todo!("https://linear.app/hash/issue/H-4545/hashql-implement-subscript-type-inferencechecking");
+                    let subject_type = subject.r#type(self.lattice.environment);
+                    let index_type = index.r#type(self.lattice.environment);
+
+                    let value = match self.lattice.subscript(
+                        subject_type.id,
+                        index_type.id,
+                        &mut self.inference,
+                    ) {
+                        Subscript::Pending => {
+                            // The subscript is pending, we need to wait for it to be resolved.
+                            // We add the constraint back to the list of constraints to be solved.
+                            self.constraints.push(Constraint::Selection(selection));
+
+                            // In case we do not make any progress, add an error (will be cleared
+                            // every iteration)
+                            self.diagnostics.push(unresolved_selection_constraint(
+                                selection,
+                                self.lattice.environment,
+                            ));
+
+                            // We may have issued additional constraints
+                            if self.inference.has_constraints() {
+                                // In that case we've actually made progress, because we have issued
+                                // new constraints
+                                made_progress = true;
+                                self.inference.drain_constraints_into(&mut self.constraints);
+                            }
+
+                            continue;
+                        }
+                        Subscript::Error => {
+                            // While an error has occurred, we add the constraint back to the list,
+                            // so that another iteration can attempt to resolve it (it will fail).
+                            // This way we'll persist the error throughout fix-point iteration.
+                            self.constraints.push(Constraint::Selection(selection));
+                            continue;
+                        }
+                        Subscript::Resolved(value) => value,
+                    };
+
+                    made_progress = true;
+
+                    // Unlike `Projection` we must always discharge an equality constraints, because
+                    // the value may be `Null` (in the future this might be changed to `Option`).
+                    self.constraints.push(Constraint::Equals {
+                        variable: output,
+                        // value | Null
+                        r#type: self.lattice.intern_type(PartialType {
+                            span: output.span,
+                            kind: self.lattice.intern_kind(TypeKind::Union(UnionType {
+                                variants: self.lattice.intern_type_ids(&[
+                                    value,
+                                    self.lattice.intern_type(PartialType {
+                                        span: output.span,
+                                        kind: self
+                                            .lattice
+                                            .intern_kind(TypeKind::Primitive(PrimitiveType::Null)),
+                                    }),
+                                ]),
+                            })),
+                        }),
+                    });
                 }
             }
         }

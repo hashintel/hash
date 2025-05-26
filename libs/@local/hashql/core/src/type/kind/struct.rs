@@ -18,7 +18,7 @@ use crate::{
         },
         error::{missing_struct_field, struct_field_mismatch, struct_field_not_found},
         inference::{Inference, PartialStructuralEdge},
-        lattice::{Lattice, Projection},
+        lattice::{Lattice, Projection, Subscript},
     },
 };
 
@@ -285,6 +285,15 @@ impl<'heap> Lattice<'heap> for StructType<'heap> {
         ));
 
         Projection::Error
+    }
+
+    fn subscript(
+        self: Type<'heap, Self>,
+        _: TypeId,
+        _: &mut LatticeEnvironment<'_, 'heap>,
+        _: &mut InferenceEnvironment<'_, 'heap>,
+    ) -> Subscript {
+        todo!("https://linear.app/hash/issue/H-4643/implement-and-issue-diagnostics-for-unsupported-subscript")
     }
 
     fn is_bottom(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {

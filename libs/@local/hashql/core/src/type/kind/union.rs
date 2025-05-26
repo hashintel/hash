@@ -19,7 +19,7 @@ use crate::{
         },
         error::{cannot_be_subtype_of_never, type_mismatch, union_variant_mismatch},
         inference::{Constraint, Inference, PartialStructuralEdge, Variable},
-        lattice::{Lattice, Projection},
+        lattice::{Lattice, Projection, Subscript},
     },
 };
 
@@ -422,6 +422,15 @@ impl<'heap> Lattice<'heap> for UnionType<'heap> {
                 Projection::Resolved(id)
             }
         }
+    }
+
+    fn subscript(
+        self: Type<'heap, Self>,
+        _: TypeId,
+        _: &mut LatticeEnvironment<'_, 'heap>,
+        _: &mut InferenceEnvironment<'_, 'heap>,
+    ) -> Subscript {
+        todo!("https://linear.app/hash/issue/H-4644/implement-subscript-for-unions")
     }
 
     fn is_bottom(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> bool {

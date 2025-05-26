@@ -39,7 +39,7 @@ use super::{
         unsupported_projection,
     },
     inference::{Constraint, Inference, PartialStructuralEdge, Variable, VariableKind},
-    lattice::{Lattice, Projection},
+    lattice::{Lattice, Projection, Subscript},
 };
 use crate::{
     pretty::{CYAN, GRAY, PrettyPrint, PrettyRecursionBoundary},
@@ -830,6 +830,52 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 ));
 
                 Projection::Error
+            }
+        }
+    }
+
+    fn subscript(
+        mut self: Type<'heap, Self>,
+        index: TypeId,
+        env: &mut LatticeEnvironment<'_, 'heap>,
+        infer: &mut InferenceEnvironment<'_, 'heap>,
+    ) -> Subscript {
+        let Some(this) = env.resolve_type(self) else {
+            // We do not record diagnostics here, because if ever they're recorded after the
+            // fact, as subscript runs *during* fix-point analysis.
+
+            // Because the subject itself isn't resolved yet, we cannot discharge any additional
+            // constraints.
+            return Subscript::Pending;
+        };
+
+        self = this;
+
+        match self.kind {
+            Self::Opaque(opaque_type) => self.with(opaque_type).subscript(index, env, infer),
+            Self::Primitive(primitive_type) => {
+                self.with(primitive_type).subscript(index, env, infer)
+            }
+            Self::Intrinsic(intrinsic_type) => {
+                self.with(intrinsic_type).subscript(index, env, infer)
+            }
+            Self::Struct(struct_type) => self.with(struct_type).subscript(index, env, infer),
+            Self::Tuple(tuple_type) => self.with(tuple_type).subscript(index, env, infer),
+            Self::Union(union_type) => self.with(union_type).subscript(index, env, infer),
+            Self::Intersection(intersection_type) => {
+                self.with(intersection_type).subscript(index, env, infer)
+            }
+            Self::Closure(closure_type) => self.with(closure_type).subscript(index, env, infer),
+            Self::Apply(apply) => self.with(apply).subscript(index, env, infer),
+            Self::Generic(generic) => self.with(generic).subscript(index, env, infer),
+            Self::Param(_) | Self::Infer(_) => {
+                unreachable!("should've been resolved prior to this")
+            }
+            Self::Never => {
+                todo!("https://linear.app/hash/issue/H-4643/implement-and-issue-diagnostics-for-unsupported-subscript")
+            }
+            Self::Unknown => {
+                todo!("https://linear.app/hash/issue/H-4643/implement-and-issue-diagnostics-for-unsupported-subscript")
             }
         }
     }

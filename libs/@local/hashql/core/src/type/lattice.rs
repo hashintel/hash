@@ -1,6 +1,8 @@
 use super::{
     Type, TypeId,
-    environment::{AnalysisEnvironment, LatticeEnvironment, SimplifyEnvironment},
+    environment::{
+        AnalysisEnvironment, InferenceEnvironment, LatticeEnvironment, SimplifyEnvironment,
+    },
 };
 use crate::{
     collection::{SmallVec, TinyVec},
@@ -9,6 +11,13 @@ use crate::{
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Projection {
+    Pending,
+    Resolved(TypeId),
+    Error,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum Subscript {
     Pending,
     Resolved(TypeId),
     Error,
@@ -160,6 +169,13 @@ pub trait Lattice<'heap> {
         field: Ident<'heap>,
         env: &mut LatticeEnvironment<'_, 'heap>,
     ) -> Projection;
+
+    fn subscript(
+        self: Type<'heap, Self>,
+        index: TypeId,
+        env: &mut LatticeEnvironment<'_, 'heap>,
+        infer: &mut InferenceEnvironment<'_, 'heap>,
+    ) -> Subscript;
 
     /// Determines if a type is uninhabited (has no possible values).
     ///
