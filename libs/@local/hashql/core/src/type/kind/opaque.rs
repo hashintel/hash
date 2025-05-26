@@ -834,8 +834,20 @@ mod test {
 
         // Due to invariance, we should get an equality constraint between the generic parameters
         let constraints = inference_env.take_constraints();
-        assert!(constraints.is_empty());
-        assert!(inference_env.is_unioned(VariableKind::Generic(arg1), VariableKind::Generic(arg2)));
+        assert_eq!(constraints.len(), 1);
+        assert_eq!(
+            constraints[0],
+            Constraint::Unify {
+                lhs: Variable {
+                    span: SpanId::SYNTHETIC,
+                    kind: VariableKind::Generic(arg1)
+                },
+                rhs: Variable {
+                    span: SpanId::SYNTHETIC,
+                    kind: VariableKind::Generic(arg2)
+                }
+            }
+        );
     }
 
     #[test]
@@ -861,9 +873,19 @@ mod test {
 
         // Due to invariance, we should get an equality constraint between the inference variables
         let constraints = inference_env.take_constraints();
-        assert!(constraints.is_empty());
-        assert!(
-            inference_env.is_unioned(VariableKind::Hole(hole_var1), VariableKind::Hole(hole_var2))
+        assert_eq!(constraints.len(), 1);
+        assert_eq!(
+            constraints[0],
+            Constraint::Unify {
+                lhs: Variable {
+                    span: SpanId::SYNTHETIC,
+                    kind: VariableKind::Hole(hole_var1)
+                },
+                rhs: Variable {
+                    span: SpanId::SYNTHETIC,
+                    kind: VariableKind::Hole(hole_var2)
+                }
+            }
         );
     }
 
@@ -890,9 +912,19 @@ mod test {
         // Due to invariance, we should get an equality constraint between the inference variable
         // and the generic variable
         let constraints = inference_env.take_constraints();
-        assert!(constraints.is_empty());
-        assert!(
-            inference_env.is_unioned(VariableKind::Hole(hole_var1), VariableKind::Generic(arg))
+        assert_eq!(constraints.len(), 1);
+        assert_eq!(
+            constraints[0],
+            Constraint::Unify {
+                lhs: Variable {
+                    span: SpanId::SYNTHETIC,
+                    kind: VariableKind::Hole(hole_var1)
+                },
+                rhs: Variable {
+                    span: SpanId::SYNTHETIC,
+                    kind: VariableKind::Generic(arg)
+                }
+            }
         );
     }
 

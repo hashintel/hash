@@ -123,7 +123,7 @@ fn solve_anti_symmetry() {
         },
     ];
 
-    let mut solver = InferenceSolver::new(&env, Unification::new(), constraints);
+    let mut solver = InferenceSolver::new(&env, constraints);
 
     let mut graph = Graph::new(&mut solver.unification);
     let bump = Bump::new();
@@ -161,7 +161,7 @@ fn solve_anti_symmetry_with_cycles() {
         },
     ];
 
-    let mut solver = InferenceSolver::new(&env, Unification::new(), constraints);
+    let mut solver = InferenceSolver::new(&env, constraints);
 
     let mut graph = Graph::new(&mut solver.unification);
     let bump = Bump::new();
@@ -203,7 +203,7 @@ fn apply_constraints() {
         },
     ];
 
-    let mut solver = InferenceSolver::new(&env, Unification::new(), constraints);
+    let mut solver = InferenceSolver::new(&env, constraints);
 
     let mut graph = Graph::new(&mut solver.unification);
     let bump = Bump::new();
@@ -237,7 +237,7 @@ fn apply_constraints_equality() {
         r#type: string,
     }];
 
-    let mut solver = InferenceSolver::new(&env, Unification::new(), constraints);
+    let mut solver = InferenceSolver::new(&env, constraints);
 
     let mut graph = Graph::new(&mut solver.unification);
     let bump = Bump::new();
@@ -275,6 +275,10 @@ fn apply_constraints_with_unification() {
     let var2 = Variable::synthetic(VariableKind::Hole(hole2));
 
     let constraints = vec![
+        Constraint::Unify {
+            lhs: var1,
+            rhs: var2,
+        },
         Constraint::Equals {
             variable: var1,
             r#type: string,
@@ -285,10 +289,7 @@ fn apply_constraints_with_unification() {
         },
     ];
 
-    let mut unification = Unification::new();
-    unification.unify(var1.kind, var2.kind);
-
-    let mut solver = InferenceSolver::new(&env, unification, constraints);
+    let mut solver = InferenceSolver::new(&env, constraints);
 
     let mut graph = Graph::new(&mut solver.unification);
     let bump = Bump::new();
@@ -333,7 +334,7 @@ fn solve_constraints() {
     };
     applied_constraints.insert(variable.kind, (variable, constraint));
 
-    let mut solver = InferenceSolver::new(&env, Unification::new(), vec![]);
+    let mut solver = InferenceSolver::new(&env, vec![]);
 
     // Directly call solve_constraints
     let mut substitutions = FastHashMap::default();
@@ -363,7 +364,7 @@ fn solve_constraints_with_equality() {
     };
     applied_constraints.insert(var.kind, (var, vc));
 
-    let mut solver = InferenceSolver::new(&env, Unification::new(), vec![]);
+    let mut solver = InferenceSolver::new(&env, vec![]);
 
     let mut substitutions = FastHashMap::default();
     solver.solve_constraints(&applied_constraints, &mut substitutions);
@@ -392,7 +393,7 @@ fn solve_constraints_with_incompatible_bounds() {
     };
     applied_constraints.insert(var.kind, (var, vc));
 
-    let mut solver = InferenceSolver::new(&env, Unification::new(), vec![]);
+    let mut solver = InferenceSolver::new(&env, vec![]);
 
     // These bounds are incompatible, so a diagnostic should be created
     let mut substitutions = FastHashMap::default();
@@ -427,7 +428,7 @@ fn solve_constraints_with_incompatible_equality() {
     };
     applied_constraints.insert(var.kind, (var, vc));
 
-    let mut solver = InferenceSolver::new(&env, Unification::new(), vec![]);
+    let mut solver = InferenceSolver::new(&env, vec![]);
 
     let mut substitutions = FastHashMap::default();
     solver.solve_constraints(&applied_constraints, &mut substitutions);
@@ -461,7 +462,7 @@ fn solve_constraints_with_incompatible_upper_equal_constraint() {
     };
     applied_constraints.insert(var.kind, (var, vc));
 
-    let mut solver = InferenceSolver::new(&env, Unification::new(), vec![]);
+    let mut solver = InferenceSolver::new(&env, vec![]);
 
     // This should exercise lines 916-929
     let mut substitutions = FastHashMap::default();
@@ -487,22 +488,21 @@ fn simplify_substitutions() {
     // For testing, we could use a union type with duplicates
     // that would simplify to a simpler type
     let string = primitive!(env, PrimitiveType::String);
-    let mut unification = Unification::new();
-    let var_kind = VariableKind::Hole(hole);
-    unification.upsert_variable(var_kind);
+    let variable = VariableKind::Hole(hole);
 
-    let mut solver = InferenceSolver::new(&env, unification, vec![]);
+    let mut solver = InferenceSolver::new(&env, vec![]);
+    solver.unification.upsert_variable(variable);
 
     // Create a substitution map
     let mut substitutions = FastHashMap::default();
-    substitutions.insert(var_kind, union!(env, [string, string]));
+    substitutions.insert(variable, union!(env, [string, string]));
     let lookup = solver.unification.lookup();
 
     // Call simplify_substitutions
     solver.simplify_substitutions(lookup, &mut substitutions);
 
     assert_eq!(substitutions.len(), 1);
-    assert_eq!(substitutions[&var_kind], string);
+    assert_eq!(substitutions[&variable], string);
 }
 
 // =============== EDGE CASES ===============
@@ -513,10 +513,10 @@ fn empty_constraint_set() {
     let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
     let hole = HoleId::new(0);
-    let mut unification = Unification::new();
-    unification.upsert_variable(VariableKind::Hole(hole));
 
-    let solver = InferenceSolver::new(&env, unification, vec![]);
+    let mut solver = InferenceSolver::new(&env, vec![]);
+    solver.unification.upsert_variable(VariableKind::Hole(hole));
+
     let (_, diagnostics) = solver.solve();
 
     let diagnostics = diagnostics.into_vec();
@@ -549,7 +549,7 @@ fn redundant_constraints() {
         },
     ];
 
-    let mut solver = InferenceSolver::new(&env, Unification::new(), constraints);
+    let mut solver = InferenceSolver::new(&env, constraints);
 
     let mut graph = Graph::new(&mut solver.unification);
     let bump = Bump::new();
@@ -596,7 +596,7 @@ fn cyclic_ordering_constraints() {
         },
     ];
 
-    let mut solver = InferenceSolver::new(&env, Unification::new(), constraints);
+    let mut solver = InferenceSolver::new(&env, constraints);
 
     // Directly call the anti-symmetry solver
     let mut graph = Graph::new(&mut solver.unification);
@@ -646,7 +646,7 @@ fn cyclic_structural_edges_constraints() {
         },
     ];
 
-    let mut solver = InferenceSolver::new(&env, Unification::new(), constraints);
+    let mut solver = InferenceSolver::new(&env, constraints);
 
     // Directly call the anti-symmetry solver
     let mut graph = Graph::new(&mut solver.unification);
@@ -690,7 +690,7 @@ fn bounds_at_lattice_extremes() {
         },
     ];
 
-    let mut solver = InferenceSolver::new(&env, Unification::new(), constraints);
+    let mut solver = InferenceSolver::new(&env, constraints);
 
     let mut graph = Graph::new(&mut solver.unification);
     let bump = Bump::new();
@@ -732,7 +732,7 @@ fn collect_constraints_with_structural_edge() {
         target: var2,
     }];
 
-    let mut solver = InferenceSolver::new(&env, Unification::new(), constraints);
+    let mut solver = InferenceSolver::new(&env, constraints);
 
     // This should exercise lines 410-418
     let mut variables = FastHashMap::default();
@@ -769,7 +769,7 @@ fn simple_equality_constraint() {
         r#type: string,
     }];
 
-    let solver = InferenceSolver::new(&env, Unification::new(), constraints);
+    let solver = InferenceSolver::new(&env, constraints);
     let (substitution, diagnostics) = solver.solve();
     assert!(diagnostics.is_empty());
 
@@ -806,7 +806,7 @@ fn anti_symmetry_integration() {
         },
     ];
 
-    let solver = InferenceSolver::new(&env, Unification::new(), constraints);
+    let solver = InferenceSolver::new(&env, constraints);
     let (substitution, diagnostics) = solver.solve();
     assert!(diagnostics.is_empty());
 
@@ -842,7 +842,7 @@ fn conflicting_equality_constraints() {
         },
     ];
 
-    let solver = InferenceSolver::new(&env, Unification::new(), constraints);
+    let solver = InferenceSolver::new(&env, constraints);
     let (_, diagnostics) = solver.solve();
 
     let diagnostics = diagnostics.into_vec();
@@ -892,7 +892,7 @@ fn disconnected_constraint_graphs() {
         },
     ];
 
-    let solver = InferenceSolver::new(&env, Unification::new(), constraints);
+    let solver = InferenceSolver::new(&env, constraints);
     let (substitution, diagnostics) = solver.solve();
     assert!(diagnostics.is_empty());
 
@@ -956,7 +956,7 @@ fn propagate() {
         },
     ];
 
-    let solver = InferenceSolver::new(&env, Unification::new(), constraints);
+    let solver = InferenceSolver::new(&env, constraints);
     let (substitution, diagnostics) = solver.solve();
     assert!(diagnostics.is_empty());
 
@@ -1014,7 +1014,7 @@ fn contract() {
         },
     ];
 
-    let solver = InferenceSolver::new(&env, Unification::new(), constraints);
+    let solver = InferenceSolver::new(&env, constraints);
     let (substitution, diagnostics) = solver.solve();
     assert!(diagnostics.is_empty());
 
@@ -1058,7 +1058,7 @@ fn do_not_double_emit_on_unconstrained_variables() {
         upper: variable2,
     }];
 
-    let solver = InferenceSolver::new(&env, Unification::new(), constraints);
+    let solver = InferenceSolver::new(&env, constraints);
     let (_, diagnostics) = solver.solve();
     let diagnostics = diagnostics.into_vec();
 

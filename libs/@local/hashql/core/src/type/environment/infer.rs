@@ -8,7 +8,7 @@ use crate::{
         TypeId,
         inference::{
             Constraint, Inference as _, InferenceSolver, PartialStructuralEdge,
-            SelectionConstraint, Subject, Variable, VariableKind, solver::Unification,
+            SelectionConstraint, Subject, Variable, VariableKind,
         },
         recursion::RecursionBoundary,
     },
@@ -20,7 +20,6 @@ pub struct InferenceEnvironment<'env, 'heap> {
     boundary: RecursionBoundary<'heap>,
 
     constraints: Vec<Constraint<'heap>>,
-    unification: Unification,
 
     variance: Variance,
 }
@@ -31,7 +30,6 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
             environment,
             boundary: RecursionBoundary::new(),
             constraints: Vec::new(),
-            unification: Unification::new(),
             variance: Variance::default(),
         }
     }
@@ -40,19 +38,11 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
         core::mem::take(&mut self.constraints)
     }
 
-    pub fn is_unioned(&mut self, lhs: VariableKind, rhs: VariableKind) -> bool {
-        self.unification.is_unioned(lhs, rhs)
-    }
-
     pub fn add_constraint(&mut self, mut constraint: Constraint<'heap>) {
-        for variable in constraint.variables() {
-            // Ensure that each mentioned variable is registered in the unification table
-            self.unification.upsert_variable(variable.kind);
-        }
-
         #[expect(clippy::match_same_arms, reason = "readability")]
         if self.variance == Variance::Invariant {
             constraint = match constraint {
+                Constraint::Unify { .. } => constraint,
                 Constraint::UpperBound { variable, bound }
                 | Constraint::LowerBound { variable, bound } => Constraint::Equals {
                     variable,
@@ -62,10 +52,10 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
                     variable: _,
                     r#type: _,
                 } => constraint,
-                Constraint::Ordering { lower, upper } => {
-                    self.unification.unify(lower.kind, upper.kind);
-                    return;
-                }
+                Constraint::Ordering { lower, upper } => Constraint::Unify {
+                    lhs: lower,
+                    rhs: upper,
+                },
                 Constraint::StructuralEdge {
                     source: _,
                     target: _,
@@ -196,7 +186,7 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
 
     #[must_use]
     pub fn into_solver(self) -> InferenceSolver<'env, 'heap> {
-        InferenceSolver::new(self.environment, self.unification, self.constraints)
+        InferenceSolver::new(self.environment, self.constraints)
     }
 }
 
