@@ -1314,6 +1314,16 @@ where
                         .await
                         .change_context(UpdatePolicyError::StoreError)?;
                 }
+                PolicyUpdateOperation::SetEffect { effect } => {
+                    transaction
+                        .as_client()
+                        .execute(
+                            "UPDATE policy SET effect = $1 WHERE id = $2",
+                            &[effect, &policy_id],
+                        )
+                        .await
+                        .change_context(UpdatePolicyError::StoreError)?;
+                }
             }
         }
 
@@ -1355,17 +1365,23 @@ where
     }
 
     async fn seed_system_policies(&mut self) -> Result<(), Report<EnsureSystemPoliciesError>> {
-        self.synchronize_actions()
+        let mut transaction = self
+            .transaction()
+            .await
+            .change_context(EnsureSystemPoliciesError::StoreError)?;
+
+        transaction
+            .synchronize_actions()
             .await
             .change_context(EnsureSystemPoliciesError::SynchronizeActions)?;
 
-        let system_machine_actor = self
+        let system_machine_actor = transaction
             .get_or_create_system_machine("h")
             .await
             .change_context(EnsureSystemPoliciesError::CreatingSystemMachineFailed)
             .map(ActorId::Machine)?;
 
-        let roles = self
+        let roles = transaction
             .as_client()
             .query_raw(
                 "
@@ -1386,30 +1402,34 @@ where
             .await
             .change_context(EnsureSystemPoliciesError::AddRequiredPoliciesFailed)?;
 
-        let hash_admins_team = self
+        let hash_admins_team = transaction
             .get_team_by_name(system_machine_actor.into(), "instance-admins")
             .await
             .change_context(EnsureSystemPoliciesError::ReadInstanceAdminRoles)?
             .ok_or(EnsureSystemPoliciesError::ReadInstanceAdminRoles)?;
-        let hash_admins_team_roles = self
+        let hash_admins_team_roles = transaction
             .get_team_roles(system_machine_actor.into(), hash_admins_team.id)
             .await
             .change_context(EnsureSystemPoliciesError::ReadInstanceAdminRoles)?;
 
-        self.update_seeded_policies(
-            system_machine_actor,
-            seed_policies::system_actor_policies(system_machine_actor)
-                .chain(seed_policies::global_policies())
-                .chain(roles.iter().flat_map(seed_policies::web_policies))
-                .chain(
-                    hash_admins_team_roles
-                        .values()
-                        .flat_map(seed_policies::instance_admins_policies),
-                ),
-        )
-        .await?;
+        transaction
+            .update_seeded_policies(
+                system_machine_actor,
+                seed_policies::system_actor_policies(system_machine_actor)
+                    .chain(seed_policies::global_policies())
+                    .chain(roles.iter().flat_map(seed_policies::web_policies))
+                    .chain(
+                        hash_admins_team_roles
+                            .values()
+                            .flat_map(seed_policies::instance_admins_policies),
+                    ),
+            )
+            .await?;
 
-        Ok(())
+        transaction
+            .commit()
+            .await
+            .change_context(EnsureSystemPoliciesError::StoreError)
     }
 }
 

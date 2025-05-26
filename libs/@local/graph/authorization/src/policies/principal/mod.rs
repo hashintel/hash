@@ -15,7 +15,7 @@ pub mod actor;
 pub mod group;
 pub mod role;
 
-#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[serde(tag = "type", rename_all = "camelCase", deny_unknown_fields)]
 pub enum PrincipalConstraint {
