@@ -59,7 +59,11 @@ const dataTypeSchema: ConstructDataTypeParams = {
 };
 
 beforeAll(async () => {
-  await ensureSystemGraphIsInitialized({ logger, context: graphContext });
+  await ensureSystemGraphIsInitialized({
+    logger,
+    context: graphContext,
+    seedSystemPolicies: true,
+  });
 
   testUser = await createTestUser(graphContext, "data-type-test-1", logger);
   testUser2 = await createTestUser(graphContext, "data-type-test-2", logger);

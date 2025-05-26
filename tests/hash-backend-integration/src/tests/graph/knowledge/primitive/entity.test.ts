@@ -80,7 +80,11 @@ describe("Entity CRU", () => {
   let linkEntityTypeFriend: EntityTypeWithMetadata;
 
   beforeAll(async () => {
-    await ensureSystemGraphIsInitialized({ logger, context: graphContext });
+    await ensureSystemGraphIsInitialized({
+      logger,
+      context: graphContext,
+      seedSystemPolicies: true,
+    });
 
     testUser = await createTestUser(graphContext, "entitytest", logger);
     testUser2 = await createTestUser(graphContext, "entitytest", logger);

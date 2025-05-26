@@ -3259,6 +3259,23 @@
         }
       }
     },
+    "/policies/seed": {
+      "get": {
+        "tags": [
+          "Graph",
+          "Permission"
+        ],
+        "operationId": "seed_system_policies",
+        "responses": {
+          "204": {
+            "description": "The system policies were created successfully"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
     "/policies/{policy_id}": {
       "get": {
         "tags": [

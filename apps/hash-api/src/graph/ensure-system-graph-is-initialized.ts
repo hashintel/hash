@@ -8,7 +8,13 @@ import { ensureHashSystemAccountExists } from "./system-account";
 export const ensureSystemGraphIsInitialized = async (params: {
   logger: Logger;
   context: ImpureGraphContext<false, true>;
+  seedSystemPolicies: boolean;
 }) => {
+  if (params.seedSystemPolicies) {
+    params.logger.info("Seeding system policies...");
+    await params.context.graphApi.seedSystemPolicies();
+  }
+
   await ensureHashSystemAccountExists(params);
 
   await migrateOntologyTypes(params);

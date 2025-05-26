@@ -23,7 +23,11 @@ describe("File", () => {
 
   beforeAll(async () => {
     const graphContext = createTestImpureGraphContext();
-    await ensureSystemGraphIsInitialized({ logger, context: graphContext });
+    await ensureSystemGraphIsInitialized({
+      logger,
+      context: graphContext,
+      seedSystemPolicies: true,
+    });
 
     testUser = await createTestUser(graphContext, "fileTest", logger);
 
