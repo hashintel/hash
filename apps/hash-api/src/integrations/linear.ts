@@ -1,9 +1,8 @@
-import type { WebId } from "@blockprotocol/type-system";
+import type { MachineId, WebId } from "@blockprotocol/type-system";
 import type { Organization, Team } from "@linear/sdk";
 import { LinearClient } from "@linear/sdk";
 import type { TemporalClient } from "@local/hash-backend-utils/temporal";
 import type { SyncWorkspaceWorkflow } from "@local/hash-backend-utils/temporal-integration-workflow-types";
-import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 
 export const listTeams = async (params: {
@@ -44,7 +43,7 @@ export class Linear {
   }
 
   public async triggerWorkspaceSync(params: {
-    authentication: AuthenticationContext;
+    authentication: { actorId: MachineId };
     workspaceWebId: WebId;
     teamIds: string[];
   }): Promise<void> {

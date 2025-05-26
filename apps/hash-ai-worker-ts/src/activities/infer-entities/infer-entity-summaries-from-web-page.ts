@@ -1,8 +1,4 @@
-import type {
-  ActorEntityUuid,
-  EntityId,
-  WebId,
-} from "@blockprotocol/type-system";
+import type { EntityId, UserId, WebId } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { WebPage } from "@local/hash-isomorphic-utils/flows/types";
 import dedent from "dedent";
@@ -28,7 +24,7 @@ export const inferEntitySummariesFromWebPage = async (params: {
    *
    * @see https://linear.app/hash/issue/H-2621/remove-superfluous-parameters-in-flow-activity-methods-and-use
    */
-  userAccountId: ActorEntityUuid;
+  userAccountId: UserId;
   graphApiClient: GraphApi;
   flowEntityId?: EntityId;
   webId: WebId;

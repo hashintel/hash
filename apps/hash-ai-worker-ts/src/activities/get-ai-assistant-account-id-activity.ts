@@ -1,4 +1,4 @@
-import type { ActorEntityUuid, WebId } from "@blockprotocol/type-system";
+import type { ActorEntityUuid, AiId, WebId } from "@blockprotocol/type-system";
 import {
   getMachineIdByIdentifier,
   getWebMachineId,
@@ -9,15 +9,17 @@ export const getAiAssistantAccountIdActivity = async (params: {
   authentication: { actorId: ActorEntityUuid };
   grantCreatePermissionForWeb?: WebId;
   graphApiClient: GraphApi;
-}): Promise<ActorEntityUuid | null> => {
+}): Promise<AiId | null> => {
   const { authentication, graphApiClient, grantCreatePermissionForWeb } =
     params;
 
-  const aiAssistantAccountId = await getMachineIdByIdentifier(
+  // TODO: Fix AI assistant retrieval from the graph
+  //   see https://linear.app/hash/issue/H-4621/fix-ai-assistant-retrieval-from-the-graph
+  const aiAssistantAccountId = (await getMachineIdByIdentifier(
     { graphApi: graphApiClient },
     authentication,
     { identifier: "hash-ai" },
-  );
+  )) as AiId | null;
   if (!aiAssistantAccountId) {
     return null;
   }

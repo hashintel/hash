@@ -1,5 +1,9 @@
-import type { WebId } from "@blockprotocol/type-system";
+import {
+  extractEntityUuidFromEntityId,
+  type WebId,
+} from "@blockprotocol/type-system";
 import { getInstanceAdminsTeam } from "@local/hash-backend-utils/hash-instance";
+import { createPolicy } from "@local/hash-graph-sdk/policy";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { ProspectiveUser } from "@local/hash-isomorphic-utils/system-types/prospectiveuser";
@@ -22,14 +26,19 @@ export const submitEarlyAccessFormResolver: ResolverFn<
   const { user } = graphQLContext;
   const context = graphQLContextToImpureGraphContext(graphQLContext);
 
-  const { id: adminAccountGroupId } = await getInstanceAdminsTeam(context, {
+  const authentication = {
     actorId: systemAccountId,
-  });
+  };
 
-  await createEntity<ProspectiveUser>(
+  const { id: adminAccountGroupId } = await getInstanceAdminsTeam(
+    context,
+    authentication,
+  );
+
+  const entity = await createEntity<ProspectiveUser>(
     context,
     /** The user does not yet have permissions to create entities, so we do it with the HASH system account instead */
-    { actorId: systemAccountId },
+    authentication,
     {
       webId: user.accountId as WebId,
       entityTypeIds: [systemEntityTypes.prospectiveUser.entityTypeId],
@@ -127,6 +136,23 @@ export const submitEarlyAccessFormResolver: ResolverFn<
       ],
     },
   );
+
+  // TODO: allow creating policies alongside entity creation
+  //   see https://linear.app/hash/issue/H-4622/allow-creating-policies-alongside-entity-creation
+  await createPolicy(context.graphApi, authentication, {
+    name: "prospective-user-view-entity",
+    principal: {
+      type: "actor",
+      actorType: "user",
+      id: user.accountId,
+    },
+    effect: "permit",
+    actions: ["viewEntity"],
+    resource: {
+      type: "entity",
+      id: extractEntityUuidFromEntityId(entity.entityId),
+    },
+  });
 
   if (process.env.ACCESS_FORM_SLACK_WEBHOOK_URL) {
     const simpleProperties = simplifyProperties(properties);

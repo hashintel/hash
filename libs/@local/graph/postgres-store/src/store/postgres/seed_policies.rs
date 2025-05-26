@@ -20,8 +20,8 @@ use hash_graph_authorization::{
 use type_system::{
     ontology::{BaseUrl, VersionedUrl, id::OntologyTypeVersion},
     principal::{
-        actor::{ActorId, ActorType},
-        role::{RoleId, TeamRole, WebRole},
+        actor::{ActorId, ActorType, MachineId},
+        role::{RoleId, RoleName, TeamRole, WebRole},
     },
 };
 
@@ -56,13 +56,13 @@ fn create_version_filters(
 }
 
 pub(crate) fn system_actor_create_web_policy(
-    system_machine_actor: ActorId,
+    system_machine_actor: MachineId,
 ) -> PolicyCreationParams {
     PolicyCreationParams {
         name: Some("system-machine-create-web".to_owned()),
         effect: Effect::Permit,
         principal: Some(PrincipalConstraint::Actor {
-            actor: system_machine_actor,
+            actor: ActorId::Machine(system_machine_actor),
         }),
         actions: vec![ActionName::CreateWeb],
         resource: None,
@@ -70,13 +70,13 @@ pub(crate) fn system_actor_create_web_policy(
 }
 
 fn system_actor_view_entity_policies(
-    system_machine_actor: ActorId,
+    system_machine_actor: MachineId,
 ) -> impl Iterator<Item = PolicyCreationParams> {
     iter::once(PolicyCreationParams {
         name: Some("system-machine-view-entity".to_owned()),
         effect: Effect::Permit,
         principal: Some(PrincipalConstraint::Actor {
-            actor: system_machine_actor,
+            actor: ActorId::Machine(system_machine_actor),
         }),
         actions: vec![ActionName::ViewEntity],
         resource: Some(ResourceConstraint::Entity(EntityResourceConstraint::Any {
@@ -96,66 +96,77 @@ fn system_actor_view_entity_policies(
 }
 
 pub(crate) fn system_actor_policies(
-    system_machine_actor: ActorId,
+    system_machine_actor: MachineId,
 ) -> impl Iterator<Item = PolicyCreationParams> {
     iter::once(system_actor_create_web_policy(system_machine_actor))
         .chain(system_actor_view_entity_policies(system_machine_actor))
 }
 
-fn global_instantiate_policies() -> impl Iterator<Item = PolicyCreationParams> {
-    fn common_filters() -> impl Iterator<Item = EntityTypeResourceFilter> {
-        [
-            EntityTypeResourceFilter::IsBaseUrl {
-                base_url: base_url!("https://hash.ai/@h/types/entity-type/actor/"),
-            },
-            EntityTypeResourceFilter::IsBaseUrl {
-                base_url: base_url!("https://hash.ai/@h/types/entity-type/organization/"),
-            },
-        ]
-        .into_iter()
-    }
-
-    let authenticated_policies = [ActorType::User, ActorType::Machine, ActorType::Ai]
-        .into_iter()
-        .map(|actor_type| PolicyCreationParams {
-            name: Some("authenticated-instantiate".to_owned()),
-            effect: Effect::Permit,
-            principal: Some(PrincipalConstraint::ActorType { actor_type }),
-            actions: vec![ActionName::Instantiate],
-            resource: Some(ResourceConstraint::EntityType(
-                EntityTypeResourceConstraint::Any {
-                    filter: EntityTypeResourceFilter::Not {
-                        filter: Box::new(EntityTypeResourceFilter::Any {
-                            filters: iter::once(EntityTypeResourceFilter::IsBaseUrl {
-                                base_url: base_url!(
-                                    "https://hash.ai/@h/types/entity-type/hash-instance/"
-                                ),
-                            })
-                            .chain(common_filters())
-                            .collect(),
-                        }),
-                    },
-                },
-            )),
-        });
-
-    let machine_only_policies = iter::once(PolicyCreationParams {
-        name: Some("machine-only-instantiate".to_owned()),
+fn google_bot_view_entity_policies(
+    google_bot_machine: MachineId,
+) -> impl Iterator<Item = PolicyCreationParams> {
+    iter::once(PolicyCreationParams {
+        name: Some("google-bot-view-entity".to_owned()),
         effect: Effect::Permit,
-        principal: Some(PrincipalConstraint::ActorType {
-            actor_type: ActorType::Machine,
+        principal: Some(PrincipalConstraint::Actor {
+            actor: ActorId::Machine(google_bot_machine),
         }),
-        actions: vec![ActionName::Instantiate],
-        resource: Some(ResourceConstraint::EntityType(
-            EntityTypeResourceConstraint::Any {
-                filter: EntityTypeResourceFilter::Any {
-                    filters: common_filters().collect(),
-                },
+        actions: vec![ActionName::ViewEntity],
+        resource: Some(ResourceConstraint::Entity(EntityResourceConstraint::Any {
+            filter: EntityResourceFilter::Any {
+                filters: create_version_filters(
+                    base_url!("https://hash.ai/@google/types/entity-type/account/"),
+                    1,
+                )
+                .collect(),
             },
-        )),
-    });
+        })),
+    })
+}
 
-    authenticated_policies.chain(machine_only_policies)
+pub(crate) fn google_bot_policies(
+    google_bot_machine: MachineId,
+) -> impl Iterator<Item = PolicyCreationParams> {
+    google_bot_view_entity_policies(google_bot_machine)
+}
+
+pub(crate) fn linear_bot_policies(
+    _linear_bot_machine: MachineId,
+) -> impl Iterator<Item = PolicyCreationParams> {
+    iter::empty()
+}
+
+fn global_instantiate_policies() -> impl Iterator<Item = PolicyCreationParams> {
+    [ActorType::User, ActorType::Machine, ActorType::Ai]
+        .into_iter()
+        .map(|actor_type| {
+            let mut filters = vec![EntityTypeResourceFilter::IsBaseUrl {
+                base_url: base_url!("https://hash.ai/@h/types/entity-type/hash-instance/"),
+            }];
+            if actor_type != ActorType::Machine {
+                filters.extend([
+                    EntityTypeResourceFilter::IsBaseUrl {
+                        base_url: base_url!("https://hash.ai/@h/types/entity-type/actor/"),
+                    },
+                    EntityTypeResourceFilter::IsBaseUrl {
+                        base_url: base_url!("https://hash.ai/@h/types/entity-type/organization/"),
+                    },
+                ]);
+            }
+            PolicyCreationParams {
+                name: Some("authenticated-instantiate".to_owned()),
+                effect: Effect::Permit,
+                principal: Some(PrincipalConstraint::ActorType { actor_type }),
+                actions: vec![ActionName::Instantiate],
+                resource: Some(ResourceConstraint::EntityType(
+                    EntityTypeResourceConstraint::Any {
+                        filter: EntityTypeResourceFilter::Not {
+                            filter: Box::new(EntityTypeResourceFilter::Any { filters }),
+                        },
+                    },
+                )),
+            }
+        })
 }
 
 fn global_view_entity_policies() -> impl Iterator<Item = PolicyCreationParams> {
@@ -217,6 +228,18 @@ pub(crate) fn global_policies() -> impl Iterator<Item = PolicyCreationParams> {
 }
 
 fn web_view_entity_policies(role: &WebRole) -> impl Iterator<Item = PolicyCreationParams> {
+    let mut filters = Vec::new();
+    filters.extend(create_version_filters(
+        base_url!("https://hash.ai/@h/types/entity-type/user-secret/"),
+        1,
+    ));
+    if role.name != RoleName::Administrator {
+        filters.extend(create_version_filters(
+            base_url!("https://hash.ai/@h/types/entity-type/usage-record/"),
+            2,
+        ));
+    }
+
     iter::once(PolicyCreationParams {
         name: Some("default-web-view-entity".to_owned()),
         effect: Effect::Permit,
@@ -228,17 +251,7 @@ fn web_view_entity_policies(role: &WebRole) -> impl Iterator<Item = PolicyCreati
         resource: Some(ResourceConstraint::Entity(EntityResourceConstraint::Web {
             web_id: role.web_id,
             filter: EntityResourceFilter::Not {
-                filter: Box::new(EntityResourceFilter::Any {
-                    filters: create_version_filters(
-                        base_url!("https://hash.ai/@h/types/entity-type/user-secret/"),
-                        1,
-                    )
-                    .chain(create_version_filters(
-                        base_url!("https://hash.ai/@h/types/entity-type/usage-record/"),
-                        2,
-                    ))
-                    .collect(),
-                }),
+                filter: Box::new(EntityResourceFilter::Any { filters }),
             },
         })),
     })
