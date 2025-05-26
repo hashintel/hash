@@ -1,4 +1,11 @@
-#![cfg_attr(test, expect(clippy::min_ident_chars, reason = "Generated code"))]
+#![cfg_attr(
+    test,
+    expect(
+        clippy::min_ident_chars,
+        clippy::explicit_deref_methods,
+        reason = "Generated code"
+    )
+)]
 
 use core::fmt::Display;
 

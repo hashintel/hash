@@ -68,8 +68,8 @@ use tokio_util::codec::{Decoder, Encoder, LinesCodec};
 /// - if writing to the buffer fails
 #[derive_where(Debug, Default, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct JsonLinesEncoder<T> {
-    /// We use PhantomData with fn() -> T instead of just T to ensure the encoder
-    /// doesn't impose any bounds on T unnecessarily (making it covariant rather than invariant)
+    /// We use `PhantomData` with `fn() -> T` instead of just `T` to ensure the decoder
+    /// doesn't impose any bounds on `T` unnecessarily (making it covariant rather than invariant)
     _marker: PhantomData<fn() -> T>,
 }
 
@@ -129,8 +129,8 @@ pub struct JsonLinesDecoder<T> {
     lines: LinesCodec,
     /// Current line number for error reporting
     current_line: usize,
-    /// We use PhantomData with fn() -> T instead of just T to ensure the decoder
-    /// doesn't impose any bounds on T unnecessarily (making it covariant rather than invariant)
+    /// We use `PhantomData` with `fn() -> T` instead of just `T` to ensure the decoder
+    /// doesn't impose any bounds on `T` unnecessarily (making it covariant rather than invariant)
     _marker: PhantomData<fn() -> T>,
 }
 
