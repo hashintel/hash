@@ -147,12 +147,11 @@ impl AnyReport {
     ///     Ok(fs::read_to_string("config.txt")?)
     /// }
     ///
+    /// # #[cfg_attr(not(nightly), allow(unused_variables))]
     /// let report = read_file()
     ///     .unwrap_err()
     ///     .attach(Suggestion("better use a file which exists next time!"));
     ///
-    /// # #[cfg_attr(not(nightly), allow(unused_variables))]
-    /// let report = error.unwrap_err();
     /// # #[cfg(nightly)]
     /// let suggestion = report.request_ref::<Suggestion>().next().unwrap();
     ///
