@@ -146,6 +146,10 @@ pub enum PolicyUpdateOperation {
     SetResourceConstraint {
         resource_constraint: Option<ResourceConstraint>,
     },
+    #[serde(rename_all = "camelCase")]
+    SetEffect {
+        effect: Effect,
+    },
 }
 
 #[trait_variant::make(Send)]
