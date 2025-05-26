@@ -34,7 +34,16 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
         }
     }
 
-    pub fn take_constraints(&mut self) -> Vec<Constraint<'heap>> {
+    #[cfg(test)]
+    pub(crate) fn with_constraints(
+        mut self,
+        constraints: impl IntoIterator<Item = Constraint<'heap>>,
+    ) -> Self {
+        self.constraints.extend(constraints);
+        self
+    }
+
+    pub(crate) fn take_constraints(&mut self) -> Vec<Constraint<'heap>> {
         core::mem::take(&mut self.constraints)
     }
 
@@ -186,7 +195,7 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
 
     #[must_use]
     pub fn into_solver(self) -> InferenceSolver<'env, 'heap> {
-        InferenceSolver::new(self.environment, self.constraints)
+        InferenceSolver::new(self)
     }
 }
 

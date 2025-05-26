@@ -37,7 +37,7 @@ use crate::{
     collection::{FastHashMap, SmallVec, fast_hash_map, fast_hash_map_in},
     r#type::{
         PartialType, TypeId,
-        environment::{Diagnostics, Environment, LatticeEnvironment, SimplifyEnvironment},
+        environment::{Diagnostics, InferenceEnvironment, LatticeEnvironment, SimplifyEnvironment},
         error::{
             bound_constraint_violation, conflicting_equality_constraints,
             incompatible_lower_equal_constraint, incompatible_upper_equal_constraint,
@@ -259,6 +259,8 @@ pub struct InferenceSolver<'env, 'heap> {
     lattice: LatticeEnvironment<'env, 'heap>,
     /// Environment for type simplification
     simplify: SimplifyEnvironment<'env, 'heap>,
+    /// Environment to discharge additional constraints
+    inference: InferenceEnvironment<'env, 'heap>,
 
     /// Diagnostics for type error reporting
     diagnostics: Diagnostics,
@@ -275,16 +277,18 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     ///
     /// Configures a lattice environment with simplification disabled during solving
     /// to maintain correctness. Simplification occurs after constraint resolution.
-    pub(crate) fn new(env: &'env Environment<'heap>, constraints: Vec<Constraint<'heap>>) -> Self {
+    pub(crate) fn new(mut inference: InferenceEnvironment<'env, 'heap>) -> Self {
         let unification = Unification::new();
+        let constraints = inference.take_constraints();
 
-        let mut lattice = LatticeEnvironment::new(env);
+        let mut lattice = LatticeEnvironment::new(inference.environment);
         lattice.without_simplify();
         lattice.set_inference_enabled(true);
 
         Self {
             lattice,
-            simplify: SimplifyEnvironment::new(env),
+            simplify: SimplifyEnvironment::new(inference.environment),
+            inference,
 
             diagnostics: Diagnostics::new(),
             persistent_diagnostics: Diagnostics::new(),
