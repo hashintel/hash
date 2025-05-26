@@ -87,6 +87,38 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
         self.diagnostics.as_ref().map_or(0, Diagnostics::fatal)
     }
 
+    pub(crate) fn resolve_substitution(&self, r#type: Type<'heap>) -> Option<TypeId> {
+        let substitution = self
+            .substitution
+            .as_ref()
+            .unwrap_or(&self.environment.substitution);
+
+        match r#type.kind {
+            TypeKind::Opaque(_)
+            | TypeKind::Primitive(_)
+            | TypeKind::Intrinsic(_)
+            | TypeKind::Struct(_)
+            | TypeKind::Tuple(_)
+            | TypeKind::Closure(_)
+            | TypeKind::Union(_)
+            | TypeKind::Intersection(_)
+            | TypeKind::Apply(_)
+            | TypeKind::Generic(_)
+            | TypeKind::Never
+            | TypeKind::Unknown => None,
+            &TypeKind::Param(Param { argument }) => {
+                let argument = substitution.argument(argument)?;
+
+                Some(argument)
+            }
+            &TypeKind::Infer(Infer { hole }) => {
+                let infer = substitution.infer(hole)?;
+
+                Some(infer)
+            }
+        }
+    }
+
     pub(crate) fn resolve_type(&self, r#type: Type<'heap>) -> Option<Type<'heap>> {
         let substitution = self
             .substitution
