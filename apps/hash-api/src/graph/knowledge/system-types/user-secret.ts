@@ -1,7 +1,9 @@
 import type {
-  ActorEntityUuid,
   EntityId,
+  EntityUuid,
+  MachineId,
   ProvidedEntityEditionProvenance,
+  UserId,
   WebId,
 } from "@blockprotocol/type-system";
 import { getSecretEntitiesForIntegration } from "@local/hash-backend-utils/user-secret";
@@ -12,12 +14,15 @@ import type {
 import { createUserSecretPath } from "@local/hash-backend-utils/vault";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { EntityRelationAndSubjectBranded } from "@local/hash-graph-sdk/authorization";
+import { createPolicy } from "@local/hash-graph-sdk/policy";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { UsesUserSecret } from "@local/hash-isomorphic-utils/system-types/google/shared";
 import type { UserSecret } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { PrincipalConstraint } from "@rust/hash-graph-authorization/types";
 import type { Auth } from "googleapis";
 
 import { createEntity } from "../primitive/entity";
@@ -35,7 +40,7 @@ type CreateUserSecretParams<T extends object> = {
    * The bot that will manage the secret, e.g. update, archive, upgrade it.
    * This is the only account that will have edit permissions for the secret.
    */
-  managingBotAccountId: ActorEntityUuid;
+  managingBotAccountId: MachineId;
   secretData: T;
   /**
    * The rest of the path to the secret in the vault, after the standardized system prefixes.
@@ -53,7 +58,7 @@ type CreateUserSecretParams<T extends object> = {
   /**
    * The user that owns the secret. The user will have read access to the secret.
    */
-  userAccountId: ActorEntityUuid;
+  userAccountId: UserId;
   vaultClient: VaultClient;
 };
 
@@ -177,12 +182,16 @@ export const createUserSecret = async <
     );
   }
 
+  const userSecretEntityUuid = generateUuid() as EntityUuid;
+  const usesUuserSecretEntityUuid = generateUuid() as EntityUuid;
+
   const userSecretEntity = await createEntity<UserSecret>(
     { graphApi, provenance },
     authentication,
     {
       entityTypeIds: [systemEntityTypes.userSecret.entityTypeId],
       webId: userAccountId as WebId,
+      entityUuid: userSecretEntityUuid,
       properties: secretMetadata,
       relationships: botEditorUserViewerOnly,
     },
@@ -194,6 +203,7 @@ export const createUserSecret = async <
     authentication,
     {
       webId: userAccountId as WebId,
+      entityUuid: usesUuserSecretEntityUuid,
       properties: { value: {} },
       linkData: {
         leftEntityId: sourceIntegrationEntityId,
@@ -203,6 +213,36 @@ export const createUserSecret = async <
       relationships: botEditorUserViewerOnly,
     },
   );
+
+  const viewPrincipals: PrincipalConstraint[] = [
+    {
+      type: "actor",
+      actorType: "user",
+      id: userAccountId,
+    },
+    {
+      type: "actor",
+      actorType: "machine",
+      id: managingBotAccountId,
+    },
+  ];
+
+  // TODO: allow creating policies alongside entity creation
+  //   see https://linear.app/hash/issue/H-4622/allow-creating-policies-alongside-entity-creation
+  for (const entityUuid of [userSecretEntityUuid, usesUuserSecretEntityUuid]) {
+    for (const principal of viewPrincipals) {
+      await createPolicy(graphApi, authentication, {
+        name: `user-secret-view-entity-${entityUuid}`,
+        principal,
+        effect: "permit",
+        actions: ["viewEntity"],
+        resource: {
+          type: "entity",
+          id: entityUuid,
+        },
+      });
+    }
+  }
 
   return userSecretEntity.metadata.recordId.entityId;
 };

@@ -1,8 +1,8 @@
 import type {
-  ActorEntityUuid,
   EntityId,
   OriginProvenance,
   ProvidedEntityEditionProvenance,
+  UserId,
   WebId,
 } from "@blockprotocol/type-system";
 import { getInstanceAdminsTeam } from "@local/hash-backend-utils/hash-instance";
@@ -43,7 +43,7 @@ export type UsageTrackingParams = {
    * @todo: consider abstracting this in a wrapper method, or via
    * generic params (via a `logUsage` method).
    */
-  userAccountId: ActorEntityUuid;
+  userAccountId: UserId;
   customMetadata: FlowUsageRecordCustomMetadata | null;
   webId: WebId;
   graphApiClient: GraphApi;
@@ -159,7 +159,9 @@ export const getLlmResponse = async <T extends LlmParams>(
           createUsageRecord(
             { graphApi: graphApiClient },
             {
-              additionalViewers: [aiAssistantAccountId],
+              additionalViewers: [
+                { actorType: "ai", id: aiAssistantAccountId },
+              ],
               assignUsageToWebId: webId,
               customMetadata,
               serviceName: isLlmParamsAnthropicLlmParams(llmParams)
