@@ -47,6 +47,10 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
         target.append(&mut self.constraints);
     }
 
+    pub(crate) const fn has_constraints(&self) -> bool {
+        !self.constraints.is_empty()
+    }
+
     pub(crate) fn take_constraints(&mut self) -> Vec<Constraint<'heap>> {
         core::mem::take(&mut self.constraints)
     }
@@ -120,6 +124,23 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
             output: variable,
         };
         self.constraints.push(Constraint::Selection(projection));
+
+        variable
+    }
+
+    pub fn add_subscript(&mut self, span: SpanId, r#type: TypeId, index: TypeId) -> Variable {
+        let hole = self.counter.hole.next();
+        let variable = Variable {
+            span,
+            kind: VariableKind::Hole(hole),
+        };
+
+        let subscript = SelectionConstraint::Subscript {
+            subject: Subject::Type(r#type),
+            index: Subject::Type(index),
+            output: variable,
+        };
+        self.constraints.push(Constraint::Selection(subscript));
 
         variable
     }

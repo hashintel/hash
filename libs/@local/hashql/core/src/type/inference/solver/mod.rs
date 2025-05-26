@@ -1022,6 +1022,8 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         for type_id in substitutions.values_mut() {
             *type_id = self.simplify.simplify(*type_id);
         }
+
+        self.simplify.clear_substitution();
     }
 
     /// Resolves selection constraints (field access, subscript operations).
@@ -1125,7 +1127,13 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                             ));
 
                             // We may have issued additional constraints
-                            self.inference.drain_constraints_into(&mut self.constraints);
+                            if self.inference.has_constraints() {
+                                // In that case we've actually made progress, because we have issued
+                                // new constraints
+                                made_progress = true;
+                                self.inference.drain_constraints_into(&mut self.constraints);
+                            }
+
                             continue;
                         }
                         Subscript::Error => {
