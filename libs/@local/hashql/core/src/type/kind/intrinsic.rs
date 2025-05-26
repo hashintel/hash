@@ -13,7 +13,10 @@ use crate::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
             SimplifyEnvironment, instantiate::InstantiateEnvironment,
         },
-        error::{UnsupportedProjectionCategory, type_mismatch, unsupported_projection},
+        error::{
+            UnsupportedProjectionCategory, dict_subscript_mismatch, list_subscript_mismatch,
+            type_mismatch, unsupported_projection,
+        },
         inference::{Inference, PartialStructuralEdge},
         lattice::{Lattice, Projection, Subscript},
     },
@@ -94,7 +97,8 @@ impl<'heap> Lattice<'heap> for ListType {
             return Subscript::Resolved(self.kind.element);
         }
 
-        todo!("issue diagnostic");
+        env.diagnostics
+            .push(list_subscript_mismatch(self, index, env));
         Subscript::Error
     }
 
@@ -410,7 +414,8 @@ impl<'heap> Lattice<'heap> for DictType {
             return Subscript::Resolved(self.kind.value);
         }
 
-        todo!("issue diagnostic");
+        env.diagnostics
+            .push(dict_subscript_mismatch(self, index, env));
         Subscript::Error
     }
 

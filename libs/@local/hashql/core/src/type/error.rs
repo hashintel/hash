@@ -12,10 +12,10 @@ use hashql_diagnostics::{
 };
 
 use super::{
-    Type,
+    Type, TypeId,
     environment::Environment,
     inference::{SelectionConstraint, Variable},
-    kind::generic::GenericArgumentId,
+    kind::{generic::GenericArgumentId, intrinsic::DictType},
 };
 use crate::{
     pretty::{PrettyOptions, PrettyPrint},
@@ -140,7 +140,17 @@ const RECURSIVE_TYPE_PROJECTION: TerminalDiagnosticCategory = TerminalDiagnostic
 
 const UNRESOLVED_SELECTION_CONSTRAINT: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "unresolved-selection-constraint",
-    name: "Unable to resolve selection constraint",
+    name: "Unresolved selection constraint",
+};
+
+const LIST_INDEX_TYPE_MISMATCH: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "list-index-type-mismatch",
+    name: "List index type mismatch",
+};
+
+const DICT_KEY_TYPE_MISMATCH: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "dict-key-type-mismatch",
+    name: "Dictionary key type mismatch",
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -168,6 +178,8 @@ pub enum TypeCheckDiagnosticCategory {
     UnsupportedProjection,
     RecursiveTypeProjection,
     UnresolvedSelectionConstraint,
+    ListIndexTypeMismatch,
+    DictKeyTypeMismatch,
 }
 
 impl DiagnosticCategory for TypeCheckDiagnosticCategory {
@@ -204,6 +216,8 @@ impl DiagnosticCategory for TypeCheckDiagnosticCategory {
             Self::UnsupportedProjection => Some(&UNSUPPORTED_PROJECTION),
             Self::RecursiveTypeProjection => Some(&RECURSIVE_TYPE_PROJECTION),
             Self::UnresolvedSelectionConstraint => Some(&UNRESOLVED_SELECTION_CONSTRAINT),
+            Self::ListIndexTypeMismatch => Some(&LIST_INDEX_TYPE_MISMATCH),
+            Self::DictKeyTypeMismatch => Some(&DICT_KEY_TYPE_MISMATCH),
         }
     }
 }
@@ -1718,6 +1732,99 @@ pub(crate) fn unresolved_selection_constraint<'heap>(
             ));
         }
     }
+
+    diagnostic
+}
+
+pub(crate) fn list_subscript_mismatch<'heap, K>(
+    list: Type<'heap, K>,
+    index: TypeId,
+    env: &Environment<'heap>,
+) -> TypeCheckDiagnostic
+where
+    K: PrettyPrint<'heap>,
+{
+    let mut diagnostic = Diagnostic::new(
+        TypeCheckDiagnosticCategory::ListIndexTypeMismatch,
+        Severity::Error,
+    );
+
+    let index = env.r#type(index);
+
+    diagnostic.labels.push(
+        Label::new(index.span, "Invalid index type for list access")
+            .with_order(0)
+            .with_color(Color::Ansi(AnsiColor::Red)),
+    );
+
+    diagnostic.labels.push(
+        Label::new(list.span, "... when indexing into this list")
+            .with_order(-1)
+            .with_color(Color::Ansi(AnsiColor::Blue)),
+    );
+
+    let help_message = format!(
+        "Cannot index into list '{}' with type '{}'. Lists require integer indices to access \
+         their elements by position.\n\nUse an integer value or expression that evaluates to an \
+         integer: `list[0]` for the first element, `list[index]` where `index` is an integer \
+         variable, or `list[expression]` where `expression` produces an integer result.",
+        list.pretty_print(env, PrettyOptions::default().with_max_width(60)),
+        index.pretty_print(env, PrettyOptions::default().with_max_width(60))
+    );
+
+    diagnostic.add_help(Help::new(help_message));
+
+    diagnostic.add_note(Note::new(
+        "Lists are zero-indexed ordered collections where each element is accessed by its numeric \
+         position. Only integer types are valid for list indexing operations. Lists are covariant \
+         with respect to their key type.",
+    ));
+
+    diagnostic
+}
+
+pub(crate) fn dict_subscript_mismatch<'heap>(
+    dict: Type<'heap, DictType>,
+    index: TypeId,
+    env: &Environment<'heap>,
+) -> TypeCheckDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        TypeCheckDiagnosticCategory::DictKeyTypeMismatch,
+        Severity::Error,
+    );
+
+    let index = env.r#type(index);
+    let expected = env.r#type(dict.kind.key);
+
+    diagnostic.labels.push(
+        Label::new(index.span, "Key type doesn't match dictionary's key type")
+            .with_order(0)
+            .with_color(Color::Ansi(AnsiColor::Red)),
+    );
+
+    diagnostic.labels.push(
+        Label::new(dict.span, "... when accessing this dictionary")
+            .with_order(-1)
+            .with_color(Color::Ansi(AnsiColor::Blue)),
+    );
+
+    let help_message = format!(
+        "Cannot access dictionary with key of type '{}'. This dictionary expects keys of type \
+         '{}'.\n\nDictionary keys must match exactly - there is no implicit conversion between \
+         key types. Use a key of the correct type or ensure your key expression evaluates to the \
+         expected type: `dict[key]` where `key` has type '{}'.",
+        index.pretty_print(env, PrettyOptions::default().with_max_width(60)),
+        expected.pretty_print(env, PrettyOptions::default().with_max_width(60)),
+        expected.pretty_print(env, PrettyOptions::default().with_max_width(60))
+    );
+
+    diagnostic.add_help(Help::new(help_message));
+
+    diagnostic.add_note(Note::new(
+        "Dictionary keys are invariant - the key type used for access must be exactly equivalent \
+         to the dictionary's declared key type. Unlike some languages, there is no implicit type \
+         coercion for dictionary key access.",
+    ));
 
     diagnostic
 }
