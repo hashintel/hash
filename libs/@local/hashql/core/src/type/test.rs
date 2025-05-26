@@ -1,10 +1,11 @@
 #![expect(clippy::min_ident_chars)]
-use core::{assert_matches::assert_matches, fmt::Debug};
+use core::{assert_matches::assert_matches, fmt::Debug, iter};
 
 use super::{
     PartialType, TypeId, TypeKind,
-    environment::{AnalysisEnvironment, Environment},
-    kind::{Infer, Param, generic::GenericArgumentId, infer::HoleId},
+    environment::{AnalysisEnvironment, Environment, SimplifyEnvironment},
+    inference::{Substitution, VariableKind, VariableLookup},
+    kind::{Infer, Param, generic::GenericArgumentId, infer::HoleId, test::tuple},
 };
 use crate::{
     heap::Heap,
@@ -519,4 +520,37 @@ fn recursive_meet_operation() {
         env.is_equivalent(met, type_a),
         "meet(A, B) should be equivalent to A"
     );
+}
+
+#[test]
+fn recursive_simplify() {
+    // If we have a type that's referencing itself in the substitution during simplification, we
+    // should not error out but veil ourselves in a thin generic.
+    let heap = Heap::new();
+    let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+    let hole = env.counter.hole.next();
+    let infer = instantiate_infer(&env, hole);
+
+    let substitution = Substitution::new(
+        VariableLookup::new(
+            iter::once((VariableKind::Hole(hole), VariableKind::Hole(hole))).collect(),
+        ),
+        iter::once((VariableKind::Hole(hole), tuple!(env, [infer]))).collect(),
+    );
+
+    env.substitution = substitution;
+
+    let mut simplify = SimplifyEnvironment::new(&env);
+    let result_id = simplify.simplify(infer);
+    // The result should be a generic type
+    let result = env.r#type(result_id);
+    let generic = result.kind.generic().expect("should be a generic");
+    assert!(generic.arguments.is_empty());
+
+    let base = env.r#type(generic.base);
+    let tuple = base.kind.tuple().expect("should be a tuple");
+
+    assert_eq!(tuple.fields.len(), 1);
+    assert_eq!(tuple.fields[0], result_id);
 }
