@@ -1,8 +1,10 @@
 use alloc::borrow::Cow;
+use core::fmt::Write as _;
 
 use hashql_diagnostics::{
     Diagnostic,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
+    color::{AnsiColor, Color},
     help::Help,
     label::Label,
     note::Note,
@@ -10,12 +12,16 @@ use hashql_diagnostics::{
 };
 
 use super::{
-    Type, environment::Environment, inference::Variable, kind::generic::GenericArgumentId,
+    Type,
+    environment::Environment,
+    inference::{SelectionConstraint, Variable},
+    kind::generic::GenericArgumentId,
 };
 use crate::{
     pretty::{PrettyOptions, PrettyPrint},
+    similarity::did_you_mean,
     span::SpanId,
-    symbol::Symbol,
+    symbol::{Ident, Symbol},
 };
 
 pub type TypeCheckDiagnostic = Diagnostic<TypeCheckDiagnosticCategory, SpanId>;
@@ -107,6 +113,36 @@ const TYPE_PARAMETER_NOT_FOUND: TerminalDiagnosticCategory = TerminalDiagnosticC
     name: "Type parameter not found",
 };
 
+const FIELD_NOT_FOUND: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "field-not-found",
+    name: "Field not found in type",
+};
+
+const INVALID_TUPLE_INDEX: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "invalid-tuple-index",
+    name: "Invalid tuple index",
+};
+
+const TUPLE_INDEX_OUT_OF_BOUNDS: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "tuple-index-out-of-bounds",
+    name: "Tuple index out of bounds",
+};
+
+const UNSUPPORTED_PROJECTION: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "unsupported-projection",
+    name: "Projection not supported on this type",
+};
+
+const RECURSIVE_TYPE_PROJECTION: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "recursive-type-projection",
+    name: "Cannot project field on recursive type",
+};
+
+const UNRESOLVED_SELECTION_CONSTRAINT: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "unresolved-selection-constraint",
+    name: "Unable to resolve selection constraint",
+};
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum TypeCheckDiagnosticCategory {
     TypeMismatch,
@@ -126,6 +162,12 @@ pub enum TypeCheckDiagnosticCategory {
     IncompatibleUpperEqualConstraint,
     ConflictingEqualityConstraints,
     TypeParameterNotFound,
+    FieldNotFound,
+    InvalidTupleIndex,
+    TupleIndexOutOfBounds,
+    UnsupportedProjection,
+    RecursiveTypeProjection,
+    UnresolvedSelectionConstraint,
 }
 
 impl DiagnosticCategory for TypeCheckDiagnosticCategory {
@@ -143,8 +185,8 @@ impl DiagnosticCategory for TypeCheckDiagnosticCategory {
             Self::CircularType => Some(&CIRCULAR_TYPE),
             Self::TupleLengthMismatch => Some(&TUPLE_LENGTH_MISMATCH),
             Self::OpaqueTypeNameMismatch => Some(&OPAQUE_TYPE_NAME_MISMATCH),
-            Self::UnionVariantMismatch => Some(&UNION_VARIANT_MISMATCH),
             Self::FunctionParameterCountMismatch => Some(&FUNCTION_PARAMETER_COUNT_MISMATCH),
+            Self::UnionVariantMismatch => Some(&UNION_VARIANT_MISMATCH),
             Self::IntersectionVariantMismatch => Some(&INTERSECTION_VARIANT_MISMATCH),
             Self::StructFieldMismatch => Some(&STRUCT_FIELD_MISMATCH),
             Self::DuplicateStructField => Some(&DUPLICATE_STRUCT_FIELD),
@@ -156,6 +198,12 @@ impl DiagnosticCategory for TypeCheckDiagnosticCategory {
             Self::IncompatibleUpperEqualConstraint => Some(&INCOMPATIBLE_UPPER_EQUAL_CONSTRAINT),
             Self::ConflictingEqualityConstraints => Some(&CONFLICTING_EQUALITY_CONSTRAINTS),
             Self::TypeParameterNotFound => Some(&TYPE_PARAMETER_NOT_FOUND),
+            Self::FieldNotFound => Some(&FIELD_NOT_FOUND),
+            Self::InvalidTupleIndex => Some(&INVALID_TUPLE_INDEX),
+            Self::TupleIndexOutOfBounds => Some(&TUPLE_INDEX_OUT_OF_BOUNDS),
+            Self::UnsupportedProjection => Some(&UNSUPPORTED_PROJECTION),
+            Self::RecursiveTypeProjection => Some(&RECURSIVE_TYPE_PROJECTION),
+            Self::UnresolvedSelectionConstraint => Some(&UNRESOLVED_SELECTION_CONSTRAINT),
         }
     }
 }
@@ -1221,6 +1269,455 @@ where
          sequence. The compiler should validate all parameter references during an earlier \
          compilation phase and provide more specific error messages.",
     )));
+
+    diagnostic
+}
+
+pub(crate) fn struct_field_not_found<'heap, K>(
+    r#type: Type<'heap, K>,
+    field: Ident<'heap>,
+
+    available_fields: impl ExactSizeIterator<Item = Symbol<'heap>> + Clone,
+
+    env: &Environment<'heap>,
+) -> TypeCheckDiagnostic
+where
+    K: PrettyPrint<'heap>,
+{
+    let mut diagnostic =
+        Diagnostic::new(TypeCheckDiagnosticCategory::FieldNotFound, Severity::Error);
+
+    diagnostic.labels.push(
+        Label::new(field.span, format!("Field '{field}' does not exist"))
+            .with_order(0)
+            .with_color(Color::Ansi(AnsiColor::Red)),
+    );
+
+    diagnostic.labels.push(
+        Label::new(r#type.span, "... on this type")
+            .with_order(-1)
+            .with_color(Color::Ansi(AnsiColor::Blue)),
+    );
+
+    let suggestions = did_you_mean(field.value, available_fields.clone(), Some(5), None);
+
+    let mut help_message = format!(
+        "The field '{field}' cannot be accessed on type '{}'.",
+        r#type.pretty_print(env, PrettyOptions::default())
+    );
+
+    if !suggestions.is_empty() {
+        write!(help_message, "\n\nDid you mean one of these?").expect("infallible");
+
+        for suggestion in &suggestions {
+            write!(help_message, "\n  - {suggestion}").expect("infallible");
+        }
+
+        let remaining = available_fields.len().saturating_sub(suggestions.len());
+        if remaining > 0 {
+            write!(help_message, "\n  ({remaining} more fields available)").expect("infallible");
+        }
+    } else if available_fields.len() <= 10 {
+        write!(
+            help_message,
+            "\n\nChoose one of these available fields instead:"
+        )
+        .expect("infallible");
+
+        for field in available_fields {
+            write!(help_message, "\n  - {field}").expect("infallible");
+        }
+    } else {
+        write!(
+            help_message,
+            "\n\nReplace '{field}' with one of the {} available fields. Use autocomplete or check \
+             the type definition for the complete list.",
+            available_fields.len()
+        )
+        .expect("infallible");
+    }
+
+    diagnostic.add_help(Help::new(help_message));
+
+    diagnostic.add_note(Note::new(
+        "Field access in HashQL requires exact name matching - fields are case-sensitive and must \
+         be defined in the type's structure. Typos in field names are a common source of this \
+         error.",
+    ));
+
+    diagnostic
+}
+
+pub(crate) fn invalid_tuple_index<'heap, K>(
+    r#type: Type<'heap, K>,
+    field: Ident<'heap>,
+    env: &Environment<'heap>,
+) -> TypeCheckDiagnostic
+where
+    K: PrettyPrint<'heap>,
+{
+    let mut diagnostic = Diagnostic::new(
+        TypeCheckDiagnosticCategory::InvalidTupleIndex,
+        Severity::Error,
+    );
+
+    diagnostic.labels.push(
+        Label::new(field.span, format!("'{field}' is not a valid tuple index"))
+            .with_order(0)
+            .with_color(Color::Ansi(AnsiColor::Red)),
+    );
+
+    diagnostic.labels.push(
+        Label::new(r#type.span, "... on this tuple type")
+            .with_order(-1)
+            .with_color(Color::Ansi(AnsiColor::Blue)),
+    );
+
+    let type_str = r#type.pretty_print(env, PrettyOptions::default());
+    let help_message = format!(
+        "Tuple elements can only be accessed using numeric indices (0, 1, 2, etc.), but '{field}' \
+         is not a valid number on type '{type_str}'. Replace '{field}' with a numeric index like \
+         `tuple.0`, `tuple.1`, `tuple.2`, etc."
+    );
+
+    diagnostic.add_help(Help::new(help_message));
+
+    diagnostic.add_note(Note::new(
+        "Tuples are ordered collections where elements are accessed by their position. Use a \
+         numeric index like `tuple.0` or `tuple.1` to access specific elements. Unlike structs, \
+         tuples don't have named fields.",
+    ));
+
+    diagnostic
+}
+
+pub(crate) fn tuple_index_out_of_bounds<'heap, K>(
+    r#type: Type<'heap, K>,
+    field: Ident<'heap>,
+    tuple_length: usize,
+    env: &Environment<'heap>,
+) -> TypeCheckDiagnostic
+where
+    K: PrettyPrint<'heap>,
+{
+    let mut diagnostic = Diagnostic::new(
+        TypeCheckDiagnosticCategory::TupleIndexOutOfBounds,
+        Severity::Error,
+    );
+
+    diagnostic.labels.push(
+        Label::new(field.span, format!("Index '{field}' is out of bounds"))
+            .with_order(0)
+            .with_color(Color::Ansi(AnsiColor::Red)),
+    );
+
+    diagnostic.labels.push(
+        Label::new(r#type.span, "... on this tuple")
+            .with_order(-1)
+            .with_color(Color::Ansi(AnsiColor::Blue)),
+    );
+
+    let mut help_message = format!(
+        "The index '{field}' is out of bounds for type '{}'.",
+        r#type.pretty_print(env, PrettyOptions::default())
+    );
+
+    if tuple_length == 0 {
+        write!(
+            help_message,
+            "This tuple is empty - remove the field access or check if you meant to use a \
+             different variable."
+        )
+        .expect("infallible");
+    } else if tuple_length == 1 {
+        write!(
+            help_message,
+            "Replace the index with 0 to access the single element in this tuple."
+        )
+        .expect("infallible");
+    } else {
+        write!(
+            help_message,
+            "Replace with a valid index from 0 to {}. This tuple has {tuple_length} elements \
+             available.",
+            tuple_length.saturating_sub(1)
+        )
+        .expect("infallible");
+    }
+
+    diagnostic.add_help(Help::new(help_message));
+
+    diagnostic.add_note(Note::new(
+        "Tuple indices are zero-based, meaning the first element is at index 0, the second at \
+         index 1, and so on. The highest valid index is always one less than the tuple's length.",
+    ));
+
+    diagnostic
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub(crate) enum UnsupportedProjectionCategory {
+    Closure,
+    List,
+    Dict,
+    Primitive,
+    Never,
+    Unknown,
+}
+
+impl UnsupportedProjectionCategory {
+    const fn plural_capitalized(self) -> &'static str {
+        match self {
+            Self::Closure => "Closures",
+            Self::List => "Lists",
+            Self::Dict => "Dictionaries",
+            Self::Primitive => "Primitive types",
+            Self::Never => "Never",
+            Self::Unknown => "Unknown",
+        }
+    }
+}
+
+pub(crate) fn unsupported_projection<'heap, K>(
+    r#type: Type<'heap, K>,
+    field: Ident<'heap>,
+    category: UnsupportedProjectionCategory,
+    env: &Environment<'heap>,
+) -> TypeCheckDiagnostic
+where
+    K: PrettyPrint<'heap>,
+{
+    let mut diagnostic = Diagnostic::new(
+        TypeCheckDiagnosticCategory::UnsupportedProjection,
+        Severity::Error,
+    );
+
+    diagnostic.labels.push(
+        Label::new(field.span, format!("Cannot access field '{field}'"))
+            .with_order(0)
+            .with_color(Color::Ansi(AnsiColor::Red)),
+    );
+
+    diagnostic.labels.push(
+        Label::new(r#type.span, "... on this type")
+            .with_order(-1)
+            .with_color(Color::Ansi(AnsiColor::Blue)),
+    );
+
+    let mut help_message = format!(
+        "Cannot access field '{field}' on type '{}'.\n\n",
+        r#type.pretty_print(env, PrettyOptions::default())
+    );
+
+    match category {
+        UnsupportedProjectionCategory::Closure => {
+            write!(
+                help_message,
+                "Closures are functions that capture their environment and are meant to be \
+                 called, not accessed as objects. To use this closure, call it with arguments \
+                 like `closure(arg1, arg2)` instead of trying to access properties on it."
+            )
+            .expect("infallible");
+        }
+        UnsupportedProjectionCategory::List => {
+            write!(
+                help_message,
+                "Lists are ordered collections accessed by numeric position, not by field names. \
+                 Use square bracket notation with an index: `list[0]` for the first element, \
+                 `list[index]` for a dynamic position."
+            )
+            .expect("infallible");
+        }
+        UnsupportedProjectionCategory::Dict => {
+            write!(
+                help_message,
+                ". Dictionaries are key-value mappings where keys can be any type, not just field \
+                 names. Access values using square bracket notation: `dict[\"key\"]` for string \
+                 keys, `dict[key]` for variable keys."
+            )
+            .expect("infallible");
+        }
+        UnsupportedProjectionCategory::Primitive => {
+            write!(
+                help_message,
+                "Primitive types (numbers, strings, booleans, null) are atomic values without \
+                 internal structure. They don't have user-accessible fields. Use the value \
+                 directly."
+            )
+            .expect("infallible");
+        }
+        UnsupportedProjectionCategory::Never => {
+            write!(
+                help_message,
+                "The 'never' type represents values that cannot exist - typically indicating \
+                 unreachable code paths or overly restrictive type constraints. Since no actual \
+                 value of this type can ever be created, field access is impossible. Review your \
+                 type constraints, union intersections, or conditional logic to ensure this code \
+                 path is reachable."
+            )
+            .expect("infallible");
+        }
+        UnsupportedProjectionCategory::Unknown => {
+            write!(
+                help_message,
+                "The 'unknown' type represents values whose structure hasn't been determined yet. \
+                 Before accessing fields, narrow the type using type guards (`typeof`, \
+                 `instanceof`), pattern matching, explicit type assertions, or provide more \
+                 specific type annotations in your function signatures or variable declarations."
+            )
+            .expect("infallible");
+        }
+    }
+
+    diagnostic.add_help(Help::new(help_message));
+
+    diagnostic.add_note(Note::new(format!(
+        "Field access with the dot operator (`.`) is reserved for structured data types that have \
+         named components. {} are accessed through different mechanisms - use the appropriate \
+         access method for the data type you're working with.",
+        category.plural_capitalized()
+    )));
+
+    diagnostic
+}
+
+pub(crate) fn recursive_type_projection<'heap, K>(
+    r#type: Type<'heap, K>,
+    field: Ident<'heap>,
+    env: &Environment<'heap>,
+) -> TypeCheckDiagnostic
+where
+    K: PrettyPrint<'heap>,
+{
+    let mut diagnostic = Diagnostic::new(
+        TypeCheckDiagnosticCategory::RecursiveTypeProjection,
+        Severity::Error,
+    );
+
+    diagnostic.labels.push(
+        Label::new(field.span, format!("Cannot access field '{field}'"))
+            .with_order(0)
+            .with_color(Color::Ansi(AnsiColor::Red)),
+    );
+
+    diagnostic.labels.push(
+        Label::new(r#type.span, "... on this recursive type")
+            .with_order(-1)
+            .with_color(Color::Ansi(AnsiColor::Blue)),
+    );
+
+    let help_message = format!(
+        "Field projection is impossible on recursive type '{}' because it would require infinite \
+         type expansion.\n\nRecursive types like `A = A & T` where `T = (a: Number)` create \
+         definitions that reference themselves. Attempting to project a field like `A.a` would \
+         mean expanding A -> (A & T) -> ((A & T) & T) -> ... infinitely, which cannot be \
+         resolved.\n\nThis is mathematically impossible - there is no logical way to project \
+         fields on a type that infinitely expands.",
+        r#type.pretty_print(env, PrettyOptions::default())
+    );
+
+    diagnostic.add_help(Help::new(help_message));
+
+    diagnostic.add_note(Note::new(
+        "Recursive type definitions create mathematical impossibilities for field access. It is \
+         logically impossible to resolve field projection on types that expand infinitely - no \
+         computational system can handle infinite expansions.",
+    ));
+
+    diagnostic
+}
+
+pub(crate) fn unresolved_selection_constraint<'heap>(
+    constraint: SelectionConstraint<'heap>,
+    env: &Environment<'heap>,
+) -> TypeCheckDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        TypeCheckDiagnosticCategory::UnresolvedSelectionConstraint,
+        Severity::Error,
+    );
+
+    match constraint {
+        SelectionConstraint::Projection {
+            subject,
+            field,
+            output,
+        } => {
+            diagnostic.labels.push(
+                Label::new(field.span, format!("Cannot resolve field access '{field}'"))
+                    .with_order(0)
+                    .with_color(Color::Ansi(AnsiColor::Red)),
+            );
+
+            diagnostic.labels.push(
+                Label::new(output.span, "... when projecting this unconstrained type")
+                    .with_order(-1)
+                    .with_color(Color::Ansi(AnsiColor::Yellow)),
+            );
+
+            let subject_type = subject.r#type(env);
+            diagnostic.labels.push(
+                Label::new(subject_type.span, "... using this field access")
+                    .with_order(-2)
+                    .with_color(Color::Ansi(AnsiColor::Blue)),
+            );
+
+            let help_message = format!(
+                "The type checker could not resolve field access '{field}' because the subject \
+                 type contains unconstrained type variables that remain unsolved after processing \
+                 all other constraints. This occurs when the subject type couldn't be determined \
+                 due to insufficient type information.\n\nTry adding explicit type annotations to \
+                 constrain the subject type."
+            );
+
+            diagnostic.add_help(Help::new(help_message));
+
+            diagnostic.add_note(Note::new(
+                "Selection constraints are resolved after all other type constraints have been \
+                 processed. If any type variables involved in the field access remain \
+                 unconstrained at this point, the selection operation cannot be validated.",
+            ));
+        }
+
+        SelectionConstraint::Subscript {
+            subject,
+            index,
+            output,
+        } => {
+            diagnostic.labels.push(
+                Label::new(output.span, "Subscript operation cannot be resolved")
+                    .with_order(0)
+                    .with_color(Color::Ansi(AnsiColor::Red)),
+            );
+
+            let subject_type = subject.r#type(env);
+            diagnostic.labels.push(
+                Label::new(subject_type.span, "... when indexing into this type")
+                    .with_order(-1)
+                    .with_color(Color::Ansi(AnsiColor::Blue)),
+            );
+
+            let index_type = index.r#type(env);
+            diagnostic.labels.push(
+                Label::new(index_type.span, "... using this index type")
+                    .with_order(-2)
+                    .with_color(Color::Ansi(AnsiColor::Cyan)),
+            );
+
+            diagnostic.add_help(Help::new(
+                "The type checker could not resolve the subscript operation because the subject \
+                 or index types contain unconstrained type variables that remain unsolved after \
+                 processing all other constraints. This occurs when either the subject type or \
+                 index type couldn't be determined due to insufficient type information.\n\nTry \
+                 adding explicit type annotations to constrain the subject and index types.",
+            ));
+
+            diagnostic.add_note(Note::new(
+                "Subscript operations are resolved after all other type constraints have been \
+                 processed. If any type variables involved in the indexing operation remain \
+                 unconstrained at this point, the subscript operation cannot be validated.",
+            ));
+        }
+    }
 
     diagnostic
 }

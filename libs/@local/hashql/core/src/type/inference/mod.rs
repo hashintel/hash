@@ -8,10 +8,10 @@ pub use self::{
 };
 use super::{
     Type, TypeId,
-    environment::{InferenceEnvironment, instantiate::InstantiateEnvironment},
+    environment::{Environment, InferenceEnvironment, instantiate::InstantiateEnvironment},
     kind::{generic::GenericArgumentId, infer::HoleId},
 };
-use crate::collection::FastHashMap;
+use crate::{collection::FastHashMap, symbol::Ident};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum PartialStructuralEdge {
@@ -39,6 +39,109 @@ impl PartialStructuralEdge {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum Subject {
+    Variable(Variable),
+    Type(TypeId),
+}
+
+impl Subject {
+    const fn variable(self) -> Option<Variable> {
+        match self {
+            Self::Variable(variable) => Some(variable),
+            Self::Type(_) => None,
+        }
+    }
+
+    fn specialize(&mut self, env: &Environment) {
+        let Self::Type(id) = *self else { return };
+
+        let r#type = env.r#type(id);
+
+        let Some(kind) = r#type.kind.into_variable() else {
+            // There's nothing we can specialize, because it's not a variable
+            return;
+        };
+
+        *self = Self::Variable(Variable {
+            span: r#type.span,
+            kind,
+        });
+    }
+
+    pub(crate) fn r#type<'heap>(self, env: &Environment<'heap>) -> Type<'heap> {
+        match self {
+            Self::Type(id) => env.r#type(id),
+            Self::Variable(variable) => variable.into_type(env),
+        }
+    }
+}
+
+/// Represents constraints for component selection operations in type inference.
+///
+/// Selection constraints arise from field projection (`record.field`) and subscript
+/// operations (`array[index]`) where the type of the selected component must be
+/// inferred. These constraints defer the resolution of the selection operation
+/// until sufficient type information is available.
+///
+/// The constraint specifies that given a source (variable or concrete type) and
+/// a selection operation (field label or index), the result type should be
+/// unified with the specified output variable.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum SelectionConstraint<'heap> {
+    /// Field projection constraint (`source.label`).
+    ///
+    /// This constraint represents accessing a field from either an inference variable
+    /// or a concrete type. When the source is a variable, the constraint will be
+    /// resolved once the variable's type is known to have the specified field.
+    /// When the source is a concrete type, the constraint can typically be resolved
+    /// immediately if the type structure is known.
+    Projection {
+        subject: Subject,
+        field: Ident<'heap>,
+        output: Variable,
+    },
+
+    /// Subscript operation constraint (`source[index]`).
+    ///
+    /// This constraint represents indexing into either an inference variable or
+    /// a concrete type. When the source is a variable, the constraint will be
+    /// resolved once the variable's type is known to support indexing with the
+    /// given index type. When the source is a concrete type, the constraint can
+    /// typically be resolved immediately if the type structure supports indexing.
+    // see: https://linear.app/hash/issue/H-4545/hashql-implement-subscript-type-inferencechecking
+    Subscript {
+        subject: Subject,
+        index: Subject,
+        output: Variable,
+    },
+}
+
+impl<'heap> SelectionConstraint<'heap> {
+    fn subjects_mut(&mut self) -> impl Iterator<Item = &mut Subject> {
+        match self {
+            SelectionConstraint::Projection {
+                subject,
+                field: _,
+                output: _,
+            } => [Some(subject), None],
+            SelectionConstraint::Subscript {
+                subject,
+                index,
+                output: _,
+            } => [Some(subject), Some(index)],
+        }
+        .into_iter()
+        .flatten()
+    }
+
+    fn specialize(&mut self, env: &Environment<'heap>) {
+        for subject in self.subjects_mut() {
+            subject.specialize(env);
+        }
+    }
+}
+
 /// Represents a constraint between types in the type inference system.
 ///
 /// During type checking, constraints are collected to determine if types are compatible
@@ -48,7 +151,7 @@ impl PartialStructuralEdge {
 /// The subtyping relation (`<:`) indicates that the left type is a subtype of the right type,
 /// meaning the left type can be used wherever the right type is expected.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum Constraint {
+pub enum Constraint<'heap> {
     /// Constraints a variable with an upper bound (`variable <: bound`)
     UpperBound { variable: Variable, bound: TypeId },
 
@@ -66,9 +169,16 @@ pub enum Constraint {
     /// A structural edge is an edge, which explains that `source` flows into `target`, for example
     /// given: `_1 <: (name: _2)`, `_1` flows into `_2`.
     StructuralEdge { source: Variable, target: Variable },
+
+    /// Constraints for component selection operations (`subject.field` or `subject[index]`)
+    ///
+    /// Selection constraints handle field projection and subscript operations where the
+    /// result type must be inferred. These constraints are deferred until sufficient
+    /// type information is available to resolve the selection operation.
+    Selection(SelectionConstraint<'heap>),
 }
 
-impl Constraint {
+impl Constraint<'_> {
     pub(crate) fn variables(self) -> impl IntoIterator<Item = Variable> {
         let array = match self {
             Self::LowerBound { variable, bound: _ }
@@ -76,9 +186,19 @@ impl Constraint {
             | Self::Equals {
                 variable,
                 r#type: _,
-            } => [Some(variable), None],
-            Self::Ordering { lower, upper } => [Some(lower), Some(upper)],
-            Self::StructuralEdge { source, target } => [Some(source), Some(target)],
+            } => [Some(variable), None, None],
+            Self::Ordering { lower, upper } => [Some(lower), Some(upper), None],
+            Self::StructuralEdge { source, target } => [Some(source), Some(target), None],
+            Self::Selection(SelectionConstraint::Projection {
+                subject,
+                field: _,
+                output,
+            }) => [subject.variable(), Some(output), None],
+            Self::Selection(SelectionConstraint::Subscript {
+                subject,
+                index,
+                output,
+            }) => [subject.variable(), index.variable(), Some(output)],
         };
 
         array.into_iter().flatten()

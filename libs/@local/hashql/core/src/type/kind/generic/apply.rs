@@ -8,6 +8,7 @@ use crate::{
     intern::Interned,
     pretty::{ORANGE, PrettyPrint, PrettyRecursionBoundary, RED},
     span::SpanId,
+    symbol::Ident,
     r#type::{
         PartialType, Type, TypeId,
         environment::{
@@ -17,7 +18,7 @@ use crate::{
         },
         inference::{Inference, PartialStructuralEdge},
         kind::TypeKind,
-        lattice::Lattice,
+        lattice::{Lattice, Projection},
     },
 };
 
@@ -210,6 +211,14 @@ impl<'heap> Lattice<'heap> for Apply<'heap> {
         env: &mut LatticeEnvironment<'_, 'heap>,
     ) -> smallvec::SmallVec<TypeId, 4> {
         self.kind.meet_base(*other.kind, env, self.span)
+    }
+
+    fn projection(
+        self: Type<'heap, Self>,
+        field: Ident<'heap>,
+        env: &mut LatticeEnvironment<'_, 'heap>,
+    ) -> Projection {
+        env.projection(self.kind.base, field)
     }
 
     fn is_bottom(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {

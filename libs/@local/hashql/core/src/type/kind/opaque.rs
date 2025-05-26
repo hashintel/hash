@@ -6,7 +6,7 @@ use smallvec::SmallVec;
 use super::TypeKind;
 use crate::{
     pretty::{PrettyPrint, PrettyRecursionBoundary},
-    symbol::Symbol,
+    symbol::{Ident, Symbol},
     r#type::{
         PartialType, Type, TypeId,
         environment::{
@@ -15,7 +15,7 @@ use crate::{
         },
         error::opaque_type_name_mismatch,
         inference::{Inference, PartialStructuralEdge},
-        lattice::Lattice,
+        lattice::{Lattice, Projection},
     },
 };
 
@@ -180,6 +180,14 @@ impl<'heap> Lattice<'heap> for OpaqueType<'heap> {
         } else {
             SmallVec::new()
         }
+    }
+
+    fn projection(
+        self: Type<'heap, Self>,
+        field: Ident<'heap>,
+        env: &mut LatticeEnvironment<'_, 'heap>,
+    ) -> Projection {
+        env.projection(self.kind.repr, field)
     }
 
     fn is_bottom(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {

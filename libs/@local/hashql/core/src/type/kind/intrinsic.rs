@@ -6,15 +6,16 @@ use smallvec::SmallVec;
 use super::TypeKind;
 use crate::{
     pretty::{PrettyPrint, PrettyRecursionBoundary},
+    symbol::Ident,
     r#type::{
         PartialType, Type, TypeId,
         environment::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
             SimplifyEnvironment, instantiate::InstantiateEnvironment,
         },
-        error::type_mismatch,
+        error::{UnsupportedProjectionCategory, type_mismatch, unsupported_projection},
         inference::{Inference, PartialStructuralEdge},
-        lattice::Lattice,
+        lattice::{Lattice, Projection},
     },
 };
 
@@ -51,6 +52,21 @@ impl<'heap> Lattice<'heap> for ListType {
             span: self.span,
             kind: env.intern_kind(TypeKind::Intrinsic(IntrinsicType::List(Self { element }))),
         })])
+    }
+
+    fn projection(
+        self: Type<'heap, Self>,
+        field: Ident<'heap>,
+        env: &mut LatticeEnvironment<'_, 'heap>,
+    ) -> Projection {
+        env.diagnostics.push(unsupported_projection(
+            self,
+            field,
+            UnsupportedProjectionCategory::List,
+            env,
+        ));
+
+        Projection::Error
     }
 
     fn is_bottom(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
@@ -330,6 +346,21 @@ impl<'heap> Lattice<'heap> for DictType {
         }
     }
 
+    fn projection(
+        self: Type<'heap, Self>,
+        field: Ident<'heap>,
+        env: &mut LatticeEnvironment<'_, 'heap>,
+    ) -> Projection {
+        env.diagnostics.push(unsupported_projection(
+            self,
+            field,
+            UnsupportedProjectionCategory::Dict,
+            env,
+        ));
+
+        Projection::Error
+    }
+
     fn is_bottom(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
         // Never bottom, as even with a `!` key or value a dict can be empty
         false
@@ -576,6 +607,17 @@ impl<'heap> Lattice<'heap> for IntrinsicType {
             (Self::List(lhs), Self::List(rhs)) => self.with(lhs).meet(other.with(rhs), env),
             (Self::Dict(lhs), Self::Dict(rhs)) => self.with(lhs).meet(other.with(rhs), env),
             (Self::List(_), Self::Dict(_)) | (Self::Dict(_), Self::List(_)) => SmallVec::new(),
+        }
+    }
+
+    fn projection(
+        self: Type<'heap, Self>,
+        field: Ident<'heap>,
+        env: &mut LatticeEnvironment<'_, 'heap>,
+    ) -> Projection {
+        match self.kind {
+            Self::List(inner) => self.with(inner).projection(field, env),
+            Self::Dict(inner) => self.with(inner).projection(field, env),
         }
     }
 

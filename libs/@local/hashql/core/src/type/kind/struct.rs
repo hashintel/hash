@@ -9,16 +9,16 @@ use crate::{
     intern::Interned,
     math::cartesian_product,
     pretty::{PrettyPrint, PrettyRecursionBoundary},
-    symbol::Symbol,
+    symbol::{Ident, Symbol},
     r#type::{
         PartialType, Type, TypeId,
         environment::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
             SimplifyEnvironment, instantiate::InstantiateEnvironment,
         },
-        error::{missing_struct_field, struct_field_mismatch},
+        error::{missing_struct_field, struct_field_mismatch, struct_field_not_found},
         inference::{Inference, PartialStructuralEdge},
-        lattice::Lattice,
+        lattice::{Lattice, Projection},
     },
 };
 
@@ -261,6 +261,30 @@ impl<'heap> Lattice<'heap> for StructType<'heap> {
         }
 
         self.postprocess_lattice(other, env, &mut fields)
+    }
+
+    fn projection(
+        self: Type<'heap, Self>,
+        field: Ident<'heap>,
+        env: &mut LatticeEnvironment<'_, 'heap>,
+    ) -> Projection {
+        if let Some(field) = self
+            .kind
+            .fields
+            .iter()
+            .find(|struct_field| struct_field.name == field.value)
+        {
+            return Projection::Resolved(field.value);
+        }
+
+        env.diagnostics.push(struct_field_not_found(
+            self,
+            field,
+            self.kind.fields.iter().map(|field| field.name),
+            env,
+        ));
+
+        Projection::Error
     }
 
     fn is_bottom(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
@@ -542,12 +566,14 @@ mod test {
         heap::Heap,
         pretty::{PrettyOptions, PrettyPrint as _},
         span::SpanId,
+        symbol::Ident,
         r#type::{
             PartialType,
             environment::{
                 AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
                 SimplifyEnvironment, instantiate::InstantiateEnvironment,
             },
+            error::TypeCheckDiagnosticCategory,
             inference::{
                 Constraint, Inference as _, PartialStructuralEdge, Variable, VariableKind,
             },
@@ -562,7 +588,7 @@ mod test {
                 },
                 union::UnionType,
             },
-            lattice::{Lattice as _, test::assert_lattice_laws},
+            lattice::{Lattice as _, Projection, test::assert_lattice_laws},
             test::{instantiate, instantiate_infer, instantiate_param},
         },
     };
@@ -2007,6 +2033,42 @@ mod test {
         insta::assert_snapshot!(
             env.r#type(type_id)
                 .pretty_print(&env, PrettyOptions::default().without_color())
+        );
+    }
+
+    #[test]
+    fn projection() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let string = primitive!(env, PrimitiveType::String);
+
+        let value = r#struct!(env, [struct_field!(env, "foo", string)]);
+
+        let mut lattice = LatticeEnvironment::new(&env);
+        let projection = lattice.projection(value, Ident::synthetic(heap.intern_symbol("foo")));
+
+        assert_eq!(projection, Projection::Resolved(string));
+    }
+
+    #[test]
+    fn projection_unknown_field() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let string = primitive!(env, PrimitiveType::String);
+
+        let value = r#struct!(env, [struct_field!(env, "foo", string)]);
+
+        let mut lattice = LatticeEnvironment::new(&env);
+        let projection = lattice.projection(value, Ident::synthetic(heap.intern_symbol("bar")));
+        assert_eq!(projection, Projection::Error);
+
+        let diagnostics = lattice.take_diagnostics().into_vec();
+        assert_eq!(diagnostics.len(), 1);
+        assert_eq!(
+            diagnostics[0].category,
+            TypeCheckDiagnosticCategory::FieldNotFound
         );
     }
 }

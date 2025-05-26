@@ -1,13 +1,17 @@
 use core::ops::Deref;
 
 use super::{Environment, Variance};
-use crate::r#type::{
-    TypeId,
-    inference::{
-        Constraint, Inference as _, InferenceSolver, PartialStructuralEdge, Variable, VariableKind,
-        solver::Unification,
+use crate::{
+    span::SpanId,
+    symbol::Ident,
+    r#type::{
+        TypeId,
+        inference::{
+            Constraint, Inference as _, InferenceSolver, PartialStructuralEdge,
+            SelectionConstraint, Subject, Variable, VariableKind, solver::Unification,
+        },
+        recursion::RecursionBoundary,
     },
-    recursion::RecursionBoundary,
 };
 
 #[derive(Debug)]
@@ -15,7 +19,7 @@ pub struct InferenceEnvironment<'env, 'heap> {
     pub environment: &'env Environment<'heap>,
     boundary: RecursionBoundary<'heap>,
 
-    constraints: Vec<Constraint>,
+    constraints: Vec<Constraint<'heap>>,
     unification: Unification,
 
     variance: Variance,
@@ -32,7 +36,7 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
         }
     }
 
-    pub fn take_constraints(&mut self) -> Vec<Constraint> {
+    pub fn take_constraints(&mut self) -> Vec<Constraint<'heap>> {
         core::mem::take(&mut self.constraints)
     }
 
@@ -40,12 +44,13 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
         self.unification.is_unioned(lhs, rhs)
     }
 
-    pub fn add_constraint(&mut self, mut constraint: Constraint) {
+    pub fn add_constraint(&mut self, mut constraint: Constraint<'heap>) {
         for variable in constraint.variables() {
             // Ensure that each mentioned variable is registered in the unification table
             self.unification.upsert_variable(variable.kind);
         }
 
+        #[expect(clippy::match_same_arms, reason = "readability")]
         if self.variance == Variance::Invariant {
             constraint = match constraint {
                 Constraint::UpperBound { variable, bound }
@@ -70,6 +75,9 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
                     // `(name: _2) = _1` does not mean that `_2` is equal to `_1`.
                     return;
                 }
+                // Nothing happens when we have a selection constraint, as selection constraints are
+                // deferred constraints
+                Constraint::Selection(_) => constraint,
             };
         }
 
@@ -89,6 +97,28 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
         };
 
         self.constraints.push(constraint);
+    }
+
+    pub fn add_projection(
+        &mut self,
+        span: SpanId,
+        r#type: TypeId,
+        field: Ident<'heap>,
+    ) -> Variable {
+        let hole = self.counter.hole.next();
+        let variable = Variable {
+            span,
+            kind: VariableKind::Hole(hole),
+        };
+
+        let projection = SelectionConstraint::Projection {
+            subject: Subject::Type(r#type),
+            field,
+            output: variable,
+        };
+        self.constraints.push(Constraint::Selection(projection));
+
+        variable
     }
 
     pub fn collect_constraints(&mut self, subtype: TypeId, supertype: TypeId) {

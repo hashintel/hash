@@ -3,13 +3,16 @@ use core::ops::Deref;
 use smallvec::SmallVec;
 
 use super::{Diagnostics, Environment, SimplifyEnvironment};
-use crate::r#type::{
-    PartialType, Type, TypeId,
-    error::circular_type_reference,
-    inference::{Substitution, VariableKind, VariableLookup},
-    kind::{IntersectionType, TypeKind, UnionType},
-    lattice::Lattice as _,
-    recursion::{RecursionBoundary, RecursionCycle},
+use crate::{
+    symbol::Ident,
+    r#type::{
+        PartialType, Type, TypeId,
+        error::{circular_type_reference, recursive_type_projection},
+        inference::{Substitution, VariableKind, VariableLookup},
+        kind::{IntersectionType, TypeKind, UnionType},
+        lattice::{Lattice as _, Projection},
+        recursion::{RecursionBoundary, RecursionCycle},
+    },
 };
 
 #[derive(Debug)]
@@ -307,6 +310,21 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
         };
 
         self.boundary.exit(lhs, rhs);
+        result
+    }
+
+    pub fn projection(&mut self, id: TypeId, field: Ident<'heap>) -> Projection {
+        let r#type = self.environment.r#type(id);
+
+        if self.boundary.enter(r#type, r#type).is_break() {
+            self.diagnostics
+                .push(recursive_type_projection(r#type, field, self));
+            return Projection::Error;
+        }
+
+        let result = r#type.projection(field, self);
+
+        self.boundary.exit(r#type, r#type);
         result
     }
 

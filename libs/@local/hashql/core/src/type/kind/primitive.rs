@@ -5,15 +5,16 @@ use smallvec::SmallVec;
 
 use crate::{
     pretty::{BLUE, PrettyPrint, PrettyRecursionBoundary},
+    symbol::Ident,
     r#type::{
         Type, TypeId,
         environment::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
             SimplifyEnvironment, instantiate::InstantiateEnvironment,
         },
-        error::type_mismatch,
+        error::{UnsupportedProjectionCategory, type_mismatch, unsupported_projection},
         inference::{Inference, PartialStructuralEdge},
-        lattice::Lattice,
+        lattice::{Lattice, Projection},
     },
 };
 
@@ -62,6 +63,21 @@ impl<'heap> Lattice<'heap> for PrimitiveType {
 
             _ => SmallVec::from_slice(&[self.id, other.id]),
         }
+    }
+
+    fn projection(
+        self: Type<'heap, Self>,
+        field: Ident<'heap>,
+        env: &mut LatticeEnvironment<'_, 'heap>,
+    ) -> Projection {
+        env.diagnostics.push(unsupported_projection(
+            self,
+            field,
+            UnsupportedProjectionCategory::Primitive,
+            env,
+        ));
+
+        Projection::Error
     }
 
     fn is_bottom(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> bool {

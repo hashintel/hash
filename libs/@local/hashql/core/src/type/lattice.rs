@@ -1,9 +1,18 @@
-use smallvec::SmallVec;
-
 use super::{
     Type, TypeId,
     environment::{AnalysisEnvironment, LatticeEnvironment, SimplifyEnvironment},
 };
+use crate::{
+    collection::{SmallVec, TinyVec},
+    symbol::Ident,
+};
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum Projection {
+    Pending,
+    Resolved(TypeId),
+    Error,
+}
 
 /// A trait that implements properties of a mathematical lattice for types.
 ///
@@ -96,7 +105,7 @@ pub trait Lattice<'heap> {
         self: Type<'heap, Self>,
         other: Type<'heap, Self>,
         env: &mut LatticeEnvironment<'_, 'heap>,
-    ) -> SmallVec<TypeId, 4>;
+    ) -> TinyVec<TypeId>;
 
     /// Computes the meet (greatest lower bound) of two types.
     ///
@@ -144,7 +153,13 @@ pub trait Lattice<'heap> {
         self: Type<'heap, Self>,
         other: Type<'heap, Self>,
         env: &mut LatticeEnvironment<'_, 'heap>,
-    ) -> SmallVec<TypeId, 4>;
+    ) -> TinyVec<TypeId>;
+
+    fn projection(
+        self: Type<'heap, Self>,
+        field: Ident<'heap>,
+        env: &mut LatticeEnvironment<'_, 'heap>,
+    ) -> Projection;
 
     /// Determines if a type is uninhabited (has no possible values).
     ///
@@ -280,7 +295,7 @@ pub trait Lattice<'heap> {
     fn distribute_union(
         self: Type<'heap, Self>,
         env: &mut AnalysisEnvironment<'_, 'heap>,
-    ) -> SmallVec<TypeId, 16>;
+    ) -> SmallVec<TypeId>;
 
     /// Applies distribution laws to expressions containing intersection types in contravariant
     /// positions.
@@ -329,7 +344,7 @@ pub trait Lattice<'heap> {
     fn distribute_intersection(
         self: Type<'heap, Self>,
         env: &mut AnalysisEnvironment<'_, 'heap>,
-    ) -> SmallVec<TypeId, 16>;
+    ) -> SmallVec<TypeId>;
 
     /// Determines if one type is a subtype of another.
     ///

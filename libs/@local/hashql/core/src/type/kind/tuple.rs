@@ -8,15 +8,16 @@ use crate::{
     intern::Interned,
     math::cartesian_product,
     pretty::{PrettyPrint, PrettyRecursionBoundary},
+    symbol::Ident,
     r#type::{
         PartialType, Type, TypeId,
         environment::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
             SimplifyEnvironment, instantiate::InstantiateEnvironment,
         },
-        error::tuple_length_mismatch,
+        error::{invalid_tuple_index, tuple_index_out_of_bounds, tuple_length_mismatch},
         inference::{Inference, PartialStructuralEdge},
-        lattice::Lattice,
+        lattice::{Lattice, Projection},
     },
 };
 
@@ -110,6 +111,32 @@ impl<'heap> Lattice<'heap> for TupleType<'heap> {
         }
 
         self.postprocess_lattice(env, &fields)
+    }
+
+    fn projection(
+        self: Type<'heap, Self>,
+        field: Ident<'heap>,
+        env: &mut LatticeEnvironment<'_, 'heap>,
+    ) -> Projection {
+        // tuples can only be indexed by numbers, therefore check if the symbols is just made of
+        // numbers
+        let Ok(index) = field.value.as_str().parse::<usize>() else {
+            env.diagnostics.push(invalid_tuple_index(self, field, env));
+            return Projection::Error;
+        };
+
+        if index >= self.kind.fields.len() {
+            env.diagnostics.push(tuple_index_out_of_bounds(
+                self,
+                field,
+                self.kind.fields.len(),
+                env,
+            ));
+
+            return Projection::Error;
+        }
+
+        Projection::Resolved(self.kind.fields[index])
     }
 
     fn is_bottom(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
@@ -358,12 +385,14 @@ mod test {
         heap::Heap,
         pretty::PrettyPrint as _,
         span::SpanId,
+        symbol::Ident,
         r#type::{
             PartialType,
             environment::{
                 AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
                 SimplifyEnvironment, instantiate::InstantiateEnvironment,
             },
+            error::TypeCheckDiagnosticCategory,
             inference::{
                 Constraint, Inference as _, PartialStructuralEdge, Variable, VariableKind,
             },
@@ -376,7 +405,7 @@ mod test {
                 test::{assert_equiv, generic, intersection, primitive, tuple, union},
                 union::UnionType,
             },
-            lattice::{Lattice as _, test::assert_lattice_laws},
+            lattice::{Lattice as _, Projection, test::assert_lattice_laws},
             test::{instantiate, instantiate_infer, instantiate_param},
         },
     };
@@ -1545,5 +1574,62 @@ mod test {
 
         assert_eq!(param.argument, generic.arguments[0].id);
         assert_ne!(param.argument, argument);
+    }
+
+    #[test]
+    fn projection() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let string = primitive!(env, PrimitiveType::String);
+
+        let value = tuple!(env, [string]);
+
+        let mut lattice = LatticeEnvironment::new(&env);
+        let projection = lattice.projection(value, Ident::synthetic(heap.intern_symbol("0")));
+
+        assert_eq!(projection, Projection::Resolved(string));
+    }
+
+    #[test]
+    fn projection_out_of_bounds() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let string = primitive!(env, PrimitiveType::String);
+
+        let value = tuple!(env, [string]);
+
+        let mut lattice = LatticeEnvironment::new(&env);
+        let projection = lattice.projection(value, Ident::synthetic(heap.intern_symbol("1")));
+        assert_eq!(projection, Projection::Error);
+
+        let diagnostics = lattice.take_diagnostics().into_vec();
+        assert_eq!(diagnostics.len(), 1);
+        assert_eq!(
+            diagnostics[0].category,
+            TypeCheckDiagnosticCategory::TupleIndexOutOfBounds
+        );
+    }
+
+    #[test]
+    fn projection_not_a_number() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let string = primitive!(env, PrimitiveType::String);
+
+        let value = tuple!(env, [string]);
+
+        let mut lattice = LatticeEnvironment::new(&env);
+        let projection = lattice.projection(value, Ident::synthetic(heap.intern_symbol("a")));
+        assert_eq!(projection, Projection::Error);
+
+        let diagnostics = lattice.take_diagnostics().into_vec();
+        assert_eq!(diagnostics.len(), 1);
+        assert_eq!(
+            diagnostics[0].category,
+            TypeCheckDiagnosticCategory::InvalidTupleIndex
+        );
     }
 }

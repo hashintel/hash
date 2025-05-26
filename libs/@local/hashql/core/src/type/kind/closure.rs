@@ -7,15 +7,19 @@ use super::{TypeKind, generic::GenericArguments};
 use crate::{
     intern::Interned,
     pretty::{PrettyPrint, PrettyRecursionBoundary},
+    symbol::Ident,
     r#type::{
         PartialType, Type, TypeId,
         environment::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
             SimplifyEnvironment, instantiate::InstantiateEnvironment,
         },
-        error::function_parameter_count_mismatch,
+        error::{
+            UnsupportedProjectionCategory, function_parameter_count_mismatch,
+            unsupported_projection,
+        },
         inference::{Inference, PartialStructuralEdge},
-        lattice::Lattice,
+        lattice::{Lattice, Projection},
     },
 };
 
@@ -97,6 +101,21 @@ impl<'heap> Lattice<'heap> for ClosureType<'heap> {
         let returns = env.meet(self.kind.returns, other.kind.returns);
 
         self.postprocess_lattice(env, &params, returns)
+    }
+
+    fn projection(
+        self: Type<'heap, Self>,
+        field: Ident<'heap>,
+        env: &mut LatticeEnvironment<'_, 'heap>,
+    ) -> Projection {
+        env.diagnostics.push(unsupported_projection(
+            self,
+            field,
+            UnsupportedProjectionCategory::Closure,
+            env,
+        ));
+
+        Projection::Error
     }
 
     fn is_bottom(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
