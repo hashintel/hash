@@ -35,8 +35,8 @@ use super::{
         SimplifyEnvironment, instantiate::InstantiateEnvironment,
     },
     error::{
-        UnsupportedProjectionCategory, no_type_inference, type_mismatch, type_parameter_not_found,
-        unsupported_projection,
+        UnsupportedProjectionCategory, UnsupportedSubscriptCategory, no_type_inference,
+        type_mismatch, type_parameter_not_found, unsupported_projection, unsupported_subscript,
     },
     inference::{Constraint, Inference, PartialStructuralEdge, Variable, VariableKind},
     lattice::{Lattice, Projection, Subscript},
@@ -872,10 +872,24 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 unreachable!("should've been resolved prior to this")
             }
             Self::Never => {
-                todo!("https://linear.app/hash/issue/H-4643/implement-and-issue-diagnostics-for-unsupported-subscript")
+                env.diagnostics.push(unsupported_subscript(
+                    self,
+                    index,
+                    UnsupportedSubscriptCategory::Never,
+                    env,
+                ));
+
+                Subscript::Error
             }
             Self::Unknown => {
-                todo!("https://linear.app/hash/issue/H-4643/implement-and-issue-diagnostics-for-unsupported-subscript")
+                env.diagnostics.push(unsupported_subscript(
+                    self,
+                    index,
+                    UnsupportedSubscriptCategory::Unknown,
+                    env,
+                ));
+
+                Subscript::Error
             }
         }
     }

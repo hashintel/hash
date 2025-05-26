@@ -133,6 +133,11 @@ const UNSUPPORTED_PROJECTION: TerminalDiagnosticCategory = TerminalDiagnosticCat
     name: "Projection not supported on this type",
 };
 
+const UNSUPPORTED_SUBSCRIPT: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "unsupported-subscript",
+    name: "Subscript not supported on this type",
+};
+
 const RECURSIVE_TYPE_PROJECTION: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "recursive-type-projection",
     name: "Cannot project field on recursive type",
@@ -176,6 +181,7 @@ pub enum TypeCheckDiagnosticCategory {
     InvalidTupleIndex,
     TupleIndexOutOfBounds,
     UnsupportedProjection,
+    UnsupportedSubscript,
     RecursiveTypeProjection,
     UnresolvedSelectionConstraint,
     ListIndexTypeMismatch,
@@ -214,6 +220,7 @@ impl DiagnosticCategory for TypeCheckDiagnosticCategory {
             Self::InvalidTupleIndex => Some(&INVALID_TUPLE_INDEX),
             Self::TupleIndexOutOfBounds => Some(&TUPLE_INDEX_OUT_OF_BOUNDS),
             Self::UnsupportedProjection => Some(&UNSUPPORTED_PROJECTION),
+            Self::UnsupportedSubscript => Some(&UNSUPPORTED_SUBSCRIPT),
             Self::RecursiveTypeProjection => Some(&RECURSIVE_TYPE_PROJECTION),
             Self::UnresolvedSelectionConstraint => Some(&UNRESOLVED_SELECTION_CONSTRAINT),
             Self::ListIndexTypeMismatch => Some(&LIST_INDEX_TYPE_MISMATCH),
@@ -1588,6 +1595,135 @@ where
     diagnostic.add_note(Note::new(format!(
         "Field access with the dot operator (`.`) is reserved for structured data types that have \
          named components. {} are accessed through different mechanisms - use the appropriate \
+         access method for the data type you're working with.",
+        category.plural_capitalized()
+    )));
+
+    diagnostic
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub(crate) enum UnsupportedSubscriptCategory {
+    Closure,
+    Struct,
+    Tuple,
+    Primitive,
+    Never,
+    Unknown,
+}
+
+impl UnsupportedSubscriptCategory {
+    const fn plural_capitalized(self) -> &'static str {
+        match self {
+            Self::Closure => "Closures",
+            Self::Struct => "Structs",
+            Self::Tuple => "Tuples",
+            Self::Primitive => "Primitive types",
+            Self::Never => "Never",
+            Self::Unknown => "Unknown",
+        }
+    }
+}
+
+pub(crate) fn unsupported_subscript<'heap, K>(
+    r#type: Type<'heap, K>,
+    index: TypeId,
+    category: UnsupportedSubscriptCategory,
+    env: &Environment<'heap>,
+) -> TypeCheckDiagnostic
+where
+    K: PrettyPrint<'heap>,
+{
+    let index = env.r#type(index);
+
+    let mut diagnostic = Diagnostic::new(
+        TypeCheckDiagnosticCategory::UnsupportedSubscript,
+        Severity::Error,
+    );
+
+    diagnostic.labels.push(
+        Label::new(index.span, "Cannot use this as an index")
+            .with_order(0)
+            .with_color(Color::Ansi(AnsiColor::Red)),
+    );
+
+    diagnostic.labels.push(
+        Label::new(r#type.span, "... to subscript this type")
+            .with_order(-1)
+            .with_color(Color::Ansi(AnsiColor::Blue)),
+    );
+
+    let mut help_message = format!(
+        "Cannot subscript type '{}' with index '{}'.\n\n",
+        r#type.pretty_print(env, PrettyOptions::default()),
+        index.pretty_print(env, PrettyOptions::default())
+    );
+
+    match category {
+        UnsupportedSubscriptCategory::Closure => {
+            write!(
+                help_message,
+                "Closures are functions that capture their environment and are meant to be \
+                 called, not indexed. To use this closure, call it with arguments like \
+                 `closure(arg1, arg2)` instead of trying to access elements with square brackets."
+            )
+            .expect("infallible");
+        }
+        UnsupportedSubscriptCategory::Primitive => {
+            write!(
+                help_message,
+                "Primitive types (numbers, strings, booleans, null) are atomic values without \
+                 indexable structure. They don't support subscript operations. Use the value \
+                 directly instead of trying to access internal elements."
+            )
+            .expect("infallible");
+        }
+        UnsupportedSubscriptCategory::Never => {
+            write!(
+                help_message,
+                "The 'never' type represents values that cannot exist - typically indicating \
+                 unreachable code paths or overly restrictive type constraints. Since no actual \
+                 value of this type can ever be created, subscript access is impossible. Review \
+                 your type constraints, union intersections, or conditional logic to ensure this \
+                 code path is reachable."
+            )
+            .expect("infallible");
+        }
+        UnsupportedSubscriptCategory::Struct => {
+            write!(
+                help_message,
+                "Structs are accessed by their named fields, not by numeric indices. Use dot \
+                 notation to access struct fields: `struct.fieldName` instead of square bracket \
+                 notation. Square bracket notation is not supported for struct access."
+            )
+            .expect("infallible");
+        }
+        UnsupportedSubscriptCategory::Tuple => {
+            write!(
+                help_message,
+                "Tuples should be accessed by their positional fields using dot notation with \
+                 numeric indices: `tuple.0` for the first element, `tuple.1` for the second, etc. \
+                 Square bracket notation is not supported for tuple access."
+            )
+            .expect("infallible");
+        }
+        UnsupportedSubscriptCategory::Unknown => {
+            write!(
+                help_message,
+                "The 'unknown' type represents values whose structure hasn't been determined yet. \
+                 Before using subscript operations, narrow the type using type guards (`typeof`, \
+                 `instanceof`), pattern matching, explicit type assertions, or provide more \
+                 specific type annotations in your function signatures or variable declarations."
+            )
+            .expect("infallible");
+        }
+    }
+
+    diagnostic.add_help(Help::new(help_message));
+
+    diagnostic.add_note(Note::new(format!(
+        "Subscript operations with square brackets (`[]`) are reserved for indexable data types \
+         like lists and dictionaries. {} do not support indexing operations - use the appropriate \
          access method for the data type you're working with.",
         category.plural_capitalized()
     )));

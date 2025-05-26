@@ -16,7 +16,10 @@ use crate::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
             SimplifyEnvironment, instantiate::InstantiateEnvironment,
         },
-        error::{missing_struct_field, struct_field_mismatch, struct_field_not_found},
+        error::{
+            UnsupportedSubscriptCategory, missing_struct_field, struct_field_mismatch,
+            struct_field_not_found, unsupported_subscript,
+        },
         inference::{Inference, PartialStructuralEdge},
         lattice::{Lattice, Projection, Subscript},
     },
@@ -289,11 +292,18 @@ impl<'heap> Lattice<'heap> for StructType<'heap> {
 
     fn subscript(
         self: Type<'heap, Self>,
-        _: TypeId,
-        _: &mut LatticeEnvironment<'_, 'heap>,
+        index: TypeId,
+        env: &mut LatticeEnvironment<'_, 'heap>,
         _: &mut InferenceEnvironment<'_, 'heap>,
     ) -> Subscript {
-        todo!("https://linear.app/hash/issue/H-4643/implement-and-issue-diagnostics-for-unsupported-subscript")
+        env.diagnostics.push(unsupported_subscript(
+            self,
+            index,
+            UnsupportedSubscriptCategory::Struct,
+            env,
+        ));
+
+        Subscript::Error
     }
 
     fn is_bottom(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
@@ -597,7 +607,7 @@ mod test {
                 },
                 union::UnionType,
             },
-            lattice::{Lattice as _, Projection, test::assert_lattice_laws},
+            lattice::{Lattice as _, Projection, Subscript, test::assert_lattice_laws},
             test::{instantiate, instantiate_infer, instantiate_param},
         },
     };
@@ -2078,6 +2088,36 @@ mod test {
         assert_eq!(
             diagnostics[0].category,
             TypeCheckDiagnosticCategory::FieldNotFound
+        );
+    }
+
+    #[test]
+    fn subscript() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let mut lattice = LatticeEnvironment::new(&env);
+        let mut inference = InferenceEnvironment::new(&env);
+
+        let result = lattice.subscript(
+            r#struct!(
+                env,
+                [struct_field!(
+                    env,
+                    "foo",
+                    primitive!(env, PrimitiveType::String)
+                )]
+            ),
+            primitive!(env, PrimitiveType::String),
+            &mut inference,
+        );
+        assert_eq!(result, Subscript::Error);
+
+        let diagnostics = lattice.take_diagnostics().into_vec();
+        assert_eq!(diagnostics.len(), 1);
+        assert_eq!(
+            diagnostics[0].category,
+            TypeCheckDiagnosticCategory::UnsupportedSubscript
         );
     }
 }
