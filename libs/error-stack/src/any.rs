@@ -98,8 +98,9 @@ impl AnyReport {
 impl AnyReport {
     /// Adds additional information to the [`Frame`] stack.
     ///
-    /// This behaves like [`attach_printable()`] but will not be shown when printing the [`Report`].
-    /// To benefit from seeing attachments in normal error outputs, use [`attach_printable()`]
+    /// This behaves like [`attach_printable()`] but will not be shown when printing the
+    /// [`AnyReport`]. To benefit from seeing attachments in normal error outputs, use
+    /// [`attach_printable()`]
     ///
     /// **Note:** [`attach_printable()`] will be deprecated when specialization is stabilized and
     /// it becomes possible to merge these two methods.
@@ -118,7 +119,7 @@ impl AnyReport {
     /// Adds additional (printable) information to the [`Frame`] stack.
     ///
     /// This behaves like [`attach()`] but the display implementation will be called when
-    /// printing the [`Report`].
+    /// printing the [`AnyReport`].
     ///
     /// **Note:** This will be deprecated in favor of [`attach()`] when specialization is
     /// stabilized it becomes possible to merge these two methods.
@@ -142,8 +143,14 @@ impl AnyReport {
     ///     }
     /// }
     ///
-    /// let error = fs::read_to_string("config.txt")
+    /// fn read_file() -> Result<String, AnyReport> {
+    ///     Ok(fs::read_to_string("config.txt")?)
+    /// }
+    ///
+    /// let report = read_file()
+    ///     .unwrap_err()
     ///     .attach(Suggestion("better use a file which exists next time!"));
+    ///
     /// # #[cfg_attr(not(nightly), allow(unused_variables))]
     /// let report = error.unwrap_err();
     /// # #[cfg(nightly)]
@@ -161,7 +168,7 @@ impl AnyReport {
     }
 
     /// Add a new [`Context`] object to the top of the [`Frame`] stack, changing the type of the
-    /// `Report`.
+    /// `AnyReport` to a specific `Report`.
     ///
     /// Please see the [`Context`] documentation for more information.
     #[track_caller]
