@@ -18,9 +18,7 @@ use hash_graph_api::{
     rpc::Dependencies,
 };
 use hash_graph_authorization::{
-    AuthorizationApi as _, AuthorizationApiPool,
-    backend::{SpiceDbOpenApi, ZanzibarBackend as _},
-    policies::store::{PolicyStore as _, PrincipalStore},
+    AuthorizationApiPool, backend::SpiceDbOpenApi, policies::store::PrincipalStore,
     zanzibar::ZanzibarClient,
 };
 use hash_graph_postgres_store::store::{
@@ -263,20 +261,13 @@ pub async fn server(args: ServerArgs) -> Result<(), Report<GraphError>> {
         report
     })?;
 
-    let mut spicedb_client = SpiceDbOpenApi::new(
-        format!("{}:{}", args.spicedb_host, args.spicedb_http_port),
-        args.spicedb_grpc_preshared_key.as_deref(),
-    )
-    .change_context(GraphError)?;
-    spicedb_client
-        .import_schema(include_str!(
-            "../../../../libs/@local/graph/authorization/schemas/v1__initial_schema.zed"
-        ))
-        .await
-        .change_context(GraphError)?;
-
-    let mut zanzibar_client = ZanzibarClient::new(spicedb_client);
-    zanzibar_client.seed().await.change_context(GraphError)?;
+    let zanzibar_client = ZanzibarClient::new(
+        SpiceDbOpenApi::new(
+            format!("{}:{}", args.spicedb_host, args.spicedb_http_port),
+            args.spicedb_grpc_preshared_key.as_deref(),
+        )
+        .change_context(GraphError)?,
+    );
 
     let temporal_client_fn = |host: Option<String>, port: u16| async move {
         if let Some(host) = host {
@@ -292,27 +283,22 @@ pub async fn server(args: ServerArgs) -> Result<(), Report<GraphError>> {
         }
     };
 
-    pool.acquire(
-        zanzibar_client
-            .acquire()
-            .await
-            .change_context(GraphError)
-            .map_err(|report| {
-                tracing::error!(error = ?report, "Failed to acquire authorization client");
-                report
-            })?,
-        None,
-    )
-    .await
-    .change_context(GraphError)
-    .attach_printable("Connection to database failed")?
-    .seed_system_policies()
-    .await
-    .change_context(GraphError)
-    .map_err(|report| {
-        tracing::error!(error = ?report, "Failed to seed system policies");
-        report
-    })?;
+    // Just test the connection; we don't need to use the store
+    _ = pool
+        .acquire(
+            zanzibar_client
+                .acquire()
+                .await
+                .change_context(GraphError)
+                .map_err(|report| {
+                    tracing::error!(error = ?report, "Failed to acquire authorization client");
+                    report
+                })?,
+            None,
+        )
+        .await
+        .change_context(GraphError)
+        .attach_printable("Connection to database failed")?;
 
     let pool = if args.offline {
         FetchingPool::new_offline(pool)
