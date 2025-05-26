@@ -686,8 +686,8 @@ impl<'heap> Lattice<'heap> for IntrinsicType {
         infer: &mut InferenceEnvironment<'_, 'heap>,
     ) -> Subscript {
         match self.kind {
-            IntrinsicType::List(list_type) => self.with(list_type).subscript(index, env, infer),
-            IntrinsicType::Dict(dict_type) => self.with(dict_type).subscript(index, env, infer),
+            Self::List(list_type) => self.with(list_type).subscript(index, env, infer),
+            Self::Dict(dict_type) => self.with(dict_type).subscript(index, env, infer),
         }
     }
 
