@@ -7,7 +7,7 @@ use crate::{
     symbol::Ident,
     r#type::{
         PartialType, Type, TypeId,
-        error::{circular_type_reference, recursive_type_projection},
+        error::{circular_type_reference, recursive_type_projection, recursive_type_subscript},
         inference::{Substitution, VariableKind, VariableLookup},
         kind::{IntersectionType, TypeKind, UnionType},
         lattice::{Lattice as _, Projection, Subscript},
@@ -337,7 +337,10 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
         let r#type = self.environment.r#type(id);
 
         if self.boundary.enter(r#type, r#type).is_break() {
-            todo!("https://linear.app/hash/issue/H-4646/implement-and-issue-diagnostics-for-subscript-on-recursive-types");
+            self.diagnostics
+                .push(recursive_type_subscript(r#type, index, self));
+
+            return Subscript::Error;
         }
 
         let result = r#type.subscript(index, self, infer);

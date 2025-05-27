@@ -143,6 +143,11 @@ const RECURSIVE_TYPE_PROJECTION: TerminalDiagnosticCategory = TerminalDiagnostic
     name: "Cannot project field on recursive type",
 };
 
+const RECURSIVE_TYPE_SUBSCRIPT: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "recursive-type-subscript",
+    name: "Cannot subscript recursive type",
+};
+
 const UNRESOLVED_SELECTION_CONSTRAINT: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "unresolved-selection-constraint",
     name: "Unresolved selection constraint",
@@ -183,6 +188,7 @@ pub enum TypeCheckDiagnosticCategory {
     UnsupportedProjection,
     UnsupportedSubscript,
     RecursiveTypeProjection,
+    RecursiveTypeSubscript,
     UnresolvedSelectionConstraint,
     ListIndexTypeMismatch,
     DictKeyTypeMismatch,
@@ -222,6 +228,7 @@ impl DiagnosticCategory for TypeCheckDiagnosticCategory {
             Self::UnsupportedProjection => Some(&UNSUPPORTED_PROJECTION),
             Self::UnsupportedSubscript => Some(&UNSUPPORTED_SUBSCRIPT),
             Self::RecursiveTypeProjection => Some(&RECURSIVE_TYPE_PROJECTION),
+            Self::RecursiveTypeSubscript => Some(&RECURSIVE_TYPE_SUBSCRIPT),
             Self::UnresolvedSelectionConstraint => Some(&UNRESOLVED_SELECTION_CONSTRAINT),
             Self::ListIndexTypeMismatch => Some(&LIST_INDEX_TYPE_MISMATCH),
             Self::DictKeyTypeMismatch => Some(&DICT_KEY_TYPE_MISMATCH),
@@ -1772,6 +1779,54 @@ where
         "Recursive type definitions create mathematical impossibilities for field access. It is \
          logically impossible to resolve field projection on types that expand infinitely - no \
          computational system can handle infinite expansions.",
+    ));
+
+    diagnostic
+}
+
+pub(crate) fn recursive_type_subscript<'heap, K>(
+    r#type: Type<'heap, K>,
+    index: TypeId,
+    env: &Environment<'heap>,
+) -> TypeCheckDiagnostic
+where
+    K: PrettyPrint<'heap>,
+{
+    let index = env.r#type(index);
+
+    let mut diagnostic = Diagnostic::new(
+        TypeCheckDiagnosticCategory::RecursiveTypeSubscript,
+        Severity::Error,
+    );
+
+    diagnostic.labels.push(
+        Label::new(index.span, "Cannot use this index")
+            .with_order(0)
+            .with_color(Color::Ansi(AnsiColor::Red)),
+    );
+
+    diagnostic.labels.push(
+        Label::new(r#type.span, "... to subscript this recursive type")
+            .with_order(-1)
+            .with_color(Color::Ansi(AnsiColor::Blue)),
+    );
+
+    let help_message = format!(
+        "Subscript operation is impossible on recursive type '{}' because it would require \
+         infinite type expansion.\n\nDirectly recursive types like `A = A & T` where `T` has \
+         indexable structure create definitions that reference themselves without a container. \
+         Attempting to subscript such a type would mean expanding A -> (A & T) -> ((A & T) & T) \
+         -> ... infinitely, which cannot be resolved.\n\nThis is mathematically impossible - \
+         there is no logical way to perform subscript operations on types that expand infinitely.",
+        r#type.pretty_print(env, PrettyOptions::default())
+    );
+
+    diagnostic.add_help(Help::new(help_message));
+
+    diagnostic.add_note(Note::new(
+        "Recursive type definitions create mathematical impossibilities for subscript access. It \
+         is logically impossible to resolve subscript operations on types that expand infinitely \
+         - no computational system can handle infinite expansions.",
     ));
 
     diagnostic

@@ -1768,7 +1768,6 @@ fn late_subscript() {
 }
 
 #[test]
-#[ignore = "https://linear.app/hash/issue/H-4646/implement-and-issue-diagnostics-for-subscript-on-recursive-types"]
 fn recursive_subscript() {
     // given:
     // T = T
@@ -1805,7 +1804,7 @@ fn recursive_subscript() {
     // ... and the circular type it's referencing
     assert_eq!(
         diagnostics[1].category,
-        TypeCheckDiagnosticCategory::RecursiveTypeProjection
+        TypeCheckDiagnosticCategory::RecursiveTypeSubscript
     );
 }
 
