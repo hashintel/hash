@@ -15,33 +15,33 @@ use super::{
 };
 use crate::{collection::FastHashMap, intern::Provisioned, span::SpanId, symbol::Symbol};
 
-pub trait BuildType {
-    fn build(self, parent: Provisioned<TypeId>) -> TypeId;
+pub trait IntoType {
+    fn into_type(self, id: Provisioned<TypeId>) -> TypeId;
 }
 
-impl<F> BuildType for F
+impl<F> IntoType for F
 where
     F: FnOnce(Provisioned<TypeId>) -> TypeId,
 {
-    fn build(self, parent: Provisioned<TypeId>) -> TypeId {
-        self(parent)
+    fn into_type(self, id: Provisioned<TypeId>) -> TypeId {
+        self(id)
     }
 }
 
-impl BuildType for TypeId {
-    fn build(self, _: Provisioned<TypeId>) -> TypeId {
+impl IntoType for TypeId {
+    fn into_type(self, _: Provisioned<TypeId>) -> TypeId {
         self
     }
 }
 
-pub trait BuildIterator {
+pub trait IntoTypeIterator {
     type Item;
     type IntoIter: IntoIterator<Item = Self::Item>;
 
-    fn build(self, parent: Provisioned<TypeId>) -> Self::IntoIter;
+    fn into_type_iter(self, parent: Provisioned<TypeId>) -> Self::IntoIter;
 }
 
-impl<F, I> BuildIterator for F
+impl<F, I> IntoTypeIterator for F
 where
     F: FnOnce(Provisioned<TypeId>) -> I,
     I: IntoIterator,
@@ -49,37 +49,37 @@ where
     type IntoIter = I;
     type Item = I::Item;
 
-    fn build(self, parent: Provisioned<TypeId>) -> Self::IntoIter {
-        self(parent)
+    fn into_type_iter(self, id: Provisioned<TypeId>) -> Self::IntoIter {
+        self(id)
     }
 }
 
-impl<T, const N: usize> BuildIterator for [T; N] {
+impl<T, const N: usize> IntoTypeIterator for [T; N] {
     type IntoIter = array::IntoIter<T, N>;
     type Item = T;
 
-    fn build(self, _: Provisioned<TypeId>) -> Self::IntoIter {
+    fn into_type_iter(self, _: Provisioned<TypeId>) -> Self::IntoIter {
         self.into_iter()
     }
 }
 
-impl<T> BuildIterator for Vec<T> {
+impl<T> IntoTypeIterator for Vec<T> {
     type IntoIter = vec::IntoIter<T>;
     type Item = T;
 
-    fn build(self, _: Provisioned<TypeId>) -> Self::IntoIter {
+    fn into_type_iter(self, _: Provisioned<TypeId>) -> Self::IntoIter {
         self.into_iter()
     }
 }
 
-impl<'slice, T> BuildIterator for &'slice [T]
+impl<'slice, T> IntoTypeIterator for &'slice [T]
 where
     T: Clone,
 {
     type IntoIter = iter::Cloned<slice::Iter<'slice, T>>;
     type Item = T;
 
-    fn build(self, _: Provisioned<TypeId>) -> Self::IntoIter {
+    fn into_type_iter(self, _: Provisioned<TypeId>) -> Self::IntoIter {
         self.iter().cloned()
     }
 }
@@ -114,11 +114,11 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     }
 
     #[must_use]
-    pub fn opaque(&self, name: &str, repr: impl BuildType) -> TypeId {
+    pub fn opaque(&self, name: &str, repr: impl IntoType) -> TypeId {
         self.partial(|id| {
             TypeKind::Opaque(OpaqueType {
                 name: self.env.heap.intern_symbol(name),
-                repr: repr.build(id),
+                repr: repr.into_type(id),
             })
         })
     }
@@ -149,32 +149,32 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     }
 
     #[must_use]
-    pub fn list(&self, element: impl BuildType) -> TypeId {
+    pub fn list(&self, element: impl IntoType) -> TypeId {
         self.partial(|id| {
             TypeKind::Intrinsic(IntrinsicType::List(ListType {
-                element: element.build(id),
+                element: element.into_type(id),
             }))
         })
     }
 
     #[must_use]
-    pub fn dict(&self, key: impl BuildType, value: impl BuildType) -> TypeId {
+    pub fn dict(&self, key: impl IntoType, value: impl IntoType) -> TypeId {
         self.partial(|id| {
             TypeKind::Intrinsic(IntrinsicType::Dict(DictType {
-                key: key.build(id),
-                value: value.build(id),
+                key: key.into_type(id),
+                value: value.into_type(id),
             }))
         })
     }
 
     #[must_use]
-    pub fn r#struct<N>(&self, fields: impl BuildIterator<Item = (N, TypeId)>) -> TypeId
+    pub fn r#struct<N>(&self, fields: impl IntoTypeIterator<Item = (N, TypeId)>) -> TypeId
     where
         N: AsRef<str>,
     {
         self.partial(|id| {
             let mut fields: Vec<_> = fields
-                .build(id)
+                .into_type_iter(id)
                 .into_iter()
                 .map(|(name, value)| StructField {
                     name: self.env.heap.intern_symbol(name.as_ref()),
@@ -192,9 +192,9 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     }
 
     #[must_use]
-    pub fn tuple(&self, fields: impl BuildIterator<Item = TypeId>) -> TypeId {
+    pub fn tuple(&self, fields: impl IntoTypeIterator<Item = TypeId>) -> TypeId {
         self.partial(|id| {
-            let fields: Vec<_> = fields.build(id).into_iter().collect();
+            let fields: Vec<_> = fields.into_type_iter(id).into_iter().collect();
 
             TypeKind::Tuple(TupleType {
                 fields: self.env.intern_type_ids(&fields),
@@ -203,9 +203,9 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     }
 
     #[must_use]
-    pub fn union(&self, variants: impl BuildIterator<Item = TypeId>) -> TypeId {
+    pub fn union(&self, variants: impl IntoTypeIterator<Item = TypeId>) -> TypeId {
         self.partial(|id| {
-            let variants: Vec<_> = variants.build(id).into_iter().collect();
+            let variants: Vec<_> = variants.into_type_iter(id).into_iter().collect();
 
             TypeKind::Union(UnionType {
                 variants: self.env.intern_type_ids(&variants),
@@ -214,9 +214,9 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     }
 
     #[must_use]
-    pub fn intersection(&self, variants: impl BuildIterator<Item = TypeId>) -> TypeId {
+    pub fn intersection(&self, variants: impl IntoTypeIterator<Item = TypeId>) -> TypeId {
         self.partial(|id| {
-            let variants: Vec<_> = variants.build(id).into_iter().collect();
+            let variants: Vec<_> = variants.into_type_iter(id).into_iter().collect();
 
             TypeKind::Intersection(IntersectionType {
                 variants: self.env.intern_type_ids(&variants),
@@ -227,12 +227,12 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     #[must_use]
     pub fn closure(
         &self,
-        params: impl BuildIterator<Item = TypeId>,
-        returns: impl BuildType,
+        params: impl IntoTypeIterator<Item = TypeId>,
+        returns: impl IntoType,
     ) -> TypeId {
         self.partial(|id| {
-            let params: Vec<_> = params.build(id).into_iter().collect();
-            let returns = returns.build(id);
+            let params: Vec<_> = params.into_type_iter(id).into_iter().collect();
+            let returns = returns.into_type(id);
 
             TypeKind::Closure(ClosureType {
                 params: self.env.intern_type_ids(&params),
@@ -244,17 +244,17 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     #[must_use]
     pub fn apply(
         &self,
-        subscriptions: impl BuildIterator<Item = (GenericArgumentId, TypeId)>,
-        base: impl BuildType,
+        subscriptions: impl IntoTypeIterator<Item = (GenericArgumentId, TypeId)>,
+        base: impl IntoType,
     ) -> TypeId {
         self.partial(|id| {
             let mut substitutions: Vec<_> = subscriptions
-                .build(id)
+                .into_type_iter(id)
                 .into_iter()
                 .map(|(argument, value)| GenericSubstitution { argument, value })
                 .collect();
 
-            let base = base.build(id);
+            let base = base.into_type(id);
 
             TypeKind::Apply(Apply {
                 substitutions: self.env.intern_generic_substitutions(&mut substitutions),
@@ -266,12 +266,12 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     #[must_use]
     pub fn generic(
         &self,
-        arguments: impl BuildIterator<Item = (GenericArgumentId, Option<TypeId>)>,
-        base: impl BuildType,
+        arguments: impl IntoTypeIterator<Item = (GenericArgumentId, Option<TypeId>)>,
+        base: impl IntoType,
     ) -> TypeId {
         self.partial(|id| {
             let mut arguments: Vec<_> = arguments
-                .build(id)
+                .into_type_iter(id)
                 .into_iter()
                 .map(|(id, constraint)| GenericArgument {
                     name: self.arguments[&id],
@@ -280,35 +280,13 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
                 })
                 .collect();
 
-            let base = base.build(id);
+            let base = base.into_type(id);
 
             TypeKind::Generic(Generic {
                 arguments: self.env.intern_generic_arguments(&mut arguments),
                 base,
             })
         })
-    }
-
-    #[must_use]
-    pub fn argument(&mut self, name: impl AsRef<str>) -> GenericArgumentId {
-        let name = self.env.heap.intern_symbol(name.as_ref());
-        let id = self.env.counter.generic_argument.next();
-
-        self.arguments.insert(id, name);
-
-        id
-    }
-
-    #[must_use]
-    pub fn arg_ref(&self, id: GenericArgumentId) -> GenericArgumentReference<'heap> {
-        let name = self.arguments[&id];
-
-        GenericArgumentReference { id, name }
-    }
-
-    #[must_use]
-    pub fn hole(&self) -> HoleId {
-        self.env.counter.hole.next()
     }
 
     #[must_use]
@@ -329,5 +307,27 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     #[must_use]
     pub fn unknown(&self) -> TypeId {
         self.partial(|_| TypeKind::Unknown)
+    }
+
+    #[must_use]
+    pub fn fresh_argument(&mut self, name: impl AsRef<str>) -> GenericArgumentId {
+        let name = self.env.heap.intern_symbol(name.as_ref());
+        let id = self.env.counter.generic_argument.next();
+
+        self.arguments.insert(id, name);
+
+        id
+    }
+
+    #[must_use]
+    pub fn hydrate_argument(&self, id: GenericArgumentId) -> GenericArgumentReference<'heap> {
+        let name = self.arguments[&id];
+
+        GenericArgumentReference { id, name }
+    }
+
+    #[must_use]
+    pub fn fresh_hole(&self) -> HoleId {
+        self.env.counter.hole.next()
     }
 }
