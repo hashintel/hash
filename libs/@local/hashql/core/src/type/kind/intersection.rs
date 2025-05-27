@@ -400,7 +400,7 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
             variants => {
                 let id = env.intern_type(PartialType {
                     span: self.span,
-                    kind: env.intern_kind(TypeKind::Intersection(IntersectionType {
+                    kind: env.intern_kind(TypeKind::Intersection(Self {
                         variants: env.intern_type_ids(variants),
                     })),
                 });
@@ -412,11 +412,66 @@ impl<'heap> Lattice<'heap> for IntersectionType<'heap> {
 
     fn subscript(
         self: Type<'heap, Self>,
-        _: TypeId,
-        _: &mut LatticeEnvironment<'_, 'heap>,
-        _: &mut InferenceEnvironment<'_, 'heap>,
+        index: TypeId,
+        env: &mut LatticeEnvironment<'_, 'heap>,
+        infer: &mut InferenceEnvironment<'_, 'heap>,
     ) -> Subscript {
-        todo!("https://linear.app/hash/issue/H-4645/implement-subscript-for-intersections")
+        let variants = self.unnest(env);
+
+        let mut result = TypeIdSet::<16>::with_capacity(env.environment, variants.len());
+
+        let mut has_pending = false;
+        let mut has_error = false;
+
+        for variant in variants {
+            let subscript = env.subscript(variant, index, infer);
+
+            match subscript {
+                // Unlike projection, which can early exit out if something is pending. A `Pending`
+                // subscript has a high likelihood of discharging additional
+                // constraints, if we were to early exit out we wouldn't be able to
+                // discharge all the additional constraints. Which would still be correct, but could
+                // result in less precise error messages and additional fix-point computations.
+                Subscript::Pending => has_pending = true,
+                Subscript::Error => has_error = true,
+                Subscript::Resolved(id) => result.push(id),
+            }
+        }
+
+        if has_pending {
+            // Pending has precedence over error
+            return Subscript::Pending;
+        }
+
+        if has_error {
+            // We've already encountered an error, simply propagate it
+            return Subscript::Error;
+        }
+
+        match &*result.finish() {
+            [] => {
+                // Empty intersection is unknown, therefore defer to unknown
+                env.subscript(
+                    env.intern_type(PartialType {
+                        span: self.span,
+                        kind: env.intern_kind(TypeKind::Unknown),
+                    }),
+                    index,
+                    infer,
+                )
+            }
+            &[variant] => Subscript::Resolved(variant),
+            variants => {
+                let id = env.intern_type(PartialType {
+                    span: self.span,
+                    kind: env.intern_kind(TypeKind::Intersection(Self {
+                        variants: env.intern_type_ids(variants),
+                    })),
+                });
+
+                Subscript::Resolved(id)
+            }
+        }
     }
 
     fn is_bottom(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
@@ -710,17 +765,17 @@ mod test {
                 Generic, OpaqueType, Param, StructType, TypeKind,
                 generic::{GenericArgument, GenericArgumentId},
                 infer::HoleId,
-                intrinsic::{DictType, IntrinsicType},
+                intrinsic::{DictType, IntrinsicType, ListType},
                 primitive::PrimitiveType,
                 r#struct::StructField,
                 test::{
-                    assert_equiv, assert_sorted_eq, dict, generic, intersection, opaque, primitive,
-                    r#struct, struct_field, tuple, union,
+                    assert_equiv, assert_sorted_eq, dict, generic, intersection, list, opaque,
+                    primitive, r#struct, struct_field, tuple, union,
                 },
                 tuple::TupleType,
                 union::UnionType,
             },
-            lattice::{Lattice as _, Projection, test::assert_lattice_laws},
+            lattice::{Lattice as _, Projection, Subscript, test::assert_lattice_laws},
             test::{instantiate, instantiate_infer, instantiate_param},
         },
     };
@@ -2414,7 +2469,7 @@ mod test {
     }
 
     #[test]
-    fn projection_union_values() {
+    fn projection_intersection_values() {
         let heap = Heap::new();
         let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
@@ -2435,6 +2490,139 @@ mod test {
         assert_eq!(lattice.diagnostics.len(), 0);
         let Projection::Resolved(id) = projection else {
             panic!("expected resolved projection")
+        };
+
+        assert_equiv!(env, [id], [intersection!(env, [integer, string])]);
+    }
+
+    #[test]
+    fn subscript_empty() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let intersection = intersection!(env, []);
+
+        let mut lattice = LatticeEnvironment::new(&env);
+        let mut inference = InferenceEnvironment::new(&env);
+
+        let subscript = lattice.subscript(
+            intersection,
+            primitive!(env, PrimitiveType::String),
+            &mut inference,
+        );
+        assert_eq!(subscript, Subscript::Error);
+
+        let diagnostics = lattice.take_diagnostics().into_vec();
+        assert_eq!(diagnostics.len(), 1);
+        assert_eq!(
+            diagnostics[0].category,
+            TypeCheckDiagnosticCategory::UnsupportedSubscript
+        );
+    }
+
+    #[test]
+    fn subscript_single_variant() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let string = primitive!(env, PrimitiveType::String);
+
+        let intersection = intersection!(env, [list!(env, string)]);
+
+        let mut lattice = LatticeEnvironment::new(&env);
+        let mut inference = InferenceEnvironment::new(&env);
+
+        let subscript = lattice.subscript(
+            intersection,
+            primitive!(env, PrimitiveType::Integer),
+            &mut inference,
+        );
+        assert_eq!(lattice.diagnostics.len(), 0);
+
+        assert_eq!(subscript, Subscript::Resolved(string));
+    }
+
+    #[test]
+    fn subscript_propagate_error() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let string = primitive!(env, PrimitiveType::String);
+        let integer = primitive!(env, PrimitiveType::Integer);
+
+        let intersection = intersection!(env, [integer, string]);
+
+        let mut lattice = LatticeEnvironment::new(&env);
+        let mut inference = InferenceEnvironment::new(&env);
+
+        let subscript = lattice.subscript(
+            intersection,
+            primitive!(env, PrimitiveType::Integer),
+            &mut inference,
+        );
+        assert_eq!(lattice.diagnostics.len(), 2);
+        assert_eq!(subscript, Subscript::Error);
+
+        let diagnostics = lattice.take_diagnostics().into_vec();
+        assert_eq!(
+            diagnostics[0].category,
+            TypeCheckDiagnosticCategory::UnsupportedSubscript
+        );
+        assert_eq!(
+            diagnostics[1].category,
+            TypeCheckDiagnosticCategory::UnsupportedSubscript
+        );
+    }
+
+    #[test]
+    fn subscript_propagate_pending() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let string = primitive!(env, PrimitiveType::String);
+        let hole = env.counter.hole.next();
+
+        let intersection = intersection!(env, [instantiate_infer(&env, hole), string]);
+
+        let mut lattice = LatticeEnvironment::new(&env);
+        let mut inference = InferenceEnvironment::new(&env);
+
+        let subscript = lattice.subscript(
+            intersection,
+            primitive!(env, PrimitiveType::Integer),
+            &mut inference,
+        );
+        assert_eq!(lattice.diagnostics.len(), 1);
+        assert_eq!(subscript, Subscript::Pending);
+
+        let diagnostics = lattice.take_diagnostics().into_vec();
+        assert_eq!(
+            diagnostics[0].category,
+            TypeCheckDiagnosticCategory::UnsupportedSubscript
+        );
+    }
+
+    #[test]
+    fn subscript_intersection_values() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let string = primitive!(env, PrimitiveType::String);
+        let integer = primitive!(env, PrimitiveType::Integer);
+
+        let intersection = intersection!(env, [list!(env, integer), dict!(env, integer, string)]);
+
+        let mut lattice = LatticeEnvironment::new(&env);
+        let mut inference = InferenceEnvironment::new(&env);
+
+        let subscript = lattice.subscript(
+            intersection,
+            primitive!(env, PrimitiveType::Integer),
+            &mut inference,
+        );
+        assert_eq!(lattice.diagnostics.len(), 0);
+        let Subscript::Resolved(id) = subscript else {
+            panic!("Expected Subscript::Resolved but got {subscript:?}");
         };
 
         assert_equiv!(env, [id], [intersection!(env, [integer, string])]);
