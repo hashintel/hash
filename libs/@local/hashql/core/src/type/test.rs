@@ -49,6 +49,26 @@ pub(crate) fn instantiate_infer(
     instantiate(env, kind)
 }
 
+/// A testing utility macro that sets up the necessary infrastructure for type system tests.
+///
+/// This macro creates a heap, environment, and type builder, with optional specialized
+/// environments for different type system operations.
+///
+/// # Basic Usage
+///
+/// ```rust
+/// scaffold!(heap, env, builder);
+/// let my_type = builder.string();
+/// ```
+///
+/// # Additional Environments
+///
+/// The macro supports several optional environments:
+///
+/// - `analysis: <name>` - Creates an `AnalysisEnvironment` for subtyping and equivalence checks
+/// - `lattice: <name>` - Creates a `LatticeEnvironment` for join/meet operations and projections
+/// - `simplify: <name>` - Creates a `SimplifyEnvironment` for type simplification
+/// - `inference: <name>` - Creates an `InferenceEnvironment` for type inference operations
 macro_rules! scaffold {
     ($heap:ident, $env:ident, $builder:ident $(,[$($extra:tt)*])?) => {
         let $heap = crate::heap::Heap::new();
