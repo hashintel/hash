@@ -1597,6 +1597,46 @@ fn projection_unify_variables_equal_is_not_equivalent() {
 }
 
 #[test]
+fn projection_simplify() {
+    // T = ((a: String) | Null) & (a: String)
+    // T.a
+    let heap = Heap::new();
+    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+    let r#struct = r#struct!(
+        env,
+        [struct_field!(
+            env,
+            "a",
+            primitive!(env, PrimitiveType::String)
+        )]
+    );
+
+    let union = union!(env, [r#struct, primitive!(env, PrimitiveType::Null)]);
+    let intersection = intersection!(env, [union, r#struct]);
+
+    let mut environment = InferenceEnvironment::new(&env);
+
+    let variable = environment.add_projection(
+        SpanId::SYNTHETIC,
+        intersection,
+        Ident::synthetic(heap.intern_symbol("a")),
+    );
+
+    let solver = environment.into_solver();
+    let (substitution, diagnostics) = solver.solve();
+    assert!(diagnostics.is_empty());
+
+    assert_equiv!(
+        env,
+        [substitution
+            .infer(variable.kind.hole().expect("should be hole"))
+            .expect("should have inferred variable")],
+        [primitive!(env, PrimitiveType::String)]
+    );
+}
+
+#[test]
 fn single_subscript() {
     // T = Number[]
     // T[0]
@@ -1632,7 +1672,6 @@ fn single_subscript() {
 }
 
 #[test]
-#[ignore = "https://linear.app/hash/issue/H-4645/implement-subscript-for-intersections"]
 fn multi_subscript() {
     // given:
     // T = List<List<String>>

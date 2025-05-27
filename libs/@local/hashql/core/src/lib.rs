@@ -18,7 +18,6 @@
     never_type,
     type_alias_impl_trait,
 )]
-#![expect(clippy::todo)]
 
 extern crate alloc;
 

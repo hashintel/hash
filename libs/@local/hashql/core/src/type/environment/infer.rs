@@ -7,8 +7,8 @@ use crate::{
     r#type::{
         TypeId,
         inference::{
-            Constraint, Inference as _, InferenceSolver, PartialStructuralEdge,
-            SelectionConstraint, Subject, Variable, VariableKind,
+            Constraint, DeferralDepth, Inference as _, InferenceSolver, PartialStructuralEdge,
+            ResolutionStrategy, SelectionConstraint, Subject, Variable, VariableKind,
         },
         recursion::RecursionBoundary,
     },
@@ -84,7 +84,7 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
                 }
                 // Nothing happens when we have a selection constraint, as selection constraints are
                 // deferred constraints
-                Constraint::Selection(_) => constraint,
+                Constraint::Selection(..) => constraint,
             };
         }
 
@@ -123,7 +123,11 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
             field,
             output: variable,
         };
-        self.constraints.push(Constraint::Selection(projection));
+        self.constraints.push(Constraint::Selection(
+            projection,
+            ResolutionStrategy::default(),
+            DeferralDepth::default(),
+        ));
 
         variable
     }
@@ -140,7 +144,11 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
             index: Subject::Type(index),
             output: variable,
         };
-        self.constraints.push(Constraint::Selection(subscript));
+        self.constraints.push(Constraint::Selection(
+            subscript,
+            ResolutionStrategy::default(),
+            DeferralDepth::default(),
+        ));
 
         variable
     }
