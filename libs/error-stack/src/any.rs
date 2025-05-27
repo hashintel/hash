@@ -11,26 +11,26 @@ use crate::{IntoReport, Report};
 /// and the concrete error type used when converted to a `Report<E>`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct AnyErr;
+pub struct AnyError;
 
-impl Display for AnyErr {
+impl Display for AnyError {
     fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(formatter, "AnyErr")
+        write!(formatter, "AnyError")
     }
 }
 
-impl Error for AnyErr {}
+impl Error for AnyError {}
 
-/// A special concrete wrapping type acting as `Report<AnyErr>`
+/// A special concrete wrapping type acting as `Report<AnyError>`
 /// which can be used as a catch-all error type when no custom error type is needed.
 ///
 /// This type is benefical because it implements `From<E: Into<Report<E>>`,
 /// meaning any error implementing [`std::error::Error`], or is a `Report<E>` can be
-/// propagated automatically with `?` without requiring `.change_context(AnyErr)`.
+/// propagated automatically with `?` without requiring `.change_context(AnyError)`.
 ///
-/// This type implements all the same methods the underlying `Report<AnyErr>` implements.
+/// This type implements all the same methods the underlying `Report<AnyError>` implements.
 #[must_use]
-pub struct AnyReport(Report<AnyErr>);
+pub struct AnyReport(Report<AnyError>);
 
 impl Display for AnyReport {
     fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -45,7 +45,7 @@ impl Debug for AnyReport {
 }
 
 impl IntoReport for AnyReport {
-    type Context = AnyErr;
+    type Context = AnyError;
 
     #[track_caller]
     fn into_report(self) -> Report<Self::Context> {
@@ -56,18 +56,18 @@ impl IntoReport for AnyReport {
 impl<E: Into<Report<E>>> From<E> for AnyReport {
     #[track_caller]
     fn from(value: E) -> Self {
-        Self(value.into().change_context(AnyErr))
+        Self(value.into().change_context(AnyError))
     }
 }
 
 impl<C: ?Sized> From<Report<C>> for AnyReport {
     #[track_caller]
     fn from(value: Report<C>) -> Self {
-        Self(value.change_context(AnyErr))
+        Self(value.change_context(AnyError))
     }
 }
 
-impl From<AnyReport> for Report<AnyErr> {
+impl From<AnyReport> for Report<AnyError> {
     #[track_caller]
     fn from(value: AnyReport) -> Self {
         value.0
@@ -76,7 +76,7 @@ impl From<AnyReport> for Report<AnyErr> {
 
 impl Default for AnyReport {
     fn default() -> Self {
-        Self(Report::new(AnyErr))
+        Self(Report::new(AnyError))
     }
 }
 
@@ -180,7 +180,7 @@ impl AnyReport {
 }
 
 impl Deref for AnyReport {
-    type Target = Report<AnyErr>;
+    type Target = Report<AnyError>;
 
     fn deref(&self) -> &Self::Target {
         &self.0

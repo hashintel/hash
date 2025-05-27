@@ -525,7 +525,7 @@ pub use self::result::Result;
 #[cfg(feature = "unstable")]
 pub use self::sink::ReportSink;
 pub use self::{
-    any::{AnyErr, AnyReport},
+    any::{AnyError, AnyReport},
     compat::IntoReportCompat,
     frame::{AttachmentKind, Frame, FrameKind},
     report::{IntoReport, Report},
