@@ -14,6 +14,7 @@ pub mod visit;
 
 use core::ops::Receiver;
 
+pub use self::builder::TypeBuilder;
 use self::{environment::Environment, inference::Variable, kind::TypeKind};
 use crate::{
     id::HasId,
