@@ -77,6 +77,108 @@ impl Subject {
     }
 }
 
+/// Controls how selection constraints are resolved during type inference.
+///
+/// Selection constraints arise from field projections and subscript operations where
+/// the result type must be inferred. This strategy determines the trade-off between
+/// type precision and resolution capability when attempting to resolve constraints.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+pub enum ResolutionStrategy {
+    /// Simplify types before attempting resolution.
+    ///
+    /// This strategy removes unnecessary complexity from types (like unused union
+    /// variants) to improve the chances of successful constraint resolution. While
+    /// this trades some type precision for resolution capability, it can resolve
+    /// constraints that would otherwise remain stuck.
+    Simplify,
+
+    /// Preserve original type structure during resolution.
+    ///
+    /// This is the default strategy that maintains the full precision of type
+    /// information during constraint resolution. It keeps all type details intact,
+    /// allowing for more accurate inference but potentially failing to resolve
+    /// constraints that could succeed with simplified types.
+    #[default]
+    Preserve,
+}
+
+impl ResolutionStrategy {
+    /// Degenerates the resolution strategy to trade precision for resolution capability.
+    ///
+    /// This method implements a fallback mechanism used when constraint resolution
+    /// encounters errors. If the current strategy is `Preserve`, it degenerates to
+    /// `Simplify` and returns `true`, indicating that the constraint should be retried
+    /// with the more aggressive strategy. If already `Simplify`, returns `false`
+    /// indicating no further fallback options exist.
+    ///
+    /// This progressive degradation allows the inference engine to first attempt
+    /// precise resolution, then fall back to simplified resolution when necessary.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the strategy was degenerated and retry is warranted, `false` otherwise.
+    pub const fn degenerate(&mut self) -> bool {
+        match self {
+            Self::Preserve => {
+                *self = Self::Simplify;
+                true
+            }
+            Self::Simplify => false,
+        }
+    }
+}
+
+/// Tracks how many times resolution of a selection constraint has been deferred.
+///
+/// During constraint-based type inference, selection constraints may need to be
+/// deferred multiple times until sufficient type information becomes available.
+/// This depth counter serves several critical functions:
+///
+/// - **Progress tracking**: Helps detect when the inference engine is making forward progress.
+/// - **Loop prevention**: Guards against infinite constraint generation on repeated attempts.
+/// - **Error reporting**: Provides context for unresolved constraints in diagnostics.
+/// - **Constraint management**: Controls when new sub-constraints can be generated.
+///
+/// The inference engine uses a depth of zero as a special marker for first-time resolution
+/// attempts, during which new constraints may be generated. Subsequent attempts (depth > 0) focus
+/// purely on resolution without generating additional constraints, preventing infinite loops.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
+pub struct DeferralDepth(usize);
+
+impl DeferralDepth {
+    /// Creates a new deferral depth one level deeper.
+    ///
+    /// This method is called each time a selection constraint cannot be resolved
+    /// and must be placed back in the constraint queue for the next iteration.
+    /// The incremented depth helps track how many resolution attempts have been
+    /// made and prevents infinite constraint generation.
+    #[must_use]
+    pub const fn increment(self) -> Self {
+        Self(self.0 + 1)
+    }
+
+    /// Checks if this is a first-time resolution attempt.
+    ///
+    /// Returns `true` if the deferral depth is zero, indicating this constraint
+    /// has never been deferred before. The inference engine uses this as a guard
+    /// to allow new constraint generation only on first attempts, preventing
+    /// infinite loops during subscript resolution.
+    #[must_use]
+    pub const fn is_zero(self) -> bool {
+        self.0 == 0
+    }
+
+    /// Returns the raw deferral depth value.
+    ///
+    /// This provides access to the underlying depth counter, which can be useful
+    /// for debugging constraint resolution patterns, implementing deferral limits,
+    /// or providing detailed error diagnostics about constraint resolution attempts.
+    #[must_use]
+    pub const fn depth(self) -> usize {
+        self.0
+    }
+}
+
 /// Represents constraints for component selection operations in type inference.
 ///
 /// Selection constraints arise from field projection (`record.field`) and subscript
@@ -177,7 +279,11 @@ pub enum Constraint<'heap> {
     /// Selection constraints handle field projection and subscript operations where the
     /// result type must be inferred. These constraints are deferred until sufficient
     /// type information is available to resolve the selection operation.
-    Selection(SelectionConstraint<'heap>),
+    Selection(
+        SelectionConstraint<'heap>,
+        ResolutionStrategy,
+        DeferralDepth,
+    ),
 }
 
 impl Constraint<'_> {
@@ -192,16 +298,24 @@ impl Constraint<'_> {
             } => [Some(variable), None, None],
             Self::Ordering { lower, upper } => [Some(lower), Some(upper), None],
             Self::StructuralEdge { source, target } => [Some(source), Some(target), None],
-            Self::Selection(SelectionConstraint::Projection {
-                subject,
-                field: _,
-                output,
-            }) => [subject.variable(), Some(output), None],
-            Self::Selection(SelectionConstraint::Subscript {
-                subject,
-                index,
-                output,
-            }) => [subject.variable(), index.variable(), Some(output)],
+            Self::Selection(
+                SelectionConstraint::Projection {
+                    subject,
+                    field: _,
+                    output,
+                },
+                _,
+                _,
+            ) => [subject.variable(), Some(output), None],
+            Self::Selection(
+                SelectionConstraint::Subscript {
+                    subject,
+                    index,
+                    output,
+                },
+                _,
+                _,
+            ) => [subject.variable(), index.variable(), Some(output)],
         };
 
         array.into_iter().flatten()

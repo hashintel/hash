@@ -9,11 +9,12 @@ use super::{
         Infer, Param,
         generic::GenericArgumentId,
         infer::HoleId,
-        test::{primitive, tuple},
+        test::{assert_equiv, intersection, primitive, tuple, union},
     },
 };
 use crate::{
     heap::Heap,
+    pretty::PrettyPrint as _,
     span::SpanId,
     symbol::Ident,
     r#type::{
@@ -649,4 +650,19 @@ fn unknown_subscript() {
         diagnostics[0].category,
         TypeCheckDiagnosticCategory::UnsupportedSubscript
     );
+}
+
+#[test]
+fn simplify_nested_union_intersection() {
+    let heap = Heap::new();
+    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+    let integer = primitive!(env, PrimitiveType::Integer);
+    let string = primitive!(env, PrimitiveType::String);
+
+    let value = intersection!(env, [union!(env, [integer, string]), string]);
+
+    let mut simplify = SimplifyEnvironment::new(&env);
+    let simplified = simplify.simplify(value);
+    assert_equiv!(env, [simplified], [string]);
 }

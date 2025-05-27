@@ -30,7 +30,8 @@ use ena::unify::{InPlaceUnificationTable, NoError, UnifyKey as _};
 
 use self::{graph::Graph, tarjan::Tarjan, topo::topological_sort_in};
 use super::{
-    Constraint, SelectionConstraint, Substitution, Variable, VariableKind,
+    Constraint, DeferralDepth, ResolutionStrategy, SelectionConstraint, Substitution, Variable,
+    VariableKind,
     variable::{VariableId, VariableLookup},
 };
 use crate::{
@@ -452,7 +453,11 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     fn collect_constraints(
         &mut self,
         constraints: &mut FastHashMap<VariableKind, (Variable, VariableConstraint)>,
-        selections: &mut Vec<SelectionConstraint<'heap>>,
+        selections: &mut Vec<(
+            SelectionConstraint<'heap>,
+            ResolutionStrategy,
+            DeferralDepth,
+        )>,
     ) {
         for &constraint in &self.constraints {
             match constraint {
@@ -533,7 +538,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                     let _: Result<_, _> =
                         constraints.try_insert(rhs_root, (rhs, VariableConstraint::default()));
                 }
-                constraint @ Constraint::Selection(mut selection) => {
+                constraint @ Constraint::Selection(mut selection, mode, depth) => {
                     // Try to "specialize" each constraint, meaning look if the type it's referring
                     // to is just a variable, if that's the case, change the subject to the
                     // variable.
@@ -546,7 +551,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                             .try_insert(variable_root, (variable, VariableConstraint::default()));
                     }
 
-                    selections.push(selection);
+                    selections.push((selection, mode, depth));
                 }
             }
         }
@@ -839,7 +844,11 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         graph: &Graph,
         bump: &Bump,
         variables: &mut FastHashMap<VariableKind, (Variable, VariableConstraint)>,
-        selections: &mut Vec<SelectionConstraint<'heap>>,
+        selections: &mut Vec<(
+            SelectionConstraint<'heap>,
+            ResolutionStrategy,
+            DeferralDepth,
+        )>,
     ) {
         // Step 1.4: First collect all constraints by variable
         self.collect_constraints(variables, selections);
@@ -1035,12 +1044,18 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     /// # Returns
     ///
     /// `true` if any constraints were resolved, `false` if no progress was made.
+    #[expect(clippy::too_many_lines)]
     fn solve_selection_constraints(
         &mut self,
         substitution: Substitution,
-        selections: &mut Vec<SelectionConstraint<'heap>>,
+        selections: &mut Vec<(
+            SelectionConstraint<'heap>,
+            ResolutionStrategy,
+            DeferralDepth,
+        )>,
     ) -> bool {
-        self.lattice.set_substitution(substitution);
+        self.lattice.set_substitution(substitution.clone());
+        self.simplify.set_substitution(substitution);
 
         let mut made_progress = false;
 
@@ -1048,7 +1063,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         // then try solving them, if we can't solve them, we add them to the constraints vector
         // again. We also keep track of the progress, if we haven't made any progress, we stop, as
         // we've reached a fix-point, which is unsolvable. These then need to be reported.
-        for selection in selections.drain(..) {
+        for (selection, mut mode, depth) in selections.drain(..) {
             match selection {
                 SelectionConstraint::Projection {
                     subject,
@@ -1056,12 +1071,23 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                     output,
                 } => {
                     // Check if the subject is concrete, and can be accessed.
-                    let subject_type = subject.r#type(self.lattice.environment);
+                    let mut subject_type = subject.r#type(self.lattice.environment);
+                    if mode == ResolutionStrategy::Simplify {
+                        // Simplify the subject type. This will remove any unnecessary match arms,
+                        // but will mean that we're no longer able to infer any underlying type (if
+                        // present).
+                        subject_type = self.lattice.r#type(self.simplify.simplify(subject_type.id));
+                    }
+
                     let field = match self.lattice.projection(subject_type.id, field) {
                         Projection::Pending => {
                             // The projection is pending, we need to wait for it to be resolved.
                             // We add the constraint back to the list of constraints to be solved.
-                            self.constraints.push(Constraint::Selection(selection));
+                            self.constraints.push(Constraint::Selection(
+                                selection,
+                                mode,
+                                depth.increment(),
+                            ));
 
                             // In case we do not make any progress, add an error (will be cleared
                             // every iteration)
@@ -1072,10 +1098,16 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                             continue;
                         }
                         Projection::Error => {
+                            // Try to fallback to simplify (if we haven't already), in that case we
+                            // have made progress, as we need to try again, but this time
+                            // simplifying the type.
+                            made_progress |= mode.degenerate();
+
                             // While an error has occurred, we add the constraint back to the list,
                             // so that another iteration can attempt to resolve it (it will fail).
                             // This way we'll persist the error throughout fix-point iteration.
-                            self.constraints.push(Constraint::Selection(selection));
+                            self.constraints
+                                .push(Constraint::Selection(selection, mode, depth));
                             continue;
                         }
                         Projection::Resolved(field) => field,
@@ -1106,8 +1138,16 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                     index,
                     output,
                 } => {
-                    let subject_type = subject.r#type(self.lattice.environment);
-                    let index_type = index.r#type(self.lattice.environment);
+                    let mut subject_type = subject.r#type(self.lattice.environment);
+                    let mut index_type = index.r#type(self.lattice.environment);
+
+                    if mode == ResolutionStrategy::Simplify {
+                        // Simplify the subject type. This will remove any unnecessary match arms,
+                        // but will mean that we're no longer able to infer any underlying type (if
+                        // present).
+                        subject_type = self.lattice.r#type(self.simplify.simplify(subject_type.id));
+                        index_type = self.lattice.r#type(self.simplify.simplify(index_type.id));
+                    }
 
                     let value = match self.lattice.subscript(
                         subject_type.id,
@@ -1117,7 +1157,11 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                         Subscript::Pending => {
                             // The subscript is pending, we need to wait for it to be resolved.
                             // We add the constraint back to the list of constraints to be solved.
-                            self.constraints.push(Constraint::Selection(selection));
+                            self.constraints.push(Constraint::Selection(
+                                selection,
+                                mode,
+                                depth.increment(),
+                            ));
 
                             // In case we do not make any progress, add an error (will be cleared
                             // every iteration)
@@ -1126,8 +1170,10 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                                 self.lattice.environment,
                             ));
 
-                            // We may have issued additional constraints
-                            if self.inference.has_constraints() {
+                            // We may have issued additional constraints, to not risk any infinite
+                            // loop, where we always issue additional constraints we only do so on
+                            // the first iteration.
+                            if self.inference.has_constraints() && depth.is_zero() {
                                 // In that case we've actually made progress, because we have issued
                                 // new constraints
                                 made_progress = true;
@@ -1137,10 +1183,16 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                             continue;
                         }
                         Subscript::Error => {
+                            // Try to fallback to simplify (if we haven't already), in that case we
+                            // have made progress, as we need to try again, but this time
+                            // simplifying the type.
+                            made_progress |= mode.degenerate();
+
                             // While an error has occurred, we add the constraint back to the list,
                             // so that another iteration can attempt to resolve it (it will fail).
                             // This way we'll persist the error throughout fix-point iteration.
-                            self.constraints.push(Constraint::Selection(selection));
+                            self.constraints
+                                .push(Constraint::Selection(selection, mode, depth));
                             continue;
                         }
                         Subscript::Resolved(value) => value,
@@ -1173,6 +1225,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         }
 
         self.lattice.clear_substitution();
+        self.simplify.clear_substitution();
 
         made_progress
     }
@@ -1184,8 +1237,8 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     fn verify_solved_constraint_system(&mut self) {
         for constraint in self.constraints.drain(..) {
             match constraint {
-                Constraint::Selection(_) => {
-                    // these might still exist, because we haven't made any progress, but(!) they
+                Constraint::Selection(..) => {
+                    // These might still exist, because we haven't made any progress, but(!) they
                     // should be the only ones that survive
                 }
                 _ => unreachable!(
