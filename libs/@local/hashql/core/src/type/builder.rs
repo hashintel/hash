@@ -154,6 +154,7 @@ where
 /// # use hashql_core::r#type::{environment::Environment, builder::TypeBuilder};
 /// # use hashql_core::heap::Heap;
 /// # use hashql_core::span::SpanId;
+/// # use hashql_core::intern::Provisioned;
 /// # let heap = Heap::new();
 /// # let env = Environment::new(SpanId::SYNTHETIC, &heap);
 /// let builder = TypeBuilder::synthetic(&env);
@@ -176,6 +177,9 @@ where
 ///
 /// // Function type
 /// let string_to_number = builder.closure([string_type], number_type);
+///
+/// // Recursive types
+/// let list_of_list = builder.list(|id: Provisioned<_>| id.value());
 /// ```
 pub struct TypeBuilder<'env, 'heap> {
     span: SpanId,
