@@ -2708,6 +2708,16 @@ mod test {
         );
         assert_eq!(lattice.diagnostics.len(), 2);
         assert_eq!(subscript, Subscript::Error);
+
+        let diagnostics = lattice.take_diagnostics().into_vec();
+        assert_eq!(
+            diagnostics[0].category,
+            TypeCheckDiagnosticCategory::UnsupportedSubscript
+        );
+        assert_eq!(
+            diagnostics[1].category,
+            TypeCheckDiagnosticCategory::UnsupportedSubscript
+        );
     }
 
     #[test]
@@ -2730,6 +2740,12 @@ mod test {
         );
         assert_eq!(lattice.diagnostics.len(), 1);
         assert_eq!(subscript, Subscript::Pending);
+
+        let diagnostics = lattice.take_diagnostics().into_vec();
+        assert_eq!(
+            diagnostics[0].category,
+            TypeCheckDiagnosticCategory::UnsupportedSubscript
+        );
     }
 
     #[test]
@@ -2752,7 +2768,7 @@ mod test {
         );
         assert_eq!(lattice.diagnostics.len(), 0);
         let Subscript::Resolved(id) = subscript else {
-            panic!("expected resolved projection")
+            panic!("Expected Subscript::Resolved but got {subscript:?}");
         };
 
         assert_equiv!(env, [id], [union!(env, [integer, string])]);
