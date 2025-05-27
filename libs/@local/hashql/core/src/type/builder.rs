@@ -8,7 +8,7 @@
 //! # Examples
 //!
 //! ```rust
-//! # use hashql_core::r#type::{environment::Environment, build::TypeBuilder};
+//! # use hashql_core::r#type::{environment::Environment, builder::TypeBuilder};
 //! # use hashql_core::span::SpanId;
 //! # use hashql_core::heap::Heap;
 //! # let heap = Heap::new();
@@ -28,10 +28,10 @@
 //!
 //! The builder supports several patterns for type construction:
 //!
-//! - **Immediate types**: Direct construction of types that don't reference the current type ID
-//! - **Self-referential types**: Types that may reference their own ID during construction
-//! - **Generic types**: Types with type parameters and constraints
-//! - **Applied types**: Generic types with concrete type arguments substituted
+//! - **Immediate types**: Direct construction of types that don't reference the current type ID.
+//! - **Self-referential types**: Types that may reference their own ID during construction.
+//! - **Generic types**: Types with type parameters and constraints.
+//! - **Applied types**: Generic types with concrete type arguments substituted.
 
 use alloc::vec;
 use core::{array, iter, slice};
@@ -151,7 +151,7 @@ where
 /// # Examples
 ///
 /// ```rust
-/// # use hashql_core::r#type::{environment::Environment, build::TypeBuilder};
+/// # use hashql_core::r#type::{environment::Environment, builder::TypeBuilder};
 /// # use hashql_core::heap::Heap;
 /// # use hashql_core::span::SpanId;
 /// # let heap = Heap::new();
@@ -193,7 +193,7 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     /// # Examples
     ///
     /// ```rust
-    /// # use hashql_core::r#type::{environment::Environment, build::TypeBuilder};
+    /// # use hashql_core::r#type::{environment::Environment, builder::TypeBuilder};
     /// # use hashql_core::heap::Heap;
     /// # use hashql_core::span::SpanId;
     /// # let heap = Heap::new();
@@ -225,7 +225,7 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     /// # Examples
     ///
     /// ```rust
-    /// # use hashql_core::r#type::{environment::Environment, build::TypeBuilder, kind::TypeKind, kind::PrimitiveType};
+    /// # use hashql_core::r#type::{environment::Environment, builder::TypeBuilder, kind::TypeKind, kind::PrimitiveType};
     /// # use hashql_core::span::SpanId;
     /// # use hashql_core::heap::Heap;
     /// # let heap = Heap::new();
@@ -255,7 +255,7 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     /// # Examples
     ///
     /// ```rust
-    /// # use hashql_core::r#type::{environment::Environment, build::TypeBuilder};
+    /// # use hashql_core::r#type::{environment::Environment, builder::TypeBuilder};
     /// # use hashql_core::heap::Heap;
     /// # use hashql_core::span::SpanId;
     /// # let heap = Heap::new();
@@ -281,7 +281,7 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     /// # Examples
     ///
     /// ```rust
-    /// # use hashql_core::r#type::{environment::Environment, build::TypeBuilder};
+    /// # use hashql_core::r#type::{environment::Environment, builder::TypeBuilder};
     /// # use hashql_core::heap::Heap;
     /// # use hashql_core::span::SpanId;
     /// # let heap = Heap::new();
@@ -302,7 +302,7 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     /// # Examples
     ///
     /// ```rust
-    /// # use hashql_core::r#type::{environment::Environment, build::TypeBuilder};
+    /// # use hashql_core::r#type::{environment::Environment, builder::TypeBuilder};
     /// # use hashql_core::heap::Heap;
     /// # use hashql_core::span::SpanId;
     /// # let heap = Heap::new();
@@ -320,7 +320,7 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     /// # Examples
     ///
     /// ```rust
-    /// # use hashql_core::r#type::{environment::Environment, build::TypeBuilder};
+    /// # use hashql_core::r#type::{environment::Environment, builder::TypeBuilder};
     /// # use hashql_core::heap::Heap;
     /// # use hashql_core::span::SpanId;
     /// # let heap = Heap::new();
@@ -338,7 +338,7 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     /// # Examples
     ///
     /// ```rust
-    /// # use hashql_core::r#type::{environment::Environment, build::TypeBuilder};
+    /// # use hashql_core::r#type::{environment::Environment, builder::TypeBuilder};
     /// # use hashql_core::heap::Heap;
     /// # use hashql_core::span::SpanId;
     /// # let heap = Heap::new();
@@ -357,7 +357,7 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     /// # Examples
     ///
     /// ```rust
-    /// # use hashql_core::r#type::{environment::Environment, build::TypeBuilder};
+    /// # use hashql_core::r#type::{environment::Environment, builder::TypeBuilder};
     /// # use hashql_core::heap::Heap;
     /// # use hashql_core::span::SpanId;
     /// # let heap = Heap::new();
@@ -378,7 +378,7 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     /// # Examples
     ///
     /// ```rust
-    /// # use hashql_core::r#type::{environment::Environment, build::TypeBuilder};
+    /// # use hashql_core::r#type::{environment::Environment, builder::TypeBuilder};
     /// # use hashql_core::heap::Heap;
     /// # use hashql_core::span::SpanId;
     /// # let heap = Heap::new();
@@ -407,7 +407,7 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     /// # Examples
     ///
     /// ```rust
-    /// # use hashql_core::r#type::{environment::Environment, build::TypeBuilder};
+    /// # use hashql_core::r#type::{environment::Environment, builder::TypeBuilder};
     /// # use hashql_core::heap::Heap;
     /// # use hashql_core::span::SpanId;
     /// # let heap = Heap::new();
@@ -437,7 +437,7 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     /// # Examples
     ///
     /// ```rust
-    /// # use hashql_core::r#type::{environment::Environment, build::TypeBuilder};
+    /// # use hashql_core::r#type::{environment::Environment, builder::TypeBuilder};
     /// # use hashql_core::heap::Heap;
     /// # use hashql_core::span::SpanId;
     /// # let heap = Heap::new();
@@ -489,7 +489,7 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     /// # Examples
     ///
     /// ```rust
-    /// # use hashql_core::r#type::{environment::Environment, build::TypeBuilder};
+    /// # use hashql_core::r#type::{environment::Environment, builder::TypeBuilder};
     /// # use hashql_core::heap::Heap;
     /// # use hashql_core::span::SpanId;
     /// # let heap = Heap::new();
@@ -521,7 +521,7 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     /// # Examples
     ///
     /// ```rust
-    /// # use hashql_core::r#type::{environment::Environment, build::TypeBuilder};
+    /// # use hashql_core::r#type::{environment::Environment, builder::TypeBuilder};
     /// # use hashql_core::heap::Heap;
     /// # use hashql_core::span::SpanId;
     /// # let heap = Heap::new();
@@ -553,7 +553,7 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     /// # Examples
     ///
     /// ```rust
-    /// # use hashql_core::r#type::{environment::Environment, build::TypeBuilder};
+    /// # use hashql_core::r#type::{environment::Environment, builder::TypeBuilder};
     /// # use hashql_core::heap::Heap;
     /// # use hashql_core::span::SpanId;
     /// # let heap = Heap::new();
@@ -587,7 +587,7 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     /// # Examples
     ///
     /// ```rust
-    /// # use hashql_core::r#type::{environment::Environment, build::TypeBuilder};
+    /// # use hashql_core::r#type::{environment::Environment, builder::TypeBuilder};
     /// # use hashql_core::heap::Heap;
     /// # use hashql_core::span::SpanId;
     /// # let heap = Heap::new();
@@ -627,7 +627,7 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     /// # Examples
     ///
     /// ```rust
-    /// # use hashql_core::r#type::{environment::Environment, build::TypeBuilder};
+    /// # use hashql_core::r#type::{environment::Environment, builder::TypeBuilder};
     /// # use hashql_core::heap::Heap;
     /// # use hashql_core::span::SpanId;
     /// # let heap = Heap::new();
@@ -671,7 +671,7 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     /// # Examples
     ///
     /// ```rust
-    /// # use hashql_core::r#type::{environment::Environment, build::TypeBuilder};
+    /// # use hashql_core::r#type::{environment::Environment, builder::TypeBuilder};
     /// # use hashql_core::heap::Heap;
     /// # use hashql_core::span::SpanId;
     /// # let heap = Heap::new();
@@ -726,7 +726,7 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     /// # Examples
     ///
     /// ```rust
-    /// # use hashql_core::r#type::{environment::Environment, build::TypeBuilder};
+    /// # use hashql_core::r#type::{environment::Environment, builder::TypeBuilder};
     /// # use hashql_core::heap::Heap;
     /// # use hashql_core::span::SpanId;
     /// # let heap = Heap::new();
@@ -759,7 +759,7 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     /// # Examples
     ///
     /// ```rust
-    /// # use hashql_core::r#type::{environment::Environment, build::TypeBuilder};
+    /// # use hashql_core::r#type::{environment::Environment, builder::TypeBuilder};
     /// # use hashql_core::heap::Heap;
     /// # use hashql_core::span::SpanId;
     /// # let heap = Heap::new();
@@ -785,7 +785,7 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     /// # Examples
     ///
     /// ```rust
-    /// # use hashql_core::r#type::{environment::Environment, build::TypeBuilder};
+    /// # use hashql_core::r#type::{environment::Environment, builder::TypeBuilder};
     /// # use hashql_core::heap::Heap;
     /// # use hashql_core::span::SpanId;
     /// # let heap = Heap::new();
@@ -810,7 +810,7 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     /// # Examples
     ///
     /// ```rust
-    /// # use hashql_core::r#type::{environment::Environment, build::TypeBuilder};
+    /// # use hashql_core::r#type::{environment::Environment, builder::TypeBuilder};
     /// # use hashql_core::heap::Heap;
     /// # use hashql_core::span::SpanId;
     /// # let heap = Heap::new();
@@ -835,7 +835,7 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     /// # Examples
     ///
     /// ```rust
-    /// # use hashql_core::r#type::{environment::Environment, build::TypeBuilder};
+    /// # use hashql_core::r#type::{environment::Environment, builder::TypeBuilder};
     /// # use hashql_core::heap::Heap;
     /// # use hashql_core::span::SpanId;
     /// # let heap = Heap::new();
@@ -869,7 +869,7 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     /// # Examples
     ///
     /// ```rust
-    /// # use hashql_core::r#type::{environment::Environment, build::TypeBuilder};
+    /// # use hashql_core::r#type::{environment::Environment, builder::TypeBuilder};
     /// # use hashql_core::heap::Heap;
     /// # use hashql_core::span::SpanId;
     /// # let heap = Heap::new();
@@ -901,7 +901,7 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     /// # Examples
     ///
     /// ```rust
-    /// # use hashql_core::r#type::{environment::Environment, build::TypeBuilder};
+    /// # use hashql_core::r#type::{environment::Environment, builder::TypeBuilder};
     /// # use hashql_core::heap::Heap;
     /// # use hashql_core::span::SpanId;
     /// # let heap = Heap::new();
