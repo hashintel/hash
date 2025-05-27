@@ -44,6 +44,6 @@ serde = ["dep:serde", "text-size/serde"]
 workspace = true
 
 [dev-dependencies]
-anstream        = { version = "0.6.18", default-features = false }
-insta.workspace = true
-test-case       = "3.3.1"
+insta     = { workspace = true }
+rstest    = "0.25.0"
+test-case = "3.3.1"
