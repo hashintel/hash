@@ -3,7 +3,7 @@ use core::iter;
 use super::{Module, ModuleId, ModuleRegistry, Universe};
 use crate::{
     symbol::Symbol,
-    r#type::{TypeId, kind::GenericArgument},
+    r#type::{TypeId, kind::generic::GenericArgumentReference},
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -38,12 +38,12 @@ pub enum ItemKind<'heap> {
 
     // In the future we'll also need to export values (like closures)
     // this would be done via a `DefId`/`ValueId` or similar
-    Type(TypeId, &'heap [GenericArgument<'heap>]),
+    Type(TypeId, &'heap [GenericArgumentReference<'heap>]),
     // In the future we would want to export this as a proper value, using a specialized
     // `TypeConstructor` will work for now.
     TypeConstructor(
-        TypeId,                          // The signature of the constructor closure
-        &'heap [GenericArgument<'heap>], // Generic arguments for it
+        TypeId,                                   // The signature of the constructor closure
+        &'heap [GenericArgumentReference<'heap>], // Generic arguments for it
     ),
 
     Intrinsic(IntrinsicItem),

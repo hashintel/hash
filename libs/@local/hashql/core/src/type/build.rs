@@ -7,7 +7,7 @@ use super::{
     kind::{
         Apply, ClosureType, Generic, GenericArgument, Infer, IntersectionType, IntrinsicType,
         OpaqueType, Param, PrimitiveType, StructType, TupleType, TypeKind, UnionType,
-        generic::{GenericArgumentId, GenericSubstitution},
+        generic::{GenericArgumentId, GenericArgumentReference, GenericSubstitution},
         infer::HoleId,
         intrinsic::{DictType, ListType},
         r#struct::StructField,
@@ -259,14 +259,11 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
         })
     }
 
-    pub fn generic<N>(
+    pub fn generic(
         &self,
         arguments: impl BuildIterator<'env, 'heap, Item = (GenericArgumentId, Option<TypeId>)>,
         base: impl BuildType<'env, 'heap>,
-    ) -> TypeId
-    where
-        N: AsRef<str>,
-    {
+    ) -> TypeId {
         self.partial(|this, id| {
             let mut arguments: Vec<_> = arguments
                 .build(this, id)
@@ -294,6 +291,12 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
         self.arguments.borrow_mut().insert(id, name);
 
         id
+    }
+
+    pub fn arg_ref(&self, id: GenericArgumentId) -> GenericArgumentReference<'heap> {
+        let name = self.arguments.borrow()[&id];
+
+        GenericArgumentReference { name, id }
     }
 
     pub fn hole(&self) -> HoleId {
