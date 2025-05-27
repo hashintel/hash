@@ -7,17 +7,45 @@ use crate::{
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct IntrinsicItem {
+pub struct IntrinsicValue {
     pub name: &'static str,
-    pub universe: Universe,
+    pub r#type: TypeId,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct IntrinsicType {
+    pub name: &'static str,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum IntrinsicItem {
+    Value(IntrinsicValue),
+    Type(IntrinsicType),
+}
+
+impl IntrinsicItem {
+    pub const fn universe(&self) -> Universe {
+        match self {
+            Self::Value(_) => Universe::Value,
+            Self::Type(_) => Universe::Type,
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum ItemKind<'heap> {
     Module(ModuleId),
+
     // In the future we'll also need to export values (like closures)
     // this would be done via a `DefId`/`ValueId` or similar
     Type(TypeId, &'heap [GenericArgument<'heap>]),
+    // In the future we would want to export this as a proper value, using a specialized
+    // `TypeConstructor` will work for now.
+    TypeConstructor(
+        TypeId,                          // The signature of the constructor closure
+        &'heap [GenericArgument<'heap>], // Generic arguments for it
+    ),
+
     Intrinsic(IntrinsicItem),
 }
 
@@ -27,7 +55,8 @@ impl ItemKind<'_> {
         match self {
             Self::Module(_) => None,
             Self::Type(_, _) => Some(Universe::Type),
-            Self::Intrinsic(IntrinsicItem { universe, .. }) => Some(*universe),
+            Self::TypeConstructor(_, _) => Some(Universe::Value),
+            Self::Intrinsic(item) => Some(item.universe()),
         }
     }
 }
@@ -36,8 +65,6 @@ impl ItemKind<'_> {
 pub struct Item<'heap> {
     pub module: ModuleId,
 
-    // TODO: move to Ident once Copy
-    //  see: https://linear.app/hash/issue/H-4414/hashql-move-from-symbol-to-internedsymbol
     pub name: Symbol<'heap>,
     pub kind: ItemKind<'heap>,
 }
