@@ -12,7 +12,7 @@ use hashql_core::{
     intern::Provisioned,
     module::{
         ModuleRegistry, Universe,
-        item::{IntrinsicItem, Item, ItemKind},
+        item::{IntrinsicItem, IntrinsicTypeItem, Item, ItemKind},
         locals::{TypeDef, TypeLocals},
     },
     span::SpanId,
@@ -482,15 +482,11 @@ where
 
         let (base, arguments) = match self.registry.resolve(query, Universe::Type) {
             Ok(Item {
-                kind: ItemKind::Type(id, arguments),
+                kind: ItemKind::Type(TypeDef { id, arguments }),
                 ..
             }) => (id, arguments),
             Ok(Item {
-                kind:
-                    ItemKind::Intrinsic(IntrinsicItem {
-                        name,
-                        universe: Universe::Type,
-                    }),
+                kind: ItemKind::Intrinsic(IntrinsicItem::Type(IntrinsicTypeItem { name })),
                 ..
             }) => return self.intrinsic(path.span, name, parameters),
             Ok(item) => {
@@ -509,7 +505,7 @@ where
         self.apply_reference(
             &VariableReference::Global(path),
             base,
-            arguments,
+            arguments.as_ref(),
             parameters,
         )
     }
@@ -773,7 +769,10 @@ where
 
         let id = self.env.types.intern_provisioned(variable.id, partial).id;
 
-        TypeDef { id, arguments }
+        TypeDef {
+            id,
+            arguments: self.env.intern_generic_argument_references(&arguments),
+        }
     }
 
     pub(crate) fn closure_signature(
@@ -806,7 +805,7 @@ where
                     span: signature.span,
                     kind: self.env.intern_kind(replacement),
                 }),
-                arguments: TinyVec::new(),
+                arguments: self.env.intern_generic_argument_references(&[]),
             };
         }
 
@@ -860,7 +859,9 @@ where
 
         TypeDef {
             id,
-            arguments: generic_arguments,
+            arguments: self
+                .env
+                .intern_generic_argument_references(&generic_arguments),
         }
     }
 }

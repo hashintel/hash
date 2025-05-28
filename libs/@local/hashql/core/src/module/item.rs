@@ -4,20 +4,20 @@ use super::{Module, ModuleId, ModuleRegistry, Universe, locals::TypeDef};
 use crate::symbol::Symbol;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct IntrinsicValue<'heap> {
+pub struct IntrinsicValueItem<'heap> {
     pub name: &'static str,
     pub r#type: TypeDef<'heap>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct IntrinsicType {
+pub struct IntrinsicTypeItem {
     pub name: &'static str,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, derive_more::From)]
 pub enum IntrinsicItem<'heap> {
-    Value(IntrinsicValue<'heap>),
-    Type(IntrinsicType),
+    Value(IntrinsicValueItem<'heap>),
+    Type(IntrinsicTypeItem),
 }
 
 impl IntrinsicItem<'_> {

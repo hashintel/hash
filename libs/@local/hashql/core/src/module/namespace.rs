@@ -430,7 +430,7 @@ mod tests {
         module::{
             ModuleId, ModuleRegistry, PartialModule, Universe,
             error::ResolutionError,
-            item::{IntrinsicItem, IntrinsicType, IntrinsicValue, Item, ItemKind},
+            item::{IntrinsicItem, IntrinsicTypeItem, IntrinsicValueItem, Item, ItemKind},
             namespace::{ImportOptions, ResolutionMode, ResolveOptions},
         },
         span::SpanId,
@@ -461,7 +461,7 @@ mod tests {
 
         assert_matches!(
             item.kind,
-            ItemKind::Intrinsic(IntrinsicItem::Value(IntrinsicValue {
+            ItemKind::Intrinsic(IntrinsicItem::Value(IntrinsicValueItem {
                 name: "::math::add",
                 r#type: _
             }))
@@ -492,7 +492,7 @@ mod tests {
 
         assert_eq!(
             item.kind,
-            ItemKind::Intrinsic(IntrinsicItem::Type(IntrinsicType {
+            ItemKind::Intrinsic(IntrinsicItem::Type(IntrinsicTypeItem {
                 name: "::kernel::type::Dict",
             }))
         );
@@ -526,7 +526,7 @@ mod tests {
 
         assert_matches!(
             item.kind,
-            ItemKind::Intrinsic(IntrinsicItem::Value(IntrinsicValue {
+            ItemKind::Intrinsic(IntrinsicItem::Value(IntrinsicValueItem {
                 name: "::kernel::special_form::let",
                 r#type: _
             }))
@@ -561,7 +561,7 @@ mod tests {
 
         assert_eq!(
             item.kind,
-            ItemKind::Intrinsic(IntrinsicItem::Type(IntrinsicType {
+            ItemKind::Intrinsic(IntrinsicItem::Type(IntrinsicTypeItem {
                 name: "::kernel::type::Dict",
             }))
         );
@@ -609,7 +609,7 @@ mod tests {
 
         assert_matches!(
             item.kind,
-            ItemKind::Intrinsic(IntrinsicItem::Value(IntrinsicValue {
+            ItemKind::Intrinsic(IntrinsicItem::Value(IntrinsicValueItem {
                 name: "::kernel::special_form::let",
                 r#type: _
             }))
@@ -632,7 +632,7 @@ mod tests {
             items: registry.intern_items(&[Item {
                 module: id.value(),
                 name: heap.intern_symbol("bar"),
-                kind: ItemKind::Intrinsic(IntrinsicItem::Type(IntrinsicType {
+                kind: ItemKind::Intrinsic(IntrinsicItem::Type(IntrinsicTypeItem {
                     name: "::foo::bar",
                 })),
             }]),
@@ -654,7 +654,7 @@ mod tests {
 
         assert_eq!(
             import.kind,
-            ItemKind::Intrinsic(IntrinsicItem::Type(IntrinsicType {
+            ItemKind::Intrinsic(IntrinsicItem::Type(IntrinsicTypeItem {
                 name: "::kernel::type::Dict",
             }))
         );
@@ -686,7 +686,9 @@ mod tests {
 
         assert_eq!(
             import.kind,
-            ItemKind::Intrinsic(IntrinsicItem::Type(IntrinsicType { name: "::foo::bar" }))
+            ItemKind::Intrinsic(IntrinsicItem::Type(IntrinsicTypeItem {
+                name: "::foo::bar"
+            }))
         );
     }
 
