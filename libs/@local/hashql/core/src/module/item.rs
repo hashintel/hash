@@ -33,18 +33,24 @@ impl IntrinsicItem {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct CtorItem<'heap> {
+    pub closure: TypeId,
+
+    pub r#type: TypeId,
+    pub arguments: &'heap [GenericArgumentReference<'heap>],
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum ItemKind<'heap> {
     Module(ModuleId),
 
     // In the future we'll also need to export values (like closures)
     // this would be done via a `DefId`/`ValueId` or similar
     Type(TypeId, &'heap [GenericArgumentReference<'heap>]),
+
     // In the future we would want to export this as a proper value, using a specialized
     // `TypeConstructor` will work for now.
-    TypeConstructor(
-        TypeId,                                   // The signature of the constructor closure
-        &'heap [GenericArgumentReference<'heap>], // Generic arguments for it
-    ),
+    Ctor(CtorItem<'heap>),
 
     Intrinsic(IntrinsicItem),
 }
@@ -55,7 +61,7 @@ impl ItemKind<'_> {
         match self {
             Self::Module(_) => None,
             Self::Type(_, _) => Some(Universe::Type),
-            Self::TypeConstructor(_, _) => Some(Universe::Value),
+            Self::Ctor(_) => Some(Universe::Value),
             Self::Intrinsic(item) => Some(item.universe()),
         }
     }
