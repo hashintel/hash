@@ -506,7 +506,11 @@ pub(crate) fn unknown_intrinsic_type(
              trying to use.",
         ));
     } else {
-        let suggestions: String = similar.join("`, `");
+        let suggestions: String = similar
+            .into_iter()
+            .map(|symbol| symbol.unwrap())
+            .intersperse("`, `")
+            .collect();
 
         diagnostic.add_help(Help::new(format!("Did you mean `{suggestions}`?")));
     }

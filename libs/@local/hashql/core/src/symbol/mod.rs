@@ -20,7 +20,6 @@
 pub mod sym;
 
 use core::{
-    borrow::Borrow,
     cmp::Ordering,
     fmt::{self, Display, Formatter},
     hash::{Hash, Hasher},
