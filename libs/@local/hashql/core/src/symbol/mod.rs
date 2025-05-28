@@ -114,18 +114,6 @@ impl Hash for Symbol<'_> {
     }
 }
 
-impl Borrow<str> for Symbol<'_> {
-    fn borrow(&self) -> &str {
-        self.0
-    }
-}
-
-impl AsRef<str> for Symbol<'_> {
-    fn as_ref(&self) -> &str {
-        self.0
-    }
-}
-
 impl Display for Symbol<'_> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         Display::fmt(self.0, fmt)

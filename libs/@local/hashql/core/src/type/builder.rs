@@ -33,29 +33,584 @@
 //! - **Generic types**: Types with type parameters and constraints.
 //! - **Applied types**: Generic types with concrete type arguments substituted.
 
-use alloc::vec;
-use core::{array, iter, slice};
-
 use super::{
     PartialType, TypeId,
     environment::Environment,
     kind::{
-        Apply, ClosureType, Generic, GenericArgument, Infer, IntersectionType, IntrinsicType,
-        OpaqueType, Param, PrimitiveType, StructType, TupleType, TypeKind, UnionType,
+        Apply, ClosureType, Generic, GenericArgument, GenericArguments, GenericSubstitutions,
+        Infer, IntersectionType, IntrinsicType, OpaqueType, Param, PrimitiveType, StructType,
+        TupleType, TypeKind, UnionType,
         generic::{GenericArgumentId, GenericArgumentReference, GenericSubstitution},
         infer::HoleId,
         intrinsic::{DictType, ListType},
-        r#struct::StructField,
+        r#struct::{StructField, StructFields},
     },
 };
-use crate::{collection::FastHashMap, intern::Provisioned, span::SpanId, symbol::Symbol};
+use crate::{
+    collection::{FastHashMap, SmallVec},
+    intern::Provisioned,
+    span::SpanId,
+    symbol::Symbol,
+};
+
+/// A wrapper for deferred computation during type construction.
+///
+/// `Lazy` allows closures to be used in type builder contexts where the computation
+/// needs to be deferred until the actual type construction occurs. This is particularly
+/// useful for self-referential types or when the computation depends on the type ID
+/// being constructed.
+///
+/// The wrapped closure receives both the provisioned type ID and a reference to the
+/// type builder, enabling complex type construction patterns.
+///
+/// # Examples
+///
+/// ```rust
+/// # use hashql_core::r#type::{environment::Environment, builder::{TypeBuilder, lazy}};
+/// # use hashql_core::span::SpanId;
+/// # use hashql_core::heap::Heap;
+/// # let heap = Heap::new();
+/// # let env = Environment::new(SpanId::SYNTHETIC, &heap);
+/// # let mut builder = TypeBuilder::synthetic(&env);
+/// // Defer computation of generic arguments
+/// let generic_type = builder.generic(
+///     lazy(|_id, builder| [builder.fresh_argument("T")]),
+///     builder.string(),
+/// );
+/// ```
+pub struct Lazy<F>(pub F);
+
+/// Creates a lazy computation wrapper for deferred type construction.
+///
+/// This is a convenience function, which allows for omitting any type arguments in the closure
+/// provided.
+pub fn lazy<F, T>(f: F) -> Lazy<F>
+where
+    F: FnOnce(Provisioned<TypeId>) -> T,
+{
+    Lazy(f)
+}
+
+/// Creates a lazy computation wrapper for deferred type construction.
+///
+/// This is a convenience function, which allows for omitting any type arguments in the closure
+/// provided.
+pub fn lazy2<'builder, 'env: 'builder, 'heap: 'env, F, T>(f: F) -> Lazy<F>
+where
+    F: FnOnce(Provisioned<TypeId>, &'builder TypeBuilder<'env, 'heap>) -> T,
+{
+    Lazy(f)
+}
+
+/// Converts a value into a [`GenericArgument`] during type construction.
+///
+/// # Examples
+///
+/// ```rust
+/// # use hashql_core::r#type::{environment::Environment, builder::{TypeBuilder, IntoGenericArgument}};
+/// # use hashql_core::{span::SpanId, heap::Heap, intern::Provisioned};
+/// # let heap = Heap::new();
+/// # let env = Environment::new(SpanId::SYNTHETIC, &heap);
+/// # let mut builder = TypeBuilder::synthetic(&env);
+/// let arg_id = builder.fresh_argument("T");
+///
+/// // Various ways to create generic arguments:
+/// // From just an ID (no constraint)
+/// let arg1 = arg_id;
+/// # builder.generic([arg1], builder.never());
+///
+/// // From ID with optional constraint
+/// let arg2 = (arg_id, Some(builder.string()));
+/// # builder.generic([arg2], builder.never());
+///
+/// // From ID with required constraint
+/// let arg3 = (arg_id, builder.number());
+/// # builder.generic([arg3], builder.never());
+/// ```
+pub trait IntoGenericArgument<'builder, 'env, 'heap> {
+    /// Converts this value into a [`GenericArgument`].
+    ///
+    /// The conversion receives the current type ID being constructed and a reference
+    /// to the type builder, enabling context-dependent argument creation.
+    fn into_generic_argument(
+        self,
+        id: Provisioned<TypeId>,
+        builder: &'builder TypeBuilder<'env, 'heap>,
+    ) -> GenericArgument<'heap>;
+}
+
+impl<'builder, 'env, 'heap> IntoGenericArgument<'builder, 'env, 'heap> for GenericArgument<'heap> {
+    fn into_generic_argument(
+        self,
+        _: Provisioned<TypeId>,
+        _: &'builder TypeBuilder<'env, 'heap>,
+    ) -> GenericArgument<'heap> {
+        self
+    }
+}
+
+impl<'builder, 'env, 'heap> IntoGenericArgument<'builder, 'env, 'heap>
+    for (GenericArgumentId, Option<TypeId>)
+{
+    fn into_generic_argument(
+        self,
+        _: Provisioned<TypeId>,
+        builder: &'builder TypeBuilder<'env, 'heap>,
+    ) -> GenericArgument<'heap> {
+        let (id, constraint) = self;
+
+        let name = builder.arguments[&id];
+
+        GenericArgument {
+            id,
+            name,
+            constraint,
+        }
+    }
+}
+
+impl<'builder, 'env, 'heap> IntoGenericArgument<'builder, 'env, 'heap>
+    for (GenericArgumentId, TypeId)
+{
+    fn into_generic_argument(
+        self,
+        id: Provisioned<TypeId>,
+        builder: &'builder TypeBuilder<'env, 'heap>,
+    ) -> GenericArgument<'heap> {
+        let (argument_id, constraint) = self;
+
+        (argument_id, Some(constraint)).into_generic_argument(id, builder)
+    }
+}
+
+impl<'builder, 'env, 'heap> IntoGenericArgument<'builder, 'env, 'heap> for GenericArgumentId {
+    fn into_generic_argument(
+        self,
+        id: Provisioned<TypeId>,
+        builder: &'builder TypeBuilder<'env, 'heap>,
+    ) -> GenericArgument<'heap> {
+        (self, None).into_generic_argument(id, builder)
+    }
+}
+
+impl<'builder, 'env: 'builder, 'heap: 'env, F, T> IntoGenericArgument<'builder, 'env, 'heap>
+    for Lazy<F>
+where
+    F: FnOnce(Provisioned<TypeId>, &'builder TypeBuilder<'env, 'heap>) -> T,
+    T: IntoGenericArgument<'builder, 'env, 'heap>,
+{
+    fn into_generic_argument(
+        self,
+        id: Provisioned<TypeId>,
+        builder: &'builder TypeBuilder<'env, 'heap>,
+    ) -> GenericArgument<'heap> {
+        (self.0)(id, builder).into_generic_argument(id, builder)
+    }
+}
+
+/// Converts a collection of values into [`GenericArguments`] during type construction.
+///
+/// # Examples
+///
+/// ```rust
+/// # use hashql_core::r#type::{environment::Environment, builder::{TypeBuilder, IntoGenericArguments, lazy}};
+/// # use hashql_core::{span::SpanId, heap::Heap, intern::Provisioned};
+/// # let heap = Heap::new();
+/// # let env = Environment::new(SpanId::SYNTHETIC, &heap);
+/// # let mut builder = TypeBuilder::synthetic(&env);
+/// # let id = Provisioned::default();
+/// let t_arg = builder.fresh_argument("T");
+/// let u_arg = builder.fresh_argument("U");
+///
+/// // From an array of argument specifications
+/// let args1 = [(t_arg, None), (u_arg, Some(builder.string()))];
+///
+/// // From a lazy computation
+/// let args2 = lazy(|_id, builder| {
+///     vec![builder.fresh_argument("Dynamic")]
+/// });
+/// ```
+pub trait IntoGenericArguments<'builder, 'env, 'heap> {
+    /// Converts this collection into [`GenericArguments`].
+    ///
+    /// The conversion receives the current type ID being constructed and a reference
+    /// to the type builder, enabling context-dependent argument collection creation.
+    fn into_generic_arguments(
+        self,
+        id: Provisioned<TypeId>,
+        builder: &'builder TypeBuilder<'env, 'heap>,
+    ) -> GenericArguments<'heap>;
+}
+
+impl<'builder, 'env, 'heap> IntoGenericArguments<'builder, 'env, 'heap>
+    for GenericArguments<'heap>
+{
+    fn into_generic_arguments(
+        self,
+        _: Provisioned<TypeId>,
+        _: &'builder TypeBuilder<'env, 'heap>,
+    ) -> GenericArguments<'heap> {
+        self
+    }
+}
+
+impl<'builder, 'env, 'heap, I> IntoGenericArguments<'builder, 'env, 'heap> for I
+where
+    I: IntoIterator<Item: IntoGenericArgument<'builder, 'env, 'heap>>,
+{
+    fn into_generic_arguments(
+        self,
+        id: Provisioned<TypeId>,
+        builder: &'builder TypeBuilder<'env, 'heap>,
+    ) -> GenericArguments<'heap> {
+        let mut arguments: SmallVec<_> = self
+            .into_iter()
+            .map(|argument| argument.into_generic_argument(id, builder))
+            .collect();
+
+        builder.env.intern_generic_arguments(&mut arguments)
+    }
+}
+
+impl<'builder, 'env: 'builder, 'heap: 'env, F, I> IntoGenericArguments<'builder, 'env, 'heap>
+    for Lazy<F>
+where
+    F: FnOnce(Provisioned<TypeId>, &'builder TypeBuilder<'env, 'heap>) -> I,
+    I: IntoGenericArguments<'builder, 'env, 'heap>,
+{
+    fn into_generic_arguments(
+        self,
+        id: Provisioned<TypeId>,
+        builder: &'builder TypeBuilder<'env, 'heap>,
+    ) -> GenericArguments<'heap> {
+        self.0(id, builder).into_generic_arguments(id, builder)
+    }
+}
+
+/// Converts a value into a [`GenericSubstitution`] during type construction.
+///
+/// # Examples
+///
+/// ```rust
+/// # use hashql_core::r#type::{environment::Environment, builder::{TypeBuilder, IntoGenericSubstitution}};
+/// # use hashql_core::{span::SpanId, heap::Heap, intern::Provisioned};
+/// # let heap = Heap::new();
+/// # let env = Environment::new(SpanId::SYNTHETIC, &heap);
+/// # let mut builder = TypeBuilder::synthetic(&env);
+/// let arg_id = builder.fresh_argument("T");
+///
+/// // From a tuple of argument ID and type
+/// let substitution = (arg_id, builder.string());
+/// # builder.apply([substitution], builder.never());
+/// ```
+pub trait IntoGenericSubstitution<'builder, 'env, 'heap> {
+    /// Converts this value into a [`GenericSubstitution`].
+    ///
+    /// The conversion receives the current type ID being constructed and a reference
+    /// to the type builder, enabling context-dependent substitution creation.
+    fn into_generic_substitution(
+        self,
+        id: Provisioned<TypeId>,
+        builder: &'builder TypeBuilder<'env, 'heap>,
+    ) -> GenericSubstitution;
+}
+
+impl<'builder, 'env, 'heap> IntoGenericSubstitution<'builder, 'env, 'heap> for GenericSubstitution {
+    fn into_generic_substitution(
+        self,
+        _: Provisioned<TypeId>,
+        _: &'builder TypeBuilder<'env, 'heap>,
+    ) -> GenericSubstitution {
+        self
+    }
+}
+
+impl<'builder, 'env, 'heap> IntoGenericSubstitution<'builder, 'env, 'heap>
+    for (GenericArgumentId, TypeId)
+{
+    fn into_generic_substitution(
+        self,
+        _: Provisioned<TypeId>,
+        _: &'builder TypeBuilder<'env, 'heap>,
+    ) -> GenericSubstitution {
+        let (argument, value) = self;
+
+        GenericSubstitution { argument, value }
+    }
+}
+
+impl<'builder, 'env: 'builder, 'heap: 'env, F, T> IntoGenericSubstitution<'builder, 'env, 'heap>
+    for Lazy<F>
+where
+    F: FnOnce(Provisioned<TypeId>, &'builder TypeBuilder<'env, 'heap>) -> T,
+    T: IntoGenericSubstitution<'builder, 'env, 'heap>,
+{
+    fn into_generic_substitution(
+        self,
+        id: Provisioned<TypeId>,
+        builder: &'builder TypeBuilder<'env, 'heap>,
+    ) -> GenericSubstitution {
+        (self.0)(id, builder).into_generic_substitution(id, builder)
+    }
+}
+
+/// Converts a collection of values into [`GenericSubstitutions`] during type construction.
+///
+/// # Examples
+///
+/// ```rust
+/// # use hashql_core::r#type::{environment::Environment, builder::{TypeBuilder, IntoGenericSubstitutions, lazy2}};
+/// # use hashql_core::{span::SpanId, heap::Heap, intern::Provisioned};
+/// # let heap = Heap::new();
+/// # let env = Environment::new(SpanId::SYNTHETIC, &heap);
+/// # let mut builder = TypeBuilder::synthetic(&env);
+/// let t_arg = builder.fresh_argument("T");
+/// let u_arg = builder.fresh_argument("U");
+///
+/// // From an array of substitution tuples
+/// let substitutions1 = [(t_arg, builder.string()), (u_arg, builder.number())];
+/// # builder.apply(substitutions1, builder.never());
+///
+/// // From a lazy computation
+/// let substitutions2 = lazy2(|_, builder| {
+///     vec![(t_arg, builder.boolean())]
+/// });
+/// # builder.apply(substitutions1, builder.never());
+/// ```
+pub trait IntoGenericSubstitutions<'builder, 'env, 'heap> {
+    /// Converts this collection into [`GenericSubstitutions`].
+    ///
+    /// The conversion receives the current type ID being constructed and a reference
+    /// to the type builder, enabling context-dependent substitution collection creation.
+    fn into_generic_substitutions(
+        self,
+        id: Provisioned<TypeId>,
+        builder: &'builder TypeBuilder<'env, 'heap>,
+    ) -> GenericSubstitutions<'heap>;
+}
+
+impl<'builder, 'env, 'heap> IntoGenericSubstitutions<'builder, 'env, 'heap>
+    for GenericSubstitutions<'heap>
+{
+    fn into_generic_substitutions(
+        self,
+        _: Provisioned<TypeId>,
+        _: &'builder TypeBuilder<'env, 'heap>,
+    ) -> GenericSubstitutions<'heap> {
+        self
+    }
+}
+
+impl<'builder, 'env, 'heap, I> IntoGenericSubstitutions<'builder, 'env, 'heap> for I
+where
+    I: IntoIterator<Item: IntoGenericSubstitution<'builder, 'env, 'heap>>,
+{
+    fn into_generic_substitutions(
+        self,
+        id: Provisioned<TypeId>,
+        builder: &'builder TypeBuilder<'env, 'heap>,
+    ) -> GenericSubstitutions<'heap> {
+        let mut substitutions: SmallVec<_> = self
+            .into_iter()
+            .map(|substitution| substitution.into_generic_substitution(id, builder))
+            .collect();
+
+        builder.env.intern_generic_substitutions(&mut substitutions)
+    }
+}
+
+impl<'builder, 'env: 'builder, 'heap: 'env, F, I> IntoGenericSubstitutions<'builder, 'env, 'heap>
+    for Lazy<F>
+where
+    F: FnOnce(Provisioned<TypeId>, &'builder TypeBuilder<'env, 'heap>) -> I,
+    I: IntoGenericSubstitutions<'builder, 'env, 'heap>,
+{
+    fn into_generic_substitutions(
+        self,
+        id: Provisioned<TypeId>,
+        builder: &'builder TypeBuilder<'env, 'heap>,
+    ) -> GenericSubstitutions<'heap> {
+        self.0(id, builder).into_generic_substitutions(id, builder)
+    }
+}
+
+/// Converts a value into a [`StructField`] during type construction.
+///
+/// This trait enables flexible construction of struct fields by allowing
+/// various input formats to be converted into the standard [`StructField`] representation.
+/// Implementations exist for tuples with names and types, symbols with types, and lazy
+/// computations.
+///
+/// # Lifetime Parameters
+///
+/// - `'builder`: The lifetime of the type builder reference
+/// - `'env`: The lifetime of the environment reference
+/// - `'heap`: The lifetime of the heap-allocated data
+///
+/// # Examples
+///
+/// ```rust
+/// # use hashql_core::r#type::{environment::Environment, builder::{TypeBuilder, IntoStructField}};
+/// # use hashql_core::{span::SpanId, heap::Heap, intern::Provisioned};
+/// # let heap = Heap::new();
+/// # let env = Environment::new(SpanId::SYNTHETIC, &heap);
+/// # let builder = TypeBuilder::synthetic(&env);
+///
+/// // From a string name and type
+/// let field1 = ("name", builder.string());
+/// # builder.r#struct([field1]);
+///
+/// // From a symbol and type
+/// let name_symbol = builder.env.heap.intern_symbol("age");
+/// let field2 = (name_symbol, builder.integer());
+/// # builder.r#struct([field2]);
+/// ```
+pub trait IntoStructField<'builder, 'env, 'heap> {
+    /// Converts this value into a [`StructField`].
+    ///
+    /// The conversion receives the current type ID being constructed and a reference
+    /// to the type builder, enabling context-dependent field creation.
+    fn into_struct_field(
+        self,
+        id: Provisioned<TypeId>,
+        builder: &'builder TypeBuilder<'env, 'heap>,
+    ) -> StructField<'heap>;
+}
+
+impl<'builder, 'env, 'heap> IntoStructField<'builder, 'env, 'heap> for StructField<'heap> {
+    fn into_struct_field(
+        self,
+        _: Provisioned<TypeId>,
+        _: &'builder TypeBuilder<'env, 'heap>,
+    ) -> StructField<'heap> {
+        self
+    }
+}
+
+impl<'builder, 'env, 'heap> IntoStructField<'builder, 'env, 'heap> for (Symbol<'heap>, TypeId) {
+    fn into_struct_field(
+        self,
+        _: Provisioned<TypeId>,
+        _: &'builder TypeBuilder<'env, 'heap>,
+    ) -> StructField<'heap> {
+        let (name, value) = self;
+
+        StructField { name, value }
+    }
+}
+
+impl<'builder, 'env, 'heap, N> IntoStructField<'builder, 'env, 'heap> for (N, TypeId)
+where
+    N: AsRef<str>,
+{
+    fn into_struct_field(
+        self,
+        _: Provisioned<TypeId>,
+        builder: &'builder TypeBuilder<'env, 'heap>,
+    ) -> StructField<'heap> {
+        let (name, value) = self;
+
+        StructField {
+            name: builder.env.heap.intern_symbol(name.as_ref()),
+            value,
+        }
+    }
+}
+
+impl<'builder, 'env: 'builder, 'heap: 'env, F, I> IntoStructField<'builder, 'env, 'heap> for Lazy<F>
+where
+    F: FnOnce(Provisioned<TypeId>, &'builder TypeBuilder<'env, 'heap>) -> I,
+    I: IntoStructField<'builder, 'env, 'heap>,
+{
+    fn into_struct_field(
+        self,
+        id: Provisioned<TypeId>,
+        builder: &'builder TypeBuilder<'env, 'heap>,
+    ) -> StructField<'heap> {
+        (self.0)(id, builder).into_struct_field(id, builder)
+    }
+}
+
+/// Converts a collection of values into [`StructFields`] during type construction.
+///
+/// # Examples
+///
+/// ```rust
+/// # use hashql_core::r#type::{environment::Environment, builder::{TypeBuilder, IntoStructFields, lazy2}};
+/// # use hashql_core::{span::SpanId, heap::Heap, intern::Provisioned};
+/// # let heap = Heap::new();
+/// # let env = Environment::new(SpanId::SYNTHETIC, &heap);
+/// # let builder = TypeBuilder::synthetic(&env);
+///
+/// // From an array of field tuples
+/// let fields1 = [("name", builder.string()), ("age", builder.integer())];
+/// # builder.r#struct(fields1);
+///
+/// // From a lazy computation
+/// let fields2 = lazy2(|_id, builder| {
+///     vec![("dynamic_field", builder.boolean())]
+/// });
+/// # builder.r#struct(fields2);
+/// ```
+pub trait IntoStructFields<'builder, 'env, 'heap> {
+    /// Converts this collection into [`StructFields`].
+    ///
+    /// The conversion receives the current type ID being constructed and a reference
+    /// to the type builder, enabling context-dependent field collection creation.
+    fn into_struct_fields(
+        self,
+        id: Provisioned<TypeId>,
+        builder: &'builder TypeBuilder<'env, 'heap>,
+    ) -> StructFields<'heap>;
+}
+
+impl<'builder, 'env, 'heap> IntoStructFields<'builder, 'env, 'heap> for StructFields<'heap> {
+    fn into_struct_fields(
+        self,
+        _: Provisioned<TypeId>,
+        _: &'builder TypeBuilder<'env, 'heap>,
+    ) -> StructFields<'heap> {
+        self
+    }
+}
+
+impl<'builder, 'env, 'heap, I> IntoStructFields<'builder, 'env, 'heap> for I
+where
+    I: IntoIterator<Item: IntoStructField<'builder, 'env, 'heap>>,
+{
+    fn into_struct_fields(
+        self,
+        id: Provisioned<TypeId>,
+        builder: &'builder TypeBuilder<'env, 'heap>,
+    ) -> StructFields<'heap> {
+        let mut fields: SmallVec<_> = self
+            .into_iter()
+            .map(|field| field.into_struct_field(id, builder))
+            .collect();
+
+        builder
+            .env
+            .intern_struct_fields(&mut fields)
+            .expect("struct fields should be unique")
+    }
+}
+
+impl<'builder, 'env: 'builder, 'heap: 'env, F, I> IntoStructFields<'builder, 'env, 'heap>
+    for Lazy<F>
+where
+    F: FnOnce(Provisioned<TypeId>, &'builder TypeBuilder<'env, 'heap>) -> I,
+    I: IntoStructFields<'builder, 'env, 'heap>,
+{
+    fn into_struct_fields(
+        self,
+        id: Provisioned<TypeId>,
+        builder: &'builder TypeBuilder<'env, 'heap>,
+    ) -> StructFields<'heap> {
+        (self.0)(id, builder).into_struct_fields(id, builder)
+    }
+}
 
 /// Converts a value into a [`TypeId`] during type construction.
-///
-/// This trait enables flexible type construction by allowing both direct [`TypeId`] values and
-/// closures that compute a [`TypeId`] based on the current type being constructed. The closure
-/// variant is useful for self-referential types or types that need to reference the ID of the type
-/// currently being built.
 pub trait IntoType {
     /// Converts this value into a [`TypeId`].
     ///
@@ -64,12 +619,13 @@ pub trait IntoType {
     fn into_type(self, id: Provisioned<TypeId>) -> TypeId;
 }
 
-impl<F> IntoType for F
+impl<F, T> IntoType for Lazy<F>
 where
-    F: FnOnce(Provisioned<TypeId>) -> TypeId,
+    F: FnOnce(Provisioned<TypeId>) -> T,
+    T: IntoType,
 {
     fn into_type(self, id: Provisioned<TypeId>) -> TypeId {
-        self(id)
+        (self.0)(id).into_type(id)
     }
 }
 
@@ -80,17 +636,9 @@ impl IntoType for TypeId {
 }
 
 /// Converts a value into an iterator during type construction.
-///
-/// This trait enables flexible collection-based type construction by allowing various
-/// collection types (arrays, vectors, slices) and closures that produce iterators. It's used
-/// primarily for constructing composite types like structs, tuples, and unions that contain
-/// multiple type elements.
-pub trait IntoTypeIterator {
-    /// The type of items yielded by the iterator.
-    type Item;
-
+pub trait IntoTypes {
     /// The iterator type that will be returned.
-    type IntoIter: IntoIterator<Item = Self::Item>;
+    type IntoIter: IntoIterator<Item = TypeId>;
 
     /// Converts this value into an iterator.
     ///
@@ -99,46 +647,26 @@ pub trait IntoTypeIterator {
     fn into_type_iter(self, id: Provisioned<TypeId>) -> Self::IntoIter;
 }
 
-impl<F, I> IntoTypeIterator for F
+impl<F, I> IntoTypes for Lazy<F>
 where
     F: FnOnce(Provisioned<TypeId>) -> I,
-    I: IntoIterator,
+    I: IntoTypes,
 {
-    type IntoIter = I;
-    type Item = I::Item;
+    type IntoIter = I::IntoIter;
 
     fn into_type_iter(self, id: Provisioned<TypeId>) -> Self::IntoIter {
-        self(id)
+        self.0(id).into_type_iter(id)
     }
 }
 
-impl<T, const N: usize> IntoTypeIterator for [T; N] {
-    type IntoIter = array::IntoIter<T, N>;
-    type Item = T;
-
-    fn into_type_iter(self, _: Provisioned<TypeId>) -> Self::IntoIter {
-        self.into_iter()
-    }
-}
-
-impl<T> IntoTypeIterator for Vec<T> {
-    type IntoIter = vec::IntoIter<T>;
-    type Item = T;
-
-    fn into_type_iter(self, _: Provisioned<TypeId>) -> Self::IntoIter {
-        self.into_iter()
-    }
-}
-
-impl<'slice, T> IntoTypeIterator for &'slice [T]
+impl<I> IntoTypes for I
 where
-    T: Clone,
+    I: IntoIterator<Item = TypeId>,
 {
-    type IntoIter = iter::Cloned<slice::Iter<'slice, T>>;
-    type Item = T;
+    type IntoIter = I::IntoIter;
 
     fn into_type_iter(self, _: Provisioned<TypeId>) -> Self::IntoIter {
-        self.iter().cloned()
+        self.into_iter()
     }
 }
 
@@ -151,7 +679,7 @@ where
 /// # Examples
 ///
 /// ```rust
-/// # use hashql_core::r#type::{environment::Environment, builder::TypeBuilder};
+/// # use hashql_core::r#type::{environment::Environment, builder::{TypeBuilder, lazy}};
 /// # use hashql_core::heap::Heap;
 /// # use hashql_core::span::SpanId;
 /// # use hashql_core::intern::Provisioned;
@@ -179,7 +707,7 @@ where
 /// let string_to_number = builder.closure([string_type], number_type);
 ///
 /// // Recursive types
-/// let list_of_list = builder.list(|id: Provisioned<_>| id.value());
+/// let list_of_list = builder.list(lazy(|id| id.value()));
 /// ```
 pub struct TypeBuilder<'env, 'heap> {
     span: SpanId,
@@ -461,26 +989,14 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     ///
     /// Panics if duplicate field names are provided, as struct fields must be unique.
     #[must_use]
-    pub fn r#struct<N>(&self, fields: impl IntoTypeIterator<Item = (N, TypeId)>) -> TypeId
-    where
-        N: AsRef<str>,
-    {
+    pub fn r#struct<'this>(
+        &'this self,
+        fields: impl IntoStructFields<'this, 'env, 'heap>,
+    ) -> TypeId {
         self.partial(|id| {
-            let mut fields: Vec<_> = fields
-                .into_type_iter(id)
-                .into_iter()
-                .map(|(name, value)| StructField {
-                    name: self.env.heap.intern_symbol(name.as_ref()),
-                    value,
-                })
-                .collect();
+            let fields = fields.into_struct_fields(id, self);
 
-            TypeKind::Struct(StructType {
-                fields: self
-                    .env
-                    .intern_struct_fields(&mut fields)
-                    .expect("no duplicate struct fields should be present"),
-            })
+            TypeKind::Struct(StructType { fields })
         })
     }
 
@@ -506,7 +1022,7 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     /// let unit = builder.tuple([]);
     /// ```
     #[must_use]
-    pub fn tuple(&self, fields: impl IntoTypeIterator<Item = TypeId>) -> TypeId {
+    pub fn tuple(&self, fields: impl IntoTypes) -> TypeId {
         self.partial(|id| {
             let fields: Vec<_> = fields.into_type_iter(id).into_iter().collect();
 
@@ -538,7 +1054,7 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     /// let number_or_string = builder.union([builder.number(), builder.string()]);
     /// ```
     #[must_use]
-    pub fn union(&self, variants: impl IntoTypeIterator<Item = TypeId>) -> TypeId {
+    pub fn union(&self, variants: impl IntoTypes) -> TypeId {
         self.partial(|id| {
             let variants: Vec<_> = variants.into_type_iter(id).into_iter().collect();
 
@@ -573,7 +1089,7 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     /// let serializable_and_comparable = builder.intersection([serializable, comparable]);
     /// ```
     #[must_use]
-    pub fn intersection(&self, variants: impl IntoTypeIterator<Item = TypeId>) -> TypeId {
+    pub fn intersection(&self, variants: impl IntoTypes) -> TypeId {
         self.partial(|id| {
             let variants: Vec<_> = variants.into_type_iter(id).into_iter().collect();
 
@@ -607,11 +1123,7 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     /// let get_greeting = builder.closure([], builder.string());
     /// ```
     #[must_use]
-    pub fn closure(
-        &self,
-        params: impl IntoTypeIterator<Item = TypeId>,
-        returns: impl IntoType,
-    ) -> TypeId {
+    pub fn closure(&self, params: impl IntoTypes, returns: impl IntoType) -> TypeId {
         self.partial(|id| {
             let params: Vec<_> = params.into_type_iter(id).into_iter().collect();
             let returns = returns.into_type(id);
@@ -645,22 +1157,17 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     /// let string_list = builder.apply([(t_param, builder.string())], generic_list);
     /// ```
     #[must_use]
-    pub fn apply(
-        &self,
-        subscriptions: impl IntoTypeIterator<Item = (GenericArgumentId, TypeId)>,
+    pub fn apply<'this>(
+        &'this self,
+        substitutions: impl IntoGenericSubstitutions<'this, 'env, 'heap>,
         base: impl IntoType,
     ) -> TypeId {
         self.partial(|id| {
-            let mut substitutions: Vec<_> = subscriptions
-                .into_type_iter(id)
-                .into_iter()
-                .map(|(argument, value)| GenericSubstitution { argument, value })
-                .collect();
-
+            let substitutions = substitutions.into_generic_substitutions(id, self);
             let base = base.into_type(id);
 
             TypeKind::Apply(Apply {
-                substitutions: self.env.intern_generic_substitutions(&mut substitutions),
+                substitutions,
                 base,
             })
         })
@@ -696,28 +1203,16 @@ impl<'env, 'heap> TypeBuilder<'env, 'heap> {
     /// );
     /// ```
     #[must_use]
-    pub fn generic(
-        &self,
-        arguments: impl IntoTypeIterator<Item = (GenericArgumentId, Option<TypeId>)>,
+    pub fn generic<'this>(
+        &'this self,
+        arguments: impl IntoGenericArguments<'this, 'env, 'heap>,
         base: impl IntoType,
     ) -> TypeId {
         self.partial(|id| {
-            let mut arguments: Vec<_> = arguments
-                .into_type_iter(id)
-                .into_iter()
-                .map(|(id, constraint)| GenericArgument {
-                    name: self.arguments[&id],
-                    id,
-                    constraint,
-                })
-                .collect();
-
+            let arguments = arguments.into_generic_arguments(id, self);
             let base = base.into_type(id);
 
-            TypeKind::Generic(Generic {
-                arguments: self.env.intern_generic_arguments(&mut arguments),
-                base,
-            })
+            TypeKind::Generic(Generic { arguments, base })
         })
     }
 
