@@ -39,12 +39,31 @@ pub struct TypeAssertion<'heap> {
 ///
 /// Type constructors are particularly important for nominal type systems and
 /// newtypes, allowing explicit conversion between otherwise incompatible types.
+// TODO: in the future we might want to generalize these more, and have the ability to actually
+// "move" them around, e.g. `let x = identity(Some)` (this doesn't work at the current time)
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct TypeConstructor<'heap> {
     pub span: SpanId,
 
-    pub value: Node<'heap>,
-    pub r#type: TypeId,
+    pub value: Node<'heap>, /* <- This is the problem. I don't think we need this actually. What
+                             * we need instead is just to have a reference! */
+    pub r#type: TypeId, /* This should be the type of the closure
+                         * The problem is that if we don't have an underlying value - an
+                         * application - then we cannot easily just "optimize" this node out,
+                         * because we can only optimize it out if there's. well actually an
+                         * application, but that isn't easily achievable here, but with a value
+                         * we can't just use e.g. `None` as a constructor without a value. But
+                         * in the case of just a normal function, it'd be very similar to
+                         * just... a closure, except this could help us in the long run when
+                         * trying to optimize? It's good to know for sure, because we know the
+                         * value. I am just trying to figure out *how* to do this best. I think
+                         * because this is just a normal function, like any other (except that
+                         * it's an intrinsic). I think it makes sense to just treat it as such -
+                         * meaning it's just a closure with a set of arguments and a return
+                         * type. This would then also allow us to "move around" the things in
+                         * the future. I mean for now we can just deny `TypeConstructor` in
+                         * non-function positions, but I feel like that'd be a good idea either
+                         * way? */
 }
 
 /// The kinds of type operations in the HashQL HIR.
