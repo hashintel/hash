@@ -1,15 +1,12 @@
 use core::iter;
 
-use super::{Module, ModuleId, ModuleRegistry, Universe};
-use crate::{
-    symbol::Symbol,
-    r#type::{TypeId, kind::generic::GenericArgumentReference},
-};
+use super::{Module, ModuleId, ModuleRegistry, Universe, locals::TypeDef};
+use crate::symbol::Symbol;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct IntrinsicValue {
+pub struct IntrinsicValue<'heap> {
     pub name: &'static str,
-    pub r#type: TypeId,
+    pub r#type: TypeDef<'heap>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -17,13 +14,13 @@ pub struct IntrinsicType {
     pub name: &'static str,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum IntrinsicItem {
-    Value(IntrinsicValue),
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, derive_more::From)]
+pub enum IntrinsicItem<'heap> {
+    Value(IntrinsicValue<'heap>),
     Type(IntrinsicType),
 }
 
-impl IntrinsicItem {
+impl IntrinsicItem<'_> {
     pub const fn universe(&self) -> Universe {
         match self {
             Self::Value(_) => Universe::Value,
@@ -33,26 +30,28 @@ impl IntrinsicItem {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct CtorItem<'heap> {
-    pub closure: TypeId,
-
-    pub r#type: TypeId,
-    pub arguments: &'heap [GenericArgumentReference<'heap>],
+pub struct ConstructorItem<'heap> {
+    // The type this constructor creates
+    pub r#type: TypeDef<'heap>,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, derive_more::From)]
 pub enum ItemKind<'heap> {
+    #[from]
     Module(ModuleId),
 
     // In the future we'll also need to export values (like closures)
     // this would be done via a `DefId`/`ValueId` or similar
-    Type(TypeId, &'heap [GenericArgumentReference<'heap>]),
+    #[from]
+    Type(TypeDef<'heap>),
 
     // In the future we would want to export this as a proper value, using a specialized
     // `TypeConstructor` will work for now.
-    Ctor(CtorItem<'heap>),
+    #[from]
+    Constructor(ConstructorItem<'heap>),
 
-    Intrinsic(IntrinsicItem),
+    #[from(forward)]
+    Intrinsic(IntrinsicItem<'heap>),
 }
 
 impl ItemKind<'_> {
@@ -60,8 +59,8 @@ impl ItemKind<'_> {
     pub const fn universe(&self) -> Option<Universe> {
         match self {
             Self::Module(_) => None,
-            Self::Type(_, _) => Some(Universe::Type),
-            Self::Ctor(_) => Some(Universe::Value),
+            Self::Type(_) => Some(Universe::Type),
+            Self::Constructor(_) => Some(Universe::Value),
             Self::Intrinsic(item) => Some(item.universe()),
         }
     }

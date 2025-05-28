@@ -24,9 +24,10 @@ text-size          = { workspace = true, public = true }
 # Private workspace dependencies
 
 # Private third-party dependencies
+arrayvec             = "0.7.6"
 bitvec               = { workspace = true, features = ["alloc"] }
 bumpalo              = { workspace = true }
-derive_more          = { workspace = true, features = ["debug"] }
+derive_more          = { workspace = true, features = ["debug", "from"] }
 ena                  = { workspace = true }
 lexical              = { workspace = true, features = ["parse-integers", "parse-floats", "format"] }
 rapidfuzz            = "0.5.0"

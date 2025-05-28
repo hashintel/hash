@@ -1,17 +1,20 @@
+use core::iter;
+
+use arrayvec::ArrayVec;
+
 use super::{
     ModuleId, ModuleRegistry, PartialModule,
-    item::{CtorItem, IntrinsicItem, IntrinsicType, IntrinsicValue, Item, ItemKind},
+    item::{ConstructorItem, IntrinsicType, IntrinsicValue, Item, ItemKind},
+    locals::TypeDef,
 };
 use crate::{
     heap::Heap,
+    symbol::Symbol,
     r#type::{
         TypeId,
         builder::TypeBuilder,
         environment::Environment,
-        kind::{
-            Generic, GenericArguments, OpaqueType, PrimitiveType, TypeKind,
-            generic::GenericArgumentReference,
-        },
+        kind::generic::{GenericArgumentId, GenericArgumentReference},
     },
 };
 
@@ -35,95 +38,76 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
         }
     }
 
+    fn item(
+        module: ModuleId,
+        name: Symbol<'heap>,
+        kind: impl Into<ItemKind<'heap>>,
+    ) -> Item<'heap> {
+        Item {
+            module,
+            name,
+            kind: kind.into(),
+        }
+    }
+
     fn alloc_intrinsic_value(
         &self,
-        parent: ModuleId,
+        module: ModuleId,
         name: &'static str,
-        alias: Option<&str>,
-        r#type: TypeId,
-    ) -> Item<'heap> {
-        let ident =
-            alias.unwrap_or_else(|| name.rsplit_once("::").expect("path should be non-empty").1);
-        let ident = self.heap.intern_symbol(ident);
+        alias: impl IntoIterator<Item = &'static str>,
+        r#type: TypeDef<'heap>,
+    ) -> impl IntoIterator<Item = Item<'heap>> {
+        let ident = name.rsplit_once("::").expect("path should be non-empty").1;
 
-        Item {
-            module: parent,
-            name: ident,
-            kind: ItemKind::Intrinsic(IntrinsicItem::Value(IntrinsicValue { name, r#type })),
-        }
+        iter::once(ident).chain(alias).map(move |name| {
+            Self::item(
+                module,
+                self.heap.intern_symbol(name),
+                IntrinsicValue { name, r#type },
+            )
+        })
     }
 
     fn alloc_intrinsic_type(
         &self,
         parent: ModuleId,
         name: &'static str,
-        alias: Option<&str>,
-    ) -> Item<'heap> {
-        let ident =
-            alias.unwrap_or_else(|| name.rsplit_once("::").expect("path should be non-empty").1);
-        let ident = self.heap.intern_symbol(ident);
+        alias: impl IntoIterator<Item = &'static str>,
+    ) -> impl IntoIterator<Item = Item<'heap>> {
+        let ident = name.rsplit_once("::").expect("path should be non-empty").1;
 
-        Item {
-            module: parent,
-            name: ident,
-            kind: ItemKind::Intrinsic(IntrinsicItem::Type(IntrinsicType { name })),
-        }
+        iter::once(ident).chain(alias).map(move |name| {
+            Self::item(
+                parent,
+                self.heap.intern_symbol(name),
+                IntrinsicType { name },
+            )
+        })
     }
 
     fn alloc_ctor(
         &self,
-        parent: ModuleId,
+        module: ModuleId,
         name: &'static str,
-        r#type: TypeId,
-        generics: &[GenericArgumentReference<'heap>],
+        r#type: TypeDef<'heap>,
     ) -> Item<'heap> {
-        let (opaque, repr, arguments) = match self.environment.r#type(r#type).kind {
-            &TypeKind::Opaque(OpaqueType { repr, .. }) if generics.is_empty() => {
-                (r#type, repr, GenericArguments::empty())
-            }
-            TypeKind::Opaque(_) => {
-                panic!("opaque type with arguments should be wrapped in a generic type")
-            }
-            &TypeKind::Generic(Generic { base, arguments }) if !arguments.is_empty() => {
-                let repr = self
-                    .environment
-                    .r#type(base)
-                    .kind
-                    .opaque()
-                    .expect("generic type should wrap opaque type")
-                    .repr;
+        Self::item(
+            module,
+            self.heap.intern_symbol(name),
+            ConstructorItem { r#type },
+        )
+    }
 
-                (base, repr, arguments)
-            }
-            TypeKind::Generic(_) => {
-                panic!("generic type with no arguments should not be wrapped in an opaque type")
-            }
-            _ => panic!("expected opaque or generic type"),
-        };
-
-        // In case the `repr` is `Null` we special case, this allows us to have `None` as a valid
-        // repr without any value, which makes construction easy.
-        // TODO: the same needs to be applied when extracting values
-        // `fn<T, U, ...>(repr) -> opaque`
-        let mut closure =
-            if *self.environment.r#type(repr).kind == TypeKind::Primitive(PrimitiveType::Null) {
-                self.ty.closure([] as [TypeId; 0], opaque)
-            } else {
-                self.ty.closure([repr], opaque)
-            };
-
-        if !arguments.is_empty() {
-            closure = self.ty.generic(arguments, closure);
-        }
-
-        Item {
-            module: parent,
-            name: self.heap.intern_symbol(name),
-            kind: ItemKind::Ctor(CtorItem {
-                closure,
-                r#type,
-                arguments: self.heap.slice(generics),
-            }),
+    fn type_def(
+        &self,
+        r#type: TypeId,
+        arguments: &[GenericArgumentReference<'heap>],
+    ) -> TypeDef<'heap> {
+        TypeDef {
+            id: r#type,
+            arguments: self
+                .environment
+                .intern_generic_argument_references(arguments),
         }
     }
 
@@ -131,38 +115,41 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
         &self,
         parent: ModuleId,
         name: &'static str,
-        kind: TypeId,
-        generics: &[GenericArgumentReference<'heap>],
+        r#type: TypeDef<'heap>,
     ) -> Item<'heap> {
-        Item {
-            module: parent,
-            name: self.heap.intern_symbol(name),
-            kind: ItemKind::Type(kind, self.heap.slice(generics)),
-        }
+        Self::item(parent, self.heap.intern_symbol(name), r#type)
     }
 
     fn kernel_special_form_module(&self, parent: ModuleId) -> ModuleId {
         self.registry.intern_module(|id| {
             let id = id.value();
 
-            let make = |name: &'static str, alias: Option<&'static str>| {
-                self.alloc_intrinsic_value(id, name, alias, self.ty.never())
+            let make = |name: &'static str, alias: &'static [&'static str]| {
+                self.alloc_intrinsic_value(
+                    id,
+                    name,
+                    alias.iter().copied(),
+                    self.type_def(self.ty.never(), &[]),
+                )
             };
 
-            let items = [
-                make("::kernel::special_form::if", None),
-                make("::kernel::special_form::is", None),
-                make("::kernel::special_form::let", None),
-                make("::kernel::special_form::type", None),
-                make("::kernel::special_form::newtype", None),
-                make("::kernel::special_form::use", None),
-                make("::kernel::special_form::fn", None),
-                make("::kernel::special_form::input", None),
-                make("::kernel::special_form::access", Some(".")),
-                make("::kernel::special_form::access", None),
-                make("::kernel::special_form::index", Some("[]")),
-                make("::kernel::special_form::index", None),
-            ];
+            let mut items = ArrayVec::<_, 12>::new();
+            items.extend(
+                [
+                    make("::kernel::special_form::if", &[]),
+                    make("::kernel::special_form::is", &[]),
+                    make("::kernel::special_form::let", &[]),
+                    make("::kernel::special_form::type", &[]),
+                    make("::kernel::special_form::newtype", &[]),
+                    make("::kernel::special_form::use", &[]),
+                    make("::kernel::special_form::fn", &[]),
+                    make("::kernel::special_form::input", &[]),
+                    make("::kernel::special_form::access", &["."]),
+                    make("::kernel::special_form::index", &["[]"]),
+                ]
+                .into_iter()
+                .flatten(),
+            );
 
             PartialModule {
                 name: self.heap.intern_symbol("special_form"),
@@ -174,44 +161,50 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
 
     fn kernel_type_module_primitives(&self, parent: ModuleId, items: &mut Vec<Item<'heap>>) {
         items.extend_from_slice(&[
-            self.alloc_type_item(parent, "Boolean", self.ty.boolean(), &[]),
-            self.alloc_type_item(parent, "Null", self.ty.null(), &[]),
-            self.alloc_type_item(parent, "Number", self.ty.number(), &[]),
-            self.alloc_type_item(parent, "Integer", self.ty.integer(), &[]),
+            self.alloc_type_item(parent, "Boolean", self.type_def(self.ty.boolean(), &[])),
+            self.alloc_type_item(parent, "Null", self.type_def(self.ty.null(), &[])),
+            self.alloc_type_item(parent, "Number", self.type_def(self.ty.number(), &[])),
+            self.alloc_type_item(parent, "Integer", self.type_def(self.ty.integer(), &[])),
             // Natural does not yet exist, due to lack of support for refinements
-            self.alloc_type_item(parent, "String", self.ty.string(), &[]),
+            self.alloc_type_item(parent, "String", self.type_def(self.ty.string(), &[])),
         ]);
     }
 
     fn kernel_type_module_boundary(&self, parent: ModuleId, items: &mut Vec<Item<'heap>>) {
         items.extend_from_slice(&[
-            self.alloc_type_item(parent, "Unknown", self.ty.unknown(), &[]),
-            self.alloc_type_item(parent, "Never", self.ty.never(), &[]),
-            self.alloc_type_item(parent, "?", self.ty.unknown(), &[]),
-            self.alloc_type_item(parent, "!", self.ty.never(), &[]),
+            self.alloc_type_item(parent, "Unknown", self.type_def(self.ty.unknown(), &[])),
+            self.alloc_type_item(parent, "Never", self.type_def(self.ty.never(), &[])),
+            self.alloc_type_item(parent, "?", self.type_def(self.ty.unknown(), &[])),
+            self.alloc_type_item(parent, "!", self.type_def(self.ty.never(), &[])),
         ]);
     }
 
     fn kernel_type_module_intrinsics(&self, parent: ModuleId, items: &mut Vec<Item<'heap>>) {
         // Struct/Tuple are purposefully excluded, as they are
         // fundamental types and do not have any meaningful value constructors.
-        // Union and Type only have constructors for their respective types, but no meaningful
-        // types.
-        items.extend_from_slice(&[
-            self.alloc_intrinsic_type(parent, "::kernel::type::List", None),
-            self.alloc_intrinsic_type(parent, "::kernel::type::Dict", None),
-        ]);
+        // Union and Intersections are also excluded, as they have explicit constructors.
+        items.extend(
+            [
+                self.alloc_intrinsic_type(parent, "::kernel::type::List", None),
+                self.alloc_intrinsic_type(parent, "::kernel::type::Dict", None),
+            ]
+            .into_iter()
+            .flatten(),
+        );
     }
 
     fn kernel_type_module_opaque(&self, parent: ModuleId, items: &mut Vec<Item<'heap>>) {
         let url = self.ty.opaque("::kernel::type::Url", self.ty.string());
-        let base_url = self.ty.opaque("::kernel::type::BaseUrl", url);
+        let url = self.type_def(url, &[]);
+
+        let base_url = self.ty.opaque("::kernel::type::BaseUrl", url.id);
+        let base_url = self.type_def(base_url, &[]);
 
         items.extend_from_slice(&[
-            self.alloc_type_item(parent, "Url", url, &[]),
-            self.alloc_ctor(parent, "Url", url, &[]),
-            self.alloc_type_item(parent, "BaseUrl", base_url, &[]),
-            self.alloc_ctor(parent, "BaseUrl", base_url, &[]),
+            self.alloc_type_item(parent, "Url", url),
+            self.alloc_ctor(parent, "Url", url),
+            self.alloc_type_item(parent, "BaseUrl", base_url),
+            self.alloc_ctor(parent, "BaseUrl", base_url),
         ]);
     }
 
@@ -221,49 +214,55 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
         let generic = self.ty.fresh_argument("T");
 
         let none = self.ty.opaque("::kernel::type::None", self.ty.null());
+        let none = self.type_def(none, &[]);
+
         let some = self.ty.generic(
             [(generic, None)],
             self.ty
                 .opaque("::kernel::type::Some", self.ty.param(generic)),
         );
+        let some = self.type_def(some, &[self.ty.hydrate_argument(generic)]);
 
-        let option = self.ty.union([some, none]);
-
-        let generic = self.ty.hydrate_argument(generic);
+        let option = self.ty.union([some.id, none.id]);
+        let option = self.type_def(option, &[self.ty.hydrate_argument(generic)]);
 
         items.extend_from_slice(&[
-            self.alloc_type_item(parent, "None", none, &[]),
-            self.alloc_ctor(parent, "None", none, &[]),
-            self.alloc_type_item(parent, "Some", some, &[generic]),
-            self.alloc_ctor(parent, "Some", some, &[generic]),
-            self.alloc_type_item(parent, "Option", option, &[generic]),
+            self.alloc_type_item(parent, "None", none),
+            self.alloc_ctor(parent, "None", none),
+            self.alloc_type_item(parent, "Some", some),
+            self.alloc_ctor(parent, "Some", some),
+            self.alloc_type_item(parent, "Option", option),
         ]);
     }
 
     fn kernel_type_module_result(&mut self, parent: ModuleId, items: &mut Vec<Item<'heap>>) {
         let t_arg = self.ty.fresh_argument("T");
+        let t_ref = self.ty.hydrate_argument(t_arg);
+
         let e_arg = self.ty.fresh_argument("E");
+        let e_ref = self.ty.hydrate_argument(e_arg);
 
         let ok = self.ty.generic(
             [(t_arg, None)],
             self.ty.opaque("::kernel::type::Ok", self.ty.param(t_arg)),
         );
+        let ok = self.type_def(ok, &[t_ref]);
+
         let err = self.ty.generic(
             [(e_arg, None)],
             self.ty.opaque("::kernel::type::Err", self.ty.param(e_arg)),
         );
+        let err = self.type_def(err, &[e_ref]);
 
-        let result = self.ty.union([ok, err]);
-
-        let t_arg = self.ty.hydrate_argument(t_arg);
-        let e_arg = self.ty.hydrate_argument(e_arg);
+        let result = self.ty.union([ok.id, err.id]);
+        let result = self.type_def(result, &[t_ref, e_ref]);
 
         items.extend_from_slice(&[
-            self.alloc_type_item(parent, "Ok", ok, &[t_arg]),
-            self.alloc_ctor(parent, "Ok", ok, &[t_arg]),
-            self.alloc_type_item(parent, "Err", err, &[e_arg]),
-            self.alloc_ctor(parent, "Err", err, &[e_arg]),
-            self.alloc_type_item(parent, "Result", result, &[t_arg, e_arg]),
+            self.alloc_type_item(parent, "Ok", ok),
+            self.alloc_ctor(parent, "Ok", ok),
+            self.alloc_type_item(parent, "Err", err),
+            self.alloc_ctor(parent, "Err", err),
+            self.alloc_type_item(parent, "Result", result),
         ]);
     }
 
@@ -306,78 +305,179 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
         })
     }
 
-    #[expect(clippy::non_ascii_literal)]
+    #[expect(
+        clippy::non_ascii_literal,
+        clippy::too_many_lines,
+        clippy::min_ident_chars,
+        non_snake_case
+    )]
     fn math_module(&mut self) -> ModuleId {
+        macro_rules! decl {
+            (<$($generic:ident $(: $generic_bound:ident)?),*>($($param:ident: $param_bound:expr),*) -> $return:expr) => {{
+                $(
+                    #[expect(non_snake_case)]
+                    let ${concat($generic, _arg)} = self.ty.fresh_argument(stringify!($generic));
+                    #[expect(non_snake_case)]
+                    let ${concat($generic, _ref)} = self.ty.hydrate_argument(${concat($generic, _arg)});
+                    #[expect(non_snake_case)]
+                    let $generic = self.ty.param(${concat($generic, _arg)});
+                )*
+
+                let mut closure = self.ty.closure([$($param_bound),*], $return);
+                if ${count($generic)} > 0 {
+                    closure = self.ty.generic([
+                        $(
+                            (${concat($generic, _arg)}, None $(.or(Some($generic_bound)))?)
+                        ),*
+                    ] as [(GenericArgumentId, Option<TypeId>); ${count($generic)}], closure)
+                }
+
+                self.type_def(closure, &[$(${concat($generic, _ref)}),*])
+            }};
+        }
+
         self.registry.intern_module(|id| {
             let id = id.value();
+
+            let Number = self.ty.number();
+            let Integer = self.ty.integer();
+            let Boolean = self.ty.boolean();
+
+            // Arithmetic
+            let funcs = &[
+                (
+                    "::math::add",
+                    &["+"] as &[&'static str],
+                    decl!(<T: Number, U: Number>(lhs: T, rhs: U) -> self.ty.union([T, U])),
+                ),
+                (
+                    "::math::sub",
+                    &["-"],
+                    decl!(<T: Number, U: Number>(lhs: T, rhs: U) -> self.ty.union([T, U])),
+                ),
+                (
+                    "::math::mul",
+                    &["*"],
+                    decl!(<T: Number, U: Number>(lhs: T, rhs: U) -> self.ty.union([T, U])),
+                ),
+                (
+                    "::math::div",
+                    &["/"],
+                    decl!(<>(dividend: Number, divisor: Number) -> Number),
+                ),
+                (
+                    "::math::rem",
+                    &["%"],
+                    decl!(<>(dividend: Integer, divisor: Integer) -> Integer),
+                ),
+                (
+                    "::math::mod",
+                    &[],
+                    decl!(<>(value: Integer, modulus: Integer) -> Integer),
+                ),
+                (
+                    "::math::pow",
+                    &["**", "↑"],
+                    // (cannot be `Integer` on return, as `exponent` can be a negative integer)
+                    decl!(<>(base: Number, exponent: Number) -> Number),
+                ),
+                // Roots
+                ("::math::sqrt", &["√"], decl!(<>(value: Number) -> Number)),
+                ("::math::cbrt", &["∛"], decl!(<>(value: Number) -> Number)),
+                (
+                    "::math::root",
+                    &[], // cannot use `ⁿ√` because `ⁿ` is a letter, not a symbol
+                    decl!(<>(value: Number, root: Number) -> Number),
+                ),
+                // Bitwise operations
+                (
+                    "::math::bit_and",
+                    &["&"],
+                    decl!(<>(lhs: Integer, rhs: Integer) -> Integer),
+                ),
+                (
+                    "::math::bit_or",
+                    &["|"],
+                    decl!(<>(lhs: Integer, rhs: Integer) -> Integer),
+                ),
+                (
+                    "::math::bit_xor",
+                    &["^"],
+                    decl!(<>(lhs: Integer, rhs: Integer) -> Integer),
+                ),
+                (
+                    "::math::bit_not",
+                    &["~"],
+                    decl!(<>(value: Integer) -> Integer),
+                ),
+                (
+                    "::math::bit_shl",
+                    &["<<"],
+                    // In the future we might want to specialize the `shift` to `Natural`
+                    decl!(<>(value: Integer, shift: Integer) -> Integer),
+                ),
+                (
+                    "::math::bit_shr",
+                    &[">>"],
+                    // In the future we might want to specialize the `shift` to `Natural`
+                    decl!(<>(value: Integer, shift: Integer) -> Integer),
+                ),
+                // Comparison operations
+                (
+                    "::math::gt",
+                    &[">"],
+                    decl!(<>(lhs: Number, rhs: Number) -> Boolean),
+                ),
+                (
+                    "::math::lt",
+                    &["<"],
+                    decl!(<>(lhs: Number, rhs: Number) -> Boolean),
+                ),
+                (
+                    "::math::gte",
+                    &[">="],
+                    decl!(<>(lhs: Number, rhs: Number) -> Boolean),
+                ),
+                (
+                    "::math::lte",
+                    &["<="],
+                    decl!(<>(lhs: Number, rhs: Number) -> Boolean),
+                ),
+                (
+                    "::math::eq",
+                    &["=="],
+                    decl!(<T, U>(lhs: T, rhs: U) -> Boolean),
+                ),
+                (
+                    "::math::ne",
+                    &["!="],
+                    decl!(<T, U>(lhs: T, rhs: U) -> Boolean),
+                ),
+                // Logical operations
+                ("::math::not", &["!"], decl!(<>(value: Boolean) -> Boolean)),
+                (
+                    "::math::and",
+                    &["&&"],
+                    decl!(<>(lhs: Boolean, rhs: Boolean) -> Boolean),
+                ),
+                (
+                    "::math::or",
+                    &["||"],
+                    decl!(<>(lhs: Boolean, rhs: Boolean) -> Boolean),
+                ),
+            ];
+
+            let items: Vec<_> = funcs
+                .iter()
+                .flat_map(|(name, alias, def)| {
+                    self.alloc_intrinsic_value(id, name, alias.iter().copied(), *def)
+                })
+                .collect();
 
             PartialModule {
                 name: self.heap.intern_symbol("math"),
                 parent: ModuleId::ROOT,
-                items: self.registry.intern_items(&[
-                    // Addition
-                    self.alloc_intrinsic_value(id, "::math::add", None),
-                    self.alloc_intrinsic_value(id, "::math::add", Some("+")),
-                    // Subtraction
-                    self.alloc_intrinsic_value(id, "::math::sub", None),
-                    self.alloc_intrinsic_value(id, "::math::sub", Some("-")),
-                    // Multiplication
-                    self.alloc_intrinsic_value(id, "::math::mul", None),
-                    self.alloc_intrinsic_value(id, "::math::mul", Some("*")),
-                    // Division
-                    self.alloc_intrinsic_value(id, "::math::div", None),
-                    self.alloc_intrinsic_value(id, "::math::div", Some("/")),
-                    // Remainder
-                    self.alloc_intrinsic_value(id, "::math::rem", None),
-                    self.alloc_intrinsic_value(id, "::math::rem", Some("%")),
-                    // Modulo
-                    self.alloc_intrinsic_value(id, "::math::mod", None),
-                    // Power
-                    self.alloc_intrinsic_value(id, "::math::pow", None),
-                    self.alloc_intrinsic_value(id, "::math::pow", Some("**")),
-                    self.alloc_intrinsic_value(id, "::math::pow", Some("↑")),
-                    // Square root
-                    self.alloc_intrinsic_value(id, "::math::sqrt", None),
-                    self.alloc_intrinsic_value(id, "::math::sqrt", Some("√")),
-                    // Cube Root
-                    self.alloc_intrinsic_value(id, "::math::cbrt", None),
-                    self.alloc_intrinsic_value(id, "::math::cbrt", Some("∛")),
-                    // Arbitrary Root
-                    self.alloc_intrinsic_value(id, "::math::root", None),
-                    // Bitwise operations
-                    self.alloc_intrinsic_value(id, "::math::bit_and", None),
-                    self.alloc_intrinsic_value(id, "::math::bit_and", Some("&")),
-                    self.alloc_intrinsic_value(id, "::math::bit_or", None),
-                    self.alloc_intrinsic_value(id, "::math::bit_or", Some("|")),
-                    self.alloc_intrinsic_value(id, "::math::bit_xor", None),
-                    self.alloc_intrinsic_value(id, "::math::bit_xor", Some("^")),
-                    self.alloc_intrinsic_value(id, "::math::bit_not", None),
-                    self.alloc_intrinsic_value(id, "::math::bit_not", Some("~")),
-                    self.alloc_intrinsic_value(id, "::math::bit_shl", None),
-                    self.alloc_intrinsic_value(id, "::math::bit_shl", Some("<<")),
-                    self.alloc_intrinsic_value(id, "::math::bit_shr", None),
-                    self.alloc_intrinsic_value(id, "::math::bit_shr", Some(">>")),
-                    // Comparison operations
-                    self.alloc_intrinsic_value(id, "::math::gt", None),
-                    self.alloc_intrinsic_value(id, "::math::gt", Some(">")),
-                    self.alloc_intrinsic_value(id, "::math::lt", None),
-                    self.alloc_intrinsic_value(id, "::math::lt", Some("<")),
-                    self.alloc_intrinsic_value(id, "::math::gte", None),
-                    self.alloc_intrinsic_value(id, "::math::gte", Some(">=")),
-                    self.alloc_intrinsic_value(id, "::math::lte", None),
-                    self.alloc_intrinsic_value(id, "::math::lte", Some("<=")),
-                    self.alloc_intrinsic_value(id, "::math::eq", None),
-                    self.alloc_intrinsic_value(id, "::math::eq", Some("==")),
-                    self.alloc_intrinsic_value(id, "::math::ne", None),
-                    self.alloc_intrinsic_value(id, "::math::ne", Some("!=")),
-                    // Logical operations
-                    self.alloc_intrinsic_value(id, "::math::not", None),
-                    self.alloc_intrinsic_value(id, "::math::not", Some("!")),
-                    self.alloc_intrinsic_value(id, "::math::and", None),
-                    self.alloc_intrinsic_value(id, "::math::and", Some("&&")),
-                    self.alloc_intrinsic_value(id, "::math::or", None),
-                    self.alloc_intrinsic_value(id, "::math::or", Some("||")),
-                ]),
+                items: self.registry.intern_items(&items),
             }
         })
     }

@@ -3847,6 +3847,7 @@ name = "hashql-core"
 version = "0.0.0"
 dependencies = [
  "anstyle",
+ "arrayvec 0.7.6",
  "bitvec",
  "bumpalo",
  "derive_more 2.0.1",
