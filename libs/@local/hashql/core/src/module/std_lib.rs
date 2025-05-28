@@ -59,10 +59,10 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
     ) -> impl IntoIterator<Item = Item<'heap>> {
         let ident = name.rsplit_once("::").expect("path should be non-empty").1;
 
-        iter::once(ident).chain(alias).map(move |name| {
+        iter::once(ident).chain(alias).map(move |ident| {
             Self::item(
                 module,
-                self.heap.intern_symbol(name),
+                self.heap.intern_symbol(ident),
                 IntrinsicValue { name, r#type },
             )
         })
@@ -76,10 +76,10 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
     ) -> impl IntoIterator<Item = Item<'heap>> {
         let ident = name.rsplit_once("::").expect("path should be non-empty").1;
 
-        iter::once(ident).chain(alias).map(move |name| {
+        iter::once(ident).chain(alias).map(move |ident| {
             Self::item(
                 parent,
-                self.heap.intern_symbol(name),
+                self.heap.intern_symbol(ident),
                 IntrinsicType { name },
             )
         })

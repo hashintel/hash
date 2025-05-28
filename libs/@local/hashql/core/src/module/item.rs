@@ -21,6 +21,7 @@ pub enum IntrinsicItem<'heap> {
 }
 
 impl IntrinsicItem<'_> {
+    #[must_use]
     pub const fn universe(&self) -> Universe {
         match self {
             Self::Value(_) => Universe::Value,
