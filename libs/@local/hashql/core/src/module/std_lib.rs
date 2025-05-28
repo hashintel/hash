@@ -4,7 +4,7 @@ use arrayvec::ArrayVec;
 
 use super::{
     ModuleId, ModuleRegistry, PartialModule,
-    item::{ConstructorItem, IntrinsicType, IntrinsicValue, Item, ItemKind},
+    item::{ConstructorItem, IntrinsicTypeItem, IntrinsicValueItem, Item, ItemKind},
     locals::TypeDef,
 };
 use crate::{
@@ -63,7 +63,7 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
             Self::item(
                 module,
                 self.heap.intern_symbol(ident),
-                IntrinsicValue { name, r#type },
+                IntrinsicValueItem { name, r#type },
             )
         })
     }
@@ -80,7 +80,7 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
             Self::item(
                 parent,
                 self.heap.intern_symbol(ident),
-                IntrinsicType { name },
+                IntrinsicTypeItem { name },
             )
         })
     }

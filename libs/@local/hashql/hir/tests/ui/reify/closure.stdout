@@ -1,2 +1,2 @@
-#fn<T:0?4: Number>(foo:0: ?4, bar:0: ?4): ?4 ->
+#fn<T:0?14: Number>(foo:0: ?14, bar:0: ?14): ?14 ->
     ::math::add(foo:0, bar:0)
