@@ -8,11 +8,11 @@ use super::{
     kind::{Infer, Param, generic::GenericArgumentId, infer::HoleId, test::assert_equiv},
 };
 use crate::{
-    intern::Provisioned,
     pretty::PrettyPrint as _,
     span::SpanId,
     symbol::Ident,
     r#type::{
+        builder::lazy,
         error::TypeCheckDiagnosticCategory,
         lattice::{Projection, Subscript},
     },
@@ -195,8 +195,8 @@ fn unknown_with_other_type() {
 fn direct_circular_reference() {
     scaffold!(heap, env, builder, [analysis: analysis]);
 
-    let a = builder.tuple(|id: Provisioned<_>| [id.value()]);
-    let b = builder.tuple(|id: Provisioned<_>| [id.value()]);
+    let a = builder.tuple(lazy(|id| [id.value()]));
+    let b = builder.tuple(lazy(|id| [id.value()]));
 
     // Test subtyping with the circular type
     assert!(analysis.is_subtype_of(a, b));
@@ -220,15 +220,15 @@ fn indirect_circular_reference() {
     // Create a cycle: A → B → C → A
     let mut c = None;
     let mut b = None;
-    let a = builder.tuple(|a_id: Provisioned<TypeId>| {
-        [builder.tuple(|b_id: Provisioned<TypeId>| {
+    let a = builder.tuple(lazy(|a_id| {
+        [builder.tuple(lazy(|b_id| {
             b = Some(b_id);
-            [builder.tuple(|c_id: Provisioned<TypeId>| {
+            [builder.tuple(lazy(|c_id| {
                 c = Some(c_id);
                 [a_id.value()]
-            })]
-        })]
-    });
+            }))]
+        }))]
+    }));
 
     let b = b.expect("b should be Some").value();
     let c = c.expect("c should be Some").value();
@@ -261,15 +261,15 @@ fn alternating_direction_cycle() {
     // Create a cycle with alternating directions:
     // Union (A) -> Intersection (B) -> Union (A)
     let mut intersection_id = None;
-    let union_id = builder.union(|union_id: Provisioned<TypeId>| {
+    let union_id = builder.union(lazy(|union_id| {
         [
             number,
-            builder.intersection(|intersection_id_provisioned: Provisioned<TypeId>| {
+            builder.intersection(lazy(|intersection_id_provisioned| {
                 intersection_id = Some(intersection_id_provisioned);
                 [string, boolean, union_id.value()]
-            }),
+            })),
         ]
-    });
+    }));
 
     let intersection_id = intersection_id
         .expect("intersection_id should be Some")
@@ -304,12 +304,12 @@ fn recursive_type_equivalence() {
 
     // First recursive type - A tuple that contains a Number and a reference to itself
     let list1_id = builder.tuple(
-        |id: Provisioned<TypeId>| [number, id.value()], // [value, next]
+        lazy(|id| [number, id.value()]), // [value, next]
     );
 
     // Second recursive type - A structurally identical tuple
     let list2_id = builder.tuple(
-        |id: Provisioned<TypeId>| [number, id.value()], // [value, next]
+        lazy(|id| [number, id.value()]), // [value, next]
     );
 
     // Test that the two recursive types are structurally equivalent
@@ -337,10 +337,10 @@ fn recursive_subtyping() {
     let number = builder.number();
 
     // Create type A = (Integer, A)
-    let type_a = builder.tuple(|id: Provisioned<TypeId>| [integer, id.value()]); // [Integer, self]
+    let type_a = builder.tuple(lazy(|id| [integer, id.value()])); // [Integer, self]
 
     // Create type B = (Number, B)
-    let type_b = builder.tuple(|id: Provisioned<TypeId>| [number, id.value()]); // [Number, self]
+    let type_b = builder.tuple(lazy(|id| [number, id.value()])); // [Number, self]
 
     // Test subtyping relationship A <: B
     // Since Integer <: Number, and we use coinductive reasoning for the recursive part,
@@ -371,12 +371,12 @@ fn recursive_join_operation() {
 
     // Create type A = (Integer, A)
     let type_a = builder.tuple(
-        |id: Provisioned<TypeId>| [integer, id.value()], // [Integer, self]
+        lazy(|id| [integer, id.value()]), // [Integer, self]
     );
 
     // Create type B = (Number, B)
     let type_b = builder.tuple(
-        |id: Provisioned<TypeId>| [number, id.value()], // [Number, self]
+        lazy(|id| [number, id.value()]), // [Number, self]
     );
 
     // First check subtyping relationships to confirm our premise
@@ -409,10 +409,10 @@ fn recursive_meet_operation() {
     let number = builder.number();
 
     // Create type A = (Integer, A)
-    let type_a = builder.tuple(|id: Provisioned<TypeId>| [integer, id.value()]);
+    let type_a = builder.tuple(lazy(|id| [integer, id.value()]));
 
     // Create type B = (Number, B)
-    let type_b = builder.tuple(|id: Provisioned<TypeId>| [number, id.value()]);
+    let type_b = builder.tuple(lazy(|id| [number, id.value()]));
 
     // Since A <: B, meet(A, B) should be A
     let met = lattice.meet(type_a, type_b);
