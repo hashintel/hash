@@ -1,19 +1,23 @@
 use super::{
     ModuleId, ModuleRegistry, PartialModule,
-    item::{IntrinsicItem, IntrinsicValue, Item, ItemKind},
-    universe::Universe,
+    item::{IntrinsicItem, IntrinsicType, IntrinsicValue, Item, ItemKind},
 };
 use crate::{
     heap::Heap,
     r#type::{
-        TypeId, build::TypeBuilder, environment::Environment,
-        kind::generic::GenericArgumentReference,
+        TypeId,
+        builder::TypeBuilder,
+        environment::Environment,
+        kind::{
+            Generic, GenericArguments, OpaqueType, TypeKind, generic::GenericArgumentReference,
+        },
     },
 };
 
 pub(super) struct StandardLibrary<'env, 'heap> {
     heap: &'heap Heap,
     registry: &'env ModuleRegistry<'heap>,
+    environment: &'env Environment<'heap>,
     ty: TypeBuilder<'env, 'heap>,
 }
 
@@ -25,6 +29,7 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
         Self {
             heap: environment.heap,
             registry,
+            environment,
             ty: TypeBuilder::synthetic(environment),
         }
     }
@@ -60,11 +65,47 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
         Item {
             module: parent,
             name: ident,
-            kind: ItemKind::Intrinsic(IntrinsicItem {
-                name,
-                universe: Universe::Type,
-            }),
+            kind: ItemKind::Intrinsic(IntrinsicItem::Type(IntrinsicType { name })),
         }
+    }
+
+    fn alloc_ctor(
+        &self,
+        parent: ModuleId,
+        r#type: TypeId,
+        arguments: &[GenericArgumentReference<'heap>],
+    ) -> Item<'heap> {
+        let (opaque, repr, arguments) = match self.environment.r#type(r#type).kind {
+            &TypeKind::Opaque(OpaqueType { repr, .. }) if arguments.is_empty() => {
+                (r#type, repr, GenericArguments::empty())
+            }
+            TypeKind::Opaque(_) => {
+                panic!("opaque type with arguments should be wrapped in a generic type")
+            }
+            &TypeKind::Generic(Generic { base, arguments }) if !arguments.is_empty() => {
+                let repr = self
+                    .environment
+                    .r#type(base)
+                    .kind
+                    .opaque()
+                    .expect("generic type should wrap opaque type")
+                    .repr;
+
+                (base, repr, arguments)
+            }
+            TypeKind::Generic(_) => {
+                panic!("generic type with no arguments should not be wrapped in an opaque type")
+            }
+            _ => panic!("expected opaque or generic type"),
+        };
+
+        // fn<T, U, ...>(repr) -> opaque
+        let mut output = self.ty.closure([repr], opaque);
+        if !arguments.is_empty() {
+            output = self.ty.generic(arguments, output);
+        }
+
+        todo!()
     }
 
     fn alloc_type_item(
@@ -163,7 +204,7 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
     fn kernel_type_module_option(&self, parent: ModuleId, items: &mut Vec<Item<'heap>>) {
         // Option is simply a union between two opaque types, when the constructor only takes a
         // `Null` the constructor automatically allows for no-value.
-        let generic = self.ty.argument("T");
+        let generic = self.ty.fresh_argument("T");
 
         let none = self.ty.opaque("::kernel::type::None", self.ty.null());
         let some = self.ty.generic(
@@ -174,19 +215,21 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
 
         let option = self.ty.union([some, none]);
 
+        let generic = self.ty.hydrate_argument(generic);
+
         items.extend_from_slice(&[
             self.alloc_type_item(parent, "None", none, &[]),
             // TODO: that's a ctor
             self.alloc_intrinsic_value(parent, "::kernel::type::None", None),
-            self.alloc_type_item(parent, "Some", some, &[self.ty.arg_ref(generic)]),
+            self.alloc_type_item(parent, "Some", some, &[generic]),
             self.alloc_intrinsic_value(parent, "::kernel::type::Some", None),
-            self.alloc_type_item(parent, "Option", option, &[self.ty.arg_ref(generic)]),
+            self.alloc_type_item(parent, "Option", option, &[generic]),
         ]);
     }
 
     fn kernel_type_module_result(&self, parent: ModuleId, items: &mut Vec<Item<'heap>>) {
-        let t_arg = self.ty.argument("T");
-        let e_arg = self.ty.argument("E");
+        let t_arg = self.ty.fresh_argument("T");
+        let e_arg = self.ty.fresh_argument("E");
 
         let ok = self.ty.generic(
             [(t_arg, None)],
@@ -199,8 +242,8 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
 
         let result = self.ty.union([ok, err]);
 
-        let t_arg = self.ty.arg_ref(t_arg);
-        let e_arg = self.ty.arg_ref(e_arg);
+        let t_arg = self.ty.hydrate_argument(t_arg);
+        let e_arg = self.ty.hydrate_argument(e_arg);
 
         items.extend_from_slice(&[
             self.alloc_type_item(parent, "Ok", ok, &[t_arg]),
