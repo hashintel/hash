@@ -17,6 +17,8 @@
     associated_type_defaults,
     never_type,
     type_alias_impl_trait,
+    macro_metavar_expr_concat,
+    macro_metavar_expr
 )]
 
 extern crate alloc;
