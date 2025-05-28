@@ -24,7 +24,6 @@ text-size          = { workspace = true, public = true }
 # Private workspace dependencies
 
 # Private third-party dependencies
-arrayvec             = "0.7.6"
 bitvec               = { workspace = true, features = ["alloc"] }
 bumpalo              = { workspace = true }
 derive_more          = { workspace = true, features = ["debug", "from"] }

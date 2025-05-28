@@ -1,7 +1,5 @@
 use core::iter;
 
-use arrayvec::ArrayVec;
-
 use super::{
     ModuleId, ModuleRegistry, PartialModule,
     item::{ConstructorItem, IntrinsicTypeItem, IntrinsicValueItem, Item, ItemKind},
@@ -133,7 +131,7 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
                 )
             };
 
-            let mut items = ArrayVec::<_, 12>::new();
+            let mut items = smallvec::SmallVec::<_, 12>::new();
             items.extend(
                 [
                     make("::kernel::special_form::if", &[]),
