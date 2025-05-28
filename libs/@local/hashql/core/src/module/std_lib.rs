@@ -1,6 +1,6 @@
 use super::{
     ModuleId, ModuleRegistry, PartialModule,
-    item::{IntrinsicItem, IntrinsicType, IntrinsicValue, Item, ItemKind},
+    item::{CtorItem, IntrinsicItem, IntrinsicType, IntrinsicValue, Item, ItemKind},
 };
 use crate::{
     heap::Heap,
@@ -9,7 +9,8 @@ use crate::{
         builder::TypeBuilder,
         environment::Environment,
         kind::{
-            Generic, GenericArguments, OpaqueType, TypeKind, generic::GenericArgumentReference,
+            Generic, GenericArguments, OpaqueType, PrimitiveType, TypeKind,
+            generic::GenericArgumentReference,
         },
     },
 };
@@ -72,11 +73,12 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
     fn alloc_ctor(
         &self,
         parent: ModuleId,
+        name: &'static str,
         r#type: TypeId,
-        arguments: &[GenericArgumentReference<'heap>],
+        generics: &[GenericArgumentReference<'heap>],
     ) -> Item<'heap> {
         let (opaque, repr, arguments) = match self.environment.r#type(r#type).kind {
-            &TypeKind::Opaque(OpaqueType { repr, .. }) if arguments.is_empty() => {
+            &TypeKind::Opaque(OpaqueType { repr, .. }) if generics.is_empty() => {
                 (r#type, repr, GenericArguments::empty())
             }
             TypeKind::Opaque(_) => {
@@ -99,13 +101,30 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
             _ => panic!("expected opaque or generic type"),
         };
 
-        // fn<T, U, ...>(repr) -> opaque
-        let mut output = self.ty.closure([repr], opaque);
+        // In case the `repr` is `Null` we special case, this allows us to have `None` as a valid
+        // repr without any value, which makes construction easy.
+        // TODO: the same needs to be applied when extracting values
+        // `fn<T, U, ...>(repr) -> opaque`
+        let mut closure =
+            if *self.environment.r#type(repr).kind == TypeKind::Primitive(PrimitiveType::Null) {
+                self.ty.closure([] as [TypeId; 0], opaque)
+            } else {
+                self.ty.closure([repr], opaque)
+            };
+
         if !arguments.is_empty() {
-            output = self.ty.generic(arguments, output);
+            closure = self.ty.generic(arguments, closure);
         }
 
-        todo!()
+        Item {
+            module: parent,
+            name: self.heap.intern_symbol(name),
+            kind: ItemKind::Ctor(CtorItem {
+                closure,
+                r#type,
+                arguments: self.heap.slice(generics),
+            }),
+        }
     }
 
     fn alloc_type_item(
@@ -188,20 +207,15 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
         let url = self.ty.opaque("::kernel::type::Url", self.ty.string());
         let base_url = self.ty.opaque("::kernel::type::BaseUrl", url);
 
-        // The intrinsics that are registered correspond to the constructor functions, in
-        // the future we should replace these with proper functions instead of using
-        // intrinsics.
-        // see: https://linear.app/hash/issue/H-4451/hashql-prelude-opaque-type-constructors-should-be-alone-standing
         items.extend_from_slice(&[
             self.alloc_type_item(parent, "Url", url, &[]),
-            // TODO: that's a ctor
-            self.alloc_intrinsic_value(parent, "::kernel::type::Url", None),
+            self.alloc_ctor(parent, "Url", url, &[]),
             self.alloc_type_item(parent, "BaseUrl", base_url, &[]),
-            self.alloc_intrinsic_value(parent, "::kernel::type::BaseUrl", None),
+            self.alloc_ctor(parent, "BaseUrl", base_url, &[]),
         ]);
     }
 
-    fn kernel_type_module_option(&self, parent: ModuleId, items: &mut Vec<Item<'heap>>) {
+    fn kernel_type_module_option(&mut self, parent: ModuleId, items: &mut Vec<Item<'heap>>) {
         // Option is simply a union between two opaque types, when the constructor only takes a
         // `Null` the constructor automatically allows for no-value.
         let generic = self.ty.fresh_argument("T");
@@ -219,15 +233,14 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
 
         items.extend_from_slice(&[
             self.alloc_type_item(parent, "None", none, &[]),
-            // TODO: that's a ctor
-            self.alloc_intrinsic_value(parent, "::kernel::type::None", None),
+            self.alloc_ctor(parent, "None", none, &[]),
             self.alloc_type_item(parent, "Some", some, &[generic]),
-            self.alloc_intrinsic_value(parent, "::kernel::type::Some", None),
+            self.alloc_ctor(parent, "Some", some, &[generic]),
             self.alloc_type_item(parent, "Option", option, &[generic]),
         ]);
     }
 
-    fn kernel_type_module_result(&self, parent: ModuleId, items: &mut Vec<Item<'heap>>) {
+    fn kernel_type_module_result(&mut self, parent: ModuleId, items: &mut Vec<Item<'heap>>) {
         let t_arg = self.ty.fresh_argument("T");
         let e_arg = self.ty.fresh_argument("E");
 
@@ -247,14 +260,14 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
 
         items.extend_from_slice(&[
             self.alloc_type_item(parent, "Ok", ok, &[t_arg]),
-            self.alloc_intrinsic_value(parent, "::kernel::type::Ok", None),
+            self.alloc_ctor(parent, "Ok", ok, &[t_arg]),
             self.alloc_type_item(parent, "Err", err, &[e_arg]),
-            self.alloc_intrinsic_value(parent, "::kernel::type::Err", None),
+            self.alloc_ctor(parent, "Err", err, &[e_arg]),
             self.alloc_type_item(parent, "Result", result, &[t_arg, e_arg]),
         ]);
     }
 
-    fn kernel_type_module(&self, parent: ModuleId) -> ModuleId {
+    fn kernel_type_module(&mut self, parent: ModuleId) -> ModuleId {
         self.registry.intern_module(|id| {
             let id = id.value();
 
@@ -274,7 +287,7 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
         })
     }
 
-    fn kernel_module(&self) -> ModuleId {
+    fn kernel_module(&mut self) -> ModuleId {
         self.registry.intern_module(|id| PartialModule {
             name: self.heap.intern_symbol("kernel"),
             parent: ModuleId::ROOT,
@@ -294,7 +307,7 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
     }
 
     #[expect(clippy::non_ascii_literal)]
-    fn math_module(&self) -> ModuleId {
+    fn math_module(&mut self) -> ModuleId {
         self.registry.intern_module(|id| {
             let id = id.value();
 
@@ -369,7 +382,7 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
         })
     }
 
-    pub(super) fn register(&self) {
+    pub(super) fn register(&mut self) {
         self.registry.register(self.kernel_module());
         self.registry.register(self.math_module());
 
