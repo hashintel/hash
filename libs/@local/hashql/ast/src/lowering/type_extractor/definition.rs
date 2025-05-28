@@ -202,18 +202,18 @@ impl<'env, 'heap> TypeDefinitionExtractor<'env, 'heap> {
     }
 
     fn translate(&mut self) -> TypeLocals<'heap> {
-        let (locals, constraints, diagnostics) = self.setup_locals();
+        let (variables, constraints, diagnostics) = self.setup_locals();
 
         let mut unit = TranslationUnit {
             env: self.environment,
             registry: self.registry,
             diagnostics: Vec::new(),
-            locals: &locals,
+            locals: &variables,
 
             bound_generics: Cow::Owned(SpannedGenericArguments::empty()),
         };
 
-        let mut output = Locals::with_capacity(locals.len());
+        let mut locals = Locals::with_capacity(variables.len());
 
         // We need to keep the iteration order consistent
         for name in self
@@ -222,11 +222,11 @@ impl<'env, 'heap> TypeDefinitionExtractor<'env, 'heap> {
             .map(|&(name, _)| name)
             .chain(self.opaque.iter().map(|&(name, _)| name))
         {
-            let variable = &locals[&name];
+            let variable = &variables[&name];
 
             unit.bound_generics = Cow::Borrowed(&variable.arguments);
 
-            output.insert(Local {
+            locals.insert(Local {
                 name,
                 value: unit.variable(variable, &constraints),
             });
@@ -235,14 +235,14 @@ impl<'env, 'heap> TypeDefinitionExtractor<'env, 'heap> {
         self.diagnostics.extend(unit.diagnostics);
         self.diagnostics.extend(diagnostics);
 
-        let diagnostics = output.finish(self.environment);
+        let diagnostics = locals.finish(self.environment);
         self.diagnostics.extend(
             diagnostics.into_vec().into_iter().map(|diagnostic| {
                 diagnostic.map_category(TypeExtractorDiagnosticCategory::TypeCheck)
             }),
         );
 
-        output
+        locals
     }
 
     #[must_use]
