@@ -2,6 +2,7 @@ use alloc::borrow::Cow;
 use core::{cmp::Ordering, convert::Infallible};
 
 use hashql_core::{
+    collection::FastHashMap,
     intern::Interned,
     module::{
         ModuleRegistry, Universe,
@@ -29,7 +30,7 @@ use crate::{
     fold::{Fold, nested::Deep, walk_node},
     intern::Interner,
     node::{
-        Node, PartialNode,
+        HirId, Node, PartialNode,
         kind::NodeKind,
         operation::{
             Operation, OperationKind, TypeOperation,
@@ -169,6 +170,26 @@ pub struct ConvertTypeConstructor<'env, 'heap> {
     environment: &'env Environment<'heap>,
     instantiate: InstantiateEnvironment<'env, 'heap>,
     diagnostics: Vec<ConvertTypeConstructorDiagnostic>,
+    cache: FastHashMap<HirId, Node<'heap>>,
+}
+
+impl<'env, 'heap> ConvertTypeConstructor<'env, 'heap> {
+    pub fn new(
+        interner: &'env Interner<'heap>,
+        locals: &'env TypeLocals<'heap>,
+        registry: &'env ModuleRegistry<'heap>,
+        environment: &'env Environment<'heap>,
+    ) -> Self {
+        Self {
+            interner,
+            locals,
+            registry,
+            environment,
+            instantiate: InstantiateEnvironment::new(environment),
+            diagnostics: Vec::new(),
+            cache: FastHashMap::default(),
+        }
+    }
 }
 
 impl<'heap> ConvertTypeConstructor<'_, 'heap> {
@@ -341,6 +362,11 @@ impl<'heap> ConvertTypeConstructor<'_, 'heap> {
 
         self.apply_generics(node, variable, closure_def, generic_arguments)
     }
+
+    #[must_use]
+    pub fn finish(self) -> Vec<ConvertTypeConstructorDiagnostic> {
+        self.diagnostics
+    }
 }
 
 impl<'heap> Fold<'heap> for ConvertTypeConstructor<'_, 'heap> {
@@ -356,9 +382,20 @@ impl<'heap> Fold<'heap> for ConvertTypeConstructor<'_, 'heap> {
     }
 
     fn fold_node(&mut self, node: Node<'heap>) -> Self::Output<Node<'heap>> {
+        let node_id = node.id;
+
+        // Do not re-compute the node, if we've already seen it
+        if let Some(&cached) = self.cache.get(&node_id) {
+            return Ok(cached);
+        }
+
         let node = walk_node(self, node)?;
 
-        let node = self.convert_variable(&node).unwrap_or(node);
+        if let Some(node) = self.convert_variable(&node) {
+            self.cache.insert(node_id, node);
+            return Ok(node);
+        }
+
         Ok(node)
     }
 }
