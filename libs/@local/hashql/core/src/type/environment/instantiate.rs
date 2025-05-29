@@ -1,5 +1,5 @@
 use alloc::rc::Rc;
-use core::ops::Deref;
+use core::{mem, ops::Deref};
 
 use smallvec::SmallVec;
 
@@ -11,7 +11,7 @@ use super::{
     },
 };
 use crate::{
-    collection::FastHashMap,
+    collection::{FastHashMap, FastHashSet},
     intern::Provisioned,
     r#type::{
         PartialType, TypeId,
@@ -51,6 +51,8 @@ pub struct InstantiateEnvironment<'env, 'heap> {
     // take on the previous value if a substitution is active.
     substitutions_scope: Rc<ReplacementScope<GenericArgumentId>>,
     argument_scope: Rc<ReplacementScope<GenericArgumentId>>,
+    // Arguments that are overridden / are allowed to not be unscoped
+    unscoped_arguments: FastHashSet<GenericArgumentId>,
 
     provisioned: Rc<ProvisionedScope<TypeId>>,
     substitutions: FastHashMap<TypeId, Option<TypeId>>,
@@ -64,6 +66,7 @@ impl<'env, 'heap> InstantiateEnvironment<'env, 'heap> {
 
             substitutions_scope: Rc::default(),
             argument_scope: Rc::default(),
+            unscoped_arguments: FastHashSet::default(),
 
             substitutions: FastHashMap::default(),
 
@@ -257,7 +260,24 @@ impl<'env, 'heap> InstantiateEnvironment<'env, 'heap> {
 
     #[must_use]
     pub fn lookup_argument(&self, argument: GenericArgumentId) -> Option<GenericArgumentId> {
+        if self.unscoped_arguments.contains(&argument) {
+            return Some(argument);
+        }
+
         self.argument_scope.lookup(argument)
+    }
+
+    pub fn enter_unscoped(
+        &mut self,
+        arguments: impl IntoIterator<Item = GenericArgumentId>,
+    ) -> FastHashSet<GenericArgumentId> {
+        let old = mem::take(&mut self.unscoped_arguments);
+        self.unscoped_arguments.extend(arguments);
+        old
+    }
+
+    pub fn exit_unscoped(&mut self, arguments: FastHashSet<GenericArgumentId>) {
+        self.unscoped_arguments = arguments;
     }
 }
 
