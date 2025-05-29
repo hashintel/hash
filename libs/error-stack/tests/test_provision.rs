@@ -45,6 +45,6 @@ fn request_context() {
 
 #[test]
 fn context_provision() {
-    let report = Report::from(ContextA(10));
+    let report = Report::new(ContextA(10));
     assert_eq!(report.request_ref::<u32>().count(), 1);
 }
