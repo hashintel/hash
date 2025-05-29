@@ -153,15 +153,14 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
         variable
     }
 
+    #[must_use]
     pub fn fresh_hole(&self, span: SpanId) -> Variable {
         let hole = self.counter.hole.next();
 
-        let variable = Variable {
+        Variable {
             span,
             kind: VariableKind::Hole(hole),
-        };
-
-        variable
+        }
     }
 
     pub fn collect_constraints(&mut self, subtype: TypeId, supertype: TypeId) {
