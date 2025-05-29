@@ -1,5 +1,5 @@
 use alloc::borrow::Cow;
-use core::{cmp::Ordering, convert::Infallible};
+use core::{cmp::Ordering, convert::Infallible, mem};
 
 use hashql_core::{
     collection::FastHashMap,
@@ -27,7 +27,7 @@ use hashql_diagnostics::{
 };
 
 use crate::{
-    fold::{Fold, nested::Deep, walk_node},
+    fold::{Fold, nested::Deep, walk_nested_node, walk_node},
     intern::Interner,
     node::{
         HirId, Node, PartialNode,
@@ -171,6 +171,7 @@ pub struct ConvertTypeConstructor<'env, 'heap> {
     instantiate: InstantiateEnvironment<'env, 'heap>,
     diagnostics: Vec<ConvertTypeConstructorDiagnostic>,
     cache: FastHashMap<HirId, Node<'heap>>,
+    nested: bool,
 }
 
 impl<'env, 'heap> ConvertTypeConstructor<'env, 'heap> {
@@ -188,6 +189,7 @@ impl<'env, 'heap> ConvertTypeConstructor<'env, 'heap> {
             instantiate: InstantiateEnvironment::new(environment),
             diagnostics: Vec::new(),
             cache: FastHashMap::default(),
+            nested: false,
         }
     }
 }
@@ -362,23 +364,26 @@ impl<'heap> ConvertTypeConstructor<'_, 'heap> {
 
         self.apply_generics(node, variable, closure_def, generic_arguments)
     }
-
-    #[must_use]
-    pub fn finish(self) -> Vec<ConvertTypeConstructorDiagnostic> {
-        self.diagnostics
-    }
 }
 
 impl<'heap> Fold<'heap> for ConvertTypeConstructor<'_, 'heap> {
     type NestedFilter = Deep;
     type Output<T>
-        = Result<T, !>
+        = Result<T, Vec<ConvertTypeConstructorDiagnostic>>
     where
         T: 'heap;
-    type Residual = Result<Infallible, !>;
+    type Residual = Result<Infallible, Vec<ConvertTypeConstructorDiagnostic>>;
 
     fn interner(&self) -> &Interner<'heap> {
         self.interner
+    }
+
+    fn fold_nested_node(&mut self, node: Node<'heap>) -> Self::Output<Node<'heap>> {
+        self.nested = true;
+        let result = walk_nested_node(self, node);
+        self.nested = false;
+
+        result
     }
 
     fn fold_node(&mut self, node: Node<'heap>) -> Self::Output<Node<'heap>> {
@@ -389,11 +394,17 @@ impl<'heap> Fold<'heap> for ConvertTypeConstructor<'_, 'heap> {
             return Ok(cached);
         }
 
-        let node = walk_node(self, node)?;
+        let mut node = walk_node(self, node)?;
 
-        if let Some(node) = self.convert_variable(&node) {
+        if let Some(converted) = self.convert_variable(&node) {
             self.cache.insert(node_id, node);
-            return Ok(node);
+            node = converted;
+        }
+
+        if !self.nested && !self.diagnostics.is_empty() {
+            let diagnostics = mem::take(&mut self.diagnostics);
+
+            return Err(diagnostics);
         }
 
         Ok(node)
