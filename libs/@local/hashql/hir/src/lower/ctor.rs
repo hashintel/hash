@@ -19,7 +19,7 @@ use hashql_core::{
     },
 };
 use hashql_diagnostics::{
-    Diagnostic, Help, Severity,
+    Diagnostic, Help, Note, Severity,
     category::{DiagnosticCategory, TerminalDiagnosticCategory},
     color::{AnsiColor, Color},
     label::Label,
@@ -89,21 +89,26 @@ fn generic_argument_mismatch<'heap>(
 
     diagnostic.labels.push(Label::new(
         variable.span,
-        format!("Expected {expected} generic arguments, but got {actual}"),
+        format!(
+            "This type constructor requires {expected} generic argument{}, but {actual} {} \
+             provided",
+            if expected == 1 { "" } else { "s" },
+            if actual == 1 { "was" } else { "were" }
+        ),
     ));
 
-    let mut index = -1;
+    let mut order = -1;
     for missing in missing {
         diagnostic.labels.push(
             Label::new(
                 node.span,
-                format!("Missing parameter `{}`", missing.name.demangle()),
+                format!("Add missing parameter `{}`", missing.name.demangle()),
             )
-            .with_order(index)
+            .with_order(order)
             .with_color(Color::Ansi(AnsiColor::Yellow)),
         );
 
-        index -= 1;
+        order -= 1;
     }
 
     for &extraneous in extraneous {
@@ -111,11 +116,11 @@ fn generic_argument_mismatch<'heap>(
 
         diagnostic.labels.push(
             Label::new(span, "Remove this argument")
-                .with_order(index)
+                .with_order(order)
                 .with_color(Color::Ansi(AnsiColor::Red)),
         );
 
-        index -= 1;
+        order -= 1;
     }
 
     let usage = format!(
@@ -125,14 +130,34 @@ fn generic_argument_mismatch<'heap>(
     );
 
     let help = match actual.cmp(&expected) {
-        Ordering::Less => format!("Add the missing parameter(s): {usage}"),
-        Ordering::Greater => format!("Remove the extra parameter(s): {usage}"),
-        Ordering::Equal => format!("Use: {usage}"),
+        Ordering::Less => format!(
+            "This type constructor requires exactly {} generic argument{}. Provide the missing \
+             parameter{}: {}",
+            expected,
+            if expected == 1 { "" } else { "s" },
+            if missing.len() == 1 { "" } else { "s" },
+            usage
+        ),
+        Ordering::Greater => format!(
+            "This type constructor accepts exactly {} generic argument{}. Remove the extra \
+             parameter{}: {}",
+            expected,
+            if expected == 1 { "" } else { "s" },
+            if extraneous.len() == 1 { "" } else { "s" },
+            usage
+        ),
+        Ordering::Equal => format!("Correct usage: {usage}"),
     };
 
     diagnostic.add_help(Help::new(help));
 
-    // TODO: might need a note
+    if !parameters.is_empty() {
+        diagnostic.add_note(Note::new(
+            "Generic type parameters must be provided when instantiating parameterized types. \
+             Each parameter corresponds to a specific type that will be substituted throughout \
+             the type definition.",
+        ));
+    }
 
     diagnostic
 }
