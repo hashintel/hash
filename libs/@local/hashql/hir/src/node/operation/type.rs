@@ -52,7 +52,7 @@ pub struct TypeConstructor<'heap> {
     pub span: SpanId,
 
     // The closure that performs the conversion
-    pub function: TypeId,
+    pub closure: TypeId,
     // Any unapplied arguments to the constructor
     pub arguments: Interned<'heap, [GenericArgumentReference<'heap>]>,
 }

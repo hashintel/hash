@@ -615,18 +615,18 @@ pub fn walk_type_constructor<'heap, T: Fold<'heap> + ?Sized>(
     visitor: &mut T,
     TypeConstructor {
         span,
-        value,
-        r#type,
+        closure,
+        arguments,
     }: TypeConstructor<'heap>,
 ) -> T::Output<TypeConstructor<'heap>> {
     let span = visitor.fold_span(span)?;
-    let value = visitor.fold_nested_node(value)?;
-    let r#type = visitor.fold_type_id(r#type)?;
+    let closure = visitor.fold_type_id(closure)?;
+    let arguments = visitor.fold_generic_argument_references(arguments)?;
 
     Try::from_output(TypeConstructor {
         span,
-        value,
-        r#type,
+        closure,
+        arguments,
     })
 }
 
