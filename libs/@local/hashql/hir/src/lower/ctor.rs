@@ -246,6 +246,9 @@ impl<'heap> ConvertTypeConstructor<'_, 'heap> {
 
         // Create a closure, with the following
         // <generics>(repr?) -> opaque
+        // Null types are implemented in a special way, so that they don't take any parameter. The
+        // reason for this is to allow for marker types, that don't require a value (such as `None`)
+        // in an ergonomic way.
         let params = if is_null {
             &[] as &[TypeId]
         } else {
