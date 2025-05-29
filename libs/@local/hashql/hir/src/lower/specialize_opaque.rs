@@ -1,10 +1,20 @@
 use alloc::borrow::Cow;
 use core::convert::Infallible;
+use std::sync::Arc;
 
 use hashql_core::{
-    module::{ModuleRegistry, Universe, item::ItemKind, locals::TypeLocals},
+    collection::SmallVec,
+    module::{
+        ModuleRegistry, Universe,
+        item::ItemKind,
+        locals::{TypeDef, TypeLocals},
+    },
     span::SpanId,
-    r#type::{TypeBuilder, environment::Environment, kind::generic::GenericSubstitution},
+    r#type::{
+        TypeBuilder, TypeId,
+        environment::{Environment, InferenceEnvironment, instantiate::InstantiateEnvironment},
+        kind::{GenericArguments, PrimitiveType, TypeKind, generic::GenericSubstitution},
+    },
 };
 use hashql_diagnostics::{Diagnostic, category::DiagnosticCategory};
 
@@ -14,7 +24,7 @@ use crate::{
     node::{
         call::Call,
         kind::NodeKind,
-        variable::{LocalVariable, QualifiedVariable, Variable, VariableKind},
+        variable::{LocalVariable, QualifiedVariable, VariableKind},
     },
 };
 
@@ -43,7 +53,7 @@ pub struct SpecializeOpaque<'env, 'heap> {
     locals: &'env TypeLocals<'heap>,
     registry: &'env ModuleRegistry<'heap>,
     environment: &'env Environment<'heap>,
-    builder: &'env TypeBuilder<'env, 'heap>,
+    instantiate: InstantiateEnvironment<'env, 'heap>,
 }
 
 impl<'env, 'heap> Fold<'heap> for SpecializeOpaque<'env, 'heap> {
@@ -97,30 +107,75 @@ impl<'env, 'heap> Fold<'heap> for SpecializeOpaque<'env, 'heap> {
             }
         };
 
-        // TODO: we should create a closure here as the type
-        if type_def.arguments.len() != arguments.len() {
-            todo!("issue diagnostic");
-        }
+        let mut opaque = type_def.id;
 
-        let mut r#type = type_def.id;
-
-        // Find the underlying `Opaque` type (and it's repr)
-        let mut current = r#type;
-        loop {
-            match self.environment.r#type(current).kind {}
-        }
-
+        // If the arguments aren't empty, this is a generic, therefore "peel" the generics off to
+        // get the actual type, and then re-apply the generics around the closure
+        let mut generic_arguments = GenericArguments::empty();
         if !arguments.is_empty() {
-            let arguments =
-                type_def
-                    .arguments
-                    .iter()
-                    .zip(arguments.iter())
-                    .map(|(argument, &binding)| GenericSubstitution {
-                        argument: argument.id,
-                        value: binding,
-                    });
+            let generic = self
+                .environment
+                .r#type(opaque)
+                .kind
+                .generic()
+                .expect("opaque type should be generic if it has arguments");
+
+            generic_arguments = generic.arguments;
+            opaque = generic.base;
         }
+
+        let repr = self
+            .environment
+            .r#type(opaque)
+            .kind
+            .opaque()
+            .expect("type should be opaque")
+            .repr;
+
+        let is_null =
+            *self.environment.r#type(repr).kind == TypeKind::Primitive(PrimitiveType::Null);
+
+        let builder = TypeBuilder::spanned(variable.span, self.environment);
+
+        // Create a closure, with the following
+        // <generics>(repr?) -> opaque
+        let params = if is_null { &[] as &[TypeId] } else { &[repr] };
+        let mut closure = builder.closure(params.into_iter().copied(), opaque);
+        if !generic_arguments.is_empty() {
+            // apply the generics
+            closure = builder.generic(generic_arguments, closure);
+        }
+
+        // Create a new TypeDef so that we can track any instantiations through the arguments
+        // provided
+        let mut def = TypeDef {
+            id: closure,
+            arguments: type_def.arguments,
+        };
+        def.instantiate(&mut self.instantiate);
+
+        if arguments.is_empty() {
+            // nothing needs to be applied, we're done!
+            todo!()
+        }
+
+        if arguments.len() != def.arguments.len() {
+            // O no! We can't apply :/
+            todo!("issue diagnostic")
+        }
+
+        let substitutions =
+            def.arguments
+                .iter()
+                .zip(arguments.iter())
+                .map(|(argument, &binding)| GenericSubstitution {
+                    argument: argument.id,
+                    value: binding,
+                });
+
+        let closure = builder.apply(substitutions, def.id);
+        def.id = closure;
+        def.arguments = self.environment.intern_generic_argument_references(&[]);
 
         todo!()
     }
