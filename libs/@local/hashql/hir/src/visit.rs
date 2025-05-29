@@ -539,17 +539,12 @@ pub fn walk_closure<'heap, T: Visitor<'heap> + ?Sized>(
 
 pub fn walk_closure_signature<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
-    ClosureSignature {
-        span,
-        r#type,
-        generics,
-        params,
-    }: &'heap ClosureSignature<'heap>,
+    ClosureSignature { span, def, params }: &'heap ClosureSignature<'heap>,
 ) {
     visitor.visit_span(*span);
-    visitor.visit_type_id(*r#type);
+    visitor.visit_type_id(def.id);
 
-    for reference in generics {
+    for reference in def.arguments {
         visitor.visit_generic_argument_reference(reference);
     }
 

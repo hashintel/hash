@@ -382,8 +382,8 @@ impl<'heap> PrettyPrint<'heap> for Closure<'heap> {
         // way that's pretty unreadable
         let mut base = RcDoc::text("#fn");
 
-        let mut signature = env.r#type(self.signature.r#type);
-        if !self.signature.generics.is_empty() {
+        let mut signature = env.r#type(self.signature.def.id);
+        if !self.signature.def.arguments.is_empty() {
             let generic = signature.kind.generic().expect("should be a generic");
 
             let arguments = generic.arguments;
@@ -393,7 +393,7 @@ impl<'heap> PrettyPrint<'heap> for Closure<'heap> {
                     .intersperse(
                         // The generics might be re-ordered in the type, so we need enforce
                         // ordering per the signature
-                        self.signature.generics.iter().map(|generic| {
+                        self.signature.def.arguments.iter().map(|generic| {
                             let argument = arguments
                                 .iter()
                                 .find(|argument| argument.name == generic.name)
