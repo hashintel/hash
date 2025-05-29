@@ -1,6 +1,11 @@
 use core::fmt::{self, Display};
 
-use hashql_core::{intern::Interned, span::SpanId, symbol::Ident, r#type::TypeId};
+use hashql_core::{
+    intern::Interned,
+    span::{SpanId, Spanned},
+    symbol::Ident,
+    r#type::TypeId,
+};
 
 use crate::path::QualifiedPath;
 
@@ -17,7 +22,7 @@ pub struct LocalVariable<'heap> {
     pub span: SpanId,
 
     pub name: Ident<'heap>,
-    pub arguments: Interned<'heap, [TypeId]>,
+    pub arguments: Interned<'heap, [Spanned<TypeId>]>,
 }
 
 impl LocalVariable<'_> {
@@ -40,7 +45,7 @@ pub struct QualifiedVariable<'heap> {
     pub span: SpanId,
 
     pub path: QualifiedPath<'heap>,
-    pub arguments: Interned<'heap, [TypeId]>,
+    pub arguments: Interned<'heap, [Spanned<TypeId>]>,
 }
 
 impl QualifiedVariable<'_> {

@@ -9,7 +9,7 @@ use hashql_core::{
         item::ItemKind,
         locals::{TypeDef, TypeLocals},
     },
-    span::SpanId,
+    span::{SpanId, Spanned},
     r#type::{
         TypeBuilder, TypeId,
         environment::{Environment, instantiate::InstantiateEnvironment},
@@ -74,8 +74,7 @@ fn generic_argument_mismatch<'heap>(
     variable: &Variable<'heap>,
 
     parameters: &[GenericArgumentReference],
-    arguments: &[TypeId],
-    env: &Environment<'heap>,
+    arguments: &[Spanned<TypeId>],
 ) -> ConvertTypeConstructorDiagnostic {
     let mut diagnostic = Diagnostic::new(
         ConvertTypeConstructorDiagnosticCategory::GenericArgumentMismatch,
@@ -113,10 +112,8 @@ fn generic_argument_mismatch<'heap>(
     }
 
     for &extraneous in extraneous {
-        let span = env.r#type(extraneous).span;
-
         diagnostic.labels.push(
-            Label::new(span, "Remove this argument")
+            Label::new(extraneous.span, "Remove this argument")
                 .with_order(order)
                 .with_color(Color::Ansi(AnsiColor::Red)),
         );
@@ -198,7 +195,7 @@ impl<'heap> ConvertTypeConstructor<'_, 'heap> {
     fn resolve_variable(
         &self,
         variable: &Variable<'heap>,
-    ) -> Option<(TypeDef<'heap>, Interned<'heap, [TypeId]>)> {
+    ) -> Option<(TypeDef<'heap>, Interned<'heap, [Spanned<TypeId>]>)> {
         match variable.kind {
             VariableKind::Local(LocalVariable {
                 span: _,
@@ -269,7 +266,7 @@ impl<'heap> ConvertTypeConstructor<'_, 'heap> {
         node: &Node<'heap>,
         variable: &Variable<'heap>,
         closure_def: TypeDef<'heap>,
-        generic_arguments: Interned<'heap, [TypeId]>,
+        generic_arguments: Interned<'heap, [Spanned<TypeId>]>,
     ) -> Option<Node<'heap>> {
         let make = |constructor| PartialNode {
             span: node.span,
@@ -299,7 +296,6 @@ impl<'heap> ConvertTypeConstructor<'_, 'heap> {
                 variable,
                 &closure_def.arguments,
                 &generic_arguments,
-                self.environment,
             ));
 
             return None;
@@ -309,10 +305,12 @@ impl<'heap> ConvertTypeConstructor<'_, 'heap> {
             .arguments
             .iter()
             .zip(generic_arguments.iter())
-            .map(|(reference, &apply)| GenericSubstitution {
-                argument: reference.id,
-                value: apply,
-            });
+            .map(
+                |(reference, &Spanned { value: apply, .. })| GenericSubstitution {
+                    argument: reference.id,
+                    value: apply,
+                },
+            );
 
         let builder = TypeBuilder::spanned(variable.span, self.environment);
         let closure_id = builder.apply(substitutions, closure_def.id);
@@ -389,15 +387,13 @@ impl<'heap> Fold<'heap> for ConvertTypeConstructor<'_, 'heap> {
     fn fold_node(&mut self, node: Node<'heap>) -> Self::Output<Node<'heap>> {
         let node_id = node.id;
 
-        // Do not re-compute the node, if we've already seen it
-        if let Some(&cached) = self.cache.get(&node_id) {
-            return Ok(cached);
-        }
-
         let mut node = walk_node(self, node)?;
 
-        if let Some(converted) = self.convert_variable(&node) {
-            self.cache.insert(node_id, node);
+        // Do not re-compute the node, if we've already seen it
+        if let Some(&cached) = self.cache.get(&node_id) {
+            node = cached;
+        } else if let Some(converted) = self.convert_variable(&node) {
+            self.cache.insert(node_id, converted);
             node = converted;
         }
 

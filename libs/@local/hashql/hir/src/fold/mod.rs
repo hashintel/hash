@@ -53,7 +53,7 @@ use core::ops::{FromResidual, Try};
 
 use hashql_core::{
     intern::Interned,
-    span::SpanId,
+    span::{SpanId, Spanned},
     symbol::Ident,
     r#type::{TypeId, kind::generic::GenericArgumentReference},
 };
@@ -147,8 +147,8 @@ pub trait Fold<'heap> {
     // only interner)
     fn fold_type_ids(
         &mut self,
-        ids: Interned<'heap, [TypeId]>,
-    ) -> Self::Output<Interned<'heap, [TypeId]>> {
+        ids: Interned<'heap, [Spanned<TypeId>]>,
+    ) -> Self::Output<Interned<'heap, [Spanned<TypeId>]>> {
         Try::from_output(ids)
     }
 
