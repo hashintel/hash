@@ -14,10 +14,7 @@ use crate::{
     collection::{SmallVec, TinyVec},
     intern::Interned,
     newtype, newtype_producer,
-    pretty::{
-        ORANGE, PrettyPrint, PrettyRecursionBoundary,
-        display::{Delimited, DisplayBuilder, Separated},
-    },
+    pretty::{ORANGE, PrettyPrint, PrettyRecursionBoundary, display::DisplayBuilder},
     span::SpanId,
     symbol::{Ident, Symbol},
     r#type::{
