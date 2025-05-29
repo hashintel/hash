@@ -222,17 +222,27 @@ impl<'heap> PrettyPrint<'heap> for TypeConstructor<'heap> {
     fn pretty(
         &self,
         env: &Environment<'heap>,
-        boundary: &mut PrettyRecursionBoundary,
+        _: &mut PrettyRecursionBoundary,
     ) -> RcDoc<'heap, Style> {
         RcDoc::text("#ctor")
             .append("(")
-            .group()
-            .append(self.value.pretty(env, boundary))
+            .append(pretty_print_type_id(self.closure, env))
             .append(",")
             .group()
             .append(RcDoc::softline())
-            .append("type: ")
-            .append(pretty_print_type_id(self.r#type, env))
+            .append("arguments: ")
+            .append(
+                RcAllocator
+                    .intersperse(
+                        self.arguments
+                            .iter()
+                            .map(|argument| RcDoc::text(argument.name.unwrap())),
+                        RcDoc::text(",").append(RcDoc::softline()),
+                    )
+                    .group()
+                    .brackets()
+                    .group(),
+            )
             .group()
             .append(")")
             .group()
