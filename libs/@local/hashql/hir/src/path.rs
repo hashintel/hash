@@ -1,4 +1,6 @@
-use hashql_core::{intern::Interned, symbol::Ident};
+use core::fmt::{self, Display};
+
+use hashql_core::{intern::Interned, pretty::display::DisplayBuilder, symbol::Ident};
 
 mod private {
     #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -17,5 +19,15 @@ impl<'heap> QualifiedPath<'heap> {
     #[must_use]
     pub const fn new_unchecked(value: Interned<'heap, [Ident<'heap>]>) -> Self {
         Self(value, private::Marker)
+    }
+}
+
+impl Display for QualifiedPath<'_> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let display = DisplayBuilder::new(self.0.iter().map(|ident| ident.value.demangle()))
+            .separated("::")
+            .leading("::");
+
+        Display::fmt(&display, fmt)
     }
 }

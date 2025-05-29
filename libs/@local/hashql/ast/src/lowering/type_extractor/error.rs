@@ -235,9 +235,7 @@ pub(crate) fn duplicate_newtype(
 }
 
 fn demangle_unwrap(symbol: Symbol<'_>) -> &str {
-    let inner = symbol.unwrap();
-
-    inner.rsplit_once(':').map_or(inner, |(name, _)| name)
+    symbol.demangle()
 }
 
 fn demangle<'s>(symbol: &'s Symbol) -> &'s str {
@@ -320,7 +318,7 @@ where
 
     for extraneous in extraneous {
         diagnostic.labels.push(
-            Label::new(extraneous.span(), "Remove this parameter")
+            Label::new(extraneous.span(), "Remove this argument")
                 .with_order(index)
                 .with_color(Color::Ansi(AnsiColor::Red)),
         );

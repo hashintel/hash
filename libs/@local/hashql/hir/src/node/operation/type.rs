@@ -1,11 +1,7 @@
 use hashql_core::{
     intern::Interned,
     span::SpanId,
-    r#type::{
-        TypeId,
-        environment::Environment,
-        kind::{Apply, Generic, TypeKind, generic::GenericArgumentReference},
-    },
+    r#type::{TypeId, kind::generic::GenericArgumentReference},
 };
 
 use crate::node::Node;
