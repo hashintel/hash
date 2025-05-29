@@ -1,36 +1,23 @@
 #![expect(deprecated, reason = "We use `Context` to maintain compatibility")]
 use core::{
-    error::Error,
     fmt::{self, Debug, Display},
     ops::{Deref, DerefMut},
+    panic::Location,
 };
 
-use crate::{IntoReport, Report};
+use crate::{Context, IntoReport, Report};
 
-/// The error type used inside an [`AnyReport`]
-/// and the concrete error type used when converted to a `Report<E>`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct AnyError;
-
-impl Display for AnyError {
-    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(formatter, "AnyError")
-    }
-}
-
-impl Error for AnyError {}
-
-/// A special concrete wrapping type acting as `Report<AnyError>`
+/// A special concrete wrapping type acting as `Report<dyn Error + Send + Sync>`
 /// which can be used as a catch-all error type when no custom error type is needed.
 ///
 /// This type is benefical because it implements `From<E: Into<Report<E>>`,
-/// meaning any error implementing [`std::error::Error`], or is a `Report<E>` can be
+/// meaning any error implementing [`core::error::Error`], or is a `Report<E>` can be
 /// propagated automatically with `?` without requiring `.change_context(AnyError)`.
 ///
-/// This type implements all the same methods the underlying `Report<AnyError>` implements.
+/// This type implements all the same methods the underlying `Report<dyn Error + Send + Sync>`
+/// implements.
 #[must_use]
-pub struct AnyReport(Report<AnyError>);
+pub struct AnyReport(Report<dyn Context + Send + Sync + 'static>);
 
 impl Display for AnyReport {
     fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -45,7 +32,7 @@ impl Debug for AnyReport {
 }
 
 impl IntoReport for AnyReport {
-    type Context = AnyError;
+    type Context = dyn Context + Send + Sync + 'static;
 
     #[track_caller]
     fn into_report(self) -> Report<Self::Context> {
@@ -56,42 +43,23 @@ impl IntoReport for AnyReport {
 impl<E: Into<Report<E>>> From<E> for AnyReport {
     #[track_caller]
     fn from(value: E) -> Self {
-        Self(value.into().change_context(AnyError))
+        Self(
+            value
+                .into()
+                .into_dyn()
+                .attach_printable(format!("into AnyReport at {}", Location::caller())),
+        )
     }
 }
 
-impl<C: ?Sized> From<Report<C>> for AnyReport {
+impl<C> From<Report<C>> for AnyReport {
     #[track_caller]
     fn from(value: Report<C>) -> Self {
-        Self(value.change_context(AnyError))
-    }
-}
-
-impl From<AnyReport> for Report<AnyError> {
-    #[track_caller]
-    fn from(value: AnyReport) -> Self {
-        value.0
-    }
-}
-
-impl Default for AnyReport {
-    fn default() -> Self {
-        Self(Report::new(AnyError))
-    }
-}
-
-impl AnyReport {
-    /// Creates a new [`AnyReport`].
-    ///
-    /// This attempts to capture [`Backtrace`]/[`SpanTrace`] directly.
-    /// Please see the [`Backtrace` and `SpanTrace` section] of the `Report`
-    /// documentation for more information.
-    ///
-    /// [`Backtrace` and `SpanTrace` section]: #backtrace-and-spantrace
-    #[inline]
-    #[track_caller]
-    pub fn new() -> Self {
-        Self::default()
+        Self(
+            value
+                .into_dyn()
+                .attach_printable(format!("into AnyReport at {}", Location::caller())),
+        )
     }
 }
 
@@ -180,7 +148,7 @@ impl AnyReport {
 }
 
 impl Deref for AnyReport {
-    type Target = Report<AnyError>;
+    type Target = Report<dyn Context + Send + Sync + 'static>;
 
     fn deref(&self) -> &Self::Target {
         &self.0
@@ -195,6 +163,8 @@ impl DerefMut for AnyReport {
 
 #[cfg(test)]
 mod test {
+    use core::error::Error;
+
     use super::*;
 
     #[derive(Debug)]
