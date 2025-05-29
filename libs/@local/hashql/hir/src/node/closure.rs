@@ -2,7 +2,11 @@ use hashql_core::{
     intern::Interned,
     span::SpanId,
     symbol::Ident,
-    r#type::{TypeId, kind::generic::GenericArgumentReference},
+    r#type::{
+        TypeId,
+        environment::Environment,
+        kind::{Apply, ClosureType, Generic, TypeKind, generic::GenericArgumentReference},
+    },
 };
 
 use super::Node;
@@ -28,7 +32,7 @@ pub struct ClosureParam<'heap> {
 pub struct ClosureSignature<'heap> {
     pub span: SpanId,
 
-    // Always a `ClosureType`
+    // Always a `ClosureType`, or a type wrapped in `Generic`
     pub r#type: TypeId,
 
     // The generics bound to this type, always in the order they have been specified
@@ -38,6 +42,28 @@ pub struct ClosureSignature<'heap> {
     pub generics: Interned<'heap, [GenericArgumentReference<'heap>]>,
     // The names of the different parameters, always the same length as the `ClosureType` params
     pub params: Interned<'heap, [ClosureParam<'heap>]>,
+}
+
+impl<'heap> ClosureSignature<'heap> {
+    pub fn type_signature(&self, env: &Environment<'heap>) -> &'heap ClosureType<'heap> {
+        let mut type_id = self.r#type;
+
+        loop {
+            let kind = env.r#type(type_id).kind;
+
+            match kind {
+                &TypeKind::Apply(Apply { base, .. }) | &TypeKind::Generic(Generic { base, .. }) => {
+                    type_id = base;
+                }
+                TypeKind::Closure(closure) => return closure,
+                _ => unreachable!("ClosureSignature::returns() called on a non-closure type"),
+            }
+        }
+    }
+
+    pub fn returns(&self, env: &Environment<'heap>) -> TypeId {
+        self.type_signature(env).returns
+    }
 }
 
 /// A closure expression in the HashQL HIR.
