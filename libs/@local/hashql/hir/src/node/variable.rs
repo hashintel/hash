@@ -1,3 +1,5 @@
+use core::fmt::{self, Display};
+
 use hashql_core::{intern::Interned, span::SpanId, symbol::Ident, r#type::TypeId};
 
 use crate::path::QualifiedPath;
@@ -18,6 +20,13 @@ pub struct LocalVariable<'heap> {
     pub arguments: Interned<'heap, [TypeId]>,
 }
 
+impl LocalVariable<'_> {
+    #[must_use]
+    pub fn name(&self) -> impl Display {
+        self.name.value.demangle()
+    }
+}
+
 /// A reference to a variable accessed through a qualified path in the HashQL HIR.
 ///
 /// Represents an identifier accessed through a module path, allowing for
@@ -32,6 +41,13 @@ pub struct QualifiedVariable<'heap> {
 
     pub path: QualifiedPath<'heap>,
     pub arguments: Interned<'heap, [TypeId]>,
+}
+
+impl QualifiedVariable<'_> {
+    #[must_use]
+    pub fn name(&self) -> impl Display {
+        &self.path
+    }
 }
 
 /// The different kinds of variable references in the HashQL HIR.
@@ -55,4 +71,32 @@ pub struct Variable<'heap> {
     pub span: SpanId,
 
     pub kind: VariableKind<'heap>,
+}
+
+impl Variable<'_> {
+    #[must_use]
+    pub fn name(&self) -> impl Display {
+        enum DisplayName<L, Q> {
+            Local(L),
+            Qualified(Q),
+        }
+
+        impl<L, Q> Display for DisplayName<L, Q>
+        where
+            L: Display,
+            Q: Display,
+        {
+            fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+                match self {
+                    Self::Local(local) => local.fmt(fmt),
+                    Self::Qualified(qualified) => qualified.fmt(fmt),
+                }
+            }
+        }
+
+        match &self.kind {
+            VariableKind::Local(local) => DisplayName::Local(local.name()),
+            VariableKind::Qualified(qualified) => DisplayName::Qualified(qualified.name()),
+        }
+    }
 }

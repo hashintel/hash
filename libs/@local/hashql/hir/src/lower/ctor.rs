@@ -1,5 +1,5 @@
 use alloc::borrow::Cow;
-use core::convert::Infallible;
+use core::{cmp::Ordering, convert::Infallible};
 
 use hashql_core::{
     intern::Interned,
@@ -12,10 +12,18 @@ use hashql_core::{
     r#type::{
         TypeBuilder, TypeId,
         environment::{Environment, instantiate::InstantiateEnvironment},
-        kind::{GenericArguments, PrimitiveType, TypeKind, generic::GenericSubstitution},
+        kind::{
+            GenericArguments, PrimitiveType, TypeKind,
+            generic::{GenericArgumentReference, GenericSubstitution},
+        },
     },
 };
-use hashql_diagnostics::{Diagnostic, category::DiagnosticCategory};
+use hashql_diagnostics::{
+    Diagnostic, Help, Severity,
+    category::{DiagnosticCategory, TerminalDiagnosticCategory},
+    color::{AnsiColor, Color},
+    label::Label,
+};
 
 use crate::{
     fold::{Fold, nested::Deep, walk_node},
@@ -31,13 +39,20 @@ use crate::{
     },
 };
 
-pub type SpecializeOpaqueDiagnostic = Diagnostic<SpecializeOpaqueDiagnosticCategory, SpanId>;
+const GENERIC_ARGUMENT_MISMATCH: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "generic-argument-mismatch",
+    name: "Incorrect number of type arguments",
+};
 
-#[expect(clippy::empty_enum)]
+pub type ConvertTypeConstructorDiagnostic =
+    Diagnostic<ConvertTypeConstructorDiagnosticCategory, SpanId>;
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum SpecializeOpaqueDiagnosticCategory {}
+pub enum ConvertTypeConstructorDiagnosticCategory {
+    GenericArgumentMismatch,
+}
 
-impl DiagnosticCategory for SpecializeOpaqueDiagnosticCategory {
+impl DiagnosticCategory for ConvertTypeConstructorDiagnosticCategory {
     fn id(&self) -> Cow<'_, str> {
         Cow::Borrowed("convert-type-constructor")
     }
@@ -47,8 +62,79 @@ impl DiagnosticCategory for SpecializeOpaqueDiagnosticCategory {
     }
 
     fn subcategory(&self) -> Option<&dyn DiagnosticCategory> {
-        unreachable!()
+        match self {
+            Self::GenericArgumentMismatch => Some(&GENERIC_ARGUMENT_MISMATCH),
+        }
     }
+}
+
+fn generic_argument_mismatch<'heap>(
+    node: &Node<'heap>,
+    variable: &Variable<'heap>,
+
+    parameters: &[GenericArgumentReference],
+    arguments: &[TypeId],
+    env: &Environment<'heap>,
+) -> ConvertTypeConstructorDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        ConvertTypeConstructorDiagnosticCategory::GenericArgumentMismatch,
+        Severity::Error,
+    );
+
+    let expected = parameters.len();
+    let actual = arguments.len();
+
+    let missing = parameters.get(actual..).unwrap_or(&[]);
+    let extraneous = arguments.get(expected..).unwrap_or(&[]);
+
+    diagnostic.labels.push(Label::new(
+        variable.span,
+        format!("Expected {expected} generic arguments, but got {actual}"),
+    ));
+
+    let mut index = -1;
+    for missing in missing {
+        diagnostic.labels.push(
+            Label::new(
+                node.span,
+                format!("Missing parameter `{}`", missing.name.demangle()),
+            )
+            .with_order(index)
+            .with_color(Color::Ansi(AnsiColor::Yellow)),
+        );
+
+        index -= 1;
+    }
+
+    for &extraneous in extraneous {
+        let span = env.r#type(extraneous).span;
+
+        diagnostic.labels.push(
+            Label::new(span, "Remove this argument")
+                .with_order(index)
+                .with_color(Color::Ansi(AnsiColor::Red)),
+        );
+
+        index -= 1;
+    }
+
+    let usage = format!(
+        "{}{}",
+        variable.name(),
+        GenericArgumentReference::display(parameters)
+    );
+
+    let help = match actual.cmp(&expected) {
+        Ordering::Less => format!("Add the missing parameter(s): {usage}"),
+        Ordering::Greater => format!("Remove the extra parameter(s): {usage}"),
+        Ordering::Equal => format!("Use: {usage}"),
+    };
+
+    diagnostic.add_help(Help::new(help));
+
+    // TODO: might need a note
+
+    diagnostic
 }
 
 pub struct ConvertTypeConstructor<'env, 'heap> {
@@ -57,9 +143,10 @@ pub struct ConvertTypeConstructor<'env, 'heap> {
     registry: &'env ModuleRegistry<'heap>,
     environment: &'env Environment<'heap>,
     instantiate: InstantiateEnvironment<'env, 'heap>,
+    diagnostics: Vec<ConvertTypeConstructorDiagnostic>,
 }
 
-impl<'env, 'heap> ConvertTypeConstructor<'env, 'heap> {
+impl<'heap> ConvertTypeConstructor<'_, 'heap> {
     fn resolve_variable(
         &self,
         variable: &Variable<'heap>,
@@ -93,7 +180,7 @@ impl<'env, 'heap> ConvertTypeConstructor<'env, 'heap> {
     }
 
     fn build_closure(
-        &mut self,
+        &self,
         span: SpanId,
         opaque_id: TypeId,
         generics: GenericArguments<'heap>,
@@ -120,7 +207,7 @@ impl<'env, 'heap> ConvertTypeConstructor<'env, 'heap> {
             &[repr_id]
         };
 
-        let mut closure = builder.closure(params.into_iter().copied(), opaque_id);
+        let mut closure = builder.closure(params.iter().copied(), opaque_id);
         if !generics.is_empty() {
             // apply the generics
             closure = builder.generic(generics, closure);
@@ -159,7 +246,15 @@ impl<'env, 'heap> ConvertTypeConstructor<'env, 'heap> {
         // We need to check that the amount of generic arguments is the same as the amount of
         // generic parameters
         if generic_arguments.len() != closure_def.arguments.len() {
-            todo!("issue diagnostic")
+            self.diagnostics.push(generic_argument_mismatch(
+                node,
+                variable,
+                &closure_def.arguments,
+                &generic_arguments,
+                self.environment,
+            ));
+
+            return None;
         }
 
         let substitutions = closure_def
@@ -223,7 +318,7 @@ impl<'env, 'heap> ConvertTypeConstructor<'env, 'heap> {
     }
 }
 
-impl<'env, 'heap> Fold<'heap> for ConvertTypeConstructor<'env, 'heap> {
+impl<'heap> Fold<'heap> for ConvertTypeConstructor<'_, 'heap> {
     type NestedFilter = Deep;
     type Output<T>
         = Result<T, !>
@@ -238,9 +333,7 @@ impl<'env, 'heap> Fold<'heap> for ConvertTypeConstructor<'env, 'heap> {
     fn fold_node(&mut self, node: Node<'heap>) -> Self::Output<Node<'heap>> {
         let node = walk_node(self, node)?;
 
-        match self.convert_variable(&node) {
-            None => Ok(node),
-            Some(node) => Ok(node),
-        }
+        let node = self.convert_variable(&node).unwrap_or(node);
+        Ok(node)
     }
 }

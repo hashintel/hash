@@ -1,15 +1,18 @@
 //! # HashQL HIR
 //!
 //! ## Workspace dependencies
-#![feature(
-    never_type,
-    exhaustive_patterns,
-    try_trait_v2,
-    associated_type_defaults,
-    array_chunks,
-    coverage_attribute
-)]
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
+#![feature(
+    // Library Features
+    array_chunks,
+    coverage_attribute,
+    iter_intersperse,
+    try_trait_v2,
+    // Language Features
+    associated_type_defaults,
+    exhaustive_patterns,
+    never_type,
+)]
 
 extern crate alloc;
 
