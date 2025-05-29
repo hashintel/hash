@@ -153,6 +153,18 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
         variable
     }
 
+    pub fn fresh_hole(&self, span: SpanId) -> (TypeId, Variable) {
+        let hole = self.counter.hole.next();
+        let variable = Variable {
+            span,
+            kind: VariableKind::Hole(hole),
+        };
+
+        let r#type = variable.into_type(self).id;
+
+        (r#type, variable)
+    }
+
     pub fn collect_constraints(&mut self, subtype: TypeId, supertype: TypeId) {
         #[expect(
             clippy::match_same_arms,
@@ -214,15 +226,15 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
         result
     }
 
-    pub(crate) fn in_contravariant<T>(&mut self, closure: impl FnOnce(&mut Self) -> T) -> T {
+    pub fn in_contravariant<T>(&mut self, closure: impl FnOnce(&mut Self) -> T) -> T {
         self.with_variance(Variance::Contravariant, closure)
     }
 
-    pub(crate) fn in_covariant<T>(&mut self, closure: impl FnOnce(&mut Self) -> T) -> T {
+    pub fn in_covariant<T>(&mut self, closure: impl FnOnce(&mut Self) -> T) -> T {
         self.with_variance(Variance::Covariant, closure)
     }
 
-    pub(crate) fn in_invariant<T>(&mut self, closure: impl FnOnce(&mut Self) -> T) -> T {
+    pub fn in_invariant<T>(&mut self, closure: impl FnOnce(&mut Self) -> T) -> T {
         self.with_variance(Variance::Invariant, closure)
     }
 
