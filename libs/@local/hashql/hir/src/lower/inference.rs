@@ -20,20 +20,20 @@ use hashql_core::{
 use crate::{
     node::{
         HirId, Node,
-        access::{Access, field::FieldAccess, index::IndexAccess},
+        access::{field::FieldAccess, index::IndexAccess},
         branch::Branch,
-        call::{Call, CallArgument},
-        closure::{Closure, ClosureParam, ClosureSignature},
-        data::{Data, Literal},
+        call::Call,
+        closure::{Closure, ClosureSignature},
+        data::Literal,
         graph::Graph,
         input::Input,
         kind::NodeKind,
         r#let::Let,
         operation::{
-            BinaryOperation, Operation, TypeOperation, UnaryOperation,
+            BinaryOperation, UnaryOperation,
             r#type::{TypeAssertion, TypeConstructor},
         },
-        variable::{LocalVariable, QualifiedVariable, Variable},
+        variable::{LocalVariable, QualifiedVariable},
     },
     visit::{self, Visitor},
 };
@@ -112,10 +112,6 @@ impl<'heap> Visitor<'heap> for Inference<'_, 'heap> {
         self.current = previous;
     }
 
-    fn visit_data(&mut self, data: &'heap Data<'heap>) {
-        visit::walk_data(self, data);
-    }
-
     fn visit_literal(&mut self, literal: &'heap Literal<'heap>) {
         visit::walk_literal(self, literal);
 
@@ -129,10 +125,6 @@ impl<'heap> Visitor<'heap> for Inference<'_, 'heap> {
         };
 
         self.types.insert_unique(Universe::Value, self.current, id);
-    }
-
-    fn visit_variable(&mut self, variable: &'heap Variable<'heap>) {
-        visit::walk_variable(self, variable);
     }
 
     fn visit_local_variable(&mut self, variable: &'heap LocalVariable<'heap>) {
@@ -249,14 +241,6 @@ impl<'heap> Visitor<'heap> for Inference<'_, 'heap> {
         }
     }
 
-    fn visit_operation(&mut self, operation: &'heap Operation<'heap>) {
-        visit::walk_operation(self, operation);
-    }
-
-    fn visit_type_operation(&mut self, operation: &'heap TypeOperation<'heap>) {
-        visit::walk_type_operation(self, operation);
-    }
-
     fn visit_type_assertion(&mut self, assertion: &'heap TypeAssertion<'heap>) {
         visit::walk_type_assertion(self, assertion);
 
@@ -291,10 +275,6 @@ impl<'heap> Visitor<'heap> for Inference<'_, 'heap> {
 
     fn visit_unary_operation(&mut self, _: &'heap UnaryOperation<'heap>) {
         unreachable!("access operations shouldn't be present yet");
-    }
-
-    fn visit_access(&mut self, access: &'heap Access<'heap>) {
-        visit::walk_access(self, access);
     }
 
     fn visit_field_access(&mut self, access: &'heap FieldAccess<'heap>) {
@@ -364,10 +344,6 @@ impl<'heap> Visitor<'heap> for Inference<'_, 'heap> {
         // from the types provided when we do the type-check.
     }
 
-    fn visit_call_argument(&mut self, argument: &'heap CallArgument<'heap>) {
-        visit::walk_call_argument(self, argument);
-    }
-
     fn visit_branch(&mut self, _: &'heap Branch<'heap>) {
         unimplemented!()
     }
@@ -427,14 +403,6 @@ impl<'heap> Visitor<'heap> for Inference<'_, 'heap> {
         // above.
         self.types
             .insert(Universe::Value, self.current, signature.def.id);
-    }
-
-    fn visit_closure_signature(&mut self, signature: &'heap ClosureSignature<'heap>) {
-        visit::walk_closure_signature(self, signature);
-    }
-
-    fn visit_closure_param(&mut self, param: &'heap ClosureParam<'heap>) {
-        visit::walk_closure_param(self, param);
     }
 
     fn visit_graph(&mut self, _: &'heap Graph<'heap>) {
