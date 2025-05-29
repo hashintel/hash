@@ -1,6 +1,7 @@
 use hashql_core::{
     literal::LiteralKind,
     pretty::{PrettyPrint, PrettyRecursionBoundary, PrettyRecursionGuardStrategy},
+    span::Spanned,
     r#type::{TypeId, environment::Environment},
 };
 use hashql_diagnostics::color::Style;
@@ -66,7 +67,10 @@ fn pretty_print_type_id<'heap>(id: TypeId, env: &Environment<'heap>) -> RcDoc<'h
     boundary.pretty_type(env, id)
 }
 
-fn pretty_print_arguments<'heap>(ids: &[TypeId], env: &Environment<'heap>) -> RcDoc<'heap, Style> {
+fn pretty_print_arguments<'heap>(
+    ids: &[Spanned<TypeId>],
+    env: &Environment<'heap>,
+) -> RcDoc<'heap, Style> {
     if ids.is_empty() {
         return RcDoc::nil();
     }
@@ -76,7 +80,8 @@ fn pretty_print_arguments<'heap>(ids: &[TypeId], env: &Environment<'heap>) -> Rc
 
     RcAllocator
         .intersperse(
-            ids.iter().map(|&id| boundary.pretty_type(env, id)),
+            ids.iter()
+                .map(|&Spanned { value: id, .. }| boundary.pretty_type(env, id)),
             RcDoc::text(",").append(RcDoc::softline()),
         )
         .nest(1)

@@ -323,7 +323,7 @@ pub fn walk_local_variable<'heap, T: Visitor<'heap> + ?Sized>(
     visitor.visit_ident(name);
 
     for &argument in arguments {
-        visitor.visit_type_id(argument);
+        visitor.visit_type_id(argument.value);
     }
 }
 
@@ -339,7 +339,7 @@ pub fn walk_qualified_variable<'heap, T: Visitor<'heap> + ?Sized>(
     visitor.visit_qualified_path(path);
 
     for &argument in arguments {
-        visitor.visit_type_id(argument);
+        visitor.visit_type_id(argument.value);
     }
 }
 

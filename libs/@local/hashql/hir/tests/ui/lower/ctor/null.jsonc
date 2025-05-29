@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: newtypes with null as value are treated differently
+["newtype", "Marker", "Null", ["Marker"]]

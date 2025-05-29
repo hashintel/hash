@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Test that lowering a built-in constructor works correctly.
+["Some", { "#literal": 2 }]

@@ -1,0 +1,12 @@
+//@ run: fail
+//@ description: Test that we error out if there are not enough arguments for a constructor.
+[
+  "newtype",
+  "Person<T, U>",
+  { "#struct": { "name": "T", "age": "U" } },
+  [
+    "Person<Number>",
+    //~^ ERROR Add missing parameter `U`
+    { "#literal": 30 }
+  ]
+]
