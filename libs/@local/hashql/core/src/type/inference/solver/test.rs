@@ -2032,3 +2032,46 @@ fn multiple_lower_bounds() {
         [number]
     );
 }
+
+#[test]
+fn unconstrained_hole() {
+    let heap = Heap::new();
+    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+    let hole = env.counter.hole.next();
+    let variable = Variable::synthetic(VariableKind::Hole(hole));
+
+    let mut inference = InferenceEnvironment::new(&env);
+    inference.add_constraint(Constraint::Unify {
+        lhs: variable,
+        rhs: variable,
+    });
+
+    let solver = inference.into_solver();
+    let (_substitution, diagnostics) = solver.solve();
+    assert_eq!(diagnostics.len(), 1);
+    let diagnostics = diagnostics.into_vec();
+    assert_eq!(
+        diagnostics[0].category,
+        TypeCheckDiagnosticCategory::UnconstrainedTypeVariable
+    );
+}
+
+#[test]
+fn unconstrained_generic() {
+    let heap = Heap::new();
+    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+    let generic = env.counter.generic_argument.next();
+    let variable = Variable::synthetic(VariableKind::Generic(generic));
+
+    let mut inference = InferenceEnvironment::new(&env);
+    inference.add_constraint(Constraint::Unify {
+        lhs: variable,
+        rhs: variable,
+    });
+
+    let solver = inference.into_solver();
+    let (_substitution, diagnostics) = solver.solve();
+    assert!(diagnostics.is_empty());
+}
