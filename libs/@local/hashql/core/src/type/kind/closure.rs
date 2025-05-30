@@ -6,7 +6,7 @@ use smallvec::SmallVec;
 use super::{TypeKind, generic::GenericArguments};
 use crate::{
     intern::Interned,
-    pretty::{PrettyPrint, PrettyRecursionBoundary},
+    pretty::{PrettyPrint, PrettyPrintBoundary},
     symbol::Ident,
     r#type::{
         PartialType, Type, TypeId,
@@ -307,7 +307,7 @@ impl<'heap> PrettyPrint<'heap> for ClosureType<'heap> {
     fn pretty(
         &self,
         env: &Environment<'heap>,
-        boundary: &mut PrettyRecursionBoundary,
+        boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, anstyle::Style> {
         self.pretty_generic(env, boundary, GenericArguments::empty())
     }
@@ -315,7 +315,7 @@ impl<'heap> PrettyPrint<'heap> for ClosureType<'heap> {
     fn pretty_generic(
         &self,
         env: &Environment<'heap>,
-        boundary: &mut PrettyRecursionBoundary,
+        boundary: &mut PrettyPrintBoundary,
         arguments: GenericArguments<'heap>,
     ) -> RcDoc<'heap, anstyle::Style> {
         RcDoc::text("fn")

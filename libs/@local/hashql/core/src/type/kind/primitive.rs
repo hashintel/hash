@@ -4,7 +4,7 @@ use pretty::RcDoc;
 use smallvec::SmallVec;
 
 use crate::{
-    pretty::{BLUE, PrettyPrint, PrettyRecursionBoundary},
+    pretty::{BLUE, PrettyPrint, PrettyPrintBoundary},
     symbol::Ident,
     r#type::{
         Type, TypeId,
@@ -255,7 +255,7 @@ impl<'heap> PrettyPrint<'heap> for PrimitiveType {
     fn pretty(
         &self,
         _: &Environment<'heap>,
-        _: &mut PrettyRecursionBoundary,
+        _: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, anstyle::Style> {
         RcDoc::text(self.as_str()).annotate(BLUE)
     }

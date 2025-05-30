@@ -98,7 +98,7 @@ impl Suite for HirLowerInferenceSuite {
         for (hir_id, type_id) in types {
             output.push_str("\n\n--------------------------------------\n\n");
 
-            output.push_str("Node:\n\n");
+            output.push_str("Node:\n");
 
             writeln!(
                 &mut output,
@@ -110,14 +110,17 @@ impl Suite for HirLowerInferenceSuite {
             )
             .expect("infallible");
 
-            output.push_str("Type:\n\n");
+            output.push_str("Type:\n");
 
             write!(
                 &mut output,
                 "{}",
-                environment
-                    .r#type(type_id)
-                    .pretty_print(&environment, PrettyOptions::default().without_color())
+                environment.r#type(type_id).pretty_print(
+                    &environment,
+                    PrettyOptions::default()
+                        .without_color()
+                        .with_resolve_substitutions(true)
+                )
             )
             .expect("infallible");
         }

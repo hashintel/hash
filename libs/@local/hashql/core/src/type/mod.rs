@@ -20,7 +20,7 @@ use crate::{
     id::HasId,
     intern::{Decompose, Interned},
     newtype,
-    pretty::{PrettyPrint, PrettyRecursionBoundary},
+    pretty::{PrettyPrint, PrettyPrintBoundary},
     span::SpanId,
 };
 
@@ -83,7 +83,7 @@ where
     fn pretty(
         &self,
         env: &Environment<'heap>,
-        boundary: &mut PrettyRecursionBoundary,
+        boundary: &mut PrettyPrintBoundary,
     ) -> pretty::RcDoc<'heap, anstyle::Style> {
         self.kind.pretty(env, boundary)
     }
@@ -91,7 +91,7 @@ where
     fn pretty_generic(
         &self,
         env: &Environment<'heap>,
-        boundary: &mut PrettyRecursionBoundary,
+        boundary: &mut PrettyPrintBoundary,
         arguments: kind::GenericArguments<'heap>,
     ) -> pretty::RcDoc<'heap, anstyle::Style> {
         self.kind.pretty_generic(env, boundary, arguments)

@@ -218,20 +218,22 @@ impl From<PrettyRecursionGuardStrategy> for RecursionGuardState {
 /// Tracks already-visited objects and enforces depth limits to prevent
 /// infinite recursion and control output size when printing recursive structures.
 #[derive(Debug)]
-pub struct PrettyRecursionBoundary {
+pub struct PrettyPrintBoundary {
     visited: RecursionGuardState,
     limit: Option<usize>,
+    config: PrettyOptions,
 }
 
-impl PrettyRecursionBoundary {
+impl PrettyPrintBoundary {
     /// Creates a new recursion boundary.
     ///
     /// Configures how cycles are detected and the maximum recursion depth.
     #[must_use]
-    pub fn new(tracking: PrettyRecursionGuardStrategy, limit: Option<usize>) -> Self {
+    pub fn new(config: PrettyOptions) -> Self {
         Self {
-            visited: tracking.into(),
-            limit,
+            visited: config.recursion_strategy.into(),
+            limit: config.recursion_limit,
+            config,
         }
     }
 
@@ -260,6 +262,10 @@ impl PrettyRecursionBoundary {
 
         self.visited.exit(value);
         document
+    }
+
+    pub const fn config(&self) -> PrettyOptions {
+        self.config
     }
 
     /// Pretty-prints a type using its ID.
@@ -320,6 +326,9 @@ pub struct PrettyOptions {
     /// Whether to use color in output.
     pub colored: bool = true,
 
+    /// Whether to resolve substitutions in the document.
+    pub resolve_substitutions: bool = false,
+
     /// Maximum nesting depth before truncating with "...".
     ///
     /// Use [`None`] to disable limits, though this is risky with cyclic structures.
@@ -370,6 +379,12 @@ impl PrettyOptions {
         self
     }
 
+    /// Controls whether substitutions are resolved in output.
+    pub const fn with_resolve_substitutions(mut self, resolve_substitutions: bool) -> Self {
+        self.resolve_substitutions = resolve_substitutions;
+        self
+    }
+
     /// Sets the recursion detection strategy.
     pub const fn with_recursion_strategy(mut self, strategy: PrettyRecursionGuardStrategy) -> Self {
         self.recursion_strategy = strategy;
@@ -405,7 +420,7 @@ pub trait PrettyPrint<'heap> {
     fn pretty(
         &self,
         env: &Environment<'heap>,
-        boundary: &mut PrettyRecursionBoundary,
+        boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, Style>;
 
     /// Format with generic type arguments.
@@ -415,7 +430,7 @@ pub trait PrettyPrint<'heap> {
     fn pretty_generic(
         &self,
         env: &Environment<'heap>,
-        boundary: &mut PrettyRecursionBoundary,
+        boundary: &mut PrettyPrintBoundary,
         arguments: GenericArguments<'heap>,
     ) -> RcDoc<'heap, Style> {
         RcDoc::line_()
@@ -441,11 +456,8 @@ pub trait PrettyPrint<'heap> {
     {
         let mut writer = WriteColoredIo::new(write, options.colored);
 
-        self.pretty(
-            env,
-            &mut PrettyRecursionBoundary::new(options.recursion_strategy, options.recursion_limit),
-        )
-        .render_raw(options.max_width, &mut writer)
+        self.pretty(env, &mut PrettyPrintBoundary::new(options))
+            .render_raw(options.max_width, &mut writer)
     }
 
     /// Get a displayable representation.
@@ -468,13 +480,7 @@ pub trait PrettyPrint<'heap> {
                 let mut writer = WriteColoredFmt::new(fmt, options.colored);
 
                 target
-                    .pretty(
-                        env,
-                        &mut PrettyRecursionBoundary::new(
-                            options.recursion_strategy,
-                            options.recursion_limit,
-                        ),
-                    )
+                    .pretty(env, &mut PrettyPrintBoundary::new(*options))
                     .render_raw(options.max_width, &mut writer)
             }
         }
@@ -490,7 +496,7 @@ where
     fn pretty(
         &self,
         env: &Environment<'heap>,
-        boundary: &mut PrettyRecursionBoundary,
+        boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, Style> {
         T::pretty(self, env, boundary)
     }
@@ -498,7 +504,7 @@ where
     fn pretty_generic(
         &self,
         env: &Environment<'heap>,
-        boundary: &mut PrettyRecursionBoundary,
+        boundary: &mut PrettyPrintBoundary,
         arguments: GenericArguments<'heap>,
     ) -> RcDoc<'heap, Style> {
         T::pretty_generic(self, env, boundary, arguments)

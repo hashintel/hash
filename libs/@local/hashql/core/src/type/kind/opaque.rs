@@ -5,7 +5,7 @@ use smallvec::SmallVec;
 
 use super::TypeKind;
 use crate::{
-    pretty::{PrettyPrint, PrettyRecursionBoundary},
+    pretty::{PrettyPrint, PrettyPrintBoundary},
     symbol::{Ident, Symbol},
     r#type::{
         PartialType, Type, TypeId,
@@ -340,7 +340,7 @@ impl<'heap> PrettyPrint<'heap> for OpaqueType<'heap> {
     fn pretty(
         &self,
         env: &Environment<'heap>,
-        boundary: &mut PrettyRecursionBoundary,
+        boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, anstyle::Style> {
         RcDoc::text(self.name.unwrap())
             .append(RcDoc::text("["))

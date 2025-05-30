@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Test let inference
+["let", "x", { "#literal": true }, "x"]

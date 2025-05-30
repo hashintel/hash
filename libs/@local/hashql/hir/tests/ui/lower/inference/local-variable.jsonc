@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Test local variable inference
+["let", "x", { "#literal": 123 }, "x"]
