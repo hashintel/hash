@@ -1,118 +1,153 @@
+use core::iter;
+
 use super::{
     ModuleId, ModuleRegistry, PartialModule,
-    item::{IntrinsicItem, Item, ItemKind},
-    universe::Universe,
+    item::{ConstructorItem, IntrinsicTypeItem, IntrinsicValueItem, Item, ItemKind},
+    locals::TypeDef,
 };
 use crate::{
     heap::Heap,
-    span::SpanId,
+    symbol::Symbol,
     r#type::{
-        PartialType, TypeId,
+        TypeId,
+        builder::TypeBuilder,
         environment::Environment,
-        kind::{
-            OpaqueType, Param, PrimitiveType, TypeKind, UnionType,
-            generic::{Generic, GenericArgument},
-        },
+        kind::generic::{GenericArgumentId, GenericArgumentReference},
     },
 };
 
 pub(super) struct StandardLibrary<'env, 'heap> {
     heap: &'heap Heap,
-    env: &'env Environment<'heap>,
     registry: &'env ModuleRegistry<'heap>,
+    environment: &'env Environment<'heap>,
+    ty: TypeBuilder<'env, 'heap>,
 }
 
 impl<'env, 'heap> StandardLibrary<'env, 'heap> {
-    pub(super) const fn new(
+    pub(super) fn new(
         environment: &'env Environment<'heap>,
         registry: &'env ModuleRegistry<'heap>,
     ) -> Self {
         Self {
             heap: environment.heap,
-            env: environment,
             registry,
+            environment,
+            ty: TypeBuilder::synthetic(environment),
+        }
+    }
+
+    fn item(
+        module: ModuleId,
+        name: Symbol<'heap>,
+        kind: impl Into<ItemKind<'heap>>,
+    ) -> Item<'heap> {
+        Item {
+            module,
+            name,
+            kind: kind.into(),
         }
     }
 
     fn alloc_intrinsic_value(
         &self,
-        parent: ModuleId,
+        module: ModuleId,
         name: &'static str,
-        alias: Option<&str>,
-    ) -> Item<'heap> {
-        let ident =
-            alias.unwrap_or_else(|| name.rsplit_once("::").expect("path should be non-empty").1);
-        let ident = self.heap.intern_symbol(ident);
+        alias: impl IntoIterator<Item = &'static str>,
+        r#type: TypeDef<'heap>,
+    ) -> impl IntoIterator<Item = Item<'heap>> {
+        let ident = name.rsplit_once("::").expect("path should be non-empty").1;
 
-        Item {
-            module: parent,
-            name: ident,
-            kind: ItemKind::Intrinsic(IntrinsicItem {
-                name,
-                universe: Universe::Value,
-            }),
-        }
+        iter::once(ident).chain(alias).map(move |ident| {
+            Self::item(
+                module,
+                self.heap.intern_symbol(ident),
+                IntrinsicValueItem { name, r#type },
+            )
+        })
     }
 
     fn alloc_intrinsic_type(
         &self,
         parent: ModuleId,
         name: &'static str,
-        alias: Option<&str>,
-    ) -> Item<'heap> {
-        let ident =
-            alias.unwrap_or_else(|| name.rsplit_once("::").expect("path should be non-empty").1);
-        let ident = self.heap.intern_symbol(ident);
+        alias: impl IntoIterator<Item = &'static str>,
+    ) -> impl IntoIterator<Item = Item<'heap>> {
+        let ident = name.rsplit_once("::").expect("path should be non-empty").1;
 
-        Item {
-            module: parent,
-            name: ident,
-            kind: ItemKind::Intrinsic(IntrinsicItem {
-                name,
-                universe: Universe::Type,
-            }),
-        }
+        iter::once(ident).chain(alias).map(move |ident| {
+            Self::item(
+                parent,
+                self.heap.intern_symbol(ident),
+                IntrinsicTypeItem { name },
+            )
+        })
     }
 
-    fn alloc_type(&self, kind: TypeKind<'heap>) -> TypeId {
-        self.env.intern_type(PartialType {
-            span: SpanId::SYNTHETIC,
-            kind: self.env.intern_kind(kind),
-        })
+    fn alloc_ctor(
+        &self,
+        module: ModuleId,
+        name: &'static str,
+        r#type: TypeDef<'heap>,
+    ) -> Item<'heap> {
+        Self::item(
+            module,
+            self.heap.intern_symbol(name),
+            ConstructorItem { r#type },
+        )
+    }
+
+    fn type_def(
+        &self,
+        r#type: TypeId,
+        arguments: &[GenericArgumentReference<'heap>],
+    ) -> TypeDef<'heap> {
+        TypeDef {
+            id: r#type,
+            arguments: self
+                .environment
+                .intern_generic_argument_references(arguments),
+        }
     }
 
     fn alloc_type_item(
         &self,
         parent: ModuleId,
         name: &'static str,
-        kind: TypeId,
-        generics: &[GenericArgument<'heap>],
+        r#type: TypeDef<'heap>,
     ) -> Item<'heap> {
-        Item {
-            module: parent,
-            name: self.heap.intern_symbol(name),
-            kind: ItemKind::Type(kind, self.heap.slice(generics)),
-        }
+        Self::item(parent, self.heap.intern_symbol(name), r#type)
     }
 
     fn kernel_special_form_module(&self, parent: ModuleId) -> ModuleId {
         self.registry.intern_module(|id| {
             let id = id.value();
 
-            let items = [
-                self.alloc_intrinsic_value(id, "::kernel::special_form::if", None),
-                self.alloc_intrinsic_value(id, "::kernel::special_form::is", None),
-                self.alloc_intrinsic_value(id, "::kernel::special_form::let", None),
-                self.alloc_intrinsic_value(id, "::kernel::special_form::type", None),
-                self.alloc_intrinsic_value(id, "::kernel::special_form::newtype", None),
-                self.alloc_intrinsic_value(id, "::kernel::special_form::use", None),
-                self.alloc_intrinsic_value(id, "::kernel::special_form::fn", None),
-                self.alloc_intrinsic_value(id, "::kernel::special_form::input", None),
-                self.alloc_intrinsic_value(id, "::kernel::special_form::access", Some(".")),
-                self.alloc_intrinsic_value(id, "::kernel::special_form::access", None),
-                self.alloc_intrinsic_value(id, "::kernel::special_form::index", Some("[]")),
-                self.alloc_intrinsic_value(id, "::kernel::special_form::index", None),
-            ];
+            let make = |name: &'static str, alias: &'static [&'static str]| {
+                self.alloc_intrinsic_value(
+                    id,
+                    name,
+                    alias.iter().copied(),
+                    self.type_def(self.ty.never(), &[]),
+                )
+            };
+
+            let mut items = smallvec::SmallVec::<_, 12>::new();
+            items.extend(
+                [
+                    make("::kernel::special_form::if", &[]),
+                    make("::kernel::special_form::is", &[]),
+                    make("::kernel::special_form::let", &[]),
+                    make("::kernel::special_form::type", &[]),
+                    make("::kernel::special_form::newtype", &[]),
+                    make("::kernel::special_form::use", &[]),
+                    make("::kernel::special_form::fn", &[]),
+                    make("::kernel::special_form::input", &[]),
+                    make("::kernel::special_form::access", &["."]),
+                    make("::kernel::special_form::index", &["[]"]),
+                ]
+                .into_iter()
+                .flatten(),
+            );
 
             PartialModule {
                 name: self.heap.intern_symbol("special_form"),
@@ -124,199 +159,112 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
 
     fn kernel_type_module_primitives(&self, parent: ModuleId, items: &mut Vec<Item<'heap>>) {
         items.extend_from_slice(&[
-            self.alloc_type_item(
-                parent,
-                "Boolean",
-                self.alloc_type(TypeKind::Primitive(PrimitiveType::Boolean)),
-                &[],
-            ),
-            self.alloc_type_item(
-                parent,
-                "Null",
-                self.alloc_type(TypeKind::Primitive(PrimitiveType::Null)),
-                &[],
-            ),
-            self.alloc_type_item(
-                parent,
-                "Number",
-                self.alloc_type(TypeKind::Primitive(PrimitiveType::Number)),
-                &[],
-            ),
-            self.alloc_type_item(
-                parent,
-                "Integer",
-                self.alloc_type(TypeKind::Primitive(PrimitiveType::Integer)),
-                &[],
-            ),
+            self.alloc_type_item(parent, "Boolean", self.type_def(self.ty.boolean(), &[])),
+            self.alloc_type_item(parent, "Null", self.type_def(self.ty.null(), &[])),
+            self.alloc_type_item(parent, "Number", self.type_def(self.ty.number(), &[])),
+            self.alloc_type_item(parent, "Integer", self.type_def(self.ty.integer(), &[])),
             // Natural does not yet exist, due to lack of support for refinements
-            self.alloc_type_item(
-                parent,
-                "String",
-                self.alloc_type(TypeKind::Primitive(PrimitiveType::String)),
-                &[],
-            ),
+            self.alloc_type_item(parent, "String", self.type_def(self.ty.string(), &[])),
         ]);
     }
 
     fn kernel_type_module_boundary(&self, parent: ModuleId, items: &mut Vec<Item<'heap>>) {
         items.extend_from_slice(&[
-            self.alloc_type_item(parent, "Unknown", self.alloc_type(TypeKind::Unknown), &[]),
-            self.alloc_type_item(parent, "Never", self.alloc_type(TypeKind::Never), &[]),
-            self.alloc_type_item(parent, "?", self.alloc_type(TypeKind::Unknown), &[]),
-            self.alloc_type_item(parent, "!", self.alloc_type(TypeKind::Never), &[]),
+            self.alloc_type_item(parent, "Unknown", self.type_def(self.ty.unknown(), &[])),
+            self.alloc_type_item(parent, "Never", self.type_def(self.ty.never(), &[])),
+            self.alloc_type_item(parent, "?", self.type_def(self.ty.unknown(), &[])),
+            self.alloc_type_item(parent, "!", self.type_def(self.ty.never(), &[])),
         ]);
     }
 
     fn kernel_type_module_intrinsics(&self, parent: ModuleId, items: &mut Vec<Item<'heap>>) {
         // Struct/Tuple are purposefully excluded, as they are
         // fundamental types and do not have any meaningful value constructors.
-        // Union and Type only have constructors for their respective types, but no meaningful
-        // types.
-        items.extend_from_slice(&[
-            self.alloc_intrinsic_type(parent, "::kernel::type::List", None),
-            self.alloc_intrinsic_value(parent, "::kernel::type::List", None),
-            self.alloc_intrinsic_type(parent, "::kernel::type::Dict", None),
-            self.alloc_intrinsic_value(parent, "::kernel::type::Dict", None),
-            self.alloc_intrinsic_value(parent, "::kernel::type::Union", None),
-            self.alloc_intrinsic_value(parent, "::kernel::type::Intersection", None),
-        ]);
+        // Union and Intersections are also excluded, as they have explicit constructors.
+        items.extend(
+            [
+                self.alloc_intrinsic_type(parent, "::kernel::type::List", None),
+                self.alloc_intrinsic_type(parent, "::kernel::type::Dict", None),
+            ]
+            .into_iter()
+            .flatten(),
+        );
     }
 
     fn kernel_type_module_opaque(&self, parent: ModuleId, items: &mut Vec<Item<'heap>>) {
-        let url = self.alloc_type(TypeKind::Opaque(OpaqueType {
-            name: self.heap.intern_symbol("::kernel::type::Url"),
-            repr: self.env.intern_type(PartialType {
-                span: SpanId::SYNTHETIC,
-                kind: self
-                    .env
-                    .intern_kind(TypeKind::Primitive(PrimitiveType::String)),
-            }),
-        }));
+        let url = self.ty.opaque("::kernel::type::Url", self.ty.string());
+        let url = self.type_def(url, &[]);
 
-        // The intrinsics that are registered correspond to the constructor functions, in
-        // the future we should replace these with proper functions instead of using
-        // intrinsics.
-        // see: https://linear.app/hash/issue/H-4451/hashql-prelude-opaque-type-constructors-should-be-alone-standing
+        let base_url = self.ty.opaque("::kernel::type::BaseUrl", url.id);
+        let base_url = self.type_def(base_url, &[]);
+
         items.extend_from_slice(&[
-            self.alloc_type_item(parent, "Url", url, &[]),
-            self.alloc_intrinsic_value(parent, "::kernel::type::Url", None),
-            self.alloc_type_item(
-                parent,
-                "BaseUrl",
-                self.alloc_type(TypeKind::Opaque(OpaqueType {
-                    name: self.heap.intern_symbol("::kernel::type::BaseUrl"),
-                    repr: url,
-                })),
-                &[],
-            ),
-            self.alloc_intrinsic_value(parent, "::kernel::type::BaseUrl", None),
+            self.alloc_type_item(parent, "Url", url),
+            self.alloc_ctor(parent, "Url", url),
+            self.alloc_type_item(parent, "BaseUrl", base_url),
+            self.alloc_ctor(parent, "BaseUrl", base_url),
         ]);
     }
 
-    fn kernel_type_module_option(&self, parent: ModuleId, items: &mut Vec<Item<'heap>>) {
+    fn kernel_type_module_option(&mut self, parent: ModuleId, items: &mut Vec<Item<'heap>>) {
         // Option is simply a union between two opaque types, when the constructor only takes a
         // `Null` the constructor automatically allows for no-value.
-        let some_generic = self.env.counter.generic_argument.next();
-        let some_generic_argument = GenericArgument {
-            id: some_generic,
-            name: self.heap.intern_symbol("T"),
-            constraint: None,
-        };
+        let generic = self.ty.fresh_argument("T");
 
-        let none = self.alloc_type(TypeKind::Opaque(OpaqueType {
-            name: self.heap.intern_symbol("::kernel::type::None"),
-            repr: self.alloc_type(TypeKind::Primitive(PrimitiveType::Null)),
-        }));
+        let none = self.ty.opaque("::kernel::type::None", self.ty.null());
+        let none = self.type_def(none, &[]);
 
-        let some = self.alloc_type(TypeKind::Generic(Generic {
-            base: self.alloc_type(TypeKind::Opaque(OpaqueType {
-                name: self.heap.intern_symbol("::kernel::type::Some"),
-                repr: self.alloc_type(TypeKind::Param(Param {
-                    argument: some_generic,
-                })),
-            })),
-            arguments: self
-                .env
-                .intern_generic_arguments(&mut [some_generic_argument]),
-        }));
+        let some = self.ty.generic(
+            [(generic, None)],
+            self.ty
+                .opaque("::kernel::type::Some", self.ty.param(generic)),
+        );
+        let some = self.type_def(some, &[self.ty.hydrate_argument(generic)]);
 
-        let option = self.env.intern_type(PartialType {
-            span: SpanId::SYNTHETIC,
-            kind: self.env.intern_kind(TypeKind::Union(UnionType {
-                variants: self.env.intern_type_ids(&[some, none]),
-            })),
-        });
+        let option = self.ty.union([some.id, none.id]);
+        let option = self.type_def(option, &[self.ty.hydrate_argument(generic)]);
 
         items.extend_from_slice(&[
-            self.alloc_type_item(parent, "None", none, &[]),
-            self.alloc_intrinsic_value(parent, "::kernel::type::None", None),
-            self.alloc_type_item(parent, "Some", some, &[some_generic_argument]),
-            self.alloc_intrinsic_value(parent, "::kernel::type::Some", None),
-            self.alloc_type_item(parent, "Option", option, &[some_generic_argument]),
+            self.alloc_type_item(parent, "None", none),
+            self.alloc_ctor(parent, "None", none),
+            self.alloc_type_item(parent, "Some", some),
+            self.alloc_ctor(parent, "Some", some),
+            self.alloc_type_item(parent, "Option", option),
         ]);
     }
 
-    fn kernel_type_module_result(&self, parent: ModuleId, items: &mut Vec<Item<'heap>>) {
-        let value_generic = self.env.counter.generic_argument.next();
-        let value_generic_argument = GenericArgument {
-            id: value_generic,
-            name: self.heap.intern_symbol("T"),
-            constraint: None,
-        };
+    fn kernel_type_module_result(&mut self, parent: ModuleId, items: &mut Vec<Item<'heap>>) {
+        let t_arg = self.ty.fresh_argument("T");
+        let t_ref = self.ty.hydrate_argument(t_arg);
 
-        let error_generic = self.env.counter.generic_argument.next();
-        let error_generic_argument = GenericArgument {
-            id: error_generic,
-            name: self.heap.intern_symbol("E"),
-            constraint: None,
-        };
+        let e_arg = self.ty.fresh_argument("E");
+        let e_ref = self.ty.hydrate_argument(e_arg);
 
-        let ok = self.alloc_type(TypeKind::Generic(Generic {
-            base: self.alloc_type(TypeKind::Opaque(OpaqueType {
-                name: self.heap.intern_symbol("::kernel::type::Ok"),
-                repr: self.alloc_type(TypeKind::Param(Param {
-                    argument: value_generic,
-                })),
-            })),
-            arguments: self
-                .env
-                .intern_generic_arguments(&mut [value_generic_argument]),
-        }));
+        let ok = self.ty.generic(
+            [(t_arg, None)],
+            self.ty.opaque("::kernel::type::Ok", self.ty.param(t_arg)),
+        );
+        let ok = self.type_def(ok, &[t_ref]);
 
-        let err = self.alloc_type(TypeKind::Generic(Generic {
-            base: self.alloc_type(TypeKind::Opaque(OpaqueType {
-                name: self.heap.intern_symbol("::kernel::type::Err"),
-                repr: self.alloc_type(TypeKind::Param(Param {
-                    argument: error_generic,
-                })),
-            })),
-            arguments: self
-                .env
-                .intern_generic_arguments(&mut [error_generic_argument]),
-        }));
+        let err = self.ty.generic(
+            [(e_arg, None)],
+            self.ty.opaque("::kernel::type::Err", self.ty.param(e_arg)),
+        );
+        let err = self.type_def(err, &[e_ref]);
 
-        let result = self.env.intern_type(PartialType {
-            span: SpanId::SYNTHETIC,
-            kind: self.env.intern_kind(TypeKind::Union(UnionType {
-                variants: self.env.intern_type_ids(&[ok, err]),
-            })),
-        });
+        let result = self.ty.union([ok.id, err.id]);
+        let result = self.type_def(result, &[t_ref, e_ref]);
 
         items.extend_from_slice(&[
-            self.alloc_type_item(parent, "Ok", ok, &[value_generic_argument]),
-            self.alloc_intrinsic_value(parent, "::kernel::type::Ok", None),
-            self.alloc_type_item(parent, "Err", err, &[error_generic_argument]),
-            self.alloc_intrinsic_value(parent, "::kernel::type::Err", None),
-            self.alloc_type_item(
-                parent,
-                "Result",
-                result,
-                &[value_generic_argument, error_generic_argument],
-            ),
+            self.alloc_type_item(parent, "Ok", ok),
+            self.alloc_ctor(parent, "Ok", ok),
+            self.alloc_type_item(parent, "Err", err),
+            self.alloc_ctor(parent, "Err", err),
+            self.alloc_type_item(parent, "Result", result),
         ]);
     }
 
-    fn kernel_type_module(&self, parent: ModuleId) -> ModuleId {
+    fn kernel_type_module(&mut self, parent: ModuleId) -> ModuleId {
         self.registry.intern_module(|id| {
             let id = id.value();
 
@@ -336,7 +284,7 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
         })
     }
 
-    fn kernel_module(&self) -> ModuleId {
+    fn kernel_module(&mut self) -> ModuleId {
         self.registry.intern_module(|id| PartialModule {
             name: self.heap.intern_symbol("kernel"),
             parent: ModuleId::ROOT,
@@ -355,83 +303,192 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
         })
     }
 
-    #[expect(clippy::non_ascii_literal)]
-    fn math_module(&self) -> ModuleId {
+    #[expect(
+        clippy::non_ascii_literal,
+        clippy::too_many_lines,
+        clippy::min_ident_chars,
+        non_snake_case
+    )]
+    fn math_module(&mut self) -> ModuleId {
+        /// Declares a generic function type with parameters and return type.
+        ///
+        /// Syntax: `<generics>(params) -> return_type`
+        /// - `generics`: Optional generic type parameters with optional bounds
+        /// - `params`: Function parameters with their type bounds
+        /// - `return_type`: The return type expression
+        ///
+        /// Creates a closure type that can be generic if type parameters are specified.
+        macro_rules! decl {
+            (<$($generic:ident $(: $generic_bound:ident)?),*>($($param:ident: $param_bound:expr),*) -> $return:expr) => {{
+                $(
+                    #[expect(non_snake_case)]
+                    let ${concat($generic, _arg)} = self.ty.fresh_argument(stringify!($generic));
+                    #[expect(non_snake_case)]
+                    let ${concat($generic, _ref)} = self.ty.hydrate_argument(${concat($generic, _arg)});
+                    #[expect(non_snake_case)]
+                    let $generic = self.ty.param(${concat($generic, _arg)});
+                )*
+
+                let mut closure = self.ty.closure([$($param_bound),*], $return);
+                if ${count($generic)} > 0 {
+                    closure = self.ty.generic([
+                        $(
+                            (${concat($generic, _arg)}, None $(.or(Some($generic_bound)))?)
+                        ),*
+                    ] as [(GenericArgumentId, Option<TypeId>); ${count($generic)}], closure)
+                }
+
+                self.type_def(closure, &[$(${concat($generic, _ref)}),*])
+            }};
+        }
+
         self.registry.intern_module(|id| {
             let id = id.value();
+
+            let Number = self.ty.number();
+            let Integer = self.ty.integer();
+            let Boolean = self.ty.boolean();
+
+            // Arithmetic
+            let funcs = &[
+                (
+                    "::math::add",
+                    &["+"] as &[&'static str],
+                    decl!(<T: Number, U: Number>(lhs: T, rhs: U) -> self.ty.union([T, U])),
+                ),
+                (
+                    "::math::sub",
+                    &["-"],
+                    decl!(<T: Number, U: Number>(lhs: T, rhs: U) -> self.ty.union([T, U])),
+                ),
+                (
+                    "::math::mul",
+                    &["*"],
+                    decl!(<T: Number, U: Number>(lhs: T, rhs: U) -> self.ty.union([T, U])),
+                ),
+                (
+                    "::math::div",
+                    &["/"],
+                    decl!(<>(dividend: Number, divisor: Number) -> Number),
+                ),
+                (
+                    "::math::rem",
+                    &["%"],
+                    decl!(<>(dividend: Integer, divisor: Integer) -> Integer),
+                ),
+                (
+                    "::math::mod",
+                    &[],
+                    decl!(<>(value: Integer, modulus: Integer) -> Integer),
+                ),
+                (
+                    "::math::pow",
+                    &["**", "↑"],
+                    // (cannot be `Integer` on return, as `exponent` can be a negative integer)
+                    decl!(<>(base: Number, exponent: Number) -> Number),
+                ),
+                // Roots
+                ("::math::sqrt", &["√"], decl!(<>(value: Number) -> Number)),
+                ("::math::cbrt", &["∛"], decl!(<>(value: Number) -> Number)),
+                (
+                    "::math::root",
+                    &[], // cannot use `ⁿ√` because `ⁿ` is a letter, not a symbol
+                    decl!(<>(value: Number, root: Number) -> Number),
+                ),
+                // Bitwise operations
+                (
+                    "::math::bit_and",
+                    &["&"],
+                    decl!(<>(lhs: Integer, rhs: Integer) -> Integer),
+                ),
+                (
+                    "::math::bit_or",
+                    &["|"],
+                    decl!(<>(lhs: Integer, rhs: Integer) -> Integer),
+                ),
+                (
+                    "::math::bit_xor",
+                    &["^"],
+                    decl!(<>(lhs: Integer, rhs: Integer) -> Integer),
+                ),
+                (
+                    "::math::bit_not",
+                    &["~"],
+                    decl!(<>(value: Integer) -> Integer),
+                ),
+                (
+                    "::math::bit_shl",
+                    &["<<"],
+                    // In the future we might want to specialize the `shift` to `Natural`
+                    decl!(<>(value: Integer, shift: Integer) -> Integer),
+                ),
+                (
+                    "::math::bit_shr",
+                    &[">>"],
+                    // In the future we might want to specialize the `shift` to `Natural`
+                    decl!(<>(value: Integer, shift: Integer) -> Integer),
+                ),
+                // Comparison operations
+                (
+                    "::math::gt",
+                    &[">"],
+                    decl!(<>(lhs: Number, rhs: Number) -> Boolean),
+                ),
+                (
+                    "::math::lt",
+                    &["<"],
+                    decl!(<>(lhs: Number, rhs: Number) -> Boolean),
+                ),
+                (
+                    "::math::gte",
+                    &[">="],
+                    decl!(<>(lhs: Number, rhs: Number) -> Boolean),
+                ),
+                (
+                    "::math::lte",
+                    &["<="],
+                    decl!(<>(lhs: Number, rhs: Number) -> Boolean),
+                ),
+                (
+                    "::math::eq",
+                    &["=="],
+                    decl!(<T, U>(lhs: T, rhs: U) -> Boolean),
+                ),
+                (
+                    "::math::ne",
+                    &["!="],
+                    decl!(<T, U>(lhs: T, rhs: U) -> Boolean),
+                ),
+                // Logical operations
+                ("::math::not", &["!"], decl!(<>(value: Boolean) -> Boolean)),
+                (
+                    "::math::and",
+                    &["&&"],
+                    decl!(<>(lhs: Boolean, rhs: Boolean) -> Boolean),
+                ),
+                (
+                    "::math::or",
+                    &["||"],
+                    decl!(<>(lhs: Boolean, rhs: Boolean) -> Boolean),
+                ),
+            ];
+
+            let items: Vec<_> = funcs
+                .iter()
+                .flat_map(|(name, alias, def)| {
+                    self.alloc_intrinsic_value(id, name, alias.iter().copied(), *def)
+                })
+                .collect();
 
             PartialModule {
                 name: self.heap.intern_symbol("math"),
                 parent: ModuleId::ROOT,
-                items: self.registry.intern_items(&[
-                    // Addition
-                    self.alloc_intrinsic_value(id, "::math::add", None),
-                    self.alloc_intrinsic_value(id, "::math::add", Some("+")),
-                    // Subtraction
-                    self.alloc_intrinsic_value(id, "::math::sub", None),
-                    self.alloc_intrinsic_value(id, "::math::sub", Some("-")),
-                    // Multiplication
-                    self.alloc_intrinsic_value(id, "::math::mul", None),
-                    self.alloc_intrinsic_value(id, "::math::mul", Some("*")),
-                    // Division
-                    self.alloc_intrinsic_value(id, "::math::div", None),
-                    self.alloc_intrinsic_value(id, "::math::div", Some("/")),
-                    // Remainder
-                    self.alloc_intrinsic_value(id, "::math::rem", None),
-                    self.alloc_intrinsic_value(id, "::math::rem", Some("%")),
-                    // Modulo
-                    self.alloc_intrinsic_value(id, "::math::mod", None),
-                    // Power
-                    self.alloc_intrinsic_value(id, "::math::pow", None),
-                    self.alloc_intrinsic_value(id, "::math::pow", Some("**")),
-                    self.alloc_intrinsic_value(id, "::math::pow", Some("↑")),
-                    // Square root
-                    self.alloc_intrinsic_value(id, "::math::sqrt", None),
-                    self.alloc_intrinsic_value(id, "::math::sqrt", Some("√")),
-                    // Cube Root
-                    self.alloc_intrinsic_value(id, "::math::cbrt", None),
-                    self.alloc_intrinsic_value(id, "::math::cbrt", Some("∛")),
-                    // Arbitrary Root
-                    self.alloc_intrinsic_value(id, "::math::root", None),
-                    // Bitwise operations
-                    self.alloc_intrinsic_value(id, "::math::bit_and", None),
-                    self.alloc_intrinsic_value(id, "::math::bit_and", Some("&")),
-                    self.alloc_intrinsic_value(id, "::math::bit_or", None),
-                    self.alloc_intrinsic_value(id, "::math::bit_or", Some("|")),
-                    self.alloc_intrinsic_value(id, "::math::bit_xor", None),
-                    self.alloc_intrinsic_value(id, "::math::bit_xor", Some("^")),
-                    self.alloc_intrinsic_value(id, "::math::bit_not", None),
-                    self.alloc_intrinsic_value(id, "::math::bit_not", Some("~")),
-                    self.alloc_intrinsic_value(id, "::math::bit_shl", None),
-                    self.alloc_intrinsic_value(id, "::math::bit_shl", Some("<<")),
-                    self.alloc_intrinsic_value(id, "::math::bit_shr", None),
-                    self.alloc_intrinsic_value(id, "::math::bit_shr", Some(">>")),
-                    // Comparison operations
-                    self.alloc_intrinsic_value(id, "::math::gt", None),
-                    self.alloc_intrinsic_value(id, "::math::gt", Some(">")),
-                    self.alloc_intrinsic_value(id, "::math::lt", None),
-                    self.alloc_intrinsic_value(id, "::math::lt", Some("<")),
-                    self.alloc_intrinsic_value(id, "::math::gte", None),
-                    self.alloc_intrinsic_value(id, "::math::gte", Some(">=")),
-                    self.alloc_intrinsic_value(id, "::math::lte", None),
-                    self.alloc_intrinsic_value(id, "::math::lte", Some("<=")),
-                    self.alloc_intrinsic_value(id, "::math::eq", None),
-                    self.alloc_intrinsic_value(id, "::math::eq", Some("==")),
-                    self.alloc_intrinsic_value(id, "::math::ne", None),
-                    self.alloc_intrinsic_value(id, "::math::ne", Some("!=")),
-                    // Logical operations
-                    self.alloc_intrinsic_value(id, "::math::not", None),
-                    self.alloc_intrinsic_value(id, "::math::not", Some("!")),
-                    self.alloc_intrinsic_value(id, "::math::and", None),
-                    self.alloc_intrinsic_value(id, "::math::and", Some("&&")),
-                    self.alloc_intrinsic_value(id, "::math::or", None),
-                    self.alloc_intrinsic_value(id, "::math::or", Some("||")),
-                ]),
+                items: self.registry.intern_items(&items),
             }
         })
     }
 
-    pub(super) fn register(&self) {
+    pub(super) fn register(&mut self) {
         self.registry.register(self.kernel_module());
         self.registry.register(self.math_module());
 

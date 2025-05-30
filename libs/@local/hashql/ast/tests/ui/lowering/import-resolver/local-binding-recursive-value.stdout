@@ -1,6 +1,6 @@
 Expr#4294967040@25
   ExprKind (Let)
-    LetExpr#4294967040@25 (name: Dict)
+    LetExpr#4294967040@25 (name: Url)
       Expr#4294967040@20
         ExprKind (Call)
           CallExpr#4294967040@20
@@ -15,15 +15,15 @@ Expr#4294967040@25
                   Path#4294967040@15 (rooted: true)
                     PathSegment#4294967040@14 (name: kernel)
                     PathSegment#4294967040@14 (name: type)
-                    PathSegment#4294967040@14 (name: Dict)
+                    PathSegment#4294967040@14 (name: Url)
             Argument#4294967040@19
               Expr#4294967040@19
                 ExprKind (Path)
                   Path#4294967040@19 (rooted: true)
                     PathSegment#4294967040@18 (name: kernel)
                     PathSegment#4294967040@18 (name: type)
-                    PathSegment#4294967040@18 (name: Dict)
+                    PathSegment#4294967040@18 (name: Url)
       Expr#4294967040@24
         ExprKind (Path)
           Path#4294967040@24 (rooted: false)
-            PathSegment#4294967040@23 (name: Dict)
+            PathSegment#4294967040@23 (name: Url)

@@ -71,7 +71,7 @@ impl<'heap> ModuleRegistry<'heap> {
     pub fn new(env: &Environment<'heap>) -> Self {
         let this = Self::empty(env.heap);
 
-        let std = StandardLibrary::new(env, &this);
+        let mut std = StandardLibrary::new(env, &this);
         std.register();
 
         this

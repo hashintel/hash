@@ -95,7 +95,7 @@ use hashql_core::{
     heap::Heap,
     module::{
         ModuleRegistry, Universe,
-        item::{IntrinsicItem, ItemKind},
+        item::{IntrinsicItem, IntrinsicValueItem, ItemKind},
         namespace::{ModuleNamespace, ResolutionMode, ResolveOptions},
     },
     span::SpanId,
@@ -250,10 +250,10 @@ impl<'env, 'heap> PreExpansionNameResolver<'env, 'heap> {
             .ok()?;
 
         // We're only interested in intrinsics
-        let ItemKind::Intrinsic(IntrinsicItem {
+        let ItemKind::Intrinsic(IntrinsicItem::Value(IntrinsicValueItem {
             name: path,
-            universe: _,
-        }) = import.kind
+            r#type: _,
+        })) = import.kind
         else {
             return None;
         };

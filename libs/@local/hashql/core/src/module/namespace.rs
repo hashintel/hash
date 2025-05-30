@@ -335,13 +335,6 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
         successful &= self.import_absolute_static("!", ["kernel", "type", "Never"]);
         successful &= self.import_absolute_static("Never", ["kernel", "type", "Never"]);
 
-        successful &= self.import_absolute_static("|", ["kernel", "type", "Union"]);
-        successful &= self.import_absolute_static("Union", ["kernel", "type", "Union"]);
-
-        successful &= self.import_absolute_static("&", ["kernel", "type", "Intersection"]);
-        successful &=
-            self.import_absolute_static("Intersection", ["kernel", "type", "Intersection"]);
-
         successful &= self.import_absolute_static("None", ["kernel", "type", "None"]);
         successful &= self.import_absolute_static("Some", ["kernel", "type", "Some"]);
         successful &= self.import_absolute_static("Option", ["kernel", "type", "Option"]);
@@ -437,7 +430,7 @@ mod tests {
         module::{
             ModuleId, ModuleRegistry, PartialModule, Universe,
             error::ResolutionError,
-            item::{IntrinsicItem, Item, ItemKind},
+            item::{IntrinsicItem, IntrinsicTypeItem, IntrinsicValueItem, Item, ItemKind},
             namespace::{ImportOptions, ResolutionMode, ResolveOptions},
         },
         span::SpanId,
@@ -455,7 +448,7 @@ mod tests {
 
         let item = namespace
             .resolve_relative(
-                [heap.intern_symbol("Union")],
+                [heap.intern_symbol("+")],
                 ResolveOptions {
                     mode: ResolutionMode::Relative,
                     universe: Universe::Value,
@@ -463,15 +456,15 @@ mod tests {
             )
             .expect("import should exist");
 
-        assert_eq!(item.name.as_str(), "Union");
+        assert_eq!(item.name.as_str(), "add");
         assert_eq!(item.kind.universe(), Some(Universe::Value));
 
-        assert_eq!(
+        assert_matches!(
             item.kind,
-            ItemKind::Intrinsic(IntrinsicItem {
-                name: "::kernel::type::Union",
-                universe: Universe::Value
-            })
+            ItemKind::Intrinsic(IntrinsicItem::Value(IntrinsicValueItem {
+                name: "::math::add",
+                r#type: _
+            }))
         );
     }
 
@@ -499,10 +492,9 @@ mod tests {
 
         assert_eq!(
             item.kind,
-            ItemKind::Intrinsic(IntrinsicItem {
+            ItemKind::Intrinsic(IntrinsicItem::Type(IntrinsicTypeItem {
                 name: "::kernel::type::Dict",
-                universe: Universe::Type
-            })
+            }))
         );
     }
 
@@ -519,8 +511,8 @@ mod tests {
             .resolve_absolute(
                 [
                     heap.intern_symbol("kernel"),
-                    heap.intern_symbol("type"),
-                    heap.intern_symbol("Union"),
+                    heap.intern_symbol("special_form"),
+                    heap.intern_symbol("let"),
                 ],
                 ResolveOptions {
                     mode: ResolutionMode::Absolute,
@@ -529,15 +521,15 @@ mod tests {
             )
             .expect("import should exist");
 
-        assert_eq!(item.name.as_str(), "Union");
+        assert_eq!(item.name.as_str(), "let");
         assert_eq!(item.kind.universe(), Some(Universe::Value));
 
-        assert_eq!(
+        assert_matches!(
             item.kind,
-            ItemKind::Intrinsic(IntrinsicItem {
-                name: "::kernel::type::Union",
-                universe: Universe::Value
-            })
+            ItemKind::Intrinsic(IntrinsicItem::Value(IntrinsicValueItem {
+                name: "::kernel::special_form::let",
+                r#type: _
+            }))
         );
     }
 
@@ -569,10 +561,9 @@ mod tests {
 
         assert_eq!(
             item.kind,
-            ItemKind::Intrinsic(IntrinsicItem {
+            ItemKind::Intrinsic(IntrinsicItem::Type(IntrinsicTypeItem {
                 name: "::kernel::type::Dict",
-                universe: Universe::Type
-            })
+            }))
         );
     }
 
@@ -587,8 +578,11 @@ mod tests {
 
         namespace
             .import_absolute(
-                heap.intern_symbol("type"),
-                [heap.intern_symbol("kernel"), heap.intern_symbol("type")],
+                heap.intern_symbol("special_form"),
+                [
+                    heap.intern_symbol("kernel"),
+                    heap.intern_symbol("special_form"),
+                ],
                 ImportOptions {
                     glob: false,
                     mode: ResolutionMode::Absolute,
@@ -599,7 +593,10 @@ mod tests {
 
         let item = namespace
             .resolve_relative(
-                [heap.intern_symbol("type"), heap.intern_symbol("Union")],
+                [
+                    heap.intern_symbol("special_form"),
+                    heap.intern_symbol("let"),
+                ],
                 ResolveOptions {
                     universe: Universe::Value,
                     mode: ResolutionMode::Relative,
@@ -607,15 +604,15 @@ mod tests {
             )
             .expect("import should exist");
 
-        assert_eq!(item.name.as_str(), "Union");
+        assert_eq!(item.name.as_str(), "let");
         assert_eq!(item.kind.universe(), Some(Universe::Value));
 
-        assert_eq!(
+        assert_matches!(
             item.kind,
-            ItemKind::Intrinsic(IntrinsicItem {
-                name: "::kernel::type::Union",
-                universe: Universe::Value
-            })
+            ItemKind::Intrinsic(IntrinsicItem::Value(IntrinsicValueItem {
+                name: "::kernel::special_form::let",
+                r#type: _
+            }))
         );
     }
 
@@ -635,10 +632,9 @@ mod tests {
             items: registry.intern_items(&[Item {
                 module: id.value(),
                 name: heap.intern_symbol("bar"),
-                kind: ItemKind::Intrinsic(IntrinsicItem {
+                kind: ItemKind::Intrinsic(IntrinsicItem::Type(IntrinsicTypeItem {
                     name: "::foo::bar",
-                    universe: Universe::Type,
-                }),
+                })),
             }]),
         });
         registry.register(module);
@@ -658,10 +654,9 @@ mod tests {
 
         assert_eq!(
             import.kind,
-            ItemKind::Intrinsic(IntrinsicItem {
+            ItemKind::Intrinsic(IntrinsicItem::Type(IntrinsicTypeItem {
                 name: "::kernel::type::Dict",
-                universe: Universe::Type
-            })
+            }))
         );
 
         namespace
@@ -691,10 +686,9 @@ mod tests {
 
         assert_eq!(
             import.kind,
-            ItemKind::Intrinsic(IntrinsicItem {
-                name: "::foo::bar",
-                universe: Universe::Type
-            })
+            ItemKind::Intrinsic(IntrinsicItem::Type(IntrinsicTypeItem {
+                name: "::foo::bar"
+            }))
         );
     }
 
