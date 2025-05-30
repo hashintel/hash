@@ -121,7 +121,9 @@ impl UnifyValue for VariableProvenance {
     type Error = NoError;
 
     fn unify_values(value1: &Self, value2: &Self) -> Result<Self, Self::Error> {
-        // Generic is "infectious"
+        // Generic is "infectious" - if either variable is Generic, the result should be Generic
+        // This ensures that if a Hole unifies with a Generic, we don't erroneously
+        // report unconstrained type variable errors for generics.
         match (value1, value2) {
             (Self::Hole, Self::Hole) => Ok(Self::Hole),
             _ => Ok(Self::Generic),
