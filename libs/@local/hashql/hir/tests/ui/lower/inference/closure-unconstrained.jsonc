@@ -1,6 +1,6 @@
 //@ run: pass
 //@ description: Closure inference
-// This **should** fail during type checking, because an arbitrary `T` cannot be used during `math.add` operations.
+// This **should** fail during type checking (not inference), because an arbitrary `T` cannot be used during `math.add` operations.
 [
   "let",
   "add",
