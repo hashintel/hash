@@ -382,6 +382,12 @@ impl<'heap> Visitor<'heap> for Inference<'_, 'heap> {
             .enter_unscoped(signature.def.arguments.iter().map(|argument| argument.id));
 
         let type_signature = signature.type_signature(self.env);
+        let type_generic = signature.type_generic(self.env);
+
+        // Collect generic argument constraints, so that they can aid during type inference.
+        if let Some(generic) = type_generic {
+            generic.collect_argument_constraints(*span, &mut self.inference);
+        }
 
         // Enter the locals into the scope for the body, so that the types can participate in
         // inference
@@ -396,6 +402,8 @@ impl<'heap> Visitor<'heap> for Inference<'_, 'heap> {
             );
         }
 
+        // Note that the types produced here - the inferred types of the parameters - might be
+        // invalid in the context of type checking, which is why it is a separate step.
         self.visit_node(body);
 
         // Remove the locals again from scope

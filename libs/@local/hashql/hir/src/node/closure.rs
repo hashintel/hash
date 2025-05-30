@@ -57,6 +57,23 @@ impl<'heap> ClosureSignature<'heap> {
         }
     }
 
+    pub fn type_generic(&self, env: &Environment<'heap>) -> Option<&'heap Generic<'heap>> {
+        let mut type_id = self.def.id;
+
+        loop {
+            let kind = env.r#type(type_id).kind;
+
+            match kind {
+                &TypeKind::Apply(Apply { base, .. }) => {
+                    type_id = base;
+                }
+                TypeKind::Generic(generic) => return Some(generic),
+                TypeKind::Closure(_) => return None,
+                _ => unreachable!("ClosureSignature::returns() called on a non-closure type"),
+            }
+        }
+    }
+
     pub fn returns(&self, env: &Environment<'heap>) -> TypeId {
         self.type_signature(env).returns
     }

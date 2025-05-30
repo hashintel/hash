@@ -1,11 +1,12 @@
-//@ run: fail
+//@ run: pass
 //@ description: Closure inference
+// This **should** fail during type checking, because an arbitrary `T` cannot be used during `math.add` operations.
 [
   "let",
   "add",
   [
     "fn",
-    { "#struct": { "T": "Number" } },
+    { "#tuple": ["T"] },
     { "#struct": { "a": "T", "b": "T" } },
     "T",
     ["+", "a", "b"]
