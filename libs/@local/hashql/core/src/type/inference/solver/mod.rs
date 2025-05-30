@@ -32,7 +32,7 @@ use self::{graph::Graph, tarjan::Tarjan, topo::topological_sort_in};
 use super::{
     Constraint, DeferralDepth, ResolutionStrategy, SelectionConstraint, Substitution, Variable,
     VariableKind,
-    variable::{VariableId, VariableLookup},
+    variable::{VariableId, VariableLookup, VariableProvenance},
 };
 use crate::{
     collection::{FastHashMap, SmallVec, fast_hash_map, fast_hash_map_in},
@@ -85,7 +85,7 @@ impl Unification {
     /// Ensures each [`VariableKind`] has exactly one ID for consistent lookup.
     pub(crate) fn upsert_variable(&mut self, variable: VariableKind) -> VariableId {
         *self.lookup.entry(variable).or_insert_with_key(|&key| {
-            let id = self.table.new_key(());
+            let id = self.table.new_key(variable.provenance());
             debug_assert_eq!(id.into_usize(), self.variables.len());
 
             self.variables.push(key);
@@ -126,6 +126,12 @@ impl Unification {
         let id = self.root_id(variable);
 
         self.variables[id.into_usize()]
+    }
+
+    fn provenance(&mut self, variable: VariableKind) -> VariableProvenance {
+        let id = self.root_id(variable);
+
+        self.table.probe_value(id)
     }
 
     /// Creates a lookup table mapping variables to their canonical representatives.
@@ -868,6 +874,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     /// - **Constraint coverage**: All variables have sufficient constraints
     ///
     /// Selects most specific type per variable: equality > lower bounds > upper bounds.
+    #[expect(clippy::too_many_lines)]
     fn solve_constraints(
         &mut self,
         constraints: &FastHashMap<VariableKind, (Variable, VariableConstraint)>,
@@ -919,9 +926,19 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                 continue;
             }
 
+            let provenance = self.unification.provenance(kind);
+
             // Handle different constraint patterns to determine the final type
             match constraint {
                 // If there's no constraint, we can't infer anything
+                // This will be caught during type checking either way, but is likely a programming
+                // error. This is *only* the case if the variable is a hole, and not generic. As
+                // generics can be completely legitimately unconstrained.
+                EvaluatedVariableConstraint {
+                    equal: None,
+                    lower: None,
+                    upper: None,
+                } if provenance == VariableProvenance::Generic => {}
                 EvaluatedVariableConstraint {
                     equal: None,
                     lower: None,
@@ -1002,12 +1019,19 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     /// Variables without constraints generate floating variable diagnostics.
     fn verify_constrained(
         &mut self,
-        lookup: &VariableLookup,
+        graph: &Graph,
         variables: &FastHashMap<VariableKind, (Variable, VariableConstraint)>,
     ) {
-        for &variable in &self.unification.variables {
-            let root = lookup[variable];
-            if !variables.contains_key(&root) {
+        for node in graph.nodes() {
+            let kind = self.unification.variables[node.into_usize()];
+            let provenance = self.unification.table.probe_value(node);
+
+            if provenance == VariableProvenance::Generic {
+                // Generic variables can be kept unconstrained
+                continue;
+            }
+
+            if !variables.contains_key(&kind) {
                 self.diagnostics
                     .push(unconstrained_type_variable_floating(&self.lattice));
             }
@@ -1315,7 +1339,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
             self.apply_constraints(&graph, &bump, &mut variables, &mut selections);
 
             // Step 1.7: Verify that all variables have been constrained
-            self.verify_constrained(&lookup, &variables);
+            self.verify_constrained(&graph, &variables);
 
             // Step 1.8: Validate constraints and determine final types
             substitution.clear();
