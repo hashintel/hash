@@ -5,7 +5,7 @@ use pretty::{DocAllocator as _, RcAllocator, RcDoc};
 use crate::{
     collection::{FastHashMap, TinyVec},
     intern::Interned,
-    pretty::{PrettyPrint, PrettyRecursionBoundary},
+    pretty::{PrettyPrint, PrettyPrintBoundary},
     symbol::Symbol,
     r#type::{
         TypeId,
@@ -61,7 +61,7 @@ impl<'heap> PrettyPrint<'heap> for TypeDef<'heap> {
     fn pretty(
         &self,
         env: &Environment<'heap>,
-        boundary: &mut PrettyRecursionBoundary,
+        boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, anstyle::Style> {
         match &*self.arguments {
             [] => RcDoc::nil(),
@@ -99,7 +99,7 @@ where
     fn pretty(
         &self,
         env: &Environment<'heap>,
-        boundary: &mut PrettyRecursionBoundary,
+        boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, anstyle::Style> {
         RcDoc::text("type")
             .append(RcDoc::space())

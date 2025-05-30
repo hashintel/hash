@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Test input inference
+["input", "x", "Integer"]

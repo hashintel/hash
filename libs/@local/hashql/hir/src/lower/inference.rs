@@ -66,7 +66,7 @@ impl<'env, 'heap> Inference<'env, 'heap> {
 
             current: HirId::PLACEHOLDER,
 
-            visited: FastHashSet::new(),
+            visited: FastHashSet::default(),
             locals: FastRealmsMap::new(),
             types: FastRealmsMap::new(),
             variables: FastRealmsMap::new(),

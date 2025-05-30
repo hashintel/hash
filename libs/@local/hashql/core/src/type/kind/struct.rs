@@ -8,7 +8,7 @@ use crate::{
     collection::FastHashMap,
     intern::Interned,
     math::cartesian_product,
-    pretty::{PrettyPrint, PrettyRecursionBoundary},
+    pretty::{PrettyPrint, PrettyPrintBoundary},
     symbol::{Ident, Symbol},
     r#type::{
         PartialType, Type, TypeId,
@@ -35,7 +35,7 @@ impl<'heap> PrettyPrint<'heap> for StructField<'heap> {
     fn pretty(
         &self,
         env: &Environment<'heap>,
-        boundary: &mut PrettyRecursionBoundary,
+        boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, anstyle::Style> {
         RcDoc::text(self.name.unwrap())
             .append(RcDoc::text(":"))
@@ -102,7 +102,7 @@ impl<'heap> PrettyPrint<'heap> for StructFields<'heap> {
     fn pretty(
         &self,
         env: &Environment<'heap>,
-        boundary: &mut PrettyRecursionBoundary,
+        boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, anstyle::Style> {
         match self.0 {
             Some(Interned([], _)) | None => RcDoc::text(":"),
@@ -566,7 +566,7 @@ impl<'heap> PrettyPrint<'heap> for StructType<'heap> {
     fn pretty(
         &self,
         env: &Environment<'heap>,
-        boundary: &mut PrettyRecursionBoundary,
+        boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, anstyle::Style> {
         RcDoc::text("(")
             .append(self.fields.pretty(env, boundary))

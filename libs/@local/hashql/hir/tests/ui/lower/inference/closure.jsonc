@@ -1,0 +1,14 @@
+//@ run: fail
+//@ description: Closure inference
+[
+  "let",
+  "add",
+  [
+    "fn",
+    { "#struct": { "T": "Number" } },
+    { "#struct": { "a": "T", "b": "T" } },
+    "T",
+    ["+", "a", "b"]
+  ],
+  ["add", { "#literal": 1 }, { "#literal": 2 }]
+]

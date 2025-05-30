@@ -6,7 +6,7 @@ use super::{GenericArgumentId, Param};
 use crate::{
     collection::SmallVec,
     intern::Interned,
-    pretty::{ORANGE, PrettyPrint, PrettyRecursionBoundary, RED},
+    pretty::{ORANGE, PrettyPrint, PrettyPrintBoundary, RED},
     span::SpanId,
     symbol::Ident,
     r#type::{
@@ -32,7 +32,7 @@ impl<'heap> PrettyPrint<'heap> for GenericSubstitution {
     fn pretty(
         &self,
         env: &Environment<'heap>,
-        boundary: &mut PrettyRecursionBoundary,
+        boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, anstyle::Style> {
         let name = format!("?{}", self.argument);
 
@@ -115,7 +115,7 @@ impl<'heap> PrettyPrint<'heap> for GenericSubstitutions<'heap> {
     fn pretty(
         &self,
         env: &Environment<'heap>,
-        boundary: &mut PrettyRecursionBoundary,
+        boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, anstyle::Style> {
         match self.as_slice() {
             [] => RcAllocator.nil(),
@@ -434,7 +434,7 @@ impl<'heap> PrettyPrint<'heap> for Apply<'heap> {
     fn pretty(
         &self,
         env: &Environment<'heap>,
-        boundary: &mut PrettyRecursionBoundary,
+        boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, anstyle::Style> {
         boundary
             .pretty_type(env, self.base)

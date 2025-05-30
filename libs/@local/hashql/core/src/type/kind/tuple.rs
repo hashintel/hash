@@ -7,7 +7,7 @@ use super::TypeKind;
 use crate::{
     intern::Interned,
     math::cartesian_product,
-    pretty::{PrettyPrint, PrettyRecursionBoundary},
+    pretty::{PrettyPrint, PrettyPrintBoundary},
     symbol::Ident,
     r#type::{
         PartialType, Type, TypeId,
@@ -372,7 +372,7 @@ impl<'heap> PrettyPrint<'heap> for TupleType<'heap> {
     fn pretty(
         &self,
         env: &Environment<'heap>,
-        boundary: &mut PrettyRecursionBoundary,
+        boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, anstyle::Style> {
         match self.fields.as_ref() {
             [] => RcDoc::text("()"),
