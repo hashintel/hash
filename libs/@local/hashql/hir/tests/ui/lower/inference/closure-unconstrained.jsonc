@@ -1,6 +1,8 @@
 //@ run: pass
 //@ description: Closure inference
 // This **should** fail during type checking (not inference), because an arbitrary `T` cannot be used during `math.add` operations.
+// The return type of `+` should be `Number`, this might seem counterintuitive, but `T` does not contribute any constraint to the return type of `+`, as itself isn't constrained at all,
+// therefore being left unconstrained and falling back to `Number` (the default constraint). This constraint will then be verified with the actual outcome in the type checking phase.
 [
   "let",
   "add",
