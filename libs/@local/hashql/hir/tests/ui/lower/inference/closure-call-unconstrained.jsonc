@@ -1,0 +1,13 @@
+//@ run: fail
+//@ description: Test closure call inference in case we call an unconstrained closure in an unconstrained closure
+[
+  "let",
+  "foo",
+  ["fn", { "#struct": ["T"] }, { "#struct": { "a": "T" } }, "T", "a"],
+  [
+    "let",
+    "bar",
+    ["fn", { "#tuple": ["T"] }, { "#struct": { "a": "T" } }, "T", ["foo", "a"]],
+    ["foo", { "#literal": 2 }]
+  ]
+]
