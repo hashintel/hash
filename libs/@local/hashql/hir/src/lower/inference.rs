@@ -39,11 +39,10 @@ use crate::{
     visit::{self, Visitor},
 };
 
-pub struct Inference<'env, 'heap> {
+pub struct TypeInference<'env, 'heap> {
     env: &'env Environment<'heap>,
     registry: &'env ModuleRegistry<'heap>,
 
-    #[expect(clippy::struct_field_names)]
     inference: InferenceEnvironment<'env, 'heap>,
     instantiate: InstantiateEnvironment<'env, 'heap>,
 
@@ -55,7 +54,7 @@ pub struct Inference<'env, 'heap> {
     variables: FastRealmsMap<HirId, hashql_core::r#type::inference::Variable>,
 }
 
-impl<'env, 'heap> Inference<'env, 'heap> {
+impl<'env, 'heap> TypeInference<'env, 'heap> {
     pub fn new(env: &'env Environment<'heap>, registry: &'env ModuleRegistry<'heap>) -> Self {
         Self {
             env,
@@ -110,7 +109,7 @@ impl<'env, 'heap> Inference<'env, 'heap> {
     }
 }
 
-impl<'heap> Visitor<'heap> for Inference<'_, 'heap> {
+impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
     fn visit_node(&mut self, node: &Node<'heap>) {
         if !self.visited.insert(node.id) {
             return;

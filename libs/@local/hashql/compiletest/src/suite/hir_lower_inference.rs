@@ -10,7 +10,7 @@ use hashql_core::{
 use hashql_hir::{
     fold::Fold as _,
     intern::Interner,
-    lower::{alias::AliasReplacement, ctor::ConvertTypeConstructor, inference::Inference},
+    lower::{alias::AliasReplacement, ctor::ConvertTypeConstructor, inference::TypeInference},
     node::Node,
     visit::Visitor as _,
 };
@@ -69,7 +69,7 @@ impl Suite for HirLowerInferenceSuite {
             }
         };
 
-        let mut inference = Inference::new(&environment, &registry);
+        let mut inference = TypeInference::new(&environment, &registry);
         inference.visit_node(&node);
 
         // We sort so that the output is deterministic
