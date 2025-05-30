@@ -70,6 +70,11 @@ impl<'heap> Symbol<'heap> {
     pub const fn as_bytes(&self) -> &[u8] {
         self.0.as_bytes()
     }
+
+    #[must_use]
+    pub fn demangle(self) -> &'heap str {
+        self.0.rsplit_once(':').map_or(self.0, |(name, _)| name)
+    }
 }
 
 impl AsRef<Self> for Symbol<'_> {

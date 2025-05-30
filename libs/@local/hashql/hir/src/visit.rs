@@ -323,7 +323,7 @@ pub fn walk_local_variable<'heap, T: Visitor<'heap> + ?Sized>(
     visitor.visit_ident(name);
 
     for &argument in arguments {
-        visitor.visit_type_id(argument);
+        visitor.visit_type_id(argument.value);
     }
 }
 
@@ -339,7 +339,7 @@ pub fn walk_qualified_variable<'heap, T: Visitor<'heap> + ?Sized>(
     visitor.visit_qualified_path(path);
 
     for &argument in arguments {
-        visitor.visit_type_id(argument);
+        visitor.visit_type_id(argument.value);
     }
 }
 
@@ -420,13 +420,16 @@ pub fn walk_type_constructor<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
     TypeConstructor {
         span,
-        value,
-        r#type,
+        closure,
+        arguments,
     }: &'heap TypeConstructor<'heap>,
 ) {
     visitor.visit_span(*span);
-    visitor.visit_node(value);
-    visitor.visit_type_id(*r#type);
+    visitor.visit_type_id(*closure);
+
+    for reference in arguments {
+        visitor.visit_generic_argument_reference(reference);
+    }
 }
 
 pub fn walk_binary_operation<'heap, T: Visitor<'heap> + ?Sized>(

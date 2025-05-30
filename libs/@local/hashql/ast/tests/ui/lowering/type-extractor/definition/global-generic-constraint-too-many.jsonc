@@ -4,6 +4,6 @@
   "type",
   "Foo",
   "Some<String, Number>",
-  //~^ ERROR Remove this parameter
+  //~^ ERROR Remove this argument
   "_"
 ]

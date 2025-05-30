@@ -1,0 +1,5 @@
+::kernel::type::Some(2)
+
+--------------------------------------
+
+#ctor(fn<T?13>(?13) -> ::kernel::type::Some[?13], arguments: [T])(2)

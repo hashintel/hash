@@ -4,6 +4,8 @@
 //! configurable formatting, color support, and robust handling of recursive
 //! structures. The implementation uses the `pretty` crate as its document model.
 
+pub mod display;
+
 use core::fmt::{self, Display, Formatter};
 use std::io;
 
