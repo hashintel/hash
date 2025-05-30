@@ -20,7 +20,6 @@
 pub mod sym;
 
 use core::{
-    borrow::Borrow,
     cmp::Ordering,
     fmt::{self, Display, Formatter},
     hash::{Hash, Hasher},
@@ -111,18 +110,6 @@ impl Hash for Symbol<'_> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         // Pointer hashing is sufficient (due to the unique contents assumption)
         ptr::hash(self.0, state);
-    }
-}
-
-impl Borrow<str> for Symbol<'_> {
-    fn borrow(&self) -> &str {
-        self.0
-    }
-}
-
-impl AsRef<str> for Symbol<'_> {
-    fn as_ref(&self) -> &str {
-        self.0
     }
 }
 

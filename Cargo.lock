@@ -3804,7 +3804,6 @@ dependencies = [
 name = "hashql-core"
 version = "0.0.0"
 dependencies = [
- "anstream",
  "anstyle",
  "bitvec",
  "bumpalo",
