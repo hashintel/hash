@@ -150,7 +150,7 @@ where
 
 /// Strategy for detecting recursive structures during pretty-printing.
 ///
-/// Determines how [`PrettyRecursionBoundary`] identifies already-visited values.
+/// Determines how [`PrettyPrintBoundary`] identifies already-visited values.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Default)]
 pub enum PrettyRecursionGuardStrategy {
     /// Simple depth counter without identity tracking.
