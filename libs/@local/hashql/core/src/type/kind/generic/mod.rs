@@ -429,10 +429,16 @@ impl<'heap> Generic<'heap> {
         self,
         span: SpanId,
         env: &mut InferenceEnvironment<'_, 'heap>,
+        pin: bool,
     ) {
         for &argument in &*self.arguments {
-            let Some(constraint) = argument.constraint else {
-                continue;
+            let constraint = match argument.constraint {
+                Some(constraint) => constraint,
+                None if pin => env.intern_type(PartialType {
+                    span,
+                    kind: env.intern_kind(TypeKind::Unknown),
+                }),
+                None => continue,
             };
 
             let param = env.intern_type(PartialType {
@@ -471,10 +477,11 @@ impl<'heap> Inference<'heap> for Generic<'heap> {
         env: &mut InferenceEnvironment<'_, 'heap>,
     ) {
         // We do not really care for the underlying type, we just want to collect our constraints
-        self.kind.collect_argument_constraints(self.span, env);
+        self.kind
+            .collect_argument_constraints(self.span, env, false);
         supertype
             .kind
-            .collect_argument_constraints(supertype.span, env);
+            .collect_argument_constraints(supertype.span, env, false);
 
         env.collect_constraints(self.kind.base, supertype.kind.base);
     }

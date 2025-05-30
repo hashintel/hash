@@ -1936,7 +1936,7 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 | Self::Intersection(_)
                 | Self::Apply(_),
             ) => {
-                lhs.collect_argument_constraints(self.span, env);
+                lhs.collect_argument_constraints(self.span, env, false);
                 env.collect_constraints(lhs.base, supertype.id);
             }
             (
@@ -1951,7 +1951,7 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 | Self::Apply(_),
                 Self::Generic(rhs),
             ) => {
-                rhs.collect_argument_constraints(supertype.span, env);
+                rhs.collect_argument_constraints(supertype.span, env, false);
                 env.collect_constraints(self.id, rhs.base);
             }
 
