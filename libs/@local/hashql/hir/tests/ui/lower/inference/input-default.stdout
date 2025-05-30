@@ -1,0 +1,32 @@
+#input(x, type: Number, default: #is("42", type: _0))
+
+--------------------------------------
+
+#input(x, type: Number, default: #is("42", type: _0«!»))
+
+--------------------------------------
+
+Node:
+"42"
+
+
+Type:
+String
+
+--------------------------------------
+
+Node:
+#is("42", type: _0«!»)
+
+
+Type:
+_0«!»
+
+--------------------------------------
+
+Node:
+#input(x, type: Number, default: #is("42", type: _0«!»))
+
+
+Type:
+Number

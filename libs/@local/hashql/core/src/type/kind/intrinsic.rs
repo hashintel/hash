@@ -5,7 +5,7 @@ use smallvec::SmallVec;
 
 use super::{PrimitiveType, TypeKind};
 use crate::{
-    pretty::{PrettyPrint, PrettyRecursionBoundary},
+    pretty::{PrettyPrint, PrettyPrintBoundary},
     symbol::Ident,
     r#type::{
         PartialType, Type, TypeId,
@@ -235,7 +235,7 @@ impl<'heap> PrettyPrint<'heap> for ListType {
     fn pretty(
         &self,
         env: &Environment<'heap>,
-        boundary: &mut PrettyRecursionBoundary,
+        boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, anstyle::Style> {
         RcDoc::text("List")
             .append(RcDoc::text("<"))
@@ -570,7 +570,7 @@ impl<'heap> PrettyPrint<'heap> for DictType {
     fn pretty(
         &self,
         env: &Environment<'heap>,
-        boundary: &mut PrettyRecursionBoundary,
+        boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, anstyle::Style> {
         RcDoc::text("Dict")
             .append(
@@ -835,7 +835,7 @@ impl<'heap> PrettyPrint<'heap> for IntrinsicType {
     fn pretty(
         &self,
         env: &Environment<'heap>,
-        boundary: &mut PrettyRecursionBoundary,
+        boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, anstyle::Style> {
         match self {
             Self::List(list) => list.pretty(env, boundary),

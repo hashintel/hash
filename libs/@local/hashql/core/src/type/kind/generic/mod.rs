@@ -14,7 +14,7 @@ use crate::{
     collection::{SmallVec, TinyVec},
     intern::Interned,
     newtype, newtype_producer,
-    pretty::{ORANGE, PrettyPrint, PrettyRecursionBoundary, display::DisplayBuilder},
+    pretty::{ORANGE, PrettyPrint, PrettyPrintBoundary, display::DisplayBuilder},
     span::SpanId,
     symbol::{Ident, Symbol},
     r#type::{
@@ -74,7 +74,7 @@ impl<'heap> PrettyPrint<'heap> for GenericArgumentReference<'heap> {
     fn pretty(
         &self,
         _: &Environment<'heap>,
-        _: &mut PrettyRecursionBoundary,
+        _: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, anstyle::Style> {
         RcDoc::text(format!("{}?{}", self.name, self.id)).annotate(ORANGE)
     }
@@ -118,7 +118,7 @@ impl<'heap> PrettyPrint<'heap> for GenericArgument<'heap> {
     fn pretty(
         &self,
         env: &Environment<'heap>,
-        boundary: &mut PrettyRecursionBoundary,
+        boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, anstyle::Style> {
         let name = format!("{}?{}", self.name, self.id);
 
@@ -204,7 +204,7 @@ impl<'heap> PrettyPrint<'heap> for GenericArguments<'heap> {
     fn pretty(
         &self,
         env: &Environment<'heap>,
-        boundary: &mut PrettyRecursionBoundary,
+        boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, anstyle::Style> {
         match self.as_slice() {
             [] => return RcDoc::nil(),
@@ -429,10 +429,16 @@ impl<'heap> Generic<'heap> {
         self,
         span: SpanId,
         env: &mut InferenceEnvironment<'_, 'heap>,
+        pin: bool,
     ) {
         for &argument in &*self.arguments {
-            let Some(constraint) = argument.constraint else {
-                continue;
+            let constraint = match argument.constraint {
+                Some(constraint) => constraint,
+                None if pin => env.intern_type(PartialType {
+                    span,
+                    kind: env.intern_kind(TypeKind::Unknown),
+                }),
+                None => continue,
             };
 
             let param = env.intern_type(PartialType {
@@ -471,10 +477,11 @@ impl<'heap> Inference<'heap> for Generic<'heap> {
         env: &mut InferenceEnvironment<'_, 'heap>,
     ) {
         // We do not really care for the underlying type, we just want to collect our constraints
-        self.kind.collect_argument_constraints(self.span, env);
+        self.kind
+            .collect_argument_constraints(self.span, env, false);
         supertype
             .kind
-            .collect_argument_constraints(supertype.span, env);
+            .collect_argument_constraints(supertype.span, env, false);
 
         env.collect_constraints(self.kind.base, supertype.kind.base);
     }
@@ -539,7 +546,7 @@ impl<'heap> PrettyPrint<'heap> for Generic<'heap> {
     fn pretty(
         &self,
         env: &Environment<'heap>,
-        boundary: &mut PrettyRecursionBoundary,
+        boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, anstyle::Style> {
         boundary.pretty_generic_type(env, self.base, self.arguments)
     }

@@ -42,7 +42,7 @@ use super::{
     lattice::{Lattice, Projection, Subscript},
 };
 use crate::{
-    pretty::{CYAN, GRAY, PrettyPrint, PrettyRecursionBoundary},
+    pretty::{CYAN, GRAY, PrettyPrint, PrettyPrintBoundary},
     symbol::Ident,
 };
 
@@ -1936,7 +1936,7 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 | Self::Intersection(_)
                 | Self::Apply(_),
             ) => {
-                lhs.collect_argument_constraints(self.span, env);
+                lhs.collect_argument_constraints(self.span, env, false);
                 env.collect_constraints(lhs.base, supertype.id);
             }
             (
@@ -1951,7 +1951,7 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 | Self::Apply(_),
                 Self::Generic(rhs),
             ) => {
-                rhs.collect_argument_constraints(supertype.span, env);
+                rhs.collect_argument_constraints(supertype.span, env, false);
                 env.collect_constraints(self.id, rhs.base);
             }
 
@@ -2219,7 +2219,7 @@ impl<'heap> PrettyPrint<'heap> for TypeKind<'heap> {
     fn pretty(
         &self,
         env: &Environment<'heap>,
-        boundary: &mut PrettyRecursionBoundary,
+        boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, anstyle::Style> {
         match self {
             Self::Opaque(opaque) => opaque.pretty(env, boundary),
@@ -2233,7 +2233,22 @@ impl<'heap> PrettyPrint<'heap> for TypeKind<'heap> {
             Self::Apply(apply) => apply.pretty(env, boundary),
             Self::Generic(generic) => generic.pretty(env, boundary),
             Self::Param(param) => param.pretty(env, boundary),
-            Self::Infer(Infer { hole }) => RcDoc::text(format!("_{hole}")).annotate(GRAY),
+            Self::Infer(Infer { hole }) => {
+                let mut doc = RcDoc::text(format!("_{hole}")).annotate(GRAY);
+
+                if boundary.config().resolve_substitutions
+                    && let Some(substitution) = env.substitution.infer(*hole)
+                {
+                    doc = doc.append(
+                        RcDoc::text("\u{ab}")
+                            .append(boundary.pretty_type(env, substitution))
+                            .append("\u{bb}")
+                            .group(),
+                    );
+                }
+
+                doc
+            }
             Self::Never => RcDoc::text("!").annotate(CYAN),
             Self::Unknown => RcDoc::text("?").annotate(CYAN),
         }
@@ -2242,7 +2257,7 @@ impl<'heap> PrettyPrint<'heap> for TypeKind<'heap> {
     fn pretty_generic(
         &self,
         env: &Environment<'heap>,
-        boundary: &mut PrettyRecursionBoundary,
+        boundary: &mut PrettyPrintBoundary,
         arguments: GenericArguments<'heap>,
     ) -> RcDoc<'heap, anstyle::Style> {
         match self {

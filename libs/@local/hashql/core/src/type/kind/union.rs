@@ -7,7 +7,7 @@ use smallvec::SmallVec;
 use super::TypeKind;
 use crate::{
     intern::Interned,
-    pretty::{PrettyPrint, PrettyRecursionBoundary},
+    pretty::{PrettyPrint, PrettyPrintBoundary},
     span::SpanId,
     symbol::Ident,
     r#type::{
@@ -713,7 +713,7 @@ impl<'heap> PrettyPrint<'heap> for UnionType<'heap> {
     fn pretty(
         &self,
         env: &Environment<'heap>,
-        boundary: &mut PrettyRecursionBoundary,
+        boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, anstyle::Style> {
         RcAllocator
             .intersperse(

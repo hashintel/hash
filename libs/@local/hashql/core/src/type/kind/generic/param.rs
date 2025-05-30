@@ -2,7 +2,7 @@ use pretty::RcDoc;
 
 use super::GenericArgumentId;
 use crate::{
-    pretty::{ORANGE, PrettyPrint, PrettyRecursionBoundary},
+    pretty::{ORANGE, PrettyPrint, PrettyPrintBoundary},
     r#type::environment::Environment,
 };
 
@@ -14,9 +14,22 @@ pub struct Param {
 impl<'heap> PrettyPrint<'heap> for Param {
     fn pretty(
         &self,
-        _: &Environment<'heap>,
-        _: &mut PrettyRecursionBoundary,
+        env: &Environment<'heap>,
+        boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, anstyle::Style> {
-        RcDoc::text(format!("?{}", self.argument)).annotate(ORANGE)
+        let mut doc = RcDoc::text(format!("?{}", self.argument)).annotate(ORANGE);
+
+        if boundary.config().resolve_substitutions
+            && let Some(substitution) = env.substitution.argument(self.argument)
+        {
+            doc = doc.append(
+                RcDoc::text("\u{ab}")
+                    .append(boundary.pretty_type(env, substitution))
+                    .append("\u{bb}")
+                    .group(),
+            );
+        }
+
+        doc
     }
 }

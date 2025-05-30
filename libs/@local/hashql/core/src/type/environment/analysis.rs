@@ -141,12 +141,12 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
             &TypeKind::Param(Param { argument }) => {
                 let argument = substitution.argument(argument)?;
 
-                Some(self.environment.r#type(argument))
+                self.resolve_type(self.environment.r#type(argument))
             }
             &TypeKind::Infer(Infer { hole }) => {
                 let infer = substitution.infer(hole)?;
 
-                Some(self.environment.r#type(infer))
+                self.resolve_type(self.environment.r#type(infer))
             }
         }
     }
