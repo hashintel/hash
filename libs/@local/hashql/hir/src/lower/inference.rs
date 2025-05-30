@@ -385,7 +385,7 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
 
         // Collect generic argument constraints, so that they can aid during type inference.
         if let Some(generic) = type_generic {
-            generic.collect_argument_constraints(*span, &mut self.inference);
+            generic.collect_argument_constraints(*span, &mut self.inference, true);
         }
 
         // Enter the locals into the scope for the body, so that the types can participate in
