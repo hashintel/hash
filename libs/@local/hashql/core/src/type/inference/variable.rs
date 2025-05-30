@@ -1,7 +1,7 @@
 use alloc::rc::Rc;
 use core::ops::Index;
 
-use ena::unify::UnifyKey;
+use ena::unify::{NoError, UnifyKey, UnifyValue};
 
 use crate::{
     collection::FastHashMap,
@@ -36,6 +36,12 @@ impl Variable {
             kind: env.intern_kind(kind),
         })
     }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub(crate) enum VariableProvenance {
+    Hole,
+    Generic,
 }
 
 /// Represents an inference variable in the type system.
@@ -76,6 +82,13 @@ impl VariableKind {
             Self::Generic(argument) => Some(argument),
         }
     }
+
+    pub(crate) const fn provenance(self) -> VariableProvenance {
+        match self {
+            Self::Hole(_) => VariableProvenance::Hole,
+            Self::Generic(_) => VariableProvenance::Generic,
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -88,7 +101,7 @@ impl VariableId {
 }
 
 impl UnifyKey for VariableId {
-    type Value = ();
+    type Value = VariableProvenance;
 
     fn index(&self) -> u32 {
         self.0
@@ -101,6 +114,18 @@ impl UnifyKey for VariableId {
 
     fn tag() -> &'static str {
         "VariableId"
+    }
+}
+
+impl UnifyValue for VariableProvenance {
+    type Error = NoError;
+
+    fn unify_values(value1: &Self, value2: &Self) -> Result<Self, Self::Error> {
+        // Generic is "infectious"
+        match (value1, value2) {
+            (Self::Hole, Self::Hole) => Ok(Self::Hole),
+            _ => Ok(Self::Generic),
+        }
     }
 }
 
