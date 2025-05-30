@@ -143,7 +143,7 @@ pub trait Visitor<'heap> {
         walk_qualified_path(self, path);
     }
 
-    fn visit_node(&mut self, node: &'heap Node<'heap>) {
+    fn visit_node(&mut self, node: &Node<'heap>) {
         walk_node(self, node);
     }
 
@@ -262,12 +262,12 @@ pub fn walk_qualified_path<'heap, T: Visitor<'heap> + ?Sized>(
 
 pub fn walk_node<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
-    Node { id, span, kind }: &'heap Node<'heap>,
+    Node { id, span, kind }: &Node<'heap>,
 ) {
     visitor.visit_id(*id);
     visitor.visit_span(*span);
 
-    match &kind {
+    match kind {
         NodeKind::Data(data) => visitor.visit_data(data),
         NodeKind::Variable(variable) => visitor.visit_variable(variable),
         NodeKind::Let(r#let) => visitor.visit_let(r#let),

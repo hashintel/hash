@@ -1,4 +1,5 @@
 use hashql_core::{
+    collection::{FastHashMap, FastHashSet},
     literal::LiteralKind,
     module::{
         ModuleRegistry, Universe,
@@ -48,6 +49,7 @@ pub struct Inference<'env, 'heap> {
 
     current: HirId,
 
+    visited: FastHashSet<HirId>,
     locals: FastRealmsMap<Symbol<'heap>, TypeDef<'heap>>,
     types: FastRealmsMap<HirId, TypeId>,
     variables: FastRealmsMap<HirId, hashql_core::r#type::inference::Variable>,
@@ -64,6 +66,7 @@ impl<'env, 'heap> Inference<'env, 'heap> {
 
             current: HirId::PLACEHOLDER,
 
+            visited: FastHashSet::new(),
             locals: FastRealmsMap::new(),
             types: FastRealmsMap::new(),
             variables: FastRealmsMap::new(),
@@ -94,6 +97,11 @@ impl<'env, 'heap> Inference<'env, 'heap> {
     }
 
     #[must_use]
+    pub fn types(&self) -> &FastHashMap<HirId, TypeId> {
+        &self.types[Universe::Value]
+    }
+
+    #[must_use]
     pub fn finish(mut self) -> (InferenceSolver<'env, 'heap>, Vec<TypeCheckDiagnostic>) {
         let diagnostics = self.instantiate.take_diagnostics().into_vec();
         let solver = self.inference.into_solver();
@@ -103,7 +111,11 @@ impl<'env, 'heap> Inference<'env, 'heap> {
 }
 
 impl<'heap> Visitor<'heap> for Inference<'_, 'heap> {
-    fn visit_node(&mut self, node: &'heap Node<'heap>) {
+    fn visit_node(&mut self, node: &Node<'heap>) {
+        if !self.visited.insert(node.id) {
+            return;
+        }
+
         let previous = self.current;
         self.current = node.id;
 
