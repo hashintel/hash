@@ -119,9 +119,9 @@ cargo_metadata           = { version = "=0.20.0", default-features = false }
 cedar-policy-core        = { version = "=4.4.1", default-features = false }
 cedar-policy-validator   = { version = "=4.4.1", default-features = false }
 circular-buffer          = { version = "=1.1.0", default-features = false }
-clap                     = { version = "=4.5.38", features = ["color", "error-context", "help", "std", "suggestions", "usage"] }
-clap_builder             = { version = "=4.5.38", default-features = false, features = ["std"] }
-clap_complete            = { version = "=4.5.50", default-features = false }
+clap                     = { version = "=4.5.39", features = ["color", "error-context", "help", "std", "suggestions", "usage"] }
+clap_builder             = { version = "=4.5.39", default-features = false, features = ["std"] }
+clap_complete            = { version = "=4.5.52", default-features = false }
 console_error_panic_hook = { version = "=0.1.7", default-features = false }
 convert_case             = { version = "=0.8.0", default-features = false }
 criterion                = { version = "=0.6.0" }
