@@ -1,0 +1,8 @@
+//@ run: fail
+//@ description: Bind generic arguments
+[
+  "`+`<Number, Number>",
+  //~^ ERROR Type variable has incompatible equality and upper bound constraints
+  { "#literal": 42.12 },
+  { "#literal": 42 }
+]

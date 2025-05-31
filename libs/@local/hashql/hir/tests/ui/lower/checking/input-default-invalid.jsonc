@@ -1,0 +1,4 @@
+//@ run: fail
+//@ description: Test that input inference for the default works
+["input", "x", "Number", { "#literal": "42" }]
+//~^ ERROR Type mismatch in this expression

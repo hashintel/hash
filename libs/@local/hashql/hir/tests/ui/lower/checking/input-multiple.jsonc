@@ -1,0 +1,8 @@
+//@ run: pass
+//@ description: Check that we `meet` the required type for meets
+[
+  "let",
+  "foo",
+  ["input", "x", "Number"],
+  ["let", "bar", ["input", "x", "Integer"], "foo"]
+]

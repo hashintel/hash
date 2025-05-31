@@ -97,12 +97,32 @@ impl Suite for HirLowerTypeCheckingSuite {
             .collect();
         checking_types.sort_unstable_by_key(|&(hir_id, _)| hir_id);
 
+        let mut checking_inputs: Vec<_> = residual
+            .inputs
+            .iter()
+            .map(|(&name, &type_id)| (name, type_id))
+            .collect();
+        checking_inputs.sort_unstable_by_key(|&(hir_id, _)| hir_id);
+
         write!(
             &mut output,
             "{}",
             node.pretty_print(&environment, PrettyOptions::default().without_color())
         )
         .expect("infallible");
+
+        output.push_str("\n\n--------------------------------------");
+
+        for (name, type_id) in checking_inputs {
+            write!(
+                output,
+                "\n\n#input {name} = {}",
+                environment
+                    .r#type(type_id)
+                    .pretty_print(&environment, PrettyOptions::default().without_color())
+            )
+            .expect("infallible");
+        }
 
         for (hir_id, type_id) in checking_types {
             output.push_str("\n\n--------------------------------------\n\n");

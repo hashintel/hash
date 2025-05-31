@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Test that input inference for the default works
+["input", "x", "Number", { "#literal": 42, "#type": "_" }]
