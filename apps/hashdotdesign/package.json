@@ -22,7 +22,7 @@
     "@storybook/react": "7.6.20",
     "@storybook/react-webpack5": "7.6.20",
     "@storybook/testing-library": "0.2.2",
-    "@types/react": "19.1.5",
+    "@types/react": "19.1.6",
     "@types/react-dom": "19.1.5",
     "storybook": "7.6.20"
   },
