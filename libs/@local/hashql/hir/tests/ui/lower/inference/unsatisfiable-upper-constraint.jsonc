@@ -1,5 +1,5 @@
 //@ run: fail
-//@ description: Test that input inference for the default works
+//@ description: Test unsatisfiable upper constraint during inferenc
 [
   "input",
   "x",
