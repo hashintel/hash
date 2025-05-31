@@ -103,7 +103,7 @@
     "@types/papaparse": "5.3.16",
     "@types/sanitize-html": "2.16.0",
     "@vitest/coverage-istanbul": "3.1.4",
-    "eslint": "9.20.1",
+    "eslint": "9.27.0",
     "rimraf": "6.0.1",
     "typescript": "5.7.3",
     "vitest": "3.1.4",
