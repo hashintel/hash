@@ -5,5 +5,5 @@
   "x",
   "Number",
   { "#literal": "42", "#type": "_" }
-  //~^ ERROR This variable has conflicting type requirements
+  //~^ ERROR Type variable has incompatible upper and lower bounds
 ]

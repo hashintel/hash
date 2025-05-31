@@ -1,4 +1,4 @@
 //@ run: fail
 //@ description: Test that type inference works for type constructors
 ["newtype", "Person<T: Number>", "T", ["Person", { "#literal": "2" }]]
-//~^ ERROR Type mismatch in this expression
+//~^ ERROR This variable has conflicting type requirements
