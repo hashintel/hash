@@ -469,6 +469,13 @@ impl<C> Report<C> {
     {
         crate::error::ReportError::from_ref(self)
     }
+
+    pub(crate) fn into_dyn(self) -> Report<dyn Context + Send + Sync + 'static> {
+        Report {
+            frames: self.frames,
+            _context: PhantomData,
+        }
+    }
 }
 
 impl<C: ?Sized> Report<C> {
