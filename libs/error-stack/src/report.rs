@@ -471,6 +471,27 @@ impl<C> Report<C> {
     }
 }
 
+impl<E: Into<Report<E>>> From<E> for Report<dyn Context + Send + Sync + 'static> {
+    #[track_caller]
+    fn from(value: E) -> Self {
+        value.into().into()
+    }
+}
+
+impl<C> From<Report<C>> for Report<dyn Context + Send + Sync + 'static> {
+    #[track_caller]
+    fn from(value: Report<C>) -> Self {
+        Report {
+            frames: value.frames,
+            _context: PhantomData,
+        }
+        .attach_printable(format!(
+            "into Report<dyn Context> at {}",
+            Location::caller()
+        ))
+    }
+}
+
 impl<C: ?Sized> Report<C> {
     /// Retrieves the current frames of the `Report`, regardless of its current type state.
     ///
