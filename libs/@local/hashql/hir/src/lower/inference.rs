@@ -31,8 +31,8 @@ use crate::{
         kind::NodeKind,
         r#let::Let,
         operation::{
-            BinaryOperation, UnaryOperation,
-            r#type::{TypeAssertion, TypeConstructor},
+            BinaryOperation, Operation, OperationKind, TypeOperation, UnaryOperation,
+            r#type::{TypeAssertion, TypeConstructor, TypeOperationKind},
         },
         variable::{LocalVariable, QualifiedVariable},
     },
@@ -204,18 +204,17 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
         self.types
             .insert_unique(Universe::Value, self.current, value_id);
 
-        let arguments = if let &NodeKind::Closure(Closure {
-            signature:
-                ClosureSignature {
-                    def: TypeDef { arguments, .. },
-                    ..
-                },
-            ..
-        }) = value.kind
-        {
-            arguments
-        } else {
-            self.env.intern_generic_argument_references(&[])
+        let arguments = match value.kind {
+            NodeKind::Closure(Closure { signature, .. }) => signature.def.arguments,
+            NodeKind::Operation(Operation {
+                kind:
+                    OperationKind::Type(TypeOperation {
+                        kind: TypeOperationKind::Constructor(TypeConstructor { arguments, .. }),
+                        ..
+                    }),
+                ..
+            }) => *arguments,
+            _ => self.env.intern_generic_argument_references(&[]),
         };
 
         // We only take over the arguments of values we know, the only ones that are left after
