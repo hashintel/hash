@@ -42,8 +42,8 @@ use crate::{
         error::{
             bound_constraint_violation, conflicting_equality_constraints,
             incompatible_lower_equal_constraint, incompatible_upper_equal_constraint,
-            inference_variable_coalesced_to_never, unconstrained_type_variable,
-            unconstrained_type_variable_floating, unresolved_selection_constraint,
+            unconstrained_type_variable, unconstrained_type_variable_floating,
+            unresolved_selection_constraint, unsatisfiable_upper_constraint,
         },
         kind::{PrimitiveType, TypeKind, UnionType},
         lattice::{Projection, Subscript},
@@ -912,7 +912,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         } = constraint
             && !satisfiable.upper
         {
-            self.diagnostics.push(inference_variable_coalesced_to_never(
+            self.diagnostics.push(unsatisfiable_upper_constraint(
                 &self.lattice,
                 upper,
                 variable,

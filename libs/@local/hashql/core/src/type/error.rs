@@ -163,11 +163,10 @@ const DICT_KEY_TYPE_MISMATCH: TerminalDiagnosticCategory = TerminalDiagnosticCat
     name: "Dictionary key type mismatch",
 };
 
-const INFERENCE_VARIABLE_COALESCED_TO_NEVER: TerminalDiagnosticCategory =
-    TerminalDiagnosticCategory {
-        id: "inference-variable-coalesced-to-never",
-        name: "Inference variable coalesced to never type",
-    };
+const UNSATISFIABLE_UPPER_CONSTRAINT: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "unsatisfiable-upper-constraint",
+    name: "Unsatisfiable upper constraint",
+};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum TypeCheckDiagnosticCategory {
@@ -198,7 +197,7 @@ pub enum TypeCheckDiagnosticCategory {
     UnresolvedSelectionConstraint,
     ListIndexTypeMismatch,
     DictKeyTypeMismatch,
-    InferenceVariableCoalescedToNever,
+    UnsatisfiableUpperConstraint,
 }
 
 impl DiagnosticCategory for TypeCheckDiagnosticCategory {
@@ -239,7 +238,7 @@ impl DiagnosticCategory for TypeCheckDiagnosticCategory {
             Self::UnresolvedSelectionConstraint => Some(&UNRESOLVED_SELECTION_CONSTRAINT),
             Self::ListIndexTypeMismatch => Some(&LIST_INDEX_TYPE_MISMATCH),
             Self::DictKeyTypeMismatch => Some(&DICT_KEY_TYPE_MISMATCH),
-            Self::InferenceVariableCoalescedToNever => Some(&INFERENCE_VARIABLE_COALESCED_TO_NEVER),
+            Self::UnsatisfiableUpperConstraint => Some(&UNSATISFIABLE_UPPER_CONSTRAINT),
         }
     }
 }
@@ -2028,52 +2027,50 @@ pub(crate) fn dict_subscript_mismatch<'heap>(
     diagnostic
 }
 
-/// Creates a diagnostic for when an inference variable coalesces to the never type
+/// Creates a diagnostic for when an upper constraint cannot be satisfied
 ///
-/// This indicates a likely programming error where the type system has determined
-/// that a value can never exist, which typically means the code path is unreachable
-/// or there's a logical inconsistency in the type constraints.
-pub(crate) fn inference_variable_coalesced_to_never(
+/// This occurs when the type system determines that no valid type can satisfy
+/// the upper bound constraint for an inference variable, typically indicating
+/// contradictory type requirements or unreachable code paths.
+pub(crate) fn unsatisfiable_upper_constraint(
     env: &Environment,
-    inferred: TypeId,
+    upper_constraint: TypeId,
     variable: Variable,
 ) -> TypeCheckDiagnostic {
-    let inferred = env.r#type(inferred);
+    let upper_type = env.r#type(upper_constraint);
+    let variable_type = variable.into_type(env);
 
     let mut diagnostic = Diagnostic::new(
-        TypeCheckDiagnosticCategory::InferenceVariableCoalescedToNever,
+        TypeCheckDiagnosticCategory::UnsatisfiableUpperConstraint,
         Severity::Error,
     );
 
-    diagnostic.labels.push(
-        Label::new(
-            inferred.span,
-            "Inference variable resolved to never type here",
-        )
-        .with_order(1),
-    );
+    diagnostic
+        .labels
+        .push(Label::new(upper_type.span, "Upper constraint cannot be satisfied").with_order(1));
 
     diagnostic.labels.push(
-        Label::new(env.source, "This expression can never produce a value")
-            .with_order(2)
-            .with_color(Color::Ansi(AnsiColor::Red)),
+        Label::new(
+            variable_type.span,
+            "This variable has conflicting type requirements",
+        )
+        .with_order(2)
+        .with_color(Color::Ansi(AnsiColor::Red)),
     );
 
     diagnostic.add_help(Help::new(format!(
-        "The type inference system determined that variable `{}` can only be the never type \
-         (`!`), which means this code path is unreachable or contains contradictory type \
-         constraints. Review the logic leading to this expression and ensure all code paths are \
-         valid.",
-        variable
-            .into_type(env)
-            .pretty_print(env, PrettyOptions::default().with_max_width(60))
+        "The inference variable `{}` has an upper bound constraint of type `{}` that cannot be \
+         satisfied. This typically means there are contradictory type requirements that make it \
+         impossible for any valid value to exist. Review the constraints placed on this variable.",
+        variable_type.pretty_print(env, PrettyOptions::default().with_max_width(40)),
+        upper_type.pretty_print(env, PrettyOptions::default().with_max_width(40))
     )));
 
     diagnostic.add_note(Note::new(
-        "The never type (`!`) represents computations that never complete normally - they either \
-         panic, loop forever, or exit. When an inference variable resolves to never, it usually \
-         indicates a logical error in the program where the type system has determined that no \
-         valid value can exist for this expression.",
+        "Upper bound constraints specify the most general type that a variable can be. When an \
+         upper constraint is unsatisfiable, it means the type system has determined that no type \
+         can meet all the requirements, often due to conflicting constraints from different parts \
+         of the code.",
     ));
 
     diagnostic

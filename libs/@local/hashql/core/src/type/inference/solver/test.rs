@@ -23,7 +23,7 @@ use crate::{
             r#struct::StructField,
             test::{assert_equiv, intersection, list, primitive, r#struct, struct_field, union},
         },
-        test::{instantiate, instantiate_infer},
+        test::{instantiate, instantiate_infer, scaffold},
     },
 };
 
@@ -2076,6 +2076,62 @@ fn unconstrained_generic() {
     inference.add_constraint(Constraint::Unify {
         lhs: variable,
         rhs: variable,
+    });
+
+    let solver = inference.into_solver();
+    let (_substitution, diagnostics) = solver.solve();
+    assert!(diagnostics.is_empty());
+}
+
+// If we have two different incompatible upper constraints the user should be notified.
+#[test]
+fn incompatible_upper_constraints() {
+    scaffold!(heap, env, builder);
+
+    let hole = env.counter.hole.next();
+    let variable = Variable::synthetic(VariableKind::Hole(hole));
+
+    let string = builder.string();
+    let integer = builder.integer();
+
+    let mut inference = InferenceEnvironment::new(&env);
+    inference.add_constraint(Constraint::UpperBound {
+        variable,
+        bound: string,
+    });
+    inference.add_constraint(Constraint::UpperBound {
+        variable,
+        bound: integer,
+    });
+
+    let solver = inference.into_solver();
+    let (_substitution, diagnostics) = solver.solve();
+    assert_eq!(diagnostics.len(), 1);
+    let diagnostics = diagnostics.into_vec();
+    assert_eq!(
+        diagnostics[0].category,
+        TypeCheckDiagnosticCategory::UnsatisfiableUpperConstraint
+    );
+}
+
+// but if the variable is just `!`, that's fine
+#[test]
+fn never_upper_constraints() {
+    scaffold!(heap, env, builder);
+
+    let hole = env.counter.hole.next();
+    let variable = Variable::synthetic(VariableKind::Hole(hole));
+
+    let never = builder.never();
+
+    let mut inference = InferenceEnvironment::new(&env);
+    inference.add_constraint(Constraint::UpperBound {
+        variable,
+        bound: never,
+    });
+    inference.add_constraint(Constraint::UpperBound {
+        variable,
+        bound: never,
     });
 
     let solver = inference.into_solver();
