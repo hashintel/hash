@@ -243,7 +243,7 @@ use crate::{
 /// ```
 #[must_use]
 #[expect(clippy::field_scoped_visibility_modifiers)]
-pub struct Report<C: ?Sized> {
+pub struct Report<C: ?Sized = dyn Context + Send + Sync + 'static> {
     // The vector is boxed as this implies a memory footprint equal to a single pointer size
     // instead of three pointer sizes. Even for small `Result::Ok` variants, the `Result` would
     // still have at least the size of `Report`, even at the happy path. It's unexpected, that
