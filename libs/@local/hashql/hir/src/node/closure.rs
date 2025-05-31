@@ -12,6 +12,23 @@ use hashql_core::{
 
 use super::Node;
 
+pub(crate) fn extract_signature<'heap>(
+    mut type_id: TypeId,
+    env: &Environment<'heap>,
+) -> &'heap ClosureType<'heap> {
+    loop {
+        let kind = env.r#type(type_id).kind;
+
+        match kind {
+            &TypeKind::Apply(Apply { base, .. }) | &TypeKind::Generic(Generic { base, .. }) => {
+                type_id = base;
+            }
+            TypeKind::Closure(closure) => return closure,
+            _ => unreachable!("ClosureSignature::returns() called on a non-closure type"),
+        }
+    }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct ClosureParam<'heap> {
     pub span: SpanId,
@@ -42,19 +59,7 @@ pub struct ClosureSignature<'heap> {
 
 impl<'heap> ClosureSignature<'heap> {
     pub fn type_signature(&self, env: &Environment<'heap>) -> &'heap ClosureType<'heap> {
-        let mut type_id = self.def.id;
-
-        loop {
-            let kind = env.r#type(type_id).kind;
-
-            match kind {
-                &TypeKind::Apply(Apply { base, .. }) | &TypeKind::Generic(Generic { base, .. }) => {
-                    type_id = base;
-                }
-                TypeKind::Closure(closure) => return closure,
-                _ => unreachable!("ClosureSignature::returns() called on a non-closure type"),
-            }
-        }
+        extract_signature(self.def.id, env)
     }
 
     pub fn type_generic(&self, env: &Environment<'heap>) -> Option<&'heap Generic<'heap>> {

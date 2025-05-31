@@ -1,5 +1,4 @@
-use alloc::borrow::Cow;
-use core::{cmp::Ordering, convert::Infallible, mem};
+use core::{convert::Infallible, mem};
 
 use hashql_core::{
     collection::FastHashMap,
@@ -13,19 +12,11 @@ use hashql_core::{
     r#type::{
         TypeBuilder, TypeId,
         environment::{Environment, instantiate::InstantiateEnvironment},
-        kind::{
-            GenericArguments, PrimitiveType, TypeKind,
-            generic::{GenericArgumentReference, GenericSubstitution},
-        },
+        kind::{GenericArguments, PrimitiveType, TypeKind, generic::GenericSubstitution},
     },
 };
-use hashql_diagnostics::{
-    Diagnostic, Help, Note, Severity,
-    category::{DiagnosticCategory, TerminalDiagnosticCategory},
-    color::{AnsiColor, Color},
-    label::Label,
-};
 
+use super::error::{LoweringDiagnostic, generic_argument_mismatch};
 use crate::{
     fold::{Fold, nested::Deep, walk_nested_node, walk_node},
     intern::Interner,
@@ -40,133 +31,13 @@ use crate::{
     },
 };
 
-const GENERIC_ARGUMENT_MISMATCH: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
-    id: "generic-argument-mismatch",
-    name: "Incorrect number of type arguments",
-};
-
-pub type ConvertTypeConstructorDiagnostic =
-    Diagnostic<ConvertTypeConstructorDiagnosticCategory, SpanId>;
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum ConvertTypeConstructorDiagnosticCategory {
-    GenericArgumentMismatch,
-}
-
-impl DiagnosticCategory for ConvertTypeConstructorDiagnosticCategory {
-    fn id(&self) -> Cow<'_, str> {
-        Cow::Borrowed("convert-type-constructor")
-    }
-
-    fn name(&self) -> Cow<'_, str> {
-        Cow::Borrowed("Convert Type Constructor")
-    }
-
-    fn subcategory(&self) -> Option<&dyn DiagnosticCategory> {
-        match self {
-            Self::GenericArgumentMismatch => Some(&GENERIC_ARGUMENT_MISMATCH),
-        }
-    }
-}
-
-fn generic_argument_mismatch<'heap>(
-    node: &Node<'heap>,
-    variable: &Variable<'heap>,
-
-    parameters: &[GenericArgumentReference],
-    arguments: &[Spanned<TypeId>],
-) -> ConvertTypeConstructorDiagnostic {
-    let mut diagnostic = Diagnostic::new(
-        ConvertTypeConstructorDiagnosticCategory::GenericArgumentMismatch,
-        Severity::Error,
-    );
-
-    let expected = parameters.len();
-    let actual = arguments.len();
-
-    let missing = parameters.get(actual..).unwrap_or(&[]);
-    let extraneous = arguments.get(expected..).unwrap_or(&[]);
-
-    diagnostic.labels.push(Label::new(
-        variable.span,
-        format!(
-            "This type constructor requires {expected} generic argument{}, but {actual} {} \
-             provided",
-            if expected == 1 { "" } else { "s" },
-            if actual == 1 { "was" } else { "were" }
-        ),
-    ));
-
-    let mut order = -1;
-    for missing in missing {
-        diagnostic.labels.push(
-            Label::new(
-                node.span,
-                format!("Add missing parameter `{}`", missing.name.demangle()),
-            )
-            .with_order(order)
-            .with_color(Color::Ansi(AnsiColor::Yellow)),
-        );
-
-        order -= 1;
-    }
-
-    for &extraneous in extraneous {
-        diagnostic.labels.push(
-            Label::new(extraneous.span, "Remove this argument")
-                .with_order(order)
-                .with_color(Color::Ansi(AnsiColor::Red)),
-        );
-
-        order -= 1;
-    }
-
-    let usage = format!(
-        "{}{}",
-        variable.name(),
-        GenericArgumentReference::display(parameters)
-    );
-
-    let help = match actual.cmp(&expected) {
-        Ordering::Less => format!(
-            "This type constructor requires exactly {} generic argument{}. Provide the missing \
-             parameter{}: {}",
-            expected,
-            if expected == 1 { "" } else { "s" },
-            if missing.len() == 1 { "" } else { "s" },
-            usage
-        ),
-        Ordering::Greater => format!(
-            "This type constructor accepts exactly {} generic argument{}. Remove the extra \
-             parameter{}: {}",
-            expected,
-            if expected == 1 { "" } else { "s" },
-            if extraneous.len() == 1 { "" } else { "s" },
-            usage
-        ),
-        Ordering::Equal => format!("Correct usage: {usage}"),
-    };
-
-    diagnostic.add_help(Help::new(help));
-
-    if !parameters.is_empty() {
-        diagnostic.add_note(Note::new(
-            "Generic type parameters must be provided when instantiating parameterized types. \
-             Each parameter corresponds to a specific type that will be substituted throughout \
-             the type definition.",
-        ));
-    }
-
-    diagnostic
-}
-
 pub struct ConvertTypeConstructor<'env, 'heap> {
     interner: &'env Interner<'heap>,
     locals: &'env TypeLocals<'heap>,
     registry: &'env ModuleRegistry<'heap>,
     environment: &'env Environment<'heap>,
     instantiate: InstantiateEnvironment<'env, 'heap>,
-    diagnostics: Vec<ConvertTypeConstructorDiagnostic>,
+    diagnostics: Vec<LoweringDiagnostic>,
     cache: FastHashMap<HirId, Node<'heap>>,
     nested: bool,
 }
@@ -370,10 +241,10 @@ impl<'heap> ConvertTypeConstructor<'_, 'heap> {
 impl<'heap> Fold<'heap> for ConvertTypeConstructor<'_, 'heap> {
     type NestedFilter = Deep;
     type Output<T>
-        = Result<T, Vec<ConvertTypeConstructorDiagnostic>>
+        = Result<T, Vec<LoweringDiagnostic>>
     where
         T: 'heap;
-    type Residual = Result<Infallible, Vec<ConvertTypeConstructorDiagnostic>>;
+    type Residual = Result<Infallible, Vec<LoweringDiagnostic>>;
 
     fn interner(&self) -> &Interner<'heap> {
         self.interner

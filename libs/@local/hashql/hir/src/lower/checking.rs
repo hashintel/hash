@@ -7,21 +7,22 @@ use hashql_core::{
         universe::{Entry, FastRealmsMap},
     },
     span::{SpanId, Spanned},
-    symbol::{Ident, Symbol},
+    symbol::Symbol,
     r#type::{
-        TypeId,
+        TypeBuilder, TypeId,
         environment::{AnalysisEnvironment, Environment, LatticeEnvironment, SimplifyEnvironment},
         kind::generic::GenericArgumentReference,
     },
 };
 
 use crate::{
+    lower::error::generic_argument_mismatch,
     node::{
         HirId, Node,
         access::{field::FieldAccess, index::IndexAccess},
         branch::Branch,
         call::Call,
-        closure::Closure,
+        closure::{Closure, extract_signature},
         data::{Data, Literal},
         graph::Graph,
         input::Input,
@@ -32,7 +33,6 @@ use crate::{
         },
         variable::{LocalVariable, QualifiedVariable},
     },
-    path::QualifiedPath,
     visit::{self, Visitor},
 };
 
@@ -56,6 +56,35 @@ pub struct TypeChecking<'env, 'heap> {
 }
 
 impl<'env, 'heap> TypeChecking<'env, 'heap> {
+    pub fn new(
+        env: &'env Environment<'heap>,
+        registry: &'env ModuleRegistry<'heap>,
+
+        locals: FastHashMap<Symbol<'heap>, TypeDef<'heap>>,
+        types: FastHashMap<HirId, TypeId>,
+    ) -> Self {
+        let inference = types;
+
+        Self {
+            env,
+            registry,
+
+            locals,
+            inference,
+
+            lattice: LatticeEnvironment::new(env),
+            analysis: AnalysisEnvironment::new(env),
+            simplify: SimplifyEnvironment::new(env),
+
+            current: HirId::PLACEHOLDER,
+            visited: FastHashSet::default(),
+
+            types: FastRealmsMap::new(),
+            inputs: FastRealmsMap::new(),
+            simplified: FastHashMap::default(),
+        }
+    }
+
     fn simplified_type(&mut self, id: TypeId) -> TypeId {
         match self.simplified.entry(id) {
             Entry::Occupied(occupied) => *occupied.get(),
@@ -79,6 +108,19 @@ impl<'env, 'heap> TypeChecking<'env, 'heap> {
         parameters: &[GenericArgumentReference<'heap>],
         arguments: &[Spanned<TypeId>],
     ) {
+        if arguments.is_empty() {
+            // Fully inferred, which is fine
+            return;
+        }
+
+        if parameters.len() == arguments.len() {
+            return;
+        }
+
+        generic_argument_mismatch(node, variable, parameters, arguments);
+
+        // Mismatch in parameters that needs to be addressed
+
         todo!()
     }
 
@@ -102,31 +144,8 @@ impl<'env, 'heap> TypeChecking<'env, 'heap> {
 }
 
 impl<'heap> Visitor<'heap> for TypeChecking<'_, 'heap> {
-    fn visit_id(&mut self, id: HirId) {
-        // do nothing, no fields to walk
-    }
-
     fn visit_type_id(&mut self, id: TypeId) {
         self.simplified_type(id);
-    }
-
-    fn visit_generic_argument_reference(
-        &mut self,
-        reference: &'heap GenericArgumentReference<'heap>,
-    ) {
-        // do nothing, no fields to walk
-    }
-
-    fn visit_span(&mut self, span: SpanId) {
-        // do nothing, no fields to walk
-    }
-
-    fn visit_ident(&mut self, ident: &'heap Ident<'heap>) {
-        visit::walk_ident(self, ident);
-    }
-
-    fn visit_qualified_path(&mut self, path: &'heap QualifiedPath<'heap>) {
-        visit::walk_qualified_path(self, path);
     }
 
     fn visit_node(&mut self, node: &Node<'heap>) {
@@ -251,10 +270,10 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, 'heap> {
 
         let simplified_assertion = self.simplified_type(assertion.r#type);
 
-        // assertion <: value
+        // value <: assertion
         self.verify_subtype(
-            simplified_assertion,
             self.types[Universe::Value][&assertion.value.id],
+            simplified_assertion,
         );
     }
 
@@ -285,8 +304,22 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, 'heap> {
     }
 
     fn visit_call(&mut self, call: &'heap Call<'heap>) {
-        // TODO: this needs to be checked
         visit::walk_call(self, call);
+
+        let returns_id = self.inferred_type(self.current);
+
+        let builder = TypeBuilder::spanned(call.span, self.env);
+        let closure = builder.closure(
+            call.arguments
+                .iter()
+                .map(|argument| self.types[Universe::Value][&argument.value.id]),
+            returns_id,
+        );
+
+        self.verify_subtype(closure, self.types[Universe::Value][&call.function.id]);
+
+        self.types
+            .insert_unique(Universe::Value, self.current, returns_id);
     }
 
     fn visit_branch(&mut self, _: &'heap Branch<'heap>) {
@@ -295,9 +328,21 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, 'heap> {
 
     fn visit_closure(&mut self, closure: &'heap Closure<'heap>) {
         visit::walk_closure(self, closure);
+
+        let inferred = self.inferred_type(self.current);
+
+        // `body <: return`
+        let closure_type = extract_signature(inferred, self.env);
+        self.verify_subtype(
+            self.types[Universe::Value][&closure.body.id],
+            closure_type.returns,
+        );
+
+        self.types
+            .insert_unique(Universe::Value, self.current, inferred);
     }
 
-    fn visit_graph(&mut self, graph: &'heap Graph<'heap>) {
-        visit::walk_graph(self, graph);
+    fn visit_graph(&mut self, _: &'heap Graph<'heap>) {
+        unreachable!("graph operations shouldn't be present yet");
     }
 }

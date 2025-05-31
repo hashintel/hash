@@ -1,13 +1,31 @@
 use alloc::borrow::Cow;
+use core::cmp::Ordering;
 
-use hashql_core::span::SpanId;
-use hashql_diagnostics::{Diagnostic, category::DiagnosticCategory};
+use hashql_core::{
+    span::{SpanId, Spanned},
+    r#type::{TypeId, error::TypeCheckDiagnosticCategory, kind::generic::GenericArgumentReference},
+};
+use hashql_diagnostics::{
+    Diagnostic, Help, Note, Severity,
+    category::{DiagnosticCategory, TerminalDiagnosticCategory},
+    color::{AnsiColor, Color},
+    label::Label,
+};
+
+use crate::node::{Node, variable::Variable};
+
+const GENERIC_ARGUMENT_MISMATCH: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "generic-argument-mismatch",
+    name: "Incorrect number of type arguments",
+};
 
 pub type LoweringDiagnostic = Diagnostic<LoweringDiagnosticCategory, SpanId>;
 
-#[expect(clippy::empty_enum)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum LoweringDiagnosticCategory {}
+pub enum LoweringDiagnosticCategory {
+    GenericArgumentMismatch,
+    TypeChecking(TypeCheckDiagnosticCategory),
+}
 
 impl DiagnosticCategory for LoweringDiagnosticCategory {
     fn id(&self) -> Cow<'_, str> {
@@ -19,6 +37,101 @@ impl DiagnosticCategory for LoweringDiagnosticCategory {
     }
 
     fn subcategory(&self) -> Option<&dyn DiagnosticCategory> {
-        unreachable!()
+        match self {
+            Self::GenericArgumentMismatch => Some(&GENERIC_ARGUMENT_MISMATCH),
+            Self::TypeChecking(category) => Some(category),
+        }
     }
+}
+
+// TODO: The messaging here needs to be improved / changed to be distinct
+pub(crate) fn generic_argument_mismatch<'heap>(
+    node: &Node<'heap>,
+    variable: &Variable<'heap>,
+
+    parameters: &[GenericArgumentReference],
+    arguments: &[Spanned<TypeId>],
+) -> LoweringDiagnostic {
+    let mut diagnostic = Diagnostic::new(
+        LoweringDiagnosticCategory::GenericArgumentMismatch,
+        Severity::Error,
+    );
+
+    let expected = parameters.len();
+    let actual = arguments.len();
+
+    let missing = parameters.get(actual..).unwrap_or(&[]);
+    let extraneous = arguments.get(expected..).unwrap_or(&[]);
+
+    diagnostic.labels.push(Label::new(
+        variable.span,
+        format!(
+            "This type constructor requires {expected} generic argument{}, but {actual} {} \
+             provided",
+            if expected == 1 { "" } else { "s" },
+            if actual == 1 { "was" } else { "were" }
+        ),
+    ));
+
+    let mut order = -1;
+    for missing in missing {
+        diagnostic.labels.push(
+            Label::new(
+                node.span,
+                format!("Add missing parameter `{}`", missing.name.demangle()),
+            )
+            .with_order(order)
+            .with_color(Color::Ansi(AnsiColor::Yellow)),
+        );
+
+        order -= 1;
+    }
+
+    for &extraneous in extraneous {
+        diagnostic.labels.push(
+            Label::new(extraneous.span, "Remove this argument")
+                .with_order(order)
+                .with_color(Color::Ansi(AnsiColor::Red)),
+        );
+
+        order -= 1;
+    }
+
+    let usage = format!(
+        "{}{}",
+        variable.name(),
+        GenericArgumentReference::display(parameters)
+    );
+
+    let help = match actual.cmp(&expected) {
+        Ordering::Less => format!(
+            "This type constructor requires exactly {} generic argument{}. Provide the missing \
+             parameter{}: {}",
+            expected,
+            if expected == 1 { "" } else { "s" },
+            if missing.len() == 1 { "" } else { "s" },
+            usage
+        ),
+        Ordering::Greater => format!(
+            "This type constructor accepts exactly {} generic argument{}. Remove the extra \
+             parameter{}: {}",
+            expected,
+            if expected == 1 { "" } else { "s" },
+            if extraneous.len() == 1 { "" } else { "s" },
+            usage
+        ),
+        Ordering::Equal => format!("Correct usage: {usage}"),
+    };
+
+    diagnostic.add_help(Help::new(help));
+
+    if !parameters.is_empty() {
+        diagnostic.add_note(Note::new(
+            "Generic type parameters must be provided when instantiating parameterized types. \
+             Each parameter corresponds to a specific type that will be substituted throughout \
+             the type definition.",
+        ));
+    }
+
+    diagnostic
 }

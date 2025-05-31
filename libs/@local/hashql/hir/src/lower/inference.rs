@@ -266,10 +266,10 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
             return;
         }
 
-        // assertion <: value
+        // value <: assertion
         self.inference.collect_constraints(
-            assertion.r#type,
             self.types[Universe::Value][&assertion.value.id],
+            assertion.r#type,
         );
     }
 
@@ -407,10 +407,8 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
         // invalid in the context of type checking, which is why it is a separate step.
         self.visit_node(body);
 
-        // Remove the locals again from scope
-        for param in signature.params {
-            self.locals.remove(Universe::Value, &param.name.value);
-        }
+        // Note: We do not remove the locals again from scope, to allow us to use them in the type
+        // checking phase.
 
         // `body <: return`
         self.inference.collect_constraints(
