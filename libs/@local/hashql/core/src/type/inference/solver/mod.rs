@@ -191,8 +191,16 @@ struct VariableOrdering {
     upper: ResolvedVariable,
 }
 
+/// Tracks the satisfiability status of different constraint types for a type variable.
+///
+/// This structure maintains flags indicating whether each category of constraint
+/// (currently only upper bounds) can be satisfied without creating logical contradictions.
+/// Used during constraint resolution to detect and report unsatisfiable constraint systems.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
 struct VariableConstraintSatisfiability {
+    /// Whether upper bound constraints are satisfiable.
+    ///
+    /// Set to `false` when upper bound resolution results in bottom types, indicating an impossible constraint combination.
     upper: bool = true,
 }
 
@@ -831,6 +839,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
             }
 
             // Combine into the tightest upper bound (meet - greatest lower bound)
+            // Track if all bounds were bottom types.
             let only_bottoms = variable_constraint
                 .upper
                 .iter()
@@ -859,7 +868,9 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
             if let Some(upper) = upper {
                 let is_bottom = self.lattice.is_bottom(upper);
 
-                // upper constraint is invalid, if we transition from a non-bottom to a bottom type
+                // Mark as unsatisfiable if we had valid constraints that resolved to an impossible
+                // type (bottom). This indicates conflicting upper bound constraints.
+                // Example: if X <: String and X <: Number, their meet is bottom (impossible).
                 let unsatisfiable = !only_bottoms && is_bottom;
 
                 variable_constraint.upper.push(upper);
@@ -898,7 +909,17 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         self.apply_constraints_backwards(graph, bump, variables);
     }
 
-    /// Check if the constraint is resolved to never
+    /// Validates that the given constraint is satisfiable for the specified variable.
+    ///
+    /// This function checks whether the evaluated constraint can be satisfied without
+    /// creating logical inconsistencies. Currently only validates upper bound constraints
+    /// by checking if an upper bound was marked as unsatisfiable during constraint
+    /// propagation.
+    ///
+    /// # Returns
+    ///
+    /// Returns `true` if the constraint is satisfiable, `false` otherwise. When unsatisfiable,
+    /// appropriate diagnostic errors are pushed to the solver's diagnostic collection.
     fn solve_constraints_satisfiable(
         &mut self,
         variable: Variable,
@@ -907,6 +928,8 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     ) -> bool {
         let mut is_satisfiable = true;
 
+        // Check if we have an upper bound constraint that was marked as unsatisfiable during
+        // constraint propagation (e.g., when multiple upper bounds resulted in a bottom type)
         if let EvaluatedVariableConstraint {
             upper: Some(upper), ..
         } = constraint
