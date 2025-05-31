@@ -102,7 +102,7 @@
     "openai": "4.103.0",
     "ts-json-schema-generator": "1.5.1",
     "tsx": "4.19.4",
-    "typescript": "5.7.3",
+    "typescript": "5.8.3",
     "ws": "8.18.2"
   },
   "devDependencies": {
@@ -125,7 +125,7 @@
     "@vitest/coverage-istanbul": "3.1.4",
     "eslint": "9.20.1",
     "rimraf": "6.0.1",
-    "typescript": "5.7.3",
+    "typescript": "5.8.3",
     "vitest": "3.1.4",
     "wait-on": "8.0.3"
   }
