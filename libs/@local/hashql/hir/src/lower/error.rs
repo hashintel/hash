@@ -42,8 +42,15 @@ impl DiagnosticCategory for LoweringDiagnosticCategory {
     }
 }
 
-// TODO: The messaging here needs to be improved / changed to be distinct
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum GenericArgumentContext {
+    TypeConstructor,
+    Closure,
+}
+
 pub(crate) fn generic_argument_mismatch(
+    context: GenericArgumentContext,
+
     node_span: SpanId,
 
     variable_span: SpanId,
@@ -63,11 +70,15 @@ pub(crate) fn generic_argument_mismatch(
     let missing = parameters.get(actual..).unwrap_or(&[]);
     let extraneous = arguments.get(expected..).unwrap_or(&[]);
 
+    let context_name = match context {
+        GenericArgumentContext::TypeConstructor => "type constructor",
+        GenericArgumentContext::Closure => "closure",
+    };
+
     diagnostic.labels.push(Label::new(
         variable_span,
         format!(
-            "This type constructor requires {expected} generic argument{}, but {actual} {} \
-             provided",
+            "This {context_name} requires {expected} generic argument{}, but {actual} {} provided",
             if expected == 1 { "" } else { "s" },
             if actual == 1 { "was" } else { "were" }
         ),
@@ -105,20 +116,18 @@ pub(crate) fn generic_argument_mismatch(
 
     let help = match actual.cmp(&expected) {
         Ordering::Less => format!(
-            "This type constructor requires exactly {} generic argument{}. Provide the missing \
-             parameter{}: {}",
+            "This {context_name} requires exactly {} generic argument{}. Provide the missing \
+             parameter{}: {usage}",
             expected,
             if expected == 1 { "" } else { "s" },
             if missing.len() == 1 { "" } else { "s" },
-            usage
         ),
         Ordering::Greater => format!(
-            "This type constructor accepts exactly {} generic argument{}. Remove the extra \
-             parameter{}: {}",
+            "This {context_name} accepts exactly {} generic argument{}. Remove the extra \
+             parameter{}: {usage}",
             expected,
             if expected == 1 { "" } else { "s" },
             if extraneous.len() == 1 { "" } else { "s" },
-            usage
         ),
         Ordering::Equal => format!("Correct usage: {usage}"),
     };
@@ -126,11 +135,20 @@ pub(crate) fn generic_argument_mismatch(
     diagnostic.add_help(Help::new(help));
 
     if !parameters.is_empty() {
-        diagnostic.add_note(Note::new(
-            "Generic type parameters must be provided when instantiating parameterized types. \
-             Each parameter corresponds to a specific type that will be substituted throughout \
-             the type definition.",
-        ));
+        let note_message = match context {
+            GenericArgumentContext::TypeConstructor => {
+                "Generic type parameters must be provided when instantiating parameterized types. \
+                 Each parameter corresponds to a specific type that will be substituted throughout \
+                 the type definition."
+            }
+            GenericArgumentContext::Closure => {
+                "Generic type parameters must be provided when invoking parameterized closures. \
+                 Each parameter corresponds to a specific type that will be used within the \
+                 closure's execution."
+            }
+        };
+
+        diagnostic.add_note(Note::new(note_message));
     }
 
     diagnostic

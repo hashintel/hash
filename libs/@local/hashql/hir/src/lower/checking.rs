@@ -1,4 +1,4 @@
-use core::fmt::Display;
+use core::{fmt::Display, iter};
 
 use hashql_core::{
     collection::{FastHashMap, FastHashSet},
@@ -17,7 +17,7 @@ use hashql_core::{
     },
 };
 
-use super::error::LoweringDiagnostic;
+use super::error::{GenericArgumentContext, LoweringDiagnostic, LoweringDiagnosticCategory};
 use crate::{
     lower::error::generic_argument_mismatch,
     node::{
@@ -38,6 +38,11 @@ use crate::{
     },
     visit::{self, Visitor},
 };
+
+pub struct TypeCheckingResidual<'heap> {
+    pub types: FastHashMap<HirId, TypeId>,
+    pub inputs: FastHashMap<Symbol<'heap>, TypeId>,
+}
 
 pub struct TypeChecking<'env, 'heap> {
     env: &'env Environment<'heap>,
@@ -69,6 +74,9 @@ impl<'env, 'heap> TypeChecking<'env, 'heap> {
     ) -> Self {
         let inference = types;
 
+        let mut analysis = AnalysisEnvironment::new(env);
+        analysis.with_diagnostics();
+
         Self {
             env,
             registry,
@@ -77,7 +85,7 @@ impl<'env, 'heap> TypeChecking<'env, 'heap> {
             inference,
 
             lattice: LatticeEnvironment::new(env),
-            analysis: AnalysisEnvironment::new(env),
+            analysis,
             simplify: SimplifyEnvironment::new(env),
 
             current: HirId::PLACEHOLDER,
@@ -127,6 +135,7 @@ impl<'env, 'heap> TypeChecking<'env, 'heap> {
         }
 
         self.diagnostics.push(generic_argument_mismatch(
+            GenericArgumentContext::Closure,
             node_span,
             variable_span,
             variable_name,
@@ -151,6 +160,24 @@ impl<'env, 'heap> TypeChecking<'env, 'heap> {
                 "subtype verification should've contributed to the amount of fatal diagnostics"
             );
         }
+    }
+
+    #[must_use]
+    pub fn finish(mut self) -> (TypeCheckingResidual<'heap>, Vec<LoweringDiagnostic>) {
+        let diagnostics = iter::empty()
+            .chain(self.lattice.take_diagnostics())
+            .chain(self.simplify.take_diagnostics().into_iter().flatten())
+            .chain(self.analysis.take_diagnostics().into_iter().flatten())
+            .map(|diagnostic| diagnostic.map_category(LoweringDiagnosticCategory::TypeChecking));
+
+        self.diagnostics.extend(diagnostics);
+
+        let types = core::mem::take(&mut self.types[Universe::Value]);
+        let inputs = core::mem::take(&mut self.inputs[Universe::Value]);
+
+        let residual = TypeCheckingResidual { types, inputs };
+
+        (residual, self.diagnostics)
     }
 }
 

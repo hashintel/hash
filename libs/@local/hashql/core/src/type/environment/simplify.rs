@@ -57,7 +57,7 @@ impl<'env, 'heap> SimplifyEnvironment<'env, 'heap> {
     }
 
     #[inline]
-    pub(crate) fn take_diagnostics(&mut self) -> Option<Diagnostics> {
+    pub fn take_diagnostics(&mut self) -> Option<Diagnostics> {
         self.analysis.take_diagnostics()
     }
 

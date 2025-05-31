@@ -16,7 +16,7 @@ use hashql_core::{
     },
 };
 
-use super::error::{LoweringDiagnostic, generic_argument_mismatch};
+use super::error::{GenericArgumentContext, LoweringDiagnostic, generic_argument_mismatch};
 use crate::{
     fold::{Fold, nested::Deep, walk_nested_node, walk_node},
     intern::Interner,
@@ -166,6 +166,7 @@ impl<'heap> ConvertTypeConstructor<'_, 'heap> {
         // generic parameters
         if generic_arguments.len() != closure_def.arguments.len() {
             self.diagnostics.push(generic_argument_mismatch(
+                GenericArgumentContext::TypeConstructor,
                 node.span,
                 variable.span,
                 variable.name(),

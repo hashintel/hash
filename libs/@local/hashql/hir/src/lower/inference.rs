@@ -24,7 +24,7 @@ use crate::{
         access::{field::FieldAccess, index::IndexAccess},
         branch::Branch,
         call::Call,
-        closure::{Closure, ClosureSignature},
+        closure::Closure,
         data::Literal,
         graph::Graph,
         input::Input,
