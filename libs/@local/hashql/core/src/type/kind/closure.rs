@@ -249,8 +249,8 @@ impl<'heap> Lattice<'heap> for ClosureType<'heap> {
         let mut compatible = true;
 
         // Parameters are contravariant
-        for (&self_param, &super_param) in self.kind.params.iter().zip(other.kind.params.iter()) {
-            compatible &= env.in_contravariant(|env| env.is_equivalent(self_param, super_param));
+        for (&self_param, &other_param) in self.kind.params.iter().zip(other.kind.params.iter()) {
+            compatible &= env.in_contravariant(|env| env.is_equivalent(self_param, other_param));
 
             if !compatible && env.is_fail_fast() {
                 return false;
