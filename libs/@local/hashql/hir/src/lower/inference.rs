@@ -3,7 +3,7 @@ use hashql_core::{
     literal::LiteralKind,
     module::{
         ModuleRegistry, Universe,
-        item::{ConstructorItem, IntrinsicItem, IntrinsicValueItem, ItemKind},
+        item::{IntrinsicItem, IntrinsicValueItem, ItemKind},
         locals::TypeDef,
         universe::FastRealmsMap,
     },
@@ -165,9 +165,11 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
             .unwrap_or_else(|| unreachable!("import resolver should've caught this issue"));
 
         let mut def = match item.kind {
-            ItemKind::Constructor(ConstructorItem { r#type }) => r#type,
             ItemKind::Intrinsic(IntrinsicItem::Value(IntrinsicValueItem { name: _, r#type })) => {
                 r#type
+            }
+            ItemKind::Constructor(_) => {
+                unreachable!("constructors should've been specialized prior to this point");
             }
             ItemKind::Module(_)
             | ItemKind::Type(_)
@@ -425,6 +427,6 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
     }
 
     fn visit_graph(&mut self, _: &'heap Graph<'heap>) {
-        unimplemented!()
+        unreachable!("graph operations shouldn't be present yet");
     }
 }
