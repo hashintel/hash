@@ -984,7 +984,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                 continue;
             }
 
-            if self.solve_constraints_satisfiable(variable, constraint, satisfiable) {
+            if !self.solve_constraints_satisfiable(variable, constraint, satisfiable) {
                 continue;
             }
 
