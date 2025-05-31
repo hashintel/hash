@@ -197,11 +197,6 @@ To make use of this test mode, the external services can be started as follows:
 yarn external-services:test up
 ```
 
-</details>
-
-<details>
-  <summary> &nbsp; Deploying HASH to the cloud</summary>
-
 ##### Sending emails
 
 Email-sending in HASH is handled by either Kratos (in the case of authentication-related emails) or through the HASH API Email Transport (for everything else).
@@ -216,6 +211,11 @@ Transactional emails templates are located in the following locations:
   - [`verification_code`](./../../apps/hash-external-services/kratos/templates/verification_code) - Email verification templates for the account registration flow using a code for the UI.
     - When an email belongs to a registered HASH user, it will use the `valid` template, otherwise the `invalid` template is used.
 - HASH emails in [`../hash-api/src/email/index.ts`](../hash-api/src/email/index.ts)
+
+</details>
+
+<details>
+  <summary> &nbsp; Deploying HASH to the cloud</summary>
 
 ### Deploying HASH to the cloud
 
