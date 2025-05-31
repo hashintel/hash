@@ -1,0 +1,9 @@
+//@ run: fail
+//@ description: Test that input inference for the default works
+[
+  "input",
+  "x",
+  "Number",
+  { "#literal": "42", "#type": "_" }
+  //~^ ERROR This variable has conflicting type requirements
+]

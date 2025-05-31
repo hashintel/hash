@@ -1,31 +1,31 @@
-#input(x, type: Number, default: #is("42", type: _0))
+#input(x, type: Number, default: #is(42, type: _0))
 
 --------------------------------------
 
-#input(x, type: Number, default: #is("42", type: _0«!»))
+#input(x, type: Number, default: #is(42, type: _0«Integer»))
 
 --------------------------------------
 
 Node:
-"42"
+42
 
 
 Type:
-String
+Integer
 
 --------------------------------------
 
 Node:
-#is("42", type: _0«!»)
+#is(42, type: _0«Integer»)
 
 
 Type:
-_0«!»
+_0«Integer»
 
 --------------------------------------
 
 Node:
-#input(x, type: Number, default: #is("42", type: _0«!»))
+#input(x, type: Number, default: #is(42, type: _0«Integer»))
 
 
 Type:
