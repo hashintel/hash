@@ -1,3 +1,5 @@
+use core::fmt::Display;
+
 use hashql_core::{
     collection::{FastHashMap, FastHashSet},
     module::{
@@ -15,6 +17,7 @@ use hashql_core::{
     },
 };
 
+use super::error::LoweringDiagnostic;
 use crate::{
     lower::error::generic_argument_mismatch,
     node::{
@@ -49,6 +52,7 @@ pub struct TypeChecking<'env, 'heap> {
 
     current: HirId,
     visited: FastHashSet<HirId>,
+    diagnostics: Vec<LoweringDiagnostic>,
 
     types: FastRealmsMap<HirId, TypeId>,
     inputs: FastRealmsMap<Symbol<'heap>, TypeId>,
@@ -78,6 +82,7 @@ impl<'env, 'heap> TypeChecking<'env, 'heap> {
 
             current: HirId::PLACEHOLDER,
             visited: FastHashSet::default(),
+            diagnostics: Vec::new(),
 
             types: FastRealmsMap::new(),
             inputs: FastRealmsMap::new(),
@@ -103,8 +108,12 @@ impl<'env, 'heap> TypeChecking<'env, 'heap> {
     }
 
     fn verify_arity(
-        &self,
-        span: SpanId,
+        &mut self,
+        node_span: SpanId,
+
+        variable_span: SpanId,
+        variable_name: impl Display,
+
         parameters: &[GenericArgumentReference<'heap>],
         arguments: &[Spanned<TypeId>],
     ) {
@@ -117,11 +126,13 @@ impl<'env, 'heap> TypeChecking<'env, 'heap> {
             return;
         }
 
-        generic_argument_mismatch(node, variable, parameters, arguments);
-
-        // Mismatch in parameters that needs to be addressed
-
-        todo!()
+        self.diagnostics.push(generic_argument_mismatch(
+            node_span,
+            variable_span,
+            variable_name,
+            parameters,
+            arguments,
+        ));
     }
 
     fn verify_subtype(&mut self, subtype: TypeId, supertype: TypeId) {
@@ -174,7 +185,13 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, 'heap> {
         visit::walk_local_variable(self, variable);
 
         let generic_arguments = self.locals[&variable.name.value].arguments;
-        self.verify_arity(variable.span, &generic_arguments, &variable.arguments);
+        self.verify_arity(
+            variable.span,
+            variable.name.span,
+            variable.name(),
+            &generic_arguments,
+            &variable.arguments,
+        );
 
         self.transfer_type(self.current);
     }
@@ -201,7 +218,13 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, 'heap> {
                 unreachable!()
             }
         };
-        self.verify_arity(variable.span, &def.arguments, &variable.arguments);
+        self.verify_arity(
+            variable.span,
+            variable.path.0.last().expect("should be non-empty").span,
+            variable.name(),
+            &def.arguments,
+            &variable.arguments,
+        );
 
         self.transfer_type(self.current);
     }

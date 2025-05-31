@@ -166,8 +166,9 @@ impl<'heap> ConvertTypeConstructor<'_, 'heap> {
         // generic parameters
         if generic_arguments.len() != closure_def.arguments.len() {
             self.diagnostics.push(generic_argument_mismatch(
-                node,
-                variable,
+                node.span,
+                variable.span,
+                variable.name(),
                 &closure_def.arguments,
                 &generic_arguments,
             ));

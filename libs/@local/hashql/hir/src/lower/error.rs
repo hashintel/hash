@@ -1,5 +1,5 @@
 use alloc::borrow::Cow;
-use core::cmp::Ordering;
+use core::{cmp::Ordering, fmt::Display};
 
 use hashql_core::{
     span::{SpanId, Spanned},
@@ -11,8 +11,6 @@ use hashql_diagnostics::{
     color::{AnsiColor, Color},
     label::Label,
 };
-
-use crate::node::{Node, variable::Variable};
 
 const GENERIC_ARGUMENT_MISMATCH: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "generic-argument-mismatch",
@@ -45,9 +43,11 @@ impl DiagnosticCategory for LoweringDiagnosticCategory {
 }
 
 // TODO: The messaging here needs to be improved / changed to be distinct
-pub(crate) fn generic_argument_mismatch<'heap>(
-    node: &Node<'heap>,
-    variable: &Variable<'heap>,
+pub(crate) fn generic_argument_mismatch(
+    node_span: SpanId,
+
+    variable_span: SpanId,
+    variable_name: impl Display,
 
     parameters: &[GenericArgumentReference],
     arguments: &[Spanned<TypeId>],
@@ -64,7 +64,7 @@ pub(crate) fn generic_argument_mismatch<'heap>(
     let extraneous = arguments.get(expected..).unwrap_or(&[]);
 
     diagnostic.labels.push(Label::new(
-        variable.span,
+        variable_span,
         format!(
             "This type constructor requires {expected} generic argument{}, but {actual} {} \
              provided",
@@ -77,7 +77,7 @@ pub(crate) fn generic_argument_mismatch<'heap>(
     for missing in missing {
         diagnostic.labels.push(
             Label::new(
-                node.span,
+                node_span,
                 format!("Add missing parameter `{}`", missing.name.demangle()),
             )
             .with_order(order)
@@ -99,7 +99,7 @@ pub(crate) fn generic_argument_mismatch<'heap>(
 
     let usage = format!(
         "{}{}",
-        variable.name(),
+        variable_name,
         GenericArgumentReference::display(parameters)
     );
 
