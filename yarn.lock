@@ -574,7 +574,7 @@ __metadata:
     safe-stable-stringify: "npm:2.5.0"
     sass: "npm:1.89.0"
     setimmediate: "npm:1.0.5"
-    sigma: "npm:3.0.1"
+    sigma: "npm:3.0.2"
     signia: "npm:0.1.5"
     signia-react: "npm:0.1.5"
     typescript: "npm:5.7.3"
@@ -40493,13 +40493,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"sigma@npm:3.0.1":
-  version: 3.0.1
-  resolution: "sigma@npm:3.0.1"
+"sigma@npm:3.0.2":
+  version: 3.0.2
+  resolution: "sigma@npm:3.0.2"
   dependencies:
     events: "npm:^3.3.0"
     graphology-utils: "npm:^2.5.2"
-  checksum: 10c0/f9b2427401dd63cea4e4f64da44ea5ca6ac7830934a9bd5de942426d29e0294cb0b4fffa3a3192d869ed1017ee27d45c69772efb924381cf7c62ec040bcd7305
+  checksum: 10c0/925a8e75248020797988bf70ee4c18ae311164bfdd4ef228549736909732d11c3f338ee0c68a52de7149997817189a6bdc539905d8631bba08baf85bd3ec2517
   languageName: node
   linkType: hard
 
