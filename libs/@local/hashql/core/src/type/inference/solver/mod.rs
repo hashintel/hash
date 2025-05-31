@@ -201,8 +201,12 @@ struct VariableConstraint {
     equal: Option<TypeId>,
     /// Lower bound constraints (variable must be supertype of these)
     lower: SmallVec<TypeId>,
+    /// Total number of collected lower bound constraints
+    total_lower: usize,
     /// Upper bound constraints (variable must be subtype of these)
     upper: SmallVec<TypeId>,
+    /// Total number of collected upper bound constraints
+    total_upper: usize,
 }
 
 impl VariableConstraint {
@@ -219,7 +223,9 @@ impl VariableConstraint {
         EvaluatedVariableConstraint {
             equal: self.equal,
             lower: self.lower.first().copied(),
+            lower_aggregate: self.total_lower > 1,
             upper: self.upper.last().copied(),
+            upper_aggregate: self.total_upper > 1,
         }
     }
 }
@@ -234,8 +240,12 @@ struct EvaluatedVariableConstraint {
     equal: Option<TypeId>,
     /// Final lower bound constraint
     lower: Option<TypeId>,
+    /// Whether the variable is an aggregate (made up of multiple lower bounds)
+    lower_aggregate: bool,
     /// Final upper bound constraint
     upper: Option<TypeId>,
+    /// Whether the variable is an aggregate (made up of multiple upper bounds)
+    upper_aggregate: bool,
 }
 
 /// Constraint solver using fix-point iteration.
@@ -347,11 +357,16 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                 let VariableConstraint {
                     equal,
                     lower,
+                    total_lower,
                     upper,
+                    total_upper,
                 } = &mut lhs_constraint;
 
                 lower.append(&mut rhs_constraint.lower);
                 upper.append(&mut rhs_constraint.upper);
+
+                *total_lower += rhs_constraint.total_lower;
+                *total_upper += rhs_constraint.total_upper;
 
                 *equal = match (*equal, rhs_constraint.equal) {
                     (None, None) => None,
@@ -476,6 +491,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
 
                     // Add the upper bound to this variable's constraints
                     constraint.upper.push(bound);
+                    constraint.total_upper += 1;
                 }
                 Constraint::LowerBound { variable, bound } => {
                     // Find the canonical representative for this variable
@@ -486,6 +502,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
 
                     // Add the lower bound to this variable's constraints
                     constraint.lower.push(bound);
+                    constraint.total_lower += 1;
                 }
                 Constraint::Equals { variable, r#type } => {
                     // Find the canonical representative for this variable
@@ -704,6 +721,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                             span: lower.origin.span,
                             kind: self.lattice.intern_kind(lower.kind.into_type_kind()),
                         }));
+                    variable_constraint.total_lower += 1;
                 }
             }
 
@@ -805,6 +823,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                             span: upper.origin.span,
                             kind: self.lattice.intern_kind(upper.kind.into_type_kind()),
                         }));
+                    variable_constraint.total_upper += 1;
                 }
             }
 
@@ -911,7 +930,9 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
             if let EvaluatedVariableConstraint {
                 equal: _,
                 lower: Some(lower),
+                lower_aggregate: _,
                 upper: Some(upper),
+                upper_aggregate: _,
             } = constraint
                 && !self.lattice.is_subtype_of(lower, upper)
             {
@@ -937,12 +958,16 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                 EvaluatedVariableConstraint {
                     equal: None,
                     lower: None,
+                    lower_aggregate: _,
                     upper: None,
+                    upper_aggregate: _,
                 } if provenance == VariableProvenance::Generic => {}
                 EvaluatedVariableConstraint {
                     equal: None,
                     lower: None,
+                    lower_aggregate: _,
                     upper: None,
+                    upper_aggregate: _,
                 } => {
                     self.diagnostics.push(unconstrained_type_variable(variable));
                 }
@@ -950,24 +975,37 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                 EvaluatedVariableConstraint {
                     equal: Some(constraint),
                     lower: None,
+                    lower_aggregate: _,
                     upper: None,
+                    upper_aggregate: _,
+                } => {
+                    substitutions.insert(kind, constraint);
                 }
-                | EvaluatedVariableConstraint {
+                EvaluatedVariableConstraint {
                     equal: None,
                     lower: Some(constraint),
+                    lower_aggregate: aggregate,
                     upper: None,
+                    upper_aggregate: _,
                 }
                 | EvaluatedVariableConstraint {
                     equal: None,
                     lower: None,
+                    lower_aggregate: _,
                     upper: Some(constraint),
+                    upper_aggregate: aggregate,
                 } => {
+                    if aggregate {
+                        todo!("verify the type doesn't coalesce to `!` that'd be an error")
+                    }
                     substitutions.insert(kind, constraint);
                 }
                 EvaluatedVariableConstraint {
                     equal: Some(equal),
                     lower,
+                    lower_aggregate: _,
                     upper,
+                    upper_aggregate: _,
                 } => {
                     // We need to check that both the lower and upper bounds are compatible with the
                     // equal bound
@@ -1002,8 +1040,15 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                 EvaluatedVariableConstraint {
                     equal: None,
                     lower: Some(lower),
+                    lower_aggregate: _,
                     upper: Some(_),
+                    upper_aggregate: _,
                 } => {
+                    todo!(
+                        "verify the type doesn't coalesce to `!`, that'd be an error :3 - as it \
+                         is mixed-site this should always happen"
+                    );
+
                     // We prefer to set the lower bound before the upper bound, even if both exist
                     // This is because a lower bound is typically more specific and useful
                     substitutions.insert(kind, lower);
