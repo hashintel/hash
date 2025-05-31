@@ -42,8 +42,8 @@ use crate::{
         error::{
             bound_constraint_violation, conflicting_equality_constraints,
             incompatible_lower_equal_constraint, incompatible_upper_equal_constraint,
-            unconstrained_type_variable, unconstrained_type_variable_floating,
-            unresolved_selection_constraint,
+            inference_variable_coalesced_to_never, unconstrained_type_variable,
+            unconstrained_type_variable_floating, unresolved_selection_constraint,
         },
         kind::{PrimitiveType, TypeKind, UnionType},
         lattice::{Projection, Subscript},
@@ -234,7 +234,7 @@ impl VariableConstraint {
 ///
 /// Contains the reduced constraints (meet for lower bounds, join for upper bounds)
 /// that determine the variable's inferred type.
-#[derive(Debug, PartialEq, Eq, Default)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
 struct EvaluatedVariableConstraint {
     /// Final equality constraint
     equal: Option<TypeId>,
@@ -885,6 +885,69 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         self.apply_constraints_backwards(graph, bump, variables);
     }
 
+    /// Check if the constraint is resolved to never
+    fn constraint_resolved_to_never(
+        &mut self,
+        variable: Variable,
+        constraint: EvaluatedVariableConstraint,
+    ) -> bool {
+        let mut issued_diagnostic = false;
+
+        if let EvaluatedVariableConstraint {
+            lower: Some(lower),
+            lower_aggregate: true,
+            ..
+        }
+        | EvaluatedVariableConstraint {
+            lower: Some(lower),
+            upper: Some(_),
+            ..
+        }
+        | EvaluatedVariableConstraint {
+            lower: Some(lower),
+            equal: Some(_),
+            ..
+        } = constraint
+            && self.lattice.is_bottom(lower)
+        {
+            self.diagnostics.push(inference_variable_coalesced_to_never(
+                &self.lattice,
+                lower,
+                variable,
+            ));
+
+            issued_diagnostic = true;
+        }
+
+        if let EvaluatedVariableConstraint {
+            upper: Some(upper),
+            upper_aggregate: true,
+            ..
+        }
+        | EvaluatedVariableConstraint {
+            upper: Some(upper),
+            lower: Some(_),
+            ..
+        }
+        | EvaluatedVariableConstraint {
+            upper: Some(upper),
+            equal: Some(_),
+            ..
+        } = constraint
+            && self.lattice.is_bottom(upper)
+        {
+            self.diagnostics.push(inference_variable_coalesced_to_never(
+                &self.lattice,
+                upper,
+                variable,
+            ));
+
+            issued_diagnostic = true;
+        }
+
+        issued_diagnostic
+    }
+
     /// Validates constraints and determines final variable types.
     ///
     /// Verifies:
@@ -947,6 +1010,10 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                 continue;
             }
 
+            if self.constraint_resolved_to_never(variable, constraint) {
+                continue;
+            }
+
             let provenance = self.unification.provenance(kind);
 
             // Handle different constraint patterns to determine the final type
@@ -978,13 +1045,11 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                     lower_aggregate: _,
                     upper: None,
                     upper_aggregate: _,
-                } => {
-                    substitutions.insert(kind, constraint);
                 }
-                EvaluatedVariableConstraint {
+                | EvaluatedVariableConstraint {
                     equal: None,
                     lower: Some(constraint),
-                    lower_aggregate: aggregate,
+                    lower_aggregate: _,
                     upper: None,
                     upper_aggregate: _,
                 }
@@ -993,11 +1058,8 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                     lower: None,
                     lower_aggregate: _,
                     upper: Some(constraint),
-                    upper_aggregate: aggregate,
+                    upper_aggregate: _,
                 } => {
-                    if aggregate {
-                        todo!("verify the type doesn't coalesce to `!` that'd be an error")
-                    }
                     substitutions.insert(kind, constraint);
                 }
                 EvaluatedVariableConstraint {
@@ -1044,11 +1106,6 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                     upper: Some(_),
                     upper_aggregate: _,
                 } => {
-                    todo!(
-                        "verify the type doesn't coalesce to `!`, that'd be an error :3 - as it \
-                         is mixed-site this should always happen"
-                    );
-
                     // We prefer to set the lower bound before the upper bound, even if both exist
                     // This is because a lower bound is typically more specific and useful
                     substitutions.insert(kind, lower);

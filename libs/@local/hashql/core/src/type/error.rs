@@ -163,6 +163,12 @@ const DICT_KEY_TYPE_MISMATCH: TerminalDiagnosticCategory = TerminalDiagnosticCat
     name: "Dictionary key type mismatch",
 };
 
+const INFERENCE_VARIABLE_COALESCED_TO_NEVER: TerminalDiagnosticCategory =
+    TerminalDiagnosticCategory {
+        id: "inference-variable-coalesced-to-never",
+        name: "Inference variable coalesced to never type",
+    };
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum TypeCheckDiagnosticCategory {
     TypeMismatch,
@@ -192,6 +198,7 @@ pub enum TypeCheckDiagnosticCategory {
     UnresolvedSelectionConstraint,
     ListIndexTypeMismatch,
     DictKeyTypeMismatch,
+    InferenceVariableCoalescedToNever,
 }
 
 impl DiagnosticCategory for TypeCheckDiagnosticCategory {
@@ -232,6 +239,7 @@ impl DiagnosticCategory for TypeCheckDiagnosticCategory {
             Self::UnresolvedSelectionConstraint => Some(&UNRESOLVED_SELECTION_CONSTRAINT),
             Self::ListIndexTypeMismatch => Some(&LIST_INDEX_TYPE_MISMATCH),
             Self::DictKeyTypeMismatch => Some(&DICT_KEY_TYPE_MISMATCH),
+            Self::InferenceVariableCoalescedToNever => Some(&INFERENCE_VARIABLE_COALESCED_TO_NEVER),
         }
     }
 }
@@ -2015,6 +2023,57 @@ pub(crate) fn dict_subscript_mismatch<'heap>(
         "Dictionary keys are invariant - the key type used for access must be exactly equivalent \
          to the dictionary's declared key type. Unlike some languages, there is no implicit type \
          coercion for dictionary key access.",
+    ));
+
+    diagnostic
+}
+
+/// Creates a diagnostic for when an inference variable coalesces to the never type
+///
+/// This indicates a likely programming error where the type system has determined
+/// that a value can never exist, which typically means the code path is unreachable
+/// or there's a logical inconsistency in the type constraints.
+pub(crate) fn inference_variable_coalesced_to_never(
+    env: &Environment,
+    inferred: TypeId,
+    variable: Variable,
+) -> TypeCheckDiagnostic {
+    let inferred = env.r#type(inferred);
+
+    let mut diagnostic = Diagnostic::new(
+        TypeCheckDiagnosticCategory::InferenceVariableCoalescedToNever,
+        Severity::Error,
+    );
+
+    diagnostic.labels.push(
+        Label::new(
+            inferred.span,
+            "Inference variable resolved to never type here",
+        )
+        .with_order(1),
+    );
+
+    diagnostic.labels.push(
+        Label::new(env.source, "This expression can never produce a value")
+            .with_order(2)
+            .with_color(Color::Ansi(AnsiColor::Red)),
+    );
+
+    diagnostic.add_help(Help::new(format!(
+        "The type inference system determined that variable `{}` can only be the never type \
+         (`!`), which means this code path is unreachable or contains contradictory type \
+         constraints. Review the logic leading to this expression and ensure all code paths are \
+         valid.",
+        variable
+            .into_type(env)
+            .pretty_print(env, PrettyOptions::default().with_max_width(60))
+    )));
+
+    diagnostic.add_note(Note::new(
+        "The never type (`!`) represents computations that never complete normally - they either \
+         panic, loop forever, or exit. When an inference variable resolves to never, it usually \
+         indicates a logical error in the program where the type system has determined that no \
+         valid value can exist for this expression.",
     ));
 
     diagnostic
