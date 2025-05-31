@@ -565,7 +565,7 @@ __metadata:
     react-pdf: "npm:9.2.1"
     react-responsive-carousel: "npm:3.2.23"
     react-transition-group: "npm:4.4.5"
-    react-virtuoso: "npm:4.12.7"
+    react-virtuoso: "npm:4.12.8"
     react-window: "npm:1.8.11"
     reactflow: "npm:11.11.4"
     remark-gfm: "npm:4.0.1"
@@ -38445,13 +38445,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-virtuoso@npm:4.12.7":
-  version: 4.12.7
-  resolution: "react-virtuoso@npm:4.12.7"
+"react-virtuoso@npm:4.12.8":
+  version: 4.12.8
+  resolution: "react-virtuoso@npm:4.12.8"
   peerDependencies:
     react: ">=16 || >=17 || >= 18 || >= 19"
     react-dom: ">=16 || >=17 || >= 18 || >=19"
-  checksum: 10c0/56f4ea49668ad1004be42ff75dc0eade581754dd37a0aa04a3b7470cb132b324de2e7af5d8e29c420bf9726fd4a016104e2a14347ed9cc23235ce7a658a0591e
+  checksum: 10c0/71061be28539dab60f530c680ab66c234bd2fc552cf3411612372f539a6eacbdba013fad26c70f44f2b56d95562b30e164cb923171ecce423a1cf4fad7fbe6f2
   languageName: node
   linkType: hard
 
