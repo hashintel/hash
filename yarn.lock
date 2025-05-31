@@ -9038,7 +9038,7 @@ __metadata:
     execa: "npm:5.1.1"
     fs-extra: "npm:11.3.0"
     globby: "npm:11.1.0"
-    ignore: "npm:7.0.4"
+    ignore: "npm:7.0.5"
     regex-parser: "npm:2.3.1"
     sort-package-json: "npm:2.15.1"
     tsx: "npm:4.19.4"
@@ -29516,10 +29516,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ignore@npm:7.0.4":
-  version: 7.0.4
-  resolution: "ignore@npm:7.0.4"
-  checksum: 10c0/90e1f69ce352b9555caecd9cbfd07abe7626d312a6f90efbbb52c7edca6ea8df065d66303863b30154ab1502afb2da8bc59d5b04e1719a52ef75bbf675c488eb
+"ignore@npm:7.0.5":
+  version: 7.0.5
+  resolution: "ignore@npm:7.0.5"
+  checksum: 10c0/ae00db89fe873064a093b8999fe4cc284b13ef2a178636211842cceb650b9c3e390d3339191acb145d81ed5379d2074840cf0c33a20bdbd6f32821f79eb4ad5d
   languageName: node
   linkType: hard
 
