@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Test that type inference works for type constructors
+["newtype", "Person<T: Number>", "T", ["Person", { "#literal": 2 }]]
