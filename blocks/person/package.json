@@ -34,7 +34,7 @@
     "@types/dompurify": "2.4.0",
     "@types/react-dom": "19.1.5",
     "block-scripts": "0.0.14",
-    "eslint": "9.20.1",
+    "eslint": "9.27.0",
     "mock-block-dock": "0.0.38",
     "react": "19.1.0",
     "react-dom": "19.1.0",
