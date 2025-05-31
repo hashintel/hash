@@ -17,7 +17,10 @@ use hashql_core::{
     },
 };
 
-use super::error::{GenericArgumentContext, LoweringDiagnostic, LoweringDiagnosticCategory};
+use super::{
+    error::{GenericArgumentContext, LoweringDiagnostic, LoweringDiagnosticCategory},
+    inference::TypeInferenceResidual,
+};
 use crate::{
     lower::error::generic_argument_mismatch,
     node::{
@@ -69,11 +72,11 @@ impl<'env, 'heap> TypeChecking<'env, 'heap> {
         env: &'env Environment<'heap>,
         registry: &'env ModuleRegistry<'heap>,
 
-        locals: FastHashMap<Symbol<'heap>, TypeDef<'heap>>,
-        types: FastHashMap<HirId, TypeId>,
+        TypeInferenceResidual {
+            locals,
+            types: inference,
+        }: TypeInferenceResidual<'heap>,
     ) -> Self {
-        let inference = types;
-
         let mut analysis = AnalysisEnvironment::new(env);
         analysis.with_diagnostics();
 

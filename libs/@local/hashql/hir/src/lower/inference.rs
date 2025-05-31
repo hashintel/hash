@@ -39,6 +39,11 @@ use crate::{
     visit::{self, Visitor},
 };
 
+pub struct TypeInferenceResidual<'heap> {
+    pub locals: FastHashMap<Symbol<'heap>, TypeDef<'heap>>,
+    pub types: FastHashMap<HirId, TypeId>,
+}
+
 pub struct TypeInference<'env, 'heap> {
     env: &'env Environment<'heap>,
     registry: &'env ModuleRegistry<'heap>,
@@ -96,16 +101,22 @@ impl<'env, 'heap> TypeInference<'env, 'heap> {
     }
 
     #[must_use]
-    pub fn types(&self) -> &FastHashMap<HirId, TypeId> {
-        &self.types[Universe::Value]
-    }
-
-    #[must_use]
-    pub fn finish(mut self) -> (InferenceSolver<'env, 'heap>, Vec<TypeCheckDiagnostic>) {
+    pub fn finish(
+        mut self,
+    ) -> (
+        InferenceSolver<'env, 'heap>,
+        TypeInferenceResidual<'heap>,
+        Vec<TypeCheckDiagnostic>,
+    ) {
         let diagnostics = self.instantiate.take_diagnostics().into_vec();
         let solver = self.inference.into_solver();
 
-        (solver, diagnostics)
+        let locals = core::mem::take(&mut self.locals[Universe::Value]);
+        let types = core::mem::take(&mut self.types[Universe::Value]);
+
+        let residual = TypeInferenceResidual { locals, types };
+
+        (solver, residual, diagnostics)
     }
 }
 
