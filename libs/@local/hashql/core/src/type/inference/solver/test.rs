@@ -13,7 +13,7 @@ use crate::{
         error::TypeCheckDiagnosticCategory,
         inference::{
             Variable, VariableKind,
-            solver::{Unification, graph::Graph},
+            solver::{Unification, VariableConstraintSatisfiability, graph::Graph},
         },
         kind::{
             IntersectionType, IntrinsicType, OpaqueType, PrimitiveType, StructType, TypeKind,
@@ -261,9 +261,8 @@ fn apply_constraints_equality() {
         VariableConstraint {
             equal: Some(string),
             lower: SmallVec::new(),
-            total_lower: 0,
             upper: SmallVec::new(),
-            total_upper: 0,
+            satisfiability: VariableConstraintSatisfiability::default(),
         }
     );
 }
@@ -318,9 +317,8 @@ fn apply_constraints_with_unification() {
         VariableConstraint {
             equal: Some(string),
             lower: SmallVec::new(),
-            total_lower: 0,
             upper: SmallVec::from_slice(&[number]),
-            total_upper: 1,
+            satisfiability: VariableConstraintSatisfiability::default(),
         }
     );
 }
@@ -341,9 +339,8 @@ fn solve_constraints() {
     let constraint = VariableConstraint {
         equal: None,
         lower: SmallVec::from_slice(&[string]),
-        total_lower: 1,
         upper: SmallVec::from_slice(&[unknown]),
-        total_upper: 1,
+        satisfiability: VariableConstraintSatisfiability::default(),
     };
     applied_constraints.insert(variable.kind, (variable, constraint));
 
@@ -373,9 +370,8 @@ fn solve_constraints_with_equality() {
     let vc = VariableConstraint {
         equal: Some(string),
         lower: SmallVec::new(),
-        total_lower: 1,
         upper: SmallVec::new(),
-        total_upper: 1,
+        satisfiability: VariableConstraintSatisfiability::default(),
     };
     applied_constraints.insert(var.kind, (var, vc));
 
@@ -404,9 +400,8 @@ fn solve_constraints_with_incompatible_bounds() {
     let vc = VariableConstraint {
         equal: None,
         lower: SmallVec::from_slice(&[string]),
-        total_lower: 1,
         upper: SmallVec::from_slice(&[number]),
-        total_upper: 1,
+        satisfiability: VariableConstraintSatisfiability::default(),
     };
     applied_constraints.insert(var.kind, (var, vc));
 
@@ -441,9 +436,8 @@ fn solve_constraints_with_incompatible_equality() {
     let vc = VariableConstraint {
         equal: Some(string),
         lower: SmallVec::from_slice(&[number]),
-        total_lower: 1,
         upper: SmallVec::new(),
-        total_upper: 0,
+        satisfiability: VariableConstraintSatisfiability::default(),
     };
     applied_constraints.insert(var.kind, (var, vc));
 
@@ -477,9 +471,8 @@ fn solve_constraints_with_incompatible_upper_equal_constraint() {
     let vc = VariableConstraint {
         equal: Some(string),
         lower: SmallVec::new(),
-        total_lower: 0,
         upper: SmallVec::from_slice(&[number]),
-        total_upper: 1,
+        satisfiability: VariableConstraintSatisfiability::default(),
     };
     applied_constraints.insert(var.kind, (var, vc));
 
