@@ -10,18 +10,21 @@ use hashql_core::{
 use hashql_hir::{
     fold::Fold as _,
     intern::Interner,
-    lower::{alias::AliasReplacement, ctor::ConvertTypeConstructor, inference::TypeInference},
+    lower::{
+        alias::AliasReplacement, checking::TypeChecking, ctor::ConvertTypeConstructor,
+        inference::TypeInference,
+    },
     node::Node,
     visit::Visitor as _,
 };
 
 use super::{Suite, SuiteDiagnostic, common::process_diagnostics};
 
-pub(crate) struct HirLowerTypeInferenceSuite;
+pub(crate) struct HirLowerTypeCheckingSuite;
 
-impl Suite for HirLowerTypeInferenceSuite {
+impl Suite for HirLowerTypeCheckingSuite {
     fn name(&self) -> &'static str {
-        "hir/lower/type-inference"
+        "hir/lower/type-checking"
     }
 
     fn run<'heap>(
@@ -75,18 +78,24 @@ impl Suite for HirLowerTypeInferenceSuite {
         let (solver, inference_residual, inference_diagnostics) = inference.finish();
         process_diagnostics(diagnostics, inference_diagnostics)?;
 
-        // We sort so that the output is deterministic
-        let mut inference_types: Vec<_> = inference_residual
-            .types
-            .iter()
-            .map(|(&hir_id, &type_id)| (hir_id, type_id))
-            .collect();
-        inference_types.sort_unstable_by_key(|&(hir_id, _)| hir_id);
-
         let (substitution, solver_diagnostics) = solver.solve();
         process_diagnostics(diagnostics, solver_diagnostics.into_vec())?;
 
         environment.substitution = substitution;
+
+        let mut checking = TypeChecking::new(&environment, &registry, inference_residual);
+        checking.visit_node(&node);
+
+        let (residual, checking_diagnostics) = checking.finish();
+        process_diagnostics(diagnostics, checking_diagnostics)?;
+
+        // We sort so that the output is deterministic
+        let mut checking_types: Vec<_> = residual
+            .types
+            .iter()
+            .map(|(&hir_id, &type_id)| (hir_id, type_id))
+            .collect();
+        checking_types.sort_unstable_by_key(|&(hir_id, _)| hir_id);
 
         write!(
             &mut output,
@@ -95,7 +104,7 @@ impl Suite for HirLowerTypeInferenceSuite {
         )
         .expect("infallible");
 
-        for (hir_id, type_id) in inference_types {
+        for (hir_id, type_id) in checking_types {
             output.push_str("\n\n--------------------------------------\n\n");
 
             output.push_str("Node:\n");
