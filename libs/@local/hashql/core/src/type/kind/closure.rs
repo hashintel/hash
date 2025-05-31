@@ -226,6 +226,44 @@ impl<'heap> Lattice<'heap> for ClosureType<'heap> {
         compatible
     }
 
+    fn is_equivalent(
+        self: Type<'heap, Self>,
+        other: Type<'heap, Self>,
+        env: &mut AnalysisEnvironment<'_, 'heap>,
+    ) -> bool {
+        // Invariant over the param-width
+        if self.kind.params.len() != other.kind.params.len() {
+            let _: ControlFlow<()> = env.record_diagnostic(|env| {
+                function_parameter_count_mismatch(
+                    env.source,
+                    self,
+                    other,
+                    self.kind.params.len(),
+                    other.kind.params.len(),
+                )
+            });
+
+            return false;
+        }
+
+        let mut compatible = true;
+
+        // Parameters are contravariant
+        for (&self_param, &super_param) in self.kind.params.iter().zip(other.kind.params.iter()) {
+            compatible &= env.in_contravariant(|env| env.is_equivalent(self_param, super_param));
+
+            if !compatible && env.is_fail_fast() {
+                return false;
+            }
+        }
+
+        // Return type is covariant
+        compatible &=
+            env.in_covariant(|env| env.is_equivalent(self.kind.returns, other.kind.returns));
+
+        compatible
+    }
+
     fn simplify(self: Type<'heap, Self>, env: &mut SimplifyEnvironment<'_, 'heap>) -> TypeId {
         let (_guard, id) = env.provision(self.id);
 
@@ -851,10 +889,22 @@ mod test {
             primitive!(env, PrimitiveType::String)
         );
 
+        // Create a closure with different parameter count
+        closure!(
+            env,
+            e,
+            [
+                primitive!(env, PrimitiveType::Number),
+                primitive!(env, PrimitiveType::String)
+            ],
+            primitive!(env, PrimitiveType::Boolean)
+        );
+
         // Test equivalence properties
         assert!(a.is_equivalent(b, &mut analysis_env));
         assert!(!a.is_equivalent(c, &mut analysis_env));
         assert!(!a.is_equivalent(d, &mut analysis_env));
+        assert!(!a.is_equivalent(e, &mut analysis_env));
 
         // Self-equivalence check
         assert!(a.is_equivalent(a, &mut analysis_env));
