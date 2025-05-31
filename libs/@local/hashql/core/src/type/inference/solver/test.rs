@@ -1455,7 +1455,7 @@ fn projection_unify_variables_lower() {
         [substitution
             .infer(hole1)
             .expect("should have inferred variable")],
-        [primitive!(env, PrimitiveType::Number)]
+        [primitive!(env, PrimitiveType::Integer)]
     );
 }
 
@@ -1465,7 +1465,7 @@ fn projection_unify_variables_upper() {
     // Number <: _1
     // T.a (_2)
     // Integer <: _2
-    // `_1 = _2 = Integer`
+    // `_1 = _2 = Number`
     let heap = Heap::new();
     let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
@@ -1497,7 +1497,7 @@ fn projection_unify_variables_upper() {
         [substitution
             .infer(hole1)
             .expect("should have inferred variable")],
-        [primitive!(env, PrimitiveType::Integer)]
+        [primitive!(env, PrimitiveType::Number)]
     );
 }
 
@@ -1962,5 +1962,73 @@ fn discharged_index_subscript() {
             .infer(hole)
             .expect("should have inferred variable")],
         [primitive!(env, PrimitiveType::Integer)]
+    );
+}
+
+#[test]
+fn multiple_upper_bounds() {
+    // T <: Number
+    // T <: Integer
+    // then T should be `Integer`
+    let heap = Heap::new();
+    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+    let hole = env.counter.hole.next();
+    let variable = Variable::synthetic(VariableKind::Hole(hole));
+
+    let number = primitive!(env, PrimitiveType::Number);
+    let integer = primitive!(env, PrimitiveType::Integer);
+
+    let mut inference = InferenceEnvironment::new(&env);
+    inference.add_constraint(Constraint::UpperBound {
+        variable,
+        bound: number,
+    });
+    inference.add_constraint(Constraint::UpperBound {
+        variable,
+        bound: integer,
+    });
+
+    let (substitution, diagnostics) = inference.into_solver().solve();
+    assert!(diagnostics.is_empty());
+
+    assert_equiv!(
+        env,
+        [substitution.infer(hole).expect("should've been inferred")],
+        [integer]
+    );
+}
+
+#[test]
+fn multiple_lower_bounds() {
+    // Number <: T
+    // Integer <: T
+    // then T should be `Number`
+    let heap = Heap::new();
+    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+    let hole = env.counter.hole.next();
+    let variable = Variable::synthetic(VariableKind::Hole(hole));
+
+    let number = primitive!(env, PrimitiveType::Number);
+    let integer = primitive!(env, PrimitiveType::Integer);
+
+    let mut inference = InferenceEnvironment::new(&env);
+    inference.add_constraint(Constraint::LowerBound {
+        variable,
+        bound: number,
+    });
+    inference.add_constraint(Constraint::LowerBound {
+        variable,
+        bound: integer,
+    });
+
+    let (substitution, diagnostics) = inference.into_solver().solve();
+    assert!(diagnostics.is_empty());
+
+    assert_equiv!(
+        env,
+        [substitution.infer(hole).expect("should've been inferred")],
+        [number]
     );
 }

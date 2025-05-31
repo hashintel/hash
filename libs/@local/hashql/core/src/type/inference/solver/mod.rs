@@ -703,12 +703,12 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
 
             // Now that we have all bounds, unify them
 
-            // Compute the meet (greatest lower bound) of all lower bounds
+            // Combine into the loosest lower bound (join - least upper bound)
             let lower = variable_constraint
                 .lower
                 .iter()
                 .copied()
-                .reduce(|lhs, rhs| self.lattice.meet(lhs, rhs));
+                .reduce(|lhs, rhs| self.lattice.join(lhs, rhs));
 
             // If there's no equality constraint but we have a lower bound,
             // add the lower bound to the substitution map for future resolution
@@ -802,12 +802,12 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                 }
             }
 
-            // Compute the join (least upper bound) of all upper bounds
+            // Combine into the tightest upper bound (meet - greatest lower bound)
             let upper = variable_constraint
                 .upper
                 .iter()
                 .copied()
-                .reduce(|lhs, rhs| self.lattice.join(lhs, rhs));
+                .reduce(|lhs, rhs| self.lattice.meet(lhs, rhs));
 
             // If there's no equality constraint but we have an upper bound,
             // add the upper bound to the substitution map for future resolution
