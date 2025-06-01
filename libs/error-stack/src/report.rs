@@ -482,7 +482,7 @@ impl<C> Report<C> {
     where
         C: Send + Sync + 'static,
     {
-        self.downcast().unwrap_or_else(|_| {
+        self.downcast_take_inner(true).unwrap_or_else(|_| {
             // Panics if there isn't an attached context which matches `T`. As it's not possible to
             // create a `Report` without a valid context and this method can only be called when `T`
             // is a valid context, it's guaranteed that the context is available.
