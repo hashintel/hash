@@ -482,15 +482,57 @@ impl<C> Report<C> {
     where
         C: Send + Sync + 'static,
     {
-        self.downcast_take_inner(true).unwrap_or_else(|_| {
-            // Panics if there isn't an attached context which matches `T`. As it's not possible to
-            // create a `Report` without a valid context and this method can only be called when `T`
-            // is a valid context, it's guaranteed that the context is available.
-            unreachable!(
+        self.pop_current_context_inner(true)
+    }
+
+    /// Pops `C` from [`Report<C>`], returning `C` and discarding the report.
+    ///
+    /// To obtain a reference, see [`Report::current_context`].
+    ///
+    /// To obtain `C` but keep the untyped report, see [`Report::pop_current_context`].
+    ///
+    /// ## Example
+    ///
+    /// ```rust
+    /// # use std::{fs, path::Path};
+    /// # use error_stack::Report;
+    /// use std::io;
+    ///
+    /// fn read_file(path: impl AsRef<Path>) -> Result<String, Report<io::Error>> {
+    ///     # const _: &str = stringify! {
+    ///     ...
+    ///     # };
+    ///     # fs::read_to_string(path.as_ref()).map_err(Report::from)
+    /// }
+    ///
+    /// let report = read_file("test.txt").unwrap_err();
+    /// let io_error = report.into_current_context();
+    /// assert_eq!(io_error.kind(), io::ErrorKind::NotFound);
+    /// ```
+    #[must_use]
+    pub fn into_current_context(self) -> C
+    where
+        C: Send + Sync + 'static,
+    {
+        self.pop_current_context_inner(false).1
+    }
+
+    #[inline]
+    fn pop_current_context_inner(self, replace_with_printable: bool) -> (Report, C)
+    where
+        C: Send + Sync + 'static,
+    {
+        self.downcast_take_inner(replace_with_printable)
+            .unwrap_or_else(|_| {
+                // Panics if there isn't an attached context which matches `T`. As it's not possible
+                // to create a `Report` without a valid context and this method can
+                // only be called when `T` is a valid context, it's guaranteed that
+                // the context is available.
+                unreachable!(
                 "Report does not contain a context. This is considered a bug and should be \
                 reported to https://github.com/hashintel/hash/issues/new/choose"
             );
-        })
+            })
     }
 
     /// Converts this `Report` to an [`Error`].

@@ -148,3 +148,13 @@ fn pop_context() {
         "\n{report:?}\n{original_report:?}"
     );
 }
+
+#[test]
+fn into_context() {
+    let mut report = create_report();
+    report = report.attach(AttachmentA(10));
+    let report = report.change_context(ContextA(20)).attach(PrintableA(30));
+
+    let popped_ctx = report.into_current_context();
+    assert_eq!(popped_ctx.0, 20);
+}
