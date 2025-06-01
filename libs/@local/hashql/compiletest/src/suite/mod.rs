@@ -1,3 +1,4 @@
+#![coverage(off)]
 mod ast_lowering_import_resolver;
 mod ast_lowering_import_resolver_continue;
 mod ast_lowering_node_mangler;
