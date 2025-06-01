@@ -92,8 +92,6 @@ impl Frame {
         self.frame.as_any_mut().downcast_mut()
     }
 
-    /// TODO docs
-    ///
     /// `replace_with_printable`: if true, `Debug` and `Display` implementations will be eagerly
     ///     evaluated can be set to false when the `Report` will no longer be used,
     ///     to avoid the cost of formatting
