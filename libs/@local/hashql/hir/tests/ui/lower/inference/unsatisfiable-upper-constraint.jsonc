@@ -1,5 +1,5 @@
 //@ run: fail
-//@ description: Test unsatisfiable upper constraint during inference
+//@ description: Ensures type inference fails when an inferred type (String from literal) for an input's default value violates the input's explicit type constraint (Number).
 [
   "input",
   "x",

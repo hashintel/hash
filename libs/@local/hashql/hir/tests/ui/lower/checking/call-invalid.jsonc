@@ -1,4 +1,4 @@
 //@ run: fail
-//@ description: Call a function
+//@ description: Ensures type checking fails when calling a function with an incompatible argument type (Number vs String).
 ["+", { "#literal": 42.12 }, { "#literal": "42" }]
 //~^ ERROR must be a subtype of the upper bound

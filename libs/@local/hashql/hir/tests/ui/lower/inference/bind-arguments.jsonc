@@ -1,3 +1,3 @@
 //@ run: pass
-//@ description: Bind generic arguments
+//@ description: Verifies type inference for explicitly binding generic arguments (Number, Integer) in a function call.
 ["`+`<Number, Integer>", { "#literal": 42.12 }, { "#literal": 42 }]

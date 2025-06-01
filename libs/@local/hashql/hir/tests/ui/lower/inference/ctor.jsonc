@@ -1,3 +1,3 @@
 //@ run: pass
-//@ description: Test that type inference works for type constructors
+//@ description: Checks type inference for a generic type constructor (Some<T>), inferring T from the argument value.
 ["Some", { "#literal": 2 }]

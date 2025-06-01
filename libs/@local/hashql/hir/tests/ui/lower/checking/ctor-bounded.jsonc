@@ -1,3 +1,3 @@
 //@ run: pass
-//@ description: Test that type inference works for type constructors
+//@ description: Verifies successful type checking for a type constructor with a bounded generic parameter (T: Number).
 ["newtype", "Person<T: Number>", "T", ["Person", { "#literal": 2 }]]

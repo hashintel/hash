@@ -1,4 +1,4 @@
 //@ run: fail
-//@ description: Test that input inference for the default works
+//@ description: Ensures type checking fails when asserting a value is of an unrelated type (Integer as String).
 ["is", { "#literal": 42 }, "String"]
 //~^ ERROR Type mismatch in this expression

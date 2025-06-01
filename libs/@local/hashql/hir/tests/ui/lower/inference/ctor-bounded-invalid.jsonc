@@ -1,4 +1,4 @@
 //@ run: fail
-//@ description: Test that type inference works for type constructors
+//@ description: Checks that type constructor bounded generic parameter (T: Number) violation is caught during type inference.
 ["newtype", "Person<T: Number>", "T", ["Person", { "#literal": "2" }]]
 //~^ ERROR Type variable has incompatible upper and lower bounds

@@ -1,5 +1,5 @@
 //@ run: pass
-//@ description: Test closure call inference in case we call an unconstrained closure in an unconstrained closure
+//@ description: Tests type checking for calling a closure with a constrained generic type parameter (T: Integer).
 [
   "let",
   "foo",

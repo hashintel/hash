@@ -1,5 +1,5 @@
 //@ run: pass
-//@ description: Closure inference
+//@ description: Verifies type checking for a non-generic closure with explicitly typed parameters and return value.
 [
   "let",
   "add",

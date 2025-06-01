@@ -1,3 +1,3 @@
 //@ run: pass
-//@ description: Test local variable inference
+//@ description: Validates type inference for a local variable initialized with an integer literal.
 ["let", "x", { "#literal": 123 }, "x"]

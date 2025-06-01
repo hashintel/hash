@@ -1,5 +1,5 @@
 //@ run: pass
-//@ description: Closure inference
+//@ description: Checks type checking for a closure definition with a constrained generic type (T: Number) and its subsequent call.
 [
   "let",
   "add",

@@ -1,5 +1,5 @@
 //@ run: fail
-//@ description: Closure inference
+//@ description: Ensures type inference fails when an unconstrained generic's type, inferred from arguments, conflicts with operational constraints within the closure body.
 [
   "let",
   "add",

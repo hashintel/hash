@@ -1,3 +1,3 @@
 //@ run: pass
-//@ description: Test let inference
+//@ description: Validates type inference for a 'let' binding, inferring the variable's type from a boolean literal.
 ["let", "x", { "#literal": true }, "x"]

@@ -1,5 +1,5 @@
 //@ run: fail
-//@ description: Test that input inference for the default works
+//@ description: Ensures type inference fails when an input's default value (type inferred as String) conflicts with the declared input type (Number).
 [
   "input",
   "x",

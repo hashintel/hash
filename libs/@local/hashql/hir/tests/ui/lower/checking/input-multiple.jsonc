@@ -1,5 +1,5 @@
 //@ run: pass
-//@ description: Check that we `meet` the required type for meets
+//@ description: Verifies that when an input variable is declared multiple times with compatible types, the most specific type (meet) is used.
 [
   "let",
   "foo",

@@ -1,5 +1,5 @@
 //@ run: fail
-//@ description: Bind generic arguments
+//@ description: Ensures type inference fails when explicitly bound generic arguments conflict with provided argument types.
 [
   "`+`<Number, Number>",
   //~^ ERROR Type variable has incompatible upper and lower bounds
