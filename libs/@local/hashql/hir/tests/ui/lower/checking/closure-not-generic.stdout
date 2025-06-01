@@ -1,12 +1,14 @@
-#let add:0 = #fn<T:0?14>(a:0: ?14, b:0: ?14): ?14 ->
+#let add:0 = #fn(a:0: Number, b:0: Number): Number ->
     ::math::add(a:0, b:0) in
 add:0(1, 2)
 
 --------------------------------------
 
-#let add:0 = #fn<T:0?14>(a:0: ?14«?», b:0: ?14«?»): ?14«?» ->
+#let add:0 = #fn(a:0: Number, b:0: Number): Number ->
     ::math::add(a:0, b:0) in
 add:0(1, 2)
+
+--------------------------------------
 
 --------------------------------------
 
@@ -15,8 +17,7 @@ Node:
 
 
 Type:
-fn<T?15: Number, U?16: Number>(?15«Number», ?16«Number») -> (?16«Number»
- | ?15«Number»)
+fn(Number, Number) -> Number
 
 --------------------------------------
 
@@ -25,7 +26,7 @@ a:0
 
 
 Type:
-?14«?»
+Number
 
 --------------------------------------
 
@@ -34,7 +35,7 @@ b:0
 
 
 Type:
-?14«?»
+Number
 
 --------------------------------------
 
@@ -43,17 +44,17 @@ Node:
 
 
 Type:
-_0«Number»
+Number
 
 --------------------------------------
 
 Node:
-#fn<T:0?14>(a:0: ?14«?», b:0: ?14«?»): ?14«?» ->
+#fn(a:0: Number, b:0: Number): Number ->
     ::math::add(a:0, b:0)
 
 
 Type:
-fn<T:0?14>(?14«?», ?14«?») -> ?14«?»
+fn(Number, Number) -> Number
 
 --------------------------------------
 
@@ -62,7 +63,7 @@ add:0
 
 
 Type:
-fn<T:0?17>(?17«Integer», ?17«Integer») -> ?17«Integer»
+fn(Number, Number) -> Number
 
 --------------------------------------
 
@@ -89,15 +90,15 @@ add:0(1, 2)
 
 
 Type:
-_1«Integer»
+Number
 
 --------------------------------------
 
 Node:
-#let add:0 = #fn<T:0?14>(a:0: ?14«?», b:0: ?14«?»): ?14«?» ->
+#let add:0 = #fn(a:0: Number, b:0: Number): Number ->
     ::math::add(a:0, b:0) in
 add:0(1, 2)
 
 
 Type:
-fn<T:0?14>(?14«?», ?14«?») -> ?14«?»
+fn(Number, Number) -> Number

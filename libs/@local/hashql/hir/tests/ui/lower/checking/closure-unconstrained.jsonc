@@ -10,5 +10,6 @@
     "T",
     ["+", "a", "b"]
   ],
+  //~^ ERROR Type variable has incompatible equality and upper bound constraints
   ["add", { "#literal": "1" }, { "#literal": "2" }]
 ]

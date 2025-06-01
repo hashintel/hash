@@ -1,0 +1,14 @@
+//@ run: pass
+//@ description: Test closure call inference in case we call an unconstrained closure in an unconstrained closure
+[
+  "let",
+  "foo",
+  [
+    "fn",
+    { "#struct": { "T": "Integer" } },
+    { "#struct": { "a": "T", "b": "T" } },
+    "T",
+    ["+", "a", "b"]
+  ],
+  ["foo", { "#literal": 2 }, { "#literal": 3 }]
+]

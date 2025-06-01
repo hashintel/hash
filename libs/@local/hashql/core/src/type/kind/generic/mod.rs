@@ -21,7 +21,7 @@ use crate::{
         PartialType, Type, TypeId,
         environment::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
-            SimplifyEnvironment,
+            SimplifyEnvironment, Variance,
             instantiate::{ArgumentsState, InstantiateEnvironment},
         },
         inference::{Inference, PartialStructuralEdge},
@@ -432,12 +432,18 @@ impl<'heap> Generic<'heap> {
         pin: bool,
     ) {
         for &argument in &*self.arguments {
-            let constraint = match argument.constraint {
-                Some(constraint) => constraint,
-                None if pin => env.intern_type(PartialType {
-                    span,
-                    kind: env.intern_kind(TypeKind::Unknown),
-                }),
+            let (constraint, variance) = match argument.constraint {
+                Some(constraint) => (constraint, Variance::Covariant),
+                // When we check for compliance with `Unknown`, we forcibly set the variance to
+                // invariant. This ensures that we don't accidentally narrow the type down and allow
+                // for narrower types, even though we've explicitly "supplied" `?`.
+                None if pin => (
+                    env.intern_type(PartialType {
+                        span,
+                        kind: env.intern_kind(TypeKind::Unknown),
+                    }),
+                    Variance::Invariant,
+                ),
                 None => continue,
             };
 
@@ -449,7 +455,7 @@ impl<'heap> Generic<'heap> {
             });
 
             // if `T: Number`, than `T <: Number`.
-            env.in_covariant(|env| env.collect_constraints(param, constraint));
+            env.with_variance(variance, |env| env.collect_constraints(param, constraint));
         }
     }
 

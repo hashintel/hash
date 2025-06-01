@@ -1,22 +1,22 @@
-[31m[type-check::incompatible-upper-equal-constraint] Error:[0m Incompatible upper bound and equality constraint
+[31m[type-check::bound-constraint-violation] Error:[0m Type bound constraint violation
    ╭─[ <unknown>:4:4 ]
    │
  1 │ //@ run: fail
    │ │ 
-   │ ╰─ Required to be exactly `[34mNumber[0m`
+   │ ╰─ Upper bound `[34mNumber[0m` is not a supertype of the lower bound
    │ 
  4 │   "`+`<Number, Number>",
    │    ─────────┬─────────  
-   │             ╰─────────── Type variable has incompatible equality and upper bound constraints
+   │             ╰─────────── Type variable has incompatible upper and lower bounds
    │ 
- 7 │   { "#literal": 42 }
-   │                 ─┬  
-   │                  ╰── But this upper bound `[34mInteger[0m` is not a supertype of the equality constraint
+ 7 │   { "#literal": "42" }
+   │                 ──┬─  
+   │                   ╰─── Lower bound `[34mString[0m` must be a subtype of the upper bound
    │ 
-   │ Help: To fix this conflict, you can:
-   │       1. Change the equality constraint `[34mNumber[0m` to be a subtype of the upper bound
-   │       2. Adjust the upper bound `[34mInteger[0m` to be a supertype of the equality constraint
-   │       3. Review your type annotations to ensure they're consistent
+   │ Help: These type bounds create an impossible constraint. To fix this:
+   │       1. Modify `[34mString[0m` to be a proper subtype of `[34mNumber[0m`
+   │       2. Or adjust `[34mNumber[0m` to be a supertype of `[34mString[0m`
+   │       3. Or check your code for contradictory type assertions
    │ 
-   │ Note: Type inference requires that when a variable has both an equality constraint and an upper bound, the equality type must be a subtype of the upper bound (equal <: upper). This error indicates your code has contradictory requirements for the same type variable.
+   │ Note: During type inference, when a variable has both upper and lower bounds, the relationship 'lower <: upper' must hold. This ensures a valid solution exists in the type system. When this relationship is violated, it means your code is requiring contradictory types for the same variable.
 ───╯

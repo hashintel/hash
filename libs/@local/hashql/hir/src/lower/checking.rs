@@ -165,24 +165,6 @@ impl<'env, 'heap> TypeChecking<'env, 'heap> {
         }
     }
 
-    fn verify_equivalence(&mut self, left: TypeId, right: TypeId) {
-        let fatal = self.analysis.fatal_diagnostics();
-
-        // We're not directly interested in the result, as we initialize the analysis environment
-        // with diagnostics, in that case, if verification fails we'll have a diagnostic telling us
-        // why. We just use the return type to ensure that said diagnostics have been emitted and we
-        // don't silently swallow an error.
-        let compatible = self.analysis.is_equivalent(left, right);
-
-        if !compatible {
-            debug_assert_ne!(
-                fatal,
-                self.analysis.fatal_diagnostics(),
-                "equivalence verification should've contributed to the amount of fatal diagnostics"
-            );
-        }
-    }
-
     #[must_use]
     pub fn finish(mut self) -> (TypeCheckingResidual<'heap>, Vec<LoweringDiagnostic>) {
         let diagnostics = iter::empty()

@@ -1,4 +1,4 @@
-//@ run: fail
+//@ run: pass
 //@ description: Closure inference
 [
   "let",
