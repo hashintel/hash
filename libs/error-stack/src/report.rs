@@ -526,10 +526,7 @@ impl<C> From<Report<C>> for Report<dyn Context + Send + Sync + 'static> {
             frames: value.frames,
             _context: PhantomData,
         }
-        .attach_printable(format!(
-            "into Report<dyn Context> at {}",
-            Location::caller()
-        ))
+        .attach_printable(format!("into untyped Report at {}", Location::caller()))
     }
 }
 
