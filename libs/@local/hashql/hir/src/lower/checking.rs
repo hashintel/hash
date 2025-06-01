@@ -8,7 +8,6 @@ use hashql_core::{
         locals::TypeDef,
         universe::{Entry, FastRealmsMap},
     },
-    pretty::{PrettyOptions, PrettyPrint},
     span::{SpanId, Spanned},
     symbol::Symbol,
     r#type::{
