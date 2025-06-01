@@ -22,7 +22,7 @@
 mod graph;
 mod tarjan;
 #[cfg(test)]
-mod test;
+mod tests;
 mod topo;
 
 use bumpalo::Bump;
