@@ -148,22 +148,3 @@ fn pop_context() {
         "\n{report:?}\n{original_report:?}"
     );
 }
-
-// #[test]
-// fn foo() {
-//     use error_stack::Report;
-
-//     let report = Report::new(RootError);
-//     let report = report.change_context(std::io::Error::other("foo"));
-//     let (report, popped_e) = report.pop_current_context();
-//     println!("popped_e: {popped_e:?}");
-//     println!("report:\n{report:?}");
-//     match report.downcast_take::<RootError>() {
-//         Ok((report, root_error)) => {
-//             println!("Downcast succeeded. root_error: {root_error:?}, report:\n{report:?}");
-//         }
-//         Err(original_report) => {
-//             println!("Downcast failed. original_report:\n{original_report:?}");
-//         }
-//     }
-// }
