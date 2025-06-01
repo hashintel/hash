@@ -357,6 +357,17 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
             returns_id,
         );
 
+        // At a call-site we must prove `F <: C`, where
+        // - F is the declared type of the callee, and
+        // - C is the closure type we synthesise from the actual arguments: `(T₁, …, Tₙ) -> ρ` with
+        //   `ρ` being a fresh hole for the return value.
+        //
+        // Passing `F` as the *subtype* (left) and `C` as the *supertype* (right)
+        // produces the desired constraints:
+        // - contravariant parameters: `Tᵢ <: Pᵢ`
+        // - covariant return value: `R <: ρ`
+        //
+        // For closure literals we invert the direction and collect `C <: F`
         self.inference.collect_constraints(function, closure);
 
         self.variables
