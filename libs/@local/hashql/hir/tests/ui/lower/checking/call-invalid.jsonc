@@ -1,0 +1,4 @@
+//@ run: fail
+//@ description: Call a function
+["+", { "#literal": 42.12 }, { "#literal": "42" }]
+//~^ ERROR must be a subtype of the upper bound
