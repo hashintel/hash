@@ -76,7 +76,9 @@ macro_rules! scaffold {
         #[allow(unused_mut)]
         let mut $env =
             crate::r#type::environment::Environment::new(crate::span::SpanId::SYNTHETIC, &$heap);
-        let $builder = crate::r#type::TypeBuilder::synthetic(&$env);
+        #[expect(clippy::allow_attributes)]
+        #[allow(unused_mut)]
+        let mut $builder = crate::r#type::TypeBuilder::synthetic(&$env);
 
         scaffold!(@extra $env; $($($extra)*)?);
     };

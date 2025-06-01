@@ -143,7 +143,7 @@ impl Unification {
         reason = "This cast is safe because the number of type variables are limited to \
                   `u32::MAX` due to ena."
     )]
-    fn lookup(&mut self) -> VariableLookup {
+    pub(crate) fn lookup(&mut self) -> VariableLookup {
         let mut lookup = FastHashMap::with_capacity_and_hasher(
             self.table.len(),
             foldhash::fast::RandomState::default(),

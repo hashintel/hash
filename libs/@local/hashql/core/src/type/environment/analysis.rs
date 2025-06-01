@@ -151,7 +151,7 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
         }
     }
 
-    fn variable_representative(&self, kind: VariableKind) -> VariableKind {
+    pub(super) fn variable_representative(&self, kind: VariableKind) -> VariableKind {
         #[expect(clippy::option_if_let_else, reason = "readability")]
         if let Some(variables) = &self.variables {
             variables[kind]
@@ -187,10 +187,14 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
             | TypeKind::Closure(_)
             | TypeKind::Never
             | TypeKind::Unknown => false,
-            TypeKind::Union(UnionType { variants })
-            | TypeKind::Intersection(IntersectionType { variants }) => variants
-                .iter()
-                .all(|&variant| self.is_alias_recurse(variant, variable)),
+            TypeKind::Union(union) => UnionType::unnest(r#type.with(union), self)
+                .into_iter()
+                .all(|variant| self.is_alias_recurse(variant, variable)),
+            TypeKind::Intersection(intersection) => {
+                IntersectionType::unnest(r#type.with(intersection), self)
+                    .into_iter()
+                    .all(|variant| self.is_alias_recurse(variant, variable))
+            }
             &TypeKind::Apply(Apply { base, .. }) | &TypeKind::Generic(Generic { base, .. }) => {
                 self.is_alias_recurse(base, variable)
             }
