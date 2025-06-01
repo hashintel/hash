@@ -357,7 +357,7 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
             returns_id,
         );
 
-        self.inference.collect_constraints(closure, function);
+        self.inference.collect_constraints(function, closure);
 
         self.variables
             .insert_unique(Universe::Value, self.current, returns);

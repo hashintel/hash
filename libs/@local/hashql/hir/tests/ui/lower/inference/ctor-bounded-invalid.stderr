@@ -1,15 +1,20 @@
-[31m[type-check::unsatisfiable-upper-constraint] Error:[0m Unsatisfiable upper constraint
-   ╭─[ <unknown>:1:1 ]
+[31m[type-check::bound-constraint-violation] Error:[0m Type bound constraint violation
+   ╭─[ <unknown>:3:41 ]
    │
  1 │ //@ run: fail
    │ │ 
-   │ ╰─ Upper constraint cannot be satisfied
+   │ ╰─ Upper bound `[34mNumber[0m` is not a supertype of the lower bound
    │ 
  3 │ ["newtype", "Person<T: Number>", "T", ["Person", { "#literal": "2" }]]
-   │                                         ───┬──  
-   │                                            ╰──── This variable has conflicting type requirements
+   │                                         ───┬──                 ─┬─  
+   │                                            ╰──────────────────────── Type variable has incompatible upper and lower bounds
+   │                                                                 │   
+   │                                                                 ╰─── Lower bound `[34mString[0m` must be a subtype of the upper bound
    │ 
-   │ Help: The inference variable `[93m?15[0m` has an upper bound constraint of type `([34mNumber[0m & [34mString[0m)` that cannot be satisfied. This typically means there are contradictory type requirements that make it impossible for any valid value to exist. Review the constraints placed on this variable.
+   │ Help: These type bounds create an impossible constraint. To fix this:
+   │       1. Modify `[34mString[0m` to be a proper subtype of `[34mNumber[0m`
+   │       2. Or adjust `[34mNumber[0m` to be a supertype of `[34mString[0m`
+   │       3. Or check your code for contradictory type assertions
    │ 
-   │ Note: Upper bound constraints specify the most general type that a variable can be. When an upper constraint is unsatisfiable, it means the type system has determined that no type can meet all the requirements, often due to conflicting constraints from different parts of the code.
+   │ Note: During type inference, when a variable has both upper and lower bounds, the relationship 'lower <: upper' must hold. This ensures a valid solution exists in the type system. When this relationship is violated, it means your code is requiring contradictory types for the same variable.
 ───╯

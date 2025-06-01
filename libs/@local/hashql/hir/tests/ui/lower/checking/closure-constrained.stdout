@@ -1,0 +1,106 @@
+#let add:0 = #fn<T:0?14: Number>(a:0: ?14, b:0: ?14): ?14 ->
+    ::math::add(a:0, b:0) in
+add:0(1, 2)
+
+--------------------------------------
+
+#let add:0 = #fn<T:0?14: Number>(a:0: ?14«Number», b:0: ?14«Number»):
+?14«Number» ->
+    ::math::add(a:0, b:0) in
+add:0(1, 2)
+
+--------------------------------------
+
+--------------------------------------
+
+Node:
+::math::add
+
+
+Type:
+fn(Number, Number) -> Number
+
+--------------------------------------
+
+Node:
+a:0
+
+
+Type:
+Number
+
+--------------------------------------
+
+Node:
+b:0
+
+
+Type:
+Number
+
+--------------------------------------
+
+Node:
+::math::add(a:0, b:0)
+
+
+Type:
+Number
+
+--------------------------------------
+
+Node:
+#fn<T:0?14: Number>(a:0: ?14«Number», b:0: ?14«Number»): ?14«Number» ->
+    ::math::add(a:0, b:0)
+
+
+Type:
+fn(Number, Number) -> Number
+
+--------------------------------------
+
+Node:
+add:0
+
+
+Type:
+fn(Integer, Integer) -> Integer
+
+--------------------------------------
+
+Node:
+1
+
+
+Type:
+Integer
+
+--------------------------------------
+
+Node:
+2
+
+
+Type:
+Integer
+
+--------------------------------------
+
+Node:
+add:0(1, 2)
+
+
+Type:
+Integer
+
+--------------------------------------
+
+Node:
+#let add:0 = #fn<T:0?14: Number>(a:0: ?14«Number», b:0: ?14«Number»):
+?14«Number» ->
+    ::math::add(a:0, b:0) in
+add:0(1, 2)
+
+
+Type:
+fn(Number, Number) -> Number
