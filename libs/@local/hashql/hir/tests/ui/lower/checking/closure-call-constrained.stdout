@@ -55,7 +55,7 @@ Node:
 
 
 Type:
-fn(Integer, Integer) -> Integer
+fn<T:0?17: Integer>(?17, ?17) -> ?17
 
 --------------------------------------
 
@@ -103,4 +103,4 @@ foo:0(2, 3)
 
 
 Type:
-fn(Integer, Integer) -> Integer
+fn<T:0?17: Integer>(?17, ?17) -> ?17

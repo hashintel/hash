@@ -55,7 +55,7 @@ Node:
 
 
 Type:
-fn(Number, Number) -> Number
+fn<T:0?17: Number>(?17, ?17) -> ?17
 
 --------------------------------------
 
@@ -103,4 +103,4 @@ add:0(1, 2)
 
 
 Type:
-fn(Number, Number) -> Number
+fn<T:0?17: Number>(?17, ?17) -> ?17

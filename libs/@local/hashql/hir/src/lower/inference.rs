@@ -1,5 +1,6 @@
 use hashql_core::{
     collection::{FastHashMap, FastHashSet},
+    intern::Interned,
     literal::LiteralKind,
     module::{
         ModuleRegistry, Universe,
@@ -28,11 +29,10 @@ use crate::{
         data::Literal,
         graph::Graph,
         input::Input,
-        kind::NodeKind,
         r#let::Let,
         operation::{
-            BinaryOperation, Operation, OperationKind, TypeOperation, UnaryOperation,
-            r#type::{TypeAssertion, TypeConstructor, TypeOperationKind},
+            BinaryOperation, UnaryOperation,
+            r#type::{TypeAssertion, TypeConstructor},
         },
         variable::{LocalVariable, QualifiedVariable},
     },
@@ -56,6 +56,7 @@ pub struct TypeInference<'env, 'heap> {
     visited: FastHashSet<HirId>,
     locals: FastRealmsMap<Symbol<'heap>, TypeDef<'heap>>,
     types: FastRealmsMap<HirId, TypeId>,
+    arguments: FastRealmsMap<HirId, Interned<'heap, [GenericArgumentReference<'heap>]>>,
     variables: FastRealmsMap<HirId, hashql_core::r#type::inference::Variable>,
 }
 
@@ -73,6 +74,7 @@ impl<'env, 'heap> TypeInference<'env, 'heap> {
             visited: FastHashSet::default(),
             locals: FastRealmsMap::new(),
             types: FastRealmsMap::new(),
+            arguments: FastRealmsMap::new(),
             variables: FastRealmsMap::new(),
         }
     }
@@ -211,22 +213,18 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
         self.visit_node(value);
 
         // We simply take the type of the value
-        let value_id = self.types[Universe::Value][&value.id];
-        self.types
-            .insert_unique(Universe::Value, self.current, value_id);
+        let value_type = self.types[Universe::Value][&value.id];
 
-        let arguments = match value.kind {
-            NodeKind::Closure(Closure { signature, .. }) => signature.def.arguments,
-            NodeKind::Operation(Operation {
-                kind:
-                    OperationKind::Type(TypeOperation {
-                        kind: TypeOperationKind::Constructor(TypeConstructor { arguments, .. }),
-                        ..
-                    }),
-                ..
-            }) => *arguments,
-            _ => self.env.intern_generic_argument_references(&[]),
-        };
+        let arguments = self
+            .arguments
+            .get(Universe::Value, &value.id)
+            .copied()
+            .unwrap_or_else(|| self.env.intern_generic_argument_references(&[]));
+
+        self.types
+            .insert_unique(Universe::Value, self.current, value_type);
+        self.arguments
+            .insert_unique(Universe::Value, self.current, arguments);
 
         // We only take over the arguments of values we know, the only ones that are left after
         // alias-replacement that are of note are closures. Due to the ambiguity, we do not support
@@ -235,7 +233,7 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
             Universe::Value,
             name.value,
             TypeDef {
-                id: value_id,
+                id: value_type,
                 arguments,
             },
         );
@@ -290,6 +288,8 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
 
         self.types
             .insert_unique(Universe::Value, self.current, constructor.closure);
+        self.arguments
+            .insert_unique(Universe::Value, self.current, constructor.arguments);
     }
 
     fn visit_binary_operation(&mut self, _: &'heap BinaryOperation<'heap>) {
@@ -439,10 +439,14 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
 
         self.instantiate.exit_unscoped(old_unscoped);
 
-        // We do not instantiate the type of the closure itself here, for the same reason as stated
-        // above.
-        self.types
-            .insert(Universe::Value, self.current, signature.def.id);
+        // Create a completely separate instantiation of the closure's definition to decouple any
+        // inference steps of the body from the closure's definition.
+        let mut def = signature.def;
+        def.instantiate(&mut self.instantiate);
+
+        self.types.insert(Universe::Value, self.current, def.id);
+        self.arguments
+            .insert(Universe::Value, self.current, def.arguments);
     }
 
     fn visit_graph(&mut self, _: &'heap Graph<'heap>) {

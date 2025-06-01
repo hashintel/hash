@@ -8,6 +8,7 @@ use hashql_core::{
         locals::TypeDef,
         universe::{Entry, FastRealmsMap},
     },
+    pretty::{PrettyOptions, PrettyPrint},
     span::{SpanId, Spanned},
     symbol::Symbol,
     r#type::{
@@ -28,7 +29,7 @@ use crate::{
         access::{field::FieldAccess, index::IndexAccess},
         branch::Branch,
         call::Call,
-        closure::{Closure, extract_signature},
+        closure::Closure,
         data::{Data, Literal},
         graph::Graph,
         input::Input,
@@ -396,11 +397,15 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, 'heap> {
         let inferred = self.inferred_type(self.current);
 
         // `body <: return`
-        let closure_type = extract_signature(inferred, self.env);
-        self.verify_subtype(
-            self.types[Universe::Value][&closure.body.id],
-            closure_type.returns,
-        );
+        // We need to compare with the actual signature, not the inferred type, as we use the actual
+        // signature in conjunction with skolem variables to ensure type safety at the invocation
+        // site. The inferred type is an instantiated version that is separate from the actual
+        // signature, with the actual signature being used to typecheck the closure body. The
+        // inferred type might've been used as a call site and therefore have different variable
+        // constraints associated with it, unrelated to the function body.
+        let closure_type = closure.signature.type_signature(&self.lattice);
+        let returns = self.simplify.simplify(closure_type.returns);
+        self.verify_subtype(self.types[Universe::Value][&closure.body.id], returns);
 
         self.types
             .insert_unique(Universe::Value, self.current, inferred);

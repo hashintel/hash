@@ -21,7 +21,7 @@ use crate::{
         PartialType, Type, TypeId,
         environment::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
-            SimplifyEnvironment, Variance,
+            SimplifyEnvironment,
             instantiate::{ArgumentsState, InstantiateEnvironment},
         },
         inference::{Inference, PartialStructuralEdge},
@@ -425,25 +425,39 @@ impl<'heap> Lattice<'heap> for Generic<'heap> {
 }
 
 impl<'heap> Generic<'heap> {
+    /// Collect constraints for all generic arguments.
+    ///
+    /// `rigid` must be `true` while **checking the body** of a generic item (closure). In that
+    /// phase we:
+    ///
+    /// 1. Emit an *invariant* constraint `param == BoundOrUnknown`. This turns the parameter into a
+    ///    **rigid, definition-time placeholder** (α-renamed, cannot unify with anything). This
+    ///    rigid placeholder is also known in type-theory literature as a *skolem type*.
+    ///
+    /// 2. Emit the usual *covariant* constraint `param <: Bound` so the body may rely on the
+    ///    declared bound.
+    ///
+    /// After the body is type-checked we *generalise* over those rigid placeholders. Because
+    /// generalisation introduces fresh type variables at every call-site, the equality
+    /// constraint disappears from the public type and callers may still instantiate the
+    /// parameter with any `U <: Bound`.
+    ///
+    /// When `rigid == false` (i.e. at call-sites) we collect **only** the
+    /// covariant `param <: Bound`; the parameter remains an ordinary
+    /// unification variable.
     pub fn collect_argument_constraints(
         self,
         span: SpanId,
         env: &mut InferenceEnvironment<'_, 'heap>,
-        pin: bool,
+        rigid: bool,
     ) {
         for &argument in &*self.arguments {
-            let (constraint, variance) = match argument.constraint {
-                Some(constraint) => (constraint, Variance::Covariant),
-                // When we check for compliance with `Unknown`, we forcibly set the variance to
-                // invariant. This ensures that we don't accidentally narrow the type down and allow
-                // for narrower types, even though we've explicitly "supplied" `?`.
-                None if pin => (
-                    env.intern_type(PartialType {
-                        span,
-                        kind: env.intern_kind(TypeKind::Unknown),
-                    }),
-                    Variance::Invariant,
-                ),
+            let constraint = match argument.constraint {
+                Some(constraint) => constraint,
+                None if rigid => env.intern_type(PartialType {
+                    span,
+                    kind: env.intern_kind(TypeKind::Unknown),
+                }),
                 None => continue,
             };
 
@@ -454,8 +468,14 @@ impl<'heap> Generic<'heap> {
                 })),
             });
 
+            // If the type is rigid e.g. a skolem type, we additionally discharge an equality
+            // constraint between the parameter and the argument
+            if rigid {
+                env.in_invariant(|env| env.collect_constraints(param, constraint));
+            }
+
             // if `T: Number`, than `T <: Number`.
-            env.with_variance(variance, |env| env.collect_constraints(param, constraint));
+            env.in_covariant(|env| env.collect_constraints(param, constraint));
         }
     }
 
