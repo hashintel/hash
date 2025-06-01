@@ -169,7 +169,6 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
         let r#type = self.environment.r#type(self.resolve_id(id));
 
         if self.boundary.enter(r#type, r#type).is_break() {
-            self.boundary.exit(r#type, r#type);
             return false;
         }
 

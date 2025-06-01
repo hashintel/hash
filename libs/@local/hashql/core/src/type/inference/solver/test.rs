@@ -214,6 +214,7 @@ fn apply_constraints() {
     let bump = Bump::new();
     solver.upsert_variables(&mut graph);
     solver.solve_anti_symmetry(&mut graph, &mut FastHashMap::default(), &bump);
+    solver.lattice.set_variables(solver.unification.lookup());
 
     let mut variables = FastHashMap::default();
     let bump = Bump::new();
@@ -249,6 +250,7 @@ fn apply_constraints_equality() {
     let bump = Bump::new();
     solver.upsert_variables(&mut graph);
     solver.solve_anti_symmetry(&mut graph, &mut FastHashMap::default(), &bump);
+    solver.lattice.set_variables(solver.unification.lookup());
 
     let mut variables = FastHashMap::default();
     solver.apply_constraints(&graph, &bump, &mut variables, &mut Vec::new());
@@ -303,6 +305,7 @@ fn apply_constraints_with_unification() {
     let bump = Bump::new();
     solver.upsert_variables(&mut graph);
     solver.solve_anti_symmetry(&mut graph, &mut FastHashMap::default(), &bump);
+    solver.lattice.set_variables(solver.unification.lookup());
 
     let mut variables = FastHashMap::default();
     solver.apply_constraints(&graph, &bump, &mut variables, &mut Vec::new());
@@ -570,6 +573,7 @@ fn redundant_constraints() {
     let bump = Bump::new();
     solver.upsert_variables(&mut graph);
     solver.solve_anti_symmetry(&mut graph, &mut FastHashMap::default(), &bump);
+    solver.lattice.set_variables(solver.unification.lookup());
 
     let mut variables = FastHashMap::default();
 
@@ -714,6 +718,7 @@ fn bounds_at_lattice_extremes() {
     let bump = Bump::new();
     solver.upsert_variables(&mut graph);
     solver.solve_anti_symmetry(&mut graph, &mut FastHashMap::default(), &bump);
+    solver.lattice.set_variables(solver.unification.lookup());
 
     // Apply the constraints
     let mut variables = FastHashMap::default();

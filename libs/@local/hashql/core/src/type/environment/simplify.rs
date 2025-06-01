@@ -135,7 +135,6 @@ impl<'env, 'heap> SimplifyEnvironment<'env, 'heap> {
         if self.boundary.enter(r#type, r#type).is_break() {
             // See if the type has been substituted
             if let Some(substitution) = self.analysis.provisioned.get_substitution(id) {
-                self.boundary.exit(r#type, r#type);
                 return substitution;
             }
 
@@ -153,7 +152,6 @@ impl<'env, 'heap> SimplifyEnvironment<'env, 'heap> {
             // in debug builds this panics if the type should have been provisioned but wasn't, as
             // we can recover from this error (we simply return the original - unsimplified - type
             // id) we do not need to panic here in release builds.
-            self.boundary.exit(r#type, r#type);
             return id;
         }
 
