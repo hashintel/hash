@@ -286,6 +286,10 @@ fn instance_admins_view_entity_policy(
                     2,
                 ))
                 .chain(create_version_filters(
+                    base_url!("https://hash.ai/@h/types/entity-type/records-usage-of/"),
+                    1,
+                ))
+                .chain(create_version_filters(
                     base_url!("https://hash.ai/@h/types/entity-type/prospective-user/"),
                     1,
                 ))

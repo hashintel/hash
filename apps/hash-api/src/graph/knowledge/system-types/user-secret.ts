@@ -183,7 +183,7 @@ export const createUserSecret = async <
   }
 
   const userSecretEntityUuid = generateUuid() as EntityUuid;
-  const usesUuserSecretEntityUuid = generateUuid() as EntityUuid;
+  const usesUserSecretEntityUuid = generateUuid() as EntityUuid;
 
   const userSecretEntity = await createEntity<UserSecret>(
     { graphApi, provenance },
@@ -203,7 +203,7 @@ export const createUserSecret = async <
     authentication,
     {
       webId: userAccountId as WebId,
-      entityUuid: usesUuserSecretEntityUuid,
+      entityUuid: usesUserSecretEntityUuid,
       properties: { value: {} },
       linkData: {
         leftEntityId: sourceIntegrationEntityId,
@@ -229,7 +229,7 @@ export const createUserSecret = async <
 
   // TODO: allow creating policies alongside entity creation
   //   see https://linear.app/hash/issue/H-4622/allow-creating-policies-alongside-entity-creation
-  for (const entityUuid of [userSecretEntityUuid, usesUuserSecretEntityUuid]) {
+  for (const entityUuid of [userSecretEntityUuid, usesUserSecretEntityUuid]) {
     for (const principal of viewPrincipals) {
       await createPolicy(graphApi, authentication, {
         name: `user-secret-view-entity-${entityUuid}`,
