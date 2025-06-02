@@ -93,8 +93,9 @@ impl Frame {
     }
 
     /// `replace_with_printable`: if true, `Debug` and `Display` implementations will be eagerly
-    ///     evaluated can be set to false when the `Report` will no longer be used,
-    ///     to avoid the cost of formatting
+    ///     evaluated and stored in place of the taken type,
+    ///     can be set to false when the `Report` will no longer be used to avoid the cost of
+    ///     formatting
     #[must_use]
     pub(crate) fn downcast_take<T: Send + Sync + 'static>(
         &mut self,

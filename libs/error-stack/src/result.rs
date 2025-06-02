@@ -45,7 +45,7 @@ use crate::{Context, IntoReport, Report};
     note = "Use `core::result::Result<T, Report<C>>` instead",
     since = "0.6.0"
 )]
-pub type Result<T, C = dyn Context + Send + Sync + 'static> = core::result::Result<T, Report<C>>;
+pub type Result<T, C> = core::result::Result<T, Report<C>>;
 
 /// Extension trait for [`Result`][core::result::Result] to provide context information on
 /// [`Report`]s.

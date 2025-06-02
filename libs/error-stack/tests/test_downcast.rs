@@ -84,22 +84,22 @@ fn downcast_take() {
     let Err(report) = report.downcast_take::<ContextB>() else {
         panic!("ContextB should not be found")
     };
-    let (report, root_e) = report
+    let (root_e, report) = report
         .downcast_take::<RootError>()
         .expect("RootError should be found");
     assert_eq!(root_e, RootError);
     let Err(report) = report.downcast_take::<RootError>() else {
         panic!("RootError has already been taken")
     };
-    let (report, attachment) = report
+    let (attachment, report) = report
         .downcast_take::<AttachmentA>()
         .expect("AttachmentA should be found");
     assert_eq!(attachment.0, 10);
-    let (report, ctx) = report
+    let (ctx, report) = report
         .downcast_take::<ContextA>()
         .expect("ContextA should be found");
     assert_eq!(ctx.0, 20);
-    let (report, attachment) = report
+    let (attachment, report) = report
         .downcast_take::<PrintableA>()
         .expect("PrintableA should be found");
     assert_eq!(attachment.0, 30);
@@ -122,7 +122,7 @@ fn pop_context() {
     }
 
     let report = setup_report();
-    let (report, popped_ctx) = report.pop_current_context();
+    let (popped_ctx, report) = report.pop_current_context();
     assert_eq!(popped_ctx.0, 20);
 
     // Can still access other attachments and contexts:
