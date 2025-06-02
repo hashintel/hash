@@ -191,9 +191,9 @@ napi-derive              = { version = "=2.16.13", default-features = false }
 nextest-filtering        = { version = "=0.15.0", default-features = false }
 nextest-metadata         = { version = "=0.12.2", default-features = false }
 num-traits               = { version = "=0.2.19", default-features = false }
-opentelemetry            = { version = "=0.29.1", default-features = false }
-opentelemetry-otlp       = { version = "=0.29.0", default-features = false }
-opentelemetry_sdk        = { version = "=0.29.0", default-features = false }
+opentelemetry            = { version = "=0.30.0", default-features = false }
+opentelemetry-otlp       = { version = "=0.30.0", default-features = false }
+opentelemetry_sdk        = { version = "=0.30.0", default-features = false }
 orx-concurrent-vec       = { version = "=3.6.0", default-features = false }
 owo-colors               = { version = "=4.2.1", default-features = false }
 oxc                      = { version = "=0.67.0", default-features = false, features = ["allocator_api"] }
@@ -262,7 +262,7 @@ tracing-core             = { version = "=0.1.33", default-features = false }
 tracing-error            = { version = "=0.2.1", default-features = false }
 tracing-flame            = { version = "=0.2.0", default-features = false }
 tracing-indicatif        = { version = "=0.3.9", default-features = false }
-tracing-opentelemetry    = { version = "=0.30.0", default-features = false }
+tracing-opentelemetry    = { version = "=0.31.0", default-features = false }
 tracing-subscriber       = { version = "=0.3.19", default-features = false }
 trait-variant            = { version = "=0.1.2", default-features = false }
 trybuild                 = { version = "=1.0.105", default-features = false }
