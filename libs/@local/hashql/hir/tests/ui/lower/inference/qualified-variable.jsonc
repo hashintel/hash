@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Test qualified variable inference
+["+", { "#literal": 123 }, { "#literal": 456 }]

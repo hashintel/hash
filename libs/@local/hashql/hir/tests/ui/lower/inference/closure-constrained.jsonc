@@ -1,0 +1,9 @@
+//@ run: pass
+//@ description: Closure inference
+[
+  "fn",
+  { "#struct": { "T": "Number" } },
+  { "#struct": { "a": "T", "b": "T" } },
+  "T",
+  ["+", "a", "b"]
+]

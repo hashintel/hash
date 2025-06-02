@@ -53,6 +53,7 @@ use core::ops::{FromResidual, Try};
 
 use hashql_core::{
     intern::Interned,
+    module::locals::TypeDef,
     span::{SpanId, Spanned},
     symbol::Ident,
     r#type::{TypeId, kind::generic::GenericArgumentReference},
@@ -140,6 +141,10 @@ pub trait Fold<'heap> {
 
     fn fold_type_id(&mut self, id: TypeId) -> Self::Output<TypeId> {
         Try::from_output(id)
+    }
+
+    fn fold_type_def(&mut self, def: TypeDef<'heap>) -> Self::Output<TypeDef<'heap>> {
+        walk_type_def(self, def)
     }
 
     // TODO: we might want to expand on these in the future, for now tho this is sufficient.
@@ -337,6 +342,16 @@ pub trait Fold<'heap> {
     fn fold_graph(&mut self, graph: Graph<'heap>) -> Self::Output<Graph<'heap>> {
         walk_graph(self, graph)
     }
+}
+
+pub fn walk_type_def<'heap, T: Fold<'heap> + ?Sized>(
+    visitor: &mut T,
+    TypeDef { id, arguments }: TypeDef<'heap>,
+) -> T::Output<TypeDef<'heap>> {
+    let id = visitor.fold_type_id(id)?;
+    let arguments = visitor.fold_generic_argument_references(arguments)?;
+
+    Try::from_output(TypeDef { id, arguments })
 }
 
 pub fn walk_ident<'heap, T: Fold<'heap> + ?Sized>(
@@ -774,25 +789,15 @@ pub fn walk_closure<'heap, T: Fold<'heap> + ?Sized>(
 
 pub fn walk_closure_signature<'heap, T: Fold<'heap> + ?Sized>(
     visitor: &mut T,
-    ClosureSignature {
-        span,
-        r#type,
-        generics,
-        params,
-    }: ClosureSignature<'heap>,
+    ClosureSignature { span, def, params }: ClosureSignature<'heap>,
 ) -> T::Output<ClosureSignature<'heap>> {
     let span = visitor.fold_span(span)?;
-    let r#type = visitor.fold_type_id(r#type)?;
 
-    let generics = visitor.fold_generic_argument_references(generics)?;
+    let def = visitor.fold_type_def(def)?;
+
     let params = visitor.fold_closure_params(params)?;
 
-    Try::from_output(ClosureSignature {
-        span,
-        r#type,
-        generics,
-        params,
-    })
+    Try::from_output(ClosureSignature { span, def, params })
 }
 
 pub fn walk_closure_param<'heap, T: Fold<'heap> + ?Sized>(

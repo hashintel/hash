@@ -10,6 +10,7 @@ mod ast_lowering_type_extractor;
 pub(crate) mod common;
 mod hir_lower_alias_replacement;
 mod hir_lower_ctor;
+mod hir_lower_inference;
 mod hir_reify;
 mod parse_syntax_dump;
 
@@ -28,7 +29,8 @@ use self::{
     ast_lowering_type_definition_extractor::AstLoweringTypeDefinitionExtractorSuite,
     ast_lowering_type_extractor::AstLoweringTypeExtractorSuite,
     hir_lower_alias_replacement::HirLowerAliasReplacementSuite, hir_lower_ctor::HirLowerCtorSuite,
-    hir_reify::HirReifySuite, parse_syntax_dump::ParseSyntaxDumpSuite,
+    hir_lower_inference::HirLowerInferenceSuite, hir_reify::HirReifySuite,
+    parse_syntax_dump::ParseSyntaxDumpSuite,
 };
 
 pub(crate) type SuiteDiagnostic = Diagnostic<Box<dyn DiagnosticCategory>, SpanId>;
@@ -58,6 +60,7 @@ const SUITES: &[&dyn Suite] = &[
     &AstLoweringTypeExtractorSuite,
     &HirLowerAliasReplacementSuite,
     &HirLowerCtorSuite,
+    &HirLowerInferenceSuite,
     &HirReifySuite,
     &ParseSyntaxDumpSuite,
 ];
