@@ -1,13 +1,17 @@
 use core::ops::Deref;
 
 use super::{Environment, Variance};
-use crate::r#type::{
-    TypeId,
-    inference::{
-        Constraint, Inference as _, InferenceSolver, PartialStructuralEdge, Variable, VariableKind,
-        solver::Unification,
+use crate::{
+    span::SpanId,
+    symbol::Ident,
+    r#type::{
+        TypeId,
+        inference::{
+            Constraint, DeferralDepth, Inference as _, InferenceSolver, PartialStructuralEdge,
+            ResolutionStrategy, SelectionConstraint, Subject, Variable, VariableKind,
+        },
+        recursion::RecursionBoundary,
     },
-    recursion::RecursionBoundary,
 };
 
 #[derive(Debug)]
@@ -15,8 +19,7 @@ pub struct InferenceEnvironment<'env, 'heap> {
     pub environment: &'env Environment<'heap>,
     boundary: RecursionBoundary<'heap>,
 
-    constraints: Vec<Constraint>,
-    unification: Unification,
+    constraints: Vec<Constraint<'heap>>,
 
     variance: Variance,
 }
@@ -27,27 +30,36 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
             environment,
             boundary: RecursionBoundary::new(),
             constraints: Vec::new(),
-            unification: Unification::new(),
             variance: Variance::default(),
         }
     }
 
-    pub fn take_constraints(&mut self) -> Vec<Constraint> {
+    #[cfg(test)]
+    pub(crate) fn with_constraints(
+        mut self,
+        constraints: impl IntoIterator<Item = Constraint<'heap>>,
+    ) -> Self {
+        self.constraints.extend(constraints);
+        self
+    }
+
+    pub(crate) fn drain_constraints_into(&mut self, target: &mut Vec<Constraint<'heap>>) {
+        target.append(&mut self.constraints);
+    }
+
+    pub(crate) const fn has_constraints(&self) -> bool {
+        !self.constraints.is_empty()
+    }
+
+    pub(crate) fn take_constraints(&mut self) -> Vec<Constraint<'heap>> {
         core::mem::take(&mut self.constraints)
     }
 
-    pub fn is_unioned(&mut self, lhs: VariableKind, rhs: VariableKind) -> bool {
-        self.unification.is_unioned(lhs, rhs)
-    }
-
-    pub fn add_constraint(&mut self, mut constraint: Constraint) {
-        for variable in constraint.variables() {
-            // Ensure that each mentioned variable is registered in the unification table
-            self.unification.upsert_variable(variable.kind);
-        }
-
+    pub fn add_constraint(&mut self, mut constraint: Constraint<'heap>) {
+        #[expect(clippy::match_same_arms, reason = "readability")]
         if self.variance == Variance::Invariant {
             constraint = match constraint {
+                Constraint::Unify { .. } => constraint,
                 Constraint::UpperBound { variable, bound }
                 | Constraint::LowerBound { variable, bound } => Constraint::Equals {
                     variable,
@@ -57,10 +69,10 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
                     variable: _,
                     r#type: _,
                 } => constraint,
-                Constraint::Ordering { lower, upper } => {
-                    self.unification.unify(lower.kind, upper.kind);
-                    return;
-                }
+                Constraint::Ordering { lower, upper } => Constraint::Unify {
+                    lhs: lower,
+                    rhs: upper,
+                },
                 Constraint::StructuralEdge {
                     source: _,
                     target: _,
@@ -70,6 +82,9 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
                     // `(name: _2) = _1` does not mean that `_2` is equal to `_1`.
                     return;
                 }
+                // Nothing happens when we have a selection constraint, as selection constraints are
+                // deferred constraints
+                Constraint::Selection(..) => constraint,
             };
         }
 
@@ -89,6 +104,53 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
         };
 
         self.constraints.push(constraint);
+    }
+
+    pub fn add_projection(
+        &mut self,
+        span: SpanId,
+        r#type: TypeId,
+        field: Ident<'heap>,
+    ) -> Variable {
+        let hole = self.counter.hole.next();
+        let variable = Variable {
+            span,
+            kind: VariableKind::Hole(hole),
+        };
+
+        let projection = SelectionConstraint::Projection {
+            subject: Subject::Type(r#type),
+            field,
+            output: variable,
+        };
+        self.constraints.push(Constraint::Selection(
+            projection,
+            ResolutionStrategy::default(),
+            DeferralDepth::default(),
+        ));
+
+        variable
+    }
+
+    pub fn add_subscript(&mut self, span: SpanId, r#type: TypeId, index: TypeId) -> Variable {
+        let hole = self.counter.hole.next();
+        let variable = Variable {
+            span,
+            kind: VariableKind::Hole(hole),
+        };
+
+        let subscript = SelectionConstraint::Subscript {
+            subject: Subject::Type(r#type),
+            index: Subject::Type(index),
+            output: variable,
+        };
+        self.constraints.push(Constraint::Selection(
+            subscript,
+            ResolutionStrategy::default(),
+            DeferralDepth::default(),
+        ));
+
+        variable
     }
 
     pub fn collect_constraints(&mut self, subtype: TypeId, supertype: TypeId) {
@@ -166,7 +228,7 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
 
     #[must_use]
     pub fn into_solver(self) -> InferenceSolver<'env, 'heap> {
-        InferenceSolver::new(self.environment, self.unification, self.constraints)
+        InferenceSolver::new(self)
     }
 }
 

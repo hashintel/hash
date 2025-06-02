@@ -6,7 +6,7 @@ use smallvec::SmallVec;
 use super::TypeKind;
 use crate::{
     pretty::{PrettyPrint, PrettyRecursionBoundary},
-    symbol::Symbol,
+    symbol::{Ident, Symbol},
     r#type::{
         PartialType, Type, TypeId,
         environment::{
@@ -15,7 +15,7 @@ use crate::{
         },
         error::opaque_type_name_mismatch,
         inference::{Inference, PartialStructuralEdge},
-        lattice::Lattice,
+        lattice::{Lattice, Projection, Subscript},
     },
 };
 
@@ -180,6 +180,23 @@ impl<'heap> Lattice<'heap> for OpaqueType<'heap> {
         } else {
             SmallVec::new()
         }
+    }
+
+    fn projection(
+        self: Type<'heap, Self>,
+        field: Ident<'heap>,
+        env: &mut LatticeEnvironment<'_, 'heap>,
+    ) -> Projection {
+        env.projection(self.kind.repr, field)
+    }
+
+    fn subscript(
+        self: Type<'heap, Self>,
+        index: TypeId,
+        env: &mut LatticeEnvironment<'_, 'heap>,
+        infer: &mut InferenceEnvironment<'_, 'heap>,
+    ) -> Subscript {
+        env.subscript(self.kind.repr, index, infer)
     }
 
     fn is_bottom(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
@@ -826,8 +843,20 @@ mod test {
 
         // Due to invariance, we should get an equality constraint between the generic parameters
         let constraints = inference_env.take_constraints();
-        assert!(constraints.is_empty());
-        assert!(inference_env.is_unioned(VariableKind::Generic(arg1), VariableKind::Generic(arg2)));
+        assert_eq!(constraints.len(), 1);
+        assert_eq!(
+            constraints[0],
+            Constraint::Unify {
+                lhs: Variable {
+                    span: SpanId::SYNTHETIC,
+                    kind: VariableKind::Generic(arg1)
+                },
+                rhs: Variable {
+                    span: SpanId::SYNTHETIC,
+                    kind: VariableKind::Generic(arg2)
+                }
+            }
+        );
     }
 
     #[test]
@@ -853,9 +882,19 @@ mod test {
 
         // Due to invariance, we should get an equality constraint between the inference variables
         let constraints = inference_env.take_constraints();
-        assert!(constraints.is_empty());
-        assert!(
-            inference_env.is_unioned(VariableKind::Hole(hole_var1), VariableKind::Hole(hole_var2))
+        assert_eq!(constraints.len(), 1);
+        assert_eq!(
+            constraints[0],
+            Constraint::Unify {
+                lhs: Variable {
+                    span: SpanId::SYNTHETIC,
+                    kind: VariableKind::Hole(hole_var1)
+                },
+                rhs: Variable {
+                    span: SpanId::SYNTHETIC,
+                    kind: VariableKind::Hole(hole_var2)
+                }
+            }
         );
     }
 
@@ -882,9 +921,19 @@ mod test {
         // Due to invariance, we should get an equality constraint between the inference variable
         // and the generic variable
         let constraints = inference_env.take_constraints();
-        assert!(constraints.is_empty());
-        assert!(
-            inference_env.is_unioned(VariableKind::Hole(hole_var1), VariableKind::Generic(arg))
+        assert_eq!(constraints.len(), 1);
+        assert_eq!(
+            constraints[0],
+            Constraint::Unify {
+                lhs: Variable {
+                    span: SpanId::SYNTHETIC,
+                    kind: VariableKind::Hole(hole_var1)
+                },
+                rhs: Variable {
+                    span: SpanId::SYNTHETIC,
+                    kind: VariableKind::Generic(arg)
+                }
+            }
         );
     }
 

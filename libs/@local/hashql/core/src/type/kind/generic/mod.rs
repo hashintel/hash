@@ -16,7 +16,7 @@ use crate::{
     newtype, newtype_producer,
     pretty::{ORANGE, PrettyPrint, PrettyRecursionBoundary},
     span::SpanId,
-    symbol::Symbol,
+    symbol::{Ident, Symbol},
     r#type::{
         PartialType, Type, TypeId,
         environment::{
@@ -25,7 +25,7 @@ use crate::{
             instantiate::{ArgumentsState, InstantiateEnvironment},
         },
         inference::{Inference, PartialStructuralEdge},
-        lattice::Lattice,
+        lattice::{Lattice, Projection, Subscript},
     },
 };
 
@@ -290,6 +290,23 @@ impl<'heap> Lattice<'heap> for Generic<'heap> {
         env: &mut LatticeEnvironment<'_, 'heap>,
     ) -> TinyVec<TypeId> {
         self.kind.meet_base(*other.kind, env, self.span)
+    }
+
+    fn projection(
+        self: Type<'heap, Self>,
+        field: Ident<'heap>,
+        env: &mut LatticeEnvironment<'_, 'heap>,
+    ) -> Projection {
+        env.projection(self.kind.base, field)
+    }
+
+    fn subscript(
+        self: Type<'heap, Self>,
+        index: TypeId,
+        env: &mut LatticeEnvironment<'_, 'heap>,
+        infer: &mut InferenceEnvironment<'_, 'heap>,
+    ) -> Subscript {
+        env.subscript(self.kind.base, index, infer)
     }
 
     fn is_bottom(self: Type<'heap, Self>, env: &mut AnalysisEnvironment<'_, 'heap>) -> bool {

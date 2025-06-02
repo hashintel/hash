@@ -263,6 +263,7 @@ const main = async () => {
     await ensureSystemGraphIsInitialized({
       logger,
       context: machineActorContext,
+      seedSystemPolicies: false,
     });
   } else {
     // Globally sets `systemAccountId`

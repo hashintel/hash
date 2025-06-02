@@ -43,7 +43,11 @@ describe("Comment", () => {
   let testPage: Page;
 
   beforeAll(async () => {
-    await ensureSystemGraphIsInitialized({ logger, context: graphContext });
+    await ensureSystemGraphIsInitialized({
+      logger,
+      context: graphContext,
+      seedSystemPolicies: true,
+    });
 
     testUser = await createTestUser(graphContext, "commentTest", logger);
     const authentication = { actorId: testUser.accountId };

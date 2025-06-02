@@ -34,7 +34,11 @@ describe("Policy CRUD", () => {
   let testPolicy: Policy;
 
   beforeAll(async () => {
-    await ensureSystemGraphIsInitialized({ logger, context: graphContext });
+    await ensureSystemGraphIsInitialized({
+      logger,
+      context: graphContext,
+      seedSystemPolicies: true,
+    });
 
     testUser = await createTestUser(graphContext, "entitytest", logger);
 

@@ -22,7 +22,7 @@ jobs:
     runs-on: ubuntu-latest
 
     container:
-      image: returntocorp/semgrep:1.122.0@sha256:0e1dd2650481fb53a7e3d53bbba2e691a3e3de718bcabf8fcb3eb1e2214310a1
+      image: returntocorp/semgrep:1.123.0@sha256:3947ff700c40fdad4d9431875d649279f162eeb3b6b7a16ba7ba911b4a88358f
 
     # Skip any PR created by Dependabot to avoid permission issues:
     if: (github.actor != 'dependabot[bot]')

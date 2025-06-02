@@ -1,20 +1,30 @@
 #![expect(clippy::min_ident_chars)]
-use core::{assert_matches::assert_matches, fmt::Debug};
+use core::{assert_matches::assert_matches, fmt::Debug, iter};
 
 use super::{
     PartialType, TypeId, TypeKind,
-    environment::{AnalysisEnvironment, Environment},
-    kind::{Infer, Param, generic::GenericArgumentId, infer::HoleId},
+    environment::{AnalysisEnvironment, Environment, InferenceEnvironment, SimplifyEnvironment},
+    inference::{Substitution, VariableKind, VariableLookup},
+    kind::{
+        Infer, Param,
+        generic::GenericArgumentId,
+        infer::HoleId,
+        test::{assert_equiv, intersection, primitive, tuple, union},
+    },
 };
 use crate::{
     heap::Heap,
+    pretty::PrettyPrint as _,
     span::SpanId,
+    symbol::Ident,
     r#type::{
         environment::LatticeEnvironment,
+        error::TypeCheckDiagnosticCategory,
         kind::{
             intersection::IntersectionType, primitive::PrimitiveType, tuple::TupleType,
             union::UnionType,
         },
+        lattice::{Projection, Subscript},
     },
 };
 
@@ -519,4 +529,140 @@ fn recursive_meet_operation() {
         env.is_equivalent(met, type_a),
         "meet(A, B) should be equivalent to A"
     );
+}
+
+#[test]
+fn recursive_simplify() {
+    // If we have a type that's referencing itself in the substitution during simplification, we
+    // should not error out but veil ourselves in a thin generic.
+    let heap = Heap::new();
+    let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+    let hole = env.counter.hole.next();
+    let infer = instantiate_infer(&env, hole);
+
+    let substitution = Substitution::new(
+        VariableLookup::new(
+            iter::once((VariableKind::Hole(hole), VariableKind::Hole(hole))).collect(),
+        ),
+        iter::once((VariableKind::Hole(hole), tuple!(env, [infer]))).collect(),
+    );
+
+    env.substitution = substitution;
+
+    let mut simplify = SimplifyEnvironment::new(&env);
+    let result_id = simplify.simplify(infer);
+    // The result should be a generic type
+    let result = env.r#type(result_id);
+    let generic = result.kind.generic().expect("should be a generic");
+    assert!(generic.arguments.is_empty());
+
+    let base = env.r#type(generic.base);
+    let tuple = base.kind.tuple().expect("should be a tuple");
+
+    assert_eq!(tuple.fields.len(), 1);
+    assert_eq!(tuple.fields[0], result_id);
+}
+
+#[test]
+fn never_projection() {
+    let heap = Heap::new();
+    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+    let mut lattice = LatticeEnvironment::new(&env);
+
+    let result = lattice.projection(
+        instantiate(&env, TypeKind::Never),
+        Ident::synthetic(heap.intern_symbol("foo")),
+    );
+    assert_eq!(result, Projection::Error);
+
+    let diagnostics = lattice.take_diagnostics().into_vec();
+    assert_eq!(diagnostics.len(), 1);
+    assert_eq!(
+        diagnostics[0].category,
+        TypeCheckDiagnosticCategory::UnsupportedProjection
+    );
+}
+
+#[test]
+fn never_subscript() {
+    let heap = Heap::new();
+    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+    let mut lattice = LatticeEnvironment::new(&env);
+    let mut inference = InferenceEnvironment::new(&env);
+
+    let result = lattice.subscript(
+        instantiate(&env, TypeKind::Never),
+        primitive!(env, PrimitiveType::String),
+        &mut inference,
+    );
+    assert_eq!(result, Subscript::Error);
+
+    let diagnostics = lattice.take_diagnostics().into_vec();
+    assert_eq!(diagnostics.len(), 1);
+    assert_eq!(
+        diagnostics[0].category,
+        TypeCheckDiagnosticCategory::UnsupportedSubscript
+    );
+}
+
+#[test]
+fn unknown_projection() {
+    let heap = Heap::new();
+    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+    let mut lattice = LatticeEnvironment::new(&env);
+
+    let result = lattice.projection(
+        instantiate(&env, TypeKind::Unknown),
+        Ident::synthetic(heap.intern_symbol("foo")),
+    );
+    assert_eq!(result, Projection::Error);
+
+    let diagnostics = lattice.take_diagnostics().into_vec();
+    assert_eq!(diagnostics.len(), 1);
+    assert_eq!(
+        diagnostics[0].category,
+        TypeCheckDiagnosticCategory::UnsupportedProjection
+    );
+}
+
+#[test]
+fn unknown_subscript() {
+    let heap = Heap::new();
+    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+    let mut lattice = LatticeEnvironment::new(&env);
+    let mut inference = InferenceEnvironment::new(&env);
+
+    let result = lattice.subscript(
+        instantiate(&env, TypeKind::Unknown),
+        primitive!(env, PrimitiveType::String),
+        &mut inference,
+    );
+    assert_eq!(result, Subscript::Error);
+
+    let diagnostics = lattice.take_diagnostics().into_vec();
+    assert_eq!(diagnostics.len(), 1);
+    assert_eq!(
+        diagnostics[0].category,
+        TypeCheckDiagnosticCategory::UnsupportedSubscript
+    );
+}
+
+#[test]
+fn simplify_nested_union_intersection() {
+    let heap = Heap::new();
+    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+    let integer = primitive!(env, PrimitiveType::Integer);
+    let string = primitive!(env, PrimitiveType::String);
+
+    let value = intersection!(env, [union!(env, [integer, string]), string]);
+
+    let mut simplify = SimplifyEnvironment::new(&env);
+    let simplified = simplify.simplify(value);
+    assert_equiv!(env, [simplified], [string]);
 }

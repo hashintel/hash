@@ -6,7 +6,11 @@ use ena::unify::UnifyKey;
 use crate::{
     collection::FastHashMap,
     span::SpanId,
-    r#type::kind::{Infer, Param, TypeKind, generic::GenericArgumentId, infer::HoleId},
+    r#type::{
+        PartialType, Type,
+        environment::Environment,
+        kind::{Infer, Param, TypeKind, generic::GenericArgumentId, infer::HoleId},
+    },
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -22,6 +26,15 @@ impl Variable {
             span: SpanId::SYNTHETIC,
             kind,
         }
+    }
+
+    pub fn into_type<'heap>(self, env: &Environment<'heap>) -> Type<'heap> {
+        let kind = self.kind.into_type_kind();
+
+        env.types.intern_partial(PartialType {
+            span: self.span,
+            kind: env.intern_kind(kind),
+        })
     }
 }
 
@@ -45,6 +58,22 @@ impl VariableKind {
         match self {
             Self::Hole(hole) => TypeKind::Infer(Infer { hole }),
             Self::Generic(argument) => TypeKind::Param(Param { argument }),
+        }
+    }
+
+    #[must_use]
+    pub const fn hole(self) -> Option<HoleId> {
+        match self {
+            Self::Hole(hole) => Some(hole),
+            Self::Generic(_) => None,
+        }
+    }
+
+    #[must_use]
+    pub const fn generic(self) -> Option<GenericArgumentId> {
+        match self {
+            Self::Hole(_) => None,
+            Self::Generic(argument) => Some(argument),
         }
     }
 }

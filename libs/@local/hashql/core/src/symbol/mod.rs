@@ -136,7 +136,7 @@ impl Display for Symbol<'_> {
 ///
 /// HashQL supports different categories of identifiers, each with distinct
 /// syntactic rules and semantic meanings in the language.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum IdentKind {
     /// A lexical identifier following standard programming language naming rules.
     ///
@@ -260,12 +260,23 @@ pub enum IdentKind {
 /// - name: `Symbol("counter")`
 /// - kind: `IdentKind::Lexical`
 /// - span: `5..12`
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Ident<'heap> {
     pub span: SpanId,
 
     pub value: Symbol<'heap>,
     pub kind: IdentKind,
+}
+
+#[cfg(test)]
+impl<'heap> Ident<'heap> {
+    pub(crate) const fn synthetic(value: Symbol<'heap>) -> Self {
+        Self {
+            span: SpanId::SYNTHETIC,
+            value,
+            kind: IdentKind::Lexical,
+        }
+    }
 }
 
 impl AsRef<str> for Ident<'_> {

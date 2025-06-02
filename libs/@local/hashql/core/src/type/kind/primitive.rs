@@ -5,15 +5,19 @@ use smallvec::SmallVec;
 
 use crate::{
     pretty::{BLUE, PrettyPrint, PrettyRecursionBoundary},
+    symbol::Ident,
     r#type::{
         Type, TypeId,
         environment::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
             SimplifyEnvironment, instantiate::InstantiateEnvironment,
         },
-        error::type_mismatch,
+        error::{
+            UnsupportedProjectionCategory, UnsupportedSubscriptCategory, type_mismatch,
+            unsupported_projection, unsupported_subscript,
+        },
         inference::{Inference, PartialStructuralEdge},
-        lattice::Lattice,
+        lattice::{Lattice, Projection, Subscript},
     },
 };
 
@@ -62,6 +66,37 @@ impl<'heap> Lattice<'heap> for PrimitiveType {
 
             _ => SmallVec::from_slice(&[self.id, other.id]),
         }
+    }
+
+    fn projection(
+        self: Type<'heap, Self>,
+        field: Ident<'heap>,
+        env: &mut LatticeEnvironment<'_, 'heap>,
+    ) -> Projection {
+        env.diagnostics.push(unsupported_projection(
+            self,
+            field,
+            UnsupportedProjectionCategory::Primitive,
+            env,
+        ));
+
+        Projection::Error
+    }
+
+    fn subscript(
+        self: Type<'heap, Self>,
+        index: TypeId,
+        env: &mut LatticeEnvironment<'_, 'heap>,
+        _: &mut InferenceEnvironment<'_, 'heap>,
+    ) -> Subscript {
+        env.diagnostics.push(unsupported_subscript(
+            self,
+            index,
+            UnsupportedSubscriptCategory::Primitive,
+            env,
+        ));
+
+        Subscript::Error
     }
 
     fn is_bottom(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
@@ -235,15 +270,18 @@ mod test {
     use crate::{
         heap::Heap,
         span::SpanId,
+        symbol::Ident,
         r#type::{
             environment::{
-                AnalysisEnvironment, Environment, LatticeEnvironment, SimplifyEnvironment,
+                AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
+                SimplifyEnvironment,
             },
+            error::TypeCheckDiagnosticCategory,
             kind::{
                 TypeKind,
                 test::{assert_kind, primitive},
             },
-            lattice::{Lattice as _, test::assert_lattice_laws},
+            lattice::{Lattice as _, Projection, Subscript, test::assert_lattice_laws},
             test::instantiate,
         },
     };
@@ -587,5 +625,49 @@ mod test {
         assert!(string.is_concrete(&mut analysis_env));
         assert!(boolean.is_concrete(&mut analysis_env));
         assert!(null.is_concrete(&mut analysis_env));
+    }
+
+    #[test]
+    fn projection() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let mut lattice = LatticeEnvironment::new(&env);
+
+        let result = lattice.projection(
+            primitive!(env, PrimitiveType::String),
+            Ident::synthetic(heap.intern_symbol("foo")),
+        );
+        assert_eq!(result, Projection::Error);
+
+        let diagnostics = lattice.take_diagnostics().into_vec();
+        assert_eq!(diagnostics.len(), 1);
+        assert_eq!(
+            diagnostics[0].category,
+            TypeCheckDiagnosticCategory::UnsupportedProjection
+        );
+    }
+
+    #[test]
+    fn subscript() {
+        let heap = Heap::new();
+        let env = Environment::new(SpanId::SYNTHETIC, &heap);
+
+        let mut lattice = LatticeEnvironment::new(&env);
+        let mut inference = InferenceEnvironment::new(&env);
+
+        let result = lattice.subscript(
+            primitive!(env, PrimitiveType::String),
+            primitive!(env, PrimitiveType::String),
+            &mut inference,
+        );
+        assert_eq!(result, Subscript::Error);
+
+        let diagnostics = lattice.take_diagnostics().into_vec();
+        assert_eq!(diagnostics.len(), 1);
+        assert_eq!(
+            diagnostics[0].category,
+            TypeCheckDiagnosticCategory::UnsupportedSubscript
+        );
     }
 }
