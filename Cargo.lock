@@ -3710,7 +3710,7 @@ dependencies = [
  "aws-sdk-s3",
  "aws-types",
  "bytes",
- "cargo_metadata 0.19.2",
+ "cargo_metadata 0.20.0",
  "clap",
  "clap_complete",
  "criterion",
