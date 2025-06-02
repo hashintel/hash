@@ -29,7 +29,7 @@ To run this package, a compiled library of `pdfium` must be provided. The librar
 
 ### Dynamic linking
 
-A dynamic library can be downloaded from [`bblanchon/pdfium-binaries`](https://github.com/bblanchon/pdfium-binaries/releases). It's possible to download the library from the command line. For example, to download the library for `mac-arm64` from the release `6721` and store it in `./libs/`:L
+A dynamic library can be downloaded from [`bblanchon/pdfium-binaries`](https://github.com/bblanchon/pdfium-binaries/releases). It's possible to download the library from the command line. For example, to download the library for `mac-arm64` from the release `6721` and store it in `./libs/`:
 
 ```sh
 temp_dir=$(mktemp -d)
