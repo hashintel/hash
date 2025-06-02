@@ -1,0 +1,9 @@
+//@ run: fail
+//@ description: Test unsatisfiable upper constraint during inference
+[
+  "input",
+  "x",
+  "Number",
+  { "#literal": "42", "#type": "_" }
+  //~^ ERROR This variable has conflicting type requirements
+]

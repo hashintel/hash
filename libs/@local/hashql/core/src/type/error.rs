@@ -163,6 +163,11 @@ const DICT_KEY_TYPE_MISMATCH: TerminalDiagnosticCategory = TerminalDiagnosticCat
     name: "Dictionary key type mismatch",
 };
 
+const UNSATISFIABLE_UPPER_CONSTRAINT: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
+    id: "unsatisfiable-upper-constraint",
+    name: "Unsatisfiable upper constraint",
+};
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum TypeCheckDiagnosticCategory {
     TypeMismatch,
@@ -192,6 +197,7 @@ pub enum TypeCheckDiagnosticCategory {
     UnresolvedSelectionConstraint,
     ListIndexTypeMismatch,
     DictKeyTypeMismatch,
+    UnsatisfiableUpperConstraint,
 }
 
 impl DiagnosticCategory for TypeCheckDiagnosticCategory {
@@ -232,6 +238,7 @@ impl DiagnosticCategory for TypeCheckDiagnosticCategory {
             Self::UnresolvedSelectionConstraint => Some(&UNRESOLVED_SELECTION_CONSTRAINT),
             Self::ListIndexTypeMismatch => Some(&LIST_INDEX_TYPE_MISMATCH),
             Self::DictKeyTypeMismatch => Some(&DICT_KEY_TYPE_MISMATCH),
+            Self::UnsatisfiableUpperConstraint => Some(&UNSATISFIABLE_UPPER_CONSTRAINT),
         }
     }
 }
@@ -2015,6 +2022,55 @@ pub(crate) fn dict_subscript_mismatch<'heap>(
         "Dictionary keys are invariant - the key type used for access must be exactly equivalent \
          to the dictionary's declared key type. Unlike some languages, there is no implicit type \
          coercion for dictionary key access.",
+    ));
+
+    diagnostic
+}
+
+/// Creates a diagnostic for when an upper constraint cannot be satisfied
+///
+/// This occurs when the type system determines that no valid type can satisfy
+/// the upper bound constraint for an inference variable, typically indicating
+/// contradictory type requirements or unreachable code paths.
+pub(crate) fn unsatisfiable_upper_constraint(
+    env: &Environment,
+    upper_constraint: TypeId,
+    variable: Variable,
+) -> TypeCheckDiagnostic {
+    let upper_type = env.r#type(upper_constraint);
+    let variable_type = variable.into_type(env);
+
+    let mut diagnostic = Diagnostic::new(
+        TypeCheckDiagnosticCategory::UnsatisfiableUpperConstraint,
+        Severity::Error,
+    );
+
+    diagnostic
+        .labels
+        .push(Label::new(upper_type.span, "Upper constraint cannot be satisfied").with_order(1));
+
+    diagnostic.labels.push(
+        Label::new(
+            variable_type.span,
+            "This variable has conflicting type requirements",
+        )
+        .with_order(2)
+        .with_color(Color::Ansi(AnsiColor::Red)),
+    );
+
+    diagnostic.add_help(Help::new(format!(
+        "The inference variable `{}` has an upper bound constraint of type `{}` that cannot be \
+         satisfied. This typically means there are contradictory type requirements that make it \
+         impossible for any valid value to exist. Review the constraints placed on this variable.",
+        variable_type.pretty_print(env, PrettyOptions::default().with_max_width(40)),
+        upper_type.pretty_print(env, PrettyOptions::default().with_max_width(40))
+    )));
+
+    diagnostic.add_note(Note::new(
+        "Upper bound constraints specify the most general type that a variable can be. When an \
+         upper constraint is unsatisfiable, it means the type system has determined that no type \
+         can meet all the requirements, often due to conflicting constraints from different parts \
+         of the code.",
     ));
 
     diagnostic

@@ -43,7 +43,7 @@ use crate::{
             bound_constraint_violation, conflicting_equality_constraints,
             incompatible_lower_equal_constraint, incompatible_upper_equal_constraint,
             unconstrained_type_variable, unconstrained_type_variable_floating,
-            unresolved_selection_constraint,
+            unresolved_selection_constraint, unsatisfiable_upper_constraint,
         },
         kind::{PrimitiveType, TypeKind, UnionType},
         lattice::{Projection, Subscript},
@@ -191,6 +191,25 @@ struct VariableOrdering {
     upper: ResolvedVariable,
 }
 
+/// Tracks the satisfiability status of different constraint types for a type variable.
+///
+/// This structure maintains flags indicating whether each category of constraint
+/// (currently only upper bounds) can be satisfied without creating logical contradictions.
+/// Used during constraint resolution to detect and report unsatisfiable constraint systems.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
+struct VariableConstraintSatisfiability {
+    /// Whether upper bound constraints are satisfiable.
+    ///
+    /// Set to `false` when upper bound resolution results in bottom types, indicating an impossible constraint combination.
+    upper: bool = true,
+}
+
+impl VariableConstraintSatisfiability {
+    const fn merge(&mut self, other: Self) {
+        self.upper &= other.upper;
+    }
+}
+
 /// Aggregated constraints for a single type variable.
 ///
 /// Organizes constraints by type (equality, lower bounds, upper bounds).
@@ -203,10 +222,17 @@ struct VariableConstraint {
     lower: SmallVec<TypeId>,
     /// Upper bound constraints (variable must be subtype of these)
     upper: SmallVec<TypeId>,
+    /// The satisfiability of the variable constraint
+    satisfiability: VariableConstraintSatisfiability,
 }
 
 impl VariableConstraint {
-    fn finish(&self) -> EvaluatedVariableConstraint {
+    fn finish(
+        &self,
+    ) -> (
+        EvaluatedVariableConstraint,
+        VariableConstraintSatisfiability,
+    ) {
         debug_assert!(
             self.lower.len() <= 1,
             "lower bound should be either empty or contain exactly one type"
@@ -216,11 +242,13 @@ impl VariableConstraint {
             "upper bound should be either empty or contain exactly one type"
         );
 
-        EvaluatedVariableConstraint {
+        let constraint = EvaluatedVariableConstraint {
             equal: self.equal,
             lower: self.lower.first().copied(),
             upper: self.upper.last().copied(),
-        }
+        };
+
+        (constraint, self.satisfiability)
     }
 }
 
@@ -228,7 +256,7 @@ impl VariableConstraint {
 ///
 /// Contains the reduced constraints (meet for lower bounds, join for upper bounds)
 /// that determine the variable's inferred type.
-#[derive(Debug, PartialEq, Eq, Default)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
 struct EvaluatedVariableConstraint {
     /// Final equality constraint
     equal: Option<TypeId>,
@@ -348,10 +376,13 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                     equal,
                     lower,
                     upper,
+                    satisfiability,
                 } = &mut lhs_constraint;
 
                 lower.append(&mut rhs_constraint.lower);
                 upper.append(&mut rhs_constraint.upper);
+
+                satisfiability.merge(rhs_constraint.satisfiability);
 
                 *equal = match (*equal, rhs_constraint.equal) {
                     (None, None) => None,
@@ -708,7 +739,6 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
             }
 
             // Now that we have all bounds, unify them
-
             // Combine into the loosest lower bound (join - least upper bound)
             let lower = variable_constraint
                 .lower
@@ -809,6 +839,11 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
             }
 
             // Combine into the tightest upper bound (meet - greatest lower bound)
+            // Track if all bounds were bottom types.
+            let only_bottoms = variable_constraint
+                .upper
+                .iter()
+                .all(|&upper| self.lattice.is_bottom(upper));
             let upper = variable_constraint
                 .upper
                 .iter()
@@ -831,7 +866,15 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
 
             variable_constraint.upper.clear();
             if let Some(upper) = upper {
+                let is_bottom = self.lattice.is_bottom(upper);
+
+                // Mark as unsatisfiable if we had valid constraints that resolved to an impossible
+                // type (bottom). This indicates conflicting upper bound constraints.
+                // Example: if X <: String and X <: Number, their meet is bottom (impossible).
+                let unsatisfiable = !only_bottoms && is_bottom;
+
                 variable_constraint.upper.push(upper);
+                variable_constraint.satisfiability.upper &= !unsatisfiable;
             }
         }
 
@@ -864,6 +907,44 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
 
         // Step 1.6: Perform the backward pass to resolve upper bounds
         self.apply_constraints_backwards(graph, bump, variables);
+    }
+
+    /// Validates that the given constraint is satisfiable for the specified variable.
+    ///
+    /// This function checks whether the evaluated constraint can be satisfied without
+    /// creating logical inconsistencies. Currently only validates upper bound constraints
+    /// by checking if an upper bound was marked as unsatisfiable during constraint
+    /// propagation.
+    ///
+    /// # Returns
+    ///
+    /// Returns `true` if the constraint is satisfiable, `false` otherwise. When unsatisfiable,
+    /// appropriate diagnostic errors are pushed to the solver's diagnostic collection.
+    fn solve_constraints_satisfiable(
+        &mut self,
+        variable: Variable,
+        constraint: EvaluatedVariableConstraint,
+        satisfiable: VariableConstraintSatisfiability,
+    ) -> bool {
+        let mut is_satisfiable = true;
+
+        // Check if we have an upper bound constraint that was marked as unsatisfiable during
+        // constraint propagation (e.g., when multiple upper bounds resulted in a bottom type)
+        if let EvaluatedVariableConstraint {
+            upper: Some(upper), ..
+        } = constraint
+            && !satisfiable.upper
+        {
+            self.diagnostics.push(unsatisfiable_upper_constraint(
+                &self.lattice,
+                upper,
+                variable,
+            ));
+
+            is_satisfiable = false;
+        }
+
+        is_satisfiable
     }
 
     /// Validates constraints and determines final variable types.
@@ -904,7 +985,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
 
         for (&kind, (variable, constraint)) in constraints {
             let variable = *variable;
-            let constraint = constraint.finish();
+            let (constraint, satisfiable) = constraint.finish();
 
             // First, verify that lower and upper bounds are compatible
             // (i.e., lower <: upper)
@@ -923,6 +1004,10 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                     self.lattice.r#type(upper),
                 ));
 
+                continue;
+            }
+
+            if !self.solve_constraints_satisfiable(variable, constraint, satisfiable) {
                 continue;
             }
 

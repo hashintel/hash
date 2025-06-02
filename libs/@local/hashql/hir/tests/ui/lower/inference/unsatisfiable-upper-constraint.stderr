@@ -1,0 +1,13 @@
+[31m[type-check::unsatisfiable-upper-constraint] Error:[0m Unsatisfiable upper constraint
+   ╭─[ <unknown>:7:17 ]
+   │
+ 7 │   { "#literal": "42", "#type": "_" }
+   │                 ──┬─            ┬  
+   │                   ╰──────────────── Upper constraint cannot be satisfied
+   │                                 │  
+   │                                 ╰── This variable has conflicting type requirements
+   │ 
+   │ Help: The inference variable `[90m_0[0m` has an upper bound constraint of type `([34mString[0m & [34mNumber[0m)` that cannot be satisfied. This typically means there are contradictory type requirements that make it impossible for any valid value to exist. Review the constraints placed on this variable.
+   │ 
+   │ Note: Upper bound constraints specify the most general type that a variable can be. When an upper constraint is unsatisfiable, it means the type system has determined that no type can meet all the requirements, often due to conflicting constraints from different parts of the code.
+───╯
