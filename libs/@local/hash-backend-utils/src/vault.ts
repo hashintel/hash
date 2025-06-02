@@ -1,6 +1,91 @@
+import { Sha256 } from "@aws-crypto/sha256-js";
+import { defaultProvider as credentialProvider } from "@aws-sdk/credential-provider-node";
 import type { ActorEntityUuid } from "@blockprotocol/type-system";
+import { HttpRequest } from "@smithy/protocol-http";
+import { SignatureV4 } from "@smithy/signature-v4";
 import type { AxiosError, AxiosInstance } from "axios";
-import axios from "axios";
+import axios, { AxiosHeaders } from "axios";
+
+const toBase64 = (str: string) => Buffer.from(str, "utf8").toString("base64");
+
+type VaultLoginResult = {
+  client_token: string;
+  lease_duration: number; // seconds
+  renewable: boolean;
+};
+
+/**
+ * Construct a signed AWS GetCallerIdentity request and send it to Vault.
+ *
+ * Vault will forward the request to AWS, and provide a token if the returned identity matches the ARN of an IAM role bound to a Vault role.
+ *
+ * @see https://developer.hashicorp.com/vault/docs/auth/aws
+ */
+const loginToVaultViaIam = async (opts: {
+  vaultAddr: string;
+}): Promise<VaultLoginResult> => {
+  const unsigned = new HttpRequest({
+    protocol: "https:",
+    hostname: "sts.amazonaws.com",
+    method: "POST",
+    path: "/",
+    headers: {
+      host: "sts.amazonaws.com",
+      "content-type": "application/x-www-form-urlencoded; charset=utf-8",
+    },
+    body: "Action=GetCallerIdentity&Version=2011-06-15",
+  });
+
+  const signer = new SignatureV4({
+    credentials: credentialProvider(),
+    service: "sts",
+    region: process.env.AWS_REGION ?? "us-east-1",
+    sha256: Sha256,
+  });
+
+  /**
+   * Sign the request to AWS. This does not involve a network call – it creates a hash using AWS's signing algorithm.
+   * The access ID of the credentials are transmitted as plain text, so that when Vault forwards the request to AWS,
+   * AWS can look up the secret key associated with the access ID and verify the request using the same algorithm.
+   */
+  const signed = await signer.sign(unsigned);
+
+  /**
+   * @see https://developer.hashicorp.com/vault/api-docs/auth/aws#login
+   */
+  const payload = {
+    iam_http_request_method: signed.method,
+    iam_request_url: toBase64(`https://${signed.hostname}${signed.path}`),
+    iam_request_body: toBase64(signed.body as string),
+    iam_request_headers: toBase64(JSON.stringify(signed.headers)),
+  };
+
+  const response = await axios.post<{ auth: VaultLoginResult }>(
+    `${opts.vaultAddr}/v1/auth/aws/login`,
+    payload,
+    { timeout: 5000 },
+  );
+
+  return response.data.auth;
+};
+
+const renewToken = async (
+  vaultAddr: string,
+  token: string,
+): Promise<Omit<VaultLoginResult, "client_token">> => {
+  const { data } = await axios.post<{
+    auth: Omit<VaultLoginResult, "client_token">;
+  }>(
+    `${vaultAddr}/v1/auth/token/renew-self`,
+    {},
+    {
+      headers: { "X-Vault-Token": token },
+      timeout: 5000,
+    },
+  );
+
+  return data.auth;
+};
 
 type VaultSecret<D = unknown> = {
   data: D;
@@ -15,18 +100,56 @@ type VaultSecret<D = unknown> = {
 
 type UserSecretPath = `users/${ActorEntityUuid}/${string}`;
 
-export class VaultClient {
-  client: AxiosInstance;
+type RenewableToken = {
+  clientToken: string;
+  leaseDurationMs: number;
+  renewable: boolean;
+};
 
-  constructor(params: { endpoint: string; token: string }) {
-    this.client = axios.create({
+export class VaultClient {
+  readonly #vaultAddr: string;
+
+  #client: AxiosInstance;
+  #token: RenewableToken | string;
+
+  constructor(params: { endpoint: string; token: string | RenewableToken }) {
+    this.#vaultAddr = params.endpoint;
+
+    this.#token = params.token;
+
+    this.#client = axios.create({
       baseURL: `${params.endpoint}/v1`,
       headers: {
-        "X-Vault-Token": params.token,
+        "X-Vault-Token":
+          typeof params.token === "string"
+            ? params.token
+            : params.token.clientToken,
       },
     });
 
-    this.client.interceptors.response.use(
+    this.#client.interceptors.request.use(async (cfg) => {
+      if (typeof this.#token === "string") {
+        return cfg;
+      }
+
+      /**
+       * Handle renewing the token if necessary.
+       */
+      await this.ensureToken();
+
+      // eslint-disable-next-line no-param-reassign
+      cfg.headers = new AxiosHeaders({
+        ...cfg.headers,
+        "X-Vault-Token":
+          typeof this.#token === "string"
+            ? this.#token
+            : this.#token.clientToken,
+      });
+
+      return cfg;
+    });
+
+    this.#client.interceptors.response.use(
       (response) => response,
       (error: AxiosError<{ errors: string[] }>) => {
         const vaultErrorMessages =
@@ -41,6 +164,48 @@ export class VaultClient {
     );
   }
 
+  private async ensureToken() {
+    if (typeof this.#token === "string") {
+      return;
+    }
+
+    const now = Date.now();
+
+    if (now < this.#token.leaseDurationMs - 60_000) {
+      /**
+       * The token is still valid for another minute, so we don't need to do anything.
+       */
+      return;
+    }
+
+    if (this.#token.renewable) {
+      try {
+        const renewedToken = await renewToken(
+          this.#vaultAddr,
+          this.#token.clientToken,
+        );
+
+        this.#token.leaseDurationMs = now + renewedToken.lease_duration * 1_000;
+
+        this.#token.renewable = renewedToken.renewable;
+        return;
+      } catch {
+        // eslint-disable-next-line no-console
+        console.warn("Failed to renew token, falling back to login");
+      }
+    }
+
+    const login = await loginToVaultViaIam({
+      vaultAddr: this.#vaultAddr,
+    });
+
+    this.#token = {
+      clientToken: login.client_token,
+      leaseDurationMs: now + login.lease_duration * 1_000,
+      renewable: login.renewable,
+    };
+  }
+
   async write<D extends object = Record<"value", string>>(params: {
     secretMountPath: "secret";
     path: UserSecretPath;
@@ -48,7 +213,7 @@ export class VaultClient {
   }): Promise<VaultSecret<D>> {
     const { secretMountPath, path, data } = params;
 
-    const response = await this.client.post<{ data: VaultSecret["metadata"] }>(
+    const response = await this.#client.post<{ data: VaultSecret["metadata"] }>(
       `/${secretMountPath}/data/${path.replace(/^\//, "")}`,
       { data },
     );
@@ -73,7 +238,7 @@ export class VaultClient {
       );
     }
 
-    const response = await this.client.get<{ data: VaultSecret<D> }>(
+    const response = await this.#client.get<{ data: VaultSecret<D> }>(
       `/${secretMountPath}/data/${path}`,
     );
 
@@ -81,15 +246,29 @@ export class VaultClient {
   }
 }
 
-export const createVaultClient = () => {
-  return process.env.HASH_VAULT_HOST &&
-    process.env.HASH_VAULT_PORT &&
-    process.env.HASH_VAULT_ROOT_TOKEN
-    ? new VaultClient({
-        endpoint: `${process.env.HASH_VAULT_HOST}:${process.env.HASH_VAULT_PORT}`,
-        token: process.env.HASH_VAULT_ROOT_TOKEN,
-      })
-    : undefined;
+export const createVaultClient = async () => {
+  if (!process.env.HASH_VAULT_HOST || !process.env.HASH_VAULT_PORT) {
+    return undefined;
+  }
+
+  if (!process.env.HASH_VAULT_ROOT_TOKEN) {
+    // eslint-disable-next-line no-console
+    console.info("No Vault root token provided, attempting IAM auth");
+
+    const login = await loginToVaultViaIam({
+      vaultAddr: `${process.env.HASH_VAULT_HOST}:${process.env.HASH_VAULT_PORT}`,
+    });
+
+    return new VaultClient({
+      endpoint: `${process.env.HASH_VAULT_HOST}:${process.env.HASH_VAULT_PORT}`,
+      token: login.client_token,
+    });
+  }
+
+  return new VaultClient({
+    endpoint: `${process.env.HASH_VAULT_HOST}:${process.env.HASH_VAULT_PORT}`,
+    token: process.env.HASH_VAULT_ROOT_TOKEN,
+  });
 };
 
 export type UserSecretService = "google" | "linear";
