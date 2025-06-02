@@ -9,7 +9,7 @@
 
 # Content
 
-This directory contains content from various of our websites (e.g. `hash.ai`, `hash.dev`, etc.) which is intended to be be publicly-editable. If you have a change suggestion, typo fix, or improvement, please feel free to open a PR. All submissions are reviewed by a human and only those deemed to be helpful will be accepted.
+This directory contains content from various of our websites (e.g. `hash.ai`, `hash.dev`, etc.) which is intended to be publicly-editable. If you have a change suggestion, typo fix, or improvement, please feel free to open a PR. All submissions are reviewed by a human and only those deemed to be helpful will be accepted.
 
 Content pertaining to the Block Protocol can be found separately in the [`blockprotocol/blockprotocol`] repository.
 
