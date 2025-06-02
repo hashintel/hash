@@ -1,42 +1,22 @@
-#![expect(clippy::min_ident_chars)]
+#![expect(clippy::min_ident_chars, clippy::unwrap_used)]
 use core::{assert_matches::assert_matches, fmt::Debug, iter};
 
 use super::{
     PartialType, TypeId, TypeKind,
-    environment::{AnalysisEnvironment, Environment, InferenceEnvironment, SimplifyEnvironment},
+    environment::{AnalysisEnvironment, Diagnostics, Environment, SimplifyEnvironment},
     inference::{Substitution, VariableKind, VariableLookup},
-    kind::{
-        Infer, Param,
-        generic::GenericArgumentId,
-        infer::HoleId,
-        test::{assert_equiv, intersection, primitive, tuple, union},
-    },
+    kind::{Infer, Param, generic::GenericArgumentId, infer::HoleId, test::assert_equiv},
 };
 use crate::{
-    heap::Heap,
     pretty::PrettyPrint as _,
     span::SpanId,
     symbol::Ident,
     r#type::{
-        environment::LatticeEnvironment,
+        builder::lazy,
         error::TypeCheckDiagnosticCategory,
-        kind::{
-            intersection::IntersectionType, primitive::PrimitiveType, tuple::TupleType,
-            union::UnionType,
-        },
         lattice::{Projection, Subscript},
     },
 };
-
-macro_rules! setup_analysis {
-    ($name:ident) => {
-        let heap = Heap::new();
-        let environment = Environment::new(SpanId::SYNTHETIC, &heap);
-
-        let mut $name = AnalysisEnvironment::new(&environment);
-        $name.with_diagnostics();
-    };
-}
 
 pub(crate) fn instantiate<'heap>(env: &Environment<'heap>, kind: TypeKind<'heap>) -> TypeId {
     let kind = env.intern_kind(kind);
@@ -69,14 +49,90 @@ pub(crate) fn instantiate_infer(
     instantiate(env, kind)
 }
 
+/// A testing utility macro that sets up the necessary infrastructure for type system tests.
+///
+/// This macro creates a heap, environment, and type builder, with optional specialized
+/// environments for different type system operations.
+///
+/// # Basic Usage
+///
+/// ```rust
+/// scaffold!(heap, env, builder);
+/// let my_type = builder.string();
+/// ```
+///
+/// # Additional Environments
+///
+/// The macro supports several optional environments:
+///
+/// - `analysis: <name>` - Creates an `AnalysisEnvironment` for subtyping and equivalence checks
+/// - `lattice: <name>` - Creates a `LatticeEnvironment` for join/meet operations and projections
+/// - `simplify: <name>` - Creates a `SimplifyEnvironment` for type simplification
+/// - `inference: <name>` - Creates an `InferenceEnvironment` for type inference operations
+macro_rules! scaffold {
+    ($heap:ident, $env:ident, $builder:ident $(,[$($extra:tt)*])?) => {
+        let $heap = crate::heap::Heap::new();
+        #[expect(clippy::allow_attributes)]
+        #[allow(unused_mut)]
+        let mut $env =
+            crate::r#type::environment::Environment::new(crate::span::SpanId::SYNTHETIC, &$heap);
+        let $builder = crate::r#type::TypeBuilder::synthetic(&$env);
+
+        scaffold!(@extra $env; $($($extra)*)?);
+    };
+
+    (@extra $env:ident;) => {};
+
+    (@extra $env:ident; analysis: $analysis:ident $(, $($extra:tt)*)?) => {
+        let mut $analysis = crate::r#type::environment::AnalysisEnvironment::new(&$env);
+        $analysis.with_diagnostics();
+
+        scaffold!(@extra $env; $($($extra)*)?);
+    };
+
+    (@extra $env:ident; lattice: $lattice:ident $(, $($extra:tt)*)?) => {
+        let mut $lattice = crate::r#type::environment::LatticeEnvironment::new(&$env);
+
+        scaffold!(@extra $env; $($($extra)*)?);
+    };
+
+    (@extra $env:ident; simplify: $simplify:ident $(, $($extra:tt)*)?) => {
+        let mut $simplify = crate::r#type::environment::SimplifyEnvironment::new(&$env);
+
+        scaffold!(@extra $env; $($($extra)*)?);
+    };
+
+    (@extra $env:ident; inference: $inference:ident $(, $($extra:tt)*)?) => {
+        let mut $inference = crate::r#type::environment::InferenceEnvironment::new(&$env);
+
+        scaffold!(@extra $env; $($($extra)*)?);
+    };
+}
+
+pub(crate) use scaffold;
+
+#[track_caller]
+pub(crate) fn assert_diagnostics(
+    diagnostics: Diagnostics,
+    categories: impl IntoIterator<Item = TypeCheckDiagnosticCategory, IntoIter: ExactSizeIterator>,
+) {
+    let categories = categories.into_iter();
+
+    assert_eq!(diagnostics.len(), categories.len());
+
+    for (diagnostic, category) in diagnostics.into_vec().into_iter().zip(categories) {
+        assert_eq!(diagnostic.category, category);
+    }
+}
+
 #[test]
 fn unify_never_types() {
-    setup_analysis!(env);
+    scaffold!(heap, env, builder, [analysis: analysis]);
 
-    let never1 = instantiate(&env, TypeKind::Never);
-    let never2 = instantiate(&env, TypeKind::Never);
+    let never1 = builder.never();
+    let never2 = builder.never();
 
-    env.is_subtype_of(never1, never2);
+    analysis.is_subtype_of(never1, never2);
 
     assert_matches!(env.r#type(never1).kind, TypeKind::Never);
     assert_matches!(env.r#type(never2).kind, TypeKind::Never);
@@ -84,15 +140,16 @@ fn unify_never_types() {
 
 #[test]
 fn never_with_other_type() {
-    setup_analysis!(env);
+    scaffold!(heap, env, builder, [analysis: analysis]);
 
-    let never = instantiate(&env, TypeKind::Never);
-    let other = instantiate(&env, TypeKind::Unknown);
+    let never = builder.never();
+    let other = builder.unknown();
 
-    env.is_subtype_of(never, other);
+    analysis.is_subtype_of(never, other);
 
     assert!(
-        env.take_diagnostics()
+        analysis
+            .take_diagnostics()
             .expect("should have diagnostics enabled")
             .is_empty(),
         "There should be an no error during unification"
@@ -104,12 +161,12 @@ fn never_with_other_type() {
 
 #[test]
 fn unify_unknown_types() {
-    setup_analysis!(env);
+    scaffold!(heap, env, builder, [analysis: analysis]);
 
-    let unknown1 = instantiate(&env, TypeKind::Unknown);
-    let unknown2 = instantiate(&env, TypeKind::Unknown);
+    let unknown1 = builder.unknown();
+    let unknown2 = builder.unknown();
 
-    env.is_subtype_of(unknown1, unknown2);
+    analysis.is_subtype_of(unknown1, unknown2);
 
     assert_matches!(env.r#type(unknown1).kind, TypeKind::Unknown);
     assert_matches!(env.r#type(unknown2).kind, TypeKind::Unknown);
@@ -117,15 +174,16 @@ fn unify_unknown_types() {
 
 #[test]
 fn unknown_with_other_type() {
-    setup_analysis!(env);
+    scaffold!(heap, env, builder, [analysis: analysis]);
 
-    let unknown = instantiate(&env, TypeKind::Unknown);
-    let never = instantiate(&env, TypeKind::Never);
+    let unknown = builder.unknown();
+    let never = builder.never();
 
-    env.is_subtype_of(unknown, never);
+    analysis.is_subtype_of(unknown, never);
 
     assert!(
-        env.take_diagnostics()
+        analysis
+            .take_diagnostics()
             .expect("should have diagnostics enabled")
             .is_empty()
     );
@@ -135,34 +193,17 @@ fn unknown_with_other_type() {
 
 #[test]
 fn direct_circular_reference() {
-    setup_analysis!(env);
+    scaffold!(heap, env, builder, [analysis: analysis]);
 
-    let a = env
-        .types
-        .intern(|tuple_id| PartialType {
-            span: SpanId::SYNTHETIC,
-            kind: env.intern_kind(TypeKind::Tuple(TupleType {
-                fields: env.intern_type_ids(&[tuple_id.value()]),
-            })),
-        })
-        .id;
-
-    let b = env
-        .types
-        .intern(|id| PartialType {
-            span: SpanId::SYNTHETIC,
-            kind: env.intern_kind(TypeKind::Tuple(TupleType {
-                fields: env.intern_type_ids(&[id.value()]),
-            })),
-        })
-        .id;
+    let a = builder.tuple(lazy(|id, _| [id.value()]));
+    let b = builder.tuple(lazy(|id, _| [id.value()]));
 
     // Test subtyping with the circular type
-    assert!(env.is_subtype_of(a, b));
-    assert!(env.is_subtype_of(b, a));
+    assert!(analysis.is_subtype_of(a, b));
+    assert!(analysis.is_subtype_of(b, a));
 
     // Ensure should be an error reported
-    assert_eq!(env.fatal_diagnostics(), 0);
+    assert_eq!(analysis.fatal_diagnostics(), 0);
 
     // Verify the tuple structure is preserved
     if let TypeKind::Tuple(tuple) = env.r#type(a).kind {
@@ -174,197 +215,117 @@ fn direct_circular_reference() {
 
 #[test]
 fn indirect_circular_reference() {
-    setup_analysis!(env);
+    scaffold!(heap, env, builder, [analysis: analysis]);
 
     // Create a cycle: A → B → C → A
     let mut c = None;
     let mut b = None;
-    let a = env
-        .types
-        .intern(|a_id| PartialType {
-            span: SpanId::SYNTHETIC,
-            kind: env.intern_kind(TypeKind::Tuple(TupleType {
-                fields: env.intern_type_ids(&[env
-                    .types
-                    .intern(|b_id| {
-                        b = Some(b_id);
+    let a = builder.tuple(lazy(|a_id, _| {
+        [builder.tuple(lazy(|b_id, _| {
+            b = Some(b_id);
+            [builder.tuple(lazy(|c_id, _| {
+                c = Some(c_id);
+                [a_id.value()]
+            }))]
+        }))]
+    }));
 
-                        PartialType {
-                            span: SpanId::SYNTHETIC,
-                            kind: env.intern_kind(TypeKind::Tuple(TupleType {
-                                fields: env.intern_type_ids(&[env
-                                    .types
-                                    .intern(|c_id| {
-                                        c = Some(c_id);
-
-                                        PartialType {
-                                            span: SpanId::SYNTHETIC,
-                                            kind: env.intern_kind(TypeKind::Tuple(TupleType {
-                                                fields: env.intern_type_ids(&[a_id.value()]),
-                                            })),
-                                        }
-                                    })
-                                    .id]),
-                            })),
-                        }
-                    })
-                    .id]),
-            })),
-        })
-        .id;
     let b = b.expect("b should be Some").value();
     let c = c.expect("c should be Some").value();
 
     // Test subtyping with circular references
-    assert!(env.is_subtype_of(a, b));
-    assert!(env.is_subtype_of(b, c));
-    assert!(env.is_subtype_of(c, a));
+    assert!(analysis.is_subtype_of(a, b));
+    assert!(analysis.is_subtype_of(b, c));
+    assert!(analysis.is_subtype_of(c, a));
 
-    assert_eq!(env.fatal_diagnostics(), 0);
+    assert_eq!(analysis.fatal_diagnostics(), 0);
 
     // Verify the structure of the types
-    if let TypeKind::Tuple(tuple) = env.r#type(a).kind {
-        assert_eq!(tuple.fields.len(), 1);
-    } else {
-        panic!("Expected a tuple type for A");
-    }
-
-    if let TypeKind::Tuple(tuple) = env.r#type(b).kind {
-        assert_eq!(tuple.fields.len(), 1);
-    } else {
-        panic!("Expected a tuple type for B");
-    }
-
-    if let TypeKind::Tuple(tuple) = env.r#type(c).kind {
-        assert_eq!(tuple.fields.len(), 1);
-    } else {
-        panic!("Expected a tuple type for C");
-    }
+    assert_eq!(env.r#type(a).kind.tuple().unwrap().fields.len(), 1);
+    assert_eq!(env.r#type(b).kind.tuple().unwrap().fields.len(), 1);
+    assert_eq!(env.r#type(c).kind.tuple().unwrap().fields.len(), 1);
 }
 
 #[test]
 fn alternating_direction_cycle() {
-    setup_analysis!(env);
+    scaffold!(heap, env, builder, [analysis: analysis]);
 
     // Create types that will form a cycle but with alternating directions
     // We'll use union and intersection types to create the alternating pattern
 
     // Create base types
-    let number = instantiate(&env, TypeKind::Primitive(PrimitiveType::Number));
-    let string = instantiate(&env, TypeKind::Primitive(PrimitiveType::String));
-    let boolean = instantiate(&env, TypeKind::Primitive(PrimitiveType::Boolean));
+    let number = builder.number();
+    let string = builder.string();
+    let boolean = builder.boolean();
 
     // Create a cycle with alternating directions:
     // Union (A) -> Intersection (B) -> Union (A)
     let mut intersection_id = None;
-    let union_id = env
-        .types
-        .intern(|union_id| PartialType {
-            span: SpanId::SYNTHETIC,
-            kind: env.intern_kind(TypeKind::Union(UnionType {
-                variants: env.intern_type_ids(&[
-                    number,
-                    env.types
-                        .intern(|intersection_id_inner| {
-                            intersection_id = Some(intersection_id_inner);
-
-                            PartialType {
-                                span: SpanId::SYNTHETIC,
-                                kind: env.intern_kind(TypeKind::Intersection(IntersectionType {
-                                    variants: env.intern_type_ids(&[
-                                        string,
-                                        boolean,
-                                        union_id.value(),
-                                    ]),
-                                })),
-                            }
-                        })
-                        .id,
-                ]),
+    let union_id = builder.union(lazy(|union_id, _| {
+        [
+            number,
+            builder.intersection(lazy(|intersection_id_provisioned, _| {
+                intersection_id = Some(intersection_id_provisioned);
+                [string, boolean, union_id.value()]
             })),
-        })
-        .id;
+        ]
+    }));
+
     let intersection_id = intersection_id
         .expect("intersection_id should be Some")
         .value();
 
     // Test the cycle with subtyping - these should succeed with recursive handling
-    assert!(env.is_subtype_of(union_id, union_id));
-    assert!(env.is_subtype_of(intersection_id, intersection_id));
+    assert!(analysis.is_subtype_of(union_id, union_id));
+    assert!(analysis.is_subtype_of(intersection_id, intersection_id));
 
     // Ensure no errors occurred during subtyping
-    assert_eq!(env.fatal_diagnostics(), 0);
+    assert_eq!(analysis.fatal_diagnostics(), 0);
 
     // Verify the structure of the types is preserved
-    if let TypeKind::Union(union) = env.r#type(union_id).kind {
-        assert_eq!(union.variants.len(), 2);
-    } else {
-        panic!("Expected a union type");
-    }
-
-    if let TypeKind::Intersection(intersection) = env.r#type(intersection_id).kind {
-        assert_eq!(intersection.variants.len(), 3);
-    } else {
-        panic!("Expected an intersection type");
-    }
+    assert_eq!(env.r#type(union_id).kind.union().unwrap().variants.len(), 2);
+    assert_eq!(
+        env.r#type(intersection_id)
+            .kind
+            .intersection()
+            .unwrap()
+            .variants
+            .len(),
+        3
+    );
 }
 
 #[test]
 fn recursive_type_equivalence() {
-    setup_analysis!(env);
+    scaffold!(heap, env, builder, [analysis: analysis]);
 
     // Create two structurally equivalent recursive types (linked list nodes)
-    let number = instantiate(&env, TypeKind::Primitive(PrimitiveType::Number));
+    let number = builder.number();
 
     // First recursive type - A tuple that contains a Number and a reference to itself
-    let list1_id = env
-        .types
-        .intern(|id| {
-            PartialType {
-                span: SpanId::SYNTHETIC,
-                kind: env.intern_kind(TypeKind::Tuple(TupleType {
-                    fields: env.intern_type_ids(&[number, id.value()]), // [value, next]
-                })),
-            }
-        })
-        .id;
+    let list1_id = builder.tuple(
+        lazy(|id, _| [number, id.value()]), // [value, next]
+    );
 
     // Second recursive type - A structurally identical tuple
-    let list2_id = env
-        .types
-        .intern(|id| {
-            PartialType {
-                span: SpanId::SYNTHETIC,
-                kind: env.intern_kind(TypeKind::Tuple(TupleType {
-                    fields: env.intern_type_ids(&[number, id.value()]), // [value, next]
-                })),
-            }
-        })
-        .id;
+    let list2_id = builder.tuple(
+        lazy(|id, _| [number, id.value()]), // [value, next]
+    );
 
     // Test that the two recursive types are structurally equivalent
-    assert!(env.is_equivalent(list1_id, list2_id));
+    assert!(analysis.is_equivalent(list1_id, list2_id));
 
     // Ensure no errors occurred
-    assert_eq!(env.fatal_diagnostics(), 0);
+    assert_eq!(analysis.fatal_diagnostics(), 0);
 
     // Verify that both types have the correct structure
-    if let TypeKind::Tuple(tuple) = env.r#type(list1_id).kind {
-        assert_eq!(tuple.fields.len(), 2);
-    } else {
-        panic!("Expected a tuple type for list1");
-    }
-
-    if let TypeKind::Tuple(tuple) = env.r#type(list2_id).kind {
-        assert_eq!(tuple.fields.len(), 2);
-    } else {
-        panic!("Expected a tuple type for list2");
-    }
+    assert_eq!(env.r#type(list1_id).kind.tuple().unwrap().fields.len(), 2);
+    assert_eq!(env.r#type(list2_id).kind.tuple().unwrap().fields.len(), 2);
 }
 
 #[test]
 fn recursive_subtyping() {
-    setup_analysis!(env);
+    scaffold!(heap, env, builder, [analysis: analysis]);
 
     // Example:
     // type A = (Integer, A)
@@ -372,186 +333,122 @@ fn recursive_subtyping() {
     // A <: B should be true according to coinductive subtyping
 
     // Create the primitive types
-    let integer = instantiate(&env, TypeKind::Primitive(PrimitiveType::Integer));
-    let number = instantiate(&env, TypeKind::Primitive(PrimitiveType::Number));
+    let integer = builder.integer();
+    let number = builder.number();
 
     // Create type A = (Integer, A)
-    let type_a = env
-        .types
-        .intern(|id| {
-            PartialType {
-                span: SpanId::SYNTHETIC,
-                kind: env.intern_kind(TypeKind::Tuple(TupleType {
-                    fields: env.intern_type_ids(&[integer, id.value()]), // [Integer, self]
-                })),
-            }
-        })
-        .id;
+    let type_a = builder.tuple(lazy(|id, _| [integer, id.value()])); // [Integer, self]
 
     // Create type B = (Number, B)
-    let type_b = env
-        .types
-        .intern(|id| {
-            PartialType {
-                span: SpanId::SYNTHETIC,
-                kind: env.intern_kind(TypeKind::Tuple(TupleType {
-                    fields: env.intern_type_ids(&[number, id.value()]), // [Number, self]
-                })),
-            }
-        })
-        .id;
+    let type_b = builder.tuple(lazy(|id, _| [number, id.value()])); // [Number, self]
 
     // Test subtyping relationship A <: B
     // Since Integer <: Number, and we use coinductive reasoning for the recursive part,
     // A <: B should be true
     assert!(
-        env.is_subtype_of(type_a, type_b),
+        analysis.is_subtype_of(type_a, type_b),
         "A should be a subtype of B"
     );
 
     // The reverse should not be true: B </: A
     // Since Number </: Integer
     assert!(
-        !env.is_subtype_of(type_b, type_a),
+        !analysis.is_subtype_of(type_b, type_a),
         "B should not be a subtype of A"
     );
 
-    assert_eq!(env.fatal_diagnostics(), 1);
+    assert_eq!(analysis.fatal_diagnostics(), 1);
 }
 
 #[test]
 fn recursive_join_operation() {
-    setup_analysis!(env);
+    scaffold!(heap, env, builder, [analysis: analysis, lattice: lattice]);
 
     // Test the join (least upper bound) operation with recursive types
     // Create the primitive types
-    let integer = instantiate(&env, TypeKind::Primitive(PrimitiveType::Integer));
-    let number = instantiate(&env, TypeKind::Primitive(PrimitiveType::Number));
+    let integer = builder.integer();
+    let number = builder.number();
 
     // Create type A = (Integer, A)
-    let type_a = env
-        .types
-        .intern(|id| {
-            PartialType {
-                span: SpanId::SYNTHETIC,
-                kind: env.intern_kind(TypeKind::Tuple(TupleType {
-                    fields: env.intern_type_ids(&[integer, id.value()]), // [Integer, self]
-                })),
-            }
-        })
-        .id;
+    let type_a = builder.tuple(
+        lazy(|id, _| [integer, id.value()]), // [Integer, self]
+    );
 
     // Create type B = (Number, B)
-    let type_b = env
-        .types
-        .intern(|id| {
-            PartialType {
-                span: SpanId::SYNTHETIC,
-                kind: env.intern_kind(TypeKind::Tuple(TupleType {
-                    fields: env.intern_type_ids(&[number, id.value()]), // [Number, self]
-                })),
-            }
-        })
-        .id;
+    let type_b = builder.tuple(
+        lazy(|id, _| [number, id.value()]), // [Number, self]
+    );
 
     // First check subtyping relationships to confirm our premise
     assert!(
-        env.is_subtype_of(type_a, type_b),
+        analysis.is_subtype_of(type_a, type_b),
         "A should be a subtype of B"
     );
 
-    let mut lattice_env = LatticeEnvironment::new(&env);
-
     // Since A <: B, join(A, B) should be B
-    let joined = lattice_env.join(type_a, type_b);
-
-    // Create a new analysis environment to check equivalence
-    let mut analysis_env = AnalysisEnvironment::new(&env);
-    analysis_env.with_diagnostics();
+    let joined = lattice.join(type_a, type_b);
 
     // The join should produce something that acts like B (in this case, it should be a supertype of
     // A)
     assert!(
-        analysis_env.is_subtype_of(type_a, joined),
+        analysis.is_subtype_of(type_a, joined),
         "type_a should be a subtype of join result"
     );
 
     // Ensure the join implementation didn't produce errors
-    assert_eq!(lattice_env.diagnostics.fatal(), 0);
+    assert_eq!(lattice.diagnostics.fatal(), 0);
 }
 
 #[test]
 fn recursive_meet_operation() {
-    setup_analysis!(env);
+    scaffold!(heap, env, builder, [analysis: analysis,lattice: lattice]);
 
     // Test the meet (greatest lower bound) operation with recursive types
     // Create the primitive types
-    let integer = instantiate(&env, TypeKind::Primitive(PrimitiveType::Integer));
-    let number = instantiate(&env, TypeKind::Primitive(PrimitiveType::Number));
+    let integer = builder.integer();
+    let number = builder.number();
 
     // Create type A = (Integer, A)
-    let type_a = env
-        .types
-        .intern(|id| {
-            PartialType {
-                span: SpanId::SYNTHETIC,
-                kind: env.intern_kind(TypeKind::Tuple(TupleType {
-                    fields: env.intern_type_ids(&[integer, id.value()]), // [Integer, self]
-                })),
-            }
-        })
-        .id;
+    let type_a = builder.tuple(lazy(|id, _| [integer, id.value()]));
 
     // Create type B = (Number, B)
-    let type_b = env
-        .types
-        .intern(|id| {
-            PartialType {
-                span: SpanId::SYNTHETIC,
-                kind: env.intern_kind(TypeKind::Tuple(TupleType {
-                    fields: env.intern_type_ids(&[number, id.value()]), // [Number, self]
-                })),
-            }
-        })
-        .id;
-
-    // Create a lattice environment to perform meet operation
-    let mut lattice_env = LatticeEnvironment::new(&env);
+    let type_b = builder.tuple(lazy(|id, _| [number, id.value()]));
 
     // Since A <: B, meet(A, B) should be A
-    let met = lattice_env.meet(type_a, type_b);
+    let met = lattice.meet(type_a, type_b);
 
     // Ensure the meet implementation didn't produce errors
-    assert_eq!(lattice_env.diagnostics.fatal(), 0);
+    assert_eq!(lattice.diagnostics.fatal(), 0);
 
     // The meet should produce something equivalent to A
     assert!(
-        env.is_equivalent(met, type_a),
+        analysis.is_equivalent(met, type_a),
         "meet(A, B) should be equivalent to A"
     );
 }
 
 #[test]
 fn recursive_simplify() {
+    scaffold!(heap, env, builder);
+
     // If we have a type that's referencing itself in the substitution during simplification, we
     // should not error out but veil ourselves in a thin generic.
-    let heap = Heap::new();
-    let mut env = Environment::new(SpanId::SYNTHETIC, &heap);
 
-    let hole = env.counter.hole.next();
-    let infer = instantiate_infer(&env, hole);
+    let hole = builder.fresh_hole();
+    let infer = builder.infer(hole);
 
     let substitution = Substitution::new(
         VariableLookup::new(
             iter::once((VariableKind::Hole(hole), VariableKind::Hole(hole))).collect(),
         ),
-        iter::once((VariableKind::Hole(hole), tuple!(env, [infer]))).collect(),
+        iter::once((VariableKind::Hole(hole), builder.tuple([infer]))).collect(),
     );
 
     env.substitution = substitution;
 
     let mut simplify = SimplifyEnvironment::new(&env);
     let result_id = simplify.simplify(infer);
+
     // The result should be a generic type
     let result = env.r#type(result_id);
     let generic = result.kind.generic().expect("should be a generic");
@@ -560,109 +457,76 @@ fn recursive_simplify() {
     let base = env.r#type(generic.base);
     let tuple = base.kind.tuple().expect("should be a tuple");
 
-    assert_eq!(tuple.fields.len(), 1);
-    assert_eq!(tuple.fields[0], result_id);
+    assert_eq!(*tuple.fields, [result_id]);
 }
 
 #[test]
 fn never_projection() {
-    let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    scaffold!(heap, env, builder, [lattice: lattice]);
 
-    let mut lattice = LatticeEnvironment::new(&env);
-
-    let result = lattice.projection(
-        instantiate(&env, TypeKind::Never),
-        Ident::synthetic(heap.intern_symbol("foo")),
-    );
+    let result = lattice.projection(builder.never(), Ident::synthetic(heap.intern_symbol("foo")));
     assert_eq!(result, Projection::Error);
 
-    let diagnostics = lattice.take_diagnostics().into_vec();
-    assert_eq!(diagnostics.len(), 1);
-    assert_eq!(
-        diagnostics[0].category,
-        TypeCheckDiagnosticCategory::UnsupportedProjection
+    let diagnostics = lattice.take_diagnostics();
+    assert_diagnostics(
+        diagnostics,
+        [TypeCheckDiagnosticCategory::UnsupportedProjection],
     );
 }
 
 #[test]
 fn never_subscript() {
-    let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    scaffold!(heap, env, builder, [lattice: lattice, inference: inference]);
 
-    let mut lattice = LatticeEnvironment::new(&env);
-    let mut inference = InferenceEnvironment::new(&env);
-
-    let result = lattice.subscript(
-        instantiate(&env, TypeKind::Never),
-        primitive!(env, PrimitiveType::String),
-        &mut inference,
-    );
+    let result = lattice.subscript(builder.never(), builder.string(), &mut inference);
     assert_eq!(result, Subscript::Error);
 
-    let diagnostics = lattice.take_diagnostics().into_vec();
-    assert_eq!(diagnostics.len(), 1);
-    assert_eq!(
-        diagnostics[0].category,
-        TypeCheckDiagnosticCategory::UnsupportedSubscript
+    let diagnostics = lattice.take_diagnostics();
+    assert_diagnostics(
+        diagnostics,
+        [TypeCheckDiagnosticCategory::UnsupportedSubscript],
     );
 }
 
 #[test]
 fn unknown_projection() {
-    let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
-
-    let mut lattice = LatticeEnvironment::new(&env);
+    scaffold!(heap, env, builder, [lattice: lattice]);
 
     let result = lattice.projection(
-        instantiate(&env, TypeKind::Unknown),
+        builder.unknown(),
         Ident::synthetic(heap.intern_symbol("foo")),
     );
     assert_eq!(result, Projection::Error);
 
-    let diagnostics = lattice.take_diagnostics().into_vec();
-    assert_eq!(diagnostics.len(), 1);
-    assert_eq!(
-        diagnostics[0].category,
-        TypeCheckDiagnosticCategory::UnsupportedProjection
+    let diagnostics = lattice.take_diagnostics();
+    assert_diagnostics(
+        diagnostics,
+        [TypeCheckDiagnosticCategory::UnsupportedProjection],
     );
 }
 
 #[test]
 fn unknown_subscript() {
-    let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    scaffold!(heap, env, builder, [lattice: lattice, inference: inference]);
 
-    let mut lattice = LatticeEnvironment::new(&env);
-    let mut inference = InferenceEnvironment::new(&env);
-
-    let result = lattice.subscript(
-        instantiate(&env, TypeKind::Unknown),
-        primitive!(env, PrimitiveType::String),
-        &mut inference,
-    );
+    let result = lattice.subscript(builder.unknown(), builder.string(), &mut inference);
     assert_eq!(result, Subscript::Error);
 
-    let diagnostics = lattice.take_diagnostics().into_vec();
-    assert_eq!(diagnostics.len(), 1);
-    assert_eq!(
-        diagnostics[0].category,
-        TypeCheckDiagnosticCategory::UnsupportedSubscript
+    assert_diagnostics(
+        lattice.take_diagnostics(),
+        [TypeCheckDiagnosticCategory::UnsupportedSubscript],
     );
 }
 
 #[test]
 fn simplify_nested_union_intersection() {
-    let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
+    scaffold!(heap, env, builder, [simplify: simplify]);
 
-    let integer = primitive!(env, PrimitiveType::Integer);
-    let string = primitive!(env, PrimitiveType::String);
+    let value = builder.intersection([
+        builder.union([builder.integer(), builder.string()]),
+        builder.string(),
+    ]);
 
-    let value = intersection!(env, [union!(env, [integer, string]), string]);
-
-    let mut simplify = SimplifyEnvironment::new(&env);
     let simplified = simplify.simplify(value);
-    assert_equiv!(env, [simplified], [string]);
+    assert_equiv!(env, [simplified], [builder.string()]);
 }
