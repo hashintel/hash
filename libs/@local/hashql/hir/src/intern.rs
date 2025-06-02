@@ -1,8 +1,9 @@
 use hashql_core::{
     heap::Heap,
     intern::{InternMap, InternSet, Interned},
+    span::Spanned,
     symbol::Ident,
-    r#type::kind::generic::GenericArgumentReference,
+    r#type::{TypeId, kind::generic::GenericArgumentReference},
 };
 
 use crate::node::{Node, PartialNode, call::CallArgument, closure::ClosureParam};
@@ -11,6 +12,7 @@ use crate::node::{Node, PartialNode, call::CallArgument, closure::ClosureParam};
 pub struct Interner<'heap> {
     pub nodes: InternSet<'heap, [Node<'heap>]>,
     pub idents: InternSet<'heap, [Ident<'heap>]>,
+    pub type_ids: InternSet<'heap, [Spanned<TypeId>]>,
     pub closure_generics: InternSet<'heap, [GenericArgumentReference<'heap>]>,
     pub closure_params: InternSet<'heap, [ClosureParam<'heap>]>,
     pub call_arguments: InternSet<'heap, [CallArgument<'heap>]>,
@@ -23,6 +25,7 @@ impl<'heap> Interner<'heap> {
         Self {
             nodes: InternSet::new(heap),
             idents: InternSet::new(heap),
+            type_ids: InternSet::new(heap),
             closure_generics: InternSet::new(heap),
             closure_params: InternSet::new(heap),
             call_arguments: InternSet::new(heap),
@@ -37,6 +40,13 @@ impl<'heap> Interner<'heap> {
 
     pub fn intern_idents(&self, idents: &[Ident<'heap>]) -> Interned<'heap, [Ident<'heap>]> {
         self.idents.intern_slice(idents)
+    }
+
+    pub fn intern_type_ids(
+        &self,
+        type_ids: &[Spanned<TypeId>],
+    ) -> Interned<'heap, [Spanned<TypeId>]> {
+        self.type_ids.intern_slice(type_ids)
     }
 
     pub fn intern_closure_generics(

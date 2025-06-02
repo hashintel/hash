@@ -1,7 +1,7 @@
 pub mod apply;
 pub mod param;
 
-use core::{hash::Hash, ops::Deref};
+use core::{fmt::Display, hash::Hash, ops::Deref};
 
 use pretty::{DocAllocator as _, RcAllocator, RcDoc};
 
@@ -14,7 +14,7 @@ use crate::{
     collection::{SmallVec, TinyVec},
     intern::Interned,
     newtype, newtype_producer,
-    pretty::{ORANGE, PrettyPrint, PrettyRecursionBoundary},
+    pretty::{ORANGE, PrettyPrint, PrettyRecursionBoundary, display::DisplayBuilder},
     span::SpanId,
     symbol::{Ident, Symbol},
     r#type::{
@@ -51,6 +51,13 @@ impl<'heap> GenericArgumentReference<'heap> {
             name,
             constraint,
         }
+    }
+
+    #[must_use]
+    pub fn display(references: &[Self]) -> impl Display {
+        DisplayBuilder::new(references.iter().map(|reference| reference.name.demangle()))
+            .separated(", ")
+            .delimited("<", ">")
     }
 }
 

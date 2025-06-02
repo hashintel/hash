@@ -1,0 +1,12 @@
+//@ run: fail
+//@ description: Test that we error out if there are too many arguments for a constructor.
+[
+  "newtype",
+  "Person<T, U>",
+  { "#struct": { "name": "T", "age": "U" } },
+  [
+    "Person<Number, String, Integer>",
+    //~^ ERROR Remove this argument
+    { "#literal": 30 }
+  ]
+]

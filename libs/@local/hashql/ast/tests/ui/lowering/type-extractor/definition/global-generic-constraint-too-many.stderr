@@ -3,7 +3,7 @@
    │
  6 │   "Some<String, Number>",
    │    ──────────┬─────┬───  
-   │              │     ╰───── Remove this parameter
+   │              │     ╰───── Remove this argument
    │              │           
    │              ╰─────────── Type `::kernel::type::Some` takes 1 type parameter, but 2 were provided
    │ 
