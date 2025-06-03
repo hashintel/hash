@@ -470,10 +470,10 @@ fn main() {
         workspace: &workspace,
     };
 
-    let args_set = iter::from_fn(|| args.next()).collect::<HashSet<_>>();
+    let requested_packages = iter::from_fn(|| args.next()).collect::<HashSet<_>>();
 
     for member in workspace.members() {
-        if !args_set.is_empty() && !args_set.contains(&member.package_name()) {
+        if !requested_packages.is_empty() && !requested_packages.contains(&member.package_name()) {
             continue;
         }
         eprintln!("Syncing {}...", member.package_name());
