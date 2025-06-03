@@ -12,7 +12,7 @@ nodejs_package_json = { version = "*", features = ["serialize"] }
 
 use std::{
     collections::{BTreeMap, BTreeSet, HashMap, HashSet},
-    env, fs,
+    env, fs, iter,
     path::{Path, PathBuf},
 };
 
@@ -116,7 +116,10 @@ impl<'a> WorkspaceMember<'a> {
         if let Some(sync) = self.package.metadata.get("sync") {
             if let Some(turborepo) = sync.get("turborepo") {
                 if let Some(package_name) = turborepo.get("package-name") {
-                    return package_name.as_str().expect("package-name should be a string").to_owned();
+                    return package_name
+                        .as_str()
+                        .expect("package-name should be a string")
+                        .to_owned();
                 };
             };
         };
@@ -211,11 +214,13 @@ impl<'a> WorkspaceMember<'a> {
         dependencies
             .iter()
             .map(|dependency| {
-                dependency.as_str().expect("dependency should be a string").to_owned()
+                dependency
+                    .as_str()
+                    .expect("dependency should be a string")
+                    .to_owned()
             })
             .collect()
     }
-
 
     fn extra_dependencies(&self) -> BTreeMap<String, String> {
         let Some(sync) = self.package.metadata.get("sync") else {
@@ -465,7 +470,12 @@ fn main() {
         workspace: &workspace,
     };
 
+    let args_set = iter::from_fn(|| args.next()).collect::<HashSet<_>>();
+
     for member in workspace.members() {
+        if !args_set.is_empty() && !args_set.contains(&member.package_name()) {
+            continue;
+        }
         eprintln!("Syncing {}...", member.package_name());
         let path = member.sync(ctx);
         if let Some(path) = path {

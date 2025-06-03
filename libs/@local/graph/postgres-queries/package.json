@@ -1,0 +1,17 @@
+{
+  "name": "@rust/hash-graph-postgres-queries",
+  "version": "0.0.0-private",
+  "private": true,
+  "license": "AGPL-3",
+  "scripts": {
+    "doc:dependency-diagram": "cargo run -p hash-repo-chores -- dependency-diagram --output docs/dependency-diagram.mmd --root hash-graph-postgres-queries --root-deps-and-dependents --link-mode non-roots --include-dev-deps --include-build-deps --logging-console-level info",
+    "fix:clippy": "just clippy --fix",
+    "lint:clippy": "just clippy",
+    "test:integration": "clorinde live \"postgresql://${HASH_GRAPH_PG_USER:-graph}:${HASH_GRAPH_PG_PASSWORD:-graph}@${HASH_GRAPH_PG_HOST:-localhost}:${HASH_GRAPH_PG_PORT:-5432}/${HASH_GRAPH_PG_DATABASE:-graph}\" && printf '\n[lints.rust]\ndead_code = \"allow\"\nexported_private_dependencies = \"allow\"\nunused_imports = \"allow\"' >> clorinde/Cargo.toml && just sync-turborepo @rust/clorinde && git diff --exit-code clorinde"
+  },
+  "dependencies": {
+    "@blockprotocol/type-system-rs": "0.0.0-private",
+    "@rust/clorinde": "0.0.0-private",
+    "@rust/hash-graph-authorization": "0.0.0-private"
+  }
+}

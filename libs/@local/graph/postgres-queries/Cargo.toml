@@ -1,0 +1,24 @@
+# This file was generated with `clorinde`. Do not modify.
+[package]
+name              = "hash-graph-postgres-queries"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+authors.workspace = true
+
+[dependencies]
+# Public workspace dependencies
+hash-graph-authorization = { workspace = true, public = true }
+type-system              = { workspace = true, public = true }
+
+# Public third-party dependencies
+
+# Private workspace dependencies
+clorinde = { path = "clorinde", default-features = false }
+
+# Private third-party dependencies
+simple-mermaid = { workspace = true }
+
+[lints]
+workspace = true

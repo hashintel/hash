@@ -1,0 +1,43 @@
+graph TD
+    linkStyle default stroke-width:1.5px
+    classDef default stroke-width:1px
+    classDef root stroke-width:3px
+    classDef dev stroke-width:1px
+    classDef build stroke-width:1px
+    %% Legend
+    %% --> : Normal dependency
+    %% -.-> : Dev dependency
+    %% ---> : Build dependency
+    0[<a href="../hash_graph">hash-graph</a>]
+    1[<a href="../type_system">type-system</a>]
+    2[<a href="../hash_codec">hash-codec</a>]
+    3[<a href="../hash_codegen">hash-codegen</a>]
+    4[<a href="../hash_graph_api">hash-graph-api</a>]
+    5[<a href="../hash_graph_authorization">hash-graph-authorization</a>]
+    6[hash-graph-postgres-queries]
+    class 6 root
+    7[<a href="../hash_graph_postgres_store">hash-graph-postgres-store</a>]
+    8[<a href="../hash_graph_temporal_versioning">hash-graph-temporal-versioning</a>]
+    9[<a href="../hash_graph_test_server">hash-graph-test-server</a>]
+    10[<a href="../harpc_types">harpc-types</a>]
+    11[<a href="../harpc_wire_protocol">harpc-wire-protocol</a>]
+    12[<a href="../error_stack">error-stack</a>]
+    13[<a href="../hash_graph_benches">hash-graph-benches</a>]
+    14[<a href="../hash_graph_integration">hash-graph-integration</a>]
+    15[<a href="../hash_graph_test_data">hash-graph-test-data</a>]
+    0 --> 9
+    1 --> 8
+    1 -.-> 15
+    2 -.-> 3
+    2 --> 11
+    4 --> 7
+    5 --> 1
+    6 --> 5
+    7 --> 6
+    8 --> 2
+    9 --> 4
+    11 -.-> 10
+    11 --> 10
+    11 --> 12
+    13 -.-> 4
+    14 -.-> 7
