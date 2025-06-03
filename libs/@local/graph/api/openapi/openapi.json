@@ -3377,6 +3377,44 @@
           "Graph",
           "Permission"
         ],
+        "operationId": "archive_policy_by_id",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          },
+          {
+            "name": "policy_id",
+            "in": "path",
+            "description": "The ID of the policy to delete",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "The policy was removed successfully"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
+    "/policies/{policy_id}/delete": {
+      "delete": {
+        "tags": [
+          "Graph",
+          "Permission"
+        ],
         "operationId": "delete_policy_by_id",
         "parameters": [
           {

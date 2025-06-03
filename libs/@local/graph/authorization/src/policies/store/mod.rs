@@ -263,9 +263,28 @@ pub trait PolicyStore {
         operations: &[PolicyUpdateOperation],
     ) -> Result<Policy, Report<UpdatePolicyError>>;
 
-    /// Updates the policy specified by it's ID.
+    /// Archives the policy specified by it's ID.
     ///
-    /// All specified operations are applied to the policy in the order they are provided.
+    /// # Errors
+    ///
+    /// - [`PolicyNotFound`] if the policy does not exist
+    /// - [`StoreError`] if a database or storage level error occurs
+    ///
+    /// [`PolicyNotFound`]: RemovePolicyError::PolicyNotFound
+    /// [`StoreError`]: RemovePolicyError::StoreError
+    async fn archive_policy_by_id(
+        &mut self,
+        authenticated_actor: ActorEntityUuid,
+        policy_id: PolicyId,
+    ) -> Result<(), Report<RemovePolicyError>>;
+
+    /// Permanently removes the policy specified by it's ID.
+    ///
+    /// This should be used with caution, as it will irreversibly delete the policy and all
+    /// associated data. In most cases, it is recommended to archive the policy instead of
+    /// deleting it. In most cases, you should use [`archive_policy_by_id`] instead.
+    ///
+    /// [`archive_policy_by_id`]: Self::archive_policy_by_id
     ///
     /// # Errors
     ///

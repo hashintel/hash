@@ -55,6 +55,7 @@ export const createHashInstance: ImpureGraphFunction<
   );
 
   const instantiationPolicy = await createPolicy(ctx.graphApi, authentication, {
+    name: "tmp-hash-instsance-instantiate",
     effect: "permit",
     principal: {
       type: "actor",
@@ -127,6 +128,8 @@ export const createHashInstance: ImpureGraphFunction<
 
     return getHashInstanceFromEntity({ entity });
   } finally {
-    await deletePolicyById(ctx.graphApi, authentication, instantiationPolicy);
+    await deletePolicyById(ctx.graphApi, authentication, instantiationPolicy, {
+      permanent: false,
+    });
   }
 };

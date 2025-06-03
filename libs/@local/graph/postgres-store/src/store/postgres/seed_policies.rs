@@ -433,7 +433,7 @@ where
         }
 
         for policy_id in policies_to_remove {
-            self.delete_policy_by_id(authenticated_actor.into(), policy_id)
+            self.archive_policy_by_id(authenticated_actor.into(), policy_id)
                 .await
                 .change_context(EnsureSystemPoliciesError::RemoveOldPolicyFailed)?;
         }
