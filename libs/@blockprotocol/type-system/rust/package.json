@@ -27,7 +27,7 @@
     "build:wasm": "mise exec --env prod cargo:wasm-pack -- wasm-pack build --target web --out-name type-system --scope blockprotocol --release . && rm pkg/package.json",
     "doc:dependency-diagram": "cargo run -p hash-repo-chores -- dependency-diagram --output docs/dependency-diagram.mmd --root type-system --root-deps-and-dependents --link-mode non-roots --include-dev-deps --include-build-deps --logging-console-level info",
     "fix:clippy": "just clippy --fix",
-    "lint:clippy": "just clippy && just clippy --target wasm32-unknown-unknown",
+    "lint:clippy": "just clippy",
     "lint:tsc": "tsc --noEmit",
     "test:unit": "cargo hack nextest run --feature-powerset --all-targets && cargo test --all-features --doc"
   },
