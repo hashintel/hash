@@ -129,7 +129,7 @@ export const createHashInstance: ImpureGraphFunction<
     return getHashInstanceFromEntity({ entity });
   } finally {
     await deletePolicyById(ctx.graphApi, authentication, instantiationPolicy, {
-      permanent: false,
+      permanent: true,
     });
   }
 };
