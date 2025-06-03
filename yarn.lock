@@ -9019,7 +9019,7 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@local/repo-chores@workspace:libs/@local/repo-chores/node":
+"@local/repo-chores@npm:0.0.0-private, @local/repo-chores@workspace:libs/@local/repo-chores/node":
   version: 0.0.0-use.local
   resolution: "@local/repo-chores@workspace:libs/@local/repo-chores/node"
   dependencies:
@@ -12740,8 +12740,10 @@ __metadata:
   resolution: "@rust/hash-graph-postgres-queries@workspace:libs/@local/graph/postgres-queries"
   dependencies:
     "@blockprotocol/type-system-rs": "npm:0.0.0-private"
+    "@local/repo-chores": "npm:0.0.0-private"
     "@rust/clorinde": "npm:0.0.0-private"
     "@rust/hash-graph-authorization": "npm:0.0.0-private"
+    "@rust/hash-graph-migrations": "npm:0.0.0-private"
   languageName: unknown
   linkType: soft
 
