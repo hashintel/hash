@@ -1,0 +1,15 @@
+//@ run: fail
+//@ description: Ensures type inference fails when an unconstrained generic's type, inferred from arguments, conflicts with operational constraints within the closure body.
+[
+  "let",
+  "add",
+  [
+    "fn",
+    { "#tuple": ["T"] },
+    { "#struct": { "a": "T", "b": "T" } },
+    "T",
+    ["+", "a", "b"]
+  ],
+  //~^ ERROR Type variable has incompatible equality and upper bound constraints
+  ["add", { "#literal": 1 }, { "#literal": 2 }]
+]

@@ -65,6 +65,10 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
         self.simplify.contains_substitution(kind)
     }
 
+    pub(crate) fn simplify(&mut self, id: TypeId) -> TypeId {
+        self.simplify.simplify(id)
+    }
+
     pub const fn without_simplify(&mut self) -> &mut Self {
         self.simplify_lattice = false;
         self
@@ -93,6 +97,11 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
     #[inline]
     pub(crate) fn resolve_type(&self, r#type: Type<'heap>) -> Option<Type<'heap>> {
         self.simplify.resolve_type(r#type)
+    }
+
+    #[inline]
+    pub(crate) fn is_alias(&mut self, id: TypeId, kind: VariableKind) -> bool {
+        self.simplify.is_alias(id, kind)
     }
 
     /// Handling recursive type cycles during a join operation.

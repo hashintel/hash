@@ -11,10 +11,8 @@ use core::{
     ops::{Index, IndexMut},
 };
 
-use hashbrown::{
-    Equivalent, HashMap, HashSet,
-    hash_map::{Entry, OccupiedError},
-};
+pub use hashbrown::hash_map::Entry;
+use hashbrown::{Equivalent, HashMap, HashSet, hash_map::OccupiedError};
 
 use crate::collection::{FastHashMap, FastHashSet};
 

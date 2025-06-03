@@ -4,6 +4,8 @@ pub mod infer;
 pub mod instantiate;
 pub mod lattice;
 pub mod simplify;
+#[cfg(test)]
+mod tests;
 
 pub use self::{
     analysis::AnalysisEnvironment,

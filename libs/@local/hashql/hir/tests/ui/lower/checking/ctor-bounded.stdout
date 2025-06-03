@@ -1,0 +1,37 @@
+Person:0(2)
+
+--------------------------------------
+
+#ctor(fn<T:0?15: Number>(?15«Integer») -> ::main::Person:0[?15«Integer»],
+arguments: [T:0])(2)
+
+--------------------------------------
+
+--------------------------------------
+
+Node:
+2
+
+
+Type:
+Integer
+
+--------------------------------------
+
+Node:
+#ctor(fn<T:0?15: Number>(?15«Integer») -> ::main::Person:0[?15«Integer»],
+arguments: [T:0])
+
+
+Type:
+fn(Integer) -> ::main::Person:0[Integer]
+
+--------------------------------------
+
+Node:
+#ctor(fn<T:0?15: Number>(?15«Integer») -> ::main::Person:0[?15«Integer»],
+arguments: [T:0])(2)
+
+
+Type:
+::main::Person:0[Integer]

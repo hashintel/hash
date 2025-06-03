@@ -349,6 +349,11 @@ impl Substitution {
     }
 
     #[must_use]
+    pub fn representative(&self, kind: VariableKind) -> VariableKind {
+        self.variables[kind]
+    }
+
+    #[must_use]
     pub fn argument(&self, id: GenericArgumentId) -> Option<TypeId> {
         let root = self.variables.get(VariableKind::Generic(id))?;
 

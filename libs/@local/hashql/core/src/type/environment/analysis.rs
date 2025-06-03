@@ -8,7 +8,7 @@ use crate::r#type::{
     Type, TypeId,
     error::{TypeCheckDiagnostic, circular_type_reference},
     inference::{Substitution, VariableKind, VariableLookup},
-    kind::{Infer, Param, TypeKind},
+    kind::{Apply, Generic, Infer, IntersectionType, Param, TypeKind, UnionType},
     lattice::Lattice as _,
     recursion::{RecursionBoundary, RecursionCycle},
 };
@@ -141,14 +141,84 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
             &TypeKind::Param(Param { argument }) => {
                 let argument = substitution.argument(argument)?;
 
-                Some(self.environment.r#type(argument))
+                self.resolve_type(self.environment.r#type(argument))
             }
             &TypeKind::Infer(Infer { hole }) => {
                 let infer = substitution.infer(hole)?;
 
-                Some(self.environment.r#type(infer))
+                self.resolve_type(self.environment.r#type(infer))
             }
         }
+    }
+
+    pub(super) fn variable_representative(&self, kind: VariableKind) -> VariableKind {
+        #[expect(clippy::option_if_let_else, reason = "readability")]
+        if let Some(variables) = &self.variables {
+            variables[kind]
+        } else {
+            let substitution = self
+                .substitution
+                .as_ref()
+                .unwrap_or(&self.environment.substitution);
+
+            substitution.representative(kind)
+        }
+    }
+
+    fn is_alias_recurse(&mut self, id: TypeId, variable: VariableKind) -> bool {
+        let r#type = self.environment.r#type(self.resolve_id(id));
+
+        if self.boundary.enter(r#type, r#type).is_break() {
+            return false;
+        }
+
+        let result = self.is_alias_impl(r#type, variable);
+        self.boundary.exit(r#type, r#type);
+        result
+    }
+
+    fn is_alias_impl(&mut self, r#type: Type<'heap>, variable: VariableKind) -> bool {
+        match r#type.kind {
+            TypeKind::Opaque(_)
+            | TypeKind::Primitive(_)
+            | TypeKind::Intrinsic(_)
+            | TypeKind::Struct(_)
+            | TypeKind::Tuple(_)
+            | TypeKind::Closure(_)
+            | TypeKind::Never
+            | TypeKind::Unknown => false,
+            TypeKind::Union(union) => UnionType::unnest(r#type.with(union), self)
+                .into_iter()
+                .all(|variant| self.is_alias_recurse(variant, variable)),
+            TypeKind::Intersection(intersection) => {
+                IntersectionType::unnest(r#type.with(intersection), self)
+                    .into_iter()
+                    .all(|variant| self.is_alias_recurse(variant, variable))
+            }
+            &TypeKind::Apply(Apply { base, .. }) | &TypeKind::Generic(Generic { base, .. }) => {
+                self.is_alias_recurse(base, variable)
+            }
+            &TypeKind::Param(Param { argument }) => {
+                let kind = VariableKind::Generic(argument);
+                let representative = self.variable_representative(kind);
+
+                representative == variable
+            }
+            &TypeKind::Infer(Infer { hole }) => {
+                let kind = VariableKind::Hole(hole);
+                let representative = self.variable_representative(kind);
+
+                representative == variable
+            }
+        }
+    }
+
+    pub(crate) fn is_alias(&mut self, id: TypeId, variable: VariableKind) -> bool {
+        let variable = self.variable_representative(variable);
+
+        let r#type = self.environment.r#type(self.resolve_id(id));
+
+        self.is_alias_impl(r#type, variable)
     }
 
     #[expect(clippy::needless_pass_by_ref_mut, reason = "proof of ownership")]

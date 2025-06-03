@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Checks type inference for a generic type constructor (Some<T>), inferring T from the argument value.
+["Some", { "#literal": 2 }]

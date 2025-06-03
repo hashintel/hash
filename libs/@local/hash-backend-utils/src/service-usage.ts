@@ -3,16 +3,19 @@ import { getRoots } from "@blockprotocol/graph/stdlib";
 import type {
   ActorEntityUuid,
   ActorGroupEntityUuid,
+  ActorId,
   ClosedTemporalBound,
   EntityUuid,
   ProvidedEntityEditionProvenance,
   TemporalInterval,
+  UserId,
   WebId,
 } from "@blockprotocol/type-system";
 import { entityIdFromComponents } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { EntityRelationAndSubjectBranded } from "@local/hash-graph-sdk/authorization";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
+import { createPolicy } from "@local/hash-graph-sdk/policy";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
   currentTimeInstantTemporalAxes,
@@ -34,6 +37,7 @@ import type {
   RecordsUsageOf,
   UsageRecord,
 } from "@local/hash-isomorphic-utils/system-types/usagerecord";
+import type { PrincipalConstraint } from "@rust/hash-graph-authorization/types";
 import { backOff } from "exponential-backoff";
 
 import { getInstanceAdminsTeam } from "./hash-instance.js";
@@ -134,7 +138,7 @@ export const createUsageRecord = async (
     /**
      * Grant view access on the usage record to these additional accounts
      */
-    additionalViewers?: ActorEntityUuid[];
+    additionalViewers?: ActorId[];
     /**
      * The web the usage will be assigned to (user or org)
      */
@@ -151,7 +155,7 @@ export const createUsageRecord = async (
      * The user that is incurring the usage (e.g. the user that triggered the flow)
      * Tracked separately from webId as usage may be attributed to an org, but we want to know which user incurred it.
      */
-    userAccountId: ActorEntityUuid;
+    userAccountId: UserId;
   },
 ) => {
   const properties: UsageRecord["propertiesWithMetadata"] = {
@@ -200,7 +204,7 @@ export const createUsageRecord = async (
    */
   const authentication = { actorId: userAccountId };
 
-  const { id: hashInstanceAdminGroupId } = await getInstanceAdminsTeam(
+  const hashInstanceAdminGroup = await getInstanceAdminsTeam(
     context,
     authentication,
   );
@@ -258,7 +262,7 @@ export const createUsageRecord = async (
       relation: "administrator",
       subject: {
         kind: "accountGroup",
-        subjectId: hashInstanceAdminGroupId,
+        subjectId: hashInstanceAdminGroup.id,
         subjectSet: "member",
       },
     },
@@ -283,17 +287,27 @@ export const createUsageRecord = async (
     });
   }
 
+  const viewPrincipals: PrincipalConstraint[] = [
+    {
+      type: "actor",
+      actorType: "user",
+      id: userAccountId,
+    },
+  ];
+
   for (const additionalViewer of additionalViewers ?? []) {
     entityRelationships.push({
       relation: "viewer",
       subject: {
         kind: "account",
-        subjectId: additionalViewer,
+        subjectId: additionalViewer.id,
       },
     });
+    viewPrincipals.push({ type: "actor", ...additionalViewer });
   }
 
   const usageRecordEntityUuid = generateUuid() as EntityUuid;
+  const recordsUsageOfEntityUuid = generateUuid() as EntityUuid;
 
   const usageRecordEntityId = entityIdFromComponents(
     assignUsageToWebId,
@@ -322,6 +336,7 @@ export const createUsageRecord = async (
     {
       webId: assignUsageToWebId,
       draft: false,
+      entityUuid: recordsUsageOfEntityUuid,
       properties: { value: {} },
       provenance,
       linkData: {
@@ -332,6 +347,23 @@ export const createUsageRecord = async (
       relationships: entityRelationships,
     },
   ]);
+
+  // TODO: allow creating policies alongside entity creation
+  //   see https://linear.app/hash/issue/H-4622/allow-creating-policies-alongside-entity-creation
+  for (const entityUuid of [usageRecordEntityUuid, recordsUsageOfEntityUuid]) {
+    for (const principal of viewPrincipals) {
+      await createPolicy(context.graphApi, authentication, {
+        name: `usage-record-view-entity-${entityUuid}`,
+        principal,
+        effect: "permit",
+        actions: ["viewEntity"],
+        resource: {
+          type: "entity",
+          id: entityUuid,
+        },
+      });
+    }
+  }
 
   return usageRecord;
 };

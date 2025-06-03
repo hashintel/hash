@@ -1,0 +1,14 @@
+//@ run: pass
+//@ description: Checks type checking for a closure definition with a constrained generic type (T: Number) and its subsequent call.
+[
+  "let",
+  "add",
+  [
+    "fn",
+    { "#struct": { "T": "Number" } },
+    { "#struct": { "a": "T", "b": "T" } },
+    "T",
+    ["+", "a", "b"]
+  ],
+  ["add", { "#literal": 1 }, { "#literal": 2 }]
+]

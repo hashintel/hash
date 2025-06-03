@@ -1,6 +1,6 @@
 CREATE TYPE policy_effect AS ENUM ('permit', 'forbid');
 
-CREATE TABLE IF NOT EXISTS action (
+CREATE TABLE action (
     name TEXT PRIMARY KEY,
     parent TEXT REFERENCES action (name) ON DELETE RESTRICT,
     CONSTRAINT no_self_parent CHECK (name != parent)
@@ -20,9 +20,18 @@ CREATE TABLE action_hierarchy (
 CREATE UNIQUE INDEX idx_action_hierarchy_single_parent ON action_hierarchy (child_name)
 WHERE depth = 1;
 
-CREATE TABLE IF NOT EXISTS policy (
-    id UUID PRIMARY KEY,
+CREATE TABLE policy (
+    id UUID PRIMARY KEY
+);
+
+CREATE TABLE policy_edition (
+    id UUID NOT NULL REFERENCES policy (id) ON DELETE CASCADE,
     name TEXT,
+    transaction_time TSTZRANGE NOT NULL,
+    EXCLUDE USING gist (
+        id WITH =,
+        transaction_time WITH &&
+    ),
 
     effect POLICY_EFFECT NOT NULL,
 
@@ -38,13 +47,14 @@ CREATE TABLE IF NOT EXISTS policy (
     resource_constraint JSONB
 );
 
-CREATE UNIQUE INDEX policy_unique_name_per_principal_idx
-ON policy (name, principal_id, principal_type, actor_type) NULLS NOT DISTINCT
-WHERE name IS NOT NULL;
-
 -- Policy-Action junction table for multiple actions per policy
-CREATE TABLE IF NOT EXISTS policy_action (
+CREATE TABLE policy_action (
     policy_id UUID NOT NULL REFERENCES policy (id) ON DELETE CASCADE,
     action_name TEXT NOT NULL REFERENCES action (name) ON DELETE CASCADE,
-    PRIMARY KEY (policy_id, action_name)
+    transaction_time TSTZRANGE NOT NULL,
+    EXCLUDE USING gist (
+        policy_id WITH =,
+        action_name WITH =,
+        transaction_time WITH &&
+    )
 );

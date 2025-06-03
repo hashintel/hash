@@ -294,7 +294,7 @@ impl<'heap> ReificationContext<'_, 'heap> {
             output: _,
         }: closure::ClosureSignature<'heap>,
     ) -> ClosureSignature<'heap> {
-        let r#type = &self.types.signatures[id];
+        let def = self.types.signatures[id];
         let params: SmallVec<_> = inputs
             .iter()
             .map(|param| ClosureParam {
@@ -305,8 +305,7 @@ impl<'heap> ReificationContext<'_, 'heap> {
 
         ClosureSignature {
             span,
-            r#type: r#type.id,
-            generics: self.interner.intern_closure_generics(&r#type.arguments),
+            def,
             params: self.interner.intern_closure_params(&params),
         }
     }

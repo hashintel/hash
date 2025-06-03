@@ -8,7 +8,6 @@
     box_into_boxed_slice,
     decl_macro,
     portable_simd,
-    result_flattening,
     ascii_char,
     if_let_guard,
     variant_count

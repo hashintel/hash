@@ -22,7 +22,7 @@
 mod graph;
 mod tarjan;
 #[cfg(test)]
-mod test;
+mod tests;
 mod topo;
 
 use bumpalo::Bump;
@@ -32,7 +32,7 @@ use self::{graph::Graph, tarjan::Tarjan, topo::topological_sort_in};
 use super::{
     Constraint, DeferralDepth, ResolutionStrategy, SelectionConstraint, Substitution, Variable,
     VariableKind,
-    variable::{VariableId, VariableLookup},
+    variable::{VariableId, VariableLookup, VariableProvenance},
 };
 use crate::{
     collection::{FastHashMap, SmallVec, fast_hash_map, fast_hash_map_in},
@@ -43,7 +43,7 @@ use crate::{
             bound_constraint_violation, conflicting_equality_constraints,
             incompatible_lower_equal_constraint, incompatible_upper_equal_constraint,
             unconstrained_type_variable, unconstrained_type_variable_floating,
-            unresolved_selection_constraint,
+            unresolved_selection_constraint, unsatisfiable_upper_constraint,
         },
         kind::{PrimitiveType, TypeKind, UnionType},
         lattice::{Projection, Subscript},
@@ -85,7 +85,7 @@ impl Unification {
     /// Ensures each [`VariableKind`] has exactly one ID for consistent lookup.
     pub(crate) fn upsert_variable(&mut self, variable: VariableKind) -> VariableId {
         *self.lookup.entry(variable).or_insert_with_key(|&key| {
-            let id = self.table.new_key(());
+            let id = self.table.new_key(variable.provenance());
             debug_assert_eq!(id.into_usize(), self.variables.len());
 
             self.variables.push(key);
@@ -128,6 +128,12 @@ impl Unification {
         self.variables[id.into_usize()]
     }
 
+    fn provenance(&mut self, variable: VariableKind) -> VariableProvenance {
+        let id = self.root_id(variable);
+
+        self.table.probe_value(id)
+    }
+
     /// Creates a lookup table mapping variables to their canonical representatives.
     ///
     /// Returns a snapshot of the current unification state. Future modifications
@@ -137,7 +143,7 @@ impl Unification {
         reason = "This cast is safe because the number of type variables are limited to \
                   `u32::MAX` due to ena."
     )]
-    fn lookup(&mut self) -> VariableLookup {
+    pub(crate) fn lookup(&mut self) -> VariableLookup {
         let mut lookup = FastHashMap::with_capacity_and_hasher(
             self.table.len(),
             foldhash::fast::RandomState::default(),
@@ -185,6 +191,25 @@ struct VariableOrdering {
     upper: ResolvedVariable,
 }
 
+/// Tracks the satisfiability status of different constraint types for a type variable.
+///
+/// This structure maintains flags indicating whether each category of constraint
+/// (currently only upper bounds) can be satisfied without creating logical contradictions.
+/// Used during constraint resolution to detect and report unsatisfiable constraint systems.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
+struct VariableConstraintSatisfiability {
+    /// Whether upper bound constraints are satisfiable.
+    ///
+    /// Set to `false` when upper bound resolution results in bottom types, indicating an impossible constraint combination.
+    upper: bool = true,
+}
+
+impl VariableConstraintSatisfiability {
+    const fn merge(&mut self, other: Self) {
+        self.upper &= other.upper;
+    }
+}
+
 /// Aggregated constraints for a single type variable.
 ///
 /// Organizes constraints by type (equality, lower bounds, upper bounds).
@@ -197,10 +222,17 @@ struct VariableConstraint {
     lower: SmallVec<TypeId>,
     /// Upper bound constraints (variable must be subtype of these)
     upper: SmallVec<TypeId>,
+    /// The satisfiability of the variable constraint
+    satisfiability: VariableConstraintSatisfiability,
 }
 
 impl VariableConstraint {
-    fn finish(&self) -> EvaluatedVariableConstraint {
+    fn finish(
+        &self,
+    ) -> (
+        EvaluatedVariableConstraint,
+        VariableConstraintSatisfiability,
+    ) {
         debug_assert!(
             self.lower.len() <= 1,
             "lower bound should be either empty or contain exactly one type"
@@ -210,11 +242,13 @@ impl VariableConstraint {
             "upper bound should be either empty or contain exactly one type"
         );
 
-        EvaluatedVariableConstraint {
+        let constraint = EvaluatedVariableConstraint {
             equal: self.equal,
             lower: self.lower.first().copied(),
             upper: self.upper.last().copied(),
-        }
+        };
+
+        (constraint, self.satisfiability)
     }
 }
 
@@ -222,7 +256,7 @@ impl VariableConstraint {
 ///
 /// Contains the reduced constraints (meet for lower bounds, join for upper bounds)
 /// that determine the variable's inferred type.
-#[derive(Debug, PartialEq, Eq, Default)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
 struct EvaluatedVariableConstraint {
     /// Final equality constraint
     equal: Option<TypeId>,
@@ -342,10 +376,13 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                     equal,
                     lower,
                     upper,
+                    satisfiability,
                 } = &mut lhs_constraint;
 
                 lower.append(&mut rhs_constraint.lower);
                 upper.append(&mut rhs_constraint.upper);
+
+                satisfiability.merge(rhs_constraint.satisfiability);
 
                 *equal = match (*equal, rhs_constraint.equal) {
                     (None, None) => None,
@@ -462,6 +499,12 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         for &constraint in &self.constraints {
             match constraint {
                 Constraint::UpperBound { variable, bound } => {
+                    if self.lattice.is_alias(bound, variable.kind) {
+                        // This bound does not contribute to the variable's type, as it is just `T
+                        // <: T` which is just true.
+                        continue;
+                    }
+
                     // Find the canonical representative for this variable
                     let root = self.unification.root(variable.kind);
                     let (_, constraint) = constraints
@@ -472,6 +515,12 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                     constraint.upper.push(bound);
                 }
                 Constraint::LowerBound { variable, bound } => {
+                    if self.lattice.is_alias(bound, variable.kind) {
+                        // This bound does not contribute to the variable's type, as it is just `T
+                        // <: T` which is just true.
+                        continue;
+                    }
+
                     // Find the canonical representative for this variable
                     let root = self.unification.root(variable.kind);
                     let (_, constraint) = constraints
@@ -482,6 +531,12 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                     constraint.lower.push(bound);
                 }
                 Constraint::Equals { variable, r#type } => {
+                    if self.lattice.is_alias(r#type, variable.kind) {
+                        // This equality does not contribute to the variable's type, as it is just
+                        // `T = T` which is just true.
+                        continue;
+                    }
+
                     // Find the canonical representative for this variable
                     let root = self.unification.root(variable.kind);
                     let (_, constraint) = constraints
@@ -608,6 +663,12 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
             let lower_id = self.unification.lookup[&lower_kind];
             let upper_id = self.unification.lookup[&upper_kind];
 
+            // Check if this is a self-referential constraint, which should be skipped, because they
+            // have already been unified.
+            if lower_id == upper_id {
+                continue;
+            }
+
             let entry = lookup
                 .entry(match lookup_by {
                     // Index by the variable based on lookup direction
@@ -702,7 +763,6 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
             }
 
             // Now that we have all bounds, unify them
-
             // Combine into the loosest lower bound (join - least upper bound)
             let lower = variable_constraint
                 .lower
@@ -726,6 +786,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
 
             variable_constraint.lower.clear();
             if let Some(lower) = lower {
+                let lower = self.lattice.simplify(lower);
                 variable_constraint.lower.push(lower);
             }
         }
@@ -803,6 +864,11 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
             }
 
             // Combine into the tightest upper bound (meet - greatest lower bound)
+            // Track if all bounds were bottom types.
+            let only_bottoms = variable_constraint
+                .upper
+                .iter()
+                .all(|&upper| self.lattice.is_bottom(upper));
             let upper = variable_constraint
                 .upper
                 .iter()
@@ -825,7 +891,16 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
 
             variable_constraint.upper.clear();
             if let Some(upper) = upper {
+                let upper = self.lattice.simplify(upper);
+                let is_bottom = self.lattice.is_bottom(upper);
+
+                // Mark as unsatisfiable if we had valid constraints that resolved to an impossible
+                // type (bottom). This indicates conflicting upper bound constraints.
+                // Example: if X <: String and X <: Number, their meet is bottom (impossible).
+                let unsatisfiable = !only_bottoms && is_bottom;
+
                 variable_constraint.upper.push(upper);
+                variable_constraint.satisfiability.upper &= !unsatisfiable;
             }
         }
 
@@ -860,6 +935,44 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         self.apply_constraints_backwards(graph, bump, variables);
     }
 
+    /// Validates that the given constraint is satisfiable for the specified variable.
+    ///
+    /// This function checks whether the evaluated constraint can be satisfied without
+    /// creating logical inconsistencies. Currently only validates upper bound constraints
+    /// by checking if an upper bound was marked as unsatisfiable during constraint
+    /// propagation.
+    ///
+    /// # Returns
+    ///
+    /// Returns `true` if the constraint is satisfiable, `false` otherwise. When unsatisfiable,
+    /// appropriate diagnostic errors are pushed to the solver's diagnostic collection.
+    fn solve_constraints_satisfiable(
+        &mut self,
+        variable: Variable,
+        constraint: EvaluatedVariableConstraint,
+        satisfiable: VariableConstraintSatisfiability,
+    ) -> bool {
+        let mut is_satisfiable = true;
+
+        // Check if we have an upper bound constraint that was marked as unsatisfiable during
+        // constraint propagation (e.g., when multiple upper bounds resulted in a bottom type)
+        if let EvaluatedVariableConstraint {
+            upper: Some(upper), ..
+        } = constraint
+            && !satisfiable.upper
+        {
+            self.diagnostics.push(unsatisfiable_upper_constraint(
+                &self.lattice,
+                upper,
+                variable,
+            ));
+
+            is_satisfiable = false;
+        }
+
+        is_satisfiable
+    }
+
     /// Validates constraints and determines final variable types.
     ///
     /// Verifies:
@@ -868,6 +981,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     /// - **Constraint coverage**: All variables have sufficient constraints
     ///
     /// Selects most specific type per variable: equality > lower bounds > upper bounds.
+    #[expect(clippy::too_many_lines)]
     fn solve_constraints(
         &mut self,
         constraints: &FastHashMap<VariableKind, (Variable, VariableConstraint)>,
@@ -897,7 +1011,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
 
         for (&kind, (variable, constraint)) in constraints {
             let variable = *variable;
-            let constraint = constraint.finish();
+            let (constraint, satisfiable) = constraint.finish();
 
             // First, verify that lower and upper bounds are compatible
             // (i.e., lower <: upper)
@@ -919,9 +1033,23 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                 continue;
             }
 
+            if !self.solve_constraints_satisfiable(variable, constraint, satisfiable) {
+                continue;
+            }
+
+            let provenance = self.unification.provenance(kind);
+
             // Handle different constraint patterns to determine the final type
             match constraint {
                 // If there's no constraint, we can't infer anything
+                // This will be caught during type checking either way, but is likely a programming
+                // error. This is *only* the case if the variable is a hole, and not generic. As
+                // generics can be completely legitimately unconstrained.
+                EvaluatedVariableConstraint {
+                    equal: None,
+                    lower: None,
+                    upper: None,
+                } if provenance == VariableProvenance::Generic => {}
                 EvaluatedVariableConstraint {
                     equal: None,
                     lower: None,
@@ -1002,12 +1130,19 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     /// Variables without constraints generate floating variable diagnostics.
     fn verify_constrained(
         &mut self,
-        lookup: &VariableLookup,
+        graph: &Graph,
         variables: &FastHashMap<VariableKind, (Variable, VariableConstraint)>,
     ) {
-        for &variable in &self.unification.variables {
-            let root = lookup[variable];
-            if !variables.contains_key(&root) {
+        for node in graph.nodes() {
+            let kind = self.unification.variables[node.into_usize()];
+            let provenance = self.unification.table.probe_value(node);
+
+            if provenance == VariableProvenance::Generic {
+                // Generic variables can be kept unconstrained
+                continue;
+            }
+
+            if !variables.contains_key(&kind) {
                 self.diagnostics
                     .push(unconstrained_type_variable_floating(&self.lattice));
             }
@@ -1054,8 +1189,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
             DeferralDepth,
         )>,
     ) -> bool {
-        self.lattice.set_substitution(substitution.clone());
-        self.simplify.set_substitution(substitution);
+        self.lattice.set_substitution(substitution);
 
         let mut made_progress = false;
 
@@ -1076,7 +1210,8 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                         // Simplify the subject type. This will remove any unnecessary match arms,
                         // but will mean that we're no longer able to infer any underlying type (if
                         // present).
-                        subject_type = self.lattice.r#type(self.simplify.simplify(subject_type.id));
+                        let simplified = self.lattice.simplify(subject_type.id);
+                        subject_type = self.lattice.r#type(simplified);
                     }
 
                     let field = match self.lattice.projection(subject_type.id, field) {
@@ -1145,8 +1280,11 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                         // Simplify the subject type. This will remove any unnecessary match arms,
                         // but will mean that we're no longer able to infer any underlying type (if
                         // present).
-                        subject_type = self.lattice.r#type(self.simplify.simplify(subject_type.id));
-                        index_type = self.lattice.r#type(self.simplify.simplify(index_type.id));
+                        let simplified = self.lattice.simplify(subject_type.id);
+                        subject_type = self.lattice.r#type(simplified);
+
+                        let simplified = self.lattice.simplify(index_type.id);
+                        index_type = self.lattice.r#type(simplified);
                     }
 
                     let value = match self.lattice.subscript(
@@ -1225,7 +1363,6 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         }
 
         self.lattice.clear_substitution();
-        self.simplify.clear_substitution();
 
         made_progress
     }
@@ -1315,7 +1452,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
             self.apply_constraints(&graph, &bump, &mut variables, &mut selections);
 
             // Step 1.7: Verify that all variables have been constrained
-            self.verify_constrained(&lookup, &variables);
+            self.verify_constrained(&graph, &variables);
 
             // Step 1.8: Validate constraints and determine final types
             substitution.clear();

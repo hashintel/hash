@@ -1,0 +1,106 @@
+#let foo:0 = #fn<T:0?14: Integer>(a:0: ?14, b:0: ?14): ?14 ->
+    ::math::add(a:0, b:0) in
+foo:0(2, 3)
+
+--------------------------------------
+
+#let foo:0 = #fn<T:0?14: Integer>(a:0: ?14«Integer», b:0: ?14«Integer»):
+?14«Integer» ->
+    ::math::add(a:0, b:0) in
+foo:0(2, 3)
+
+--------------------------------------
+
+--------------------------------------
+
+Node:
+::math::add
+
+
+Type:
+fn(Integer, Integer) -> Integer
+
+--------------------------------------
+
+Node:
+a:0
+
+
+Type:
+Integer
+
+--------------------------------------
+
+Node:
+b:0
+
+
+Type:
+Integer
+
+--------------------------------------
+
+Node:
+::math::add(a:0, b:0)
+
+
+Type:
+Integer
+
+--------------------------------------
+
+Node:
+#fn<T:0?14: Integer>(a:0: ?14«Integer», b:0: ?14«Integer»): ?14«Integer» ->
+    ::math::add(a:0, b:0)
+
+
+Type:
+fn<T:0?17: Integer>(?17, ?17) -> ?17
+
+--------------------------------------
+
+Node:
+foo:0
+
+
+Type:
+fn(Integer, Integer) -> Integer
+
+--------------------------------------
+
+Node:
+2
+
+
+Type:
+Integer
+
+--------------------------------------
+
+Node:
+3
+
+
+Type:
+Integer
+
+--------------------------------------
+
+Node:
+foo:0(2, 3)
+
+
+Type:
+Integer
+
+--------------------------------------
+
+Node:
+#let foo:0 = #fn<T:0?14: Integer>(a:0: ?14«Integer», b:0: ?14«Integer»):
+?14«Integer» ->
+    ::math::add(a:0, b:0) in
+foo:0(2, 3)
+
+
+Type:
+fn<T:0?17: Integer>(?17, ?17) -> ?17
