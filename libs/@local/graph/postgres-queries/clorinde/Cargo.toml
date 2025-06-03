@@ -38,6 +38,6 @@ hash-graph-authorization = { workspace = true }
 type-system = { workspace = true }
 
 [lints.rust]
-dead_code = "allow"
+dead_code                     = "allow"
 exported_private_dependencies = "allow"
-unused_imports = "allow"
+unused_imports                = "allow"

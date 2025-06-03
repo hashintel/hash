@@ -82,6 +82,10 @@ jobs:
             | jq '[.tasks[] | select(.task == "codegen" and .command != "<NONEXISTENT>")] != []' || echo 'false')
           echo "codegen=$CODEGEN" | tee -a $GITHUB_OUTPUT
 
+          CLIPPY=$(turbo run lint:clippy --filter '${{ matrix.name }}' --dry-run=json \
+            | jq '[.tasks[] | select(.task == "lint:clippy" and .command != "<NONEXISTENT>")] != []' || echo 'false')
+          echo "clippy=$CLIPPY" | tee -a $GITHUB_OUTPUT
+
           HAS_RUST=$([[ -f "${{ matrix.path }}/Cargo.toml" || ${{ matrix.path }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
           echo "has-rust=$HAS_RUST" | tee -a $GITHUB_OUTPUT
 
@@ -127,10 +131,10 @@ jobs:
         run: just format --check
 
       - name: Run clippy
-        if: always() && steps.lints.outputs.has-rust == 'true'
+        if: always() && steps.lints.outputs.clippy == 'true'
         run: |
           pushd ${{ matrix.path }}
-          just clippy --message-format=json \
+          turbo run lint:clippy --filter "${{ matrix.name }}" -- --message-format=json \
             | clippy-sarif \
             | jq '.runs[].results |= unique' \
             > clippy.sarif
@@ -140,7 +144,7 @@ jobs:
           jq -e '.runs[].results == []' ${{ matrix.path }}/clippy.sarif> /dev/null
 
       - name: Print clippy errors to summary
-        if: failure() && steps.lints.outputs.has-clippy == 'true'
+        if: failure() && steps.lints.outputs.clippy == 'true'
         run: |
           echo '```' >> $GITHUB_STEP_SUMMARY
           cat ${{ matrix.path }}/clippy.sarif | sarif-fmt >> $GITHUB_STEP_SUMMARY
@@ -148,7 +152,7 @@ jobs:
 
       - name: Upload SARIF file
         uses: github/codeql-action/upload-sarif@ff0a06e83cb2de871e5a09832bc6a81e7276941f # v3.28.18
-        if: always() && steps.lints.outputs.has-rust == 'true'
+        if: always() && steps.lints.outputs.clippy == 'true'
         with:
           sarif_file: ${{ matrix.path }}/clippy.sarif
           category: ${{ matrix.name }}
