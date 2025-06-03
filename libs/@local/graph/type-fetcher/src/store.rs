@@ -310,6 +310,16 @@ where
             .await
     }
 
+    async fn archive_policy_by_id(
+        &mut self,
+        authenticated_actor: ActorEntityUuid,
+        policy_id: PolicyId,
+    ) -> Result<(), Report<RemovePolicyError>> {
+        self.store
+            .archive_policy_by_id(authenticated_actor, policy_id)
+            .await
+    }
+
     async fn delete_policy_by_id(
         &mut self,
         authenticated_actor: ActorEntityUuid,

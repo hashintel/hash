@@ -228,6 +228,7 @@ export const createOrg: ImpureGraphFunction<
       ctx.graphApi,
       { actorId: systemAccountId },
       {
+        name: "tmp-org-instantiate",
         effect: "permit",
         principal: {
           type: "actor",
@@ -276,6 +277,7 @@ export const createOrg: ImpureGraphFunction<
         ctx.graphApi,
         { actorId: systemAccountId },
         temporaryInstantiationPolicy,
+        { permanent: true },
       ).catch((error) => {
         logger.error(
           `Failed to delete temporary instantiation policy ${temporaryInstantiationPolicy}: ${error}`,

@@ -6,7 +6,7 @@ use axum::{
     Extension, Router,
     extract::Path,
     response::Response,
-    routing::{get, post},
+    routing::{delete, get, post},
 };
 use hash_graph_authorization::{
     AuthorizationApiPool,
@@ -31,6 +31,7 @@ use crate::rest::{AuthenticatedUserHeader, json::Json, status::report_to_respons
         query_policies,
         resolve_policies_for_actor,
         update_policy_by_id,
+        archive_policy_by_id,
         delete_policy_by_id,
 
         seed_system_policies,
@@ -54,11 +55,16 @@ impl PermissionResource {
             "/policies",
             Router::new()
                 .route("/", post(create_policy::<S, A>))
-                .route(
+                .nest(
                     "/:policy_id",
-                    get(get_policy_by_id::<S, A>)
-                        .put(update_policy_by_id::<S, A>)
-                        .delete(delete_policy_by_id::<S, A>),
+                    Router::new()
+                        .route(
+                            "/",
+                            get(get_policy_by_id::<S, A>)
+                                .put(update_policy_by_id::<S, A>)
+                                .delete(archive_policy_by_id::<S, A>),
+                        )
+                        .route("/delete", delete(delete_policy_by_id::<S, A>)),
                 )
                 .route("/query", post(query_policies::<S, A>))
                 .route("/resolve/actor", post(resolve_policies_for_actor::<S, A>))
@@ -302,6 +308,52 @@ where
 #[utoipa::path(
     delete,
     path = "/policies/{policy_id}",
+    tag = "Permission",
+    params(
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("policy_id" = Uuid, Path, description = "The ID of the policy to delete"),
+    ),
+    responses(
+        (status = 204, content_type = "application/json", description = "The policy was removed successfully"),
+
+        (status = 500, description = "Store error occurred"),
+    )
+)]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client)
+)]
+async fn archive_policy_by_id<S, A>(
+    AuthenticatedUserHeader(authenticated_actor_id): AuthenticatedUserHeader,
+    Path(policy_id): Path<PolicyId>,
+    store_pool: Extension<Arc<S>>,
+    authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
+) -> Result<StatusCode, Response>
+where
+    S: StorePool + Send + Sync,
+    A: AuthorizationApiPool + Send + Sync,
+    for<'p, 'a> S::Store<'p, A::Api<'a>>: PolicyStore,
+{
+    store_pool
+        .acquire(
+            authorization_api_pool
+                .acquire()
+                .await
+                .map_err(report_to_response)?,
+            temporal_client.0,
+        )
+        .await
+        .map_err(report_to_response)?
+        .archive_policy_by_id(authenticated_actor_id, policy_id)
+        .await
+        .map_err(report_to_response)
+        .map(|()| StatusCode::NO_CONTENT)
+}
+
+#[utoipa::path(
+    delete,
+    path = "/policies/{policy_id}/delete",
     tag = "Permission",
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
