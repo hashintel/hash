@@ -1,3 +1,4 @@
+static             = ["LICENSE.md"]
 use-workspace-deps = "../../../../Cargo.toml"
 
 [package]
