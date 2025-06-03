@@ -1221,7 +1221,9 @@ where
                     policy_edition.resource_constraint,
                     array_remove(array_agg(policy_action.action_name), NULL)
                 FROM policy_edition
-                LEFT JOIN policy_action ON policy_edition.id = policy_action.policy_id
+                LEFT JOIN policy_action
+                       ON policy_edition.transaction_time @> now()
+                      AND policy_edition.id = policy_action.policy_id
                 GROUP BY
                     policy_edition.id,
                     policy_edition.name,
