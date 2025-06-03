@@ -1,0 +1,5 @@
+---
+source: libs/@local/hashql/core/src/type/kind/tests/struct.rs
+expression: "env.r#type(type_id).pretty_print(&env,\nPrettyOptions::default().without_color())"
+---
+<T?2, U?3: ?2>(:)

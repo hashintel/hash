@@ -75,7 +75,11 @@ let previousAddressLinkEntityType: EntityTypeWithMetadata;
 let addressEntityType: EntityTypeWithMetadata;
 
 beforeAll(async () => {
-  await ensureSystemGraphIsInitialized({ logger, context: graphContext });
+  await ensureSystemGraphIsInitialized({
+    logger,
+    context: graphContext,
+    seedSystemPolicies: true,
+  });
 
   testUser = await createTestUser(graphContext, "entity-type-test-1", logger);
   testUser2 = await createTestUser(graphContext, "entity-type-test-2", logger);

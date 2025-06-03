@@ -27,7 +27,7 @@ export type ExistingCommentThread = {
    */
   path: string;
   /**
-   * The 'position' of the comment in the diff (if any). 'Position' means the line number relative to the the first hunk in a file diff.
+   * The 'position' of the comment in the diff (if any), expressed as the line number relative to the first chunk in a file diff.
    * @see add-diff-line-numbers.ts
    */
   position: number | null;

@@ -113,12 +113,11 @@ pub struct PostgresStore<C, A> {
     pub settings: PostgresStoreSettings,
 }
 
-impl<C, A> PrincipalStore for PostgresStore<C, A>
+impl<A> PostgresStore<tokio_postgres::Transaction<'_>, A>
 where
-    C: AsClient,
     A: AuthorizationApi + Send + Sync,
 {
-    async fn get_or_create_system_machine(
+    async fn get_or_create_system_machine_impl(
         &mut self,
         identifier: &str,
     ) -> Result<MachineId, Report<GetSystemAccountError>> {
@@ -139,40 +138,38 @@ where
 
             Ok(system_machine_id)
         } else {
-            let mut transaction = self
-                .transaction()
-                .await
-                .change_context(GetSystemAccountError::StoreError)?;
-
-            let system_machine_id = transaction
+            let machine_id = self
                 .create_machine(None, identifier)
                 .await
                 .change_context(GetSystemAccountError::CreateSystemAccountFailed)?;
 
             tracing::info!(
-                %system_machine_id,
+                %machine_id,
                 %identifier,
                 "Created new system account"
             );
 
-            // We need to create the system web for the system machine actor, so the system machine
-            // needs to be allowed to create webs.
-            transaction
-                .create_policy(
-                    system_machine_id.into(),
-                    seed_policies::system_actor_create_web_policy(ActorId::Machine(
-                        system_machine_id,
-                    )),
+            let system_machine_id = if identifier == "h" {
+                // We need to create the system web for the system machine actor, so the system
+                // machine needs to be allowed to create webs.
+                self.create_policy(
+                    machine_id.into(),
+                    seed_policies::system_actor_create_web_policy(machine_id),
                 )
                 .await
                 .change_context(GetSystemAccountError::CreateSystemAccountFailed)?;
 
-            let web_creation = transaction
+                machine_id
+            } else {
+                Box::pin(self.get_or_create_system_machine_impl("h")).await?
+            };
+
+            let created_web = self
                 .create_web(
                     system_machine_id.into(),
                     CreateWebParameter {
                         id: None,
-                        administrator: system_machine_id.into(),
+                        administrator: machine_id.into(),
                         shortname: Some(identifier.to_owned()),
                         is_actor_web: false,
                     },
@@ -181,35 +178,74 @@ where
                 .change_context(GetSystemAccountError::CreateSystemAccountFailed)?;
 
             tracing::info!(
-                %web_creation.web_id,
+                %created_web.web_id,
                 "Created new system web"
             );
 
-            if identifier == "h" {
-                let instance_admin_team_id = transaction
-                    .create_team(
-                        system_machine_id.into(),
-                        CreateTeamParams {
-                            parent: web_creation.web_id.into(),
-                            name: "instance-admins".to_owned(),
-                        },
-                    )
-                    .await
-                    .change_context(GetSystemAccountError::CreatingInstanceAdminTeamFailed)?;
+            match identifier {
+                "h" => {
+                    let instance_admin_team_id = self
+                        .create_team(
+                            system_machine_id.into(),
+                            CreateTeamParams {
+                                parent: created_web.web_id.into(),
+                                name: "instance-admins".to_owned(),
+                            },
+                        )
+                        .await
+                        .change_context(GetSystemAccountError::CreatingInstanceAdminTeamFailed)?;
 
-                tracing::info!(
-                    %instance_admin_team_id,
-                    "Created new instance admin team"
-                );
+                    tracing::info!(
+                        %instance_admin_team_id,
+                        "Created new instance admin team"
+                    );
+                }
+                "google" => {
+                    for policy in seed_policies::google_bot_policies(machine_id) {
+                        self.create_policy(system_machine_id.into(), policy)
+                            .await
+                            .change_context(GetSystemAccountError::CreateSystemAccountFailed)?;
+                    }
+                }
+                "linear" => {
+                    for policy in seed_policies::linear_bot_policies(machine_id) {
+                        self.create_policy(system_machine_id.into(), policy)
+                            .await
+                            .change_context(GetSystemAccountError::CreateSystemAccountFailed)?;
+                    }
+                }
+                _ => {}
             }
 
-            transaction
-                .commit()
-                .await
-                .change_context(GetSystemAccountError::StoreError)?;
-
-            Ok(system_machine_id)
+            Ok(machine_id)
         }
+    }
+}
+
+impl<C, A> PrincipalStore for PostgresStore<C, A>
+where
+    C: AsClient,
+    A: AuthorizationApi + Send + Sync,
+{
+    async fn get_or_create_system_machine(
+        &mut self,
+        identifier: &str,
+    ) -> Result<MachineId, Report<GetSystemAccountError>> {
+        let mut transaction = self
+            .transaction()
+            .await
+            .change_context(GetSystemAccountError::StoreError)?;
+
+        let machine_id = transaction
+            .get_or_create_system_machine_impl(identifier)
+            .await?;
+
+        transaction
+            .commit()
+            .await
+            .change_context(GetSystemAccountError::StoreError)?;
+
+        Ok(machine_id)
     }
 
     #[expect(
@@ -1314,6 +1350,16 @@ where
                         .await
                         .change_context(UpdatePolicyError::StoreError)?;
                 }
+                PolicyUpdateOperation::SetEffect { effect } => {
+                    transaction
+                        .as_client()
+                        .execute(
+                            "UPDATE policy SET effect = $1 WHERE id = $2",
+                            &[effect, &policy_id],
+                        )
+                        .await
+                        .change_context(UpdatePolicyError::StoreError)?;
+                }
             }
         }
 
@@ -1355,17 +1401,22 @@ where
     }
 
     async fn seed_system_policies(&mut self) -> Result<(), Report<EnsureSystemPoliciesError>> {
-        self.synchronize_actions()
+        let mut transaction = self
+            .transaction()
+            .await
+            .change_context(EnsureSystemPoliciesError::StoreError)?;
+
+        transaction
+            .synchronize_actions()
             .await
             .change_context(EnsureSystemPoliciesError::SynchronizeActions)?;
 
-        let system_machine_actor = self
+        let system_machine_actor = transaction
             .get_or_create_system_machine("h")
             .await
-            .change_context(EnsureSystemPoliciesError::CreatingSystemMachineFailed)
-            .map(ActorId::Machine)?;
+            .change_context(EnsureSystemPoliciesError::CreatingSystemMachineFailed)?;
 
-        let roles = self
+        let roles = transaction
             .as_client()
             .query_raw(
                 "
@@ -1386,30 +1437,57 @@ where
             .await
             .change_context(EnsureSystemPoliciesError::AddRequiredPoliciesFailed)?;
 
-        let hash_admins_team = self
+        let hash_admins_team = transaction
             .get_team_by_name(system_machine_actor.into(), "instance-admins")
             .await
             .change_context(EnsureSystemPoliciesError::ReadInstanceAdminRoles)?
             .ok_or(EnsureSystemPoliciesError::ReadInstanceAdminRoles)?;
-        let hash_admins_team_roles = self
+        let hash_admins_team_roles = transaction
             .get_team_roles(system_machine_actor.into(), hash_admins_team.id)
             .await
             .change_context(EnsureSystemPoliciesError::ReadInstanceAdminRoles)?;
 
-        self.update_seeded_policies(
-            system_machine_actor,
-            seed_policies::system_actor_policies(system_machine_actor)
-                .chain(seed_policies::global_policies())
-                .chain(roles.iter().flat_map(seed_policies::web_policies))
-                .chain(
-                    hash_admins_team_roles
-                        .values()
-                        .flat_map(seed_policies::instance_admins_policies),
-                ),
-        )
-        .await?;
+        let google_account_machine = transaction
+            .get_machine_by_identifier(system_machine_actor.into(), "google")
+            .await
+            .change_context(EnsureSystemPoliciesError::CreatingSystemMachineFailed)?;
+        let linear_account_machine = transaction
+            .get_machine_by_identifier(system_machine_actor.into(), "linear")
+            .await
+            .change_context(EnsureSystemPoliciesError::CreatingSystemMachineFailed)?;
 
-        Ok(())
+        // We only seed policies for the machine if it exists
+        let google_bot_policies = google_account_machine
+            .as_ref()
+            .map(|machine| seed_policies::google_bot_policies(machine.id))
+            .into_iter()
+            .flatten();
+        let linear_bot_policies = linear_account_machine
+            .as_ref()
+            .map(|machine| seed_policies::linear_bot_policies(machine.id))
+            .into_iter()
+            .flatten();
+
+        transaction
+            .update_seeded_policies(
+                ActorId::Machine(system_machine_actor),
+                seed_policies::system_actor_policies(system_machine_actor)
+                    .chain(seed_policies::global_policies())
+                    .chain(roles.iter().flat_map(seed_policies::web_policies))
+                    .chain(
+                        hash_admins_team_roles
+                            .values()
+                            .flat_map(seed_policies::instance_admins_policies),
+                    )
+                    .chain(google_bot_policies)
+                    .chain(linear_bot_policies),
+            )
+            .await?;
+
+        transaction
+            .commit()
+            .await
+            .change_context(EnsureSystemPoliciesError::StoreError)
     }
 }
 

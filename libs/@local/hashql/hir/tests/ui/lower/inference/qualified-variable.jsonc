@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Checks type inference for a call to a qualified generic function (::math::add), inferring its type parameters and return type.
+["+", { "#literal": 123 }, { "#literal": 456 }]

@@ -230,7 +230,7 @@ fn would_break_connectivity(
 /// * `root_crate` - Optional crate to highlight as the root in the diagram with thicker borders
 /// * `dedup_transitive` - Whether to deduplicate transitive dependencies (e.g., if A->B->C and
 ///   A->C, only show A->B->C)
-/// * `link_mode` - Controls how documentation links are generated (All, NonRoots, or None)
+/// * `link_mode` - Controls how documentation links are generated (`All`, `NonRoots`, or `None`)
 ///
 /// # Returns
 ///

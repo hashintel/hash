@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Checks basic type inference for an input variable declaration.
+["input", "x", "Integer"]

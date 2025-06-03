@@ -100,6 +100,9 @@ export type PolicyUpdateOperation = {
 } | {
 	type: "set-resource-constraint"
 	resourceConstraint: (ResourceConstraint | null)
+} | {
+	type: "set-effect"
+	effect: Effect
 };
 export type PrincipalFilter = {
 	filter: "unconstrained"

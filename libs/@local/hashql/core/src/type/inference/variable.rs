@@ -1,12 +1,16 @@
 use alloc::rc::Rc;
 use core::ops::Index;
 
-use ena::unify::UnifyKey;
+use ena::unify::{NoError, UnifyKey, UnifyValue};
 
 use crate::{
     collection::FastHashMap,
     span::SpanId,
-    r#type::kind::{Infer, Param, TypeKind, generic::GenericArgumentId, infer::HoleId},
+    r#type::{
+        PartialType, Type,
+        environment::Environment,
+        kind::{Infer, Param, TypeKind, generic::GenericArgumentId, infer::HoleId},
+    },
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -23,6 +27,21 @@ impl Variable {
             kind,
         }
     }
+
+    pub fn into_type<'heap>(self, env: &Environment<'heap>) -> Type<'heap> {
+        let kind = self.kind.into_type_kind();
+
+        env.types.intern_partial(PartialType {
+            span: self.span,
+            kind: env.intern_kind(kind),
+        })
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub(crate) enum VariableProvenance {
+    Hole,
+    Generic,
 }
 
 /// Represents an inference variable in the type system.
@@ -47,6 +66,29 @@ impl VariableKind {
             Self::Generic(argument) => TypeKind::Param(Param { argument }),
         }
     }
+
+    #[must_use]
+    pub const fn hole(self) -> Option<HoleId> {
+        match self {
+            Self::Hole(hole) => Some(hole),
+            Self::Generic(_) => None,
+        }
+    }
+
+    #[must_use]
+    pub const fn generic(self) -> Option<GenericArgumentId> {
+        match self {
+            Self::Hole(_) => None,
+            Self::Generic(argument) => Some(argument),
+        }
+    }
+
+    pub(crate) const fn provenance(self) -> VariableProvenance {
+        match self {
+            Self::Hole(_) => VariableProvenance::Hole,
+            Self::Generic(_) => VariableProvenance::Generic,
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -59,7 +101,7 @@ impl VariableId {
 }
 
 impl UnifyKey for VariableId {
-    type Value = ();
+    type Value = VariableProvenance;
 
     fn index(&self) -> u32 {
         self.0
@@ -72,6 +114,20 @@ impl UnifyKey for VariableId {
 
     fn tag() -> &'static str {
         "VariableId"
+    }
+}
+
+impl UnifyValue for VariableProvenance {
+    type Error = NoError;
+
+    fn unify_values(value1: &Self, value2: &Self) -> Result<Self, Self::Error> {
+        // Generic is "infectious" - if either variable is Generic, the result should be Generic
+        // This ensures that if a Hole unifies with a Generic, we don't erroneously
+        // report unconstrained type variable errors for generics.
+        match (value1, value2) {
+            (Self::Hole, Self::Hole) => Ok(Self::Hole),
+            _ => Ok(Self::Generic),
+        }
     }
 }
 

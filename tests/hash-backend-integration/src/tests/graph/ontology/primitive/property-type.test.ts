@@ -46,7 +46,11 @@ let testUser2: User;
 let propertyTypeSchema: ConstructPropertyTypeParams;
 
 beforeAll(async () => {
-  await ensureSystemGraphIsInitialized({ logger, context: graphContext });
+  await ensureSystemGraphIsInitialized({
+    logger,
+    context: graphContext,
+    seedSystemPolicies: true,
+  });
 
   testUser = await createTestUser(graphContext, "pt-test-1", logger);
   testUser2 = await createTestUser(graphContext, "pt-test-2", logger);

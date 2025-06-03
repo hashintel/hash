@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Validates type checking for a 'let' binding where the variable's type is inferred from a literal.
+["let", "x", { "#literal": true }, "x"]

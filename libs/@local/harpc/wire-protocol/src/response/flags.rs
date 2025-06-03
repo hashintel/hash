@@ -1,3 +1,8 @@
+#![cfg_attr(
+    test,
+    expect(clippy::explicit_deref_methods, reason = "Generated code")
+)]
+
 use bytes::{Buf, BufMut};
 use enumflags2::BitFlags;
 use error_stack::Report;

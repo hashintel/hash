@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Checks type inference for an input's default value where its type (inferred as Integer) is compatible with the declared input type (Number).
+["input", "x", "Number", { "#literal": 42, "#type": "_" }]

@@ -1,7 +1,10 @@
 pub mod entry;
 pub mod storage;
 
-use core::fmt::{self, Display};
+use core::{
+    fmt::{self, Display},
+    ops::Deref,
+};
 
 use hashql_diagnostics::span::DiagnosticSpan;
 pub use text_size::{TextRange, TextSize};
@@ -111,6 +114,10 @@ where
     S: Span,
 {
     fn span(&self, context: &mut &SpanStorage<S>) -> Option<TextRange> {
+        if *self == Self::SYNTHETIC {
+            return Some(TextRange::empty(TextSize::new(0)));
+        }
+
         let entry = context.get(*self)?;
 
         Some(entry.map(Span::range))
@@ -119,5 +126,21 @@ where
     #[expect(refining_impl_trait_reachable, reason = "false positive")]
     fn ancestors(&self, context: &mut &SpanStorage<S>) -> impl IntoIterator<Item = Self> + use<S> {
         context.ancestors(*self)
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Spanned<T> {
+    pub span: SpanId,
+    pub value: T,
+}
+
+// We usually avoid `Deref`, but considering that we only add a `Span` to the value this is deemed
+// acceptable.
+impl<T> Deref for Spanned<T> {
+    type Target = T;
+
+    fn deref(&self) -> &Self::Target {
+        &self.value
     }
 }

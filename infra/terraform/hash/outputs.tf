@@ -21,3 +21,7 @@ output "rds_hostname" {
 output "temporal_hostname" {
   value = module.temporal.temporal_private_hostname
 }
+
+output "hash_application_ecs_iam_task_role_arn" {
+  value = module.application.ecs_iam_task_role_arn
+}

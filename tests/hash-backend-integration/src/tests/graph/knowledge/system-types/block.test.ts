@@ -41,7 +41,11 @@ describe("Block", () => {
   let dummyEntityType: EntityTypeWithMetadata;
 
   beforeAll(async () => {
-    await ensureSystemGraphIsInitialized({ logger, context: graphContext });
+    await ensureSystemGraphIsInitialized({
+      logger,
+      context: graphContext,
+      seedSystemPolicies: true,
+    });
 
     testUser = await createTestUser(graphContext, "blockTest", logger);
     const authentication = { actorId: testUser.accountId };

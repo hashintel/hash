@@ -1,0 +1,17 @@
+[31m[lower::type-check::type-mismatch] Error:[0m Type mismatch
+   ╭─[ <unknown>:3:1 ]
+   │
+ 1 │ //@ run: fail
+   │ │ 
+   │ ╰─ This is of type `[34mString[0m`
+   │ 
+ 3 │ ["is", { "#literal": 42 }, "String"]
+   │ ──────────────────┬───┬─────────────  
+   │                   │   ╰─────────────── This is of type `[34mInteger[0m`
+   │                   │                   
+   │                   ╰─────────────────── Type mismatch in this expression
+   │ 
+   │ Help: You can convert the number to a string using the `::core::number::to_string/1` or `::core::number::to_string/2` function
+   │ 
+   │ Note: This type system uses a combination of nominal and structural typing. Types are compatible when they have the same structure (same fields/elements with compatible types) or when they represent the same named type. Union types must have at least one compatible variant, and intersection types require all constraints to be satisfied.
+───╯

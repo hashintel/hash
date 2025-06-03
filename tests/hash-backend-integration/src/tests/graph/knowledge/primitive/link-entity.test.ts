@@ -76,7 +76,11 @@ describe("Link entity", () => {
   };
 
   beforeAll(async () => {
-    await ensureSystemGraphIsInitialized({ logger, context: graphContext });
+    await ensureSystemGraphIsInitialized({
+      logger,
+      context: graphContext,
+      seedSystemPolicies: true,
+    });
 
     testUser = await createTestUser(graphContext, "linktest", logger);
     const authentication = { actorId: testUser.accountId };

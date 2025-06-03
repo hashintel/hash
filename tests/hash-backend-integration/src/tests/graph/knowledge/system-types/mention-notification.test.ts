@@ -60,7 +60,11 @@ describe.skip("Page Mention Notification", () => {
   beforeAll(async () => {
     const graphContext = createTestImpureGraphContext();
 
-    await ensureSystemGraphIsInitialized({ logger, context: graphContext });
+    await ensureSystemGraphIsInitialized({
+      logger,
+      context: graphContext,
+      seedSystemPolicies: true,
+    });
 
     triggerUser = await createTestUser(graphContext, "notifTrigger", logger);
 

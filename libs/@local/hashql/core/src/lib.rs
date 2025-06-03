@@ -8,6 +8,7 @@
     assert_matches,
     binary_heap_into_iter_sorted,
     cold_path,
+    coverage_attribute,
     default_field_values,
     iter_map_windows,
     slice_partition_dedup,
@@ -15,6 +16,8 @@
     // Language Features
     arbitrary_self_types,
     associated_type_defaults,
+    macro_metavar_expr,
+    macro_metavar_expr_concat,
     never_type,
     type_alias_impl_trait,
 )]

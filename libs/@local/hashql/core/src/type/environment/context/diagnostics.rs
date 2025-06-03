@@ -1,3 +1,5 @@
+use alloc::vec;
+
 use crate::r#type::error::TypeCheckDiagnostic;
 
 /// A collection of type checking diagnostics produced during compilation.
@@ -67,6 +69,15 @@ impl Diagnostics {
     #[must_use]
     pub fn into_vec(self) -> Vec<TypeCheckDiagnostic> {
         self.inner
+    }
+}
+
+impl IntoIterator for Diagnostics {
+    type IntoIter = vec::IntoIter<Self::Item>;
+    type Item = TypeCheckDiagnostic;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.inner.into_iter()
     }
 }
 

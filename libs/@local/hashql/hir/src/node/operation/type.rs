@@ -1,4 +1,8 @@
-use hashql_core::{span::SpanId, r#type::TypeId};
+use hashql_core::{
+    intern::Interned,
+    span::SpanId,
+    r#type::{TypeId, kind::generic::GenericArgumentReference},
+};
 
 use crate::node::Node;
 
@@ -43,9 +47,12 @@ pub struct TypeAssertion<'heap> {
 pub struct TypeConstructor<'heap> {
     pub span: SpanId,
 
-    pub value: Node<'heap>,
-    pub r#type: TypeId,
+    // The closure that performs the conversion
+    pub closure: TypeId,
+    // Any unapplied arguments to the constructor
+    pub arguments: Interned<'heap, [GenericArgumentReference<'heap>]>,
 }
+// TODO: we potentially want functions to access the repr and opaque value
 
 /// The kinds of type operations in the HashQL HIR.
 ///

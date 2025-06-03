@@ -4,6 +4,8 @@ pub mod infer;
 pub mod instantiate;
 pub mod lattice;
 pub mod simplify;
+#[cfg(test)]
+mod tests;
 
 pub use self::{
     analysis::AnalysisEnvironment,
@@ -18,8 +20,8 @@ use super::{
     kind::{
         Infer, Param, PrimitiveType,
         generic::{
-            GenericArgument, GenericArgumentId, GenericArgumentIdProducer, GenericArguments,
-            GenericSubstitution, GenericSubstitutions,
+            GenericArgument, GenericArgumentId, GenericArgumentIdProducer,
+            GenericArgumentReference, GenericArguments, GenericSubstitution, GenericSubstitutions,
         },
         infer::{HoleId, HoleIdProducer},
         r#struct::{StructField, StructFields},
@@ -47,6 +49,7 @@ pub struct Environment<'heap> {
     kinds: InternSet<'heap, TypeKind<'heap>>,
     type_ids: InternSet<'heap, [TypeId]>,
     generic_arguments: InternSet<'heap, [GenericArgument<'heap>]>,
+    generic_argument_references: InternSet<'heap, [GenericArgumentReference<'heap>]>,
     generic_substitutions: InternSet<'heap, [GenericSubstitution]>,
     struct_fields: InternSet<'heap, [StructField<'heap>]>,
 
@@ -74,6 +77,7 @@ impl<'heap> Environment<'heap> {
             kinds: InternSet::new(heap),
             type_ids: InternSet::new(heap),
             generic_arguments: InternSet::new(heap),
+            generic_argument_references: InternSet::new(heap),
             generic_substitutions: InternSet::new(heap),
             struct_fields: InternSet::new(heap),
 
@@ -144,6 +148,14 @@ impl<'heap> Environment<'heap> {
         GenericArguments::from_slice_unchecked(
             self.generic_arguments.intern_slice(&dedupe[..write_index]),
         )
+    }
+
+    #[inline]
+    pub fn intern_generic_argument_references(
+        &self,
+        references: &[GenericArgumentReference<'heap>],
+    ) -> Interned<'heap, [GenericArgumentReference<'heap>]> {
+        self.generic_argument_references.intern_slice(references)
     }
 
     #[inline]

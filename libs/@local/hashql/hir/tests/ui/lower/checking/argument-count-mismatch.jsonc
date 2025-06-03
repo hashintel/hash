@@ -1,0 +1,19 @@
+//@ run: fail
+//@ description: Argument count mismatch
+[
+  "let",
+  "foo",
+  [
+    "fn",
+    { "#tuple": ["T", "U"] },
+    { "#struct": { "a": "T", "b": "U" } },
+    "T",
+    "a"
+  ],
+  [
+    "foo<Integer>",
+    //~^ ERROR This closure requires exactly 2 generic arguments
+    { "#literal": 2 },
+    { "#literal": "2" }
+  ]
+]

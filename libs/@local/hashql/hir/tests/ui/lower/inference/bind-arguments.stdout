@@ -1,0 +1,42 @@
+::math::add<Number, Integer>(42.12, 42)
+
+--------------------------------------
+
+::math::add<Number, Integer>(42.12, 42)
+
+--------------------------------------
+
+Node:
+::math::add<Number, Integer>
+
+
+Type:
+fn<T?13: Number, U?14: Number>(?13«Number», ?14«Integer») -> (?14«Integer»
+ | ?13«Number») where<?13 = Number, ?14 = Integer>
+
+--------------------------------------
+
+Node:
+42.12
+
+
+Type:
+Number
+
+--------------------------------------
+
+Node:
+42
+
+
+Type:
+Integer
+
+--------------------------------------
+
+Node:
+::math::add<Number, Integer>(42.12, 42)
+
+
+Type:
+_0«Number»

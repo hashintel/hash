@@ -4,16 +4,20 @@ use pretty::RcDoc;
 use smallvec::SmallVec;
 
 use crate::{
-    pretty::{BLUE, PrettyPrint, PrettyRecursionBoundary},
+    pretty::{BLUE, PrettyPrint, PrettyPrintBoundary},
+    symbol::Ident,
     r#type::{
         Type, TypeId,
         environment::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
             SimplifyEnvironment, instantiate::InstantiateEnvironment,
         },
-        error::type_mismatch,
+        error::{
+            UnsupportedProjectionCategory, UnsupportedSubscriptCategory, type_mismatch,
+            unsupported_projection, unsupported_subscript,
+        },
         inference::{Inference, PartialStructuralEdge},
-        lattice::Lattice,
+        lattice::{Lattice, Projection, Subscript},
     },
 };
 
@@ -62,6 +66,37 @@ impl<'heap> Lattice<'heap> for PrimitiveType {
 
             _ => SmallVec::from_slice(&[self.id, other.id]),
         }
+    }
+
+    fn projection(
+        self: Type<'heap, Self>,
+        field: Ident<'heap>,
+        env: &mut LatticeEnvironment<'_, 'heap>,
+    ) -> Projection {
+        env.diagnostics.push(unsupported_projection(
+            self,
+            field,
+            UnsupportedProjectionCategory::Primitive,
+            env,
+        ));
+
+        Projection::Error
+    }
+
+    fn subscript(
+        self: Type<'heap, Self>,
+        index: TypeId,
+        env: &mut LatticeEnvironment<'_, 'heap>,
+        _: &mut InferenceEnvironment<'_, 'heap>,
+    ) -> Subscript {
+        env.diagnostics.push(unsupported_subscript(
+            self,
+            index,
+            UnsupportedSubscriptCategory::Primitive,
+            env,
+        ));
+
+        Subscript::Error
     }
 
     fn is_bottom(self: Type<'heap, Self>, _: &mut AnalysisEnvironment<'_, 'heap>) -> bool {
@@ -220,372 +255,8 @@ impl<'heap> PrettyPrint<'heap> for PrimitiveType {
     fn pretty(
         &self,
         _: &Environment<'heap>,
-        _: &mut PrettyRecursionBoundary,
+        _: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, anstyle::Style> {
         RcDoc::text(self.as_str()).annotate(BLUE)
-    }
-}
-
-#[cfg(test)]
-mod test {
-    #![expect(clippy::min_ident_chars)]
-    use test_case::test_case;
-
-    use super::PrimitiveType;
-    use crate::{
-        heap::Heap,
-        span::SpanId,
-        r#type::{
-            environment::{
-                AnalysisEnvironment, Environment, LatticeEnvironment, SimplifyEnvironment,
-            },
-            kind::{
-                TypeKind,
-                test::{assert_kind, primitive},
-            },
-            lattice::{Lattice as _, test::assert_lattice_laws},
-            test::instantiate,
-        },
-    };
-
-    #[test_case(PrimitiveType::Number)]
-    #[test_case(PrimitiveType::Integer)]
-    #[test_case(PrimitiveType::String)]
-    #[test_case(PrimitiveType::Boolean)]
-    #[test_case(PrimitiveType::Null)]
-    fn join_identical_primitives(primitive: PrimitiveType) {
-        let heap = Heap::new();
-        let env = Environment::new(SpanId::SYNTHETIC, &heap);
-
-        primitive!(env, a, primitive);
-        primitive!(env, b, primitive);
-
-        let mut lattice_env = LatticeEnvironment::new(&env);
-
-        let output = a.join(b, &mut lattice_env);
-        assert_eq!(output.len(), 1);
-
-        let id = output[0];
-        let r#type = env.r#type(id);
-
-        assert_eq!(*r#type.kind, TypeKind::Primitive(primitive));
-    }
-
-    #[test_case(PrimitiveType::Number)]
-    #[test_case(PrimitiveType::Integer)]
-    #[test_case(PrimitiveType::String)]
-    #[test_case(PrimitiveType::Boolean)]
-    #[test_case(PrimitiveType::Null)]
-    fn meet_identical_primitives(primitive: PrimitiveType) {
-        let heap = Heap::new();
-        let env = Environment::new(SpanId::SYNTHETIC, &heap);
-
-        primitive!(env, a, primitive);
-        primitive!(env, b, primitive);
-
-        let mut lattice_env = LatticeEnvironment::new(&env);
-
-        let output = a.meet(b, &mut lattice_env);
-        assert_eq!(output.len(), 1);
-
-        let id = output[0];
-        let r#type = env.r#type(id);
-
-        assert_eq!(*r#type.kind, TypeKind::Primitive(primitive));
-    }
-
-    #[test]
-    fn join_integer_number_subtyping() {
-        let heap = Heap::new();
-        let env = Environment::new(SpanId::SYNTHETIC, &heap);
-
-        primitive!(env, number, PrimitiveType::Number);
-        primitive!(env, integer, PrimitiveType::Integer);
-
-        let mut lattice_env = LatticeEnvironment::new(&env);
-
-        // Number ⊔ Integer = Number
-        assert_kind!(
-            lattice_env,
-            number.join(integer, &mut lattice_env),
-            [TypeKind::Primitive(PrimitiveType::Number)]
-        );
-
-        // Integer ⊔ Number = Number
-        assert_kind!(
-            lattice_env,
-            integer.join(number, &mut lattice_env),
-            [TypeKind::Primitive(PrimitiveType::Number)]
-        );
-    }
-
-    #[test]
-    fn meet_integer_number_subtyping() {
-        let heap = Heap::new();
-        let env = Environment::new(SpanId::SYNTHETIC, &heap);
-
-        primitive!(env, number, PrimitiveType::Number);
-        primitive!(env, integer, PrimitiveType::Integer);
-
-        let mut lattice_env = LatticeEnvironment::new(&env);
-
-        // Number ⊓ Integer = Integer
-        assert_kind!(
-            lattice_env,
-            number.meet(integer, &mut lattice_env),
-            [TypeKind::Primitive(PrimitiveType::Integer)]
-        );
-
-        // Integer ⊓ Number = Integer
-        assert_kind!(
-            lattice_env,
-            integer.meet(number, &mut lattice_env),
-            [TypeKind::Primitive(PrimitiveType::Integer)]
-        );
-    }
-
-    #[test]
-    fn join_unrelated_primitives() {
-        let heap = Heap::new();
-        let env = Environment::new(SpanId::SYNTHETIC, &heap);
-
-        primitive!(env, string, PrimitiveType::String);
-        primitive!(env, boolean, PrimitiveType::Boolean);
-        primitive!(env, null, PrimitiveType::Null);
-
-        let mut lattice_env = LatticeEnvironment::new(&env);
-
-        // String ⊔ Boolean = String | Boolean
-        assert_kind!(
-            lattice_env,
-            string.join(boolean, &mut lattice_env),
-            [
-                TypeKind::Primitive(PrimitiveType::String),
-                TypeKind::Primitive(PrimitiveType::Boolean)
-            ]
-        );
-
-        // Boolean ⊔ Null = Boolean | Null
-        assert_kind!(
-            lattice_env,
-            boolean.join(null, &mut lattice_env),
-            [
-                TypeKind::Primitive(PrimitiveType::Boolean),
-                TypeKind::Primitive(PrimitiveType::Null)
-            ]
-        );
-
-        // String ⊔ Null = String | Null
-        assert_kind!(
-            lattice_env,
-            string.join(null, &mut lattice_env),
-            [
-                TypeKind::Primitive(PrimitiveType::String),
-                TypeKind::Primitive(PrimitiveType::Null)
-            ]
-        );
-    }
-
-    #[test]
-    fn meet_unrelated_primitives() {
-        let heap = Heap::new();
-        let env = Environment::new(SpanId::SYNTHETIC, &heap);
-
-        primitive!(env, string, PrimitiveType::String);
-        primitive!(env, boolean, PrimitiveType::Boolean);
-        primitive!(env, null, PrimitiveType::Null);
-
-        let mut lattice_env = LatticeEnvironment::new(&env);
-
-        // String ⊓ Boolean = String & Boolean
-        assert_kind!(
-            lattice_env,
-            string.meet(boolean, &mut lattice_env),
-            [
-                TypeKind::Primitive(PrimitiveType::String),
-                TypeKind::Primitive(PrimitiveType::Boolean)
-            ]
-        );
-
-        // Boolean ⊓ Null = Boolean & Null
-        assert_kind!(
-            lattice_env,
-            boolean.meet(null, &mut lattice_env),
-            [
-                TypeKind::Primitive(PrimitiveType::Boolean),
-                TypeKind::Primitive(PrimitiveType::Null)
-            ]
-        );
-
-        // String ⊓ Null = String & Null
-        assert_kind!(
-            lattice_env,
-            string.meet(null, &mut lattice_env),
-            [
-                TypeKind::Primitive(PrimitiveType::String),
-                TypeKind::Primitive(PrimitiveType::Null)
-            ]
-        );
-    }
-
-    #[test]
-    fn bottom() {
-        let heap = Heap::new();
-        let env = Environment::new(SpanId::SYNTHETIC, &heap);
-
-        primitive!(env, number, PrimitiveType::Number);
-        primitive!(env, string, PrimitiveType::String);
-        primitive!(env, boolean, PrimitiveType::Boolean);
-        primitive!(env, null, PrimitiveType::Null);
-        primitive!(env, integer, PrimitiveType::Integer);
-
-        let mut analysis_env = AnalysisEnvironment::new(&env);
-
-        // No primitive types are uninhabited
-        assert!(!number.is_bottom(&mut analysis_env));
-        assert!(!string.is_bottom(&mut analysis_env));
-        assert!(!boolean.is_bottom(&mut analysis_env));
-        assert!(!null.is_bottom(&mut analysis_env));
-        assert!(!integer.is_bottom(&mut analysis_env));
-    }
-
-    #[test]
-    fn top() {
-        let heap = Heap::new();
-        let env = Environment::new(SpanId::SYNTHETIC, &heap);
-
-        primitive!(env, number, PrimitiveType::Number);
-        primitive!(env, string, PrimitiveType::String);
-        primitive!(env, boolean, PrimitiveType::Boolean);
-        primitive!(env, null, PrimitiveType::Null);
-        primitive!(env, integer, PrimitiveType::Integer);
-
-        let mut analysis_env = AnalysisEnvironment::new(&env);
-
-        // No primitive types are uninhabited
-        assert!(!number.is_top(&mut analysis_env));
-        assert!(!string.is_top(&mut analysis_env));
-        assert!(!boolean.is_top(&mut analysis_env));
-        assert!(!null.is_top(&mut analysis_env));
-        assert!(!integer.is_top(&mut analysis_env));
-    }
-
-    #[test]
-    fn equivalent() {
-        let heap = Heap::new();
-        let env = Environment::new(SpanId::SYNTHETIC, &heap);
-
-        primitive!(env, number, PrimitiveType::Number);
-        primitive!(env, number2, PrimitiveType::Number); // Second Number type
-        primitive!(env, string, PrimitiveType::String);
-        primitive!(env, boolean, PrimitiveType::Boolean);
-        primitive!(env, null, PrimitiveType::Null);
-        primitive!(env, integer, PrimitiveType::Integer);
-
-        let mut analysis_env = AnalysisEnvironment::new(&env);
-
-        // Same primitive types should be equivalent
-        assert!(number.is_equivalent(number2, &mut analysis_env));
-
-        // Different primitive types should not be equivalent
-        assert!(!number.is_equivalent(string, &mut analysis_env));
-        assert!(!number.is_equivalent(boolean, &mut analysis_env));
-        assert!(!number.is_equivalent(null, &mut analysis_env));
-        assert!(!number.is_equivalent(integer, &mut analysis_env));
-        assert!(!string.is_equivalent(boolean, &mut analysis_env));
-    }
-
-    #[test]
-    fn subtype_relationship() {
-        let heap = Heap::new();
-        let env = Environment::new(SpanId::SYNTHETIC, &heap);
-
-        primitive!(env, number, PrimitiveType::Number);
-        primitive!(env, integer, PrimitiveType::Integer);
-        primitive!(env, string, PrimitiveType::String);
-        primitive!(env, boolean, PrimitiveType::Boolean);
-        primitive!(env, null, PrimitiveType::Null);
-
-        let mut analysis_env = AnalysisEnvironment::new(&env);
-
-        // Every type is a subtype of itself (reflexivity)
-        assert!(number.is_subtype_of(number, &mut analysis_env));
-        assert!(integer.is_subtype_of(integer, &mut analysis_env));
-        assert!(string.is_subtype_of(string, &mut analysis_env));
-        assert!(boolean.is_subtype_of(boolean, &mut analysis_env));
-        assert!(null.is_subtype_of(null, &mut analysis_env));
-
-        // Integer is a subtype of Number (Integer <: Number)
-        assert!(integer.is_subtype_of(number, &mut analysis_env));
-
-        // Number is not a subtype of Integer (!(Number <: Integer))
-        assert!(!number.is_subtype_of(integer, &mut analysis_env));
-
-        // No other subtyping relationships between primitive types
-        assert!(!number.is_subtype_of(string, &mut analysis_env));
-        assert!(!number.is_subtype_of(boolean, &mut analysis_env));
-        assert!(!number.is_subtype_of(null, &mut analysis_env));
-
-        assert!(!string.is_subtype_of(number, &mut analysis_env));
-        assert!(!string.is_subtype_of(boolean, &mut analysis_env));
-        assert!(!string.is_subtype_of(null, &mut analysis_env));
-
-        assert!(!boolean.is_subtype_of(number, &mut analysis_env));
-        assert!(!boolean.is_subtype_of(string, &mut analysis_env));
-        assert!(!boolean.is_subtype_of(null, &mut analysis_env));
-
-        assert!(!null.is_subtype_of(number, &mut analysis_env));
-        assert!(!null.is_subtype_of(string, &mut analysis_env));
-        assert!(!null.is_subtype_of(boolean, &mut analysis_env));
-    }
-
-    #[test_case(PrimitiveType::Number)]
-    #[test_case(PrimitiveType::Integer)]
-    #[test_case(PrimitiveType::String)]
-    #[test_case(PrimitiveType::Boolean)]
-    #[test_case(PrimitiveType::Null)]
-    fn simplify(primitive: PrimitiveType) {
-        let heap = Heap::new();
-        let env = Environment::new(SpanId::SYNTHETIC, &heap);
-
-        primitive!(env, a, primitive);
-
-        let mut simplify_env = SimplifyEnvironment::new(&env);
-
-        // Primitive types should simplify to themselves
-        let result = a.simplify(&mut simplify_env);
-        let result_type = env.r#type(result);
-
-        assert_eq!(*result_type.kind, TypeKind::Primitive(primitive));
-    }
-
-    #[test]
-    fn lattice_laws() {
-        let heap = Heap::new();
-        let env = Environment::new(SpanId::SYNTHETIC, &heap);
-
-        primitive!(env, number, PrimitiveType::Number);
-        primitive!(env, string, PrimitiveType::String);
-        primitive!(env, boolean, PrimitiveType::Boolean);
-
-        assert_lattice_laws(&env, number.id, string.id, boolean.id);
-    }
-
-    #[test]
-    fn is_concrete() {
-        let heap = Heap::new();
-        let env = Environment::new(SpanId::SYNTHETIC, &heap);
-        let mut analysis_env = AnalysisEnvironment::new(&env);
-
-        // All primitive types should be concrete
-        primitive!(env, number, PrimitiveType::Number);
-        primitive!(env, string, PrimitiveType::String);
-        primitive!(env, boolean, PrimitiveType::Boolean);
-        primitive!(env, null, PrimitiveType::Null);
-
-        assert!(number.is_concrete(&mut analysis_env));
-        assert!(string.is_concrete(&mut analysis_env));
-        assert!(boolean.is_concrete(&mut analysis_env));
-        assert!(null.is_concrete(&mut analysis_env));
     }
 }
