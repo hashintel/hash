@@ -15,7 +15,6 @@
     "@rust/hash-graph-authorization": "0.0.0-private"
   },
   "devDependencies": {
-    "@local/repo-chores": "0.0.0-private",
     "@rust/hash-graph-migrations": "0.0.0-private"
   }
 }
