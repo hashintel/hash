@@ -51,4 +51,4 @@ Node:
 
 
 Type:
-fn<T:0?14: Integer>(?14«Integer», ?14«Integer») -> ?14«Integer»
+fn<T:0?17: Integer>(?17, ?17) -> ?17

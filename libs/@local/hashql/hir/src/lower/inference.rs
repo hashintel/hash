@@ -1,9 +1,10 @@
 use hashql_core::{
     collection::{FastHashMap, FastHashSet},
+    intern::Interned,
     literal::LiteralKind,
     module::{
         ModuleRegistry, Universe,
-        item::{ConstructorItem, IntrinsicItem, IntrinsicValueItem, ItemKind},
+        item::{IntrinsicItem, IntrinsicValueItem, ItemKind},
         locals::TypeDef,
         universe::FastRealmsMap,
     },
@@ -24,11 +25,10 @@ use crate::{
         access::{field::FieldAccess, index::IndexAccess},
         branch::Branch,
         call::Call,
-        closure::{Closure, ClosureSignature},
+        closure::Closure,
         data::Literal,
         graph::Graph,
         input::Input,
-        kind::NodeKind,
         r#let::Let,
         operation::{
             BinaryOperation, UnaryOperation,
@@ -38,6 +38,11 @@ use crate::{
     },
     visit::{self, Visitor},
 };
+
+pub struct TypeInferenceResidual<'heap> {
+    pub locals: FastHashMap<Symbol<'heap>, TypeDef<'heap>>,
+    pub types: FastHashMap<HirId, TypeId>,
+}
 
 pub struct TypeInference<'env, 'heap> {
     env: &'env Environment<'heap>,
@@ -51,6 +56,7 @@ pub struct TypeInference<'env, 'heap> {
     visited: FastHashSet<HirId>,
     locals: FastRealmsMap<Symbol<'heap>, TypeDef<'heap>>,
     types: FastRealmsMap<HirId, TypeId>,
+    arguments: FastRealmsMap<HirId, Interned<'heap, [GenericArgumentReference<'heap>]>>,
     variables: FastRealmsMap<HirId, hashql_core::r#type::inference::Variable>,
 }
 
@@ -68,6 +74,7 @@ impl<'env, 'heap> TypeInference<'env, 'heap> {
             visited: FastHashSet::default(),
             locals: FastRealmsMap::new(),
             types: FastRealmsMap::new(),
+            arguments: FastRealmsMap::new(),
             variables: FastRealmsMap::new(),
         }
     }
@@ -96,16 +103,22 @@ impl<'env, 'heap> TypeInference<'env, 'heap> {
     }
 
     #[must_use]
-    pub fn types(&self) -> &FastHashMap<HirId, TypeId> {
-        &self.types[Universe::Value]
-    }
-
-    #[must_use]
-    pub fn finish(mut self) -> (InferenceSolver<'env, 'heap>, Vec<TypeCheckDiagnostic>) {
+    pub fn finish(
+        mut self,
+    ) -> (
+        InferenceSolver<'env, 'heap>,
+        TypeInferenceResidual<'heap>,
+        Vec<TypeCheckDiagnostic>,
+    ) {
         let diagnostics = self.instantiate.take_diagnostics().into_vec();
         let solver = self.inference.into_solver();
 
-        (solver, diagnostics)
+        let locals = core::mem::take(&mut self.locals[Universe::Value]);
+        let types = core::mem::take(&mut self.types[Universe::Value]);
+
+        let residual = TypeInferenceResidual { locals, types };
+
+        (solver, residual, diagnostics)
     }
 }
 
@@ -165,9 +178,11 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
             .unwrap_or_else(|| unreachable!("import resolver should've caught this issue"));
 
         let mut def = match item.kind {
-            ItemKind::Constructor(ConstructorItem { r#type }) => r#type,
             ItemKind::Intrinsic(IntrinsicItem::Value(IntrinsicValueItem { name: _, r#type })) => {
                 r#type
+            }
+            ItemKind::Constructor(_) => {
+                unreachable!("constructors should've been specialized prior to this point");
             }
             ItemKind::Module(_)
             | ItemKind::Type(_)
@@ -198,23 +213,18 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
         self.visit_node(value);
 
         // We simply take the type of the value
-        let value_id = self.types[Universe::Value][&value.id];
-        self.types
-            .insert_unique(Universe::Value, self.current, value_id);
+        let value_type = self.types[Universe::Value][&value.id];
 
-        let arguments = if let &NodeKind::Closure(Closure {
-            signature:
-                ClosureSignature {
-                    def: TypeDef { arguments, .. },
-                    ..
-                },
-            ..
-        }) = value.kind
-        {
-            arguments
-        } else {
-            self.env.intern_generic_argument_references(&[])
-        };
+        let arguments = self
+            .arguments
+            .get(Universe::Value, &value.id)
+            .copied()
+            .unwrap_or_else(|| self.env.intern_generic_argument_references(&[]));
+
+        self.types
+            .insert_unique(Universe::Value, self.current, value_type);
+        self.arguments
+            .insert_unique(Universe::Value, self.current, arguments);
 
         // We only take over the arguments of values we know, the only ones that are left after
         // alias-replacement that are of note are closures. Due to the ambiguity, we do not support
@@ -223,7 +233,7 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
             Universe::Value,
             name.value,
             TypeDef {
-                id: value_id,
+                id: value_type,
                 arguments,
             },
         );
@@ -264,10 +274,10 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
             return;
         }
 
-        // assertion <: value
+        // value <: assertion
         self.inference.collect_constraints(
-            assertion.r#type,
             self.types[Universe::Value][&assertion.value.id],
+            assertion.r#type,
         );
     }
 
@@ -278,6 +288,8 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
 
         self.types
             .insert_unique(Universe::Value, self.current, constructor.closure);
+        self.arguments
+            .insert_unique(Universe::Value, self.current, constructor.arguments);
     }
 
     fn visit_binary_operation(&mut self, _: &'heap BinaryOperation<'heap>) {
@@ -345,7 +357,18 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
             returns_id,
         );
 
-        self.inference.collect_constraints(closure, function);
+        // At a call-site we must prove `F <: C`, where
+        // - F is the declared type of the callee, and
+        // - C is the closure type we synthesise from the actual arguments: `(T₁, …, Tₙ) -> ρ` with
+        //   `ρ` being a fresh hole for the return value.
+        //
+        // Passing `F` as the *subtype* (left) and `C` as the *supertype* (right)
+        // produces the desired constraints:
+        // - contravariant parameters: `Tᵢ <: Pᵢ`
+        // - covariant return value: `R <: ρ`
+        //
+        // For closure literals we invert the direction and collect `C <: F`
+        self.inference.collect_constraints(function, closure);
 
         self.variables
             .insert_unique(Universe::Value, self.current, returns);
@@ -405,10 +428,8 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
         // invalid in the context of type checking, which is why it is a separate step.
         self.visit_node(body);
 
-        // Remove the locals again from scope
-        for param in signature.params {
-            self.locals.remove(Universe::Value, &param.name.value);
-        }
+        // Note: We do not remove the locals again from scope, to allow us to use them in the type
+        // checking phase.
 
         // `body <: return`
         self.inference.collect_constraints(
@@ -418,13 +439,17 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
 
         self.instantiate.exit_unscoped(old_unscoped);
 
-        // We do not instantiate the type of the closure itself here, for the same reason as stated
-        // above.
-        self.types
-            .insert(Universe::Value, self.current, signature.def.id);
+        // Create a completely separate instantiation of the closure's definition to decouple any
+        // inference steps of the body from the closure's definition.
+        let mut def = signature.def;
+        def.instantiate(&mut self.instantiate);
+
+        self.types.insert(Universe::Value, self.current, def.id);
+        self.arguments
+            .insert(Universe::Value, self.current, def.arguments);
     }
 
     fn visit_graph(&mut self, _: &'heap Graph<'heap>) {
-        unimplemented!()
+        unreachable!("graph operations shouldn't be present yet");
     }
 }

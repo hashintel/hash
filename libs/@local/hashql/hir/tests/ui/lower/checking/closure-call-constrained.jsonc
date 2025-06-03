@@ -1,0 +1,14 @@
+//@ run: pass
+//@ description: Tests type checking for calling a closure with a constrained generic type parameter (T: Integer).
+[
+  "let",
+  "foo",
+  [
+    "fn",
+    { "#struct": { "T": "Integer" } },
+    { "#struct": { "a": "T", "b": "T" } },
+    "T",
+    ["+", "a", "b"]
+  ],
+  ["foo", { "#literal": 2 }, { "#literal": 3 }]
+]

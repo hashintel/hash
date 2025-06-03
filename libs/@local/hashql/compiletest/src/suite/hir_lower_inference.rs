@@ -17,11 +17,11 @@ use hashql_hir::{
 
 use super::{Suite, SuiteDiagnostic, common::process_diagnostics};
 
-pub(crate) struct HirLowerInferenceSuite;
+pub(crate) struct HirLowerTypeInferenceSuite;
 
-impl Suite for HirLowerInferenceSuite {
+impl Suite for HirLowerTypeInferenceSuite {
     fn name(&self) -> &'static str {
-        "hir/lower/inference"
+        "hir/lower/type-inference"
     }
 
     fn run<'heap>(
@@ -72,16 +72,16 @@ impl Suite for HirLowerInferenceSuite {
         let mut inference = TypeInference::new(&environment, &registry);
         inference.visit_node(&node);
 
+        let (solver, inference_residual, inference_diagnostics) = inference.finish();
+        process_diagnostics(diagnostics, inference_diagnostics)?;
+
         // We sort so that the output is deterministic
-        let mut types: Vec<_> = inference
-            .types()
+        let mut inference_types: Vec<_> = inference_residual
+            .types
             .iter()
             .map(|(&hir_id, &type_id)| (hir_id, type_id))
             .collect();
-        types.sort_unstable_by_key(|&(hir_id, _)| hir_id);
-
-        let (solver, inference_diagnostics) = inference.finish();
-        process_diagnostics(diagnostics, inference_diagnostics)?;
+        inference_types.sort_unstable_by_key(|&(hir_id, _)| hir_id);
 
         let (substitution, solver_diagnostics) = solver.solve();
         process_diagnostics(diagnostics, solver_diagnostics.into_vec())?;
@@ -95,7 +95,7 @@ impl Suite for HirLowerInferenceSuite {
         )
         .expect("infallible");
 
-        for (hir_id, type_id) in types {
+        for (hir_id, type_id) in inference_types {
             output.push_str("\n\n--------------------------------------\n\n");
 
             output.push_str("Node:\n");

@@ -8,6 +8,7 @@
     assert_matches,
     binary_heap_into_iter_sorted,
     cold_path,
+    coverage_attribute,
     default_field_values,
     iter_map_windows,
     slice_partition_dedup,

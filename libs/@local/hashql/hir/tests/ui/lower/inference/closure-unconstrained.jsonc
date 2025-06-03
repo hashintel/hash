@@ -1,8 +1,5 @@
-//@ run: pass
-//@ description: Closure inference
-// This **should** fail during type checking (not inference), because an arbitrary `T` cannot be used during `math.add` operations.
-// The return type of `+` should be `Number`, this might seem counterintuitive, but `T` does not contribute any constraint to the return type of `+`, as itself isn't constrained at all,
-// therefore being left unconstrained and falling back to `Number` (the default constraint). This constraint will then be verified with the actual outcome in the type checking phase.
+//@ run: fail
+//@ description: Ensures type inference fails when an unconstrained generic's type, inferred from arguments, conflicts with operational constraints within the closure body.
 [
   "let",
   "add",
@@ -13,5 +10,6 @@
     "T",
     ["+", "a", "b"]
   ],
+  //~^ ERROR Type variable has incompatible equality and upper bound constraints
   ["add", { "#literal": 1 }, { "#literal": 2 }]
 ]

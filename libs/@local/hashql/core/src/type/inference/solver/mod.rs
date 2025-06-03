@@ -22,7 +22,7 @@
 mod graph;
 mod tarjan;
 #[cfg(test)]
-mod test;
+mod tests;
 mod topo;
 
 use bumpalo::Bump;
@@ -143,7 +143,7 @@ impl Unification {
         reason = "This cast is safe because the number of type variables are limited to \
                   `u32::MAX` due to ena."
     )]
-    fn lookup(&mut self) -> VariableLookup {
+    pub(crate) fn lookup(&mut self) -> VariableLookup {
         let mut lookup = FastHashMap::with_capacity_and_hasher(
             self.table.len(),
             foldhash::fast::RandomState::default(),
@@ -499,6 +499,12 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         for &constraint in &self.constraints {
             match constraint {
                 Constraint::UpperBound { variable, bound } => {
+                    if self.lattice.is_alias(bound, variable.kind) {
+                        // This bound does not contribute to the variable's type, as it is just `T
+                        // <: T` which is just true.
+                        continue;
+                    }
+
                     // Find the canonical representative for this variable
                     let root = self.unification.root(variable.kind);
                     let (_, constraint) = constraints
@@ -509,6 +515,12 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                     constraint.upper.push(bound);
                 }
                 Constraint::LowerBound { variable, bound } => {
+                    if self.lattice.is_alias(bound, variable.kind) {
+                        // This bound does not contribute to the variable's type, as it is just `T
+                        // <: T` which is just true.
+                        continue;
+                    }
+
                     // Find the canonical representative for this variable
                     let root = self.unification.root(variable.kind);
                     let (_, constraint) = constraints
@@ -519,6 +531,12 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                     constraint.lower.push(bound);
                 }
                 Constraint::Equals { variable, r#type } => {
+                    if self.lattice.is_alias(r#type, variable.kind) {
+                        // This equality does not contribute to the variable's type, as it is just
+                        // `T = T` which is just true.
+                        continue;
+                    }
+
                     // Find the canonical representative for this variable
                     let root = self.unification.root(variable.kind);
                     let (_, constraint) = constraints
@@ -645,6 +663,12 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
             let lower_id = self.unification.lookup[&lower_kind];
             let upper_id = self.unification.lookup[&upper_kind];
 
+            // Check if this is a self-referential constraint, which should be skipped, because they
+            // have already been unified.
+            if lower_id == upper_id {
+                continue;
+            }
+
             let entry = lookup
                 .entry(match lookup_by {
                     // Index by the variable based on lookup direction
@@ -762,6 +786,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
 
             variable_constraint.lower.clear();
             if let Some(lower) = lower {
+                let lower = self.lattice.simplify(lower);
                 variable_constraint.lower.push(lower);
             }
         }
@@ -866,6 +891,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
 
             variable_constraint.upper.clear();
             if let Some(upper) = upper {
+                let upper = self.lattice.simplify(upper);
                 let is_bottom = self.lattice.is_bottom(upper);
 
                 // Mark as unsatisfiable if we had valid constraints that resolved to an impossible
@@ -1163,8 +1189,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
             DeferralDepth,
         )>,
     ) -> bool {
-        self.lattice.set_substitution(substitution.clone());
-        self.simplify.set_substitution(substitution);
+        self.lattice.set_substitution(substitution);
 
         let mut made_progress = false;
 
@@ -1185,7 +1210,8 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                         // Simplify the subject type. This will remove any unnecessary match arms,
                         // but will mean that we're no longer able to infer any underlying type (if
                         // present).
-                        subject_type = self.lattice.r#type(self.simplify.simplify(subject_type.id));
+                        let simplified = self.lattice.simplify(subject_type.id);
+                        subject_type = self.lattice.r#type(simplified);
                     }
 
                     let field = match self.lattice.projection(subject_type.id, field) {
@@ -1254,8 +1280,11 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                         // Simplify the subject type. This will remove any unnecessary match arms,
                         // but will mean that we're no longer able to infer any underlying type (if
                         // present).
-                        subject_type = self.lattice.r#type(self.simplify.simplify(subject_type.id));
-                        index_type = self.lattice.r#type(self.simplify.simplify(index_type.id));
+                        let simplified = self.lattice.simplify(subject_type.id);
+                        subject_type = self.lattice.r#type(simplified);
+
+                        let simplified = self.lattice.simplify(index_type.id);
+                        index_type = self.lattice.r#type(simplified);
                     }
 
                     let value = match self.lattice.subscript(
@@ -1334,7 +1363,6 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         }
 
         self.lattice.clear_substitution();
-        self.simplify.clear_substitution();
 
         made_progress
     }

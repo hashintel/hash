@@ -114,6 +114,10 @@ where
     S: Span,
 {
     fn span(&self, context: &mut &SpanStorage<S>) -> Option<TextRange> {
+        if *self == Self::SYNTHETIC {
+            return Some(TextRange::empty(TextSize::new(0)));
+        }
+
         let entry = context.get(*self)?;
 
         Some(entry.map(Span::range))

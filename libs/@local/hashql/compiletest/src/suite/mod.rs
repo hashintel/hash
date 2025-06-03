@@ -1,3 +1,4 @@
+#![coverage(off)]
 mod ast_lowering_import_resolver;
 mod ast_lowering_import_resolver_continue;
 mod ast_lowering_node_mangler;
@@ -9,6 +10,7 @@ mod ast_lowering_type_definition_extractor;
 mod ast_lowering_type_extractor;
 pub(crate) mod common;
 mod hir_lower_alias_replacement;
+mod hir_lower_checking;
 mod hir_lower_ctor;
 mod hir_lower_inference;
 mod hir_reify;
@@ -28,8 +30,9 @@ use self::{
     ast_lowering_special_form_expander::AstLoweringSpecialFormExpanderSuite,
     ast_lowering_type_definition_extractor::AstLoweringTypeDefinitionExtractorSuite,
     ast_lowering_type_extractor::AstLoweringTypeExtractorSuite,
-    hir_lower_alias_replacement::HirLowerAliasReplacementSuite, hir_lower_ctor::HirLowerCtorSuite,
-    hir_lower_inference::HirLowerInferenceSuite, hir_reify::HirReifySuite,
+    hir_lower_alias_replacement::HirLowerAliasReplacementSuite,
+    hir_lower_checking::HirLowerTypeCheckingSuite, hir_lower_ctor::HirLowerCtorSuite,
+    hir_lower_inference::HirLowerTypeInferenceSuite, hir_reify::HirReifySuite,
     parse_syntax_dump::ParseSyntaxDumpSuite,
 };
 
@@ -60,7 +63,8 @@ const SUITES: &[&dyn Suite] = &[
     &AstLoweringTypeExtractorSuite,
     &HirLowerAliasReplacementSuite,
     &HirLowerCtorSuite,
-    &HirLowerInferenceSuite,
+    &HirLowerTypeCheckingSuite,
+    &HirLowerTypeInferenceSuite,
     &HirReifySuite,
     &ParseSyntaxDumpSuite,
 ];

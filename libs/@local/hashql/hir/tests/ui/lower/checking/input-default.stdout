@@ -1,0 +1,36 @@
+#input(x, type: Number, default: #is(42, type: _0))
+
+--------------------------------------
+
+#input(x, type: Number, default: #is(42, type: _0«Integer»))
+
+--------------------------------------
+
+#input x = Number
+
+--------------------------------------
+
+Node:
+42
+
+
+Type:
+Integer
+
+--------------------------------------
+
+Node:
+#is(42, type: _0«Integer»)
+
+
+Type:
+Integer
+
+--------------------------------------
+
+Node:
+#input(x, type: Number, default: #is(42, type: _0«Integer»))
+
+
+Type:
+Number

@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Checks successful type checking for a function call with compatible numeric types (Number, Integer).
+["+", { "#literal": 42.12 }, { "#literal": 42 }]

@@ -1,0 +1,4 @@
+//@ run: fail
+//@ description: Ensures type checking fails when an input's default value type mismatches the declared input type.
+["input", "x", "Number", { "#literal": "42" }]
+//~^ ERROR Type mismatch in this expression

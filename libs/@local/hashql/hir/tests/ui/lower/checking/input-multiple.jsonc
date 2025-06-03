@@ -1,0 +1,8 @@
+//@ run: pass
+//@ description: Verifies that when an input variable is declared multiple times with compatible types, the most specific type (meet) is used.
+[
+  "let",
+  "foo",
+  ["input", "x", "Number"],
+  ["let", "bar", ["input", "x", "Integer"], "foo"]
+]

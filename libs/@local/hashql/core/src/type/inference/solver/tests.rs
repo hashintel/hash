@@ -214,6 +214,7 @@ fn apply_constraints() {
     let bump = Bump::new();
     solver.upsert_variables(&mut graph);
     solver.solve_anti_symmetry(&mut graph, &mut FastHashMap::default(), &bump);
+    solver.lattice.set_variables(solver.unification.lookup());
 
     let mut variables = FastHashMap::default();
     let bump = Bump::new();
@@ -249,6 +250,7 @@ fn apply_constraints_equality() {
     let bump = Bump::new();
     solver.upsert_variables(&mut graph);
     solver.solve_anti_symmetry(&mut graph, &mut FastHashMap::default(), &bump);
+    solver.lattice.set_variables(solver.unification.lookup());
 
     let mut variables = FastHashMap::default();
     solver.apply_constraints(&graph, &bump, &mut variables, &mut Vec::new());
@@ -303,6 +305,7 @@ fn apply_constraints_with_unification() {
     let bump = Bump::new();
     solver.upsert_variables(&mut graph);
     solver.solve_anti_symmetry(&mut graph, &mut FastHashMap::default(), &bump);
+    solver.lattice.set_variables(solver.unification.lookup());
 
     let mut variables = FastHashMap::default();
     solver.apply_constraints(&graph, &bump, &mut variables, &mut Vec::new());
@@ -570,6 +573,7 @@ fn redundant_constraints() {
     let bump = Bump::new();
     solver.upsert_variables(&mut graph);
     solver.solve_anti_symmetry(&mut graph, &mut FastHashMap::default(), &bump);
+    solver.lattice.set_variables(solver.unification.lookup());
 
     let mut variables = FastHashMap::default();
 
@@ -714,6 +718,7 @@ fn bounds_at_lattice_extremes() {
     let bump = Bump::new();
     solver.upsert_variables(&mut graph);
     solver.solve_anti_symmetry(&mut graph, &mut FastHashMap::default(), &bump);
+    solver.lattice.set_variables(solver.unification.lookup());
 
     // Apply the constraints
     let mut variables = FastHashMap::default();
@@ -771,6 +776,43 @@ fn collect_constraints_with_structural_edge() {
     assert!(var2_constraints.equal.is_none());
     assert!(var2_constraints.lower.is_empty());
     assert!(var2_constraints.upper.is_empty());
+}
+
+#[test]
+fn collect_constraints_skip_alias() {
+    scaffold!(heap, env, _builder);
+
+    let hole1 = HoleId::new(1);
+    let variable = Variable::synthetic(VariableKind::Hole(hole1));
+
+    // Create a structural edge constraint
+    let constraints = [
+        Constraint::LowerBound {
+            variable,
+            bound: variable.into_type(&env).id,
+        },
+        Constraint::UpperBound {
+            variable,
+            bound: variable.into_type(&env).id,
+        },
+        Constraint::Equals {
+            variable,
+            r#type: variable.into_type(&env).id,
+        },
+    ];
+
+    let mut solver =
+        InferenceSolver::new(InferenceEnvironment::new(&env).with_constraints(constraints));
+    let mut graph = Graph::new(&mut solver.unification);
+    solver.upsert_variables(&mut graph);
+
+    let lookup = solver.unification.lookup();
+    solver.lattice.set_variables(lookup);
+
+    let mut constraints = FastHashMap::default();
+    solver.collect_constraints(&mut constraints, &mut Vec::new());
+
+    assert!(!constraints.contains_key(&variable.kind));
 }
 
 // =============== INTEGRATION TESTS ===============

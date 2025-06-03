@@ -3900,6 +3900,7 @@ dependencies = [
  "hashql-diagnostics",
  "pretty",
  "simple-mermaid",
+ "tracing",
 ]
 
 [[package]]

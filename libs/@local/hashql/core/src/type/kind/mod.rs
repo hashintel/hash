@@ -1709,6 +1709,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
 
             return inner;
         }
+
         // By running bottom/top checks *after* the per‐kind passes, we guarantee that
         // self‐referential intersections and coinductive unions get properly collapsed before we
         // ever declare a type `Never` or `Unknown`.

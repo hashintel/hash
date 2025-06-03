@@ -1,0 +1,14 @@
+//@ run: pass
+//@ description: Verifies type checking for a non-generic closure with explicitly typed parameters and return value.
+[
+  "let",
+  "add",
+  [
+    "fn",
+    { "#tuple": [] },
+    { "#struct": { "a": "Number", "b": "Number" } },
+    "Number",
+    ["+", "a", "b"]
+  ],
+  ["add", { "#literal": 1 }, { "#literal": 2 }]
+]

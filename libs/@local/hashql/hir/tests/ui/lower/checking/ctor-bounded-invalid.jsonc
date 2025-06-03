@@ -1,0 +1,4 @@
+//@ run: fail
+//@ description: Checks that type constructor bounded generic parameter (T: Number) violation is caught during type checking.
+["newtype", "Person<T: Number>", "T", ["Person", { "#literal": "2" }]]
+//~^ ERROR Type variable has incompatible upper and lower bounds
