@@ -889,7 +889,7 @@ fn instantiated_nested() {
 
     // The type is complicated enough that it isn't feasible to test it through assertions.
     insta::assert_snapshot!(
-        &env.r#type(result_id).pretty_print(
+        env.r#type(result_id).pretty_print(
             &env,
             PrettyOptions::default()
                 .with_depth_tracking()
