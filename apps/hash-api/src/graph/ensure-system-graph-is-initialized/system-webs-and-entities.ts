@@ -292,6 +292,7 @@ export const ensureSystemEntitiesExist = async (params: {
       context.graphApi,
       authentication,
       {
+        name: "tmp-ai-assistant-actor-instantiate",
         effect: "permit",
         principal: {
           type: "actor",
@@ -330,6 +331,7 @@ export const ensureSystemEntitiesExist = async (params: {
       context.graphApi,
       authentication,
       instantiationPolicyId,
+      { permanent: true },
     );
   }
 };
