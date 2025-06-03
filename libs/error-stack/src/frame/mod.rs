@@ -103,8 +103,8 @@ impl Frame {
     ) -> Option<Box<T>> {
         self.is::<T>().then(|| {
             struct PrintableReplacementFrame {
-                display: String,
-                debug: String,
+                display: alloc::string::String,
+                debug: alloc::string::String,
             }
 
             impl core::fmt::Display for PrintableReplacementFrame {
@@ -127,8 +127,8 @@ impl Frame {
                 match self.frame.kind() {
                     FrameKind::Context(context) => {
                         Box::new(ContextFrame::new(PrintableReplacementFrame {
-                            display: format!("{context}"),
-                            debug: format!("{context:?}"),
+                            display: alloc::format!("{context}"),
+                            debug: alloc::format!("{context:?}"),
                         })) as Box<dyn FrameImpl>
                     }
                     FrameKind::Attachment(attachment_kind) => match attachment_kind {
@@ -137,8 +137,8 @@ impl Frame {
                         }
                         AttachmentKind::Printable(attachment) => {
                             Box::new(PrintableAttachmentFrame::new(PrintableReplacementFrame {
-                                display: format!("{attachment}"),
-                                debug: format!("{attachment:?}"),
+                                display: alloc::format!("{attachment}"),
+                                debug: alloc::format!("{attachment:?}"),
                             })) as Box<dyn FrameImpl>
                         }
                     },
