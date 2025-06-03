@@ -16,6 +16,7 @@ members = [
     "libs/@local/graph/migrations",
     "libs/@local/graph/migrations-macros",
     "libs/@local/graph/postgres-queries",
+    "libs/@local/graph/postgres-queries/clorinde",
     "libs/@local/graph/postgres-store",
     "libs/@local/graph/store",
     "libs/@local/graph/temporal-versioning",
