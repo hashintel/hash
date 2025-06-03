@@ -1,8 +1,8 @@
-#![expect(clippy::min_ident_chars)]
+#![expect(clippy::min_ident_chars, clippy::missing_asserts_for_indexing)]
 #![coverage(off)]
 
 use crate::{
-    pretty::{PrettyOptions, PrettyPrint},
+    pretty::{PrettyOptions, PrettyPrint as _},
     r#type::{
         TypeId,
         environment::{AnalysisEnvironment, Environment, LatticeEnvironment},
@@ -11,6 +11,15 @@ use crate::{
 };
 
 mod closure;
+mod generic;
+mod generic_apply;
+mod intersection;
+mod intrinsic;
+mod opaque;
+mod primitive;
+mod r#struct;
+mod tuple;
+mod union;
 
 #[track_caller]
 fn assert_join(lattice: &mut LatticeEnvironment, lhs: TypeId, rhs: TypeId, expected: &[TypeId]) {
