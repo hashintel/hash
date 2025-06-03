@@ -689,6 +689,9 @@ mod test {
         status.capture(Report::new(MyError));
 
         let mut status = ReportSink::new();
+        status.attempt(Err::<(), _>(Report::new(MyError)));
+
+        let mut status = ReportSink::new();
         status.append(Report::new(MyError));
     }
 }
