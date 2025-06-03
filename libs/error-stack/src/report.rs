@@ -913,6 +913,12 @@ impl<C> From<Report<C>> for Report<[C]> {
     }
 }
 
+impl<C: Context> From<C> for Report<[C]> {
+    fn from(ctx: C) -> Self {
+        Report::new(ctx).into()
+    }
+}
+
 #[cfg(feature = "std")]
 impl<C> std::process::Termination for Report<C> {
     fn report(self) -> ExitCode {

@@ -132,7 +132,7 @@ mod test {
         mock::Handle<Request<Full<Bytes>>, Response<Controlled<ResponseKind, Full<Bytes>>>>,
     ) {
         spawn_with(|service| {
-            let service = service.map_err(|error| Report::from(BoxedError::from(error)));
+            let service = service.map_err(|error| Report::new(BoxedError::from(error)));
 
             HandleReportLayer::new().layer(service)
         })
@@ -156,7 +156,7 @@ mod test {
 
         assert_eq!(frame, Frame::Data(Bytes::from_static(BODY)));
 
-        send_response.send_error(Report::from(GenericError::new(
+        send_response.send_error(Report::new(GenericError::new(
             ErrorCode::INSTANCE_TRANSACTION_LIMIT_REACHED,
         )));
 

@@ -753,9 +753,7 @@ where
             actor_id,
             // Manually deserialize the query from a JSON value to allow borrowed deserialization
             // and better error reporting.
-            GetEntityTypesParams::deserialize(&request)
-                .map_err(Report::from)
-                .map_err(report_to_response)?,
+            GetEntityTypesParams::deserialize(&request).map_err(report_to_response)?,
         )
         .await
         .map_err(report_to_response)
@@ -818,9 +816,8 @@ where
 
     // Manually deserialize the query from a JSON value to allow borrowed deserialization
     // and better error reporting.
-    let params = GetClosedMultiEntityTypesParams::deserialize(&request)
-        .map_err(Report::from)
-        .map_err(report_to_response)?;
+    let params =
+        GetClosedMultiEntityTypesParams::deserialize(&request).map_err(report_to_response)?;
 
     let response = store
         .get_closed_multi_entity_types(
@@ -904,9 +901,7 @@ where
     let response = store
         .get_entity_type_subgraph(
             actor_id,
-            GetEntityTypeSubgraphParams::deserialize(&request)
-                .map_err(Report::from)
-                .map_err(report_to_response)?,
+            GetEntityTypeSubgraphParams::deserialize(&request).map_err(report_to_response)?,
         )
         .await
         .map_err(report_to_response)
