@@ -45,4 +45,4 @@ workspace = true
 
 [dev-dependencies]
 insta  = { workspace = true }
-rstest = "0.25.0"
+rstest = { workspace = true }
