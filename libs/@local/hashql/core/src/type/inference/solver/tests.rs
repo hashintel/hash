@@ -23,7 +23,7 @@ use crate::{
             r#struct::StructField,
             test::{assert_equiv, intersection, list, primitive, r#struct, struct_field, union},
         },
-        test::{instantiate, instantiate_infer, scaffold},
+        tests::{instantiate, instantiate_infer, scaffold},
     },
 };
 

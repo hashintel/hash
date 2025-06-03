@@ -5,7 +5,7 @@ use crate::{
         builder::lazy,
         inference::{Substitution, VariableKind, VariableLookup, solver::Unification},
         kind::{GenericArgument, generic::GenericSubstitution},
-        test::scaffold,
+        tests::scaffold,
     },
 };
 

@@ -1,6 +1,6 @@
 ---
-source: libs/@local/hashql/core/src/type/kind/generic/apply.rs
-expression: "strip_str(&env.r#type(result_id).pretty_print(&env, PrettyOptions\n{\n    recursion_strategy: PrettyRecursionGuardStrategy::DepthCounting,\n    ..PrettyOptions::default()\n}))"
+source: libs/@local/hashql/core/src/type/kind/tests/generic_apply.rs
+expression: "env.r#type(result_id).pretty_print(&env,\nPrettyOptions::default().with_depth_tracking().without_color())"
 ---
 <T?2>(b: 
  <U?3>(a: 

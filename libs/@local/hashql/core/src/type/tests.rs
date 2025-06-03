@@ -98,6 +98,13 @@ macro_rules! scaffold {
         scaffold!(@extra $env; $($($extra)*)?);
     };
 
+    (@extra $env:ident; lattice(!simplify): $lattice:ident $(, $($extra:tt)*)?) => {
+        let mut $lattice = crate::r#type::environment::LatticeEnvironment::new(&$env);
+        $lattice.without_simplify();
+
+        scaffold!(@extra $env; $($($extra)*)?);
+    };
+
     (@extra $env:ident; simplify: $simplify:ident $(, $($extra:tt)*)?) => {
         let mut $simplify = crate::r#type::environment::SimplifyEnvironment::new(&$env);
 

@@ -9,7 +9,7 @@ pub mod kind;
 pub mod lattice;
 pub(crate) mod recursion;
 #[cfg(test)]
-pub(crate) mod test;
+pub(crate) mod tests;
 pub mod visit;
 
 use core::ops::Receiver;
