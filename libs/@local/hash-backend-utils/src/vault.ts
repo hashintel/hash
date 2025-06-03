@@ -1,10 +1,13 @@
 import { Sha256 } from "@aws-crypto/sha256-js";
 import { defaultProvider as credentialProvider } from "@aws-sdk/credential-provider-node";
 import type { ActorEntityUuid } from "@blockprotocol/type-system";
-import { HttpRequest } from "@smithy/protocol-http";
+import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
+import { HttpRequest, type IHttpRequest } from "@smithy/protocol-http";
 import { SignatureV4 } from "@smithy/signature-v4";
-import type { AxiosError, AxiosInstance } from "axios";
-import axios, { AxiosHeaders } from "axios";
+import { type AxiosInstance } from "axios";
+import axios, { AxiosError, AxiosHeaders } from "axios";
+
+import type { Logger } from "./logger.js";
 
 const toBase64 = (str: string) => Buffer.from(str, "utf8").toString("base64");
 
@@ -36,10 +39,18 @@ const loginToVaultViaIam = async (opts: {
     body: "Action=GetCallerIdentity&Version=2011-06-15",
   });
 
+  const region = process.env.AWS_REGION;
+
+  if (!region) {
+    throw new Error(
+      "Cannot login to Vault via IAM, AWS_REGION is not set in environment",
+    );
+  }
+
   const signer = new SignatureV4({
     credentials: credentialProvider(),
     service: "sts",
-    region: process.env.AWS_REGION ?? "us-east-1",
+    region,
     sha256: Sha256,
   });
 
@@ -48,7 +59,14 @@ const loginToVaultViaIam = async (opts: {
    * The access ID of the credentials are transmitted as plain text, so that when Vault forwards the request to AWS,
    * AWS can look up the secret key associated with the access ID and verify the request using the same algorithm.
    */
-  const signed = await signer.sign(unsigned);
+  let signed: IHttpRequest;
+  try {
+    signed = await signer.sign(unsigned);
+  } catch {
+    throw new Error(
+      "Failed to sign AWS request – probably no suitable credentials in environment",
+    );
+  }
 
   /**
    * @see https://developer.hashicorp.com/vault/api-docs/auth/aws#login
@@ -60,31 +78,49 @@ const loginToVaultViaIam = async (opts: {
     iam_request_headers: toBase64(JSON.stringify(signed.headers)),
   };
 
-  const response = await axios.post<{ auth: VaultLoginResult }>(
-    `${opts.vaultAddr}/v1/auth/aws/login`,
-    payload,
-    { timeout: 5000 },
-  );
+  try {
+    const response = await axios.post<{ auth: VaultLoginResult }>(
+      `${opts.vaultAddr}/v1/auth/aws/login`,
+      payload,
+      { timeout: 5000 },
+    );
 
-  return response.data.auth;
+    return response.data.auth;
+  } catch (error) {
+    if (error instanceof AxiosError) {
+      throw new Error(`Failed to login to Vault via IAM: ${error.message}`);
+    }
+
+    throw new Error(
+      `Failed to login to Vault via IAM: ${stringifyError(error)}`,
+    );
+  }
 };
 
 const renewToken = async (
   vaultAddr: string,
   token: string,
 ): Promise<Omit<VaultLoginResult, "client_token">> => {
-  const { data } = await axios.post<{
-    auth: Omit<VaultLoginResult, "client_token">;
-  }>(
-    `${vaultAddr}/v1/auth/token/renew-self`,
-    {},
-    {
-      headers: { "X-Vault-Token": token },
-      timeout: 5000,
-    },
-  );
+  try {
+    const { data } = await axios.post<{
+      auth: Omit<VaultLoginResult, "client_token">;
+    }>(
+      `${vaultAddr}/v1/auth/token/renew-self`,
+      {},
+      {
+        headers: { "X-Vault-Token": token },
+        timeout: 5000,
+      },
+    );
 
-  return data.auth;
+    return data.auth;
+  } catch (error) {
+    if (error instanceof AxiosError) {
+      throw new Error(`Failed to renew Vault token: ${error.message}`);
+    }
+
+    throw new Error(`Failed to renew Vault token: ${stringifyError(error)}`);
+  }
 };
 
 type VaultSecret<D = unknown> = {
@@ -108,13 +144,18 @@ type RenewableToken = {
 
 export class VaultClient {
   readonly #vaultAddr: string;
+  readonly #logger: Logger;
 
   #client: AxiosInstance;
   #token: RenewableToken | string;
 
-  constructor(params: { endpoint: string; token: string | RenewableToken }) {
+  constructor(params: {
+    endpoint: string;
+    token: string | RenewableToken;
+    logger: Logger;
+  }) {
     this.#vaultAddr = params.endpoint;
-
+    this.#logger = params.logger;
     this.#token = params.token;
 
     this.#client = axios.create({
@@ -190,8 +231,7 @@ export class VaultClient {
         this.#token.renewable = renewedToken.renewable;
         return;
       } catch {
-        // eslint-disable-next-line no-console
-        console.warn("Failed to renew token, falling back to login");
+        this.#logger.warn("Failed to renew token, falling back to login");
       }
     }
 
@@ -246,28 +286,46 @@ export class VaultClient {
   }
 }
 
-export const createVaultClient = async () => {
+export const createVaultClient = async ({
+  logger,
+}: {
+  logger: Logger;
+}) => {
   if (!process.env.HASH_VAULT_HOST || !process.env.HASH_VAULT_PORT) {
+    logger.info(
+      "No HASH_VAULT_HOST or HASH_VAULT_PORT provided, skipping Vault client creation",
+    );
     return undefined;
   }
 
   if (!process.env.HASH_VAULT_ROOT_TOKEN) {
-    // eslint-disable-next-line no-console
-    console.info("No Vault root token provided, attempting IAM auth");
+    logger.info("No Vault root token provided, attempting IAM auth");
 
-    const login = await loginToVaultViaIam({
-      vaultAddr: `${process.env.HASH_VAULT_HOST}:${process.env.HASH_VAULT_PORT}`,
-    });
+    try {
+      const login = await loginToVaultViaIam({
+        vaultAddr: `${process.env.HASH_VAULT_HOST}:${process.env.HASH_VAULT_PORT}`,
+      });
 
-    return new VaultClient({
-      endpoint: `${process.env.HASH_VAULT_HOST}:${process.env.HASH_VAULT_PORT}`,
-      token: login.client_token,
-    });
+      logger.info("Successfully logged in to Vault via IAM");
+
+      return new VaultClient({
+        endpoint: `${process.env.HASH_VAULT_HOST}:${process.env.HASH_VAULT_PORT}`,
+        token: login.client_token,
+        logger,
+      });
+    } catch (error) {
+      logger.error(
+        `Failed to login to Vault via IAM: ${stringifyError(error)}`,
+      );
+
+      return undefined;
+    }
   }
 
   return new VaultClient({
     endpoint: `${process.env.HASH_VAULT_HOST}:${process.env.HASH_VAULT_PORT}`,
     token: process.env.HASH_VAULT_ROOT_TOKEN,
+    logger,
   });
 };
 
