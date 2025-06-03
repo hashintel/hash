@@ -776,7 +776,7 @@ mod test {
                 union::UnionType,
             },
             lattice::{Lattice as _, Projection, Subscript, test::assert_lattice_laws},
-            test::{instantiate, instantiate_infer, instantiate_param},
+            tests::{instantiate, instantiate_infer, instantiate_param},
         },
     };
 

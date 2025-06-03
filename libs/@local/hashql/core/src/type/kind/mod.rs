@@ -8,6 +8,8 @@ pub mod primitive;
 pub mod r#struct;
 #[cfg(test)]
 pub(crate) mod test;
+#[cfg(test)]
+mod tests;
 pub mod tuple;
 pub mod union;
 

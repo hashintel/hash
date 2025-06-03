@@ -3861,6 +3861,7 @@ dependencies = [
  "pretty",
  "rapidfuzz",
  "roaring",
+ "rstest",
  "scc",
  "serde",
  "simple-mermaid",

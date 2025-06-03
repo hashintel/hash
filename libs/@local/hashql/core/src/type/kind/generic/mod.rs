@@ -603,7 +603,7 @@ mod tests {
                 },
             },
             lattice::test::assert_lattice_laws,
-            test::{instantiate, instantiate_infer},
+            tests::{instantiate, instantiate_infer},
         },
     };
 

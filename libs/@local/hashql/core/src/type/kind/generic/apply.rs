@@ -474,7 +474,7 @@ mod tests {
                 },
             },
             lattice::test::assert_lattice_laws,
-            test::{instantiate, instantiate_infer, instantiate_param},
+            tests::{instantiate, instantiate_infer, instantiate_param},
         },
     };
 

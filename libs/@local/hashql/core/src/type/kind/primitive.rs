@@ -282,7 +282,7 @@ mod test {
                 test::{assert_kind, primitive},
             },
             lattice::{Lattice as _, Projection, Subscript, test::assert_lattice_laws},
-            test::instantiate,
+            tests::instantiate,
         },
     };
 

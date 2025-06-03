@@ -167,7 +167,7 @@ mod test {
             collection::TypeIdSet,
             environment::Environment,
             kind::{TypeKind, primitive::PrimitiveType, test::primitive},
-            test::instantiate,
+            tests::instantiate,
         },
     };
 
