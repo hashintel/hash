@@ -29,13 +29,13 @@ bumpalo              = { workspace = true }
 derive_more          = { workspace = true, features = ["debug", "from"] }
 ena                  = { workspace = true }
 lexical              = { workspace = true, features = ["parse-integers", "parse-floats", "format"] }
-rapidfuzz            = "0.5.0"
+rapidfuzz            = { workspace = true }
 roaring              = { workspace = true, features = ["std", "simd"] }
 serde                = { workspace = true, optional = true, features = ["alloc", "derive"] }
 simple-mermaid       = { workspace = true }
 tracing              = { workspace = true }
-unicase              = { version = "2.8.1", features = ["nightly"] }
-unicode-segmentation = "1.12.0"
+unicase              = { workspace = true, features = ["nightly"] }
+unicode-segmentation = { workspace = true }
 
 [features]
 serde = ["dep:serde", "text-size/serde"]
