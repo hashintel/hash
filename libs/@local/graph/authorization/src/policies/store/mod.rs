@@ -241,7 +241,7 @@ pub trait PolicyStore {
         actor_id: Option<ActorId>,
     ) -> Result<Vec<Policy>, Report<GetPoliciesError>>;
 
-    /// Updates the policy specified by it's ID.
+    /// Updates the policy specified by its ID.
     ///
     /// All specified operations are applied to the policy in the order they are provided.
     ///
@@ -263,7 +263,7 @@ pub trait PolicyStore {
         operations: &[PolicyUpdateOperation],
     ) -> Result<Policy, Report<UpdatePolicyError>>;
 
-    /// Archives the policy specified by it's ID.
+    /// Archives the policy specified by its ID.
     ///
     /// # Errors
     ///
@@ -278,7 +278,7 @@ pub trait PolicyStore {
         policy_id: PolicyId,
     ) -> Result<(), Report<RemovePolicyError>>;
 
-    /// Permanently removes the policy specified by it's ID.
+    /// Permanently removes the policy specified by its ID.
     ///
     /// This should be used with caution, as it will irreversibly delete the policy and all
     /// associated data. In most cases, it is recommended to archive the policy instead of

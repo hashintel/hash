@@ -83,7 +83,7 @@ export const resolvePoliciesForActor = (
     .then(({ data: policies }) => policies as Policy[]);
 
 /**
- * Updates the policy specified by it's ID.
+ * Updates the policy specified by its ID.
  *
  * All specified operations are applied to the policy in the order they are provided.
  */
@@ -98,7 +98,7 @@ export const updatePolicyById = (
     .then(({ data: policy }) => policy as Policy);
 
 /**
- * Removes the policy specified by it's ID.
+ * Removes the policy specified by its ID.
  *
  * @todo Remove the `archive` parameter when temporary policies are not required anymore
  */
