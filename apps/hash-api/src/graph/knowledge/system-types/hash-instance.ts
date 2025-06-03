@@ -55,7 +55,7 @@ export const createHashInstance: ImpureGraphFunction<
   );
 
   const instantiationPolicy = await createPolicy(ctx.graphApi, authentication, {
-    name: "tmp-hash-instsance-instantiate",
+    name: "tmp-hash-instance-instantiate",
     effect: "permit",
     principal: {
       type: "actor",
