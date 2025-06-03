@@ -22,3 +22,9 @@ simple-mermaid = { workspace = true }
 
 [lints]
 workspace = true
+
+[package.metadata.sync.turborepo]
+extra-dev-dependencies = [
+    { name = "@rust/hash-graph-migrations", version = "0.0.0-private" },
+    { name = "@local/repo-chores", version = "0.0.0-private" },
+]
