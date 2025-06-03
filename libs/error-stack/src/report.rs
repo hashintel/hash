@@ -243,7 +243,7 @@ use crate::{
 /// ```
 #[must_use]
 #[expect(clippy::field_scoped_visibility_modifiers)]
-pub struct Report<C: ?Sized = dyn Error + Send + Sync + 'static> {
+pub struct Report<C: ?Sized> {
     // The vector is boxed as this implies a memory footprint equal to a single pointer size
     // instead of three pointer sizes. Even for small `Result::Ok` variants, the `Result` would
     // still have at least the size of `Report`, even at the happy path. It's unexpected, that
@@ -478,7 +478,7 @@ impl<C> Report<C> {
     /// let (io_error, _report) = report.pop_current_context();
     /// assert_eq!(io_error.kind(), io::ErrorKind::NotFound);
     /// ```
-    pub fn pop_current_context(self) -> (C, Report)
+    pub fn pop_current_context(self) -> (C, Report<dyn Error>)
     where
         C: Send + Sync + 'static,
     {
@@ -518,7 +518,7 @@ impl<C> Report<C> {
     }
 
     #[inline]
-    fn pop_current_context_inner(self, replace_with_printable: bool) -> (C, Report)
+    fn pop_current_context_inner(self, replace_with_printable: bool) -> (C, Report<dyn Error>)
     where
         C: Send + Sync + 'static,
     {
@@ -554,14 +554,14 @@ impl<C> Report<C> {
     }
 }
 
-impl<E: Into<Report<E>>> From<E> for Report<dyn Error + Send + Sync + 'static> {
+impl<E: Into<Report<E>>> From<E> for Report<dyn Error> {
     #[track_caller]
     fn from(value: E) -> Self {
         value.into().into()
     }
 }
 
-impl<C> From<Report<C>> for Report<dyn Error + Send + Sync + 'static> {
+impl<C> From<Report<C>> for Report<dyn Error> {
     #[track_caller]
     fn from(value: Report<C>) -> Self {
         Report {
@@ -834,7 +834,7 @@ impl<C: ?Sized> Report<C> {
     /// let (io_error, _report) = report.downcast_take::<io::Error>().unwrap();
     /// assert_eq!(io_error.kind(), io::ErrorKind::NotFound);
     /// ```
-    pub fn downcast_take<T: Send + Sync + 'static>(self) -> Result<(T, Report), Self> {
+    pub fn downcast_take<T: Send + Sync + 'static>(self) -> Result<(T, Report<dyn Error>), Self> {
         self.downcast_take_inner(true)
     }
 
@@ -842,7 +842,7 @@ impl<C: ?Sized> Report<C> {
     fn downcast_take_inner<T: Send + Sync + 'static>(
         mut self,
         replace_with_printable: bool,
-    ) -> Result<(T, Report), Self> {
+    ) -> Result<(T, Report<dyn Error>), Self> {
         let maybe_value = self
             .frames_mut()
             .find_map(|frame| frame.downcast_take(replace_with_printable));
