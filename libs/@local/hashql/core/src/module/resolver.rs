@@ -470,13 +470,13 @@ mod test {
             .resolve_absolute([
                 heap.intern_symbol("kernel"),
                 heap.intern_symbol("type"),
-                heap.intern_symbol("Dict"),
+                heap.intern_symbol("Url"),
             ])
             .expect("Resolution should succeed");
 
         let items: Vec<_> = result.collect();
         assert_eq!(items.len(), 1);
-        assert_eq!(items[0].name.as_str(), "Dict",);
+        assert_eq!(items[0].name.as_str(), "Url");
         assert_eq!(items[0].kind.universe(), Some(Universe::Value));
     }
 
@@ -523,7 +523,7 @@ mod test {
             .resolve_absolute([
                 heap.intern_symbol("kernel"),
                 heap.intern_symbol("type"),
-                heap.intern_symbol("Dict"),
+                heap.intern_symbol("Url"),
             ])
             .expect("Resolution should succeed");
 
@@ -591,7 +591,7 @@ mod test {
         // Check for some known items in the "type" module
         assert!(items.iter().any(|item| item.name.as_str() == "Dict"));
         assert!(items.iter().any(|item| item.name.as_str() == "Boolean"));
-        assert!(items.iter().any(|item| item.name.as_str() == "Union"));
+        assert!(items.iter().any(|item| item.name.as_str() == "Never"));
     }
 
     #[test]
@@ -880,7 +880,7 @@ mod test {
 
         let result = resolver
             .resolve_relative(
-                [heap.intern_symbol("foo"), heap.intern_symbol("Dict")],
+                [heap.intern_symbol("foo"), heap.intern_symbol("Url")],
                 namespace.imports_as_slice(),
             )
             .expect("Resolution should succeed");
@@ -901,7 +901,7 @@ mod test {
         );
 
         let result = resolver
-            .resolve_relative([heap.intern_symbol("Dict")], namespace.imports_as_slice())
+            .resolve_relative([heap.intern_symbol("Url")], namespace.imports_as_slice())
             .expect("Resolution should succeed");
 
         let items: Vec<_> = result.collect();
@@ -1001,6 +1001,6 @@ mod test {
 
         // Check for some known items in the "type" module
         assert!(items.iter().any(|item| item.name.as_str() == "Dict"));
-        assert!(items.iter().any(|item| item.name.as_str() == "Union"));
+        assert!(items.iter().any(|item| item.name.as_str() == "Never"));
     }
 }

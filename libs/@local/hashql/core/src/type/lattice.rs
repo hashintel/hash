@@ -1,9 +1,27 @@
-use smallvec::SmallVec;
-
 use super::{
     Type, TypeId,
-    environment::{AnalysisEnvironment, LatticeEnvironment, SimplifyEnvironment},
+    environment::{
+        AnalysisEnvironment, InferenceEnvironment, LatticeEnvironment, SimplifyEnvironment,
+    },
 };
+use crate::{
+    collection::{SmallVec, TinyVec},
+    symbol::Ident,
+};
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum Projection {
+    Pending,
+    Resolved(TypeId),
+    Error,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum Subscript {
+    Pending,
+    Resolved(TypeId),
+    Error,
+}
 
 /// A trait that implements properties of a mathematical lattice for types.
 ///
@@ -96,7 +114,7 @@ pub trait Lattice<'heap> {
         self: Type<'heap, Self>,
         other: Type<'heap, Self>,
         env: &mut LatticeEnvironment<'_, 'heap>,
-    ) -> SmallVec<TypeId, 4>;
+    ) -> TinyVec<TypeId>;
 
     /// Computes the meet (greatest lower bound) of two types.
     ///
@@ -144,7 +162,91 @@ pub trait Lattice<'heap> {
         self: Type<'heap, Self>,
         other: Type<'heap, Self>,
         env: &mut LatticeEnvironment<'_, 'heap>,
-    ) -> SmallVec<TypeId, 4>;
+    ) -> TinyVec<TypeId>;
+
+    /// Performs field projection on a type, retrieving the type of a specific field.
+    ///
+    /// Field projection corresponds to the `.` operator in most programming languages,
+    /// allowing access to fields or properties of structured types like objects, records,
+    /// or structs. This operation is fundamental for type checking field access expressions.
+    ///
+    /// The method attempts to resolve the type of the specified field within the given type.
+    ///
+    /// # Examples
+    ///
+    /// For a struct type `(name: String, age: Number)`:
+    /// - Projecting field "name" returns `Resolved(String)`
+    /// - Projecting field "address" returns `Error` (field doesn't exist)
+    ///
+    /// For union types, projection may return `Pending` if type resolution is needed to
+    /// determine which variant's fields are accessible.
+    ///
+    /// # Returns
+    ///
+    /// Returns a `Projection` enum indicating the result:
+    /// - `Projection::Resolved(TypeId)` - Field exists and its type is successfully resolved
+    /// - `Projection::Pending` - Projection cannot be completed yet, typically when the base type
+    ///   contains unresolved type variables that affect field resolution
+    /// - `Projection::Error` - Field does not exist on the type or projection is invalid for this
+    ///   type kind (e.g., projecting on primitive types)
+    ///
+    /// # Errors
+    ///
+    /// When projection fails, appropriate diagnostics are added to the environment explaining why
+    /// the field access is invalid, such as:
+    /// - Field not found on the type
+    /// - Projection not supported for the type kind (e.g., primitives, functions)
+    fn projection(
+        self: Type<'heap, Self>,
+        field: Ident<'heap>,
+        env: &mut LatticeEnvironment<'_, 'heap>,
+    ) -> Projection;
+
+    /// Performs subscript access on a type, retrieving the type of an indexed element.
+    ///
+    /// Subscript access corresponds to the `[]` operator in most programming languages,
+    /// allowing access to elements of indexable types like arrays, lists, dictionaries,
+    /// or tuples. This operation is essential for type checking index access expressions.
+    ///
+    /// The method attempts to resolve the type of the element at the specified index within
+    /// the given type. For container types, this typically returns the element type. The
+    /// index type is validated to ensure it's appropriate for the container type.
+    ///
+    /// # Examples
+    ///
+    /// For different container types:
+    /// - `List<String>[Number]` returns `Resolved(String)` when index is concrete integer
+    /// - `Dict<String>[String]` returns `Resolved(String)` for string keys
+    /// - `String[Number]` returns `Error` (strings don't support subscript access)
+    /// - `List<T>[_variable]` returns `Pending` and collects constraints that the variable must be
+    ///   a subtype of `Integer`
+    ///
+    /// # Type Constraints
+    ///
+    /// When the index type is not concrete, the method may collect subtyping constraints through
+    /// the inference environment. For example, list subscript access requires the index to be a
+    /// subtype of `Integer`.
+    ///
+    /// # Returns
+    ///
+    /// Returns a `Subscript` enum indicating the result:
+    /// - `Subscript::Resolved(TypeId)` - Index access succeeds and element type is resolved
+    /// - `Subscript::Pending` - Subscript cannot be completed yet, typically when the index type
+    ///   contains unresolved type variables or when constraint collection is needed
+    /// - `Subscript::Error` - Index access is invalid for this type or index type is incompatible
+    ///
+    /// # Errors
+    ///
+    /// When subscript access fails, appropriate diagnostics are added to the environment:
+    /// - Subscript not supported for the type kind (e.g., primitives, functions)
+    /// - Index type incompatible with container type requirements
+    /// - Type-specific errors (e.g., non-integer index for lists)
+    fn subscript(
+        self: Type<'heap, Self>,
+        index: TypeId,
+        env: &mut LatticeEnvironment<'_, 'heap>,
+        infer: &mut InferenceEnvironment<'_, 'heap>,
+    ) -> Subscript;
 
     /// Determines if a type is uninhabited (has no possible values).
     ///
@@ -280,7 +382,7 @@ pub trait Lattice<'heap> {
     fn distribute_union(
         self: Type<'heap, Self>,
         env: &mut AnalysisEnvironment<'_, 'heap>,
-    ) -> SmallVec<TypeId, 16>;
+    ) -> SmallVec<TypeId>;
 
     /// Applies distribution laws to expressions containing intersection types in contravariant
     /// positions.
@@ -329,7 +431,7 @@ pub trait Lattice<'heap> {
     fn distribute_intersection(
         self: Type<'heap, Self>,
         env: &mut AnalysisEnvironment<'_, 'heap>,
-    ) -> SmallVec<TypeId, 16>;
+    ) -> SmallVec<TypeId>;
 
     /// Determines if one type is a subtype of another.
     ///

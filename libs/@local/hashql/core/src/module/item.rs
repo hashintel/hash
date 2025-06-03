@@ -1,24 +1,58 @@
 use core::iter;
 
-use super::{Module, ModuleId, ModuleRegistry, Universe};
-use crate::{
-    symbol::Symbol,
-    r#type::{TypeId, kind::GenericArgument},
-};
+use super::{Module, ModuleId, ModuleRegistry, Universe, locals::TypeDef};
+use crate::symbol::Symbol;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct IntrinsicItem {
+pub struct IntrinsicValueItem<'heap> {
     pub name: &'static str,
-    pub universe: Universe,
+    pub r#type: TypeDef<'heap>,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct IntrinsicTypeItem {
+    pub name: &'static str,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, derive_more::From)]
+pub enum IntrinsicItem<'heap> {
+    Value(IntrinsicValueItem<'heap>),
+    Type(IntrinsicTypeItem),
+}
+
+impl IntrinsicItem<'_> {
+    #[must_use]
+    pub const fn universe(&self) -> Universe {
+        match self {
+            Self::Value(_) => Universe::Value,
+            Self::Type(_) => Universe::Type,
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct ConstructorItem<'heap> {
+    // The type this constructor creates
+    pub r#type: TypeDef<'heap>,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, derive_more::From)]
 pub enum ItemKind<'heap> {
+    #[from]
     Module(ModuleId),
+
     // In the future we'll also need to export values (like closures)
     // this would be done via a `DefId`/`ValueId` or similar
-    Type(TypeId, &'heap [GenericArgument<'heap>]),
-    Intrinsic(IntrinsicItem),
+    #[from]
+    Type(TypeDef<'heap>),
+
+    // In the future we would want to export this as a proper value, using a specialized
+    // `TypeConstructor` will work for now.
+    #[from]
+    Constructor(ConstructorItem<'heap>),
+
+    #[from(forward)]
+    Intrinsic(IntrinsicItem<'heap>),
 }
 
 impl ItemKind<'_> {
@@ -26,8 +60,9 @@ impl ItemKind<'_> {
     pub const fn universe(&self) -> Option<Universe> {
         match self {
             Self::Module(_) => None,
-            Self::Type(_, _) => Some(Universe::Type),
-            Self::Intrinsic(IntrinsicItem { universe, .. }) => Some(*universe),
+            Self::Type(_) => Some(Universe::Type),
+            Self::Constructor(_) => Some(Universe::Value),
+            Self::Intrinsic(item) => Some(item.universe()),
         }
     }
 }
@@ -36,8 +71,6 @@ impl ItemKind<'_> {
 pub struct Item<'heap> {
     pub module: ModuleId,
 
-    // TODO: move to Ident once Copy
-    //  see: https://linear.app/hash/issue/H-4414/hashql-move-from-symbol-to-internedsymbol
     pub name: Symbol<'heap>,
     pub kind: ItemKind<'heap>,
 }

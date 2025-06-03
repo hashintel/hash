@@ -2,14 +2,17 @@ use core::ops::Deref;
 
 use smallvec::SmallVec;
 
-use super::{Diagnostics, Environment, SimplifyEnvironment};
-use crate::r#type::{
-    PartialType, Type, TypeId,
-    error::circular_type_reference,
-    inference::{Substitution, VariableKind, VariableLookup},
-    kind::{IntersectionType, TypeKind, UnionType},
-    lattice::Lattice as _,
-    recursion::{RecursionBoundary, RecursionCycle},
+use super::{Diagnostics, Environment, InferenceEnvironment, SimplifyEnvironment};
+use crate::{
+    symbol::Ident,
+    r#type::{
+        PartialType, Type, TypeId,
+        error::{circular_type_reference, recursive_type_projection, recursive_type_subscript},
+        inference::{Substitution, VariableKind, VariableLookup},
+        kind::{IntersectionType, TypeKind, UnionType},
+        lattice::{Lattice as _, Projection, Subscript},
+        recursion::{RecursionBoundary, RecursionCycle},
+    },
 };
 
 #[derive(Debug)]
@@ -62,6 +65,10 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
         self.simplify.contains_substitution(kind)
     }
 
+    pub(crate) fn simplify(&mut self, id: TypeId) -> TypeId {
+        self.simplify.simplify(id)
+    }
+
     pub const fn without_simplify(&mut self) -> &mut Self {
         self.simplify_lattice = false;
         self
@@ -90,6 +97,11 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
     #[inline]
     pub(crate) fn resolve_type(&self, r#type: Type<'heap>) -> Option<Type<'heap>> {
         self.simplify.resolve_type(r#type)
+    }
+
+    #[inline]
+    pub(crate) fn is_alias(&mut self, id: TypeId, kind: VariableKind) -> bool {
+        self.simplify.is_alias(id, kind)
     }
 
     /// Handling recursive type cycles during a join operation.
@@ -307,6 +319,42 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
         };
 
         self.boundary.exit(lhs, rhs);
+        result
+    }
+
+    pub fn projection(&mut self, id: TypeId, field: Ident<'heap>) -> Projection {
+        let r#type = self.environment.r#type(id);
+
+        if self.boundary.enter(r#type, r#type).is_break() {
+            self.diagnostics
+                .push(recursive_type_projection(r#type, field, self));
+            return Projection::Error;
+        }
+
+        let result = r#type.projection(field, self);
+
+        self.boundary.exit(r#type, r#type);
+        result
+    }
+
+    pub fn subscript(
+        &mut self,
+        id: TypeId,
+        index: TypeId,
+        infer: &mut InferenceEnvironment<'_, 'heap>,
+    ) -> Subscript {
+        let r#type = self.environment.r#type(id);
+
+        if self.boundary.enter(r#type, r#type).is_break() {
+            self.diagnostics
+                .push(recursive_type_subscript(r#type, index, self));
+
+            return Subscript::Error;
+        }
+
+        let result = r#type.subscript(index, self, infer);
+
+        self.boundary.exit(r#type, r#type);
         result
     }
 

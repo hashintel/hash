@@ -35,7 +35,11 @@ describe("OrgMembership", () => {
   let authentication: AuthenticationContext;
 
   beforeAll(async () => {
-    await ensureSystemGraphIsInitialized({ logger, context: graphContext });
+    await ensureSystemGraphIsInitialized({
+      logger,
+      context: graphContext,
+      seedSystemPolicies: true,
+    });
 
     testUser = await createTestUser(graphContext, "orgMembershipTest", logger);
     authentication = { actorId: systemAccountId };

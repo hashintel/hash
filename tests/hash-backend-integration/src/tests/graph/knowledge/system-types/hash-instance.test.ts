@@ -32,7 +32,11 @@ const graphContext = createTestImpureGraphContext();
 
 describe("Hash Instance", () => {
   beforeAll(async () => {
-    await ensureSystemGraphIsInitialized({ logger, context: graphContext });
+    await ensureSystemGraphIsInitialized({
+      logger,
+      context: graphContext,
+      seedSystemPolicies: true,
+    });
 
     return async () => {
       await resetGraph();

@@ -1,0 +1,4 @@
+//@ run: fail
+//@ description: Ensures that type checking passes, if we directly call a closure with unconstrained generic types.
+["fn", { "#tuple": [] }, { "#struct": {} }, "String", { "#literal": 1 }]
+//~^ ERROR Type mismatch in this expression

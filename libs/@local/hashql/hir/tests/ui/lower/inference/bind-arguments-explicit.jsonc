@@ -1,0 +1,8 @@
+//@ run: fail
+//@ description: Ensures type inference fails when explicitly bound generic arguments conflict with provided argument types.
+[
+  "`+`<Number, Number>",
+  //~^ ERROR Type variable has incompatible upper and lower bounds
+  { "#literal": 42.12 },
+  { "#literal": "42" }
+]

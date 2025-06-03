@@ -100,7 +100,7 @@ impl DatabaseTestWrapper<NoAuthorization> {
             .change_context(StoreError)?;
 
         let actor = transaction
-            .get_or_create_system_machine("hash-graph")
+            .get_or_create_system_machine("h")
             .await
             .change_context(StoreError)?;
 

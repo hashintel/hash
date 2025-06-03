@@ -1,0 +1,37 @@
+::kernel::type::Some(2)
+
+--------------------------------------
+
+#ctor(fn<T?13>(?13«Integer») -> ::kernel::type::Some[?13«Integer»],
+arguments: [T])(2)
+
+--------------------------------------
+
+--------------------------------------
+
+Node:
+2
+
+
+Type:
+Integer
+
+--------------------------------------
+
+Node:
+#ctor(fn<T?13>(?13«Integer») -> ::kernel::type::Some[?13«Integer»],
+arguments: [T])
+
+
+Type:
+fn(Integer) -> ::kernel::type::Some[Integer]
+
+--------------------------------------
+
+Node:
+#ctor(fn<T?13>(?13«Integer») -> ::kernel::type::Some[?13«Integer»],
+arguments: [T])(2)
+
+
+Type:
+::kernel::type::Some[Integer]

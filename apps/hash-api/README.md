@@ -81,7 +81,7 @@ the `HASH_TELEMETRY_*` environment values should be specified, most importantly
 `HASH_TELEMETRY_ENABLED=true`.
 
 To set up a local Snowplow deployment, [Snowplow mini](https://github.com/snowplow/snowplow-mini) can be used. This requires [Vagrant](https://www.vagrantup.com/) and [VirtualBox](https://www.virtualbox.org/) to be installed.
-By default, the the Snowplow mini instance uses a fair bit of RAM and CPU.
+By default, the Snowplow mini instance uses a fair bit of RAM and CPU.
 Snowplow mini exposes a lot of ports to the host through the default [Vagrantfile](https://github.com/snowplow/snowplow-mini/blob/f7dbf73f1e3ba589d2dd1d8b94589c4f610dba1f/Vagrantfile). To make the instance play well wit HASH, comment out the following in the Snowplow mini Vagrantfile:
 
 ```ruby

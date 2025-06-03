@@ -1,0 +1,15 @@
+//@ run: fail
+//@ description: Ensures type checking fails when an unconstrained generic closure is called with types incompatible with its body's operations.
+[
+  "let",
+  "add",
+  [
+    "fn",
+    { "#tuple": ["T"] },
+    { "#struct": { "a": "T", "b": "T" } },
+    "T",
+    ["+", "a", "b"]
+  ],
+  //~^ ERROR Type variable has incompatible equality and upper bound constraints
+  ["add", { "#literal": "1" }, { "#literal": "2" }]
+]

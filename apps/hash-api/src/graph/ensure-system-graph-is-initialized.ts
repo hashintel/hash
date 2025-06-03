@@ -8,8 +8,12 @@ import { ensureHashSystemAccountExists } from "./system-account";
 export const ensureSystemGraphIsInitialized = async (params: {
   logger: Logger;
   context: ImpureGraphContext<false, true>;
+  seedSystemPolicies: boolean;
 }) => {
-  await params.context.graphApi.seedSystemPolicies();
+  if (params.seedSystemPolicies) {
+    params.logger.info("Seeding system policies...");
+    await params.context.graphApi.seedSystemPolicies();
+  }
 
   await ensureHashSystemAccountExists(params);
 

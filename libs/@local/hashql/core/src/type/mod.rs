@@ -1,5 +1,6 @@
 // HashQL type system
 
+pub mod builder;
 mod collection;
 pub mod environment;
 pub mod error;
@@ -8,17 +9,18 @@ pub mod kind;
 pub mod lattice;
 pub(crate) mod recursion;
 #[cfg(test)]
-pub(crate) mod test;
+pub(crate) mod tests;
 pub mod visit;
 
 use core::ops::Receiver;
 
-use self::{environment::Environment, kind::TypeKind};
+pub use self::builder::TypeBuilder;
+use self::{environment::Environment, inference::Variable, kind::TypeKind};
 use crate::{
     id::HasId,
     intern::{Decompose, Interned},
     newtype,
-    pretty::{PrettyPrint, PrettyRecursionBoundary},
+    pretty::{PrettyPrint, PrettyPrintBoundary},
     span::SpanId,
 };
 
@@ -59,6 +61,21 @@ impl<'heap, K> Type<'heap, K> {
     }
 }
 
+impl Type<'_> {
+    #[must_use]
+    pub const fn into_variable(self) -> Option<Variable> {
+        // This destructuring might look weird, but allows us to use `const fn`
+        let Some(kind) = self.kind.into_variable() else {
+            return None;
+        };
+
+        Some(Variable {
+            span: self.span,
+            kind,
+        })
+    }
+}
+
 impl<'heap, K> PrettyPrint<'heap> for Type<'heap, K>
 where
     K: PrettyPrint<'heap>,
@@ -66,7 +83,7 @@ where
     fn pretty(
         &self,
         env: &Environment<'heap>,
-        boundary: &mut PrettyRecursionBoundary,
+        boundary: &mut PrettyPrintBoundary,
     ) -> pretty::RcDoc<'heap, anstyle::Style> {
         self.kind.pretty(env, boundary)
     }
@@ -74,7 +91,7 @@ where
     fn pretty_generic(
         &self,
         env: &Environment<'heap>,
-        boundary: &mut PrettyRecursionBoundary,
+        boundary: &mut PrettyPrintBoundary,
         arguments: kind::GenericArguments<'heap>,
     ) -> pretty::RcDoc<'heap, anstyle::Style> {
         self.kind.pretty_generic(env, boundary, arguments)

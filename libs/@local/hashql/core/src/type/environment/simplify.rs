@@ -6,6 +6,7 @@ use smallvec::SmallVec;
 use super::{AnalysisEnvironment, Diagnostics, Environment, context::provision::ProvisionedGuard};
 use crate::{
     intern::Provisioned,
+    pretty::{PrettyOptions, PrettyPrint as _},
     r#type::{
         PartialType, Type, TypeId,
         inference::{Substitution, VariableKind, VariableLookup},
@@ -57,13 +58,23 @@ impl<'env, 'heap> SimplifyEnvironment<'env, 'heap> {
     }
 
     #[inline]
-    pub(crate) fn take_diagnostics(&mut self) -> Option<Diagnostics> {
+    pub fn take_diagnostics(&mut self) -> Option<Diagnostics> {
         self.analysis.take_diagnostics()
+    }
+
+    #[inline]
+    pub(crate) fn resolve_substitution(&self, r#type: Type<'heap>) -> Option<TypeId> {
+        self.analysis.resolve_substitution(r#type)
     }
 
     #[inline]
     pub(crate) fn resolve_type(&self, r#type: Type<'heap>) -> Option<Type<'heap>> {
         self.analysis.resolve_type(r#type)
+    }
+
+    #[inline]
+    pub(crate) fn is_alias(&mut self, id: TypeId, kind: VariableKind) -> bool {
+        self.analysis.is_alias(id, kind)
     }
 
     #[inline]
@@ -132,7 +143,10 @@ impl<'env, 'heap> SimplifyEnvironment<'env, 'heap> {
                 reason = "false positive, this is a manual `debug_panic`"
             )]
             if cfg!(debug_assertions) {
-                panic!("type id {id} should have been provisioned, but wasn't");
+                panic!(
+                    "type id {id} should have been provisioned, but wasn't.\n{}",
+                    r#type.pretty_print(self, PrettyOptions::default())
+                );
             }
 
             // in debug builds this panics if the type should have been provisioned but wasn't, as

@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Test that lowering a built-in constructor with an explicit annotated type works correctly.
+["Some<Integer>", { "#literal": 2 }]

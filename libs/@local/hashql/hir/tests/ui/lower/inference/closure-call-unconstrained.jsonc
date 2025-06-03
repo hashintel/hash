@@ -1,0 +1,13 @@
+//@ run: pass
+//@ description: Tests type inference for nested closures with unconstrained generics, where types are propagated from the call site.
+[
+  "let",
+  "foo",
+  ["fn", { "#tuple": ["T"] }, { "#struct": { "a": "T" } }, "T", "a"],
+  [
+    "let",
+    "bar",
+    ["fn", { "#tuple": ["T"] }, { "#struct": { "a": "T" } }, "T", ["foo", "a"]],
+    ["bar", { "#literal": 2 }]
+  ]
+]

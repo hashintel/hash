@@ -1,12 +1,15 @@
 //! ## Workspace dependencies
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
 #![feature(
-    pattern,
+    // Library Features
     assert_matches,
+    coverage_attribute,
     file_buffered,
-    if_let_guard,
+    lock_value_accessors,
+    pattern,
+    // Language Features
     decl_macro,
-    lock_value_accessors
+    if_let_guard,
 )]
 extern crate alloc;
 

@@ -71,7 +71,7 @@ impl<'heap> ModuleRegistry<'heap> {
     pub fn new(env: &Environment<'heap>) -> Self {
         let this = Self::empty(env.heap);
 
-        let std = StandardLibrary::new(env, &this);
+        let mut std = StandardLibrary::new(env, &this);
         std.register();
 
         this
@@ -194,6 +194,48 @@ impl<'heap> ModuleRegistry<'heap> {
             Err(ResolutionError::Ambiguous(item))
         } else {
             Ok(item)
+        }
+    }
+
+    /// Attempts to resolve a path to an item in the registry.
+    ///
+    /// This is a simplified version of [`resolve`] that returns `None` instead of
+    /// detailed error information. It performs the same resolution logic but:
+    /// - Returns `None` if the path cannot be resolved
+    /// - Returns `None` if the path resolves to multiple items (ambiguous resolution)
+    /// - Returns `Some(item)` only when exactly one item is found
+    /// - Does not generate suggestions for failed resolutions
+    ///
+    /// Use this method when you need a simple "find or not found" lookup without
+    /// detailed error reporting. For comprehensive error information and suggestions,
+    /// use [`resolve`] instead.
+    ///
+    /// [`resolve`]: Self::resolve
+    pub fn lookup(
+        &self,
+        path: impl IntoIterator<Item = Symbol<'heap>>,
+        universe: Universe,
+    ) -> Option<Item<'heap>> {
+        let resolver = Resolver {
+            registry: self,
+            options: ResolverOptions {
+                mode: ResolverMode::Single(universe),
+                suggestions: false,
+            },
+        };
+
+        let Ok(mut iter) = resolver.resolve_absolute(path) else {
+            return None;
+        };
+
+        let item = iter.next().unwrap_or_else(|| {
+            unreachable!("ResolveIter guarantees at least one item is returned")
+        });
+
+        if iter.next().is_some() {
+            None
+        } else {
+            Some(item)
         }
     }
 

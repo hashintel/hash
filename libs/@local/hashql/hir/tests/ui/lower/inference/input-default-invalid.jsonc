@@ -1,0 +1,12 @@
+//@ run: fail
+//@ description: Ensures type inference fails when an input's default value (type inferred as String) conflicts with the declared input type (Number).
+[
+  "input",
+  "x",
+  "Number",
+  {
+    "#literal": "42",
+    "#type": "_"
+    //~^ ERROR Type variable has incompatible upper and lower bounds
+  }
+]

@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Checks type checking for a generic type constructor (Some<T>) call, inferring T from the argument.
+["Some", { "#literal": 2 }]

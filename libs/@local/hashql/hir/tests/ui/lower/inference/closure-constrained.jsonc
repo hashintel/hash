@@ -1,0 +1,9 @@
+//@ run: pass
+//@ description: Validates type inference for a closure definition with a constrained generic type parameter (T: Number).
+[
+  "fn",
+  { "#struct": { "T": "Number" } },
+  { "#struct": { "a": "T", "b": "T" } },
+  "T",
+  ["+", "a", "b"]
+]

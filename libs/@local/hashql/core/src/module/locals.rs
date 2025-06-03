@@ -4,7 +4,8 @@ use pretty::{DocAllocator as _, RcAllocator, RcDoc};
 
 use crate::{
     collection::{FastHashMap, TinyVec},
-    pretty::{PrettyPrint, PrettyRecursionBoundary},
+    intern::Interned,
+    pretty::{PrettyPrint, PrettyPrintBoundary},
     symbol::Symbol,
     r#type::{
         TypeId,
@@ -13,10 +14,10 @@ use crate::{
     },
 };
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct TypeDef<'heap> {
     pub id: TypeId,
-    pub arguments: TinyVec<GenericArgumentReference<'heap>>,
+    pub arguments: Interned<'heap, [GenericArgumentReference<'heap>]>,
 }
 
 impl<'heap> TypeDef<'heap> {
@@ -35,7 +36,9 @@ impl<'heap> TypeDef<'heap> {
             "Unexpected number of generics"
         );
 
-        for argument in &mut self.arguments {
+        let mut arguments = TinyVec::from_slice(&self.arguments);
+
+        for argument in &mut arguments {
             // Find the argument with the same name, for the small number of expected
             // generics we have a linear scan is the fastest, we cannot zip, because the type
             // implementation reserves the right to re-order the generic arguments.
@@ -49,6 +52,8 @@ impl<'heap> TypeDef<'heap> {
 
             *argument = generic_argument.as_reference();
         }
+
+        self.arguments = env.intern_generic_argument_references(&arguments);
     }
 }
 
@@ -56,9 +61,9 @@ impl<'heap> PrettyPrint<'heap> for TypeDef<'heap> {
     fn pretty(
         &self,
         env: &Environment<'heap>,
-        boundary: &mut PrettyRecursionBoundary,
+        boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, anstyle::Style> {
-        match self.arguments.as_slice() {
+        match &*self.arguments {
             [] => RcDoc::nil(),
             _ => RcAllocator
                 .intersperse(
@@ -94,7 +99,7 @@ where
     fn pretty(
         &self,
         env: &Environment<'heap>,
-        boundary: &mut PrettyRecursionBoundary,
+        boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, anstyle::Style> {
         RcDoc::text("type")
             .append(RcDoc::space())

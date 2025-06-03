@@ -30,7 +30,7 @@ This is HASH's _public monorepo_ which contains our public code, docs, and other
 
 ## [![a](/.github/assets/gh_icon_what-is-hash_20px-base.svg)][gh-what-is-hash] &nbsp; What is HASH?
 
-**HASH is a self-buliding, open-source database which grows, structures and checks itself.** HASH integrates data in (near-)realtime, and provides a powerful set of interfaces so that information can be understood and used in any context. Intelligent, autonomous agents can be deployed to grow, check, and maintain the database, integrating and structuring information from the public internet as well as your own connected private sources. And users, including those who are non-technical, are able to visually browse and manage both entities (data) and types (schemas). HASH acts as a source of truth for critical data, no matter its source, and provides a platform for high-trust, safety-assured decision-making. [Read our blog post →](https://hash.ai/blog/self-building-database)
+**HASH is a self-building, open-source database which grows, structures and checks itself.** HASH integrates data in (near-)realtime, and provides a powerful set of interfaces so that information can be understood and used in any context. Intelligent, autonomous agents can be deployed to grow, check, and maintain the database, integrating and structuring information from the public internet as well as your own connected private sources. And users, including those who are non-technical, are able to visually browse and manage both entities (data) and types (schemas). HASH acts as a source of truth for critical data, no matter its source, and provides a platform for high-trust, safety-assured decision-making. [Read our blog post →](https://hash.ai/blog/self-building-database)
 
 **In the future...** we plan on growing HASH into an all-in-one workspace, or complete operating system, with AI-generated interfaces known as "blocks" created at the point of need, on top of your strongly-typed data (addressing the data quality and integrity challenges inherent in today's current generation of generative AI interfaces).
 
@@ -197,11 +197,6 @@ To make use of this test mode, the external services can be started as follows:
 yarn external-services:test up
 ```
 
-</details>
-
-<details>
-  <summary> &nbsp; Deploying HASH to the cloud</summary>
-
 ##### Sending emails
 
 Email-sending in HASH is handled by either Kratos (in the case of authentication-related emails) or through the HASH API Email Transport (for everything else).
@@ -216,6 +211,11 @@ Transactional emails templates are located in the following locations:
   - [`verification_code`](./../../apps/hash-external-services/kratos/templates/verification_code) - Email verification templates for the account registration flow using a code for the UI.
     - When an email belongs to a registered HASH user, it will use the `valid` template, otherwise the `invalid` template is used.
 - HASH emails in [`../hash-api/src/email/index.ts`](../hash-api/src/email/index.ts)
+
+</details>
+
+<details>
+  <summary> &nbsp; Deploying HASH to the cloud</summary>
 
 ### Deploying HASH to the cloud
 

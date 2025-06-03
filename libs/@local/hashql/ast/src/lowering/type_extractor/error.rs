@@ -235,9 +235,7 @@ pub(crate) fn duplicate_newtype(
 }
 
 fn demangle_unwrap(symbol: Symbol<'_>) -> &str {
-    let inner = symbol.unwrap();
-
-    inner.rsplit_once(':').map_or(inner, |(name, _)| name)
+    symbol.demangle()
 }
 
 fn demangle<'s>(symbol: &'s Symbol) -> &'s str {
@@ -320,7 +318,7 @@ where
 
     for extraneous in extraneous {
         diagnostic.labels.push(
-            Label::new(extraneous.span(), "Remove this parameter")
+            Label::new(extraneous.span(), "Remove this argument")
                 .with_order(index)
                 .with_color(Color::Ansi(AnsiColor::Red)),
         );
@@ -506,7 +504,11 @@ pub(crate) fn unknown_intrinsic_type(
              trying to use.",
         ));
     } else {
-        let suggestions: String = similar.join("`, `");
+        let suggestions: String = similar
+            .into_iter()
+            .map(|symbol| symbol.unwrap())
+            .intersperse("`, `")
+            .collect();
 
         diagnostic.add_help(Help::new(format!("Did you mean `{suggestions}`?")));
     }

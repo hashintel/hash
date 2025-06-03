@@ -17,7 +17,7 @@ use hashql_core::{
     collection::SmallVec,
     heap,
     intern::Interned,
-    span::SpanId,
+    span::{SpanId, Spanned},
     r#type::{TypeId, environment::Environment},
 };
 
@@ -156,11 +156,12 @@ impl<'heap> ReificationContext<'_, 'heap> {
     fn path_segment_arguments(
         &mut self,
         arguments: heap::Vec<'heap, PathSegmentArgument<'heap>>,
-    ) -> Option<Interned<'heap, [TypeId]>> {
+    ) -> Option<Interned<'heap, [Spanned<TypeId>]>> {
         let mut incomplete = false;
         let mut types = SmallVec::new();
 
         for argument in arguments {
+            let span = argument.span();
             let node = match argument {
                 PathSegmentArgument::Argument(generic_argument) => {
                     self.types.anonymous[generic_argument.r#type.id]
@@ -181,13 +182,13 @@ impl<'heap> ReificationContext<'_, 'heap> {
                 }
             };
 
-            types.push(node);
+            types.push(Spanned { span, value: node });
         }
 
         if incomplete {
             None
         } else {
-            Some(self.env.intern_type_ids(&types))
+            Some(self.interner.intern_type_ids(&types))
         }
     }
 
@@ -293,7 +294,7 @@ impl<'heap> ReificationContext<'_, 'heap> {
             output: _,
         }: closure::ClosureSignature<'heap>,
     ) -> ClosureSignature<'heap> {
-        let r#type = &self.types.signatures[id];
+        let def = self.types.signatures[id];
         let params: SmallVec<_> = inputs
             .iter()
             .map(|param| ClosureParam {
@@ -304,8 +305,7 @@ impl<'heap> ReificationContext<'_, 'heap> {
 
         ClosureSignature {
             span,
-            r#type: r#type.id,
-            generics: self.interner.intern_closure_generics(&r#type.arguments),
+            def,
             params: self.interner.intern_closure_params(&params),
         }
     }

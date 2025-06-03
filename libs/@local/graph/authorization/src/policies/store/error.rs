@@ -42,8 +42,13 @@ pub enum EnsureSystemPoliciesError {
     AddRequiredPoliciesFailed,
     #[display("Removing old policy failed")]
     RemoveOldPolicyFailed,
+    #[display("Updating existing policy failed")]
+    UpdatePolicyFailed,
     #[display("system policies require a name")]
     MissingPolicyName,
+
+    #[display("Store operation failed")]
+    StoreError,
 }
 
 impl Error for EnsureSystemPoliciesError {}

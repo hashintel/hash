@@ -143,7 +143,7 @@ pub trait Visitor<'heap> {
         walk_qualified_path(self, path);
     }
 
-    fn visit_node(&mut self, node: &'heap Node<'heap>) {
+    fn visit_node(&mut self, node: &Node<'heap>) {
         walk_node(self, node);
     }
 
@@ -262,12 +262,12 @@ pub fn walk_qualified_path<'heap, T: Visitor<'heap> + ?Sized>(
 
 pub fn walk_node<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
-    Node { id, span, kind }: &'heap Node<'heap>,
+    Node { id, span, kind }: &Node<'heap>,
 ) {
     visitor.visit_id(*id);
     visitor.visit_span(*span);
 
-    match &kind {
+    match kind {
         NodeKind::Data(data) => visitor.visit_data(data),
         NodeKind::Variable(variable) => visitor.visit_variable(variable),
         NodeKind::Let(r#let) => visitor.visit_let(r#let),
@@ -323,7 +323,7 @@ pub fn walk_local_variable<'heap, T: Visitor<'heap> + ?Sized>(
     visitor.visit_ident(name);
 
     for &argument in arguments {
-        visitor.visit_type_id(argument);
+        visitor.visit_type_id(argument.value);
     }
 }
 
@@ -339,7 +339,7 @@ pub fn walk_qualified_variable<'heap, T: Visitor<'heap> + ?Sized>(
     visitor.visit_qualified_path(path);
 
     for &argument in arguments {
-        visitor.visit_type_id(argument);
+        visitor.visit_type_id(argument.value);
     }
 }
 
@@ -420,13 +420,16 @@ pub fn walk_type_constructor<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
     TypeConstructor {
         span,
-        value,
-        r#type,
+        closure,
+        arguments,
     }: &'heap TypeConstructor<'heap>,
 ) {
     visitor.visit_span(*span);
-    visitor.visit_node(value);
-    visitor.visit_type_id(*r#type);
+    visitor.visit_type_id(*closure);
+
+    for reference in arguments {
+        visitor.visit_generic_argument_reference(reference);
+    }
 }
 
 pub fn walk_binary_operation<'heap, T: Visitor<'heap> + ?Sized>(
@@ -536,17 +539,12 @@ pub fn walk_closure<'heap, T: Visitor<'heap> + ?Sized>(
 
 pub fn walk_closure_signature<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
-    ClosureSignature {
-        span,
-        r#type,
-        generics,
-        params,
-    }: &'heap ClosureSignature<'heap>,
+    ClosureSignature { span, def, params }: &'heap ClosureSignature<'heap>,
 ) {
     visitor.visit_span(*span);
-    visitor.visit_type_id(*r#type);
+    visitor.visit_type_id(def.id);
 
-    for reference in generics {
+    for reference in def.arguments {
         visitor.visit_generic_argument_reference(reference);
     }
 

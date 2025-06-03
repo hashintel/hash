@@ -7,9 +7,9 @@ pub(crate) mod query;
 mod seed_policies;
 mod traversal_context;
 
-use alloc::sync::Arc;
+use alloc::{borrow::Cow, sync::Arc};
 use core::{fmt::Debug, hash::Hash};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use error_stack::{Report, ReportSink, ResultExt as _};
 use futures::TryStreamExt as _;
@@ -113,12 +113,11 @@ pub struct PostgresStore<C, A> {
     pub settings: PostgresStoreSettings,
 }
 
-impl<C, A> PrincipalStore for PostgresStore<C, A>
+impl<A> PostgresStore<tokio_postgres::Transaction<'_>, A>
 where
-    C: AsClient,
     A: AuthorizationApi + Send + Sync,
 {
-    async fn get_or_create_system_machine(
+    async fn get_or_create_system_machine_impl(
         &mut self,
         identifier: &str,
     ) -> Result<MachineId, Report<GetSystemAccountError>> {
@@ -139,40 +138,38 @@ where
 
             Ok(system_machine_id)
         } else {
-            let mut transaction = self
-                .transaction()
-                .await
-                .change_context(GetSystemAccountError::StoreError)?;
-
-            let system_machine_id = transaction
+            let machine_id = self
                 .create_machine(None, identifier)
                 .await
                 .change_context(GetSystemAccountError::CreateSystemAccountFailed)?;
 
             tracing::info!(
-                %system_machine_id,
+                %machine_id,
                 %identifier,
                 "Created new system account"
             );
 
-            // We need to create the system web for the system machine actor, so the system machine
-            // needs to be allowed to create webs.
-            transaction
-                .create_policy(
-                    system_machine_id.into(),
-                    seed_policies::system_actor_create_web_policy(ActorId::Machine(
-                        system_machine_id,
-                    )),
+            let system_machine_id = if identifier == "h" {
+                // We need to create the system web for the system machine actor, so the system
+                // machine needs to be allowed to create webs.
+                self.create_policy(
+                    machine_id.into(),
+                    seed_policies::system_actor_create_web_policy(machine_id),
                 )
                 .await
                 .change_context(GetSystemAccountError::CreateSystemAccountFailed)?;
 
-            let web_creation = transaction
+                machine_id
+            } else {
+                Box::pin(self.get_or_create_system_machine_impl("h")).await?
+            };
+
+            let created_web = self
                 .create_web(
                     system_machine_id.into(),
                     CreateWebParameter {
                         id: None,
-                        administrator: system_machine_id.into(),
+                        administrator: machine_id.into(),
                         shortname: Some(identifier.to_owned()),
                         is_actor_web: false,
                     },
@@ -181,35 +178,74 @@ where
                 .change_context(GetSystemAccountError::CreateSystemAccountFailed)?;
 
             tracing::info!(
-                %web_creation.web_id,
+                %created_web.web_id,
                 "Created new system web"
             );
 
-            if identifier == "h" {
-                let instance_admin_team_id = transaction
-                    .create_team(
-                        system_machine_id.into(),
-                        CreateTeamParams {
-                            parent: web_creation.web_id.into(),
-                            name: "instance-admins".to_owned(),
-                        },
-                    )
-                    .await
-                    .change_context(GetSystemAccountError::CreatingInstanceAdminTeamFailed)?;
+            match identifier {
+                "h" => {
+                    let instance_admin_team_id = self
+                        .create_team(
+                            system_machine_id.into(),
+                            CreateTeamParams {
+                                parent: created_web.web_id.into(),
+                                name: "instance-admins".to_owned(),
+                            },
+                        )
+                        .await
+                        .change_context(GetSystemAccountError::CreatingInstanceAdminTeamFailed)?;
 
-                tracing::info!(
-                    %instance_admin_team_id,
-                    "Created new instance admin team"
-                );
+                    tracing::info!(
+                        %instance_admin_team_id,
+                        "Created new instance admin team"
+                    );
+                }
+                "google" => {
+                    for policy in seed_policies::google_bot_policies(machine_id) {
+                        self.create_policy(system_machine_id.into(), policy)
+                            .await
+                            .change_context(GetSystemAccountError::CreateSystemAccountFailed)?;
+                    }
+                }
+                "linear" => {
+                    for policy in seed_policies::linear_bot_policies(machine_id) {
+                        self.create_policy(system_machine_id.into(), policy)
+                            .await
+                            .change_context(GetSystemAccountError::CreateSystemAccountFailed)?;
+                    }
+                }
+                _ => {}
             }
 
-            transaction
-                .commit()
-                .await
-                .change_context(GetSystemAccountError::StoreError)?;
-
-            Ok(system_machine_id)
+            Ok(machine_id)
         }
+    }
+}
+
+impl<C, A> PrincipalStore for PostgresStore<C, A>
+where
+    C: AsClient,
+    A: AuthorizationApi + Send + Sync,
+{
+    async fn get_or_create_system_machine(
+        &mut self,
+        identifier: &str,
+    ) -> Result<MachineId, Report<GetSystemAccountError>> {
+        let mut transaction = self
+            .transaction()
+            .await
+            .change_context(GetSystemAccountError::StoreError)?;
+
+        let machine_id = transaction
+            .get_or_create_system_machine_impl(identifier)
+            .await?;
+
+        transaction
+            .commit()
+            .await
+            .change_context(GetSystemAccountError::StoreError)?;
+
+        Ok(machine_id)
     }
 
     #[expect(
@@ -896,11 +932,17 @@ where
             .change_context(CreatePolicyError::StoreError)?;
 
         transaction
+            .execute("INSERT INTO policy (id) VALUES ($1)", &[&policy_id])
+            .await
+            .change_context(CreatePolicyError::StoreError)?;
+
+        transaction
             .execute(
-                "INSERT INTO policy (
-                    id, name, effect, principal_id, principal_type, actor_type, resource_constraint
+                "INSERT INTO policy_edition (
+                    id, transaction_time, name, effect, principal_id,
+                    principal_type, actor_type, resource_constraint
                 ) VALUES (
-                    $1, $2, $3, $4, $5, $6, $7
+                    $1, tstzrange(now(), NULL, '[)'), $2, $3, $4, $5, $6, $7
                  )",
                 &[
                     &policy_id,
@@ -929,7 +971,15 @@ where
         for action in policy.actions {
             transaction
                 .execute(
-                    "INSERT INTO policy_action (policy_id, action_name) VALUES ($1, $2)",
+                    "INSERT INTO policy_action (
+                        policy_id,
+                        action_name,
+                        transaction_time
+                    ) VALUES (
+                        $1,
+                        $2,
+                        tstzrange(now(), NULL, '[)')
+                    )",
                     &[&policy_id, &action],
                 )
                 .await
@@ -960,19 +1010,22 @@ where
             .query_opt(
                 "
                 SELECT
-                    policy.name,
-                    policy.effect,
-                    policy.principal_id,
-                    policy.principal_type,
-                    policy.actor_type,
-                    policy.resource_constraint,
+                    policy_edition.name,
+                    policy_edition.effect,
+                    policy_edition.principal_id,
+                    policy_edition.principal_type,
+                    policy_edition.actor_type,
+                    policy_edition.resource_constraint,
                     array_remove(array_agg(policy_action.action_name), NULL)
-                FROM policy
-                LEFT JOIN policy_action ON policy.id = policy_action.policy_id
-                WHERE policy.id = $1
+                FROM policy_edition
+                LEFT JOIN policy_action
+                       ON policy_action.policy_id = policy_edition.id
+                      AND policy_action.transaction_time @> now()
+                WHERE policy_edition.id = $1 AND policy_edition.transaction_time @> now()
                 GROUP BY
-                    policy.name, policy.effect, policy.principal_id, policy.principal_type,
-                    policy.actor_type, policy.resource_constraint
+                    policy_edition.name, policy_edition.effect, policy_edition.principal_id,
+                    policy_edition.principal_type, policy_edition.actor_type,
+                    policy_edition.resource_constraint
                 ",
                 &[&id],
             )
@@ -1001,7 +1054,7 @@ where
         _authenticated_actor: ActorEntityUuid,
         filter: &PolicyFilter,
     ) -> Result<Vec<Policy>, Report<GetPoliciesError>> {
-        let mut filters = Vec::new();
+        let mut filters = vec!["policy_edition.transaction_time @> now()".to_owned()];
         let mut parameters = Vec::<Box<dyn ToSql + Send + Sync>>::new();
 
         if let Some(principal) = &filter.principal {
@@ -1025,65 +1078,61 @@ where
                 parameters.push(Box::new(principal_id));
                 parameters.push(Box::new(principal_id.principal_type()));
                 filters.push(format!(
-                    "policy.principal_id = ${} AND policy.principal_type = ${}",
+                    "policy_edition.principal_id = ${} AND policy_edition.principal_type = ${}",
                     parameters.len() - 1,
                     parameters.len()
                 ));
             } else {
                 filters.push(
-                    "policy.principal_id IS NULL AND policy.principal_type IS NULL".to_owned(),
+                    "policy_edition.principal_id IS NULL AND policy_edition.principal_type IS NULL"
+                        .to_owned(),
                 );
             }
 
             if let Some(actor_type) = actor_type {
                 parameters.push(Box::new(PrincipalType::from(actor_type)));
-                filters.push(format!("policy.actor_type = ${}", parameters.len()));
+                filters.push(format!("policy_edition.actor_type = ${}", parameters.len()));
             } else {
-                filters.push("policy.actor_type IS NULL".to_owned());
+                filters.push("policy_edition.actor_type IS NULL".to_owned());
             }
         }
 
         if let Some(name) = &filter.name {
             parameters.push(Box::new(name));
-            filters.push(format!("policy.name = ${}", parameters.len()));
+            filters.push(format!("policy_edition.name = ${}", parameters.len()));
         }
 
-        let base_query = "
-            SELECT
-                policy.id,
-                policy.name,
-                policy.effect,
-                policy.principal_id,
-                policy.principal_type,
-                policy.actor_type,
-                policy.resource_constraint,
-                array_remove(array_agg(policy_action.action_name), NULL)
-            FROM policy
-            LEFT JOIN policy_action ON policy.id = policy_action.policy_id
-            "
-        .to_owned();
-        let group_by_query = "
-            GROUP BY
-                policy.id,
-                policy.name,
-                policy.effect,
-                policy.principal_id,
-                policy.principal_type,
-                policy.actor_type,
-                policy.resource_constraint
-            ";
-
-        let query = if filters.is_empty() {
-            format!("{base_query} {group_by_query}")
-        } else {
-            format!(
-                "{base_query} WHERE {} {group_by_query}",
-                filters.join(" AND ")
-            )
-        };
-
         self.as_client()
-            .query_raw(&query, parameters)
+            .query_raw(
+                &format!(
+                    "
+                    SELECT
+                        policy_edition.id,
+                        policy_edition.name,
+                        policy_edition.effect,
+                        policy_edition.principal_id,
+                        policy_edition.principal_type,
+                        policy_edition.actor_type,
+                        policy_edition.resource_constraint,
+                        array_remove(array_agg(policy_action.action_name), NULL)
+                    FROM policy_edition
+                    LEFT JOIN policy_action
+                           ON policy_action.policy_id = policy_edition.id
+                          AND policy_action.transaction_time @> now()
+                    WHERE {}
+                    GROUP BY
+                        policy_edition.id,
+                        policy_edition.name,
+                        policy_edition.effect,
+                        policy_edition.principal_id,
+                        policy_edition.principal_type,
+                        policy_edition.actor_type,
+                        policy_edition.resource_constraint
+                    ",
+                    filters.join(" AND ")
+                ),
+                parameters,
+            )
             .await
             .change_context(GetPoliciesError::StoreError)?
             .map_err(|error| Report::new(error).change_context(GetPoliciesError::StoreError))
@@ -1106,6 +1155,7 @@ where
             .await
     }
 
+    #[expect(clippy::too_many_lines)]
     async fn resolve_policies_for_actor(
         &self,
         authenticated_actor: ActorEntityUuid,
@@ -1178,37 +1228,46 @@ where
                     WHERE actor_role.actor_id = $1
                 ),
                 -- We filter out policies that don't apply to the actor's type or principal ID
-                policy AS (
+                policy_edition AS (
                     -- global and actor-type based policies
-                    SELECT policy.*
-                    FROM policy
-                    WHERE principal_id IS NULL
+                    SELECT policy_edition.*
+                    FROM policy_edition
+                    WHERE transaction_time @> now()
+                      AND principal_id IS NULL
                       AND (actor_type IS NULL OR actor_type = $2)
 
                     UNION ALL
 
                     -- actor type policies
-                    SELECT policy.*
-                    FROM policy
+                    SELECT policy_edition.*
+                    FROM policy_edition
                     JOIN principals
-                      ON policy.principal_id = principals.id
-                     AND policy.principal_type = principals.principal_type
-                    WHERE policy.actor_type IS NULL OR policy.actor_type = $2
+                      ON policy_edition.principal_id = principals.id
+                     AND policy_edition.principal_type = principals.principal_type
+                    WHERE policy_edition.transaction_time @> now()
+                      AND (policy_edition.actor_type IS NULL OR policy_edition.actor_type = $2)
                 )
                 SELECT
-                    policy.id,
-                    policy.name,
-                    policy.effect,
-                    policy.principal_id,
-                    policy.principal_type,
-                    policy.actor_type,
-                    policy.resource_constraint,
+                    policy_edition.id,
+                    policy_edition.name,
+                    policy_edition.effect,
+                    policy_edition.principal_id,
+                    policy_edition.principal_type,
+                    policy_edition.actor_type,
+                    policy_edition.resource_constraint,
                     array_remove(array_agg(policy_action.action_name), NULL)
-                FROM policy
-                LEFT JOIN policy_action ON policy.id = policy_action.policy_id
+                FROM policy_edition
+                LEFT JOIN policy_action
+                       ON policy_action.policy_id = policy_edition.id
+                      AND policy_action.transaction_time @> now()
                 GROUP BY
-                    policy.id, policy.name, policy.effect, policy.principal_id,
-                    policy.principal_type, policy.actor_type, policy.resource_constraint
+                    policy_edition.id,
+                    policy_edition.name,
+                    policy_edition.effect,
+                    policy_edition.principal_id,
+                    policy_edition.principal_type,
+                    policy_edition.actor_type,
+                    policy_edition.resource_constraint
                 ",
                 [
                     &actor_id as &(dyn ToSql + Sync),
@@ -1237,6 +1296,7 @@ where
             .await
     }
 
+    #[expect(clippy::too_many_lines)]
     async fn update_policy_by_id(
         &mut self,
         authenticated_actor: ActorEntityUuid,
@@ -1264,57 +1324,120 @@ where
             }));
         }
 
+        let mut actions_to_add = HashSet::new();
+        let mut actions_to_remove = HashSet::new();
+        let mut effect_to_set = None;
+        let mut resource_constraint_to_set = None;
+
         for operation in operations {
             match operation {
                 PolicyUpdateOperation::AddAction { action } => {
-                    transaction
-                        .as_client()
-                        .execute(
-                            "INSERT INTO policy_action (policy_id, action_name) VALUES ($1, $2)",
-                            &[&policy_id, action],
-                        )
-                        .await
-                        .map_err(|error| {
-                            let policy_error = match error.code() {
-                                Some(&SqlState::FOREIGN_KEY_VIOLATION) => {
-                                    UpdatePolicyError::ActionNotFound { id: *action }
-                                }
-                                _ => UpdatePolicyError::StoreError,
-                            };
-                            Report::new(error).change_context(policy_error)
-                        })?;
+                    actions_to_add.insert(*action);
+                    actions_to_remove.remove(action);
                 }
                 PolicyUpdateOperation::RemoveAction { action } => {
-                    transaction
-                        .as_client()
-                        .execute(
-                            "DELETE FROM policy_action WHERE policy_id = $1 AND action_name = $2",
-                            &[&policy_id, action],
-                        )
-                        .await
-                        .map_err(|error| {
-                            let policy_error = match error.code() {
-                                Some(&SqlState::FOREIGN_KEY_VIOLATION) => {
-                                    UpdatePolicyError::ActionNotFound { id: *action }
-                                }
-                                _ => UpdatePolicyError::StoreError,
-                            };
-                            Report::new(error).change_context(policy_error)
-                        })?;
+                    actions_to_add.remove(action);
+                    actions_to_remove.insert(action);
+                }
+                PolicyUpdateOperation::SetEffect { effect } => {
+                    effect_to_set = Some(*effect);
                 }
                 PolicyUpdateOperation::SetResourceConstraint {
                     resource_constraint,
                 } => {
-                    transaction
-                        .as_client()
-                        .execute(
-                            "UPDATE policy SET resource_constraint = $1 WHERE id = $2",
-                            &[&resource_constraint.as_ref().map(Json), &policy_id],
-                        )
-                        .await
-                        .change_context(UpdatePolicyError::StoreError)?;
+                    resource_constraint_to_set = Some(resource_constraint.as_ref().map(Json));
                 }
             }
+        }
+
+        if !actions_to_remove.is_empty() {
+            let actions_to_remove = actions_to_remove.iter().collect::<Vec<_>>();
+            transaction
+                .as_client()
+                .execute(
+                    "
+                        UPDATE policy_action
+                        SET transaction_time = tstzrange(lower(transaction_time), now(), '[)')
+                        WHERE policy_id = $1
+                          AND action_name = ANY($2)
+                          AND transaction_time @> now()
+                    ",
+                    &[&policy_id, &actions_to_remove],
+                )
+                .await
+                .change_context(UpdatePolicyError::StoreError)?;
+        }
+
+        if !actions_to_add.is_empty() {
+            let actions_to_add = actions_to_add.iter().collect::<Vec<_>>();
+            transaction
+                .as_client()
+                .execute(
+                    "
+                        INSERT INTO policy_action (policy_id, action_name, transaction_time)
+                        SELECT $1, unnest($2::text[]), tstzrange(now(), NULL, '[)')
+                    ",
+                    &[&policy_id, &actions_to_add],
+                )
+                .await
+                .change_context(UpdatePolicyError::StoreError)?;
+        }
+
+        let mut parameters: Vec<&(dyn ToSql + Sync)> = vec![&policy_id];
+        let effect = effect_to_set
+            .as_ref()
+            .map_or(Cow::Borrowed("effect"), |effect| {
+                parameters.push(effect);
+                Cow::Owned(format!("${}", parameters.len()))
+            });
+
+        let resource_constraint = resource_constraint_to_set.as_ref().map_or(
+            Cow::Borrowed("resource_constraint"),
+            |resource_constraint| {
+                parameters.push(resource_constraint);
+                Cow::Owned(format!("${}", parameters.len()))
+            },
+        );
+
+        if parameters.len() > 1 {
+            transaction
+                .as_client()
+                .execute(
+                    &format!(
+                        "
+                        WITH updated_policy AS (
+                            UPDATE policy_edition
+                            SET transaction_time = tstzrange(lower(transaction_time), now(), '[)')
+                            WHERE id = $1 AND transaction_time @> now()
+                            RETURNING
+                                id,
+                                name,
+                                effect,
+                                principal_id,
+                                principal_type,
+                                actor_type,
+                                resource_constraint
+                        )
+                        INSERT INTO policy_edition (
+                            id, name, transaction_time, effect, principal_id,
+                            principal_type, actor_type, resource_constraint
+                        )
+                        SELECT
+                            id,
+                            name,
+                            tstzrange(now(), NULL, '[)'),
+                            {effect},
+                            principal_id,
+                            principal_type,
+                            actor_type,
+                            {resource_constraint}
+                        FROM updated_policy
+                        "
+                    ),
+                    &parameters,
+                )
+                .await
+                .change_context(UpdatePolicyError::StoreError)?;
         }
 
         let policy = transaction
@@ -1332,6 +1455,39 @@ where
             .change_context(UpdatePolicyError::StoreError)?;
 
         Ok(policy)
+    }
+
+    async fn archive_policy_by_id(
+        &mut self,
+        _authenticated_actor: ActorEntityUuid,
+        policy_id: PolicyId,
+    ) -> Result<(), Report<RemovePolicyError>> {
+        let num_deleted = self
+            .as_mut_client()
+            .execute(
+                "
+                    WITH removed_policy AS (
+                        UPDATE policy_edition
+                        SET transaction_time = tstzrange(lower(transaction_time), now(), '[)')
+                        WHERE id = $1 AND transaction_time @> now()
+                        RETURNING id
+                    )
+                    UPDATE policy_action
+                    SET transaction_time = tstzrange(lower(transaction_time), now(), '[)')
+                    WHERE policy_id = $1 AND transaction_time @> now();
+                ",
+                &[&policy_id],
+            )
+            .await
+            .change_context(RemovePolicyError::StoreError)?;
+
+        if num_deleted > 0 {
+            Ok(())
+        } else {
+            Err(Report::new(RemovePolicyError::PolicyNotFound {
+                id: policy_id,
+            }))
+        }
     }
 
     async fn delete_policy_by_id(
@@ -1355,17 +1511,22 @@ where
     }
 
     async fn seed_system_policies(&mut self) -> Result<(), Report<EnsureSystemPoliciesError>> {
-        self.synchronize_actions()
+        let mut transaction = self
+            .transaction()
+            .await
+            .change_context(EnsureSystemPoliciesError::StoreError)?;
+
+        transaction
+            .synchronize_actions()
             .await
             .change_context(EnsureSystemPoliciesError::SynchronizeActions)?;
 
-        let system_machine_actor = self
+        let system_machine_actor = transaction
             .get_or_create_system_machine("h")
             .await
-            .change_context(EnsureSystemPoliciesError::CreatingSystemMachineFailed)
-            .map(ActorId::Machine)?;
+            .change_context(EnsureSystemPoliciesError::CreatingSystemMachineFailed)?;
 
-        let roles = self
+        let roles = transaction
             .as_client()
             .query_raw(
                 "
@@ -1386,30 +1547,57 @@ where
             .await
             .change_context(EnsureSystemPoliciesError::AddRequiredPoliciesFailed)?;
 
-        let hash_admins_team = self
+        let hash_admins_team = transaction
             .get_team_by_name(system_machine_actor.into(), "instance-admins")
             .await
             .change_context(EnsureSystemPoliciesError::ReadInstanceAdminRoles)?
             .ok_or(EnsureSystemPoliciesError::ReadInstanceAdminRoles)?;
-        let hash_admins_team_roles = self
+        let hash_admins_team_roles = transaction
             .get_team_roles(system_machine_actor.into(), hash_admins_team.id)
             .await
             .change_context(EnsureSystemPoliciesError::ReadInstanceAdminRoles)?;
 
-        self.update_seeded_policies(
-            system_machine_actor,
-            seed_policies::system_actor_policies(system_machine_actor)
-                .chain(seed_policies::global_policies())
-                .chain(roles.iter().flat_map(seed_policies::web_policies))
-                .chain(
-                    hash_admins_team_roles
-                        .values()
-                        .flat_map(seed_policies::instance_admins_policies),
-                ),
-        )
-        .await?;
+        let google_account_machine = transaction
+            .get_machine_by_identifier(system_machine_actor.into(), "google")
+            .await
+            .change_context(EnsureSystemPoliciesError::CreatingSystemMachineFailed)?;
+        let linear_account_machine = transaction
+            .get_machine_by_identifier(system_machine_actor.into(), "linear")
+            .await
+            .change_context(EnsureSystemPoliciesError::CreatingSystemMachineFailed)?;
 
-        Ok(())
+        // We only seed policies for the machine if it exists
+        let google_bot_policies = google_account_machine
+            .as_ref()
+            .map(|machine| seed_policies::google_bot_policies(machine.id))
+            .into_iter()
+            .flatten();
+        let linear_bot_policies = linear_account_machine
+            .as_ref()
+            .map(|machine| seed_policies::linear_bot_policies(machine.id))
+            .into_iter()
+            .flatten();
+
+        transaction
+            .update_seeded_policies(
+                ActorId::Machine(system_machine_actor),
+                seed_policies::system_actor_policies(system_machine_actor)
+                    .chain(seed_policies::global_policies())
+                    .chain(roles.iter().flat_map(seed_policies::web_policies))
+                    .chain(
+                        hash_admins_team_roles
+                            .values()
+                            .flat_map(seed_policies::instance_admins_policies),
+                    )
+                    .chain(google_bot_policies)
+                    .chain(linear_bot_policies),
+            )
+            .await?;
+
+        transaction
+            .commit()
+            .await
+            .change_context(EnsureSystemPoliciesError::StoreError)
     }
 }
 

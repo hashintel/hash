@@ -20,7 +20,6 @@
 pub mod sym;
 
 use core::{
-    borrow::Borrow,
     cmp::Ordering,
     fmt::{self, Display, Formatter},
     hash::{Hash, Hasher},
@@ -71,6 +70,11 @@ impl<'heap> Symbol<'heap> {
     pub const fn as_bytes(&self) -> &[u8] {
         self.0.as_bytes()
     }
+
+    #[must_use]
+    pub fn demangle(self) -> &'heap str {
+        self.0.rsplit_once(':').map_or(self.0, |(name, _)| name)
+    }
 }
 
 impl AsRef<Self> for Symbol<'_> {
@@ -114,18 +118,6 @@ impl Hash for Symbol<'_> {
     }
 }
 
-impl Borrow<str> for Symbol<'_> {
-    fn borrow(&self) -> &str {
-        self.0
-    }
-}
-
-impl AsRef<str> for Symbol<'_> {
-    fn as_ref(&self) -> &str {
-        self.0
-    }
-}
-
 impl Display for Symbol<'_> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         Display::fmt(self.0, fmt)
@@ -136,7 +128,7 @@ impl Display for Symbol<'_> {
 ///
 /// HashQL supports different categories of identifiers, each with distinct
 /// syntactic rules and semantic meanings in the language.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum IdentKind {
     /// A lexical identifier following standard programming language naming rules.
     ///
@@ -260,12 +252,23 @@ pub enum IdentKind {
 /// - name: `Symbol("counter")`
 /// - kind: `IdentKind::Lexical`
 /// - span: `5..12`
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Ident<'heap> {
     pub span: SpanId,
 
     pub value: Symbol<'heap>,
     pub kind: IdentKind,
+}
+
+#[cfg(test)]
+impl<'heap> Ident<'heap> {
+    pub(crate) const fn synthetic(value: Symbol<'heap>) -> Self {
+        Self {
+            span: SpanId::SYNTHETIC,
+            value,
+            kind: IdentKind::Lexical,
+        }
+    }
 }
 
 impl AsRef<str> for Ident<'_> {

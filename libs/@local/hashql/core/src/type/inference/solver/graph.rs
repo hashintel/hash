@@ -30,6 +30,18 @@ impl Graph {
     pub(crate) fn new(unification: &mut Unification) -> Self {
         let length = unification.variables.len();
 
+        let nodes = Vec::with_capacity(length);
+        let lookup = Vec::with_capacity(length);
+
+        let mut this = Self { nodes, lookup };
+        this.expansion(unification);
+
+        this
+    }
+
+    pub(crate) fn expansion(&mut self, unification: &mut Unification) {
+        let length = unification.variables.len();
+
         // There can never be more than `u32` variables (due to ena), if we're on a 64 bit system we
         // do not have to worry about overflow for the max sentinel value. In case of 32 bit
         // systems, if the length is exactly `u32::MAX`, we need to error out.
@@ -38,21 +50,22 @@ impl Graph {
             "Too many variables, cannot use `usize::MAX` as sentinel value"
         );
 
-        let mut index = 0;
-        let mut nodes = Vec::with_capacity(length);
-        let mut lookup = Vec::with_capacity(length);
-        lookup.resize(length, Self::SENTINEL);
+        let offset = self.lookup.len();
 
-        // Create a condensed graph of all unified nodes
-        #[expect(clippy::cast_possible_truncation)]
-        for (variable_index, _) in unification.variables.iter().enumerate() {
+        // Takes an existing graph, and adds any nodes that haven't been added yet.
+        self.lookup.resize(length, Self::SENTINEL);
+
+        let mut index = self.nodes.len();
+
+        #[expect(clippy::cast_possible_truncation, reason = "assert verifies invariant")]
+        for variable_index in offset..unification.variables.len() {
             let id = VariableId::from_index(variable_index as u32);
             let root = unification.table.find(id);
 
-            if lookup[root.into_usize()] == Self::SENTINEL {
-                lookup[root.into_usize()] = index;
+            if self.lookup[root.into_usize()] == Self::SENTINEL {
+                self.lookup[root.into_usize()] = index;
 
-                nodes.push(Node {
+                self.nodes.push(Node {
                     id: root,
                     edges: RoaringBitmap::new(),
                 });
@@ -60,10 +73,8 @@ impl Graph {
                 index += 1;
             }
 
-            lookup[id.into_usize()] = lookup[root.into_usize()];
+            self.lookup[id.into_usize()] = self.lookup[root.into_usize()];
         }
-
-        Self { nodes, lookup }
     }
 
     /// Condenses the graph by merging nodes that belong to the same equivalence class.
