@@ -485,7 +485,10 @@ impl<C> From<Report<C>> for Report<dyn Error> {
             frames: value.frames,
             _context: PhantomData,
         }
-        .attach_printable(format!("into Report<dyn Error> at {}", Location::caller()))
+        .attach_printable(alloc::format!(
+            "into Report<dyn Error> at {}",
+            Location::caller()
+        ))
     }
 }
 
