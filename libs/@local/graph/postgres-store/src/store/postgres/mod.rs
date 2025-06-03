@@ -1291,7 +1291,7 @@ where
         let mut actions_to_add = HashSet::new();
         let mut actions_to_remove = HashSet::new();
         let mut effect_to_set = None;
-        let mut resources_constraint_to_set = None;
+        let mut resource_constraint_to_set = None;
 
         for operation in operations {
             match operation {
@@ -1309,7 +1309,7 @@ where
                 PolicyUpdateOperation::SetResourceConstraint {
                     resource_constraint,
                 } => {
-                    resources_constraint_to_set = Some(resource_constraint.as_ref().map(Json));
+                    resource_constraint_to_set = Some(resource_constraint.as_ref().map(Json));
                 }
             }
         }
@@ -1355,8 +1355,8 @@ where
                 Cow::Owned(format!("${}", parameters.len()))
             });
 
-        let resource_constraint = resources_constraint_to_set.as_ref().map_or(
-            Cow::Borrowed("resources_constraint"),
+        let resource_constraint = resource_constraint_to_set.as_ref().map_or(
+            Cow::Borrowed("resource_constraint"),
             |resource_constraint| {
                 parameters.push(resource_constraint);
                 Cow::Owned(format!("${}", parameters.len()))
