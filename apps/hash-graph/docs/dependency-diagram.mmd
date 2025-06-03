@@ -15,65 +15,69 @@ graph TD
     3[<a href="../hash_codegen">hash-codegen</a>]
     4[<a href="../hash_graph_api">hash-graph-api</a>]
     5[<a href="../hash_graph_authorization">hash-graph-authorization</a>]
-    6[<a href="../hash_graph_postgres_queries">hash-graph-postgres-queries</a>]
-    7[<a href="../hash_graph_postgres_store">hash-graph-postgres-store</a>]
-    8[<a href="../hash_graph_store">hash-graph-store</a>]
-    9[<a href="../hash_graph_temporal_versioning">hash-graph-temporal-versioning</a>]
-    10[<a href="../hash_graph_test_server">hash-graph-test-server</a>]
-    11[<a href="../hash_graph_type_defs">hash-graph-type-defs</a>]
-    12[<a href="../hash_graph_type_fetcher">hash-graph-type-fetcher</a>]
-    13[<a href="../hash_graph_types">hash-graph-types</a>]
-    14[<a href="../hash_graph_validation">hash-graph-validation</a>]
-    15[<a href="../harpc_client">harpc-client</a>]
-    16[<a href="../harpc_codec">harpc-codec</a>]
-    17[<a href="../harpc_net">harpc-net</a>]
-    18[<a href="../harpc_server">harpc-server</a>]
-    19[<a href="../harpc_system">harpc-system</a>]
-    20[<a href="../harpc_tower">harpc-tower</a>]
-    21[<a href="../harpc_types">harpc-types</a>]
-    22[<a href="../harpc_wire_protocol">harpc-wire-protocol</a>]
-    23[<a href="../hash_status">hash-status</a>]
-    24[<a href="../hash_temporal_client">hash-temporal-client</a>]
-    25[<a href="../hash_tracing">hash-tracing</a>]
-    26[<a href="../error_stack">error-stack</a>]
-    27[<a href="../hash_graph_test_data">hash-graph-test-data</a>]
-    0 --> 10
-    1 --> 9
-    1 -.-> 27
+    6[<a href="../hash_graph_migrations">hash-graph-migrations</a>]
+    7[<a href="../hash_graph_migrations_macros">hash-graph-migrations-macros</a>]
+    8[<a href="../hash_graph_postgres_queries">hash-graph-postgres-queries</a>]
+    9[<a href="../hash_graph_postgres_store">hash-graph-postgres-store</a>]
+    10[<a href="../hash_graph_store">hash-graph-store</a>]
+    11[<a href="../hash_graph_temporal_versioning">hash-graph-temporal-versioning</a>]
+    12[<a href="../hash_graph_test_server">hash-graph-test-server</a>]
+    13[<a href="../hash_graph_type_defs">hash-graph-type-defs</a>]
+    14[<a href="../hash_graph_type_fetcher">hash-graph-type-fetcher</a>]
+    15[<a href="../hash_graph_types">hash-graph-types</a>]
+    16[<a href="../hash_graph_validation">hash-graph-validation</a>]
+    17[<a href="../harpc_client">harpc-client</a>]
+    18[<a href="../harpc_codec">harpc-codec</a>]
+    19[<a href="../harpc_net">harpc-net</a>]
+    20[<a href="../harpc_server">harpc-server</a>]
+    21[<a href="../harpc_system">harpc-system</a>]
+    22[<a href="../harpc_tower">harpc-tower</a>]
+    23[<a href="../harpc_types">harpc-types</a>]
+    24[<a href="../harpc_wire_protocol">harpc-wire-protocol</a>]
+    25[<a href="../hash_status">hash-status</a>]
+    26[<a href="../hash_temporal_client">hash-temporal-client</a>]
+    27[<a href="../hash_tracing">hash-tracing</a>]
+    28[<a href="../error_stack">error-stack</a>]
+    29[<a href="../hash_graph_test_data">hash-graph-test-data</a>]
+    0 --> 12
+    1 --> 11
+    1 -.-> 29
     2 -.-> 3
-    2 --> 22
-    4 --> 7
-    4 --> 11
-    4 --> 12
-    4 --> 18
+    2 --> 24
+    4 --> 9
+    4 --> 13
+    4 --> 14
+    4 --> 20
     5 --> 1
-    6 --> 5
-    7 --> 6
-    7 --> 14
-    7 --> 23
-    7 -.-> 25
+    6 --> 7
+    6 --> 27
     8 --> 5
-    8 --> 13
-    8 --> 24
-    9 --> 2
-    10 --> 4
-    11 --> 23
-    12 --> 8
-    13 --> 1
-    14 --> 8
-    15 --> 19
-    16 --> 21
-    16 --> 26
-    17 --> 2
-    17 -.-> 16
-    17 --> 16
-    18 -.-> 1
-    18 -.-> 15
-    19 --> 20
+    8 -.-> 6
+    9 --> 8
+    9 --> 16
+    9 --> 25
+    10 --> 5
+    10 --> 15
+    10 --> 26
+    11 --> 2
+    12 --> 4
+    13 --> 25
+    14 --> 10
+    15 --> 1
+    16 --> 10
+    17 --> 21
+    18 --> 23
+    18 --> 28
+    19 --> 2
+    19 -.-> 18
+    19 --> 18
+    20 -.-> 1
     20 -.-> 17
-    20 --> 17
-    22 -.-> 21
-    22 --> 21
-    22 --> 26
-    24 --> 1
-    25 --> 26
+    21 --> 22
+    22 -.-> 19
+    22 --> 19
+    24 -.-> 23
+    24 --> 23
+    24 --> 28
+    26 --> 1
+    27 --> 28

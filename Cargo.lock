@@ -3526,6 +3526,7 @@ version = "0.0.0"
 dependencies = [
  "clorinde",
  "hash-graph-authorization",
+ "hash-graph-migrations",
  "simple-mermaid",
  "type-system",
 ]
@@ -3547,6 +3548,7 @@ dependencies = [
  "futures-sink",
  "hash-codec",
  "hash-graph-authorization",
+ "hash-graph-migrations",
  "hash-graph-postgres-queries",
  "hash-graph-store",
  "hash-graph-temporal-versioning",

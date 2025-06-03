@@ -20,11 +20,13 @@ clorinde = { path = "clorinde", default-features = false }
 # Private third-party dependencies
 simple-mermaid = { workspace = true }
 
+[dev-dependencies]
+hash-graph-migrations = { workspace = true }
+
 [lints]
 workspace = true
 
 [package.metadata.sync.turborepo]
 extra-dev-dependencies = [
-    { name = "@rust/hash-graph-migrations", version = "0.0.0-private" },
     { name = "@local/repo-chores", version = "0.0.0-private" },
 ]

@@ -8,7 +8,21 @@ graph TD
     %% --> : Normal dependency
     %% -.-> : Dev dependency
     %% ---> : Build dependency
-    0[<a href="../hash_graph_migrations">hash-graph-migrations</a>]
-    1[hash-graph-migrations-macros]
-    class 1 root
-    0 --> 1
+    0[<a href="../hash_graph">hash-graph</a>]
+    1[<a href="../hash_graph_api">hash-graph-api</a>]
+    2[<a href="../hash_graph_migrations">hash-graph-migrations</a>]
+    3[hash-graph-migrations-macros]
+    class 3 root
+    4[<a href="../hash_graph_postgres_queries">hash-graph-postgres-queries</a>]
+    5[<a href="../hash_graph_postgres_store">hash-graph-postgres-store</a>]
+    6[<a href="../hash_graph_test_server">hash-graph-test-server</a>]
+    7[<a href="../hash_graph_benches">hash-graph-benches</a>]
+    8[<a href="../hash_graph_integration">hash-graph-integration</a>]
+    0 --> 6
+    1 --> 5
+    2 --> 3
+    4 -.-> 2
+    5 --> 4
+    6 --> 1
+    7 -.-> 1
+    8 -.-> 5
