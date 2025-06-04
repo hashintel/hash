@@ -474,21 +474,21 @@ impl<C> Report<C> {
 impl<E: Into<Report<E>>> From<E> for Report<dyn Error> {
     #[track_caller]
     fn from(value: E) -> Self {
-        value.into().into()
+        Report {
+            frames: value.into().frames,
+            _context: PhantomData,
+        }
     }
 }
 
 impl<C> From<Report<C>> for Report<dyn Error> {
     #[track_caller]
-    fn from(value: Report<C>) -> Self {
+    fn from(mut report: Report<C>) -> Self {
+        report = report.attach(*Location::caller());
         Report {
-            frames: value.frames,
+            frames: report.frames,
             _context: PhantomData,
         }
-        .attach_printable(alloc::format!(
-            "into Report<dyn Error> at {}",
-            Location::caller()
-        ))
     }
 }
 
@@ -915,7 +915,10 @@ impl<C> From<Report<C>> for Report<[C]> {
 
 impl<C: Context> From<C> for Report<[C]> {
     fn from(ctx: C) -> Self {
-        Report::new(ctx).into()
+        Self {
+            frames: Report::new(ctx).frames,
+            _context: PhantomData,
+        }
     }
 }
 

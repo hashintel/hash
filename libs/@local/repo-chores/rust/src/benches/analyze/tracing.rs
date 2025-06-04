@@ -1,4 +1,3 @@
-use core::error::Error;
 use std::{
     fs::File,
     io::{self, BufRead as _, BufReader},
@@ -41,7 +40,7 @@ impl FoldedStacks {
     pub fn create_flame_graph(
         &self,
         mut options: flamegraph::Options,
-    ) -> Result<FlameGraph, Report<dyn Error>> {
+    ) -> Result<FlameGraph, Report<io::Error>> {
         let mut buffer = Vec::new();
         flamegraph::from_lines(
             &mut options,

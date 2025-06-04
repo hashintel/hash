@@ -21,6 +21,7 @@ All notable changes to `error-stack` will be documented in this file.
 - `Extend` is no longer implemented by `Report<C>`, instead it is implemented on `Report<[C]>`, either use `From` or `Report::expand` to convert between `Report<C>` into `Report<[C]>`. ([#5047](https://github.com/hashintel/hash/pull/5047))
 - `extend_one` has been renamed to `push` and is only implemented on `Report<[C]>`. ([#5047](https://github.com/hashintel/hash/pull/5047))
 - `bail!(report,)` has been removed, one must now use `bail!(report)`. This is in preparation for the unstable `bail!` macro that allows to construct `Report<[C]>`. ([#5047](https://github.com/hashintel/hash/pull/5047))
+- `From<C> for Report<[C]>` and support for constructing `Report<dyn Error>` with `From<E: IntoReport<E>>` and `From<E: Report<C>>` alter type inferrence in some cases. Each instance will require one of: replacing `Report::from` with `Report::new`, replacing `Into<Report<C>>` with `IntoReport<Context = C>`, or specifying a concrete `C`. This makes multi-error reports easier to instanstiate and allows flexible usage of dynamic errors inside a report. ([#7274](https://github.com/hashintel/hash/pull/7274))
 
 ### Deprecations
 

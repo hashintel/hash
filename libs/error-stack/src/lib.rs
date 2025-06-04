@@ -535,7 +535,7 @@ pub use self::{future::FutureExt, result::ResultExt};
 #[expect(dead_code)]
 mod tests {
 
-    use core::mem;
+    use core::{error::Error, mem};
 
     use crate::Report;
 
@@ -549,10 +549,17 @@ mod tests {
         assert_send::<Report<()>>();
         assert_sync::<Report<()>>();
         assert_static::<Report<()>>();
+        assert_send::<Report<dyn Error>>();
+        assert_sync::<Report<dyn Error>>();
+        assert_static::<Report<dyn Error>>();
     }
 
     #[test]
     fn size() {
         assert_eq!(mem::size_of::<Report<()>>(), mem::size_of::<*const ()>());
+        assert_eq!(
+            mem::size_of::<Report<dyn Error>>(),
+            mem::size_of::<*const ()>()
+        );
     }
 }
