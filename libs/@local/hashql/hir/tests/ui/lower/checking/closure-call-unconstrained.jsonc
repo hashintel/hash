@@ -1,0 +1,13 @@
+//@ run: pass
+//@ description: Validates type checking for nested closure calls where generic types are inferred from usage.
+[
+  "let",
+  "foo",
+  ["fn", { "#tuple": ["T"] }, { "#struct": { "a": "T" } }, "T", "a"],
+  [
+    "let",
+    "bar",
+    ["fn", { "#tuple": ["T"] }, { "#struct": { "a": "T" } }, "T", ["foo", "a"]],
+    ["bar", { "#literal": 2 }]
+  ]
+]

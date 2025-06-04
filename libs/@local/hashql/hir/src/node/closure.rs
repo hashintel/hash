@@ -1,11 +1,33 @@
 use hashql_core::{
     intern::Interned,
+    module::locals::TypeDef,
     span::SpanId,
     symbol::Ident,
-    r#type::{TypeId, kind::generic::GenericArgumentReference},
+    r#type::{
+        TypeId,
+        environment::Environment,
+        kind::{Apply, ClosureType, Generic, TypeKind},
+    },
 };
 
 use super::Node;
+
+pub(crate) fn extract_signature<'heap>(
+    mut type_id: TypeId,
+    env: &Environment<'heap>,
+) -> &'heap ClosureType<'heap> {
+    loop {
+        let kind = env.r#type(type_id).kind;
+
+        match kind {
+            &TypeKind::Apply(Apply { base, .. }) | &TypeKind::Generic(Generic { base, .. }) => {
+                type_id = base;
+            }
+            TypeKind::Closure(closure) => return closure,
+            _ => unreachable!("ClosureSignature::returns() called on a non-closure type"),
+        }
+    }
+}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct ClosureParam<'heap> {
@@ -28,16 +50,38 @@ pub struct ClosureParam<'heap> {
 pub struct ClosureSignature<'heap> {
     pub span: SpanId,
 
-    // Always a `ClosureType`
-    pub r#type: TypeId,
+    // Always a `ClosureType`, or a type wrapped in `Generic`
+    pub def: TypeDef<'heap>,
 
-    // The generics bound to this type, always in the order they have been specified
-    // TODO: I am unsure if they are even required. They are required for when binding to a generic
-    // path that goes back to a function. This doesn't happen in the ImportResolver, but in the HIR
-    // during type checking.
-    pub generics: Interned<'heap, [GenericArgumentReference<'heap>]>,
     // The names of the different parameters, always the same length as the `ClosureType` params
     pub params: Interned<'heap, [ClosureParam<'heap>]>,
+}
+
+impl<'heap> ClosureSignature<'heap> {
+    pub fn type_signature(&self, env: &Environment<'heap>) -> &'heap ClosureType<'heap> {
+        extract_signature(self.def.id, env)
+    }
+
+    pub fn type_generic(&self, env: &Environment<'heap>) -> Option<&'heap Generic<'heap>> {
+        let mut type_id = self.def.id;
+
+        loop {
+            let kind = env.r#type(type_id).kind;
+
+            match kind {
+                &TypeKind::Apply(Apply { base, .. }) => {
+                    type_id = base;
+                }
+                TypeKind::Generic(generic) => return Some(generic),
+                TypeKind::Closure(_) => return None,
+                _ => unreachable!("ClosureSignature::returns() called on a non-closure type"),
+            }
+        }
+    }
+
+    pub fn returns(&self, env: &Environment<'heap>) -> TypeId {
+        self.type_signature(env).returns
+    }
 }
 
 /// A closure expression in the HashQL HIR.

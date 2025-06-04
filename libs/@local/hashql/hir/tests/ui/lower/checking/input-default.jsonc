@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Checks type checking for an input with a compatible default value, where the default's type is inferred.
+["input", "x", "Number", { "#literal": 42, "#type": "_" }]

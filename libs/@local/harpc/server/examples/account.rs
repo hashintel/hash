@@ -1,9 +1,4 @@
-#![feature(
-    never_type,
-    impl_trait_in_assoc_type,
-    result_flattening,
-    return_type_notation
-)]
+#![feature(never_type, impl_trait_in_assoc_type, return_type_notation)]
 #![expect(
     clippy::print_stdout,
     clippy::use_debug,

@@ -1,0 +1,24 @@
+[31m[type-check::incompatible-upper-equal-constraint] Error:[0m Incompatible upper bound and equality constraint
+    ╭─[ <unknown>:6:3 ]
+    │
+  1 │       //@ run: fail
+    │       │ 
+    │       ╰─ But this upper bound `[34mNumber[0m` is not a supertype of the equality constraint
+    │ 
+  6 │ ╭───▶   [
+    │ │       ▲   
+    │ │ ╭─────╯   
+    ┆ ┆ ┆   
+ 12 │ ├─│ ▶   ],
+    │ │ │     ▲    
+    │ ╰──────────── Type variable has incompatible equality and upper bound constraints
+    │   │     │    
+    │   ╰─────┴──── Required to be exactly `[36m?[0m`
+    │       
+    │       Help: To fix this conflict, you can:
+    │             1. Change the equality constraint `[36m?[0m` to be a subtype of the upper bound
+    │             2. Adjust the upper bound `[34mNumber[0m` to be a supertype of the equality constraint
+    │             3. Review your type annotations to ensure they're consistent
+    │       
+    │       Note: Type inference requires that when a variable has both an equality constraint and an upper bound, the equality type must be a subtype of the upper bound (equal <: upper). This error indicates your code has contradictory requirements for the same type variable.
+────╯
