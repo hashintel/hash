@@ -657,40 +657,34 @@ where
     /// # Examples
     ///
     /// ```
-    /// # use hashql_core::intern::InternMap;
-    /// # use hashql_core::heap::Heap;
-    /// # use hashql_core::id::{HasId, Id};
-    /// # use hashql_core::intern::{Interned, Decompose};
-    /// #
-    /// # #[derive(Clone, Debug, PartialEq, Eq, Hash)]
-    /// # struct MyValue { id: Id<Self>, data: String }
-    /// # impl HasId for MyValue {
-    /// #     type Id = Id<Self>;
+    /// # use hashql_core::{heap::Heap, intern::{InternMap, Decompose, Interned}, id::{HasId, Id}, newtype};
+    /// # newtype!(struct ValueId(u32 is 0..=0xFFFF_FF00));
+    /// # #[derive(Debug, PartialEq, Eq, Hash)]
+    /// # struct Value {
+    /// #     id: ValueId,
+    /// #     value: i32,
+    /// # }
+    /// # impl HasId for Value {
+    /// #     type Id = ValueId;
     /// #     fn id(&self) -> Self::Id { self.id }
     /// # }
-    /// # impl<'heap> Decompose<'heap> for MyValue {
-    /// #     type Partial = String;
-    /// #     fn from_parts(id: Self::Id, partial: Interned<'heap, Self::Partial>) -> Self {
-    /// #         Self { id, data: partial.as_ref().clone() }
+    /// # impl<'heap> Decompose<'heap> for Value {
+    /// #     type Partial = i32;
+    /// #     fn from_parts(id: ValueId, partial: Interned<'heap, i32>) -> Self {
+    /// #         Self { id, value: *partial.as_ref() }
     /// #     }
     /// # }
-    /// #
-    /// let heap = Heap::new();
-    /// let mut map = InternMap::new(&heap);
+    /// # let heap = Heap::new();
+    /// # let map = InternMap::<Value>::new(&heap);
+    /// let obj = map.intern_partial(42);
+    /// let id = obj.id();
     ///
-    /// let value = MyValue {
-    ///     id: Id::new(),
-    ///     data: "hello".to_string(),
-    /// };
-    /// let interned = map.intern(value);
+    /// // Look up by ID (we know it exists)
+    /// let retrieved = map.index_partial(id);
+    /// assert_eq!(*retrieved, 42);
     ///
-    /// // Get just the partial representation
-    /// let partial = map.index_partial(interned.id());
-    /// assert_eq!(partial.as_ref(), "hello");
-    ///
-    /// // Compare with getting the full object
-    /// let full_object = map.index(interned.id());
-    /// assert_eq!(full_object.data, "hello");
+    /// // This would panic:
+    /// // let non_existent = map.index(ValueId::from_u32(999));
     /// ```
     pub fn index_partial(&self, id: T::Id) -> Interned<'heap, T::Partial> {
         let partial = self
