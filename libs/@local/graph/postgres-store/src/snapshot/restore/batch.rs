@@ -5,12 +5,14 @@ use hash_graph_store::error::InsertionError;
 use crate::{
     snapshot::{
         WriteBatch,
+        action::ActionRowBatch,
         entity::EntityRowBatch,
         ontology::{
             DataTypeRowBatch, EntityTypeRowBatch, OntologyTypeMetadataRowBatch,
             PropertyTypeRowBatch,
         },
         owner::AccountRowBatch,
+        policy::PolicyRowBatch,
         principal::PrincipalRowBatch,
         web::WebBatch,
     },
@@ -26,6 +28,8 @@ pub enum SnapshotRecordBatch {
     PropertyTypes(PropertyTypeRowBatch),
     EntityTypes(EntityTypeRowBatch),
     Entities(EntityRowBatch),
+    Actions(ActionRowBatch),
+    Policies(PolicyRowBatch),
 }
 
 impl<C, A> WriteBatch<C, A> for SnapshotRecordBatch
@@ -44,6 +48,8 @@ where
         PropertyTypeRowBatch::begin(postgres_client).await?;
         EntityTypeRowBatch::begin(postgres_client).await?;
         EntityRowBatch::begin(postgres_client).await?;
+        ActionRowBatch::begin(postgres_client).await?;
+        PolicyRowBatch::begin(postgres_client).await?;
         Ok(())
     }
 
@@ -60,6 +66,8 @@ where
             Self::PropertyTypes(property) => property.write(postgres_client).await,
             Self::EntityTypes(entity_type) => entity_type.write(postgres_client).await,
             Self::Entities(entity) => entity.write(postgres_client).await,
+            Self::Actions(action) => action.write(postgres_client).await,
+            Self::Policies(policy) => policy.write(postgres_client).await,
         }
     }
 
@@ -75,6 +83,8 @@ where
         PropertyTypeRowBatch::commit(postgres_client, ignore_validation_errors).await?;
         EntityTypeRowBatch::commit(postgres_client, ignore_validation_errors).await?;
         EntityRowBatch::commit(postgres_client, ignore_validation_errors).await?;
+        ActionRowBatch::commit(postgres_client, ignore_validation_errors).await?;
+        PolicyRowBatch::commit(postgres_client, ignore_validation_errors).await?;
         Ok(())
     }
 }
