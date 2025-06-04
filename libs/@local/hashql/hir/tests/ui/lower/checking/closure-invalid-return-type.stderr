@@ -1,15 +1,12 @@
 [lower::type-check::type-mismatch] Error: Type mismatch
-   ╭─[ <unknown>:3:1 ]
+   ╭─[ <unknown>:8:17 ]
    │
- 1 │ //@ run: fail
-   │ │ 
-   │ ╰─ This is of type `String`
-   │ 
- 3 │ ["fn", { "#tuple": [] }, { "#struct": {} }, "String", { "#literal": 1 }]
-   │ ────────────────────────────────────┬───────────────────────────────┬───  
-   │                                     │                               ╰───── This is of type `Integer`
-   │                                     │                                     
-   │                                     ╰───────────────────────────────────── Type mismatch in this expression
+ 7 │   "String",
+   │    ───┬──  
+   │       ╰──── ... and this is of type `String`
+ 8 │   { "#literal": 1 }
+   │                 ┬  
+   │                 ╰── This is of type `Integer`
    │ 
    │ Help: You can convert the number to a string using the `::core::number::to_string/1` or `::core::number::to_string/2` function
    │ 

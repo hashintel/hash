@@ -321,6 +321,9 @@ impl<'heap> Lattice<'heap> for Apply<'heap> {
         // This is not the same as checking if the base type is recursive, while the base type might
         // be recursive, it doesn't guarantee that we're actually referenced in the recursive type.
         if env.is_concrete(base) && !guard.is_used() {
+            // We cannot re-span ourselves here, because someone might have already referenced the
+            // base type, therefore changing the `TypeId` here and removing it from the type-graph
+            // would be invalid.
             return base;
         }
 

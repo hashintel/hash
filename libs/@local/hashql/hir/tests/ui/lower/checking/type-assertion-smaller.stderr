@@ -1,15 +1,13 @@
 [lower::type-check::type-mismatch] Error: Type mismatch
-   ╭─[ <unknown>:3:1 ]
+   ╭─[ <unknown>:5:17 ]
    │
- 1 │ //@ run: fail
-   │ │ 
-   │ ╰─ This is of type `Integer`
+ 5 │   { "#literal": 42.12 },
+   │                 ──┬──  
+   │                   ╰──── This is of type `Number`
    │ 
- 3 │ ["is", { "#literal": 42.12 }, "Integer"] // checking DOWN fails
-   │ ────────────────────┬──┬────────────────  
-   │                     │  ╰────────────────── This is of type `Number`
-   │                     │                     
-   │                     ╰───────────────────── Type mismatch in this expression
+ 7 │   "Integer"
+   │    ───┬───  
+   │       ╰───── ... and this is of type `Integer`
    │ 
    │ Help: Expected an Integer but found a Number. While all Integers are Numbers, not all Numbers are Integers (e.g., decimals like 3.14).
    │ 

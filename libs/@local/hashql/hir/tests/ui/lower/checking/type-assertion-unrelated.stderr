@@ -1,15 +1,13 @@
 [lower::type-check::type-mismatch] Error: Type mismatch
-   ╭─[ <unknown>:3:1 ]
+   ╭─[ <unknown>:5:17 ]
    │
- 1 │ //@ run: fail
-   │ │ 
-   │ ╰─ This is of type `String`
+ 5 │   { "#literal": 42 },
+   │                 ─┬  
+   │                  ╰── This is of type `Integer`
    │ 
- 3 │ ["is", { "#literal": 42 }, "String"]
-   │ ──────────────────┬───┬─────────────  
-   │                   │   ╰─────────────── This is of type `Integer`
-   │                   │                   
-   │                   ╰─────────────────── Type mismatch in this expression
+ 7 │   "String"
+   │    ───┬──  
+   │       ╰──── ... and this is of type `String`
    │ 
    │ Help: You can convert the number to a string using the `::core::number::to_string/1` or `::core::number::to_string/2` function
    │ 

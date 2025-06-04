@@ -502,6 +502,15 @@ where
             }
         };
 
+        // Global references are re-spanned, so that they point to the definition site.
+        // Local variables may not be defined yet and therefore couldn't be re-spanned in any
+        // meaningful capacity.
+        let base_kind = self.env.types.index_partial(base).kind;
+        let base = self.env.intern_type(PartialType {
+            span: path.span,
+            kind: base_kind,
+        });
+
         self.apply_reference(
             &VariableReference::Global(path),
             base,

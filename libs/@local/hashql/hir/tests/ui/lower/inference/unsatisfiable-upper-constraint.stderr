@@ -1,10 +1,9 @@
 [type-check::bound-constraint-violation] Error: Type bound constraint violation
    ╭─[ <unknown>:7:33 ]
    │
- 1 │ //@ run: fail
-   │ │ 
-   │ ╰─ Upper bound `Number` is not a supertype of the lower bound
-   │ 
+ 6 │   "Number",
+   │    ───┬──  
+   │       ╰──── Upper bound `Number` is not a supertype of the lower bound
  7 │   { "#literal": "42", "#type": "_" }
    │                 ──┬─            ┬  
    │                   │             ╰── Type variable has incompatible upper and lower bounds
