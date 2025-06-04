@@ -4,9 +4,8 @@ use std::{collections::HashMap, fs, path::Path};
 use hash_graph_authorization::{
     AuthorizationApi, NoAuthorization,
     schema::{
-        DataTypeRelationAndSubject, DataTypeViewerSubject, EntityTypeInstantiatorSubject,
-        EntityTypeRelationAndSubject, EntityTypeViewerSubject, PropertyTypeRelationAndSubject,
-        PropertyTypeViewerSubject,
+        DataTypeRelationAndSubject, DataTypeViewerSubject, EntityTypeRelationAndSubject,
+        EntityTypeViewerSubject, PropertyTypeRelationAndSubject, PropertyTypeViewerSubject,
     },
 };
 use hash_graph_postgres_store::{

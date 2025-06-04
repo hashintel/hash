@@ -19,8 +19,8 @@ use hash_graph_authorization::{
     },
     schema::{
         DataTypeRelationAndSubject, DataTypeViewerSubject, EntityRelationAndSubject,
-        EntityTypeInstantiatorSubject, EntityTypeRelationAndSubject, EntityTypeViewerSubject,
-        PropertyTypeRelationAndSubject, PropertyTypeViewerSubject, WebOwnerSubject,
+        EntityTypeRelationAndSubject, EntityTypeViewerSubject, PropertyTypeRelationAndSubject,
+        PropertyTypeViewerSubject, WebOwnerSubject,
     },
     zanzibar::Consistency,
 };

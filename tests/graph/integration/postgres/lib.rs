@@ -32,9 +32,9 @@ use hash_graph_authorization::{
     policies::store::{LocalPrincipalStore as _, PolicyStore as _},
     schema::{
         DataTypeRelationAndSubject, DataTypeViewerSubject, EntityRelationAndSubject,
-        EntityTypeInstantiatorSubject, EntityTypeRelationAndSubject, EntityTypeSetting,
-        EntityTypeSettingSubject, EntityTypeViewerSubject, PropertyTypeRelationAndSubject,
-        PropertyTypeSetting, PropertyTypeSettingSubject, PropertyTypeViewerSubject,
+        EntityTypeRelationAndSubject, EntityTypeSetting, EntityTypeSettingSubject,
+        EntityTypeViewerSubject, PropertyTypeRelationAndSubject, PropertyTypeSetting,
+        PropertyTypeSettingSubject, PropertyTypeViewerSubject,
     },
     zanzibar::Consistency,
 };
