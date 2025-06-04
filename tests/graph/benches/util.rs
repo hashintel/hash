@@ -446,16 +446,10 @@ pub async fn seed<D, P, E, C, A>(
                             account_id,
                             UpdateEntityTypesParams {
                                 schema: entity_type,
-                                relationships: [
-                                    EntityTypeRelationAndSubject::Viewer {
-                                        subject: EntityTypeViewerSubject::Public,
-                                        level: 0,
-                                    },
-                                    EntityTypeRelationAndSubject::Instantiator {
-                                        subject: EntityTypeInstantiatorSubject::Public,
-                                        level: 0,
-                                    },
-                                ],
+                                relationships: [EntityTypeRelationAndSubject::Viewer {
+                                    subject: EntityTypeViewerSubject::Public,
+                                    level: 0,
+                                }],
                                 provenance: ProvidedOntologyEditionProvenance {
                                     actor_type: ActorType::User,
                                     origin: OriginProvenance::from_empty_type(OriginType::Api),

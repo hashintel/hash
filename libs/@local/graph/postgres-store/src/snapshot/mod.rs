@@ -1079,7 +1079,9 @@ impl PostgresStorePool {
                                         )
                                         .await
                                         .change_context(SnapshotDumpError::Query)?
-                                        .map_ok(|(_, relation)| relation)
+                                        .try_filter_map(| (_, relation)| async move  {
+                                             Ok((!matches!(relation,  EntityTypeRelationAndSubject::Instantiator { .. })).then_some(relation))
+                                        })
                                         .try_collect()
                                         .await
                                         .change_context(SnapshotDumpError::Query)?,
