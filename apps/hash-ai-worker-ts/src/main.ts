@@ -105,9 +105,10 @@ async function run() {
 
   logger.info("Created Graph client");
 
-  const vaultClient = createVaultClient();
+  const vaultClient = await createVaultClient({ logger });
+
   if (!vaultClient) {
-    throw new Error("Vault client not created");
+    throw new Error("Failed to create Vault client, check preceding logs.");
   }
 
   logger.info("Created Vault client");

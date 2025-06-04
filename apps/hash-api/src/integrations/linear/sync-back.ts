@@ -7,7 +7,7 @@ import { linearTypeMappings } from "@local/hash-backend-utils/linear-type-mappin
 import { getMachineIdByIdentifier } from "@local/hash-backend-utils/machine-actors";
 import { createTemporalClient } from "@local/hash-backend-utils/temporal";
 import type { UpdateLinearDataWorkflow } from "@local/hash-backend-utils/temporal-integration-workflow-types";
-import { createVaultClient } from "@local/hash-backend-utils/vault";
+import { type VaultClient } from "@local/hash-backend-utils/vault";
 import type { GraphApi } from "@local/hash-graph-client";
 import { type HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
@@ -34,10 +34,15 @@ export const supportedLinearTypeIds = [
   ...supportedLinearLinkEntityTypeIds,
 ];
 
-export const processEntityChange = async (
-  entity: HashEntity,
-  graphApi: GraphApi,
-) => {
+export const processEntityChange = async ({
+  entity,
+  graphApi,
+  vaultClient,
+}: {
+  entity: HashEntity;
+  graphApi: GraphApi;
+  vaultClient: VaultClient;
+}) => {
   const { entityTypeIds } = entity.metadata;
 
   if (
@@ -97,13 +102,6 @@ export const processEntityChange = async (
       );
 
   const temporalClient = await createTemporalClient();
-
-  const vaultClient = createVaultClient();
-  if (!vaultClient) {
-    throw new Error(
-      "Cannot create Vault client – are there missing environment variables?",
-    );
-  }
 
   const owningAccountUuId = extractWebIdFromEntityId(
     linearEntityToUpdate.metadata.recordId.entityId,

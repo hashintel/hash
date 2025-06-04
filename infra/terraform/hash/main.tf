@@ -480,6 +480,7 @@ module "application" {
   ]
   temporal_worker_integration_image    = module.temporal_worker_integration_ecr
   temporal_worker_integration_env_vars = [
+    { name = "AWS_REGION", secret = false, value = local.region },
     { name = "LOG_LEVEL", secret = false, value = "debug" },
     {
       name  = "HASH_VAULT_HOST", secret = true,
