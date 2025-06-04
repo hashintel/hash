@@ -10,6 +10,7 @@ import type {
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { LinearClient } from "@linear/sdk";
 import { getMachineIdByIdentifier } from "@local/hash-backend-utils/machine-actors";
+import type { EntityRelationAndSubjectBranded } from "@local/hash-graph-sdk/authorization";
 import {
   apiOrigin,
   frontendUrl,

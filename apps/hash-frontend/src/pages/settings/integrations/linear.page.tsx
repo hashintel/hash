@@ -19,6 +19,7 @@ import type { NextPageWithLayout } from "../../../shared/layout";
 import { Button } from "../../../shared/ui";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
 import { getSettingsLayout } from "../../shared/settings-layout";
+import { LinearHeader } from "./linear/linear-header";
 import type { LinearOrganizationTeamsWithWorkspaces } from "./linear/select-linear-teams-table";
 import {
   mapLinearOrganizationToLinearOrganizationTeamsWithWorkspaces,
@@ -166,9 +167,8 @@ const LinearIntegrationsPage: NextPageWithLayout = () => {
 
   return (
     <Container>
-      <Typography variant="h1" mt={10} mb={4} fontWeight="bold">
-        Linear
-      </Typography>
+      <LinearHeader />
+
       {connectedLinearOrganizations ? (
         <>
           <LinearConnections

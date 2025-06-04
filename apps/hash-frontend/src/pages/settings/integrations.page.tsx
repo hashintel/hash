@@ -1,10 +1,12 @@
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import { Box, Paper, Stack, Typography } from "@mui/material";
-import type { FunctionComponent } from "react";
+import type { FunctionComponent, ReactNode } from "react";
 import { useContext } from "react";
 
 import { isProduction } from "../../lib/config";
 import { extractWebId } from "../../lib/user-and-org";
+import { GoogleSheetsIcon } from "../../shared/icons/google-sheets-icon";
+import { LinearLogo } from "../../shared/icons/linear-logo";
 import type { NextPageWithLayout } from "../../shared/layout";
 import { Link } from "../../shared/ui";
 import { Button } from "../../shared/ui/button";
@@ -16,9 +18,15 @@ type IntegrationCardProps = {
   href: string;
   name: string;
   description: string;
+  icon: ReactNode;
 };
 
-const IntegrationCard = ({ href, name, description }: IntegrationCardProps) => {
+const IntegrationCard = ({
+  href,
+  name,
+  description,
+  icon,
+}: IntegrationCardProps) => {
   return (
     <Paper
       sx={{
@@ -27,17 +35,14 @@ const IntegrationCard = ({ href, name, description }: IntegrationCardProps) => {
         minWidth: 250,
       }}
     >
-      <Box display="flex" justifyContent="flex-end" mb={1}>
-        <Button
-          openInNewTab={false}
-          variant="tertiary"
-          size="small"
-          href={href}
-          sx={{
-            padding: ({ spacing }) => spacing(1, 1.5),
-            minHeight: 1,
-          }}
-        >
+      <Box
+        display="flex"
+        justifyContent="space-between"
+        alignItems="center"
+        mb={1}
+      >
+        {icon}
+        <Button openInNewTab={false} variant="tertiary" size="xs" href={href}>
           Connect
         </Button>
       </Box>
@@ -68,11 +73,13 @@ const AddNewIntegrations: FunctionComponent = () => {
           )}`}
           name="Linear"
           description="2-way sync Linear activity and data with HASH"
+          icon={<LinearLogo />}
         />
         <IntegrationCard
           href="/settings/integrations/google-sheets"
           name="Google Sheets"
           description="Sync entity data to Google Sheets"
+          icon={<GoogleSheetsIcon />}
         />
       </Stack>
     </>

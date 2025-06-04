@@ -148,6 +148,8 @@ export const SelectLinearTeamsTable: FunctionComponent<{
     [authenticatedUser],
   );
 
+  console.log(linearOrganizations);
+
   const handleSelectAllWorkspacesChange = useCallback(
     (params: { linearOrganization: LinearOrganizationTeamsWithWorkspaces }) =>
       (entityIds: EntityId[]) =>

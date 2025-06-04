@@ -16,10 +16,12 @@ import {
   getLinearOrganizationQuery,
   syncLinearIntegrationWithWorkspacesMutation,
 } from "../../../../graphql/queries/integrations/linear.queries";
+import { LinearLogo } from "../../../../shared/icons/linear-logo";
 import type { NextPageWithLayout } from "../../../../shared/layout";
 import { Button } from "../../../../shared/ui";
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
 import { getSettingsLayout } from "../../../shared/settings-layout";
+import { LinearHeader } from "./linear-header";
 import type { LinearOrganizationTeamsWithWorkspaces } from "./select-linear-teams-table";
 import {
   mapLinearOrganizationToLinearOrganizationTeamsWithWorkspaces,
@@ -132,10 +134,7 @@ const NewLinearIntegrationPage: NextPageWithLayout = () => {
 
   return (
     <Container>
-      <Typography variant="h1" mt={10} mb={4} fontWeight="bold">
-        Linear
-      </Typography>
-      <Typography>Connecting to Linear</Typography>
+      <LinearHeader />
       {linearOrganization ? (
         <>
           <SelectLinearTeamsTable
@@ -156,7 +155,9 @@ const NewLinearIntegrationPage: NextPageWithLayout = () => {
             </Button>
           </Box>
         </>
-      ) : null}
+      ) : (
+        <Typography>Connecting to Linear...</Typography>
+      )}
     </Container>
   );
 };

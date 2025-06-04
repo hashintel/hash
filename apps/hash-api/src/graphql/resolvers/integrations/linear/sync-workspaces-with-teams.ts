@@ -14,17 +14,13 @@ import {
 } from "@local/hash-backend-utils/machine-actors";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import {
-  getLatestEntityById,
-  modifyEntityAuthorizationRelationships,
-} from "../../../../graph/knowledge/primitive/entity";
+import { getLatestEntityById } from "../../../../graph/knowledge/primitive/entity";
 import {
   getLinearIntegrationById,
   getSyncedWorkspacesForLinearIntegration,
   linkIntegrationToWorkspace,
 } from "../../../../graph/knowledge/system-types/linear-integration-entity";
 import { getLinearUserSecretByLinearOrgId } from "../../../../graph/knowledge/system-types/linear-user-secret";
-import { systemAccountId } from "../../../../graph/system-account";
 import { Linear } from "../../../../integrations/linear";
 import type {
   MutationSyncLinearIntegrationWithWorkspacesArgs,
@@ -79,28 +75,6 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
     userAccountId,
   });
 
-  await Promise.all(
-    [
-      linearIntegration.entity.metadata.recordId.entityId,
-      linearUserSecret.entity.metadata.recordId.entityId,
-    ].map((entityId) =>
-      modifyEntityAuthorizationRelationships(
-        impureGraphContext,
-        authentication,
-        [
-          {
-            operation: "touch",
-            relationship: {
-              resource: { kind: "entity", resourceId: entityId },
-              relation: "viewer",
-              subject: { kind: "account", subjectId: systemAccountId },
-            },
-          },
-        ],
-      ),
-    ),
-  );
-
   const apiKey = vaultSecret.data.value;
 
   const linearClient = new Linear({
@@ -117,7 +91,7 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
       },
     );
 
-  const removedSyncedWorkspaces = existingSyncedWorkspaces.filter(
+  const duplicateWorkspaceSyncsToRemove = existingSyncedWorkspaces.filter(
     ({ workspaceEntity }) =>
       !syncWithWorkspaces.some(
         ({ workspaceEntityId }) =>
@@ -125,8 +99,18 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
       ),
   );
 
+  const linearBotAccountId = await getMachineIdByIdentifier(
+    impureGraphContext,
+    authentication,
+    { identifier: "linear" },
+  );
+
+  if (!linearBotAccountId) {
+    throw new NotFoundError("Failed to get linear bot");
+  }
+
   await Promise.all([
-    ...removedSyncedWorkspaces.map(
+    ...duplicateWorkspaceSyncsToRemove.map(
       async ({ syncLinearDataWithLinkEntity, workspaceEntity }) => {
         if (
           workspaceEntity.metadata.entityTypeIds.includes(

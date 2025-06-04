@@ -14,6 +14,7 @@ import {
   extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
+import type { EntityRelationAndSubjectBranded } from "@local/hash-graph-sdk/authorization";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   createDefaultAuthorizationRelationships,
@@ -349,6 +350,34 @@ export const linkIntegrationToWorkspace: ImpureGraphFunction<
       ],
     });
   } else {
+    /**
+     * Allow the user creating the link and the web admins to administer the link (e.g. to delete it),
+     * and allow other web members to view the link.
+     */
+    const linearIntegrationRelationships: EntityRelationAndSubjectBranded[] = [
+      {
+        relation: "administrator",
+        subject: {
+          kind: "account",
+          subjectId: authentication.actorId,
+        },
+      },
+      {
+        relation: "setting",
+        subject: {
+          kind: "setting",
+          subjectId: "administratorFromWeb",
+        },
+      },
+      {
+        relation: "setting",
+        subject: {
+          kind: "setting",
+          subjectId: "viewFromWeb",
+        },
+      },
+    ];
+
     await createLinkEntity<SyncLinearDataWith>(context, authentication, {
       webId: extractWebIdFromEntityId(linearIntegrationEntityId),
       properties,
@@ -360,7 +389,7 @@ export const linkIntegrationToWorkspace: ImpureGraphFunction<
         systemLinkEntityTypes.syncLinearDataWith.linkEntityTypeId,
       ],
       relationships: [
-        ...createDefaultAuthorizationRelationships(authentication),
+        ...linearIntegrationRelationships,
         {
           // Allow the system account ID to view the link
           relation: "viewer",
