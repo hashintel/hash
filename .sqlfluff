@@ -29,6 +29,9 @@ capitalisation_policy = upper
 [sqlfluff:rules:capitalisation.types]
 extended_capitalisation_policy = upper
 
+[sqlfluff:layout:type:colon]
+spacing_after = touch
+
 
 [sqlfluff:rules:convention.count_rows]
 prefer_count_1 = True

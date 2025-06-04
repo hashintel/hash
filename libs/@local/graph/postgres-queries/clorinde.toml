@@ -1,0 +1,13 @@
+static             = ["LICENSE.md"]
+use-workspace-deps = "../../../../Cargo.toml"
+
+[package]
+version = "0.0.0"
+
+[types.crates]
+hash-graph-authorization = {}
+type-system              = {}
+
+[types.mapping]
+"public.policy_effect"  = "hash_graph_authorization::policies::Effect"
+"public.principal_type" = "type_system::principal::PrincipalType"

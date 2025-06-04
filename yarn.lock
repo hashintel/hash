@@ -12487,6 +12487,15 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@rust/clorinde@npm:0.0.0-private, @rust/clorinde@workspace:libs/@local/graph/postgres-queries/clorinde":
+  version: 0.0.0-use.local
+  resolution: "@rust/clorinde@workspace:libs/@local/graph/postgres-queries/clorinde"
+  dependencies:
+    "@blockprotocol/type-system-rs": "npm:0.0.0-private"
+    "@rust/hash-graph-authorization": "npm:0.0.0-private"
+  languageName: unknown
+  linkType: soft
+
 "@rust/deer-desert@workspace:libs/deer/desert":
   version: 0.0.0-use.local
   resolution: "@rust/deer-desert@workspace:libs/deer/desert"
@@ -12733,6 +12742,17 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@rust/hash-graph-postgres-queries@npm:0.0.0-private, @rust/hash-graph-postgres-queries@workspace:libs/@local/graph/postgres-queries":
+  version: 0.0.0-use.local
+  resolution: "@rust/hash-graph-postgres-queries@workspace:libs/@local/graph/postgres-queries"
+  dependencies:
+    "@blockprotocol/type-system-rs": "npm:0.0.0-private"
+    "@rust/clorinde": "npm:0.0.0-private"
+    "@rust/hash-graph-authorization": "npm:0.0.0-private"
+    "@rust/hash-graph-migrations": "npm:0.0.0-private"
+  languageName: unknown
+  linkType: soft
+
 "@rust/hash-graph-postgres-store@npm:0.0.0-private, @rust/hash-graph-postgres-store@workspace:libs/@local/graph/postgres-store":
   version: 0.0.0-use.local
   resolution: "@rust/hash-graph-postgres-store@workspace:libs/@local/graph/postgres-store"
@@ -12742,6 +12762,7 @@ __metadata:
     "@rust/hash-codec": "npm:0.0.0-private"
     "@rust/hash-graph-authorization": "npm:0.0.0-private"
     "@rust/hash-graph-migrations": "npm:0.0.0-private"
+    "@rust/hash-graph-postgres-queries": "npm:0.0.0-private"
     "@rust/hash-graph-store": "npm:0.0.0-private"
     "@rust/hash-graph-temporal-versioning": "npm:0.0.0-private"
     "@rust/hash-graph-types": "npm:0.0.0-private"
