@@ -1,4 +1,4 @@
-[31m[special-form-expander::invalid-type-expression] Error:[0m Invalid type expression
+[special-form-expander::invalid-type-expression] Error: Invalid type expression
    ╭─[ <unknown>:3:44 ]
    │
  3 │ ["::kernel::special_form::newtype", "::x", { "#literal": 1 }, "x"]
@@ -17,7 +17,7 @@
 ───╯
 
 
-[31m[special-form-expander::qualified-binding-name] Error:[0m Qualified path used as binding name
+[special-form-expander::qualified-binding-name] Error: Qualified path used as binding name
    ╭─[ <unknown>:3:38 ]
    │
  3 │ ["::kernel::special_form::newtype", "::x", { "#literal": 1 }, "x"]

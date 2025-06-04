@@ -1,4 +1,4 @@
-[31m[import-resolver::unresolved-variable] Error:[0m Unresolved variable
+[import-resolver::unresolved-variable] Error: Unresolved variable
    ╭─[ <unknown>:4:4 ]
    │
  4 │   "bit_shl",

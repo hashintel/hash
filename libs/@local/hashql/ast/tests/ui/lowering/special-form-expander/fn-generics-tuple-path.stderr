@@ -1,4 +1,4 @@
-[31m[special-form-expander::invalid-fn-generic-param] Error:[0m Invalid generic parameter in function declaration
+[special-form-expander::invalid-fn-generic-param] Error: Invalid generic parameter in function declaration
    ╭─[ <unknown>:7:8 ]
    │
  7 │       "::math::add"

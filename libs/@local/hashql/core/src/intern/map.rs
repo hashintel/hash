@@ -633,12 +633,72 @@ where
     /// // let non_existent = map.index(ValueId::from_u32(999));
     /// ```
     pub fn index(&self, id: T::Id) -> T {
+        let partial = self.index_partial(id);
+
+        T::from_parts(id, partial)
+    }
+
+    /// Retrieves the partial representation of an interned value by its ID.
+    ///
+    /// This method looks up the partial representation that was stored during interning,
+    /// without reconstructing the complete object. This is useful when you only need
+    /// access to the partial data or when building other objects that reference this
+    /// partial representation.
+    ///
+    /// The partial representation contains the core data of the interned value,
+    /// excluding the unique identifier which is passed separately to `from_parts`
+    /// when reconstructing the complete object.
+    ///
+    /// # Panics
+    ///
+    /// This method will panic if the provided ID does not exist in the map. This typically
+    /// indicates a programming error where an invalid or stale ID is being used.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use hashql_core::intern::InternMap;
+    /// # use hashql_core::heap::Heap;
+    /// # use hashql_core::id::{HasId, Id};
+    /// # use hashql_core::intern::{Interned, Decompose};
+    /// #
+    /// # #[derive(Clone, Debug, PartialEq, Eq, Hash)]
+    /// # struct MyValue { id: Id<Self>, data: String }
+    /// # impl HasId for MyValue {
+    /// #     type Id = Id<Self>;
+    /// #     fn id(&self) -> Self::Id { self.id }
+    /// # }
+    /// # impl<'heap> Decompose<'heap> for MyValue {
+    /// #     type Partial = String;
+    /// #     fn from_parts(id: Self::Id, partial: Interned<'heap, Self::Partial>) -> Self {
+    /// #         Self { id, data: partial.as_ref().clone() }
+    /// #     }
+    /// # }
+    /// #
+    /// let heap = Heap::new();
+    /// let mut map = InternMap::new(&heap);
+    ///
+    /// let value = MyValue {
+    ///     id: Id::new(),
+    ///     data: "hello".to_string(),
+    /// };
+    /// let interned = map.intern(value);
+    ///
+    /// // Get just the partial representation
+    /// let partial = map.index_partial(interned.id());
+    /// assert_eq!(partial.as_ref(), "hello");
+    ///
+    /// // Compare with getting the full object
+    /// let full_object = map.index(interned.id());
+    /// assert_eq!(full_object.data, "hello");
+    /// ```
+    pub fn index_partial(&self, id: T::Id) -> Interned<'heap, T::Partial> {
         let partial = self
             .lookup
             .read(&id, |_, &partial| partial)
             .expect("id should exist in map");
 
-        T::from_parts(id, Interned::new_unchecked(partial))
+        Interned::new_unchecked(partial)
     }
 }
 

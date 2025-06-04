@@ -11,7 +11,7 @@ use hashql_core::{
     span::{SpanId, Spanned},
     symbol::Symbol,
     r#type::{
-        TypeBuilder, TypeId,
+        PartialType, TypeBuilder, TypeId,
         environment::{Environment, InferenceEnvironment, instantiate::InstantiateEnvironment},
         error::TypeCheckDiagnostic,
         inference::InferenceSolver,
@@ -86,7 +86,11 @@ impl<'env, 'heap> TypeInference<'env, 'heap> {
         arguments: &[Spanned<TypeId>],
     ) -> TypeId {
         if arguments.is_empty() {
-            return def.id;
+            // We're taking the partial here, instead of the full type, as we just need access to
+            // the interned kind.
+            let kind = self.env.r#types.index_partial(def.id).kind;
+
+            return self.env.intern_type(PartialType { span, kind });
         }
 
         let builder = TypeBuilder::spanned(span, self.env);

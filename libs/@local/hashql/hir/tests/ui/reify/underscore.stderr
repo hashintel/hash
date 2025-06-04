@@ -1,4 +1,4 @@
-[31m[reify::underscore-expression] Error:[0m Invalid use of underscore expression
+[reify::underscore-expression] Error: Invalid use of underscore expression
    ╭─[ <unknown>:3:2 ]
    │
  3 │ "_"

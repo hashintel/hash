@@ -1,4 +1,4 @@
-[31m[special-form-expander::type-with-existing-annotation] Error:[0m Type expression with redundant type annotation
+[special-form-expander::type-with-existing-annotation] Error: Type expression with redundant type annotation
    ╭─[ <unknown>:8:15 ]
    │
  8 │     "#type": "(name: String)"

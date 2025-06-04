@@ -1,4 +1,4 @@
-[31m[special-form-expander::invalid-fn-generics-expression] Error:[0m Invalid expression in function generics
+[special-form-expander::invalid-fn-generics-expression] Error: Invalid expression in function generics
    ╭─[ <unknown>:7:7 ]
    │
  7 │       { "#literal": 1 }

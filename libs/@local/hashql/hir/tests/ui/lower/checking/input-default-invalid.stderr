@@ -1,13 +1,13 @@
-[31m[lower::type-check::type-mismatch] Error:[0m Type mismatch
+[lower::type-check::type-mismatch] Error: Type mismatch
    ╭─[ <unknown>:3:1 ]
    │
  1 │ //@ run: fail
    │ │ 
-   │ ╰─ This is of type `[34mNumber[0m`
+   │ ╰─ This is of type `Number`
    │ 
  3 │ ["input", "x", "Number", { "#literal": "42" }]
    │ ───────────────────────┬─────────────────┬────  
-   │                        │                 ╰────── This is of type `[34mString[0m`
+   │                        │                 ╰────── This is of type `String`
    │                        │                        
    │                        ╰──────────────────────── Type mismatch in this expression
    │ 

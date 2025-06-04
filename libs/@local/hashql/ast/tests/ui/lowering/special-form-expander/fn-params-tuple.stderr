@@ -1,4 +1,4 @@
-[31m[special-form-expander::invalid-fn-params-expression] Error:[0m Invalid expression in function parameters
+[special-form-expander::invalid-fn-params-expression] Error: Invalid expression in function parameters
    ╭─[ <unknown>:6:3 ]
    │
  6 │   { "#tuple": [] },
