@@ -102,7 +102,7 @@ impl Sink<ActionSnapshotRecord> for ActionSender {
 /// A stream to receive [`ActionRowBatch`]es.
 ///
 /// An `ActionReceiver` with the corresponding [`ActionSender`] are created using the
-/// [`action_channel`] function.
+/// [`channel`] function.
 pub struct ActionReceiver {
     stream: SelectAll<BoxStream<'static, ActionRowBatch>>,
 }

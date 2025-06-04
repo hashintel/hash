@@ -146,8 +146,8 @@ impl Sink<PolicyActionSnapshotRecord> for PolicyActionSender {
 
 /// A stream to receive [`PolicyRowBatch`]es.
 ///
-/// An `PolicyReceiver` with the corresponding [`PolicySender`] are created using the
-/// [`policy_channel`] function.
+/// An `PolicyReceiver` with the corresponding [`PolicyEditionSender`] and [`PolicyActionSender`]
+/// are created using the [`channel`] function.
 pub struct PolicyReceiver {
     stream: SelectAll<BoxStream<'static, PolicyRowBatch>>,
 }
@@ -162,7 +162,7 @@ impl Stream for PolicyReceiver {
     }
 }
 
-/// Create a new [`PolicySender`] and [`PolicyReceiver`] pair.
+/// Create a new [`PolicyEditionSender`] and [`PolicyActionSender`] pair.
 ///
 /// The `chunk_size` parameter is used to batch the rows into chunks of the given size.
 pub(crate) fn channel(
