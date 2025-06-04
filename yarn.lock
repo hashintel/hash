@@ -511,7 +511,7 @@ __metadata:
     "@types/prismjs": "npm:1.26.5"
     "@types/react": "npm:19.1.6"
     "@types/react-beautiful-dnd": "npm:13.1.8"
-    "@types/react-dom": "npm:19.1.5"
+    "@types/react-dom": "npm:19.1.6"
     "@types/react-window": "npm:1.8.8"
     "@types/url-regex-safe": "npm:1.0.2"
     "@vercel/edge-config": "npm:0.4.1"
@@ -688,7 +688,7 @@ __metadata:
     "@storybook/react-webpack5": "npm:7.6.20"
     "@storybook/testing-library": "npm:0.2.2"
     "@types/react": "npm:19.1.6"
-    "@types/react-dom": "npm:19.1.5"
+    "@types/react-dom": "npm:19.1.6"
     storybook: "npm:7.6.20"
   peerDependencies:
     "@emotion/cache": 11.14.0
@@ -778,7 +778,7 @@ __metadata:
     "@sentry/webpack-plugin": "npm:2.23.0"
     "@types/lodash.debounce": "npm:4.0.9"
     "@types/react": "npm:19.1.6"
-    "@types/react-dom": "npm:19.1.5"
+    "@types/react-dom": "npm:19.1.6"
     "@types/webextension-polyfill": "npm:0.12.2"
     "@types/ws": "npm:8.18.1"
     babel-loader: "npm:9.2.1"
@@ -7032,7 +7032,7 @@ __metadata:
     "@mui/material": "npm:5.17.1"
     "@mui/system": "npm:5.17.1"
     "@types/react": "npm:19.1.6"
-    "@types/react-dom": "npm:19.1.5"
+    "@types/react-dom": "npm:19.1.6"
     "@types/react-syntax-highlighter": "npm:15.5.13"
     eslint: "npm:9.20.1"
     eslint-plugin-storybook: "npm:0.11.3"
@@ -7070,7 +7070,7 @@ __metadata:
     "@mui/system": "npm:5.17.1"
     "@storybook/react": "npm:7.6.20"
     "@types/react": "npm:19.1.6"
-    "@types/react-dom": "npm:19.1.5"
+    "@types/react-dom": "npm:19.1.6"
     clsx: "npm:1.2.1"
     echarts: "npm:5.6.0"
     eslint: "npm:9.20.1"
@@ -18136,12 +18136,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/react-dom@npm:19.1.5":
-  version: 19.1.5
-  resolution: "@types/react-dom@npm:19.1.5"
+"@types/react-dom@npm:19.1.6":
+  version: 19.1.6
+  resolution: "@types/react-dom@npm:19.1.6"
   peerDependencies:
     "@types/react": ^19.0.0
-  checksum: 10c0/2a29e77cf6bb6e9f57bcfa54509c216cad2e16e244f0bd56369966ec88c072b9c91f6011d14f9e18fbfe2b801b18b86f616de75e5c8aef0be73c1f74abb33b49
+  checksum: 10c0/7ba74eee2919e3f225e898b65fdaa16e54952aaf9e3472a080ddc82ca54585e46e60b3c52018d21d4b7053f09d27b8293e9f468b85f9932ff452cd290cc131e8
   languageName: node
   linkType: hard
 
