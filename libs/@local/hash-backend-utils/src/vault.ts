@@ -148,6 +148,7 @@ export class VaultClient {
 
   #client: AxiosInstance;
   #token: RenewableToken | string;
+  #tokenRefreshPromise: Promise<void> | null = null;
 
   constructor(params: {
     endpoint: string;
@@ -219,31 +220,47 @@ export class VaultClient {
       return;
     }
 
-    if (this.#token.renewable) {
-      try {
-        const renewedToken = await renewToken(
-          this.#vaultAddr,
-          this.#token.clientToken,
-        );
-
-        this.#token.leaseDurationMs = now + renewedToken.lease_duration * 1_000;
-
-        this.#token.renewable = renewedToken.renewable;
-        return;
-      } catch {
-        this.#logger.warn("Failed to renew token, falling back to login");
-      }
+    if (this.#tokenRefreshPromise) {
+      await this.#tokenRefreshPromise;
+      return;
     }
 
-    const login = await loginToVaultViaIam({
-      vaultAddr: this.#vaultAddr,
+    this.#tokenRefreshPromise = (async () => {
+      if (typeof this.#token === "string") {
+        return;
+      }
+
+      if (this.#token.renewable) {
+        try {
+          const renewedToken = await renewToken(
+            this.#vaultAddr,
+            this.#token.clientToken,
+          );
+
+          this.#token.leaseDurationMs =
+            now + renewedToken.lease_duration * 1_000;
+
+          this.#token.renewable = renewedToken.renewable;
+          return;
+        } catch {
+          this.#logger.warn("Failed to renew token, falling back to login");
+        }
+      }
+
+      const login = await loginToVaultViaIam({
+        vaultAddr: this.#vaultAddr,
+      });
+
+      this.#token = {
+        clientToken: login.client_token,
+        leaseDurationMs: now + login.lease_duration * 1_000,
+        renewable: login.renewable,
+      };
+    })().finally(() => {
+      this.#tokenRefreshPromise = null;
     });
 
-    this.#token = {
-      clientToken: login.client_token,
-      leaseDurationMs: now + login.lease_duration * 1_000,
-      renewable: login.renewable,
-    };
+    await this.#tokenRefreshPromise;
   }
 
   async write<D extends object = Record<"value", string>>(params: {
