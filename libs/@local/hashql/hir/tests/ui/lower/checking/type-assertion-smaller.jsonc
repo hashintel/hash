@@ -1,4 +1,8 @@
 //@ run: fail
 //@ description: Ensures type checking fails when asserting a supertype (Number) is a subtype (Integer).
-["is", { "#literal": 42.12 }, "Integer"] // checking DOWN fails
-//~^ ERROR Type mismatch in this expression
+[
+  "is",
+  { "#literal": 42.12 },
+  //~^ ERROR This is of type `Number`
+  "Integer"
+] // checking DOWN fails

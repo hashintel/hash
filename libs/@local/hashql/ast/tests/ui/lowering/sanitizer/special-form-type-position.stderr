@@ -1,4 +1,4 @@
-[31m[sanitizer::invalid-special-form] Error:[0m Invalid special form
+[sanitizer::invalid-special-form] Error: Invalid special form
    ╭─[ <unknown>:6:4 ]
    │
  6 │   "::kernel::special_form::let",

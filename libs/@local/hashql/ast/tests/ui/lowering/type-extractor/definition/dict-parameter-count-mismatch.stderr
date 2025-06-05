@@ -1,4 +1,4 @@
-[31m[type-extractor::intrinsic-parameter-mismatch] Error:[0m Incorrect intrinsic type parameters
+[type-extractor::intrinsic-parameter-mismatch] Error: Incorrect intrinsic type parameters
    ╭─[ <unknown>:6:4 ]
    │
  6 │   "Dict<String>",

@@ -1,4 +1,4 @@
-[31m[special-form-expander::invalid-generic-argument-type] Error:[0m Invalid type in generic argument
+[special-form-expander::invalid-generic-argument-type] Error: Invalid type in generic argument
    ╭─[ <unknown>:5:8 ]
    │
  5 │   "Foo<(a: String)>",

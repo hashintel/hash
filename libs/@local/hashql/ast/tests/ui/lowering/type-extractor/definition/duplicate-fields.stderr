@@ -1,4 +1,4 @@
-[31m[type-extractor::duplicate-struct-field] Error:[0m Duplicate struct field
+[type-extractor::duplicate-struct-field] Error: Duplicate struct field
     ╭─[ <unknown>:8:7 ]
     │
   8 │       "field": "Number",
@@ -17,7 +17,7 @@
 ────╯
 
 
-[31m[type-extractor::duplicate-struct-field] Error:[0m Duplicate struct field
+[type-extractor::duplicate-struct-field] Error: Duplicate struct field
     ╭─[ <unknown>:11:7 ]
     │
  11 │       "another": "Boolean",

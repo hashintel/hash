@@ -1,20 +1,20 @@
-[31m[type-check::bound-constraint-violation] Error:[0m Type bound constraint violation
+[type-check::bound-constraint-violation] Error: Type bound constraint violation
    ╭─[ <unknown>:9:15 ]
    │
- 1 │ //@ run: fail
-   │ │ 
-   │ ╰─ Upper bound `[34mNumber[0m` is not a supertype of the lower bound
+ 6 │   "Number",
+   │    ───┬──  
+   │       ╰──── Upper bound `Number` is not a supertype of the lower bound
    │ 
  8 │     "#literal": "42",
    │                 ──┬─  
-   │                   ╰─── Lower bound `[34mString[0m` must be a subtype of the upper bound
+   │                   ╰─── Lower bound `String` must be a subtype of the upper bound
  9 │     "#type": "_"
    │               ┬  
    │               ╰── Type variable has incompatible upper and lower bounds
    │ 
    │ Help: These type bounds create an impossible constraint. To fix this:
-   │       1. Modify `[34mString[0m` to be a proper subtype of `[34mNumber[0m`
-   │       2. Or adjust `[34mNumber[0m` to be a supertype of `[34mString[0m`
+   │       1. Modify `String` to be a proper subtype of `Number`
+   │       2. Or adjust `Number` to be a supertype of `String`
    │       3. Or check your code for contradictory type assertions
    │ 
    │ Note: During type inference, when a variable has both upper and lower bounds, the relationship 'lower <: upper' must hold. This ensures a valid solution exists in the type system. When this relationship is violated, it means your code is requiring contradictory types for the same variable.
