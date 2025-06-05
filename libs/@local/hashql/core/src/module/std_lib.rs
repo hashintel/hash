@@ -6,6 +6,7 @@ use super::{
     locals::TypeDef,
 };
 use crate::{
+    collection::SmallVec,
     heap::Heap,
     symbol::Symbol,
     r#type::{
@@ -15,6 +16,38 @@ use crate::{
         kind::generic::{GenericArgumentId, GenericArgumentReference},
     },
 };
+
+/// Declares a generic function type with parameters and return type.
+///
+/// Syntax: `<generics>(params) -> return_type`
+/// - `generics`: Optional generic type parameters with optional bounds
+/// - `params`: Function parameters with their type bounds
+/// - `return_type`: The return type expression
+///
+/// Creates a closure type that can be generic if type parameters are specified.
+macro_rules! decl {
+    ($this:ident; <$($generic:ident $(: $generic_bound:ident)?),*>($($param:ident: $param_bound:expr),*) -> $return:expr) => {{
+        $(
+            #[expect(non_snake_case)]
+            let ${concat($generic, _arg)} = $this.ty.fresh_argument(stringify!($generic));
+            #[expect(non_snake_case)]
+            let ${concat($generic, _ref)} = $this.ty.hydrate_argument(${concat($generic, _arg)});
+            #[expect(non_snake_case)]
+            let $generic = $this.ty.param(${concat($generic, _arg)});
+        )*
+
+        let mut closure = $this.ty.closure([$($param_bound),*], $return);
+        if ${count($generic)} > 0 {
+            closure = $this.ty.generic([
+                $(
+                    (${concat($generic, _arg)}, None $(.or(Some($generic_bound)))?)
+                ),*
+            ] as [(GenericArgumentId, Option<TypeId>); ${count($generic)}], closure)
+        }
+
+        $this.type_def(closure, &[$(${concat($generic, _ref)}),*])
+    }};
+}
 
 pub(super) struct StandardLibrary<'env, 'heap> {
     heap: &'heap Heap,
@@ -303,177 +336,69 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
         })
     }
 
-    #[expect(
-        clippy::non_ascii_literal,
-        clippy::too_many_lines,
-        clippy::min_ident_chars,
-        non_snake_case
-    )]
-    fn math_module(&mut self) -> ModuleId {
-        /// Declares a generic function type with parameters and return type.
-        ///
-        /// Syntax: `<generics>(params) -> return_type`
-        /// - `generics`: Optional generic type parameters with optional bounds
-        /// - `params`: Function parameters with their type bounds
-        /// - `return_type`: The return type expression
-        ///
-        /// Creates a closure type that can be generic if type parameters are specified.
-        macro_rules! decl {
-            (<$($generic:ident $(: $generic_bound:ident)?),*>($($param:ident: $param_bound:expr),*) -> $return:expr) => {{
-                $(
-                    #[expect(non_snake_case)]
-                    let ${concat($generic, _arg)} = self.ty.fresh_argument(stringify!($generic));
-                    #[expect(non_snake_case)]
-                    let ${concat($generic, _ref)} = self.ty.hydrate_argument(${concat($generic, _arg)});
-                    #[expect(non_snake_case)]
-                    let $generic = self.ty.param(${concat($generic, _arg)});
-                )*
-
-                let mut closure = self.ty.closure([$($param_bound),*], $return);
-                if ${count($generic)} > 0 {
-                    closure = self.ty.generic([
-                        $(
-                            (${concat($generic, _arg)}, None $(.or(Some($generic_bound)))?)
-                        ),*
-                    ] as [(GenericArgumentId, Option<TypeId>); ${count($generic)}], closure)
-                }
-
-                self.type_def(closure, &[$(${concat($generic, _ref)}),*])
-            }};
-        }
-
+    #[expect(clippy::non_ascii_literal, clippy::min_ident_chars, non_snake_case)]
+    fn core_math_module(&mut self, parent: ModuleId) -> ModuleId {
         self.registry.intern_module(|id| {
             let id = id.value();
 
             let Number = self.ty.number();
             let Integer = self.ty.integer();
-            let Boolean = self.ty.boolean();
 
-            // Arithmetic
-            let funcs = &[
+            let items = [
                 (
-                    "::math::add",
+                    "::core::math::add",
                     &["+"] as &[&'static str],
-                    decl!(<T: Number, U: Number>(lhs: T, rhs: U) -> self.ty.union([T, U])),
+                    decl!(self; <T: Number, U: Number>(lhs: T, rhs: U) -> self.ty.union([T, U])),
                 ),
                 (
-                    "::math::sub",
+                    "::core::math::sub",
                     &["-"],
-                    decl!(<T: Number, U: Number>(lhs: T, rhs: U) -> self.ty.union([T, U])),
+                    decl!(self; <T: Number, U: Number>(lhs: T, rhs: U) -> self.ty.union([T, U])),
                 ),
                 (
-                    "::math::mul",
+                    "::core::math::mul",
                     &["*"],
-                    decl!(<T: Number, U: Number>(lhs: T, rhs: U) -> self.ty.union([T, U])),
+                    decl!(self; <T: Number, U: Number>(lhs: T, rhs: U) -> self.ty.union([T, U])),
                 ),
                 (
-                    "::math::div",
+                    "::core::math::div",
                     &["/"],
-                    decl!(<>(dividend: Number, divisor: Number) -> Number),
+                    decl!(self; <>(dividend: Number, divisor: Number) -> Number),
                 ),
                 (
-                    "::math::rem",
+                    "::core::math::rem",
                     &["%"],
-                    decl!(<>(dividend: Integer, divisor: Integer) -> Integer),
+                    decl!(self; <>(dividend: Integer, divisor: Integer) -> Integer),
                 ),
                 (
-                    "::math::mod",
+                    "::core::math::mod",
                     &[],
-                    decl!(<>(value: Integer, modulus: Integer) -> Integer),
+                    decl!(self; <>(value: Integer, modulus: Integer) -> Integer),
                 ),
                 (
-                    "::math::pow",
+                    "::core::math::pow",
                     &["**", "↑"],
                     // (cannot be `Integer` on return, as `exponent` can be a negative integer)
-                    decl!(<>(base: Number, exponent: Number) -> Number),
+                    decl!(self; <>(base: Number, exponent: Number) -> Number),
                 ),
-                // Roots
-                ("::math::sqrt", &["√"], decl!(<>(value: Number) -> Number)),
-                ("::math::cbrt", &["∛"], decl!(<>(value: Number) -> Number)),
                 (
-                    "::math::root",
+                    "::core::math::sqrt",
+                    &["√"],
+                    decl!(self; <>(value: Number) -> Number),
+                ),
+                (
+                    "::core::math::cbrt",
+                    &["∛"],
+                    decl!(self; <>(value: Number) -> Number),
+                ),
+                (
+                    "::core::math::root",
                     &[], // cannot use `ⁿ√` because `ⁿ` is a letter, not a symbol
-                    decl!(<>(value: Number, root: Number) -> Number),
-                ),
-                // Bitwise operations
-                (
-                    "::math::bit_and",
-                    &["&"],
-                    decl!(<>(lhs: Integer, rhs: Integer) -> Integer),
-                ),
-                (
-                    "::math::bit_or",
-                    &["|"],
-                    decl!(<>(lhs: Integer, rhs: Integer) -> Integer),
-                ),
-                (
-                    "::math::bit_xor",
-                    &["^"],
-                    decl!(<>(lhs: Integer, rhs: Integer) -> Integer),
-                ),
-                (
-                    "::math::bit_not",
-                    &["~"],
-                    decl!(<>(value: Integer) -> Integer),
-                ),
-                (
-                    "::math::bit_shl",
-                    &["<<"],
-                    // In the future we might want to specialize the `shift` to `Natural`
-                    decl!(<>(value: Integer, shift: Integer) -> Integer),
-                ),
-                (
-                    "::math::bit_shr",
-                    &[">>"],
-                    // In the future we might want to specialize the `shift` to `Natural`
-                    decl!(<>(value: Integer, shift: Integer) -> Integer),
-                ),
-                // Comparison operations
-                (
-                    "::math::gt",
-                    &[">"],
-                    decl!(<>(lhs: Number, rhs: Number) -> Boolean),
-                ),
-                (
-                    "::math::lt",
-                    &["<"],
-                    decl!(<>(lhs: Number, rhs: Number) -> Boolean),
-                ),
-                (
-                    "::math::gte",
-                    &[">="],
-                    decl!(<>(lhs: Number, rhs: Number) -> Boolean),
-                ),
-                (
-                    "::math::lte",
-                    &["<="],
-                    decl!(<>(lhs: Number, rhs: Number) -> Boolean),
-                ),
-                (
-                    "::math::eq",
-                    &["=="],
-                    decl!(<T, U>(lhs: T, rhs: U) -> Boolean),
-                ),
-                (
-                    "::math::ne",
-                    &["!="],
-                    decl!(<T, U>(lhs: T, rhs: U) -> Boolean),
-                ),
-                // Logical operations
-                ("::math::not", &["!"], decl!(<>(value: Boolean) -> Boolean)),
-                (
-                    "::math::and",
-                    &["&&"],
-                    decl!(<>(lhs: Boolean, rhs: Boolean) -> Boolean),
-                ),
-                (
-                    "::math::or",
-                    &["||"],
-                    decl!(<>(lhs: Boolean, rhs: Boolean) -> Boolean),
+                    decl!(self; <>(value: Number, root: Number) -> Number),
                 ),
             ];
 
-            let items: Vec<_> = funcs
+            let items: SmallVec<_> = items
                 .iter()
                 .flat_map(|(name, alias, def)| {
                     self.alloc_intrinsic_value(id, name, alias.iter().copied(), *def)
@@ -482,15 +407,191 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
 
             PartialModule {
                 name: self.heap.intern_symbol("math"),
-                parent: ModuleId::ROOT,
+                parent,
                 items: self.registry.intern_items(&items),
             }
         })
     }
 
+    #[expect(non_snake_case)]
+    fn core_bits_module(&self, parent: ModuleId) -> ModuleId {
+        self.registry.intern_module(|id| {
+            let Integer = self.ty.integer();
+
+            let items = [
+                (
+                    "::core::bits::and",
+                    &["&"],
+                    decl!(self; <>(lhs: Integer, rhs: Integer) -> Integer),
+                ),
+                (
+                    "::core::bits::or",
+                    &["|"],
+                    decl!(self; <>(lhs: Integer, rhs: Integer) -> Integer),
+                ),
+                (
+                    "::core::bits::xor",
+                    &["^"],
+                    decl!(self; <>(lhs: Integer, rhs: Integer) -> Integer),
+                ),
+                (
+                    "::core::bits::not",
+                    &["~"],
+                    decl!(self; <>(value: Integer) -> Integer),
+                ),
+                (
+                    "::core::bits::shl",
+                    &["<<"],
+                    // In the future we might want to specialize the `shift` to `Natural`
+                    decl!(self; <>(value: Integer, shift: Integer) -> Integer),
+                ),
+                (
+                    "::core::bits::shr",
+                    &[">>"],
+                    // In the future we might want to specialize the `shift` to `Natural`
+                    decl!(self; <>(value: Integer, shift: Integer) -> Integer),
+                ),
+            ];
+
+            let items: SmallVec<_> = items
+                .iter()
+                .flat_map(|(name, alias, def)| {
+                    self.alloc_intrinsic_value(id.value(), name, alias.iter().copied(), *def)
+                })
+                .collect();
+
+            PartialModule {
+                name: self.heap.intern_symbol("bits"),
+                parent,
+                items: self.registry.intern_items(&items),
+            }
+        })
+    }
+
+    #[expect(clippy::min_ident_chars, non_snake_case)]
+    fn core_cmp_module(&mut self, parent: ModuleId) -> ModuleId {
+        self.registry.intern_module(|id| {
+            let Number = self.ty.number();
+            let Boolean = self.ty.boolean();
+
+            let items = [
+                (
+                    "::core::cmp::gt",
+                    &[">"],
+                    decl!(self; <>(lhs: Number, rhs: Number) -> Boolean),
+                ),
+                (
+                    "::core::cmp::lt",
+                    &["<"],
+                    decl!(self; <>(lhs: Number, rhs: Number) -> Boolean),
+                ),
+                (
+                    "::core::cmp::gte",
+                    &[">="],
+                    decl!(self; <>(lhs: Number, rhs: Number) -> Boolean),
+                ),
+                (
+                    "::core::cmp::lte",
+                    &["<="],
+                    decl!(self; <>(lhs: Number, rhs: Number) -> Boolean),
+                ),
+                (
+                    "::core::cmp::eq",
+                    &["=="],
+                    decl!(self; <T, U>(lhs: T, rhs: U) -> Boolean),
+                ),
+                (
+                    "::core::cmp::ne",
+                    &["!="],
+                    decl!(self; <T, U>(lhs: T, rhs: U) -> Boolean),
+                ),
+            ];
+
+            let items: SmallVec<_> = items
+                .iter()
+                .flat_map(|(name, alias, def)| {
+                    self.alloc_intrinsic_value(id.value(), name, alias.iter().copied(), *def)
+                })
+                .collect();
+
+            PartialModule {
+                name: self.heap.intern_symbol("cmp"),
+                parent,
+                items: self.registry.intern_items(&items),
+            }
+        })
+    }
+
+    #[expect(non_snake_case)]
+    fn core_bool_module(&self, parent: ModuleId) -> ModuleId {
+        self.registry.intern_module(|id| {
+            let Boolean = self.ty.boolean();
+
+            let items = [
+                (
+                    "::core::bool::not",
+                    &["!"],
+                    decl!(self; <>(value: Boolean) -> Boolean),
+                ),
+                (
+                    "::core::bool::and",
+                    &["&&"],
+                    decl!(self; <>(lhs: Boolean, rhs: Boolean) -> Boolean),
+                ),
+                (
+                    "::core::bool::or",
+                    &["||"],
+                    decl!(self; <>(lhs: Boolean, rhs: Boolean) -> Boolean),
+                ),
+            ];
+
+            let items: SmallVec<_> = items
+                .iter()
+                .flat_map(|(name, alias, def)| {
+                    self.alloc_intrinsic_value(id.value(), name, alias.iter().copied(), *def)
+                })
+                .collect();
+
+            PartialModule {
+                name: self.heap.intern_symbol("bool"),
+                parent,
+                items: self.registry.intern_items(&items),
+            }
+        })
+    }
+
+    fn core_module(&mut self) -> ModuleId {
+        self.registry.intern_module(|id| PartialModule {
+            name: self.heap.intern_symbol("core"),
+            parent: ModuleId::ROOT,
+            items: self.registry.intern_items(&[
+                Item {
+                    module: id.value(),
+                    name: self.heap.intern_symbol("bits"),
+                    kind: self.core_bits_module(id.value()).into(),
+                },
+                Item {
+                    module: id.value(),
+                    name: self.heap.intern_symbol("math"),
+                    kind: self.core_math_module(id.value()).into(),
+                },
+                Item {
+                    module: id.value(),
+                    name: self.heap.intern_symbol("cmp"),
+                    kind: self.core_cmp_module(id.value()).into(),
+                },
+                Item {
+                    module: id.value(),
+                    name: self.heap.intern_symbol("bool"),
+                    kind: self.core_bool_module(id.value()).into(),
+                },
+            ]),
+        })
+    }
+
     pub(super) fn register(&mut self) {
         self.registry.register(self.kernel_module());
-        self.registry.register(self.math_module());
+        self.registry.register(self.core_module());
 
         // TODO: The graph module is not yet added (Primarily due to the fact that we're not yet
         // sure about the shape of some of the types involved).
