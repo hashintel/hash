@@ -5,7 +5,6 @@ use hashql_core::{
     module::{
         ModuleRegistry, Universe,
         item::{IntrinsicItem, IntrinsicValueItem, ItemKind},
-        locals::TypeDef,
         universe::{Entry, FastRealmsMap},
     },
     span::{SpanId, Spanned},
@@ -19,7 +18,7 @@ use hashql_core::{
 
 use super::{
     error::{GenericArgumentContext, LoweringDiagnostic, LoweringDiagnosticCategory},
-    inference::TypeInferenceResidual,
+    inference::{Local, TypeInferenceResidual},
 };
 use crate::{
     lower::error::generic_argument_mismatch,
@@ -51,7 +50,7 @@ pub struct TypeChecking<'env, 'heap> {
     env: &'env Environment<'heap>,
     registry: &'env ModuleRegistry<'heap>,
 
-    locals: FastHashMap<Symbol<'heap>, TypeDef<'heap>>,
+    locals: FastHashMap<Symbol<'heap>, Local<'heap>>,
     inference: FastHashMap<HirId, TypeId>,
 
     lattice: LatticeEnvironment<'env, 'heap>,
@@ -214,7 +213,7 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, 'heap> {
     fn visit_local_variable(&mut self, variable: &'heap LocalVariable<'heap>) {
         visit::walk_local_variable(self, variable);
 
-        let generic_arguments = self.locals[&variable.name.value].arguments;
+        let generic_arguments = self.locals[&variable.name.value].r#type.arguments;
         self.verify_arity(
             variable.span,
             variable.name.span,
