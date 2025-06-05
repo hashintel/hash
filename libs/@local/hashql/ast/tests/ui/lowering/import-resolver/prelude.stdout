@@ -4,8 +4,8 @@ Expr#4294967040@21
       Type#4294967040@16
         TypeKind (Path)
           Path#4294967040@16 (rooted: true)
-            PathSegment#4294967040@15 (name: kernel)
-            PathSegment#4294967040@15 (name: type)
+            PathSegment#4294967040@15 (name: core)
+            PathSegment#4294967040@15 (name: option)
             PathSegment#4294967040@15 (name: Option)
               PathSegmentArgument (GenericArgument)
                 GenericArgument#4294967040@14
@@ -18,6 +18,6 @@ Expr#4294967040@21
       Expr#4294967040@20
         ExprKind (Path)
           Path#4294967040@20 (rooted: true)
-            PathSegment#4294967040@19 (name: kernel)
-            PathSegment#4294967040@19 (name: type)
+            PathSegment#4294967040@19 (name: core)
+            PathSegment#4294967040@19 (name: option)
             PathSegment#4294967040@19 (name: Some)

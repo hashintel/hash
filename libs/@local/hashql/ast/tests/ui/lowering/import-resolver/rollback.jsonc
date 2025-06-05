@@ -3,7 +3,7 @@
 [
   "if",
   { "#literal": true },
-  ["use", "math", { "#tuple": ["bit_shl"] }, "bit_shl"],
-  "bit_shl"
-  //~^ ERROR Cannot find variable 'bit_shl'
+  ["use", "core::bits", { "#tuple": ["shl"] }, "shl"],
+  "shl"
+  //~^ ERROR Cannot find variable 'shl'
 ]

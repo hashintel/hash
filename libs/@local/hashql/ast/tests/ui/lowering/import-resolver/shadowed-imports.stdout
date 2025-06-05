@@ -1,5 +1,6 @@
-Expr#4294967040@36
+Expr#4294967040@38
   ExprKind (Path)
-    Path#4294967040@36 (rooted: true)
-      PathSegment#4294967040@35 (name: math)
-      PathSegment#4294967040@35 (name: add)
+    Path#4294967040@38 (rooted: true)
+      PathSegment#4294967040@37 (name: core)
+      PathSegment#4294967040@37 (name: math)
+      PathSegment#4294967040@37 (name: add)

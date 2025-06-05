@@ -2,10 +2,10 @@
 //@ description: path values that aren't identifiers should fail
 [
   "::kernel::special_form::use",
-  "::math",
+  "::core",
   {
     "#struct": {
-      "x": "::math::sub"
+      "x": "::core::math::sub"
       //~^ ERROR Use a simple identifier here
     }
   },

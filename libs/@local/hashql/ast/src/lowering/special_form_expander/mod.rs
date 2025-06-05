@@ -139,10 +139,10 @@ impl<'heap> SpecialFormExpander<'heap> {
             return None;
         };
 
-        let constructor = if path.matches_absolute_path(["math", "bit_and"]) {
+        let constructor = if path.matches_absolute_path(["core", "bits", "and"]) {
             // The `&` operator, which is internally overloaded for types to create intersections
             create_intersection_type
-        } else if path.matches_absolute_path(["math", "bit_or"]) {
+        } else if path.matches_absolute_path(["core", "bits", "or"]) {
             // The `|` operator, which is internally overloaded for types to create unions
             create_union_type
         } else {

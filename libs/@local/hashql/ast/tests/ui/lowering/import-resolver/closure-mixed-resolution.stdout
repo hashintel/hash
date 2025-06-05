@@ -1,7 +1,7 @@
-Expr#4294967040@32
+Expr#4294967040@34
   ExprKind (Closure)
-    ClosureExpr#4294967040@32
-      ClosureSignature#4294967040@32
+    ClosureExpr#4294967040@34
+      ClosureSignature#4294967040@34
         Generics#4294967040@4
         ClosureParam#4294967040@12 (name: x)
           Type#4294967040@11
@@ -16,22 +16,23 @@ Expr#4294967040@32
               PathSegment#4294967040@17 (name: kernel)
               PathSegment#4294967040@17 (name: type)
               PathSegment#4294967040@17 (name: Number)
-      Expr#4294967040@31
+      Expr#4294967040@33
         ExprKind (Call)
-          CallExpr#4294967040@31
-            Expr#4294967040@24
+          CallExpr#4294967040@33
+            Expr#4294967040@26
               ExprKind (Path)
-                Path#4294967040@24 (rooted: true)
-                  PathSegment#4294967040@21 (name: math)
-                  PathSegment#4294967040@23 (name: add)
-            Argument#4294967040@28
-              Expr#4294967040@28
-                ExprKind (Path)
-                  Path#4294967040@28 (rooted: false)
-                    PathSegment#4294967040@27 (name: x)
+                Path#4294967040@26 (rooted: true)
+                  PathSegment#4294967040@21 (name: core)
+                  PathSegment#4294967040@23 (name: math)
+                  PathSegment#4294967040@25 (name: add)
             Argument#4294967040@30
               Expr#4294967040@30
+                ExprKind (Path)
+                  Path#4294967040@30 (rooted: false)
+                    PathSegment#4294967040@29 (name: x)
+            Argument#4294967040@32
+              Expr#4294967040@32
                 ExprKind (Literal)
-                  LiteralExpr#4294967040@29
+                  LiteralExpr#4294967040@31
                     LiteralKind (Integer)
                       IntegerLiteral (1)

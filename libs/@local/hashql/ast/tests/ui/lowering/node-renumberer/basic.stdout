@@ -4,17 +4,18 @@ Expr#0@8
       Expr#2@3
         ExprKind (Path)
           Path#3@3 (rooted: true)
-            PathSegment#4@2 (name: math)
-            PathSegment#5@2 (name: add)
-      Argument#6@5
-        Expr#7@5
+            PathSegment#4@2 (name: core)
+            PathSegment#5@2 (name: math)
+            PathSegment#6@2 (name: add)
+      Argument#7@5
+        Expr#8@5
           ExprKind (Literal)
-            LiteralExpr#8@4
+            LiteralExpr#9@4
               LiteralKind (Integer)
                 IntegerLiteral (3)
-      Argument#9@7
-        Expr#10@7
+      Argument#10@7
+        Expr#11@7
           ExprKind (Literal)
-            LiteralExpr#11@6
+            LiteralExpr#12@6
               LiteralKind (Integer)
                 IntegerLiteral (4)

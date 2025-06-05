@@ -31,8 +31,8 @@ Expr#4294967040@64
             Type#4294967040@58
               TypeKind (Path)
                 Path#4294967040@58 (rooted: true)
-                  PathSegment#4294967040@48 (name: kernel)
-                  PathSegment#4294967040@50 (name: type)
+                  PathSegment#4294967040@48 (name: core)
+                  PathSegment#4294967040@50 (name: option)
                   PathSegment#4294967040@57 (name: Option)
                     PathSegmentArgument (GenericArgument)
                       GenericArgument#4294967040@56
