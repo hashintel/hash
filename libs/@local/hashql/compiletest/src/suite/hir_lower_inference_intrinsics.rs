@@ -10,7 +10,7 @@ use hashql_core::{
 use hashql_hir::{
     fold::Fold as _,
     intern::Interner,
-    lower::{alias::AliasReplacement, ctor::ConvertTypeConstructor, inference::TypeInference},
+    lower::{ctor::ConvertTypeConstructor, inference::TypeInference},
     node::Node,
     visit::Visitor as _,
 };
@@ -19,7 +19,7 @@ use super::{Suite, SuiteDiagnostic, common::process_diagnostics};
 
 pub(crate) struct HirLowerTypeInferenceIntrinsicsSuite;
 
-impl Suite for HirLowerTypeInferenceSuite {
+impl Suite for HirLowerTypeInferenceIntrinsicsSuite {
     fn name(&self) -> &'static str {
         "hir/lower/type-inference/intrinsics"
     }
@@ -53,9 +53,6 @@ impl Suite for HirLowerTypeInferenceSuite {
             .to_string();
 
         output.push_str("\n\n--------------------------------------\n\n");
-
-        let mut replacement = AliasReplacement::new(&interner);
-        let Ok(node) = replacement.fold_node(node);
 
         let mut converter =
             ConvertTypeConstructor::new(&interner, &types.locals, &registry, &environment);

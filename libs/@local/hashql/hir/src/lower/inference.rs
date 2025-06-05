@@ -221,6 +221,8 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
 
         self.types
             .insert_unique(Universe::Value, self.current, r#type);
+        self.arguments
+            .insert_unique(Universe::Value, self.current, def.arguments);
         self.intrinsics
             .insert_unique(Universe::Value, self.current, intrinsic);
     }

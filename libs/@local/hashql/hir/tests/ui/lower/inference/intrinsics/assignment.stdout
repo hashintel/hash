@@ -1,0 +1,25 @@
+#let add:0 = ::core::math::add in
+add:0
+
+--------------------------------------
+
+#let add:0 = ::core::math::add in
+add:0
+
+--------------------------------------
+
+Node:
+::core::math::add
+
+
+Intrinsic:
+::core::math::add
+
+--------------------------------------
+
+Node:
+add:0
+
+
+Intrinsic:
+::core::math::add
