@@ -26,9 +26,7 @@ impl FoldedStacks {
     /// # Errors
     ///
     /// Returns an error if reading from the file fails.
-    pub fn from_file(
-        input: impl AsRef<Path>,
-    ) -> Result<Self, Report<impl Error + Send + Sync + 'static>> {
+    pub fn from_file(input: impl AsRef<Path>) -> Result<Self, Report<io::Error>> {
         let reader = BufReader::new(File::open(input.as_ref())?);
         Ok(Self {
             data: reader.lines().collect::<Result<_, _>>()?,
@@ -43,7 +41,7 @@ impl FoldedStacks {
     pub fn create_flame_graph(
         &self,
         mut options: flamegraph::Options,
-    ) -> Result<FlameGraph, Report<io::Error>> {
+    ) -> Result<FlameGraph, Report<impl Error + Send + Sync + 'static>> {
         let mut buffer = Vec::new();
         flamegraph::from_lines(
             &mut options,
