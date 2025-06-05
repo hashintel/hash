@@ -1,6 +1,6 @@
 use core::{any::TypeId, convert::Infallible};
 
-use hashql_core::{collection::FastHashMap, r#type::environment::Environment};
+use hashql_core::collection::FastHashMap;
 
 use crate::{
     fold::{self, Fold, nested::Deep},
