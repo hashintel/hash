@@ -44,6 +44,7 @@ use crate::{
 pub struct TypeCheckingResidual<'heap> {
     pub types: FastHashMap<HirId, TypeId>,
     pub inputs: FastHashMap<Symbol<'heap>, TypeId>,
+    pub intrinsics: FastHashMap<HirId, &'static str>,
 }
 
 pub struct TypeChecking<'env, 'heap> {
@@ -52,6 +53,7 @@ pub struct TypeChecking<'env, 'heap> {
 
     locals: FastHashMap<Symbol<'heap>, Local<'heap>>,
     inference: FastHashMap<HirId, TypeId>,
+    intrinsics: FastHashMap<HirId, &'static str>,
 
     lattice: LatticeEnvironment<'env, 'heap>,
     analysis: AnalysisEnvironment<'env, 'heap>,
@@ -74,6 +76,7 @@ impl<'env, 'heap> TypeChecking<'env, 'heap> {
         TypeInferenceResidual {
             locals,
             types: inference,
+            intrinsics,
         }: TypeInferenceResidual<'heap>,
     ) -> Self {
         let mut analysis = AnalysisEnvironment::new(env);
@@ -85,6 +88,7 @@ impl<'env, 'heap> TypeChecking<'env, 'heap> {
 
             locals,
             inference,
+            intrinsics,
 
             lattice: LatticeEnvironment::new(env),
             analysis,
@@ -177,7 +181,11 @@ impl<'env, 'heap> TypeChecking<'env, 'heap> {
         let types = core::mem::take(&mut self.types[Universe::Value]);
         let inputs = core::mem::take(&mut self.inputs[Universe::Value]);
 
-        let residual = TypeCheckingResidual { types, inputs };
+        let residual = TypeCheckingResidual {
+            types,
+            inputs,
+            intrinsics: self.intrinsics,
+        };
 
         (residual, self.diagnostics)
     }

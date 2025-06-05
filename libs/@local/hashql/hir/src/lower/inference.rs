@@ -47,6 +47,7 @@ pub struct Local<'heap> {
 
 pub struct TypeInferenceResidual<'heap> {
     pub locals: FastHashMap<Symbol<'heap>, Local<'heap>>,
+    pub intrinsics: FastHashMap<HirId, &'static str>,
     pub types: FastHashMap<HirId, TypeId>,
 }
 
@@ -126,8 +127,13 @@ impl<'env, 'heap> TypeInference<'env, 'heap> {
 
         let locals = core::mem::take(&mut self.locals[Universe::Value]);
         let types = core::mem::take(&mut self.types[Universe::Value]);
+        let intrinsics = core::mem::take(&mut self.intrinsics[Universe::Value]);
 
-        let residual = TypeInferenceResidual { locals, types };
+        let residual = TypeInferenceResidual {
+            locals,
+            intrinsics,
+            types,
+        };
 
         (solver, residual, diagnostics)
     }
