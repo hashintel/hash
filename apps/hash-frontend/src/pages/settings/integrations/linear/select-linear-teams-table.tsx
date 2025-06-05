@@ -2,16 +2,9 @@ import type { EntityId } from "@blockprotocol/type-system";
 import { Chip, Select } from "@hashintel/design-system";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { LinearIntegrationProperties } from "@local/hash-isomorphic-utils/system-types/linearintegration";
-import {
-  Box,
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-} from "@mui/material";
+import { Box, TableBody, TableHead, TableRow } from "@mui/material";
 import type { Dispatch, FunctionComponent, SetStateAction } from "react";
-import { Fragment, useCallback, useMemo } from "react";
+import { Fragment, useCallback, useMemo, useState } from "react";
 
 import type {
   GetLinearOrganizationQuery,
@@ -20,6 +13,8 @@ import type {
 import type { MinimalUser, Org } from "../../../../lib/user-and-org";
 import { MenuItem } from "../../../../shared/ui";
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
+import { SettingsTable } from "../../shared/settings-table";
+import { SettingsTableCell } from "../../shared/settings-table-cell";
 import type { LinearIntegration } from "./use-linear-integrations";
 
 const SelectWorkspaces: FunctionComponent<{
@@ -31,16 +26,21 @@ const SelectWorkspaces: FunctionComponent<{
   possibleWorkspaces,
   setSelectedWorkspaceEntityIds,
 }) => {
+  const [selectOpen, setSelectOpen] = useState(false);
+
   return (
     <Select
       fullWidth
       multiple
       value={selectedWorkspaceEntityIds}
-      onChange={({ target: { value } }) =>
+      open={selectOpen}
+      onOpen={() => setSelectOpen(true)}
+      onClose={() => setSelectOpen(false)}
+      onChange={({ target: { value } }) => {
         setSelectedWorkspaceEntityIds(
           typeof value === "string" ? (value.split(",") as EntityId[]) : value,
-        )
-      }
+        );
+      }}
       renderValue={(selected) => (
         <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
           {selected.map((value) => {
@@ -147,8 +147,6 @@ export const SelectLinearTeamsTable: FunctionComponent<{
     ],
     [authenticatedUser],
   );
-
-  console.log(linearOrganizations);
 
   const handleSelectAllWorkspacesChange = useCallback(
     (params: { linearOrganization: LinearOrganizationTeamsWithWorkspaces }) =>
@@ -267,25 +265,45 @@ export const SelectLinearTeamsTable: FunctionComponent<{
   );
 
   return (
-    <Table sx={{ minWidth: 650 }} aria-label="simple table">
+    <SettingsTable sx={{ minWidth: 650 }} aria-label="simple table">
       <TableHead>
         <TableRow>
-          <TableCell>
-            <strong>Type</strong> in Linear
-          </TableCell>
-          <TableCell>
-            <strong>Name</strong> in Linear
-          </TableCell>
-          <TableCell>HASH workspace(s) to sync with</TableCell>
+          <SettingsTableCell>
+            Type{" "}
+            <Box
+              component="span"
+              sx={{ fontWeight: 500, color: ({ palette }) => palette.gray[60] }}
+            >
+              in Linear
+            </Box>
+          </SettingsTableCell>
+          <SettingsTableCell>
+            Name{" "}
+            <Box
+              component="span"
+              sx={{ fontWeight: 500, color: ({ palette }) => palette.gray[60] }}
+            >
+              in Linear
+            </Box>
+          </SettingsTableCell>
+          <SettingsTableCell>
+            HASH workspace(s){" "}
+            <Box
+              component="span"
+              sx={{ fontWeight: 500, color: ({ palette }) => palette.gray[60] }}
+            >
+              to sync with
+            </Box>
+          </SettingsTableCell>
         </TableRow>
       </TableHead>
       <TableBody>
         {linearOrganizations.map((linearOrganization) => (
           <Fragment key={linearOrganization.id}>
             <TableRow>
-              <TableCell>Workspace</TableCell>
-              <TableCell>{linearOrganization.name}</TableCell>
-              <TableCell>
+              <SettingsTableCell>Workspace</SettingsTableCell>
+              <SettingsTableCell>{linearOrganization.name}</SettingsTableCell>
+              <SettingsTableCell>
                 <SelectWorkspaces
                   selectedWorkspaceEntityIds={possibleWorkspaces
                     .map(({ entity }) => entity.metadata.recordId.entityId)
@@ -302,14 +320,14 @@ export const SelectLinearTeamsTable: FunctionComponent<{
                     { linearOrganization },
                   )}
                 />
-              </TableCell>
+              </SettingsTableCell>
             </TableRow>
             {linearOrganization.teams.map(
               ({ id: linearTeamId, name: teamName }) => (
                 <TableRow key={linearTeamId}>
-                  <TableCell>Team</TableCell>
-                  <TableCell>{teamName}</TableCell>
-                  <TableCell>
+                  <SettingsTableCell>Team</SettingsTableCell>
+                  <SettingsTableCell>{teamName}</SettingsTableCell>
+                  <SettingsTableCell>
                     <SelectWorkspaces
                       selectedWorkspaceEntityIds={possibleWorkspaces
                         .map(({ entity }) => entity.metadata.recordId.entityId)
@@ -323,13 +341,13 @@ export const SelectLinearTeamsTable: FunctionComponent<{
                         { linearOrganization, linearTeamId },
                       )}
                     />
-                  </TableCell>
+                  </SettingsTableCell>
                 </TableRow>
               ),
             )}
           </Fragment>
         ))}
       </TableBody>
-    </Table>
+    </SettingsTable>
   );
 };

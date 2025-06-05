@@ -2,7 +2,7 @@ import { useLazyQuery, useMutation } from "@apollo/client";
 import type { EntityId } from "@blockprotocol/type-system";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { LinearIntegrationProperties } from "@local/hash-isomorphic-utils/system-types/linearintegration";
-import { Box, Container, Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import { useRouter } from "next/router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -16,11 +16,11 @@ import {
   getLinearOrganizationQuery,
   syncLinearIntegrationWithWorkspacesMutation,
 } from "../../../../graphql/queries/integrations/linear.queries";
-import { LinearLogo } from "../../../../shared/icons/linear-logo";
 import type { NextPageWithLayout } from "../../../../shared/layout";
 import { Button } from "../../../../shared/ui";
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
 import { getSettingsLayout } from "../../../shared/settings-layout";
+import { SettingsPageContainer } from "../../shared/settings-page-container";
 import { LinearHeader } from "./linear-header";
 import type { LinearOrganizationTeamsWithWorkspaces } from "./select-linear-teams-table";
 import {
@@ -133,8 +133,10 @@ const NewLinearIntegrationPage: NextPageWithLayout = () => {
   ]);
 
   return (
-    <Container>
-      <LinearHeader />
+    <SettingsPageContainer
+      heading={<LinearHeader />}
+      sectionLabel="Set up connection"
+    >
       {linearOrganization ? (
         <>
           <SelectLinearTeamsTable
@@ -145,11 +147,20 @@ const NewLinearIntegrationPage: NextPageWithLayout = () => {
                 : setLinearOrganization(update[0])
             }
           />
-          <Box display="flex" justifyContent="flex-end" columnGap={2}>
-            <Button variant="tertiary">Exit without granting access</Button>
+          <Box
+            display="flex"
+            justifyContent="flex-end"
+            columnGap={2}
+            py={2}
+            px={3}
+          >
+            <Button variant="tertiary" size="small">
+              Exit without granting access
+            </Button>
             <Button
               disabled={loadingSyncLinearIntegrationWithWorkspaces}
               onClick={handleSaveAndContinue}
+              size="small"
             >
               Save and continue
             </Button>
@@ -158,7 +169,7 @@ const NewLinearIntegrationPage: NextPageWithLayout = () => {
       ) : (
         <Typography>Connecting to Linear...</Typography>
       )}
-    </Container>
+    </SettingsPageContainer>
   );
 };
 

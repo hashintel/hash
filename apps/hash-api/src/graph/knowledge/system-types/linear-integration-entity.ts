@@ -167,7 +167,7 @@ export const getLinearIntegrationByLinearOrgId: ImpureGraphFunction<
 
   if (entities.length > 1) {
     throw new Error(
-      `More than one linear integration found for the user with the linear org ID ${linearOrgId}`,
+      `More than one ${entities.length} linear integrations found for the user with the linear org ID ${linearOrgId}`,
     );
   }
 

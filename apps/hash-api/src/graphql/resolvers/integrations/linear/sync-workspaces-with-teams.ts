@@ -146,17 +146,6 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
        * Add the Linear machine user to the web,
        * if it doesn't already have permission to read and edit entities in it.
        */
-      const linearBotAccountId = await getMachineIdByIdentifier(
-        dataSources,
-        authentication,
-        { identifier: "linear" },
-      ).then((maybeMachineId) => {
-        if (!maybeMachineId) {
-          throw new NotFoundError("Failed to get linear bot");
-        }
-        return maybeMachineId;
-      });
-
       const linearBotHasPermission = await dataSources.graphApi
         .checkWebPermission(linearBotAccountId, webAccountId, "create_entity")
         .then((resp) => resp.data.has_permission);

@@ -26,6 +26,7 @@ import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-proper
 import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { LinearIntegration } from "@local/hash-isomorphic-utils/system-types/linearintegration";
 import type { UserSecret } from "@local/hash-isomorphic-utils/system-types/shared";
+import * as Sentry from "@sentry/node";
 
 import type {
   ImpureGraphFunction,
@@ -147,9 +148,11 @@ export const getLinearUserSecretByLinearOrgId: ImpureGraphFunction<
     );
 
   if (entities.length > 1) {
-    throw new Error(
-      `More than one linear user secret found for the user with the linear org ID ${linearOrgId}`,
-    );
+    const warningMessage = `More than one linear user secret (${entities.length}) found for the user ${userAccountId} with the linear org ID ${linearOrgId}`;
+
+    Sentry.captureMessage(warningMessage);
+    // eslint-disable-next-line no-console
+    console.warn(warningMessage);
   }
 
   const entity = entities[0];

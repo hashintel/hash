@@ -19,6 +19,7 @@ import type { NextPageWithLayout } from "../../../shared/layout";
 import { Button } from "../../../shared/ui";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
 import { getSettingsLayout } from "../../shared/settings-layout";
+import { SettingsPageContainer } from "../shared/settings-page-container";
 import { LinearHeader } from "./linear/linear-header";
 import type { LinearOrganizationTeamsWithWorkspaces } from "./linear/select-linear-teams-table";
 import {
@@ -105,17 +106,19 @@ const DataAccess: FunctionComponent<{
   ]);
 
   return (
-    <>
-      <Typography variant="h5">Data Access</Typography>
-      <Typography>
-        Once connected to HASH, the contents of Linear Workspaces which are
-        visible to you can be made available to one or more HASH workspaces you
-        belong to. Access can also be granted on a per-Linear Team basis.
+    <Box py={3} px={4}>
+      <Typography variant="smallTextParagraphs">
+        Once connected to HASH, the contents of{" "}
+        <strong>Linear Workspaces</strong> which are visible to you can be made
+        available to one or more <strong>HASH workspaces</strong> you belong to.
+        Access can also be granted on a <strong>per-Linear Team</strong> basis.
       </Typography>
-      <SelectLinearTeamsTable
-        linearOrganizations={linearOrganizations}
-        setLinearOrganizations={setLinearOrganizations}
-      />
+      <Box my={2}>
+        <SelectLinearTeamsTable
+          linearOrganizations={linearOrganizations}
+          setLinearOrganizations={setLinearOrganizations}
+        />
+      </Box>
       <Box display="flex" justifyContent="flex-end">
         <Button
           loading={loadingSyncLinearIntegrationWithWorkspaces}
@@ -124,7 +127,7 @@ const DataAccess: FunctionComponent<{
           Save changes
         </Button>
       </Box>
-    </>
+    </Box>
   );
 };
 
@@ -166,14 +169,15 @@ const LinearIntegrationsPage: NextPageWithLayout = () => {
   }, [linearIntegrations, getLinearOrganization]);
 
   return (
-    <Container>
-      <LinearHeader />
-
+    <SettingsPageContainer
+      heading={<LinearHeader />}
+      sectionLabel="Data access"
+    >
       {connectedLinearOrganizations ? (
         <>
-          <LinearConnections
+          {/* <LinearConnections
             connectedLinearOrganizations={connectedLinearOrganizations}
-          />
+          /> */}
           {linearIntegrations ? (
             <DataAccess
               linearIntegrations={linearIntegrations}
@@ -182,7 +186,7 @@ const LinearIntegrationsPage: NextPageWithLayout = () => {
           ) : null}
         </>
       ) : null}
-    </Container>
+    </SettingsPageContainer>
   );
 };
 
