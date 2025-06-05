@@ -224,80 +224,7 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
         );
     }
 
-    fn kernel_type_module_opaque(&self, parent: ModuleId, items: &mut Vec<Item<'heap>>) {
-        let url = self.ty.opaque("::kernel::type::Url", self.ty.string());
-        let url = self.type_def(url, &[]);
-
-        let base_url = self.ty.opaque("::kernel::type::BaseUrl", url.id);
-        let base_url = self.type_def(base_url, &[]);
-
-        items.extend_from_slice(&[
-            self.alloc_type_item(parent, "Url", url),
-            self.alloc_ctor(parent, "Url", url),
-            self.alloc_type_item(parent, "BaseUrl", base_url),
-            self.alloc_ctor(parent, "BaseUrl", base_url),
-        ]);
-    }
-
-    fn kernel_type_module_option(&mut self, parent: ModuleId, items: &mut Vec<Item<'heap>>) {
-        // Option is simply a union between two opaque types, when the constructor only takes a
-        // `Null` the constructor automatically allows for no-value.
-        let generic = self.ty.fresh_argument("T");
-
-        let none = self.ty.opaque("::kernel::type::None", self.ty.null());
-        let none = self.type_def(none, &[]);
-
-        let some = self.ty.generic(
-            [(generic, None)],
-            self.ty
-                .opaque("::kernel::type::Some", self.ty.param(generic)),
-        );
-        let some = self.type_def(some, &[self.ty.hydrate_argument(generic)]);
-
-        let option = self.ty.union([some.id, none.id]);
-        let option = self.type_def(option, &[self.ty.hydrate_argument(generic)]);
-
-        items.extend_from_slice(&[
-            self.alloc_type_item(parent, "None", none),
-            self.alloc_ctor(parent, "None", none),
-            self.alloc_type_item(parent, "Some", some),
-            self.alloc_ctor(parent, "Some", some),
-            self.alloc_type_item(parent, "Option", option),
-        ]);
-    }
-
-    fn kernel_type_module_result(&mut self, parent: ModuleId, items: &mut Vec<Item<'heap>>) {
-        let t_arg = self.ty.fresh_argument("T");
-        let t_ref = self.ty.hydrate_argument(t_arg);
-
-        let e_arg = self.ty.fresh_argument("E");
-        let e_ref = self.ty.hydrate_argument(e_arg);
-
-        let ok = self.ty.generic(
-            [(t_arg, None)],
-            self.ty.opaque("::kernel::type::Ok", self.ty.param(t_arg)),
-        );
-        let ok = self.type_def(ok, &[t_ref]);
-
-        let err = self.ty.generic(
-            [(e_arg, None)],
-            self.ty.opaque("::kernel::type::Err", self.ty.param(e_arg)),
-        );
-        let err = self.type_def(err, &[e_ref]);
-
-        let result = self.ty.union([ok.id, err.id]);
-        let result = self.type_def(result, &[t_ref, e_ref]);
-
-        items.extend_from_slice(&[
-            self.alloc_type_item(parent, "Ok", ok),
-            self.alloc_ctor(parent, "Ok", ok),
-            self.alloc_type_item(parent, "Err", err),
-            self.alloc_ctor(parent, "Err", err),
-            self.alloc_type_item(parent, "Result", result),
-        ]);
-    }
-
-    fn kernel_type_module(&mut self, parent: ModuleId) -> ModuleId {
+    fn kernel_type_module(&self, parent: ModuleId) -> ModuleId {
         self.registry.intern_module(|id| {
             let id = id.value();
 
@@ -305,9 +232,6 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
             self.kernel_type_module_primitives(id, &mut items);
             self.kernel_type_module_boundary(id, &mut items);
             self.kernel_type_module_intrinsics(id, &mut items);
-            self.kernel_type_module_opaque(id, &mut items);
-            self.kernel_type_module_option(id, &mut items);
-            self.kernel_type_module_result(id, &mut items);
 
             PartialModule {
                 name: self.heap.intern_symbol("type"),
@@ -317,7 +241,7 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
         })
     }
 
-    fn kernel_module(&mut self) -> ModuleId {
+    fn kernel_module(&self) -> ModuleId {
         self.registry.intern_module(|id| PartialModule {
             name: self.heap.intern_symbol("kernel"),
             parent: ModuleId::ROOT,
@@ -333,6 +257,103 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
                     kind: ItemKind::Module(self.kernel_type_module(id.value())),
                 },
             ]),
+        })
+    }
+
+    fn core_url_module(&self, parent: ModuleId) -> ModuleId {
+        self.registry.intern_module(|id| {
+            let id = id.value();
+
+            let url = self.ty.opaque("::core::url::Url", self.ty.string());
+            let url = self.type_def(url, &[]);
+
+            let base_url = self.ty.opaque("::core::url::BaseUrl", url.id);
+            let base_url = self.type_def(base_url, &[]);
+
+            PartialModule {
+                name: self.heap.intern_symbol("url"),
+                parent,
+                items: self.registry.intern_items(&[
+                    self.alloc_type_item(id, "Url", url),
+                    self.alloc_ctor(id, "Url", url),
+                    self.alloc_type_item(id, "BaseUrl", base_url),
+                    self.alloc_ctor(id, "BaseUrl", base_url),
+                ]),
+            }
+        })
+    }
+
+    fn core_option_module(&mut self, parent: ModuleId) -> ModuleId {
+        self.registry.intern_module(|id| {
+            let id = id.value();
+
+            // Option is simply a union between two opaque types, when the constructor only takes a
+            // `Null` the constructor automatically allows for no-value.
+            let generic = self.ty.fresh_argument("T");
+
+            let none = self.ty.opaque("::core::option::None", self.ty.null());
+            let none = self.type_def(none, &[]);
+
+            let some = self.ty.generic(
+                [(generic, None)],
+                self.ty
+                    .opaque("::core::option::Some", self.ty.param(generic)),
+            );
+            let some = self.type_def(some, &[self.ty.hydrate_argument(generic)]);
+
+            let option = self.ty.union([some.id, none.id]);
+            let option = self.type_def(option, &[self.ty.hydrate_argument(generic)]);
+
+            PartialModule {
+                name: self.heap.intern_symbol("option"),
+                parent,
+                items: self.registry.intern_items(&[
+                    self.alloc_type_item(id, "None", none),
+                    self.alloc_ctor(id, "None", none),
+                    self.alloc_type_item(id, "Some", some),
+                    self.alloc_ctor(id, "Some", some),
+                    self.alloc_type_item(id, "Option", option),
+                ]),
+            }
+        })
+    }
+
+    fn core_result_module(&mut self, parent: ModuleId) -> ModuleId {
+        self.registry.intern_module(|id| {
+            let id = id.value();
+
+            let t_arg = self.ty.fresh_argument("T");
+            let t_ref = self.ty.hydrate_argument(t_arg);
+
+            let e_arg = self.ty.fresh_argument("E");
+            let e_ref = self.ty.hydrate_argument(e_arg);
+
+            let ok = self.ty.generic(
+                [(t_arg, None)],
+                self.ty.opaque("::core::result::Ok", self.ty.param(t_arg)),
+            );
+            let ok = self.type_def(ok, &[t_ref]);
+
+            let err = self.ty.generic(
+                [(e_arg, None)],
+                self.ty.opaque("::core::result::Err", self.ty.param(e_arg)),
+            );
+            let err = self.type_def(err, &[e_ref]);
+
+            let result = self.ty.union([ok.id, err.id]);
+            let result = self.type_def(result, &[t_ref, e_ref]);
+
+            PartialModule {
+                name: self.heap.intern_symbol("result"),
+                parent,
+                items: self.registry.intern_items(&[
+                    self.alloc_type_item(id, "Ok", ok),
+                    self.alloc_ctor(id, "Ok", ok),
+                    self.alloc_type_item(id, "Err", err),
+                    self.alloc_ctor(id, "Err", err),
+                    self.alloc_type_item(id, "Result", result),
+                ]),
+            }
         })
     }
 
@@ -584,6 +605,21 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
                     module: id.value(),
                     name: self.heap.intern_symbol("bool"),
                     kind: self.core_bool_module(id.value()).into(),
+                },
+                Item {
+                    module: id.value(),
+                    name: self.heap.intern_symbol("url"),
+                    kind: self.core_url_module(id.value()).into(),
+                },
+                Item {
+                    module: id.value(),
+                    name: self.heap.intern_symbol("option"),
+                    kind: self.core_option_module(id.value()).into(),
+                },
+                Item {
+                    module: id.value(),
+                    name: self.heap.intern_symbol("result"),
+                    kind: self.core_result_module(id.value()).into(),
                 },
             ]),
         })
