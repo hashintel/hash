@@ -414,7 +414,9 @@ where
             actor_id,
             // Manually deserialize the query from a JSON value to allow borrowed deserialization
             // and better error reporting.
-            GetPropertyTypesParams::deserialize(&request).map_err(report_to_response)?,
+            GetPropertyTypesParams::deserialize(&request)
+                .map_err(Report::from)
+                .map_err(report_to_response)?,
         )
         .await
         .map_err(report_to_response)
@@ -489,7 +491,9 @@ where
     let response = store
         .get_property_type_subgraph(
             actor_id,
-            GetPropertyTypeSubgraphParams::deserialize(&request).map_err(report_to_response)?,
+            GetPropertyTypeSubgraphParams::deserialize(&request)
+                .map_err(Report::from)
+                .map_err(report_to_response)?,
         )
         .await
         .map_err(report_to_response)

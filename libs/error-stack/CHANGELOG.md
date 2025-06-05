@@ -14,6 +14,7 @@ All notable changes to `error-stack` will be documented in this file.
 - Report has been split into `Report<C>` and `Report<[C]>` to distinguish between a group of related errors and a single error. These errors can still be nested. ([#5047](https://github.com/hashintel/hash/pull/5047))
 - Introduce a new `unstable` flag, which is used to enable unstable features, these features are not covered by semver and may be modified or removed at any time. ([#5181](https://github.com/hashintel/hash/pull/5181))
 - Reintroduce a new `IntoReport` trait, which is used to determine when a type can be converted to a `Report`. This allows the usage of errors more idiomatically in traits, such as `type Error: IntoReport`. ([#6738](https://github.com/hashintel/hash/pull/6738))
+- Introduced `Report<dyn Error>`: `From<Report<C>> for Report<dyn Error>` to use dynamically. It should be said, it's discouraged to be used as return type and is mainly interesting for locations where we don't need the context type, e.g. in error-handling. It's expected to be seen more in argument position in general ([#7274](https://github.com/hashintel/hash/pull/7274))
 
 ### Breaking Changes
 
@@ -21,7 +22,6 @@ All notable changes to `error-stack` will be documented in this file.
 - `Extend` is no longer implemented by `Report<C>`, instead it is implemented on `Report<[C]>`, either use `From` or `Report::expand` to convert between `Report<C>` into `Report<[C]>`. ([#5047](https://github.com/hashintel/hash/pull/5047))
 - `extend_one` has been renamed to `push` and is only implemented on `Report<[C]>`. ([#5047](https://github.com/hashintel/hash/pull/5047))
 - `bail!(report,)` has been removed, one must now use `bail!(report)`. This is in preparation for the unstable `bail!` macro that allows to construct `Report<[C]>`. ([#5047](https://github.com/hashintel/hash/pull/5047))
-- `From<C> for Report<[C]>` and support for constructing `Report<dyn Error>` with `From<E: IntoReport<E>>` and `From<E: Report<C>>` alter type inferrence in some cases. Each instance will require one of: replacing `Report::from` with `Report::new`, replacing `Into<Report<C>>` with `IntoReport<Context = C>`, or specifying a concrete `C`. This makes multi-error reports easier to instanstiate and allows flexible usage of dynamic errors inside a report. ([#7274](https://github.com/hashintel/hash/pull/7274))
 
 ### Deprecations
 

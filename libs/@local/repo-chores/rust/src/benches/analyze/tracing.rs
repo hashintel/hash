@@ -1,3 +1,4 @@
+use core::error::Error;
 use std::{
     fs::File,
     io::{self, BufRead as _, BufReader},
@@ -25,7 +26,9 @@ impl FoldedStacks {
     /// # Errors
     ///
     /// Returns an error if reading from the file fails.
-    pub fn from_file(input: impl AsRef<Path>) -> Result<Self, Report<io::Error>> {
+    pub fn from_file(
+        input: impl AsRef<Path>,
+    ) -> Result<Self, Report<impl Error + Send + Sync + 'static>> {
         let reader = BufReader::new(File::open(input.as_ref())?);
         Ok(Self {
             data: reader.lines().collect::<Result<_, _>>()?,

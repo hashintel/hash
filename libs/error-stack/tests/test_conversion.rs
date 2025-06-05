@@ -88,7 +88,7 @@ fn error() {
 
 #[test]
 fn into_report() {
-    let report: Report<io::Error> = io_error().map_err(Report::from).expect_err("not an error");
+    let report = io_error().map_err(Report::from).expect_err("not an error");
     assert!(report.contains::<io::Error>());
     assert_eq!(report.current_context().kind(), io::ErrorKind::Other);
 }

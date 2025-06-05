@@ -208,8 +208,8 @@ impl<C> ReportSink<C> {
     ///
     /// [`append`]: ReportSink::append
     #[track_caller]
-    pub fn capture(&mut self, error: impl crate::IntoReport<Context = C>) {
-        let report = error.into_report();
+    pub fn capture(&mut self, error: impl Into<Report<C>>) {
+        let report = error.into();
 
         match self.report.as_mut() {
             Some(existing) => existing.push(report),
@@ -248,7 +248,7 @@ impl<C> ReportSink<C> {
     #[track_caller]
     pub fn attempt<T, R>(&mut self, result: Result<T, R>) -> Option<T>
     where
-        R: crate::IntoReport<Context = C>,
+        R: Into<Report<C>>,
     {
         match result {
             Ok(value) => Some(value),
@@ -667,31 +667,5 @@ mod test {
 
         let value = sink.finish_ok(8).expect("should have succeeded");
         assert_eq!(value, 8);
-    }
-
-    #[test]
-    fn type_inferrence_capture_regression_check() {
-        #[derive(Debug)]
-        struct MyError;
-
-        impl core::fmt::Display for MyError {
-            fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-                fmt.write_str("MyError")
-            }
-        }
-
-        impl core::error::Error for MyError {}
-
-        let mut status = ReportSink::new();
-        status.capture(MyError);
-
-        let mut status = ReportSink::new();
-        status.capture(Report::new(MyError));
-
-        let mut status = ReportSink::new();
-        status.attempt(Err::<(), _>(Report::new(MyError)));
-
-        let mut status = ReportSink::new();
-        status.append(Report::new(MyError));
     }
 }

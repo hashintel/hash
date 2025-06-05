@@ -471,16 +471,6 @@ impl<C> Report<C> {
     }
 }
 
-impl<E: Into<Report<E>>> From<E> for Report<dyn Error> {
-    #[track_caller]
-    fn from(value: E) -> Self {
-        Report {
-            frames: value.into().frames,
-            _context: PhantomData,
-        }
-    }
-}
-
 impl<C> From<Report<C>> for Report<dyn Error> {
     #[track_caller]
     fn from(mut report: Report<C>) -> Self {
@@ -908,15 +898,6 @@ impl<C> From<Report<C>> for Report<[C]> {
     fn from(report: Report<C>) -> Self {
         Self {
             frames: report.frames,
-            _context: PhantomData,
-        }
-    }
-}
-
-impl<C: Context> From<C> for Report<[C]> {
-    fn from(ctx: C) -> Self {
-        Self {
-            frames: Report::new(ctx).frames,
             _context: PhantomData,
         }
     }

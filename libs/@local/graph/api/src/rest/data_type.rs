@@ -438,7 +438,9 @@ where
             actor_id,
             // Manually deserialize the query from a JSON value to allow borrowed deserialization
             // and better error reporting.
-            GetDataTypesParams::deserialize(&request).map_err(report_to_response)?,
+            GetDataTypesParams::deserialize(&request)
+                .map_err(Report::from)
+                .map_err(report_to_response)?,
         )
         .await
         .map_err(report_to_response)
@@ -511,7 +513,9 @@ where
             actor_id,
             // Manually deserialize the query from a JSON value to allow borrowed deserialization
             // and better error reporting.
-            GetDataTypeSubgraphParams::deserialize(&request).map_err(report_to_response)?,
+            GetDataTypeSubgraphParams::deserialize(&request)
+                .map_err(Report::from)
+                .map_err(report_to_response)?,
         )
         .await
         .map_err(report_to_response)
