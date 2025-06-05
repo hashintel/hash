@@ -63,7 +63,6 @@ pub struct TypeInference<'env, 'heap> {
     locals: FastRealmsMap<Symbol<'heap>, Local<'heap>>,
     types: FastRealmsMap<HirId, TypeId>,
     arguments: FastRealmsMap<HirId, Interned<'heap, [GenericArgumentReference<'heap>]>>,
-    variables: FastRealmsMap<HirId, hashql_core::r#type::inference::Variable>,
     intrinsics: FastRealmsMap<HirId, &'static str>,
 }
 
@@ -82,7 +81,6 @@ impl<'env, 'heap> TypeInference<'env, 'heap> {
             locals: FastRealmsMap::new(),
             types: FastRealmsMap::new(),
             arguments: FastRealmsMap::new(),
-            variables: FastRealmsMap::new(),
             intrinsics: FastRealmsMap::new(),
         }
     }
@@ -337,9 +335,6 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
             access.field,
         );
 
-        self.variables
-            .insert_unique(Universe::Value, self.current, variable);
-
         self.types.insert_unique(
             Universe::Value,
             self.current,
@@ -355,9 +350,6 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
             self.types[Universe::Value][&access.expr.id],
             self.types[Universe::Value][&access.index.id],
         );
-
-        self.variables
-            .insert_unique(Universe::Value, self.current, variable);
 
         self.types.insert_unique(
             Universe::Value,
@@ -398,10 +390,9 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
         // For closure literals we invert the direction and collect `C <: F`
         self.inference.collect_constraints(function, closure);
 
-        self.variables
-            .insert_unique(Universe::Value, self.current, returns);
         self.types
             .insert_unique(Universe::Value, self.current, returns_id);
+
         // We do not need to collect the closure generated, as we can always re-generate it easily
         // from the types provided when we do the type-check.
     }
