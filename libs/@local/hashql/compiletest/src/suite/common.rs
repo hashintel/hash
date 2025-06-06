@@ -63,12 +63,12 @@ impl Display for Header {
     }
 }
 
-pub(crate) struct Annotated<'a, T, U> {
-    pub content: &'a T,
-    pub annotation: &'a U,
+pub(crate) struct Annotated<T, U> {
+    pub content: T,
+    pub annotation: U,
 }
 
-impl<T, U> Display for Annotated<'_, T, U>
+impl<T, U> Display for Annotated<T, U>
 where
     T: Display,
     U: Display,

@@ -252,8 +252,6 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
 
         let intrinsic = self.intrinsics.get(Universe::Value, &value.id).copied();
 
-        self.types
-            .insert_unique(Universe::Value, self.current, value_type);
         self.arguments
             .insert_unique(Universe::Value, self.current, arguments);
 
@@ -279,6 +277,13 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
 
         // Note: We purposefully do *not* remove the local after we're done, this is so that we can
         // collect them afterwards for free, without an additional traversal.
+
+        // The type of the let expression is not that of the value, but rather that of the body
+        self.types.insert_unique(
+            Universe::Value,
+            self.current,
+            self.types[Universe::Value][&body.id],
+        );
     }
 
     fn visit_input(&mut self, input: &'heap Input<'heap>) {

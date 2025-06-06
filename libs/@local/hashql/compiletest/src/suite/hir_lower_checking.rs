@@ -18,7 +18,10 @@ use hashql_hir::{
     visit::Visitor as _,
 };
 
-use super::{Suite, SuiteDiagnostic, common::process_diagnostics};
+use super::{
+    Suite, SuiteDiagnostic,
+    common::{Annotated, Header, process_diagnostics},
+};
 
 pub(crate) struct HirLowerTypeCheckingSuite;
 
@@ -52,11 +55,12 @@ impl Suite for HirLowerTypeCheckingSuite {
 
         let node = node.expect("should be `Some` if there are non-fatal errors");
 
-        let mut output = node
-            .pretty_print(&environment, PrettyOptions::default().without_color())
-            .to_string();
-
-        output.push_str("\n\n--------------------------------------\n\n");
+        let _ = writeln!(
+            output,
+            "{}\n\n{}",
+            Header::new("Initial HIR"),
+            node.pretty_print(&environment, PrettyOptions::default().without_color())
+        );
 
         let mut replacement = AliasReplacement::new(&interner);
         let Ok(node) = replacement.fold_node(node);
@@ -105,54 +109,51 @@ impl Suite for HirLowerTypeCheckingSuite {
             .collect();
         checking_inputs.sort_unstable_by_key(|&(hir_id, _)| hir_id);
 
-        write!(
-            &mut output,
-            "{}",
+        let _ = writeln!(
+            output,
+            "\n{}\n\n{}",
+            Header::new("HIR after type checking"),
             node.pretty_print(&environment, PrettyOptions::default().without_color())
-        )
-        .expect("infallible");
+        );
 
-        output.push_str("\n\n--------------------------------------");
+        if !checking_inputs.is_empty() {
+            let _ = writeln!(output, "\n{}\n", Header::new("Inputs"));
+        }
 
         for (name, type_id) in checking_inputs {
-            write!(
+            let _ = writeln!(
                 output,
-                "\n\n#input {name} = {}",
-                environment
-                    .r#type(type_id)
-                    .pretty_print(&environment, PrettyOptions::default().without_color())
-            )
-            .expect("infallible");
+                "\n{}\n",
+                Annotated {
+                    content: name,
+                    annotation: environment
+                        .r#type(type_id)
+                        .pretty_print(&environment, PrettyOptions::default().without_color())
+                }
+            );
+        }
+
+        if !checking_types.is_empty() {
+            let _ = writeln!(output, "\n{}\n", Header::new("Types"));
         }
 
         for (hir_id, type_id) in checking_types {
-            output.push_str("\n\n--------------------------------------\n\n");
-
-            output.push_str("Node:\n");
-
-            writeln!(
-                &mut output,
-                "{}\n\n",
-                interner
-                    .node
-                    .index(hir_id)
-                    .pretty_print(&environment, PrettyOptions::default().without_color())
-            )
-            .expect("infallible");
-
-            output.push_str("Type:\n");
-
-            write!(
-                &mut output,
-                "{}",
-                environment.r#type(type_id).pretty_print(
-                    &environment,
-                    PrettyOptions::default()
-                        .without_color()
-                        .with_resolve_substitutions(true)
-                )
-            )
-            .expect("infallible");
+            let _ = writeln!(
+                output,
+                "{}\n",
+                Annotated {
+                    content: interner
+                        .node
+                        .index(hir_id)
+                        .pretty_print(&environment, PrettyOptions::default().without_color()),
+                    annotation: environment.r#type(type_id).pretty_print(
+                        &environment,
+                        PrettyOptions::default()
+                            .without_color()
+                            .with_resolve_substitutions(true)
+                    )
+                }
+            );
         }
 
         Ok(output)
