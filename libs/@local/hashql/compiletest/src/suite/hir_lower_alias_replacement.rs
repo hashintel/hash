@@ -45,22 +45,20 @@ impl Suite for HirLowerAliasReplacementSuite {
 
         let node = node.expect("should be `Some` if there are non-fatal errors");
 
-        let _ = writeln!(output, "{}\n", Header::new("Initial HIR"));
-
         let _ = writeln!(
             output,
-            "{}",
+            "{}\n\n{}",
+            Header::new("Initial HIR"),
             node.pretty_print(&environment, PrettyOptions::default().without_color())
         );
-
-        let _ = writeln!(output, "\n{}\n", Header::new("HIR after alias replacement"));
 
         let mut replacement = AliasReplacement::new(&interner);
         let Ok(node) = replacement.fold_node(node);
 
         let _ = writeln!(
-            &mut output,
-            "{}",
+            output,
+            "\n{}\n\n{}",
+            Header::new("HIR after alias replacement"),
             node.pretty_print(&environment, PrettyOptions::default().without_color())
         );
 
