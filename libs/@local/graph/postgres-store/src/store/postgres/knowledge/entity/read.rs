@@ -353,6 +353,9 @@ where
                             .add_filter(&entity_editions_filter)
                             .change_context(QueryError)?;
 
+                        // TODO: Ideally, we'd incorporate the filter in the above query, but that's
+                        //       not easily possible as the query above uses features that the query
+                        //       compiler does not support yet.
                         let permission_filter =
                             Filter::try_from(partial).change_context(QueryError)?;
                         compiler
