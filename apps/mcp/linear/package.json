@@ -23,7 +23,7 @@
     "@local/tsconfig": "0.0.0-private",
     "@modelcontextprotocol/sdk": "1.12.1",
     "dotenv-flow": "3.3.0",
-    "zod": "3.25.51",
+    "zod": "3.25.53",
     "zod-to-json-schema": "3.24.5"
   },
   "devDependencies": {
