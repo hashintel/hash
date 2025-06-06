@@ -250,11 +250,11 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
             .copied()
             .unwrap_or_else(|| self.env.intern_generic_argument_references(&[]));
 
-        // We do not propagate the arguments here, because the value the let binding is "stuck" with
-        // is the body, therefore any reference to the arguments would be misleading. We would be
-        // basically saying: hey the arguments of this node (which is just binding a value to a
-        // name) takes arguments, which isn't true, as we don't return the let value binding, but
-        // instead the body.
+        // We do not propagate the arguments to the let binding node itself, because the let
+        // expression evaluates to its body, not the binding. Propagating arguments would
+        // incorrectly suggest that the let binding itself accepts arguments, when in reality
+        // the let expression simply binds a value to a name and then evaluates the body.
+        // The arguments properly belong to the value being bound, not the binding construct.
 
         let intrinsic = self.intrinsics.get(Universe::Value, &value.id).copied();
 
