@@ -11,6 +11,7 @@ use hashql_core::{
 use hashql_hir::{fold::Fold as _, intern::Interner, lower::alias::AliasReplacement, node::Node};
 
 use super::{Suite, SuiteDiagnostic, common::process_diagnostics};
+use crate::suite::common::Header;
 
 pub(crate) struct HirLowerAliasReplacementSuite;
 
@@ -27,6 +28,7 @@ impl Suite for HirLowerAliasReplacementSuite {
     ) -> Result<String, SuiteDiagnostic> {
         let environment = Environment::new(SpanId::SYNTHETIC, heap);
         let registry = ModuleRegistry::new(&environment);
+        let mut output = String::new();
 
         let (types, lower_diagnostics) = lower(
             heap.intern_symbol("::main"),
@@ -43,21 +45,24 @@ impl Suite for HirLowerAliasReplacementSuite {
 
         let node = node.expect("should be `Some` if there are non-fatal errors");
 
-        let mut output = node
-            .pretty_print(&environment, PrettyOptions::default().without_color())
-            .to_string();
+        let _ = writeln!(output, "{}\n", Header::new("Initial HIR"));
 
-        output.push_str("\n\n--------------------------------------\n\n");
+        let _ = writeln!(
+            output,
+            "{}",
+            node.pretty_print(&environment, PrettyOptions::default().without_color())
+        );
+
+        let _ = writeln!(output, "\n{}\n", Header::new("HIR after alias replacement"));
 
         let mut replacement = AliasReplacement::new(&interner);
         let Ok(node) = replacement.fold_node(node);
 
-        write!(
+        let _ = writeln!(
             &mut output,
             "{}",
             node.pretty_print(&environment, PrettyOptions::default().without_color())
-        )
-        .expect("infallible");
+        );
 
         Ok(output)
     }
