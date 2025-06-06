@@ -648,7 +648,9 @@ export const removeEntityViewerResolver: ResolverFn<
   MutationRemoveEntityViewerArgs
 > = async (_, { entityId, viewer }, graphQLContext) => {
   if (viewer.kind !== AuthorizationSubjectKind.Public) {
-    throw new UserInputError("Only public viewers can be removed from an entity");
+    throw new UserInputError(
+      "Only public viewers can be removed from an entity",
+    );
   }
 
   const { authentication } = graphQLContext;
