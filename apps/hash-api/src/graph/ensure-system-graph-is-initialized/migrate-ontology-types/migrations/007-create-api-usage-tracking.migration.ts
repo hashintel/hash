@@ -474,13 +474,6 @@ const migrate: MigrationFunction = async ({
             subjectId: "administratorFromWeb",
           },
         },
-        {
-          // Let everyone view the service feature entities
-          relation: "viewer",
-          subject: {
-            kind: "public",
-          },
-        },
       ],
     });
   }

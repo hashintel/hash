@@ -164,12 +164,6 @@ export const removeEntityViewerMutation = gql`
   }
 `;
 
-export const isEntityPublicQuery = gql`
-  query isEntityPublic($entityId: EntityId!) {
-    isEntityPublic(entityId: $entityId)
-  }
-`;
-
 export const getEntityAuthorizationRelationshipsQuery = gql`
   query getEntityAuthorizationRelationships($entityId: EntityId!) {
     getEntityAuthorizationRelationships(entityId: $entityId) {
