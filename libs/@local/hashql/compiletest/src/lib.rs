@@ -5,9 +5,9 @@
     assert_matches,
     coverage_attribute,
     file_buffered,
+    formatting_options,
     lock_value_accessors,
     pattern,
-    formatting_options,
     // Language Features
     decl_macro,
     if_let_guard,
