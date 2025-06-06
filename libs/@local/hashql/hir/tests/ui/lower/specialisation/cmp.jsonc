@@ -1,0 +1,11 @@
+//@ run: pass
+//@ description: Test specialisation of comparison functions
+// biome-ignore format: readability
+["let", "greaterThan", [">", { "#literal": 1 }, { "#literal": 2 }],
+["let", "greaterThanOrEqual", [">=", { "#literal": 1 }, { "#literal": 2 }],
+["let", "lessThan", ["<", { "#literal": 1 }, { "#literal": 2 }],
+["let", "lessThanOrEqual", ["<=", { "#literal": 1 }, { "#literal": 2 }],
+["let", "equal", ["==", { "#literal": 1 }, { "#literal": 2 }],
+["let", "notEqual", ["!=", { "#literal": 1 }, { "#literal": 2 }],
+"greaterThan"
+]]]]]]

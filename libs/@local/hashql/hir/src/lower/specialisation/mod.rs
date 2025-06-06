@@ -200,7 +200,7 @@ impl<'heap> Fold<'heap> for Specialisation<'_, 'heap> {
                 .expect("node should only be traversed once");
 
             self.types
-                .insert(node.id, r#type)
+                .try_insert(node.id, r#type)
                 .expect("node id should be unique in types");
         }
 
