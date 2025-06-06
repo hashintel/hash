@@ -1,37 +1,22 @@
+════ Initial HIR ═══════════════════════════════════════════════════════════════
+
 Person:0(2)
 
---------------------------------------
+════ HIR after type checking ═══════════════════════════════════════════════════
 
 #ctor(fn<T:0?15: Number>(?15«Integer») -> ::main::Person:0[?15«Integer»],
 arguments: [T:0])(2)
 
---------------------------------------
+════ Types ═════════════════════════════════════════════════════════════════════
 
---------------------------------------
+┌─ 2
+└→ Integer
 
-Node:
-2
+┌─ #ctor(fn<T:0?15: Number>(?15«Integer») -> ::main::Person:0[?15«Integer»],
+│  arguments: [T:0])
+└→ fn(Integer) -> ::main::Person:0[Integer]
 
+┌─ #ctor(fn<T:0?15: Number>(?15«Integer») -> ::main::Person:0[?15«Integer»],
+│  arguments: [T:0])(2)
+└→ ::main::Person:0[Integer]
 
-Type:
-Integer
-
---------------------------------------
-
-Node:
-#ctor(fn<T:0?15: Number>(?15«Integer») -> ::main::Person:0[?15«Integer»],
-arguments: [T:0])
-
-
-Type:
-fn(Integer) -> ::main::Person:0[Integer]
-
---------------------------------------
-
-Node:
-#ctor(fn<T:0?15: Number>(?15«Integer») -> ::main::Person:0[?15«Integer»],
-arguments: [T:0])(2)
-
-
-Type:
-::main::Person:0[Integer]
