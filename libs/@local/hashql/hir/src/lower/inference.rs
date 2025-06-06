@@ -250,10 +250,13 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
             .copied()
             .unwrap_or_else(|| self.env.intern_generic_argument_references(&[]));
 
-        let intrinsic = self.intrinsics.get(Universe::Value, &value.id).copied();
+        // We do not propagate the arguments here, because the value the let binding is "stuck" with
+        // is the body, therefore any reference to the arguments would be misleading. We would be
+        // basically saying: hey the arguments of this node (which is just binding a value to a
+        // name) takes arguments, which isn't true, as we don't return the let value binding, but
+        // instead the body.
 
-        self.arguments
-            .insert_unique(Universe::Value, self.current, arguments);
+        let intrinsic = self.intrinsics.get(Universe::Value, &value.id).copied();
 
         // We only take over the arguments of values we know, the only ones that are left after
         // alias-replacement that are of note are closures. Due to the ambiguity, we do not support
