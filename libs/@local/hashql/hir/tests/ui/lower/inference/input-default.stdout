@@ -1,32 +1,19 @@
+════ Initial HIR ═══════════════════════════════════════════════════════════════
+
 #input(x, type: Number, default: #is(42, type: _0))
 
---------------------------------------
+════ HIR after type inference ══════════════════════════════════════════════════
 
 #input(x, type: Number, default: #is(42, type: _0«Integer»))
 
---------------------------------------
+════ Types ═════════════════════════════════════════════════════════════════════
 
-Node:
-42
+┌─ 42
+└→ Integer
 
+┌─ #is(42, type: _0«Integer»)
+└→ _0«Integer»
 
-Type:
-Integer
+┌─ #input(x, type: Number, default: #is(42, type: _0«Integer»))
+└→ Number
 
---------------------------------------
-
-Node:
-#is(42, type: _0«Integer»)
-
-
-Type:
-_0«Integer»
-
---------------------------------------
-
-Node:
-#input(x, type: Number, default: #is(42, type: _0«Integer»))
-
-
-Type:
-Number

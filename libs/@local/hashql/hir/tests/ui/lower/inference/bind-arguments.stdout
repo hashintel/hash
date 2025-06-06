@@ -1,42 +1,23 @@
-::core::math::add<Number, Integer>(42.12, 42)
-
---------------------------------------
+════ Initial HIR ═══════════════════════════════════════════════════════════════
 
 ::core::math::add<Number, Integer>(42.12, 42)
 
---------------------------------------
+════ HIR after type inference ══════════════════════════════════════════════════
 
-Node:
-::core::math::add<Number, Integer>
-
-
-Type:
-fn<T?13: Number, U?14: Number>(?13«Number», ?14«Integer») -> (?14«Integer»
- | ?13«Number») where<?13 = Number, ?14 = Integer>
-
---------------------------------------
-
-Node:
-42.12
-
-
-Type:
-Number
-
---------------------------------------
-
-Node:
-42
-
-
-Type:
-Integer
-
---------------------------------------
-
-Node:
 ::core::math::add<Number, Integer>(42.12, 42)
 
+════ Types ═════════════════════════════════════════════════════════════════════
 
-Type:
-_0«Number»
+┌─ ::core::math::add<Number, Integer>
+└→ fn<T?13: Number, U?14: Number>(?13«Number», ?14«Integer») -> (?14«Integer»
+    | ?13«Number») where<?13 = Number, ?14 = Integer>
+
+┌─ 42.12
+└→ Number
+
+┌─ 42
+└→ Integer
+
+┌─ ::core::math::add<Number, Integer>(42.12, 42)
+└→ _0«Number»
+
