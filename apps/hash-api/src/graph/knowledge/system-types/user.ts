@@ -402,12 +402,6 @@ export const createUser: ImpureGraphFunction<
           },
         },
         {
-          relation: "viewer",
-          subject: {
-            kind: "public",
-          },
-        },
-        {
           relation: "setting",
           subject: {
             kind: "setting",

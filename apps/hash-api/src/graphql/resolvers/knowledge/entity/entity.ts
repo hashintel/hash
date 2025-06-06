@@ -1,17 +1,10 @@
-import type {
-  ActorEntityUuid,
-  ActorGroupEntityUuid,
-  Entity,
-  EntityId,
-  WebId,
-} from "@blockprotocol/type-system";
+import type { Entity, EntityId, WebId } from "@blockprotocol/type-system";
 import {
   extractEntityUuidFromEntityId,
   mustHaveAtLeastOne,
   splitEntityId,
 } from "@blockprotocol/type-system";
 import { convertBpFilterToGraphFilter } from "@local/hash-backend-utils/convert-bp-filter-to-graph-filter";
-import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type {
   Filter,
   QueryTemporalAxesUnresolved,
@@ -37,18 +30,11 @@ import {
 } from "apollo-server-express";
 
 import {
-  addEntityAdministrator,
-  addEntityEditor,
   canUserReadEntity,
-  checkEntityPermission,
   countEntities,
   createEntityWithLinks,
-  getEntityAuthorizationRelationships,
   getEntitySubgraphResponse,
   getLatestEntityById,
-  modifyEntityAuthorizationRelationships,
-  removeEntityAdministrator,
-  removeEntityEditor,
   updateEntity,
 } from "../../../../graph/knowledge/primitive/entity";
 import {
@@ -57,8 +43,6 @@ import {
   updateLinkEntity,
 } from "../../../../graph/knowledge/primitive/link-entity";
 import type {
-  AuthorizationViewerInput,
-  EntityAuthorizationRelationship,
   MutationAddEntityEditorArgs,
   MutationAddEntityOwnerArgs,
   MutationAddEntityViewerArgs,
@@ -73,16 +57,11 @@ import type {
   QueryCountEntitiesArgs,
   QueryGetEntityArgs,
   QueryGetEntitySubgraphArgs,
-  QueryIsEntityPublicArgs,
   QueryResolvers,
   QueryValidateEntityArgs,
   ResolverFn,
 } from "../../../api-types.gen";
-import {
-  AccountGroupAuthorizationSubjectRelation,
-  AuthorizationSubjectKind,
-  EntityAuthorizationRelation,
-} from "../../../api-types.gen";
+import { AuthorizationSubjectKind } from "../../../api-types.gen";
 import type { GraphQLContext, LoggedInGraphQLContext } from "../../../context";
 import { graphQLContextToImpureGraphContext } from "../../util";
 import { getUserPermissionsOnSubgraph } from "../shared/get-user-permissions-on-subgraph";
@@ -576,29 +555,6 @@ export const removeEntityEditorResolver: ResolverFn<
   return true;
 };
 
-const parseGqlAuthorizationViewerInput = ({
-  kind,
-  viewer,
-}: AuthorizationViewerInput) => {
-  if (kind === AuthorizationSubjectKind.Public) {
-    return { kind: "public" } as const;
-  } else if (kind === AuthorizationSubjectKind.Account) {
-    if (!viewer) {
-      throw new UserInputError("Viewer Account ID must be specified");
-    }
-    return { kind: "account", subjectId: viewer as ActorEntityUuid } as const;
-  } else {
-    if (!viewer) {
-      throw new UserInputError("Viewer Account Group ID must be specified");
-    }
-    return {
-      kind: "accountGroup",
-      subjectId: viewer as ActorGroupEntityUuid,
-      subjectSet: "member",
-    } as const;
-  }
-};
-
 export const addEntityViewerResolver: ResolverFn<
   Promise<boolean>,
   Record<string, never>,
@@ -611,20 +567,6 @@ export const addEntityViewerResolver: ResolverFn<
 
   const { authentication } = graphQLContext;
   const context = graphQLContextToImpureGraphContext(graphQLContext);
-
-  await modifyEntityAuthorizationRelationships(context, authentication, [
-    {
-      operation: "touch",
-      relationship: {
-        resource: {
-          kind: "entity",
-          resourceId: entityId,
-        },
-        relation: "viewer",
-        subject: parseGqlAuthorizationViewerInput(viewer),
-      },
-    },
-  ]);
 
   const entityUuid = extractEntityUuidFromEntityId(entityId);
   await createPolicy(context.graphApi, authentication, {
@@ -656,20 +598,6 @@ export const removeEntityViewerResolver: ResolverFn<
   const { authentication } = graphQLContext;
   const context = graphQLContextToImpureGraphContext(graphQLContext);
 
-  await modifyEntityAuthorizationRelationships(context, authentication, [
-    {
-      operation: "delete",
-      relationship: {
-        resource: {
-          kind: "entity",
-          resourceId: entityId,
-        },
-        relation: "viewer",
-        subject: parseGqlAuthorizationViewerInput(viewer),
-      },
-    },
-  ]);
-
   const entityUuid = extractEntityUuidFromEntityId(entityId);
   const [policy] = await queryPolicies(context.graphApi, authentication, {
     name: `public-view-entity-${entityUuid}`,
@@ -685,59 +613,4 @@ export const removeEntityViewerResolver: ResolverFn<
   await deletePolicyById(context.graphApi, authentication, policy.id);
 
   return true;
-};
-
-export const isEntityPublicResolver: ResolverFn<
-  Promise<boolean>,
-  Record<string, never>,
-  LoggedInGraphQLContext,
-  QueryIsEntityPublicArgs
-> = async (_, { entityId }, graphQLContext) =>
-  checkEntityPermission(
-    graphQLContextToImpureGraphContext(graphQLContext),
-    { actorId: publicUserAccountId },
-    { entityId, permission: "view" },
-  );
-
-export const getEntityAuthorizationRelationshipsResolver: ResolverFn<
-  EntityAuthorizationRelationship[],
-  Record<string, never>,
-  LoggedInGraphQLContext,
-  QueryIsEntityPublicArgs
-> = async (_, { entityId }, graphQLContext) => {
-  const context = graphQLContextToImpureGraphContext(graphQLContext);
-
-  const relationships = await getEntityAuthorizationRelationships(
-    context,
-    graphQLContext.authentication,
-    { entityId },
-  );
-
-  /**
-   * @todo align definitions with the ones in the API
-   *
-   * @see https://linear.app/hash/issue/H-1115/use-permission-types-from-graph-in-graphql
-   */
-  return relationships
-    .filter(({ subject }) =>
-      ["account", "accountGroup", "public"].includes(subject.kind),
-    )
-    .map(({ resource, relation, subject }) => ({
-      objectEntityId: resource.resourceId,
-      relation:
-        relation === "editor"
-          ? EntityAuthorizationRelation.Editor
-          : relation === "administrator"
-            ? EntityAuthorizationRelation.Owner
-            : EntityAuthorizationRelation.Viewer,
-      subject:
-        subject.kind === "accountGroup"
-          ? {
-              accountGroupId: subject.subjectId,
-              relation: AccountGroupAuthorizationSubjectRelation.Member,
-            }
-          : subject.kind === "account"
-            ? { accountId: subject.subjectId }
-            : { public: true },
-    }));
 };
