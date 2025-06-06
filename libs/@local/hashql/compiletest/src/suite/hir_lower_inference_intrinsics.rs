@@ -15,7 +15,10 @@ use hashql_hir::{
     visit::Visitor as _,
 };
 
-use super::{Suite, SuiteDiagnostic, common::process_diagnostics};
+use super::{
+    Suite, SuiteDiagnostic,
+    common::{Annotated, Header, process_diagnostics},
+};
 
 pub(crate) struct HirLowerTypeInferenceIntrinsicsSuite;
 
@@ -32,6 +35,7 @@ impl Suite for HirLowerTypeInferenceIntrinsicsSuite {
     ) -> Result<String, SuiteDiagnostic> {
         let mut environment = Environment::new(expr.span, heap);
         let registry = ModuleRegistry::new(&environment);
+        let mut output = String::new();
 
         let (types, lower_diagnostics) = lower(
             heap.intern_symbol("::main"),
@@ -48,11 +52,12 @@ impl Suite for HirLowerTypeInferenceIntrinsicsSuite {
 
         let node = node.expect("should be `Some` if there are non-fatal errors");
 
-        let mut output = node
-            .pretty_print(&environment, PrettyOptions::default().without_color())
-            .to_string();
-
-        output.push_str("\n\n--------------------------------------\n\n");
+        let _ = writeln!(
+            output,
+            "{}\n\n{}",
+            Header::new("Initial HIR"),
+            node.pretty_print(&environment, PrettyOptions::default().without_color())
+        );
 
         let mut converter =
             ConvertTypeConstructor::new(&interner, &types.locals, &registry, &environment);
@@ -85,31 +90,27 @@ impl Suite for HirLowerTypeInferenceIntrinsicsSuite {
 
         environment.substitution = substitution;
 
-        write!(
-            &mut output,
-            "{}",
+        let _ = writeln!(
+            output,
+            "\n{}\n\n{}",
+            Header::new("HIR after type inference"),
             node.pretty_print(&environment, PrettyOptions::default().without_color())
-        )
-        .expect("infallible");
+        );
+
+        let _ = writeln!(output, "\n{}\n", Header::new("Intrinsics"));
 
         for (hir_id, intrinsic) in inference_intrinsics {
-            output.push_str("\n\n--------------------------------------\n\n");
-
-            output.push_str("Node:\n");
-
-            writeln!(
-                &mut output,
-                "{}\n\n",
-                interner
-                    .node
-                    .index(hir_id)
-                    .pretty_print(&environment, PrettyOptions::default().without_color())
-            )
-            .expect("infallible");
-
-            output.push_str("Intrinsic:\n");
-
-            write!(&mut output, "{intrinsic}").expect("infallible");
+            let _ = writeln!(
+                output,
+                "{}\n",
+                Annotated {
+                    content: interner
+                        .node
+                        .index(hir_id)
+                        .pretty_print(&environment, PrettyOptions::default().without_color()),
+                    annotation: intrinsic
+                }
+            );
         }
 
         Ok(output)

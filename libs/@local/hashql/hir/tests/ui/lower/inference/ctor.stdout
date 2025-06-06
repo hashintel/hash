@@ -1,35 +1,22 @@
+════ Initial HIR ═══════════════════════════════════════════════════════════════
+
 ::core::option::Some(2)
 
---------------------------------------
+════ HIR after type inference ══════════════════════════════════════════════════
 
 #ctor(fn<T?13>(?13«Integer») -> ::core::option::Some[?13«Integer»],
 arguments: [T])(2)
 
---------------------------------------
+════ Types ═════════════════════════════════════════════════════════════════════
 
-Node:
-2
+┌─ 2
+└→ Integer
 
+┌─ #ctor(fn<T?13>(?13«Integer») -> ::core::option::Some[?13«Integer»],
+│  arguments: [T])
+└→ fn<T?13>(?13«Integer») -> ::core::option::Some[?13«Integer»]
 
-Type:
-Integer
+┌─ #ctor(fn<T?13>(?13«Integer») -> ::core::option::Some[?13«Integer»],
+│  arguments: [T])(2)
+└→ _0«::core::option::Some[Integer]»
 
---------------------------------------
-
-Node:
-#ctor(fn<T?13>(?13«Integer») -> ::core::option::Some[?13«Integer»],
-arguments: [T])
-
-
-Type:
-fn<T?13>(?13«Integer») -> ::core::option::Some[?13«Integer»]
-
---------------------------------------
-
-Node:
-#ctor(fn<T?13>(?13«Integer») -> ::core::option::Some[?13«Integer»],
-arguments: [T])(2)
-
-
-Type:
-_0«::core::option::Some[Integer]»
