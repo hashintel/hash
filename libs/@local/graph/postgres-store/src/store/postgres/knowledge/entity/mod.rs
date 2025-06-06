@@ -122,7 +122,7 @@ where
     /// Internal method to read an [`Entity`] into a [`TraversalContext`].
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
-    #[tracing::instrument(level = "info", skip(self, traversal_context, subgraph, consistency))]
+    #[tracing::instrument(level = "info", skip(self, traversal_context, provider, subgraph))]
     pub(crate) async fn traverse_entities(
         &self,
         mut entity_queue: Vec<(
@@ -130,9 +130,8 @@ where
             GraphResolveDepths,
             RightBoundedTemporalInterval<VariableAxis>,
         )>,
+        provider: &StoreProvider<'_, Self>,
         traversal_context: &mut TraversalContext,
-        actor_id: ActorEntityUuid,
-        consistency: Consistency<'static>,
         subgraph: &mut Subgraph,
     ) -> Result<(), Report<QueryError>> {
         let variable_axis = subgraph.temporal_axes.resolved.variable_time_axis();
@@ -213,9 +212,7 @@ where
                 entity_type_queue.extend(
                     Self::filter_entity_types_by_permission(
                         self.read_shared_edges(&traversal_data, Some(0)).await?,
-                        actor_id,
-                        &self.authorization_api,
-                        consistency,
+                        provider,
                     )
                     .instrument(tracing::trace_span!("post_filter_entity_types"))
                     .await?
@@ -240,42 +237,9 @@ where
                 if let Some(traversal_data) =
                     knowledge_edges_to_traverse.get(&(edge_kind, edge_direction))
                 {
-                    let (entity_ids, knowledge_edges): (Vec<_>, Vec<_>) = self
-                        .read_knowledge_edges(traversal_data, table, edge_direction)
-                        .await?
-                        .unzip();
-
-                    if knowledge_edges.is_empty() {
-                        continue;
-                    }
-
-                    let permissions = self
-                        .authorization_api
-                        .check_entities_permission(
-                            actor_id,
-                            EntityPermission::View,
-                            // TODO: Filter for entities, which were not already added to the
-                            //       subgraph to avoid unnecessary lookups.
-                            entity_ids.iter().copied(),
-                            consistency,
-                        )
-                        .await
-                        .change_context(QueryError)?
-                        .0;
-
                     entity_queue.extend(
-                        knowledge_edges
-                            .into_iter()
-                            .zip(entity_ids)
-                            .filter_map(|(edge, entity_id)| {
-                                // We can unwrap here because we checked permissions for all
-                                // entities in question.
-                                permissions
-                                    .get(&entity_id.entity_uuid)
-                                    .copied()
-                                    .unwrap_or(true)
-                                    .then_some(edge)
-                            })
+                        self.read_knowledge_edges(traversal_data, table, edge_direction, provider)
+                            .await?
                             .flat_map(|edge| {
                                 subgraph.insert_edge(
                                     &edge.left_endpoint,
@@ -302,14 +266,8 @@ where
             }
         }
 
-        self.traverse_entity_types(
-            entity_type_queue,
-            traversal_context,
-            actor_id,
-            consistency,
-            subgraph,
-        )
-        .await?;
+        self.traverse_entity_types(entity_type_queue, traversal_context, provider, subgraph)
+            .await?;
 
         Ok(())
     }
@@ -1388,9 +1346,8 @@ where
                         )
                     })
                     .collect(),
+                &provider,
                 &mut traversal_context,
-                actor_id,
-                Consistency::FullyConsistent,
                 &mut subgraph,
             )
             .await?;

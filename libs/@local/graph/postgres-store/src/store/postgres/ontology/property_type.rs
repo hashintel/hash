@@ -64,12 +64,10 @@ where
     C: AsClient,
     A: AuthorizationApi,
 {
-    #[tracing::instrument(level = "debug", skip(property_types, authorization_api, consistency))]
+    #[tracing::instrument(level = "debug", skip(property_types, provider))]
     pub(crate) async fn filter_property_types_by_permission<I, T>(
         property_types: impl IntoIterator<Item = (I, T)> + Send,
-        actor_id: ActorEntityUuid,
-        authorization_api: &A,
-        consistency: Consistency<'static>,
+        provider: &StoreProvider<'_, Self>,
     ) -> Result<impl Iterator<Item = T>, Report<QueryError>>
     where
         I: Into<PropertyTypeUuid> + Send,
@@ -80,21 +78,37 @@ where
             .map(|(id, edge)| (id.into(), edge))
             .unzip();
 
-        let permissions = authorization_api
-            .check_property_types_permission(
-                actor_id,
-                PropertyTypePermission::View,
-                ids.iter().copied(),
-                consistency,
-            )
-            .await
-            .change_context(QueryError)?
-            .0;
+        let permissions =
+            if let Some((actor_id, consistency, ref _policy_set, ref _policy_context)) =
+                provider.authorization
+            {
+                Some(
+                    provider
+                        .store
+                        .authorization_api
+                        .check_property_types_permission(
+                            actor_id
+                                .map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from),
+                            PropertyTypePermission::View,
+                            ids.iter().copied(),
+                            consistency,
+                        )
+                        .await
+                        .change_context(QueryError)?
+                        .0,
+                )
+            } else {
+                None
+            };
 
         Ok(ids
             .into_iter()
             .zip(property_types)
             .filter_map(move |(id, property_type)| {
+                let Some(permissions) = &permissions else {
+                    return Some(property_type);
+                };
+
                 permissions
                     .get(&id)
                     .copied()
@@ -200,7 +214,7 @@ where
     /// Internal method to read a [`PropertyTypeWithMetadata`] into two [`TraversalContext`]s.
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
-    #[tracing::instrument(level = "info", skip(self, traversal_context, subgraph, consistency))]
+    #[tracing::instrument(level = "info", skip(self, traversal_context, provider, subgraph))]
     pub(crate) async fn traverse_property_types(
         &self,
         mut property_type_queue: Vec<(
@@ -209,8 +223,7 @@ where
             RightBoundedTemporalInterval<VariableAxis>,
         )>,
         traversal_context: &mut TraversalContext,
-        actor_id: ActorEntityUuid,
-        consistency: Consistency<'static>,
+        provider: &StoreProvider<'_, Self>,
         subgraph: &mut Subgraph,
     ) -> Result<(), Report<QueryError>> {
         let mut data_type_queue = Vec::new();
@@ -249,9 +262,7 @@ where
                             ReferenceTable::PropertyTypeConstrainsValuesOn,
                         )
                         .await?,
-                        actor_id,
-                        &self.authorization_api,
-                        consistency,
+                        provider,
                     )
                     .await?
                     .flat_map(|edge| {
@@ -281,9 +292,7 @@ where
                             ReferenceTable::PropertyTypeConstrainsPropertiesOn,
                         )
                         .await?,
-                        actor_id,
-                        &self.authorization_api,
-                        consistency,
+                        provider,
                     )
                     .await?
                     .flat_map(|edge| {
@@ -304,14 +313,8 @@ where
             }
         }
 
-        self.traverse_data_types(
-            data_type_queue,
-            traversal_context,
-            actor_id,
-            consistency,
-            subgraph,
-        )
-        .await?;
+        self.traverse_data_types(data_type_queue, traversal_context, provider, subgraph)
+            .await?;
 
         Ok(())
     }
@@ -651,8 +654,7 @@ where
                 })
                 .collect(),
             &mut traversal_context,
-            actor_id,
-            Consistency::FullyConsistent,
+            &provider,
             &mut subgraph,
         )
         .await?;
