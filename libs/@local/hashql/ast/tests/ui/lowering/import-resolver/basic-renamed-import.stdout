@@ -1,5 +1,6 @@
-Expr#4294967040@20
+Expr#4294967040@22
   ExprKind (Path)
-    Path#4294967040@20 (rooted: true)
-      PathSegment#4294967040@19 (name: math)
-      PathSegment#4294967040@19 (name: bit_shl)
+    Path#4294967040@22 (rooted: true)
+      PathSegment#4294967040@21 (name: core)
+      PathSegment#4294967040@21 (name: bits)
+      PathSegment#4294967040@21 (name: shl)

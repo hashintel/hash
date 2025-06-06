@@ -1,15 +1,15 @@
-::math::add<Number, Integer>(42.12, 42)
+::core::math::add<Number, Integer>(42.12, 42)
 
 --------------------------------------
 
-::math::add<Number, Integer>(42.12, 42)
+::core::math::add<Number, Integer>(42.12, 42)
 
 --------------------------------------
 
 --------------------------------------
 
 Node:
-::math::add<Number, Integer>
+::core::math::add<Number, Integer>
 
 
 Type:
@@ -36,7 +36,7 @@ Integer
 --------------------------------------
 
 Node:
-::math::add<Number, Integer>(42.12, 42)
+::core::math::add<Number, Integer>(42.12, 42)
 
 
 Type:

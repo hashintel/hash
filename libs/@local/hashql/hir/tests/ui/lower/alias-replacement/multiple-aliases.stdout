@@ -2,10 +2,10 @@
 #let y:0 = 20 in
 #let a:0 = x:0 in
 #let b:0 = y:0 in
-::math::add(::math::mul(a:0, b:0), ::math::sub(x:0, y:0))
+::core::math::add(::core::math::mul(a:0, b:0), ::core::math::sub(x:0, y:0))
 
 --------------------------------------
 
 #let x:0 = 10 in
 #let y:0 = 20 in
-::math::add(::math::mul(x:0, y:0), ::math::sub(x:0, y:0))
+::core::math::add(::core::math::mul(x:0, y:0), ::core::math::sub(x:0, y:0))

@@ -4,5 +4,5 @@
   "use",
   "kernel::type",
   { "#tuple": ["Dict"] },
-  ["use", "math", { "#struct": { "add": "Dict" } }, "Dict"]
+  ["use", "core::math", { "#struct": { "add": "Dict" } }, "Dict"]
 ]

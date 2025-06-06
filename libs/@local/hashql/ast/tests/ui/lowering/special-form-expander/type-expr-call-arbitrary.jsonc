@@ -3,6 +3,6 @@
 [
   "::kernel::special_form::is",
   { "#literal": true },
-  ["::math::headpat", "Int", "Float"]
+  ["::core::math::headpat", "Int", "Float"]
   //~^ ERROR This function cannot be used as a type constructor
 ]

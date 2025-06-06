@@ -1,9 +1,9 @@
 [special-form-expander::invalid-use-import] Error: Invalid use import expression
-   ╭─[ <unknown>:6:42 ]
+   ╭─[ <unknown>:6:48 ]
    │
- 6 │   { "#tuple": ["::math::sub"], "#type": "Number" },
-   │                                          ───┬──  
-   │                                             ╰──── Remove this type annotation
+ 6 │   { "#tuple": ["::core::math::sub"], "#type": "Number" },
+   │                                                ───┬──  
+   │                                                   ╰──── Remove this type annotation
    │ 
    │ Help: Use import expressions cannot have type annotations. Import expressions define which symbols to import, and do not have a meaningful type in this context.
    │ 

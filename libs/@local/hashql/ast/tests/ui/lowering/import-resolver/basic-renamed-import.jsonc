@@ -1,3 +1,3 @@
 //@ run: pass
 //@ description: Tests that imports with aliases resolve correctly and the alias maps to the original item
-["use", "math", { "#struct": { "bit_shl": "<<<" } }, "<<<"]
+["use", "core::bits", { "#struct": { "shl": "bit_shl" } }, "bit_shl"]

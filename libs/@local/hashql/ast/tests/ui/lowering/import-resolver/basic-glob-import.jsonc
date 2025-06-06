@@ -2,11 +2,7 @@
 //@ description: Tests that glob imports (*) bring all module items into scope and resolve correctly
 [
   "use",
-  "math",
+  "core::bits",
   "*",
-  [
-    "bit_shl",
-    ["bit_shr", { "#literal": 2 }, { "#literal": 3 }],
-    { "#literal": 4 }
-  ]
+  ["shl", ["shr", { "#literal": 2 }, { "#literal": 3 }], { "#literal": 4 }]
 ]

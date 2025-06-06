@@ -1,11 +1,11 @@
 [import-resolver::unresolved-import] Error: Unresolved import
-   ╭─[ <unknown>:3:31 ]
+   ╭─[ <unknown>:3:37 ]
    │
- 3 │ ["use", "math", { "#tuple": ["lshift"] }, "_"]
-   │          ──┬─                 ───┬──  
-   │            │                     ╰──── 'lshift' not found in module 'math'
-   │            │                          
-   │            ╰────────────────────────── This module
+ 3 │ ["use", "core::bits", { "#tuple": ["lshift"] }, "_"]
+   │                ──┬─                 ───┬──  
+   │                  │                     ╰──── 'lshift' not found in module 'core::bits'
+   │                  │                          
+   │                  ╰────────────────────────── This module
    │ 
    │ Help: Check the spelling and ensure the item is exported and available in this context.
    │ 

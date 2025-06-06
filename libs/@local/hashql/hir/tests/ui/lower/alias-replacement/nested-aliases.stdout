@@ -1,9 +1,9 @@
 #let x:0 = 42 in
 #let y:0 = x:0 in
 #let z:0 = x:0 in
-::math::add(z:0, x:0)
+::core::math::add(z:0, x:0)
 
 --------------------------------------
 
 #let x:0 = 42 in
-::math::add(x:0, x:0)
+::core::math::add(x:0, x:0)

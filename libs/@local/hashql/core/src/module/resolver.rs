@@ -468,8 +468,8 @@ mod test {
 
         let result = resolver
             .resolve_absolute([
-                heap.intern_symbol("kernel"),
-                heap.intern_symbol("type"),
+                heap.intern_symbol("core"),
+                heap.intern_symbol("url"),
                 heap.intern_symbol("Url"),
             ])
             .expect("Resolution should succeed");
@@ -521,8 +521,8 @@ mod test {
 
         let result = resolver
             .resolve_absolute([
-                heap.intern_symbol("kernel"),
-                heap.intern_symbol("type"),
+                heap.intern_symbol("core"),
+                heap.intern_symbol("url"),
                 heap.intern_symbol("Url"),
             ])
             .expect("Resolution should succeed");
@@ -559,7 +559,11 @@ mod test {
         };
 
         let result = resolver
-            .resolve_absolute([heap.intern_symbol("math"), heap.intern_symbol("add")])
+            .resolve_absolute([
+                heap.intern_symbol("core"),
+                heap.intern_symbol("math"),
+                heap.intern_symbol("add"),
+            ])
             .expect("Resolution should succeed");
 
         let items: Vec<_> = result.collect();
@@ -733,6 +737,7 @@ mod test {
 
         let error = resolver
             .resolve_absolute([
+                heap.intern_symbol("core"),
                 heap.intern_symbol("math"),
                 heap.intern_symbol("add"), // This is a value, not a module
                 heap.intern_symbol("anything"),
@@ -742,7 +747,7 @@ mod test {
         assert_matches!(
             error,
             ResolutionError::ModuleRequired {
-                depth: 1,
+                depth: 2,
                 found: Some(Universe::Value)
             }
         );
@@ -861,7 +866,7 @@ mod test {
         namespace
             .import(
                 heap.intern_symbol("foo"),
-                [heap.intern_symbol("kernel"), heap.intern_symbol("type")],
+                [heap.intern_symbol("core"), heap.intern_symbol("url")],
                 ImportOptions {
                     glob: false,
                     mode: ResolutionMode::Absolute,

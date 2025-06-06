@@ -9,5 +9,5 @@
     }
   },
   "Number",
-  ["math::add", "x", { "#literal": 1 }] // 'math::add' should be resolved as a path, 'x' as a parameter
+  ["core::math::add", "x", { "#literal": 1 }] // 'core::math::add' should be resolved as a path, 'x' as a parameter
 ]

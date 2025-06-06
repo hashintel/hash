@@ -1,35 +1,37 @@
-Expr#4294967040@27
+Expr#4294967040@29
   ExprKind (Call)
-    CallExpr#4294967040@27
-      Expr#4294967040@15
+    CallExpr#4294967040@29
+      Expr#4294967040@17
         ExprKind (Path)
-          Path#4294967040@15 (rooted: true)
-            PathSegment#4294967040@14 (name: math)
-            PathSegment#4294967040@14 (name: bit_shl)
-      Argument#4294967040@24
-        Expr#4294967040@24
+          Path#4294967040@17 (rooted: true)
+            PathSegment#4294967040@16 (name: core)
+            PathSegment#4294967040@16 (name: bits)
+            PathSegment#4294967040@16 (name: shl)
+      Argument#4294967040@26
+        Expr#4294967040@26
           ExprKind (Call)
-            CallExpr#4294967040@24
-              Expr#4294967040@19
+            CallExpr#4294967040@26
+              Expr#4294967040@21
                 ExprKind (Path)
-                  Path#4294967040@19 (rooted: true)
-                    PathSegment#4294967040@18 (name: math)
-                    PathSegment#4294967040@18 (name: bit_shr)
-              Argument#4294967040@21
-                Expr#4294967040@21
-                  ExprKind (Literal)
-                    LiteralExpr#4294967040@20
-                      LiteralKind (Integer)
-                        IntegerLiteral (2)
+                  Path#4294967040@21 (rooted: true)
+                    PathSegment#4294967040@20 (name: core)
+                    PathSegment#4294967040@20 (name: bits)
+                    PathSegment#4294967040@20 (name: shr)
               Argument#4294967040@23
                 Expr#4294967040@23
                   ExprKind (Literal)
                     LiteralExpr#4294967040@22
                       LiteralKind (Integer)
+                        IntegerLiteral (2)
+              Argument#4294967040@25
+                Expr#4294967040@25
+                  ExprKind (Literal)
+                    LiteralExpr#4294967040@24
+                      LiteralKind (Integer)
                         IntegerLiteral (3)
-      Argument#4294967040@26
-        Expr#4294967040@26
+      Argument#4294967040@28
+        Expr#4294967040@28
           ExprKind (Literal)
-            LiteralExpr#4294967040@25
+            LiteralExpr#4294967040@27
               LiteralKind (Integer)
                 IntegerLiteral (4)
