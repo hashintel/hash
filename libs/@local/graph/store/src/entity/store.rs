@@ -419,7 +419,8 @@ pub trait EntityStore {
         actor_id: ActorEntityUuid,
         consistency: Consistency<'_>,
         params: ValidateEntityParams<'_>,
-    ) -> impl Future<Output = HashMap<usize, EntityValidationReport>> + Send {
+    ) -> impl Future<Output = Result<HashMap<usize, EntityValidationReport>, Report<QueryError>>> + Send
+    {
         self.validate_entities(actor_id, consistency, vec![params])
     }
 
@@ -433,7 +434,7 @@ pub trait EntityStore {
         actor_id: ActorEntityUuid,
         consistency: Consistency<'_>,
         params: Vec<ValidateEntityParams<'_>>,
-    ) -> impl Future<Output = HashMap<usize, EntityValidationReport>> + Send;
+    ) -> impl Future<Output = Result<HashMap<usize, EntityValidationReport>, Report<QueryError>>> + Send;
 
     /// Get a list of entities specified by the [`GetEntitiesParams`].
     ///

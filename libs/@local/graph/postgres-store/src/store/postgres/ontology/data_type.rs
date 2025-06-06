@@ -65,7 +65,7 @@ use crate::store::{
             Table, rows::DataTypeConversionsRow,
         },
     },
-    validation::{StoreCache, StoreProvider},
+    validation::StoreProvider,
 };
 
 impl<C, A> PostgresStore<C, A>
@@ -73,12 +73,12 @@ where
     C: AsClient,
     A: AuthorizationApi,
 {
-    #[tracing::instrument(level = "trace", skip(data_types, authorization_api, zookie))]
+    #[tracing::instrument(level = "trace", skip(data_types, authorization_api, consistency))]
     pub(crate) async fn filter_data_types_by_permission<I, T>(
         data_types: impl IntoIterator<Item = (I, T)> + Send,
         actor_id: ActorEntityUuid,
         authorization_api: &A,
-        zookie: &Zookie<'static>,
+        consistency: Consistency<'static>,
     ) -> Result<impl Iterator<Item = T>, Report<QueryError>>
     where
         I: Into<DataTypeUuid> + Send,
@@ -94,7 +94,7 @@ where
                 actor_id,
                 DataTypePermission::View,
                 ids.iter().copied(),
-                Consistency::AtExactSnapshot(zookie),
+                consistency,
             )
             .await
             .change_context(QueryError)?
@@ -264,7 +264,7 @@ where
         )>,
         traversal_context: &mut TraversalContext,
         actor_id: ActorEntityUuid,
-        zookie: &Zookie<'static>,
+        consistency: Consistency<'static>,
         subgraph: &mut Subgraph,
     ) -> Result<(), Report<QueryError>> {
         while !data_type_queue.is_empty() {
@@ -307,7 +307,7 @@ where
                             .await?,
                             actor_id,
                             &self.authorization_api,
-                            zookie,
+                            consistency,
                         )
                         .await?
                         .flat_map(|edge| {
@@ -646,11 +646,12 @@ where
     ) -> Result<GetDataTypesResponse, Report<QueryError>> {
         params
             .filter
-            .convert_parameters(&StoreProvider {
-                store: self,
-                cache: StoreCache::default(),
-                authorization: Some((actor_id, Consistency::FullyConsistent)),
-            })
+            .convert_parameters(
+                &StoreProvider::new(self)
+                    .with_authorization(actor_id, Consistency::FullyConsistent)
+                    .await
+                    .change_context(QueryError)?,
+            )
             .await
             .change_context(QueryError)?;
 
@@ -669,11 +670,12 @@ where
     ) -> Result<usize, Report<QueryError>> {
         params
             .filter
-            .convert_parameters(&StoreProvider {
-                store: self,
-                cache: StoreCache::default(),
-                authorization: Some((actor_id, Consistency::FullyConsistent)),
-            })
+            .convert_parameters(
+                &StoreProvider::new(self)
+                    .with_authorization(actor_id, Consistency::FullyConsistent)
+                    .await
+                    .change_context(QueryError)?,
+            )
             .await
             .change_context(QueryError)?;
 
@@ -694,13 +696,14 @@ where
         actor_id: ActorEntityUuid,
         mut params: GetDataTypeSubgraphParams<'_>,
     ) -> Result<GetDataTypeSubgraphResponse, Report<QueryError>> {
+        let provider = StoreProvider::new(self)
+            .with_authorization(actor_id, Consistency::FullyConsistent)
+            .await
+            .change_context(QueryError)?;
+
         params
             .filter
-            .convert_parameters(&StoreProvider {
-                store: self,
-                cache: StoreCache::default(),
-                authorization: Some((actor_id, Consistency::FullyConsistent)),
-            })
+            .convert_parameters(&provider)
             .await
             .change_context(QueryError)?;
 
@@ -713,7 +716,7 @@ where
                 cursor,
                 count,
             },
-            zookie,
+            _zookie,
         ) = self
             .get_data_types_impl(
                 actor_id,
@@ -767,7 +770,7 @@ where
                 .collect(),
             &mut traversal_context,
             actor_id,
-            &zookie,
+            Consistency::FullyConsistent,
             &mut subgraph,
         )
         .await?;

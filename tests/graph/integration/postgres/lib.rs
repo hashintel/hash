@@ -783,7 +783,7 @@ where
         actor_id: ActorEntityUuid,
         consistency: Consistency<'_>,
         params: Vec<ValidateEntityParams<'_>>,
-    ) -> HashMap<usize, EntityValidationReport> {
+    ) -> Result<HashMap<usize, EntityValidationReport>, Report<QueryError>> {
         self.store
             .validate_entities(actor_id, consistency, params)
             .await

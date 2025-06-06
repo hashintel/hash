@@ -189,7 +189,7 @@ impl ZanzibarBackend for SpiceDbOpenApi {
     }
 
     async fn modify_relationships<T>(
-        &mut self,
+        &self,
         relationships: impl IntoIterator<Item = (ModifyRelationshipOperation, T), IntoIter: Send> + Send,
     ) -> Result<ModifyRelationshipResponse, Report<ModifyRelationshipError>>
     where
