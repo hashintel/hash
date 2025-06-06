@@ -7,6 +7,7 @@
     file_buffered,
     lock_value_accessors,
     pattern,
+    formatting_options,
     // Language Features
     decl_macro,
     if_let_guard,
