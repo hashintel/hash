@@ -1,5 +1,5 @@
 //@ run: pass
-//@ description: Test specialisation of comparison functions
+//@ description: Test specialization of comparison functions
 // biome-ignore format: readability
 ["let", "greaterThan", [">", { "#literal": 1 }, { "#literal": 2 }],
 ["let", "greaterThanOrEqual", [">=", { "#literal": 1 }, { "#literal": 2 }],

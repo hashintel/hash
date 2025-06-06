@@ -10,10 +10,10 @@ use hashql_diagnostics::{
     severity::Severity,
 };
 
-pub type SpecialisationDiagnostic = Diagnostic<SpecialisationDiagnosticCategory, SpanId>;
+pub type SpecializationDiagnostic = Diagnostic<SpecializationDiagnosticCategory, SpanId>;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum SpecialisationDiagnosticCategory {
+pub enum SpecializationDiagnosticCategory {
     UnsupportedIntrinsic,
     UnknownIntrinsic,
 }
@@ -28,13 +28,13 @@ const UNKNOWN_INTRINSIC: TerminalDiagnosticCategory = TerminalDiagnosticCategory
     name: "Unknown intrinsic operation",
 };
 
-impl DiagnosticCategory for SpecialisationDiagnosticCategory {
+impl DiagnosticCategory for SpecializationDiagnosticCategory {
     fn id(&self) -> Cow<'_, str> {
-        Cow::Borrowed("specialisation")
+        Cow::Borrowed("specialization")
     }
 
     fn name(&self) -> Cow<'_, str> {
-        Cow::Borrowed("Specialisation")
+        Cow::Borrowed("Specialization")
     }
 
     fn subcategory(&self) -> Option<&dyn DiagnosticCategory> {
@@ -53,9 +53,9 @@ pub(crate) fn unsupported_intrinsic(
     span: SpanId,
     intrinsic_name: &str,
     issue_url: &str,
-) -> SpecialisationDiagnostic {
+) -> SpecializationDiagnostic {
     let mut diagnostic = Diagnostic::new(
-        SpecialisationDiagnosticCategory::UnsupportedIntrinsic,
+        SpecializationDiagnosticCategory::UnsupportedIntrinsic,
         Severity::Error,
     );
 
@@ -89,9 +89,9 @@ pub(crate) fn unsupported_intrinsic(
 ///
 /// This indicates a compiler bug where an intrinsic that should be mapped is missing.
 #[coverage(off)] // compiler bugs should never be hit
-pub(crate) fn unknown_intrinsic(span: SpanId, intrinsic_name: &str) -> SpecialisationDiagnostic {
+pub(crate) fn unknown_intrinsic(span: SpanId, intrinsic_name: &str) -> SpecializationDiagnostic {
     let mut diagnostic = Diagnostic::new(
-        SpecialisationDiagnosticCategory::UnknownIntrinsic,
+        SpecializationDiagnosticCategory::UnknownIntrinsic,
         Severity::Bug,
     );
 

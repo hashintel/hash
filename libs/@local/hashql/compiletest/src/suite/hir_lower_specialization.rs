@@ -12,7 +12,7 @@ use hashql_hir::{
     intern::Interner,
     lower::{
         alias::AliasReplacement, checking::TypeChecking, ctor::ConvertTypeConstructor,
-        inference::TypeInference, specialisation::Specialisation,
+        inference::TypeInference, specialization::Specialization,
     },
     node::Node,
     visit::Visitor as _,
@@ -20,11 +20,11 @@ use hashql_hir::{
 
 use super::{Suite, SuiteDiagnostic, common::process_diagnostics};
 
-pub(crate) struct HirLowerSpecialisationSuite;
+pub(crate) struct HirLowerSpecializationSuite;
 
-impl Suite for HirLowerSpecialisationSuite {
+impl Suite for HirLowerSpecializationSuite {
     fn name(&self) -> &'static str {
-        "hir/lower/specialisation"
+        "hir/lower/specialization"
     }
 
     fn run<'heap>(
@@ -90,7 +90,7 @@ impl Suite for HirLowerSpecialisationSuite {
         process_diagnostics(diagnostics, checking_diagnostics)?;
 
         let mut specialisation =
-            Specialisation::new(&interner, &mut residual.types, residual.intrinsics);
+            Specialization::new(&interner, &mut residual.types, residual.intrinsics);
 
         let node = match specialisation.fold_node(node) {
             Ok(node) => node,

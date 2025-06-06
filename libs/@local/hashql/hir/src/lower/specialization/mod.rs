@@ -4,7 +4,7 @@ use core::{convert::Infallible, mem};
 
 use hashql_core::{collection::FastHashMap, r#type::TypeId};
 
-use self::error::{SpecialisationDiagnostic, unknown_intrinsic, unsupported_intrinsic};
+use self::error::{SpecializationDiagnostic, unknown_intrinsic, unsupported_intrinsic};
 use crate::{
     fold::{self, Fold, nested::Deep},
     intern::Interner,
@@ -19,7 +19,7 @@ use crate::{
     },
 };
 
-pub struct Specialisation<'env, 'heap> {
+pub struct Specialization<'env, 'heap> {
     interner: &'env Interner<'heap>,
 
     types: &'env mut FastHashMap<HirId, TypeId>,
@@ -27,10 +27,10 @@ pub struct Specialisation<'env, 'heap> {
 
     nested: bool,
     visited: FastHashMap<HirId, Node<'heap>>,
-    diagnostics: Vec<SpecialisationDiagnostic>,
+    diagnostics: Vec<SpecializationDiagnostic>,
 }
 
-impl<'env, 'heap> Specialisation<'env, 'heap> {
+impl<'env, 'heap> Specialization<'env, 'heap> {
     pub fn new(
         interner: &'env Interner<'heap>,
         types: &'env mut FastHashMap<HirId, TypeId>,
@@ -142,13 +142,13 @@ impl<'env, 'heap> Specialisation<'env, 'heap> {
     }
 }
 
-impl<'heap> Fold<'heap> for Specialisation<'_, 'heap> {
+impl<'heap> Fold<'heap> for Specialization<'_, 'heap> {
     type NestedFilter = Deep;
     type Output<T>
-        = Result<T, Vec<SpecialisationDiagnostic>>
+        = Result<T, Vec<SpecializationDiagnostic>>
     where
         T: 'heap;
-    type Residual = Result<Infallible, Vec<SpecialisationDiagnostic>>;
+    type Residual = Result<Infallible, Vec<SpecializationDiagnostic>>;
 
     fn interner(&self) -> &Interner<'heap> {
         self.interner
