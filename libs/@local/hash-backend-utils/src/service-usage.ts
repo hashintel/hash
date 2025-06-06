@@ -262,13 +262,6 @@ export const createUsageRecord = async (
         subjectSet: "member",
       },
     },
-    {
-      relation: "viewer",
-      subject: {
-        kind: "account",
-        subjectId: aiAssistantAccountId,
-      },
-    },
   ];
 
   const usageRecordEntityUuid = generateUuid() as EntityUuid;

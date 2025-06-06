@@ -18,8 +18,8 @@ use crate::{
         CheckError, CheckResponse, ModifyRelationError, ModifyRelationshipOperation, ReadError,
     },
     schema::{
-        AccountGroupPermission, AccountGroupRelationAndSubject, ActorIdOrPublic,
-        DataTypePermission, DataTypeRelationAndSubject, EntityPermission, EntityRelationAndSubject,
+        AccountGroupPermission, AccountGroupRelationAndSubject, DataTypePermission,
+        DataTypeRelationAndSubject, EntityPermission, EntityRelationAndSubject,
         EntityTypePermission, EntityTypeRelationAndSubject, PropertyTypePermission,
         PropertyTypeRelationAndSubject, WebPermission, WebRelationAndSubject,
     },
@@ -121,20 +121,6 @@ pub trait AuthorizationApi: Send + Sync {
         consistency: Consistency<'_>,
     ) -> impl Future<Output = Result<CheckResponse, Report<CheckError>>> + Send;
 
-    fn get_entities(
-        &self,
-        actor: ActorEntityUuid,
-        permission: EntityPermission,
-        consistency: Consistency<'_>,
-    ) -> impl Future<Output = Result<Vec<EntityUuid>, Report<ReadError>>> + Send;
-
-    fn get_entity_accounts(
-        &self,
-        entity: EntityUuid,
-        permission: EntityPermission,
-        consistency: Consistency<'_>,
-    ) -> impl Future<Output = Result<Vec<ActorIdOrPublic>, Report<ReadError>>> + Send;
-
     fn modify_entity_relations(
         &mut self,
         relationships: impl IntoIterator<
@@ -156,12 +142,6 @@ pub trait AuthorizationApi: Send + Sync {
     ) -> impl Future<
         Output = Result<(HashMap<EntityUuid, bool>, Zookie<'static>), Report<CheckError>>,
     > + Send;
-
-    fn get_entity_relations(
-        &self,
-        entity: EntityId,
-        consistency: Consistency<'static>,
-    ) -> impl Future<Output = Result<Vec<EntityRelationAndSubject>, Report<ReadError>>> + Send;
 
     ////////////////////////////////////////////////////////////////////////////
     // Entity type authorization
@@ -390,14 +370,6 @@ impl<A: AuthorizationApi> AuthorizationApi for &mut A {
             .await
     }
 
-    async fn get_entity_relations(
-        &self,
-        entity: EntityId,
-        consistency: Consistency<'static>,
-    ) -> Result<Vec<EntityRelationAndSubject>, Report<ReadError>> {
-        (**self).get_entity_relations(entity, consistency).await
-    }
-
     async fn check_entity_type_permission(
         &self,
         actor: ActorEntityUuid,
@@ -539,26 +511,6 @@ impl<A: AuthorizationApi> AuthorizationApi for &mut A {
     ) -> Result<Vec<DataTypeRelationAndSubject>, Report<ReadError>> {
         (**self)
             .get_data_type_relations(data_type, consistency)
-            .await
-    }
-
-    async fn get_entities(
-        &self,
-        actor: ActorEntityUuid,
-        permission: EntityPermission,
-        consistency: Consistency<'_>,
-    ) -> Result<Vec<EntityUuid>, Report<ReadError>> {
-        (**self).get_entities(actor, permission, consistency).await
-    }
-
-    async fn get_entity_accounts(
-        &self,
-        entity: EntityUuid,
-        permission: EntityPermission,
-        consistency: Consistency<'_>,
-    ) -> Result<Vec<ActorIdOrPublic>, Report<ReadError>> {
-        (**self)
-            .get_entity_accounts(entity, permission, consistency)
             .await
     }
 }

@@ -167,8 +167,6 @@ export const entityTypedef = gql`
       includeDrafts: Boolean
     ): SubgraphAndPermissions!
 
-    isEntityPublic(entityId: EntityId!): Boolean!
-
     getEntityAuthorizationRelationships(
       entityId: EntityId!
     ): [EntityAuthorizationRelationship!]!

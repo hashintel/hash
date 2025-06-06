@@ -43,13 +43,9 @@ import {
   updateLinkEntity,
 } from "../../../../graph/knowledge/primitive/link-entity";
 import type {
-  MutationAddEntityEditorArgs,
-  MutationAddEntityOwnerArgs,
   MutationAddEntityViewerArgs,
   MutationArchiveEntityArgs,
   MutationCreateEntityArgs,
-  MutationRemoveEntityEditorArgs,
-  MutationRemoveEntityOwnerArgs,
   MutationRemoveEntityViewerArgs,
   MutationUpdateEntitiesArgs,
   MutationUpdateEntityArgs,
@@ -488,69 +484,6 @@ export const archiveEntitiesResolver: ResolverFn<
       `Couldn't archive entities with IDs ${entityIds.join(", ")}`,
     );
   }
-
-  return true;
-};
-
-export const addEntityOwnerResolver: ResolverFn<
-  Promise<boolean>,
-  Record<string, never>,
-  LoggedInGraphQLContext,
-  MutationAddEntityOwnerArgs
-> = async (_, { entityId, owner }, graphQLContext) => {
-  const { authentication } = graphQLContext;
-
-  const context = graphQLContextToImpureGraphContext(graphQLContext);
-
-  await addEntityAdministrator(context, authentication, {
-    entityId,
-    administrator: owner,
-  });
-
-  return true;
-};
-
-export const removeEntityOwnerResolver: ResolverFn<
-  Promise<boolean>,
-  Record<string, never>,
-  LoggedInGraphQLContext,
-  MutationRemoveEntityOwnerArgs
-> = async (_, { entityId, owner }, graphQLContext) => {
-  const { authentication } = graphQLContext;
-  const context = graphQLContextToImpureGraphContext(graphQLContext);
-
-  await removeEntityAdministrator(context, authentication, {
-    entityId,
-    administrator: owner,
-  });
-
-  return true;
-};
-
-export const addEntityEditorResolver: ResolverFn<
-  Promise<boolean>,
-  Record<string, never>,
-  LoggedInGraphQLContext,
-  MutationAddEntityEditorArgs
-> = async (_, { entityId, editor }, graphQLContext) => {
-  const { authentication } = graphQLContext;
-  const context = graphQLContextToImpureGraphContext(graphQLContext);
-
-  await addEntityEditor(context, authentication, { entityId, editor });
-
-  return true;
-};
-
-export const removeEntityEditorResolver: ResolverFn<
-  Promise<boolean>,
-  Record<string, never>,
-  LoggedInGraphQLContext,
-  MutationRemoveEntityEditorArgs
-> = async (_, { entityId, editor }, graphQLContext) => {
-  const { authentication } = graphQLContext;
-  const context = graphQLContextToImpureGraphContext(graphQLContext);
-
-  await removeEntityEditor(context, authentication, { entityId, editor });
 
   return true;
 };

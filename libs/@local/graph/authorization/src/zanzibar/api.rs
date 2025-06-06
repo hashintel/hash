@@ -23,12 +23,11 @@ use crate::{
         ModifyRelationshipOperation, ModifyRelationshipResponse, ReadError, ZanzibarBackend,
     },
     schema::{
-        AccountGroupPermission, AccountGroupRelationAndSubject, AccountNamespace, ActorIdOrPublic,
-        DataTypePermission, DataTypeRelationAndSubject, EntityNamespace, EntityPermission,
-        EntityRelationAndSubject, EntitySetting, EntityTypePermission,
-        EntityTypeRelationAndSubject, PropertyTypePermission, PropertyTypeRelationAndSubject,
-        SettingName, SettingRelationAndSubject, SettingSubject, WebPermission,
-        WebRelationAndSubject,
+        AccountGroupPermission, AccountGroupRelationAndSubject, DataTypePermission,
+        DataTypeRelationAndSubject, EntityPermission, EntityRelationAndSubject, EntitySetting,
+        EntityTypePermission, EntityTypeRelationAndSubject, PropertyTypePermission,
+        PropertyTypeRelationAndSubject, SettingName, SettingRelationAndSubject, SettingSubject,
+        WebPermission, WebRelationAndSubject,
     },
     zanzibar::{
         Consistency, Permission, Zookie,
@@ -275,56 +274,6 @@ where
         status
             .finish_with(|| (permissions, response.checked_at))
             .change_context(CheckError)
-    }
-
-    #[tracing::instrument(level = "info", skip(self))]
-    async fn get_entities(
-        &self,
-        actor: ActorEntityUuid,
-        permission: EntityPermission,
-        consistency: Consistency<'_>,
-    ) -> Result<Vec<EntityUuid>, Report<ReadError>> {
-        self.backend
-            .lookup_resources(&actor, &permission, &EntityNamespace::Entity, consistency)
-            .await
-            .change_context(ReadError)
-    }
-
-    #[tracing::instrument(level = "info", skip(self))]
-    async fn get_entity_accounts(
-        &self,
-        entity: EntityUuid,
-        permission: EntityPermission,
-        consistency: Consistency<'_>,
-    ) -> Result<Vec<ActorIdOrPublic>, Report<ReadError>> {
-        self.backend
-            .lookup_subjects::<ActorIdOrPublic, EntityUuid>(
-                &AccountNamespace::Account,
-                None,
-                &permission,
-                &entity,
-                consistency,
-            )
-            .await
-            .change_context(ReadError)
-    }
-
-    #[tracing::instrument(level = "info", skip(self))]
-    async fn get_entity_relations(
-        &self,
-        entity: EntityId,
-        consistency: Consistency<'static>,
-    ) -> Result<Vec<EntityRelationAndSubject>, Report<ReadError>> {
-        self.backend
-            .read_relations::<(EntityUuid, EntityRelationAndSubject)>(
-                RelationshipFilter::from_resource(entity.entity_uuid),
-                consistency,
-            )
-            .await
-            .change_context(ReadError)?
-            .map_ok(|(_, relation)| relation)
-            .try_collect()
-            .await
     }
 
     #[tracing::instrument(level = "info", skip(self, relationships))]

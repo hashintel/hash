@@ -16,10 +16,9 @@ use std::collections::HashMap;
 
 pub use self::api::{AuthorizationApi, AuthorizationApiPool};
 use crate::schema::{
-    AccountGroupRelationAndSubject, ActorIdOrPublic, DataTypePermission,
-    DataTypeRelationAndSubject, EntityRelationAndSubject, EntityTypePermission,
-    EntityTypeRelationAndSubject, PropertyTypePermission, PropertyTypeRelationAndSubject,
-    WebRelationAndSubject,
+    AccountGroupRelationAndSubject, DataTypePermission, DataTypeRelationAndSubject,
+    EntityRelationAndSubject, EntityTypePermission, EntityTypeRelationAndSubject,
+    PropertyTypePermission, PropertyTypeRelationAndSubject, WebRelationAndSubject,
 };
 
 mod api;
@@ -159,14 +158,6 @@ impl AuthorizationApi for NoAuthorization {
         > + Send,
     ) -> Result<Zookie<'static>, Report<ModifyRelationError>> {
         Ok(Zookie::empty())
-    }
-
-    async fn get_entity_relations(
-        &self,
-        _: EntityId,
-        _: Consistency<'static>,
-    ) -> Result<Vec<EntityRelationAndSubject>, Report<ReadError>> {
-        Ok(Vec::new())
     }
 
     async fn modify_entity_type_relations(
@@ -319,24 +310,6 @@ impl AuthorizationApi for NoAuthorization {
         _: DataTypeUuid,
         _: Consistency<'static>,
     ) -> Result<Vec<DataTypeRelationAndSubject>, Report<ReadError>> {
-        Ok(Vec::new())
-    }
-
-    async fn get_entities(
-        &self,
-        _: ActorEntityUuid,
-        _: EntityPermission,
-        _: Consistency<'_>,
-    ) -> Result<Vec<EntityUuid>, Report<ReadError>> {
-        Ok(Vec::new())
-    }
-
-    async fn get_entity_accounts(
-        &self,
-        _: EntityUuid,
-        _: EntityPermission,
-        _: Consistency<'_>,
-    ) -> Result<Vec<ActorIdOrPublic>, Report<ReadError>> {
         Ok(Vec::new())
     }
 }
