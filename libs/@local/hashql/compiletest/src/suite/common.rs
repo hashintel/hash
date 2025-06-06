@@ -173,7 +173,6 @@ mod tests {
 
     use crate::suite::common::Annotated;
 
-    /// A custom type that makes multiple write_str calls without newlines
     struct MultipleWrites;
 
     impl fmt::Display for MultipleWrites {
