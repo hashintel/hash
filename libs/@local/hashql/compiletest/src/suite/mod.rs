@@ -14,6 +14,7 @@ mod hir_lower_checking;
 mod hir_lower_ctor;
 mod hir_lower_inference;
 mod hir_lower_inference_intrinsics;
+mod hir_lower_specialisation;
 mod hir_reify;
 mod parse_syntax_dump;
 

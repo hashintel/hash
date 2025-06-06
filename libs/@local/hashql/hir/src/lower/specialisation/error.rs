@@ -10,10 +10,10 @@ use hashql_diagnostics::{
     severity::Severity,
 };
 
-pub type SpecializeDiagnostic = Diagnostic<SpecializeDiagnosticCategory, SpanId>;
+pub type SpecialisationDiagnostic = Diagnostic<SpecialisationDiagnosticCategory, SpanId>;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub enum SpecializeDiagnosticCategory {
+pub enum SpecialisationDiagnosticCategory {
     UnsupportedIntrinsic,
     UnknownIntrinsic,
 }
@@ -28,13 +28,13 @@ const UNKNOWN_INTRINSIC: TerminalDiagnosticCategory = TerminalDiagnosticCategory
     name: "Unknown intrinsic operation",
 };
 
-impl DiagnosticCategory for SpecializeDiagnosticCategory {
+impl DiagnosticCategory for SpecialisationDiagnosticCategory {
     fn id(&self) -> Cow<'_, str> {
-        Cow::Borrowed("specialize")
+        Cow::Borrowed("specialisation")
     }
 
     fn name(&self) -> Cow<'_, str> {
-        Cow::Borrowed("Specialize")
+        Cow::Borrowed("Specialisation")
     }
 
     fn subcategory(&self) -> Option<&dyn DiagnosticCategory> {
@@ -53,9 +53,9 @@ pub(crate) fn unsupported_intrinsic(
     span: SpanId,
     intrinsic_name: &str,
     issue_url: &str,
-) -> SpecializeDiagnostic {
+) -> SpecialisationDiagnostic {
     let mut diagnostic = Diagnostic::new(
-        SpecializeDiagnosticCategory::UnsupportedIntrinsic,
+        SpecialisationDiagnosticCategory::UnsupportedIntrinsic,
         Severity::Error,
     );
 
@@ -89,9 +89,9 @@ pub(crate) fn unsupported_intrinsic(
 ///
 /// This indicates a compiler bug where an intrinsic that should be mapped is missing.
 #[coverage(off)] // compiler bugs should never be hit
-pub(crate) fn unknown_intrinsic(span: SpanId, intrinsic_name: &str) -> SpecializeDiagnostic {
+pub(crate) fn unknown_intrinsic(span: SpanId, intrinsic_name: &str) -> SpecialisationDiagnostic {
     let mut diagnostic = Diagnostic::new(
-        SpecializeDiagnosticCategory::UnknownIntrinsic,
+        SpecialisationDiagnosticCategory::UnknownIntrinsic,
         Severity::Bug,
     );
 

@@ -12,7 +12,7 @@ use hashql_diagnostics::{
     label::Label,
 };
 
-use super::specialize::error::SpecializeDiagnosticCategory;
+use super::specialisation::error::SpecialisationDiagnosticCategory;
 
 const GENERIC_ARGUMENT_MISMATCH: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "generic-argument-mismatch",
@@ -25,7 +25,7 @@ pub type LoweringDiagnostic = Diagnostic<LoweringDiagnosticCategory, SpanId>;
 pub enum LoweringDiagnosticCategory {
     GenericArgumentMismatch,
     TypeChecking(TypeCheckDiagnosticCategory),
-    Specialize(SpecializeDiagnosticCategory),
+    Specialize(SpecialisationDiagnosticCategory),
 }
 
 impl DiagnosticCategory for LoweringDiagnosticCategory {
