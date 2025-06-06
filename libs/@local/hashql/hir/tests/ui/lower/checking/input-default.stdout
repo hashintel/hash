@@ -1,36 +1,26 @@
+════ Initial HIR ═══════════════════════════════════════════════════════════════
+
 #input(x, type: Number, default: #is(42, type: _0))
 
---------------------------------------
+════ HIR after type checking ═══════════════════════════════════════════════════
 
 #input(x, type: Number, default: #is(42, type: _0«Integer»))
 
---------------------------------------
-
-#input x = Number
-
---------------------------------------
-
-Node:
-42
+════ Inputs ════════════════════════════════════════════════════════════════════
 
 
-Type:
-Integer
-
---------------------------------------
-
-Node:
-#is(42, type: _0«Integer»)
+┌─ x
+└→ Number
 
 
-Type:
-Integer
+════ Types ═════════════════════════════════════════════════════════════════════
 
---------------------------------------
+┌─ 42
+└→ Integer
 
-Node:
-#input(x, type: Number, default: #is(42, type: _0«Integer»))
+┌─ #is(42, type: _0«Integer»)
+└→ Integer
 
+┌─ #input(x, type: Number, default: #is(42, type: _0«Integer»))
+└→ Number
 
-Type:
-Number
