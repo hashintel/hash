@@ -35,6 +35,7 @@ impl Suite for HirLowerTypeCheckingSuite {
     ) -> Result<String, SuiteDiagnostic> {
         let mut environment = Environment::new(expr.span, heap);
         let registry = ModuleRegistry::new(&environment);
+        let mut output = String::new();
 
         let (types, lower_diagnostics) = lower(
             heap.intern_symbol("::main"),
