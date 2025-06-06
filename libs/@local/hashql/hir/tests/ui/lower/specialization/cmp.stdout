@@ -1,3 +1,5 @@
+════ Initial HIR ═══════════════════════════════════════════════════════════════
+
 #let greaterThan:0 = ::core::cmp::gt(1, 2) in
 #let greaterThanOrEqual:0 = ::core::cmp::gte(1, 2) in
 #let lessThan:0 = ::core::cmp::lt(1, 2) in
@@ -6,7 +8,7 @@
 #let notEqual:0 = ::core::cmp::ne(1, 2) in
 greaterThan:0
 
---------------------------------------
+════ HIR after specialization ══════════════════════════════════════════════════
 
 #let greaterThan:0 = (1 > 2) in
 #let greaterThanOrEqual:0 = (1 >= 2) in
