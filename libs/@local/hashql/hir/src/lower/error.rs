@@ -12,6 +12,8 @@ use hashql_diagnostics::{
     label::Label,
 };
 
+use super::specialize::error::SpecializeDiagnosticCategory;
+
 const GENERIC_ARGUMENT_MISMATCH: TerminalDiagnosticCategory = TerminalDiagnosticCategory {
     id: "generic-argument-mismatch",
     name: "Incorrect number of type arguments",
@@ -23,6 +25,7 @@ pub type LoweringDiagnostic = Diagnostic<LoweringDiagnosticCategory, SpanId>;
 pub enum LoweringDiagnosticCategory {
     GenericArgumentMismatch,
     TypeChecking(TypeCheckDiagnosticCategory),
+    Specialize(SpecializeDiagnosticCategory),
 }
 
 impl DiagnosticCategory for LoweringDiagnosticCategory {
@@ -38,6 +41,7 @@ impl DiagnosticCategory for LoweringDiagnosticCategory {
         match self {
             Self::GenericArgumentMismatch => Some(&GENERIC_ARGUMENT_MISMATCH),
             Self::TypeChecking(category) => Some(category),
+            Self::Specialize(category) => Some(category),
         }
     }
 }

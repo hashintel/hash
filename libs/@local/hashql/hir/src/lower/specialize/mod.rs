@@ -1,3 +1,5 @@
+pub mod error;
+
 use core::{any::TypeId, convert::Infallible};
 
 use hashql_core::collection::FastHashMap;
