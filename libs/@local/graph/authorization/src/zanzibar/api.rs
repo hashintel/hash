@@ -203,7 +203,7 @@ where
 
     #[tracing::instrument(level = "info", skip(self, relationships))]
     async fn modify_entity_relations(
-        &mut self,
+        &self,
         relationships: impl IntoIterator<
             Item = (
                 ModifyRelationshipOperation,
@@ -634,7 +634,7 @@ where
     }
 
     async fn modify_relationships<R>(
-        &mut self,
+        &self,
         relationships: impl IntoIterator<Item = (ModifyRelationshipOperation, R), IntoIter: Send> + Send,
     ) -> Result<ModifyRelationshipResponse, Report<ModifyRelationshipError>>
     where
