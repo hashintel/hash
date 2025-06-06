@@ -35,7 +35,8 @@ use self::{
     hir_lower_alias_replacement::HirLowerAliasReplacementSuite,
     hir_lower_checking::HirLowerTypeCheckingSuite, hir_lower_ctor::HirLowerCtorSuite,
     hir_lower_inference::HirLowerTypeInferenceSuite,
-    hir_lower_inference_intrinsics::HirLowerTypeInferenceIntrinsicsSuite, hir_reify::HirReifySuite,
+    hir_lower_inference_intrinsics::HirLowerTypeInferenceIntrinsicsSuite,
+    hir_lower_specialisation::HirLowerSpecialisationSuite, hir_reify::HirReifySuite,
     parse_syntax_dump::ParseSyntaxDumpSuite,
 };
 
@@ -66,9 +67,10 @@ const SUITES: &[&dyn Suite] = &[
     &AstLoweringTypeExtractorSuite,
     &HirLowerAliasReplacementSuite,
     &HirLowerCtorSuite,
+    &HirLowerSpecialisationSuite,
     &HirLowerTypeCheckingSuite,
-    &HirLowerTypeInferenceSuite,
     &HirLowerTypeInferenceIntrinsicsSuite,
+    &HirLowerTypeInferenceSuite,
     &HirReifySuite,
     &ParseSyntaxDumpSuite,
 ];

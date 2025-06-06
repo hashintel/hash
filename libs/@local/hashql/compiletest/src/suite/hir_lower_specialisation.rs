@@ -89,8 +89,17 @@ impl Suite for HirLowerSpecialisationSuite {
         let (mut residual, checking_diagnostics) = checking.finish();
         process_diagnostics(diagnostics, checking_diagnostics)?;
 
-        let mut specialization =
+        let mut specialisation =
             Specialisation::new(&interner, &mut residual.types, residual.intrinsics);
+
+        let node = match specialisation.fold_node(node) {
+            Ok(node) => node,
+            Err(reported) => {
+                let diagnostic = process_diagnostics(diagnostics, reported)
+                    .expect_err("reported diagnostics should always be fatal");
+                return Err(diagnostic);
+            }
+        };
 
         write!(
             &mut output,
