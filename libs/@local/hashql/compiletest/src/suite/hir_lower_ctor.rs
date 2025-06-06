@@ -15,7 +15,10 @@ use hashql_hir::{
     node::Node,
 };
 
-use super::{Suite, SuiteDiagnostic, common::process_diagnostics};
+use super::{
+    Suite, SuiteDiagnostic,
+    common::{Header, process_diagnostics},
+};
 
 pub(crate) struct HirLowerCtorSuite;
 
@@ -32,6 +35,7 @@ impl Suite for HirLowerCtorSuite {
     ) -> Result<String, SuiteDiagnostic> {
         let environment = Environment::new(SpanId::SYNTHETIC, heap);
         let registry = ModuleRegistry::new(&environment);
+        let mut output = String::new();
 
         let (types, lower_diagnostics) = lower(
             heap.intern_symbol("::main"),
@@ -48,11 +52,12 @@ impl Suite for HirLowerCtorSuite {
 
         let node = node.expect("should be `Some` if there are non-fatal errors");
 
-        let mut output = node
-            .pretty_print(&environment, PrettyOptions::default().without_color())
-            .to_string();
-
-        output.push_str("\n\n--------------------------------------\n\n");
+        let _ = writeln!(
+            output,
+            "{}\n\n{}",
+            Header::new("Initial HIR"),
+            node.pretty_print(&environment, PrettyOptions::default().without_color())
+        );
 
         let mut replacement = AliasReplacement::new(&interner);
         let Ok(node) = replacement.fold_node(node);
@@ -69,12 +74,12 @@ impl Suite for HirLowerCtorSuite {
             }
         };
 
-        write!(
-            &mut output,
-            "{}",
+        let _ = writeln!(
+            output,
+            "\n{}\n\n{}",
+            Header::new("HIR after ctor conversion"),
             node.pretty_print(&environment, PrettyOptions::default().without_color())
-        )
-        .expect("infallible");
+        );
 
         Ok(output)
     }
