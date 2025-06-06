@@ -1,11 +1,6 @@
-import {
-  type EntityRootType,
-  isEntityVertex,
-  type Subgraph,
-} from "@blockprotocol/graph";
+import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import { isEntityVertex } from "@blockprotocol/graph";
 import type {
-  ActorEntityUuid,
-  ActorGroupEntityUuid,
   BaseUrl,
   Entity,
   EntityId,
@@ -39,14 +34,13 @@ import type {
   UserPermissions,
   UserPermissionsOnEntities,
 } from "@local/hash-graph-sdk/authorization";
-import {
-  type CreateEntityParameters,
-  type DiffEntityInput,
-  type GetEntitiesRequest,
-  type GetEntitySubgraphRequest,
-  HashEntity,
+import type {
+  CreateEntityParameters,
+  DiffEntityInput,
+  GetEntitiesRequest,
+  GetEntitySubgraphRequest,
 } from "@local/hash-graph-sdk/entity";
-import { HashLinkEntity } from "@local/hash-graph-sdk/entity";
+import { HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
@@ -835,42 +829,6 @@ export const modifyEntityAuthorizationRelationships: ImpureGraphFunction<
   );
 };
 
-export const addEntityAdministrator: ImpureGraphFunction<
-  { entityId: EntityId; administrator: ActorEntityUuid | ActorGroupEntityUuid },
-  Promise<void>
-> = async ({ graphApi }, { actorId }, params) => {
-  await graphApi.addEntityAdministrator(
-    actorId,
-    params.entityId,
-    params.administrator,
-  );
-};
-
-export const removeEntityAdministrator: ImpureGraphFunction<
-  { entityId: EntityId; administrator: ActorEntityUuid | ActorGroupEntityUuid },
-  Promise<void>
-> = async ({ graphApi }, { actorId }, params) => {
-  await graphApi.removeEntityAdministrator(
-    actorId,
-    params.entityId,
-    params.administrator,
-  );
-};
-
-export const addEntityEditor: ImpureGraphFunction<
-  { entityId: EntityId; editor: ActorEntityUuid | ActorGroupEntityUuid },
-  Promise<void>
-> = async ({ graphApi }, { actorId }, params) => {
-  await graphApi.addEntityEditor(actorId, params.entityId, params.editor);
-};
-
-export const removeEntityEditor: ImpureGraphFunction<
-  { entityId: EntityId; editor: ActorEntityUuid | ActorGroupEntityUuid },
-  Promise<void>
-> = async ({ graphApi }, { actorId }, params) => {
-  await graphApi.removeEntityEditor(actorId, params.entityId, params.editor);
-};
-
 export const checkEntityPermission: ImpureGraphFunction<
   { entityId: EntityId; permission: EntityPermission },
   Promise<boolean>
@@ -958,22 +916,6 @@ export const checkPermissionsOnEntitiesInSubgraph: ImpureGraphFunction<
 
   return userPermissionsOnEntities;
 };
-
-export const getEntityAuthorizationRelationships: ImpureGraphFunction<
-  { entityId: EntityId },
-  Promise<EntityAuthorizationRelationship[]>
-> = async ({ graphApi }, { actorId }, params) =>
-  graphApi
-    .getEntityAuthorizationRelationships(actorId, params.entityId)
-    .then(({ data }) =>
-      data.map(
-        (relationship) =>
-          ({
-            resource: { kind: "entity", resourceId: params.entityId },
-            ...relationship,
-          }) as EntityAuthorizationRelationship,
-      ),
-    );
 
 export const calculateEntityDiff: ImpureGraphFunction<
   DiffEntityInput,

@@ -112,10 +112,6 @@ export const createHashInstance: ImpureGraphFunction<
       entityTypeIds: [systemEntityTypes.hashInstance.entityTypeId],
       relationships: [
         {
-          relation: "viewer",
-          subject: { kind: "public" },
-        },
-        {
           relation: "administrator",
           subject: {
             kind: "accountGroup",

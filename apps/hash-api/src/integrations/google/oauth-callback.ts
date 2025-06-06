@@ -136,14 +136,6 @@ export const googleOAuthCallback: RequestHandler<
             subjectId: googleBotAccountId,
           },
         },
-        {
-          // Allow the user to view the Google Account entity
-          relation: "setting",
-          subject: {
-            kind: "setting",
-            subjectId: "viewFromWeb",
-          },
-        },
       ],
     });
   }
