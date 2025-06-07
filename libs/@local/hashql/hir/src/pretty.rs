@@ -262,8 +262,8 @@ impl<'heap> PrettyPrint<'heap> for BinaryOperation<'heap> {
         env: &Environment<'heap>,
         boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, Style> {
-        self.left
-            .pretty(env, boundary)
+        RcDoc::text("(")
+            .append(self.left.pretty(env, boundary))
             .append(RcDoc::softline())
             .append(self.op.kind.as_str())
             .append(RcDoc::softline())

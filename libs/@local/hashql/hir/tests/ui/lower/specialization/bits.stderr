@@ -1,0 +1,11 @@
+[specialization::unsupported-intrinsic] Error: Unsupported intrinsic operation
+   ╭─[ <unknown>:3:3 ]
+   │
+ 3 │ ["<<", { "#literal": 1 }, { "#literal": 2 }]
+   │   ─┬  
+   │    ╰── intrinsic `::core::bits::shl` not supported yet
+   │ 
+   │ Help: The intrinsic operation `::core::bits::shl` is a valid HashQL operation, but support for this operation is still in development during the specialization phase. For now, you'll need to use alternative approaches or wait for this feature to be implemented. Check issue https://linear.app/hash/issue/H-4730/hashql-enable-bitwise-intrinsics for implementation status and updates.
+   │ 
+   │ Note: Intrinsic operations are low-level operations that are built into the HashQL language. The specialization phase converts high-level function calls into these optimized operations, but not all intrinsics are currently supported. We're actively working on supporting ::core::bits::shl and other intrinsic operations to make HashQL more expressive and powerful.
+───╯

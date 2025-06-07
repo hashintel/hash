@@ -1,0 +1,4 @@
+//@ run: fail
+//@ description: bitwise operations are not implemented yet
+["<<", { "#literal": 1 }, { "#literal": 2 }]
+//~^ ERROR intrinsic `::core::bits::shl` not supported yet

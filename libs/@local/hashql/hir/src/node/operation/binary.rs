@@ -23,9 +23,9 @@ pub enum BinOpKind {
     /// The `**`/`↑` operator (exponentiation)
     Pow(!),
     /// The `&&` operator (logical and)
-    And(!),
+    And,
     /// The `||` operator (logical or)
-    Or(!),
+    Or,
     /// The `^` operator (bitwise xor)
     BitXor(!),
     /// The `&` operator (bitwise and)
@@ -38,15 +38,15 @@ pub enum BinOpKind {
     BitShr(!),
     /// The `==` operator (equality)
     Eq,
+    /// The `!=` operator (not equal to)
+    Ne,
     /// The `<` operator (less than)
     Lt,
     /// The `<=` operator (less than or equal to)
     Lte,
-    /// The `!=` operator (not equal to)
-    Ne,
-    /// The `>=` operator (greater than or equal to)
-    Ge,
     /// The `>` operator (greater than)
+    Gt,
+    /// The `>=` operator (greater than or equal to)
     Gte,
 }
 
@@ -54,12 +54,14 @@ impl BinOpKind {
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
+            Self::And => "&&",
+            Self::Or => "||",
             Self::Eq => "==",
             Self::Lt => "<",
             Self::Lte => "<=",
             Self::Ne => "!=",
-            Self::Ge => ">=",
-            Self::Gte => ">",
+            Self::Gte => ">=",
+            Self::Gt => ">",
         }
     }
 }
