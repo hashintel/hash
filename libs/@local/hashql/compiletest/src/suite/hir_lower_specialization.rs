@@ -18,7 +18,10 @@ use hashql_hir::{
     visit::Visitor as _,
 };
 
-use super::{Suite, SuiteDiagnostic, common::process_diagnostics};
+use super::{
+    Suite, SuiteDiagnostic,
+    common::{Header, process_diagnostics},
+};
 
 pub(crate) struct HirLowerSpecializationSuite;
 
@@ -35,6 +38,7 @@ impl Suite for HirLowerSpecializationSuite {
     ) -> Result<String, SuiteDiagnostic> {
         let mut environment = Environment::new(expr.span, heap);
         let registry = ModuleRegistry::new(&environment);
+        let mut output = String::new();
 
         let (types, lower_diagnostics) = lower(
             heap.intern_symbol("::main"),
@@ -51,11 +55,12 @@ impl Suite for HirLowerSpecializationSuite {
 
         let node = node.expect("should be `Some` if there are non-fatal errors");
 
-        let mut output = node
-            .pretty_print(&environment, PrettyOptions::default().without_color())
-            .to_string();
-
-        output.push_str("\n\n--------------------------------------\n\n");
+        let _ = writeln!(
+            output,
+            "{}\n\n{}",
+            Header::new("Initial HIR"),
+            node.pretty_print(&environment, PrettyOptions::default().without_color())
+        );
 
         let mut replacement = AliasReplacement::new(&interner);
         let Ok(node) = replacement.fold_node(node);
@@ -101,12 +106,12 @@ impl Suite for HirLowerSpecializationSuite {
             }
         };
 
-        write!(
-            &mut output,
-            "{}",
+        let _ = writeln!(
+            output,
+            "\n{}\n\n{}",
+            Header::new("HIR after specialization"),
             node.pretty_print(&environment, PrettyOptions::default().without_color())
-        )
-        .expect("infallible");
+        );
 
         Ok(output)
     }

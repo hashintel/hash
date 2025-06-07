@@ -1,61 +1,39 @@
-#let foo:0 = #input(x, type: Number) in
-#let bar:0 = #input(x, type: Integer) in
-foo:0
-
---------------------------------------
+════ Initial HIR ═══════════════════════════════════════════════════════════════
 
 #let foo:0 = #input(x, type: Number) in
 #let bar:0 = #input(x, type: Integer) in
 foo:0
 
---------------------------------------
+════ HIR after type checking ═══════════════════════════════════════════════════
 
-#input x = Integer
-
---------------------------------------
-
-Node:
-#input(x, type: Number)
-
-
-Type:
-Number
-
---------------------------------------
-
-Node:
-#input(x, type: Integer)
-
-
-Type:
-Integer
-
---------------------------------------
-
-Node:
-foo:0
-
-
-Type:
-Number
-
---------------------------------------
-
-Node:
-#let bar:0 = #input(x, type: Integer) in
-foo:0
-
-
-Type:
-Integer
-
---------------------------------------
-
-Node:
 #let foo:0 = #input(x, type: Number) in
 #let bar:0 = #input(x, type: Integer) in
 foo:0
 
+════ Inputs ════════════════════════════════════════════════════════════════════
 
-Type:
-Number
+
+┌─ x
+└→ Integer
+
+
+════ Types ═════════════════════════════════════════════════════════════════════
+
+┌─ #input(x, type: Number)
+└→ Number
+
+┌─ #input(x, type: Integer)
+└→ Integer
+
+┌─ foo:0
+└→ Number
+
+┌─ #let bar:0 = #input(x, type: Integer) in
+│  foo:0
+└→ Number
+
+┌─ #let foo:0 = #input(x, type: Number) in
+│  #let bar:0 = #input(x, type: Integer) in
+│  foo:0
+└→ Number
+
