@@ -65,7 +65,7 @@ use crate::store::{
             Table, rows::DataTypeConversionsRow,
         },
     },
-    validation::{StoreCache, StoreProvider},
+    validation::StoreProvider,
 };
 
 impl<C, A> PostgresStore<C, A>
@@ -73,12 +73,10 @@ where
     C: AsClient,
     A: AuthorizationApi,
 {
-    #[tracing::instrument(level = "trace", skip(data_types, authorization_api, zookie))]
+    #[tracing::instrument(level = "trace", skip(data_types, provider))]
     pub(crate) async fn filter_data_types_by_permission<I, T>(
         data_types: impl IntoIterator<Item = (I, T)> + Send,
-        actor_id: ActorEntityUuid,
-        authorization_api: &A,
-        zookie: &Zookie<'static>,
+        provider: &StoreProvider<'_, Self>,
     ) -> Result<impl Iterator<Item = T>, Report<QueryError>>
     where
         I: Into<DataTypeUuid> + Send,
@@ -89,21 +87,37 @@ where
             .map(|(id, edge)| (id.into(), edge))
             .unzip();
 
-        let permissions = authorization_api
-            .check_data_types_permission(
-                actor_id,
-                DataTypePermission::View,
-                ids.iter().copied(),
-                Consistency::AtExactSnapshot(zookie),
-            )
-            .await
-            .change_context(QueryError)?
-            .0;
+        let permissions =
+            if let Some((actor_id, consistency, ref _policy_set, ref _policy_context)) =
+                provider.authorization
+            {
+                Some(
+                    provider
+                        .store
+                        .authorization_api
+                        .check_data_types_permission(
+                            actor_id
+                                .map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from),
+                            DataTypePermission::View,
+                            ids.iter().copied(),
+                            consistency,
+                        )
+                        .await
+                        .change_context(QueryError)?
+                        .0,
+                )
+            } else {
+                None
+            };
 
         Ok(ids
             .into_iter()
             .zip(data_types)
             .filter_map(move |(id, data_type)| {
+                let Some(permissions) = &permissions else {
+                    return Some(data_type);
+                };
+
                 permissions
                     .get(&id)
                     .copied()
@@ -254,7 +268,7 @@ where
     /// Internal method to read a [`DataTypeWithMetadata`] into a [`TraversalContext`].
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
-    #[tracing::instrument(level = "info", skip(self))]
+    #[tracing::instrument(level = "info", skip(self, provider, subgraph))]
     pub(crate) async fn traverse_data_types(
         &self,
         mut data_type_queue: Vec<(
@@ -263,8 +277,7 @@ where
             RightBoundedTemporalInterval<VariableAxis>,
         )>,
         traversal_context: &mut TraversalContext,
-        actor_id: ActorEntityUuid,
-        zookie: &Zookie<'static>,
+        provider: &StoreProvider<'_, Self>,
         subgraph: &mut Subgraph,
     ) -> Result<(), Report<QueryError>> {
         while !data_type_queue.is_empty() {
@@ -305,9 +318,7 @@ where
                                 table,
                             )
                             .await?,
-                            actor_id,
-                            &self.authorization_api,
-                            zookie,
+                            provider,
                         )
                         .await?
                         .flat_map(|edge| {
@@ -646,11 +657,12 @@ where
     ) -> Result<GetDataTypesResponse, Report<QueryError>> {
         params
             .filter
-            .convert_parameters(&StoreProvider {
-                store: self,
-                cache: StoreCache::default(),
-                authorization: Some((actor_id, Consistency::FullyConsistent)),
-            })
+            .convert_parameters(
+                &StoreProvider::new(self)
+                    .with_authorization(actor_id, Consistency::FullyConsistent)
+                    .await
+                    .change_context(QueryError)?,
+            )
             .await
             .change_context(QueryError)?;
 
@@ -669,11 +681,12 @@ where
     ) -> Result<usize, Report<QueryError>> {
         params
             .filter
-            .convert_parameters(&StoreProvider {
-                store: self,
-                cache: StoreCache::default(),
-                authorization: Some((actor_id, Consistency::FullyConsistent)),
-            })
+            .convert_parameters(
+                &StoreProvider::new(self)
+                    .with_authorization(actor_id, Consistency::FullyConsistent)
+                    .await
+                    .change_context(QueryError)?,
+            )
             .await
             .change_context(QueryError)?;
 
@@ -694,13 +707,14 @@ where
         actor_id: ActorEntityUuid,
         mut params: GetDataTypeSubgraphParams<'_>,
     ) -> Result<GetDataTypeSubgraphResponse, Report<QueryError>> {
+        let provider = StoreProvider::new(self)
+            .with_authorization(actor_id, Consistency::FullyConsistent)
+            .await
+            .change_context(QueryError)?;
+
         params
             .filter
-            .convert_parameters(&StoreProvider {
-                store: self,
-                cache: StoreCache::default(),
-                authorization: Some((actor_id, Consistency::FullyConsistent)),
-            })
+            .convert_parameters(&provider)
             .await
             .change_context(QueryError)?;
 
@@ -713,7 +727,7 @@ where
                 cursor,
                 count,
             },
-            zookie,
+            _zookie,
         ) = self
             .get_data_types_impl(
                 actor_id,
@@ -766,8 +780,7 @@ where
                 })
                 .collect(),
             &mut traversal_context,
-            actor_id,
-            &zookie,
+            &provider,
             &mut subgraph,
         )
         .await?;

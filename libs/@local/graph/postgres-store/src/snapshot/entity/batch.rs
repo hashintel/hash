@@ -297,7 +297,7 @@ where
 
         let validator_provider = StoreProvider {
             store: postgres_client,
-            cache: StoreCache::default(),
+            cache: Box::new(StoreCache::default()),
             authorization: None,
         };
 
