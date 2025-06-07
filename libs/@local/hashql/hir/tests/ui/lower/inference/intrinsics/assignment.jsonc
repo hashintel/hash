@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Verifies type inference for assigning an intrinsic function to a variable and then referencing that variable.
+["let", "add", "+", "add"]

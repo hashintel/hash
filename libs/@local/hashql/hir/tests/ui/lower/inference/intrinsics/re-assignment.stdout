@@ -1,0 +1,36 @@
+#let foo:0 = ::core::math::add in
+#let bar:0 = ::core::math::add in
+bar:0
+
+--------------------------------------
+
+#let foo:0 = ::core::math::add in
+#let bar:0 = ::core::math::add in
+bar:0
+
+--------------------------------------
+
+Node:
+::core::math::add
+
+
+Intrinsic:
+::core::math::add
+
+--------------------------------------
+
+Node:
+::core::math::add
+
+
+Intrinsic:
+::core::math::add
+
+--------------------------------------
+
+Node:
+bar:0
+
+
+Intrinsic:
+::core::math::add

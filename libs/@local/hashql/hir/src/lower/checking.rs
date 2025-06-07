@@ -5,7 +5,6 @@ use hashql_core::{
     module::{
         ModuleRegistry, Universe,
         item::{IntrinsicItem, IntrinsicValueItem, ItemKind},
-        locals::TypeDef,
         universe::{Entry, FastRealmsMap},
     },
     span::{SpanId, Spanned},
@@ -19,7 +18,7 @@ use hashql_core::{
 
 use super::{
     error::{GenericArgumentContext, LoweringDiagnostic, LoweringDiagnosticCategory},
-    inference::TypeInferenceResidual,
+    inference::{Local, TypeInferenceResidual},
 };
 use crate::{
     lower::error::generic_argument_mismatch,
@@ -45,14 +44,16 @@ use crate::{
 pub struct TypeCheckingResidual<'heap> {
     pub types: FastHashMap<HirId, TypeId>,
     pub inputs: FastHashMap<Symbol<'heap>, TypeId>,
+    pub intrinsics: FastHashMap<HirId, &'static str>,
 }
 
 pub struct TypeChecking<'env, 'heap> {
     env: &'env Environment<'heap>,
     registry: &'env ModuleRegistry<'heap>,
 
-    locals: FastHashMap<Symbol<'heap>, TypeDef<'heap>>,
+    locals: FastHashMap<Symbol<'heap>, Local<'heap>>,
     inference: FastHashMap<HirId, TypeId>,
+    intrinsics: FastHashMap<HirId, &'static str>,
 
     lattice: LatticeEnvironment<'env, 'heap>,
     analysis: AnalysisEnvironment<'env, 'heap>,
@@ -75,6 +76,7 @@ impl<'env, 'heap> TypeChecking<'env, 'heap> {
         TypeInferenceResidual {
             locals,
             types: inference,
+            intrinsics,
         }: TypeInferenceResidual<'heap>,
     ) -> Self {
         let mut analysis = AnalysisEnvironment::new(env);
@@ -86,6 +88,7 @@ impl<'env, 'heap> TypeChecking<'env, 'heap> {
 
             locals,
             inference,
+            intrinsics,
 
             lattice: LatticeEnvironment::new(env),
             analysis,
@@ -178,7 +181,11 @@ impl<'env, 'heap> TypeChecking<'env, 'heap> {
         let types = core::mem::take(&mut self.types[Universe::Value]);
         let inputs = core::mem::take(&mut self.inputs[Universe::Value]);
 
-        let residual = TypeCheckingResidual { types, inputs };
+        let residual = TypeCheckingResidual {
+            types,
+            inputs,
+            intrinsics: self.intrinsics,
+        };
 
         (residual, self.diagnostics)
     }
@@ -214,7 +221,7 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, 'heap> {
     fn visit_local_variable(&mut self, variable: &'heap LocalVariable<'heap>) {
         visit::walk_local_variable(self, variable);
 
-        let generic_arguments = self.locals[&variable.name.value].arguments;
+        let generic_arguments = self.locals[&variable.name.value].r#type.arguments;
         self.verify_arity(
             variable.span,
             variable.name.span,

@@ -39,8 +39,15 @@ use crate::{
     visit::{self, Visitor},
 };
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct Local<'heap> {
+    pub r#type: TypeDef<'heap>,
+    pub intrinsic: Option<&'static str>,
+}
+
 pub struct TypeInferenceResidual<'heap> {
-    pub locals: FastHashMap<Symbol<'heap>, TypeDef<'heap>>,
+    pub locals: FastHashMap<Symbol<'heap>, Local<'heap>>,
+    pub intrinsics: FastHashMap<HirId, &'static str>,
     pub types: FastHashMap<HirId, TypeId>,
 }
 
@@ -54,10 +61,10 @@ pub struct TypeInference<'env, 'heap> {
     current: HirId,
 
     visited: FastHashSet<HirId>,
-    locals: FastRealmsMap<Symbol<'heap>, TypeDef<'heap>>,
+    locals: FastRealmsMap<Symbol<'heap>, Local<'heap>>,
     types: FastRealmsMap<HirId, TypeId>,
     arguments: FastRealmsMap<HirId, Interned<'heap, [GenericArgumentReference<'heap>]>>,
-    variables: FastRealmsMap<HirId, hashql_core::r#type::inference::Variable>,
+    intrinsics: FastRealmsMap<HirId, &'static str>,
 }
 
 impl<'env, 'heap> TypeInference<'env, 'heap> {
@@ -75,7 +82,7 @@ impl<'env, 'heap> TypeInference<'env, 'heap> {
             locals: FastRealmsMap::new(),
             types: FastRealmsMap::new(),
             arguments: FastRealmsMap::new(),
-            variables: FastRealmsMap::new(),
+            intrinsics: FastRealmsMap::new(),
         }
     }
 
@@ -120,8 +127,13 @@ impl<'env, 'heap> TypeInference<'env, 'heap> {
 
         let locals = core::mem::take(&mut self.locals[Universe::Value]);
         let types = core::mem::take(&mut self.types[Universe::Value]);
+        let intrinsics = core::mem::take(&mut self.intrinsics[Universe::Value]);
 
-        let residual = TypeInferenceResidual { locals, types };
+        let residual = TypeInferenceResidual {
+            locals,
+            intrinsics,
+            types,
+        };
 
         (solver, residual, diagnostics)
     }
@@ -159,7 +171,10 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
     fn visit_local_variable(&mut self, variable: &'heap LocalVariable<'heap>) {
         visit::walk_local_variable(self, variable);
 
-        let mut def = self.locals[Universe::Value][&variable.name.value];
+        let Local {
+            r#type: mut def,
+            intrinsic,
+        } = self.locals[Universe::Value][&variable.name.value];
         // The generics of this type (not the type itself) is completely separate from the
         // referenced type, otherwise any generic variable in the instantiation would converge to
         // the same, which would defeat polymorphism.
@@ -169,6 +184,11 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
 
         self.types
             .insert_unique(Universe::Value, self.current, r#type);
+
+        if let Some(intrinsic) = intrinsic {
+            self.intrinsics
+                .insert_unique(Universe::Value, self.current, intrinsic);
+        }
     }
 
     fn visit_qualified_variable(&mut self, variable: &'heap QualifiedVariable<'heap>) {
@@ -182,9 +202,9 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
             )
             .unwrap_or_else(|| unreachable!("import resolver should've caught this issue"));
 
-        let mut def = match item.kind {
-            ItemKind::Intrinsic(IntrinsicItem::Value(IntrinsicValueItem { name: _, r#type })) => {
-                r#type
+        let (intrinsic, mut def) = match item.kind {
+            ItemKind::Intrinsic(IntrinsicItem::Value(IntrinsicValueItem { name, r#type })) => {
+                (name, r#type)
             }
             ItemKind::Constructor(_) => {
                 unreachable!("constructors should've been specialized prior to this point");
@@ -201,6 +221,10 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
 
         self.types
             .insert_unique(Universe::Value, self.current, r#type);
+        self.arguments
+            .insert_unique(Universe::Value, self.current, def.arguments);
+        self.intrinsics
+            .insert_unique(Universe::Value, self.current, intrinsic);
     }
 
     fn visit_let(
@@ -226,6 +250,8 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
             .copied()
             .unwrap_or_else(|| self.env.intern_generic_argument_references(&[]));
 
+        let intrinsic = self.intrinsics.get(Universe::Value, &value.id).copied();
+
         self.types
             .insert_unique(Universe::Value, self.current, value_type);
         self.arguments
@@ -237,9 +263,12 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
         self.locals.insert_unique(
             Universe::Value,
             name.value,
-            TypeDef {
-                id: value_type,
-                arguments,
+            Local {
+                r#type: TypeDef {
+                    id: value_type,
+                    arguments,
+                },
+                intrinsic,
             },
         );
 
@@ -314,9 +343,6 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
             access.field,
         );
 
-        self.variables
-            .insert_unique(Universe::Value, self.current, variable);
-
         self.types.insert_unique(
             Universe::Value,
             self.current,
@@ -332,9 +358,6 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
             self.types[Universe::Value][&access.expr.id],
             self.types[Universe::Value][&access.index.id],
         );
-
-        self.variables
-            .insert_unique(Universe::Value, self.current, variable);
 
         self.types.insert_unique(
             Universe::Value,
@@ -375,10 +398,9 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
         // For closure literals we invert the direction and collect `C <: F`
         self.inference.collect_constraints(function, closure);
 
-        self.variables
-            .insert_unique(Universe::Value, self.current, returns);
         self.types
             .insert_unique(Universe::Value, self.current, returns_id);
+
         // We do not need to collect the closure generated, as we can always re-generate it easily
         // from the types provided when we do the type-check.
     }
@@ -422,9 +444,12 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
             self.locals.insert_unique(
                 Universe::Value,
                 param.name.value,
-                TypeDef {
-                    id: type_id,
-                    arguments: self.env.intern_generic_argument_references(&[]),
+                Local {
+                    r#type: TypeDef {
+                        id: type_id,
+                        arguments: self.env.intern_generic_argument_references(&[]),
+                    },
+                    intrinsic: None,
                 },
             );
         }
