@@ -3,7 +3,7 @@ import { getRoots } from "@blockprotocol/graph/stdlib";
 import type {
   ActorEntityUuid,
   ActorGroupEntityUuid,
-  ActorId,
+  AiId,
   ClosedTemporalBound,
   EntityUuid,
   ProvidedEntityEditionProvenance,
@@ -126,7 +126,6 @@ export const getWebServiceUsage = async (
 export const createUsageRecord = async (
   context: { graphApi: GraphApi },
   {
-    additionalViewers,
     assignUsageToWebId,
     customMetadata,
     serviceName,
@@ -134,11 +133,8 @@ export const createUsageRecord = async (
     inputUnitCount,
     outputUnitCount,
     userAccountId,
+    aiAssistantAccountId,
   }: {
-    /**
-     * Grant view access on the usage record to these additional accounts
-     */
-    additionalViewers?: ActorId[];
     /**
      * The web the usage will be assigned to (user or org)
      */
@@ -156,6 +152,7 @@ export const createUsageRecord = async (
      * Tracked separately from webId as usage may be attributed to an org, but we want to know which user incurred it.
      */
     userAccountId: UserId;
+    aiAssistantAccountId: AiId;
   },
 ) => {
   const properties: UsageRecord["propertiesWithMetadata"] = {
@@ -266,6 +263,13 @@ export const createUsageRecord = async (
         subjectSet: "member",
       },
     },
+    {
+      relation: "viewer",
+      subject: {
+        kind: "account",
+        subjectId: aiAssistantAccountId,
+      },
+    },
   ];
 
   if (assignUsageToWebId === userAccountId) {
@@ -285,25 +289,6 @@ export const createUsageRecord = async (
         subjectSet: "administrator",
       },
     });
-  }
-
-  const viewPrincipals: PrincipalConstraint[] = [
-    {
-      type: "actor",
-      actorType: "user",
-      id: userAccountId,
-    },
-  ];
-
-  for (const additionalViewer of additionalViewers ?? []) {
-    entityRelationships.push({
-      relation: "viewer",
-      subject: {
-        kind: "account",
-        subjectId: additionalViewer.id,
-      },
-    });
-    viewPrincipals.push({ type: "actor", ...additionalViewer });
   }
 
   const usageRecordEntityUuid = generateUuid() as EntityUuid;
@@ -347,6 +332,19 @@ export const createUsageRecord = async (
       relationships: entityRelationships,
     },
   ]);
+
+  const viewPrincipals: PrincipalConstraint[] = [
+    {
+      type: "actor",
+      actorType: "user",
+      id: userAccountId,
+    },
+    {
+      type: "actor",
+      actorType: "ai",
+      id: aiAssistantAccountId,
+    },
+  ];
 
   // TODO: allow creating policies alongside entity creation
   //   see https://linear.app/hash/issue/H-4622/allow-creating-policies-alongside-entity-creation

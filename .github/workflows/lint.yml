@@ -252,7 +252,7 @@ jobs:
             echo ''
             echo ''
             echo 'ℹ️ ℹ️ ℹ️'
-            echo 'Try running `yarn fix:biome` locally to apply autofixes.'
+            echo 'Try running `yarn fix:format` locally to apply autofixes.'
             echo 'ℹ️ ℹ️ ℹ️'
             exit 1
           fi

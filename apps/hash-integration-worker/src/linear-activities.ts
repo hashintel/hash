@@ -155,10 +155,12 @@ const createHashEntity = async (params: {
 
   // TODO: allow creating policies alongside entity creation
   //   see https://linear.app/hash/issue/H-4622/allow-creating-policies-alongside-entity-creation
-  for (const linkEntity of linkEntities) {
-    const linkEntityUuid = extractEntityUuidFromEntityId(linkEntity.entityId);
+  for (const createdEntity of [entity, ...linkEntities]) {
+    const createdEntityUuid = extractEntityUuidFromEntityId(
+      createdEntity.entityId,
+    );
     await createPolicy(graphApiClient, params.authentication, {
-      name: `linear-synced-administer-entity-${linkEntityUuid}`,
+      name: `linear-synced-administer-entity-${createdEntityUuid}`,
       effect: "permit",
       principal: {
         type: "actor",
@@ -168,7 +170,7 @@ const createHashEntity = async (params: {
       actions: ["viewEntity"],
       resource: {
         type: "entity",
-        id: linkEntityUuid,
+        id: createdEntityUuid,
       },
     });
   }
