@@ -1,7 +1,0 @@
-requires ::kernel::type;
-
-bind Number = ::kernel::type::Number;
-
-#[intrinsic(::core::math::add)]
-#[alias(`+`)]
-fn add<T: Number, U: Number>(lhs: T, rhs: U) -> T | U;

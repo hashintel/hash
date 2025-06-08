@@ -1,6 +1,0 @@
-requires ::kernel::type;
-
-newtype Some<T> = T;
-newtype None = ::kernel::type::Null;
-
-type Option<T> = Some<T> | None;
