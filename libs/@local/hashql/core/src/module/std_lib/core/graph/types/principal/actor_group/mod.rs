@@ -30,7 +30,7 @@ impl<'heap> StandardLibraryModule<'heap> for ActorGroup {
             .manifest::<std_lib::core::uuid::Uuid>()
             .expect_newtype(heap.intern_symbol("Uuid"));
         let entity_uuid_ty = lib.ty.opaque(
-            "::graph::principal::actor_group::ActorGroupEntityUuid",
+            "::core::graph::types::principal::actor_group::ActorGroupEntityUuid",
             uuid_ty.id,
         );
         def.push(

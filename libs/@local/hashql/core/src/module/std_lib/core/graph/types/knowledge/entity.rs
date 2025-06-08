@@ -29,27 +29,30 @@ impl<'heap> StandardLibraryModule<'heap> for Entity {
         let uuid_ty = lib
             .manifest::<std_lib::core::uuid::Uuid>()
             .expect_newtype(heap.intern_symbol("Uuid"));
-        let entity_uuid_ty = lib
-            .ty
-            .opaque("::graph::knowledge::entity::EntityUuid", uuid_ty.id);
+        let entity_uuid_ty = lib.ty.opaque(
+            "::core::graph::types::knowledge::entity::EntityUuid",
+            uuid_ty.id,
+        );
         def.push(
             heap.intern_symbol("EntityUuid"),
             ItemDef::newtype(lib.ty.env, entity_uuid_ty, &[]),
         );
 
         // newtype DraftId = Uuid;
-        let draft_id_ty = lib
-            .ty
-            .opaque("::graph::knowledge::entity::DraftId", uuid_ty.id);
+        let draft_id_ty = lib.ty.opaque(
+            "::core::graph::types::knowledge::entity::DraftId",
+            uuid_ty.id,
+        );
         def.push(
             heap.intern_symbol("DraftId"),
             ItemDef::newtype(lib.ty.env, draft_id_ty, &[]),
         );
 
         // newtype EntityEditionId = Uuid;
-        let entity_edition_id_ty = lib
-            .ty
-            .opaque("::graph::knowledge::entity::EntityEditionId", uuid_ty.id);
+        let entity_edition_id_ty = lib.ty.opaque(
+            "::core::graph::types::knowledge::entity::EntityEditionId",
+            uuid_ty.id,
+        );
         def.push(
             heap.intern_symbol("EntityEditionId"),
             ItemDef::newtype(lib.ty.env, entity_edition_id_ty, &[]),
@@ -60,7 +63,7 @@ impl<'heap> StandardLibraryModule<'heap> for Entity {
             .manifest::<std_lib::core::graph::types::principal::actor_group::web::Web>()
             .expect_newtype(heap.intern_symbol("WebId"));
         let entity_id_ty = lib.ty.opaque(
-            "::graph::knowledge::entity::EntityId",
+            "::core::graph::types::knowledge::entity::EntityId",
             lib.ty.r#struct([
                 ("web_id", web_id.id),
                 ("entity_uuid", entity_uuid_ty),
@@ -74,7 +77,7 @@ impl<'heap> StandardLibraryModule<'heap> for Entity {
 
         // newtype EntityRecordId = (entity_id: EntityId, edition_id: EntityEditionId)
         let entity_record_id_ty = lib.ty.opaque(
-            "::graph::knowledge::entity::EntityRecordId",
+            "::core::graph::types::knowledge::entity::EntityRecordId",
             lib.ty.r#struct([
                 ("entity_id", entity_id_ty),
                 ("edition_id", entity_edition_id_ty),
@@ -87,7 +90,7 @@ impl<'heap> StandardLibraryModule<'heap> for Entity {
 
         // newtype LinkData = (left_entity_id: EntityId, right_entity_id: EntityId)
         let link_data_ty = lib.ty.opaque(
-            "::graph::knowledge::entity::LinkData",
+            "::core::graph::types::knowledge::entity::LinkData",
             lib.ty.r#struct([
                 ("left_entity_id", entity_id_ty),
                 ("right_entity_id", entity_id_ty),
@@ -103,7 +106,7 @@ impl<'heap> StandardLibraryModule<'heap> for Entity {
         let t_ref = lib.ty.hydrate_argument(t_arg);
         let t_param = lib.ty.param(t_arg);
         let entity_ty = lib.ty.opaque(
-            "::graph::knowledge::entity::Entity",
+            "::core::graph::types::knowledge::entity::Entity",
             lib.ty.r#struct([
                 ("id", entity_record_id_ty),
                 ("properties", t_param),

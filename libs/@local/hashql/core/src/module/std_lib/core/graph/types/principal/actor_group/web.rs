@@ -27,7 +27,7 @@ impl<'heap> StandardLibraryModule<'heap> for Web {
             .manifest::<std_lib::core::graph::types::principal::actor_group::ActorGroup>()
             .expect_newtype(heap.intern_symbol("ActorGroupEntityUuid"));
         let entity_uuid_ty = lib.ty.opaque(
-            "::graph::principal::actor_group::web::WebId",
+            "::core::graph::types::principal::actor_group::web::WebId",
             actor_group_entity_uuid_ty.id,
         );
         def.push(
