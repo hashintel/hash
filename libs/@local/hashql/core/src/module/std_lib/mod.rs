@@ -215,8 +215,11 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
     pub(super) fn register(&mut self) {
         type Root = (self::core::Core, self::kernel::Kernel);
 
-        for id in Root::modules(self, ModuleId::ROOT) {
-            println!("hey! listen {id}");
+        let roots: smallvec::SmallVec<_, 2> =
+            Root::modules(self, ModuleId::ROOT).into_iter().collect();
+
+        for id in roots {
+            self.registry.register(id);
         }
     }
 }
