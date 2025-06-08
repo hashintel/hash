@@ -46,6 +46,15 @@ impl<'heap> StandardLibraryModule<'heap> for Entity {
             ItemDef::newtype(lib.ty.env, draft_id_ty, &[]),
         );
 
+        // newtype EntityEditionId = Uuid;
+        let entity_edition_id_ty = lib
+            .ty
+            .opaque("::graph::knowledge::entity::EntityEditionId", uuid_ty.id);
+        def.push(
+            heap.intern_symbol("EntityEditionId"),
+            ItemDef::newtype(lib.ty.env, entity_edition_id_ty, &[]),
+        );
+
         // newtype EntityId = (web_id: WebId, entity_uuid: EntityUuid, draft_id: Option<DraftId>)
         let web_id = lib
             .manifest::<std_lib::core::graph::principal::actor_group::web::Web>()
@@ -61,6 +70,19 @@ impl<'heap> StandardLibraryModule<'heap> for Entity {
         def.push(
             heap.intern_symbol("EntityId"),
             ItemDef::newtype(lib.ty.env, entity_id_ty, &[]),
+        );
+
+        // newtype EntityRecordId = (entity_id: EntityId, edition_id: EntityEditionId)
+        let entity_record_id_ty = lib.ty.opaque(
+            "::graph::knowledge::entity::EntityRecordId",
+            lib.ty.r#struct([
+                ("entity_id", entity_id_ty),
+                ("edition_id", entity_edition_id_ty),
+            ]),
+        );
+        def.push(
+            heap.intern_symbol("EntityRecordId"),
+            ItemDef::newtype(lib.ty.env, entity_record_id_ty, &[]),
         );
 
         def
