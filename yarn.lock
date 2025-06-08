@@ -306,7 +306,7 @@ __metadata:
     eslint: "npm:9.20.1"
     exponential-backoff: "npm:3.1.2"
     googleapis: "npm:133.0.0"
-    gpt-tokenizer: "npm:2.9.0"
+    gpt-tokenizer: "npm:3.0.0"
     is-docker: "npm:3.0.0"
     jsdom: "npm:24.1.3"
     llamaindex: "npm:0.8.37"
@@ -28394,7 +28394,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"gpt-tokenizer@npm:2.9.0, gpt-tokenizer@npm:^2.6.2":
+"gpt-tokenizer@npm:3.0.0":
+  version: 3.0.0
+  resolution: "gpt-tokenizer@npm:3.0.0"
+  checksum: 10c0/7fb73562572561bff92e4e78b8b5cc9e0fccdb968a58f7665a1f0625e9d52ee0a5e97ff71bb7d85581958b526bd1f59aa80804a19c3a4aa9e80bee156e81e810
+  languageName: node
+  linkType: hard
+
+"gpt-tokenizer@npm:^2.6.2":
   version: 2.9.0
   resolution: "gpt-tokenizer@npm:2.9.0"
   checksum: 10c0/3733fbf045f81e71c475d0f2327e648600f5662079ef403a495efaed96fb20526877ee7f27dbee29ba73e8fa795b3405f07357fb4214abb84c5aae5be7ea902b
