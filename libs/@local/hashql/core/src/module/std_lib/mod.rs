@@ -1,3 +1,5 @@
+mod kernel;
+
 use super::{ModuleId, ModuleRegistry, item::IntrinsicItem, locals::TypeDef};
 use crate::{
     collection::SmallVec,
@@ -8,6 +10,7 @@ use crate::{
         item::{ConstructorItem, Item, ItemKind},
     },
     symbol::Symbol,
+    r#type::{TypeBuilder, environment::Environment},
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -19,14 +22,60 @@ enum ItemDef<'heap> {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 struct ModuleEntry<'heap> {
-    name: Symbol<'heap>,
-    kind: ItemDef<'heap>,
+    pub name: Symbol<'heap>,
+    pub kind: ItemDef<'heap>,
+}
+
+impl<'heap> ModuleEntry<'heap> {
+    pub fn new(name: Symbol<'heap>, kind: ItemDef<'heap>) -> Self {
+        Self { name, kind }
+    }
+
+    pub fn alias(self, alias: Symbol<'heap>) -> Self {
+        Self {
+            name: alias,
+            kind: self.kind,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 struct ModuleDef<'heap>(SmallVec<ModuleEntry<'heap>>);
 
 impl<'heap> ModuleDef<'heap> {
+    fn new() -> Self {
+        Self(SmallVec::new())
+    }
+
+    fn push(&mut self, name: Symbol<'heap>, def: ItemDef<'heap>) -> usize {
+        let index = self.0.len();
+        self.0.push(ModuleEntry::new(name, def));
+        index
+    }
+
+    // with gen-blocks we'd be able to return an iterator over the indices for free
+    fn push_aliased(
+        &mut self,
+        names: impl IntoIterator<Item = Symbol<'heap>>,
+        def: ItemDef<'heap>,
+    ) {
+        let names = names.into_iter();
+
+        self.0.reserve(names.size_hint().0);
+
+        for name in names {
+            self.push(name, def);
+        }
+    }
+
+    fn alias(&mut self, index: usize, alias: Symbol<'heap>) -> usize {
+        let item = self.0[index].alias(alias);
+
+        let index = self.0.len();
+        self.0.push(item);
+        index
+    }
+
     fn find(&self, name: Symbol<'heap>) -> Option<ModuleEntry<'heap>> {
         self.0.iter().find(|item| item.name == name).copied()
     }
@@ -39,14 +88,20 @@ impl<'heap> ModuleDef<'heap> {
 struct StandardLibraryContext<'env, 'heap> {
     heap: &'heap Heap,
     registry: &'env ModuleRegistry<'heap>,
+    ty: TypeBuilder<'env, 'heap>,
     modules: SmallVec<(Symbol<'heap>, ModuleDef<'heap>)>,
 }
 
 impl<'env, 'heap> StandardLibraryContext<'env, 'heap> {
-    fn new(heap: &'heap Heap, registry: &'env ModuleRegistry<'heap>) -> Self {
+    fn new(
+        heap: &'heap Heap,
+        environment: &'env Environment<'heap>,
+        registry: &'env ModuleRegistry<'heap>,
+    ) -> Self {
         Self {
             heap,
             registry,
+            ty: TypeBuilder::synthetic(environment),
             modules: SmallVec::new(),
         }
     }
