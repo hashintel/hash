@@ -10,7 +10,7 @@ use crate::{
 pub(in crate::module::std_lib) struct Entity {
     _dependencies: (
         std_lib::core::uuid::Uuid,
-        std_lib::core::graph::principal::actor_group::web::Web,
+        std_lib::core::graph::type_system::principal::actor_group::web::Web,
     ),
 }
 
@@ -57,7 +57,7 @@ impl<'heap> StandardLibraryModule<'heap> for Entity {
 
         // newtype EntityId = (web_id: WebId, entity_uuid: EntityUuid, draft_id: Option<DraftId>)
         let web_id = lib
-            .manifest::<std_lib::core::graph::principal::actor_group::web::Web>()
+            .manifest::<std_lib::core::graph::type_system::principal::actor_group::web::Web>()
             .expect_newtype(heap.intern_symbol("WebId"));
         let entity_id_ty = lib.ty.opaque(
             "::graph::knowledge::entity::EntityId",
@@ -83,6 +83,36 @@ impl<'heap> StandardLibraryModule<'heap> for Entity {
         def.push(
             heap.intern_symbol("EntityRecordId"),
             ItemDef::newtype(lib.ty.env, entity_record_id_ty, &[]),
+        );
+
+        // newtype LinkData = (left_entity_id: EntityId, right_entity_id: EntityId)
+        let link_data_ty = lib.ty.opaque(
+            "::graph::knowledge::entity::LinkData",
+            lib.ty.r#struct([
+                ("left_entity_id", entity_id_ty),
+                ("right_entity_id", entity_id_ty),
+            ]),
+        );
+        def.push(
+            heap.intern_symbol("LinkData"),
+            ItemDef::newtype(lib.ty.env, link_data_ty, &[]),
+        );
+
+        // newtype Entity<T> = (id: EntityRecordId, properties: T, link_data: Option<LinkData>)
+        let t_arg = lib.ty.fresh_argument("T");
+        let t_ref = lib.ty.hydrate_argument(t_arg);
+        let t_param = lib.ty.param(t_arg);
+        let entity_ty = lib.ty.opaque(
+            "::graph::knowledge::entity::Entity",
+            lib.ty.r#struct([
+                ("id", entity_record_id_ty),
+                ("properties", t_param),
+                ("link_data", option(lib, link_data_ty)),
+            ]),
+        );
+        def.push(
+            heap.intern_symbol("Entity"),
+            ItemDef::newtype(lib.ty.env, entity_ty, &[t_ref]),
         );
 
         def

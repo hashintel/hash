@@ -1,6 +1,4 @@
-pub(in crate::module::std_lib) mod knowledge;
-pub(in crate::module::std_lib) mod ontology;
-pub(in crate::module::std_lib) mod principal;
+pub(in crate::module::std_lib) mod type_system;
 
 use crate::{
     heap::Heap,
@@ -16,11 +14,7 @@ pub(in crate::module::std_lib) struct Graph {
 }
 
 impl<'heap> StandardLibraryModule<'heap> for Graph {
-    type Children = (
-        self::knowledge::Knowledge,
-        self::ontology::Ontology,
-        self::principal::Principal,
-    );
+    type Children = (self::type_system::TypeSystem,);
 
     fn name(heap: &'heap Heap) -> Symbol<'heap> {
         heap.intern_symbol("graph")
