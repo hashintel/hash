@@ -1,0 +1,29 @@
+#[primitive(Boolean)]
+type Boolean;
+
+#[primitive(Null)]
+type Null;
+
+#[primitive(Number)]
+type Number;
+
+#[primitive(Integer)]
+type Integer;
+
+// Natural does not yet exist, due to lack of support for refinement types
+#[primitive(String)]
+type String;
+
+#[primitive(Unknown)]
+#[alias(`?`)]
+type Unknown;
+
+#[primitive(Never)]
+#[alias(`!`)]
+type Never;
+
+#[intrinsic(::kernel::type::List)]
+type List;
+
+#[intrinsic(::kernel::type::Dict)]
+type Dict;

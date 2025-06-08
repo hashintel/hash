@@ -1,0 +1,4 @@
+newtype Ok<T> = T;
+newtype Err<E> = E;
+
+type Result<T, E> = Ok<T> | Err<E>;

@@ -1,0 +1,4 @@
+requires ::kernel::type;
+
+// TODO: consider making the constructor for Url and BaseUrl private
+newtype Uuid = ::kernel::type::String;

@@ -1,0 +1,13 @@
+requires ::kernel::type;
+requires ::core::graph::ontology;
+
+// TODO: consider making the constructor for Url and BaseUrl private
+
+// newtype exposes the ctor, while #opaque does not
+newtype Url = ::kernel::type::String;
+newtype BaseUrl = ::kernel::type::String;
+
+newtype VersionedUrl = (
+    base_url: BaseUrl,
+    version: ::core::graph::ontology::OntologyTypeVersion
+);

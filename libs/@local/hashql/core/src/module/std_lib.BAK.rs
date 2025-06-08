@@ -260,7 +260,7 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
         })
     }
 
-    fn core_url_module(&self, parent: ModuleId) -> ModuleId {
+    fn core_url_module(&self, parent: ModuleId, ontology_type_version: TypeId) -> ModuleId {
         self.registry.intern_module(|id| {
             let id = id.value();
 
@@ -270,15 +270,78 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
             let base_url = self.ty.opaque("::core::url::BaseUrl", url.id);
             let base_url = self.type_def(base_url, &[]);
 
+            let versioned_url = self.ty.opaque(
+                "::core::url::VersionedUrl",
+                self.ty.r#struct([
+                    ("base_url", base_url.id),
+                    ("version", ontology_type_version),
+                ]),
+            );
+            let versioned_url = self.type_def(versioned_url, &[]);
+
             PartialModule {
                 name: self.heap.intern_symbol("url"),
                 parent,
                 items: self.registry.intern_items(&[
                     self.alloc_type_item(id, "Url", url),
+                    // TODO: consider making this constructor private via intrinsic (requires VM)
                     self.alloc_ctor(id, "Url", url),
                     self.alloc_type_item(id, "BaseUrl", base_url),
+                    // TODO: consider making this constructor private via intrinsic (requires VM)
                     self.alloc_ctor(id, "BaseUrl", base_url),
+                    self.alloc_type_item(id, "VersionedUrl", versioned_url),
+                    self.alloc_ctor(id, "VersionedUrl", versioned_url),
                 ]),
+            }
+        })
+    }
+
+    fn core_uuid_module(&self, parent: ModuleId) -> ModuleId {
+        self.registry.intern_module(|id| {
+            let id = id.value();
+
+            let uuid = self.ty.opaque("::core::uuid::Uuid", self.ty.string());
+            let uuid = self.type_def(uuid, &[]);
+
+            PartialModule {
+                name: self.heap.intern_symbol("uuid"),
+                parent,
+                items: self.registry.intern_items(&[
+                    self.alloc_type_item(id, "Uuid", uuid),
+                    self.alloc_ctor(id, "Uuid", uuid),
+                ]),
+            }
+        })
+    }
+
+    fn core_graph_ontology_module(&mut self, parent: ModuleId) -> ModuleId {
+        self.registry.intern_module(|id| {
+            let id = id.value();
+
+            let ontology_type_version = self
+                .ty
+                .opaque("::core::ontology::OntologyTypeVersion", self.ty.string());
+            let ontology_type_version = self.type_def(ontology_type_version, &[]);
+
+            PartialModule {
+                name: self.heap.intern_symbol("graph"),
+                parent,
+                items: self.registry.intern_items(&[
+                    self.alloc_type_item(id, "OntologyTypeVersion", ontology_type_version),
+                    self.alloc_ctor(id, "OntologyTypeVersion", ontology_type_version),
+                ]),
+            }
+        })
+    }
+
+    fn core_graph_knowledge_entity_module(&mut self, parent: ModuleId) -> ModuleId {
+        self.registry.intern_module(|id| {
+            let id = id.value();
+
+            PartialModule {
+                name: self.heap.intern_symbol("entity"),
+                parent,
+                items: self.registry.intern_items(&[]),
             }
         })
     }
