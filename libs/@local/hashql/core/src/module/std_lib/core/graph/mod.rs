@@ -17,7 +17,7 @@ pub(in crate::module::std_lib) struct Graph {
 }
 
 impl<'heap> StandardLibraryModule<'heap> for Graph {
-    type Children = (self::types::Types, self::tmp::Tmp);
+    type Children = (self::types::Types, self::tmp::Tmp, self::head::Head);
 
     fn name(heap: &'heap Heap) -> Symbol<'heap> {
         heap.intern_symbol("graph")

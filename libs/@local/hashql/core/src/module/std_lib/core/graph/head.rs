@@ -3,10 +3,9 @@ use crate::{
     module::{
         StandardLibrary,
         locals::TypeDef,
-        std_lib::{self, ModuleDef, StandardLibraryModule, core::func},
+        std_lib::{self, ModuleDef, StandardLibraryModule, core::func, decl},
     },
     symbol::Symbol,
-    r#type::TypeId,
 };
 
 pub(in crate::module::std_lib) struct Head {
@@ -27,9 +26,30 @@ impl<'heap> StandardLibraryModule<'heap> for Head {
         let graph = lib.manifest::<std_lib::core::graph::Graph>();
 
         let time_axis_ty = graph.expect_newtype(heap.intern_symbol("TimeAxis"));
-        let graph_ty = graph.expect_newtype(heap.intern_symbol("Graph"));
+        let mut graph_ty = graph.expect_newtype(heap.intern_symbol("Graph"));
+        graph_ty.instantiate(&mut lib.instantiate);
 
-        todo!();
+        let mut entity = lib
+            .manifest::<std_lib::core::graph::types::knowledge::entity::Entity>()
+            .expect_newtype(heap.intern_symbol("Entity"));
+        entity.instantiate(&mut lib.instantiate);
+
+        // ::core::graph::head::entities(axis: TimeAxis) -> Graph<Entity<?>>;
+        let entities_returns = lib.ty.apply(
+            [(
+                graph_ty.arguments[0].id,
+                lib.ty
+                    .apply([(graph_ty.arguments[0].id, lib.ty.unknown())], entity.id),
+            )],
+            graph_ty.id,
+        );
+        func(
+            lib,
+            &mut def,
+            "::core::graph::head::entities",
+            &[],
+            decl!(lib; <>(axis: time_axis_ty.id) -> entities_returns),
+        );
 
         def
     }
