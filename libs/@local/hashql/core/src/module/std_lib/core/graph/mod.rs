@@ -1,3 +1,4 @@
+pub(in crate::module::std_lib) mod head;
 pub(in crate::module::std_lib) mod tmp;
 pub(in crate::module::std_lib) mod types;
 
@@ -25,15 +26,20 @@ impl<'heap> StandardLibraryModule<'heap> for Graph {
     fn define(lib: &mut StandardLibrary<'_, 'heap>) -> ModuleDef<'heap> {
         let mut def = ModuleDef::new();
 
-        // newtype Graph<T> = (:)
+        // newtype Graph<T> = ('marker: T)
+        // ^ The data is *not* accessible by the user (and not documented), instead it is used
+        // internally to determine the type of the graph. To make sure that the type cannot be
+        // mentioned by the user. The type is referred to as: `'marker`, which is an identifier
+        // that the user cannot mention.
         let t_arg = lib.ty.fresh_argument("T");
         let t_ref = lib.ty.hydrate_argument(t_arg);
+        let t_param = lib.ty.param(t_arg);
 
         let graph_ty = lib.ty.generic(
             [t_arg],
             lib.ty.opaque(
                 "::core::graph::Graph",
-                lib.ty.r#struct([] as [(&str, TypeId); 0]),
+                lib.ty.r#struct([("'marker", t_param)]),
             ),
         );
         def.push(
