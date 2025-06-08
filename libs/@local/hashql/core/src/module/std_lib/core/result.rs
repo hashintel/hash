@@ -1,10 +1,14 @@
+use core::marker::PhantomData;
+
 use crate::{
     heap::Heap,
     module::std_lib::{ItemDef, ModuleDef, StandardLibrary, StandardLibraryModule},
     symbol::Symbol,
 };
 
-pub(in crate::module::std_lib) struct Result;
+pub(in crate::module::std_lib) struct Result {
+    dependencies: PhantomData<()>,
+}
 
 impl<'heap> StandardLibraryModule<'heap> for Result {
     type Children = ();

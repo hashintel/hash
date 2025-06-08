@@ -1,3 +1,5 @@
+use core::marker::PhantomData;
+
 use super::func;
 use crate::{
     heap::Heap,
@@ -8,7 +10,9 @@ use crate::{
     symbol::Symbol,
 };
 
-pub(in crate::module::std_lib) struct Cmp;
+pub(in crate::module::std_lib) struct Cmp {
+    dependencies: PhantomData<()>,
+}
 
 impl<'heap> StandardLibraryModule<'heap> for Cmp {
     type Children = ();

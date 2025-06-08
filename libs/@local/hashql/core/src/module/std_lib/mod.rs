@@ -13,7 +13,9 @@ use crate::{
     },
     symbol::Symbol,
     r#type::{
-        TypeBuilder, TypeId, environment::Environment, kind::generic::GenericArgumentReference,
+        TypeBuilder, TypeId,
+        environment::{Environment, instantiate::InstantiateEnvironment},
+        kind::generic::GenericArgumentReference,
     },
 };
 
@@ -55,18 +57,18 @@ impl<'heap> ItemDef<'heap> {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 struct ModuleEntry<'heap> {
     name: Symbol<'heap>,
-    kind: ItemDef<'heap>,
+    def: ItemDef<'heap>,
 }
 
 impl<'heap> ModuleEntry<'heap> {
     const fn new(name: Symbol<'heap>, kind: ItemDef<'heap>) -> Self {
-        Self { name, kind }
+        Self { name, def: kind }
     }
 
     const fn alias(self, alias: Symbol<'heap>) -> Self {
         Self {
             name: alias,
-            kind: self.kind,
+            def: self.def,
         }
     }
 }
@@ -112,14 +114,35 @@ impl<'heap> ModuleDef<'heap> {
         self.0.iter().find(|item| item.name == name).copied()
     }
 
-    #[expect(dead_code, reason = "follow up PR")]
     fn expect(&self, name: Symbol<'heap>) -> ModuleEntry<'heap> {
         self.find(name).expect("module item not found")
+    }
+
+    fn expect_type(&self, name: Symbol<'heap>) -> TypeDef<'heap> {
+        match self.expect(name).def {
+            ItemDef::Type(type_def) => type_def,
+            _ => panic!("expected type definition"),
+        }
+    }
+
+    fn expect_newtype(&self, name: Symbol<'heap>) -> TypeDef<'heap> {
+        match self.expect(name).def {
+            ItemDef::Newtype(newtype_def) => newtype_def,
+            _ => panic!("expected newtype definition"),
+        }
+    }
+
+    fn expect_intrinsic(&self, name: Symbol<'heap>) -> IntrinsicItem<'heap> {
+        match self.expect(name).def {
+            ItemDef::Intrinsic(intrinsic) => intrinsic,
+            _ => panic!("expected intrinsic definition"),
+        }
     }
 }
 
 pub(super) struct StandardLibrary<'env, 'heap> {
     heap: &'heap Heap,
+    instantiate: InstantiateEnvironment<'env, 'heap>,
     registry: &'env ModuleRegistry<'heap>,
     ty: TypeBuilder<'env, 'heap>,
     modules: SmallVec<(::core::any::TypeId, ModuleDef<'heap>)>,
@@ -132,6 +155,7 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
     ) -> Self {
         Self {
             heap: environment.heap,
+            instantiate: InstantiateEnvironment::new(environment),
             registry,
             ty: TypeBuilder::synthetic(environment),
             modules: SmallVec::new(),
@@ -173,7 +197,7 @@ impl<'env, 'heap> StandardLibrary<'env, 'heap> {
 
             let mut output = SmallVec::with_capacity(items.capacity() + M::Children::LENGTH);
 
-            for &ModuleEntry { name, kind } in items {
+            for &ModuleEntry { name, def: kind } in items {
                 let items = match kind {
                     ItemDef::Intrinsic(intrinsic) => [Some(ItemKind::Intrinsic(intrinsic)), None],
                     ItemDef::Type(def) => [Some(ItemKind::Type(def)), None],
