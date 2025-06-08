@@ -1,5 +1,3 @@
-use core::marker::PhantomData;
-
 use crate::{
     heap::Heap,
     module::std_lib::{ItemDef, ModuleDef, StandardLibrary, StandardLibraryModule},
@@ -7,7 +5,7 @@ use crate::{
 };
 
 pub(in crate::module::std_lib) struct Result {
-    dependencies: PhantomData<()>,
+    _dependencies: (),
 }
 
 impl<'heap> StandardLibraryModule<'heap> for Result {

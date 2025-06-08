@@ -1,5 +1,3 @@
-use core::marker::PhantomData;
-
 use crate::{
     heap::Heap,
     module::{
@@ -10,7 +8,7 @@ use crate::{
 };
 
 pub(in crate::module::std_lib) struct Web {
-    dependencies: PhantomData<(std_lib::core::graph::principal::actor_group::ActorGroup,)>,
+    _dependencies: (std_lib::core::graph::principal::actor_group::ActorGroup,),
 }
 
 impl<'heap> StandardLibraryModule<'heap> for Web {

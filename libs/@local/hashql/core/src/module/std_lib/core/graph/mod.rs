@@ -2,8 +2,6 @@ pub(in crate::module::std_lib) mod knowledge;
 pub(in crate::module::std_lib) mod ontology;
 pub(in crate::module::std_lib) mod principal;
 
-use core::marker::PhantomData;
-
 use crate::{
     heap::Heap,
     module::{
@@ -14,7 +12,7 @@ use crate::{
 };
 
 pub(in crate::module::std_lib) struct Graph {
-    dependencies: PhantomData<()>,
+    _dependencies: (),
 }
 
 impl<'heap> StandardLibraryModule<'heap> for Graph {

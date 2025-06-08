@@ -1,14 +1,11 @@
-use core::marker::PhantomData;
-
-use super::graph;
 use crate::{
     heap::Heap,
-    module::std_lib::{ItemDef, ModuleDef, StandardLibrary, StandardLibraryModule},
+    module::std_lib::{self, ItemDef, ModuleDef, StandardLibrary, StandardLibraryModule},
     symbol::Symbol,
 };
 
 pub(in crate::module::std_lib) struct Url {
-    dependencies: PhantomData<(graph::ontology::Ontology,)>,
+    _dependencies: (std_lib::core::graph::ontology::Ontology,),
 }
 
 impl<'heap> StandardLibraryModule<'heap> for Url {
@@ -36,7 +33,7 @@ impl<'heap> StandardLibraryModule<'heap> for Url {
 
         // newtype VersionedUrl = (base_url: BaseUrl, version: OntologyTypeVersion);
         let ontology_type_version = lib
-            .manifest::<graph::ontology::Ontology>()
+            .manifest::<std_lib::core::graph::ontology::Ontology>()
             .expect_newtype(heap.intern_symbol("OntologyTypeVersion"));
         let versioned_url_ty = lib.ty.opaque(
             "::core::url::VersionedUrl",

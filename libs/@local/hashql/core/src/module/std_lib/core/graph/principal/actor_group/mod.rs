@@ -1,7 +1,5 @@
 pub(in crate::module::std_lib) mod web;
 
-use ::core::marker::PhantomData;
-
 use crate::{
     heap::Heap,
     module::{
@@ -12,7 +10,7 @@ use crate::{
 };
 
 pub(in crate::module::std_lib) struct ActorGroup {
-    dependencies: PhantomData<(std_lib::core::uuid::Uuid,)>,
+    _dependencies: (std_lib::core::uuid::Uuid,),
 }
 
 impl<'heap> StandardLibraryModule<'heap> for ActorGroup {

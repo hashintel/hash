@@ -1,5 +1,3 @@
-use core::marker::PhantomData;
-
 use crate::{
     heap::Heap,
     module::{
@@ -10,7 +8,7 @@ use crate::{
 };
 
 pub(in crate::module::std_lib) struct Ontology {
-    dependencies: PhantomData<()>,
+    _dependencies: (),
 }
 
 impl<'heap> StandardLibraryModule<'heap> for Ontology {
