@@ -10,7 +10,7 @@ use crate::{
 pub(in crate::module::std_lib) struct Entity {
     _dependencies: (
         std_lib::core::uuid::Uuid,
-        std_lib::core::graph::type_system::principal::actor_group::web::Web,
+        std_lib::core::graph::types::principal::actor_group::web::Web,
     ),
 }
 
@@ -57,7 +57,7 @@ impl<'heap> StandardLibraryModule<'heap> for Entity {
 
         // newtype EntityId = (web_id: WebId, entity_uuid: EntityUuid, draft_id: Option<DraftId>)
         let web_id = lib
-            .manifest::<std_lib::core::graph::type_system::principal::actor_group::web::Web>()
+            .manifest::<std_lib::core::graph::types::principal::actor_group::web::Web>()
             .expect_newtype(heap.intern_symbol("WebId"));
         let entity_id_ty = lib.ty.opaque(
             "::graph::knowledge::entity::EntityId",

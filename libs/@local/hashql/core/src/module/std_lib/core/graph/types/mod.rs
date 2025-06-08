@@ -12,11 +12,11 @@ pub(in crate::module::std_lib) mod knowledge;
 pub(in crate::module::std_lib) mod ontology;
 pub(in crate::module::std_lib) mod principal;
 
-pub(in crate::module::std_lib) struct TypeSystem {
+pub(in crate::module::std_lib) struct Types {
     _dependencies: (),
 }
 
-impl<'heap> StandardLibraryModule<'heap> for TypeSystem {
+impl<'heap> StandardLibraryModule<'heap> for Types {
     type Children = (
         self::knowledge::Knowledge,
         self::ontology::Ontology,
@@ -24,7 +24,7 @@ impl<'heap> StandardLibraryModule<'heap> for TypeSystem {
     );
 
     fn name(heap: &'heap Heap) -> Symbol<'heap> {
-        heap.intern_symbol("graph")
+        heap.intern_symbol("types")
     }
 
     fn define(_: &mut StandardLibrary<'_, 'heap>) -> ModuleDef<'heap> {
