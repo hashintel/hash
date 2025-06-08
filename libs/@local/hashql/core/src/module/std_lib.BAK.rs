@@ -17,38 +17,6 @@ use crate::{
     },
 };
 
-/// Declares a generic function type with parameters and return type.
-///
-/// Syntax: `<generics>(params) -> return_type`
-/// - `generics`: Optional generic type parameters with optional bounds
-/// - `params`: Function parameters with their type bounds
-/// - `return_type`: The return type expression
-///
-/// Creates a closure type that can be generic if type parameters are specified.
-macro_rules! decl {
-    ($this:ident; <$($generic:ident $(: $generic_bound:ident)?),*>($($param:ident: $param_bound:expr),*) -> $return:expr) => {{
-        $(
-            #[expect(non_snake_case)]
-            let ${concat($generic, _arg)} = $this.ty.fresh_argument(stringify!($generic));
-            #[expect(non_snake_case)]
-            let ${concat($generic, _ref)} = $this.ty.hydrate_argument(${concat($generic, _arg)});
-            #[expect(non_snake_case)]
-            let $generic = $this.ty.param(${concat($generic, _arg)});
-        )*
-
-        let mut closure = $this.ty.closure([$($param_bound),*], $return);
-        if ${count($generic)} > 0 {
-            closure = $this.ty.generic([
-                $(
-                    (${concat($generic, _arg)}, None $(.or(Some($generic_bound)))?)
-                ),*
-            ] as [(GenericArgumentId, Option<TypeId>); ${count($generic)}], closure)
-        }
-
-        $this.type_def(closure, &[$(${concat($generic, _ref)}),*])
-    }};
-}
-
 pub(super) struct StandardLibrary<'env, 'heap> {
     heap: &'heap Heap,
     registry: &'env ModuleRegistry<'heap>,

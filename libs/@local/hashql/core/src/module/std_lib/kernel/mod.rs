@@ -1,24 +1,19 @@
-mod special_form;
-mod r#type;
+pub(in crate::module::std_lib) mod special_form;
+pub(in crate::module::std_lib) mod r#type;
 
-use self::{special_form::SpecialForm, r#type::Type};
-use super::{ModuleDef, StandardLibraryContext, StandardLibraryModule};
+use super::{ModuleDef, StandardLibrary, StandardLibraryModule};
 use crate::{heap::Heap, symbol::Symbol};
 
-pub(crate) struct Kernel;
+pub(in crate::module::std_lib) struct Kernel;
 
 impl<'heap> StandardLibraryModule<'heap> for Kernel {
-    type Children = (SpecialForm, Type);
+    type Children = (self::special_form::SpecialForm, self::r#type::Type);
 
     fn name(heap: &'heap Heap) -> Symbol<'heap> {
         heap.intern_symbol("kernel")
     }
 
-    fn path(heap: &'heap Heap) -> Symbol<'heap> {
-        heap.intern_symbol("::kernel")
-    }
-
-    fn define(_: &mut StandardLibraryContext<'_, 'heap>) -> ModuleDef<'heap> {
+    fn define(_: &mut StandardLibrary<'_, 'heap>) -> ModuleDef<'heap> {
         ModuleDef::new()
     }
 }

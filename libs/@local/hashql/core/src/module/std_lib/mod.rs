@@ -1,16 +1,20 @@
+mod core;
 mod kernel;
+
+use ::core::iter;
 
 use super::{ModuleId, ModuleRegistry, item::IntrinsicItem, locals::TypeDef};
 use crate::{
     collection::SmallVec,
     heap::Heap,
-    intern::Provisioned,
     module::{
         PartialModule,
         item::{ConstructorItem, Item, ItemKind},
     },
     symbol::Symbol,
-    r#type::{TypeBuilder, environment::Environment},
+    r#type::{
+        TypeBuilder, TypeId, environment::Environment, kind::generic::GenericArgumentReference,
+    },
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -20,18 +24,46 @@ enum ItemDef<'heap> {
     Intrinsic(IntrinsicItem<'heap>),
 }
 
+impl<'heap> ItemDef<'heap> {
+    fn newtype(
+        env: &Environment<'heap>,
+        id: TypeId,
+        arguments: &[GenericArgumentReference<'heap>],
+    ) -> Self {
+        Self::Newtype(TypeDef {
+            id,
+            arguments: env.intern_generic_argument_references(arguments),
+        })
+    }
+
+    fn r#type(
+        env: &Environment<'heap>,
+        id: TypeId,
+        arguments: &[GenericArgumentReference<'heap>],
+    ) -> Self {
+        Self::Type(TypeDef {
+            id,
+            arguments: env.intern_generic_argument_references(arguments),
+        })
+    }
+
+    fn intrinsic(intrinsic: impl Into<IntrinsicItem<'heap>>) -> Self {
+        Self::Intrinsic(intrinsic.into())
+    }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 struct ModuleEntry<'heap> {
-    pub name: Symbol<'heap>,
-    pub kind: ItemDef<'heap>,
+    name: Symbol<'heap>,
+    kind: ItemDef<'heap>,
 }
 
 impl<'heap> ModuleEntry<'heap> {
-    pub fn new(name: Symbol<'heap>, kind: ItemDef<'heap>) -> Self {
+    const fn new(name: Symbol<'heap>, kind: ItemDef<'heap>) -> Self {
         Self { name, kind }
     }
 
-    pub fn alias(self, alias: Symbol<'heap>) -> Self {
+    const fn alias(self, alias: Symbol<'heap>) -> Self {
         Self {
             name: alias,
             kind: self.kind,
@@ -43,7 +75,7 @@ impl<'heap> ModuleEntry<'heap> {
 struct ModuleDef<'heap>(SmallVec<ModuleEntry<'heap>>);
 
 impl<'heap> ModuleDef<'heap> {
-    fn new() -> Self {
+    const fn new() -> Self {
         Self(SmallVec::new())
     }
 
@@ -80,26 +112,26 @@ impl<'heap> ModuleDef<'heap> {
         self.0.iter().find(|item| item.name == name).copied()
     }
 
+    #[expect(dead_code, reason = "follow up PR")]
     fn expect(&self, name: Symbol<'heap>) -> ModuleEntry<'heap> {
         self.find(name).expect("module item not found")
     }
 }
 
-struct StandardLibraryContext<'env, 'heap> {
+pub(super) struct StandardLibrary<'env, 'heap> {
     heap: &'heap Heap,
     registry: &'env ModuleRegistry<'heap>,
     ty: TypeBuilder<'env, 'heap>,
-    modules: SmallVec<(Symbol<'heap>, ModuleDef<'heap>)>,
+    modules: SmallVec<(::core::any::TypeId, ModuleDef<'heap>)>,
 }
 
-impl<'env, 'heap> StandardLibraryContext<'env, 'heap> {
-    fn new(
-        heap: &'heap Heap,
+impl<'env, 'heap> StandardLibrary<'env, 'heap> {
+    pub(super) fn new(
         environment: &'env Environment<'heap>,
         registry: &'env ModuleRegistry<'heap>,
     ) -> Self {
         Self {
-            heap,
+            heap: environment.heap,
             registry,
             ty: TypeBuilder::synthetic(environment),
             modules: SmallVec::new(),
@@ -110,18 +142,14 @@ impl<'env, 'heap> StandardLibraryContext<'env, 'heap> {
     where
         M: StandardLibraryModule<'heap>,
     {
-        let module_path = M::path(self.heap);
-        if let Some(position) = self
-            .modules
-            .iter()
-            .position(|(path, _)| *path == module_path)
-        {
+        let module_id = ::core::any::TypeId::of::<M>();
+        if let Some(position) = self.modules.iter().position(|&(id, _)| id == module_id) {
             position
         } else {
             let contents = M::define(self);
 
             let position = self.modules.len();
-            self.modules.push((module_path, contents));
+            self.modules.push((module_id, contents));
 
             position
         }
@@ -136,7 +164,7 @@ impl<'env, 'heap> StandardLibraryContext<'env, 'heap> {
         &self.modules[index].1
     }
 
-    fn build<M>(&mut self, parent: Provisioned<ModuleId>) -> ModuleId
+    fn build<M>(&mut self, parent: ModuleId) -> ModuleId
     where
         M: StandardLibraryModule<'heap>,
     {
@@ -166,7 +194,7 @@ impl<'env, 'heap> StandardLibraryContext<'env, 'heap> {
 
             // create all the child modules
             let children_names = M::Children::names(self.heap);
-            let children_modules = M::Children::modules(self, id);
+            let children_modules = M::Children::modules(self, id.value());
 
             for (name, module) in children_names.into_iter().zip(children_modules) {
                 output.push(Item {
@@ -177,11 +205,19 @@ impl<'env, 'heap> StandardLibraryContext<'env, 'heap> {
             }
 
             PartialModule {
-                name: M::name(&self.heap),
-                parent: parent.value(),
+                name: M::name(self.heap),
+                parent,
                 items: self.registry.intern_items(&output),
             }
         })
+    }
+
+    pub(super) fn register(&mut self) {
+        type Root = (self::core::Core, self::kernel::Kernel);
+
+        for id in Root::modules(self, ModuleId::ROOT) {
+            println!("hey! listen {id}");
+        }
     }
 }
 
@@ -191,8 +227,8 @@ trait Submodules<'heap> {
     fn names(heap: &'heap Heap) -> impl IntoIterator<Item = Symbol<'heap>>;
 
     fn modules(
-        context: &mut StandardLibraryContext<'_, 'heap>,
-        parent: Provisioned<ModuleId>,
+        lib: &mut StandardLibrary<'_, 'heap>,
+        parent: ModuleId,
     ) -> impl IntoIterator<Item = ModuleId>;
 }
 
@@ -200,14 +236,14 @@ impl<'heap> Submodules<'heap> for () {
     const LENGTH: usize = 0;
 
     fn names(_: &'heap Heap) -> impl IntoIterator<Item = Symbol<'heap>> {
-        core::iter::empty()
+        iter::empty()
     }
 
     fn modules(
-        _: &mut StandardLibraryContext<'_, 'heap>,
-        _: Provisioned<ModuleId>,
+        _: &mut StandardLibrary<'_, 'heap>,
+        _: ModuleId,
     ) -> impl IntoIterator<Item = ModuleId> {
-        core::iter::empty()
+        iter::empty()
     }
 }
 
@@ -224,7 +260,7 @@ macro_rules! impl_submodules {
     };
 
     (@impl; $($item:ident)*) => {
-        #[expect(non_snake_case)]
+        #[expect(non_snake_case, clippy::min_ident_chars)]
         impl<'heap, $($item),*> Submodules<'heap> for ($($item,)*)
         where
             $($item: StandardLibraryModule<'heap>,)*
@@ -238,10 +274,10 @@ macro_rules! impl_submodules {
             }
 
             fn modules(
-                context: &mut StandardLibraryContext<'_, 'heap>,
-                parent: Provisioned<ModuleId>,
+                lib: &mut StandardLibrary<'_, 'heap>,
+                parent: ModuleId,
             ) -> impl IntoIterator<Item = ModuleId> {
-                $(let $item = context.build::<$item>(parent);)*
+                $(let $item = lib.build::<$item>(parent);)*
 
                 [$($item),*]
             }
@@ -251,11 +287,47 @@ macro_rules! impl_submodules {
 
 impl_submodules!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P);
 
-trait StandardLibraryModule<'heap> {
+trait StandardLibraryModule<'heap>: 'static {
     type Children: Submodules<'heap>;
 
     fn name(heap: &'heap Heap) -> Symbol<'heap>;
-    fn path(heap: &'heap Heap) -> Symbol<'heap>;
 
-    fn define(context: &mut StandardLibraryContext<'_, 'heap>) -> ModuleDef<'heap>;
+    fn define(lib: &mut StandardLibrary<'_, 'heap>) -> ModuleDef<'heap>;
 }
+
+/// Declares a generic function type with parameters and return type.
+///
+/// Syntax: `<generics>(params) -> return_type`
+/// - `generics`: Optional generic type parameters with optional bounds
+/// - `params`: Function parameters with their type bounds
+/// - `return_type`: The return type expression
+///
+/// Creates a closure type that can be generic if type parameters are specified.
+macro_rules! decl {
+    ($context:ident; <$($generic:ident $(: $generic_bound:ident)?),*>($($param:ident: $param_bound:expr),*) -> $return:expr) => {{
+        $(
+            #[expect(non_snake_case)]
+            let ${concat($generic, _arg)} = $context.ty.fresh_argument(stringify!($generic));
+            #[expect(non_snake_case)]
+            let ${concat($generic, _ref)} = $context.ty.hydrate_argument(${concat($generic, _arg)});
+            #[expect(non_snake_case)]
+            let $generic = $context.ty.param(${concat($generic, _arg)});
+        )*
+
+        let mut closure = $context.ty.closure([$($param_bound),*], $return);
+        if ${count($generic)} > 0 {
+            closure = $context.ty.generic([
+                $(
+                    (${concat($generic, _arg)}, None $(.or(Some($generic_bound)))?)
+                ),*
+            ] as [(crate::r#type::kind::generic::GenericArgumentId, Option<crate::r#type::TypeId>); ${count($generic)}], closure)
+        }
+
+        TypeDef {
+            id: closure,
+            arguments: $context.ty.env.intern_generic_argument_references(&[$(${concat($generic, _ref)}),*]),
+        }
+    }};
+}
+
+pub(in crate::module::std_lib) use decl;
