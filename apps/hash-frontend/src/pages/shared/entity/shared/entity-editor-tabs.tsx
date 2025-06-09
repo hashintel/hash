@@ -58,25 +58,26 @@ export const useEntityEditorTab = () => {
   return context;
 };
 
-const getTabUrl = (tab: string, entityPath: string, isInSlide: boolean) => {
+const getTabUrl = (tab: string, entityPath: string) => {
   let searchParams = new URLSearchParams();
 
-  if (!isInSlide) {
-    /**
-     * Preserve the search params (except tab) if we're on the entity's page
-     */
-    const url = new URL(window.location.href);
-    searchParams = new URLSearchParams(url.search);
-    searchParams.delete("tab");
-  }
+  /**
+   * Preserve search params except any existing tab param
+   */
+  const url = new URL(entityPath, window.location.href);
+  searchParams = new URLSearchParams(url.search);
+  searchParams.delete("tab");
+
+  const entityPathWithoutParams = new URL(entityPath, window.location.href)
+    .pathname;
 
   if (tab === defaultTab) {
-    return `${entityPath}?${searchParams.toString()}`;
+    return `${entityPathWithoutParams}?${searchParams.toString()}`;
   }
 
   searchParams.set("tab", tab);
 
-  return `${entityPath}?${searchParams.toString()}`;
+  return `${entityPathWithoutParams}?${searchParams.toString()}`;
 };
 
 export const EntityEditorTabs = ({
@@ -93,7 +94,7 @@ export const EntityEditorTabs = ({
       <Tabs value={tab}>
         <TabLink
           value="overview"
-          href={getTabUrl("overview", entityPath, isInSlide)}
+          href={getTabUrl("overview", entityPath)}
           onClick={
             isInSlide
               ? (event) => {
@@ -107,7 +108,7 @@ export const EntityEditorTabs = ({
         />
         <TabLink
           value="history"
-          href={getTabUrl("history", entityPath, isInSlide)}
+          href={getTabUrl("history", entityPath)}
           onClick={
             isInSlide
               ? (event) => {
