@@ -1060,15 +1060,6 @@ where
             .await
             .change_context(InsertionError)?;
 
-        // let validator_provider = StoreProvider {
-        //     store: &transaction,
-        //     cache: store_cache,
-        //     authorization: None,
-        // }
-        // .with_authorization(actor_id, Consistency::FullyConsistent)
-        // .await
-        // .change_context(InsertionError)?;
-
         for (index, (entity, (schema, components))) in
             entities.iter().zip(validation_params).enumerate()
         {
