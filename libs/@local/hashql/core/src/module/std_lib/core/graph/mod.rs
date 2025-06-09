@@ -37,10 +37,11 @@ impl<'heap> StandardLibraryModule<'heap> for Graph {
         let mut def = ModuleDef::new();
 
         // newtype Graph<T> = ('marker: T)
-        // ^ The data is *not* accessible by the user (and not documented), instead it is used
-        // internally to determine the type of the graph. To make sure that the type cannot be
-        // mentioned by the user. The type is referred to as: `'marker`, which is an identifier
-        // that the user cannot mention.
+        //
+        // The internal data is intentionally inaccessible to user code. Instead, it's used
+        // internally to track the graph's type information. The field is named `'marker` using an
+        // identifier that cannot be referenced in user code (`'` is not a valid symbol in any
+        // identifier).
         let t_arg = lib.ty.fresh_argument("T");
         let t_ref = lib.ty.hydrate_argument(t_arg);
         let t_param = lib.ty.param(t_arg);
@@ -54,14 +55,16 @@ impl<'heap> StandardLibraryModule<'heap> for Graph {
         );
         def.push(
             lib.heap.intern_symbol("Graph"),
-            // We don't push `newtype`, but `type` as the `Graph` is not purposefully constructible
-            // by the user
+            // Export as `type` rather than `newtype` since Graph is not intended to be
+            // user-constructible
             ItemDef::r#type(lib.ty.env, graph_ty, &[t_ref]),
         );
 
         // newtype TimeAxis = (:)
-        // ^ this will change in the future to be a constructible type
-        //   see: https://linear.app/hash/issue/H-4736/hashql-make-time-axis-constructible
+        //
+        // Currently implemented as an empty opaque type. This will be enhanced to support
+        // user construction in the future.
+        // see: https://linear.app/hash/issue/H-4736/hashql-make-time-axis-constructible
         let time_axis_ty = lib.ty.generic(
             [] as [GenericArgumentId; 0],
             lib.ty.opaque(
@@ -71,7 +74,8 @@ impl<'heap> StandardLibraryModule<'heap> for Graph {
         );
         def.push(
             lib.heap.intern_symbol("TimeAxis"),
-            // We don't push `newtype`, but `type` as the `TimeAxis` is not constructible
+            // Export as `type` rather than `newtype` since TimeAxis is currently not
+            // user-constructible
             ItemDef::r#type(lib.ty.env, time_axis_ty, &[]),
         );
 
