@@ -28,7 +28,7 @@ impl<'heap> StandardLibraryModule<'heap> for Head {
 
         let graph = lib.manifest::<std_lib::core::graph::Graph>();
 
-        let time_axis_ty = graph.expect_newtype(heap.intern_symbol("TimeAxis"));
+        let time_axis_ty = graph.expect_type(heap.intern_symbol("TimeAxis"));
         let mut graph_ty = graph.expect_type(heap.intern_symbol("Graph"));
         graph_ty.instantiate(&mut lib.instantiate);
 

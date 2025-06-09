@@ -105,13 +105,16 @@ impl<'heap> StandardLibraryModule<'heap> for Entity {
         let t_arg = lib.ty.fresh_argument("T");
         let t_ref = lib.ty.hydrate_argument(t_arg);
         let t_param = lib.ty.param(t_arg);
-        let entity_ty = lib.ty.opaque(
-            "::core::graph::types::knowledge::entity::Entity",
-            lib.ty.r#struct([
-                ("id", entity_record_id_ty),
-                ("properties", t_param),
-                ("link_data", option(lib, link_data_ty)),
-            ]),
+        let entity_ty = lib.ty.generic(
+            [t_arg],
+            lib.ty.opaque(
+                "::core::graph::types::knowledge::entity::Entity",
+                lib.ty.r#struct([
+                    ("id", entity_record_id_ty),
+                    ("properties", t_param),
+                    ("link_data", option(lib, link_data_ty)),
+                ]),
+            ),
         );
         def.push(
             heap.intern_symbol("Entity"),

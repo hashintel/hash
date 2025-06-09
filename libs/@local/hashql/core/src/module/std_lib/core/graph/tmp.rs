@@ -26,7 +26,7 @@ impl<'heap> StandardLibraryModule<'heap> for Tmp {
 
         let time_axis_ty = lib
             .manifest::<std_lib::core::graph::Graph>()
-            .expect_newtype(heap.intern_symbol("TimeAxis"));
+            .expect_type(heap.intern_symbol("TimeAxis"));
 
         // ::core::graph::tmp::decision_time_now() -> TimeAxis
         func(

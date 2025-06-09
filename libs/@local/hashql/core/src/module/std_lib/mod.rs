@@ -114,10 +114,12 @@ impl<'heap> ModuleDef<'heap> {
         self.0.iter().find(|item| item.name == name).copied()
     }
 
+    #[track_caller]
     fn expect(&self, name: Symbol<'heap>) -> ModuleEntry<'heap> {
         self.find(name).expect("module item not found")
     }
 
+    #[track_caller]
     fn expect_type(&self, name: Symbol<'heap>) -> TypeDef<'heap> {
         match self.expect(name).def {
             ItemDef::Type(type_def) => type_def,
@@ -125,6 +127,7 @@ impl<'heap> ModuleDef<'heap> {
         }
     }
 
+    #[track_caller]
     fn expect_newtype(&self, name: Symbol<'heap>) -> TypeDef<'heap> {
         match self.expect(name).def {
             ItemDef::Newtype(newtype_def) => newtype_def,
