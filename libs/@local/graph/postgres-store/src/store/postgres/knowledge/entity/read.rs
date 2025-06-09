@@ -345,9 +345,6 @@ where
                             }
                         }
                         .resolve();
-                        // TODO: The subgraph does not support drafts. However, we rely on the
-                        //       function to handle drafts, so we pass `true` here to include
-                        //       drafts.
                         let mut compiler = SelectCompiler::new(Some(&temporal_bounds), true);
 
                         let entity_editions_filter =
