@@ -19,7 +19,7 @@ impl<'heap> StandardLibraryModule<'heap> for Math {
         heap.intern_symbol("math")
     }
 
-    #[expect(clippy::non_ascii_literal, clippy::min_ident_chars, non_snake_case)]
+    #[expect(clippy::non_ascii_literal, non_snake_case)]
     fn define(lib: &mut StandardLibrary<'_, 'heap>) -> ModuleDef<'heap> {
         let mut def = ModuleDef::new();
 

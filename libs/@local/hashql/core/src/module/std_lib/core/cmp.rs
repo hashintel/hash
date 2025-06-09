@@ -19,7 +19,7 @@ impl<'heap> StandardLibraryModule<'heap> for Cmp {
         heap.intern_symbol("cmp")
     }
 
-    #[expect(clippy::min_ident_chars, non_snake_case)]
+    #[expect(non_snake_case)]
     fn define(lib: &mut StandardLibrary<'_, 'heap>) -> ModuleDef<'heap> {
         let mut def = ModuleDef::new();
 

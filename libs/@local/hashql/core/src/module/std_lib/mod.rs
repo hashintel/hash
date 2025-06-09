@@ -131,13 +131,6 @@ impl<'heap> ModuleDef<'heap> {
             _ => panic!("expected newtype definition"),
         }
     }
-
-    fn expect_intrinsic(&self, name: Symbol<'heap>) -> IntrinsicItem<'heap> {
-        match self.expect(name).def {
-            ItemDef::Intrinsic(intrinsic) => intrinsic,
-            _ => panic!("expected intrinsic definition"),
-        }
-    }
 }
 
 pub(super) struct StandardLibrary<'env, 'heap> {
@@ -331,19 +324,22 @@ trait StandardLibraryModule<'heap>: 'static {
 ///
 /// Creates a closure type that can be generic if type parameters are specified.
 macro_rules! decl {
-    ($context:ident; <$($generic:ident $(: $generic_bound:ident)?),*>($($param:ident: $param_bound:expr),*) -> $return:expr) => {{
+    ($lib:ident; <$($generic:ident $(: $generic_bound:ident)?),*>($($param:ident: $param_bound:expr),*) -> $return:expr) => {{
         $(
             #[expect(non_snake_case)]
-            let ${concat($generic, _arg)} = $context.ty.fresh_argument(stringify!($generic));
-            #[expect(non_snake_case)]
-            let ${concat($generic, _ref)} = $context.ty.hydrate_argument(${concat($generic, _arg)});
-            #[expect(non_snake_case)]
-            let $generic = $context.ty.param(${concat($generic, _arg)});
+            let ${concat($generic, _arg)} = $lib.ty.fresh_argument(stringify!($generic));
         )*
 
-        let mut closure = $context.ty.closure([$($param_bound),*], $return);
+        $(
+            #[expect(non_snake_case)]
+            let ${concat($generic, _ref)} = $lib.ty.hydrate_argument(${concat($generic, _arg)});
+            #[expect(non_snake_case, clippy::min_ident_chars)]
+            let $generic = $lib.ty.param(${concat($generic, _arg)});
+        )*
+
+        let mut closure = $lib.ty.closure([$($param_bound),*], $return);
         if ${count($generic)} > 0 {
-            closure = $context.ty.generic([
+            closure = $lib.ty.generic([
                 $(
                     (${concat($generic, _arg)}, None $(.or(Some($generic_bound)))?)
                 ),*
@@ -352,7 +348,7 @@ macro_rules! decl {
 
         TypeDef {
             id: closure,
-            arguments: $context.ty.env.intern_generic_argument_references(&[$(${concat($generic, _ref)}),*]),
+            arguments: $lib.ty.env.intern_generic_argument_references(&[$(${concat($generic, _ref)}),*]),
         }
     }};
 }

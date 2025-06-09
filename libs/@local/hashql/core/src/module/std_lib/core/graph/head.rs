@@ -9,7 +9,10 @@ use crate::{
 };
 
 pub(in crate::module::std_lib) struct Head {
-    _dependencies: (std_lib::core::graph::Graph,),
+    _dependencies: (
+        std_lib::core::graph::Graph,
+        std_lib::core::graph::types::knowledge::entity::Entity,
+    ),
 }
 
 impl<'heap> StandardLibraryModule<'heap> for Head {
