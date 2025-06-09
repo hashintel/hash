@@ -72,12 +72,16 @@ const getTabUrl = (tab: string, entityPath: string) => {
     .pathname;
 
   if (tab === defaultTab) {
-    return `${entityPathWithoutParams}?${searchParams.toString()}`;
+    return `${entityPathWithoutParams}${
+      searchParams.size ? `?${searchParams.toString()}` : ""
+    }`;
   }
 
   searchParams.set("tab", tab);
 
-  return `${entityPathWithoutParams}?${searchParams.toString()}`;
+  return `${entityPathWithoutParams}${
+    searchParams.size ? `?${searchParams.toString()}` : ""
+  }`;
 };
 
 export const EntityEditorTabs = ({
