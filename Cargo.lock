@@ -5763,9 +5763,9 @@ checksum = "650eef8c711430f1a879fdd01d4745a7deea475becfb90269c06775983bbf086"
 
 [[package]]
 name = "nextest-filtering"
-version = "0.15.0"
+version = "0.16.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "95c8fe71823f5ea1e0acab3579af02e76fb7d71829a7808645bc8578ca2b74d0"
+checksum = "af6239dc67632f6cbc09e5cd8bed87ead3859f2e99a21e726a1ff0bbe21e2c5f"
 dependencies = [
  "globset",
  "guppy",
