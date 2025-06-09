@@ -91,6 +91,26 @@ fn system_actor_view_entity_policies(
                     base_url!("https://hash.ai/@h/types/entity-type/prospective-user/"),
                     1,
                 ))
+                .chain(create_version_filters(
+                    base_url!("https://hash.ai/@h/types/entity-type/triggered-by-user/"),
+                    1,
+                ))
+                .chain(create_version_filters(
+                    base_url!("https://hash.ai/@h/types/entity-type/occurred-in-block/"),
+                    1,
+                ))
+                .chain(create_version_filters(
+                    base_url!("https://hash.ai/@h/types/entity-type/occurred-in-entity/"),
+                    2,
+                ))
+                .chain(create_version_filters(
+                    base_url!("https://hash.ai/@h/types/entity-type/occurred-in-comment/"),
+                    1,
+                ))
+                .chain(create_version_filters(
+                    base_url!("https://hash.ai/@h/types/entity-type/occurred-in-text/"),
+                    1,
+                ))
                 .collect(),
             },
         })),
