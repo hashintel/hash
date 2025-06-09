@@ -259,10 +259,6 @@ where
     let mut diagnostic =
         Diagnostic::new(TypeCheckDiagnosticCategory::TypeMismatch, Severity::Error);
 
-    diagnostic
-        .labels
-        .push(Label::new(env.source, "Type mismatch in this expression").with_order(3));
-
     diagnostic.labels.push(
         Label::new(
             lhs.span,
@@ -271,18 +267,18 @@ where
                 lhs.kind.pretty_print(env, PrettyOptions::default())
             ),
         )
-        .with_order(1),
+        .with_order(0),
     );
 
     diagnostic.labels.push(
         Label::new(
             rhs.span,
             format!(
-                "This is of type `{}`",
+                "... and this is of type `{}`",
                 rhs.kind.pretty_print(env, PrettyOptions::default())
             ),
         )
-        .with_order(2),
+        .with_order(1),
     );
 
     if let Some(text) = help {

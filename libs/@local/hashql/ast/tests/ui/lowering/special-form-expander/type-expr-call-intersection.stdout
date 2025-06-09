@@ -1,18 +1,18 @@
-Expr#4294967040@25
+Expr#4294967040@27
   ExprKind (Is)
-    IsExpr#4294967040@25
+    IsExpr#4294967040@27
       Expr#4294967040@9
         ExprKind (Literal)
           LiteralExpr#4294967040@8
             LiteralKind (True)
-      Type#4294967040@24
+      Type#4294967040@26
         TypeKind (Intersection)
-          IntersectionType#4294967040@24
-            Type#4294967040@19
+          IntersectionType#4294967040@26
+            Type#4294967040@21
               TypeKind (Path)
-                Path#4294967040@19 (rooted: false)
-                  PathSegment#4294967040@18 (name: Int)
-            Type#4294967040@23
+                Path#4294967040@21 (rooted: false)
+                  PathSegment#4294967040@20 (name: Int)
+            Type#4294967040@25
               TypeKind (Path)
-                Path#4294967040@23 (rooted: false)
-                  PathSegment#4294967040@22 (name: Float)
+                Path#4294967040@25 (rooted: false)
+                  PathSegment#4294967040@24 (name: Float)

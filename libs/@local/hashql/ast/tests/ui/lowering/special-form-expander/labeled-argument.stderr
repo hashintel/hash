@@ -1,4 +1,4 @@
-[31m[special-form-expander::labeled-arguments-not-supported] Error:[0m Labeled arguments not supported in special forms
+[special-form-expander::labeled-arguments-not-supported] Error: Labeled arguments not supported in special forms
     ╭─[ <unknown>:3:1 ]
     │
   3 │ ╭─▶ [

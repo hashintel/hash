@@ -1,4 +1,4 @@
-[31m[special-form-expander::invalid-binding-name] Error:[0m Invalid binding name
+[special-form-expander::invalid-binding-name] Error: Invalid binding name
    ╭─[ <unknown>:5:3 ]
    │
  5 │   { "#literal": true },

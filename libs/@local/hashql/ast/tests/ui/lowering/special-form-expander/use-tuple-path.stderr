@@ -1,9 +1,9 @@
-[31m[special-form-expander::invalid-use-import] Error:[0m Invalid use import expression
+[special-form-expander::invalid-use-import] Error: Invalid use import expression
    ╭─[ <unknown>:6:17 ]
    │
- 6 │   { "#tuple": ["::math::sub"] },
-   │                 ─────┬─────  
-   │                      ╰─────── Use a simple identifier here
+ 6 │   { "#tuple": ["::core::math::sub"] },
+   │                 ────────┬────────  
+   │                         ╰────────── Use a simple identifier here
    │ 
    │ Help: Use binding names must be simple identifiers. Qualified paths or complex expressions cannot be used in this context.
    │ 

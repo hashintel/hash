@@ -19,8 +19,8 @@ use hash_graph_authorization::{
     },
     schema::{
         DataTypeRelationAndSubject, DataTypeViewerSubject, EntityRelationAndSubject,
-        EntityTypeInstantiatorSubject, EntityTypeRelationAndSubject, EntityTypeViewerSubject,
-        PropertyTypeRelationAndSubject, PropertyTypeViewerSubject, WebOwnerSubject,
+        EntityTypeRelationAndSubject, EntityTypeViewerSubject, PropertyTypeRelationAndSubject,
+        PropertyTypeViewerSubject, WebOwnerSubject,
     },
     zanzibar::Consistency,
 };
@@ -345,16 +345,11 @@ const PROPERTY_TYPE_RELATIONSHIPS: [PropertyTypeRelationAndSubject; 1] =
         subject: PropertyTypeViewerSubject::Public,
         level: 0,
     }];
-const ENTITY_TYPE_RELATIONSHIPS: [EntityTypeRelationAndSubject; 2] = [
-    EntityTypeRelationAndSubject::Viewer {
+const ENTITY_TYPE_RELATIONSHIPS: [EntityTypeRelationAndSubject; 1] =
+    [EntityTypeRelationAndSubject::Viewer {
         subject: EntityTypeViewerSubject::Public,
         level: 0,
-    },
-    EntityTypeRelationAndSubject::Instantiator {
-        subject: EntityTypeInstantiatorSubject::Public,
-        level: 0,
-    },
-];
+    }];
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, derive_more::Display, derive_more::Error)]
 pub enum FetchingStoreError {

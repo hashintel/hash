@@ -1,9 +1,9 @@
-[31m[special-form-expander::invalid-type-expression] Error:[0m Invalid type expression
+[special-form-expander::invalid-type-expression] Error: Invalid type expression
    ╭─[ <unknown>:6:5 ]
    │
- 6 │   ["::math::headpat", "Int", "Float"]
-   │     ───────┬───────  
-   │            ╰───────── This function cannot be used as a type constructor
+ 6 │   ["::core::math::headpat", "Int", "Float"]
+   │     ──────────┬──────────  
+   │               ╰──────────── This function cannot be used as a type constructor
    │ 
    │ Help: Only specific type constructors like intersection (&) and union (|) operators can be used in type expressions.
    │ 

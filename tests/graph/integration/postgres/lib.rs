@@ -32,9 +32,9 @@ use hash_graph_authorization::{
     policies::store::{LocalPrincipalStore as _, PolicyStore as _},
     schema::{
         DataTypeRelationAndSubject, DataTypeViewerSubject, EntityRelationAndSubject,
-        EntityTypeInstantiatorSubject, EntityTypeRelationAndSubject, EntityTypeSetting,
-        EntityTypeSettingSubject, EntityTypeViewerSubject, PropertyTypeRelationAndSubject,
-        PropertyTypeSetting, PropertyTypeSettingSubject, PropertyTypeViewerSubject,
+        EntityTypeRelationAndSubject, EntityTypeSetting, EntityTypeSettingSubject,
+        EntityTypeViewerSubject, PropertyTypeRelationAndSubject, PropertyTypeSetting,
+        PropertyTypeSettingSubject, PropertyTypeViewerSubject,
     },
     zanzibar::Consistency,
 };
@@ -126,7 +126,7 @@ const fn property_type_relationships() -> [PropertyTypeRelationAndSubject; 2] {
     ]
 }
 
-const fn entity_type_relationships() -> [EntityTypeRelationAndSubject; 3] {
+const fn entity_type_relationships() -> [EntityTypeRelationAndSubject; 2] {
     [
         EntityTypeRelationAndSubject::Setting {
             subject: EntityTypeSettingSubject::Setting {
@@ -136,10 +136,6 @@ const fn entity_type_relationships() -> [EntityTypeRelationAndSubject; 3] {
         },
         EntityTypeRelationAndSubject::Viewer {
             subject: EntityTypeViewerSubject::Public,
-            level: 0,
-        },
-        EntityTypeRelationAndSubject::Instantiator {
-            subject: EntityTypeInstantiatorSubject::Public,
             level: 0,
         },
     ]

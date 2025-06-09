@@ -1,5 +1,6 @@
 use core::iter;
 
+use anstream::adapter::strip_str;
 use error_stack::{Report, ReportSink};
 use hashql_diagnostics::{
     category::canonical_category_name, help::Help, label::Label, note::Note,
@@ -79,7 +80,8 @@ pub(crate) fn verify_annotations(
                     .map(|label| label.message())
                     .chain(diagnostic.help.iter().map(Help::message))
                     .chain(diagnostic.notes.iter().map(Note::message))
-                    .chain(iter::once(canonical_name.as_str()));
+                    .chain(iter::once(canonical_name.as_str()))
+                    .map(|value| strip_str(value).to_string());
 
                 sources.any(|source| source.contains(query))
             })

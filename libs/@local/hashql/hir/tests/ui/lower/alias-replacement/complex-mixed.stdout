@@ -1,12 +1,12 @@
 #let a:0 = 10 in
-#let b:0 = ::math::add(a:0, 5) in
+#let b:0 = ::core::math::add(a:0, 5) in
 #let c:0 = a:0 in
 #let d:0 = b:0 in
 #let e:0 = a:0 in
-::math::add(::math::mul(d:0, e:0), ::math::sub(a:0, b:0))
+::core::math::add(::core::math::mul(d:0, e:0), ::core::math::sub(a:0, b:0))
 
 --------------------------------------
 
 #let a:0 = 10 in
-#let b:0 = ::math::add(a:0, 5) in
-::math::add(::math::mul(b:0, a:0), ::math::sub(a:0, b:0))
+#let b:0 = ::core::math::add(a:0, 5) in
+::core::math::add(::core::math::mul(b:0, a:0), ::core::math::sub(a:0, b:0))

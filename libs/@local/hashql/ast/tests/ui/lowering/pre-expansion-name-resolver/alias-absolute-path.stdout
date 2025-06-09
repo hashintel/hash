@@ -1,6 +1,6 @@
-Expr#4294967040@23
+Expr#4294967040@25
   ExprKind (Call)
-    CallExpr#4294967040@23
+    CallExpr#4294967040@25
       Expr#4294967040@3
         ExprKind (Path)
           Path#4294967040@3 (rooted: true)
@@ -12,30 +12,32 @@ Expr#4294967040@23
           ExprKind (Path)
             Path#4294967040@7 (rooted: false)
               PathSegment#4294967040@6 (name: a)
-      Argument#4294967040@13
-        Expr#4294967040@13
+      Argument#4294967040@15
+        Expr#4294967040@15
           ExprKind (Path)
-            Path#4294967040@13 (rooted: true)
-              PathSegment#4294967040@10 (name: math)
-              PathSegment#4294967040@12 (name: add)
-      Argument#4294967040@22
-        Expr#4294967040@22
+            Path#4294967040@15 (rooted: true)
+              PathSegment#4294967040@10 (name: core)
+              PathSegment#4294967040@12 (name: math)
+              PathSegment#4294967040@14 (name: add)
+      Argument#4294967040@24
+        Expr#4294967040@24
           ExprKind (Call)
-            CallExpr#4294967040@22
-              Expr#4294967040@17
+            CallExpr#4294967040@24
+              Expr#4294967040@19
                 ExprKind (Path)
-                  Path#4294967040@17 (rooted: true)
-                    PathSegment#4294967040@16 (name: math)
-                    PathSegment#4294967040@16 (name: add)
-              Argument#4294967040@19
-                Expr#4294967040@19
-                  ExprKind (Literal)
-                    LiteralExpr#4294967040@18
-                      LiteralKind (Integer)
-                        IntegerLiteral (1)
+                  Path#4294967040@19 (rooted: true)
+                    PathSegment#4294967040@18 (name: core)
+                    PathSegment#4294967040@18 (name: math)
+                    PathSegment#4294967040@18 (name: add)
               Argument#4294967040@21
                 Expr#4294967040@21
                   ExprKind (Literal)
                     LiteralExpr#4294967040@20
+                      LiteralKind (Integer)
+                        IntegerLiteral (1)
+              Argument#4294967040@23
+                Expr#4294967040@23
+                  ExprKind (Literal)
+                    LiteralExpr#4294967040@22
                       LiteralKind (Integer)
                         IntegerLiteral (2)

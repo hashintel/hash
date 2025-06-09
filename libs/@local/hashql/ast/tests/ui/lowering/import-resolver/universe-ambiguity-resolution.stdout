@@ -1,14 +1,15 @@
-Expr#4294967040@33
+Expr#4294967040@35
   ExprKind (Type)
-    TypeExpr#4294967040@33 (name: X)
-      Type#4294967040@28
+    TypeExpr#4294967040@35 (name: X)
+      Type#4294967040@30
         TypeKind (Path)
-          Path#4294967040@28 (rooted: true)
-            PathSegment#4294967040@27 (name: kernel)
-            PathSegment#4294967040@27 (name: type)
-            PathSegment#4294967040@27 (name: Dict)
-      Expr#4294967040@32
+          Path#4294967040@30 (rooted: true)
+            PathSegment#4294967040@29 (name: kernel)
+            PathSegment#4294967040@29 (name: type)
+            PathSegment#4294967040@29 (name: Dict)
+      Expr#4294967040@34
         ExprKind (Path)
-          Path#4294967040@32 (rooted: true)
-            PathSegment#4294967040@31 (name: math)
-            PathSegment#4294967040@31 (name: add)
+          Path#4294967040@34 (rooted: true)
+            PathSegment#4294967040@33 (name: core)
+            PathSegment#4294967040@33 (name: math)
+            PathSegment#4294967040@33 (name: add)

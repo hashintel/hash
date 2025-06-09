@@ -1,3 +1,8 @@
 //@ run: pass
 //@ description: Replace alias that references a qualified variable
-["let", "x", "::math::add", ["let", "y", "x", ["*", "y", { "#literal": 2 }]]]
+[
+  "let",
+  "x",
+  "::core::math::add",
+  ["let", "y", "x", ["*", "y", { "#literal": 2 }]]
+]

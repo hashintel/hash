@@ -9,7 +9,7 @@
 //! Name resolution is a critical part of the HashQL compilation pipeline, converting:
 //!
 //! - Unqualified identifiers (`map`) to absolute paths (`::graph::body::map`)
-//! - Operators (`+`) to their function equivalents (`::math::add`)
+//! - Operators (`+`) to their function equivalents (`::core::math::add`)
 //! - Special forms to their kernel representations (`let` to `::kernel::special_form::let`)
 //!
 //! The resolver also manages scoping rules to ensure that bindings from `let`, `type`, and
@@ -33,7 +33,7 @@
 //!
 //! After name resolution:
 //! ```json
-//! ["::kernel::special_form::let", "x", "10", ["::math::add", "10", "5"]]
+//! ["::kernel::special_form::let", "x", "10", ["::core::math::add", "10", "5"]]
 //! ```
 //!
 //! # Special Forms
@@ -137,7 +137,7 @@ use crate::{
 ///     "::kernel::special_form::let",
 ///     "x",
 ///     "10",
-///     ["::math::add", "10", "5"],
+///     ["::core::math::add", "10", "5"],
 /// ]
 /// ```
 ///

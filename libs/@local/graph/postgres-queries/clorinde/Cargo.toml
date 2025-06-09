@@ -1,0 +1,43 @@
+# This file was generated with `clorinde`. Do not modify.
+[package]
+name = "clorinde"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[features]
+default = ["deadpool"]
+deadpool = ["dep:deadpool-postgres", "tokio-postgres/default"]
+wasm-async = ["tokio-postgres/js"]
+
+chrono = []
+time = []
+
+[dependencies]
+## Core dependencies
+# Postgres types
+postgres-types = { workspace = true, features = ["derive"] }
+# Postgres interaction
+postgres-protocol = { workspace = true }
+
+# Postgres
+postgres = { workspace = true, features = [] }
+
+## Async client dependencies
+# Postgres async client
+tokio-postgres = { workspace = true, features = [] }
+# Async utils
+futures = { workspace = true }
+
+## Async features dependencies
+# Async connection pooling
+deadpool-postgres = { workspace = true, optional = true }
+
+## Custom type dependencies
+hash-graph-authorization = { workspace = true }
+type-system = { workspace = true }
+
+[lints.rust]
+dead_code                     = "allow"
+exported_private_dependencies = "allow"
+unused_imports                = "allow"

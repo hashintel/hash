@@ -1,4 +1,4 @@
-[31m[special-form-expander::invalid-use-import] Error:[0m Invalid use import expression
+[special-form-expander::invalid-use-import] Error: Invalid use import expression
    ╭─[ <unknown>:6:16 ]
    │
  6 │   { "#tuple": [{ "#literal": 1 }] },

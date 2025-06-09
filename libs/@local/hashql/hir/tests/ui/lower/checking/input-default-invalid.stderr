@@ -1,15 +1,13 @@
-[31m[lower::type-check::type-mismatch] Error:[0m Type mismatch
-   ╭─[ <unknown>:3:1 ]
+[lower::type-check::type-mismatch] Error: Type mismatch
+   ╭─[ <unknown>:8:17 ]
    │
- 1 │ //@ run: fail
-   │ │ 
-   │ ╰─ This is of type `[34mNumber[0m`
+ 6 │   "Number",
+   │    ───┬──  
+   │       ╰──── ... and this is of type `Number`
    │ 
- 3 │ ["input", "x", "Number", { "#literal": "42" }]
-   │ ───────────────────────┬─────────────────┬────  
-   │                        │                 ╰────── This is of type `[34mString[0m`
-   │                        │                        
-   │                        ╰──────────────────────── Type mismatch in this expression
+ 8 │     "#literal": "42"
+   │                 ──┬─  
+   │                   ╰─── This is of type `String`
    │ 
    │ Help: You can convert the string to a number using the `::core::number::parse/1` or `::core::number::parse/2` function
    │ 

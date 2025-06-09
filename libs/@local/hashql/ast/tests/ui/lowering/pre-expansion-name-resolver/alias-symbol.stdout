@@ -16,7 +16,8 @@ Expr#4294967040@25
         Expr#4294967040@11
           ExprKind (Path)
             Path#4294967040@11 (rooted: true)
-              PathSegment#4294967040@10 (name: math)
+              PathSegment#4294967040@10 (name: core)
+              PathSegment#4294967040@10 (name: bool)
               PathSegment#4294967040@10 (name: and)
       Argument#4294967040@24
         Expr#4294967040@24
@@ -25,7 +26,8 @@ Expr#4294967040@25
               Expr#4294967040@15
                 ExprKind (Path)
                   Path#4294967040@15 (rooted: true)
-                    PathSegment#4294967040@14 (name: math)
+                    PathSegment#4294967040@14 (name: core)
+                    PathSegment#4294967040@14 (name: bool)
                     PathSegment#4294967040@14 (name: and)
               Argument#4294967040@19
                 Expr#4294967040@19

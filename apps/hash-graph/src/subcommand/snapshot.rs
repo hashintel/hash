@@ -27,6 +27,14 @@ pub struct SnapshotDumpArgs {
     #[clap(long)]
     pub no_principals: bool,
 
+    /// Whether to skip dumping the actions.
+    #[clap(long)]
+    pub no_actions: bool,
+
+    /// Whether to skip dumping the policies.
+    #[clap(long)]
+    pub no_policies: bool,
+
     /// Whether to skip dumping the entities.
     #[clap(long)]
     pub no_entities: bool,
@@ -148,6 +156,8 @@ pub async fn snapshot(args: SnapshotArgs) -> Result<(), Report<GraphError>> {
             let settings = SnapshotDumpSettings {
                 chunk_size: 10_000,
                 dump_principals: !args.no_principals,
+                dump_actions: !args.no_actions,
+                dump_policies: !args.no_policies,
                 dump_entities: !args.no_entities,
                 dump_entity_types: !args.no_entity_types,
                 dump_property_types: !args.no_property_types,

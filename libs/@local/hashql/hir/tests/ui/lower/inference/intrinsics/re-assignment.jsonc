@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Tests type inference when an intrinsic function is assigned to a variable, which is then reassigned to another variable, and finally the second variable is referenced.
+["let", "foo", "::core::math::add", ["let", "bar", "foo", "bar"]]

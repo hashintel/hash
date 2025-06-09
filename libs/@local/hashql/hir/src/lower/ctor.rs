@@ -253,9 +253,12 @@ impl<'heap> Fold<'heap> for ConvertTypeConstructor<'_, 'heap> {
     }
 
     fn fold_nested_node(&mut self, node: Node<'heap>) -> Self::Output<Node<'heap>> {
+        let previous = self.nested;
         self.nested = true;
+
         let result = walk_nested_node(self, node);
-        self.nested = false;
+
+        self.nested = previous;
 
         result
     }

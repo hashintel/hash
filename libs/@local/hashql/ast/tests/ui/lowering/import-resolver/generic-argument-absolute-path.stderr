@@ -1,4 +1,4 @@
-[31m[import-resolver::generic-arguments-in-module] Error:[0m Generic arguments only allowed in final path segment
+[import-resolver::generic-arguments-in-module] Error: Generic arguments only allowed in final path segment
    ╭─[ <unknown>:3:10 ]
    │
  3 │ ["::math<T>::add", { "#literal": 2 }, { "#literal": 3 }]

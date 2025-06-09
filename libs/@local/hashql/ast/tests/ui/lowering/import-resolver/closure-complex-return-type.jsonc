@@ -8,6 +8,6 @@
       "x": "Number"
     }
   },
-  "kernel::type::Option<Number>",
+  "core::option::Option<Number>",
   ["Some", "x"]
 ]

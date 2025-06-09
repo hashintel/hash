@@ -32,6 +32,9 @@ runs:
           if echo "$DEPENDENCIES" | grep -q "@rust/hashql-ast"; then
             SCOPES="$SCOPES @rust/hashql-compiletest"
           fi
+          if echo "$DEPENDENCIES" | grep -q "@rust/hash-graph-postgres-queries"; then
+            SCOPES="$SCOPES @local/repo-chores"
+          fi
         done <<< "${{ inputs.scope }}"
 
         # Deduplicate scopes
@@ -55,7 +58,7 @@ runs:
     - name: Copy required files
       shell: bash
       run: |
-        cp -R Cargo.toml Cargo.lock rust-toolchain.toml out/
+        cp -R Cargo.toml Cargo.lock rust-toolchain.toml biome.jsonc out/
 
         # Globs are fun, especially in Bash. Covers all dot-files except `.`, `..`, and `.git`.
         shopt -s extglob

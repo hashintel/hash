@@ -1,4 +1,4 @@
-[31m[type-extractor::generic-parameter-mismatch] Error:[0m Incorrect number of type parameters
+[type-extractor::generic-parameter-mismatch] Error: Incorrect number of type parameters
     ╭─[ <unknown>:10:6 ]
     │
  10 │     "Pair<Number>",

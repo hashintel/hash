@@ -1,12 +1,12 @@
 #let foo:0 = #fn<T:0?14: Integer>(a:0: ?14, b:0: ?14): ?14 ->
-    ::math::add(a:0, b:0) in
+    ::core::math::add(a:0, b:0) in
 foo:0(2, 3)
 
 --------------------------------------
 
 #let foo:0 = #fn<T:0?14: Integer>(a:0: ?14«Integer», b:0: ?14«Integer»):
 ?14«Integer» ->
-    ::math::add(a:0, b:0) in
+    ::core::math::add(a:0, b:0) in
 foo:0(2, 3)
 
 --------------------------------------
@@ -14,7 +14,7 @@ foo:0(2, 3)
 --------------------------------------
 
 Node:
-::math::add
+::core::math::add
 
 
 Type:
@@ -41,7 +41,7 @@ Integer
 --------------------------------------
 
 Node:
-::math::add(a:0, b:0)
+::core::math::add(a:0, b:0)
 
 
 Type:
@@ -51,7 +51,7 @@ Integer
 
 Node:
 #fn<T:0?14: Integer>(a:0: ?14«Integer», b:0: ?14«Integer»): ?14«Integer» ->
-    ::math::add(a:0, b:0)
+    ::core::math::add(a:0, b:0)
 
 
 Type:
@@ -98,7 +98,7 @@ Integer
 Node:
 #let foo:0 = #fn<T:0?14: Integer>(a:0: ?14«Integer», b:0: ?14«Integer»):
 ?14«Integer» ->
-    ::math::add(a:0, b:0) in
+    ::core::math::add(a:0, b:0) in
 foo:0(2, 3)
 
 

@@ -1,4 +1,4 @@
-[31m[special-form-expander::use-path-with-generics] Error:[0m Use path with generic arguments
+[special-form-expander::use-path-with-generics] Error: Use path with generic arguments
    ╭─[ <unknown>:3:10 ]
    │
  3 │ ["use", "kernel::type<T>", { "#tuple": ["T"] }, "_"]

@@ -1,4 +1,4 @@
-[31m[lower::generic-argument-mismatch] Error:[0m Incorrect number of type arguments
+[lower::generic-argument-mismatch] Error: Incorrect number of type arguments
    ╭─[ <unknown>:8:6 ]
    │
  8 │     "Person<Number>",

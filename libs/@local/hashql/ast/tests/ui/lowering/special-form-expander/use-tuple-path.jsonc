@@ -2,8 +2,8 @@
 //@ description: any path that isn't an identifier should fail
 [
   "::kernel::special_form::use",
-  "::math",
-  { "#tuple": ["::math::sub"] },
+  "::core",
+  { "#tuple": ["::core::math::sub"] },
   //~^ ERROR Use a simple identifier here
   "x"
 ]
