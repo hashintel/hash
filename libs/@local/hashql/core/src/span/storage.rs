@@ -53,7 +53,7 @@ where
     }
 
     #[must_use]
-    pub fn get(&self, span: SpanId) -> Option<Entry<S>> {
+    pub fn get(&self, span: SpanId) -> Option<Entry<'_, S>> {
         let index = span.value() as usize;
 
         self.inner.get(index).map(Entry::new)

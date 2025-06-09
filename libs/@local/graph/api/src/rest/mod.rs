@@ -1,3 +1,5 @@
+#![expect(clippy::needless_for_each, reason = "Utoipa derive macro uses it")]
+
 //! The Axum webserver for accessing the Graph API operations.
 //!
 //! Handler methods are grouped by routes that make up the REST API.
