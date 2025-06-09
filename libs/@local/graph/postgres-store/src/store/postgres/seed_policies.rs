@@ -92,10 +92,6 @@ fn system_actor_view_entity_policies(
                     1,
                 ))
                 .chain(create_version_filters(
-                    base_url!("https://hash.ai/@h/types/entity-type/notification/"),
-                    1,
-                ))
-                .chain(create_version_filters(
                     base_url!("https://hash.ai/@h/types/entity-type/triggered-by-user/"),
                     1,
                 ))
