@@ -1,43 +1,22 @@
-::core::math::add<Number, Integer>(42.12, 42)
-
---------------------------------------
+════ Initial HIR ═══════════════════════════════════════════════════════════════
 
 ::core::math::add<Number, Integer>(42.12, 42)
 
---------------------------------------
+════ HIR after type checking ═══════════════════════════════════════════════════
 
---------------------------------------
-
-Node:
-::core::math::add<Number, Integer>
-
-
-Type:
-fn(Number, Integer) -> Number
-
---------------------------------------
-
-Node:
-42.12
-
-
-Type:
-Number
-
---------------------------------------
-
-Node:
-42
-
-
-Type:
-Integer
-
---------------------------------------
-
-Node:
 ::core::math::add<Number, Integer>(42.12, 42)
 
+════ Types ═════════════════════════════════════════════════════════════════════
 
-Type:
-Number
+┌─ ::core::math::add<Number, Integer>
+└→ fn(Number, Integer) -> Number
+
+┌─ 42.12
+└→ Number
+
+┌─ 42
+└→ Integer
+
+┌─ ::core::math::add<Number, Integer>(42.12, 42)
+└→ Number
+

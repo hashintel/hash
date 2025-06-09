@@ -280,12 +280,12 @@ impl<'heap> Visitor<'heap> for TypeChecking<'_, 'heap> {
         self.visit_ident(name);
         self.visit_node(value);
 
-        // We simply take the type of the value
-        let value_id = self.types[Universe::Value][&value.id];
-        self.types
-            .insert_unique(Universe::Value, self.current, value_id);
-
         self.visit_node(body);
+
+        // We simply take the type of the body
+        let body_id = self.types[Universe::Value][&body.id];
+        self.types
+            .insert_unique(Universe::Value, self.current, body_id);
     }
 
     fn visit_input(&mut self, input: &'heap Input<'heap>) {
