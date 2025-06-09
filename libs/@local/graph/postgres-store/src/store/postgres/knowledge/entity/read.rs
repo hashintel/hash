@@ -345,7 +345,10 @@ where
                             }
                         }
                         .resolve();
-                        let mut compiler = SelectCompiler::new(Some(&temporal_bounds), false);
+                        // TODO: The subgraph does not support drafts. However, we rely on the
+                        //       function to handle drafts, so we pass `true` here to include
+                        //       drafts.
+                        let mut compiler = SelectCompiler::new(Some(&temporal_bounds), true);
 
                         let entity_editions_filter =
                             Filter::for_entity_edition_ids(&entity_edition_ids);
@@ -366,8 +369,6 @@ where
                             compiler.add_selection_path(&EntityQueryPath::EditionId);
 
                         let (statement, parameters) = compiler.compile();
-
-                        tracing::debug!(statement, ?parameters, "permission query");
 
                         Some(
                             provider

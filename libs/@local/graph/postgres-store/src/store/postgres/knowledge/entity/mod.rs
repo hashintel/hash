@@ -122,7 +122,10 @@ where
     /// Internal method to read an [`Entity`] into a [`TraversalContext`].
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
-    #[tracing::instrument(level = "info", skip(self, traversal_context, provider, subgraph))]
+    #[tracing::instrument(
+        level = "info",
+        skip(self, entity_queue, traversal_context, provider, subgraph)
+    )]
     pub(crate) async fn traverse_entities(
         &self,
         mut entity_queue: Vec<(
