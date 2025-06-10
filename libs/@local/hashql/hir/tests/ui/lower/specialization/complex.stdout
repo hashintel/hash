@@ -2,7 +2,7 @@
 
 #let foo:0 = 1 in
 #let bar:0 = 1 in
-#let equals:0 = #fn<T:0?14>(lhs:0: ?14, rhs:0: ?14): Boolean ->
+#let equals:0 = #fn<T:0?26>(lhs:0: ?26, rhs:0: ?26): Boolean ->
     ::core::cmp::eq(lhs:0, rhs:0) in
 equals:0(foo:0, bar:0)
 
@@ -10,6 +10,6 @@ equals:0(foo:0, bar:0)
 
 #let foo:0 = 1 in
 #let bar:0 = 1 in
-#let equals:0 = #fn<T:0?14>(lhs:0: ?14«?», rhs:0: ?14«?»): Boolean ->
+#let equals:0 = #fn<T:0?26>(lhs:0: ?26«?», rhs:0: ?26«?»): Boolean ->
     (lhs:0 == rhs:0) in
 equals:0(foo:0, bar:0)

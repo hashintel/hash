@@ -10,10 +10,13 @@ use crate::{
 pub(in crate::module::std_lib) mod bits;
 pub(in crate::module::std_lib) mod bool;
 pub(in crate::module::std_lib) mod cmp;
+pub(in crate::module::std_lib) mod graph;
+pub(in crate::module::std_lib) mod json;
 pub(in crate::module::std_lib) mod math;
 pub(in crate::module::std_lib) mod option;
 pub(in crate::module::std_lib) mod result;
 pub(in crate::module::std_lib) mod url;
+pub(in crate::module::std_lib) mod uuid;
 
 fn func<'heap>(
     lib: &StandardLibrary<'_, 'heap>,
@@ -43,10 +46,13 @@ impl<'heap> StandardLibraryModule<'heap> for Core {
         self::bits::Bits,
         self::bool::Bool,
         self::cmp::Cmp,
+        self::graph::Graph,
+        self::json::Json,
         self::math::Math,
         self::option::Option,
         self::result::Result,
         self::url::Url,
+        self::uuid::Uuid,
     );
 
     fn name(heap: &'heap Heap) -> Symbol<'heap> {

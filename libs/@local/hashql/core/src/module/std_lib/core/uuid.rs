@@ -4,15 +4,15 @@ use crate::{
     symbol::Symbol,
 };
 
-pub(in crate::module::std_lib) struct Url {
+pub(in crate::module::std_lib) struct Uuid {
     _dependencies: (),
 }
 
-impl<'heap> StandardLibraryModule<'heap> for Url {
+impl<'heap> StandardLibraryModule<'heap> for Uuid {
     type Children = ();
 
     fn name(heap: &'heap Heap) -> Symbol<'heap> {
-        heap.intern_symbol("url")
+        heap.intern_symbol("uuid")
     }
 
     fn define(lib: &mut StandardLibrary<'_, 'heap>) -> ModuleDef<'heap> {
@@ -20,10 +20,10 @@ impl<'heap> StandardLibraryModule<'heap> for Url {
         let heap = lib.heap;
 
         // TODO: consider making this constructor private via intrinsic (requires VM)
-        // newtype Url = String;
-        let url_ty = lib.ty.opaque("::core::url::Url", lib.ty.string());
-        let url = ItemDef::newtype(lib.ty.env, url_ty, &[]);
-        def.push(heap.intern_symbol("Url"), url);
+        // newtype Uuid = String;
+        let uuid_ty = lib.ty.opaque("::core::uuid::Uuid", lib.ty.string());
+        let uuid = ItemDef::newtype(lib.ty.env, uuid_ty, &[]);
+        def.push(heap.intern_symbol("Uuid"), uuid);
 
         def
     }
