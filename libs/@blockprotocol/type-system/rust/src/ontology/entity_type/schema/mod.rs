@@ -468,7 +468,7 @@ impl OntologyTypeSchema for EntityType {
         &self.id
     }
 
-    fn references(&self) -> Vec<OntologyTypeReference> {
+    fn references(&self) -> Vec<OntologyTypeReference<'_>> {
         self.entity_type_references()
             .map(|(reference, _)| OntologyTypeReference::EntityTypeReference(reference))
             .chain(
@@ -486,7 +486,7 @@ impl OntologyTypeSchema for ClosedEntityType {
         &self.id
     }
 
-    fn references(&self) -> Vec<OntologyTypeReference> {
+    fn references(&self) -> Vec<OntologyTypeReference<'_>> {
         let inheritance = self
             .all_of
             .iter()

@@ -148,7 +148,7 @@ mod test {
     fn parse(
         source: &str,
         storage: impl Into<Arc<SpanStorage<Span>>>,
-    ) -> Result<Vec<Token>, Diagnostic<LexerDiagnosticCategory, SpanId>> {
+    ) -> Result<Vec<Token<'_>>, Diagnostic<LexerDiagnosticCategory, SpanId>> {
         let lexer = Lexer::new(source.as_bytes(), storage.into());
 
         lexer.collect()
