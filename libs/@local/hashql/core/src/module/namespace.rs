@@ -321,8 +321,6 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
         successful &= self.import_absolute_static("Integer", ["kernel", "type", "Integer"]);
 
         successful &= self.import_absolute_static("String", ["kernel", "type", "String"]);
-        successful &= self.import_absolute_static("Url", ["kernel", "type", "Url"]);
-        successful &= self.import_absolute_static("BaseUrl", ["kernel", "type", "BaseUrl"]);
 
         successful &= self.import_absolute_static("List", ["kernel", "type", "List"]);
         successful &= self.import_absolute_static("Dict", ["kernel", "type", "Dict"]);
@@ -335,48 +333,51 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
         successful &= self.import_absolute_static("!", ["kernel", "type", "Never"]);
         successful &= self.import_absolute_static("Never", ["kernel", "type", "Never"]);
 
-        successful &= self.import_absolute_static("None", ["kernel", "type", "None"]);
-        successful &= self.import_absolute_static("Some", ["kernel", "type", "Some"]);
-        successful &= self.import_absolute_static("Option", ["kernel", "type", "Option"]);
+        successful &= self.import_absolute_static("Url", ["core", "url", "Url"]);
+        successful &= self.import_absolute_static("BaseUrl", ["core", "url", "BaseUrl"]);
 
-        successful &= self.import_absolute_static("Ok", ["kernel", "type", "Ok"]);
-        successful &= self.import_absolute_static("Err", ["kernel", "type", "Err"]);
-        successful &= self.import_absolute_static("Result", ["kernel", "type", "Result"]);
+        successful &= self.import_absolute_static("None", ["core", "option", "None"]);
+        successful &= self.import_absolute_static("Some", ["core", "option", "Some"]);
+        successful &= self.import_absolute_static("Option", ["core", "option", "Option"]);
+
+        successful &= self.import_absolute_static("Ok", ["core", "result", "Ok"]);
+        successful &= self.import_absolute_static("Err", ["core", "result", "Err"]);
+        successful &= self.import_absolute_static("Result", ["core", "result", "Result"]);
 
         // Math operators
-        successful &= self.import_absolute_static("+", ["math", "add"]);
-        successful &= self.import_absolute_static("-", ["math", "sub"]);
-        successful &= self.import_absolute_static("*", ["math", "mul"]);
-        successful &= self.import_absolute_static("/", ["math", "div"]);
-        successful &= self.import_absolute_static("%", ["math", "rem"]);
-        successful &= self.import_absolute_static("mod", ["math", "mod"]);
-        successful &= self.import_absolute_static("**", ["math", "pow"]);
-        successful &= self.import_absolute_static("↑", ["math", "pow"]);
-        successful &= self.import_absolute_static("sqrt", ["math", "sqrt"]);
-        successful &= self.import_absolute_static("√", ["math", "sqrt"]);
-        successful &= self.import_absolute_static("cbrt", ["math", "cbrt"]);
-        successful &= self.import_absolute_static("∛", ["math", "cbrt"]);
+        successful &= self.import_absolute_static("+", ["core", "math", "add"]);
+        successful &= self.import_absolute_static("-", ["core", "math", "sub"]);
+        successful &= self.import_absolute_static("*", ["core", "math", "mul"]);
+        successful &= self.import_absolute_static("/", ["core", "math", "div"]);
+        successful &= self.import_absolute_static("%", ["core", "math", "rem"]);
+        successful &= self.import_absolute_static("mod", ["core", "math", "mod"]);
+        successful &= self.import_absolute_static("**", ["core", "math", "pow"]);
+        successful &= self.import_absolute_static("↑", ["core", "math", "pow"]);
+        successful &= self.import_absolute_static("sqrt", ["core", "math", "sqrt"]);
+        successful &= self.import_absolute_static("√", ["core", "math", "sqrt"]);
+        successful &= self.import_absolute_static("cbrt", ["core", "math", "cbrt"]);
+        successful &= self.import_absolute_static("∛", ["core", "math", "cbrt"]);
 
         // Bitwise operators
-        successful &= self.import_absolute_static("&", ["math", "bit_and"]);
-        successful &= self.import_absolute_static("|", ["math", "bit_or"]);
-        successful &= self.import_absolute_static("^", ["math", "bit_xor"]);
-        successful &= self.import_absolute_static("~", ["math", "bit_not"]);
-        successful &= self.import_absolute_static("<<", ["math", "bit_shl"]);
-        successful &= self.import_absolute_static(">>", ["math", "bit_shr"]);
+        successful &= self.import_absolute_static("&", ["core", "bits", "and"]);
+        successful &= self.import_absolute_static("|", ["core", "bits", "or"]);
+        successful &= self.import_absolute_static("^", ["core", "bits", "xor"]);
+        successful &= self.import_absolute_static("~", ["core", "bits", "not"]);
+        successful &= self.import_absolute_static("<<", ["core", "bits", "shl"]);
+        successful &= self.import_absolute_static(">>", ["core", "bits", "shr"]);
 
         // Comparison operators
-        successful &= self.import_absolute_static(">", ["math", "gt"]);
-        successful &= self.import_absolute_static("<", ["math", "lt"]);
-        successful &= self.import_absolute_static(">=", ["math", "gte"]);
-        successful &= self.import_absolute_static("<=", ["math", "lte"]);
-        successful &= self.import_absolute_static("==", ["math", "eq"]);
-        successful &= self.import_absolute_static("!=", ["math", "ne"]);
+        successful &= self.import_absolute_static(">", ["core", "cmp", "gt"]);
+        successful &= self.import_absolute_static("<", ["core", "cmp", "lt"]);
+        successful &= self.import_absolute_static(">=", ["core", "cmp", "gte"]);
+        successful &= self.import_absolute_static("<=", ["core", "cmp", "lte"]);
+        successful &= self.import_absolute_static("==", ["core", "cmp", "eq"]);
+        successful &= self.import_absolute_static("!=", ["core", "cmp", "ne"]);
 
         // Logical operators
-        successful &= self.import_absolute_static("!", ["math", "not"]);
-        successful &= self.import_absolute_static("&&", ["math", "and"]);
-        successful &= self.import_absolute_static("||", ["math", "or"]);
+        successful &= self.import_absolute_static("!", ["core", "bool", "not"]);
+        successful &= self.import_absolute_static("&&", ["core", "bool", "and"]);
+        successful &= self.import_absolute_static("||", ["core", "bool", "or"]);
 
         // TODO: graph operations, these are excluded for now as we don't have them in the std
 
@@ -462,7 +463,7 @@ mod tests {
         assert_matches!(
             item.kind,
             ItemKind::Intrinsic(IntrinsicItem::Value(IntrinsicValueItem {
-                name: "::math::add",
+                name: "::core::math::add",
                 r#type: _
             }))
         );

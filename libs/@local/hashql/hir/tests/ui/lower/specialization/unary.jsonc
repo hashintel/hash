@@ -1,0 +1,4 @@
+//@ run: fail
+//@ description: unary operations are not implemented yet
+["!", { "#literal": true }]
+//~^ ERROR intrinsic `::core::bool::not` not supported yet

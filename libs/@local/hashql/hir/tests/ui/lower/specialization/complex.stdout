@@ -1,0 +1,15 @@
+════ Initial HIR ═══════════════════════════════════════════════════════════════
+
+#let foo:0 = 1 in
+#let bar:0 = 1 in
+#let equals:0 = #fn<T:0?14>(lhs:0: ?14, rhs:0: ?14): Boolean ->
+    ::core::cmp::eq(lhs:0, rhs:0) in
+equals:0(foo:0, bar:0)
+
+════ HIR after specialization ══════════════════════════════════════════════════
+
+#let foo:0 = 1 in
+#let bar:0 = 1 in
+#let equals:0 = #fn<T:0?14>(lhs:0: ?14«?», rhs:0: ?14«?»): Boolean ->
+    (lhs:0 == rhs:0) in
+equals:0(foo:0, bar:0)

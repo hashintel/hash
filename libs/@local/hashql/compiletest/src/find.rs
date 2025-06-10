@@ -72,7 +72,7 @@ fn find_entry_point<'graph>(
     output.push(EntryPoint { path, metadata });
 }
 
-fn find_entry_points(graph: &PackageGraph) -> Vec<EntryPoint> {
+fn find_entry_points(graph: &PackageGraph) -> Vec<EntryPoint<'_>> {
     let workspace = graph.workspace();
     let current_dir = current_dir!();
 
@@ -166,7 +166,7 @@ fn find_test_cases(entry_point: &EntryPoint) -> Vec<TestCase> {
     cases
 }
 
-pub(crate) fn find_tests(graph: &PackageGraph) -> Vec<TestGroup> {
+pub(crate) fn find_tests(graph: &PackageGraph) -> Vec<TestGroup<'_>> {
     let entry_points = find_entry_points(graph);
 
     thread::scope(|scope| {

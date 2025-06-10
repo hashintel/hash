@@ -1,8 +1,10 @@
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
+import type { Logger } from "@local/hash-backend-utils/logger";
 import { getMachineIdByIdentifier } from "@local/hash-backend-utils/machine-actors";
 import { entityEditionRecordFromRealtimeMessage } from "@local/hash-backend-utils/pg-tables";
 import { RedisQueueExclusiveConsumer } from "@local/hash-backend-utils/queue/redis";
 import { AsyncRedisClient } from "@local/hash-backend-utils/redis";
+import type { VaultClient } from "@local/hash-backend-utils/vault";
 import type { Wal2JsonMsg } from "@local/hash-backend-utils/wal2json";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
@@ -10,28 +12,42 @@ import { fullDecisionTimeAxis } from "@local/hash-isomorphic-utils/graph-queries
 import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 
 import { systemAccountId } from "../graph/system-account";
-import { logger } from "../logger";
 import {
   processEntityChange as processLinearEntityChange,
   supportedLinearTypeIds,
 } from "./linear/sync-back";
 
-const sendEntityToRelevantProcessor = (
-  entity: HashEntity,
-  graphApiClient: GraphApi,
-) => {
+const sendEntityToRelevantProcessor = ({
+  entity,
+  graphApi,
+  vaultClient,
+}: {
+  entity: HashEntity;
+  graphApi: GraphApi;
+  vaultClient: VaultClient;
+}) => {
   if (
     entity.metadata.entityTypeIds.some((entityTypeId) =>
       supportedLinearTypeIds.includes(entityTypeId),
     )
   ) {
-    void processLinearEntityChange(entity, graphApiClient);
+    void processLinearEntityChange({
+      entity,
+      graphApi,
+      vaultClient,
+    });
   }
 };
 
-export const createIntegrationSyncBackWatcher = async (
-  graphApiClient: GraphApi,
-) => {
+export const createIntegrationSyncBackWatcher = async ({
+  graphApi,
+  logger,
+  vaultClient,
+}: {
+  graphApi: GraphApi;
+  logger: Logger;
+  vaultClient: VaultClient;
+}) => {
   const queueName = getRequiredEnv("HASH_INTEGRATION_QUEUE_NAME");
 
   const redisClient = new AsyncRedisClient(logger, {
@@ -50,7 +66,7 @@ export const createIntegrationSyncBackWatcher = async (
         const entityEdition = entityEditionRecordFromRealtimeMessage(message);
 
         const linearBotAccountId = await getMachineIdByIdentifier(
-          { graphApi: graphApiClient },
+          { graphApi },
           { actorId: systemAccountId },
           { identifier: "linear" },
         ).then((maybeMachineId) => {
@@ -61,7 +77,7 @@ export const createIntegrationSyncBackWatcher = async (
         });
 
         const entity = (
-          await graphApiClient
+          await graphApi
             .getEntities(linearBotAccountId, {
               filter: {
                 equal: [
@@ -96,13 +112,17 @@ export const createIntegrationSyncBackWatcher = async (
           return;
         }
 
-        sendEntityToRelevantProcessor(entity, graphApiClient);
+        sendEntityToRelevantProcessor({
+          entity,
+          graphApi,
+          vaultClient,
+        });
 
         return true;
       })
       .catch((err) => {
-        // eslint-disable-next-line no-console -- caught because this function loses ownership of the queue occasionally in dev
-        console.error(`Could not take message from queue: ${err.message}`);
+        // caught because this function loses ownership of the queue occasionally in dev
+        logger.error(`Could not take message from queue: ${err.message}`);
       });
   };
 

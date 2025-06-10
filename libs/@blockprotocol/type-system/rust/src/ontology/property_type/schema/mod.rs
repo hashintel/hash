@@ -439,7 +439,7 @@ impl OntologyTypeSchema for PropertyType {
         &self.id
     }
 
-    fn references(&self) -> Vec<OntologyTypeReference> {
+    fn references(&self) -> Vec<OntologyTypeReference<'_>> {
         self.property_type_references()
             .into_iter()
             .map(OntologyTypeReference::PropertyTypeReference)

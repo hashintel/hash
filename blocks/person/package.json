@@ -26,13 +26,13 @@
   },
   "dependencies": {
     "@blockprotocol/graph": "0.0.18",
-    "dompurify": "3.2.4"
+    "dompurify": "3.2.6"
   },
   "devDependencies": {
     "@local/eslint": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@types/dompurify": "2.4.0",
-    "@types/react-dom": "19.1.5",
+    "@types/dompurify": "3.2.0",
+    "@types/react-dom": "19.1.6",
     "block-scripts": "0.0.14",
     "eslint": "9.20.1",
     "mock-block-dock": "0.0.38",

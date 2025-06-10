@@ -19,6 +19,7 @@ Expr#4294967040@30
               Expr#4294967040@11
                 ExprKind (Path)
                   Path#4294967040@11 (rooted: true)
+                    PathSegment#4294967040@10 (name: core)
                     PathSegment#4294967040@10 (name: math)
                     PathSegment#4294967040@10 (name: add)
               Argument#4294967040@13

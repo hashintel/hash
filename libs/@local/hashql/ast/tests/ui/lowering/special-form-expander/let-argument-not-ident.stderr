@@ -1,4 +1,4 @@
-[31m[special-form-expander::qualified-binding-name] Error:[0m Qualified path used as binding name
+[special-form-expander::qualified-binding-name] Error: Qualified path used as binding name
     ╭─[ <unknown>:10:6 ]
     │
  10 │     "x::A",
@@ -11,7 +11,7 @@
 ────╯
 
 
-[31m[special-form-expander::qualified-binding-name] Error:[0m Qualified path used as binding name
+[special-form-expander::qualified-binding-name] Error: Qualified path used as binding name
    ╭─[ <unknown>:5:4 ]
    │
  5 │   "Int<T>",
@@ -24,7 +24,7 @@
 ───╯
 
 
-[31m[special-form-expander::qualified-binding-name] Error:[0m Qualified path used as binding name
+[special-form-expander::qualified-binding-name] Error: Qualified path used as binding name
     ╭─[ <unknown>:15:8 ]
     │
  15 │       "::z",

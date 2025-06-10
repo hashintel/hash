@@ -1,4 +1,4 @@
-[31m[reify::unsupported-construct] Error:[0m Unsupported language construct
+[reify::unsupported-construct] Error: Unsupported language construct
    ╭─[ <unknown>:3:1 ]
    │
  3 │ { "#tuple": [{ "#literal": 2 }] }

@@ -4,7 +4,8 @@ Expr#4294967040@12
       Expr#4294967040@3
         ExprKind (Path)
           Path#4294967040@3 (rooted: true)
-            PathSegment#4294967040@2 (name: math)
+            PathSegment#4294967040@2 (name: core)
+            PathSegment#4294967040@2 (name: bool)
             PathSegment#4294967040@2 (name: and)
       Argument#4294967040@7
         Expr#4294967040@7

@@ -1,3 +1,7 @@
+use self::{
+    action::ActionSnapshotRecord,
+    policy::{PolicyActionSnapshotRecord, PolicyEditionSnapshotRecord},
+};
 pub use self::{
     error::{SnapshotDumpError, SnapshotRestoreError},
     metadata::{BlockProtocolModuleVersions, CustomGlobalMetadata},
@@ -9,11 +13,13 @@ pub use self::{
 };
 pub use crate::snapshot::metadata::SnapshotMetadata;
 
+mod action;
 mod entity;
 mod error;
 mod metadata;
 mod ontology;
 mod owner;
+mod policy;
 mod principal;
 mod restore;
 mod web;
@@ -41,7 +47,7 @@ use hash_graph_authorization::{
 };
 use hash_graph_store::{error::InsertionError, filter::QueryRecord, pool::StorePool, query::Read};
 use hash_status::StatusCode;
-use postgres_types::ToSql;
+use postgres_types::{Json, ToSql};
 use serde::{Deserialize, Serialize};
 use tokio_postgres::error::SqlState;
 use type_system::{
@@ -66,7 +72,7 @@ use uuid::Uuid;
 
 use crate::{
     snapshot::{entity::EntityEmbeddingRecord, restore::SnapshotRecordBatch},
-    store::postgres::{AsClient, PostgresStore, PostgresStorePool},
+    store::postgres::{AsClient, PolicyParts, PostgresStore, PostgresStorePool},
 };
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -99,6 +105,9 @@ pub enum SnapshotEntry {
     AccountGroup(AccountGroup),
     Web(SnapshotWeb),
     Principal(Principal),
+    Action(ActionSnapshotRecord),
+    Policy(PolicyEditionSnapshotRecord),
+    PolicyActions(PolicyActionSnapshotRecord),
     DataType(Box<DataTypeSnapshotRecord>),
     DataTypeEmbedding(DataTypeEmbeddingRecord),
     PropertyType(Box<PropertyTypeSnapshotRecord>),
@@ -128,6 +137,22 @@ impl SnapshotEntry {
             }
             Self::Principal(principal) => {
                 context.push_body(format!("principal: {}", principal.id()));
+            }
+            Self::Action(action) => {
+                context.push_body(format!("action: {}", action.name));
+            }
+            Self::Policy(policy) => {
+                if let Some(name) = &policy.name {
+                    context.push_body(format!("policy: {name} {}", policy.id));
+                } else {
+                    context.push_body(format!("policy: {}", policy.id));
+                }
+            }
+            Self::PolicyActions(action) => {
+                context.push_body(format!(
+                    "policy action {} for {}",
+                    action.name, action.policy_id
+                ));
             }
             Self::DataType(data_type) => {
                 context.push_body(format!("data type: {}", data_type.metadata.record_id));
@@ -251,6 +276,8 @@ impl<C, A> SnapshotStore<C, A> {
 pub struct SnapshotDumpSettings {
     pub chunk_size: usize,
     pub dump_principals: bool,
+    pub dump_actions: bool,
+    pub dump_policies: bool,
     pub dump_entities: bool,
     pub dump_entity_types: bool,
     pub dump_property_types: bool,
@@ -592,6 +619,128 @@ impl PostgresStorePool {
             .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Read)))
     }
 
+    async fn read_actions(
+        &self,
+    ) -> Result<
+        impl Stream<Item = Result<ActionSnapshotRecord, Report<SnapshotDumpError>>> + Send,
+        Report<SnapshotDumpError>,
+    > {
+        Ok(self
+            .acquire(NoAuthorization, None)
+            .await
+            .change_context(SnapshotDumpError::Query)?
+            .as_client()
+            .query_raw(
+                "
+                    SELECT
+                        child_name,
+                        array_remove(
+                            array_agg(
+                                CASE WHEN depth > 0 THEN parent_name END
+                                ORDER BY depth ASC
+                            ),
+                            NULL
+                        )
+                    FROM action_hierarchy
+                    GROUP BY child_name
+                    ORDER BY child_name ASC
+                ",
+                [] as [&(dyn ToSql + Sync); 0],
+            )
+            .await
+            .change_context(SnapshotDumpError::Query)?
+            .map_ok(|row| ActionSnapshotRecord {
+                name: row.get(0),
+                parents: row.get(1),
+            })
+            .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Read)))
+    }
+
+    async fn read_policies(
+        &self,
+    ) -> Result<
+        impl Stream<Item = Result<PolicyEditionSnapshotRecord, Report<SnapshotDumpError>>> + Send,
+        Report<SnapshotDumpError>,
+    > {
+        Ok(self
+            .acquire(NoAuthorization, None)
+            .await
+            .change_context(SnapshotDumpError::Query)?
+            .as_client()
+            .query_raw(
+                "
+                    SELECT
+                        policy_edition.name,
+                        policy_edition.id,
+                        policy_edition.transaction_time,
+                        policy_edition.effect,
+                        policy_edition.principal_id,
+                        policy_edition.principal_type,
+                        policy_edition.actor_type,
+                        policy_edition.resource_constraint
+                    FROM policy_edition
+                ",
+                [] as [&(dyn ToSql + Sync); 0],
+            )
+            .await
+            .change_context(SnapshotDumpError::Query)?
+            .map_ok(|row| {
+                let policy = PolicyParts {
+                    name: row.get(0),
+                    id: row.get(1),
+                    effect: row.get(3),
+                    principal_uuid: row.get(4),
+                    principal_type: row.get(5),
+                    actor_type: row.get(6),
+                    resource_constraint: row.get::<_, Option<Json<_>>>(7).map(|json| json.0),
+                    actions: Vec::new(),
+                }
+                .into_policy()
+                .expect("should be a valid policy");
+
+                PolicyEditionSnapshotRecord {
+                    name: policy.name,
+                    id: policy.id,
+                    effect: policy.effect,
+                    principal: policy.principal,
+                    resource: policy.resource,
+                    transaction_time: row.get(2),
+                }
+            })
+            .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Read)))
+    }
+
+    async fn read_policy_actions(
+        &self,
+    ) -> Result<
+        impl Stream<Item = Result<PolicyActionSnapshotRecord, Report<SnapshotDumpError>>> + Send,
+        Report<SnapshotDumpError>,
+    > {
+        Ok(self
+            .acquire(NoAuthorization, None)
+            .await
+            .change_context(SnapshotDumpError::Query)?
+            .as_client()
+            .query_raw(
+                "
+                    SELECT
+                        policy_id,
+                        action_name,
+                        transaction_time
+                    FROM policy_action
+                ",
+                [] as [&(dyn ToSql + Sync); 0],
+            )
+            .await
+            .change_context(SnapshotDumpError::Query)?
+            .map_ok(|row| PolicyActionSnapshotRecord {
+                policy_id: row.get(0),
+                name: row.get(1),
+                transaction_time: row.get(2),
+            })
+            .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Read)))
+    }
+
     /// Convenience function to create a stream of snapshot entries.
     async fn create_dump_stream<'pool, T>(
         &'pool self,
@@ -818,6 +967,31 @@ impl PostgresStorePool {
                 );
             }
 
+            if settings.dump_actions {
+                scope.spawn(
+                    self.read_actions()
+                        .try_flatten_stream()
+                        .map_ok(SnapshotEntry::Action)
+                        .forward(snapshot_record_tx.clone()),
+                );
+            }
+
+            if settings.dump_policies {
+                scope.spawn(
+                    self.read_policies()
+                        .try_flatten_stream()
+                        .map_ok(SnapshotEntry::Policy)
+                        .forward(snapshot_record_tx.clone()),
+                );
+
+                scope.spawn(
+                    self.read_policy_actions()
+                        .try_flatten_stream()
+                        .map_ok(SnapshotEntry::PolicyActions)
+                        .forward(snapshot_record_tx.clone()),
+                );
+            }
+
             if settings.dump_data_types {
                 scope.spawn(
                     self.create_dump_stream::<DataTypeWithMetadata>()
@@ -905,7 +1079,9 @@ impl PostgresStorePool {
                                         )
                                         .await
                                         .change_context(SnapshotDumpError::Query)?
-                                        .map_ok(|(_, relation)| relation)
+                                        .try_filter_map(| (_, relation)| async move  {
+                                             Ok((!matches!(relation,  EntityTypeRelationAndSubject::Instantiator { .. })).then_some(relation))
+                                        })
                                         .try_collect()
                                         .await
                                         .change_context(SnapshotDumpError::Query)?,

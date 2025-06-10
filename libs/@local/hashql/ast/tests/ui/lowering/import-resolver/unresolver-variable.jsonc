@@ -2,7 +2,7 @@
 //@ description: Tests that unresolved variables have specialized error messages
 [
   "use",
-  "::math",
+  "core::math",
   { "#struct": { "add": "fooo" } },
   [
     "let",

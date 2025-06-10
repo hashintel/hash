@@ -51,7 +51,7 @@ impl Subgraph {
     fn vertex_entry_mut<R: SubgraphRecord>(
         &mut self,
         vertex_id: R::VertexId,
-    ) -> Entry<R::VertexId, R> {
+    ) -> Entry<'_, R::VertexId, R> {
         vertex_id.subgraph_entry_mut(&mut self.vertices)
     }
 

@@ -1,4 +1,4 @@
-[31m[type-extractor::generic-constraint-not-allowed] Error:[0m Constraint not allowed in generic arguments
+[type-extractor::generic-constraint-not-allowed] Error: Constraint not allowed in generic arguments
    ╭─[ <unknown>:6:9 ]
    │
  6 │   "List<T: Number>",

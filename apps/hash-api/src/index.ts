@@ -243,7 +243,11 @@ const main = async () => {
 
   const temporalClient = await createTemporalClient(logger);
 
-  const vaultClient = createVaultClient();
+  const vaultClient = await createVaultClient({ logger });
+
+  if (!vaultClient && !isSelfHostedInstance) {
+    throw new Error("Failed to create Vault client, check preceding logs.");
+  }
 
   const machineProvenance: ProvidedEntityEditionProvenance = {
     actorType: "machine",
@@ -740,8 +744,17 @@ const main = async () => {
   });
 
   if (realtimeSyncEnabled && enabledIntegrations.linear) {
-    const integrationSyncBackWatcher =
-      await createIntegrationSyncBackWatcher(graphApi);
+    if (!vaultClient) {
+      throw new Error(
+        "Vault client is required for realtime sync and was not created (check preceding logs)",
+      );
+    }
+
+    const integrationSyncBackWatcher = await createIntegrationSyncBackWatcher({
+      graphApi,
+      logger,
+      vaultClient,
+    });
 
     void integrationSyncBackWatcher.start();
 

@@ -845,19 +845,19 @@ where
     }
 }
 
-struct PolicyParts {
-    id: PolicyId,
-    name: Option<String>,
-    effect: Effect,
-    principal_uuid: Option<Uuid>,
-    principal_type: Option<PrincipalType>,
-    actor_type: Option<PrincipalType>,
-    resource_constraint: Option<ResourceConstraint>,
-    actions: Vec<ActionName>,
+pub(crate) struct PolicyParts {
+    pub id: PolicyId,
+    pub name: Option<String>,
+    pub effect: Effect,
+    pub principal_uuid: Option<Uuid>,
+    pub principal_type: Option<PrincipalType>,
+    pub actor_type: Option<PrincipalType>,
+    pub resource_constraint: Option<ResourceConstraint>,
+    pub actions: Vec<ActionName>,
 }
 
 impl PolicyParts {
-    fn into_policy(self) -> Result<Policy, Report<GetPoliciesError>> {
+    pub(crate) fn into_policy(self) -> Result<Policy, Report<GetPoliciesError>> {
         let principal_id = match (self.principal_uuid, self.principal_type) {
             (Some(uuid), Some(principal_type)) => Some(PrincipalId::new(uuid, principal_type)),
             (None, None) => None,

@@ -1,9 +1,9 @@
-[31m[special-form-expander::invalid-fn-generic-param] Error:[0m Invalid generic parameter in function declaration
+[special-form-expander::invalid-fn-generic-param] Error: Invalid generic parameter in function declaration
    ╭─[ <unknown>:7:8 ]
    │
- 7 │       "::math::add"
-   │        ─────┬─────  
-   │             ╰─────── Use a simple identifier here
+ 7 │       "::core::math::add"
+   │        ────────┬────────  
+   │                ╰────────── Use a simple identifier here
    │ 
    │ Help: Generic type parameters must be simple identifiers. Qualified paths or complex expressions cannot be used in this context.
    │ 

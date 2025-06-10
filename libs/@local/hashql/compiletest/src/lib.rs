@@ -5,6 +5,7 @@
     assert_matches,
     coverage_attribute,
     file_buffered,
+    formatting_options,
     lock_value_accessors,
     pattern,
     // Language Features

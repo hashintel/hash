@@ -1,4 +1,4 @@
-[31m[type-extractor::unused-generic-parameter] Error:[0m Generic parameter not used in type definition
+[type-extractor::unused-generic-parameter] Error: Generic parameter not used in type definition
    ╭─[ <unknown>:6:21 ]
    │
  6 │ ["type", "Option<T, E>", ["|", {"#tuple": ["Some<T>"]}, {"#tuple": ["None"]}],

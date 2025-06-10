@@ -1,4 +1,4 @@
-[31m[special-form-expander::special-form-argument-length] Error:[0m Incorrect number of arguments for special form
+[special-form-expander::special-form-argument-length] Error: Incorrect number of arguments for special form
    ╭─[ <unknown>:3:1 ]
    │
  3 │ ["::kernel::special_form::type", "x", "Integer"]

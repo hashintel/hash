@@ -1,0 +1,11 @@
+//@ run: pass
+//@ description: complex set of operations
+// biome-ignore format: readability
+["let", "foo", { "#literal": 1 },
+["let", "bar", { "#literal": 1 },
+["let", "equals",
+  ["fn", { "#tuple": ["T"] }, { "#struct": { "lhs": "T", "rhs": "T" } }, "Boolean",
+    ["==", "lhs", "rhs"]
+  ],
+["equals", "foo", "bar"]
+]]]

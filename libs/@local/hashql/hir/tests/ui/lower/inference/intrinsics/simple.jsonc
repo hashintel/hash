@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Verifies type inference for a direct reference to an intrinsic function.
+"+"

@@ -11,7 +11,7 @@ use hashql_core::{
     span::{SpanId, Spanned},
     symbol::Symbol,
     r#type::{
-        TypeBuilder, TypeId,
+        PartialType, TypeBuilder, TypeId,
         environment::{Environment, InferenceEnvironment, instantiate::InstantiateEnvironment},
         error::TypeCheckDiagnostic,
         inference::InferenceSolver,
@@ -39,8 +39,15 @@ use crate::{
     visit::{self, Visitor},
 };
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct Local<'heap> {
+    pub r#type: TypeDef<'heap>,
+    pub intrinsic: Option<&'static str>,
+}
+
 pub struct TypeInferenceResidual<'heap> {
-    pub locals: FastHashMap<Symbol<'heap>, TypeDef<'heap>>,
+    pub locals: FastHashMap<Symbol<'heap>, Local<'heap>>,
+    pub intrinsics: FastHashMap<HirId, &'static str>,
     pub types: FastHashMap<HirId, TypeId>,
 }
 
@@ -54,10 +61,10 @@ pub struct TypeInference<'env, 'heap> {
     current: HirId,
 
     visited: FastHashSet<HirId>,
-    locals: FastRealmsMap<Symbol<'heap>, TypeDef<'heap>>,
+    locals: FastRealmsMap<Symbol<'heap>, Local<'heap>>,
     types: FastRealmsMap<HirId, TypeId>,
     arguments: FastRealmsMap<HirId, Interned<'heap, [GenericArgumentReference<'heap>]>>,
-    variables: FastRealmsMap<HirId, hashql_core::r#type::inference::Variable>,
+    intrinsics: FastRealmsMap<HirId, &'static str>,
 }
 
 impl<'env, 'heap> TypeInference<'env, 'heap> {
@@ -75,7 +82,7 @@ impl<'env, 'heap> TypeInference<'env, 'heap> {
             locals: FastRealmsMap::new(),
             types: FastRealmsMap::new(),
             arguments: FastRealmsMap::new(),
-            variables: FastRealmsMap::new(),
+            intrinsics: FastRealmsMap::new(),
         }
     }
 
@@ -85,21 +92,25 @@ impl<'env, 'heap> TypeInference<'env, 'heap> {
         def: TypeDef<'heap>,
         arguments: &[Spanned<TypeId>],
     ) -> TypeId {
+        // We extract only the partial type to access its kind, avoiding the overhead of
+        // retrieving the full type data when we only need the kind for re-spanning.
+        let kind = self.env.r#types.index_partial(def.id).kind;
+        let base = self.env.intern_type(PartialType { span, kind }); // re-span the value
+
         if arguments.is_empty() {
-            return def.id;
+            return base;
         }
 
         let builder = TypeBuilder::spanned(span, self.env);
 
-        // We do not check if the amount of arguments matches the amount of generic arguments, as
-        // this will be done in the type checking pass later.
+        // Argument count validation is deferred to the type checking pass.
         let substitutions = def.arguments.iter().zip(arguments.iter()).map(
             |(&GenericArgumentReference { id: argument, .. }, &Spanned { value, .. })| {
                 GenericSubstitution { argument, value }
             },
         );
 
-        builder.apply(substitutions, def.id)
+        builder.apply(substitutions, base)
     }
 
     #[must_use]
@@ -115,8 +126,13 @@ impl<'env, 'heap> TypeInference<'env, 'heap> {
 
         let locals = core::mem::take(&mut self.locals[Universe::Value]);
         let types = core::mem::take(&mut self.types[Universe::Value]);
+        let intrinsics = core::mem::take(&mut self.intrinsics[Universe::Value]);
 
-        let residual = TypeInferenceResidual { locals, types };
+        let residual = TypeInferenceResidual {
+            locals,
+            intrinsics,
+            types,
+        };
 
         (solver, residual, diagnostics)
     }
@@ -154,16 +170,24 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
     fn visit_local_variable(&mut self, variable: &'heap LocalVariable<'heap>) {
         visit::walk_local_variable(self, variable);
 
-        let mut def = self.locals[Universe::Value][&variable.name.value];
-        // The generics of this type (not the type itself) is completely separate from the
-        // referenced type, otherwise any generic variable in the instantiation would converge to
-        // the same, which would defeat polymorphism.
+        let Local {
+            r#type: mut def,
+            intrinsic,
+        } = self.locals[Universe::Value][&variable.name.value];
+        // We must instantiate fresh generics for this type reference to preserve polymorphism.
+        // Reusing the same generic variables would cause all instantiations to converge,
+        // breaking polymorphic behavior.
         def.instantiate(&mut self.instantiate);
 
         let r#type = self.apply_substitution(variable.span, def, &variable.arguments);
 
         self.types
             .insert_unique(Universe::Value, self.current, r#type);
+
+        if let Some(intrinsic) = intrinsic {
+            self.intrinsics
+                .insert_unique(Universe::Value, self.current, intrinsic);
+        }
     }
 
     fn visit_qualified_variable(&mut self, variable: &'heap QualifiedVariable<'heap>) {
@@ -177,9 +201,9 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
             )
             .unwrap_or_else(|| unreachable!("import resolver should've caught this issue"));
 
-        let mut def = match item.kind {
-            ItemKind::Intrinsic(IntrinsicItem::Value(IntrinsicValueItem { name: _, r#type })) => {
-                r#type
+        let (intrinsic, mut def) = match item.kind {
+            ItemKind::Intrinsic(IntrinsicItem::Value(IntrinsicValueItem { name, r#type })) => {
+                (name, r#type)
             }
             ItemKind::Constructor(_) => {
                 unreachable!("constructors should've been specialized prior to this point");
@@ -196,6 +220,10 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
 
         self.types
             .insert_unique(Universe::Value, self.current, r#type);
+        self.arguments
+            .insert_unique(Universe::Value, self.current, def.arguments);
+        self.intrinsics
+            .insert_unique(Universe::Value, self.current, intrinsic);
     }
 
     fn visit_let(
@@ -221,30 +249,43 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
             .copied()
             .unwrap_or_else(|| self.env.intern_generic_argument_references(&[]));
 
-        self.types
-            .insert_unique(Universe::Value, self.current, value_type);
-        self.arguments
-            .insert_unique(Universe::Value, self.current, arguments);
+        // We do not propagate the arguments to the let binding node itself, because the let
+        // expression evaluates to its body, not the binding. Propagating arguments would
+        // incorrectly suggest that the let binding itself accepts arguments, when in reality
+        // the let expression simply binds a value to a name and then evaluates the body.
+        // The arguments properly belong to the value being bound, not the binding construct.
 
-        // We only take over the arguments of values we know, the only ones that are left after
-        // alias-replacement that are of note are closures. Due to the ambiguity, we do not support
-        // arguments for any other type.
+        let intrinsic = self.intrinsics.get(Universe::Value, &value.id).copied();
+
+        // We only preserve arguments for known value types. After alias replacement, only
+        // closures retain meaningful arguments. Other types have ambiguous argument semantics,
+        // so we don't support arguments for them.
         self.locals.insert_unique(
             Universe::Value,
             name.value,
-            TypeDef {
-                id: value_type,
-                arguments,
+            Local {
+                r#type: TypeDef {
+                    id: value_type,
+                    arguments,
+                },
+                intrinsic,
             },
         );
 
-        // There are no additional constraints that we can discharge here, because we simply take on
-        // the type of the value.
+        // No additional type constraints are generated here since we directly adopt
+        // the body's type without transformation.
 
         self.visit_node(body);
 
-        // Note: We purposefully do *not* remove the local after we're done, this is so that we can
-        // collect them afterwards for free, without an additional traversal.
+        // Note: We intentionally leave locals in scope after visiting the body to avoid
+        // requiring an additional traversal for collection during the type checking phase.
+
+        // The let expression's type is determined by its body, not the bound value
+        self.types.insert_unique(
+            Universe::Value,
+            self.current,
+            self.types[Universe::Value][&body.id],
+        );
     }
 
     fn visit_input(&mut self, input: &'heap Input<'heap>) {
@@ -309,9 +350,6 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
             access.field,
         );
 
-        self.variables
-            .insert_unique(Universe::Value, self.current, variable);
-
         self.types.insert_unique(
             Universe::Value,
             self.current,
@@ -327,9 +365,6 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
             self.types[Universe::Value][&access.expr.id],
             self.types[Universe::Value][&access.index.id],
         );
-
-        self.variables
-            .insert_unique(Universe::Value, self.current, variable);
 
         self.types.insert_unique(
             Universe::Value,
@@ -370,10 +405,9 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
         // For closure literals we invert the direction and collect `C <: F`
         self.inference.collect_constraints(function, closure);
 
-        self.variables
-            .insert_unique(Universe::Value, self.current, returns);
         self.types
             .insert_unique(Universe::Value, self.current, returns_id);
+
         // We do not need to collect the closure generated, as we can always re-generate it easily
         // from the types provided when we do the type-check.
     }
@@ -390,15 +424,14 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
             body,
         }: &'heap Closure<'heap>,
     ) {
-        // We cannot instantiate these for the closure, because that'd mean that they'd be invalid
-        // when trying to bind locals.
+        // We skip instantiation for closure parameters to ensure they remain valid
+        // for local binding within the closure scope.
         self.visit_span(*span);
         self.visit_closure_signature(signature);
 
-        // Mark the arguments used in the closure as being unscoped, this means that they won't be
-        // affected by any instantiate call (as they refer to the same variable). Having them be
-        // affected by instantiate calls would break inference, as any variable would be made
-        // distinct.
+        // Mark closure arguments as unscoped to prevent them from being affected by instantiation.
+        // This preserves variable identity within the closure - if instantiation modified them,
+        // each reference would become distinct, breaking type inference.
         let old_unscoped = self
             .instantiate
             .enter_unscoped(signature.def.arguments.iter().map(|argument| argument.id));
@@ -417,19 +450,21 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
             self.locals.insert_unique(
                 Universe::Value,
                 param.name.value,
-                TypeDef {
-                    id: type_id,
-                    arguments: self.env.intern_generic_argument_references(&[]),
+                Local {
+                    r#type: TypeDef {
+                        id: type_id,
+                        arguments: self.env.intern_generic_argument_references(&[]),
+                    },
+                    intrinsic: None,
                 },
             );
         }
 
-        // Note that the types produced here - the inferred types of the parameters - might be
-        // invalid in the context of type checking, which is why it is a separate step.
+        // The parameter types inferred here may not be valid in the broader type checking
+        // context, which is why type checking is performed as a separate phase.
         self.visit_node(body);
 
-        // Note: We do not remove the locals again from scope, to allow us to use them in the type
-        // checking phase.
+        // Note: Locals remain in scope for use during the subsequent type checking phase.
 
         // `body <: return`
         self.inference.collect_constraints(

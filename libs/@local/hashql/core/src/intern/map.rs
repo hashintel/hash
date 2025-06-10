@@ -633,12 +633,66 @@ where
     /// // let non_existent = map.index(ValueId::from_u32(999));
     /// ```
     pub fn index(&self, id: T::Id) -> T {
+        let partial = self.index_partial(id);
+
+        T::from_parts(id, partial)
+    }
+
+    /// Retrieves the partial representation of an interned value by its ID.
+    ///
+    /// This method looks up the partial representation that was stored during interning,
+    /// without reconstructing the complete object. This is useful when you only need
+    /// access to the partial data or when building other objects that reference this
+    /// partial representation.
+    ///
+    /// The partial representation contains the core data of the interned value,
+    /// excluding the unique identifier which is passed separately to `from_parts`
+    /// when reconstructing the complete object.
+    ///
+    /// # Panics
+    ///
+    /// This method will panic if the provided ID does not exist in the map. This typically
+    /// indicates a programming error where an invalid or stale ID is being used.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// # use hashql_core::{heap::Heap, intern::{InternMap, Decompose, Interned}, id::{HasId, Id}, newtype};
+    /// # newtype!(struct ValueId(u32 is 0..=0xFFFF_FF00));
+    /// # #[derive(Debug, PartialEq, Eq, Hash)]
+    /// # struct Value {
+    /// #     id: ValueId,
+    /// #     value: i32,
+    /// # }
+    /// # impl HasId for Value {
+    /// #     type Id = ValueId;
+    /// #     fn id(&self) -> Self::Id { self.id }
+    /// # }
+    /// # impl<'heap> Decompose<'heap> for Value {
+    /// #     type Partial = i32;
+    /// #     fn from_parts(id: ValueId, partial: Interned<'heap, i32>) -> Self {
+    /// #         Self { id, value: *partial.as_ref() }
+    /// #     }
+    /// # }
+    /// # let heap = Heap::new();
+    /// # let map = InternMap::<Value>::new(&heap);
+    /// let obj = map.intern_partial(42);
+    /// let id = obj.id();
+    ///
+    /// // Look up by ID (we know it exists)
+    /// let retrieved = map.index_partial(id);
+    /// assert_eq!(*retrieved, 42);
+    ///
+    /// // This would panic:
+    /// // let non_existent = map.index(ValueId::from_u32(999));
+    /// ```
+    pub fn index_partial(&self, id: T::Id) -> Interned<'heap, T::Partial> {
         let partial = self
             .lookup
             .read(&id, |_, &partial| partial)
             .expect("id should exist in map");
 
-        T::from_parts(id, Interned::new_unchecked(partial))
+        Interned::new_unchecked(partial)
     }
 }
 

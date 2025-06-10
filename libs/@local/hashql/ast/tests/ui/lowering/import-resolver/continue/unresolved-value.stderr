@@ -1,18 +1,18 @@
-[31m[import-resolver::unresolved-variable] Error:[0m Unresolved variable
+[import-resolver::unresolved-variable] Error: Unresolved variable
    ╭─[ <unknown>:4:4 ]
    │
- 4 │   "bit_shl",
-   │    ───┬───  
-   │       ╰───── Cannot find variable 'bit_shl'
+ 4 │   "shl",
+   │    ─┬─  
+   │     ╰─── Cannot find variable 'shl'
    │ 
-   │ Help: The name 'bit_shl' doesn't exist in this scope.
+   │ Help: The name 'shl' doesn't exist in this scope.
    │       
    │       Items with a similar name exist in other modules:
-   │         - ::math::bit_shl
+   │         - ::core::bits::shl
    │       
    │       To use an item, you can either:
-   │         1. Import it: use ::math::bit_shl in
-   │         2. Use fully qualified path: ::math::bit_shl
+   │         1. Import it: use ::core::bits::shl in
+   │         2. Use fully qualified path: ::core::bits::shl
    │ 
    │ Note: Variables must be defined before they can be used. This could be a typo, a variable used outside its scope, or a missing declaration. If it's a function or type from another module, you might need to import it first.
 ───╯

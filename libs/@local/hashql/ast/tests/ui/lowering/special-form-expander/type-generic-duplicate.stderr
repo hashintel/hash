@@ -1,4 +1,4 @@
-[31m[special-form-expander::duplicate-generic-constraint] Error:[0m Duplicate generic parameter constraint
+[special-form-expander::duplicate-generic-constraint] Error: Duplicate generic parameter constraint
    ╭─[ <unknown>:5:16 ]
    │
  5 │   "Foo<T: Bar, T>",

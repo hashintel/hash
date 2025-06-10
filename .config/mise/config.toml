@@ -8,7 +8,7 @@ node        = { version = "22.16.0", postinstall = "corepack enable" }
 
 # Helper to install tools
 cargo-binstall = "1.12.5"
-uv             = "0.7.9"
+uv             = "0.7.12"
 
 # Tools to compile the project
 'cargo:wasm-opt'  = "0.116.1"
@@ -22,12 +22,12 @@ biome                  = "1.9.5-nightly.ff02a0b"
 "cargo:cargo-insta"    = "1.43.1"
 "cargo:cargo-llvm-cov" = "0.6.16"
 "cargo:cargo-nextest"  = "0.9.97"
-"cargo:clorinde"       = "0.15.2"
+"cargo:clorinde"       = "0.16.0"
 just                   = "1.40.0"
 markdownlint-cli2      = "0.18.1"
 "npm:@napi-rs/cli"     = "2.18.4"
 "npm:@redocly/cli"     = "1.34.3"
-"npm:renovate"         = "40.37.1"
+"npm:renovate"         = "40.48.4"
 "pipx:sqlfluff"        = "3.4.0"
 sentry-cli             = "2.46.0"
 taplo                  = "0.9.3"

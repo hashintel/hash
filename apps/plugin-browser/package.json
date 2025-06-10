@@ -62,7 +62,7 @@
     "@sentry/webpack-plugin": "2.23.0",
     "@types/lodash.debounce": "4.0.9",
     "@types/react": "19.1.6",
-    "@types/react-dom": "19.1.5",
+    "@types/react-dom": "19.1.6",
     "@types/webextension-polyfill": "0.12.2",
     "@types/ws": "8.18.1",
     "babel-loader": "9.2.1",
@@ -91,7 +91,7 @@
     "typescript": "5.7.3",
     "webpack": "5.99.9",
     "webpack-cli": "4.10.0",
-    "webpack-dev-server": "4.15.2",
+    "webpack-dev-server": "5.2.2",
     "zip-webpack-plugin": "4.0.3"
   }
 }

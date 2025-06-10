@@ -5,6 +5,7 @@ mod trial_group;
 use core::error;
 use std::{self, io, thread};
 
+use anstream::StripStream;
 use ariadne::Source;
 use error_stack::Report;
 use guppy::graph::PackageGraph;
@@ -52,12 +53,13 @@ where
         ..ReportConfig::default()
     });
 
-    let mut output = Vec::new();
+    let mut writer = StripStream::new(Vec::new());
+
     report
-        .write_for_stdout(Source::from(source), &mut output)
+        .write_for_stdout(Source::from(source), &mut writer)
         .expect("infallible");
 
-    String::from_utf8(output).expect("output should be valid UTF-8")
+    String::from_utf8(writer.into_inner()).expect("output should be valid UTF-8")
 }
 
 fn render_stderr<'a, C>(
