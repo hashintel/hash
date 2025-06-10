@@ -28,7 +28,7 @@ impl<'heap> StandardLibraryModule<'heap> for Head {
 
         let graph = lib.manifest::<std_lib::core::graph::Graph>();
 
-        let time_axis_ty = graph.expect_type(heap.intern_symbol("TimeAxis"));
+        let query_temporal_axes_ty = graph.expect_type(heap.intern_symbol("QueryTemporalAxes"));
         let mut graph_ty = graph.expect_type(heap.intern_symbol("Graph"));
         graph_ty.instantiate(&mut lib.instantiate);
 
@@ -51,7 +51,7 @@ impl<'heap> StandardLibraryModule<'heap> for Head {
             &mut def,
             "::core::graph::head::entities",
             &[],
-            decl!(lib; <>(axis: time_axis_ty.id) -> entities_returns),
+            decl!(lib; <>(axis: query_temporal_axes_ty.id) -> entities_returns),
         );
 
         def

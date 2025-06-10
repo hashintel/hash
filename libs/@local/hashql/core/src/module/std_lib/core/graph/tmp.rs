@@ -24,9 +24,9 @@ impl<'heap> StandardLibraryModule<'heap> for Tmp {
         let mut def = ModuleDef::new();
         let heap = lib.heap;
 
-        let time_axis_ty = lib
+        let query_temporal_axes_ty = lib
             .manifest::<std_lib::core::graph::Graph>()
-            .expect_type(heap.intern_symbol("TimeAxis"));
+            .expect_type(heap.intern_symbol("QueryTemporalAxes"));
 
         // ::core::graph::tmp::decision_time_now() -> TimeAxis
         func(
@@ -35,7 +35,7 @@ impl<'heap> StandardLibraryModule<'heap> for Tmp {
             "::core::graph::tmp::decision_time_now",
             &[],
             TypeDef {
-                id: lib.ty.closure([] as [TypeId; 0], time_axis_ty.id),
+                id: lib.ty.closure([] as [TypeId; 0], query_temporal_axes_ty.id),
                 arguments: lib.ty.env.intern_generic_argument_references(&[]),
             },
         );

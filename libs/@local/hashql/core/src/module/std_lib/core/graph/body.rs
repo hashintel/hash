@@ -31,9 +31,9 @@ impl<'heap> StandardLibraryModule<'heap> for Body {
         graph_param.instantiate(&mut lib.instantiate);
         graph_returns.instantiate(&mut lib.instantiate);
 
-        // `filter<T>(graph: Graph<T>, predicate: fn(entity: T) -> bool) -> Graph<T>;`
+        // `filter<T>(graph: Graph<T>, predicate: fn(vertex: T) -> bool) -> Graph<T>;`
         // Once https://linear.app/hash/issue/H-4741/hashql-support-for-type-guards lands this will change to:
-        // `filter<T, U>(graph: Graph<T>, predicate: fn(entity: T) -> entity is U) -> Graph<U>;`
+        // `filter<T, U>(graph: Graph<T>, predicate: fn(vertex: T) -> entity is U) -> Graph<U>;`
         let decl = decl!(lib;
             <T>(graph: lib.ty.apply([(graph_param.arguments[0].id, T)], graph_param.id),
                 predicate: lib.ty.closure([T], lib.ty.boolean())

@@ -73,7 +73,7 @@ impl<'heap> StandardLibraryModule<'heap> for Graph {
             ),
         );
         def.push(
-            lib.heap.intern_symbol("TimeAxis"),
+            lib.heap.intern_symbol("QueryTemporalAxes"),
             // Export as `type` rather than `newtype` since TimeAxis is currently not
             // user-constructible
             ItemDef::r#type(lib.ty.env, time_axis_ty, &[]),

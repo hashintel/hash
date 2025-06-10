@@ -26,6 +26,8 @@ impl<'heap> StandardLibraryModule<'heap> for ActorGroup {
 
         // newtype ActorGroupEntityUuid = EntityUuid;
         // (we just set it to Uuid to avoid any cycles)
+        // see: https://linear.app/hash/issue/H-4616/hashql-use-expression-hoisting
+        // see: https://linear.app/hash/issue/H-4735/hashql-convert-rust-types-into-hashql-types
         let uuid_ty = lib
             .manifest::<std_lib::core::uuid::Uuid>()
             .expect_newtype(heap.intern_symbol("Uuid"));
