@@ -339,6 +339,10 @@ export const createVaultClient = async ({
     }
   }
 
+  logger.info(
+    "Creating Vault client with HASH_VAULT_ROOT_TOKEN from environment",
+  );
+
   return new VaultClient({
     endpoint: `${process.env.HASH_VAULT_HOST}:${process.env.HASH_VAULT_PORT}`,
     token: process.env.HASH_VAULT_ROOT_TOKEN,
