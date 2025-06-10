@@ -5,6 +5,7 @@ import type {
   Entity,
   EntityId,
   EntityUuid,
+  UserId,
   WebId,
 } from "@blockprotocol/type-system";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
@@ -270,11 +271,26 @@ export const oAuthLinearCallback: RequestHandler<
     );
 
     await createPolicy(req.context.graphApi, authentication, {
-      name: `linear-integration-view-entity-${entityUuid}`,
+      name: `linear-integration-bot-view-entity-${entityUuid}`,
       principal: {
         type: "actor",
         actorType: "machine",
         id: linearBotAccountId,
+      },
+      effect: "permit",
+      actions: ["viewEntity"],
+      resource: {
+        type: "entity",
+        id: entityUuid,
+      },
+    });
+
+    await createPolicy(req.context.graphApi, authentication, {
+      name: `linear-integration-user-view-entity-${entityUuid}`,
+      principal: {
+        type: "actor",
+        actorType: "user",
+        id: userAccountId as UserId,
       },
       effect: "permit",
       actions: ["viewEntity"],
