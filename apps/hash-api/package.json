@@ -101,7 +101,7 @@
     "oembed-providers": "1.0.20250430",
     "openai": "4.104.0",
     "ts-json-schema-generator": "1.5.1",
-    "tsx": "4.19.4",
+    "tsx": "4.20.1",
     "typescript": "5.7.3",
     "ws": "8.18.2"
   },
