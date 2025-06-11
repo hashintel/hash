@@ -201,7 +201,7 @@ opentelemetry-otlp       = { version = "=0.30.0", default-features = false }
 opentelemetry_sdk        = { version = "=0.30.0", default-features = false }
 orx-concurrent-vec       = { version = "=3.6.0", default-features = false }
 owo-colors               = { version = "=4.2.1", default-features = false }
-oxc                      = { version = "=0.72.3", default-features = false, features = ["allocator_api"] }
+oxc                      = { version = "=0.72.3", default-features = false }
 paste                    = { version = "=1.0.15", default-features = false }
 pdfium-render            = { version = "=0.8.26" }
 pin-project              = { version = "=1.1.10", default-features = false }
@@ -396,5 +396,5 @@ unneeded_field_pattern           = "allow" # Actually, the opposite would be a g
 ignored = ["futures-core", "futures-io", "futures-sink"]
 
 [patch.crates-io]
-oxc    = { git = "https://github.com/TimDiekmann/oxc", rev = "333f583e" }
+oxc    = { git = "https://github.com/TimDiekmann/oxc", rev = "5adc2e3" }
 specta = { git = "https://github.com/specta-rs/specta", rev = "ab7d924" }

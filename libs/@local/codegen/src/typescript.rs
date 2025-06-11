@@ -29,7 +29,7 @@ pub struct TypeScriptGenerator<'a, 'c> {
     has_branded_types: bool,
 }
 
-impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
+impl<'a, 'c: 'a> TypeScriptGenerator<'a, 'c> {
     pub fn new(settings: &'a TypeScriptGeneratorSettings, collection: &'c TypeCollection) -> Self {
         let ast_builder = AstBuilder::new(&settings.allocator);
         let program = ast_builder.program(
@@ -52,7 +52,7 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
 
     pub fn add_import_declaration(
         &mut self,
-        module: &str,
+        module: &'a str,
         specifiers: impl IntoIterator<Item = &'a str>,
     ) {
         self.program.body.push(
@@ -150,7 +150,7 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
         }
     }
 
-    fn visit_type_definition(&mut self, definition: &TypeDefinition) -> ast::Declaration<'a> {
+    fn visit_type_definition(&mut self, definition: &'a TypeDefinition) -> ast::Declaration<'a> {
         if !definition.branded && self.should_export_as_interface(&definition.r#type) {
             self.generate_interface(definition)
         } else {
@@ -235,7 +235,7 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
         }
     }
 
-    fn generate_interface(&self, definition: &TypeDefinition) -> ast::Declaration<'a> {
+    fn generate_interface(&self, definition: &'a TypeDefinition) -> ast::Declaration<'a> {
         let (body, extends) = match &definition.r#type {
             Type::Struct(struct_def) => match &struct_def.fields {
                 Fields::Named {
@@ -318,7 +318,7 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
         )
     }
 
-    fn visit_fields(&self, variant: &Fields) -> ast::TSType<'a> {
+    fn visit_fields(&self, variant: &'a Fields) -> ast::TSType<'a> {
         match variant {
             Fields::Unit => self.ast.ts_type_null_keyword(SPAN),
             Fields::Named {
@@ -385,7 +385,7 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
         }
     }
 
-    fn visit_externally_tagged_enum_variant(&self, variant: &EnumVariant) -> ast::TSType<'a> {
+    fn visit_externally_tagged_enum_variant(&self, variant: &'a EnumVariant) -> ast::TSType<'a> {
         match &variant.fields {
             Fields::Unit => self.ast.ts_type_literal_type(
                 SPAN,
@@ -416,8 +416,8 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
 
     fn visit_internally_tagged_enum_variant(
         &self,
-        variant: &EnumVariant,
-        tag: &str,
+        variant: &'a EnumVariant,
+        tag: &'a str,
     ) -> ast::TSType<'a> {
         let mut members = self.ast.vec1(
             self.ast.ts_signature_property_signature(
@@ -486,9 +486,9 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
 
     fn visit_adjacently_tagged_enum_variant(
         &self,
-        variant: &EnumVariant,
-        tag: &str,
-        content: &str,
+        variant: &'a EnumVariant,
+        tag: &'a str,
+        content: &'a str,
     ) -> ast::TSType<'a> {
         let mut members = self.ast.vec1(
             self.ast.ts_signature_property_signature(
@@ -528,7 +528,11 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
         self.ast.ts_type_type_literal(SPAN, members)
     }
 
-    fn visit_enum_variant(&self, variant: &EnumVariant, tagging: &EnumTagging) -> ast::TSType<'a> {
+    fn visit_enum_variant(
+        &self,
+        variant: &'a EnumVariant,
+        tagging: &'a EnumTagging,
+    ) -> ast::TSType<'a> {
         match tagging {
             EnumTagging::Untagged => self.visit_fields(&variant.fields),
             EnumTagging::External => self.visit_externally_tagged_enum_variant(variant),
@@ -541,7 +545,7 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
         }
     }
 
-    fn visit_enum(&self, enum_type: &Enum) -> ast::TSType<'a> {
+    fn visit_enum(&self, enum_type: &'a Enum) -> ast::TSType<'a> {
         self.ast.ts_type_union_type(
             SPAN,
             self.ast.vec_from_iter(
@@ -553,11 +557,11 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
         )
     }
 
-    fn visit_struct(&self, struct_type: &Struct) -> ast::TSType<'a> {
+    fn visit_struct(&self, struct_type: &'a Struct) -> ast::TSType<'a> {
         self.visit_fields(&struct_type.fields)
     }
 
-    fn visit_map(&self, map: &Map) -> ast::TSType<'a> {
+    fn visit_map(&self, map: &'a Map) -> ast::TSType<'a> {
         self.ast.ts_type_type_literal(
             SPAN,
             self.ast.vec1(
@@ -580,7 +584,7 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
         )
     }
 
-    fn visit_tuple(&self, tuple: &Tuple) -> ast::TSType<'a> {
+    fn visit_tuple(&self, tuple: &'a Tuple) -> ast::TSType<'a> {
         self.ast.ts_type_tuple_type(
             SPAN,
             self.ast.vec_from_iter(
@@ -592,12 +596,12 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
         )
     }
 
-    fn visit_list(&self, list: &List) -> ast::TSType<'a> {
+    fn visit_list(&self, list: &'a List) -> ast::TSType<'a> {
         self.ast
             .ts_type_array_type(SPAN, self.visit_type(&list.r#type))
     }
 
-    fn visit_optional(&self, optional: &Type) -> ast::TSType<'a> {
+    fn visit_optional(&self, optional: &'a Type) -> ast::TSType<'a> {
         self.ast.ts_type_parenthesized_type(
             SPAN,
             self.ast.ts_type_union_type(
@@ -610,7 +614,7 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
         )
     }
 
-    fn visit_type(&self, r#type: &Type) -> ast::TSType<'a> {
+    fn visit_type(&self, r#type: &'a Type) -> ast::TSType<'a> {
         match r#type {
             Type::Primitive(primitive) => self.visit_primitive(primitive),
             Type::Enum(enum_type) => self.visit_enum(enum_type),
