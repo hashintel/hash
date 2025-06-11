@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet, hash_map::Entry};
 
 use hash_graph_authorization::{
     AuthorizationApi,
-    policies::store::{CreateWebParameter, LocalPrincipalStore as _, PolicyStore as _},
+    policies::store::{CreateWebParameter, PolicyStore as _, PrincipalStore as _},
 };
 use hash_graph_postgres_store::store::AsClient as _;
 use hash_graph_store::entity::{CreateEntityParams, EntityStore as _};

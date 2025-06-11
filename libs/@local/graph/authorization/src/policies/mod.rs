@@ -6,6 +6,7 @@ pub mod resource;
 pub mod store;
 
 pub(crate) mod cedar;
+mod components;
 mod context;
 mod set;
 mod validation;
@@ -31,6 +32,7 @@ use self::{
 };
 pub use self::{
     cedar::PolicyExpressionTree,
+    components::{PolicyComponents, PolicyComponentsBuilder},
     context::{Context, ContextBuilder, ContextError},
     set::{
         Authorized, PolicyConstraintError, PolicyEvaluationError, PolicySet,
@@ -381,7 +383,7 @@ mod tests {
         use std::collections::HashSet;
 
         use type_system::{
-            knowledge::entity::id::EntityUuid,
+            knowledge::entity::{EntityId, id::EntityUuid},
             ontology::VersionedUrl,
             principal::{
                 actor::{ActorId, User, UserId},
@@ -448,14 +450,17 @@ mod tests {
                 roles: HashSet::new(),
             };
             let user_entity = EntityResource {
-                web_id: WebId::from(user_id),
-                id: entity_uuid,
+                id: EntityId {
+                    web_id: WebId::from(user_id),
+                    entity_uuid,
+                    draft_id: None,
+                },
                 entity_type: Cow::Owned(vec![
                     VersionedUrl::from_str("https://hash.ai/@hash/types/entity-type/user/v/6")?,
                     VersionedUrl::from_str("https://hash.ai/@hash/types/entity-type/actor/v/2")?,
                 ]),
             };
-            let resource_id = PartialResourceId::Entity(Some(user_entity.id));
+            let resource_id = PartialResourceId::Entity(Some(user_entity.id.entity_uuid));
             let mut context = ContextBuilder::default();
             context.add_entity(&user_entity);
             let context = context.build()?;

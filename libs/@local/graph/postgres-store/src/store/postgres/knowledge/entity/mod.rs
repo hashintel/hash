@@ -10,8 +10,8 @@ use hash_graph_authorization::{
     AuthorizationApi,
     backend::ModifyRelationshipOperation,
     policies::{
-        Authorized, ContextBuilder, PartialResourceId, PolicySet, Request, RequestContext,
-        action::ActionName, store::PolicyStore as _,
+        Authorized, PartialResourceId, PolicyComponents, Request, RequestContext,
+        action::ActionName,
     },
     schema::{EntityOwnerSubject, EntityPermission, EntityRelationAndSubject, WebPermission},
     zanzibar::Consistency,
@@ -372,36 +372,33 @@ where
         Ok(())
     }
 
-    #[tracing::instrument(level = "info", skip(self, params, entity_provider))]
-    async fn get_entities_impl<S: Sync>(
+    #[tracing::instrument(level = "info", skip(self, params, policy_components))]
+    async fn get_entities_impl(
         &self,
         actor_id: ActorEntityUuid,
-        entity_provider: &StoreProvider<'_, S>,
         params: GetEntitiesImplParams<'_>,
         temporal_axes: &QueryTemporalAxes,
+        policy_components: &PolicyComponents,
     ) -> Result<GetEntitiesResponse<'static>, Report<QueryError>> {
         let mut filters = vec![params.filter];
 
-        if let Some((actor, _consistency, ref policy_set, ref policy_context)) =
-            entity_provider.authorization
+        match policy_components
+            .policy_set
+            .evaluate(
+                &Request {
+                    actor: policy_components.actor_id,
+                    action: ActionName::ViewEntity,
+                    resource: Some(&PartialResourceId::Entity(None)),
+                    context: RequestContext::default(),
+                },
+                &policy_components.context,
+            )
+            .change_context(QueryError)?
         {
-            match policy_set
-                .evaluate(
-                    &Request {
-                        actor,
-                        action: ActionName::ViewEntity,
-                        resource: Some(&PartialResourceId::Entity(None)),
-                        context: RequestContext::default(),
-                    },
-                    policy_context,
-                )
-                .change_context(QueryError)?
-            {
-                Authorized::Always => {}
-                Authorized::Never => filters.push(Filter::Any(Vec::new())),
-                Authorized::Partial(partial) => {
-                    filters.push(Filter::<Entity>::try_from(partial).change_context(QueryError)?);
-                }
+            Authorized::Always => {}
+            Authorized::Never => filters.push(Filter::Any(Vec::new())),
+            Authorized::Partial(partial) => {
+                filters.push(Filter::<Entity>::try_from(partial).change_context(QueryError)?);
             }
         }
 
@@ -671,24 +668,6 @@ where
     where
         R: IntoIterator<Item = EntityRelationAndSubject> + Send + Sync,
     {
-        let mut policy_context_builder = ContextBuilder::default();
-        let actor = self
-            .determine_actor(actor_id)
-            .await
-            .change_context(InsertionError)?
-            .ok_or(InsertionError)
-            .attach(StatusCode::Unauthenticated)?;
-        self.build_principal_context(actor, &mut policy_context_builder)
-            .await
-            .change_context(InsertionError)?;
-        let policies = self
-            .resolve_policies_for_actor(actor.into(), Some(actor))
-            .await
-            .change_context(InsertionError)?;
-        let policy_set = PolicySet::default()
-            .with_policies(&policies)
-            .change_context(InsertionError)?;
-
         let transaction_time = Timestamp::<TransactionTime>::now().remove_nanosecond();
         let mut relationships = Vec::with_capacity(params.len());
         let mut entity_type_id_set = HashSet::new();
@@ -710,14 +689,22 @@ where
 
         let transaction = self.transaction().await.change_context(InsertionError)?;
 
-        let validator_provider = StoreProvider::new(&transaction)
-            .with_authorization(actor_id, Consistency::FullyConsistent)
+        let policy_components = PolicyComponents::builder(&transaction)
+            .with_actor(actor_id)
+            .with_entity_type_ids(
+                params
+                    .iter()
+                    .flat_map(|params| &params.entity_type_ids)
+                    .collect::<HashSet<_>>(),
+            )
             .await
             .change_context(InsertionError)?;
 
-        let mut closed_entity_types = Vec::new();
-        for params in &params {
-            let closed_entity_type = ClosedMultiEntityType::from_multi_type_closed_schema(
+        let validator_provider = StoreProvider::new(&transaction, &policy_components);
+
+        let mut validation_reports = HashMap::<usize, EntityValidationReport>::new();
+        for (index, mut params) in params.into_iter().enumerate() {
+            let entity_type = ClosedMultiEntityType::from_multi_type_closed_schema(
                 stream::iter(&params.entity_type_ids)
                     .then(|entity_type_url| async {
                         OntologyTypeProvider::<ClosedEntityType>::provide_type(
@@ -744,22 +731,6 @@ where
             )
             .change_context(InsertionError)?;
 
-            closed_entity_types.push(closed_entity_type);
-        }
-
-        let entity_type_ids = entity_type_id_set.into_iter().collect::<Vec<_>>();
-        transaction
-            .build_entity_type_context(&entity_type_ids, &mut policy_context_builder)
-            .await
-            .change_context(InsertionError)?;
-        let policy_context = policy_context_builder
-            .build()
-            .change_context(InsertionError)?;
-
-        let mut validation_reports = HashMap::<usize, EntityValidationReport>::new();
-        for (index, (mut params, entity_type)) in
-            params.into_iter().zip(closed_entity_types).enumerate()
-        {
             let mut preprocessor = EntityPreprocessor {
                 components: if params.draft {
                     ValidateEntityComponents::draft()
@@ -922,18 +893,19 @@ where
         }
 
         let mut forbidden_instantiations = Vec::new();
-        for entity_type_id in &entity_type_ids {
-            match policy_set
+        for entity_type_id in &entity_type_id_set {
+            match policy_components
+                .policy_set
                 .evaluate(
                     &Request {
-                        actor: Some(actor),
+                        actor: policy_components.actor_id,
                         action: ActionName::Instantiate,
                         resource: Some(&PartialResourceId::EntityType(Some(Cow::Borrowed(
                             entity_type_id.into(),
                         )))),
                         context: RequestContext::default(),
                     },
-                    &policy_context,
+                    &policy_components.context,
                 )
                 .change_context(InsertionError)?
             {
@@ -1123,12 +1095,14 @@ where
         consistency: Consistency<'_>,
         params: Vec<ValidateEntityParams<'_>>,
     ) -> Result<HashMap<usize, EntityValidationReport>, Report<QueryError>> {
-        let mut validation_reports = HashMap::<usize, EntityValidationReport>::new();
-
-        let validator_provider = StoreProvider::new(self)
-            .with_authorization(actor_id, Consistency::FullyConsistent)
+        let policy_components = PolicyComponents::builder(self)
+            .with_actor(actor_id)
             .await
             .change_context(QueryError)?;
+
+        let mut validation_reports = HashMap::<usize, EntityValidationReport>::new();
+
+        let validator_provider = StoreProvider::new(self, &policy_components);
 
         for (index, mut params) in params.into_iter().enumerate() {
             let mut validation_report = EntityValidationReport::default();
@@ -1207,10 +1181,12 @@ where
         actor_id: ActorEntityUuid,
         mut params: GetEntitiesParams<'_>,
     ) -> Result<GetEntitiesResponse<'static>, Report<QueryError>> {
-        let provider = StoreProvider::new(self)
-            .with_authorization(actor_id, Consistency::FullyConsistent)
+        let policy_components = PolicyComponents::builder(self)
+            .with_actor(actor_id)
             .await
             .change_context(QueryError)?;
+
+        let provider = StoreProvider::new(self, &policy_components);
 
         params
             .filter
@@ -1223,7 +1199,6 @@ where
         let mut response = self
             .get_entities_impl(
                 actor_id,
-                &provider,
                 GetEntitiesImplParams {
                     filter: params.filter,
                     sorting: params.sorting,
@@ -1238,6 +1213,7 @@ where
                     include_type_titles: params.include_type_titles,
                 },
                 &temporal_axes,
+                &policy_components,
             )
             .await?;
 
@@ -1258,10 +1234,12 @@ where
         actor_id: ActorEntityUuid,
         mut params: GetEntitySubgraphParams<'_>,
     ) -> Result<GetEntitySubgraphResponse<'static>, Report<QueryError>> {
-        let provider = StoreProvider::new(self)
-            .with_authorization(actor_id, Consistency::FullyConsistent)
+        let policy_components = PolicyComponents::builder(self)
+            .with_actor(actor_id)
             .await
             .change_context(QueryError)?;
+
+        let provider = StoreProvider::new(self, &policy_components);
 
         params
             .filter
@@ -1288,7 +1266,6 @@ where
         } = self
             .get_entities_impl(
                 actor_id,
-                &provider,
                 GetEntitiesImplParams {
                     filter: params.filter,
                     sorting: params.sorting,
@@ -1303,6 +1280,7 @@ where
                     include_type_titles: params.include_type_titles,
                 },
                 &temporal_axes,
+                &policy_components,
             )
             .await?;
 
@@ -1434,10 +1412,12 @@ where
         actor_id: ActorEntityUuid,
         mut params: CountEntitiesParams<'_>,
     ) -> Result<usize, Report<QueryError>> {
-        let provider = StoreProvider::new(self)
-            .with_authorization(actor_id, Consistency::FullyConsistent)
+        let policy_components = PolicyComponents::builder(self)
+            .with_actor(actor_id)
             .await
             .change_context(QueryError)?;
+
+        let provider = StoreProvider::new(self, &policy_components);
 
         params
             .filter
@@ -1447,26 +1427,23 @@ where
 
         let mut filters = vec![params.filter];
 
-        if let Some((actor, _consistency, ref policy_set, ref policy_context)) =
-            provider.authorization
+        match policy_components
+            .policy_set
+            .evaluate(
+                &Request {
+                    actor: policy_components.actor_id,
+                    action: ActionName::ViewEntity,
+                    resource: Some(&PartialResourceId::Entity(None)),
+                    context: RequestContext::default(),
+                },
+                &policy_components.context,
+            )
+            .change_context(QueryError)?
         {
-            match policy_set
-                .evaluate(
-                    &Request {
-                        actor,
-                        action: ActionName::ViewEntity,
-                        resource: Some(&PartialResourceId::Entity(None)),
-                        context: RequestContext::default(),
-                    },
-                    policy_context,
-                )
-                .change_context(QueryError)?
-            {
-                Authorized::Always => {}
-                Authorized::Never => filters.push(Filter::Any(Vec::new())),
-                Authorized::Partial(partial) => {
-                    filters.push(Filter::<Entity>::try_from(partial).change_context(QueryError)?);
-                }
+            Authorized::Always => {}
+            Authorized::Never => filters.push(Filter::Any(Vec::new())),
+            Authorized::Partial(partial) => {
+                filters.push(Filter::<Entity>::try_from(partial).change_context(QueryError)?);
             }
         }
 
@@ -1489,33 +1466,30 @@ where
         transaction_time: Option<Timestamp<TransactionTime>>,
         decision_time: Option<Timestamp<DecisionTime>>,
     ) -> Result<Entity, Report<QueryError>> {
-        let provider = StoreProvider::new(self)
-            .with_authorization(actor_id, Consistency::FullyConsistent)
+        let policy_components = PolicyComponents::builder(self)
+            .with_actor(actor_id)
             .await
             .change_context(QueryError)?;
 
         let mut filters = vec![Filter::for_entity_by_entity_id(entity_id)];
 
-        if let Some((actor, _consistency, ref policy_set, ref policy_context)) =
-            provider.authorization
+        match policy_components
+            .policy_set
+            .evaluate(
+                &Request {
+                    actor: policy_components.actor_id,
+                    action: ActionName::ViewEntity,
+                    resource: Some(&PartialResourceId::Entity(None)),
+                    context: RequestContext::default(),
+                },
+                &policy_components.context,
+            )
+            .change_context(QueryError)?
         {
-            match policy_set
-                .evaluate(
-                    &Request {
-                        actor,
-                        action: ActionName::ViewEntity,
-                        resource: Some(&PartialResourceId::Entity(None)),
-                        context: RequestContext::default(),
-                    },
-                    policy_context,
-                )
-                .change_context(QueryError)?
-            {
-                Authorized::Always => {}
-                Authorized::Never => filters.push(Filter::Any(Vec::new())),
-                Authorized::Partial(partial) => {
-                    filters.push(Filter::<Entity>::try_from(partial).change_context(QueryError)?);
-                }
+            Authorized::Always => {}
+            Authorized::Never => filters.push(Filter::Any(Vec::new())),
+            Authorized::Partial(partial) => {
+                filters.push(Filter::<Entity>::try_from(partial).change_context(QueryError)?);
             }
         }
 
@@ -1547,24 +1521,6 @@ where
         actor_id: ActorEntityUuid,
         mut params: PatchEntityParams,
     ) -> Result<Entity, Report<UpdateError>> {
-        let mut policy_context_builder = ContextBuilder::default();
-        let actor = self
-            .determine_actor(actor_id)
-            .await
-            .change_context(UpdateError)?
-            .ok_or(UpdateError)
-            .attach(StatusCode::Unauthenticated)?;
-        self.build_principal_context(actor, &mut policy_context_builder)
-            .await
-            .change_context(UpdateError)?;
-        let policies = self
-            .resolve_policies_for_actor(actor.into(), Some(actor))
-            .await
-            .change_context(UpdateError)?;
-        let policy_set = PolicySet::default()
-            .with_policies(&policies)
-            .change_context(UpdateError)?;
-
         let transaction_time = Timestamp::now().remove_nanosecond();
         let decision_time = params
             .decision_time
@@ -1622,10 +1578,14 @@ where
         .attach(params.entity_id)
         .change_context(UpdateError)?;
 
-        let validator_provider = StoreProvider::new(&transaction)
-            .with_authorization(actor_id, Consistency::FullyConsistent)
+        let policy_components = PolicyComponents::builder(&transaction)
+            .with_actor(actor_id)
+            .with_entity_edition_id(previous_entity.metadata.record_id.edition_id)
+            .with_entity_type_ids(&params.entity_type_ids)
             .await
             .change_context(UpdateError)?;
+
+        let validator_provider = StoreProvider::new(&transaction, &policy_components);
 
         let mut first_non_draft_created_at_decision_time = previous_entity
             .metadata
@@ -1676,31 +1636,27 @@ where
                 }
             }
 
-            let affected_type_ids = affected_type_id_set.into_iter().collect::<Vec<_>>();
-            transaction
-                .build_entity_type_context(&affected_type_ids, &mut policy_context_builder)
-                .await
-                .change_context(UpdateError)?;
-
-            (params.entity_type_ids, affected_type_ids)
+            (
+                params.entity_type_ids,
+                affected_type_id_set.into_iter().collect(),
+            )
         };
-
-        let policy_context = policy_context_builder.build().change_context(UpdateError)?;
 
         if !affected_type_ids.is_empty() {
             let mut forbidden_instantiations = Vec::new();
             for entity_type_id in &affected_type_ids {
-                match policy_set
+                match policy_components
+                    .policy_set
                     .evaluate(
                         &Request {
-                            actor: Some(actor),
+                            actor: policy_components.actor_id,
                             action: ActionName::Instantiate,
                             resource: Some(&PartialResourceId::EntityType(Some(Cow::Borrowed(
                                 entity_type_id.into(),
                             )))),
                             context: RequestContext::default(),
                         },
-                        &policy_context,
+                        &policy_components.context,
                     )
                     .change_context(UpdateError)?
                 {

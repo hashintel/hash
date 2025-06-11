@@ -298,7 +298,7 @@ where
         let validator_provider = StoreProvider {
             store: postgres_client,
             cache: Box::new(StoreCache::default()),
-            authorization: None,
+            policy_components: None,
         };
 
         let mut edition_ids_updates = Vec::new();

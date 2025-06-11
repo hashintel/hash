@@ -309,82 +309,78 @@ where
             .await
             .change_context(QueryError)?;
 
-        let permitted_entity_edition_ids =
-            if let Some((actor, _consistency, ref policy_set, ref policy_context)) =
-                provider.authorization
+        let permitted_entity_edition_ids = if let Some(policy_components) =
+            provider.policy_components
+        {
+            match policy_components
+                .policy_set
+                .evaluate(
+                    &Request {
+                        actor: policy_components.actor_id,
+                        action: ActionName::ViewEntity,
+                        resource: Some(&PartialResourceId::Entity(None)),
+                        context: RequestContext::default(),
+                    },
+                    &policy_components.context,
+                )
+                .change_context(QueryError)?
             {
-                match policy_set
-                    .evaluate(
-                        &Request {
-                            actor,
-                            action: ActionName::ViewEntity,
-                            resource: Some(&PartialResourceId::Entity(None)),
-                            context: RequestContext::default(),
+                Authorized::Always => None,
+                Authorized::Never => Some(HashSet::new()),
+                Authorized::Partial(partial) => {
+                    let temporal_bounds = match traversal_data.variable_axis {
+                        TimeAxis::DecisionTime => QueryTemporalAxesUnresolved::DecisionTime {
+                            pinned: PinnedTemporalAxisUnresolved::new(Some(
+                                traversal_data.pinned_timestamp.cast(),
+                            )),
+                            variable: VariableTemporalAxisUnresolved::new(None, None),
                         },
-                        policy_context,
-                    )
-                    .change_context(QueryError)?
-                {
-                    Authorized::Always => None,
-                    Authorized::Never => Some(HashSet::new()),
-                    Authorized::Partial(partial) => {
-                        let temporal_bounds = match traversal_data.variable_axis {
-                            TimeAxis::DecisionTime => QueryTemporalAxesUnresolved::DecisionTime {
-                                pinned: PinnedTemporalAxisUnresolved::new(Some(
-                                    traversal_data.pinned_timestamp.cast(),
-                                )),
-                                variable: VariableTemporalAxisUnresolved::new(None, None),
-                            },
-                            TimeAxis::TransactionTime => {
-                                QueryTemporalAxesUnresolved::TransactionTime {
-                                    pinned: PinnedTemporalAxisUnresolved::new(Some(
-                                        traversal_data.pinned_timestamp.cast(),
-                                    )),
-                                    variable: VariableTemporalAxisUnresolved::new(None, None),
-                                }
-                            }
-                        }
-                        .resolve();
-                        let mut compiler = SelectCompiler::new(Some(&temporal_bounds), true);
-
-                        let entity_editions_filter =
-                            Filter::for_entity_edition_ids(&entity_edition_ids);
-                        compiler
-                            .add_filter(&entity_editions_filter)
-                            .change_context(QueryError)?;
-
-                        // TODO: Ideally, we'd incorporate the filter in the above query, but that's
-                        //       not easily possible as the query above uses features that the query
-                        //       compiler does not support yet.
-                        let permission_filter =
-                            Filter::try_from(partial).change_context(QueryError)?;
-                        compiler
-                            .add_filter(&permission_filter)
-                            .change_context(QueryError)?;
-
-                        let edition_id_idx =
-                            compiler.add_selection_path(&EntityQueryPath::EditionId);
-
-                        let (statement, parameters) = compiler.compile();
-
-                        Some(
-                            provider
-                                .store
-                                .as_client()
-                                .query_raw(&statement, parameters.iter().copied())
-                                .instrument(tracing::trace_span!("permission query"))
-                                .await
-                                .change_context(QueryError)?
-                                .map_ok(|row| row.get::<_, EntityEditionId>(edition_id_idx))
-                                .try_collect::<HashSet<_>>()
-                                .await
-                                .change_context(QueryError)?,
-                        )
+                        TimeAxis::TransactionTime => QueryTemporalAxesUnresolved::TransactionTime {
+                            pinned: PinnedTemporalAxisUnresolved::new(Some(
+                                traversal_data.pinned_timestamp.cast(),
+                            )),
+                            variable: VariableTemporalAxisUnresolved::new(None, None),
+                        },
                     }
+                    .resolve();
+                    let mut compiler = SelectCompiler::new(Some(&temporal_bounds), true);
+
+                    let entity_editions_filter =
+                        Filter::for_entity_edition_ids(&entity_edition_ids);
+                    compiler
+                        .add_filter(&entity_editions_filter)
+                        .change_context(QueryError)?;
+
+                    // TODO: Ideally, we'd incorporate the filter in the above query, but that's
+                    //       not easily possible as the query above uses features that the query
+                    //       compiler does not support yet.
+                    let permission_filter = Filter::try_from(partial).change_context(QueryError)?;
+                    compiler
+                        .add_filter(&permission_filter)
+                        .change_context(QueryError)?;
+
+                    let edition_id_idx = compiler.add_selection_path(&EntityQueryPath::EditionId);
+
+                    let (statement, parameters) = compiler.compile();
+
+                    Some(
+                        provider
+                            .store
+                            .as_client()
+                            .query_raw(&statement, parameters.iter().copied())
+                            .instrument(tracing::trace_span!("permission query"))
+                            .await
+                            .change_context(QueryError)?
+                            .map_ok(|row| row.get::<_, EntityEditionId>(edition_id_idx))
+                            .try_collect::<HashSet<_>>()
+                            .await
+                            .change_context(QueryError)?,
+                    )
                 }
-            } else {
-                None
-            };
+            }
+        } else {
+            None
+        };
 
         Ok(edges.into_iter().filter(move |edge| {
             let Some(permitted_entity_edition_ids) = &permitted_entity_edition_ids else {
