@@ -75,6 +75,28 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
     userAccountId,
   });
 
+  // await Promise.all(
+  //   [
+  //     linearIntegration.entity.metadata.recordId.entityId,
+  //     linearUserSecret.entity.metadata.recordId.entityId,
+  //   ].map((entityId) =>
+  //     modifyEntityAuthorizationRelationships(
+  //       impureGraphContext,
+  //       authentication,
+  //       [
+  //         {
+  //           operation: "touch",
+  //           relationship: {
+  //             resource: { kind: "entity", resourceId: entityId },
+  //             relation: "viewer",
+  //             subject: { kind: "account", subjectId: systemAccountId },
+  //           },
+  //         },
+  //       ],
+  //     ),
+  //   ),
+  // );
+
   const apiKey = vaultSecret.data.value;
 
   const linearClient = new Linear({

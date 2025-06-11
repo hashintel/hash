@@ -189,6 +189,12 @@ export const createMachineActorEntity = async (
             subjectId: actor.id,
           },
         },
+        // {
+        //   relation: "viewer",
+        //   subject: {
+        //     kind: "public",
+        //   },
+        // },
       ],
     },
   );

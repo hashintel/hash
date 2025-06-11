@@ -169,6 +169,13 @@ export const createComment: ImpureGraphFunction<
         subjectId: "administratorFromWeb",
       },
     },
+    // {
+    //   relation: "setting",
+    //   subject: {
+    //     kind: "setting",
+    //     subjectId: "viewFromWeb",
+    //   },
+    // },
   ];
 
   const textEntity = await createEntity<TextEntity>(ctx, authentication, {

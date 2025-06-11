@@ -251,6 +251,12 @@ export const createOrg: ImpureGraphFunction<
       entityTypeIds: [orgEntityTypeId],
       entityUuid: orgWebId,
       relationships: [
+        // {
+        //   relation: "viewer",
+        //   subject: {
+        //     kind: "public",
+        //   },
+        // },
         {
           relation: "setting",
           subject: {

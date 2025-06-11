@@ -229,6 +229,21 @@ export const getLlmResponse = async <T extends LlmParams>(
                       subjectId: aiAssistantAccountId,
                     },
                   },
+                  // {
+                  //   relation: "setting",
+                  //   subject: {
+                  //     kind: "setting",
+                  //     subjectId: "viewFromWeb",
+                  //   },
+                  // },
+                  // {
+                  //   relation: "viewer",
+                  //   subject: {
+                  //     kind: "accountGroup",
+                  //     subjectId: hashInstanceAdminGroupId,
+                  //     subjectSet: "member",
+                  //   },
+                  // },
                 ],
               },
             );

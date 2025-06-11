@@ -98,6 +98,21 @@ export const submitEarlyAccessFormResolver: ResolverFn<
             subjectId: systemAccountId,
           },
         },
+        // {
+        //   relation: "viewer",
+        //   subject: {
+        //     kind: "accountGroup",
+        //     subjectId: adminAccountGroupId,
+        //     subjectSet: "member",
+        //   },
+        // },
+        // {
+        //   relation: "viewer",
+        //   subject: {
+        //     kind: "account",
+        //     subjectId: user.accountId,
+        //   },
+        // },
         {
           relation: "setting",
           subject: {
@@ -105,6 +120,13 @@ export const submitEarlyAccessFormResolver: ResolverFn<
             subjectId: "administratorFromWeb",
           },
         },
+        // {
+        //   relation: "setting",
+        //   subject: {
+        //     kind: "setting",
+        //     subjectId: "viewFromWeb",
+        //   },
+        // },
       ],
     },
   );

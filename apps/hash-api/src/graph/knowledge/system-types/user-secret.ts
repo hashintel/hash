@@ -131,6 +131,13 @@ export const createUserSecret = async <
         subjectId: managingBotAccountId,
       },
     },
+    // {
+    //   relation: "viewer",
+    //   subject: {
+    //     kind: "account",
+    //     subjectId: userAccountId,
+    //   },
+    // },
   ];
 
   /**

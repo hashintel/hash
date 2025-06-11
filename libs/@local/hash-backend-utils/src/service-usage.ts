@@ -264,6 +264,25 @@ export const createUsageRecord = async (
     },
   ];
 
+  // if (assignUsageToWebId === userAccountId) {
+  //   entityRelationships.push({
+  //     relation: "viewer",
+  //     subject: {
+  //       kind: "account",
+  //       subjectId: userAccountId,
+  //     },
+  //   });
+  // } else {
+  //   entityRelationships.push({
+  //     relation: "viewer",
+  //     subject: {
+  //       kind: "accountGroup",
+  //       subjectId: assignUsageToWebId as ActorGroupEntityUuid,
+  //       subjectSet: "administrator",
+  //     },
+  //   });
+  // }
+
   const usageRecordEntityUuid = generateUuid() as EntityUuid;
   const recordsUsageOfEntityUuid = generateUuid() as EntityUuid;
 

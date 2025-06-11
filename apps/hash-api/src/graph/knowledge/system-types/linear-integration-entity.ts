@@ -358,7 +358,14 @@ export const linkIntegrationToWorkspace: ImpureGraphFunction<
       entityTypeIds: [
         systemLinkEntityTypes.syncLinearDataWith.linkEntityTypeId,
       ],
-      relationships: createDefaultAuthorizationRelationships(authentication),
+      relationships: [
+        ...createDefaultAuthorizationRelationships(authentication),
+        // {
+        //   // Allow the system account ID to view the link
+        //   relation: "viewer",
+        //   subject: { kind: "account", subjectId: systemAccountId },
+        // },
+      ],
     });
   }
 };
