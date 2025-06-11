@@ -254,7 +254,7 @@ export const getSyncedWorkspacesForLinearIntegration: ImpureGraphFunction<
       );
     });
 
-export const linkIntegrationToWorkspace: ImpureGraphFunction<
+export const linkIntegrationToWeb: ImpureGraphFunction<
   {
     linearIntegrationEntityId: EntityId;
     workspaceEntityId: EntityId;

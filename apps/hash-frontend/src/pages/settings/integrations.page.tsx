@@ -3,6 +3,7 @@ import { Box, Paper, Stack, Typography } from "@mui/material";
 import type { FunctionComponent, ReactNode } from "react";
 import { useContext } from "react";
 
+import { useHashInstance } from "../../components/hooks/use-hash-instance";
 import { isProduction } from "../../lib/config";
 import { extractWebId } from "../../lib/user-and-org";
 import { GoogleSheetsIcon } from "../../shared/icons/google-sheets-icon";
@@ -56,45 +57,54 @@ const IntegrationCard = ({
 
 const AddNewIntegrations: FunctionComponent = () => {
   const { activeWorkspace } = useContext(WorkspaceContext);
-
+  const { enabledIntegrations } = useHashInstance();
   if (!activeWorkspace) {
     return <>Loading workspace...</>;
   }
 
   return (
     <>
-      <Typography variant="h5" mb={2}>
+      <Typography variant="mediumCaps" mb={2} component="div">
         Add new integration
       </Typography>
       <Stack direction="row" gap={2}>
-        <IntegrationCard
-          href={`${apiOrigin}/oauth/linear?webId=${extractWebId(
-            activeWorkspace,
-          )}`}
-          name="Linear"
-          description="2-way sync Linear activity and data with HASH"
-          icon={<LinearLogo />}
-        />
-        <IntegrationCard
-          href="/settings/integrations/google-sheets"
-          name="Google Sheets"
-          description="Sync entity data to Google Sheets"
-          icon={<GoogleSheetsIcon />}
-        />
+        {enabledIntegrations.linear && (
+          <IntegrationCard
+            href={`${apiOrigin}/oauth/linear?webId=${extractWebId(
+              activeWorkspace,
+            )}`}
+            name="Linear"
+            description="2-way sync Linear activity and data with HASH"
+            icon={<LinearLogo />}
+          />
+        )}
+        {enabledIntegrations.googleSheets && (
+          <IntegrationCard
+            href="/settings/integrations/google-sheets"
+            name="Google Sheets"
+            description="Sync entity data to Google Sheets"
+            icon={<GoogleSheetsIcon />}
+          />
+        )}
       </Stack>
     </>
   );
 };
 
 const IntegrationsPage: NextPageWithLayout = () => {
+  const { enabledIntegrations } = useHashInstance();
+
+  const noIntegrations = Object.values(enabledIntegrations).every(
+    (integration) => !integration,
+  );
+
   return (
     <SettingsPageContainer
       heading="Integrations"
       subHeading="Connected to your user account"
       disableContentWrapper
     >
-      {/* @todo: add ability to setup integrations in production */}
-      {isProduction ? (
+      {noIntegrations ? (
         <>
           <Typography gutterBottom>
             No integrations are currently available to your account.

@@ -18,7 +18,7 @@ import { getLatestEntityById } from "../../../../graph/knowledge/primitive/entit
 import {
   getLinearIntegrationById,
   getSyncedWorkspacesForLinearIntegration,
-  linkIntegrationToWorkspace,
+  linkIntegrationToWeb,
 } from "../../../../graph/knowledge/system-types/linear-integration-entity";
 import { getLinearUserSecretByLinearOrgId } from "../../../../graph/knowledge/system-types/linear-user-secret";
 import { Linear } from "../../../../integrations/linear";
@@ -199,7 +199,7 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
           workspaceWebId,
           teamIds: linearTeamIds,
         }),
-        linkIntegrationToWorkspace(impureGraphContext, authentication, {
+        linkIntegrationToWeb(impureGraphContext, authentication, {
           linearIntegrationEntityId,
           workspaceEntityId,
           linearTeamIds,

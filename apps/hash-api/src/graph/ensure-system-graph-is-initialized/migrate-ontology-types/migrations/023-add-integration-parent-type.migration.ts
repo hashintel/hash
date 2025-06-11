@@ -15,6 +15,7 @@ import {
   createSystemEntityTypeIfNotExists,
   getCurrentHashSystemEntityTypeId,
   updateSystemEntityType,
+  upgradeDependenciesInHashEntityType,
   upgradeEntitiesToNewTypeVersion,
 } from "../util";
 
@@ -116,15 +117,27 @@ const migrate: MigrationFunction = async ({
     const { systemActorMachineId: googleMachineId } =
       await getOrCreateOwningWebId(context, "google");
 
-    await updateSystemEntityType(
-      context,
-      { actorId: googleMachineId },
-      {
-        currentEntityTypeId: currentGoogleIntegrationEntityTypeId,
-        migrationState,
-        newSchema: newGoogleIntegrationEntityTypeSchema,
-      },
-    );
+    const { updatedEntityTypeId: updatedAccountEntityTypeId } =
+      await updateSystemEntityType(
+        context,
+        { actorId: googleMachineId },
+        {
+          currentEntityTypeId: currentGoogleIntegrationEntityTypeId,
+          migrationState,
+          newSchema: newGoogleIntegrationEntityTypeSchema,
+        },
+      );
+
+    await upgradeDependenciesInHashEntityType(context, authentication, {
+      upgradedEntityTypeIds: [updatedAccountEntityTypeId],
+      dependentEntityTypeKeys: [
+        "comment",
+        "commentNotification",
+        "linearIntegration",
+        "mentionNotification",
+      ],
+      migrationState,
+    });
 
     await upgradeEntitiesToNewTypeVersion(
       context,
