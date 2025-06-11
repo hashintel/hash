@@ -236,10 +236,22 @@ fn web_view_entity_policies(role: &WebRole) -> impl Iterator<Item = PolicyCreati
         1,
     ));
     if role.name != RoleName::Administrator {
-        filters.extend(create_version_filters(
-            base_url!("https://hash.ai/@h/types/entity-type/usage-record/"),
-            2,
-        ));
+        filters.extend(
+            create_version_filters(
+                base_url!("https://hash.ai/@h/types/entity-type/usage-record/"),
+                2,
+            )
+            .chain(
+                create_version_filters(
+                    base_url!("https://hash.ai/@h/types/entity-type/incurred-in/"),
+                    2,
+                )
+                .chain(create_version_filters(
+                    base_url!("https://hash.ai/@h/types/entity-type/records-usage-of/"),
+                    1,
+                )),
+            ),
+        );
     }
 
     iter::once(PolicyCreationParams {
