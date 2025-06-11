@@ -1,3 +1,3 @@
 //@ run: pass
 //@ description: Tests reification of fully qualified path references to imported variables.
-"::math::add"
+"::core::math::add"

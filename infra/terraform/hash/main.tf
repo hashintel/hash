@@ -372,10 +372,6 @@ module "application" {
       value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_port"])
     },
     {
-      name  = "HASH_VAULT_ROOT_TOKEN", secret = true,
-      value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_root_token"])
-    },
-    {
       name  = "INTERNAL_API_HOST", secret = true,
       value = sensitive(data.vault_kv_secret_v2.secrets.data["internal_api_host"])
     },
@@ -445,10 +441,6 @@ module "application" {
       value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_port"])
     },
     {
-      name  = "HASH_VAULT_ROOT_TOKEN", secret = true,
-      value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_root_token"])
-    },
-    {
       name  = "HASH_TEMPORAL_WORKER_AI_SENTRY_DSN", secret = true,
       value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_temporal_worker_ai_sentry_dsn"])
     },
@@ -480,6 +472,7 @@ module "application" {
   ]
   temporal_worker_integration_image    = module.temporal_worker_integration_ecr
   temporal_worker_integration_env_vars = [
+    { name = "AWS_REGION", secret = false, value = local.region },
     { name = "LOG_LEVEL", secret = false, value = "debug" },
     {
       name  = "HASH_VAULT_HOST", secret = true,
@@ -488,10 +481,6 @@ module "application" {
     {
       name  = "HASH_VAULT_PORT", secret = true,
       value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_port"])
-    },
-    {
-      name  = "HASH_VAULT_ROOT_TOKEN", secret = true,
-      value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_vault_root_token"])
     },
     {
       name  = "HASH_TEMPORAL_WORKER_INTEGRATION_SENTRY_DSN", secret = true,

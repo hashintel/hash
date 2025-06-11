@@ -1,2 +1,2 @@
-#fn<T:0?14: Number>(foo:0: ?14, bar:0: ?14): ?14 ->
-    ::math::add(foo:0, bar:0)
+#fn<T:0?26: Number>(foo:0: ?26, bar:0: ?26): ?26 ->
+    ::core::math::add(foo:0, bar:0)

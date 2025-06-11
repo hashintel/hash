@@ -5,7 +5,11 @@ import type {
   EntityId,
   WebId,
 } from "@blockprotocol/type-system";
-import { mustHaveAtLeastOne, splitEntityId } from "@blockprotocol/type-system";
+import {
+  extractEntityUuidFromEntityId,
+  mustHaveAtLeastOne,
+  splitEntityId,
+} from "@blockprotocol/type-system";
 import { convertBpFilterToGraphFilter } from "@local/hash-backend-utils/convert-bp-filter-to-graph-filter";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type {
@@ -13,6 +17,11 @@ import type {
   QueryTemporalAxesUnresolved,
 } from "@local/hash-graph-client";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
+import {
+  createPolicy,
+  deletePolicyById,
+  queryPolicies,
+} from "@local/hash-graph-sdk/policy";
 import type { EntityValidationReport } from "@local/hash-graph-sdk/validation";
 import {
   createDefaultAuthorizationRelationships,
@@ -596,6 +605,10 @@ export const addEntityViewerResolver: ResolverFn<
   LoggedInGraphQLContext,
   MutationAddEntityViewerArgs
 > = async (_, { entityId, viewer }, graphQLContext) => {
+  if (viewer.kind !== AuthorizationSubjectKind.Public) {
+    throw new UserInputError("Only public viewers can be added to an entity");
+  }
+
   const { authentication } = graphQLContext;
   const context = graphQLContextToImpureGraphContext(graphQLContext);
 
@@ -613,6 +626,18 @@ export const addEntityViewerResolver: ResolverFn<
     },
   ]);
 
+  const entityUuid = extractEntityUuidFromEntityId(entityId);
+  await createPolicy(context.graphApi, authentication, {
+    name: `public-view-entity-${entityUuid}`,
+    effect: "permit",
+    actions: ["viewEntity"],
+    principal: null,
+    resource: {
+      type: "entity",
+      id: entityUuid,
+    },
+  });
+
   return true;
 };
 
@@ -622,6 +647,12 @@ export const removeEntityViewerResolver: ResolverFn<
   LoggedInGraphQLContext,
   MutationRemoveEntityViewerArgs
 > = async (_, { entityId, viewer }, graphQLContext) => {
+  if (viewer.kind !== AuthorizationSubjectKind.Public) {
+    throw new UserInputError(
+      "Only public viewers can be removed from an entity",
+    );
+  }
+
   const { authentication } = graphQLContext;
   const context = graphQLContextToImpureGraphContext(graphQLContext);
 
@@ -638,6 +669,20 @@ export const removeEntityViewerResolver: ResolverFn<
       },
     },
   ]);
+
+  const entityUuid = extractEntityUuidFromEntityId(entityId);
+  const [policy] = await queryPolicies(context.graphApi, authentication, {
+    name: `public-view-entity-${entityUuid}`,
+    principal: {
+      filter: "unconstrained",
+    },
+  });
+
+  if (!policy) {
+    return true; // No policy to delete, nothing to do
+  }
+
+  await deletePolicyById(context.graphApi, authentication, policy.id);
 
   return true;
 };

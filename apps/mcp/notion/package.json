@@ -23,12 +23,12 @@
     "@notionhq/client": "2.3.0",
     "dotenv-flow": "3.3.0",
     "notion-to-md": "3.1.9",
-    "zod": "3.25.53",
+    "zod": "3.25.56",
     "zod-to-json-schema": "3.24.5"
   },
   "devDependencies": {
     "@types/dotenv-flow": "3.3.3",
-    "@types/node": "22.15.30",
+    "@types/node": "22.15.31",
     "chokidar-cli": "3.0.0",
     "eslint": "9.20.1",
     "rimraf": "6.0.1",

@@ -21,21 +21,22 @@ Expr#0@37
                   Expr#15@28
                     ExprKind (Path)
                       Path#16@28 (rooted: true)
-                        PathSegment#17@27 (name: math)
-                        PathSegment#18@27 (name: add)
-                  Argument#19@30
-                    Expr#20@30
+                        PathSegment#17@27 (name: core)
+                        PathSegment#18@27 (name: math)
+                        PathSegment#19@27 (name: add)
+                  Argument#20@30
+                    Expr#21@30
                       ExprKind (Literal)
-                        LiteralExpr#21@29
+                        LiteralExpr#22@29
                           LiteralKind (Integer)
                             IntegerLiteral (1)
-                  Argument#22@32
-                    Expr#23@32
+                  Argument#23@32
+                    Expr#24@32
                       ExprKind (Literal)
-                        LiteralExpr#24@31
+                        LiteralExpr#25@31
                           LiteralKind (Integer)
                             IntegerLiteral (2)
-      Expr#25@36
+      Expr#26@36
         ExprKind (Underscore)
 
 ------------------------

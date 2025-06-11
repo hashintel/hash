@@ -15,7 +15,10 @@ use crate::{
         call::Call,
         closure::Closure,
         data::{Data, DataKind, Literal},
-        graph::Graph,
+        graph::{
+            Graph, GraphKind,
+            read::{GraphRead, GraphReadBody, GraphReadHead, GraphReadTail},
+        },
         input::Input,
         kind::NodeKind,
         r#let::Let,
@@ -262,8 +265,8 @@ impl<'heap> PrettyPrint<'heap> for BinaryOperation<'heap> {
         env: &Environment<'heap>,
         boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, Style> {
-        self.left
-            .pretty(env, boundary)
+        RcDoc::text("(")
+            .append(self.left.pretty(env, boundary))
             .append(RcDoc::softline())
             .append(self.op.kind.as_str())
             .append(RcDoc::softline())
@@ -434,9 +437,95 @@ impl<'heap> PrettyPrint<'heap> for Closure<'heap> {
     }
 }
 
-impl<'heap> PrettyPrint<'heap> for Graph<'heap> {
+impl<'heap> PrettyPrint<'heap> for GraphReadHead<'heap> {
+    fn pretty(
+        &self,
+        env: &Environment<'heap>,
+        boundary: &mut PrettyPrintBoundary,
+    ) -> RcDoc<'heap, Style> {
+        match self {
+            Self::Entity { axis } => RcDoc::text("::core::graph::head::entities").append(
+                RcAllocator
+                    .nil()
+                    .append(axis.pretty(env, boundary))
+                    .group()
+                    .parens()
+                    .group(),
+            ),
+        }
+    }
+}
+
+impl<'heap> PrettyPrint<'heap> for GraphReadBody<'heap> {
+    fn pretty(
+        &self,
+        env: &Environment<'heap>,
+        boundary: &mut PrettyPrintBoundary,
+    ) -> RcDoc<'heap, Style> {
+        match self {
+            Self::Filter(node) => RcDoc::text("::core::graph::body::filter").append(
+                RcAllocator
+                    .nil()
+                    .append(node.pretty(env, boundary))
+                    .group()
+                    .parens()
+                    .group(),
+            ),
+        }
+    }
+}
+
+impl<'heap> PrettyPrint<'heap> for GraphReadTail {
     fn pretty(&self, _: &Environment<'heap>, _: &mut PrettyPrintBoundary) -> RcDoc<'heap, Style> {
-        match self.kind {}
+        match self {
+            Self::Collect => RcDoc::text("::core::graph::tail::collect"),
+        }
+    }
+}
+
+impl<'heap> PrettyPrint<'heap> for GraphRead<'heap> {
+    fn pretty(
+        &self,
+        env: &Environment<'heap>,
+        boundary: &mut PrettyPrintBoundary,
+    ) -> RcDoc<'heap, Style> {
+        let Self {
+            span: _,
+            head,
+            body,
+            tail,
+        } = &self;
+
+        let mut doc = head.pretty(env, boundary);
+        for node in body {
+            doc = doc.append(
+                RcDoc::softline()
+                    .append(RcDoc::text("|> "))
+                    .append(node.pretty(env, boundary))
+                    .group(),
+            );
+        }
+
+        doc = doc.append(
+            RcDoc::softline()
+                .append(RcDoc::text("|> "))
+                .append(tail.pretty(env, boundary))
+                .group(),
+        );
+
+        doc
+    }
+}
+
+impl<'heap> PrettyPrint<'heap> for Graph<'heap> {
+    fn pretty(
+        &self,
+        env: &Environment<'heap>,
+        boundary: &mut PrettyPrintBoundary,
+    ) -> RcDoc<'heap, Style> {
+        match &self.kind {
+            GraphKind::Read(read) => read.pretty(env, boundary),
+        }
     }
 }
 

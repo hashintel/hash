@@ -1,0 +1,3 @@
+//@ run: pass
+//@ description: Checks type inference for a direct call to an intrinsic function with literal arguments.
+["+", { "#literal": 1 }, { "#literal": 2 }]

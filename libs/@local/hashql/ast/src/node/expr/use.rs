@@ -51,7 +51,7 @@ pub enum UseKind<'heap> {
 ///
 /// ```json
 /// // Named Import
-/// ["use", "math", {"#tuple": ["sin", "cos", "tan"]},
+/// ["use", "core::math", {"#tuple": ["sin", "cos", "tan"]},
 ///     ["*",
 ///         ["sin", "angle"],
 ///         ["cos", "angle"]
@@ -59,7 +59,7 @@ pub enum UseKind<'heap> {
 /// ]
 ///
 /// // Named import with renaming
-/// ["use", "math", {"#tuple": {"sin": "_", "cos": "cosine", "tan": "_"}},
+/// ["use", "core::math", {"#tuple": {"sin": "_", "cos": "cosine", "tan": "_"}},
 ///     ["*",
 ///         ["sin", "angle"],
 ///         ["cosine", "angle"]
@@ -67,7 +67,7 @@ pub enum UseKind<'heap> {
 /// ]
 ///
 /// // Glob import
-/// ["use", "math", "*",
+/// ["use", "core::math", "*",
 ///     ["*",
 ///         ["sin", "angle"],
 ///         ["cos", "angle"]

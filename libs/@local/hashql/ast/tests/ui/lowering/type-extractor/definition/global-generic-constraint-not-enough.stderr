@@ -5,9 +5,9 @@
    │    ──┬─  
    │      ╰─── Missing parameter `T`
    │      │   
-   │      ╰─── Type `::kernel::type::Some` needs 1 type parameter, but only 0 were provided
+   │      ╰─── Type `::core::option::Some` needs 1 type parameter, but only 0 were provided
    │ 
-   │ Help: Add the missing parameter(s): `::kernel::type::Some<T>`
+   │ Help: Add the missing parameter(s): `::core::option::Some<T>`
    │ 
    │ Note: Generic type parameters allow types to work with different data types while maintaining type safety. Each generic type has specific requirements for the number and names of type parameters it accepts. For example, List<T> requires exactly one type parameter, while Dict<K, V> requires two.
 ───╯

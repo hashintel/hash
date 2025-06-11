@@ -279,7 +279,7 @@ impl Style {
         }
     }
 
-    pub(crate) const fn apply<T: Display>(self, value: &T) -> StyleDisplay<T> {
+    pub(crate) const fn apply<T: Display>(self, value: &T) -> StyleDisplay<'_, T> {
         StyleDisplay { style: self, value }
     }
 

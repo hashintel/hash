@@ -4,6 +4,7 @@ Expr#4294967040@6
       Expr#4294967040@5
         ExprKind (Path)
           Path#4294967040@5 (rooted: true)
+            PathSegment#4294967040@2 (name: core)
             PathSegment#4294967040@2 (name: math)
             PathSegment#4294967040@2 (name: add)
             PathSegment#4294967040@4 (name: total)

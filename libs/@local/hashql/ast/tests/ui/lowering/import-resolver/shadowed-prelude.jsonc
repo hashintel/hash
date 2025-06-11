@@ -9,6 +9,6 @@
     "x",
     "Option<Number>", // Should resolve to custom::Option
     { "#literal": "2" },
-    ["let", "y", "kernel::type::Option<Number>", { "#literal": 3 }, "_"] // Should resolve to prelude Option via absolute path
+    ["let", "y", "core::option::Option<Number>", { "#literal": 3 }, "_"] // Should resolve to prelude Option via absolute path
   ]
 ]

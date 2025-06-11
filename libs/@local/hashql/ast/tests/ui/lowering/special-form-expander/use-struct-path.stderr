@@ -1,9 +1,9 @@
 [special-form-expander::invalid-use-import] Error: Invalid use import expression
    ╭─[ <unknown>:8:13 ]
    │
- 8 │       "x": "::math::sub"
-   │             ─────┬─────  
-   │                  ╰─────── Use a simple identifier here
+ 8 │       "x": "::core::math::sub"
+   │             ────────┬────────  
+   │                     ╰────────── Use a simple identifier here
    │ 
    │ Help: Use binding names must be simple identifiers. Qualified paths or complex expressions cannot be used in this context.
    │ 

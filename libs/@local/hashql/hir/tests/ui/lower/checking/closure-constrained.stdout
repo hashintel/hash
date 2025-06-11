@@ -1,106 +1,49 @@
-#let add:0 = #fn<T:0?14: Number>(a:0: ?14, b:0: ?14): ?14 ->
-    ::math::add(a:0, b:0) in
+════ Initial HIR ═══════════════════════════════════════════════════════════════
+
+#let add:0 = #fn<T:0?26: Number>(a:0: ?26, b:0: ?26): ?26 ->
+    ::core::math::add(a:0, b:0) in
 add:0(1, 2)
 
---------------------------------------
+════ HIR after type checking ═══════════════════════════════════════════════════
 
-#let add:0 = #fn<T:0?14: Number>(a:0: ?14«Number», b:0: ?14«Number»):
-?14«Number» ->
-    ::math::add(a:0, b:0) in
+#let add:0 = #fn<T:0?26: Number>(a:0: ?26«Number», b:0: ?26«Number»):
+?26«Number» ->
+    ::core::math::add(a:0, b:0) in
 add:0(1, 2)
 
---------------------------------------
+════ Types ═════════════════════════════════════════════════════════════════════
 
---------------------------------------
+┌─ ::core::math::add
+└→ fn(Number, Number) -> Number
 
-Node:
-::math::add
+┌─ a:0
+└→ Number
 
+┌─ b:0
+└→ Number
 
-Type:
-fn(Number, Number) -> Number
+┌─ ::core::math::add(a:0, b:0)
+└→ Number
 
---------------------------------------
+┌─ #fn<T:0?26: Number>(a:0: ?26«Number», b:0: ?26«Number»): ?26«Number» ->
+│      ::core::math::add(a:0, b:0)
+└→ fn<T:0?29: Number>(?29, ?29) -> ?29
 
-Node:
-a:0
+┌─ add:0
+└→ fn(Integer, Integer) -> Integer
 
+┌─ 1
+└→ Integer
 
-Type:
-Number
+┌─ 2
+└→ Integer
 
---------------------------------------
+┌─ add:0(1, 2)
+└→ Integer
 
-Node:
-b:0
+┌─ #let add:0 = #fn<T:0?26: Number>(a:0: ?26«Number», b:0: ?26«Number»):
+│  ?26«Number» ->
+│      ::core::math::add(a:0, b:0) in
+│  add:0(1, 2)
+└→ Integer
 
-
-Type:
-Number
-
---------------------------------------
-
-Node:
-::math::add(a:0, b:0)
-
-
-Type:
-Number
-
---------------------------------------
-
-Node:
-#fn<T:0?14: Number>(a:0: ?14«Number», b:0: ?14«Number»): ?14«Number» ->
-    ::math::add(a:0, b:0)
-
-
-Type:
-fn<T:0?17: Number>(?17, ?17) -> ?17
-
---------------------------------------
-
-Node:
-add:0
-
-
-Type:
-fn(Integer, Integer) -> Integer
-
---------------------------------------
-
-Node:
-1
-
-
-Type:
-Integer
-
---------------------------------------
-
-Node:
-2
-
-
-Type:
-Integer
-
---------------------------------------
-
-Node:
-add:0(1, 2)
-
-
-Type:
-Integer
-
---------------------------------------
-
-Node:
-#let add:0 = #fn<T:0?14: Number>(a:0: ?14«Number», b:0: ?14«Number»):
-?14«Number» ->
-    ::math::add(a:0, b:0) in
-add:0(1, 2)
-
-
-Type:
-fn<T:0?17: Number>(?17, ?17) -> ?17

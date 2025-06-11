@@ -1,1 +1,1 @@
-#is(::math::add, type: Integer)
+#is(::core::math::add, type: Integer)

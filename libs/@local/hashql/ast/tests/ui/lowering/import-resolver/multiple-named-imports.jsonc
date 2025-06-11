@@ -2,7 +2,7 @@
 //@ description: Tests that a single use statement can import multiple items from the same module
 [
   "use",
-  "math",
+  "core::math",
   { "#struct": { "add": "plus", "sub": "minus", "mul": "times" } },
   [
     "plus",

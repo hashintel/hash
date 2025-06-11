@@ -590,7 +590,7 @@ impl Instruction {
         reason = "the match arms are the same intentionally, this makes it more clean which \
                   variant emits which and also keeps it nicely formatted."
     )]
-    fn prepare(&self) -> PreparedInstruction {
+    fn prepare(&self) -> PreparedInstruction<'_> {
         match self {
             Self::Value { value, style } => PreparedInstruction::Content(value, style),
 

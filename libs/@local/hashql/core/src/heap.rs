@@ -194,7 +194,7 @@ impl Heap {
     ///
     /// The capacity is an optional initial capacity for the vector, a value of [`None`] indicates
     /// that the vector should be allocated with a default capacity.
-    pub fn vec<T>(&self, capacity: Option<usize>) -> Vec<T> {
+    pub fn vec<T>(&self, capacity: Option<usize>) -> Vec<'_, T> {
         capacity.map_or_else(
             || Vec::new_in(self),
             |capacity| Vec::with_capacity_in(capacity, self),
@@ -204,7 +204,7 @@ impl Heap {
     /// Moves a vector allocated on the heap into this heap.
     ///
     /// The vector is moved into this heap, and the original vector is dropped.
-    pub fn transfer_vec<T>(&self, vec: alloc::vec::Vec<T>) -> Vec<T> {
+    pub fn transfer_vec<T>(&self, vec: alloc::vec::Vec<T>) -> Vec<'_, T> {
         let mut target = Vec::with_capacity_in(vec.len(), self);
         target.extend(vec);
 
@@ -215,7 +215,7 @@ impl Heap {
     ///
     /// The capacity is an optional initial capacity for the hash map, a value of [`None`] indicates
     /// that the hash map should be allocated with a default capacity.
-    pub fn hash_map<K, V>(&self, capacity: Option<usize>) -> HashMap<K, V> {
+    pub fn hash_map<K, V>(&self, capacity: Option<usize>) -> HashMap<'_, K, V> {
         capacity.map_or_else(
             || HashMap::with_hasher_in(foldhash::fast::RandomState::default(), self),
             |capacity| {
@@ -232,7 +232,7 @@ impl Heap {
     ///
     /// The capacity is an optional initial capacity for the deque, a value of [`None`] indicates
     /// that the deque should be allocated with a default capacity.
-    pub fn dequeue<T>(&self, capacity: Option<usize>) -> VecDeque<T> {
+    pub fn dequeue<T>(&self, capacity: Option<usize>) -> VecDeque<'_, T> {
         capacity.map_or_else(
             || VecDeque::new_in(self),
             |capacity| VecDeque::with_capacity_in(capacity, self),
@@ -240,7 +240,7 @@ impl Heap {
     }
 
     /// Creates a new boxed value allocated on this heap.
-    pub fn boxed<T>(&self, value: T) -> Box<T> {
+    pub fn boxed<T>(&self, value: T) -> Box<'_, T> {
         alloc::boxed::Box::new_in(value, self)
     }
 }
