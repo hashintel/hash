@@ -13,9 +13,9 @@ import type { RequestHandler } from "express";
 import type { ImpureGraphContext } from "../../graph/context-types";
 import {
   getAllLinearIntegrationsWithLinearOrgId,
-  getSyncedWorkspacesForLinearIntegration,
+  getSyncedWebsForLinearIntegration,
 } from "../../graph/knowledge/system-types/linear-integration-entity";
-import { getLinearSecretValueByHashWorkspaceId } from "../../graph/knowledge/system-types/linear-user-secret";
+import { getLinearSecretValueByHashebId } from "../../graph/knowledge/system-types/linear-user-secret";
 import { systemAccountId } from "../../graph/system-account";
 import { logger } from "../../logger";
 
@@ -122,7 +122,7 @@ export const linearWebhook: RequestHandler<
 
     await Promise.all(
       linearIntegrations.map(async (linearIntegration) => {
-        const syncedWorkspaces = await getSyncedWorkspacesForLinearIntegration(
+        const syncedWebs = await getSyncedWebsForLinearIntegration(
           graphContext,
           { actorId: linearBotAccountId },
           {
@@ -132,28 +132,27 @@ export const linearWebhook: RequestHandler<
         );
 
         await Promise.all(
-          syncedWorkspaces.map(async (workspace) => {
+          syncedWebs.map(async (web) => {
             /**
              * @todo sync items from specific teams rather than syncing all items
              *
              * @see https://linear.app/hash/issue/H-1467/in-the-linear-webhook-only-sync-items-from-specific-teams-rather-than
              */
 
-            const hashWorkspaceEntityId =
-              workspace.workspaceEntity.metadata.recordId.entityId;
+            const hashWebEntityId = web.webEntity.metadata.recordId.entityId;
 
             const webId = extractEntityUuidFromEntityId(
-              hashWorkspaceEntityId,
+              hashWebEntityId,
             ) as string as WebId;
 
             const workflow =
               `${payloadAction}HashEntityFromLinearData` as const satisfies keyof WorkflowTypeMap;
 
-            const linearApiKey = await getLinearSecretValueByHashWorkspaceId(
+            const linearApiKey = await getLinearSecretValueByHashebId(
               graphContext,
               { actorId: linearBotAccountId },
               {
-                hashWorkspaceEntityId,
+                webEntityId: hashWebEntityId,
                 vaultClient,
               },
             );

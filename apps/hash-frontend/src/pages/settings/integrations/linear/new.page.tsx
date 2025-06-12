@@ -14,7 +14,7 @@ import type {
 } from "../../../../graphql/api-types.gen";
 import {
   getLinearOrganizationQuery,
-  syncLinearIntegrationWithWorkspacesMutation,
+  syncLinearIntegrationWithWebsMutation,
 } from "../../../../graphql/queries/integrations/linear.queries";
 import type { NextPageWithLayout } from "../../../../shared/layout";
 import { Button } from "../../../../shared/ui";
@@ -25,7 +25,7 @@ import { LinearHeader } from "./linear-header";
 import type { LinearOrganizationTeamsWithWorkspaces } from "./select-linear-teams-table";
 import {
   mapLinearOrganizationToLinearOrganizationTeamsWithWorkspaces,
-  mapLinearOrganizationToSyncWithWorkspacesInputVariable,
+  mapLinearOrganizationToSyncWithWebsInputVariable,
   SelectLinearTeamsTable,
 } from "./select-linear-teams-table";
 import { useLinearIntegrations } from "./use-linear-integrations";
@@ -38,12 +38,12 @@ const NewLinearIntegrationPage: NextPageWithLayout = () => {
     useState<LinearOrganizationTeamsWithWorkspaces>();
 
   const [
-    syncLinearIntegrationWithWorkspaces,
+    syncLinearIntegrationWithWebs,
     { loading: loadingSyncLinearIntegrationWithWorkspaces },
   ] = useMutation<
     SyncLinearIntegrationWithWorkspacesMutation,
     SyncLinearIntegrationWithWorkspacesMutationVariables
-  >(syncLinearIntegrationWithWorkspacesMutation);
+  >(syncLinearIntegrationWithWebsMutation);
 
   const [getLinearOrganization] = useLazyQuery<
     GetLinearOrganizationQuery,
@@ -111,21 +111,20 @@ const NewLinearIntegrationPage: NextPageWithLayout = () => {
     if (linearIntegrationEntityId && linearOrganization) {
       /** @todo: add proper error handling */
 
-      await syncLinearIntegrationWithWorkspaces({
+      await syncLinearIntegrationWithWebs({
         variables: {
           linearIntegrationEntityId,
-          syncWithWorkspaces:
-            mapLinearOrganizationToSyncWithWorkspacesInputVariable({
-              linearOrganization,
-              possibleWorkspaces,
-            }),
+          syncWithWebs: mapLinearOrganizationToSyncWithWebsInputVariable({
+            linearOrganization,
+            possibleWebs: possibleWorkspaces,
+          }),
         },
       });
 
       void router.push("/settings/integrations/linear");
     }
   }, [
-    syncLinearIntegrationWithWorkspaces,
+    syncLinearIntegrationWithWebs,
     linearIntegrationEntityId,
     linearOrganization,
     possibleWorkspaces,

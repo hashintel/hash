@@ -16,8 +16,8 @@ import { useAuthenticatedUser } from "../../../shared/auth-info-context";
 
 export type LinearIntegration = {
   entity: Entity;
-  syncedWithWorkspaces: {
-    workspaceEntity: Entity;
+  syncedWithWebs: {
+    webEntity: Entity;
     linearTeamIds: string[];
   }[];
 };
@@ -66,7 +66,7 @@ export const useLinearIntegrations = () => {
           linearIntegrationEntities.map((entity) => {
             return {
               entity,
-              syncedWithWorkspaces: getOutgoingLinkAndTargetEntities(
+              syncedWithWebs: getOutgoingLinkAndTargetEntities(
                 subgraph,
                 entity.metadata.recordId.entityId,
               )
@@ -89,7 +89,7 @@ export const useLinearIntegrations = () => {
                   );
 
                   return {
-                    workspaceEntity: rightEntity,
+                    webEntity: rightEntity,
                     linearTeamIds: linearTeamIds ?? [],
                   };
                 }),

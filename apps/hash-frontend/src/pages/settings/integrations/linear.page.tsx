@@ -1,19 +1,19 @@
 import { useLazyQuery, useMutation } from "@apollo/client";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { LinearIntegrationProperties } from "@local/hash-isomorphic-utils/system-types/linearintegration";
-import { Box, Container, Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import type { FunctionComponent } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type {
   GetLinearOrganizationQuery,
   GetLinearOrganizationQueryVariables,
-  SyncLinearIntegrationWithWorkspacesMutation,
-  SyncLinearIntegrationWithWorkspacesMutationVariables,
+  SyncLinearIntegrationWithWebsMutation,
+  SyncLinearIntegrationWithWebsMutationVariables,
 } from "../../../graphql/api-types.gen";
 import {
   getLinearOrganizationQuery,
-  syncLinearIntegrationWithWorkspacesMutation,
+  syncLinearIntegrationWithWebsMutation,
 } from "../../../graphql/queries/integrations/linear.queries";
 import type { NextPageWithLayout } from "../../../shared/layout";
 import { Button } from "../../../shared/ui";
@@ -21,10 +21,10 @@ import { useAuthenticatedUser } from "../../shared/auth-info-context";
 import { getSettingsLayout } from "../../shared/settings-layout";
 import { SettingsPageContainer } from "../shared/settings-page-container";
 import { LinearHeader } from "./linear/linear-header";
-import type { LinearOrganizationTeamsWithWorkspaces } from "./linear/select-linear-teams-table";
+import type { LinearOrganizationTeamsWithWebs } from "./linear/select-linear-teams-table";
 import {
-  mapLinearOrganizationToLinearOrganizationTeamsWithWorkspaces,
-  mapLinearOrganizationToSyncWithWorkspacesInputVariable,
+  mapLinearOrganizationToLinearOrganizationTeamsWithWebs,
+  mapLinearOrganizationToSyncWithWebsInputVariable,
   SelectLinearTeamsTable,
 } from "./linear/select-linear-teams-table";
 import type { LinearIntegration } from "./linear/use-linear-integrations";
@@ -50,12 +50,12 @@ const DataAccess: FunctionComponent<{
   const { authenticatedUser } = useAuthenticatedUser();
 
   const [
-    syncLinearIntegrationWithWorkspaces,
+    syncLinearIntegrationWithWebs,
     { loading: loadingSyncLinearIntegrationWithWorkspaces },
   ] = useMutation<
-    SyncLinearIntegrationWithWorkspacesMutation,
-    SyncLinearIntegrationWithWorkspacesMutationVariables
-  >(syncLinearIntegrationWithWorkspacesMutation, { awaitRefetchQueries: true });
+    SyncLinearIntegrationWithWebsMutation,
+    SyncLinearIntegrationWithWebsMutationVariables
+  >(syncLinearIntegrationWithWebsMutation, { awaitRefetchQueries: true });
 
   const possibleWorkspaces = useMemo(
     () => [
@@ -66,10 +66,10 @@ const DataAccess: FunctionComponent<{
   );
 
   const [linearOrganizations, setLinearOrganizations] = useState<
-    LinearOrganizationTeamsWithWorkspaces[]
+    LinearOrganizationTeamsWithWebs[]
   >(
     connectedLinearOrganizations.map(
-      mapLinearOrganizationToLinearOrganizationTeamsWithWorkspaces({
+      mapLinearOrganizationToLinearOrganizationTeamsWithWebs({
         linearIntegrations,
       }),
     ),
@@ -86,20 +86,19 @@ const DataAccess: FunctionComponent<{
           ({ id }) => id === linearOrgId,
         )!;
 
-        return syncLinearIntegrationWithWorkspaces({
+        return syncLinearIntegrationWithWebs({
           variables: {
             linearIntegrationEntityId: entity.metadata.recordId.entityId,
-            syncWithWorkspaces:
-              mapLinearOrganizationToSyncWithWorkspacesInputVariable({
-                linearOrganization,
-                possibleWorkspaces,
-              }),
+            syncWithWebs: mapLinearOrganizationToSyncWithWebsInputVariable({
+              linearOrganization,
+              possibleWebs: possibleWorkspaces,
+            }),
           },
         });
       }),
     );
   }, [
-    syncLinearIntegrationWithWorkspaces,
+    syncLinearIntegrationWithWebs,
     linearOrganizations,
     linearIntegrations,
     possibleWorkspaces,
@@ -110,7 +109,7 @@ const DataAccess: FunctionComponent<{
       <Typography variant="smallTextParagraphs">
         Once connected to HASH, the contents of{" "}
         <strong>Linear Workspaces</strong> which are visible to you can be made
-        available to one or more <strong>HASH workspaces</strong> you belong to.
+        available to one or more <strong>HASH webs</strong> you belong to.
         Access can also be granted on a <strong>per-Linear Team</strong> basis.
       </Typography>
       <Box my={2}>

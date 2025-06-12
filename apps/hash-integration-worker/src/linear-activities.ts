@@ -397,14 +397,14 @@ export const createLinearIntegrationActivities = ({
   async createPartialEntities(params: {
     authentication: { actorId: MachineId };
     entities: PartialEntity[];
-    workspaceWebId: WebId;
+    webId: WebId;
   }): Promise<void> {
     await Promise.all(
       params.entities.map((partialEntity) =>
         createOrUpdateHashEntity({
           graphApiClient,
           authentication: params.authentication,
-          webId: params.workspaceWebId,
+          webId: params.webId,
           partialEntity,
           outgoingLinks: [],
         }),

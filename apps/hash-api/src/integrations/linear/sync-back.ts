@@ -15,7 +15,7 @@ import { linearPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-
 
 import type { ImpureGraphContext } from "../../graph/context-types";
 import { getLatestEntityById } from "../../graph/knowledge/primitive/entity";
-import { getLinearSecretValueByHashWorkspaceId } from "../../graph/knowledge/system-types/linear-user-secret";
+import { getLinearSecretValueByHashebId } from "../../graph/knowledge/system-types/linear-user-secret";
 import { systemAccountId } from "../../graph/system-account";
 
 const supportedLinearEntityTypeIds = linearTypeMappings.map(
@@ -117,7 +117,7 @@ export const processEntityChange = async ({
     owningAccountUuId as string as EntityUuid,
   );
 
-  const linearApiKey = await getLinearSecretValueByHashWorkspaceId(
+  const linearApiKey = await getLinearSecretValueByHashebId(
     graphContext,
     { actorId: linearMachineActorId },
     {

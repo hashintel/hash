@@ -17,28 +17,24 @@ import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-id
 import { getLatestEntityById } from "../../../../graph/knowledge/primitive/entity";
 import {
   getLinearIntegrationById,
-  getSyncedWorkspacesForLinearIntegration,
+  getSyncedWebsForLinearIntegration,
   linkIntegrationToWeb,
 } from "../../../../graph/knowledge/system-types/linear-integration-entity";
 import { getLinearUserSecretByLinearOrgId } from "../../../../graph/knowledge/system-types/linear-user-secret";
 import { Linear } from "../../../../integrations/linear";
 import type {
-  MutationSyncLinearIntegrationWithWorkspacesArgs,
+  MutationSyncLinearIntegrationWithWebsArgs,
   ResolverFn,
 } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
 import { graphQLContextToImpureGraphContext } from "../../util";
 
-export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
+export const syncLinearIntegrationWithWebsMutation: ResolverFn<
   Promise<Entity>,
   Record<string, never>,
   LoggedInGraphQLContext,
-  MutationSyncLinearIntegrationWithWorkspacesArgs
-> = async (
-  _,
-  { linearIntegrationEntityId, syncWithWorkspaces },
-  graphQLContext,
-) => {
+  MutationSyncLinearIntegrationWithWebsArgs
+> = async (_, { linearIntegrationEntityId, syncWithWebs }, graphQLContext) => {
   const { dataSources, authentication, provenance, temporal, vault } =
     graphQLContext;
 
@@ -82,20 +78,19 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
     apiKey,
   });
 
-  const existingSyncedWorkspaces =
-    await getSyncedWorkspacesForLinearIntegration(
-      impureGraphContext,
-      authentication,
-      {
-        linearIntegrationEntityId,
-      },
-    );
+  const existingSyncedWebs = await getSyncedWebsForLinearIntegration(
+    impureGraphContext,
+    authentication,
+    {
+      linearIntegrationEntityId,
+    },
+  );
 
-  const duplicateWorkspaceSyncsToRemove = existingSyncedWorkspaces.filter(
-    ({ workspaceEntity }) =>
-      !syncWithWorkspaces.some(
-        ({ workspaceEntityId }) =>
-          workspaceEntity.metadata.recordId.entityId === workspaceEntityId,
+  const duplicateWorkspaceSyncsToRemove = existingSyncedWebs.filter(
+    ({ webEntity }) =>
+      !syncWithWebs.some(
+        ({ webEntityId }) =>
+          webEntity.metadata.recordId.entityId === webEntityId,
       ),
   );
 
@@ -111,9 +106,9 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
 
   await Promise.all([
     ...duplicateWorkspaceSyncsToRemove.map(
-      async ({ syncLinearDataWithLinkEntity, workspaceEntity }) => {
+      async ({ syncLinearDataWithLinkEntity, webEntity }) => {
         if (
-          workspaceEntity.metadata.entityTypeIds.includes(
+          webEntity.metadata.entityTypeIds.includes(
             systemEntityTypes.organization.entityTypeId,
           )
         ) {
@@ -127,15 +122,15 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
         );
       },
     ),
-    ...syncWithWorkspaces.map(async ({ workspaceEntityId, linearTeamIds }) => {
-      const workspaceWebId = extractEntityUuidFromEntityId(
-        workspaceEntityId,
+    ...syncWithWebs.map(async ({ webEntityId, linearTeamIds }) => {
+      const webId = extractEntityUuidFromEntityId(
+        webEntityId,
       ) as string as WebId;
 
       const userOrOrganizationEntity = await getLatestEntityById(
         impureGraphContext,
         authentication,
-        { entityId: workspaceEntityId },
+        { entityId: webEntityId },
       );
 
       const webAccountId = extractEntityUuidFromEntityId(
@@ -194,14 +189,14 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
       }
 
       return Promise.all([
-        linearClient.triggerWorkspaceSync({
+        linearClient.triggerWebSync({
           authentication: { actorId: linearBotAccountId },
-          workspaceWebId,
+          webId,
           teamIds: linearTeamIds,
         }),
         linkIntegrationToWeb(impureGraphContext, authentication, {
           linearIntegrationEntityId,
-          workspaceEntityId,
+          webEntityId,
           linearTeamIds,
         }),
       ]);

@@ -167,22 +167,22 @@ export const getLinearUserSecretByLinearOrgId: ImpureGraphFunction<
 };
 
 /**
- * Get a Linear user secret value by the HASH workspace it is associated with.
- * @todo there may be multiple Linear user secrets associated with a workspace – handle the following filters:
- *   - the Linear workspace the secret is associated with (there may be multiple synced to a HASH workspace)
+ * Get a Linear user secret value by the HASH web it is associated with.
+ * @todo there may be multiple Linear user secrets associated with a web – handle the following filters:
+ *   - the Linear workspace the secret is associated with (there may be multiple synced to a HASH web)
  *   - the user that created the integration (multiple users may have created a relevant secret)
  */
 
-export const getLinearSecretValueByHashWorkspaceId: ImpureGraphFunction<
+export const getLinearSecretValueByHashWebEntityId: ImpureGraphFunction<
   {
-    hashWorkspaceEntityId: EntityId;
+    hashWebEntityId: EntityId;
     vaultClient: VaultClient;
     includeDrafts?: boolean;
   },
   Promise<string>
 > = async (context, authentication, params) => {
-  const { hashWorkspaceEntityId, vaultClient, includeDrafts = false } = params;
-  const [workspaceWebId, workspaceUuid] = splitEntityId(hashWorkspaceEntityId);
+  const { hashWebEntityId, vaultClient, includeDrafts = false } = params;
+  const [webId, webUuid] = splitEntityId(hashWebEntityId);
 
   const linearIntegrationEntities = await context.graphApi
     .getEntities(authentication.actorId, {
@@ -199,7 +199,7 @@ export const getLinearSecretValueByHashWorkspaceId: ImpureGraphFunction<
             equal: [
               { path: ["outgoingLinks", "rightEntity", "uuid"] },
               {
-                parameter: workspaceUuid,
+                parameter: webUuid,
               },
             ],
           },
@@ -207,7 +207,7 @@ export const getLinearSecretValueByHashWorkspaceId: ImpureGraphFunction<
             equal: [
               { path: ["outgoingLinks", "rightEntity", "webId"] },
               {
-                parameter: workspaceWebId,
+                parameter: webId,
               },
             ],
           },
@@ -226,13 +226,13 @@ export const getLinearSecretValueByHashWorkspaceId: ImpureGraphFunction<
 
   if (!integrationEntity) {
     throw new NotFoundError(
-      `No Linear integration found for workspace ${hashWorkspaceEntityId}`,
+      `No Linear integration found for web ${hashWebEntityId}`,
     );
   }
 
   if (linearIntegrationEntities.length > 1) {
     throw new Error(
-      `Multiple Linear integrations found for workspace ${hashWorkspaceEntityId}`,
+      `Multiple Linear integrations found for web ${hashWebEntityId}`,
     );
   }
 

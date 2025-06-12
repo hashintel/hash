@@ -1,7 +1,7 @@
 import type {
   CreateHashEntityFromLinearData,
   ReadLinearTeamsWorkflow,
-  SyncWorkspaceWorkflow,
+  SyncWebWorkflow,
   UpdateHashEntityFromLinearData,
   UpdateLinearDataWorkflow,
 } from "@local/hash-backend-utils/temporal-integration-workflow-types";
@@ -22,15 +22,15 @@ const linearActivities =
     commonConfig,
   );
 
-export const syncWorkspace: SyncWorkspaceWorkflow = async (params) => {
-  const { apiKey, workspaceWebId, authentication, teamIds } = params;
+export const syncLinearToWeb: SyncWebWorkflow = async (params) => {
+  const { apiKey, webId, authentication, teamIds } = params;
 
   const organization = linearActivities
     .readLinearOrganization({ apiKey })
     .then((organizationEntity) =>
       linearActivities.createPartialEntities({
         authentication,
-        workspaceWebId,
+        webId,
         entities: [organizationEntity],
       }),
     );
@@ -40,7 +40,7 @@ export const syncWorkspace: SyncWorkspaceWorkflow = async (params) => {
     .then((userEntities) =>
       linearActivities.createPartialEntities({
         authentication,
-        workspaceWebId,
+        webId,
         entities: userEntities,
       }),
     );
@@ -51,7 +51,7 @@ export const syncWorkspace: SyncWorkspaceWorkflow = async (params) => {
       .then((issueEntities) =>
         linearActivities.createPartialEntities({
           authentication,
-          workspaceWebId,
+          webId,
           entities: issueEntities,
         }),
       ),

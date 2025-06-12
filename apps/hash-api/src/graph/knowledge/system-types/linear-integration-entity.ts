@@ -16,8 +16,9 @@ import {
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import type { EntityRelationAndSubjectBranded } from "@local/hash-graph-sdk/authorization";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { createPolicy } from "@local/hash-graph-sdk/policy";
+import { getWebRoles } from "@local/hash-graph-sdk/principal/web";
 import {
-  createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
@@ -192,12 +193,12 @@ export const getLinearIntegrationById: ImpureGraphFunction<
   return getLinearIntegrationFromEntity({ entity });
 };
 
-export const getSyncedWorkspacesForLinearIntegration: ImpureGraphFunction<
+export const getSyncedWebsForLinearIntegration: ImpureGraphFunction<
   { linearIntegrationEntityId: EntityId; includeDrafts?: boolean },
   Promise<
     {
       syncLinearDataWithLinkEntity: HashEntity;
-      workspaceEntity: HashEntity;
+      webEntity: HashEntity;
     }[]
   >
 > = async (
@@ -244,12 +245,12 @@ export const getSyncedWorkspacesForLinearIntegration: ImpureGraphFunction<
 
       return syncLinearDataWithLinkEntities.map(
         (syncLinearDataWithLinkEntity) => {
-          const workspaceEntity = getRightEntityForLinkEntity(
+          const webEntity = getRightEntityForLinkEntity(
             subgraph,
             syncLinearDataWithLinkEntity.metadata.recordId.entityId,
           )![0]! as HashEntity;
 
-          return { syncLinearDataWithLinkEntity, workspaceEntity };
+          return { syncLinearDataWithLinkEntity, webEntity };
         },
       );
     });
@@ -257,7 +258,7 @@ export const getSyncedWorkspacesForLinearIntegration: ImpureGraphFunction<
 export const linkIntegrationToWeb: ImpureGraphFunction<
   {
     linearIntegrationEntityId: EntityId;
-    workspaceEntityId: EntityId;
+    webEntityId: EntityId;
     linearTeamIds: string[];
     includeDrafts?: boolean;
   },
@@ -267,7 +268,7 @@ export const linkIntegrationToWeb: ImpureGraphFunction<
 > = async (context, authentication, params) => {
   const {
     linearIntegrationEntityId,
-    workspaceEntityId,
+    webEntityId,
     linearTeamIds,
     includeDrafts = false,
   } = params;
@@ -297,7 +298,7 @@ export const linkIntegrationToWeb: ImpureGraphFunction<
             equal: [
               { path: ["rightEntity", "uuid"] },
               {
-                parameter: extractEntityUuidFromEntityId(workspaceEntityId),
+                parameter: extractEntityUuidFromEntityId(webEntityId),
               },
             ],
           },
@@ -328,7 +329,7 @@ export const linkIntegrationToWeb: ImpureGraphFunction<
 
   if (existingLinkEntities.length > 1) {
     throw new Error(
-      `More than one "syncLinearDataWith" link entity found between the linear integration entity with ID ${linearIntegrationEntityId} and the workspace entity with ID ${workspaceEntityId}`,
+      `More than one "syncLinearDataWith" link entity found between the linear integration entity with ID ${linearIntegrationEntityId} and the web entity with ID ${webEntityId}`,
     );
   } else if (existingLinkEntities[0]) {
     const [existingLinkEntity] = existingLinkEntities;
@@ -378,24 +379,21 @@ export const linkIntegrationToWeb: ImpureGraphFunction<
       },
     ];
 
+    const linearIntegrationWebId = extractWebIdFromEntityId(
+      linearIntegrationEntityId,
+    );
+
     await createLinkEntity<SyncLinearDataWith>(context, authentication, {
-      webId: extractWebIdFromEntityId(linearIntegrationEntityId),
+      webId: linearIntegrationWebId,
       properties,
       linkData: {
         leftEntityId: linearIntegrationEntityId,
-        rightEntityId: workspaceEntityId,
+        rightEntityId: webEntityId,
       },
       entityTypeIds: [
         systemLinkEntityTypes.syncLinearDataWith.linkEntityTypeId,
       ],
-      relationships: [
-        ...linearIntegrationRelationships,
-        {
-          // Allow the system account ID to view the link
-          relation: "viewer",
-          subject: { kind: "account", subjectId: systemAccountId },
-        },
-      ],
+      relationships: linearIntegrationRelationships,
     });
   }
 };
