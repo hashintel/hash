@@ -21,6 +21,7 @@ pub struct TypeDef<'heap> {
 }
 
 impl<'heap> TypeDef<'heap> {
+    #[track_caller]
     pub fn instantiate(&mut self, env: &mut InstantiateEnvironment<'_, 'heap>) {
         self.id = env.instantiate(self.id);
         env.clear_provisioned();

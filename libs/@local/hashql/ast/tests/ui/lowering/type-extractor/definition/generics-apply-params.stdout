@@ -3,6 +3,6 @@ Expr#4294967040@42
 
 ------------------------
 
-type StringWrapper:0 = (<T:0?15>(foo: ?15) where<?15 = String>,)
+type StringWrapper:0 = (<T:0?27>(foo: ?27) where<?27 = String>,)
 
-type Wrapper:0<T:0?14> = <T:0?14>(foo: ?14)
+type Wrapper:0<T:0?26> = <T:0?26>(foo: ?26)

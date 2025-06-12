@@ -4,7 +4,9 @@ use crate::{
     symbol::Symbol,
 };
 
-pub(in crate::module::std_lib) struct Result;
+pub(in crate::module::std_lib) struct Result {
+    _dependencies: (),
+}
 
 impl<'heap> StandardLibraryModule<'heap> for Result {
     type Children = ();

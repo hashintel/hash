@@ -66,7 +66,10 @@ use crate::{
         call::{Call, CallArgument},
         closure::{Closure, ClosureParam, ClosureSignature},
         data::{Data, DataKind, Literal},
-        graph::{Graph, GraphKind},
+        graph::{
+            Graph, GraphKind,
+            read::{GraphRead, GraphReadBody, GraphReadHead, GraphReadTail},
+        },
         input::Input,
         kind::NodeKind,
         r#let::Let,
@@ -237,6 +240,10 @@ pub trait Visitor<'heap> {
 
     fn visit_graph(&mut self, graph: &'heap Graph<'heap>) {
         walk_graph(self, graph);
+    }
+
+    fn visit_graph_read(&mut self, graph_read: &'heap GraphRead<'heap>) {
+        walk_graph_read(self, graph_read);
     }
 }
 
@@ -564,15 +571,37 @@ pub fn walk_closure_param<'heap, T: Visitor<'heap> + ?Sized>(
 
 pub fn walk_graph<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
-    Graph {
-        span,
-        kind,
-        _marker: _,
-    }: &'heap Graph<'heap>,
+    Graph { span, kind }: &'heap Graph<'heap>,
 ) {
     visitor.visit_span(*span);
 
     match kind {
-        GraphKind::Never(_) => unreachable!(),
+        GraphKind::Read(read) => visitor.visit_graph_read(read),
+    }
+}
+
+pub fn walk_graph_read<'heap, T: Visitor<'heap> + ?Sized>(
+    visitor: &mut T,
+    GraphRead {
+        span,
+        head,
+        body,
+        tail,
+    }: &'heap GraphRead<'heap>,
+) {
+    visitor.visit_span(*span);
+
+    match head {
+        GraphReadHead::Entity { axis } => visitor.visit_node(axis),
+    }
+
+    for body in body {
+        match body {
+            GraphReadBody::Filter(node) => visitor.visit_node(node),
+        }
+    }
+
+    match tail {
+        GraphReadTail::Collect => {}
     }
 }

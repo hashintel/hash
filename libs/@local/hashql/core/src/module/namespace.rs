@@ -334,7 +334,6 @@ impl<'env, 'heap> ModuleNamespace<'env, 'heap> {
         successful &= self.import_absolute_static("Never", ["kernel", "type", "Never"]);
 
         successful &= self.import_absolute_static("Url", ["core", "url", "Url"]);
-        successful &= self.import_absolute_static("BaseUrl", ["core", "url", "BaseUrl"]);
 
         successful &= self.import_absolute_static("None", ["core", "option", "None"]);
         successful &= self.import_absolute_static("Some", ["core", "option", "Some"]);

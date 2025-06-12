@@ -8,7 +8,9 @@ use crate::{
     symbol::Symbol,
 };
 
-pub(in crate::module::std_lib) struct Bool;
+pub(in crate::module::std_lib) struct Bool {
+    _dependencies: (),
+}
 
 impl<'heap> StandardLibraryModule<'heap> for Bool {
     type Children = ();

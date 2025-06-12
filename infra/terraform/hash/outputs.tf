@@ -23,5 +23,9 @@ output "temporal_hostname" {
 }
 
 output "hash_application_ecs_iam_task_role_arn" {
-  value = module.application.ecs_iam_task_role_arn
+  value = module.application.ecs_iam_task_role.arn
+}
+
+output "hash_application_ecs_iam_task_role_name" {
+  value = module.application.ecs_iam_task_role.name
 }
