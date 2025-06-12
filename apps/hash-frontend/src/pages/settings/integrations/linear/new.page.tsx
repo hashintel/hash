@@ -9,8 +9,8 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import type {
   GetLinearOrganizationQuery,
   GetLinearOrganizationQueryVariables,
-  SyncLinearIntegrationWithWorkspacesMutation,
-  SyncLinearIntegrationWithWorkspacesMutationVariables,
+  SyncLinearIntegrationWithWebsMutation,
+  SyncLinearIntegrationWithWebsMutationVariables,
 } from "../../../../graphql/api-types.gen";
 import {
   getLinearOrganizationQuery,
@@ -22,9 +22,9 @@ import { useAuthenticatedUser } from "../../../shared/auth-info-context";
 import { getSettingsLayout } from "../../../shared/settings-layout";
 import { SettingsPageContainer } from "../../shared/settings-page-container";
 import { LinearHeader } from "./linear-header";
-import type { LinearOrganizationTeamsWithWorkspaces } from "./select-linear-teams-table";
+import type { LinearOrganizationTeamsWithWebs } from "./select-linear-teams-table";
 import {
-  mapLinearOrganizationToLinearOrganizationTeamsWithWorkspaces,
+  mapLinearOrganizationToLinearOrganizationTeamsWithWebs,
   mapLinearOrganizationToSyncWithWebsInputVariable,
   SelectLinearTeamsTable,
 } from "./select-linear-teams-table";
@@ -35,14 +35,14 @@ const NewLinearIntegrationPage: NextPageWithLayout = () => {
   const { authenticatedUser } = useAuthenticatedUser();
 
   const [linearOrganization, setLinearOrganization] =
-    useState<LinearOrganizationTeamsWithWorkspaces>();
+    useState<LinearOrganizationTeamsWithWebs>();
 
   const [
     syncLinearIntegrationWithWebs,
     { loading: loadingSyncLinearIntegrationWithWorkspaces },
   ] = useMutation<
-    SyncLinearIntegrationWithWorkspacesMutation,
-    SyncLinearIntegrationWithWorkspacesMutationVariables
+    SyncLinearIntegrationWithWebsMutation,
+    SyncLinearIntegrationWithWebsMutationVariables
   >(syncLinearIntegrationWithWebsMutation);
 
   const [getLinearOrganization] = useLazyQuery<
@@ -58,7 +58,7 @@ const NewLinearIntegrationPage: NextPageWithLayout = () => {
 
   useEffect(() => {
     void (async () => {
-      if (!linearIntegrations || !linearIntegrationEntityId) {
+      if (linearIntegrations.length === 0 || !linearIntegrationEntityId) {
         return;
       }
 
@@ -73,7 +73,7 @@ const NewLinearIntegrationPage: NextPageWithLayout = () => {
       }
 
       const { linearOrgId } = simplifyProperties(
-        linearIntegration.entity.properties as LinearIntegrationProperties,
+        linearIntegration.entity.properties,
       );
 
       const { data } = await getLinearOrganization({
@@ -84,7 +84,7 @@ const NewLinearIntegrationPage: NextPageWithLayout = () => {
         const organization = data.getLinearOrganization;
 
         setLinearOrganization(
-          mapLinearOrganizationToLinearOrganizationTeamsWithWorkspaces({
+          mapLinearOrganizationToLinearOrganizationTeamsWithWebs({
             linearIntegrations,
           })(organization),
         );
@@ -166,7 +166,11 @@ const NewLinearIntegrationPage: NextPageWithLayout = () => {
           </Box>
         </>
       ) : (
-        <Typography>Connecting to Linear...</Typography>
+        <Box p={2}>
+          <Typography variant="smallTextParagraphs">
+            Connecting to Linear...
+          </Typography>
+        </Box>
       )}
     </SettingsPageContainer>
   );

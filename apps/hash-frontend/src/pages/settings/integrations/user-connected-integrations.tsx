@@ -1,62 +1,82 @@
-import { useQuery } from "@apollo/client";
-import type { WebId } from "@blockprotocol/type-system";
 import {
-  currentTimeInstantTemporalAxes,
-  generateVersionedUrlMatchingFilter,
-  pageOrNotificationNotArchivedFilter,
-} from "@local/hash-isomorphic-utils/graph-queries";
-import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { pageEntityTypeFilter } from "@local/hash-isomorphic-utils/page-entity-type-ids";
-import { Typography } from "@mui/material";
-import { type FunctionComponent, useContext } from "react";
+  Box,
+  Stack,
+  TableBody,
+  TableHead,
+  TableRow,
+  Typography,
+} from "@mui/material";
 
-import type {
-  GetEntitySubgraphQuery,
-  GetEntitySubgraphQueryVariables,
-  QueryEntitiesQuery,
-  QueryEntitiesQueryVariables,
-} from "../../../graphql/api-types.gen";
-import {
-  getEntitySubgraphQuery,
-  queryEntitiesQuery,
-} from "../../../graphql/queries/knowledge/entity.queries";
-import { entityHasEntityTypeByVersionedUrlFilter } from "../../../shared/filters";
-import { useAuthenticatedUser } from "../../shared/auth-info-context";
-import { WorkspaceContext } from "../../shared/workspace-context";
+import { LinearLogo } from "../../../shared/icons/linear-logo";
+import { SettingsTable } from "../shared/settings-table";
+import { SettingsTableCell } from "../shared/settings-table-cell";
+import { useLinearIntegrations } from "./linear/use-linear-integrations";
+import { UserIntegrationContextMenu } from "./user-connected-integrations/integration-context-menu";
 
 export const UserConnectedIntegrations = () => {
-  const { authenticatedUser } = useAuthenticatedUser();
+  const { linearIntegrations, connectedLinearOrganizations } =
+    useLinearIntegrations();
 
-  const { accountId } = authenticatedUser;
+  if (!linearIntegrations.length) {
+    return null;
+  }
 
-  const { data, loading, refetch } = useQuery<
-    GetEntitySubgraphQuery,
-    GetEntitySubgraphQueryVariables
-  >(getEntitySubgraphQuery, {
-    variables: {
-      includePermissions: false,
-      request: {
-        filter: {
-          all: [
-            generateVersionedUrlMatchingFilter(
-              systemEntityTypes.integration.entityTypeId,
-            ),
-            ,
-            {
-              equal: [{ path: ["webId"] }, { parameter: accountId }],
-            },
-          ],
-        },
-        temporalAxes: currentTimeInstantTemporalAxes,
-      },
-    },
-    fetchPolicy: "cache-and-network",
-  });
-
-  const { queryEntities: subgraphAndPermissions } = data ?? {};
   return (
-    <Typography variant="mediumCaps" mb={2} component="div">
-      Existing integrations
-    </Typography>
+    <Box>
+      <Typography variant="mediumCaps" mb={2} component="div">
+        Existing integrations
+      </Typography>
+      <SettingsTable sx={{ background: ({ palette }) => palette.common.white }}>
+        <TableHead>
+          <TableRow>
+            <SettingsTableCell>Source</SettingsTableCell>
+            <SettingsTableCell>Source Resource(s)</SettingsTableCell>
+            <SettingsTableCell>Synced to HASH web(s)</SettingsTableCell>
+            <SettingsTableCell sx={{ width: 50 }} />
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {linearIntegrations.map((integration) => {
+            const linearOrg = connectedLinearOrganizations.find(
+              (org) =>
+                org.id ===
+                integration.entity.properties[
+                  "https://hash.ai/@h/types/property-type/linear-org-id/"
+                ],
+            );
+
+            return (
+              <TableRow key={integration.entity.entityId}>
+                <SettingsTableCell>
+                  <Stack direction="row" alignItems="center" gap={1}>
+                    <LinearLogo sx={{ fontSize: 16 }} /> Linear
+                  </Stack>
+                </SettingsTableCell>
+                <SettingsTableCell>
+                  <Stack direction="row" alignItems="center" gap={1}>
+                    {linearOrg?.logoUrl && (
+                      <Box
+                        component="img"
+                        src={linearOrg.logoUrl}
+                        sx={{ height: 18, width: 18, borderRadius: 1 }}
+                      />
+                    )}
+                    {linearOrg?.name}
+                  </Stack>
+                </SettingsTableCell>
+                <SettingsTableCell>
+                  {integration.syncedWithWebs
+                    .map((web) => web.webName)
+                    .join(", ")}
+                </SettingsTableCell>
+                <SettingsTableCell>
+                  <UserIntegrationContextMenu integrationType="linear" />
+                </SettingsTableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </SettingsTable>
+    </Box>
   );
 };

@@ -1,20 +1,16 @@
-import { useLazyQuery, useMutation } from "@apollo/client";
+import { useMutation } from "@apollo/client";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { LinearIntegrationProperties } from "@local/hash-isomorphic-utils/system-types/linearintegration";
 import { Box, Typography } from "@mui/material";
 import type { FunctionComponent } from "react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import type {
   GetLinearOrganizationQuery,
-  GetLinearOrganizationQueryVariables,
   SyncLinearIntegrationWithWebsMutation,
   SyncLinearIntegrationWithWebsMutationVariables,
 } from "../../../graphql/api-types.gen";
-import {
-  getLinearOrganizationQuery,
-  syncLinearIntegrationWithWebsMutation,
-} from "../../../graphql/queries/integrations/linear.queries";
+import { syncLinearIntegrationWithWebsMutation } from "../../../graphql/queries/integrations/linear.queries";
 import type { NextPageWithLayout } from "../../../shared/layout";
 import { Button } from "../../../shared/ui";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
@@ -78,9 +74,7 @@ const DataAccess: FunctionComponent<{
   const handleSave = useCallback(async () => {
     await Promise.all(
       linearIntegrations.map(({ entity }) => {
-        const { linearOrgId } = simplifyProperties(
-          entity.properties as LinearIntegrationProperties,
-        );
+        const { linearOrgId } = simplifyProperties(entity.properties);
 
         const linearOrganization = linearOrganizations.find(
           ({ id }) => id === linearOrgId,
@@ -107,10 +101,10 @@ const DataAccess: FunctionComponent<{
   return (
     <Box py={3} px={4}>
       <Typography variant="smallTextParagraphs">
-        Once connected to HASH, the contents of{" "}
-        <strong>Linear Workspaces</strong> which are visible to you can be made
-        available to one or more <strong>HASH webs</strong> you belong to.
-        Access can also be granted on a <strong>per-Linear Team</strong> basis.
+        The contents of <strong>Linear Workspaces</strong> which are visible to
+        you can be made available to one or more <strong>HASH webs</strong> you
+        belong to. Access can also be granted on a{" "}
+        <strong>per-Linear Team</strong> basis.
       </Typography>
       <Box my={2}>
         <SelectLinearTeamsTable
@@ -122,6 +116,7 @@ const DataAccess: FunctionComponent<{
         <Button
           loading={loadingSyncLinearIntegrationWithWorkspaces}
           onClick={handleSave}
+          size="small"
         >
           Save changes
         </Button>
@@ -131,53 +126,20 @@ const DataAccess: FunctionComponent<{
 };
 
 const LinearIntegrationsPage: NextPageWithLayout = () => {
-  const { linearIntegrations } = useLinearIntegrations();
-
-  const [getLinearOrganization] = useLazyQuery<
-    GetLinearOrganizationQuery,
-    GetLinearOrganizationQueryVariables
-  >(getLinearOrganizationQuery);
-
-  const [connectedLinearOrganizations, setConnectedLinearOrganizations] =
-    useState<GetLinearOrganizationQuery["getLinearOrganization"][]>();
-
-  useEffect(() => {
-    void (async () => {
-      if (linearIntegrations) {
-        const linearOrganizations = await Promise.all(
-          linearIntegrations.map(async ({ entity }) => {
-            const { linearOrgId } = simplifyProperties(
-              entity.properties as LinearIntegrationProperties,
-            );
-
-            const { data } = await getLinearOrganization({
-              variables: { linearOrgId },
-            });
-
-            if (data) {
-              return data.getLinearOrganization;
-            } else {
-              throw new Error("Could not get linear organization");
-            }
-          }),
-        );
-
-        setConnectedLinearOrganizations(linearOrganizations);
-      }
-    })();
-  }, [linearIntegrations, getLinearOrganization]);
+  const { linearIntegrations, connectedLinearOrganizations } =
+    useLinearIntegrations();
 
   return (
     <SettingsPageContainer
       heading={<LinearHeader />}
       sectionLabel="Data access"
     >
-      {connectedLinearOrganizations ? (
+      {connectedLinearOrganizations.length > 0 ? (
         <>
           {/* <LinearConnections
             connectedLinearOrganizations={connectedLinearOrganizations}
           /> */}
-          {linearIntegrations ? (
+          {linearIntegrations.length > 0 ? (
             <DataAccess
               linearIntegrations={linearIntegrations}
               connectedLinearOrganizations={connectedLinearOrganizations}

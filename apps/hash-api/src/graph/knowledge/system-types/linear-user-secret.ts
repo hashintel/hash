@@ -108,6 +108,7 @@ export const getLinearUserSecretByLinearOrgId: ImpureGraphFunction<
           {
             equal: [{ path: ["webId"] }, { parameter: userAccountId as WebId }],
           },
+          { equal: [{ path: ["archived"] }, { parameter: false }] },
           generateVersionedUrlMatchingFilter(
             systemEntityTypes.userSecret.entityTypeId,
             { ignoreParents: true },

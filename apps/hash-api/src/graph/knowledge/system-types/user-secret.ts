@@ -165,6 +165,8 @@ export const createUserSecret = async <
       integrationEntityId: sourceIntegrationEntityId,
     });
 
+    console.log("linkAndSecretPairs", linkAndSecretPairs);
+
     /**
      * We assume the managing bot is the same for all secrets linked from the integration.
      */

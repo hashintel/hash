@@ -15,7 +15,7 @@ import {
   getAllLinearIntegrationsWithLinearOrgId,
   getSyncedWebsForLinearIntegration,
 } from "../../graph/knowledge/system-types/linear-integration-entity";
-import { getLinearSecretValueByHashebId } from "../../graph/knowledge/system-types/linear-user-secret";
+import { getLinearSecretValueByHashWebEntityId } from "../../graph/knowledge/system-types/linear-user-secret";
 import { systemAccountId } from "../../graph/system-account";
 import { logger } from "../../logger";
 
@@ -148,11 +148,11 @@ export const linearWebhook: RequestHandler<
             const workflow =
               `${payloadAction}HashEntityFromLinearData` as const satisfies keyof WorkflowTypeMap;
 
-            const linearApiKey = await getLinearSecretValueByHashebId(
+            const linearApiKey = await getLinearSecretValueByHashWebEntityId(
               graphContext,
               { actorId: linearBotAccountId },
               {
-                webEntityId: hashWebEntityId,
+                hashWebEntityId,
                 vaultClient,
               },
             );

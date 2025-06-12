@@ -1,14 +1,23 @@
 import type { EntityId } from "@blockprotocol/type-system";
 import { Chip, Select } from "@hashintel/design-system";
+import { ArrowTurnDownRightIcon } from "@hashintel/type-editor/src/entity-type-editor/shared/arrow-turn-down-right-icon";
 import type { SyncWithWeb } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { LinearIntegrationProperties } from "@local/hash-isomorphic-utils/system-types/linearintegration";
-import { Box, TableBody, TableHead, TableRow } from "@mui/material";
+import {
+  Box,
+  outlinedInputClasses,
+  Stack,
+  TableBody,
+  TableHead,
+  TableRow,
+} from "@mui/material";
+import type { value } from "jsonpath";
 import type { Dispatch, FunctionComponent, SetStateAction } from "react";
 import { Fragment, useCallback, useMemo, useState } from "react";
 
 import type { GetLinearOrganizationQuery } from "../../../../graphql/api-types.gen";
 import type { MinimalUser, Org } from "../../../../lib/user-and-org";
+import { LinearLogoGray } from "../../../../shared/icons/linear-logo-gray";
 import { MenuItem } from "../../../../shared/ui";
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
 import { SettingsTable } from "../../shared/settings-table";
@@ -28,6 +37,12 @@ const SelectWebs: FunctionComponent<{
       multiple
       value={selectedWebEntityIds}
       open={selectOpen}
+      sx={{
+        [`& .${outlinedInputClasses.input}`]: {
+          pl: 2,
+          py: 1,
+        },
+      }}
       onOpen={() => setSelectOpen(true)}
       onClose={() => setSelectOpen(false)}
       onChange={({ target: { value } }) => {
@@ -84,8 +99,8 @@ export const mapLinearOrganizationToLinearOrganizationTeamsWithWebs =
       webEntityIds: params.linearIntegrations
         .find(
           ({ entity }) =>
-            simplifyProperties(entity.properties as LinearIntegrationProperties)
-              .linearOrgId === organization.id,
+            simplifyProperties(entity.properties).linearOrgId ===
+            organization.id,
         )!
         .syncedWithWebs.filter(
           ({ linearTeamIds }) =>
@@ -242,9 +257,9 @@ export const SelectLinearTeamsTable: FunctionComponent<{
   );
 
   return (
-    <SettingsTable sx={{ minWidth: 650 }} aria-label="simple table">
+    <SettingsTable sx={{ minWidth: 650 }}>
       <TableHead>
-        <TableRow>
+        <TableRow sx={{ background: ({ palette }) => palette.gray[10] }}>
           <SettingsTableCell>
             Type{" "}
             <Box
@@ -278,7 +293,12 @@ export const SelectLinearTeamsTable: FunctionComponent<{
         {linearOrganizations.map((linearOrganization) => (
           <Fragment key={linearOrganization.id}>
             <TableRow>
-              <SettingsTableCell>Workspace</SettingsTableCell>
+              <SettingsTableCell>
+                <Stack direction="row" alignItems="center" gap={1}>
+                  <LinearLogoGray sx={{ fontSize: 14 }} />
+                  Workspace
+                </Stack>
+              </SettingsTableCell>
               <SettingsTableCell>{linearOrganization.name}</SettingsTableCell>
               <SettingsTableCell>
                 <SelectWebs
@@ -301,7 +321,17 @@ export const SelectLinearTeamsTable: FunctionComponent<{
             {linearOrganization.teams.map(
               ({ id: linearTeamId, name: teamName }) => (
                 <TableRow key={linearTeamId}>
-                  <SettingsTableCell>Team</SettingsTableCell>
+                  <SettingsTableCell>
+                    <Stack direction="row" alignItems="center" gap={1}>
+                      <ArrowTurnDownRightIcon
+                        sx={{
+                          fontSize: 14,
+                          fill: ({ palette }) => palette.gray[40],
+                        }}
+                      />
+                      Team
+                    </Stack>
+                  </SettingsTableCell>
                   <SettingsTableCell>{teamName}</SettingsTableCell>
                   <SettingsTableCell>
                     <SelectWebs

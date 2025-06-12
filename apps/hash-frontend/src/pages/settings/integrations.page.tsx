@@ -4,7 +4,6 @@ import type { FunctionComponent, ReactNode } from "react";
 import { useContext } from "react";
 
 import { useHashInstance } from "../../components/hooks/use-hash-instance";
-import { isProduction } from "../../lib/config";
 import { extractWebId } from "../../lib/user-and-org";
 import { GoogleSheetsIcon } from "../../shared/icons/google-sheets-icon";
 import { LinearLogo } from "../../shared/icons/linear-logo";
@@ -13,6 +12,7 @@ import { Link } from "../../shared/ui";
 import { Button } from "../../shared/ui/button";
 import { getSettingsLayout } from "../shared/settings-layout";
 import { WorkspaceContext } from "../shared/workspace-context";
+import { UserConnectedIntegrations } from "./integrations/user-connected-integrations";
 import { SettingsPageContainer } from "./shared/settings-page-container";
 
 type IntegrationCardProps = {
@@ -63,7 +63,7 @@ const AddNewIntegrations: FunctionComponent = () => {
   }
 
   return (
-    <>
+    <Box>
       <Typography variant="mediumCaps" mb={2} component="div">
         Add new integration
       </Typography>
@@ -87,7 +87,7 @@ const AddNewIntegrations: FunctionComponent = () => {
           />
         )}
       </Stack>
-    </>
+    </Box>
   );
 };
 
@@ -116,7 +116,10 @@ const IntegrationsPage: NextPageWithLayout = () => {
           </Typography>
         </>
       ) : (
-        <AddNewIntegrations />
+        <Stack gap={6}>
+          <AddNewIntegrations />
+          <UserConnectedIntegrations />
+        </Stack>
       )}
     </SettingsPageContainer>
   );

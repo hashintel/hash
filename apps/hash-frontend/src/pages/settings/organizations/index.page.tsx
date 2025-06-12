@@ -11,9 +11,9 @@ import { Button } from "../../../shared/ui/button";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
 import { getSettingsLayout } from "../../shared/settings-layout";
 import { SettingsPageContainer } from "../shared/settings-page-container";
-import { OrgRow } from "./index.page/org-row";
-import { SettingsTableCell } from "../shared/settings-table-cell";
 import { SettingsTable } from "../shared/settings-table";
+import { SettingsTableCell } from "../shared/settings-table-cell";
+import { OrgRow } from "./index.page/org-row";
 
 const OrganizationListPage: NextPageWithLayout = () => {
   const router = useRouter();

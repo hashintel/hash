@@ -11,7 +11,7 @@ import { proxyActivities } from "@temporalio/workflow";
 import type { createLinearIntegrationActivities } from "./linear-activities";
 
 const commonConfig: ActivityOptions = {
-  startToCloseTimeout: "180 second",
+  startToCloseTimeout: "360 second",
   retry: {
     maximumAttempts: 3,
   },

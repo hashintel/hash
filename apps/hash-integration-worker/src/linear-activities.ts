@@ -246,32 +246,67 @@ const createOrUpdateHashEntity = async (params: {
           },
         }),
       ),
-      ...addedOutgoingLinks.map(({ linkEntityTypeId, destinationEntityId }) =>
-        HashLinkEntity.create(graphApiClient, params.authentication, {
-          entityTypeIds: [linkEntityTypeId],
-          linkData: {
-            leftEntityId: existingEntity.metadata.recordId.entityId,
-            rightEntityId: destinationEntityId,
-          },
-          properties: { value: {} },
-          provenance,
-          webId: params.webId,
-          draft: false,
-          relationships: [
+      ...addedOutgoingLinks.map(
+        async ({ linkEntityTypeId, destinationEntityId }) => {
+          const linkEntity = await HashLinkEntity.create(
+            graphApiClient,
+            params.authentication,
             {
-              relation: "setting",
-              subject: { kind: "setting", subjectId: "administratorFromWeb" },
+              entityTypeIds: [linkEntityTypeId],
+              linkData: {
+                leftEntityId: existingEntity.metadata.recordId.entityId,
+                rightEntityId: destinationEntityId,
+              },
+              properties: { value: {} },
+              provenance,
+              webId: params.webId,
+              draft: false,
+              relationships: [
+                {
+                  relation: "administrator",
+                  subject: {
+                    kind: "account",
+                    subjectId: params.authentication.actorId,
+                  },
+                },
+                {
+                  relation: "setting",
+                  subject: {
+                    kind: "setting",
+                    subjectId: "administratorFromWeb",
+                  },
+                },
+                {
+                  relation: "setting",
+                  subject: { kind: "setting", subjectId: "updateFromWeb" },
+                },
+                {
+                  relation: "setting",
+                  subject: { kind: "setting", subjectId: "viewFromWeb" },
+                },
+              ],
             },
-            {
-              relation: "setting",
-              subject: { kind: "setting", subjectId: "updateFromWeb" },
+          );
+
+          const linkEntityUuid = extractEntityUuidFromEntityId(
+            linkEntity.entityId,
+          );
+
+          await createPolicy(graphApiClient, params.authentication, {
+            name: `linear-synced-administer-entity-${linkEntityUuid}`,
+            effect: "permit",
+            principal: {
+              type: "actor",
+              actorType: "machine",
+              id: params.authentication.actorId,
             },
-            {
-              relation: "setting",
-              subject: { kind: "setting", subjectId: "viewFromWeb" },
+            actions: ["viewEntity"],
+            resource: {
+              type: "entity",
+              id: linkEntityUuid,
             },
-          ],
-        }),
+          });
+        },
       ),
     ]);
 
