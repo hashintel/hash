@@ -1729,7 +1729,7 @@ where
     async fn build_entity_type_context(
         &self,
         entity_type_ids: &[&VersionedUrl],
-    ) -> Result<Vec<EntityTypeResource>, Report<[BuildEntityTypeContextError]>> {
+    ) -> Result<Vec<EntityTypeResource<'_>>, Report<[BuildEntityTypeContextError]>> {
         let () = self
             .as_client()
             .query(
