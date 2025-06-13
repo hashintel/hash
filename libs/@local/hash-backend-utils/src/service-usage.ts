@@ -38,6 +38,7 @@ import type {
 } from "@local/hash-isomorphic-utils/system-types/usagerecord";
 import { backOff } from "exponential-backoff";
 
+import type { PrincipalConstraint } from "@rust/hash-graph-authorization/types";
 import { getInstanceAdminsTeam } from "./hash-instance.js";
 
 /**
@@ -288,6 +289,14 @@ export const createUsageRecord = async (
       },
     });
   }
+
+  const viewPrincipals: PrincipalConstraint[] = [
+    {
+      type: "actor",
+      actorType: "user",
+      id: userAccountId,
+    },
+  ];
 
   const usageRecordEntityUuid = generateUuid() as EntityUuid;
   const recordsUsageOfEntityUuid = generateUuid() as EntityUuid;
