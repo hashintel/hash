@@ -29,6 +29,7 @@
     "fix:clippy": "just clippy --fix",
     "lint:clippy": "just clippy",
     "lint:tsc": "tsc --noEmit",
+    "test:integration": "cargo hack nextest run --feature-powerset --all-targets --filterset \"kind(test) | kind(bench)\" --no-tests warn",
     "test:unit": "cargo hack nextest run --feature-powerset --all-targets && cargo test --all-features --doc"
   },
   "dependencies": {
