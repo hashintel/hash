@@ -93,6 +93,7 @@ async fn empty_entity() {
                 link_data: None,
                 draft: false,
                 relationships: [],
+                policies: Vec::new(),
                 provenance: ProvidedEntityEditionProvenance {
                     actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
@@ -127,6 +128,7 @@ async fn initial_person() {
                 link_data: None,
                 draft: false,
                 relationships: [],
+                policies: Vec::new(),
                 provenance: ProvidedEntityEditionProvenance {
                     actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
@@ -298,6 +300,7 @@ async fn create_multi() {
                 link_data: None,
                 draft: false,
                 relationships: [],
+                policies: Vec::new(),
                 provenance: ProvidedEntityEditionProvenance {
                     actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
