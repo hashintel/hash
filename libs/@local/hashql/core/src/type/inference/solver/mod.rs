@@ -128,6 +128,12 @@ impl Unification {
         self.variables[id.into_usize()]
     }
 
+    fn root_kind(&mut self, id: VariableId) -> VariableKind {
+        let root = self.table.find(id);
+
+        self.variables[root.into_usize()]
+    }
+
     fn provenance(&mut self, variable: VariableKind) -> VariableProvenance {
         let id = self.root_id(variable);
 
@@ -439,7 +445,8 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         for &constraint in &self.constraints {
             let edges = match constraint {
                 Constraint::Ordering { lower, upper } => [Some((lower, upper)), None],
-                Constraint::StructuralEdge { source, target } => [Some((source, target)), None],
+                // to be removed see: https://linear.app/hash/issue/H-4780/hashql-remove-structural-edges-during-type-inference
+                // Constraint::StructuralEdge { source, target } => [Some((source, target)), None],
                 Constraint::Unify { lhs, rhs } => [Some((lhs, rhs)), Some((rhs, lhs))],
                 _ => continue,
             };
@@ -459,8 +466,11 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         // since they must be equal due to anti-symmetry of the subtyping relation
         for scc in tarjan.compute() {
             for [lhs, rhs] in scc.iter().map_windows(|values: &[_; 2]| *values) {
-                let lhs = self.unification.variables[lhs as usize];
-                let rhs = self.unification.variables[rhs as usize];
+                let lhs_id = graph.node(lhs as usize);
+                let rhs_id = graph.node(rhs as usize);
+
+                let lhs = self.unification.root_kind(lhs_id);
+                let rhs = self.unification.root_kind(rhs_id);
 
                 let lhs_entry = variables.remove_entry(&lhs);
                 let rhs_entry = variables.remove_entry(&rhs);
@@ -973,6 +983,63 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         is_satisfiable
     }
 
+    fn solve_constraints_inference(
+        &mut self,
+        EvaluatedVariableConstraint {
+            equal,
+            lower,
+            upper,
+        }: EvaluatedVariableConstraint,
+    ) {
+        let mut discharge = SmallVec::with_capacity(6);
+
+        if let Some(lower) = lower
+            && !self.lattice.is_concrete(lower)
+        {
+            // discharge (if available) `lower <: equal` and `lower <: upper`
+            if let Some(equal) = equal {
+                discharge.push((lower, equal));
+            }
+
+            if let Some(upper) = upper {
+                discharge.push((lower, upper));
+            }
+        }
+
+        if let Some(equal) = equal
+            && !self.lattice.is_concrete(equal)
+        {
+            // discharge (if available) `lower <: equal` and `equal <: upper`
+            if let Some(lower) = lower {
+                discharge.push((lower, equal));
+            }
+
+            if let Some(upper) = upper {
+                discharge.push((equal, upper));
+            }
+        }
+
+        if let Some(upper) = upper
+            && !self.lattice.is_concrete(upper)
+        {
+            // discharge (if available) `equal <: upper` and `lower <: upper`
+            if let Some(equal) = equal {
+                discharge.push((equal, upper));
+            }
+
+            if let Some(lower) = lower {
+                discharge.push((lower, upper));
+            }
+        }
+
+        discharge.sort_unstable();
+        discharge.dedup();
+
+        for (subtype, supertype) in discharge {
+            self.inference.collect_constraints(subtype, supertype);
+        }
+    }
+
     /// Validates constraints and determines final variable types.
     ///
     /// Verifies:
@@ -986,6 +1053,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         &mut self,
         constraints: &FastHashMap<VariableKind, (Variable, VariableConstraint)>,
         substitutions: &mut FastHashMap<VariableKind, TypeId>,
+        unconstrained: &mut Vec<Variable, &Bump>,
     ) {
         // Prepare a substitution map using the existing equality constraints
         // This allows us to use these equalities when verifying other constraints
@@ -1012,6 +1080,8 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         for (&kind, (variable, constraint)) in constraints {
             let variable = *variable;
             let (constraint, satisfiable) = constraint.finish();
+
+            self.solve_constraints_inference(constraint);
 
             // First, verify that lower and upper bounds are compatible
             // (i.e., lower <: upper)
@@ -1049,12 +1119,15 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                     equal: None,
                     lower: None,
                     upper: None,
-                } if provenance == VariableProvenance::Generic => {}
+                } if provenance == VariableProvenance::Generic => {
+                    unconstrained.push(variable);
+                }
                 EvaluatedVariableConstraint {
                     equal: None,
                     lower: None,
                     upper: None,
                 } => {
+                    unconstrained.push(variable);
                     self.diagnostics.push(unconstrained_type_variable(variable));
                 }
                 // in case there's a single constraint we can simply just use that type
@@ -1385,6 +1458,64 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         }
     }
 
+    /// Attempts to solve previously unconstrained variables using the generated substitution.
+    ///
+    /// This method handles variables that remain unconstrained after the initial constraint
+    /// solving phase. Unconstrained variables can occur when we have constraint chains where
+    /// intermediate variables lack sufficient bounds in one direction.
+    ///
+    /// For example, given constraints `A <: B` and `Integer <: B`, when trying to solve for
+    /// the upper bound of `A`, we need to find any upper bound for `B`. However, if `B` only
+    /// has a lower bound (`Integer`), then `A` stays unconstrained in the upper direction.
+    ///
+    /// This method resolves such cases by examining the constraint graph after reaching a
+    /// fix-point and using the generated substitution to provide bounds for previously
+    /// unconstrained variables. It cannot be performed earlier due to the constraint
+    /// propagation strategy, which uses a forward-pass for lower bounds followed by a
+    /// backward-pass for upper bounds.
+    ///
+    /// The method iterates through unconstrained variables and checks their graph connections
+    /// (both incoming and outgoing edges) to see if any connected variables now have resolved
+    /// types in the substitution. If so, it adds appropriate bound constraints.
+    ///
+    /// Returns `true` if any progress was made (new constraints were added), `false` otherwise.
+    fn solve_unconstrained(
+        &mut self,
+        graph: &Graph,
+        substitution: &FastHashMap<VariableKind, TypeId>,
+        unconstrained: Vec<Variable, &Bump>,
+    ) -> bool {
+        let mut made_progress = false;
+
+        for variable in unconstrained {
+            let id = self.unification.root_id(variable.kind);
+
+            for upper in graph.outgoing_edges(id) {
+                let kind = self.unification.root_kind(upper);
+
+                if let Some(&bound) = substitution.get(&kind) {
+                    self.constraints
+                        .push(Constraint::UpperBound { variable, bound });
+
+                    made_progress = true;
+                }
+            }
+
+            for lower in graph.incoming_edges(id) {
+                let kind = self.unification.root_kind(lower);
+
+                if let Some(&bound) = substitution.get(&kind) {
+                    self.constraints
+                        .push(Constraint::LowerBound { variable, bound });
+
+                    made_progress = true;
+                }
+            }
+        }
+
+        made_progress
+    }
+
     /// Solves the constraint system via fix-point iteration.
     ///
     /// # Algorithm
@@ -1456,15 +1587,22 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
 
             // Step 1.8: Validate constraints and determine final types
             substitution.clear();
-            self.solve_constraints(&variables, &mut substitution);
-
+            let mut unconstrained = Vec::new_in(&bump);
+            self.solve_constraints(&variables, &mut substitution, &mut unconstrained);
             self.constraints.clear();
+
+            // Check if there are any constraints that have been generated by the
+            // `solve_constraints` due to any unsolved variables
+            self.inference.drain_constraints_into(&mut self.constraints);
+            made_progress |= !self.constraints.is_empty(); // If there are constraints, we made progress
+
+            made_progress |= self.solve_unconstrained(&graph, &substitution, unconstrained);
 
             if !selections.is_empty() {
                 // By making this conditional it means that we can save on the clone if not
                 // required.
                 let substitution = Substitution::new(lookup.clone(), substitution.clone());
-                made_progress = self.solve_selection_constraints(substitution, &mut selections);
+                made_progress |= self.solve_selection_constraints(substitution, &mut selections);
             }
 
             // Reset the bump allocator for the next iteration to avoid memory growth

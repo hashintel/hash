@@ -274,6 +274,23 @@ impl Graph {
     pub(crate) fn outgoing_edges_by_index(&self, node: usize) -> impl Iterator<Item = usize> {
         self.nodes[node].edges.iter().map(|edge| edge as usize)
     }
+
+    pub(crate) fn outgoing_edges(&self, node: VariableId) -> impl Iterator<Item = VariableId> {
+        self.outgoing_edges_by_index(self.lookup_id(node))
+            .map(|index| self.nodes[index].id)
+    }
+
+    pub(crate) fn incoming_edges(&self, node: VariableId) -> impl Iterator<Item = VariableId> {
+        let id = self.lookup_id(node);
+
+        self.nodes
+            .iter()
+            .filter(move |node| {
+                #[expect(clippy::cast_possible_truncation)]
+                node.edges.contains(id as u32)
+            })
+            .map(|node| node.id)
+    }
 }
 
 #[cfg(test)]

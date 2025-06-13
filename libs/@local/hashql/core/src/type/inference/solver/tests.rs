@@ -329,6 +329,7 @@ fn apply_constraints_with_unification() {
 #[test]
 fn solve_constraints() {
     let heap = Heap::new();
+    let bump = Bump::new();
     let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
     let hole = HoleId::new(0);
@@ -351,7 +352,11 @@ fn solve_constraints() {
 
     // Directly call solve_constraints
     let mut substitutions = FastHashMap::default();
-    solver.solve_constraints(&applied_constraints, &mut substitutions);
+    solver.solve_constraints(
+        &applied_constraints,
+        &mut substitutions,
+        &mut Vec::new_in(&bump),
+    );
 
     // Verify the substitution
     assert_eq!(substitutions.len(), 1);
@@ -361,6 +366,7 @@ fn solve_constraints() {
 #[test]
 fn solve_constraints_with_equality() {
     let heap = Heap::new();
+    let bump = Bump::new();
     let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
     let hole = HoleId::new(0);
@@ -381,7 +387,11 @@ fn solve_constraints_with_equality() {
     let mut solver = InferenceSolver::new(InferenceEnvironment::new(&env).with_constraints([]));
 
     let mut substitutions = FastHashMap::default();
-    solver.solve_constraints(&applied_constraints, &mut substitutions);
+    solver.solve_constraints(
+        &applied_constraints,
+        &mut substitutions,
+        &mut Vec::new_in(&bump),
+    );
 
     assert_eq!(substitutions.len(), 1);
     assert_eq!(substitutions[&var.kind], string);
@@ -390,6 +400,7 @@ fn solve_constraints_with_equality() {
 #[test]
 fn solve_constraints_with_incompatible_bounds() {
     let heap = Heap::new();
+    let bump = Bump::new();
     let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
     let hole = HoleId::new(0);
@@ -412,7 +423,11 @@ fn solve_constraints_with_incompatible_bounds() {
 
     // These bounds are incompatible, so a diagnostic should be created
     let mut substitutions = FastHashMap::default();
-    solver.solve_constraints(&applied_constraints, &mut substitutions);
+    solver.solve_constraints(
+        &applied_constraints,
+        &mut substitutions,
+        &mut Vec::new_in(&bump),
+    );
 
     let diagnostics = solver.diagnostics.into_vec();
     assert_eq!(diagnostics.len(), 1);
@@ -426,6 +441,7 @@ fn solve_constraints_with_incompatible_bounds() {
 #[test]
 fn solve_constraints_with_incompatible_equality() {
     let heap = Heap::new();
+    let bump = Bump::new();
     let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
     let hole = HoleId::new(0);
@@ -447,7 +463,11 @@ fn solve_constraints_with_incompatible_equality() {
     let mut solver = InferenceSolver::new(InferenceEnvironment::new(&env).with_constraints([]));
 
     let mut substitutions = FastHashMap::default();
-    solver.solve_constraints(&applied_constraints, &mut substitutions);
+    solver.solve_constraints(
+        &applied_constraints,
+        &mut substitutions,
+        &mut Vec::new_in(&bump),
+    );
 
     let diagnostics = solver.diagnostics.into_vec();
     assert_eq!(diagnostics.len(), 1);
@@ -460,6 +480,7 @@ fn solve_constraints_with_incompatible_equality() {
 #[test]
 fn solve_constraints_with_incompatible_upper_equal_constraint() {
     let heap = Heap::new();
+    let bump = Bump::new();
     let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
     let hole = HoleId::new(0);
@@ -483,7 +504,11 @@ fn solve_constraints_with_incompatible_upper_equal_constraint() {
 
     // This should exercise lines 916-929
     let mut substitutions = FastHashMap::default();
-    solver.solve_constraints(&applied_constraints, &mut substitutions);
+    solver.solve_constraints(
+        &applied_constraints,
+        &mut substitutions,
+        &mut Vec::new_in(&bump),
+    );
 
     // Should have a diagnostic for incompatible upper equal constraint
     let diagnostics = solver.diagnostics.into_vec();
@@ -731,7 +756,7 @@ fn bounds_at_lattice_extremes() {
 
     // These bounds should be compatible
     let mut substitutions = FastHashMap::default();
-    solver.solve_constraints(&variables, &mut substitutions);
+    solver.solve_constraints(&variables, &mut substitutions, &mut Vec::new_in(&bump));
     assert!(solver.diagnostics.is_empty());
 
     // The variable should be inferred to the lower bound (Never)

@@ -341,11 +341,17 @@ impl Substitution {
     }
 
     pub(crate) fn insert(&mut self, key: VariableKind, value: TypeId) {
-        self.substitutions.insert(key, value);
+        let root = self.variables[key];
+
+        self.substitutions.insert(root, value);
     }
 
     pub(crate) fn contains(&self, kind: VariableKind) -> bool {
-        self.substitutions.contains_key(&kind)
+        let Some(root) = self.variables.get(kind) else {
+            return false;
+        };
+
+        self.substitutions.contains_key(&root)
     }
 
     #[must_use]
