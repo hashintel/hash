@@ -118,8 +118,13 @@ export const systemEntityTypes = {
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/institution/" as BaseUrl,
   },
+  integration: {
+    entityTypeId: "https://hash.ai/@h/types/entity-type/integration/v/1",
+    entityTypeBaseUrl:
+      "https://hash.ai/@h/types/entity-type/integration/" as BaseUrl,
+  },
   linearIntegration: {
-    entityTypeId: "https://hash.ai/@h/types/entity-type/linear-integration/v/7",
+    entityTypeId: "https://hash.ai/@h/types/entity-type/linear-integration/v/8",
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/linear-integration/" as BaseUrl,
   },

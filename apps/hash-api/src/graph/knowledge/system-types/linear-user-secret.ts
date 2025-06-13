@@ -26,6 +26,7 @@ import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-proper
 import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { LinearIntegration } from "@local/hash-isomorphic-utils/system-types/linearintegration";
 import type { UserSecret } from "@local/hash-isomorphic-utils/system-types/shared";
+import * as Sentry from "@sentry/node";
 
 import type {
   ImpureGraphFunction,
@@ -107,6 +108,7 @@ export const getLinearUserSecretByLinearOrgId: ImpureGraphFunction<
           {
             equal: [{ path: ["webId"] }, { parameter: userAccountId as WebId }],
           },
+          { equal: [{ path: ["archived"] }, { parameter: false }] },
           generateVersionedUrlMatchingFilter(
             systemEntityTypes.userSecret.entityTypeId,
             { ignoreParents: true },
@@ -147,9 +149,11 @@ export const getLinearUserSecretByLinearOrgId: ImpureGraphFunction<
     );
 
   if (entities.length > 1) {
-    throw new Error(
-      `More than one linear user secret found for the user with the linear org ID ${linearOrgId}`,
-    );
+    const warningMessage = `More than one linear user secret (${entities.length}) found for the user ${userAccountId} with the linear org ID ${linearOrgId}`;
+
+    Sentry.captureMessage(warningMessage);
+    // eslint-disable-next-line no-console
+    console.warn(warningMessage);
   }
 
   const entity = entities[0];
@@ -164,22 +168,22 @@ export const getLinearUserSecretByLinearOrgId: ImpureGraphFunction<
 };
 
 /**
- * Get a Linear user secret value by the HASH workspace it is associated with.
- * @todo there may be multiple Linear user secrets associated with a workspace – handle the following filters:
- *   - the Linear workspace the secret is associated with (there may be multiple synced to a HASH workspace)
+ * Get a Linear user secret value by the HASH web it is associated with.
+ * @todo there may be multiple Linear user secrets associated with a web – handle the following filters:
+ *   - the Linear workspace the secret is associated with (there may be multiple synced to a HASH web)
  *   - the user that created the integration (multiple users may have created a relevant secret)
  */
 
-export const getLinearSecretValueByHashWorkspaceId: ImpureGraphFunction<
+export const getLinearSecretValueByHashWebEntityId: ImpureGraphFunction<
   {
-    hashWorkspaceEntityId: EntityId;
+    hashWebEntityId: EntityId;
     vaultClient: VaultClient;
     includeDrafts?: boolean;
   },
   Promise<string>
 > = async (context, authentication, params) => {
-  const { hashWorkspaceEntityId, vaultClient, includeDrafts = false } = params;
-  const [workspaceWebId, workspaceUuid] = splitEntityId(hashWorkspaceEntityId);
+  const { hashWebEntityId, vaultClient, includeDrafts = false } = params;
+  const [webId, webUuid] = splitEntityId(hashWebEntityId);
 
   const linearIntegrationEntities = await context.graphApi
     .getEntities(authentication.actorId, {
@@ -196,7 +200,7 @@ export const getLinearSecretValueByHashWorkspaceId: ImpureGraphFunction<
             equal: [
               { path: ["outgoingLinks", "rightEntity", "uuid"] },
               {
-                parameter: workspaceUuid,
+                parameter: webUuid,
               },
             ],
           },
@@ -204,7 +208,7 @@ export const getLinearSecretValueByHashWorkspaceId: ImpureGraphFunction<
             equal: [
               { path: ["outgoingLinks", "rightEntity", "webId"] },
               {
-                parameter: workspaceWebId,
+                parameter: webId,
               },
             ],
           },
@@ -223,13 +227,13 @@ export const getLinearSecretValueByHashWorkspaceId: ImpureGraphFunction<
 
   if (!integrationEntity) {
     throw new NotFoundError(
-      `No Linear integration found for workspace ${hashWorkspaceEntityId}`,
+      `No Linear integration found for web ${hashWebEntityId}`,
     );
   }
 
   if (linearIntegrationEntities.length > 1) {
     throw new Error(
-      `Multiple Linear integrations found for workspace ${hashWorkspaceEntityId}`,
+      `Multiple Linear integrations found for web ${hashWebEntityId}`,
     );
   }
 
