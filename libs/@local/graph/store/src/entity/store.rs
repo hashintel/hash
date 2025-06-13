@@ -159,7 +159,7 @@ pub struct CreateEntityParams<R> {
     pub draft: bool,
     pub relationships: R,
     #[cfg_attr(feature = "utoipa", schema(value_type = Vec<Object>))]
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub policies: Vec<CreateEntityPolicyParams>,
     pub provenance: ProvidedEntityEditionProvenance,
 }
