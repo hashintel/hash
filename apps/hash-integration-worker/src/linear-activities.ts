@@ -117,7 +117,7 @@ const createHashEntity = async (params: {
     graphApiClient,
     { actorId: params.authentication.actorId },
     params.outgoingLinks.map(({ linkEntityTypeId, destinationEntityId }) => {
-      const linkEntityUuid = extractEntityUuidFromEntityId(entity.entityId);
+      const linkEntityUuid = uuidv4() as EntityUuid;
       return {
         webId,
         entityUuid: linkEntityUuid,
