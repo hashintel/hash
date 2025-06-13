@@ -59,6 +59,7 @@ fn attach_group() {
     root.push(shallow);
 
     assert_eq!(root.current_contexts().count(), 3);
+    assert_eq!(root.into_current_contexts().count(), 3);
 }
 
 #[test]
