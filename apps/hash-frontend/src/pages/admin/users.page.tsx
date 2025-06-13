@@ -1,112 +1,224 @@
-import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import {
-  Table,
-  TableBody,
+  type FeatureFlag,
+  featureFlags,
+} from "@local/hash-isomorphic-utils/feature-flags";
+import {
+  Box,
+  Chip,
+  MenuItem,
+  Select,
+  type SxProps,
   TableCell,
-  tableCellClasses,
-  TableHead,
-  TableRow,
+  type Theme,
   Typography,
 } from "@mui/material";
-import { format } from "date-fns";
+import { memo, useMemo, useState } from "react";
 
 import { useUsers } from "../../components/hooks/use-users";
 import type { NextPageWithLayout } from "../../shared/layout";
 import { Link } from "../../shared/ui";
+import {
+  type CreateVirtualizedRowContentFn,
+  defaultCellSx,
+  VirtualizedTable,
+  type VirtualizedTableColumn,
+  type VirtualizedTableRow,
+} from "../shared/virtualized-table";
+import type { VirtualizedTableSort } from "../shared/virtualized-table/header/sort";
 import { getAdminLayout } from "./admin-page-layout";
 
 const noValueTableCellContent = (
   <Typography component="i" sx={{ color: ({ palette }) => palette.gray[50] }}>
-    No Value
+    Not set
   </Typography>
 );
+
+const cellSx: SxProps<Theme> = {
+  ...defaultCellSx,
+  fontSize: 14,
+  height: 40,
+};
+
+type FieldId =
+  | "shortname"
+  | "displayName"
+  | "email"
+  | "createdAt"
+  | "enabledFeatureFlags";
+
+const columns: VirtualizedTableColumn<FieldId>[] = [
+  {
+    id: "shortname",
+    label: "Shortname",
+    sortable: true,
+    width: 120,
+  },
+  {
+    id: "displayName",
+    label: "Display name",
+    sortable: true,
+    width: 120,
+  },
+  {
+    id: "email",
+    label: "Email",
+    sortable: true,
+    width: 120,
+  },
+  {
+    id: "createdAt",
+    label: "Date created",
+    sortable: true,
+    width: 150,
+  },
+  {
+    id: "enabledFeatureFlags",
+    label: "Feature flags",
+    sortable: true,
+    width: 200,
+  },
+];
+
+type UserRowData = {
+  shortname?: string;
+  displayName?: string;
+  enabledFeatureFlags: FeatureFlag[];
+  email: string;
+  createdAt: string;
+};
+
+const TableRow = memo(({ user }: { user: UserRowData }) => {
+  const { shortname, displayName, email, createdAt, enabledFeatureFlags } =
+    user;
+
+  console.log(enabledFeatureFlags);
+
+  return (
+    <>
+      <TableCell sx={cellSx}>
+        {shortname ? (
+          <Link href={`@${shortname}`}>@{shortname}</Link>
+        ) : (
+          noValueTableCellContent
+        )}
+      </TableCell>
+      <TableCell sx={cellSx}>
+        {displayName ?? noValueTableCellContent}
+      </TableCell>
+      <TableCell sx={cellSx}>{email}</TableCell>
+      <TableCell sx={cellSx}>{new Date(createdAt).toISOString()}</TableCell>
+      <TableCell sx={cellSx}>
+        <Select
+          multiple
+          value={enabledFeatureFlags}
+          onChange={(event) => {
+            console.log(event.target.value);
+          }}
+          renderValue={(selected) => {
+            return (
+              <Box display="flex" flexWrap="wrap" gap={0.5} p={0.2}>
+                {selected.map((value) => (
+                  <Chip
+                    color="blue"
+                    key={value}
+                    label={value}
+                    sx={{ "& .MuiChip-label": { fontSize: 12 } }}
+                  />
+                ))}
+              </Box>
+            );
+          }}
+          sx={{
+            "& .MuiSelect-select": {
+              px: 1,
+              py: 0.5,
+              fontSize: 12,
+            },
+            width: "100%",
+          }}
+        >
+          {featureFlags.map((featureFlag) => (
+            <MenuItem key={featureFlag} value={featureFlag}>
+              {featureFlag}
+            </MenuItem>
+          ))}
+        </Select>
+      </TableCell>
+    </>
+  );
+});
+
+const createRowContent: CreateVirtualizedRowContentFn<UserRowData> = (
+  _index,
+  row,
+) => <TableRow user={row.data} />;
 
 const AdminUsersPage: NextPageWithLayout = () => {
   const { users } = useUsers();
 
+  const [sort, setSort] = useState<VirtualizedTableSort<FieldId>>({
+    fieldId: "createdAt",
+    direction: "desc",
+  });
+
+  const userRows = useMemo<VirtualizedTableRow<UserRowData>[]>(() => {
+    if (!users) {
+      return [];
+    }
+
+    return users
+      .map((user) => ({
+        id: user.entity.metadata.recordId.entityId,
+        data: {
+          shortname: user.shortname,
+          displayName: user.displayName,
+          enabledFeatureFlags:
+            (user.entity.properties[
+              "https://hash.ai/@h/types/property-type/enabled-feature-flags/"
+            ] as FeatureFlag[] | undefined) ?? [],
+          email:
+            user.entity.properties[
+              "https://hash.ai/@h/types/property-type/email/"
+            ][0],
+          createdAt: user.entity.metadata.provenance.createdAtDecisionTime,
+        },
+      }))
+      .sort((a, b) => {
+        const field = sort.fieldId;
+        const direction = sort.direction === "asc" ? 1 : -1;
+
+        if (field === "enabledFeatureFlags") {
+          return (
+            (a.data.enabledFeatureFlags.length -
+              b.data.enabledFeatureFlags.length) *
+            direction
+          );
+        }
+
+        return (
+          (a.data[field] ?? "").localeCompare(b.data[field] ?? "") * direction
+        );
+      });
+  }, [users, sort]);
+
   return (
     <>
-      <Typography variant="h5" sx={{ marginBottom: 2 }}>
+      <Typography
+        variant="smallCaps"
+        sx={{ marginBottom: 1, ml: 0.5 }}
+        component="div"
+      >
         Registered Users {users ? `(${users.length})` : ""}
       </Typography>
-      {/* @todo: we probably want to use a more customizable version of the `EntitiesTable` instead */}
-      <Table
-        sx={{
-          /** @todo: we probably want to move this into the theme definition */
-          background: ({ palette }) => palette.common.white,
-          boxShadow: ({ boxShadows }) => boxShadows.xs,
-          borderRadius: "6px",
-          overflow: "hidden",
-          [`.${tableCellClasses.root}:not(:last-of-type)`]: {
-            borderRightStyle: "solid",
-            borderRightWidth: 1,
-            borderRightColor: ({ palette }) => palette.gray[20],
-          },
-        }}
-      >
-        <TableHead
-          sx={{
-            [`.${tableCellClasses.root}`]: {
-              fontWeight: 600,
-              borderBottomColor: ({ palette }) => palette.gray[20],
-            },
-          }}
-        >
-          <TableRow>
-            <TableCell>User</TableCell>
-            <TableCell>Display name</TableCell>
-            <TableCell>Email address</TableCell>
-            <TableCell>Date created</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody
-          sx={{
-            [`.${tableCellClasses.root}`]: {
-              borderBottom: "none",
-            },
-          }}
-        >
-          {users
-            ? users.map(({ shortname, displayName, entity }) => {
-                const [email] =
-                  entity.properties[
-                    "https://hash.ai/@h/types/property-type/email/"
-                  ];
-
-                return (
-                  <TableRow key={entity.metadata.recordId.entityId}>
-                    <TableCell>
-                      {shortname ? (
-                        <Link
-                          sx={{ fontWeight: 700, textDecoration: "none" }}
-                          href={`/admin/users/${extractEntityUuidFromEntityId(
-                            entity.metadata.recordId.entityId,
-                          )}`}
-                        >
-                          @{shortname}
-                        </Link>
-                      ) : (
-                        noValueTableCellContent
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {displayName ?? noValueTableCellContent}
-                    </TableCell>
-                    <TableCell>{email}</TableCell>
-                    <TableCell>
-                      {format(
-                        new Date(
-                          entity.metadata.provenance.createdAtDecisionTime,
-                        ),
-                        "yyyy-MM-dd",
-                      )}
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            : "Loading..."}
-        </TableBody>
-      </Table>
+      <Box sx={{ height: 600 }}>
+        <VirtualizedTable
+          columns={columns}
+          createRowContent={createRowContent}
+          rows={userRows}
+          sort={sort}
+          setSort={setSort}
+        />
+      </Box>
     </>
   );
 };
