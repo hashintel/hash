@@ -19,7 +19,7 @@ pub struct InferenceEnvironment<'env, 'heap> {
     pub environment: &'env Environment<'heap>,
     boundary: RecursionBoundary<'heap>,
 
-    constraints: Vec<Constraint<'heap>>,
+    pub constraints: Vec<Constraint<'heap>>,
 
     variance: Variance,
 }

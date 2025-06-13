@@ -938,6 +938,9 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         // Step 1.4: First collect all constraints by variable
         self.collect_constraints(variables, selections);
 
+        // TODO: create a graph that makes use of the structural constraints to create an
+        // elimination order.
+
         // Step 1.5: Perform the forward pass to resolve lower bounds
         self.apply_constraints_forwards(graph, bump, variables);
 

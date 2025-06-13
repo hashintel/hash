@@ -2231,3 +2231,39 @@ fn deferred_upper_constraint() {
         number,
     );
 }
+
+#[test]
+fn nested_inference_constraints() {
+    // List<?1> <: ?2
+    // ?2 <: List<String>
+    // -> ?1 <: String
+    // -> ?1 = String
+    scaffold!(heap, env, builder);
+
+    let hole1 = builder.fresh_hole();
+
+    let hole2 = builder.fresh_hole();
+    let variable2 = Variable::synthetic(VariableKind::Hole(hole2));
+
+    let string = builder.string();
+
+    let mut inference = InferenceEnvironment::new(&env);
+    inference.add_constraint(Constraint::LowerBound {
+        variable: variable2,
+        bound: builder.list(builder.infer(hole1)),
+    });
+    inference.add_constraint(Constraint::UpperBound {
+        variable: variable2,
+        bound: builder.list(string),
+    });
+
+    let solver = inference.into_solver();
+    let (substitution, diagnostics) = solver.solve();
+    assert!(diagnostics.is_empty());
+
+    assert_equivalent(
+        &env,
+        substitution.infer(hole1).expect("should be resolved"),
+        string,
+    );
+}
