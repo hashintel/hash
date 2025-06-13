@@ -400,7 +400,10 @@ where
             Authorized::Always => {}
             Authorized::Never => filters.push(Filter::Any(Vec::new())),
             Authorized::Partial(partial) => {
-                filters.push(Filter::<Entity>::try_from(partial).change_context(QueryError)?);
+                filters.push(
+                    Filter::<Entity>::for_permission_condition(policy_components.actor_id, partial)
+                        .change_context(QueryError)?,
+                );
             }
         }
 
@@ -1470,7 +1473,10 @@ where
             Authorized::Always => {}
             Authorized::Never => filters.push(Filter::Any(Vec::new())),
             Authorized::Partial(partial) => {
-                filters.push(Filter::<Entity>::try_from(partial).change_context(QueryError)?);
+                filters.push(
+                    Filter::<Entity>::for_permission_condition(policy_components.actor_id, partial)
+                        .change_context(QueryError)?,
+                );
             }
         }
 
@@ -1516,7 +1522,10 @@ where
             Authorized::Always => {}
             Authorized::Never => filters.push(Filter::Any(Vec::new())),
             Authorized::Partial(partial) => {
-                filters.push(Filter::<Entity>::try_from(partial).change_context(QueryError)?);
+                filters.push(
+                    Filter::<Entity>::for_permission_condition(policy_components.actor_id, partial)
+                        .change_context(QueryError)?,
+                );
             }
         }
 

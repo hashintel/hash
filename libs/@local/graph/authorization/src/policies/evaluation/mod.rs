@@ -49,6 +49,7 @@ pub enum ResourceAttribute {
     OntologyTypeVersion(OntologyTypeVersion),
     IsOfType(VersionedUrl),
     CreatedBy(Option<ActorId>),
+    CreatedByPrincipal,
 }
 
 pub(crate) struct ResourceAttributeVisitor;
@@ -82,11 +83,23 @@ impl CedarExpressionVisitor for ResourceAttributeVisitor {
                             .change_context(ParsePermissionConditionError::InvalidAttribute)
                             .map(ResourceAttribute::OntologyTypeVersion),
                     ),
-                    "created_by" => Some(
-                        ActorIdVisitor
-                            .visit_expr(rhs)?
-                            .change_context(ParsePermissionConditionError::InvalidActorId)
-                            .map(ResourceAttribute::CreatedBy),
+                    "created_by" => ActorIdVisitor.visit_expr(rhs).map_or_else(
+                        || {
+                            if let ast::ExprKind::GetAttr { expr, attr } = rhs.expr_kind() {
+                                (*expr.expr_kind() == ast::ExprKind::Var(ast::Var::Principal)
+                                    && attr.as_str() == "id")
+                                    .then(|| Ok(ResourceAttribute::CreatedByPrincipal))
+                            } else {
+                                None
+                            }
+                        },
+                        |actor_id| {
+                            Some(
+                                actor_id
+                                    .change_context(ParsePermissionConditionError::InvalidActorId)
+                                    .map(ResourceAttribute::CreatedBy),
+                            )
+                        },
                     ),
                     _ => None,
                 }
