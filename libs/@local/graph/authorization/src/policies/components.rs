@@ -134,6 +134,8 @@ where
                     .build_principal_context(actor_id, &mut self.context)
                     .await
                     .change_context(ContextCreationError::BuildPrincipalContext { actor_id })?;
+            } else {
+                self.context.add_public_actor();
             }
 
             let entity_resources;

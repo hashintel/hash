@@ -4,13 +4,32 @@ use std::{collections::HashSet, sync::LazyLock};
 
 use cedar_policy_core::{ast, extensions::Extensions};
 use error_stack::Report;
+use smol_str::SmolStr;
 use type_system::principal::{
     actor::{Machine, MachineId},
     role::RoleId,
 };
 use uuid::Uuid;
 
-use crate::policies::cedar::{FromCedarEntityId, ToCedarEntity, ToCedarEntityId};
+use crate::policies::cedar::{
+    FromCedarEntityId, ToCedarEntity, ToCedarEntityId, ToCedarRestrictedExpr,
+};
+
+impl ToCedarRestrictedExpr for MachineId {
+    fn to_cedar_restricted_expr(&self) -> ast::RestrictedExpr {
+        ast::RestrictedExpr::record([
+            (
+                SmolStr::new_static("id"),
+                ast::RestrictedExpr::val(self.to_string()),
+            ),
+            (
+                SmolStr::new_static("type"),
+                ast::RestrictedExpr::val("machine"),
+            ),
+        ])
+        .expect("No duplicate keys in machine record")
+    }
+}
 
 impl FromCedarEntityId for MachineId {
     type Error = Report<uuid::Error>;
@@ -40,7 +59,10 @@ impl ToCedarEntity for Machine {
     fn to_cedar_entity(&self) -> ast::Entity {
         ast::Entity::new(
             self.id.to_euid(),
-            iter::empty(),
+            [(
+                SmolStr::new_static("id"),
+                self.id.to_cedar_restricted_expr(),
+            )],
             HashSet::new(),
             self.roles.iter().map(RoleId::to_euid).collect(),
             iter::empty(),

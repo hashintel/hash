@@ -14,7 +14,10 @@ use hash_graph_authorization::policies::{
 use hash_graph_types::ontology::DataTypeLookup;
 use serde::{Deserialize, de, de::IntoDeserializer as _};
 use type_system::{
-    knowledge::entity::{Entity, EntityId, id::EntityEditionId},
+    knowledge::{
+        PropertyValue,
+        entity::{Entity, EntityId, id::EntityEditionId},
+    },
     ontology::{
         EntityTypeWithMetadata,
         data_type::{DataTypeUuid, DataTypeWithMetadata, schema::DataTypeReference},
@@ -22,6 +25,7 @@ use type_system::{
         id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
         property_type::{PropertyTypeUuid, PropertyTypeWithMetadata},
     },
+    principal::actor::ActorEntityUuid,
 };
 
 pub use self::{
@@ -656,6 +660,23 @@ impl TryFrom<PermissionCondition> for Filter<'_, Entity> {
                     }),
                     Some(FilterExpression::Parameter {
                         parameter: Parameter::Text(Cow::Owned(entity_type.to_string())),
+                        convert: None,
+                    }),
+                ))
+            }
+            PermissionCondition::Attribute(ResourceAttribute::CreatedBy(actor_id)) => {
+                Ok(Self::Equal(
+                    Some(FilterExpression::Path {
+                        path: EntityQueryPath::Provenance(Some(JsonPath::from_path_tokens(vec![
+                            PathToken::Field(Cow::Borrowed("createdById")),
+                        ]))),
+                    }),
+                    Some(FilterExpression::Parameter {
+                        parameter: Parameter::Any(PropertyValue::String(
+                            actor_id
+                                .map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from)
+                                .to_string(),
+                        )),
                         convert: None,
                     }),
                 ))

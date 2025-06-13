@@ -15,7 +15,6 @@ import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 import type { IncurredIn } from "@local/hash-isomorphic-utils/system-types/usagerecord";
-import type { PrincipalConstraint } from "@rust/hash-graph-authorization/types";
 // import { StatusCode } from "@local/status";
 import { backOff } from "exponential-backoff";
 
@@ -206,19 +205,6 @@ export const getLlmResponse = async <T extends LlmParams>(
         } satisfies OriginProvenance,
       };
 
-      const viewPrincipals: PrincipalConstraint[] = [
-        {
-          type: "actor",
-          actorType: "user",
-          id: userAccountId,
-        },
-        {
-          type: "actor",
-          actorType: "ai",
-          id: aiAssistantAccountId,
-        },
-      ];
-
       const errors = await Promise.all(
         incurredInEntities.map(async ({ entityId }) => {
           try {
@@ -263,12 +249,6 @@ export const getLlmResponse = async <T extends LlmParams>(
                     },
                   },
                 ],
-                policies: viewPrincipals.map((principal) => ({
-                  name: `usage-record-view-entity-${incurredInEntityUuid}`,
-                  effect: "permit",
-                  actions: ["viewEntity"],
-                  principal,
-                })),
               },
             );
 

@@ -54,6 +54,8 @@ export type EntityResourceFilter = {
 } | {
 	type: "isOfType"
 	entityType: VersionedUrl
+} | {
+	type: "createdByPrincipal"
 };
 export type EntityTypeId = string;
 export type EntityTypeResourceConstraint = {
