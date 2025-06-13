@@ -1,7 +1,6 @@
 import crypto from "node:crypto";
 
 import type {
-  ActorEntityUuid,
   Entity,
   EntityId,
   EntityUuid,
@@ -199,9 +198,7 @@ export const oAuthLinearCallback: RequestHandler<
 
   const linearOrgId = org.id;
 
-  const userAccountId = extractEntityUuidFromEntityId(
-    actorEntityId,
-  ) as ActorEntityUuid;
+  const userAccountId = extractEntityUuidFromEntityId(actorEntityId) as UserId;
 
   const authentication = { actorId: userAccountId };
 
@@ -294,7 +291,7 @@ export const oAuthLinearCallback: RequestHandler<
       principal: {
         type: "actor",
         actorType: "user",
-        id: userAccountId as UserId,
+        id: userAccountId,
       },
       effect: "permit",
       actions: ["viewEntity"],
