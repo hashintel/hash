@@ -471,6 +471,17 @@ impl<C> Report<C> {
     }
 }
 
+impl<C> From<Report<C>> for Report<dyn Error> {
+    #[track_caller]
+    fn from(mut report: Report<C>) -> Self {
+        report = report.attach(*Location::caller());
+        Report {
+            frames: report.frames,
+            _context: PhantomData,
+        }
+    }
+}
+
 impl<C: ?Sized> Report<C> {
     /// Retrieves the current frames of the `Report`, regardless of its current type state.
     ///
