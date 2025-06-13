@@ -296,6 +296,11 @@ export const createUsageRecord = async (
       actorType: "user",
       id: userAccountId,
     },
+    {
+      type: "actor",
+      actorType: "ai",
+      id: aiAssistantAccountId,
+    },
   ];
 
   const usageRecordEntityUuid = generateUuid() as EntityUuid;
