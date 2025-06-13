@@ -193,7 +193,8 @@ impl Reporter {
 
             write!(stderr, "{delimiter} ---")?;
             write!(stderr, "\n\n")?;
-            write!(stderr, "{report}")?;
+            #[expect(clippy::use_debug)]
+            write!(stderr, "{report:?}")?;
             write!(stderr, "\n\n")?;
             write!(stderr, "{delimiter} ---")?;
 
