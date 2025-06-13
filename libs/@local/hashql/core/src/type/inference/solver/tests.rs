@@ -22,6 +22,7 @@ use crate::{
             intrinsic::ListType,
             r#struct::StructField,
             test::{assert_equiv, intersection, list, primitive, r#struct, struct_field, union},
+            tests::assert_equivalent,
         },
         tests::{instantiate, instantiate_infer, scaffold},
     },
@@ -2157,4 +2158,76 @@ fn never_upper_constraints() {
     let solver = inference.into_solver();
     let (_substitution, diagnostics) = solver.solve();
     assert!(diagnostics.is_empty());
+}
+
+#[test]
+fn deferred_lower_constraint() {
+    // ?1 <: ?2
+    // Number <: ?2
+    // -> ?1 = Number
+    scaffold!(heap, env, builder);
+
+    let hole1 = builder.fresh_hole();
+    let variable1 = Variable::synthetic(VariableKind::Hole(hole1));
+
+    let hole2 = builder.fresh_hole();
+    let variable2 = Variable::synthetic(VariableKind::Hole(hole2));
+
+    let number = builder.number();
+
+    let mut inference = InferenceEnvironment::new(&env);
+    inference.add_constraint(Constraint::Ordering {
+        lower: variable1,
+        upper: variable2,
+    });
+    inference.add_constraint(Constraint::LowerBound {
+        bound: number,
+        variable: variable2,
+    });
+
+    let solver = inference.into_solver();
+    let (substitution, diagnostics) = solver.solve();
+    assert!(diagnostics.is_empty());
+
+    assert_equivalent(
+        &env,
+        substitution.infer(hole1).expect("should be resolved"),
+        number,
+    );
+}
+
+#[test]
+fn deferred_upper_constraint() {
+    // ?1 <: ?2
+    // ?1 <: Number
+    // -> ?2 = Number
+    scaffold!(heap, env, builder);
+
+    let hole1 = builder.fresh_hole();
+    let variable1 = Variable::synthetic(VariableKind::Hole(hole1));
+
+    let hole2 = builder.fresh_hole();
+    let variable2 = Variable::synthetic(VariableKind::Hole(hole2));
+
+    let number = builder.number();
+
+    let mut inference = InferenceEnvironment::new(&env);
+    inference.add_constraint(Constraint::Ordering {
+        lower: variable1,
+        upper: variable2,
+    });
+    inference.add_constraint(Constraint::UpperBound {
+        variable: variable1,
+        bound: number,
+    });
+
+    let solver = inference.into_solver();
+    let (substitution, diagnostics) = solver.solve();
+    assert!(diagnostics.is_empty());
+
+    assert_equivalent(
+        &env,
+        substitution.infer(hole2).expect("should be resolved"),
+        number,
+    );
 }

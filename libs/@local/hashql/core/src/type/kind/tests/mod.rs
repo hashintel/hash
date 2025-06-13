@@ -22,7 +22,12 @@ mod tuple;
 mod union;
 
 #[track_caller]
-fn assert_join(lattice: &mut LatticeEnvironment, lhs: TypeId, rhs: TypeId, expected: &[TypeId]) {
+pub(crate) fn assert_join(
+    lattice: &mut LatticeEnvironment,
+    lhs: TypeId,
+    rhs: TypeId,
+    expected: &[TypeId],
+) {
     let lhs = lattice.r#type(lhs);
     let rhs = lattice.r#type(rhs);
 
@@ -31,7 +36,12 @@ fn assert_join(lattice: &mut LatticeEnvironment, lhs: TypeId, rhs: TypeId, expec
 }
 
 #[track_caller]
-fn assert_meet(env: &mut LatticeEnvironment, lhs: TypeId, rhs: TypeId, expected: &[TypeId]) {
+pub(crate) fn assert_meet(
+    env: &mut LatticeEnvironment,
+    lhs: TypeId,
+    rhs: TypeId,
+    expected: &[TypeId],
+) {
     let lhs = env.r#type(lhs);
     let rhs = env.r#type(rhs);
 
@@ -40,7 +50,7 @@ fn assert_meet(env: &mut LatticeEnvironment, lhs: TypeId, rhs: TypeId, expected:
 }
 
 #[track_caller]
-fn assert_lattice(env: &Environment, lhs: &[TypeId], rhs: &[TypeId]) {
+pub(crate) fn assert_lattice(env: &Environment, lhs: &[TypeId], rhs: &[TypeId]) {
     assert_eq!(
         lhs.len(),
         rhs.len(),
@@ -53,7 +63,7 @@ fn assert_lattice(env: &Environment, lhs: &[TypeId], rhs: &[TypeId]) {
 }
 
 #[track_caller]
-fn assert_equivalent(env: &Environment, lhs: TypeId, rhs: TypeId) {
+pub(crate) fn assert_equivalent(env: &Environment, lhs: TypeId, rhs: TypeId) {
     let mut analysis = AnalysisEnvironment::new(env);
 
     let lhs_repr = analysis
