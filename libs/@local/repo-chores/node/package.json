@@ -24,7 +24,7 @@
     "ignore": "7.0.5",
     "regex-parser": "2.3.1",
     "sort-package-json": "2.15.1",
-    "tsx": "4.20.1",
+    "tsx": "4.20.3",
     "typescript": "5.7.3",
     "zod": "3.25.63",
     "zod-to-json-schema": "3.24.5"
