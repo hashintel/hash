@@ -41,7 +41,6 @@ import type {
   ImpureGraphFunction,
   PureGraphFunction,
 } from "../../context-types";
-import { systemAccountId } from "../../system-account";
 import { getLatestEntityById, updateEntity } from "../primitive/entity";
 import { createLinkEntity } from "../primitive/link-entity";
 
@@ -361,11 +360,11 @@ export const linkIntegrationToWorkspace: ImpureGraphFunction<
       ],
       relationships: [
         ...createDefaultAuthorizationRelationships(authentication),
-        {
-          // Allow the system account ID to view the link
-          relation: "viewer",
-          subject: { kind: "account", subjectId: systemAccountId },
-        },
+        // {
+        //   // Allow the system account ID to view the link
+        //   relation: "viewer",
+        //   subject: { kind: "account", subjectId: systemAccountId },
+        // },
       ],
     });
   }

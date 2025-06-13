@@ -82,10 +82,10 @@ const createHashEntity = async (params: {
           relation: "setting",
           subject: { kind: "setting", subjectId: "updateFromWeb" },
         },
-        {
-          relation: "setting",
-          subject: { kind: "setting", subjectId: "viewFromWeb" },
-        },
+        // {
+        //   relation: "setting",
+        //   subject: { kind: "setting", subjectId: "viewFromWeb" },
+        // },
       ],
       properties: mergePropertyObjectAndMetadata(
         (params.partialEntity.properties as
@@ -145,10 +145,10 @@ const createHashEntity = async (params: {
           relation: "setting",
           subject: { kind: "setting", subjectId: "updateFromWeb" },
         },
-        {
-          relation: "setting",
-          subject: { kind: "setting", subjectId: "viewFromWeb" },
-        },
+        // {
+        //   relation: "setting",
+        //   subject: { kind: "setting", subjectId: "viewFromWeb" },
+        // },
       ],
     })),
   );
@@ -266,10 +266,10 @@ const createOrUpdateHashEntity = async (params: {
               relation: "setting",
               subject: { kind: "setting", subjectId: "updateFromWeb" },
             },
-            {
-              relation: "setting",
-              subject: { kind: "setting", subjectId: "viewFromWeb" },
-            },
+            // {
+            //   relation: "setting",
+            //   subject: { kind: "setting", subjectId: "viewFromWeb" },
+            // },
           ],
         }),
       ),

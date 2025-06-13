@@ -316,13 +316,13 @@ export const createDefaultAuthorizationRelationships = (params: {
       subjectId: "updateFromWeb",
     },
   },
-  {
-    relation: "setting",
-    subject: {
-      kind: "setting",
-      subjectId: "viewFromWeb",
-    },
-  },
+  // {
+  //   relation: "setting",
+  //   subject: {
+  //     kind: "setting",
+  //     subjectId: "viewFromWeb",
+  //   },
+  // },
 ];
 
 export const createOrgMembershipAuthorizationRelationships = ({
@@ -344,12 +344,12 @@ export const createOrgMembershipAuthorizationRelationships = ({
       subjectId: memberAccountId, // so can the user
     },
   },
-  {
-    relation: "viewer",
-    subject: {
-      kind: "public", // everyone in the world can see it (until we allow restricting this)
-    },
-  },
+  // {
+  //   relation: "viewer",
+  //   subject: {
+  //     kind: "public", // everyone in the world can see it (until we allow restricting this)
+  //   },
+  // },
 ];
 
 export const defaultPropertyTypeAuthorizationRelationships: PropertyTypeRelationAndSubjectBranded[] =
