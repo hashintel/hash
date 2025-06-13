@@ -1870,7 +1870,7 @@ where
                     INNER JOIN entity_types
                         ON entity_is_of_type.entity_type_ontology_id
                            = entity_types.ontology_id
-                    WHERE entity_temporal_metadata.entity_edition_id = any(:$1 [])
+                    WHERE entity_temporal_metadata.entity_edition_id = any($1::uuid[])
                     GROUP BY
                         entity_temporal_metadata.web_id,
                         entity_temporal_metadata.entity_uuid,
