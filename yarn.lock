@@ -324,7 +324,7 @@ __metadata:
     rimraf: "npm:6.0.1"
     sanitize-html: "npm:2.17.0"
     tsconfig-paths-webpack-plugin: "npm:4.2.0"
-    tsx: "npm:4.20.1"
+    tsx: "npm:4.20.3"
     typescript: "npm:5.7.3"
     vitest: "npm:3.2.3"
     wait-on: "npm:8.0.3"
@@ -432,7 +432,7 @@ __metadata:
     openai: "npm:4.104.0"
     rimraf: "npm:6.0.1"
     ts-json-schema-generator: "npm:1.5.1"
-    tsx: "npm:4.20.1"
+    tsx: "npm:4.20.3"
     typescript: "npm:5.7.3"
     vitest: "npm:3.2.3"
     wait-on: "npm:8.0.3"
@@ -630,7 +630,7 @@ __metadata:
     dotenv-flow: "npm:3.3.0"
     eslint: "npm:9.20.1"
     rimraf: "npm:6.0.1"
-    tsx: "npm:4.20.1"
+    tsx: "npm:4.20.3"
     typescript: "npm:5.7.3"
     wait-on: "npm:8.0.3"
   languageName: unknown
@@ -648,7 +648,7 @@ __metadata:
     eslint: "npm:9.20.1"
     set-interval-async: "npm:2.0.3"
     slonik: "npm:24.2.0"
-    tsx: "npm:4.20.1"
+    tsx: "npm:4.20.3"
     typescript: "npm:5.7.3"
   languageName: unknown
   linkType: soft
@@ -665,7 +665,7 @@ __metadata:
     "@types/node": "npm:22.15.31"
     eslint: "npm:9.20.1"
     hot-shots: "npm:8.5.2"
-    tsx: "npm:4.20.1"
+    tsx: "npm:4.20.3"
     typescript: "npm:5.7.3"
   languageName: unknown
   linkType: soft
@@ -717,9 +717,9 @@ __metadata:
     eslint: "npm:9.20.1"
     rimraf: "npm:6.0.1"
     shx: "npm:0.4.0"
-    tsx: "npm:4.20.1"
+    tsx: "npm:4.20.3"
     typescript: "npm:5.7.3"
-    zod: "npm:3.25.62"
+    zod: "npm:3.25.63"
     zod-to-json-schema: "npm:3.24.5"
   bin:
     linear-mcp: ./dist/index.js
@@ -742,9 +742,9 @@ __metadata:
     notion-to-md: "npm:3.1.9"
     rimraf: "npm:6.0.1"
     shx: "npm:0.4.0"
-    tsx: "npm:4.20.1"
+    tsx: "npm:4.20.3"
     typescript: "npm:5.7.3"
-    zod: "npm:3.25.62"
+    zod: "npm:3.25.63"
     zod-to-json-schema: "npm:3.24.5"
   bin:
     notion-mcp: ./dist/index.js
@@ -9015,7 +9015,7 @@ __metadata:
     react: "npm:19.1.0"
     rimraf: "npm:6.0.1"
     serialize-error: "npm:12.0.0"
-    tsx: "npm:4.20.1"
+    tsx: "npm:4.20.3"
     typescript: "npm:5.7.3"
     uuid: "npm:11.1.0"
     vitest: "npm:3.2.3"
@@ -9056,9 +9056,9 @@ __metadata:
     ignore: "npm:7.0.5"
     regex-parser: "npm:2.3.1"
     sort-package-json: "npm:2.15.1"
-    tsx: "npm:4.20.1"
+    tsx: "npm:4.20.3"
     typescript: "npm:5.7.3"
-    zod: "npm:3.25.62"
+    zod: "npm:3.25.63"
     zod-to-json-schema: "npm:3.24.5"
   languageName: unknown
   linkType: soft
@@ -12789,7 +12789,7 @@ __metadata:
     "@rust/hash-status": "npm:0.0.0-private"
     "@rust/hash-temporal-client": "npm:0.0.0-private"
     "@rust/hash-tracing": "npm:0.0.0-private"
-    tsx: "npm:4.20.1"
+    tsx: "npm:4.20.3"
   languageName: unknown
   linkType: soft
 
@@ -12846,7 +12846,7 @@ __metadata:
     "@rust/hash-status": "npm:0.0.0-private"
     eslint: "npm:9.20.1"
     quicktype: "npm:16.0.43"
-    tsx: "npm:4.20.1"
+    tsx: "npm:4.20.3"
     typescript: "npm:5.7.3"
   languageName: unknown
   linkType: soft
@@ -43010,9 +43010,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"tsx@npm:4.20.1":
-  version: 4.20.1
-  resolution: "tsx@npm:4.20.1"
+"tsx@npm:4.20.3":
+  version: 4.20.3
+  resolution: "tsx@npm:4.20.3"
   dependencies:
     esbuild: "npm:~0.25.0"
     fsevents: "npm:~2.3.3"
@@ -43022,7 +43022,7 @@ __metadata:
       optional: true
   bin:
     tsx: dist/cli.mjs
-  checksum: 10c0/10f861c66d13fcdcae1d4203f06c682d4c4beadb915d644aa198dfac49be18496e6e26daf5f693be87cf2776c1a883abb21e811f77ffd5b0a5cdd41d49c8cd52
+  checksum: 10c0/6ff0d91ed046ec743fac7ed60a07f3c025e5b71a5aaf58f3d2a6b45e4db114c83e59ebbb078c8e079e48d3730b944a02bc0de87695088aef4ec8bbc705dc791b
   languageName: node
   linkType: hard
 
@@ -45726,10 +45726,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"zod@npm:3.25.62, zod@npm:^3.23.8":
-  version: 3.25.62
-  resolution: "zod@npm:3.25.62"
-  checksum: 10c0/a98e53eddd689913a1d476ccfd3fd3ffbdf56c8e8606449445e4a36f31064551760c930c62381420605394e71b00d3397ea456637bacc7d2afe7c4946bf9c6b0
+"zod@npm:3.25.63, zod@npm:^3.23.8":
+  version: 3.25.63
+  resolution: "zod@npm:3.25.63"
+  checksum: 10c0/ce09c6ae327a66629e67340856ec19b6b4ba2c28691a2de1e618a5cc717685c2b4e9baa370cf81c34f453fc652733ecfc9a7d5d966570a22472999931abd5ada
   languageName: node
   linkType: hard
 
