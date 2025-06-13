@@ -167,7 +167,7 @@ export const getLinearIntegrationByLinearOrgId: ImpureGraphFunction<
 
   if (entities.length > 1) {
     throw new Error(
-      `More than one ${entities.length} linear integrations found for the user with the linear org ID ${linearOrgId}`,
+      `More than one (${entities.length}) linear integrations found for the user with the linear org ID ${linearOrgId}`,
     );
   }
 
@@ -330,7 +330,7 @@ export const linkIntegrationToWeb: ImpureGraphFunction<
 
   if (existingLinkEntities.length > 1) {
     throw new Error(
-      `More than one "syncLinearDataWith" link entity found between the linear integration entity with ID ${linearIntegrationEntityId} and the web entity with ID ${webEntityId}`,
+      `More than one "syncLinearDataWith" (${existingLinkEntities.length}) link entity found between the linear integration entity with ID ${linearIntegrationEntityId} and the web entity with ID ${webEntityId}`,
     );
   } else if (existingLinkEntities[0]) {
     const [existingLinkEntity] = existingLinkEntities;
