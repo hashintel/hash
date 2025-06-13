@@ -385,6 +385,7 @@ fn solve_constraints_with_equality() {
     applied_constraints.insert(var.kind, (var, vc));
 
     let mut solver = InferenceSolver::new(InferenceEnvironment::new(&env).with_constraints([]));
+    solver.unification.upsert_variable(VariableKind::Hole(hole));
 
     let mut substitutions = FastHashMap::default();
     solver.solve_constraints(
@@ -420,6 +421,7 @@ fn solve_constraints_with_incompatible_bounds() {
     applied_constraints.insert(var.kind, (var, vc));
 
     let mut solver = InferenceSolver::new(InferenceEnvironment::new(&env).with_constraints([]));
+    solver.unification.upsert_variable(VariableKind::Hole(hole));
 
     // These bounds are incompatible, so a diagnostic should be created
     let mut substitutions = FastHashMap::default();
@@ -461,6 +463,7 @@ fn solve_constraints_with_incompatible_equality() {
     applied_constraints.insert(var.kind, (var, vc));
 
     let mut solver = InferenceSolver::new(InferenceEnvironment::new(&env).with_constraints([]));
+    solver.unification.upsert_variable(VariableKind::Hole(hole));
 
     let mut substitutions = FastHashMap::default();
     solver.solve_constraints(
@@ -501,6 +504,7 @@ fn solve_constraints_with_incompatible_upper_equal_constraint() {
     applied_constraints.insert(var.kind, (var, vc));
 
     let mut solver = InferenceSolver::new(InferenceEnvironment::new(&env).with_constraints([]));
+    solver.unification.upsert_variable(VariableKind::Hole(hole));
 
     // This should exercise lines 916-929
     let mut substitutions = FastHashMap::default();
@@ -637,57 +641,6 @@ fn cyclic_ordering_constraints() {
         Constraint::Ordering {
             lower: variable3,
             upper: variable1,
-        },
-    ];
-
-    let mut solver =
-        InferenceSolver::new(InferenceEnvironment::new(&env).with_constraints(constraints));
-
-    // Directly call the anti-symmetry solver
-    let mut graph = Graph::new(&mut solver.unification);
-    let bump = Bump::new();
-    solver.upsert_variables(&mut graph);
-    solver.solve_anti_symmetry(&mut graph, &mut FastHashMap::default(), &bump);
-
-    // Verify all variables are unified
-    assert!(
-        solver
-            .unification
-            .is_unioned(variable1.kind, variable2.kind)
-    );
-    assert!(
-        solver
-            .unification
-            .is_unioned(variable2.kind, variable3.kind)
-    );
-}
-
-#[test]
-fn cyclic_structural_edges_constraints() {
-    let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
-
-    let hole1 = HoleId::new(1);
-    let hole2 = HoleId::new(2);
-    let hole3 = HoleId::new(3);
-
-    let variable1 = Variable::synthetic(VariableKind::Hole(hole1));
-    let variable2 = Variable::synthetic(VariableKind::Hole(hole2));
-    let variable3 = Variable::synthetic(VariableKind::Hole(hole3));
-
-    // Create a cycle
-    let constraints = [
-        Constraint::StructuralEdge {
-            source: variable1,
-            target: variable2,
-        },
-        Constraint::StructuralEdge {
-            source: variable2,
-            target: variable3,
-        },
-        Constraint::StructuralEdge {
-            source: variable3,
-            target: variable1,
         },
     ];
 

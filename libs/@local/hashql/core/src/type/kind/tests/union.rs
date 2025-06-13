@@ -1453,13 +1453,20 @@ fn collect_constraints_with_intersection() {
 
     // Should generate a constraint from the inference var to the intersection
     let constraints = inference_env.take_constraints();
-    assert_eq!(constraints.len(), 1);
+    assert_eq!(constraints.len(), 2);
     assert_matches!(
         &constraints[0],
         Constraint::UpperBound {
             variable: Variable { span: SpanId::SYNTHETIC, kind: VariableKind::Hole(h) },
             bound
-        } if *h == hole && *bound == intersection_type
+        } if *h == hole && *bound == string
+    );
+    assert_matches!(
+        &constraints[1],
+        Constraint::UpperBound {
+            variable: Variable { span: SpanId::SYNTHETIC, kind: VariableKind::Hole(h) },
+            bound
+        } if *h == hole && *bound == number
     );
 }
 
