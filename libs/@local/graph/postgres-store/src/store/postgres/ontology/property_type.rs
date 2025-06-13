@@ -6,6 +6,7 @@ use futures::StreamExt as _;
 use hash_graph_authorization::{
     AuthorizationApi,
     backend::ModifyRelationshipOperation,
+    policies::PolicyComponents,
     schema::{
         PropertyTypeOwnerSubject, PropertyTypePermission, PropertyTypeRelationAndSubject,
         WebPermission,
@@ -78,28 +79,26 @@ where
             .map(|(id, edge)| (id.into(), edge))
             .unzip();
 
-        let permissions =
-            if let Some((actor_id, consistency, ref _policy_set, ref _policy_context)) =
-                provider.authorization
-            {
-                Some(
-                    provider
-                        .store
-                        .authorization_api
-                        .check_property_types_permission(
-                            actor_id
-                                .map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from),
-                            PropertyTypePermission::View,
-                            ids.iter().copied(),
-                            consistency,
-                        )
-                        .await
-                        .change_context(QueryError)?
-                        .0,
-                )
-            } else {
-                None
-            };
+        let permissions = if let Some(policy_components) = provider.policy_components {
+            Some(
+                provider
+                    .store
+                    .authorization_api
+                    .check_property_types_permission(
+                        policy_components
+                            .actor_id
+                            .map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from),
+                        PropertyTypePermission::View,
+                        ids.iter().copied(),
+                        Consistency::FullyConsistent,
+                    )
+                    .await
+                    .change_context(QueryError)?
+                    .0,
+            )
+        } else {
+            None
+        };
 
         Ok(ids
             .into_iter()
@@ -531,14 +530,14 @@ where
         actor_id: ActorEntityUuid,
         mut params: CountPropertyTypesParams<'_>,
     ) -> Result<usize, Report<QueryError>> {
+        let policy_components = PolicyComponents::builder(self)
+            .with_actor(actor_id)
+            .await
+            .change_context(QueryError)?;
+
         params
             .filter
-            .convert_parameters(
-                &StoreProvider::new(self)
-                    .with_authorization(actor_id, Consistency::FullyConsistent)
-                    .await
-                    .change_context(QueryError)?,
-            )
+            .convert_parameters(&StoreProvider::new(self, &policy_components))
             .await
             .change_context(QueryError)?;
 
@@ -558,14 +557,14 @@ where
         actor_id: ActorEntityUuid,
         mut params: GetPropertyTypesParams<'_>,
     ) -> Result<GetPropertyTypesResponse, Report<QueryError>> {
+        let policy_components = PolicyComponents::builder(self)
+            .with_actor(actor_id)
+            .await
+            .change_context(QueryError)?;
+
         params
             .filter
-            .convert_parameters(
-                &StoreProvider::new(self)
-                    .with_authorization(actor_id, Consistency::FullyConsistent)
-                    .await
-                    .change_context(QueryError)?,
-            )
+            .convert_parameters(&StoreProvider::new(self, &policy_components))
             .await
             .change_context(QueryError)?;
 
@@ -581,10 +580,12 @@ where
         actor_id: ActorEntityUuid,
         mut params: GetPropertyTypeSubgraphParams<'_>,
     ) -> Result<GetPropertyTypeSubgraphResponse, Report<QueryError>> {
-        let provider = StoreProvider::new(self)
-            .with_authorization(actor_id, Consistency::FullyConsistent)
+        let policy_components = PolicyComponents::builder(self)
+            .with_actor(actor_id)
             .await
             .change_context(QueryError)?;
+
+        let provider = StoreProvider::new(self, &policy_components);
 
         params
             .filter

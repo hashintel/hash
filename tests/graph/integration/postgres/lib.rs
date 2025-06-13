@@ -29,7 +29,7 @@ use std::collections::HashMap;
 use error_stack::{Report, ResultExt as _};
 use hash_graph_authorization::{
     AuthorizationApi, NoAuthorization,
-    policies::store::{LocalPrincipalStore as _, PolicyStore as _},
+    policies::store::{PolicyStore as _, PrincipalStore as _},
     schema::{
         DataTypeRelationAndSubject, DataTypeViewerSubject, EntityRelationAndSubject,
         EntityTypeRelationAndSubject, EntityTypeSetting, EntityTypeSettingSubject,

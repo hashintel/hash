@@ -8,9 +8,8 @@ use hash_graph_authorization::{
     AuthorizationApi,
     backend::PermissionAssertion,
     policies::{
-        Authorized, Context, ContextBuilder, PartialResourceId, PolicySet, Request, RequestContext,
+        Authorized, PartialResourceId, PolicyComponents, Request, RequestContext,
         action::ActionName,
-        store::{PolicyStore as _, error::ContextCreationError},
     },
     schema::{DataTypePermission, EntityTypePermission, PropertyTypePermission},
     zanzibar::Consistency,
@@ -40,7 +39,7 @@ use type_system::{
         entity_type::{ClosedEntityType, ClosedEntityTypeWithMetadata, EntityTypeUuid},
         property_type::{PropertyType, PropertyTypeUuid},
     },
-    principal::actor::{ActorEntityUuid, ActorId},
+    principal::actor::ActorEntityUuid,
 };
 
 use crate::store::postgres::{AsClient, PostgresStore};
@@ -139,15 +138,15 @@ pub struct StoreCache {
 pub struct StoreProvider<'a, S> {
     pub store: &'a S,
     pub cache: Box<StoreCache>,
-    pub authorization: Option<(Option<ActorId>, Consistency<'static>, PolicySet, Context)>,
+    pub policy_components: Option<&'a PolicyComponents>,
 }
 
 impl<'a, S> StoreProvider<'a, S> {
-    pub fn new(store: &'a S) -> Self {
+    pub fn new(store: &'a S, policy_components: &'a PolicyComponents) -> Self {
         Self {
             store,
             cache: Box::new(StoreCache::default()),
-            authorization: None,
+            policy_components: Some(policy_components),
         }
     }
 }
@@ -157,58 +156,17 @@ where
     C: AsClient,
     A: AuthorizationApi,
 {
-    /// Builds the policy context and policy set for the given actor, and stores them in the
-    /// `authorization` field of the provider.
-    ///
-    /// # Errors
-    ///
-    /// If the actor cannot be determined, or if the policy context or policy set cannot be built,
-    /// this function will return an error.
-    pub async fn with_authorization(
-        mut self,
-        actor: ActorEntityUuid,
-        consistency: Consistency<'static>,
-    ) -> Result<Self, Report<ContextCreationError>> {
-        let actor_id = self
-            .store
-            .determine_actor(actor)
-            .await
-            .change_context(ContextCreationError::DetermineActor { actor_id: actor })?;
-
-        let mut policy_context_builder = ContextBuilder::default();
-        if let Some(actor) = actor_id {
-            self.store
-                .build_principal_context(actor, &mut policy_context_builder)
-                .await
-                .change_context(ContextCreationError::BuildPrincipalContext { actor_id })?;
-        }
-        let policies = self
-            .store
-            .resolve_policies_for_actor(actor, actor_id)
-            .await
-            .change_context(ContextCreationError::ResolveActorPolicies { actor_id })?;
-        let policy_set = PolicySet::default()
-            .with_policies(&policies)
-            .change_context(ContextCreationError::CreatePolicySet)?;
-        let policy_context = policy_context_builder
-            .build()
-            .change_context(ContextCreationError::CreatePolicyContext)?;
-
-        self.authorization = Some((actor_id, consistency, policy_set, policy_context));
-        Ok(self)
-    }
-
     async fn authorize_data_type(&self, type_id: DataTypeUuid) -> Result<(), Report<QueryError>> {
-        if let Some((actor_id, consistency, ref _policy_set, ref _policy_context)) =
-            self.authorization
-        {
+        if let Some(policy_components) = &self.policy_components {
             self.store
                 .authorization_api
                 .check_data_type_permission(
-                    actor_id.map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from),
+                    policy_components
+                        .actor_id
+                        .map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from),
                     DataTypePermission::View,
                     type_id,
-                    consistency,
+                    Consistency::FullyConsistent,
                 )
                 .await
                 .change_context(QueryError)?
@@ -410,16 +368,16 @@ where
         &self,
         type_id: PropertyTypeUuid,
     ) -> Result<(), Report<QueryError>> {
-        if let Some((actor_id, consistency, ref _policy_set, ref _policy_context)) =
-            self.authorization
-        {
+        if let Some(policy_components) = &self.policy_components {
             self.store
                 .authorization_api
                 .check_property_type_permission(
-                    actor_id.map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from),
+                    policy_components
+                        .actor_id
+                        .map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from),
                     PropertyTypePermission::View,
                     type_id,
-                    consistency,
+                    Consistency::FullyConsistent,
                 )
                 .await
                 .change_context(QueryError)?
@@ -491,16 +449,16 @@ where
         &self,
         type_id: EntityTypeUuid,
     ) -> Result<(), Report<QueryError>> {
-        if let Some((actor_id, consistency, ref _policy_set, ref _policy_context)) =
-            self.authorization
-        {
+        if let Some(policy_components) = &self.policy_components {
             self.store
                 .authorization_api
                 .check_entity_type_permission(
-                    actor_id.map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from),
+                    policy_components
+                        .actor_id
+                        .map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from),
                     EntityTypePermission::View,
                     type_id,
-                    consistency,
+                    Consistency::FullyConsistent,
                 )
                 .await
                 .change_context(QueryError)?
@@ -656,17 +614,17 @@ where
 
         let mut filters = vec![Filter::for_entity_by_entity_id(entity_id)];
 
-        if let Some((actor, _consistency, ref policy_set, ref policy_context)) = self.authorization
-        {
-            match policy_set
+        if let Some(policy_components) = &self.policy_components {
+            match policy_components
+                .policy_set
                 .evaluate(
                     &Request {
-                        actor,
+                        actor: policy_components.actor_id,
                         action: ActionName::ViewEntity,
                         resource: Some(&PartialResourceId::Entity(None)),
                         context: RequestContext::default(),
                     },
-                    policy_context,
+                    &policy_components.context,
                 )
                 .change_context(QueryError)?
             {
