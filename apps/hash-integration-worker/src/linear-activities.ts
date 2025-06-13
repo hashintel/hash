@@ -279,6 +279,8 @@ const createOrUpdateHashEntity = async (params: {
             linkEntity.entityId,
           );
 
+          // TODO: allow creating policies alongside entity creation
+          //   see https://linear.app/hash/issue/H-4622/allow-creating-policies-alongside-entity-creation
           await createPolicy(graphApiClient, params.authentication, {
             name: `linear-bot-view-linear-entity-${linkEntityUuid}`,
             effect: "permit",
