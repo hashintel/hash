@@ -36,9 +36,9 @@ import type {
   RecordsUsageOf,
   UsageRecord,
 } from "@local/hash-isomorphic-utils/system-types/usagerecord";
+import type { PrincipalConstraint } from "@rust/hash-graph-authorization/types";
 import { backOff } from "exponential-backoff";
 
-import type { PrincipalConstraint } from "@rust/hash-graph-authorization/types";
 import { getInstanceAdminsTeam } from "./hash-instance.js";
 
 /**

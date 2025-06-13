@@ -8,7 +8,6 @@ import type {
   VersionedUrl,
   WebId,
 } from "@blockprotocol/type-system";
-import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import type { Connection, LinearDocument, Team } from "@linear/sdk";
 import { LinearClient } from "@linear/sdk";
 import { getLinearMappingByHashEntityTypeId } from "@local/hash-backend-utils/linear-type-mappings";
