@@ -1,12 +1,19 @@
+import { useMutation } from "@apollo/client";
+import type {
+  EntityId,
+  PropertyArrayWithMetadata,
+} from "@blockprotocol/type-system";
+import { Chip, Select } from "@hashintel/design-system";
 import {
   type FeatureFlag,
   featureFlags,
 } from "@local/hash-isomorphic-utils/feature-flags";
 import {
+  blockProtocolDataTypes,
+  systemPropertyTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import {
   Box,
-  Chip,
-  MenuItem,
-  Select,
   type SxProps,
   TableCell,
   type Theme,
@@ -15,8 +22,14 @@ import {
 import { memo, useMemo, useState } from "react";
 
 import { useUsers } from "../../components/hooks/use-users";
+import type {
+  UpdateEntityMutation,
+  UpdateEntityMutationVariables,
+} from "../../graphql/api-types.gen";
+import { updateEntityMutation } from "../../graphql/queries/knowledge/entity.queries";
 import type { NextPageWithLayout } from "../../shared/layout";
-import { Link } from "../../shared/ui";
+import { Link, MenuItem } from "../../shared/ui";
+import { useAuthenticatedUser } from "../shared/auth-info-context";
 import {
   type CreateVirtualizedRowContentFn,
   defaultCellSx,
@@ -85,19 +98,37 @@ type UserRowData = {
   enabledFeatureFlags: FeatureFlag[];
   email: string;
   createdAt: string;
+  entityId: EntityId;
+  refetchUsers: () => void;
 };
 
 const TableRow = memo(({ user }: { user: UserRowData }) => {
-  const { shortname, displayName, email, createdAt, enabledFeatureFlags } =
-    user;
+  const {
+    shortname,
+    displayName,
+    email,
+    createdAt,
+    enabledFeatureFlags,
+    refetchUsers,
+  } = user;
 
-  console.log(enabledFeatureFlags);
+  const { refetch: refetchAuthenticatedUser, authenticatedUser } =
+    useAuthenticatedUser();
+
+  const [updateEntity] = useMutation<
+    UpdateEntityMutation,
+    UpdateEntityMutationVariables
+  >(updateEntityMutation, {
+    onCompleted: refetchUsers,
+  });
+
+  const [selectOpen, setSelectOpen] = useState(false);
 
   return (
     <>
       <TableCell sx={cellSx}>
         {shortname ? (
-          <Link href={`@${shortname}`}>@{shortname}</Link>
+          <Link href={`/@${shortname}`}>@{shortname}</Link>
         ) : (
           noValueTableCellContent
         )}
@@ -111,9 +142,51 @@ const TableRow = memo(({ user }: { user: UserRowData }) => {
         <Select
           multiple
           value={enabledFeatureFlags}
-          onChange={(event) => {
+          onChange={async (event) => {
             console.log(event.target.value);
+
+            await updateEntity({
+              variables: {
+                entityUpdate: {
+                  entityId: user.entityId,
+                  propertyPatches: [
+                    {
+                      path: [
+                        systemPropertyTypes.enabledFeatureFlags
+                          .propertyTypeBaseUrl,
+                      ],
+                      op: "add",
+                      property: {
+                        value: (event.target.value as string[]).map(
+                          (featureFlag) => ({
+                            value: featureFlag,
+                            metadata: {
+                              dataTypeId:
+                                blockProtocolDataTypes.text.dataTypeId,
+                            },
+                          }),
+                        ),
+                      } satisfies PropertyArrayWithMetadata,
+                    },
+                  ],
+                },
+              },
+            });
+
+            setSelectOpen(false);
+
+            if (
+              authenticatedUser.entity.metadata.recordId.entityId ===
+              user.entityId
+            ) {
+              void refetchAuthenticatedUser();
+            }
+
+            refetchUsers();
           }}
+          open={selectOpen}
+          onOpen={() => setSelectOpen(true)}
+          onClose={() => setSelectOpen(false)}
           renderValue={(selected) => {
             return (
               <Box display="flex" flexWrap="wrap" gap={0.5} p={0.2}>
@@ -154,7 +227,7 @@ const createRowContent: CreateVirtualizedRowContentFn<UserRowData> = (
 ) => <TableRow user={row.data} />;
 
 const AdminUsersPage: NextPageWithLayout = () => {
-  const { users } = useUsers();
+  const { users, refetch } = useUsers();
 
   const [sort, setSort] = useState<VirtualizedTableSort<FieldId>>({
     fieldId: "createdAt",
@@ -181,6 +254,8 @@ const AdminUsersPage: NextPageWithLayout = () => {
               "https://hash.ai/@h/types/property-type/email/"
             ][0],
           createdAt: user.entity.metadata.provenance.createdAtDecisionTime,
+          entityId: user.entity.metadata.recordId.entityId,
+          refetchUsers: refetch,
         },
       }))
       .sort((a, b) => {
@@ -199,7 +274,7 @@ const AdminUsersPage: NextPageWithLayout = () => {
           (a.data[field] ?? "").localeCompare(b.data[field] ?? "") * direction
         );
       });
-  }, [users, sort]);
+  }, [users, refetch, sort]);
 
   return (
     <>
