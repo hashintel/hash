@@ -270,6 +270,8 @@ export const oAuthLinearCallback: RequestHandler<
       linearIntegrationEntity.entityId,
     );
 
+    // TODO: allow creating policies alongside entity creation
+    //   see https://linear.app/hash/issue/H-4622/allow-creating-policies-alongside-entity-creation
     await createPolicy(req.context.graphApi, authentication, {
       name: `linear-integration-bot-view-entity-${entityUuid}`,
       principal: {
