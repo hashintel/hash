@@ -11,6 +11,7 @@ use type_system::principal::{Actor, ActorGroup, Role};
 use super::{
     PolicyValidator,
     cedar::ToCedarEntity as _,
+    principal::actor::PublicActor,
     resource::{EntityResource, EntityTypeResource},
 };
 
@@ -50,6 +51,14 @@ impl ContextBuilder {
     /// making it available for matching against principal constraints in policies.
     pub fn add_actor(&mut self, actor: &Actor) {
         self.entities.push(actor.to_cedar_entity());
+    }
+
+    /// Adds the public actor to the context for policy evaluation.
+    ///
+    /// This allows the actor to be identified as a principal during authorization,
+    /// making it available for matching against principal constraints in policies.
+    pub fn add_public_actor(&mut self) {
+        self.entities.push(PublicActor.to_cedar_entity());
     }
 
     /// Adds an actor group to the context for policy evaluation.

@@ -459,6 +459,7 @@ mod tests {
                     VersionedUrl::from_str("https://hash.ai/@hash/types/entity-type/user/v/6")?,
                     VersionedUrl::from_str("https://hash.ai/@hash/types/entity-type/actor/v/2")?,
                 ]),
+                created_by: user.id.into(),
             };
             let resource_id = PartialResourceId::Entity(Some(user_entity.id.entity_uuid));
             let mut context = ContextBuilder::default();

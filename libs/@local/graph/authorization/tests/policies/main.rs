@@ -109,6 +109,7 @@ impl TestUser {
                 draft_id: None,
             },
             entity_type: Cow::Borrowed(ENTITY_TYPES.as_slice()),
+            created_by: id.into(),
         };
 
         policy_store
@@ -154,6 +155,7 @@ impl TestMachine {
                 draft_id: None,
             },
             entity_type: Cow::Borrowed(ENTITY_TYPES.as_slice()),
+            created_by: id.into(),
         };
 
         context.add_entity(&entity);
@@ -223,6 +225,7 @@ impl TestSystem {
                 VersionedUrl::from_str("https://hash.ai/@h/types/entity-type/hash-instance/v/1")
                     .expect("should be a valid URL"),
             ]),
+            created_by: machine.id.into(),
         };
         context.add_entity(&hash_instance_entity);
         for policy in permit_hash_instance_admins(hash_instance_admins, hash_instance_entity.id) {
@@ -382,6 +385,7 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
             draft_id: None,
         },
         entity_type: Cow::Owned(vec![web_type.id.as_url().clone()]),
+        created_by: user.id.into(),
     };
     context.add_entity(&web_entity);
 
@@ -554,6 +558,7 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
             draft_id: None,
         },
         entity_type: Cow::Owned(vec![web_type.id.as_url().clone()]),
+        created_by: user.id.into(),
     };
     context.add_entity(&web_entity);
 

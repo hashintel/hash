@@ -10,6 +10,7 @@ namespace HASH {
 
   entity Entity in [Web] {
     entity_types: Set<EntityType>,
+    created_by: ActorId,
   };
 
   entity EntityType in [Web] {
@@ -18,9 +19,14 @@ namespace HASH {
   };
 
   entity User, Machine, Ai in [HASH::Web::Role, HASH::Team::Role] {
+    id: ActorId,
   };
 
   entity Public {
+    // This is required to add policies depending on `principal.id`
+    // in Cedar policies. Effectively, we set this to a dummy value
+    // `{"type": "public", "id": "00000000-0000-0000-0000-000000000000"}`.
+    id: ActorId,
   };
 
   action all;
@@ -48,6 +54,11 @@ namespace HASH {
   action instantiate in [all] appliesTo {
     principal: [User, Machine, Ai],
     resource: [EntityType],
+  };
+
+  type ActorId = {
+    type: String,
+    id: String,
   };
 }
 
