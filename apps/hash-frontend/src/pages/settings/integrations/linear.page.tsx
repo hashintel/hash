@@ -1,7 +1,7 @@
 import { useMutation } from "@apollo/client";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { LinearIntegrationProperties } from "@local/hash-isomorphic-utils/system-types/linearintegration";
 import { Box, Typography } from "@mui/material";
+import { useRouter } from "next/router";
 import type { FunctionComponent } from "react";
 import { useCallback, useMemo, useState } from "react";
 
@@ -26,24 +26,13 @@ import {
 import type { LinearIntegration } from "./linear/use-linear-integrations";
 import { useLinearIntegrations } from "./linear/use-linear-integrations";
 
-const LinearConnections: FunctionComponent<{
-  connectedLinearOrganizations: GetLinearOrganizationQuery["getLinearOrganization"][];
-}> = ({ connectedLinearOrganizations }) => {
-  return (
-    <>
-      <Typography variant="h5">Linear Connections</Typography>
-      {connectedLinearOrganizations.map(({ id, name }) => (
-        <Typography key={id}>Linear workspace: {name}</Typography>
-      ))}
-    </>
-  );
-};
-
 const DataAccess: FunctionComponent<{
   linearIntegrations: LinearIntegration[];
   connectedLinearOrganizations: GetLinearOrganizationQuery["getLinearOrganization"][];
 }> = ({ linearIntegrations, connectedLinearOrganizations }) => {
   const { authenticatedUser } = useAuthenticatedUser();
+
+  const router = useRouter();
 
   const [
     syncLinearIntegrationWithWebs,
@@ -91,11 +80,14 @@ const DataAccess: FunctionComponent<{
         });
       }),
     );
+
+    void router.push("/settings/integrations");
   }, [
     syncLinearIntegrationWithWebs,
     linearOrganizations,
     linearIntegrations,
     possibleWorkspaces,
+    router,
   ]);
 
   return (

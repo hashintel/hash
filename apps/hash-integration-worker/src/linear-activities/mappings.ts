@@ -17,7 +17,7 @@ import type { GraphApi } from "@local/hash-graph-client";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 
 import {
-  getEntitiesByLinearId,
+  // getEntitiesByLinearId,
   getEntityOutgoingLinks,
   getLatestEntityById,
 } from "../shared/graph-requests";
@@ -74,53 +74,56 @@ export const mapLinearDataToEntityWithOutgoingLinks = async <
     linkEntityTypeId: VersionedUrl;
     destinationEntityId: EntityId;
   }[];
+  // eslint-disable-next-line @typescript-eslint/require-await
 }> => {
-  const { linearType } = params;
+  // const { linearType } = params;
 
-  const mapping = getLinearMappingByLinearType({ linearType });
+  // const mapping = getLinearMappingByLinearType({ linearType });
 
   const partialEntity = mapLinearDataToEntity(params);
 
-  const outgoingLinks = await Promise.all(
-    mapping.outgoingLinkMappings.map<
-      Promise<
-        {
-          linkEntityTypeId: VersionedUrl;
-          destinationEntityId: EntityId;
-        }[]
-      >
-    >(async ({ getLinkDestinationLinearIds, linkEntityTypeId }) => {
-      const { destinationLinearIds } = await getLinkDestinationLinearIds(
-        params.linearData,
-      );
+  /** @todo H-4479 fix creating destination and link entities in Linear integration */
+  // const outgoingLinks = await Promise.all(
+  //   mapping.outgoingLinkMappings.map<
+  //     Promise<
+  //       {
+  //         linkEntityTypeId: VersionedUrl;
+  //         destinationEntityId: EntityId;
+  //       }[]
+  //     >
+  //   >(async ({ getLinkDestinationLinearIds, linkEntityTypeId }) => {
+  //     const { destinationLinearIds } = await getLinkDestinationLinearIds(
+  //       params.linearData,
+  //     );
 
-      const destinationEntities = await Promise.all(
-        destinationLinearIds.map((linearId) =>
-          getEntitiesByLinearId({ ...params, linearId }).then((entities) => {
-            /** @todo: handle multiple linear entities with the same ID in the same web */
-            const [entity] = entities;
+  //     const destinationEntities = await Promise.all(
+  //       destinationLinearIds.map((linearId) =>
+  //         getEntitiesByLinearId({ ...params, linearId }).then((entities) => {
+  //           /** @todo: handle multiple linear entities with the same ID in the same web */
+  //           const [entity] = entities;
 
-            if (!entity) {
-              throw new Error(
-                `Could not find entity with linear ID "${linearId}"`,
-              );
-            }
+  //           if (!entity) {
+  //             throw new Error(
+  //               `Could not find entity with linear ID "${linearId}"`,
+  //             );
+  //           }
 
-            return entity;
-          }),
-        ),
-      );
+  //           return entity;
+  //         }),
+  //       ),
+  //     );
 
-      return destinationEntities.map((entity) => ({
-        linkEntityTypeId,
-        destinationEntityId: entity.metadata.recordId.entityId,
-      }));
-    }),
-  ).then((outgoingLinksByType) => outgoingLinksByType.flat());
+  //     return destinationEntities.map((entity) => ({
+  //       linkEntityTypeId,
+  //       destinationEntityId: entity.metadata.recordId.entityId,
+  //     }));
+  //   }),
+  // ).then((outgoingLinksByType) => outgoingLinksByType.flat());
 
   return {
     partialEntity,
-    outgoingLinks,
+    /** @todo H-4479 fix creating destination and link entities in Linear integration */
+    outgoingLinks: [],
   };
 };
 

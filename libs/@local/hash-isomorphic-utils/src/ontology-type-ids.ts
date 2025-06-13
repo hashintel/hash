@@ -1440,7 +1440,7 @@ export const systemDataTypes = {
 
 export const googleEntityTypes = {
   account: {
-    entityTypeId: "https://hash.ai/@google/types/entity-type/account/v/2",
+    entityTypeId: "https://hash.ai/@google/types/entity-type/account/v/1",
     entityTypeBaseUrl:
       "https://hash.ai/@google/types/entity-type/account/" as BaseUrl,
   },

@@ -9,7 +9,7 @@ import type { Team } from "@linear/sdk";
 import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
 
 export type PartialEntity = {
-  properties: Partial<Entity["properties"]>;
+  properties: Entity["properties"];
   entityTypeId: VersionedUrl;
 };
 

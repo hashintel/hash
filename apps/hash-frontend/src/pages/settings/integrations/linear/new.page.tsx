@@ -1,7 +1,6 @@
 import { useLazyQuery, useMutation } from "@apollo/client";
 import type { EntityId } from "@blockprotocol/type-system";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import type { LinearIntegrationProperties } from "@local/hash-isomorphic-utils/system-types/linearintegration";
 import { Box, Typography } from "@mui/material";
 import { useRouter } from "next/router";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -121,7 +120,7 @@ const NewLinearIntegrationPage: NextPageWithLayout = () => {
         },
       });
 
-      void router.push("/settings/integrations/linear");
+      void router.push("/settings/integrations");
     }
   }, [
     syncLinearIntegrationWithWebs,

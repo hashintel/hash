@@ -1,11 +1,16 @@
-import { useLazyQuery } from "@apollo/client";
-import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import { useLazyQuery, useQuery } from "@apollo/client";
+import type { EntityRootType } from "@blockprotocol/graph";
 import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
 } from "@blockprotocol/graph/stdlib";
 import type { Entity } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import {
+  currentTimeInstantTemporalAxes,
+  mapGqlSubgraphFieldsFragmentToSubgraph,
+  zeroedGraphResolveDepths,
+} from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -19,14 +24,16 @@ import type {
   OrganizationProperties,
   UserProperties,
 } from "@local/hash-isomorphic-utils/system-types/user";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-import { useBlockProtocolQueryEntities } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-query-entities";
 import type {
+  GetEntitySubgraphQuery,
+  GetEntitySubgraphQueryVariables,
   GetLinearOrganizationQuery,
   GetLinearOrganizationQueryVariables,
 } from "../../../../graphql/api-types.gen";
 import { getLinearOrganizationQuery } from "../../../../graphql/queries/integrations/linear.queries";
+import { getEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
 
 export type LinearIntegration = {
@@ -43,11 +50,41 @@ export const useLinearIntegrations = (): {
   connectedLinearOrganizations: GetLinearOrganizationQuery["getLinearOrganization"][];
 } => {
   const { authenticatedUser } = useAuthenticatedUser();
-  const { queryEntities } = useBlockProtocolQueryEntities();
 
-  const [linearIntegrations, setLinearIntegrations] = useState<
-    LinearIntegration[]
-  >([]);
+  const { data: linearIntegrationsData } = useQuery<
+    GetEntitySubgraphQuery,
+    GetEntitySubgraphQueryVariables
+  >(getEntitySubgraphQuery, {
+    fetchPolicy: "cache-and-network",
+    variables: {
+      request: {
+        filter: {
+          all: [
+            {
+              equal: [
+                { path: ["webId"] },
+                { parameter: authenticatedUser.accountId },
+              ],
+            },
+            {
+              equal: [
+                { path: ["metadata", "entityTypeId"] },
+                { parameter: systemEntityTypes.linearIntegration.entityTypeId },
+              ],
+            },
+          ],
+        },
+        graphResolveDepths: {
+          ...zeroedGraphResolveDepths,
+          hasLeftEntity: { outgoing: 0, incoming: 1 },
+          hasRightEntity: { outgoing: 1, incoming: 0 },
+        },
+        includeDrafts: false,
+        temporalAxes: currentTimeInstantTemporalAxes,
+      },
+      includePermissions: false,
+    },
+  });
 
   const [getLinearOrganization] = useLazyQuery<
     GetLinearOrganizationQuery,
@@ -57,95 +94,68 @@ export const useLinearIntegrations = (): {
   const [connectedLinearOrganizations, setConnectedLinearOrganizations] =
     useState<GetLinearOrganizationQuery["getLinearOrganization"][]>([]);
 
-  useEffect(() => {
-    void (async () => {
-      const { data } = await queryEntities({
-        data: {
-          operation: {
-            multiFilter: {
-              filters: [
-                {
-                  field: ["webId"],
-                  operator: "EQUALS",
-                  value: authenticatedUser.accountId,
-                },
-                {
-                  field: ["metadata", "entityTypeId"],
-                  operator: "EQUALS",
-                  value: systemEntityTypes.linearIntegration.entityTypeId,
-                },
-              ],
-              operator: "AND",
-            },
-          },
-          graphResolveDepths: {
-            hasLeftEntity: { outgoing: 0, incoming: 1 },
-            hasRightEntity: { outgoing: 1, incoming: 0 },
-          },
-        },
-      });
+  const linearIntegrations = useMemo(() => {
+    if (!linearIntegrationsData) {
+      return [];
+    }
 
-      if (data) {
-        const subgraph = data.results;
+    const subgraph = linearIntegrationsData.getEntitySubgraph.subgraph;
 
-        const linearIntegrationEntities = getRoots(
-          subgraph as Subgraph<
-            EntityRootType<HashEntity<LinearIntegrationType>>
-          >,
-        );
+    const mappedSubgraph =
+      mapGqlSubgraphFieldsFragmentToSubgraph<
+        EntityRootType<HashEntity<LinearIntegrationType>>
+      >(subgraph);
 
-        setLinearIntegrations(
-          linearIntegrationEntities.map((entity) => {
-            return {
-              entity,
-              syncedWithWebs: getOutgoingLinkAndTargetEntities(
-                subgraph,
-                entity.metadata.recordId.entityId,
+    const linearIntegrationEntities = getRoots(mappedSubgraph);
+
+    return linearIntegrationEntities.map((entity) => {
+      return {
+        entity,
+        syncedWithWebs: getOutgoingLinkAndTargetEntities(
+          subgraph,
+          entity.metadata.recordId.entityId,
+        )
+          .filter((linkAndTarget) => {
+            const linkEntity = linkAndTarget.linkEntity[0]!;
+
+            return (
+              !linkEntity.metadata.archived &&
+              linkEntity.metadata.entityTypeIds.includes(
+                systemLinkEntityTypes.syncLinearDataWith.linkEntityTypeId,
               )
-                .filter((linkAndTarget) => {
-                  const linkEntity = linkAndTarget.linkEntity[0]!;
+            );
+          })
+          .map((linkAndTarget) => {
+            const linkEntity = linkAndTarget.linkEntity[0]!;
+            const rightEntity = linkAndTarget.rightEntity[0]!;
 
-                  return (
-                    !linkEntity.metadata.archived &&
-                    linkEntity.metadata.entityTypeIds.includes(
-                      systemLinkEntityTypes.syncLinearDataWith.linkEntityTypeId,
-                    )
-                  );
-                })
-                .map((linkAndTarget) => {
-                  const linkEntity = linkAndTarget.linkEntity[0]!;
-                  const rightEntity = linkAndTarget.rightEntity[0]!;
+            const { linearTeamId: linearTeamIds } = simplifyProperties(
+              linkEntity.properties as SyncLinearDataWithProperties,
+            );
 
-                  const { linearTeamId: linearTeamIds } = simplifyProperties(
-                    linkEntity.properties as SyncLinearDataWithProperties,
-                  );
+            const webName = rightEntity.metadata.entityTypeIds.includes(
+              systemEntityTypes.user.entityTypeId,
+            )
+              ? (rightEntity.properties as UserProperties)[
+                  "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/"
+                ]!
+              : (rightEntity.properties as OrganizationProperties)[
+                  "https://hash.ai/@h/types/property-type/organization-name/"
+                ];
 
-                  const webName = rightEntity.metadata.entityTypeIds.includes(
-                    systemEntityTypes.user.entityTypeId,
-                  )
-                    ? (rightEntity.properties as UserProperties)[
-                        "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/"
-                      ]!
-                    : (rightEntity.properties as OrganizationProperties)[
-                        "https://hash.ai/@h/types/property-type/organization-name/"
-                      ];
-
-                  return {
-                    webEntity: rightEntity,
-                    webName,
-                    linearTeamIds: linearTeamIds ?? [],
-                  };
-                }),
+            return {
+              webEntity: rightEntity,
+              webName,
+              linearTeamIds: linearTeamIds ?? [],
             };
           }),
-        );
-      }
-    })();
-  }, [queryEntities, authenticatedUser]);
+      };
+    });
+  }, [linearIntegrationsData]);
 
   useEffect(() => {
     void (async () => {
-      if (linearIntegrations.length > 0) {
+      if (linearIntegrations.length) {
         const linearOrganizations = await Promise.all(
           linearIntegrations.map(async ({ entity }) => {
             const { linearOrgId } = simplifyProperties(entity.properties);

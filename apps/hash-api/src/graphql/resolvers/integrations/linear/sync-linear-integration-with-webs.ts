@@ -195,6 +195,7 @@ export const syncLinearIntegrationWithWebsMutation: ResolverFn<
           teamIds: linearTeamIds,
         }),
         linkIntegrationToWeb(impureGraphContext, authentication, {
+          linearBotMachineId: linearBotAccountId,
           linearIntegrationEntityId,
           webEntityId,
           linearTeamIds,

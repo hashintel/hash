@@ -1,11 +1,5 @@
-import {
-  type EntityType,
-  versionedUrlFromComponents,
-} from "@blockprotocol/type-system";
-import {
-  googleEntityTypes,
-  systemEntityTypes,
-} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { type EntityType } from "@blockprotocol/type-system";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 import { enabledIntegrations } from "../../../../integrations/enabled-integrations";
 import { getEntityTypeById } from "../../../ontology/primitive/entity-type";

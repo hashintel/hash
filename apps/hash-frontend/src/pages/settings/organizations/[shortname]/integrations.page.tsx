@@ -12,6 +12,7 @@ import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-typ
 import type { SyncLinearDataWith } from "@local/hash-isomorphic-utils/system-types/linearintegration";
 import {
   Box,
+  Skeleton,
   Stack,
   TableBody,
   TableHead,
@@ -30,6 +31,7 @@ import { getEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/en
 import { LinearLogo } from "../../../../shared/icons/linear-logo";
 import type { NextPageWithLayout } from "../../../../shared/layout";
 import { Link } from "../../../../shared/ui";
+import { useActors } from "../../../../shared/use-actors";
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
 import { getSettingsLayout } from "../../../shared/settings-layout";
 import { SettingsPageContainer } from "../../shared/settings-page-container";
@@ -48,46 +50,50 @@ const OrgIntegrationsPage: NextPageWithLayout = () => {
     ({ org: orgOption }) => orgOption.shortname === shortname,
   )?.org;
 
-  const { data: linearIntegrationSyncLinksData, refetch } = useQuery<
-    GetEntitySubgraphQuery,
-    GetEntitySubgraphQueryVariables
-  >(getEntitySubgraphQuery, {
-    variables: {
-      request: {
-        filter: {
-          all: [
-            generateVersionedUrlMatchingFilter(
-              systemLinkEntityTypes.syncLinearDataWith.linkEntityTypeId,
-            ),
-            {
-              equal: [
-                {
-                  path: ["rightEntity", "webId"],
-                },
-                {
-                  parameter: org!.webId,
-                },
-              ],
-            },
-            {
-              equal: [
-                {
-                  path: ["archived"],
-                },
-                { parameter: false },
-              ],
-            },
-          ],
+  const {
+    data: linearIntegrationSyncLinksData,
+    loading,
+    refetch,
+  } = useQuery<GetEntitySubgraphQuery, GetEntitySubgraphQueryVariables>(
+    getEntitySubgraphQuery,
+    {
+      variables: {
+        request: {
+          filter: {
+            all: [
+              generateVersionedUrlMatchingFilter(
+                systemLinkEntityTypes.syncLinearDataWith.linkEntityTypeId,
+              ),
+              {
+                equal: [
+                  {
+                    path: ["rightEntity", "webId"],
+                  },
+                  {
+                    parameter: org!.webId,
+                  },
+                ],
+              },
+              {
+                equal: [
+                  {
+                    path: ["archived"],
+                  },
+                  { parameter: false },
+                ],
+              },
+            ],
+          },
+          graphResolveDepths: zeroedGraphResolveDepths,
+          includeDrafts: false,
+          temporalAxes: currentTimeInstantTemporalAxes,
         },
-        graphResolveDepths: zeroedGraphResolveDepths,
-        includeDrafts: false,
-        temporalAxes: currentTimeInstantTemporalAxes,
+        includePermissions: true,
       },
-      includePermissions: true,
+      skip: !org,
+      fetchPolicy: "cache-and-network",
     },
-    skip: !org,
-    fetchPolicy: "cache-and-network",
-  });
+  );
 
   const linearIntegrationLinks = useMemo(() => {
     if (!linearIntegrationSyncLinksData) {
@@ -104,15 +110,20 @@ const OrgIntegrationsPage: NextPageWithLayout = () => {
 
     const links = getRoots(mappedSubgraph);
 
-    return links.map(({ entityId }) => {
+    return links.map(({ metadata, entityId }) => {
       const canEdit = !!userPermissionsOnEntities?.[entityId]?.edit;
 
       return {
+        createdById: metadata.provenance.createdById,
         entityId,
         canEdit,
       };
     });
   }, [linearIntegrationSyncLinksData]);
+
+  const { actors } = useActors({
+    accountIds: linearIntegrationLinks.map(({ createdById }) => createdById),
+  });
 
   if (!org) {
     // @todo show a 404 page
@@ -129,8 +140,14 @@ const OrgIntegrationsPage: NextPageWithLayout = () => {
         sectionLabel="Integrations"
         disableContentWrapper={linearIntegrationLinks.length === 0}
       >
-        {linearIntegrationLinks.length === 0 ? (
-          <Box mt={2}>
+        {loading ? (
+          <Stack p={1}>
+            <Skeleton sx={{ height: 40, transform: "none", mb: 1 }} />
+            <Skeleton sx={{ height: 40, transform: "none", mb: 1 }} />
+            <Skeleton sx={{ height: 40, transform: "none" }} />
+          </Stack>
+        ) : linearIntegrationLinks.length === 0 ? (
+          <Box py={2} px={3}>
             <Typography variant="smallTextParagraphs">
               No integrations found for {org.name} – install them{" "}
               <Link href="/settings/integrations">here</Link>.
@@ -141,28 +158,51 @@ const OrgIntegrationsPage: NextPageWithLayout = () => {
             <TableHead>
               <TableRow>
                 <SettingsTableCell>Source type</SettingsTableCell>
+                <SettingsTableCell>Installed by</SettingsTableCell>
                 <SettingsTableCell sx={{ width: 100 }} />
               </TableRow>
             </TableHead>
             <TableBody>
-              {linearIntegrationLinks.map(({ entityId, canEdit }) => (
-                <TableRow key={entityId}>
-                  <SettingsTableCell>
-                    <Stack direction="row" alignItems="center" gap={1}>
-                      <LinearLogo sx={{ fontSize: 14 }} />
-                      Linear
-                    </Stack>
-                  </SettingsTableCell>
-                  <SettingsTableCell>
-                    {canEdit && (
-                      <OrgIntegrationContextMenu
-                        linkEntityId={entityId}
-                        onUninstall={refetch}
-                      />
-                    )}
-                  </SettingsTableCell>
-                </TableRow>
-              ))}
+              {linearIntegrationLinks.map(
+                ({ entityId, canEdit, createdById }) => {
+                  const actor = actors?.find(
+                    ({ accountId }) => accountId === createdById,
+                  );
+
+                  const isUser = actor && "shortname" in actor;
+
+                  return (
+                    <TableRow key={entityId}>
+                      <SettingsTableCell>
+                        <Stack direction="row" alignItems="center" gap={1}>
+                          <LinearLogo sx={{ fontSize: 14 }} />
+                          Linear
+                        </Stack>
+                      </SettingsTableCell>
+                      <SettingsTableCell>
+                        {isUser ? (
+                          <Link
+                            href={`/@${actor.shortname}`}
+                            sx={{ textDecoration: "none" }}
+                          >
+                            {actor.displayName}
+                          </Link>
+                        ) : (
+                          actor?.displayName
+                        )}
+                      </SettingsTableCell>
+                      <SettingsTableCell>
+                        {canEdit && (
+                          <OrgIntegrationContextMenu
+                            linkEntityId={entityId}
+                            onUninstall={refetch}
+                          />
+                        )}
+                      </SettingsTableCell>
+                    </TableRow>
+                  );
+                },
+              )}
             </TableBody>
           </SettingsTable>
         )}

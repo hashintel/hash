@@ -8,6 +8,7 @@ import type {
   BaseUrl,
   Entity,
   EntityId,
+  MachineId,
 } from "@blockprotocol/type-system";
 import {
   extractEntityUuidFromEntityId,
@@ -17,7 +18,6 @@ import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import type { EntityRelationAndSubjectBranded } from "@local/hash-graph-sdk/authorization";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { createPolicy } from "@local/hash-graph-sdk/policy";
-import { getWebRoles } from "@local/hash-graph-sdk/principal/web";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -43,7 +43,6 @@ import type {
   ImpureGraphFunction,
   PureGraphFunction,
 } from "../../context-types";
-import { systemAccountId } from "../../system-account";
 import { getLatestEntityById, updateEntity } from "../primitive/entity";
 import { createLinkEntity } from "../primitive/link-entity";
 
@@ -257,6 +256,7 @@ export const getSyncedWebsForLinearIntegration: ImpureGraphFunction<
 
 export const linkIntegrationToWeb: ImpureGraphFunction<
   {
+    linearBotMachineId: MachineId;
     linearIntegrationEntityId: EntityId;
     webEntityId: EntityId;
     linearTeamIds: string[];
@@ -267,6 +267,7 @@ export const linkIntegrationToWeb: ImpureGraphFunction<
   true
 > = async (context, authentication, params) => {
   const {
+    linearBotMachineId,
     linearIntegrationEntityId,
     webEntityId,
     linearTeamIds,
@@ -352,7 +353,7 @@ export const linkIntegrationToWeb: ImpureGraphFunction<
     });
   } else {
     /**
-     * Allow the user creating the link and the web admins to administer the link (e.g. to delete it),
+     * Allow the user creating the link, the Linear bot and the web admins to administer the link (e.g. to delete it),
      * and allow other web members to view the link.
      */
     const linearIntegrationRelationships: EntityRelationAndSubjectBranded[] = [
@@ -361,6 +362,13 @@ export const linkIntegrationToWeb: ImpureGraphFunction<
         subject: {
           kind: "account",
           subjectId: authentication.actorId,
+        },
+      },
+      {
+        relation: "administrator",
+        subject: {
+          kind: "account",
+          subjectId: linearBotMachineId,
         },
       },
       {
@@ -383,17 +391,40 @@ export const linkIntegrationToWeb: ImpureGraphFunction<
       linearIntegrationEntityId,
     );
 
-    await createLinkEntity<SyncLinearDataWith>(context, authentication, {
-      webId: linearIntegrationWebId,
-      properties,
-      linkData: {
-        leftEntityId: linearIntegrationEntityId,
-        rightEntityId: webEntityId,
+    const linkEntity = await createLinkEntity<SyncLinearDataWith>(
+      context,
+      authentication,
+      {
+        webId: linearIntegrationWebId,
+        properties,
+        linkData: {
+          leftEntityId: linearIntegrationEntityId,
+          rightEntityId: webEntityId,
+        },
+        entityTypeIds: [
+          systemLinkEntityTypes.syncLinearDataWith.linkEntityTypeId,
+        ],
+        relationships: linearIntegrationRelationships,
       },
-      entityTypeIds: [
-        systemLinkEntityTypes.syncLinearDataWith.linkEntityTypeId,
-      ],
-      relationships: linearIntegrationRelationships,
+    );
+
+    const linkEntityUuid = extractEntityUuidFromEntityId(
+      linkEntity.metadata.recordId.entityId,
+    );
+
+    await createPolicy(context.graphApi, authentication, {
+      name: `linear-integration-bot-view-link-entity-${linkEntityUuid}`,
+      principal: {
+        type: "actor",
+        actorType: "machine",
+        id: linearBotMachineId,
+      },
+      effect: "permit",
+      actions: ["viewEntity"],
+      resource: {
+        type: "entity",
+        id: linkEntityUuid,
+      },
     });
   }
 };

@@ -46,15 +46,12 @@ export const syncLinearToWeb: SyncWebWorkflow = async (params) => {
     );
 
   const issues = teamIds.map((teamId) =>
-    linearActivities
-      .readLinearIssues({ apiKey, filter: { teamId } })
-      .then((issueEntities) =>
-        linearActivities.createPartialEntities({
-          authentication,
-          webId,
-          entities: issueEntities,
-        }),
-      ),
+    linearActivities.readAndCreateLinearIssues({
+      apiKey,
+      filter: { teamId },
+      authentication,
+      webId,
+    }),
   );
 
   await Promise.all([organization, users, ...issues]);

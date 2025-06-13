@@ -81,6 +81,8 @@ export const linearWebhook: RequestHandler<
   const { graphApi, vaultClient } = req.context;
 
   if (!vaultClient) {
+    logger.error("No vault client found in Linear webhook");
+    res.sendStatus(500);
     return;
   }
 

@@ -17,8 +17,8 @@ import { useUserPermissionsOnEntity } from "../../../../shared/use-user-permissi
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
 import { getSettingsLayout } from "../../../shared/settings-layout";
 import { SettingsPageContainer } from "../../shared/settings-page-container";
-import { SettingsTableCell } from "../../shared/settings-table-cell";
 import { SettingsTable } from "../../shared/settings-table";
+import { SettingsTableCell } from "../../shared/settings-table-cell";
 import { AddMemberForm } from "./members.page/add-member-form";
 import { MemberRow } from "./members.page/member-row";
 

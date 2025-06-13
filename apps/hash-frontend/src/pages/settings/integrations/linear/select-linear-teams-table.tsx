@@ -11,7 +11,6 @@ import {
   TableHead,
   TableRow,
 } from "@mui/material";
-import type { value } from "jsonpath";
 import type { Dispatch, FunctionComponent, SetStateAction } from "react";
 import { Fragment, useCallback, useMemo, useState } from "react";
 
