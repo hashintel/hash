@@ -2,7 +2,7 @@ use core::error::Error;
 
 use type_system::principal::{
     PrincipalId,
-    actor::ActorId,
+    actor::{ActorEntityUuid, ActorId},
     actor_group::{ActorGroupId, TeamId, WebId},
     role::RoleName,
 };
@@ -173,6 +173,16 @@ impl Error for RoleAssignmentError {}
 pub enum ContextCreationError {
     #[display("Actor with ID `{actor_id}` does not exist")]
     ActorNotFound { actor_id: ActorId },
+    #[display("Actor with ID `{actor_id}` is not a valid actor")]
+    DetermineActor { actor_id: ActorEntityUuid },
+    #[display("Could not build principal context for actor with ID `{}`", actor_id.map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from))]
+    BuildPrincipalContext { actor_id: Option<ActorId> },
+    #[display("Could not resolve policies for actor with ID `{}`", actor_id.map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from))]
+    ResolveActorPolicies { actor_id: Option<ActorId> },
+    #[display("Could not create policy set")]
+    CreatePolicySet,
+    #[display("Could not create policy context")]
+    CreatePolicyContext,
     #[display("Store operation failed")]
     StoreError,
 }
