@@ -24,7 +24,7 @@ data "aws_ami" "amazon_linux" {
     # `aws ec2 describe-images --owners amazon --filters "Name=name,Values=amzn2-ami-hvm-*-x86_64-gp2" | jq '.Images | sort_by(.CreationDate) | reverse'`
     # We don't wilcard here to not accidentialy update to a non-functioning image.
     values = [
-      "amzn2-ami-hvm-2.0.20230612.0-x86_64-gp2",
+      "amzn2-ami-hvm-2.0.20250610.0-x86_64-gp2",
     ]
   }
 
