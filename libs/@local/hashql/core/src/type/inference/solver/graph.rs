@@ -1,4 +1,4 @@
-use core::{mem, mem::size_of, ops::RangeInclusive};
+use core::{mem, ops::RangeInclusive};
 
 use ena::unify::UnifyKey as _;
 use roaring::RoaringBitmap;
