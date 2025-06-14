@@ -298,7 +298,7 @@ __metadata:
     "@vitest/coverage-istanbul": "npm:3.2.3"
     ajv: "npm:8.17.1"
     ajv-formats: "npm:3.0.1"
-    axios: "npm:1.9.0"
+    axios: "npm:1.10.0"
     cache-manager: "npm:5.7.6"
     dedent: "npm:0.7.0"
     dotenv-flow: "npm:3.3.0"
@@ -396,7 +396,7 @@ __metadata:
     apollo-server-errors: "npm:3.3.1"
     apollo-server-express: "npm:3.9.0"
     app-root-path: "npm:3.1.0"
-    axios: "npm:1.9.0"
+    axios: "npm:1.10.0"
     body-parser: "npm:1.20.3"
     clipboardy: "npm:2.3.0"
     cors: "npm:2.8.5"
@@ -516,7 +516,7 @@ __metadata:
     "@types/url-regex-safe": "npm:1.0.2"
     "@vercel/edge-config": "npm:0.4.1"
     "@welldone-software/why-did-you-render": "npm:10.0.1"
-    axios: "npm:1.9.0"
+    axios: "npm:1.10.0"
     buffer: "npm:6.0.3"
     clsx: "npm:1.2.1"
     date-fns: "npm:4.1.0"
@@ -626,7 +626,7 @@ __metadata:
     "@temporalio/workflow": "npm:1.11.8"
     "@types/dotenv-flow": "npm:3.3.3"
     agentkeepalive: "npm:4.6.0"
-    axios: "npm:1.9.0"
+    axios: "npm:1.10.0"
     dotenv-flow: "npm:3.3.0"
     eslint: "npm:9.20.1"
     rimraf: "npm:6.0.1"
@@ -8916,7 +8916,7 @@ __metadata:
     "@vitest/coverage-istanbul": "npm:3.2.3"
     agentkeepalive: "npm:4.6.0"
     apollo-datasource: "npm:3.3.2"
-    axios: "npm:1.9.0"
+    axios: "npm:1.10.0"
     dotenv-flow: "npm:3.3.0"
     eslint: "npm:9.20.1"
     exponential-backoff: "npm:3.1.2"
@@ -8941,7 +8941,7 @@ __metadata:
     "@openapitools/openapi-generator-cli": "npm:2.20.2"
     "@rust/hash-graph-api": "npm:0.0.0-private"
     "@types/node": "npm:22.15.31"
-    axios: "npm:1.9.0"
+    axios: "npm:1.10.0"
     fix-esm-import-path: "npm:1.10.1"
     rimraf: "npm:6.0.1"
     typescript: "npm:5.7.3"
@@ -9028,7 +9028,7 @@ __metadata:
   dependencies:
     "@openapitools/openapi-generator-cli": "npm:2.20.2"
     "@types/node": "npm:22.15.31"
-    axios: "npm:1.9.0"
+    axios: "npm:1.10.0"
     rimraf: "npm:6.0.1"
     typescript: "npm:5.7.3"
   languageName: unknown
@@ -20718,6 +20718,17 @@ __metadata:
   languageName: node
   linkType: hard
 
+"axios@npm:1.10.0, axios@npm:^1.6.1, axios@npm:^1.7.4, axios@npm:^1.8.2":
+  version: 1.10.0
+  resolution: "axios@npm:1.10.0"
+  dependencies:
+    follow-redirects: "npm:^1.15.6"
+    form-data: "npm:^4.0.0"
+    proxy-from-env: "npm:^1.1.0"
+  checksum: 10c0/2239cb269cc789eac22f5d1aabd58e1a83f8f364c92c2caa97b6f5cbb4ab2903d2e557d9dc670b5813e9bcdebfb149e783fb8ab3e45098635cd2f559b06bd5d8
+  languageName: node
+  linkType: hard
+
 "axios@npm:1.8.3":
   version: 1.8.3
   resolution: "axios@npm:1.8.3"
@@ -20729,7 +20740,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"axios@npm:1.9.0, axios@npm:^1.6.1, axios@npm:^1.7.4, axios@npm:^1.8.2":
+"axios@npm:1.9.0":
   version: 1.9.0
   resolution: "axios@npm:1.9.0"
   dependencies:
