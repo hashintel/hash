@@ -5,6 +5,10 @@ export const getHashInstanceSettings = gql`
     hashInstanceSettings {
       entity
       isUserAdmin
+      enabledIntegrations {
+        googleSheets
+        linear
+      }
     }
   }
 `;

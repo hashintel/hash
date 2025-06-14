@@ -22,7 +22,7 @@ import { generateInverseResolver } from "./generation/generate-inverse";
 import { generatePluralResolver } from "./generation/generate-plural";
 import { isGenerationAvailableResolver } from "./generation/is-generation-available";
 import { getLinearOrganizationResolver } from "./integrations/linear/linear-organization";
-import { syncLinearIntegrationWithWorkspacesMutation } from "./integrations/linear/sync-workspaces-with-teams";
+import { syncLinearIntegrationWithWebsMutation } from "./integrations/linear/sync-linear-integration-with-webs";
 import { blocksResolver } from "./knowledge/block/block";
 import { blockChildEntityResolver } from "./knowledge/block/data-entity";
 import { blockCollectionContents } from "./knowledge/block-collection/block-collection-contents";
@@ -244,8 +244,8 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
       }),
 
     // Integration
-    syncLinearIntegrationWithWorkspaces: loggedInAndSignedUpMiddleware(
-      syncLinearIntegrationWithWorkspacesMutation,
+    syncLinearIntegrationWithWebs: loggedInAndSignedUpMiddleware(
+      syncLinearIntegrationWithWebsMutation,
     ),
   },
 

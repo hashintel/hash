@@ -33,7 +33,7 @@
     "@temporalio/worker": "1.11.8",
     "@temporalio/workflow": "1.11.8",
     "agentkeepalive": "4.6.0",
-    "axios": "1.9.0",
+    "axios": "1.10.0",
     "dotenv-flow": "3.3.0",
     "tsx": "4.20.3",
     "typescript": "5.7.3"

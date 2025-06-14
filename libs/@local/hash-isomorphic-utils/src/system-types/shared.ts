@@ -999,6 +999,29 @@ export type IntegerDataTypeMetadata = {
 };
 
 /**
+ * An integration with a third-party service.
+ */
+export type Integration = {
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/integration/v/1"];
+  properties: IntegrationProperties;
+  propertiesWithMetadata: IntegrationPropertiesWithMetadata;
+};
+
+export type IntegrationOutgoingLinkAndTarget = never;
+
+export type IntegrationOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * An integration with a third-party service.
+ */
+export type IntegrationProperties = {};
+
+export type IntegrationPropertiesWithMetadata = {
+  metadata?: ObjectMetadata;
+  value: {};
+};
+
+/**
  * Something that someone or something is a member of.
  */
 export type IsMemberOf = {

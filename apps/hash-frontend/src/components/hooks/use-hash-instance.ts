@@ -6,6 +6,7 @@ import type { HASHInstance } from "@local/hash-isomorphic-utils/system-types/has
 import { useMemo } from "react";
 
 import type {
+  EnabledIntegrations,
   GetHashInstanceSettingsQueryQuery,
   GetHashInstanceSettingsQueryQueryVariables,
 } from "../../graphql/api-types.gen";
@@ -18,6 +19,7 @@ export const useHashInstance = (): {
   loading: boolean;
   hashInstance?: Simplified<HashEntity<HASHInstance>>;
   isUserAdmin: boolean;
+  enabledIntegrations: EnabledIntegrations;
 } => {
   const { data, loading } = useQuery<
     GetHashInstanceSettingsQueryQuery,
@@ -49,5 +51,9 @@ export const useHashInstance = (): {
     loading,
     hashInstance,
     isUserAdmin: !!hashInstanceSettings?.isUserAdmin,
+    enabledIntegrations: hashInstanceSettings?.enabledIntegrations ?? {
+      googleSheets: false,
+      linear: false,
+    },
   };
 };

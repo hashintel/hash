@@ -8,15 +8,17 @@ import type {
   BaseUrl,
   Entity,
   EntityId,
+  MachineId,
 } from "@blockprotocol/type-system";
 import {
   extractEntityUuidFromEntityId,
   extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
+import type { EntityRelationAndSubjectBranded } from "@local/hash-graph-sdk/authorization";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { createPolicy } from "@local/hash-graph-sdk/policy";
 import {
-  createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
@@ -41,7 +43,6 @@ import type {
   ImpureGraphFunction,
   PureGraphFunction,
 } from "../../context-types";
-import { systemAccountId } from "../../system-account";
 import { getLatestEntityById, updateEntity } from "../primitive/entity";
 import { createLinkEntity } from "../primitive/link-entity";
 
@@ -166,7 +167,7 @@ export const getLinearIntegrationByLinearOrgId: ImpureGraphFunction<
 
   if (entities.length > 1) {
     throw new Error(
-      `More than one linear integration found for the user with the linear org ID ${linearOrgId}`,
+      `More than one (${entities.length}) linear integrations found for the user with the linear org ID ${linearOrgId}`,
     );
   }
 
@@ -191,12 +192,12 @@ export const getLinearIntegrationById: ImpureGraphFunction<
   return getLinearIntegrationFromEntity({ entity });
 };
 
-export const getSyncedWorkspacesForLinearIntegration: ImpureGraphFunction<
+export const getSyncedWebsForLinearIntegration: ImpureGraphFunction<
   { linearIntegrationEntityId: EntityId; includeDrafts?: boolean },
   Promise<
     {
       syncLinearDataWithLinkEntity: HashEntity;
-      workspaceEntity: HashEntity;
+      webEntity: HashEntity;
     }[]
   >
 > = async (
@@ -243,20 +244,21 @@ export const getSyncedWorkspacesForLinearIntegration: ImpureGraphFunction<
 
       return syncLinearDataWithLinkEntities.map(
         (syncLinearDataWithLinkEntity) => {
-          const workspaceEntity = getRightEntityForLinkEntity(
+          const webEntity = getRightEntityForLinkEntity(
             subgraph,
             syncLinearDataWithLinkEntity.metadata.recordId.entityId,
           )![0]! as HashEntity;
 
-          return { syncLinearDataWithLinkEntity, workspaceEntity };
+          return { syncLinearDataWithLinkEntity, webEntity };
         },
       );
     });
 
-export const linkIntegrationToWorkspace: ImpureGraphFunction<
+export const linkIntegrationToWeb: ImpureGraphFunction<
   {
+    linearBotMachineId: MachineId;
     linearIntegrationEntityId: EntityId;
-    workspaceEntityId: EntityId;
+    webEntityId: EntityId;
     linearTeamIds: string[];
     includeDrafts?: boolean;
   },
@@ -265,8 +267,9 @@ export const linkIntegrationToWorkspace: ImpureGraphFunction<
   true
 > = async (context, authentication, params) => {
   const {
+    linearBotMachineId,
     linearIntegrationEntityId,
-    workspaceEntityId,
+    webEntityId,
     linearTeamIds,
     includeDrafts = false,
   } = params;
@@ -296,7 +299,7 @@ export const linkIntegrationToWorkspace: ImpureGraphFunction<
             equal: [
               { path: ["rightEntity", "uuid"] },
               {
-                parameter: extractEntityUuidFromEntityId(workspaceEntityId),
+                parameter: extractEntityUuidFromEntityId(webEntityId),
               },
             ],
           },
@@ -327,7 +330,7 @@ export const linkIntegrationToWorkspace: ImpureGraphFunction<
 
   if (existingLinkEntities.length > 1) {
     throw new Error(
-      `More than one "syncLinearDataWith" link entity found between the linear integration entity with ID ${linearIntegrationEntityId} and the workspace entity with ID ${workspaceEntityId}`,
+      `More than one "syncLinearDataWith" (${existingLinkEntities.length}) link entity found between the linear integration entity with ID ${linearIntegrationEntityId} and the web entity with ID ${webEntityId}`,
     );
   } else if (existingLinkEntities[0]) {
     const [existingLinkEntity] = existingLinkEntities;
@@ -349,24 +352,81 @@ export const linkIntegrationToWorkspace: ImpureGraphFunction<
       ],
     });
   } else {
-    await createLinkEntity<SyncLinearDataWith>(context, authentication, {
-      webId: extractWebIdFromEntityId(linearIntegrationEntityId),
-      properties,
-      linkData: {
-        leftEntityId: linearIntegrationEntityId,
-        rightEntityId: workspaceEntityId,
-      },
-      entityTypeIds: [
-        systemLinkEntityTypes.syncLinearDataWith.linkEntityTypeId,
-      ],
-      relationships: [
-        ...createDefaultAuthorizationRelationships(authentication),
-        {
-          // Allow the system account ID to view the link
-          relation: "viewer",
-          subject: { kind: "account", subjectId: systemAccountId },
+    /**
+     * Allow the user creating the link, the Linear bot and the web admins to administer the link (e.g. to delete it),
+     * and allow other web members to view the link.
+     */
+    const linearIntegrationRelationships: EntityRelationAndSubjectBranded[] = [
+      {
+        relation: "administrator",
+        subject: {
+          kind: "account",
+          subjectId: authentication.actorId,
         },
-      ],
+      },
+      {
+        relation: "administrator",
+        subject: {
+          kind: "account",
+          subjectId: linearBotMachineId,
+        },
+      },
+      {
+        relation: "setting",
+        subject: {
+          kind: "setting",
+          subjectId: "administratorFromWeb",
+        },
+      },
+      {
+        relation: "setting",
+        subject: {
+          kind: "setting",
+          subjectId: "viewFromWeb",
+        },
+      },
+    ];
+
+    const linearIntegrationWebId = extractWebIdFromEntityId(
+      linearIntegrationEntityId,
+    );
+
+    const linkEntity = await createLinkEntity<SyncLinearDataWith>(
+      context,
+      authentication,
+      {
+        webId: linearIntegrationWebId,
+        properties,
+        linkData: {
+          leftEntityId: linearIntegrationEntityId,
+          rightEntityId: webEntityId,
+        },
+        entityTypeIds: [
+          systemLinkEntityTypes.syncLinearDataWith.linkEntityTypeId,
+        ],
+        relationships: linearIntegrationRelationships,
+      },
+    );
+
+    const linkEntityUuid = extractEntityUuidFromEntityId(
+      linkEntity.metadata.recordId.entityId,
+    );
+
+    // TODO: allow creating policies alongside entity creation
+    //   see https://linear.app/hash/issue/H-4622/allow-creating-policies-alongside-entity-creation
+    await createPolicy(context.graphApi, authentication, {
+      name: `linear-integration-bot-view-link-entity-${linkEntityUuid}`,
+      principal: {
+        type: "actor",
+        actorType: "machine",
+        id: linearBotMachineId,
+      },
+      effect: "permit",
+      actions: ["viewEntity"],
+      resource: {
+        type: "entity",
+        id: linkEntityUuid,
+      },
     });
   }
 };
