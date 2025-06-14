@@ -709,7 +709,7 @@ __metadata:
     "@local/eslint": "npm:0.0.0-private"
     "@local/hash-backend-utils": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
-    "@modelcontextprotocol/sdk": "npm:1.12.1"
+    "@modelcontextprotocol/sdk": "npm:1.12.3"
     "@types/dotenv-flow": "npm:3.3.3"
     "@types/node": "npm:22.15.31"
     chokidar-cli: "npm:3.0.0"
@@ -732,7 +732,7 @@ __metadata:
   dependencies:
     "@local/eslint": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
-    "@modelcontextprotocol/sdk": "npm:1.12.1"
+    "@modelcontextprotocol/sdk": "npm:1.12.3"
     "@notionhq/client": "npm:2.3.0"
     "@types/dotenv-flow": "npm:3.3.3"
     "@types/node": "npm:22.15.31"
@@ -9220,9 +9220,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@modelcontextprotocol/sdk@npm:1.12.1":
-  version: 1.12.1
-  resolution: "@modelcontextprotocol/sdk@npm:1.12.1"
+"@modelcontextprotocol/sdk@npm:1.12.3":
+  version: 1.12.3
+  resolution: "@modelcontextprotocol/sdk@npm:1.12.3"
   dependencies:
     ajv: "npm:^6.12.6"
     content-type: "npm:^1.0.5"
@@ -9235,7 +9235,7 @@ __metadata:
     raw-body: "npm:^3.0.0"
     zod: "npm:^3.23.8"
     zod-to-json-schema: "npm:^3.24.1"
-  checksum: 10c0/19daf4bc01373a8bd816faa6e8b139c20a56ae4c9cf25c6e900fab443b34e44bcf699a61612cf421c6480d803230003576b12823a04804dc71d7007f530677ac
+  checksum: 10c0/8bc0b91e596ec886efc64d68ae8474247647405f1a5ae407e02439c74c2a03528b3fbdce8f9352d9c2df54aa4548411e1aa1816ab3b09e045c2ff4202e2fd374
   languageName: node
   linkType: hard
 
