@@ -2,7 +2,7 @@ import type { MachineId, WebId } from "@blockprotocol/type-system";
 import type { Organization, Team } from "@linear/sdk";
 import { LinearClient } from "@linear/sdk";
 import type { TemporalClient } from "@local/hash-backend-utils/temporal";
-import type { SyncWorkspaceWorkflow } from "@local/hash-backend-utils/temporal-integration-workflow-types";
+import type { SyncWebWorkflow } from "@local/hash-backend-utils/temporal-integration-workflow-types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 
 export const listTeams = async (params: {
@@ -42,14 +42,14 @@ export class Linear {
     this.apiKey = params.apiKey;
   }
 
-  public async triggerWorkspaceSync(params: {
+  public async triggerWebSync(params: {
     authentication: { actorId: MachineId };
-    workspaceWebId: WebId;
+    webId: WebId;
     teamIds: string[];
   }): Promise<void> {
     // TODO: Implement error handling
-    await this.temporalClient.workflow.start<SyncWorkspaceWorkflow>(
-      "syncWorkspace",
+    await this.temporalClient.workflow.start<SyncWebWorkflow>(
+      "syncLinearToWeb",
       {
         taskQueue: "integration",
         args: [
@@ -58,7 +58,7 @@ export class Linear {
             ...params,
           },
         ],
-        workflowId: `syncWorkspace-${generateUuid()}`,
+        workflowId: `syncLinearToWeb-${generateUuid()}`,
       },
     );
   }

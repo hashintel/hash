@@ -10,7 +10,7 @@ import { removeAccountGroupMemberMutation } from "../../../../graphql/queries/ac
 import type { Org } from "../../../../lib/user-and-org";
 import { Link } from "../../../../shared/ui/link";
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
-import { Cell } from "../shared/cell";
+import { SettingsTableCell } from "../../shared/settings-table-cell";
 import { OrgContextMenu } from "./org-row/org-context-menu";
 
 export const OrgRow = ({ org }: { org: Org }) => {
@@ -50,14 +50,14 @@ export const OrgRow = ({ org }: { org: Org }) => {
 
   return (
     <TableRow key={org.entity.metadata.recordId.entityId}>
-      <Cell>
+      <SettingsTableCell>
         <Link
           href={`/settings/organizations/${org.shortname}/general`}
           sx={{ textDecoration: "none" }}
         >
           {org.name}
         </Link>
-      </Cell>
+      </SettingsTableCell>
       <TableCell>
         <Typography
           variant="smallTextLabels"

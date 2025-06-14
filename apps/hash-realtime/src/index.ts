@@ -20,6 +20,7 @@ import { sql } from "slonik";
 
 import { generateQueues, MONITOR_TABLES } from "./config";
 
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
 if (!realtimeSyncEnabled) {
   // eslint-disable-next-line no-console
   console.log(

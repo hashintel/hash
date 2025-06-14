@@ -41,6 +41,7 @@ import type { PrincipalConstraint } from "@rust/hash-graph-authorization/types";
 import { backOff } from "exponential-backoff";
 
 import { getInstanceAdminsTeam } from "./hash-instance.js";
+import { getWebMachineId } from "./machine-actors.js";
 
 /**
  * Retrieve a web's service usage
@@ -60,10 +61,22 @@ export const getWebServiceUsage = async (
     webId: WebId;
   },
 ): Promise<AggregatedUsageRecord[]> => {
+  const webBotId = await getWebMachineId(
+    context,
+    {
+      actorId: userAccountId,
+    },
+    { webId },
+  );
+
+  if (!webBotId) {
+    throw new Error(`Web bot for web ${webId} not found`);
+  }
+
   const serviceUsageRecordSubgraph = await backOff(
     () =>
       context.graphApi
-        .getEntitySubgraph(userAccountId, {
+        .getEntitySubgraph(webBotId, {
           filter: {
             all: [
               generateVersionedUrlMatchingFilter(

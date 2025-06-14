@@ -125,6 +125,11 @@ import type {
   ImageFilePropertiesWithMetadata,
   InformationDataType,
   InformationDataTypeWithMetadata,
+  Integration,
+  IntegrationOutgoingLinkAndTarget,
+  IntegrationOutgoingLinksByLinkEntityTypeId,
+  IntegrationProperties,
+  IntegrationPropertiesWithMetadata,
   IsMemberOf,
   IsMemberOfOutgoingLinkAndTarget,
   IsMemberOfOutgoingLinksByLinkEntityTypeId,
@@ -331,6 +336,11 @@ export type {
   ImageFilePropertiesWithMetadata,
   InformationDataType,
   InformationDataTypeWithMetadata,
+  Integration,
+  IntegrationOutgoingLinkAndTarget,
+  IntegrationOutgoingLinksByLinkEntityTypeId,
+  IntegrationProperties,
+  IntegrationPropertiesWithMetadata,
   IsMemberOf,
   IsMemberOfOutgoingLinkAndTarget,
   IsMemberOfOutgoingLinksByLinkEntityTypeId,
@@ -421,7 +431,7 @@ export type {
  */
 export type LinearIntegration = {
   entityTypeIds: [
-    "https://hash.ai/@h/types/entity-type/linear-integration/v/7",
+    "https://hash.ai/@h/types/entity-type/linear-integration/v/8",
   ];
   properties: LinearIntegrationProperties;
   propertiesWithMetadata: LinearIntegrationPropertiesWithMetadata;
@@ -439,16 +449,17 @@ export type LinearIntegrationOutgoingLinksByLinkEntityTypeId = {
 /**
  * An instance of an integration with Linear.
  */
-export type LinearIntegrationProperties = {
+export type LinearIntegrationProperties = IntegrationProperties & {
   "https://hash.ai/@h/types/property-type/linear-org-id/": LinearOrgIdPropertyValue;
 };
 
-export type LinearIntegrationPropertiesWithMetadata = {
-  metadata?: ObjectMetadata;
-  value: {
-    "https://hash.ai/@h/types/property-type/linear-org-id/": LinearOrgIdPropertyValueWithMetadata;
+export type LinearIntegrationPropertiesWithMetadata =
+  IntegrationPropertiesWithMetadata & {
+    metadata?: ObjectMetadata;
+    value: {
+      "https://hash.ai/@h/types/property-type/linear-org-id/": LinearOrgIdPropertyValueWithMetadata;
+    };
   };
-};
 
 export type LinearIntegrationSyncLinearDataWithLink = {
   linkEntity: SyncLinearDataWith;

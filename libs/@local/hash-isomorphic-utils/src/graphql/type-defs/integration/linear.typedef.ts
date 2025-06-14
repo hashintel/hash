@@ -51,24 +51,24 @@ export const linearTypedef = gql`
     getLinearOrganization(linearOrgId: ID!): LinearOrganization!
   }
 
-  input SyncWithWorkspace {
+  input SyncWithWeb {
     """
-    The linear team IDs to sync with the workspace
+    The linear team IDs to sync with the web
     """
     linearTeamIds: [ID!]!
     """
-    The entity ID of the workspace (user or org)
+    The entity ID of the web (user or org)
     """
-    workspaceEntityId: EntityId!
+    webEntityId: EntityId!
   }
 
   extend type Mutation {
     """
-    Sync linear integration with HASH workspaces (users or orgs)
+    Sync linear integration with HASH webs (users or orgs)
     """
-    syncLinearIntegrationWithWorkspaces(
+    syncLinearIntegrationWithWebs(
       linearIntegrationEntityId: EntityId!
-      syncWithWorkspaces: [SyncWithWorkspace!]!
+      syncWithWebs: [SyncWithWeb!]!
     ): SerializedEntity
   }
 `;

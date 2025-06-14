@@ -1,7 +1,7 @@
 import type { TableProps } from "@mui/material";
 import { Table } from "@mui/material";
 
-export const OrgTable = ({ sx, ...props }: TableProps) => (
+export const SettingsTable = ({ sx, ...props }: TableProps) => (
   <Table
     sx={[
       ({ palette }) => ({

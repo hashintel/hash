@@ -743,6 +743,7 @@ const main = async () => {
     });
   });
 
+  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   if (realtimeSyncEnabled && enabledIntegrations.linear) {
     if (!vaultClient) {
       throw new Error(

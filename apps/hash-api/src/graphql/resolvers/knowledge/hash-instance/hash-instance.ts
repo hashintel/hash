@@ -3,6 +3,7 @@ import {
   isUserHashInstanceAdmin,
 } from "@local/hash-backend-utils/hash-instance";
 
+import { enabledIntegrations } from "../../../../integrations/enabled-integrations";
 import type { HashInstanceSettings, ResolverFn } from "../../../api-types.gen";
 import type { GraphQLContext } from "../../../context";
 import { graphQLContextToImpureGraphContext } from "../../util";
@@ -27,5 +28,6 @@ export const hashInstanceSettingsResolver: ResolverFn<
   return {
     entity: entity.toJSON(),
     isUserAdmin,
+    enabledIntegrations,
   };
 };

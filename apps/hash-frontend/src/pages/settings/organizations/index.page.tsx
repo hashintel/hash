@@ -11,9 +11,9 @@ import { Button } from "../../../shared/ui/button";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
 import { getSettingsLayout } from "../../shared/settings-layout";
 import { SettingsPageContainer } from "../shared/settings-page-container";
+import { SettingsTable } from "../shared/settings-table";
+import { SettingsTableCell } from "../shared/settings-table-cell";
 import { OrgRow } from "./index.page/org-row";
-import { Cell } from "./shared/cell";
-import { OrgTable } from "./shared/org-table";
 
 const OrganizationListPage: NextPageWithLayout = () => {
   const router = useRouter();
@@ -49,12 +49,12 @@ const OrganizationListPage: NextPageWithLayout = () => {
         ref={topRef}
       >
         {authenticatedUser.memberOf.length > 0 ? (
-          <OrgTable>
+          <SettingsTable>
             <TableHead>
               <TableRow>
-                <Cell width="100%">Organization</Cell>
-                <Cell>Namespace</Cell>
-                <Cell />
+                <SettingsTableCell width="100%">Organization</SettingsTableCell>
+                <SettingsTableCell>Namespace</SettingsTableCell>
+                <SettingsTableCell />
               </TableRow>
             </TableHead>
             <TableBody>
@@ -64,7 +64,7 @@ const OrganizationListPage: NextPageWithLayout = () => {
                   <OrgRow key={org.webId} org={org} />
                 ))}
             </TableBody>
-          </OrgTable>
+          </SettingsTable>
         ) : (
           <Box
             display="flex"

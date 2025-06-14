@@ -2088,10 +2088,7 @@ where
 
         ensure!(
             validation_report.is_valid(),
-            Report::new(UpdateError).attach(HashMap::from([(
-                entities[0].metadata.record_id.entity_id,
-                validation_report
-            )]))
+            Report::new(UpdateError).attach(HashMap::from([(0_usize, validation_report)]))
         );
 
         transaction.commit().await.change_context(UpdateError)?;
