@@ -2732,9 +2732,9 @@ dependencies = [
 
 [[package]]
 name = "frunk_core"
-version = "0.4.3"
+version = "0.4.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3529a07095650187788833d585c219761114005d5976185760cf794d265b6a5c"
+checksum = "476eeaa382e3462b84da5d6ba3da97b5786823c2d0d3a0d04ef088d073da225c"
 
 [[package]]
 name = "frunk_derives"
