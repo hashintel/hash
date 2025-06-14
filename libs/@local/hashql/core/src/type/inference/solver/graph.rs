@@ -1,4 +1,4 @@
-use core::{mem, mem::size_of};
+use core::{mem, mem::size_of, ops::RangeInclusive};
 
 use ena::unify::UnifyKey as _;
 use roaring::RoaringBitmap;
@@ -6,10 +6,132 @@ use roaring::RoaringBitmap;
 use super::Unification;
 use crate::r#type::inference::variable::VariableId;
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub(crate) enum EdgeKind {
+    Any = 0,
+    Nominal = 1,
+    Structural = 2,
+}
+
+impl EdgeKind {
+    const fn from_u32(value: u32) -> Self {
+        match value {
+            0 => Self::Any,
+            1 => Self::Nominal,
+            2 => Self::Structural,
+            _ => unreachable!(),
+        }
+    }
+
+    const fn into_u32(self) -> u32 {
+        self as u32
+    }
+
+    const fn range(self) -> RangeInclusive<u32> {
+        let start = self.into_u32() << 30; // the tag are the upper 2 bits
+        let end = start | 0x3FFF_FFFF;
+
+        start..=end
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+struct Edge {
+    kind: EdgeKind,
+    target: u32, // A pattern type would be perfect here
+}
+
+impl Edge {
+    const TAG_MASK: u32 = 0xC000_0000;
+    const VALUE_MASK: u32 = !Self::TAG_MASK;
+
+    const fn from_u32(value: u32) -> Self {
+        let tag = (value & Self::TAG_MASK) >> 30;
+
+        let kind = EdgeKind::from_u32(tag);
+        let value = value & Self::VALUE_MASK;
+
+        Self {
+            kind,
+            target: value,
+        }
+    }
+
+    const fn into_u32(self) -> u32 {
+        (self.kind.into_u32() << 30) | self.target
+    }
+}
+
+#[derive(Debug, Clone)]
+struct Edges(RoaringBitmap);
+
+impl Edges {
+    fn new() -> Self {
+        Self(RoaringBitmap::new())
+    }
+
+    fn clear(&mut self) {
+        self.0.clear();
+    }
+
+    fn union(&mut self, other: Self) {
+        self.0 |= other.0;
+    }
+
+    fn contains(&self, kind: EdgeKind, target: u32) -> bool {
+        self.0.contains(Edge { kind, target }.into_u32())
+    }
+
+    fn insert(&mut self, kind: EdgeKind, target: u32) {
+        // always insert an "always edge"
+        self.0.insert(Edge { kind, target }.into_u32());
+        self.0.insert(
+            Edge {
+                kind: EdgeKind::Any,
+                target,
+            }
+            .into_u32(),
+        );
+    }
+
+    fn iter_by_kind(
+        &self,
+        kind: EdgeKind,
+    ) -> impl IntoIterator<Item = u32, IntoIter: ExactSizeIterator> {
+        let range = kind.range();
+
+        self.0
+            .range(range)
+            .map(Edge::from_u32)
+            .map(|Edge { kind: _, target }| target)
+    }
+
+    #[cfg(test)]
+    fn len_by_kind(&self, kind: EdgeKind) -> usize {
+        self.0.range(kind.range()).len()
+    }
+}
+
+impl Default for Edges {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl IntoIterator for &Edges {
+    type Item = Edge;
+
+    type IntoIter = impl Iterator<Item = Edge>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter().map(Edge::from_u32)
+    }
+}
+
 #[derive(Debug, Clone)]
 struct Node {
     id: VariableId,
-    edges: RoaringBitmap,
+    edges: Edges,
 }
 
 /// A graph representation of the type variables and their relationships.
@@ -67,7 +189,7 @@ impl Graph {
 
                 self.nodes.push(Node {
                     id: root,
-                    edges: RoaringBitmap::new(),
+                    edges: Edges::new(),
                 });
 
                 index += 1;
@@ -152,17 +274,17 @@ impl Graph {
 
             // Union the edges of the node into its representative
             let edges = mem::take(&mut node.edges);
-            repr.edges |= edges;
+            repr.edges.union(edges);
         }
 
         // Rewrite the surviving bitmaps in place
         // This remaps edges to point to representatives instead of original nodes
         // We use a buffer to avoid allocating a new bitmap for each node
-        let mut buffer = RoaringBitmap::new();
+        let mut buffer = Edges::new();
 
         for (index, node) in self.nodes[..current].iter_mut().enumerate() {
             // Build a new bitmap with remapped edge targets
-            for target in &node.edges {
+            for Edge { kind, target } in &node.edges {
                 let redirected = old_to_new[target as usize];
                 let target_repr = representatives[redirected];
 
@@ -172,7 +294,7 @@ impl Graph {
                 }
 
                 #[expect(clippy::cast_possible_truncation)]
-                buffer.insert(target_repr as u32);
+                buffer.insert(kind, target_repr as u32);
             }
 
             mem::swap(&mut node.edges, &mut buffer);
@@ -211,14 +333,14 @@ impl Graph {
 
         #[expect(clippy::cast_possible_truncation)]
         for (index, node) in iter.enumerate() {
-            let mut bitmap = RoaringBitmap::new();
+            let mut edges = Edges::new();
             for &edge in node.as_ref() {
-                bitmap.insert(edge);
+                edges.insert(EdgeKind::Any, edge);
             }
 
             nodes.push(Node {
                 id: VariableId::from_index(index as u32),
-                edges: bitmap,
+                edges,
             });
             lookup.push(index);
         }
@@ -239,11 +361,10 @@ impl Graph {
     }
 
     #[cfg(test)]
-    #[expect(clippy::cast_possible_truncation)]
-    pub(crate) fn edge_count(&self) -> usize {
+    pub(crate) fn edge_count(&self, kind: EdgeKind) -> usize {
         self.nodes
             .iter()
-            .map(|node| node.edges.len() as usize)
+            .map(|node| node.edges.len_by_kind(kind))
             .sum()
     }
 
@@ -256,7 +377,7 @@ impl Graph {
     }
 
     #[expect(clippy::cast_possible_truncation)]
-    pub(crate) fn insert_edge(&mut self, source: VariableId, target: VariableId) {
+    pub(crate) fn insert_edge(&mut self, kind: EdgeKind, source: VariableId, target: VariableId) {
         let source_index = self.lookup_id(source);
         let target_index = self.lookup_id(target);
 
@@ -268,26 +389,47 @@ impl Graph {
             return;
         }
 
-        self.nodes[source_index].edges.insert(target_index as u32);
+        self.nodes[source_index]
+            .edges
+            .insert(kind, target_index as u32);
+        self.nodes[source_index]
+            .edges
+            .insert(EdgeKind::Any, target_index as u32);
     }
 
-    pub(crate) fn outgoing_edges_by_index(&self, node: usize) -> impl Iterator<Item = usize> {
-        self.nodes[node].edges.iter().map(|edge| edge as usize)
+    pub(crate) fn outgoing_edges_by_index(
+        &self,
+        kind: EdgeKind,
+        node: usize,
+    ) -> impl Iterator<Item = usize> {
+        self.nodes[node]
+            .edges
+            .iter_by_kind(kind)
+            .into_iter()
+            .map(|edge| edge as usize)
     }
 
-    pub(crate) fn outgoing_edges(&self, node: VariableId) -> impl Iterator<Item = VariableId> {
-        self.outgoing_edges_by_index(self.lookup_id(node))
+    pub(crate) fn outgoing_edges(
+        &self,
+        kind: EdgeKind,
+        node: VariableId,
+    ) -> impl Iterator<Item = VariableId> {
+        self.outgoing_edges_by_index(kind, self.lookup_id(node))
             .map(|index| self.nodes[index].id)
     }
 
-    pub(crate) fn incoming_edges(&self, node: VariableId) -> impl Iterator<Item = VariableId> {
+    pub(crate) fn incoming_edges(
+        &self,
+        kind: EdgeKind,
+        node: VariableId,
+    ) -> impl Iterator<Item = VariableId> {
         let id = self.lookup_id(node);
 
         self.nodes
             .iter()
             .filter(move |node| {
                 #[expect(clippy::cast_possible_truncation)]
-                node.edges.contains(id as u32)
+                node.edges.contains(kind, id as u32)
             })
             .map(|node| node.id)
     }
@@ -299,7 +441,11 @@ mod tests {
 
     use super::Graph;
     use crate::r#type::{
-        inference::{VariableKind, solver::Unification, variable::VariableId},
+        inference::{
+            VariableKind,
+            solver::{Unification, graph::EdgeKind},
+            variable::VariableId,
+        },
         kind::infer::HoleId,
     };
 
@@ -314,7 +460,11 @@ mod tests {
         for (source, targets) in edges.enumerate() {
             for target in targets {
                 assert!(*target.borrow() >= 0);
-                graph.insert_edge(variables[source], variables[*target.borrow() as usize]);
+                graph.insert_edge(
+                    EdgeKind::Any,
+                    variables[source],
+                    variables[*target.borrow() as usize],
+                );
             }
         }
     }
@@ -360,7 +510,7 @@ mod tests {
             "Expected node count to match"
         );
         assert_eq!(
-            graph.edge_count(),
+            graph.edge_count(EdgeKind::Any),
             expected_edges,
             "Expected edge count to match"
         );
@@ -385,7 +535,7 @@ mod tests {
                 let target_id = graph.lookup_id(variables[*target as usize]);
                 assert!(
                     graph
-                        .outgoing_edges_by_index(first)
+                        .outgoing_edges_by_index(EdgeKind::Any, first)
                         .any(|target| target == target_id),
                     "Expected target to exist in outgoing edges"
                 );
@@ -402,7 +552,7 @@ mod tests {
         graph.condense(&mut unification);
 
         assert_eq!(graph.node_count(), 0);
-        assert_eq!(graph.edge_count(), 0);
+        assert_eq!(graph.edge_count(EdgeKind::Any), 0);
     }
 
     #[test]
@@ -414,7 +564,7 @@ mod tests {
         graph.condense(&mut unification);
 
         assert_eq!(graph.node_count(), 1);
-        assert_eq!(graph.edge_count(), 0);
+        assert_eq!(graph.edge_count(EdgeKind::Any), 0);
         assert_eq!(graph.lookup_id(variables[0]), 0);
     }
 
@@ -433,7 +583,7 @@ mod tests {
         );
 
         assert_eq!(graph.node_count(), 3);
-        assert_eq!(graph.edge_count(), 2);
+        assert_eq!(graph.edge_count(EdgeKind::Any), 2);
 
         // Condense - should not change the graph since no unification happened
         graph.condense(&mut unification);
@@ -469,7 +619,7 @@ mod tests {
 
         // Before condensing
         assert_eq!(graph.node_count(), 3);
-        assert_eq!(graph.edge_count(), 2);
+        assert_eq!(graph.edge_count(EdgeKind::Any), 2);
 
         // Condense the graph
         graph.condense(&mut unification);
@@ -502,7 +652,7 @@ mod tests {
 
         // Before unification
         assert_eq!(graph.node_count(), 2);
-        assert_eq!(graph.edge_count(), 2);
+        assert_eq!(graph.edge_count(EdgeKind::Any), 2);
 
         // Unify A and B
         unify(&mut unification, 0, 1);
@@ -540,7 +690,7 @@ mod tests {
         );
 
         // Add an extra edge from A to F
-        graph.insert_edge(variables[0], variables[5]);
+        graph.insert_edge(EdgeKind::Any, variables[0], variables[5]);
 
         // Create three equivalence classes: A+B, C+D, E+F
         unify(&mut unification, 0, 1); // A+B

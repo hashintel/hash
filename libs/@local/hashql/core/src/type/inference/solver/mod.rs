@@ -28,7 +28,11 @@ mod topo;
 use bumpalo::Bump;
 use ena::unify::{InPlaceUnificationTable, NoError, UnifyKey as _};
 
-use self::{graph::Graph, tarjan::Tarjan, topo::topological_sort_in};
+use self::{
+    graph::{EdgeKind, Graph},
+    tarjan::Tarjan,
+    topo::topological_sort_in,
+};
 use super::{
     Constraint, DeferralDepth, ResolutionStrategy, SelectionConstraint, Substitution, Variable,
     VariableKind,
@@ -444,23 +448,29 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         // (name: _2)`, and then `_2 <: 1`, this means that the following must hold: `_1 ≡ _2`.
         for &constraint in &self.constraints {
             let edges = match constraint {
-                Constraint::Ordering { lower, upper } => [Some((lower, upper)), None],
-                // to be removed see: https://linear.app/hash/issue/H-4780/hashql-remove-structural-edges-during-type-inference
-                // Constraint::StructuralEdge { source, target } => [Some((source, target)), None],
-                Constraint::Unify { lhs, rhs } => [Some((lhs, rhs)), Some((rhs, lhs))],
+                Constraint::Ordering { lower, upper } => {
+                    [Some((EdgeKind::Nominal, lower, upper)), None]
+                }
+                Constraint::StructuralEdge { source, target } => {
+                    [Some((EdgeKind::Structural, source, target)), None]
+                }
+                Constraint::Unify { lhs, rhs } => [
+                    Some((EdgeKind::Nominal, lhs, rhs)),
+                    Some((EdgeKind::Nominal, rhs, lhs)),
+                ],
                 _ => continue,
             };
 
-            for (source, target) in edges.into_iter().flatten() {
+            for (kind, source, target) in edges.into_iter().flatten() {
                 let source = self.unification.lookup[&source.kind];
                 let target = self.unification.lookup[&target.kind];
 
-                graph.insert_edge(source, target);
+                graph.insert_edge(kind, source, target);
             }
         }
 
         // Run Tarjan's SCC algorithm to find strongly connected components
-        let tarjan = Tarjan::new_in(graph, bump);
+        let tarjan = Tarjan::new_in(graph, EdgeKind::Nominal, bump);
 
         // For each strongly connected component, unify all variables in the component
         // since they must be equal due to anti-symmetry of the subtyping relation
@@ -658,8 +668,8 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         &mut self,
         lookup_by: Bound,
         heap: &'bump Bump,
-    ) -> FastHashMap<VariableId, Vec<VariableOrdering>, &'bump Bump> {
-        let mut lookup: FastHashMap<VariableId, Vec<VariableOrdering>, &'bump Bump> =
+    ) -> FastHashMap<VariableId, Vec<VariableOrdering, &'bump Bump>, &'bump Bump> {
+        let mut lookup: FastHashMap<VariableId, Vec<VariableOrdering, &'bump Bump>, &'bump Bump> =
             fast_hash_map_in(self.unification.variables.len(), heap);
 
         for &constraint in &self.constraints {
@@ -685,7 +695,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                     Bound::Lower => lower_id,
                     Bound::Upper => upper_id,
                 })
-                .or_default();
+                .or_insert_with(|| Vec::new_in(heap));
 
             entry.push(VariableOrdering {
                 lower: ResolvedVariable {
@@ -729,7 +739,8 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
 
         // Does a forwards pass over the graph to apply any lower constraints in order
         // Process nodes in topological order to ensure dependencies are resolved first
-        let topo = topological_sort_in(graph, bump).expect("expected dag after anti-symmetry run");
+        let topo = topological_sort_in(graph, EdgeKind::Any, bump)
+            .expect("expected dag after anti-symmetry run");
 
         for index in topo {
             let id = graph.node(index);
@@ -828,9 +839,11 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         // `a <: b`, where `a` is the current node.
         let lookup = self.apply_constraints_prepare_constraints(Bound::Lower, bump);
 
+        // TODO: we need to switch this to be SCCs
         // We do a backwards pass over the graph to apply any upper constraints in order
         // Process nodes in reverse topological order for upper bound resolution
-        let topo = topological_sort_in(graph, bump).expect("expected dag after anti-symmetry run");
+        let topo = topological_sort_in(graph, EdgeKind::Any, bump)
+            .expect("expected dag after anti-symmetry run");
 
         for index in topo.into_iter().rev() {
             let id = graph.node(index);
@@ -1493,7 +1506,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         for variable in unconstrained {
             let id = self.unification.root_id(variable.kind);
 
-            for upper in graph.outgoing_edges(id) {
+            for upper in graph.outgoing_edges(EdgeKind::Nominal, id) {
                 let kind = self.unification.root_kind(upper);
 
                 if let Some(&bound) = substitution.get(&kind) {
@@ -1504,7 +1517,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                 }
             }
 
-            for lower in graph.incoming_edges(id) {
+            for lower in graph.incoming_edges(EdgeKind::Nominal, id) {
                 let kind = self.unification.root_kind(lower);
 
                 if let Some(&bound) = substitution.get(&kind) {
