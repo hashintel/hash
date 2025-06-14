@@ -168,8 +168,8 @@ impl Graph {
         // do not have to worry about overflow for the max sentinel value. In case of 32 bit
         // systems, if the length is exactly `u32::MAX`, we need to error out.
         assert!(
-            size_of::<usize>() != size_of::<u32>() || length < u32::MAX as usize,
-            "Too many variables, cannot use `usize::MAX` as sentinel value"
+            length < 0x3FFF_FFFF,
+            "Too many variables, expected a maximum of 1.073.741.823 variables"
         );
 
         let offset = self.lookup.len();
