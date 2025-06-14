@@ -15,7 +15,7 @@ yum install -y mise
 eval "$(mise activate bash --shims)"
 
 echo "Installing prerequisites"
-mise install node npm:turbo java biome npm:@redocly/cli cargo-binstall cargo:wasm-pack cargo:wasm-opt
+mise install node npm:turbo java biome npm:@redocly/cli cargo-binstall cargo:wasm-pack cargo:wasm-opt protoc
 mise use --global yq
 mise use --global rust[profile=minimal]@$(yq '.toolchain.channel' rust-toolchain.toml)
 
