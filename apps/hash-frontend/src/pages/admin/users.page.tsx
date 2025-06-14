@@ -143,8 +143,6 @@ const TableRow = memo(({ user }: { user: UserRowData }) => {
           multiple
           value={enabledFeatureFlags}
           onChange={async (event) => {
-            console.log(event.target.value);
-
             await updateEntity({
               variables: {
                 entityUpdate: {
