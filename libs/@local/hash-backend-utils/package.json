@@ -48,7 +48,7 @@
     "@temporalio/workflow": "1.11.8",
     "agentkeepalive": "4.6.0",
     "apollo-datasource": "3.3.2",
-    "axios": "1.9.0",
+    "axios": "1.10.0",
     "dotenv-flow": "3.3.0",
     "exponential-backoff": "3.1.2",
     "googleapis": "133.0.0",
