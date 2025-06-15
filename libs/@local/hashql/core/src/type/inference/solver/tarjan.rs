@@ -4,7 +4,7 @@ use core::alloc::Allocator;
 use bitvec::{bitbox, boxed::BitBox};
 use roaring::RoaringBitmap;
 
-use super::graph::Graph;
+use super::graph::{EdgeKind, Graph};
 
 /// Implementation of Tarjan's algorithm for finding strongly connected components (SCCs) in a
 /// directed graph.
@@ -26,6 +26,8 @@ use super::graph::Graph;
 pub(crate) struct Tarjan<'graph, A: Allocator = Global> {
     /// The directed graph
     graph: &'graph Graph,
+    /// The kind of edge to consider when computing SCCs
+    kind: EdgeKind,
 
     /// Next discovery index to assign to newly visited nodes.
     /// Each node gets a unique index in the order it's first visited.
@@ -64,8 +66,8 @@ impl<'graph> Tarjan<'graph> {
     /// Initializes all the necessary data structures to track the state of the algorithm.
     /// The capacities of vectors are pre-allocated based on the graph size to minimize
     /// re-allocations during execution.
-    pub(crate) fn new(graph: &'graph Graph) -> Self {
-        Self::new_in(graph, alloc::alloc::Global)
+    pub(crate) fn new(graph: &'graph Graph, kind: EdgeKind) -> Self {
+        Self::new_in(graph, kind, alloc::alloc::Global)
     }
 }
 
@@ -81,7 +83,7 @@ where
     /// The capacities of vectors are pre-allocated based on the graph size to minimize
     /// re-allocations during execution.
     #[expect(clippy::integer_division, clippy::integer_division_remainder_used)]
-    pub(crate) fn new_in(graph: &'graph Graph, allocator: A) -> Self
+    pub(crate) fn new_in(graph: &'graph Graph, kind: EdgeKind, allocator: A) -> Self
     where
         A: Clone,
     {
@@ -89,6 +91,7 @@ where
 
         Self {
             graph,
+            kind,
             next_discovery_index: 0,
             node_stack: Vec::with_capacity_in(
                 node_count / Self::EXPECTED_SCC_RATIO,
@@ -166,7 +169,7 @@ where
         self.visited.set(node, true);
 
         // 2) Explore all outbound neighbors and update lowlink values
-        for neighbour in self.graph.outgoing_edges_by_index(node) {
+        for neighbour in self.graph.outgoing_edges_by_index(self.kind, node) {
             if !self.visited[neighbour] {
                 // Tree edge: Neighbor hasn't been visited yet, so recursively process it
 
@@ -212,7 +215,10 @@ where
 mod test {
     use roaring::RoaringBitmap;
 
-    use crate::r#type::inference::solver::{graph::Graph, tarjan::Tarjan};
+    use crate::r#type::inference::solver::{
+        graph::{EdgeKind, Graph},
+        tarjan::Tarjan,
+    };
 
     /// Helper function to create a directed graph from an adjacency list
     fn create_graph(
@@ -275,35 +281,35 @@ mod test {
     #[test]
     fn empty_graph() {
         let graph = create_graph([] as [&[u32]; 0]);
-        let sccs = Tarjan::new(&graph).compute();
+        let sccs = Tarjan::new(&graph, EdgeKind::Any).compute();
         assert_eq!(sccs.len(), 0);
     }
 
     #[test]
     fn single_node() {
         let graph = create_graph([[]]);
-        let sccs = Tarjan::new(&graph).compute();
+        let sccs = Tarjan::new(&graph, EdgeKind::Any).compute();
         assert_sccs_equal(&sccs, [[0]]);
     }
 
     #[test]
     fn single_node_self_loop() {
         let graph = create_graph([[0]]);
-        let sccs = Tarjan::new(&graph).compute();
+        let sccs = Tarjan::new(&graph, EdgeKind::Any).compute();
         assert_sccs_equal(&sccs, [[0]]);
     }
 
     #[test]
     fn two_node_cycle() {
         let graph = create_graph([[1], [0]]);
-        let sccs = Tarjan::new(&graph).compute();
+        let sccs = Tarjan::new(&graph, EdgeKind::Any).compute();
         assert_sccs_equal(&sccs, [[0, 1]]);
     }
 
     #[test]
     fn directed_line() {
         let graph = create_graph([&[1], &[2], &[] as &[_]]);
-        let sccs = Tarjan::new(&graph).compute();
+        let sccs = Tarjan::new(&graph, EdgeKind::Any).compute();
         assert_sccs_equal(&sccs, [[0], [1], [2]]);
     }
 
@@ -351,7 +357,7 @@ mod test {
             }
         }
 
-        let sccs = Tarjan::new(&graph).compute();
+        let sccs = Tarjan::new(&graph, EdgeKind::Any).compute();
         assert_sccs_equal(&sccs, expected);
     }
 
@@ -363,7 +369,7 @@ mod test {
             [], // 2
         ]);
 
-        let sccs = Tarjan::new(&graph).compute();
+        let sccs = Tarjan::new(&graph, EdgeKind::Any).compute();
         assert_sccs_equal(&sccs, [[0], [1], [2]]);
     }
 
@@ -380,7 +386,7 @@ mod test {
             [3], // 5 -> 3
         ]);
 
-        let sccs = Tarjan::new(&graph).compute();
+        let sccs = Tarjan::new(&graph, EdgeKind::Any).compute();
         assert_sccs_equal(&sccs, [&[0_u32, 1, 2] as &[_], &[3, 4, 5]]);
     }
 
@@ -403,7 +409,7 @@ mod test {
             &[4],             // 6 -> 4
         ]);
 
-        let sccs = Tarjan::new(&graph).compute();
+        let sccs = Tarjan::new(&graph, EdgeKind::Any).compute();
         assert_sccs_equal(&sccs, [&[0_u32, 1, 2] as &[_], &[4, 5, 6], &[3]]);
     }
 
@@ -417,7 +423,7 @@ mod test {
         }
 
         let graph = create_graph(&adjacency_list);
-        let sccs = Tarjan::new(&graph).compute();
+        let sccs = Tarjan::new(&graph, EdgeKind::Any).compute();
 
         // The entire graph should be one SCC
         let expected = [(0..1000).collect::<Vec<_>>()];
@@ -439,7 +445,7 @@ mod test {
             &[],                 // 4
         ]);
 
-        let sccs = Tarjan::new(&graph).compute();
+        let sccs = Tarjan::new(&graph, EdgeKind::Any).compute();
 
         // In a DAG, each node should be its own SCC
         assert_sccs_equal(&sccs, [[0], [1], [2], [3], [4]]);
@@ -462,7 +468,7 @@ mod test {
         }
 
         let graph = create_graph(&adjacency_list);
-        let sccs = Tarjan::new(&graph).compute();
+        let sccs = Tarjan::new(&graph, EdgeKind::Any).compute();
 
         // The entire graph should be one SCC
         let expected = [(0..node_count).collect::<Vec<_>>()];
@@ -487,7 +493,7 @@ mod test {
         }
 
         let graph = create_graph(&adjacency_list);
-        let sccs = Tarjan::new(&graph).compute();
+        let sccs = Tarjan::new(&graph, EdgeKind::Any).compute();
 
         // The graph should have node_count/2 SCCs, each with 2 nodes
         assert_eq!(sccs.len(), node_count as usize / 2);
@@ -520,7 +526,7 @@ mod test {
             &[5],                // 6 -> 5
         ]);
 
-        let sccs = Tarjan::new(&graph).compute();
+        let sccs = Tarjan::new(&graph, EdgeKind::Any).compute();
         assert_sccs_equal(&sccs, [&[0_u32] as &[_], &[1], &[2], &[3], &[4], &[5, 6]]);
     }
 
@@ -539,7 +545,7 @@ mod test {
             &[1],             // 4 -> 1
         ]);
 
-        let sccs = Tarjan::new(&graph).compute();
+        let sccs = Tarjan::new(&graph, EdgeKind::Any).compute();
         assert_sccs_equal(&sccs, [&[0_u32] as &[_], &[1, 2, 4], &[3]]);
     }
 
@@ -560,7 +566,27 @@ mod test {
             &[],              // 7
         ]);
 
-        let sccs = Tarjan::new(&graph).compute();
+        let sccs = Tarjan::new(&graph, EdgeKind::Any).compute();
         assert_sccs_equal(&sccs, [&[0_u32, 1, 2] as &[_], &[3], &[4], &[5, 6], &[7]]);
+    }
+
+    #[test]
+    fn scc_order() {
+        // 0 → 1 → 2 → 0     (SCC1)
+        // 2 → 3             (SCC1 → SCC2)
+        // 3 → 4 → 5 → 3     (SCC2)
+        // 5 → 6             (SCC2 → SCC3)
+        let graph = create_graph([
+            &[1_u32] as &[_], // 0 -> 1
+            &[2],             // 1 -> 2
+            &[0, 3],          // 2 -> 0, 3
+            &[4],             // 3 -> 4
+            &[5],             // 4 -> 5
+            &[3, 6],          // 5 -> 3, 5 -> 6
+            &[],
+        ]);
+
+        let sccs = Tarjan::new(&graph, EdgeKind::Any).compute();
+        assert_sccs_equal(&sccs, [&[6_u32] as &[_], &[3, 4, 5], &[0, 1, 2]]);
     }
 }

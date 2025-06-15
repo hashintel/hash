@@ -682,16 +682,6 @@ impl<'heap> Inference<'heap> for IntersectionType<'heap> {
         );
     }
 
-    fn collect_structural_edges(
-        self: Type<'heap, Self>,
-        variable: crate::r#type::inference::PartialStructuralEdge,
-        env: &mut InferenceEnvironment<'_, 'heap>,
-    ) {
-        for &variant in self.kind.variants {
-            env.in_covariant(|env| env.collect_structural_edges(variant, variable));
-        }
-    }
-
     fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {
         let (_guard, id) = env.provision(self.id);
 

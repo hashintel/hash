@@ -14,7 +14,7 @@ use crate::{
             SimplifyEnvironment, instantiate::InstantiateEnvironment,
         },
         error::opaque_type_name_mismatch,
-        inference::{Inference, PartialStructuralEdge},
+        inference::Inference,
         lattice::{Lattice, Projection, Subscript},
     },
 };
@@ -307,15 +307,6 @@ impl<'heap> Inference<'heap> for OpaqueType<'heap> {
 
         // Opaque types are invariant in regards to their arguments
         env.in_invariant(|env| env.collect_constraints(self.kind.repr, supertype.kind.repr));
-    }
-
-    fn collect_structural_edges(
-        self: Type<'heap, Self>,
-        variable: PartialStructuralEdge,
-        env: &mut InferenceEnvironment<'_, 'heap>,
-    ) {
-        // Opaque types are invariant in regards to their arguments
-        env.in_invariant(|env| env.collect_structural_edges(self.kind.repr, variable));
     }
 
     fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {

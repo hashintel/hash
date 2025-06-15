@@ -3,7 +3,7 @@ use core::alloc::Allocator;
 
 use roaring::RoaringBitmap;
 
-use super::graph::Graph;
+use super::graph::{EdgeKind, Graph};
 
 /// Performs a topological sort on a directed graph using Kahn's algorithm in the specified
 /// allocator.
@@ -46,6 +46,7 @@ use super::graph::Graph;
 #[expect(clippy::cast_possible_truncation)]
 pub(crate) fn topological_sort_in<A>(
     graph: &Graph,
+    kind: EdgeKind,
     allocator: A,
 ) -> Result<Vec<usize, A>, RoaringBitmap>
 where
@@ -54,7 +55,7 @@ where
     // Calculate in-degree (number of incoming edges) for each node
     let mut indegree = alloc::vec::from_elem_in(0_u32, graph.node_count(), allocator.clone());
     for source in 0..graph.node_count() {
-        for target in graph.outgoing_edges_by_index(source) {
+        for target in graph.outgoing_edges_by_index(kind, source) {
             indegree[target] += 1;
         }
     }
@@ -73,7 +74,7 @@ where
         order.push(source);
 
         // For each outgoing edge, decrement the in-degree of the target
-        for target in graph.outgoing_edges_by_index(source) {
+        for target in graph.outgoing_edges_by_index(kind, source) {
             indegree[target] -= 1;
 
             // If target now has zero in-degree, add to queue
@@ -100,20 +101,21 @@ where
 }
 
 #[cfg(test)]
-pub(crate) fn topological_sort(graph: &Graph) -> Result<Vec<usize>, RoaringBitmap> {
-    topological_sort_in(graph, alloc::alloc::Global)
+pub(crate) fn topological_sort(graph: &Graph, kind: EdgeKind) -> Result<Vec<usize>, RoaringBitmap> {
+    topological_sort_in(graph, kind, alloc::alloc::Global)
 }
 
 #[cfg(test)]
 mod tests {
     use super::topological_sort;
-    use crate::r#type::inference::solver::graph::Graph;
+    use crate::r#type::inference::solver::graph::{EdgeKind, Graph};
 
     #[test]
     fn empty_graph() {
         let graph = Graph::from_edges([] as [&[_]; 0]);
 
-        let result = topological_sort(&graph).expect("empty graph should not have cycles");
+        let result =
+            topological_sort(&graph, EdgeKind::Any).expect("empty graph should not have cycles");
         assert!(result.is_empty());
     }
 
@@ -121,7 +123,8 @@ mod tests {
     fn single_node() {
         let graph = Graph::from_edges([&[]]);
 
-        let result = topological_sort(&graph).expect("single node graph should not have cycles");
+        let result = topological_sort(&graph, EdgeKind::Any)
+            .expect("single node graph should not have cycles");
         assert_eq!(result, [0]);
     }
 
@@ -138,7 +141,7 @@ mod tests {
             &[],                 // Node 3 points to nothing
         ]);
 
-        let result = topological_sort(&graph).expect("DAG should not have cycles");
+        let result = topological_sort(&graph, EdgeKind::Any).expect("DAG should not have cycles");
         assert_eq!(result, [0, 2, 1, 3]);
     }
 
@@ -156,7 +159,8 @@ mod tests {
             [0],     // Node 4 points to 0 (creates a cycle)
         ]);
 
-        let result = topological_sort(&graph).expect_err("should have detected a cycle");
+        let result =
+            topological_sort(&graph, EdgeKind::Any).expect_err("should have detected a cycle");
         assert_eq!(result.iter().collect::<Vec<_>>(), [0, 1, 2, 3, 4]);
     }
 
@@ -170,7 +174,8 @@ mod tests {
             [2],     // Node 3 points to 2
         ]);
 
-        let result = topological_sort(&graph).expect_err("should have detected a cycle");
+        let result =
+            topological_sort(&graph, EdgeKind::Any).expect_err("should have detected a cycle");
         assert_eq!(result.iter().collect::<Vec<_>>(), [0, 1, 2, 3]);
     }
 }

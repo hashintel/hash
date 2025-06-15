@@ -18,7 +18,7 @@ use crate::{
             SimplifyEnvironment, instantiate::InstantiateEnvironment,
         },
         error::{cannot_be_subtype_of_never, type_mismatch, union_variant_mismatch},
-        inference::{Constraint, Inference, PartialStructuralEdge, Variable},
+        inference::{Constraint, Inference, Variable},
         lattice::{Lattice, Projection, Subscript},
     },
 };
@@ -663,26 +663,6 @@ impl<'heap> Inference<'heap> for UnionType<'heap> {
             &super_variants,
             env,
         );
-    }
-
-    fn collect_structural_edges(
-        self: Type<'heap, Self>,
-        variable: PartialStructuralEdge,
-        env: &mut InferenceEnvironment<'_, 'heap>,
-    ) {
-        // We cannot collect any constraints union types **if** they are on the right side (e.g. the
-        // edge is a source), as `union-right` resolves into an or, and therefore any constraint
-        // wouldn't be additive.
-        // This is not the case with union-left, as union-left resolves into an and, and therefore
-        // any constraint would be additive.
-        if variable.is_source() {
-            // union-right
-            return;
-        }
-
-        for &variant in self.kind.variants {
-            env.in_covariant(|env| env.collect_structural_edges(variant, variable));
-        }
     }
 
     fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {

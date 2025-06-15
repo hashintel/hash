@@ -19,7 +19,7 @@ use crate::{
             UnsupportedSubscriptCategory, invalid_tuple_index, tuple_index_out_of_bounds,
             tuple_length_mismatch, unsupported_subscript,
         },
-        inference::{Inference, PartialStructuralEdge},
+        inference::Inference,
         lattice::{Lattice, Projection, Subscript},
     },
 };
@@ -334,16 +334,6 @@ impl<'heap> Inference<'heap> for TupleType<'heap> {
         for (&field, &supertype_field) in self.kind.fields.iter().zip(supertype.kind.fields.iter())
         {
             env.in_covariant(|env| env.collect_constraints(field, supertype_field));
-        }
-    }
-
-    fn collect_structural_edges(
-        self: Type<'heap, Self>,
-        variable: PartialStructuralEdge,
-        env: &mut InferenceEnvironment<'_, 'heap>,
-    ) {
-        for &field in self.kind.fields {
-            env.in_covariant(|env| env.collect_structural_edges(field, variable));
         }
     }
 

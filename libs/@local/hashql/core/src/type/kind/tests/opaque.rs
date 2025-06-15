@@ -11,7 +11,7 @@ use crate::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
             SimplifyEnvironment, instantiate::InstantiateEnvironment,
         },
-        inference::{Constraint, Inference as _, PartialStructuralEdge, Variable, VariableKind},
+        inference::{Constraint, Inference as _, Variable, VariableKind},
         kind::{
             Generic, OpaqueType, Param, TypeKind,
             generic::{GenericArgument, GenericArgumentId},
@@ -581,7 +581,7 @@ fn collect_constraints_infer_and_generic_var() {
 }
 
 #[test]
-fn collect_structural_edges_opaque_invariant_behavior() {
+fn collect_dependencies() {
     let heap = Heap::new();
     let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
@@ -595,31 +595,16 @@ fn collect_structural_edges_opaque_invariant_behavior() {
     let mut inference_env = InferenceEnvironment::new(&env);
 
     // Create variables for testing both source and target edges
-    let edge_var = Variable::synthetic(VariableKind::Hole(HoleId::new(1)));
-    let source_edge = PartialStructuralEdge::Source(edge_var);
-    let target_edge = PartialStructuralEdge::Target(edge_var);
+    let variable = Variable::synthetic(VariableKind::Hole(HoleId::new(1)));
 
-    // Test in default (covariant) context with source edge
-    opaque_type.collect_structural_edges(source_edge, &mut inference_env);
-    assert!(
-        inference_env.take_constraints().is_empty(),
-        "Opaque type should block structural edges due to invariance (source edge)"
-    );
+    inference_env.collect_dependencies(opaque_type.id, variable);
 
-    // Test with target edge
-    opaque_type.collect_structural_edges(target_edge, &mut inference_env);
-    assert!(
-        inference_env.take_constraints().is_empty(),
-        "Opaque type should block structural edges due to invariance (target edge)"
-    );
-
-    // Test in contravariant context
-    inference_env.in_contravariant(|env| {
-        opaque_type.collect_structural_edges(source_edge, env);
-    });
-    assert!(
-        inference_env.take_constraints().is_empty(),
-        "Opaque type should block structural edges even in contravariant context"
+    assert_eq!(
+        inference_env.take_constraints(),
+        [Constraint::Dependency {
+            source: variable,
+            target: Variable::synthetic(VariableKind::Hole(hole))
+        }]
     );
 }
 

@@ -65,6 +65,7 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
         self.simplify.contains_substitution(kind)
     }
 
+    #[inline]
     pub(crate) fn simplify(&mut self, id: TypeId) -> TypeId {
         self.simplify.simplify(id)
     }

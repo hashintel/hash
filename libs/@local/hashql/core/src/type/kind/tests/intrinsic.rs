@@ -12,7 +12,7 @@ use crate::{
             SimplifyEnvironment, instantiate::InstantiateEnvironment,
         },
         error::TypeCheckDiagnosticCategory,
-        inference::{Constraint, Inference as _, PartialStructuralEdge, Variable, VariableKind},
+        inference::{Constraint, Inference as _, Variable, VariableKind},
         kind::{
             Generic, IntrinsicType, OpaqueType, Param, TypeKind,
             generic::GenericArgument,
@@ -971,7 +971,7 @@ fn collect_constraints_concrete_intrinsics() {
 
 // Tests for ListType.collect_structural_edges
 #[test]
-fn collect_structural_edges_list_basic() {
+fn collect_dependencies_list() {
     let heap = Heap::new();
     let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
@@ -985,192 +985,25 @@ fn collect_structural_edges_list_basic() {
     let mut inference_env = InferenceEnvironment::new(&env);
 
     // Create a variable to use as the source in a structural edge
-    let source_var = Variable::synthetic(VariableKind::Hole(HoleId::new(1)));
-    let partial_edge = PartialStructuralEdge::Source(source_var);
+    let variable = Variable::synthetic(VariableKind::Hole(HoleId::new(1)));
 
     // Collect structural edges
-    list_type.collect_structural_edges(partial_edge, &mut inference_env);
+    inference_env.collect_dependencies(list_type.id, variable);
 
     // Since list elements are covariant, the source should flow to the element infer var
     // We expect: _1 -> _0
     let constraints = inference_env.take_constraints();
     assert_eq!(
         constraints,
-        [Constraint::StructuralEdge {
-            source: source_var,
+        [Constraint::Dependency {
+            source: variable,
             target: Variable::synthetic(VariableKind::Hole(hole)),
         }]
     );
 }
 
 #[test]
-fn collect_structural_edges_list_target() {
-    let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
-
-    // Create an inference variable
-    let hole = HoleId::new(0);
-    let infer_var = instantiate_infer(&env, hole);
-
-    // Create a list with an inference variable: List<_0>
-    list!(env, list_type, infer_var);
-
-    let mut inference_env = InferenceEnvironment::new(&env);
-
-    // Create a variable to use as the target in a structural edge
-    let target_var = Variable::synthetic(VariableKind::Hole(HoleId::new(1)));
-    let partial_edge = PartialStructuralEdge::Target(target_var);
-
-    // Collect structural edges
-    list_type.collect_structural_edges(partial_edge, &mut inference_env);
-
-    // Since list elements are covariant, the element infer var should flow to the target
-    // We expect: _0 -> _1
-    let constraints = inference_env.take_constraints();
-    assert_eq!(
-        constraints,
-        [Constraint::StructuralEdge {
-            source: Variable::synthetic(VariableKind::Hole(hole)),
-            target: target_var,
-        }]
-    );
-}
-
-#[test]
-fn collect_structural_edges_nested_list() {
-    let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
-
-    // Create an inference variable
-    let hole = HoleId::new(0);
-    let infer_var = instantiate_infer(&env, hole);
-
-    // Create a nested list: List<List<_0>>
-    let inner_list = list!(env, infer_var);
-    list!(env, nested_list, inner_list);
-
-    let mut inference_env = InferenceEnvironment::new(&env);
-
-    // Create a variable to use as the source in a structural edge
-    let source_var = Variable::synthetic(VariableKind::Hole(HoleId::new(1)));
-    let partial_edge = PartialStructuralEdge::Source(source_var);
-
-    // Collect structural edges
-    nested_list.collect_structural_edges(partial_edge, &mut inference_env);
-
-    // Since list elements are covariant at both levels, the source should flow through to the
-    // innermost element We expect: _1 -> _0 (flow from source through both covariant
-    // positions to infer var)
-    let constraints = inference_env.take_constraints();
-    assert_eq!(
-        constraints,
-        [Constraint::StructuralEdge {
-            source: source_var,
-            target: Variable::synthetic(VariableKind::Hole(hole)),
-        }]
-    );
-}
-
-#[test]
-fn collect_structural_edges_list_contravariant_context() {
-    let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
-
-    // Create an inference variable
-    let hole = HoleId::new(0);
-    let infer_var = instantiate_infer(&env, hole);
-
-    // Create a list with an inference variable: List<_0>
-    list!(env, list_type, infer_var);
-
-    let mut inference_env = InferenceEnvironment::new(&env);
-
-    // Create a variable to use as the source in a structural edge
-    let source_var = Variable::synthetic(VariableKind::Hole(HoleId::new(1)));
-    let partial_edge = PartialStructuralEdge::Source(source_var);
-
-    // Collect structural edges in a contravariant context
-    inference_env.in_contravariant(|env| {
-        list_type.collect_structural_edges(partial_edge, env);
-    });
-
-    // In a contravariant context, the flow direction is inverted
-    // We expect: _0 -> _1 (element flows to source)
-    let constraints = inference_env.take_constraints();
-    assert_eq!(
-        constraints,
-        [Constraint::StructuralEdge {
-            source: Variable::synthetic(VariableKind::Hole(hole)),
-            target: source_var,
-        }]
-    );
-}
-
-// Tests for DictType.collect_structural_edges
-#[test]
-fn collect_structural_edges_dict_key() {
-    let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
-
-    // Create inference variables
-    let key_hole = HoleId::new(0);
-    let key_var = instantiate_infer(&env, key_hole);
-    let string = primitive!(env, PrimitiveType::String);
-
-    // Create a dict with an inference variable as key: Dict<_0, String>
-    dict!(env, dict_type, key_var, string);
-
-    let mut inference_env = InferenceEnvironment::new(&env);
-
-    // Create a variable to use as the source in a structural edge
-    let source_var = Variable::synthetic(VariableKind::Hole(HoleId::new(1)));
-    let partial_edge = PartialStructuralEdge::Source(source_var);
-
-    // Collect structural edges
-    dict_type.collect_structural_edges(partial_edge, &mut inference_env);
-
-    // Dict keys are invariant, so no structural edges should be collected for the key
-    // The environment will discard edges for invariant positions
-    let constraints = inference_env.take_constraints();
-    assert!(constraints.is_empty());
-}
-
-#[test]
-fn collect_structural_edges_dict_value() {
-    let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
-
-    // Create inference variables
-    let value_hole = HoleId::new(0);
-    let value_var = instantiate_infer(&env, value_hole);
-    let string = primitive!(env, PrimitiveType::String);
-
-    // Create a dict with an inference variable as value: Dict<String, _0>
-    dict!(env, dict_type, string, value_var);
-
-    let mut inference_env = InferenceEnvironment::new(&env);
-
-    // Create a variable to use as the source in a structural edge
-    let source_var = Variable::synthetic(VariableKind::Hole(HoleId::new(1)));
-    let partial_edge = PartialStructuralEdge::Source(source_var);
-
-    // Collect structural edges
-    dict_type.collect_structural_edges(partial_edge, &mut inference_env);
-
-    // Dict values are covariant, so the source should flow to the value infer var
-    // We expect: _1 -> _0
-    let constraints = inference_env.take_constraints();
-    assert_eq!(
-        constraints,
-        [Constraint::StructuralEdge {
-            source: source_var,
-            target: Variable::synthetic(VariableKind::Hole(value_hole)),
-        }]
-    );
-}
-
-#[test]
-fn collect_structural_edges_dict_both_vars() {
+fn collect_dependencies_dict() {
     let heap = Heap::new();
     let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
@@ -1186,185 +1019,26 @@ fn collect_structural_edges_dict_both_vars() {
     let mut inference_env = InferenceEnvironment::new(&env);
 
     // Create a variable to use as the source in a structural edge
-    let source_var = Variable::synthetic(VariableKind::Hole(HoleId::new(2)));
-    let partial_edge = PartialStructuralEdge::Source(source_var);
+    let variable = Variable::synthetic(VariableKind::Hole(HoleId::new(2)));
 
     // Collect structural edges
-    dict_type.collect_structural_edges(partial_edge, &mut inference_env);
+    inference_env.collect_dependencies(dict_type.id, variable);
 
     // Dict keys are invariant (no edge), values are covariant (source flows to value)
     // We expect only: _2 -> _1
     let constraints = inference_env.take_constraints();
     assert_eq!(
         constraints,
-        [Constraint::StructuralEdge {
-            source: source_var,
-            target: Variable::synthetic(VariableKind::Hole(value_hole)),
-        }]
-    );
-}
-
-#[test]
-fn collect_structural_edges_dict_contravariant_context() {
-    let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
-
-    // Create an inference variable for the value
-    let value_hole = HoleId::new(0);
-    let value_var = instantiate_infer(&env, value_hole);
-    let string = primitive!(env, PrimitiveType::String);
-
-    // Create a dict with an inference variable as value: Dict<String, _0>
-    dict!(env, dict_type, string, value_var);
-
-    let mut inference_env = InferenceEnvironment::new(&env);
-
-    // Create a variable to use as the source in a structural edge
-    let source_var = Variable::synthetic(VariableKind::Hole(HoleId::new(1)));
-    let partial_edge = PartialStructuralEdge::Source(source_var);
-
-    // Collect structural edges in a contravariant context
-    inference_env.in_contravariant(|env| {
-        dict_type.collect_structural_edges(partial_edge, env);
-    });
-
-    // In a contravariant context, the flow direction is inverted for covariant positions
-    // We expect: _0 -> _1 (value flows to source)
-    let constraints = inference_env.take_constraints();
-    assert_eq!(
-        constraints,
-        [Constraint::StructuralEdge {
-            source: Variable::synthetic(VariableKind::Hole(value_hole)),
-            target: source_var,
-        }]
-    );
-}
-
-#[test]
-fn collect_structural_edges_dict_nested() {
-    let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
-
-    // Create an inference variable
-    let hole = HoleId::new(0);
-    let infer_var = instantiate_infer(&env, hole);
-    let string = primitive!(env, PrimitiveType::String);
-
-    // Create a nested structure: Dict<String, List<_0>>
-    let inner_list = list!(env, infer_var);
-    dict!(env, nested_dict, string, inner_list);
-
-    let mut inference_env = InferenceEnvironment::new(&env);
-
-    // Create a variable to use as the source in a structural edge
-    let source_var = Variable::synthetic(VariableKind::Hole(HoleId::new(1)));
-    let partial_edge = PartialStructuralEdge::Source(source_var);
-
-    // Collect structural edges
-    nested_dict.collect_structural_edges(partial_edge, &mut inference_env);
-
-    // Dict values and list elements are both covariant, so the source should flow through to
-    // the innermost element We expect: _1 -> _0
-    let constraints = inference_env.take_constraints();
-    assert_eq!(
-        constraints,
-        [Constraint::StructuralEdge {
-            source: source_var,
-            target: Variable::synthetic(VariableKind::Hole(hole)),
-        }]
-    );
-}
-
-#[test]
-fn collect_structural_edges_dict_list_nested_complex() {
-    let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
-
-    // Create inference variables
-    let key_hole = HoleId::new(0);
-    let key_var = instantiate_infer(&env, key_hole);
-    let value_hole = HoleId::new(1);
-    let value_var = instantiate_infer(&env, value_hole);
-
-    // Create a complex nested structure: Dict<List<_0>, List<_1>>
-    let key_list = list!(env, key_var);
-    let value_list = list!(env, value_var);
-    dict!(env, complex_dict, key_list, value_list);
-
-    let mut inference_env = InferenceEnvironment::new(&env);
-
-    // Create a variable to use as the source in a structural edge
-    let source_var = Variable::synthetic(VariableKind::Hole(HoleId::new(2)));
-    let partial_edge = PartialStructuralEdge::Source(source_var);
-
-    // Collect structural edges
-    complex_dict.collect_structural_edges(partial_edge, &mut inference_env);
-
-    // Dict keys are invariant, so no edge for key_var
-    // Dict values and list elements are covariant, so source flows to value_var
-    // We expect only: _2 -> _1
-    let constraints = inference_env.take_constraints();
-    assert_eq!(
-        constraints,
-        [Constraint::StructuralEdge {
-            source: source_var,
-            target: Variable::synthetic(VariableKind::Hole(value_hole)),
-        }]
-    );
-}
-
-#[test]
-fn collect_structural_edges_intrinsic_type_delegation() {
-    let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
-
-    // Create inference variables
-    let list_hole = HoleId::new(0);
-    let list_var = instantiate_infer(&env, list_hole);
-    let dict_hole = HoleId::new(1);
-    let dict_var = instantiate_infer(&env, dict_hole);
-    let string = primitive!(env, PrimitiveType::String);
-
-    // Create intrinsic types
-    let list = list!(env, list_var);
-    let dict = dict!(env, string, dict_var);
-
-    // Get the TypeIds for the intrinsic types
-    let list_id = list;
-    let dict_id = dict;
-
-    let mut inference_env = InferenceEnvironment::new(&env);
-
-    // Create a variable to use as the source in a structural edge
-    let source_var = Variable::synthetic(VariableKind::Hole(HoleId::new(2)));
-    let partial_edge = PartialStructuralEdge::Source(source_var);
-
-    // Collect structural edges for both intrinsic types
-    env.r#type(list_id)
-        .collect_structural_edges(partial_edge, &mut inference_env);
-
-    // The IntrinsicType should delegate to ListType
-    let list_constraints = inference_env.take_constraints();
-    assert_eq!(
-        list_constraints,
-        [Constraint::StructuralEdge {
-            source: source_var,
-            target: Variable::synthetic(VariableKind::Hole(list_hole)),
-        }]
-    );
-
-    // Now test dict
-    env.r#type(dict_id)
-        .collect_structural_edges(partial_edge, &mut inference_env);
-
-    // The IntrinsicType should delegate to DictType
-    let dict_constraints = inference_env.take_constraints();
-    assert_eq!(
-        dict_constraints,
-        [Constraint::StructuralEdge {
-            source: source_var,
-            target: Variable::synthetic(VariableKind::Hole(dict_hole)),
-        }]
+        [
+            Constraint::Dependency {
+                source: variable,
+                target: Variable::synthetic(VariableKind::Hole(key_hole))
+            },
+            Constraint::Dependency {
+                source: variable,
+                target: Variable::synthetic(VariableKind::Hole(value_hole)),
+            }
+        ]
     );
 }
 
