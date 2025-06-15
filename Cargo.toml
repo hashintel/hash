@@ -143,7 +143,7 @@ either                   = { version = "=1.15.0", default-features = false }
 email_address            = { version = "=0.2.9", default-features = false }
 ena                      = { version = "=0.14.3", default-features = false }
 enum-iterator            = { version = "=2.1.0", default-features = false }
-enumflags2               = { version = "=0.7.11", default-features = false }
+enumflags2               = { version = "=0.7.12", default-features = false }
 erased-serde             = { version = "=0.4.6", default-features = false }
 expect-test              = { version = "=1.5.1", default-features = false }
 foldhash                 = { version = "=0.1.5", default-features = false }
