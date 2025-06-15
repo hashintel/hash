@@ -1086,7 +1086,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         // again *or* do it in a specific order. The substitutions have already been applied for the
         // lower and upper bounds respectively.
         let scc = Tarjan::new_in(graph, EdgeKind::Any, bump).compute(); // The scc are in reverse topological order
-        let topo = scc.into_iter().flatten().rev();
+        let topo = scc.into_iter().flatten();
 
         for index in topo {
             let id = graph.node(index as usize);

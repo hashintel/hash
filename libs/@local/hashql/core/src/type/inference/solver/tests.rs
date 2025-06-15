@@ -2273,19 +2273,12 @@ fn nested_inference_constraints() {
     let hole1 = builder.fresh_hole();
 
     let hole2 = builder.fresh_hole();
-    let variable2 = Variable::synthetic(VariableKind::Hole(hole2));
 
     let string = builder.string();
 
     let mut inference = InferenceEnvironment::new(&env);
-    inference.add_constraint(Constraint::LowerBound {
-        variable: variable2,
-        bound: builder.list(builder.infer(hole1)),
-    });
-    inference.add_constraint(Constraint::UpperBound {
-        variable: variable2,
-        bound: builder.list(string),
-    });
+    inference.collect_constraints(builder.list(builder.infer(hole1)), builder.infer(hole2));
+    inference.collect_constraints(builder.infer(hole2), builder.list(string));
 
     let solver = inference.into_solver();
     let (substitution, diagnostics) = solver.solve();

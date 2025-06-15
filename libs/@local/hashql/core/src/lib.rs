@@ -16,11 +16,11 @@
     // Language Features
     arbitrary_self_types,
     associated_type_defaults,
+    impl_trait_in_assoc_type,
     macro_metavar_expr,
     macro_metavar_expr_concat,
     never_type,
     type_alias_impl_trait,
-    impl_trait_in_assoc_type
 )]
 
 extern crate alloc;
