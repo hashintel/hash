@@ -73,7 +73,7 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
                     lhs: lower,
                     rhs: upper,
                 },
-                Constraint::StructuralEdge {
+                Constraint::Dependency {
                     source: _,
                     target: _,
                 } => {
@@ -93,11 +93,11 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
 
     pub fn add_structural_edge(&mut self, variable: PartialStructuralEdge, other: Variable) {
         let constraint = match variable {
-            PartialStructuralEdge::Source(source) => Constraint::StructuralEdge {
+            PartialStructuralEdge::Source(source) => Constraint::Dependency {
                 source,
                 target: other,
             },
-            PartialStructuralEdge::Target(target) => Constraint::StructuralEdge {
+            PartialStructuralEdge::Target(target) => Constraint::Dependency {
                 source: other,
                 target,
             },

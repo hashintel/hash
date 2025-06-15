@@ -272,7 +272,7 @@ pub enum Constraint<'heap> {
     ///
     /// A structural edge is an edge, which explains that `source` flows into `target`, for example
     /// given: `_1 <: (name: _2)`, `_1` flows into `_2`.
-    StructuralEdge { source: Variable, target: Variable },
+    Dependency { source: Variable, target: Variable },
 
     /// Constraints for component selection operations (`subject.field` or `subject[index]`)
     ///
@@ -297,7 +297,7 @@ impl Constraint<'_> {
                 r#type: _,
             } => [Some(variable), None, None],
             Self::Ordering { lower, upper } => [Some(lower), Some(upper), None],
-            Self::StructuralEdge { source, target } => [Some(source), Some(target), None],
+            Self::Dependency { source, target } => [Some(source), Some(target), None],
             Self::Selection(
                 SelectionConstraint::Projection {
                     subject,

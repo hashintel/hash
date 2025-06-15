@@ -569,4 +569,24 @@ mod test {
         let sccs = Tarjan::new(&graph, EdgeKind::Any).compute();
         assert_sccs_equal(&sccs, [&[0_u32, 1, 2] as &[_], &[3], &[4], &[5, 6], &[7]]);
     }
+
+    #[test]
+    fn scc_order() {
+        // 0 → 1 → 2 → 0     (SCC1)
+        // 2 → 3             (SCC1 → SCC2)
+        // 3 → 4 → 5 → 3     (SCC2)
+        // 5 → 6             (SCC2 → SCC3)
+        let graph = create_graph([
+            &[1_u32] as &[_], // 0 -> 1
+            &[2],             // 1 -> 2
+            &[0, 3],          // 2 -> 0, 3
+            &[4],             // 3 -> 4
+            &[5],             // 4 -> 5
+            &[3, 6],          // 5 -> 3, 5 -> 6
+            &[],
+        ]);
+
+        let sccs = Tarjan::new(&graph, EdgeKind::Any).compute();
+        assert_sccs_equal(&sccs, [&[6_u32] as &[_], &[3, 4, 5], &[0, 1, 2]]);
+    }
 }

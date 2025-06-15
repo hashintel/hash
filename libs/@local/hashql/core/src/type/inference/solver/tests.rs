@@ -729,7 +729,7 @@ fn collect_constraints_with_structural_edge() {
     let var2 = Variable::synthetic(VariableKind::Hole(hole2));
 
     // Create a structural edge constraint
-    let constraints = [Constraint::StructuralEdge {
+    let constraints = [Constraint::Dependency {
         source: var1,
         target: var2,
     }];
@@ -2232,6 +2232,9 @@ fn deferred_upper_constraint() {
     );
 }
 
+// The problem that we currently have is that when we have a nested inference constraint we do
+// **not** "freeze" a variable in place when we've already determined it's type. We require doing
+// so, so that we can propagate the type.
 #[test]
 fn nested_inference_constraints() {
     // List<?1> <: ?2

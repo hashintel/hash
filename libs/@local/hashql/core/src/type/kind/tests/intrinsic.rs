@@ -996,7 +996,7 @@ fn collect_structural_edges_list_basic() {
     let constraints = inference_env.take_constraints();
     assert_eq!(
         constraints,
-        [Constraint::StructuralEdge {
+        [Constraint::Dependency {
             source: source_var,
             target: Variable::synthetic(VariableKind::Hole(hole)),
         }]
@@ -1029,7 +1029,7 @@ fn collect_structural_edges_list_target() {
     let constraints = inference_env.take_constraints();
     assert_eq!(
         constraints,
-        [Constraint::StructuralEdge {
+        [Constraint::Dependency {
             source: Variable::synthetic(VariableKind::Hole(hole)),
             target: target_var,
         }]
@@ -1064,7 +1064,7 @@ fn collect_structural_edges_nested_list() {
     let constraints = inference_env.take_constraints();
     assert_eq!(
         constraints,
-        [Constraint::StructuralEdge {
+        [Constraint::Dependency {
             source: source_var,
             target: Variable::synthetic(VariableKind::Hole(hole)),
         }]
@@ -1099,7 +1099,7 @@ fn collect_structural_edges_list_contravariant_context() {
     let constraints = inference_env.take_constraints();
     assert_eq!(
         constraints,
-        [Constraint::StructuralEdge {
+        [Constraint::Dependency {
             source: Variable::synthetic(VariableKind::Hole(hole)),
             target: source_var,
         }]
@@ -1162,7 +1162,7 @@ fn collect_structural_edges_dict_value() {
     let constraints = inference_env.take_constraints();
     assert_eq!(
         constraints,
-        [Constraint::StructuralEdge {
+        [Constraint::Dependency {
             source: source_var,
             target: Variable::synthetic(VariableKind::Hole(value_hole)),
         }]
@@ -1197,7 +1197,7 @@ fn collect_structural_edges_dict_both_vars() {
     let constraints = inference_env.take_constraints();
     assert_eq!(
         constraints,
-        [Constraint::StructuralEdge {
+        [Constraint::Dependency {
             source: source_var,
             target: Variable::synthetic(VariableKind::Hole(value_hole)),
         }]
@@ -1233,7 +1233,7 @@ fn collect_structural_edges_dict_contravariant_context() {
     let constraints = inference_env.take_constraints();
     assert_eq!(
         constraints,
-        [Constraint::StructuralEdge {
+        [Constraint::Dependency {
             source: Variable::synthetic(VariableKind::Hole(value_hole)),
             target: source_var,
         }]
@@ -1268,7 +1268,7 @@ fn collect_structural_edges_dict_nested() {
     let constraints = inference_env.take_constraints();
     assert_eq!(
         constraints,
-        [Constraint::StructuralEdge {
+        [Constraint::Dependency {
             source: source_var,
             target: Variable::synthetic(VariableKind::Hole(hole)),
         }]
@@ -1306,7 +1306,7 @@ fn collect_structural_edges_dict_list_nested_complex() {
     let constraints = inference_env.take_constraints();
     assert_eq!(
         constraints,
-        [Constraint::StructuralEdge {
+        [Constraint::Dependency {
             source: source_var,
             target: Variable::synthetic(VariableKind::Hole(value_hole)),
         }]
@@ -1347,7 +1347,7 @@ fn collect_structural_edges_intrinsic_type_delegation() {
     let list_constraints = inference_env.take_constraints();
     assert_eq!(
         list_constraints,
-        [Constraint::StructuralEdge {
+        [Constraint::Dependency {
             source: source_var,
             target: Variable::synthetic(VariableKind::Hole(list_hole)),
         }]
@@ -1361,7 +1361,7 @@ fn collect_structural_edges_intrinsic_type_delegation() {
     let dict_constraints = inference_env.take_constraints();
     assert_eq!(
         dict_constraints,
-        [Constraint::StructuralEdge {
+        [Constraint::Dependency {
             source: source_var,
             target: Variable::synthetic(VariableKind::Hole(dict_hole)),
         }]

@@ -1500,11 +1500,11 @@ fn collect_structural_edges_union_target() {
     assert_eq!(
         constraints,
         [
-            Constraint::StructuralEdge {
+            Constraint::Dependency {
                 source: Variable::synthetic(VariableKind::Hole(hole1)),
                 target: edge_var,
             },
-            Constraint::StructuralEdge {
+            Constraint::Dependency {
                 source: Variable::synthetic(VariableKind::Hole(hole2)),
                 target: edge_var,
             }
@@ -1573,7 +1573,7 @@ fn collect_structural_edges_union_mixed_variants() {
     let constraints = inference_env.take_constraints();
     assert_eq!(
         constraints,
-        [Constraint::StructuralEdge {
+        [Constraint::Dependency {
             source: Variable::synthetic(VariableKind::Hole(hole)),
             target: edge_var,
         }]
@@ -1612,11 +1612,11 @@ fn collect_structural_edges_union_contravariant_context() {
     assert_eq!(
         constraints,
         [
-            Constraint::StructuralEdge {
+            Constraint::Dependency {
                 source: edge_var,
                 target: Variable::synthetic(VariableKind::Hole(hole1)),
             },
-            Constraint::StructuralEdge {
+            Constraint::Dependency {
                 source: edge_var,
                 target: Variable::synthetic(VariableKind::Hole(hole2)),
             }
@@ -1656,7 +1656,7 @@ fn collect_structural_edges_nested_union() {
     let constraints = inference_env.take_constraints();
     assert_eq!(
         constraints,
-        [Constraint::StructuralEdge {
+        [Constraint::Dependency {
             source: Variable::synthetic(VariableKind::Hole(hole)),
             target: edge_var,
         }]

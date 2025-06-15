@@ -696,7 +696,7 @@ fn collect_structural_constraints() {
     let constraints = infer.take_constraints();
     assert_eq!(
         constraints,
-        [Constraint::StructuralEdge {
+        [Constraint::Dependency {
             source: Variable::synthetic(VariableKind::Hole(HoleId::new(0))),
             target: Variable::synthetic(VariableKind::Hole(HoleId::new(1)))
         }]

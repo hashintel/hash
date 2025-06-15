@@ -449,14 +449,14 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         for &constraint in &self.constraints {
             let edges = match constraint {
                 Constraint::Ordering { lower, upper } => {
-                    [Some((EdgeKind::Nominal, lower, upper)), None]
+                    [Some((EdgeKind::SubtypeOf, lower, upper)), None]
                 }
-                Constraint::StructuralEdge { source, target } => {
-                    [Some((EdgeKind::Structural, source, target)), None]
+                Constraint::Dependency { source, target } => {
+                    [Some((EdgeKind::DependsOn, source, target)), None]
                 }
                 Constraint::Unify { lhs, rhs } => [
-                    Some((EdgeKind::Nominal, lhs, rhs)),
-                    Some((EdgeKind::Nominal, rhs, lhs)),
+                    Some((EdgeKind::SubtypeOf, lhs, rhs)),
+                    Some((EdgeKind::SubtypeOf, rhs, lhs)),
                 ],
                 _ => continue,
             };
@@ -470,7 +470,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         }
 
         // Run Tarjan's SCC algorithm to find strongly connected components
-        let tarjan = Tarjan::new_in(graph, EdgeKind::Nominal, bump);
+        let tarjan = Tarjan::new_in(graph, EdgeKind::SubtypeOf, bump);
 
         // For each strongly connected component, unify all variables in the component
         // since they must be equal due to anti-symmetry of the subtyping relation
@@ -595,7 +595,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                     let _: Result<_, _> =
                         constraints.try_insert(upper_root, (upper, VariableConstraint::default()));
                 }
-                Constraint::StructuralEdge { source, target } => {
+                Constraint::Dependency { source, target } => {
                     let source_root = self.unification.root(source.kind);
                     let _: Result<_, _> = constraints
                         .try_insert(source_root, (source, VariableConstraint::default()));
@@ -728,6 +728,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         graph: &Graph,
         bump: &Bump,
         variables: &mut FastHashMap<VariableKind, (Variable, VariableConstraint)>,
+        elimination_order: impl IntoIterator<Item = usize>,
     ) {
         // Create a substitution from known equality constraints
         let substitution = self.apply_constraints_prepare_substitution(graph, variables);
@@ -739,10 +740,10 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
 
         // Does a forwards pass over the graph to apply any lower constraints in order
         // Process nodes in topological order to ensure dependencies are resolved first
-        let topo = topological_sort_in(graph, EdgeKind::Any, bump)
-            .expect("expected dag after anti-symmetry run");
+        // let topo = topological_sort_in(graph, EdgeKind::Any, bump)
+        //     .expect("expected dag after anti-symmetry run");
 
-        for index in topo {
+        for index in elimination_order {
             let id = graph.node(index);
             let kind = self.unification.variables[id.into_usize()];
 
@@ -830,6 +831,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         graph: &Graph,
         bump: &Bump,
         variables: &mut FastHashMap<VariableKind, (Variable, VariableConstraint)>,
+        elimination_order: impl IntoIterator<Item = usize>,
     ) {
         // Create a substitution from known equality and lower bound constraints
         let substitution = self.apply_constraints_prepare_substitution(graph, variables);
@@ -842,10 +844,10 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         // TODO: we need to switch this to be SCCs
         // We do a backwards pass over the graph to apply any upper constraints in order
         // Process nodes in reverse topological order for upper bound resolution
-        let topo = topological_sort_in(graph, EdgeKind::Any, bump)
-            .expect("expected dag after anti-symmetry run");
+        // let topo = topological_sort_in(graph, EdgeKind::Any, bump)
+        //     .expect("expected dag after anti-symmetry run");
 
-        for index in topo.into_iter().rev() {
+        for index in elimination_order {
             let id = graph.node(index);
             let kind = self.unification.variables[id.into_usize()];
 
@@ -953,12 +955,17 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
 
         // TODO: create a graph that makes use of the structural constraints to create an
         // elimination order.
+        let tarjan = Tarjan::new_in(graph, EdgeKind::DependsOn, bump);
+        let scc = tarjan.compute(); // The scc are in reverse topological order
+
+        let rev_topo = scc.iter().flatten().map(|value| value as usize);
+        let topo = rev_topo.clone().rev();
 
         // Step 1.5: Perform the forward pass to resolve lower bounds
-        self.apply_constraints_forwards(graph, bump, variables);
+        self.apply_constraints_forwards(graph, bump, variables, topo);
 
         // Step 1.6: Perform the backward pass to resolve upper bounds
-        self.apply_constraints_backwards(graph, bump, variables);
+        self.apply_constraints_backwards(graph, bump, variables, rev_topo);
     }
 
     /// Validates that the given constraint is satisfiable for the specified variable.
@@ -1506,7 +1513,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         for variable in unconstrained {
             let id = self.unification.root_id(variable.kind);
 
-            for upper in graph.outgoing_edges(EdgeKind::Nominal, id) {
+            for upper in graph.outgoing_edges(EdgeKind::SubtypeOf, id) {
                 let kind = self.unification.root_kind(upper);
 
                 if let Some(&bound) = substitution.get(&kind) {
@@ -1517,7 +1524,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                 }
             }
 
-            for lower in graph.incoming_edges(EdgeKind::Nominal, id) {
+            for lower in graph.incoming_edges(EdgeKind::SubtypeOf, id) {
                 let kind = self.unification.root_kind(lower);
 
                 if let Some(&bound) = substitution.get(&kind) {

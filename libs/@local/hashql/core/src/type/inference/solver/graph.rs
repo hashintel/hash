@@ -9,16 +9,16 @@ use crate::r#type::inference::variable::VariableId;
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub(crate) enum EdgeKind {
     Any = 0,
-    Nominal = 1,
-    Structural = 2,
+    SubtypeOf = 1,
+    DependsOn = 2,
 }
 
 impl EdgeKind {
     const fn from_u32(value: u32) -> Self {
         match value {
             0 => Self::Any,
-            1 => Self::Nominal,
-            2 => Self::Structural,
+            1 => Self::SubtypeOf,
+            2 => Self::DependsOn,
             _ => unreachable!(),
         }
     }
@@ -439,11 +439,16 @@ impl Graph {
 mod tests {
     use core::borrow::Borrow;
 
+    use rstest::rstest;
+
     use super::Graph;
     use crate::r#type::{
         inference::{
             VariableKind,
-            solver::{Unification, graph::EdgeKind},
+            solver::{
+                Unification,
+                graph::{Edge, EdgeKind},
+            },
             variable::VariableId,
         },
         kind::infer::HoleId,
@@ -541,6 +546,178 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[rstest]
+    #[case(EdgeKind::Any, 0)]
+    #[case(EdgeKind::SubtypeOf, 1)]
+    #[case(EdgeKind::DependsOn, 2)]
+    fn edge_kind_encoding_decoding(#[case] kind: EdgeKind, #[case] expected: u32) {
+        assert_eq!(kind.into_u32(), expected);
+        assert_eq!(EdgeKind::from_u32(expected), kind);
+    }
+
+    #[rstest]
+    #[case(EdgeKind::Any, 0x0000_0000, 0x3FFF_FFFF)]
+    #[case(EdgeKind::SubtypeOf, 0x4000_0000, 0x7FFF_FFFF)]
+    #[case(EdgeKind::DependsOn, 0x8000_0000, 0xBFFF_FFFF)]
+    fn edge_kind_ranges(#[case] kind: EdgeKind, #[case] start: u32, #[case] end: u32) {
+        // Test that ranges are correctly calculated and non-overlapping
+        let range = kind.range();
+
+        // Any range should start at 0x0000_0000 and end at 0x3FFF_FFFF
+        assert_eq!(*range.start(), start);
+        assert_eq!(*range.end(), end);
+        assert_eq!(range.end() - range.start() + 1, 0x4000_0000);
+    }
+
+    #[rstest]
+    #[case(EdgeKind::Any, 0)]
+    #[case(EdgeKind::Any, 0x3FFF_FFFF)]
+    #[case(EdgeKind::SubtypeOf, 0)]
+    #[case(EdgeKind::SubtypeOf, 0x1234_5678)]
+    #[case(EdgeKind::DependsOn, 0)]
+    #[case(EdgeKind::DependsOn, 0x3FFF_FFFF)]
+    fn edge_packing_unpacking(#[case] kind: EdgeKind, #[case] target: u32) {
+        let edge = Edge { kind, target };
+        let packed = edge.into_u32();
+        let unpacked = Edge::from_u32(packed);
+
+        assert_eq!(unpacked.kind, kind);
+        assert_eq!(unpacked.target, target);
+
+        // Verify the packed value is within the expected range
+        let range = kind.range();
+        assert!(
+            range.contains(&packed),
+            "Packed value {packed:#010x} not in range {range:?} for kind {kind:?}"
+        );
+    }
+
+    #[test]
+    fn edge_bit_manipulation_correctness() {
+        // Test that the tag and value masks work correctly
+        assert_eq!(Edge::TAG_MASK, 0xC000_0000);
+        assert_eq!(Edge::VALUE_MASK, 0x3FFF_FFFF);
+        assert_eq!(Edge::TAG_MASK | Edge::VALUE_MASK, 0xFFFF_FFFF);
+        assert_eq!(Edge::TAG_MASK & Edge::VALUE_MASK, 0);
+    }
+
+    #[rstest]
+    #[case(EdgeKind::Any, 0x3FFF_FFFF)]
+    #[case(EdgeKind::DependsOn, 0xBFFF_FFFF)]
+    #[case(EdgeKind::SubtypeOf, 0x7FFF_FFFF)]
+    fn edge_extremes(#[case] kind: EdgeKind, #[case] packed: u32) {
+        let edge = Edge {
+            kind,
+            target: 0x3FFF_FFFF,
+        };
+
+        assert_eq!(edge.into_u32(), packed);
+
+        let unpacked = Edge::from_u32(packed);
+        assert_eq!(unpacked.kind, kind);
+        assert_eq!(unpacked.target, 0x3FFF_FFFF);
+    }
+
+    #[test]
+    fn different_edge_kinds_in_graph() {
+        let mut unification = Unification::new();
+
+        // Create some variables
+        let var_a = unification.upsert_variable(VariableKind::Hole(HoleId::new(0)));
+        let var_b = unification.upsert_variable(VariableKind::Hole(HoleId::new(1)));
+        let var_c = unification.upsert_variable(VariableKind::Hole(HoleId::new(2)));
+
+        let mut graph = Graph::new(&mut unification);
+
+        // Insert edges of different kinds
+        graph.insert_edge(EdgeKind::SubtypeOf, var_a, var_b);
+        graph.insert_edge(EdgeKind::SubtypeOf, var_b, var_c);
+        graph.insert_edge(EdgeKind::DependsOn, var_a, var_c);
+
+        // Verify edge counts by kind
+        assert_eq!(graph.edge_count(EdgeKind::Any), 3);
+        assert_eq!(graph.edge_count(EdgeKind::SubtypeOf), 2);
+        assert_eq!(graph.edge_count(EdgeKind::DependsOn), 1);
+
+        // Verify we can retrieve edges by kind
+        let a_index = graph.lookup_id(var_a);
+        let b_index = graph.lookup_id(var_b);
+        let c_index = graph.lookup_id(var_c);
+
+        let outgoing_any: Vec<_> = graph
+            .outgoing_edges_by_index(EdgeKind::Any, a_index)
+            .collect();
+        let outgoing_structural: Vec<_> = graph
+            .outgoing_edges_by_index(EdgeKind::DependsOn, a_index)
+            .collect();
+        let outgoing_nominal: Vec<_> = graph
+            .outgoing_edges_by_index(EdgeKind::SubtypeOf, a_index)
+            .collect();
+
+        assert_eq!(outgoing_any, [b_index, c_index]);
+        assert_eq!(outgoing_structural, [c_index]);
+        assert_eq!(outgoing_nominal, [b_index]);
+    }
+
+    #[rstest]
+    #[case(EdgeKind::Any)]
+    #[case(EdgeKind::SubtypeOf)]
+    #[case(EdgeKind::DependsOn)]
+    fn edge_kind_range_boundaries(#[case] kind: EdgeKind) {
+        // Test that values at range boundaries are handled correctly
+        let range = kind.range();
+        let start_val = *range.start();
+        let end_val = *range.end();
+
+        // Test that start and end values decode to the correct kind
+        let start_edge = Edge::from_u32(start_val);
+        let end_edge = Edge::from_u32(end_val);
+
+        assert_eq!(start_edge.kind, kind);
+        assert_eq!(end_edge.kind, kind);
+
+        // Target should be 0 for start and max for end
+        assert_eq!(start_edge.target, 0);
+        assert_eq!(end_edge.target, 0x3FFF_FFFF);
+    }
+
+    #[test]
+    fn edge_kind_reserved_range_coverage() {
+        // Verify that all valid EdgeKind variants cover their expected ranges
+        // and that the reserved range (0xC000_0000 to 0xFFFF_FFFF) is not used
+
+        // The upper 2 bits determine the EdgeKind:
+        // 00 -> Any (0x0000_0000 to 0x3FFF_FFFF)
+        // 01 -> Nominal (0x4000_0000 to 0x7FFF_FFFF)
+        // 10 -> Structural (0x8000_0000 to 0xBFFF_FFFF)
+        // 11 -> Reserved (0xC000_0000 to 0xFFFF_FFFF)
+
+        let any_range = EdgeKind::Any.range();
+        let nominal_range = EdgeKind::SubtypeOf.range();
+        let structural_range = EdgeKind::DependsOn.range();
+
+        // Verify complete coverage of first 3/4 of u32 space
+        assert_eq!(*any_range.start(), 0x0000_0000);
+        assert_eq!(*any_range.end(), 0x3FFF_FFFF);
+        assert_eq!(*nominal_range.start(), 0x4000_0000);
+        assert_eq!(*nominal_range.end(), 0x7FFF_FFFF);
+        assert_eq!(*structural_range.start(), 0x8000_0000);
+        assert_eq!(*structural_range.end(), 0xBFFF_FFFF);
+
+        // Verify the reserved range (0xC000_0000 to 0xFFFF_FFFF) is not covered
+        // by any EdgeKind variant
+        let reserved_start = 0xC000_0000;
+        let reserved_end = 0xFFFF_FFFF;
+
+        assert!(!any_range.contains(&reserved_start));
+        assert!(!nominal_range.contains(&reserved_start));
+        assert!(!structural_range.contains(&reserved_start));
+
+        assert!(!any_range.contains(&reserved_end));
+        assert!(!nominal_range.contains(&reserved_end));
+        assert!(!structural_range.contains(&reserved_end));
     }
 
     #[test]

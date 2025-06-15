@@ -1234,7 +1234,7 @@ fn collect_structural_edges_basic() {
     let constraints = inference_env.take_constraints();
     assert_eq!(
         constraints,
-        [Constraint::StructuralEdge {
+        [Constraint::Dependency {
             source: source_var,
             target: Variable::synthetic(VariableKind::Hole(hole)),
         }]
@@ -1271,7 +1271,7 @@ fn collect_structural_edges_target() {
     let constraints = inference_env.take_constraints();
     assert_eq!(
         constraints,
-        [Constraint::StructuralEdge {
+        [Constraint::Dependency {
             source: Variable::synthetic(VariableKind::Hole(hole)),
             target: target_var,
         }]
@@ -1309,11 +1309,11 @@ fn collect_structural_edges_multiple_infer_vars() {
     assert_eq!(
         constraints,
         [
-            Constraint::StructuralEdge {
+            Constraint::Dependency {
                 source: edge_var,
                 target: Variable::synthetic(VariableKind::Hole(hole1)),
             },
-            Constraint::StructuralEdge {
+            Constraint::Dependency {
                 source: edge_var,
                 target: Variable::synthetic(VariableKind::Hole(hole2)),
             }
@@ -1355,11 +1355,11 @@ fn collect_structural_edges_nested_intersection() {
     assert_eq!(
         constraints,
         [
-            Constraint::StructuralEdge {
+            Constraint::Dependency {
                 source: edge_var,
                 target: Variable::synthetic(VariableKind::Hole(hole_outer)),
             },
-            Constraint::StructuralEdge {
+            Constraint::Dependency {
                 source: edge_var,
                 target: Variable::synthetic(VariableKind::Hole(hole_inner)),
             }
@@ -1399,7 +1399,7 @@ fn collect_structural_edges_contravariant_context() {
     let constraints = inference_env.take_constraints();
     assert_eq!(
         constraints,
-        [Constraint::StructuralEdge {
+        [Constraint::Dependency {
             source: Variable::synthetic(VariableKind::Hole(hole)),
             target: edge_var,
         }]
@@ -1494,11 +1494,11 @@ fn collect_structural_edges_mixed_types() {
     assert_eq!(
         constraints,
         [
-            Constraint::StructuralEdge {
+            Constraint::Dependency {
                 source: edge_var,
                 target: Variable::synthetic(VariableKind::Hole(hole1)),
             },
-            Constraint::StructuralEdge {
+            Constraint::Dependency {
                 source: edge_var,
                 target: Variable::synthetic(VariableKind::Hole(hole2)),
             }
