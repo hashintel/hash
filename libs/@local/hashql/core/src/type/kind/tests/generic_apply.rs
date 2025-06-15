@@ -8,7 +8,7 @@ use crate::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
             SimplifyEnvironment, instantiate::InstantiateEnvironment,
         },
-        inference::{Constraint, PartialStructuralEdge, Variable, VariableKind},
+        inference::{Constraint, Variable, VariableKind},
         kind::{
             Apply, Generic, GenericArgument, IntersectionType, PrimitiveType, StructType, TypeKind,
             UnionType,
@@ -621,9 +621,9 @@ fn collect_structural_constraints() {
         }]
     );
 
-    infer.collect_structural_edges(
+    infer.collect_dependencies(
         subtype,
-        PartialStructuralEdge::Source(Variable::synthetic(VariableKind::Hole(HoleId::new(0)))),
+        Variable::synthetic(VariableKind::Hole(HoleId::new(0))),
     );
 
     let constraints = infer.take_constraints();

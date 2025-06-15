@@ -1,4 +1,4 @@
-use self::filter::{Deep, Filter as _};
+use self::filter::{Deep, Filter};
 use super::{
     Type, TypeId,
     environment::Environment,
@@ -43,6 +43,12 @@ pub mod filter {
         /// This controls whether to traverse into generic parameter types. When `false`,
         /// generic parameters are skipped during traversal.
         const GENERIC_PARAMETERS: bool;
+
+        /// When `true`, visits substitution types.
+        ///
+        /// This controls whether to traverse into substitution types. When `false`,
+        /// substitutions are skipped during traversal.
+        const SUBSTITUTIONS: bool;
     }
 
     /// A filter that traverses all types deeply but skips generic parameters.
@@ -55,12 +61,13 @@ pub mod filter {
     ///
     /// The type system allows for recursive types, so be careful when using this filter, you need
     /// to implement your own visitor to handle cycles.
-    pub struct NoGenerics(());
+    pub struct NoGenerics(!);
 
     impl Filter for NoGenerics {
         const DEEP: bool = true;
         const GENERIC_PARAMETERS: bool = false;
         const MEMBERS: bool = true;
+        const SUBSTITUTIONS: bool = false;
     }
 
     /// A filter that only visits the immediate type without traversing.
@@ -68,12 +75,13 @@ pub mod filter {
     /// - Does not follow type references
     /// - Does not visit internal structure
     /// - Does not visit generic parameters
-    pub struct Shallow(());
+    pub struct Shallow(!);
 
     impl Filter for Shallow {
         const DEEP: bool = false;
         const GENERIC_PARAMETERS: bool = false;
         const MEMBERS: bool = false;
+        const SUBSTITUTIONS: bool = false;
     }
 
     /// A filter that performs exhaustive traversal of the type structure.
@@ -86,12 +94,13 @@ pub mod filter {
     ///
     /// The type system allows for recursive types, so be careful when using this filter, you need
     /// to implement your own visitor to handle cycles.
-    pub struct Deep(());
+    pub struct Deep(!);
 
     impl Filter for Deep {
         const DEEP: bool = true;
         const GENERIC_PARAMETERS: bool = true;
         const MEMBERS: bool = true;
+        const SUBSTITUTIONS: bool = true;
     }
 }
 
@@ -207,14 +216,12 @@ pub trait Visitor<'heap> {
         walk_generic(self, generic);
     }
 
-    #[expect(unused_variables, reason = "trait definition")]
     fn visit_param(&mut self, param: Type<'heap, Param>) {
-        // do nothing, no fields to walk
+        walk_param(self, param);
     }
 
-    #[expect(unused_variables, reason = "trait definition")]
     fn visit_infer(&mut self, infer: Type<'heap, Infer>) {
-        // do nothing, no fields to walk
+        walk_infer(self, infer);
     }
 }
 
@@ -461,4 +468,42 @@ pub fn walk_generic<'heap, V: Visitor<'heap> + ?Sized>(
 ) {
     visitor.visit_generic_arguments(arguments);
     visitor.visit_id(base);
+}
+
+pub fn walk_param<'heap, V: Visitor<'heap> + ?Sized>(
+    visitor: &mut V,
+    Type {
+        id: _,
+        span: _,
+        kind: &Param { argument },
+    }: Type<'heap, Param>,
+) {
+    if !V::Filter::SUBSTITUTIONS {
+        return;
+    }
+
+    let Some(substitution) = visitor.env().substitution.argument(argument) else {
+        return;
+    };
+
+    visitor.visit_id(substitution);
+}
+
+pub fn walk_infer<'heap, V: Visitor<'heap> + ?Sized>(
+    visitor: &mut V,
+    Type {
+        id: _,
+        span: _,
+        kind: &Infer { hole },
+    }: Type<'heap, Infer>,
+) {
+    if !V::Filter::SUBSTITUTIONS {
+        return;
+    }
+
+    let Some(substitution) = visitor.env().substitution.infer(hole) else {
+        return;
+    };
+
+    visitor.visit_id(substitution);
 }

@@ -40,7 +40,7 @@ use super::{
         UnsupportedProjectionCategory, UnsupportedSubscriptCategory, no_type_inference,
         type_mismatch, type_parameter_not_found, unsupported_projection, unsupported_subscript,
     },
-    inference::{Constraint, Inference, PartialStructuralEdge, Variable, VariableKind},
+    inference::{Constraint, Inference, Variable, VariableKind},
     lattice::{Lattice, Projection, Subscript},
 };
 use crate::{
@@ -2078,7 +2078,7 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                     bound: supertype.id,
                 });
 
-                env.collect_structural_edges(supertype.id, PartialStructuralEdge::Source(variable));
+                env.collect_dependencies(supertype.id, variable);
             }
 
             // _ <: Infer
@@ -2093,7 +2093,7 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                     bound: self.id,
                 });
 
-                env.collect_structural_edges(self.id, PartialStructuralEdge::Target(variable));
+                env.collect_dependencies(self.id, variable);
             }
 
             // Param <: _
@@ -2108,7 +2108,7 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                     bound: supertype.id,
                 });
 
-                env.collect_structural_edges(supertype.id, PartialStructuralEdge::Source(variable));
+                env.collect_dependencies(supertype.id, variable);
             }
 
             // _ <: Param
@@ -2123,7 +2123,7 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                     bound: self.id,
                 });
 
-                env.collect_structural_edges(self.id, PartialStructuralEdge::Target(variable));
+                env.collect_dependencies(self.id, variable);
             }
 
             // `Never <: _` | `_ <: Never`
@@ -2131,60 +2131,6 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
 
             // `_ <: Unknown` | `Unknown <: _`
             (_, Self::Unknown) | (Self::Unknown, _) => {}
-        }
-    }
-
-    fn collect_structural_edges(
-        self: Type<'heap, Self>,
-        variable: PartialStructuralEdge,
-        env: &mut InferenceEnvironment<'_, 'heap>,
-    ) {
-        #[expect(clippy::match_same_arms)]
-        match self.kind {
-            Self::Opaque(opaque_type) => self
-                .with(opaque_type)
-                .collect_structural_edges(variable, env),
-            Self::Primitive(primitive_type) => self
-                .with(primitive_type)
-                .collect_structural_edges(variable, env),
-            Self::Intrinsic(intrinsic_type) => self
-                .with(intrinsic_type)
-                .collect_structural_edges(variable, env),
-            Self::Struct(struct_type) => self
-                .with(struct_type)
-                .collect_structural_edges(variable, env),
-            Self::Tuple(tuple_type) => self
-                .with(tuple_type)
-                .collect_structural_edges(variable, env),
-            Self::Union(union_type) => self
-                .with(union_type)
-                .collect_structural_edges(variable, env),
-            Self::Intersection(intersection_type) => self
-                .with(intersection_type)
-                .collect_structural_edges(variable, env),
-            Self::Closure(closure_type) => self
-                .with(closure_type)
-                .collect_structural_edges(variable, env),
-            Self::Apply(apply_type) => self
-                .with(apply_type)
-                .collect_structural_edges(variable, env),
-            Self::Generic(generic) => self.with(generic).collect_structural_edges(variable, env),
-            &Self::Param(Param { argument }) => env.add_structural_edge(
-                variable,
-                Variable {
-                    span: self.span,
-                    kind: VariableKind::Generic(argument),
-                },
-            ),
-            &Self::Infer(Infer { hole }) => env.add_structural_edge(
-                variable,
-                Variable {
-                    span: self.span,
-                    kind: VariableKind::Hole(hole),
-                },
-            ),
-            Self::Never => {}
-            Self::Unknown => {}
         }
     }
 

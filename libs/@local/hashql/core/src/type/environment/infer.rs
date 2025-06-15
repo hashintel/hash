@@ -8,7 +8,8 @@ use crate::{
         TypeId,
         inference::{
             Constraint, DeferralDepth, Inference as _, InferenceSolver, PartialStructuralEdge,
-            ResolutionStrategy, SelectionConstraint, Subject, Variable, VariableKind,
+            ResolutionStrategy, SelectionConstraint, Subject, Variable,
+            VariableDependencyCollector, VariableKind,
         },
         recursion::RecursionBoundary,
     },
@@ -18,8 +19,9 @@ use crate::{
 pub struct InferenceEnvironment<'env, 'heap> {
     pub environment: &'env Environment<'heap>,
     boundary: RecursionBoundary<'heap>,
+    variables: VariableDependencyCollector<'env, 'heap>,
 
-    pub constraints: Vec<Constraint<'heap>>,
+    constraints: Vec<Constraint<'heap>>,
 
     variance: Variance,
 }
@@ -29,6 +31,7 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
         Self {
             environment,
             boundary: RecursionBoundary::new(),
+            variables: VariableDependencyCollector::new(environment),
             constraints: Vec::new(),
             variance: Variance::default(),
         }
@@ -73,15 +76,8 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
                     lhs: lower,
                     rhs: upper,
                 },
-                Constraint::Dependency {
-                    source: _,
-                    target: _,
-                } => {
-                    // Do not install any structural edges, as they would violate the invariant
-                    // variance.
-                    // `(name: _2) = _1` does not mean that `_2` is equal to `_1`.
-                    return;
-                }
+                // dependencies are unaffected by variance
+                Constraint::Dependency { .. } => constraint,
                 // Nothing happens when we have a selection constraint, as selection constraints are
                 // deferred constraints
                 Constraint::Selection(..) => constraint,
@@ -91,16 +87,10 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
         self.constraints.push(constraint);
     }
 
-    pub fn add_structural_edge(&mut self, variable: PartialStructuralEdge, other: Variable) {
-        let constraint = match variable {
-            PartialStructuralEdge::Source(source) => Constraint::Dependency {
-                source,
-                target: other,
-            },
-            PartialStructuralEdge::Target(target) => Constraint::Dependency {
-                source: other,
-                target,
-            },
+    pub fn add_dependency(&mut self, variable: Variable, other: Variable) {
+        let constraint = Constraint::Dependency {
+            source: variable,
+            target: other,
         };
 
         self.constraints.push(constraint);
@@ -189,25 +179,15 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
         self.boundary.exit(subtype, supertype);
     }
 
-    pub fn collect_structural_edges(&mut self, id: TypeId, variable: PartialStructuralEdge) {
-        let variable = match self.variance {
-            Variance::Covariant => variable,
-            Variance::Contravariant => variable.invert(),
-            // We cannot safely collect structural edges for invariant types
-            Variance::Invariant => return,
-        };
-
+    pub fn collect_dependencies(&mut self, id: TypeId, variable: Variable) {
         let r#type = self.environment.r#type(id);
 
-        if self.boundary.enter(r#type, r#type).is_break() {
-            // In a recursive type, we've already collected the constraints once, so can simply
-            // terminate
-            return;
+        for depends_on in self.variables.collect(r#type) {
+            self.constraints.push(Constraint::Dependency {
+                source: variable,
+                target: depends_on,
+            });
         }
-
-        r#type.collect_structural_edges(variable, self);
-
-        self.boundary.exit(r#type, r#type);
     }
 
     pub(crate) fn with_variance<T>(

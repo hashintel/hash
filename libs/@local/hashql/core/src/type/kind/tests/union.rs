@@ -12,7 +12,7 @@ use crate::{
             SimplifyEnvironment, instantiate::InstantiateEnvironment,
         },
         error::TypeCheckDiagnosticCategory,
-        inference::{Constraint, Inference as _, PartialStructuralEdge, Variable, VariableKind},
+        inference::{Constraint, Inference as _, Variable, VariableKind},
         kind::{
             Generic, OpaqueType, Param, StructType, TypeKind, UnionType,
             generic::{GenericArgument, GenericArgumentId},
@@ -1471,49 +1471,7 @@ fn collect_constraints_with_intersection() {
 }
 
 #[test]
-fn collect_structural_edges_union_target() {
-    let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
-
-    // Create inference variables for union variants
-    let hole1 = HoleId::new(0);
-    let infer_var1 = instantiate_infer(&env, hole1);
-    let hole2 = HoleId::new(1);
-    let infer_var2 = instantiate_infer(&env, hole2);
-
-    // Create a union with inference variables: _0 | _1
-    union!(env, union_type, [infer_var1, infer_var2]);
-
-    let mut inference_env = InferenceEnvironment::new(&env);
-
-    // Create a variable to use as the target in a structural edge
-    // This puts the union on the LEFT side of the edge
-    let edge_var = Variable::synthetic(VariableKind::Hole(HoleId::new(2)));
-    let partial_edge = PartialStructuralEdge::Target(edge_var);
-
-    // Collect structural edges
-    union_type.collect_structural_edges(partial_edge, &mut inference_env);
-
-    // When union is on the left side (target), both variants should flow to the target
-    // We expect: _0 -> _2 and _1 -> _2
-    let constraints = inference_env.take_constraints();
-    assert_eq!(
-        constraints,
-        [
-            Constraint::Dependency {
-                source: Variable::synthetic(VariableKind::Hole(hole1)),
-                target: edge_var,
-            },
-            Constraint::Dependency {
-                source: Variable::synthetic(VariableKind::Hole(hole2)),
-                target: edge_var,
-            }
-        ]
-    );
-}
-
-#[test]
-fn collect_structural_edges_union_source() {
+fn collect_dependencies() {
     let heap = Heap::new();
     let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
@@ -1530,172 +1488,27 @@ fn collect_structural_edges_union_source() {
 
     // Create a variable to use as the source in a structural edge
     // This puts the union on the RIGHT side of the edge
-    let edge_var = Variable::synthetic(VariableKind::Hole(HoleId::new(2)));
-    let partial_edge = PartialStructuralEdge::Source(edge_var);
+    let variable = Variable::synthetic(VariableKind::Hole(HoleId::new(2)));
 
     // Collect structural edges
-    union_type.collect_structural_edges(partial_edge, &mut inference_env);
+    inference_env.collect_dependencies(union_type.id, variable);
 
     // When union is on the right side (source), no edges should be collected
     // This is because a union on the right side would create an "or" constraint
     // which isn't well-defined for structural edges
     let constraints = inference_env.take_constraints();
-    assert!(
-        constraints.is_empty(),
-        "No structural edges should be collected when union is on right side"
-    );
-}
-
-#[test]
-fn collect_structural_edges_union_mixed_variants() {
-    let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
-
-    // Create one inference variable and one concrete type
-    let hole = HoleId::new(0);
-    let infer_var = instantiate_infer(&env, hole);
-    let number = primitive!(env, PrimitiveType::Number);
-
-    // Create a union with mixed types: _0 | Number
-    union!(env, union_type, [infer_var, number]);
-
-    let mut inference_env = InferenceEnvironment::new(&env);
-
-    // Create a variable to use as the target in a structural edge
-    let edge_var = Variable::synthetic(VariableKind::Hole(HoleId::new(1)));
-    let partial_edge = PartialStructuralEdge::Target(edge_var);
-
-    // Collect structural edges
-    union_type.collect_structural_edges(partial_edge, &mut inference_env);
-
-    // Only the inference variable should produce a structural edge
-    // We expect: _0 -> _1
-    let constraints = inference_env.take_constraints();
-    assert_eq!(
-        constraints,
-        [Constraint::Dependency {
-            source: Variable::synthetic(VariableKind::Hole(hole)),
-            target: edge_var,
-        }]
-    );
-}
-
-#[test]
-fn collect_structural_edges_union_contravariant_context() {
-    let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
-
-    // Create inference variables for union variants
-    let hole1 = HoleId::new(0);
-    let infer_var1 = instantiate_infer(&env, hole1);
-    let hole2 = HoleId::new(1);
-    let infer_var2 = instantiate_infer(&env, hole2);
-
-    // Create a union with inference variables: _0 | _1
-    union!(env, union_type, [infer_var1, infer_var2]);
-
-    let mut inference_env = InferenceEnvironment::new(&env);
-
-    // Create a variable to use as the target in a structural edge
-    let edge_var = Variable::synthetic(VariableKind::Hole(HoleId::new(2)));
-    let partial_edge = PartialStructuralEdge::Target(edge_var);
-
-    // Collect structural edges in a contravariant context
-    inference_env.in_contravariant(|env| {
-        union_type.collect_structural_edges(partial_edge, env);
-    });
-
-    // In a contravariant context with union as target (left side),
-    // the flow direction is inverted but still allowed
-    // We expect: _2 -> _0 and _2 -> _1
-    let constraints = inference_env.take_constraints();
     assert_eq!(
         constraints,
         [
             Constraint::Dependency {
-                source: edge_var,
-                target: Variable::synthetic(VariableKind::Hole(hole1)),
+                source: variable,
+                target: Variable::synthetic(VariableKind::Hole(hole1))
             },
             Constraint::Dependency {
-                source: edge_var,
-                target: Variable::synthetic(VariableKind::Hole(hole2)),
+                source: variable,
+                target: Variable::synthetic(VariableKind::Hole(hole2))
             }
         ]
-    );
-}
-
-#[test]
-fn collect_structural_edges_nested_union() {
-    let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
-
-    // Create an inference variable
-    let hole = HoleId::new(0);
-    let infer_var = instantiate_infer(&env, hole);
-
-    // Create a nested union: (_0 | String) | Number
-    let inner_union = union!(env, [infer_var, primitive!(env, PrimitiveType::String)]);
-    union!(
-        env,
-        nested_union,
-        [inner_union, primitive!(env, PrimitiveType::Number)]
-    );
-
-    let mut inference_env = InferenceEnvironment::new(&env);
-
-    // Create a variable to use as the target in a structural edge
-    let edge_var = Variable::synthetic(VariableKind::Hole(HoleId::new(1)));
-    let partial_edge = PartialStructuralEdge::Target(edge_var);
-
-    // Collect structural edges
-    nested_union.collect_structural_edges(partial_edge, &mut inference_env);
-
-    // Only the inference variable should produce a structural edge
-    // Nested unions should be traversed normally
-    // We expect: _0 -> _1
-    let constraints = inference_env.take_constraints();
-    assert_eq!(
-        constraints,
-        [Constraint::Dependency {
-            source: Variable::synthetic(VariableKind::Hole(hole)),
-            target: edge_var,
-        }]
-    );
-}
-
-#[test]
-fn collect_structural_edges_empty_union() {
-    let heap = Heap::new();
-    let env = Environment::new(SpanId::SYNTHETIC, &heap);
-
-    // Create an empty union: Never
-    union!(env, empty_union, []);
-
-    let mut inference_env = InferenceEnvironment::new(&env);
-
-    // Create variables for both source and target edges
-    let edge_var = Variable::synthetic(VariableKind::Hole(HoleId::new(0)));
-    let source_edge = PartialStructuralEdge::Source(edge_var);
-    let target_edge = PartialStructuralEdge::Target(edge_var);
-
-    // Collect structural edges with empty union as source (right side)
-    empty_union.collect_structural_edges(source_edge, &mut inference_env);
-
-    // Empty union as source should collect no edges
-    let constraints = inference_env.take_constraints();
-    assert!(
-        constraints.is_empty(),
-        "Empty union as source should collect no edges"
-    );
-
-    // Collect structural edges with empty union as target (left side)
-    empty_union.collect_structural_edges(target_edge, &mut inference_env);
-
-    // Empty union as target should also collect no edges (no variants to iterate)
-    let constraints = inference_env.take_constraints();
-    assert!(
-        constraints.is_empty(),
-        "Empty union as target should collect no edges"
     );
 }
 

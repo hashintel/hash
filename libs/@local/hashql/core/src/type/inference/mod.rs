@@ -1,43 +1,18 @@
 pub(crate) mod solver;
 mod variable;
+mod visit;
 
-pub(crate) use self::variable::VariableLookup;
 pub use self::{
     solver::InferenceSolver,
     variable::{Variable, VariableKind},
 };
+pub(crate) use self::{variable::VariableLookup, visit::VariableDependencyCollector};
 use super::{
     Type, TypeId,
     environment::{Environment, InferenceEnvironment, instantiate::InstantiateEnvironment},
     kind::{generic::GenericArgumentId, infer::HoleId},
 };
 use crate::{collection::FastHashMap, symbol::Ident};
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum PartialStructuralEdge {
-    Source(Variable),
-    Target(Variable),
-}
-
-impl PartialStructuralEdge {
-    #[must_use]
-    pub const fn invert(self) -> Self {
-        match self {
-            Self::Source(variable) => Self::Target(variable),
-            Self::Target(variable) => Self::Source(variable),
-        }
-    }
-
-    #[must_use]
-    pub const fn is_source(&self) -> bool {
-        matches!(self, Self::Source(_))
-    }
-
-    #[must_use]
-    pub const fn is_target(&self) -> bool {
-        matches!(self, Self::Target(_))
-    }
-}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Subject {
@@ -387,26 +362,6 @@ pub trait Inference<'heap> {
     fn collect_constraints(
         self: Type<'heap, Self>,
         supertype: Type<'heap, Self>,
-        env: &mut InferenceEnvironment<'_, 'heap>,
-    );
-
-    /// Collects structural edges between this type and inference variables.
-    ///
-    /// This method tracks the propagation of type information through structural
-    /// relationships in types. It establishes directed flow connections between
-    /// types and their constituent parts, allowing the inference engine to
-    /// understand how type information should flow through complex nested structures.
-    ///
-    /// For example, when processing a record type with fields, this method would
-    /// track the relationship between the record variable and its field variables,
-    /// creating appropriate edges to represent these structural dependencies.
-    ///
-    /// The `variable` parameter specifies whether this type is the source or target
-    /// of the structural relationship, determining the direction of type flow during
-    /// inference.
-    fn collect_structural_edges(
-        self: Type<'heap, Self>,
-        variable: PartialStructuralEdge,
         env: &mut InferenceEnvironment<'_, 'heap>,
     );
 
