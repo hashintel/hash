@@ -14,7 +14,6 @@ import type {
 import { createUserSecretPath } from "@local/hash-backend-utils/vault";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { EntityRelationAndSubjectBranded } from "@local/hash-graph-sdk/authorization";
-import { createPolicy } from "@local/hash-graph-sdk/policy";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
   systemEntityTypes,
@@ -182,6 +181,19 @@ export const createUserSecret = async <
     );
   }
 
+  const viewPrincipals: PrincipalConstraint[] = [
+    {
+      type: "actor",
+      actorType: "user",
+      id: userAccountId,
+    },
+    {
+      type: "actor",
+      actorType: "machine",
+      id: managingBotAccountId,
+    },
+  ];
+
   const userSecretEntityUuid = generateUuid() as EntityUuid;
   const usesUserSecretEntityUuid = generateUuid() as EntityUuid;
 
@@ -194,6 +206,16 @@ export const createUserSecret = async <
       entityUuid: userSecretEntityUuid,
       properties: secretMetadata,
       relationships: botEditorUserViewerOnly,
+      policies: viewPrincipals.map((principal) => ({
+        name: `user-secret-view-entity-${userSecretEntityUuid}`,
+        principal,
+        effect: "permit",
+        actions: ["viewEntity"],
+        resource: {
+          type: "entity",
+          id: userSecretEntityUuid,
+        },
+      })),
     },
   );
 
@@ -211,38 +233,18 @@ export const createUserSecret = async <
       },
       entityTypeIds: [systemLinkEntityTypes.usesUserSecret.linkEntityTypeId],
       relationships: botEditorUserViewerOnly,
-    },
-  );
-
-  const viewPrincipals: PrincipalConstraint[] = [
-    {
-      type: "actor",
-      actorType: "user",
-      id: userAccountId,
-    },
-    {
-      type: "actor",
-      actorType: "machine",
-      id: managingBotAccountId,
-    },
-  ];
-
-  // TODO: allow creating policies alongside entity creation
-  //   see https://linear.app/hash/issue/H-4622/allow-creating-policies-alongside-entity-creation
-  for (const entityUuid of [userSecretEntityUuid, usesUserSecretEntityUuid]) {
-    for (const principal of viewPrincipals) {
-      await createPolicy(graphApi, authentication, {
-        name: `user-secret-view-entity-${entityUuid}`,
+      policies: viewPrincipals.map((principal) => ({
+        name: `user-secret-view-entity-${usesUserSecretEntityUuid}`,
         principal,
         effect: "permit",
         actions: ["viewEntity"],
         resource: {
           type: "entity",
-          id: entityUuid,
+          id: usesUserSecretEntityUuid,
         },
-      });
-    }
-  }
+      })),
+    },
+  );
 
   return userSecretEntity.metadata.recordId.entityId;
 };

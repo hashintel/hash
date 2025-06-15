@@ -14,6 +14,11 @@ fn index() -> io::Result<()> {
     let settings = TypeScriptGeneratorSettings::default();
     let mut generator = TypeScriptGenerator::new(&settings, &collection);
 
+    generator.add_import_declaration(
+        "@rust/hash-graph-authorization/types",
+        ["ActionName", "Effect", "PrincipalConstraint"],
+    );
+
     for (type_id, _, type_definition) in collection.iter() {
         if type_definition.module.starts_with("hash_graph_store") {
             generator.add_type_declaration_by_id(type_id);

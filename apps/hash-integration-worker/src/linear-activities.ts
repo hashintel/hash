@@ -1,5 +1,6 @@
 import type {
   EntityId,
+  EntityUuid,
   MachineId,
   OriginProvenance,
   PropertyObject,
@@ -7,7 +8,6 @@ import type {
   VersionedUrl,
   WebId,
 } from "@blockprotocol/type-system";
-import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import type { Connection, LinearDocument, Team } from "@linear/sdk";
 import { LinearClient } from "@linear/sdk";
 import { getLinearMappingByHashEntityTypeId } from "@local/hash-backend-utils/linear-type-mappings";
@@ -24,8 +24,8 @@ import {
   mergePropertyObjectAndMetadata,
   propertyObjectToPatches,
 } from "@local/hash-graph-sdk/entity";
-import { createPolicy } from "@local/hash-graph-sdk/policy";
 import { linearPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { v4 as uuidv4 } from "uuid";
 
 import {
   mapHashEntityToLinearUpdateInput,
@@ -60,12 +60,14 @@ const createHashEntity = async (params: {
 }): Promise<void> => {
   const { graphApiClient, webId } = params;
 
+  const entityUuid = uuidv4() as EntityUuid;
   const entity = await HashEntity.create(
     graphApiClient,
     params.authentication,
     {
       webId,
       draft: false,
+      entityUuid,
       relationships: [
         {
           relation: "administrator",
@@ -85,6 +87,18 @@ const createHashEntity = async (params: {
         {
           relation: "setting",
           subject: { kind: "setting", subjectId: "viewFromWeb" },
+        },
+      ],
+      policies: [
+        {
+          name: `linear-synced-administer-entity-${entityUuid}`,
+          effect: "permit",
+          principal: {
+            type: "actor",
+            actorType: "machine",
+            id: params.authentication.actorId,
+          },
+          actions: ["viewEntity"],
         },
       ],
       properties: mergePropertyObjectAndMetadata(
@@ -98,82 +112,58 @@ const createHashEntity = async (params: {
     },
   );
 
-  // TODO: allow creating policies alongside entity creation
-  //   see https://linear.app/hash/issue/H-4622/allow-creating-policies-alongside-entity-creation
-  const entityUuid = extractEntityUuidFromEntityId(entity.entityId);
-  await createPolicy(graphApiClient, params.authentication, {
-    name: `linear-synced-administer-entity-${entityUuid}`,
-    effect: "permit",
-    principal: {
-      type: "actor",
-      actorType: "machine",
-      id: params.authentication.actorId,
-    },
-    actions: ["viewEntity"],
-    resource: {
-      type: "entity",
-      id: entityUuid,
-    },
-  });
-
-  const linkEntities = await HashEntity.createMultiple(
+  await HashEntity.createMultiple(
     graphApiClient,
     { actorId: params.authentication.actorId },
-    params.outgoingLinks.map(({ linkEntityTypeId, destinationEntityId }) => ({
-      webId,
-      linkData: {
-        leftEntityId: entity.metadata.recordId.entityId,
-        rightEntityId: destinationEntityId,
-      },
-      entityTypeIds: [linkEntityTypeId],
-      properties: { value: {} },
-      provenance,
-      draft: false,
-      relationships: [
-        {
-          relation: "administrator",
-          subject: {
-            kind: "account",
-            subjectId: params.authentication.actorId,
+    params.outgoingLinks.map(({ linkEntityTypeId, destinationEntityId }) => {
+      const linkEntityUuid = uuidv4() as EntityUuid;
+      return {
+        webId,
+        entityUuid: linkEntityUuid,
+        linkData: {
+          leftEntityId: entity.metadata.recordId.entityId,
+          rightEntityId: destinationEntityId,
+        },
+        entityTypeIds: [linkEntityTypeId],
+        properties: { value: {} },
+        provenance,
+        draft: false,
+        relationships: [
+          {
+            relation: "administrator",
+            subject: {
+              kind: "account",
+              subjectId: params.authentication.actorId,
+            },
           },
-        },
-        {
-          relation: "setting",
-          subject: { kind: "setting", subjectId: "administratorFromWeb" },
-        },
-        {
-          relation: "setting",
-          subject: { kind: "setting", subjectId: "updateFromWeb" },
-        },
-        {
-          relation: "setting",
-          subject: { kind: "setting", subjectId: "viewFromWeb" },
-        },
-      ],
-    })),
+          {
+            relation: "setting",
+            subject: { kind: "setting", subjectId: "administratorFromWeb" },
+          },
+          {
+            relation: "setting",
+            subject: { kind: "setting", subjectId: "updateFromWeb" },
+          },
+          {
+            relation: "setting",
+            subject: { kind: "setting", subjectId: "viewFromWeb" },
+          },
+        ],
+        policies: [
+          {
+            name: `linear-synced-administer-entity-${linkEntityUuid}`,
+            effect: "permit",
+            principal: {
+              type: "actor",
+              actorType: "machine",
+              id: params.authentication.actorId,
+            },
+            actions: ["viewEntity"],
+          },
+        ],
+      };
+    }),
   );
-
-  // TODO: allow creating policies alongside entity creation
-  //   see https://linear.app/hash/issue/H-4622/allow-creating-policies-alongside-entity-creation
-  for (const createdEntity of [entity, ...linkEntities]) {
-    const createdEntityUuid = extractEntityUuidFromEntityId(
-      createdEntity.entityId,
-    );
-    await createPolicy(graphApiClient, params.authentication, {
-      name: `linear-synced-administer-entity-${createdEntityUuid}`,
-      effect: "permit",
-      principal: {
-        type: "actor",
-        actorType: "machine",
-        id: params.authentication.actorId,
-      },
-      actions: ["viewEntity"],
-      resource: {
-        type: "entity",
-        id: createdEntityUuid,
-      },
-    });
-  }
 };
 
 const createOrUpdateHashEntity = async (params: {

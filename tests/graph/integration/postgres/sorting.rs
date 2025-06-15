@@ -212,6 +212,7 @@ async fn insert<A: AuthorizationApi>(
                 link_data: None,
                 draft: false,
                 relationships: [],
+                policies: Vec::new(),
                 provenance: ProvidedEntityEditionProvenance {
                     actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
