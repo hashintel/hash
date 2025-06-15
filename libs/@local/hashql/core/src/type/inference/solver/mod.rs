@@ -42,7 +42,7 @@ use crate::{
     collection::{FastHashMap, SmallVec, fast_hash_map, fast_hash_map_in},
     r#type::{
         PartialType, TypeId,
-        environment::{Diagnostics, InferenceEnvironment, LatticeEnvironment, SimplifyEnvironment},
+        environment::{Diagnostics, InferenceEnvironment, LatticeEnvironment},
         error::{
             bound_constraint_violation, conflicting_equality_constraints,
             incompatible_lower_equal_constraint, incompatible_upper_equal_constraint,
@@ -303,8 +303,6 @@ struct EvaluatedVariableConstraint {
 pub struct InferenceSolver<'env, 'heap> {
     /// Environment for lattice operations (meet, join, subtyping)
     lattice: LatticeEnvironment<'env, 'heap>,
-    /// Environment for type simplification
-    simplify: SimplifyEnvironment<'env, 'heap>,
     /// Environment to discharge additional constraints
     inference: InferenceEnvironment<'env, 'heap>,
 
@@ -333,7 +331,6 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
 
         Self {
             lattice,
-            simplify: SimplifyEnvironment::new(inference.environment),
             inference,
 
             diagnostics: Diagnostics::new(),
@@ -728,7 +725,6 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         graph: &Graph,
         bump: &Bump,
         variables: &mut FastHashMap<VariableKind, (Variable, VariableConstraint)>,
-        elimination_order: impl IntoIterator<Item = usize>,
     ) {
         // Create a substitution from known equality constraints
         let substitution = self.apply_constraints_prepare_substitution(graph, variables);
@@ -740,10 +736,10 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
 
         // Does a forwards pass over the graph to apply any lower constraints in order
         // Process nodes in topological order to ensure dependencies are resolved first
-        // let topo = topological_sort_in(graph, EdgeKind::Any, bump)
-        //     .expect("expected dag after anti-symmetry run");
+        let topo = topological_sort_in(graph, EdgeKind::SubtypeOf, bump)
+            .expect("expected dag after anti-symmetry run");
 
-        for index in elimination_order {
+        for index in topo {
             let id = graph.node(index);
             let kind = self.unification.variables[id.into_usize()];
 
@@ -831,7 +827,6 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         graph: &Graph,
         bump: &Bump,
         variables: &mut FastHashMap<VariableKind, (Variable, VariableConstraint)>,
-        elimination_order: impl IntoIterator<Item = usize>,
     ) {
         // Create a substitution from known equality and lower bound constraints
         let substitution = self.apply_constraints_prepare_substitution(graph, variables);
@@ -841,13 +836,10 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         // `a <: b`, where `a` is the current node.
         let lookup = self.apply_constraints_prepare_constraints(Bound::Lower, bump);
 
-        // TODO: we need to switch this to be SCCs
-        // We do a backwards pass over the graph to apply any upper constraints in order
-        // Process nodes in reverse topological order for upper bound resolution
-        // let topo = topological_sort_in(graph, EdgeKind::Any, bump)
-        //     .expect("expected dag after anti-symmetry run");
+        let topo = topological_sort_in(graph, EdgeKind::Any, bump)
+            .expect("expected dag after anti-symmetry run");
 
-        for index in elimination_order {
+        for index in topo.into_iter().rev() {
             let id = graph.node(index);
             let kind = self.unification.variables[id.into_usize()];
 
@@ -953,19 +945,11 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         // Step 1.4: First collect all constraints by variable
         self.collect_constraints(variables, selections);
 
-        // TODO: create a graph that makes use of the structural constraints to create an
-        // elimination order.
-        let tarjan = Tarjan::new_in(graph, EdgeKind::DependsOn, bump);
-        let scc = tarjan.compute(); // The scc are in reverse topological order
-
-        let rev_topo = scc.iter().flatten().map(|value| value as usize);
-        let topo = rev_topo.clone().rev();
-
         // Step 1.5: Perform the forward pass to resolve lower bounds
-        self.apply_constraints_forwards(graph, bump, variables, topo);
+        self.apply_constraints_forwards(graph, bump, variables);
 
         // Step 1.6: Perform the backward pass to resolve upper bounds
-        self.apply_constraints_backwards(graph, bump, variables, rev_topo);
+        self.apply_constraints_backwards(graph, bump, variables);
     }
 
     /// Validates that the given constraint is satisfiable for the specified variable.
@@ -1074,6 +1058,8 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     #[expect(clippy::too_many_lines)]
     fn solve_constraints(
         &mut self,
+        graph: &Graph,
+        bump: &Bump,
         constraints: &FastHashMap<VariableKind, (Variable, VariableConstraint)>,
         substitutions: &mut FastHashMap<VariableKind, TypeId>,
         unconstrained: &mut Vec<Variable, &Bump>,
@@ -1099,8 +1085,18 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         // Because we substitute during the forward passes, we do not need to verify the constraints
         // again *or* do it in a specific order. The substitutions have already been applied for the
         // lower and upper bounds respectively.
+        let scc = Tarjan::new_in(graph, EdgeKind::Any, bump).compute(); // The scc are in reverse topological order
+        let topo = scc.into_iter().flatten().rev();
 
-        for (&kind, (variable, constraint)) in constraints {
+        for index in topo {
+            let id = graph.node(index as usize);
+            let kind = self.unification.root_kind(id);
+
+            let Some((variable, constraint)) = constraints.get(&kind) else {
+                tracing::warn!(?kind, "No constraint generated for variable");
+                continue;
+            };
+
             let variable = *variable;
             let (constraint, satisfiable) = constraint.finish();
 
@@ -1133,7 +1129,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
             let provenance = self.unification.provenance(kind);
 
             // Handle different constraint patterns to determine the final type
-            match constraint {
+            let constraint = match constraint {
                 // If there's no constraint, we can't infer anything
                 // This will be caught during type checking either way, but is likely a programming
                 // error. This is *only* the case if the variable is a hole, and not generic. As
@@ -1144,6 +1140,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                     upper: None,
                 } if provenance == VariableProvenance::Generic => {
                     unconstrained.push(variable);
+                    continue;
                 }
                 EvaluatedVariableConstraint {
                     equal: None,
@@ -1152,6 +1149,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                 } => {
                     unconstrained.push(variable);
                     self.diagnostics.push(unconstrained_type_variable(variable));
+                    continue;
                 }
                 // in case there's a single constraint we can simply just use that type
                 EvaluatedVariableConstraint {
@@ -1168,9 +1166,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                     equal: None,
                     lower: None,
                     upper: Some(constraint),
-                } => {
-                    substitutions.insert(kind, constraint);
-                }
+                } => constraint,
                 EvaluatedVariableConstraint {
                     equal: Some(equal),
                     lower,
@@ -1204,7 +1200,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                         continue;
                     }
 
-                    substitutions.insert(kind, equal);
+                    equal
                 }
                 EvaluatedVariableConstraint {
                     equal: None,
@@ -1213,9 +1209,15 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                 } => {
                     // We prefer to set the lower bound before the upper bound, even if both exist
                     // This is because a lower bound is typically more specific and useful
-                    substitutions.insert(kind, lower);
+                    lower
                 }
-            }
+            };
+
+            substitutions.insert(kind, constraint);
+            self.lattice
+                .substitution_mut()
+                .unwrap_or_else(|| unreachable!())
+                .insert(kind, constraint);
         }
 
         self.lattice.clear_substitution();
@@ -1256,14 +1258,14 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     ) {
         // Now that everything is solved, go over each substitution and simplify it
         // Make the simplifier aware of the substitutions
-        self.simplify
+        self.lattice
             .set_substitution(Substitution::new(lookup, substitutions.clone()));
 
         for type_id in substitutions.values_mut() {
-            *type_id = self.simplify.simplify(*type_id);
+            *type_id = self.lattice.simplify(*type_id);
         }
 
-        self.simplify.clear_substitution();
+        self.lattice.clear_substitution();
     }
 
     /// Resolves selection constraints (field access, subscript operations).
@@ -1611,7 +1613,13 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
             // Step 1.8: Validate constraints and determine final types
             substitution.clear();
             let mut unconstrained = Vec::new_in(&bump);
-            self.solve_constraints(&variables, &mut substitution, &mut unconstrained);
+            self.solve_constraints(
+                &graph,
+                &bump,
+                &variables,
+                &mut substitution,
+                &mut unconstrained,
+            );
             self.constraints.clear();
 
             // Check if there are any constraints that have been generated by the
@@ -1643,9 +1651,6 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         let mut diagnostics = self.diagnostics;
         diagnostics.merge(self.persistent_diagnostics);
         diagnostics.merge(self.lattice.take_diagnostics());
-        if let Some(simplify) = self.simplify.take_diagnostics() {
-            diagnostics.merge(simplify);
-        }
 
         (substitution, diagnostics)
     }

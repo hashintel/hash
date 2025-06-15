@@ -1029,10 +1029,16 @@ fn collect_dependencies_dict() {
     let constraints = inference_env.take_constraints();
     assert_eq!(
         constraints,
-        [Constraint::Dependency {
-            source: variable,
-            target: Variable::synthetic(VariableKind::Hole(value_hole)),
-        }]
+        [
+            Constraint::Dependency {
+                source: variable,
+                target: Variable::synthetic(VariableKind::Hole(key_hole))
+            },
+            Constraint::Dependency {
+                source: variable,
+                target: Variable::synthetic(VariableKind::Hole(value_hole)),
+            }
+        ]
     );
 }
 

@@ -1133,12 +1133,12 @@ fn collect_dependencies() {
         constraints,
         [
             Constraint::Dependency {
-                source: Variable::synthetic(VariableKind::Hole(hole1)),
-                target: variable,
+                source: variable,
+                target: Variable::synthetic(VariableKind::Hole(hole1)),
             },
             Constraint::Dependency {
-                source: Variable::synthetic(VariableKind::Hole(hole2)),
-                target: variable,
+                source: variable,
+                target: Variable::synthetic(VariableKind::Hole(hole2)),
             }
         ]
     );

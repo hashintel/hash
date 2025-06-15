@@ -350,10 +350,15 @@ fn solve_constraints() {
     applied_constraints.insert(variable.kind, (variable, constraint));
 
     let mut solver = InferenceSolver::new(InferenceEnvironment::new(&env).with_constraints([]));
+    solver.unification.upsert_variable(variable.kind);
+
+    let graph = Graph::new(&mut solver.unification);
 
     // Directly call solve_constraints
     let mut substitutions = FastHashMap::default();
     solver.solve_constraints(
+        &graph,
+        &bump,
         &applied_constraints,
         &mut substitutions,
         &mut Vec::new_in(&bump),
@@ -388,8 +393,12 @@ fn solve_constraints_with_equality() {
     let mut solver = InferenceSolver::new(InferenceEnvironment::new(&env).with_constraints([]));
     solver.unification.upsert_variable(VariableKind::Hole(hole));
 
+    let graph = Graph::new(&mut solver.unification);
+
     let mut substitutions = FastHashMap::default();
     solver.solve_constraints(
+        &graph,
+        &bump,
         &applied_constraints,
         &mut substitutions,
         &mut Vec::new_in(&bump),
@@ -424,9 +433,13 @@ fn solve_constraints_with_incompatible_bounds() {
     let mut solver = InferenceSolver::new(InferenceEnvironment::new(&env).with_constraints([]));
     solver.unification.upsert_variable(VariableKind::Hole(hole));
 
+    let graph = Graph::new(&mut solver.unification);
+
     // These bounds are incompatible, so a diagnostic should be created
     let mut substitutions = FastHashMap::default();
     solver.solve_constraints(
+        &graph,
+        &bump,
         &applied_constraints,
         &mut substitutions,
         &mut Vec::new_in(&bump),
@@ -466,8 +479,12 @@ fn solve_constraints_with_incompatible_equality() {
     let mut solver = InferenceSolver::new(InferenceEnvironment::new(&env).with_constraints([]));
     solver.unification.upsert_variable(VariableKind::Hole(hole));
 
+    let graph = Graph::new(&mut solver.unification);
+
     let mut substitutions = FastHashMap::default();
     solver.solve_constraints(
+        &graph,
+        &bump,
         &applied_constraints,
         &mut substitutions,
         &mut Vec::new_in(&bump),
@@ -507,9 +524,13 @@ fn solve_constraints_with_incompatible_upper_equal_constraint() {
     let mut solver = InferenceSolver::new(InferenceEnvironment::new(&env).with_constraints([]));
     solver.unification.upsert_variable(VariableKind::Hole(hole));
 
+    let graph = Graph::new(&mut solver.unification);
+
     // This should exercise lines 916-929
     let mut substitutions = FastHashMap::default();
     solver.solve_constraints(
+        &graph,
+        &bump,
         &applied_constraints,
         &mut substitutions,
         &mut Vec::new_in(&bump),
@@ -710,7 +731,13 @@ fn bounds_at_lattice_extremes() {
 
     // These bounds should be compatible
     let mut substitutions = FastHashMap::default();
-    solver.solve_constraints(&variables, &mut substitutions, &mut Vec::new_in(&bump));
+    solver.solve_constraints(
+        &graph,
+        &bump,
+        &variables,
+        &mut substitutions,
+        &mut Vec::new_in(&bump),
+    );
     assert!(solver.diagnostics.is_empty());
 
     // The variable should be inferred to the lower bound (Never)

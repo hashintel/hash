@@ -1,4 +1,4 @@
-use self::filter::{Deep, Filter};
+use self::filter::{Deep, Filter as _};
 use super::{
     Type, TypeId,
     environment::Environment,

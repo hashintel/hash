@@ -7,9 +7,8 @@ use crate::{
     r#type::{
         TypeId,
         inference::{
-            Constraint, DeferralDepth, Inference as _, InferenceSolver, PartialStructuralEdge,
-            ResolutionStrategy, SelectionConstraint, Subject, Variable,
-            VariableDependencyCollector, VariableKind,
+            Constraint, DeferralDepth, Inference as _, InferenceSolver, ResolutionStrategy,
+            SelectionConstraint, Subject, Variable, VariableDependencyCollector, VariableKind,
         },
         recursion::RecursionBoundary,
     },

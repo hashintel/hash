@@ -672,7 +672,6 @@ fn collect_constraints() {
 
 #[test]
 fn collect_dependencies() {
-    // Nothing should happen as they are invariant
     let heap = Heap::new();
     let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
@@ -698,7 +697,7 @@ fn collect_dependencies() {
         constraints,
         [Constraint::Dependency {
             source: Variable::synthetic(VariableKind::Hole(HoleId::new(0))),
-            target: Variable::synthetic(VariableKind::Hole(HoleId::new(1)))
+            target: Variable::synthetic(VariableKind::Generic(GenericArgumentId::new(0)))
         }]
     );
 }
