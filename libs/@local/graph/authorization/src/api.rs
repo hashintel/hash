@@ -136,7 +136,7 @@ pub trait AuthorizationApi: Send + Sync {
     ) -> impl Future<Output = Result<Vec<ActorIdOrPublic>, Report<ReadError>>> + Send;
 
     fn modify_entity_relations(
-        &mut self,
+        &self,
         relationships: impl IntoIterator<
             Item = (
                 ModifyRelationshipOperation,
@@ -365,7 +365,7 @@ impl<A: AuthorizationApi> AuthorizationApi for &mut A {
     }
 
     async fn modify_entity_relations(
-        &mut self,
+        &self,
         relationships: impl IntoIterator<
             Item = (
                 ModifyRelationshipOperation,

@@ -77,7 +77,7 @@ use crate::store::{
         ontology::{PostgresOntologyOwnership, read::OntologyTypeTraversalData},
         query::{Distinctness, PostgresRecord, ReferenceTable, SelectCompiler, Table},
     },
-    validation::{StoreCache, StoreProvider},
+    validation::StoreProvider,
 };
 
 impl<C, A> PostgresStore<C, A>
@@ -85,38 +85,51 @@ where
     C: AsClient,
     A: AuthorizationApi,
 {
-    #[tracing::instrument(level = "trace", skip(entity_types, authorization_api, zookie))]
+    #[tracing::instrument(level = "trace", skip(entity_types, provider))]
     pub(crate) async fn filter_entity_types_by_permission<I, T>(
         entity_types: impl IntoIterator<Item = (I, T)> + Send,
-        actor_id: ActorEntityUuid,
-        authorization_api: &A,
-        zookie: &Zookie<'static>,
+        provider: &StoreProvider<'_, Self>,
     ) -> Result<impl Iterator<Item = T>, Report<QueryError>>
     where
         I: Into<EntityTypeUuid> + Send,
         T: Send,
-        A: AuthorizationApi,
     {
         let (ids, entity_types): (Vec<_>, Vec<_>) = entity_types
             .into_iter()
             .map(|(id, edge)| (id.into(), edge))
             .unzip();
 
-        let permissions = authorization_api
-            .check_entity_types_permission(
-                actor_id,
-                EntityTypePermission::View,
-                ids.iter().copied(),
-                Consistency::AtExactSnapshot(zookie),
-            )
-            .await
-            .change_context(QueryError)?
-            .0;
+        let permissions =
+            if let Some((actor_id, consistency, ref _policy_set, ref _policy_context)) =
+                provider.authorization
+            {
+                Some(
+                    provider
+                        .store
+                        .authorization_api
+                        .check_entity_types_permission(
+                            actor_id
+                                .map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from),
+                            EntityTypePermission::View,
+                            ids.iter().copied(),
+                            consistency,
+                        )
+                        .await
+                        .change_context(QueryError)?
+                        .0,
+                )
+            } else {
+                None
+            };
 
         Ok(ids
             .into_iter()
             .zip(entity_types)
             .filter_map(move |(id, entity_type)| {
+                let Some(permissions) = &permissions else {
+                    return Some(entity_type);
+                };
+
                 permissions
                     .get(&id)
                     .copied()
@@ -574,7 +587,7 @@ where
     /// Internal method to read a [`EntityTypeWithMetadata`] into four [`TraversalContext`]s.
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
-    #[tracing::instrument(level = "info", skip(self, traversal_context, subgraph, zookie))]
+    #[tracing::instrument(level = "info", skip(self, traversal_context, provider, subgraph))]
     pub(crate) async fn traverse_entity_types(
         &self,
         mut entity_type_queue: Vec<(
@@ -583,8 +596,7 @@ where
             RightBoundedTemporalInterval<VariableAxis>,
         )>,
         traversal_context: &mut TraversalContext,
-        actor_id: ActorEntityUuid,
-        zookie: &Zookie<'static>,
+        provider: &StoreProvider<'_, Self>,
         subgraph: &mut Subgraph,
     ) -> Result<(), Report<QueryError>> {
         let mut property_type_queue = Vec::new();
@@ -630,9 +642,7 @@ where
                             },
                         )
                         .await?,
-                        actor_id,
-                        &self.authorization_api,
-                        zookie,
+                        provider,
                     )
                     .await?
                     .flat_map(|edge| {
@@ -683,9 +693,7 @@ where
                                 table,
                             )
                             .await?,
-                            actor_id,
-                            &self.authorization_api,
-                            zookie,
+                            provider,
                         )
                         .await?
                         .flat_map(|edge| {
@@ -707,14 +715,8 @@ where
             }
         }
 
-        self.traverse_property_types(
-            property_type_queue,
-            traversal_context,
-            actor_id,
-            zookie,
-            subgraph,
-        )
-        .await?;
+        self.traverse_property_types(property_type_queue, traversal_context, provider, subgraph)
+            .await?;
 
         Ok(())
     }
@@ -1013,11 +1015,12 @@ where
     ) -> Result<usize, Report<QueryError>> {
         params
             .filter
-            .convert_parameters(&StoreProvider {
-                store: self,
-                cache: StoreCache::default(),
-                authorization: Some((actor_id, Consistency::FullyConsistent)),
-            })
+            .convert_parameters(
+                &StoreProvider::new(self)
+                    .with_authorization(actor_id, Consistency::FullyConsistent)
+                    .await
+                    .change_context(QueryError)?,
+            )
             .await
             .change_context(QueryError)?;
 
@@ -1040,11 +1043,12 @@ where
         let include_entity_types = params.include_entity_types;
         params
             .filter
-            .convert_parameters(&StoreProvider {
-                store: self,
-                cache: StoreCache::default(),
-                authorization: Some((actor_id, Consistency::FullyConsistent)),
-            })
+            .convert_parameters(
+                &StoreProvider::new(self)
+                    .with_authorization(actor_id, Consistency::FullyConsistent)
+                    .await
+                    .change_context(QueryError)?,
+            )
             .await
             .change_context(QueryError)?;
 
@@ -1217,13 +1221,14 @@ where
         actor_id: ActorEntityUuid,
         mut params: GetEntityTypeSubgraphParams<'_>,
     ) -> Result<GetEntityTypeSubgraphResponse, Report<QueryError>> {
+        let provider = StoreProvider::new(self)
+            .with_authorization(actor_id, Consistency::FullyConsistent)
+            .await
+            .change_context(QueryError)?;
+
         params
             .filter
-            .convert_parameters(&StoreProvider {
-                store: self,
-                cache: StoreCache::default(),
-                authorization: Some((actor_id, Consistency::FullyConsistent)),
-            })
+            .convert_parameters(&provider)
             .await
             .change_context(QueryError)?;
 
@@ -1240,7 +1245,7 @@ where
                 web_ids,
                 edition_created_by_ids,
             },
-            zookie,
+            _zookie,
         ) = self
             .get_entity_types_impl(
                 actor_id,
@@ -1296,8 +1301,7 @@ where
                 })
                 .collect(),
             &mut traversal_context,
-            actor_id,
-            &zookie,
+            &provider,
             &mut subgraph,
         )
         .await?;
@@ -1754,11 +1758,10 @@ where
             .await
             .change_context(QueryError)?;
 
-        let validator_provider = StoreProvider {
-            store: self,
-            cache: StoreCache::default(),
-            authorization: Some((authenticated_user, Consistency::FullyConsistent)),
-        };
+        let validator_provider = StoreProvider::new(self)
+            .with_authorization(authenticated_user, Consistency::FullyConsistent)
+            .await
+            .change_context(QueryError)?;
 
         let mut entity_type_id_set = HashMap::new();
         for entity_type_id in entity_type_ids {
