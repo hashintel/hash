@@ -1,7 +1,7 @@
 #![expect(deprecated, reason = "We use `Context` to maintain compatibility")]
 
 use alloc::{boxed::Box, vec, vec::Vec};
-use core::{error::Error, fmt, marker::PhantomData, mem, panic::Location};
+use core::{any::Any, error::Error, fmt, marker::PhantomData, mem, panic::Location};
 #[cfg(feature = "backtrace")]
 use std::backtrace::{Backtrace, BacktraceStatus};
 #[cfg(feature = "std")]
@@ -452,6 +452,45 @@ impl<C> Report<C> {
         })
     }
 
+    /// Pops `C` from [`Report<C>`], returning `C` and discarding the report.
+    ///
+    /// To obtain a reference, see [`Report::current_context`].
+    ///
+    /// ## Example
+    ///
+    /// ```rust
+    /// # use std::{fs, path::Path};
+    /// # use error_stack::Report;
+    /// use std::io;
+    ///
+    /// fn read_file(path: impl AsRef<Path>) -> Result<String, Report<io::Error>> {
+    ///     # const _: &str = stringify! {
+    ///     ...
+    ///     # };
+    ///     # fs::read_to_string(path.as_ref()).map_err(Report::from)
+    /// }
+    ///
+    /// let report = read_file("test.txt").unwrap_err();
+    /// let io_error = report.into_current_context();
+    /// assert_eq!(io_error.kind(), io::ErrorKind::NotFound);
+    /// ```
+    #[must_use]
+    pub fn into_current_context(self) -> C
+    where
+        C: Send + Sync + 'static,
+    {
+        self.downcast::<C>().unwrap_or_else(|_| {
+            // Panics if there isn't an attached context which matches `T`. As it's not possible
+            // to create a `Report` without a valid context and this method can
+            // only be called when `T` is a valid context, it's guaranteed that
+            // the context is available.
+            unreachable!(
+                "Report does not contain a context. This is considered a bug and should be \
+                reported to https://github.com/hashintel/hash/issues/new/choose"
+            );
+        })
+    }
+
     /// Converts this `Report` to an [`Error`].
     #[must_use]
     pub fn into_error(self) -> impl Error + Send + Sync + 'static
@@ -592,6 +631,18 @@ impl<C: ?Sized> Report<C> {
         FramesMut::new(&mut self.frames)
     }
 
+    /// Consume the report, returning all frames contained within as a vector.
+    ///
+    /// There are currently gives no guarantees about the order of the frames returned.
+    #[must_use]
+    pub fn into_frame_contents(self) -> impl IntoIterator<Item = Box<dyn Any + Send + Sync>> {
+        let mut items = vec![];
+        for frame in self.frames.into_iter() {
+            frame.into_frame_contents(&mut items);
+        }
+        items
+    }
+
     /// Creates an iterator of references of type `T` that have been [`attached`](Self::attach) or
     /// that are [`provide`](Error::provide)d by [`Context`] objects.
     #[cfg(nightly)]
@@ -664,6 +715,51 @@ impl<C: ?Sized> Report<C> {
     #[must_use]
     pub fn downcast_mut<T: Send + Sync + 'static>(&mut self) -> Option<&mut T> {
         self.frames_mut().find_map(Frame::downcast_mut::<T>)
+    }
+
+    /// Searches the frame stack for a frame containing `T` and returns the first `T` found,
+    /// discarding the report if successful.
+    ///
+    /// `T` can either be an attachment or a [`Context`].
+    ///
+    /// If you don't need ownership, see [`Report::downcast_ref`].
+    ///
+    /// If you need ownership of more than one frame, see [`Report::into_frame_contents`].
+    ///
+    /// ## Example
+    ///
+    /// ```rust
+    /// # use std::{fs, path::Path};
+    /// # use error_stack::Report;
+    /// use std::io;
+    ///
+    /// fn read_file(path: impl AsRef<Path>) -> Result<String, Report<io::Error>> {
+    ///     # const _: &str = stringify! {
+    ///     ...
+    ///     # };
+    ///     # fs::read_to_string(path.as_ref()).map_err(Report::from)
+    /// }
+    ///
+    /// let report = read_file("test.txt").unwrap_err();
+    /// let io_error = report.downcast::<io::Error>().unwrap();
+    /// assert_eq!(io_error.kind(), io::ErrorKind::NotFound);
+    /// ```
+    pub fn downcast<T: Send + Sync + 'static>(mut self) -> Result<T, Self> {
+        self.frames_mut()
+            .find_map(|frame| {
+                #[expect(clippy::missing_panics_doc, reason = "No panic possible")]
+                frame.is::<T>().then(|| {
+                    core::mem::replace(frame, Frame::from_attachment((), vec![].into_boxed_slice()))
+                        .into_any()
+                        .downcast::<T>()
+                        .expect(
+                            "Any::downcast::<T> failed despite self.is::<T>() returning true. \
+                            This is considered a bug and should be \
+                            reported to https://github.com/hashintel/hash/issues/new/choose"
+                        )
+                })
+            })
+            .map_or_else(|| Err(self), |value| Ok(*value))
     }
 }
 
@@ -851,6 +947,86 @@ impl<C> Report<[C]> {
                     sources => {
                         stack.push(sources);
                     }
+                }
+            }
+        }
+
+        output.into_iter()
+    }
+
+    /// Consume the current contexts of the `Report`.
+    ///
+    /// This method is similar to [`into_current_context`], but instead of returning a single
+    /// context, it returns an iterator over all contexts in the `Report`.
+    ///
+    /// The order of the contexts should not be relied upon, as it is not guaranteed to be stable.
+    ///
+    /// ## Example
+    ///
+    /// ```rust
+    /// # use std::{fs, path::Path};
+    /// # use error_stack::Report;
+    /// use std::io;
+    ///
+    /// fn read_file(path: impl AsRef<Path>) -> Result<String, Report<io::Error>> {
+    ///     # const _: &str = stringify! {
+    ///     ...
+    ///     # };
+    ///     # fs::read_to_string(path.as_ref()).map_err(Report::from)
+    /// }
+    ///
+    /// let mut a = read_file("test.txt").unwrap_err().expand();
+    /// let b = read_file("test2.txt").unwrap_err();
+    ///
+    /// a.push(b);
+    ///
+    /// let io_error = a.into_current_contexts();
+    /// assert_eq!(io_error.count(), 2);
+    /// ```
+    ///
+    /// [`current_context`]: Self::current_context
+    #[expect(clippy::missing_panics_doc, reason = "No panic possible")]
+    pub fn into_current_contexts(self) -> impl Iterator<Item = C>
+    where
+        C: Send + Sync + 'static,
+    {
+        // this needs a manual traveral implementation, why?
+        // We know that each arm has a current context, but we don't know where that context is,
+        // therefore we need to search for it on each branch, but stop once we found it, that way
+        // we're able to return the current context, even if it is "buried" underneath a bunch of
+        // attachments.
+        let mut output = Vec::new();
+
+        // this implementation does some "weaving" in a sense, it goes L->R for the frames, then
+        // R->L for the sources, which means that some sources might be out of order, but this
+        // simplifies implementation.
+        let mut stack = vec![*self.frames];
+        while let Some(frames) = stack.pop() {
+            for frame in frames {
+                // check if the frame is the current context, in that case we don't need to follow
+                // the tree anymore
+                if frame.is::<C>() {
+                    output.push(
+                        *frame.into_any()
+                        .downcast::<C>()
+                        .expect(
+                            "Any::downcast::<T> failed despite self.is::<T>() returning true. \
+                            This is considered a bug and should be \
+                            reported to https://github.com/hashintel/hash/issues/new/choose"
+                        )
+                    );
+                    continue;
+                }
+
+                // descend into the tree
+                let sources = frame.into_sources().into_vec();
+                if sources.is_empty() {
+                    unreachable!(
+                        "Report does not contain a context. This is considered a bug and should be \
+                        reported to https://github.com/hashintel/hash/issues/new/choose"
+                    )
+                } else {
+                    stack.push(sources);
                 }
             }
         }

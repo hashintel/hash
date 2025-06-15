@@ -1,10 +1,14 @@
 mod frame_impl;
 mod kind;
 
-use alloc::boxed::Box;
+use alloc::{boxed::Box, vec, vec::Vec};
 #[cfg(nightly)]
 use core::error;
-use core::{any::TypeId, error::Error, fmt};
+use core::{
+    any::{Any, TypeId},
+    error::Error,
+    fmt,
+};
 
 use self::frame_impl::FrameImpl;
 pub use self::kind::{AttachmentKind, FrameKind};
@@ -44,6 +48,10 @@ impl Frame {
     #[must_use]
     pub fn sources_mut(&mut self) -> &mut [Self] {
         &mut self.sources
+    }
+
+    pub(crate) fn into_sources(self) -> Box<[Self]> {
+        self.sources
     }
 
     /// Returns how the `Frame` was created.
@@ -90,6 +98,13 @@ impl Frame {
         self.frame.as_any_mut().downcast_mut()
     }
 
+    /// Consume the `Frame`, returning `[Box<dyn Any + Send + Sync>]` to the context or attachment
+    /// within.
+    #[must_use]
+    pub fn into_any(self) -> Box<dyn Any + Send + Sync> {
+        self.frame.into_any()
+    }
+
     /// Returns the [`TypeId`] of the held context or attachment by this frame.
     #[must_use]
     pub fn type_id(&self) -> TypeId {
@@ -98,6 +113,14 @@ impl Frame {
 
     pub(crate) fn as_error(&self) -> &impl Error {
         &self.frame
+    }
+
+    pub(crate) fn into_frame_contents(self, contents: &mut Vec<Box<dyn Any + Send + Sync>>) {
+        let mut frames = vec![self];
+        while let Some(frame) = frames.pop() {
+            contents.push(frame.frame.into_any());
+            frames.extend(frame.sources);
+        }
     }
 }
 

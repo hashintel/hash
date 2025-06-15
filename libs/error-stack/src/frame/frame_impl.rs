@@ -15,6 +15,8 @@ pub(super) trait FrameImpl: Send + Sync + 'static {
 
     fn as_any_mut(&mut self) -> &mut dyn Any;
 
+    fn into_any(self: Box<Self>) -> Box<dyn Any + Send + Sync>;
+
     /// Provide values which can then be requested.
     #[cfg(nightly)]
     fn provide<'a>(&'a self, request: &mut Request<'a>);
@@ -56,6 +58,10 @@ impl<C: Context> FrameImpl for ContextFrame<C> {
         &mut self.context
     }
 
+    fn into_any(self: Box<Self>) -> Box<dyn Any + Send + Sync> {
+        Box::new(self.context)
+    }
+
     #[cfg(nightly)]
     fn provide<'a>(&'a self, request: &mut Request<'a>) {
         Context::provide(&self.context, request);
@@ -77,6 +83,10 @@ impl<A: 'static + Send + Sync> FrameImpl for AttachmentFrame<A> {
 
     fn as_any_mut(&mut self) -> &mut dyn Any {
         &mut self.attachment
+    }
+
+    fn into_any(self: Box<Self>) -> Box<dyn Any + Send + Sync> {
+        Box::new(self.attachment)
     }
 
     #[cfg(nightly)]
@@ -102,6 +112,10 @@ impl<A: 'static + fmt::Debug + fmt::Display + Send + Sync> FrameImpl
 
     fn as_any_mut(&mut self) -> &mut dyn Any {
         &mut self.attachment
+    }
+
+    fn into_any(self: Box<Self>) -> Box<dyn Any + Send + Sync> {
+        Box::new(self.attachment)
     }
 
     #[cfg(nightly)]
@@ -150,6 +164,10 @@ impl FrameImpl for AnyhowContext {
         &mut self.0
     }
 
+    fn into_any(self: Box<Self>) -> Box<dyn Any + Send + Sync> {
+        Box::new(self.0)
+    }
+
     #[cfg(nightly)]
     #[inline]
     fn provide<'a>(&'a self, request: &mut Request<'a>) {
@@ -195,6 +213,10 @@ impl FrameImpl for EyreContext {
 
     fn as_any_mut(&mut self) -> &mut dyn Any {
         &mut self.0
+    }
+
+    fn into_any(self: Box<Self>) -> Box<dyn Any + Send + Sync> {
+        Box::new(self.0)
     }
 
     #[cfg(nightly)]

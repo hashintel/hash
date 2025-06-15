@@ -59,6 +59,7 @@ fn buried_duplicate_context_does_not_affect_current_contexts() {
     root.push(shallow);
 
     assert_eq!(root.current_contexts().count(), 3);
+    assert_eq!(root.into_current_contexts().count(), 3);
 }
 
 #[test]
