@@ -333,6 +333,8 @@ impl<'heap> PrettyPrint<'heap> for OpaqueType<'heap> {
         env: &Environment<'heap>,
         boundary: &mut PrettyPrintBoundary,
     ) -> RcDoc<'heap, anstyle::Style> {
+        // Remove the module from the name (if exists) this increases readability during
+        // pretty-printing.
         let name = self.name.unwrap();
         let name = name
             .rsplit_once("::")
