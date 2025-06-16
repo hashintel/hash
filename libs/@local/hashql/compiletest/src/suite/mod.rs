@@ -18,6 +18,8 @@ mod hir_lower_specialization;
 mod hir_reify;
 mod parse_syntax_dump;
 
+use core::panic::RefUnwindSafe;
+
 use hashql_ast::node::expr::Expr;
 use hashql_core::{heap::Heap, span::SpanId};
 use hashql_diagnostics::{Diagnostic, category::DiagnosticCategory, span::AbsoluteDiagnosticSpan};
@@ -44,7 +46,7 @@ pub(crate) type SuiteDiagnostic = Diagnostic<Box<dyn DiagnosticCategory>, SpanId
 pub(crate) type ResolvedSuiteDiagnostic =
     Diagnostic<Box<dyn DiagnosticCategory>, AbsoluteDiagnosticSpan>;
 
-pub(crate) trait Suite: Send + Sync + 'static {
+pub(crate) trait Suite: RefUnwindSafe + Send + Sync + 'static {
     fn name(&self) -> &'static str;
 
     fn run<'heap>(

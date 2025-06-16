@@ -3,7 +3,7 @@ mod trial;
 mod trial_group;
 
 use core::error;
-use std::{self, io, thread};
+use std::{self, io, sync::mpsc, thread};
 
 use anstream::StripStream;
 use ariadne::Source;
@@ -40,6 +40,8 @@ pub(crate) enum TrialError {
     TrialShouldFail,
     #[display("Expected trial to pass, but it failed")]
     TrialShouldPass,
+    #[display("Assertion failed for trial: {message}")]
+    AssertionFailed { message: String },
 }
 
 impl error::Error for TrialError {}
@@ -143,19 +145,28 @@ impl<'graph> TrialSet<'graph> {
 
     pub(crate) fn run(&self, context: &TrialContext) -> Vec<Report<[TrialError]>> {
         thread::scope(|scope| {
-            let mut handles = Vec::new();
+            let (tx, rx) = mpsc::channel();
 
             for group in &self.groups {
-                let handle = scope.spawn(|| group.run(context));
-                handles.push(handle);
+                let tx = tx.clone();
+                scope.spawn(move || {
+                    let result = group.run(context);
+
+                    tx.send(result).expect("should be able to send result");
+                });
             }
 
-            // First collect the values into a `Vec<_>`. This way we're able to say how many of the
-            // tasks failed
-            handles
-                .into_iter()
-                .flat_map(|handle| handle.join().expect("should be able to join thread"))
-                .collect()
+            // Dropping the sender here means that we will automatically shutdown the receiver once
+            // all senders are dropped.
+            drop(tx);
+
+            let mut reports = Vec::with_capacity(self.groups.len());
+
+            while let Ok(mut result) = rx.recv() {
+                reports.append(&mut result);
+            }
+
+            reports
         })
     }
 }
