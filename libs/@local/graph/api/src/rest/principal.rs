@@ -222,7 +222,7 @@ where
         ("identifier" = String, Path, description = "The identifier of the machine to get"),
     ),
     responses(
-        (status = 200, content_type = "application/json", description = "The web was retrieved successfully", body = Option<Value>),
+        (status = 200, content_type = "application/json", description = "The machine was retrieved successfully", body = Option<Value>),
 
         (status = 500, description = "Store error occurred"),
     )
@@ -358,7 +358,7 @@ where
         ("identifier" = String, Path, description = "The identifier of the AI to get"),
     ),
     responses(
-        (status = 200, content_type = "application/json", description = "The web was retrieved successfully", body = Option<Value>),
+        (status = 200, content_type = "application/json", description = "The AI was retrieved successfully", body = Option<Value>),
 
         (status = 500, description = "Store error occurred"),
     )

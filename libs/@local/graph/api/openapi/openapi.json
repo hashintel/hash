@@ -847,7 +847,7 @@
         ],
         "responses": {
           "200": {
-            "description": "The web was retrieved successfully",
+            "description": "The AI was retrieved successfully",
             "content": {
               "application/json": {
                 "schema": {
@@ -926,7 +926,7 @@
         ],
         "responses": {
           "200": {
-            "description": "The web was retrieved successfully",
+            "description": "The machine was retrieved successfully",
             "content": {
               "application/json": {
                 "schema": {
