@@ -62,7 +62,7 @@ pub trait OntologyTypeSchema {
 
     fn id(&self) -> &VersionedUrl;
 
-    fn references(&self) -> Vec<OntologyTypeReference>;
+    fn references(&self) -> Vec<OntologyTypeReference<'_>>;
 }
 
 #[derive(Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]

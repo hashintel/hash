@@ -300,6 +300,10 @@ fn impl_display<E: Variant>(
     error: &Box<dyn Any + Send + Sync>,
     fmt: &mut Formatter,
 ) -> fmt::Result {
+    #[expect(
+        clippy::coerce_container_to_any,
+        reason = "False positive: https://github.com/rust-lang/rust-clippy/issues/15045"
+    )]
     let error: &E = error
         .downcast_ref()
         .expect("`impl_display` should only be called on corresponding `Error`");
@@ -308,6 +312,10 @@ fn impl_display<E: Variant>(
 }
 
 fn impl_debug<E: Variant>(error: &Box<dyn Any + Send + Sync>, fmt: &mut Formatter) -> fmt::Result {
+    #[expect(
+        clippy::coerce_container_to_any,
+        reason = "False positive: https://github.com/rust-lang/rust-clippy/issues/15045"
+    )]
     let error: &E = error
         .downcast_ref()
         .expect("`impl_debug` should only be called on corresponding `Error`");
@@ -318,6 +326,10 @@ fn impl_debug<E: Variant>(error: &Box<dyn Any + Send + Sync>, fmt: &mut Formatte
 #[cfg(nightly)]
 #[expect(clippy::incompatible_msrv, reason = "This is gated behind nightly")]
 fn impl_provide<'a, E: Variant>(error: &'a Box<dyn Any + Send + Sync>, request: &mut Request<'a>) {
+    #[expect(
+        clippy::coerce_container_to_any,
+        reason = "False positive: https://github.com/rust-lang/rust-clippy/issues/15045"
+    )]
     let error: &E = error
         .downcast_ref()
         .expect("`impl_provide` should only be called on corresponding `Error`");
@@ -382,6 +394,10 @@ impl Error {
 
     #[must_use]
     pub fn downcast_ref<T: Variant>(&self) -> Option<&T> {
+        #[expect(
+            clippy::coerce_container_to_any,
+            reason = "False positive: https://github.com/rust-lang/rust-clippy/issues/15045"
+        )]
         self.variant().downcast_ref()
     }
 }

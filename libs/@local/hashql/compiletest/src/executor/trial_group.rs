@@ -1,4 +1,8 @@
-use std::io;
+use core::any::Any;
+use std::{
+    io,
+    panic::{self},
+};
 
 use error_stack::Report;
 use guppy::graph::{PackageMetadata, cargo::BuildPlatform};
@@ -6,8 +10,18 @@ use nextest_filtering::{BinaryQuery, EvalContext, Filterset};
 use nextest_metadata::{RustBinaryId, RustTestBinaryKind};
 use rayon::iter::{IntoParallelRefIterator as _, ParallelIterator as _};
 
-use super::{TrialContext, TrialError, trial::Trial};
+use super::{TrialContext, TrialDescription, TrialError, trial::Trial};
 use crate::{TestGroup, reporter::Statistics};
+
+// Adapted from: https://github.com/rust-lang/rust/blob/6c8138de8f1c96b2f66adbbc0e37c73525444750/library/std/src/panicking.rs#L779-L787
+fn panic_payload_as_str(payload: Box<dyn Any + Send + 'static>) -> String {
+    match payload.downcast::<&'static str>() {
+        Ok(value) => (*value).to_owned(),
+        Err(payload) => payload
+            .downcast::<String>()
+            .map_or_else(|_| "Box<dyn Any>".to_owned(), |value| *value),
+    }
+}
 
 pub(crate) struct TrialGroup<'graph> {
     pub ignore: bool,
@@ -88,7 +102,22 @@ impl<'graph> TrialGroup<'graph> {
         // not
         self.trials
             .par_iter()
-            .filter_map(|trial| trial.run(&self.metadata, context).err())
+            .filter_map(|trial| {
+                match panic::catch_unwind(|| trial.run(&self.metadata, context).err()) {
+                    Err(panic) => Some(
+                        Report::new(TrialError::AssertionFailed {
+                            message: panic_payload_as_str(panic),
+                        })
+                        .attach(TrialDescription {
+                            package: self.metadata.name().to_owned(),
+                            namespace: trial.namespace.clone(),
+                            name: trial.annotations.directive.name.clone(),
+                        })
+                        .expand(),
+                    ),
+                    Ok(error) => error,
+                }
+            })
             .collect()
     }
 }
