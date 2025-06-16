@@ -213,7 +213,7 @@ jobs:
 
       - name: Launch external services
         if: github.event_name == 'pull_request'
-        run: yarn external-services:test up hydra kratos redis spicedb temporal-ui --wait
+        run: yarn external-services:test up --wait
 
       - name: Run base benches
         if: github.event_name == 'pull_request'
@@ -253,7 +253,7 @@ jobs:
         uses: ./.github/actions/warm-up-repo
 
       - name: Launch external services
-        run: yarn external-services:test up hydra kratos redis spicedb temporal-ui --wait
+        run: yarn external-services:test up --wait
 
       - name: Run head benches
         run: turbo run bench:integration --filter "${{ matrix.name }}"
