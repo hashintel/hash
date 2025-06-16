@@ -24,7 +24,7 @@ use hash_graph_store::{
 };
 use hash_temporal_client::TemporalClient;
 use type_system::principal::{
-    actor::{ActorEntityUuid, ActorId, ActorType, AiId, Machine, MachineId, UserId},
+    actor::{ActorEntityUuid, ActorId, ActorType, Ai, AiId, Machine, MachineId, UserId},
     actor_group::{ActorGroupEntityUuid, ActorGroupId, Team, TeamId, Web, WebId},
     role::{RoleName, TeamRole, TeamRoleId, WebRole, WebRoleId},
 };
@@ -39,6 +39,7 @@ use crate::rest::{AuthenticatedUserHeader, json::Json, status::report_to_respons
         create_ai_actor,
         get_or_create_system_machine,
         get_machine_by_identifier,
+        get_ai_by_identifier,
 
         create_org_web,
         get_web_by_id,
@@ -114,7 +115,13 @@ impl PrincipalResource {
                     )
                     .nest(
                         "/ai",
-                        Router::new().route("/", post(create_ai_actor::<S, A>)),
+                        Router::new()
+                            .route("/", post(create_ai_actor::<S, A>))
+                            .nest(
+                                "/identifier",
+                                Router::new()
+                                    .route("/:identifier", get(get_ai_by_identifier::<S, A>)),
+                            ),
                     ),
             )
             .nest(
@@ -340,6 +347,52 @@ where
         .await
         .map(Json)
         .map_err(report_to_response)
+}
+
+#[utoipa::path(
+    get,
+    path = "/actors/ai/identifier/{identifier}",
+    tag = "Web",
+    params(
+        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
+        ("identifier" = String, Path, description = "The identifier of the AI to get"),
+    ),
+    responses(
+        (status = 200, content_type = "application/json", description = "The web was retrieved successfully", body = Option<Value>),
+
+        (status = 500, description = "Store error occurred"),
+    )
+)]
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client)
+)]
+async fn get_ai_by_identifier<S, A>(
+    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
+    Path(identifier): Path<String>,
+    authorization_api_pool: Extension<Arc<A>>,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    store_pool: Extension<Arc<S>>,
+) -> Result<Json<Option<Ai>>, Response>
+where
+    S: StorePool + Send + Sync,
+    A: AuthorizationApiPool + Send + Sync,
+    for<'p, 'a> S::Store<'p, A::Api<'a>>: PrincipalStore,
+{
+    store_pool
+        .acquire(
+            authorization_api_pool
+                .acquire()
+                .await
+                .map_err(report_to_response)?,
+            temporal_client.0,
+        )
+        .await
+        .map_err(report_to_response)?
+        .get_ai_by_identifier(actor_id, &identifier)
+        .await
+        .map_err(report_to_response)
+        .map(Json)
 }
 
 #[utoipa::path(
