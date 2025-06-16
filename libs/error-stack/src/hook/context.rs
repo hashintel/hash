@@ -181,6 +181,10 @@ impl<T: 'static> HookContext<T> {
     /// [`Debug`]: core::fmt::Debug
     #[must_use]
     pub fn get<U: 'static>(&self) -> Option<&U> {
+        #[expect(
+            clippy::coerce_container_to_any,
+            reason = "False positive: https://github.com/rust-lang/rust-clippy/issues/15045"
+        )]
         self.storage()
             .get(&TypeId::of::<T>())?
             .get(&TypeId::of::<U>())?
@@ -195,6 +199,10 @@ impl<T: 'static> HookContext<T> {
     ///
     /// [`Debug`]: core::fmt::Debug
     pub fn get_mut<U: 'static>(&mut self) -> Option<&mut U> {
+        #[expect(
+            clippy::coerce_container_to_any,
+            reason = "False positive: https://github.com/rust-lang/rust-clippy/issues/15045"
+        )]
         self.storage_mut()
             .get_mut(&TypeId::of::<T>())?
             .get_mut(&TypeId::of::<U>())?
