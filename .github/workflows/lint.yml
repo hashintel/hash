@@ -136,6 +136,7 @@ jobs:
           pushd ${{ matrix.path }}
           turbo run lint:clippy --filter "${{ matrix.name }}" -- --message-format=json \
             | clippy-sarif \
+            | jq --arg path "${{ matrix.path }}" '.runs[].results |= map(select(.locations[].physicalLocation.artifactLocation.uri | startswith($path)))' \
             | jq '.runs[].results |= unique' \
             > clippy.sarif
           popd
