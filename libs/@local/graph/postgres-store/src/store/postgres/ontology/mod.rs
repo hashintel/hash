@@ -40,6 +40,14 @@ impl<A> PostgresStore<Transaction<'_>, A>
 where
     A: Send + Sync,
 {
+    /// Deletes ontology metadata for the specified ontology type UUIDs.
+    ///
+    /// This function removes ontology ownership metadata, temporal metadata,
+    /// and edition provenance for the given ontology IDs.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`DeletionError`] if the database deletion operation fails.
     #[tracing::instrument(level = "trace", skip(self))]
     pub async fn delete_ontology_ids(
         &self,

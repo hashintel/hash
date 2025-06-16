@@ -575,6 +575,7 @@ where
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
     #[tracing::instrument(level = "info", skip(self, traversal_context, subgraph, zookie))]
+    #[expect(clippy::too_many_lines)]
     pub(crate) async fn traverse_entity_types(
         &self,
         mut entity_type_queue: Vec<(
@@ -719,6 +720,15 @@ where
         Ok(())
     }
 
+    /// Deletes all entity types from the database.
+    ///
+    /// This function removes all entity types along with their associated metadata,
+    /// including embeddings, inheritance relationships, and property constraints.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`DeletionError`] if the database deletion operation fails or
+    /// if the transaction cannot be committed.
     #[tracing::instrument(level = "info", skip(self))]
     pub async fn delete_entity_types(&mut self) -> Result<(), Report<DeletionError>> {
         let transaction = self.transaction().await.change_context(DeletionError)?;
@@ -766,6 +776,7 @@ where
     A: AuthorizationApi,
 {
     #[tracing::instrument(level = "info", skip(self, params))]
+    #[expect(clippy::too_many_lines)]
     async fn create_entity_types<P, R>(
         &mut self,
         actor_id: ActorEntityUuid,
@@ -1316,6 +1327,7 @@ where
     }
 
     #[tracing::instrument(level = "info", skip(self, params))]
+    #[expect(clippy::too_many_lines)]
     async fn update_entity_types<P, R>(
         &mut self,
         actor_id: ActorEntityUuid,
