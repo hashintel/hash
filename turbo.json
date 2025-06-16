@@ -84,7 +84,11 @@
     "lint": {
       "dependsOn": ["codegen"]
     },
-    "lint:clippy": {},
+    "lint:clippy": {
+      // The `--no-deps` does not exclude workspace members, so errors from other workspace members will still be reported.
+      // This means, that the cache will not be invalidated if a dependency workspace member is changed.
+      "cache": false
+    },
     "lint:eslint": {
       "env": ["CHECK_TEMPORARILY_DISABLED_RULES"],
       "dependsOn": ["codegen", "@local/eslint#build"]
@@ -95,7 +99,11 @@
     "fix:eslint": {
       "dependsOn": ["codegen", "@local/eslint#build"]
     },
-    "fix:clippy": {},
+    "fix:clippy": {
+      // The `--no-deps` does not exclude workspace members, so errors from other workspace members will still be reported.
+      // This means, that the cache will not be invalidated if a dependency workspace member is changed.
+      "cache": false
+    },
     "sentry:sourcemaps": {
       "dependsOn": ["build"]
     }
