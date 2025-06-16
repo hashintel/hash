@@ -19,6 +19,9 @@ services:
     image: minio/mc
     depends_on:
       - minio
+    restart: "no"
+    profiles:
+      - setup
     security_opt:
       - no-new-privileges:true
     environment:
