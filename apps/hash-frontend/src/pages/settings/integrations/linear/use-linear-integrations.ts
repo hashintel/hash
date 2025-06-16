@@ -68,7 +68,7 @@ export const useLinearIntegrations = (): {
             },
             {
               equal: [
-                { path: ["metadata", "entityTypeId"] },
+                { path: ["type", "versionedUrl"] },
                 { parameter: systemEntityTypes.linearIntegration.entityTypeId },
               ],
             },
