@@ -18,7 +18,7 @@ use crate::{
             UnsupportedProjectionCategory, UnsupportedSubscriptCategory,
             function_parameter_count_mismatch, unsupported_projection, unsupported_subscript,
         },
-        inference::{Inference, PartialStructuralEdge},
+        inference::Inference,
         lattice::{Lattice, Projection, Subscript},
     },
 };
@@ -304,18 +304,6 @@ impl<'heap> Inference<'heap> for ClosureType<'heap> {
 
         // Collect constraints for the return type
         env.in_covariant(|env| env.collect_constraints(self.kind.returns, supertype.kind.returns));
-    }
-
-    fn collect_structural_edges(
-        self: Type<'heap, Self>,
-        variable: PartialStructuralEdge,
-        env: &mut InferenceEnvironment<'_, 'heap>,
-    ) {
-        for &param in self.kind.params {
-            env.in_contravariant(|env| env.collect_structural_edges(param, variable));
-        }
-
-        env.in_covariant(|env| env.collect_structural_edges(self.kind.returns, variable));
     }
 
     fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {

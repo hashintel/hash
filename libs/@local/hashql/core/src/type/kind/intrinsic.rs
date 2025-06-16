@@ -17,7 +17,7 @@ use crate::{
             UnsupportedProjectionCategory, dict_subscript_mismatch, list_subscript_mismatch,
             type_mismatch, unsupported_projection,
         },
-        inference::{Inference, PartialStructuralEdge},
+        inference::Inference,
         lattice::{Lattice, Projection, Subscript},
     },
 };
@@ -206,14 +206,6 @@ impl<'heap> Inference<'heap> for ListType {
         env.in_covariant(|env| {
             env.collect_constraints(self.kind.element, supertype.kind.element);
         });
-    }
-
-    fn collect_structural_edges(
-        self: Type<'heap, Self>,
-        variable: PartialStructuralEdge,
-        env: &mut InferenceEnvironment<'_, 'heap>,
-    ) {
-        env.in_covariant(|env| env.collect_structural_edges(self.kind.element, variable));
     }
 
     fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {
@@ -538,15 +530,6 @@ impl<'heap> Inference<'heap> for DictType {
         env.in_covariant(|env| env.collect_constraints(self.kind.value, supertype.kind.value));
     }
 
-    fn collect_structural_edges(
-        self: Type<'heap, Self>,
-        variable: PartialStructuralEdge,
-        env: &mut InferenceEnvironment<'_, 'heap>,
-    ) {
-        env.in_invariant(|env| env.collect_structural_edges(self.kind.key, variable));
-        env.in_covariant(|env| env.collect_structural_edges(self.kind.value, variable));
-    }
-
     fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {
         let (_guard, id) = env.provision(self.id);
 
@@ -804,21 +787,6 @@ impl<'heap> Inference<'heap> for IntrinsicType {
             _ => {
                 // During constraint collection we ignore any errors, as these will be caught during
                 // `is_subtype_of` checking later
-            }
-        }
-    }
-
-    fn collect_structural_edges(
-        self: Type<'heap, Self>,
-        variable: PartialStructuralEdge,
-        env: &mut InferenceEnvironment<'_, 'heap>,
-    ) {
-        match self.kind {
-            Self::List(list_type) => {
-                self.with(list_type).collect_structural_edges(variable, env);
-            }
-            Self::Dict(dict_type) => {
-                self.with(dict_type).collect_structural_edges(variable, env);
             }
         }
     }

@@ -24,7 +24,7 @@ use crate::{
             SimplifyEnvironment,
             instantiate::{ArgumentsState, InstantiateEnvironment},
         },
-        inference::{Inference, PartialStructuralEdge},
+        inference::Inference,
         lattice::{Lattice, Projection, Subscript},
     },
 };
@@ -478,22 +478,6 @@ impl<'heap> Generic<'heap> {
             env.in_covariant(|env| env.collect_constraints(param, constraint));
         }
     }
-
-    pub fn collect_argument_structural_edges(
-        self,
-        variable: PartialStructuralEdge,
-        env: &mut InferenceEnvironment<'_, 'heap>,
-    ) {
-        // as arguments are covariant, we collect structural edges for each argument (if they have a
-        // constraint)
-        for &argument in &*self.arguments {
-            let Some(constraint) = argument.constraint else {
-                continue;
-            };
-
-            env.in_covariant(|env| env.collect_structural_edges(constraint, variable));
-        }
-    }
 }
 
 impl<'heap> Inference<'heap> for Generic<'heap> {
@@ -510,16 +494,6 @@ impl<'heap> Inference<'heap> for Generic<'heap> {
             .collect_argument_constraints(supertype.span, env, false);
 
         env.collect_constraints(self.kind.base, supertype.kind.base);
-    }
-
-    fn collect_structural_edges(
-        self: Type<'heap, Self>,
-        variable: PartialStructuralEdge,
-        env: &mut InferenceEnvironment<'_, 'heap>,
-    ) {
-        self.kind.collect_argument_structural_edges(variable, env);
-
-        env.collect_structural_edges(self.kind.base, variable);
     }
 
     fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {
