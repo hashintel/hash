@@ -15,13 +15,11 @@ services:
     volumes:
       - ../../var/uploads/s3:/data
 
+  # TODO: Move bucket creation to a separate script or use a more robust solution
   minio-ensure-bucket-exists:
     image: minio/mc
     depends_on:
       - minio
-    restart: "no"
-    profiles:
-      - setup
     security_opt:
       - no-new-privileges:true
     environment:
@@ -38,6 +36,9 @@ services:
 
       echo 'Creating bucket if not exists...';
       mc mb myminio/\$AWS_S3_UPLOADS_BUCKET --ignore-existing;
+
+      echo 'Bucket setup complete. Keeping container running...';
+      tail -f /dev/null;
       "
 
   telemetry-collector:
