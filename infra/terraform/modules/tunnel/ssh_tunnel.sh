@@ -42,9 +42,8 @@ ssh -o ExitOnForwardFailure=yes \
     -p "$SSH_PORT" "$SSH_USER@$SSH_HOST"
 
 # Verify the tunnel is working
-max_attempts=10
 attempt=0
-while [ $attempt -lt $max_attempts ]; do
+while [ $attempt -lt $TUNNEL_MAX_ATTEMPTS ]; do
   if nc -z 127.0.0.1 "$LOCAL_TUNNEL_PORT" 2>/dev/null; then
     echo "{ \"host\": \"127.0.0.1\",  \"port\": \"$LOCAL_TUNNEL_PORT\" }"
     exit 0

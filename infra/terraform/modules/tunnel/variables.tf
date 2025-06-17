@@ -28,6 +28,12 @@ variable "tunnel_target_port" {
   description = "Target port number"
 }
 
+variable "tunnel_max_attempts" {
+  type        = number
+  description = "Maximum number of attempts to verify tunnel connectivity"
+  default     = 10
+}
+
 variable "timeout" {
   type        = string
   description = "Connection timeout"
