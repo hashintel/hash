@@ -21,6 +21,12 @@ TUNNEL_TARGET_PORT=$(jq -j '.tunnel_target_port' <<< "$input")
 LOCAL_TUNNEL_PORT=$(jq -j '.local_tunnel_port' <<< "$input")
 TIMEOUT=$(jq -j '.timeout' <<< "$input")
 
+# Check if nc (netcat) is available for tunnel verification
+if ! command -v nc >/dev/null 2>&1; then
+    echo "Error: nc (netcat) command not found. Please install netcat for tunnel verification." >&2
+    exit 1
+fi
+
 # To allow the private key file to be read
 TEMP=$(mktemp)
 trap 'rm -f "$TEMP"' EXIT SIGINT SIGTERM
