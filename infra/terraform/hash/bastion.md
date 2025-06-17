@@ -1,6 +1,43 @@
 # Bastion hosts
 
-The Bastion hosts defined through this configuration is used for SSH-ing into the private subnet of our AWS VPC. Bastion hosts are spun up per environment (e.g. `prod` and `dev`) and connect using current terraform outputs.
+The Bastion hosts defined through this configuration is used for accessing the private subnet of our AWS VPC. Bastion hosts are spun up per environment (e.g. `prod` and `dev`) and connect using current terraform outputs.
+
+## SSM Session Manager (Recommended)
+
+The modern way to access the bastion host is through AWS Systems Manager Session Manager. This method doesn't require SSH keys or managing security groups for SSH access.
+
+### Direct shell access
+
+```shell
+aws ssm start-session --target $(terraform output -raw bastion_instance_id)
+```
+
+### PostgreSQL database tunneling
+
+To create a tunnel to the PostgreSQL database:
+
+```shell
+aws ssm start-session \
+  --target $(terraform output -raw bastion_instance_id) \
+  --document-name AWS-StartPortForwardingSessionToRemoteHost \
+  --parameters "host=$(terraform output -raw rds_hostname),portNumber=5432,localPortNumber=5554"
+```
+
+After the tunnel is established, you can connect to the database locally:
+
+```shell
+psql "postgresql://graph:PASSWORD@localhost:5554/DATABASE"
+```
+
+e.g.
+
+```shell
+psql "postgresql://graph:PASSWORD@localhost:5554/graph"
+```
+
+## SSH Method (Legacy)
+
+The traditional SSH method is still available but requires SSH key management.
 
 It is possible to SSH into the Bastion host by running the `./ssh_bastion.sh` script. This script will use the currently selected terraform workspace to SSH into the appropriate host.
 
