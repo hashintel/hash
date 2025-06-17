@@ -62,4 +62,5 @@ done
 
 # If we get here, tunnel failed
 echo "Failed to establish tunnel to $TUNNEL_TARGET_HOST:$TUNNEL_TARGET_PORT via $SSH_HOST after $TUNNEL_MAX_ATTEMPTS attempts" >&2
+ssh -S terraform_ssh_tunnel -O exit "$SSH_USER@$SSH_HOST" 2>/dev/null || true
 exit 1
