@@ -186,7 +186,7 @@ libtest-mimic            = { version = "=0.8.1", default-features = false }
 line-index               = { version = "=0.1.2", default-features = false }
 logos                    = { version = "=0.15.0", default-features = false }
 memchr                   = { version = "=2.7.5", default-features = false }
-mimalloc                 = { version = "=0.1.46", default-features = false }
+mimalloc                 = { version = "=0.1.47", default-features = false }
 mime                     = { version = "=0.3.17", default-features = false }
 multiaddr                = { version = "=0.18.2", default-features = false }
 multistream-select       = { version = "=0.13.0", default-features = false }
