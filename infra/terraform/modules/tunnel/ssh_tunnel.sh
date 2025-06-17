@@ -18,6 +18,7 @@ SSH_USER=$(jq -j '.ssh_user' <<< "$input")
 SSH_PRIVATE_KEY=$(jq -j '.ssh_private_key' <<< "$input")
 TUNNEL_TARGET_HOST=$(jq -j '.tunnel_target_host' <<< "$input")
 TUNNEL_TARGET_PORT=$(jq -j '.tunnel_target_port' <<< "$input")
+TUNNEL_MAX_ATTEMPTS=$(jq -j '.tunnel_max_attempts' <<< "$input")
 LOCAL_TUNNEL_PORT=$(jq -j '.local_tunnel_port' <<< "$input")
 TIMEOUT=$(jq -j '.timeout' <<< "$input")
 
@@ -60,5 +61,5 @@ while [ $attempt -lt $TUNNEL_MAX_ATTEMPTS ]; do
 done
 
 # If we get here, tunnel failed
-echo "Failed to establish tunnel after $max_attempts attempts" >&2
+echo "Failed to establish tunnel to $TUNNEL_TARGET_HOST:$TUNNEL_TARGET_PORT via $SSH_HOST after $TUNNEL_MAX_ATTEMPTS attempts" >&2
 exit 1
