@@ -34,7 +34,6 @@ variable "cluster_arn" {
     condition     = can(regex("^arn:aws:ecs:[a-z0-9-]+:[0-9]{12}:cluster/.+$", var.cluster_arn))
     error_message = "The cluster_arn must be a valid ECS cluster ARN."
   }
-  description = "The ARN of the ECS cluster to deploy services to"
 }
 
 variable "cpu" {
