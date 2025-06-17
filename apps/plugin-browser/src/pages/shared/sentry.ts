@@ -13,24 +13,31 @@ export const initializeSentry = () =>
     enabled: !!SENTRY_DSN,
     environment: ENVIRONMENT,
     integrations: [
-      new Sentry.BrowserTracing({
-        // Which URLs distributed tracing is enabled for
-        tracePropagationTargets: ["localhost", /^https:\/\/(?:.*\.)?hash\.ai/],
+      Sentry.browserApiErrorsIntegration(),
+      Sentry.browserProfilingIntegration(),
+      Sentry.browserSessionIntegration(),
+      Sentry.browserTracingIntegration(),
+      Sentry.graphqlClientIntegration({
+        endpoints: [/\/graphql$/],
       }),
+      Sentry.replayIntegration(),
     ],
+    replaysSessionSampleRate: 0.1,
+    replaysOnErrorSampleRate: 1,
+    tracePropagationTargets: ["localhost", /^https:\/\/(?:.*\.)?hash\.ai/],
     tracesSampleRate: 1.0, // Capture 100% of the transactions
   });
 
 export const setSentryUser = (user?: LocalStorage["user"] | null) => {
-  Sentry.configureScope((scope) => {
-    const sentryUser = scope.getUser();
-    if (!user && sentryUser) {
-      scope.setUser(null);
-    } else if (user && sentryUser?.id !== user.metadata.recordId.entityId) {
-      scope.setUser({
-        id: user.metadata.recordId.entityId,
-        email: user.properties.email[0],
-      });
-    }
-  });
+  const scope = Sentry.getCurrentScope();
+  const sentryUser = scope.getUser();
+
+  if (!user && sentryUser) {
+    scope.setUser(null);
+  } else if (user && sentryUser?.id !== user.metadata.recordId.entityId) {
+    scope.setUser({
+      id: user.metadata.recordId.entityId,
+      email: user.properties.email[0],
+    });
+  }
 };

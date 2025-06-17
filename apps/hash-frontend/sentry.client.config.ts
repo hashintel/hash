@@ -14,12 +14,22 @@ Sentry.init({
   dsn: SENTRY_DSN,
   enabled: !!SENTRY_DSN,
   environment: VERCEL_ENV || "development",
-  integrations: [new Sentry.Replay({ stickySession: true })],
+  integrations: [
+    Sentry.browserApiErrorsIntegration(),
+    Sentry.browserProfilingIntegration(),
+    Sentry.browserSessionIntegration(),
+    Sentry.browserTracingIntegration(),
+    Sentry.graphqlClientIntegration({
+      endpoints: [/\/graphql$/],
+    }),
+    Sentry.replayIntegration(),
+  ],
   release: buildStamp,
   replaysOnErrorSampleRate: 1,
   replaysSessionSampleRate: parseFloat(
     SENTRY_REPLAYS_SESSION_SAMPLE_RATE ?? "0",
   ),
+  tracePropagationTargets: ["localhost", /^https:\/\/(?:.*\.)?hash\.ai/],
   // release is set in next.config.js in the Sentry webpack plugin
   /** @todo reduce perf sample rate from 100% when we have more traffic */
   tracesSampleRate: 1.0,
