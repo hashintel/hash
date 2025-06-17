@@ -39,6 +39,7 @@ pkill -f "ssh.*-M -S terraform_ssh_tunnel.*-L $LOCAL_TUNNEL_PORT:" 2>/dev/null |
 # Start SSH tunnel in background
 ssh -o ExitOnForwardFailure=yes \
     -o StrictHostKeyChecking=no \
+    -o BatchMode=yes \
     -o ServerAliveInterval=30 \
     -o ServerAliveCountMax=3 \
     -i "$TEMP" \
