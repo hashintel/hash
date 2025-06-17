@@ -169,14 +169,14 @@ pub(super) fn run(args: Args) -> Result<(), Report<DependencyDiagramError>> {
     );
 
     let config = DependencyDiagramConfig {
-        root: args.root.clone(),
+        root: args.root,
         root_deps_only: args.root_deps_only,
         root_deps_and_dependents: args.root_deps_and_dependents,
-        include: args.include.clone(),
+        include: args.include,
         no_dedup_transitive: args.no_dedup_transitive,
         include_dev_deps: args.include_dev_deps,
         include_build_deps: args.include_build_deps,
-        exclude: args.exclude.clone(),
+        exclude: args.exclude,
         link_mode: args.link_mode.unwrap_or_default(),
         workspace_only: args.workspace_only,
     };

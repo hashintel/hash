@@ -518,6 +518,7 @@ where
     }
 
     #[tracing::instrument(level = "debug", skip(self, ontology_type_references))]
+    #[expect(clippy::too_many_lines)]
     async fn fetch_external_ontology_types(
         &self,
         actor_id: ActorEntityUuid,
@@ -753,6 +754,7 @@ where
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
+    #[expect(clippy::too_many_lines)]
     async fn insert_external_types_by_reference(
         &mut self,
         actor_id: ActorEntityUuid,

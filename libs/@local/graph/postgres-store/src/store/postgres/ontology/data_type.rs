@@ -332,6 +332,15 @@ where
         Ok(())
     }
 
+    /// Deletes all data types from the database.
+    ///
+    /// This function removes all data types along with their associated metadata,
+    /// including embeddings, inheritance relationships, and conversions.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`DeletionError`] if the database deletion operation fails or
+    /// if the transaction cannot be committed.
     #[tracing::instrument(level = "info", skip(self))]
     pub async fn delete_data_types(&mut self) -> Result<(), Report<DeletionError>> {
         let transaction = self.transaction().await.change_context(DeletionError)?;
@@ -377,6 +386,7 @@ where
     A: AuthorizationApi,
 {
     #[tracing::instrument(level = "info", skip(self, params))]
+    #[expect(clippy::too_many_lines)]
     async fn create_data_types<P, R>(
         &mut self,
         actor_id: ActorEntityUuid,
@@ -784,6 +794,7 @@ where
     }
 
     #[tracing::instrument(level = "info", skip(self, params))]
+    #[expect(clippy::too_many_lines)]
     async fn update_data_types<P, R>(
         &mut self,
         actor_id: ActorEntityUuid,

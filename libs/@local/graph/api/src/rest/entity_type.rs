@@ -392,6 +392,7 @@ where
     level = "info",
     skip(store_pool, authorization_api_pool, domain_validator, temporal_client)
 )]
+#[expect(clippy::too_many_lines)]
 async fn create_entity_type<S, A>(
     AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
     store_pool: Extension<Arc<S>>,
