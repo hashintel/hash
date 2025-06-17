@@ -81,7 +81,7 @@ resource "aws_ecs_task_definition" "spicedb" {
 resource "aws_ecs_service" "spicedb" {
   depends_on             = [aws_iam_role.task_role]
   name                   = local.spicedb_prefix
-  cluster                = data.aws_ecs_cluster.ecs.arn
+  cluster                = var.cluster_arn
   task_definition        = aws_ecs_task_definition.spicedb.arn
   enable_execute_command = true
   desired_count          = 1

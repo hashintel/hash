@@ -100,10 +100,6 @@ data "aws_vpc_endpoint" "s3" {
   tags = { Name = "${var.prefix}-vpces3" }
 }
 
-data "aws_ecs_cluster" "ecs" {
-  cluster_name = "${var.prefix}-ecs"
-}
-
 data "cloudflare_ip_ranges" "cloudflare" {}
 
 resource "aws_security_group" "alb_sg" {
@@ -402,7 +398,7 @@ resource "aws_ecs_task_definition" "worker_task" {
 resource "aws_ecs_service" "svc" {
   depends_on                        = [aws_iam_role.task_role, aws_ecs_service.graph]
   name                              = "${local.prefix}svc"
-  cluster                           = data.aws_ecs_cluster.ecs.arn
+  cluster                           = var.cluster_arn
   task_definition                   = aws_ecs_task_definition.task.arn
   enable_execute_command            = true
   desired_count                     = 1
@@ -434,7 +430,7 @@ resource "aws_ecs_service" "svc" {
 resource "aws_ecs_service" "worker" {
   depends_on             = [aws_iam_role.task_role, aws_ecs_service.graph]
   name                   = "${local.prefix}worker-svc"
-  cluster                = data.aws_ecs_cluster.ecs.arn
+  cluster                = var.cluster_arn
   task_definition        = aws_ecs_task_definition.worker_task.arn
   enable_execute_command = true
   desired_count          = 1

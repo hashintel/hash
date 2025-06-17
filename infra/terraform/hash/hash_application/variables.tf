@@ -27,6 +27,15 @@ variable "subnets" {
   description = "The list of subnet IDs that the instance should have attached"
 }
 
+variable "cluster_arn" {
+  type        = string
+  description = "The ARN of the ECS cluster to deploy services to"
+  validation {
+    condition     = can(regex("^arn:aws:ecs:[a-z0-9-]+:[0-9]{12}:cluster/.+$", var.cluster_arn))
+    error_message = "The cluster_arn must be a valid ECS cluster ARN."
+  }
+}
+
 variable "cpu" {
   type        = number
   description = "API service Fargate CPU units"
