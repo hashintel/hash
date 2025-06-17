@@ -27,6 +27,11 @@ variable "subnets" {
   description = "The list of subnet IDs that the instance should have attached"
 }
 
+variable "cluster_arn" {
+  type        = string
+  description = "The ARN of the ECS cluster to deploy services to"
+}
+
 variable "cpu" {
   type        = number
   description = "API service Fargate CPU units"

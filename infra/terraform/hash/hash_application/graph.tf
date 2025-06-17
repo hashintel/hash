@@ -120,7 +120,7 @@ resource "aws_ecs_task_definition" "graph" {
 resource "aws_ecs_service" "graph" {
   depends_on             = [aws_iam_role.task_role, aws_ecs_service.spicedb]
   name                   = local.graph_prefix
-  cluster                = data.aws_ecs_cluster.ecs.arn
+  cluster                = var.cluster_arn
   task_definition        = aws_ecs_task_definition.graph.arn
   enable_execute_command = true
   desired_count          = 1
@@ -180,7 +180,7 @@ locals {
       [
         { name = "HASH_SPICEDB_HOST", value = "http://${local.spicedb_container_http_port_dns}" },
         { name = "HASH_SPICEDB_HTTP_PORT", value = tostring(local.spicedb_container_http_port) },
-    ]
+      ]
     )
     secrets = [
       for env_name, ssm_param in aws_ssm_parameter.graph_migration_env_vars :
