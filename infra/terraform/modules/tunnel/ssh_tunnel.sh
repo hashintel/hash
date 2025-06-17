@@ -23,11 +23,12 @@ TIMEOUT=$(jq -j '.timeout' <<< "$input")
 
 # To allow the private key file to be read
 TEMP=$(mktemp)
+trap 'rm -f "$TEMP"' EXIT SIGINT SIGTERM
 echo "$SSH_PRIVATE_KEY" > "$TEMP"
 chmod 600 "$TEMP"
 
-# Clean up any existing tunnels on the same port
-pkill -f "ssh.*$LOCAL_TUNNEL_PORT" 2>/dev/null || true
+# Clean up any existing tunnels using the same control socket and port
+pkill -f "ssh.*-M -S terraform_ssh_tunnel.*-L $LOCAL_TUNNEL_PORT:" 2>/dev/null || true
 
 # Start SSH tunnel in background
 ssh -o ExitOnForwardFailure=yes \
@@ -46,7 +47,6 @@ attempt=0
 while [ $attempt -lt $max_attempts ]; do
   if nc -z 127.0.0.1 "$LOCAL_TUNNEL_PORT" 2>/dev/null; then
     echo "{ \"host\": \"127.0.0.1\",  \"port\": \"$LOCAL_TUNNEL_PORT\" }"
-    rm -f "$TEMP"
     exit 0
   fi
   sleep 1
@@ -55,5 +55,4 @@ done
 
 # If we get here, tunnel failed
 echo "Failed to establish tunnel after $max_attempts attempts" >&2
-rm -f "$TEMP"
 exit 1
