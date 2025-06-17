@@ -29,3 +29,8 @@ output "hash_application_ecs_iam_task_role_arn" {
 output "hash_application_ecs_iam_task_role_name" {
   value = module.application.ecs_iam_task_role.name
 }
+
+output "bastion_instance_id" {
+  description = "The EC2 instance ID of the bastion host"
+  value       = module.bastion.instance_id
+}

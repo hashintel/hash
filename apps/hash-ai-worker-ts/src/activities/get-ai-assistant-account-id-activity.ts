@@ -1,6 +1,6 @@
 import type { ActorEntityUuid, AiId, WebId } from "@blockprotocol/type-system";
 import {
-  getMachineIdByIdentifier,
+  getAiIdByIdentifier,
   getWebMachineId,
 } from "@local/hash-backend-utils/machine-actors";
 import type { GraphApi } from "@local/hash-graph-client";
@@ -13,13 +13,11 @@ export const getAiAssistantAccountIdActivity = async (params: {
   const { authentication, graphApiClient, grantCreatePermissionForWeb } =
     params;
 
-  // TODO: Fix AI assistant retrieval from the graph
-  //   see https://linear.app/hash/issue/H-4621/fix-ai-assistant-retrieval-from-the-graph
-  const aiAssistantAccountId = (await getMachineIdByIdentifier(
+  const aiAssistantAccountId = await getAiIdByIdentifier(
     { graphApi: graphApiClient },
     authentication,
     { identifier: "hash-ai" },
-  )) as AiId | null;
+  );
   if (!aiAssistantAccountId) {
     return null;
   }

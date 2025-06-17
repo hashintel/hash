@@ -316,6 +316,15 @@ where
         Ok(())
     }
 
+    /// Deletes all property types from the database.
+    ///
+    /// This function removes all property types along with their associated metadata,
+    /// including embeddings and property constraints.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`DeletionError`] if the database deletion operation fails or
+    /// if the transaction cannot be committed.
     #[tracing::instrument(level = "info", skip(self))]
     pub async fn delete_property_types(&mut self) -> Result<(), Report<DeletionError>> {
         let transaction = self.transaction().await.change_context(DeletionError)?;
@@ -361,6 +370,7 @@ where
     A: AuthorizationApi,
 {
     #[tracing::instrument(level = "info", skip(self, params))]
+    #[expect(clippy::too_many_lines)]
     async fn create_property_types<P, R>(
         &mut self,
         actor_id: ActorEntityUuid,
@@ -666,6 +676,7 @@ where
     }
 
     #[tracing::instrument(level = "info", skip(self, params))]
+    #[expect(clippy::too_many_lines)]
     async fn update_property_types<P, R>(
         &mut self,
         actor_id: ActorEntityUuid,
