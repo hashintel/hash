@@ -5,9 +5,10 @@ import {
   splitEntityId,
 } from "@blockprotocol/type-system";
 import { convertBpFilterToGraphFilter } from "@local/hash-backend-utils/convert-bp-filter-to-graph-filter";
-import type {
-  Filter,
-  QueryTemporalAxesUnresolved,
+import {
+  EntityPermission,
+  type Filter,
+  type QueryTemporalAxesUnresolved,
 } from "@local/hash-graph-client";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
@@ -31,6 +32,7 @@ import {
 
 import {
   canUserReadEntity,
+  checkEntityPermission,
   countEntities,
   createEntityWithLinks,
   getEntitySubgraphResponse,
@@ -501,6 +503,20 @@ export const addEntityViewerResolver: ResolverFn<
   const { authentication } = graphQLContext;
   const context = graphQLContextToImpureGraphContext(graphQLContext);
 
+  const canUpgradeEntity = await checkEntityPermission(
+    context,
+    authentication,
+    {
+      entityId,
+      permission: EntityPermission.Update,
+    },
+  );
+  if (!canUpgradeEntity) {
+    throw new ForbiddenError(
+      "You do not have permission to update this entity",
+    );
+  }
+
   const entityUuid = extractEntityUuidFromEntityId(entityId);
   await createPolicy(context.graphApi, authentication, {
     name: `public-view-entity-${entityUuid}`,
@@ -530,6 +546,20 @@ export const removeEntityViewerResolver: ResolverFn<
 
   const { authentication } = graphQLContext;
   const context = graphQLContextToImpureGraphContext(graphQLContext);
+
+  const canUpgradeEntity = await checkEntityPermission(
+    context,
+    authentication,
+    {
+      entityId,
+      permission: EntityPermission.Update,
+    },
+  );
+  if (!canUpgradeEntity) {
+    throw new ForbiddenError(
+      "You do not have permission to update this entity",
+    );
+  }
 
   const entityUuid = extractEntityUuidFromEntityId(entityId);
   const [policy] = await queryPolicies(context.graphApi, authentication, {
