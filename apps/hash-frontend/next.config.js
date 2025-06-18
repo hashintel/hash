@@ -122,7 +122,7 @@ export default withSentryConfig(
           {
             /**
              * allow fetching types as JSON from anywhere
-             * @see ./src/middleware.page.ts for middleware which serves the JSON
+             * see /src/middleware.page.ts for middleware which serves the JSON
              */
             source: "/:shortname/types/:path*",
             has: [
