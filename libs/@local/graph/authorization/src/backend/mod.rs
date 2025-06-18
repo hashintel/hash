@@ -54,7 +54,7 @@ pub trait ZanzibarBackend {
     ) -> impl Future<Output = Result<ExportSchemaResponse, Report<ExportSchemaError>>> + Send;
 
     fn modify_relationships<R>(
-        &mut self,
+        &self,
         relationships: impl IntoIterator<Item = (ModifyRelationshipOperation, R), IntoIter: Send> + Send,
     ) -> impl Future<Output = Result<ModifyRelationshipResponse, Report<ModifyRelationshipError>>> + Send
     where
@@ -76,7 +76,7 @@ pub trait ZanzibarBackend {
     ///
     /// Returns an error if the relation could not be created.
     fn touch_relationships<R>(
-        &mut self,
+        &self,
         relationships: impl IntoIterator<Item = R, IntoIter: Send> + Send,
     ) -> impl Future<Output = Result<ModifyRelationshipResponse, Report<ModifyRelationshipError>>> + Send
     where
@@ -280,7 +280,7 @@ impl<Z: ZanzibarBackend + Send + Sync> ZanzibarBackend for &mut Z {
     }
 
     async fn modify_relationships<R>(
-        &mut self,
+        &self,
         relationships: impl IntoIterator<Item = (ModifyRelationshipOperation, R), IntoIter: Send> + Send,
     ) -> Result<ModifyRelationshipResponse, Report<ModifyRelationshipError>>
     where
@@ -292,7 +292,7 @@ impl<Z: ZanzibarBackend + Send + Sync> ZanzibarBackend for &mut Z {
             > + Send
             + Sync,
     {
-        ZanzibarBackend::modify_relationships(&mut **self, relationships).await
+        ZanzibarBackend::modify_relationships(&**self, relationships).await
     }
 
     async fn check_permission<O, R, S>(
@@ -428,7 +428,7 @@ impl ZanzibarBackend for NoAuthorization {
     }
 
     async fn modify_relationships<T>(
-        &mut self,
+        &self,
         _: impl IntoIterator<Item = (ModifyRelationshipOperation, T), IntoIter: Send> + Send,
     ) -> Result<ModifyRelationshipResponse, Report<ModifyRelationshipError>>
     where

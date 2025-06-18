@@ -5,7 +5,7 @@ use error_stack::ResultExt as _;
 use hash_graph_authorization::policies::{Policy, PolicySet, PolicyValidator};
 use pretty_assertions::assert_eq;
 use type_system::{
-    knowledge::entity::id::EntityUuid,
+    knowledge::entity::EntityId,
     principal::{
         actor::MachineId,
         actor_group::{TeamId, WebId},
@@ -61,13 +61,16 @@ pub(crate) fn permit_admin_web(web_id: WebId, admin_role: WebRoleId) -> Vec<Poli
 
 pub(crate) fn permit_hash_instance_admins(
     team_id: TeamId,
-    hash_instance_entity_id: EntityUuid,
+    hash_instance_entity_id: EntityId,
 ) -> Vec<Policy> {
     #[expect(clippy::literal_string_with_formatting_args)]
     read_policies(
         &include_str!("permit-hash-instance-admins.cedar")
             .replace("{team_id}", &team_id.to_string())
-            .replace("{entity_id}", &hash_instance_entity_id.to_string()),
+            .replace(
+                "{entity_id}",
+                &hash_instance_entity_id.entity_uuid.to_string(),
+            ),
     )
 }
 
