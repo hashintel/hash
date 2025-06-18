@@ -8,13 +8,13 @@ use hash_graph_authorization::{
     AuthorizationApi,
     backend::ModifyRelationshipOperation,
     policies::{
-        Authorized, ContextBuilder, PartialResourceId, PolicySet, Request, RequestContext,
-        action::ActionName, resource::EntityTypeId, store::PolicyStore as _,
+        Authorized, PartialResourceId, PolicyComponents, Request, RequestContext,
+        action::ActionName,
     },
     schema::{
         EntityTypeOwnerSubject, EntityTypePermission, EntityTypeRelationAndSubject, WebPermission,
     },
-    zanzibar::{Consistency, Zookie},
+    zanzibar::Consistency,
 };
 use hash_graph_store::{
     entity::ClosedMultiEntityTypeMap,
@@ -42,7 +42,6 @@ use hash_graph_store::{
 };
 use hash_graph_temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTime};
 use hash_graph_types::{Embedding, ontology::OntologyTypeProvider};
-use hash_status::StatusCode;
 use postgres_types::{Json, ToSql};
 use serde::Deserialize as _;
 use serde_json::Value as JsonValue;
@@ -77,7 +76,7 @@ use crate::store::{
         ontology::{PostgresOntologyOwnership, read::OntologyTypeTraversalData},
         query::{Distinctness, PostgresRecord, ReferenceTable, SelectCompiler, Table},
     },
-    validation::{StoreCache, StoreProvider},
+    validation::StoreProvider,
 };
 
 impl<C, A> PostgresStore<C, A>
@@ -85,38 +84,49 @@ where
     C: AsClient,
     A: AuthorizationApi,
 {
-    #[tracing::instrument(level = "trace", skip(entity_types, authorization_api, zookie))]
+    #[tracing::instrument(level = "trace", skip(entity_types, provider))]
     pub(crate) async fn filter_entity_types_by_permission<I, T>(
         entity_types: impl IntoIterator<Item = (I, T)> + Send,
-        actor_id: ActorEntityUuid,
-        authorization_api: &A,
-        zookie: &Zookie<'static>,
+        provider: &StoreProvider<'_, Self>,
     ) -> Result<impl Iterator<Item = T>, Report<QueryError>>
     where
         I: Into<EntityTypeUuid> + Send,
         T: Send,
-        A: AuthorizationApi,
     {
         let (ids, entity_types): (Vec<_>, Vec<_>) = entity_types
             .into_iter()
             .map(|(id, edge)| (id.into(), edge))
             .unzip();
 
-        let permissions = authorization_api
-            .check_entity_types_permission(
-                actor_id,
-                EntityTypePermission::View,
-                ids.iter().copied(),
-                Consistency::AtExactSnapshot(zookie),
+        let permissions = if let Some(policy_components) = provider.policy_components {
+            Some(
+                provider
+                    .store
+                    .authorization_api
+                    .check_entity_types_permission(
+                        policy_components
+                            .actor_id
+                            .map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from),
+                        EntityTypePermission::View,
+                        ids.iter().copied(),
+                        Consistency::FullyConsistent,
+                    )
+                    .await
+                    .change_context(QueryError)?
+                    .0,
             )
-            .await
-            .change_context(QueryError)?
-            .0;
+        } else {
+            None
+        };
 
         Ok(ids
             .into_iter()
             .zip(entity_types)
             .filter_map(move |(id, entity_type)| {
+                let Some(permissions) = &permissions else {
+                    return Some(entity_type);
+                };
+
                 permissions
                     .get(&id)
                     .copied()
@@ -384,7 +394,7 @@ where
         actor_id: ActorEntityUuid,
         params: GetEntityTypesParams<'_>,
         temporal_axes: &QueryTemporalAxes,
-    ) -> Result<(GetEntityTypesResponse, Zookie<'static>), Report<QueryError>> {
+    ) -> Result<GetEntityTypesResponse, Report<QueryError>> {
         let (count, web_ids, edition_created_by_ids) = if params.include_count
             || params.include_web_ids
             || params.include_edition_created_by_ids
@@ -496,7 +506,7 @@ where
             .map(|(entity_type_id, _)| *entity_type_id)
             .collect::<Vec<_>>();
 
-        let (permissions, zookie) = self
+        let (permissions, _zookie) = self
             .authorization_api
             .check_entity_types_permission(
                 actor_id,
@@ -518,26 +528,22 @@ where
             })
             .collect::<Vec<_>>();
 
-        Ok((
-            GetEntityTypesResponse {
-                cursor: if params.limit.is_some() {
-                    entity_types
-                        .last()
-                        .map(|entity_type| entity_type.schema.id.clone())
-                } else {
-                    None
-                },
-                entity_types,
-                closed_entity_types: params.include_entity_types.is_some().then(Vec::new),
-                definitions: (params.include_entity_types
-                    == Some(IncludeEntityTypeOption::Resolved))
-                .then(EntityTypeResolveDefinitions::default),
-                count,
-                web_ids,
-                edition_created_by_ids,
+        Ok(GetEntityTypesResponse {
+            cursor: if params.limit.is_some() {
+                entity_types
+                    .last()
+                    .map(|entity_type| entity_type.schema.id.clone())
+            } else {
+                None
             },
-            zookie,
-        ))
+            entity_types,
+            closed_entity_types: params.include_entity_types.is_some().then(Vec::new),
+            definitions: (params.include_entity_types == Some(IncludeEntityTypeOption::Resolved))
+                .then(EntityTypeResolveDefinitions::default),
+            count,
+            web_ids,
+            edition_created_by_ids,
+        })
     }
 
     pub(crate) async fn get_closed_entity_types(
@@ -574,7 +580,8 @@ where
     /// Internal method to read a [`EntityTypeWithMetadata`] into four [`TraversalContext`]s.
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
-    #[tracing::instrument(level = "info", skip(self, traversal_context, subgraph, zookie))]
+    #[tracing::instrument(level = "info", skip(self, traversal_context, provider, subgraph))]
+    #[expect(clippy::too_many_lines)]
     pub(crate) async fn traverse_entity_types(
         &self,
         mut entity_type_queue: Vec<(
@@ -583,8 +590,7 @@ where
             RightBoundedTemporalInterval<VariableAxis>,
         )>,
         traversal_context: &mut TraversalContext,
-        actor_id: ActorEntityUuid,
-        zookie: &Zookie<'static>,
+        provider: &StoreProvider<'_, Self>,
         subgraph: &mut Subgraph,
     ) -> Result<(), Report<QueryError>> {
         let mut property_type_queue = Vec::new();
@@ -630,9 +636,7 @@ where
                             },
                         )
                         .await?,
-                        actor_id,
-                        &self.authorization_api,
-                        zookie,
+                        provider,
                     )
                     .await?
                     .flat_map(|edge| {
@@ -683,9 +687,7 @@ where
                                 table,
                             )
                             .await?,
-                            actor_id,
-                            &self.authorization_api,
-                            zookie,
+                            provider,
                         )
                         .await?
                         .flat_map(|edge| {
@@ -707,18 +709,21 @@ where
             }
         }
 
-        self.traverse_property_types(
-            property_type_queue,
-            traversal_context,
-            actor_id,
-            zookie,
-            subgraph,
-        )
-        .await?;
+        self.traverse_property_types(property_type_queue, traversal_context, provider, subgraph)
+            .await?;
 
         Ok(())
     }
 
+    /// Deletes all entity types from the database.
+    ///
+    /// This function removes all entity types along with their associated metadata,
+    /// including embeddings, inheritance relationships, and property constraints.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`DeletionError`] if the database deletion operation fails or
+    /// if the transaction cannot be committed.
     #[tracing::instrument(level = "info", skip(self))]
     pub async fn delete_entity_types(&mut self) -> Result<(), Report<DeletionError>> {
         let transaction = self.transaction().await.change_context(DeletionError)?;
@@ -766,6 +771,7 @@ where
     A: AuthorizationApi,
 {
     #[tracing::instrument(level = "info", skip(self, params))]
+    #[expect(clippy::too_many_lines)]
     async fn create_entity_types<P, R>(
         &mut self,
         actor_id: ActorEntityUuid,
@@ -1011,13 +1017,14 @@ where
         actor_id: ActorEntityUuid,
         mut params: CountEntityTypesParams<'_>,
     ) -> Result<usize, Report<QueryError>> {
+        let policy_components = PolicyComponents::builder(self)
+            .with_actor(actor_id)
+            .await
+            .change_context(QueryError)?;
+
         params
             .filter
-            .convert_parameters(&StoreProvider {
-                store: self,
-                cache: StoreCache::default(),
-                authorization: Some((actor_id, Consistency::FullyConsistent)),
-            })
+            .convert_parameters(&StoreProvider::new(self, &policy_components))
             .await
             .change_context(QueryError)?;
 
@@ -1037,20 +1044,21 @@ where
         actor_id: ActorEntityUuid,
         mut params: GetEntityTypesParams<'_>,
     ) -> Result<GetEntityTypesResponse, Report<QueryError>> {
+        let policy_components = PolicyComponents::builder(self)
+            .with_actor(actor_id)
+            .await
+            .change_context(QueryError)?;
+
         let include_entity_types = params.include_entity_types;
         params
             .filter
-            .convert_parameters(&StoreProvider {
-                store: self,
-                cache: StoreCache::default(),
-                authorization: Some((actor_id, Consistency::FullyConsistent)),
-            })
+            .convert_parameters(&StoreProvider::new(self, &policy_components))
             .await
             .change_context(QueryError)?;
 
         let temporal_axes = params.temporal_axes.clone();
         let resolved_temporal_axes = temporal_axes.clone().resolve();
-        let (mut response, _) = self
+        let mut response = self
             .get_entity_types_impl(actor_id, params, &resolved_temporal_axes)
             .await?;
 
@@ -1217,31 +1225,31 @@ where
         actor_id: ActorEntityUuid,
         mut params: GetEntityTypeSubgraphParams<'_>,
     ) -> Result<GetEntityTypeSubgraphResponse, Report<QueryError>> {
+        let policy_components = PolicyComponents::builder(self)
+            .with_actor(actor_id)
+            .await
+            .change_context(QueryError)?;
+
+        let provider = StoreProvider::new(self, &policy_components);
+
         params
             .filter
-            .convert_parameters(&StoreProvider {
-                store: self,
-                cache: StoreCache::default(),
-                authorization: Some((actor_id, Consistency::FullyConsistent)),
-            })
+            .convert_parameters(&provider)
             .await
             .change_context(QueryError)?;
 
         let temporal_axes = params.temporal_axes.clone().resolve();
         let time_axis = temporal_axes.variable_time_axis();
 
-        let (
-            GetEntityTypesResponse {
-                entity_types,
-                closed_entity_types: _,
-                definitions: _,
-                cursor,
-                count,
-                web_ids,
-                edition_created_by_ids,
-            },
-            zookie,
-        ) = self
+        let GetEntityTypesResponse {
+            entity_types,
+            closed_entity_types: _,
+            definitions: _,
+            cursor,
+            count,
+            web_ids,
+            edition_created_by_ids,
+        } = self
             .get_entity_types_impl(
                 actor_id,
                 GetEntityTypesParams {
@@ -1296,8 +1304,7 @@ where
                 })
                 .collect(),
             &mut traversal_context,
-            actor_id,
-            &zookie,
+            &provider,
             &mut subgraph,
         )
         .await?;
@@ -1316,6 +1323,7 @@ where
     }
 
     #[tracing::instrument(level = "info", skip(self, params))]
+    #[expect(clippy::too_many_lines)]
     async fn update_entity_types<P, R>(
         &mut self,
         actor_id: ActorEntityUuid,
@@ -1735,30 +1743,13 @@ where
         authenticated_user: ActorEntityUuid,
         entity_type_ids: &[VersionedUrl],
     ) -> Result<Vec<bool>, Report<QueryError>> {
-        let actor = self
-            .determine_actor(authenticated_user)
-            .await
-            .change_context(QueryError)?
-            .ok_or(QueryError)
-            .attach(StatusCode::Unauthenticated)?;
-        let policies = self
-            .resolve_policies_for_actor(actor.into(), Some(actor))
-            .await
-            .change_context(QueryError)?;
-        let policy_set = PolicySet::default()
-            .with_policies(&policies)
-            .change_context(QueryError)?;
-
-        let mut policy_context_builder = ContextBuilder::default();
-        self.build_principal_context(actor, &mut policy_context_builder)
+        let policy_components = PolicyComponents::builder(self)
+            .with_actor(authenticated_user)
+            .with_entity_type_ids(entity_type_ids.iter())
             .await
             .change_context(QueryError)?;
 
-        let validator_provider = StoreProvider {
-            store: self,
-            cache: StoreCache::default(),
-            authorization: Some((authenticated_user, Consistency::FullyConsistent)),
-        };
+        let validator_provider = StoreProvider::new(self, &policy_components);
 
         let mut entity_type_id_set = HashMap::new();
         for entity_type_id in entity_type_ids {
@@ -1778,35 +1769,24 @@ where
             );
         }
 
-        let types_and_parents = entity_type_id_set
-            .iter()
-            .flat_map(|(base, parents)| iter::once(base.clone()).chain(parents.clone()))
-            .collect::<HashSet<_>>()
-            .into_iter()
-            .collect::<Vec<_>>();
-
-        self.build_entity_type_context(&types_and_parents, &mut policy_context_builder)
-            .await
-            .change_context(QueryError)?;
-        let policy_context = policy_context_builder.build().change_context(QueryError)?;
-
         entity_type_id_set
             .into_iter()
             .map(|(base, parents)| {
                 // We need to check the base entity type and all its parents
                 // to see if the user can instantiate it.
                 for entity_type_id in iter::once(base).chain(parents) {
-                    let allowed = policy_set
+                    let allowed = policy_components
+                        .policy_set
                         .evaluate(
                             &Request {
-                                actor: Some(actor),
+                                actor: policy_components.actor_id,
                                 action: ActionName::Instantiate,
-                                resource: Some(&PartialResourceId::EntityType(Some(Cow::Owned(
-                                    EntityTypeId::new(entity_type_id),
-                                )))),
+                                resource: Some(&PartialResourceId::EntityType(Some(
+                                    Cow::Borrowed((&entity_type_id).into()),
+                                ))),
                                 context: RequestContext::default(),
                             },
-                            &policy_context,
+                            &policy_components.context,
                         )
                         .change_context(QueryError)
                         .map(|authorized| match authorized {

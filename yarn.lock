@@ -292,7 +292,7 @@ __metadata:
     "@types/lodash": "npm:4.17.17"
     "@types/md5": "npm:2.3.5"
     "@types/mime-types": "npm:2.1.4"
-    "@types/node": "npm:22.15.31"
+    "@types/node": "npm:22.15.32"
     "@types/papaparse": "npm:5.3.16"
     "@types/sanitize-html": "npm:2.16.0"
     "@vitest/coverage-istanbul": "npm:3.2.3"
@@ -502,7 +502,7 @@ __metadata:
     "@tldraw/tlvalidate": "npm:2.0.0-alpha.12"
     "@types/dotenv-flow": "npm:3.3.3"
     "@types/gapi": "npm:0.0.47"
-    "@types/google.accounts": "npm:0.0.16"
+    "@types/google.accounts": "npm:0.0.17"
     "@types/google.picker": "npm:0.0.50"
     "@types/iframe-resizer": "npm:3.5.13"
     "@types/jsonpath": "npm:0.2.4"
@@ -565,7 +565,7 @@ __metadata:
     react-pdf: "npm:9.2.1"
     react-responsive-carousel: "npm:3.2.23"
     react-transition-group: "npm:4.4.5"
-    react-virtuoso: "npm:4.12.8"
+    react-virtuoso: "npm:4.13.0"
     react-window: "npm:1.8.11"
     reactflow: "npm:11.11.4"
     remark-gfm: "npm:4.0.1"
@@ -643,7 +643,7 @@ __metadata:
     "@local/eslint": "npm:0.0.0-private"
     "@local/hash-backend-utils": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
-    "@types/node": "npm:22.15.31"
+    "@types/node": "npm:22.15.32"
     "@types/set-interval-async": "npm:1.0.3"
     eslint: "npm:9.20.1"
     set-interval-async: "npm:2.0.3"
@@ -662,7 +662,7 @@ __metadata:
     "@local/hash-backend-utils": "npm:0.0.0-private"
     "@local/hash-isomorphic-utils": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
-    "@types/node": "npm:22.15.31"
+    "@types/node": "npm:22.15.32"
     eslint: "npm:9.20.1"
     hot-shots: "npm:8.5.2"
     tsx: "npm:4.20.3"
@@ -711,7 +711,7 @@ __metadata:
     "@local/tsconfig": "npm:0.0.0-private"
     "@modelcontextprotocol/sdk": "npm:1.12.3"
     "@types/dotenv-flow": "npm:3.3.3"
-    "@types/node": "npm:22.15.31"
+    "@types/node": "npm:22.15.32"
     chokidar-cli: "npm:3.0.0"
     dotenv-flow: "npm:3.3.0"
     eslint: "npm:9.20.1"
@@ -735,7 +735,7 @@ __metadata:
     "@modelcontextprotocol/sdk": "npm:1.12.3"
     "@notionhq/client": "npm:2.3.0"
     "@types/dotenv-flow": "npm:3.3.3"
-    "@types/node": "npm:22.15.31"
+    "@types/node": "npm:22.15.32"
     chokidar-cli: "npm:3.0.0"
     dotenv-flow: "npm:3.3.0"
     eslint: "npm:9.20.1"
@@ -4278,7 +4278,7 @@ __metadata:
     "@local/eslint": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     "@types/lodash.isequal": "npm:4.5.8"
-    "@types/node": "npm:22.15.31"
+    "@types/node": "npm:22.15.32"
     "@types/react": "npm:19.1.8"
     ajv: "npm:8.17.1"
     ajv-formats: "npm:3.0.1"
@@ -4348,7 +4348,7 @@ __metadata:
     "@rollup/plugin-node-resolve": "npm:16.0.1"
     "@rollup/plugin-typescript": "npm:12.1.2"
     "@rollup/plugin-wasm": "npm:6.2.2"
-    "@types/node": "npm:22.15.31"
+    "@types/node": "npm:22.15.32"
     "@types/react": "npm:19.1.8"
     "@vitest/coverage-istanbul": "npm:3.2.3"
     eslint: "npm:9.20.1"
@@ -4979,13 +4979,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@effect/vitest@npm:0.23.7":
-  version: 0.23.7
-  resolution: "@effect/vitest@npm:0.23.7"
+"@effect/vitest@npm:0.23.8":
+  version: 0.23.8
+  resolution: "@effect/vitest@npm:0.23.8"
   peerDependencies:
-    effect: ^3.16.7
+    effect: ^3.16.8
     vitest: ^3.0.0
-  checksum: 10c0/c9d8ee9e77aec6569ab1ac96b9f4354ab41df8e62a32a627791204a286733da003fd875f67686869e8467dc483a594bbba742867a8f332aa9f8ac615b077ec83
+  checksum: 10c0/e7d191a87b2e6cba5b1e93e14c96934f8fa604f1dc9477b543235b86a2ddf8094b12c4c093d17b3caf52ec1fb3287d9f8a283f7842d3c1a84f61c0b920722a8f
   languageName: node
   linkType: hard
 
@@ -8827,7 +8827,7 @@ __metadata:
     "@local/tsconfig": "npm:0.0.0-private"
     "@types/babel__core": "npm:^7"
     "@types/eslint__eslintrc": "npm:2.1.2"
-    "@types/node": "npm:22.15.31"
+    "@types/node": "npm:22.15.32"
     effect: "npm:3.13.11"
     eslint: "npm:9.20.1"
     eslint-config-airbnb: "npm:19.0.4"
@@ -8855,7 +8855,7 @@ __metadata:
     "@chainsafe/libp2p-yamux": "npm:7.0.1"
     "@effect/platform": "npm:0.79.2"
     "@effect/platform-node": "npm:0.75.2"
-    "@effect/vitest": "npm:0.23.7"
+    "@effect/vitest": "npm:0.23.8"
     "@libp2p/crypto": "npm:5.1.5"
     "@libp2p/identify": "npm:3.0.33"
     "@libp2p/interface": "npm:2.10.3"
@@ -8866,7 +8866,7 @@ __metadata:
     "@multiformats/dns": "npm:1.0.6"
     "@multiformats/multiaddr": "npm:12.4.1"
     "@rust/harpc-wire-protocol": "npm:0.0.0-private"
-    "@types/node": "npm:22.15.31"
+    "@types/node": "npm:22.15.32"
     "@vitest/coverage-istanbul": "npm:3.2.3"
     effect: "npm:3.13.11"
     eslint: "npm:9.20.1"
@@ -8910,7 +8910,7 @@ __metadata:
     "@temporalio/worker": "npm:1.11.8"
     "@temporalio/workflow": "npm:1.11.8"
     "@types/dotenv-flow": "npm:3.3.3"
-    "@types/node": "npm:22.15.31"
+    "@types/node": "npm:22.15.32"
     "@types/uuid": "npm:10.0.0"
     "@types/wait-on": "npm:5.3.4"
     "@vitest/coverage-istanbul": "npm:3.2.3"
@@ -8940,7 +8940,7 @@ __metadata:
     "@local/tsconfig": "npm:0.0.0-private"
     "@openapitools/openapi-generator-cli": "npm:2.20.2"
     "@rust/hash-graph-api": "npm:0.0.0-private"
-    "@types/node": "npm:22.15.31"
+    "@types/node": "npm:22.15.32"
     axios: "npm:1.10.0"
     fix-esm-import-path: "npm:1.10.1"
     rimraf: "npm:6.0.1"
@@ -8960,6 +8960,7 @@ __metadata:
     "@local/hash-graph-client": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     "@rust/hash-graph-authorization": "npm:0.0.0-private"
+    "@rust/hash-graph-store": "npm:0.0.0-private"
     "@vitest/coverage-istanbul": "npm:3.2.3"
     effect: "npm:3.13.11"
     eslint: "npm:9.20.1"
@@ -8991,7 +8992,7 @@ __metadata:
     "@temporalio/workflow": "npm:1.11.8"
     "@types/big.js": "npm:6.2.2"
     "@types/lodash-es": "npm:4.17.12"
-    "@types/node": "npm:22.15.31"
+    "@types/node": "npm:22.15.32"
     "@types/pluralize": "npm:0.0.33"
     "@vitest/coverage-istanbul": "npm:3.2.3"
     apollo-server-express: "npm:3.9.0"
@@ -9027,7 +9028,7 @@ __metadata:
   resolution: "@local/internal-api-client@workspace:libs/@local/internal-api-client/typescript"
   dependencies:
     "@openapitools/openapi-generator-cli": "npm:2.20.2"
-    "@types/node": "npm:22.15.31"
+    "@types/node": "npm:22.15.32"
     axios: "npm:1.10.0"
     rimraf: "npm:6.0.1"
     typescript: "npm:5.7.3"
@@ -9070,7 +9071,7 @@ __metadata:
     "@local/eslint": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     "@types/lodash-es": "npm:4.17.12"
-    "@types/node": "npm:22.15.31"
+    "@types/node": "npm:22.15.32"
     "@types/yargs": "npm:17.0.33"
     eslint: "npm:9.20.1"
     execa: "npm:5.1.1"
@@ -12798,12 +12799,15 @@ __metadata:
   resolution: "@rust/hash-graph-store@workspace:libs/@local/graph/store"
   dependencies:
     "@blockprotocol/type-system-rs": "npm:0.0.0-private"
+    "@local/tsconfig": "npm:0.0.0-private"
     "@rust/error-stack": "npm:0.5.0"
     "@rust/hash-codec": "npm:0.0.0-private"
+    "@rust/hash-codegen": "npm:0.0.0-private"
     "@rust/hash-graph-authorization": "npm:0.0.0-private"
     "@rust/hash-graph-temporal-versioning": "npm:0.0.0-private"
     "@rust/hash-graph-types": "npm:0.0.0-private"
     "@rust/hash-temporal-client": "npm:0.0.0-private"
+    typescript: "npm:5.7.3"
   languageName: unknown
   linkType: soft
 
@@ -17697,10 +17701,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/google.accounts@npm:0.0.16":
-  version: 0.0.16
-  resolution: "@types/google.accounts@npm:0.0.16"
-  checksum: 10c0/a179216e8afbd9d249bbdb6784027b076be1375bad6a506123d0d41199016e7f2b04ac867ad17269aa5943254d3bb0f92b20d952b136d677a1ba91dd3d462b78
+"@types/google.accounts@npm:0.0.17":
+  version: 0.0.17
+  resolution: "@types/google.accounts@npm:0.0.17"
+  checksum: 10c0/4c0f0932f7228d7d162ff7cf69f03fd2a97319094fdbbd99cf9c207e026c2d8a56d02083d633e47574621baff432179e8d68b6e48fb35b4fb33e60ddb08a0fe7
   languageName: node
   linkType: hard
 
@@ -18026,12 +18030,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/node@npm:*, @types/node@npm:22.15.31, @types/node@npm:>=13.7.0, @types/node@npm:^22.9.0":
-  version: 22.15.31
-  resolution: "@types/node@npm:22.15.31"
+"@types/node@npm:*, @types/node@npm:22.15.32, @types/node@npm:>=13.7.0, @types/node@npm:^22.9.0":
+  version: 22.15.32
+  resolution: "@types/node@npm:22.15.32"
   dependencies:
     undici-types: "npm:~6.21.0"
-  checksum: 10c0/ef7d5dc890da41cfd554d35ab8998bc18be9e3a0caa642e720599ac4410a94a4879766e52b3c9cafa06c66b7b8aebdc51f322cf67df23a6489927890196a316d
+  checksum: 10c0/63a2fa52adf1134d1b3bee8b1862d4b8e4550fffc190551068d3d41a41d9e5c0c8f1cb81faa18767b260637360f662115c26c5e4e7718868ead40c4a57cbc0e3
   languageName: node
   linkType: hard
 
@@ -28861,7 +28865,7 @@ __metadata:
     "@changesets/changelog-github": "npm:0.5.1"
     "@changesets/cli": "patch:@changesets/cli@npm%3A2.26.0#~/.yarn/patches/@changesets-cli-npm-2.26.0-49d5c5f72d.patch"
     "@yarnpkg/types": "npm:^4.0.0"
-    lefthook: "npm:1.11.13"
+    lefthook: "npm:1.11.14"
     npm-run-all2: "npm:7.0.2"
   languageName: unknown
   linkType: soft
@@ -32059,90 +32063,90 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lefthook-darwin-arm64@npm:1.11.13":
-  version: 1.11.13
-  resolution: "lefthook-darwin-arm64@npm:1.11.13"
+"lefthook-darwin-arm64@npm:1.11.14":
+  version: 1.11.14
+  resolution: "lefthook-darwin-arm64@npm:1.11.14"
   conditions: os=darwin & cpu=arm64
   languageName: node
   linkType: hard
 
-"lefthook-darwin-x64@npm:1.11.13":
-  version: 1.11.13
-  resolution: "lefthook-darwin-x64@npm:1.11.13"
+"lefthook-darwin-x64@npm:1.11.14":
+  version: 1.11.14
+  resolution: "lefthook-darwin-x64@npm:1.11.14"
   conditions: os=darwin & cpu=x64
   languageName: node
   linkType: hard
 
-"lefthook-freebsd-arm64@npm:1.11.13":
-  version: 1.11.13
-  resolution: "lefthook-freebsd-arm64@npm:1.11.13"
+"lefthook-freebsd-arm64@npm:1.11.14":
+  version: 1.11.14
+  resolution: "lefthook-freebsd-arm64@npm:1.11.14"
   conditions: os=freebsd & cpu=arm64
   languageName: node
   linkType: hard
 
-"lefthook-freebsd-x64@npm:1.11.13":
-  version: 1.11.13
-  resolution: "lefthook-freebsd-x64@npm:1.11.13"
+"lefthook-freebsd-x64@npm:1.11.14":
+  version: 1.11.14
+  resolution: "lefthook-freebsd-x64@npm:1.11.14"
   conditions: os=freebsd & cpu=x64
   languageName: node
   linkType: hard
 
-"lefthook-linux-arm64@npm:1.11.13":
-  version: 1.11.13
-  resolution: "lefthook-linux-arm64@npm:1.11.13"
+"lefthook-linux-arm64@npm:1.11.14":
+  version: 1.11.14
+  resolution: "lefthook-linux-arm64@npm:1.11.14"
   conditions: os=linux & cpu=arm64
   languageName: node
   linkType: hard
 
-"lefthook-linux-x64@npm:1.11.13":
-  version: 1.11.13
-  resolution: "lefthook-linux-x64@npm:1.11.13"
+"lefthook-linux-x64@npm:1.11.14":
+  version: 1.11.14
+  resolution: "lefthook-linux-x64@npm:1.11.14"
   conditions: os=linux & cpu=x64
   languageName: node
   linkType: hard
 
-"lefthook-openbsd-arm64@npm:1.11.13":
-  version: 1.11.13
-  resolution: "lefthook-openbsd-arm64@npm:1.11.13"
+"lefthook-openbsd-arm64@npm:1.11.14":
+  version: 1.11.14
+  resolution: "lefthook-openbsd-arm64@npm:1.11.14"
   conditions: os=openbsd & cpu=arm64
   languageName: node
   linkType: hard
 
-"lefthook-openbsd-x64@npm:1.11.13":
-  version: 1.11.13
-  resolution: "lefthook-openbsd-x64@npm:1.11.13"
+"lefthook-openbsd-x64@npm:1.11.14":
+  version: 1.11.14
+  resolution: "lefthook-openbsd-x64@npm:1.11.14"
   conditions: os=openbsd & cpu=x64
   languageName: node
   linkType: hard
 
-"lefthook-windows-arm64@npm:1.11.13":
-  version: 1.11.13
-  resolution: "lefthook-windows-arm64@npm:1.11.13"
+"lefthook-windows-arm64@npm:1.11.14":
+  version: 1.11.14
+  resolution: "lefthook-windows-arm64@npm:1.11.14"
   conditions: os=win32 & cpu=arm64
   languageName: node
   linkType: hard
 
-"lefthook-windows-x64@npm:1.11.13":
-  version: 1.11.13
-  resolution: "lefthook-windows-x64@npm:1.11.13"
+"lefthook-windows-x64@npm:1.11.14":
+  version: 1.11.14
+  resolution: "lefthook-windows-x64@npm:1.11.14"
   conditions: os=win32 & cpu=x64
   languageName: node
   linkType: hard
 
-"lefthook@npm:1.11.13":
-  version: 1.11.13
-  resolution: "lefthook@npm:1.11.13"
+"lefthook@npm:1.11.14":
+  version: 1.11.14
+  resolution: "lefthook@npm:1.11.14"
   dependencies:
-    lefthook-darwin-arm64: "npm:1.11.13"
-    lefthook-darwin-x64: "npm:1.11.13"
-    lefthook-freebsd-arm64: "npm:1.11.13"
-    lefthook-freebsd-x64: "npm:1.11.13"
-    lefthook-linux-arm64: "npm:1.11.13"
-    lefthook-linux-x64: "npm:1.11.13"
-    lefthook-openbsd-arm64: "npm:1.11.13"
-    lefthook-openbsd-x64: "npm:1.11.13"
-    lefthook-windows-arm64: "npm:1.11.13"
-    lefthook-windows-x64: "npm:1.11.13"
+    lefthook-darwin-arm64: "npm:1.11.14"
+    lefthook-darwin-x64: "npm:1.11.14"
+    lefthook-freebsd-arm64: "npm:1.11.14"
+    lefthook-freebsd-x64: "npm:1.11.14"
+    lefthook-linux-arm64: "npm:1.11.14"
+    lefthook-linux-x64: "npm:1.11.14"
+    lefthook-openbsd-arm64: "npm:1.11.14"
+    lefthook-openbsd-x64: "npm:1.11.14"
+    lefthook-windows-arm64: "npm:1.11.14"
+    lefthook-windows-x64: "npm:1.11.14"
   dependenciesMeta:
     lefthook-darwin-arm64:
       optional: true
@@ -32166,7 +32170,7 @@ __metadata:
       optional: true
   bin:
     lefthook: bin/index.js
-  checksum: 10c0/0356293c6bf81d499356d16f3c94101695112d6f9fe8f276f7db91e893906965515b27145895a230e794e380e9596c4c3f9abc163c363b92298c5d7277a326d2
+  checksum: 10c0/bc2e7b9c895c1b9092846e0d2de8fafe88eabb82a4894eda80aee7dc50015caf4fcffa64f432d7473d417beed0025ab0824dc031d772d97b76ba14c3860589a1
   languageName: node
   linkType: hard
 
@@ -38600,13 +38604,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-virtuoso@npm:4.12.8":
-  version: 4.12.8
-  resolution: "react-virtuoso@npm:4.12.8"
+"react-virtuoso@npm:4.13.0":
+  version: 4.13.0
+  resolution: "react-virtuoso@npm:4.13.0"
   peerDependencies:
     react: ">=16 || >=17 || >= 18 || >= 19"
     react-dom: ">=16 || >=17 || >= 18 || >=19"
-  checksum: 10c0/71061be28539dab60f530c680ab66c234bd2fc552cf3411612372f539a6eacbdba013fad26c70f44f2b56d95562b30e164cb923171ecce423a1cf4fad7fbe6f2
+  checksum: 10c0/cbac1105a2a319170d771d1a60c8a78a47e1ae13bad319129a14ef65685ad33332747334a5f3f5965cbbb9bcaa17e118aaa067a2d832e1f97540f47e83df6358
   languageName: node
   linkType: hard
 

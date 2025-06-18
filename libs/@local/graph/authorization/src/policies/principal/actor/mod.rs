@@ -7,12 +7,59 @@ use std::sync::LazyLock;
 
 use cedar_policy_core::ast;
 use error_stack::{Report, ResultExt as _};
-use type_system::principal::actor::{Actor, ActorId, AiId, MachineId, UserId};
+use type_system::principal::actor::{Actor, ActorEntityUuid, ActorId, AiId, MachineId, UserId};
 
 use crate::policies::{
     cedar::{FromCedarEntityId as _, FromCedarEntityUId, ToCedarEntity, ToCedarEntityId},
     error::FromCedarRefernceError,
 };
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum AuthenticatedActor {
+    Public,
+    Id(ActorId),
+    Uuid(ActorEntityUuid),
+}
+
+impl From<AuthenticatedActor> for ActorEntityUuid {
+    fn from(authenticated_actor: AuthenticatedActor) -> Self {
+        match authenticated_actor {
+            AuthenticatedActor::Public => Self::public_actor(),
+            AuthenticatedActor::Id(actor_id) => Self::new(actor_id),
+            AuthenticatedActor::Uuid(actor_uuid) => actor_uuid,
+        }
+    }
+}
+
+impl From<ActorId> for AuthenticatedActor {
+    fn from(actor_id: ActorId) -> Self {
+        Self::Id(actor_id)
+    }
+}
+
+impl From<MachineId> for AuthenticatedActor {
+    fn from(machine_id: MachineId) -> Self {
+        Self::Id(machine_id.into())
+    }
+}
+
+impl From<UserId> for AuthenticatedActor {
+    fn from(user_id: UserId) -> Self {
+        Self::Id(user_id.into())
+    }
+}
+
+impl From<AiId> for AuthenticatedActor {
+    fn from(ai_id: AiId) -> Self {
+        Self::Id(ai_id.into())
+    }
+}
+
+impl From<ActorEntityUuid> for AuthenticatedActor {
+    fn from(actor_uuid: ActorEntityUuid) -> Self {
+        Self::Uuid(actor_uuid)
+    }
+}
 
 pub struct PublicActor;
 

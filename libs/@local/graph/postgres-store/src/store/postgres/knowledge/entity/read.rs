@@ -2,6 +2,7 @@ use alloc::borrow::Cow;
 use core::mem::swap;
 
 use error_stack::{Report, ResultExt as _};
+use hash_graph_authorization::{AuthorizationApi, schema::EntityPermission, zanzibar::Consistency};
 use hash_graph_store::{
     error::QueryError,
     subgraph::{
@@ -18,12 +19,15 @@ use tracing::Instrument as _;
 use type_system::{
     knowledge::entity::id::{EntityEditionId, EntityId, EntityUuid},
     ontology::id::{BaseUrl, OntologyTypeUuid},
-    principal::actor_group::WebId,
+    principal::{actor::ActorEntityUuid, actor_group::WebId},
 };
 
-use crate::store::postgres::{
-    AsClient, PostgresStore,
-    query::{ForeignKeyReference, ReferenceTable, Table, Transpile as _},
+use crate::store::{
+    StoreProvider,
+    postgres::{
+        AsClient, PostgresStore,
+        query::{ForeignKeyReference, ReferenceTable, Table, Transpile as _},
+    },
 };
 
 #[derive(Debug)]
@@ -85,7 +89,7 @@ pub struct KnowledgeEdgeTraversal {
 impl<C, A> PostgresStore<C, A>
 where
     C: AsClient,
-    A: Send + Sync,
+    A: AuthorizationApi + Send + Sync,
 {
     #[tracing::instrument(level = "trace", skip(self))]
     pub(crate) async fn read_shared_edges<'t>(
@@ -176,14 +180,15 @@ where
             }))
     }
 
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "trace", skip(self, provider))]
+    #[expect(clippy::too_many_lines)]
     pub(crate) async fn read_knowledge_edges<'t>(
         &self,
         traversal_data: &'t EntityEdgeTraversalData,
         reference_table: ReferenceTable,
         edge_direction: EdgeDirection,
-    ) -> Result<impl Iterator<Item = (EntityId, KnowledgeEdgeTraversal)> + 't, Report<QueryError>>
-    {
+        provider: &StoreProvider<'_, Self>,
+    ) -> Result<impl Iterator<Item = KnowledgeEdgeTraversal> + 't, Report<QueryError>> {
         let (pinned_axis, variable_axis) = match traversal_data.variable_axis {
             TimeAxis::DecisionTime => ("transaction_time", "decision_time"),
             TimeAxis::TransactionTime => ("decision_time", "transaction_time"),
@@ -214,7 +219,7 @@ where
             swap(&mut source_2, &mut target_2);
         }
 
-        Ok(self
+        let (entity_ids, knowledge_edges) = self
             .client
             .as_client()
             .query(
@@ -290,6 +295,43 @@ where
                         traversal_interval: row.get(6),
                     },
                 )
-            }))
+            })
+            .collect::<(Vec<_>, Vec<_>)>();
+
+        let permissions = if let Some(policy_components) = provider.policy_components {
+            Some(
+                provider
+                    .store
+                    .authorization_api
+                    .check_entities_permission(
+                        policy_components
+                            .actor_id
+                            .map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from),
+                        EntityPermission::View,
+                        // TODO: Filter for entities, which were not already added to the
+                        //       subgraph to avoid unnecessary lookups.
+                        entity_ids.iter().copied(),
+                        Consistency::FullyConsistent,
+                    )
+                    .await
+                    .change_context(QueryError)?
+                    .0,
+            )
+        } else {
+            None
+        };
+
+        Ok(knowledge_edges.into_iter().filter(move |edge| {
+            let Some(permissions) = &permissions else {
+                return true;
+            };
+
+            // We can unwrap here because we checked permissions for all
+            // entities in question.
+            permissions
+                .get(&edge.right_endpoint.base_id.entity_uuid)
+                .copied()
+                .unwrap_or(true)
+        }))
     }
 }

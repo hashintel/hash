@@ -6,7 +6,9 @@ use cedar_policy_core::{ast, extensions::Extensions};
 use error_stack::{Report, ResultExt as _};
 use smol_str::SmolStr;
 use type_system::{
-    knowledge::entity::id::EntityUuid, ontology::VersionedUrl, principal::actor_group::WebId,
+    knowledge::entity::{EntityId, id::EntityUuid},
+    ontology::VersionedUrl,
+    principal::actor_group::WebId,
 };
 use uuid::Uuid;
 
@@ -19,8 +21,7 @@ use crate::policies::cedar::{
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct EntityResource<'a> {
-    pub web_id: WebId,
-    pub id: EntityUuid,
+    pub id: EntityId,
     pub entity_type: Cow<'a, [VersionedUrl]>,
 }
 
@@ -124,7 +125,7 @@ impl FromCedarExpr for EntityResourceFilter {
 impl EntityResource<'_> {
     pub(crate) fn to_cedar_entity(&self) -> ast::Entity {
         ast::Entity::new(
-            self.id.to_euid(),
+            self.id.entity_uuid.to_euid(),
             [(
                 SmolStr::new_static("entity_types"),
                 ast::RestrictedExpr::set(
@@ -134,7 +135,7 @@ impl EntityResource<'_> {
                 ),
             )],
             HashSet::new(),
-            iter::once(self.web_id.to_euid()).collect(),
+            iter::once(self.id.web_id.to_euid()).collect(),
             iter::empty(),
             Extensions::none(),
         )

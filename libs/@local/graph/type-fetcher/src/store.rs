@@ -6,14 +6,17 @@ use error_stack::{Report, ResultExt as _};
 use hash_graph_authorization::{
     AuthorizationApi,
     policies::{
-        Policy, PolicyId,
+        ContextBuilder, Policy, PolicyId,
+        principal::actor::AuthenticatedActor,
+        resource::{EntityResource, EntityTypeResource},
         store::{
             CreateWebParameter, CreateWebResponse, PolicyCreationParams, PolicyFilter, PolicyStore,
             PolicyUpdateOperation, PrincipalStore, RoleAssignmentStatus, RoleUnassignmentStatus,
             error::{
-                CreatePolicyError, EnsureSystemPoliciesError, GetPoliciesError,
-                GetSystemAccountError, RemovePolicyError, RoleAssignmentError, TeamRoleError,
-                UpdatePolicyError, WebCreationError, WebRoleError,
+                BuildEntityContextError, BuildEntityTypeContextError, BuildPrincipalContextError,
+                CreatePolicyError, DetermineActorError, EnsureSystemPoliciesError,
+                GetPoliciesError, GetSystemAccountError, RemovePolicyError, RoleAssignmentError,
+                TeamRoleError, UpdatePolicyError, WebCreationError, WebRoleError,
             },
         },
     },
@@ -76,7 +79,10 @@ use tracing::Instrument as _;
 use type_system::{
     knowledge::{
         Entity,
-        entity::{EntityId, id::EntityUuid},
+        entity::{
+            EntityId,
+            id::{EntityEditionId, EntityUuid},
+        },
     },
     ontology::{
         OntologyTemporalMetadata, OntologyTypeMetadata, OntologyTypeReference, OntologyTypeSchema,
@@ -185,8 +191,8 @@ pub struct FetchingStore<S, A> {
 
 impl<S, A> PrincipalStore for FetchingStore<S, A>
 where
-    S: PrincipalStore + Send,
-    A: Send,
+    S: PrincipalStore + Send + Sync,
+    A: Send + Sync,
 {
     async fn get_or_create_system_machine(
         &mut self,
@@ -258,6 +264,23 @@ where
             .unassign_role(actor_id, actor_to_unassign, actor_group_id, name)
             .await
     }
+
+    async fn determine_actor(
+        &self,
+        actor_entity_uuid: ActorEntityUuid,
+    ) -> Result<Option<ActorId>, Report<DetermineActorError>> {
+        self.store.determine_actor(actor_entity_uuid).await
+    }
+
+    async fn build_principal_context(
+        &self,
+        actor_id: ActorId,
+        context_builder: &mut ContextBuilder,
+    ) -> Result<(), Report<BuildPrincipalContextError>> {
+        self.store
+            .build_principal_context(actor_id, context_builder)
+            .await
+    }
 }
 
 impl<S, A> PolicyStore for FetchingStore<S, A>
@@ -267,7 +290,7 @@ where
 {
     async fn create_policy(
         &mut self,
-        authenticated_actor: ActorEntityUuid,
+        authenticated_actor: AuthenticatedActor,
         policy: PolicyCreationParams,
     ) -> Result<PolicyId, Report<CreatePolicyError>> {
         self.store.create_policy(authenticated_actor, policy).await
@@ -275,7 +298,7 @@ where
 
     async fn get_policy_by_id(
         &self,
-        authenticated_actor: ActorEntityUuid,
+        authenticated_actor: AuthenticatedActor,
         id: PolicyId,
     ) -> Result<Option<Policy>, Report<GetPoliciesError>> {
         self.store.get_policy_by_id(authenticated_actor, id).await
@@ -283,7 +306,7 @@ where
 
     async fn query_policies(
         &self,
-        authenticated_actor: ActorEntityUuid,
+        authenticated_actor: AuthenticatedActor,
         filter: &PolicyFilter,
     ) -> Result<Vec<Policy>, Report<GetPoliciesError>> {
         self.store.query_policies(authenticated_actor, filter).await
@@ -291,7 +314,7 @@ where
 
     async fn resolve_policies_for_actor(
         &self,
-        authenticated_actor: ActorEntityUuid,
+        authenticated_actor: AuthenticatedActor,
         actor_id: Option<ActorId>,
     ) -> Result<Vec<Policy>, Report<GetPoliciesError>> {
         self.store
@@ -301,7 +324,7 @@ where
 
     async fn update_policy_by_id(
         &mut self,
-        authenticated_actor: ActorEntityUuid,
+        authenticated_actor: AuthenticatedActor,
         policy_id: PolicyId,
         operations: &[PolicyUpdateOperation],
     ) -> Result<Policy, Report<UpdatePolicyError>> {
@@ -312,7 +335,7 @@ where
 
     async fn archive_policy_by_id(
         &mut self,
-        authenticated_actor: ActorEntityUuid,
+        authenticated_actor: AuthenticatedActor,
         policy_id: PolicyId,
     ) -> Result<(), Report<RemovePolicyError>> {
         self.store
@@ -322,7 +345,7 @@ where
 
     async fn delete_policy_by_id(
         &mut self,
-        authenticated_actor: ActorEntityUuid,
+        authenticated_actor: AuthenticatedActor,
         policy_id: PolicyId,
     ) -> Result<(), Report<RemovePolicyError>> {
         self.store
@@ -332,6 +355,20 @@ where
 
     async fn seed_system_policies(&mut self) -> Result<(), Report<EnsureSystemPoliciesError>> {
         self.store.seed_system_policies().await
+    }
+
+    async fn build_entity_type_context(
+        &self,
+        entity_type_ids: &[&VersionedUrl],
+    ) -> Result<Vec<EntityTypeResource<'_>>, Report<[BuildEntityTypeContextError]>> {
+        self.store.build_entity_type_context(entity_type_ids).await
+    }
+
+    async fn build_entity_context(
+        &self,
+        entity_edition_ids: &[EntityEditionId],
+    ) -> Result<Vec<EntityResource<'static>>, Report<[BuildEntityContextError]>> {
+        self.store.build_entity_context(entity_edition_ids).await
     }
 }
 
@@ -518,6 +555,7 @@ where
     }
 
     #[tracing::instrument(level = "debug", skip(self, ontology_type_references))]
+    #[expect(clippy::too_many_lines)]
     async fn fetch_external_ontology_types(
         &self,
         actor_id: ActorEntityUuid,
@@ -753,6 +791,7 @@ where
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
+    #[expect(clippy::too_many_lines)]
     async fn insert_external_types_by_reference(
         &mut self,
         actor_id: ActorEntityUuid,
@@ -1574,7 +1613,7 @@ where
         actor_id: ActorEntityUuid,
         consistency: Consistency<'_>,
         params: Vec<ValidateEntityParams<'_>>,
-    ) -> HashMap<usize, EntityValidationReport> {
+    ) -> Result<HashMap<usize, EntityValidationReport>, Report<QueryError>> {
         self.store
             .validate_entities(actor_id, consistency, params)
             .await

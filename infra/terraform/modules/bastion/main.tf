@@ -21,16 +21,15 @@ data "aws_ami" "amazon_linux" {
     name = "name"
 
     # list with the following command to update:
-    # `aws ec2 describe-images --owners amazon --filters "Name=name,Values=amzn2-ami-hvm-*-x86_64-gp2" | jq '.Images | sort_by(.CreationDate) | reverse'`
-    # We don't wilcard here to not accidentialy update to a non-functioning image.
+    # `aws ec2 describe-images --owners amazon --filters "Name=name,Values=al2023-ami-ecs-hvm-*-x86_64" | jq '.Images | sort_by(.CreationDate) | reverse'`
+    # We don't wildcard here to not accidentally update to a non-functioning image.
     values = [
-      "amzn2-ami-hvm-2.0.20250610.0-x86_64-gp2",
+      "al2023-ami-ecs-hvm-2023.0.20250610-kernel-6.1-x86_64",
     ]
   }
 
   filter {
     name = "owner-alias"
-
     values = [
       "amazon",
     ]
