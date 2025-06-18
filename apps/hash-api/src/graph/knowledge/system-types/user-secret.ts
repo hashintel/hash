@@ -21,7 +21,6 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { UsesUserSecret } from "@local/hash-isomorphic-utils/system-types/google/shared";
 import type { UserSecret } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { PrincipalConstraint } from "@rust/hash-graph-authorization/types";
 import type { Auth } from "googleapis";
 
 import { createEntity } from "../primitive/entity";
@@ -181,19 +180,6 @@ export const createUserSecret = async <
     );
   }
 
-  const viewPrincipals: PrincipalConstraint[] = [
-    {
-      type: "actor",
-      actorType: "user",
-      id: userAccountId,
-    },
-    {
-      type: "actor",
-      actorType: "machine",
-      id: managingBotAccountId,
-    },
-  ];
-
   const userSecretEntityUuid = generateUuid() as EntityUuid;
   const usesUserSecretEntityUuid = generateUuid() as EntityUuid;
 
@@ -206,16 +192,18 @@ export const createUserSecret = async <
       entityUuid: userSecretEntityUuid,
       properties: secretMetadata,
       relationships: botEditorUserViewerOnly,
-      policies: viewPrincipals.map((principal) => ({
-        name: `user-secret-view-entity-${userSecretEntityUuid}`,
-        principal,
-        effect: "permit",
-        actions: ["viewEntity"],
-        resource: {
-          type: "entity",
-          id: userSecretEntityUuid,
+      policies: [
+        {
+          name: `user-secret-view-entity-${userSecretEntityUuid}`,
+          principal: {
+            type: "actor",
+            actorType: "machine",
+            id: managingBotAccountId,
+          },
+          effect: "permit",
+          actions: ["viewEntity"],
         },
-      })),
+      ],
     },
   );
 
@@ -233,16 +221,18 @@ export const createUserSecret = async <
       },
       entityTypeIds: [systemLinkEntityTypes.usesUserSecret.linkEntityTypeId],
       relationships: botEditorUserViewerOnly,
-      policies: viewPrincipals.map((principal) => ({
-        name: `user-secret-view-entity-${usesUserSecretEntityUuid}`,
-        principal,
-        effect: "permit",
-        actions: ["viewEntity"],
-        resource: {
-          type: "entity",
-          id: usesUserSecretEntityUuid,
+      policies: [
+        {
+          name: `user-secret-view-entity-${userSecretEntityUuid}`,
+          principal: {
+            type: "actor",
+            actorType: "machine",
+            id: managingBotAccountId,
+          },
+          effect: "permit",
+          actions: ["viewEntity"],
         },
-      })),
+      ],
     },
   );
 

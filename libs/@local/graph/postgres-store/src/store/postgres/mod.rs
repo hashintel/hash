@@ -11,8 +11,8 @@ use alloc::{borrow::Cow, sync::Arc};
 use core::{fmt::Debug, hash::Hash};
 use std::collections::{HashMap, HashSet};
 
-use error_stack::{Report, ReportSink, ResultExt as _, TryReportIteratorExt as _};
-use futures::TryStreamExt as _;
+use error_stack::{Report, ReportSink, ResultExt as _, TryReportStreamExt as _};
+use futures::{StreamExt as _, TryStreamExt as _};
 use hash_graph_authorization::{
     AuthorizationApi,
     backend::ModifyRelationshipOperation,
@@ -1728,7 +1728,7 @@ where
     ) -> Result<Vec<EntityTypeResource<'_>>, Report<[BuildEntityTypeContextError]>> {
         let () = self
             .as_client()
-            .query(
+            .query_raw(
                 "
                     SELECT input.idx
                     FROM unnest($1::text[]) WITH ORDINALITY AS input(url, idx)
@@ -1736,12 +1736,12 @@ where
                         SELECT 1 FROM entity_types
                         WHERE entity_types.schema ->> '$id' = input.url
                     )",
-                &[&entity_type_ids],
+                [&entity_type_ids],
             )
             .await
             .change_context(BuildEntityTypeContextError::StoreError)?
-            .into_iter()
             .map(|row| {
+                let row = row.change_context(BuildEntityTypeContextError::StoreError)?;
                 #[expect(
                     clippy::cast_possible_truncation,
                     clippy::cast_sign_loss,
@@ -1755,6 +1755,7 @@ where
                 ))
             })
             .try_collect_reports()
+            .await
             .attach(StatusCode::NotFound)?;
 
         Ok(self
@@ -1813,7 +1814,7 @@ where
     ) -> Result<Vec<EntityResource<'static>>, Report<[BuildEntityContextError]>> {
         let () = self
             .as_client()
-            .query(
+            .query_raw(
                 "
                     SELECT input.idx
                     FROM unnest($1::uuid[]) WITH ORDINALITY AS input(edition_id, idx)
@@ -1821,12 +1822,12 @@ where
                         SELECT 1 FROM entity_temporal_metadata
                         WHERE entity_temporal_metadata.entity_edition_id = input.edition_id
                     )",
-                &[&entity_edition_ids],
+                [&entity_edition_ids],
             )
             .await
             .change_context(BuildEntityContextError::StoreError)?
-            .into_iter()
             .map(|row| {
+                let row = row.change_context(BuildEntityContextError::StoreError)?;
                 #[expect(
                     clippy::cast_possible_truncation,
                     clippy::cast_sign_loss,
@@ -1838,6 +1839,7 @@ where
                 }))
             })
             .try_collect_reports()
+            .await
             .attach(StatusCode::NotFound)?;
 
         Ok(self
@@ -1848,19 +1850,29 @@ where
                         entity_temporal_metadata.web_id,
                         entity_temporal_metadata.entity_uuid,
                         entity_temporal_metadata.draft_id,
+                        created_by.id AS created_by_id,
+                        created_by.principal_type AS created_by_type,
                         array_agg(entity_types.schema ->> '$id') AS entity_type
                     FROM entity_temporal_metadata
+                    INNER JOIN entity_editions
+                        ON entity_temporal_metadata.entity_edition_id
+                           = entity_editions.entity_edition_id
+                    INNER JOIN actor AS created_by
+                        ON (entity_editions.provenance ->> 'createdById')::UUID
+                           = created_by.id
                     INNER JOIN entity_is_of_type
                         ON entity_temporal_metadata.entity_edition_id
                            = entity_is_of_type.entity_edition_id
                     INNER JOIN entity_types
                         ON entity_is_of_type.entity_type_ontology_id
                            = entity_types.ontology_id
-                    WHERE entity_temporal_metadata.entity_edition_id = ANY($1)
+                    WHERE entity_temporal_metadata.entity_edition_id = any($1::uuid[])
                     GROUP BY
                         entity_temporal_metadata.web_id,
                         entity_temporal_metadata.entity_uuid,
-                        entity_temporal_metadata.draft_id
+                        entity_temporal_metadata.draft_id,
+                        created_by.id,
+                        created_by.principal_type;
                  ",
                 [&entity_edition_ids],
             )
@@ -1872,7 +1884,18 @@ where
                     entity_uuid: row.get(1),
                     draft_id: row.get(2),
                 },
-                entity_type: Cow::Owned(row.get(3)),
+                entity_type: Cow::Owned(row.get(5)),
+                created_by: ActorId::new(
+                    row.get::<_, ActorEntityUuid>(3),
+                    match row.get(4) {
+                        PrincipalType::User => ActorType::User,
+                        PrincipalType::Machine => ActorType::Machine,
+                        PrincipalType::Ai => ActorType::Ai,
+                        principal_type => unreachable!(
+                            "Unexpected actor type `{principal_type:?}` in entity context"
+                        ),
+                    },
+                ),
             })
             .try_collect()
             .await

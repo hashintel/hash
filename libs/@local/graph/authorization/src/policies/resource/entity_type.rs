@@ -149,19 +149,19 @@ impl TryFrom<PolicyExpressionTree> for EntityTypeResourceFilter {
 }
 
 impl ToCedarExpr for EntityTypeResourceFilter {
-    fn to_cedar(&self) -> ast::Expr {
+    fn to_cedar_expr(&self) -> ast::Expr {
         match self {
             Self::All { filters } => filters
                 .iter()
-                .map(Self::to_cedar)
+                .map(Self::to_cedar_expr)
                 .reduce(ast::Expr::and)
                 .unwrap_or_else(|| ast::Expr::val(true)),
             Self::Any { filters } => filters
                 .iter()
-                .map(Self::to_cedar)
+                .map(Self::to_cedar_expr)
                 .reduce(ast::Expr::or)
                 .unwrap_or_else(|| ast::Expr::val(false)),
-            Self::Not { filter } => ast::Expr::not(filter.to_cedar()),
+            Self::Not { filter } => ast::Expr::not(filter.to_cedar_expr()),
             Self::IsBaseUrl { base_url } => ast::Expr::is_eq(
                 ast::Expr::get_attr(
                     ast::Expr::var(ast::Var::Resource),
@@ -247,7 +247,7 @@ impl EntityTypeResourceConstraint {
         match self {
             Self::Any { filter } => (
                 ast::ResourceConstraint::is_entity_type(Arc::clone(EntityTypeId::entity_type())),
-                filter.to_cedar(),
+                filter.to_cedar_expr(),
             ),
             Self::Exact { id } => (
                 ast::ResourceConstraint::is_eq(Arc::new(id.to_euid())),
@@ -258,7 +258,7 @@ impl EntityTypeResourceConstraint {
                     Arc::clone(EntityTypeId::entity_type()),
                     Arc::new(web_id.to_euid()),
                 ),
-                filter.to_cedar(),
+                filter.to_cedar_expr(),
             ),
         }
     }
