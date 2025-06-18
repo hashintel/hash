@@ -1,0 +1,13 @@
+//@ run: pass
+//@ description: Test that inference in argument position works correctly
+[
+  [
+    "fn",
+    { "#tuple": [] },
+    { "#struct": { "lhs": "_", "rhs": "_" } },
+    "_",
+    ["+", "lhs", "rhs"]
+  ],
+  { "#literal": 2 },
+  { "#literal": 3 }
+]
