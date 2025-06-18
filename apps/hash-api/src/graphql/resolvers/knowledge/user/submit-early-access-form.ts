@@ -2,7 +2,6 @@ import {
   extractEntityUuidFromEntityId,
   type WebId,
 } from "@blockprotocol/type-system";
-import { getInstanceAdminsTeam } from "@local/hash-backend-utils/hash-instance";
 import { createPolicy } from "@local/hash-graph-sdk/policy";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
@@ -29,11 +28,6 @@ export const submitEarlyAccessFormResolver: ResolverFn<
   const authentication = {
     actorId: systemAccountId,
   };
-
-  const { id: adminAccountGroupId } = await getInstanceAdminsTeam(
-    context,
-    authentication,
-  );
 
   const entity = await createEntity<ProspectiveUser>(
     context,
@@ -104,21 +98,21 @@ export const submitEarlyAccessFormResolver: ResolverFn<
             subjectId: systemAccountId,
           },
         },
-        {
-          relation: "viewer",
-          subject: {
-            kind: "accountGroup",
-            subjectId: adminAccountGroupId,
-            subjectSet: "member",
-          },
-        },
-        {
-          relation: "viewer",
-          subject: {
-            kind: "account",
-            subjectId: user.accountId,
-          },
-        },
+        // {
+        //   relation: "viewer",
+        //   subject: {
+        //     kind: "accountGroup",
+        //     subjectId: adminAccountGroupId,
+        //     subjectSet: "member",
+        //   },
+        // },
+        // {
+        //   relation: "viewer",
+        //   subject: {
+        //     kind: "account",
+        //     subjectId: user.accountId,
+        //   },
+        // },
         {
           relation: "setting",
           subject: {
@@ -126,13 +120,13 @@ export const submitEarlyAccessFormResolver: ResolverFn<
             subjectId: "administratorFromWeb",
           },
         },
-        {
-          relation: "setting",
-          subject: {
-            kind: "setting",
-            subjectId: "viewFromWeb",
-          },
-        },
+        // {
+        //   relation: "setting",
+        //   subject: {
+        //     kind: "setting",
+        //     subjectId: "viewFromWeb",
+        //   },
+        // },
       ],
     },
   );

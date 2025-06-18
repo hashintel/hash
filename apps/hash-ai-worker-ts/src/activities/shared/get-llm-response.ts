@@ -6,7 +6,6 @@ import type {
   UserId,
   WebId,
 } from "@blockprotocol/type-system";
-import { getInstanceAdminsTeam } from "@local/hash-backend-utils/hash-instance";
 import { createUsageRecord } from "@local/hash-backend-utils/service-usage";
 import type { GraphApi } from "@local/hash-graph-client";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
@@ -193,11 +192,6 @@ export const getLlmResponse = async <T extends LlmParams>(
     const { incurredInEntities } = usageTrackingParams;
 
     if (incurredInEntities.length > 0) {
-      const { id: hashInstanceAdminGroupId } = await getInstanceAdminsTeam(
-        { graphApi: graphApiClient },
-        { actorId: aiAssistantAccountId },
-      );
-
       const provenance: ProvidedEntityEditionProvenance = {
         actorType: "ai",
         origin: {
@@ -235,21 +229,21 @@ export const getLlmResponse = async <T extends LlmParams>(
                       subjectId: aiAssistantAccountId,
                     },
                   },
-                  {
-                    relation: "setting",
-                    subject: {
-                      kind: "setting",
-                      subjectId: "viewFromWeb",
-                    },
-                  },
-                  {
-                    relation: "viewer",
-                    subject: {
-                      kind: "accountGroup",
-                      subjectId: hashInstanceAdminGroupId,
-                      subjectSet: "member",
-                    },
-                  },
+                  // {
+                  //   relation: "setting",
+                  //   subject: {
+                  //     kind: "setting",
+                  //     subjectId: "viewFromWeb",
+                  //   },
+                  // },
+                  // {
+                  //   relation: "viewer",
+                  //   subject: {
+                  //     kind: "accountGroup",
+                  //     subjectId: hashInstanceAdminGroupId,
+                  //     subjectSet: "member",
+                  //   },
+                  // },
                 ],
               },
             );

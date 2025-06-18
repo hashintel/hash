@@ -401,12 +401,12 @@ export const createUser: ImpureGraphFunction<
             subjectSet: "member",
           },
         },
-        {
-          relation: "viewer",
-          subject: {
-            kind: "public",
-          },
-        },
+        // {
+        //   relation: "viewer",
+        //   subject: {
+        //     kind: "public",
+        //   },
+        // },
         {
           relation: "setting",
           subject: {

@@ -2,7 +2,6 @@ import type { EntityRootType } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import type {
   ActorEntityUuid,
-  ActorGroupEntityUuid,
   AiId,
   ClosedTemporalBound,
   EntityUuid,
@@ -276,33 +275,26 @@ export const createUsageRecord = async (
         subjectSet: "member",
       },
     },
-    {
-      relation: "viewer",
-      subject: {
-        kind: "account",
-        subjectId: aiAssistantAccountId,
-      },
-    },
   ];
 
-  if (assignUsageToWebId === userAccountId) {
-    entityRelationships.push({
-      relation: "viewer",
-      subject: {
-        kind: "account",
-        subjectId: userAccountId,
-      },
-    });
-  } else {
-    entityRelationships.push({
-      relation: "viewer",
-      subject: {
-        kind: "accountGroup",
-        subjectId: assignUsageToWebId as ActorGroupEntityUuid,
-        subjectSet: "administrator",
-      },
-    });
-  }
+  // if (assignUsageToWebId === userAccountId) {
+  //   entityRelationships.push({
+  //     relation: "viewer",
+  //     subject: {
+  //       kind: "account",
+  //       subjectId: userAccountId,
+  //     },
+  //   });
+  // } else {
+  //   entityRelationships.push({
+  //     relation: "viewer",
+  //     subject: {
+  //       kind: "accountGroup",
+  //       subjectId: assignUsageToWebId as ActorGroupEntityUuid,
+  //       subjectSet: "administrator",
+  //     },
+  //   });
+  // }
 
   const usageRecordEntityUuid = generateUuid() as EntityUuid;
   const recordsUsageOfEntityUuid = generateUuid() as EntityUuid;
