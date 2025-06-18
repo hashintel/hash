@@ -632,6 +632,7 @@ __metadata:
     rimraf: "npm:6.0.1"
     tsx: "npm:4.20.3"
     typescript: "npm:5.7.3"
+    uuid: "npm:11.1.0"
     wait-on: "npm:8.0.3"
   languageName: unknown
   linkType: soft

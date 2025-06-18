@@ -10,7 +10,6 @@ import { getInstanceAdminsTeam } from "@local/hash-backend-utils/hash-instance";
 import { createUsageRecord } from "@local/hash-backend-utils/service-usage";
 import type { GraphApi } from "@local/hash-graph-client";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
-import { createPolicy } from "@local/hash-graph-sdk/policy";
 import type { FlowUsageRecordCustomMetadata } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -207,6 +206,19 @@ export const getLlmResponse = async <T extends LlmParams>(
         } satisfies OriginProvenance,
       };
 
+      const viewPrincipals: PrincipalConstraint[] = [
+        {
+          type: "actor",
+          actorType: "user",
+          id: userAccountId,
+        },
+        {
+          type: "actor",
+          actorType: "ai",
+          id: aiAssistantAccountId,
+        },
+      ];
+
       const errors = await Promise.all(
         incurredInEntities.map(async ({ entityId }) => {
           try {
@@ -251,40 +263,14 @@ export const getLlmResponse = async <T extends LlmParams>(
                     },
                   },
                 ],
-              },
-            );
-
-            const viewPrincipals: PrincipalConstraint[] = [
-              {
-                type: "actor",
-                actorType: "user",
-                id: userAccountId,
-              },
-              {
-                type: "actor",
-                actorType: "ai",
-                id: aiAssistantAccountId,
-              },
-            ];
-
-            // TODO: allow creating policies alongside entity creation
-            //   see https://linear.app/hash/issue/H-4622/allow-creating-policies-alongside-entity-creation
-            for (const principal of viewPrincipals) {
-              await createPolicy(
-                graphApiClient,
-                { actorId: aiAssistantAccountId },
-                {
+                policies: viewPrincipals.map((principal) => ({
                   name: `usage-record-view-entity-${incurredInEntityUuid}`,
                   effect: "permit",
                   actions: ["viewEntity"],
                   principal,
-                  resource: {
-                    type: "entity",
-                    id: incurredInEntityUuid,
-                  },
-                },
-              );
-            }
+                })),
+              },
+            );
 
             return [];
           } catch (error) {

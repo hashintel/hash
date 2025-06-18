@@ -10,11 +10,11 @@ import type {
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { LinearClient } from "@linear/sdk";
 import { getMachineIdByIdentifier } from "@local/hash-backend-utils/machine-actors";
-import { createPolicy } from "@local/hash-graph-sdk/policy";
 import {
   apiOrigin,
   frontendUrl,
 } from "@local/hash-isomorphic-utils/environment";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { LinearIntegrationPropertiesWithMetadata } from "@local/hash-isomorphic-utils/system-types/linearintegration";
@@ -243,12 +243,14 @@ export const oAuthLinearCallback: RequestHandler<
       };
 
     // Create the Linear integration entity, which any web member can view and edit
+    const entityUuid = generateUuid() as EntityUuid;
     const linearIntegrationEntity = await createEntity(
       req.context,
       authentication,
       {
         entityTypeIds: [systemEntityTypes.linearIntegration.entityTypeId],
         webId: userAccountId as WebId,
+        entityUuid,
         properties: linearIntegrationProperties,
         relationships: [
           ...createDefaultAuthorizationRelationships(authentication),
@@ -260,46 +262,30 @@ export const oAuthLinearCallback: RequestHandler<
             },
           },
         ],
+        policies: [
+          {
+            name: `linear-integration-bot-view-entity-${entityUuid}`,
+            principal: {
+              type: "actor",
+              actorType: "machine",
+              id: linearBotAccountId,
+            },
+            effect: "permit",
+            actions: ["viewEntity"],
+          },
+          {
+            name: `linear-integration-user-view-entity-${entityUuid}`,
+            principal: {
+              type: "actor",
+              actorType: "user",
+              id: userAccountId,
+            },
+            effect: "permit",
+            actions: ["viewEntity"],
+          },
+        ],
       },
     );
-
-    const entityUuid = extractEntityUuidFromEntityId(
-      linearIntegrationEntity.entityId,
-    );
-
-    // TODO: allow creating policies alongside entity creation
-    //   see https://linear.app/hash/issue/H-4622/allow-creating-policies-alongside-entity-creation
-    await createPolicy(req.context.graphApi, authentication, {
-      name: `linear-integration-bot-view-entity-${entityUuid}`,
-      principal: {
-        type: "actor",
-        actorType: "machine",
-        id: linearBotAccountId,
-      },
-      effect: "permit",
-      actions: ["viewEntity"],
-      resource: {
-        type: "entity",
-        id: entityUuid,
-      },
-    });
-
-    // TODO: allow creating policies alongside entity creation
-    //   see https://linear.app/hash/issue/H-4622/allow-creating-policies-alongside-entity-creation
-    await createPolicy(req.context.graphApi, authentication, {
-      name: `linear-integration-user-view-entity-${entityUuid}`,
-      principal: {
-        type: "actor",
-        actorType: "user",
-        id: userAccountId,
-      },
-      effect: "permit",
-      actions: ["viewEntity"],
-      resource: {
-        type: "entity",
-        id: entityUuid,
-      },
-    });
 
     linearIntegration = getLinearIntegrationFromEntity({
       entity: linearIntegrationEntity,

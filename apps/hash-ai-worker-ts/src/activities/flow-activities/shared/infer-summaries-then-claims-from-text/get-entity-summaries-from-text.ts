@@ -257,9 +257,9 @@ export const getEntitySummariesFromText = async (params: {
     };
 
     for (const { name, summary, type } of toolCallEntitySummaries) {
-      const entityUuid = generateUuid();
+      const entityUuid = generateUuid() as EntityUuid;
 
-      const entityId = entityIdFromComponents(webId, entityUuid as EntityUuid);
+      const entityId = entityIdFromComponents(webId, entityUuid);
 
       const isKnownType = dereferencedEntityTypes.some(
         (dereferencedEntityType) => dereferencedEntityType.$id === type,

@@ -3,7 +3,11 @@ use std::collections::{HashMap, HashSet};
 
 use error_stack::Report;
 use futures::TryFutureExt as _;
-use hash_graph_authorization::{schema::EntityRelationAndSubject, zanzibar::Consistency};
+use hash_graph_authorization::{
+    policies::{Effect, action::ActionName, principal::PrincipalConstraint},
+    schema::EntityRelationAndSubject,
+    zanzibar::Consistency,
+};
 use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use hash_graph_types::knowledge::entity::EntityEmbedding;
 use serde::{Deserialize, Serialize};
@@ -116,6 +120,15 @@ impl Default for ValidateEntityComponents {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+#[cfg_attr(feature = "codegen", derive(specta::Type))]
+pub struct CreateEntityPolicyParams {
+    pub name: String,
+    pub effect: Effect,
+    pub principal: Option<PrincipalConstraint>,
+    pub actions: Vec<ActionName>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
 #[cfg_attr(
     feature = "utoipa",
     derive(utoipa::ToSchema),
@@ -145,6 +158,9 @@ pub struct CreateEntityParams<R> {
     pub link_data: Option<LinkData>,
     pub draft: bool,
     pub relationships: R,
+    #[cfg_attr(feature = "utoipa", schema(value_type = Vec<Object>))]
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub policies: Vec<CreateEntityPolicyParams>,
     pub provenance: ProvidedEntityEditionProvenance,
 }
 

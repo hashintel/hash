@@ -12,6 +12,8 @@ use hash_graph_authorization::{
     policies::{
         Authorized, PartialResourceId, PolicyComponents, Request, RequestContext,
         action::ActionName,
+        resource::{EntityResourceConstraint, ResourceConstraint},
+        store::{PolicyCreationParams, PolicyStore as _},
     },
     schema::{EntityOwnerSubject, EntityPermission, EntityRelationAndSubject, WebPermission},
     zanzibar::Consistency,
@@ -758,12 +760,14 @@ where
         let mut entity_has_left_entity_rows = Vec::new();
         let mut entity_has_right_entity_rows = Vec::new();
 
+        let mut policies = Vec::new();
+
         let mut entities = Vec::with_capacity(params.len());
         // TODO: There are expected to be duplicates but we currently don't have a way to identify
         //       multi-type entity types. We need a way to speed this up.
         let mut validation_params = Vec::with_capacity(params.len());
 
-        let transaction = self.transaction().await.change_context(InsertionError)?;
+        let mut transaction = self.transaction().await.change_context(InsertionError)?;
 
         let policy_components = PolicyComponents::builder(&transaction)
             .with_actor(actor_id)
@@ -966,6 +970,22 @@ where
                 return Err(Report::new(InsertionError)
                     .attach_printable("At least one relationship must be provided"));
             }
+            policies.extend(
+                params
+                    .policies
+                    .into_iter()
+                    .map(|policy| PolicyCreationParams {
+                        name: Some(policy.name),
+                        effect: policy.effect,
+                        principal: policy.principal,
+                        actions: policy.actions,
+                        resource: Some(ResourceConstraint::Entity(
+                            EntityResourceConstraint::Exact {
+                                id: entity_id.entity_uuid,
+                            },
+                        )),
+                    }),
+            );
         }
 
         let mut forbidden_instantiations = Vec::new();
@@ -1119,6 +1139,13 @@ where
                 report.link = validation_report.link;
                 report.metadata.properties = validation_report.property_metadata;
             }
+        }
+
+        for policy in policies {
+            transaction
+                .create_policy(actor_id.into(), policy)
+                .await
+                .change_context(InsertionError)?;
         }
 
         ensure!(

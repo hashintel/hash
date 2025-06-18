@@ -57,6 +57,7 @@ import type {
   PatchEntityParams as GraphApiPatchEntityParams,
   ValidateEntityParams,
 } from "@local/hash-graph-client";
+import type { CreateEntityPolicyParams } from "@rust/hash-graph-store/types";
 
 import type { AuthenticationContext } from "./authentication-context.js";
 import type {
@@ -127,7 +128,12 @@ export type CreateEntityParameters<
   T extends TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
 > = Omit<
   GraphApiCreateEntityRequest,
-  "decisionTime" | "entityTypeIds" | "draft" | "properties" | "provenance"
+  | "decisionTime"
+  | "entityTypeIds"
+  | "draft"
+  | "properties"
+  | "provenance"
+  | "policies"
 > & {
   webId: WebId;
   properties: T["propertiesWithMetadata"];
@@ -136,6 +142,7 @@ export type CreateEntityParameters<
   entityUuid?: EntityUuid;
   provenance: ProvidedEntityEditionProvenance;
   draft?: boolean;
+  policies?: CreateEntityPolicyParams[];
 };
 
 export type PatchEntityParameters = Omit<
