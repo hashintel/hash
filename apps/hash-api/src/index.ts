@@ -405,16 +405,9 @@ const main = async () => {
   app.use((req, _res, next) => {
     const scope = Sentry.getCurrentScope();
 
-    /**
-     * Sentry automatically populates a 'Headers' object, but for some reason it doesn't do this for GraphQL requests.
-     * This might be something to do with how Sentry hooks into fetch that doesn't play nicely with ApolloServer,
-     * or how we're loading it.
-     */
-    const userAgent = req.header("user-agent");
-    const origin = req.header("origin");
-    const ip = req.ip;
-
-    scope.setContext("request", { ip, origin, userAgent });
+    if (req.ip) {
+      scope.setContext("request", { ip: req.ip });
+    }
 
     const user = req.user;
     scope.setUser({

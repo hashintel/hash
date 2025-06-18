@@ -11,7 +11,6 @@ import reactHooks from "eslint-plugin-react-hooks";
 import simpleImportSort from "eslint-plugin-simple-import-sort";
 import unicorn from "eslint-plugin-unicorn";
 import globals from "globals";
-import babelParser from "@babel/eslint-parser";
 import { fixupPluginRules } from "@eslint/compat";
 import { FlatCompat } from "@eslint/eslintrc";
 import js from "@eslint/js";

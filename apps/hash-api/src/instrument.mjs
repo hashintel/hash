@@ -1,3 +1,6 @@
+/** Required to load environment variables */
+import "@local/hash-backend-utils/environment";
+
 import * as Sentry from "@sentry/node";
 
 import { isProdEnv } from "./lib/env-config";
@@ -8,5 +11,5 @@ Sentry.init({
   dsn: sentryDsn,
   enabled: !!sentryDsn,
   environment: isProdEnv ? "production" : "development",
-  tracesSampleRate: 1.0,
+  tracesSampleRate: 1,
 });

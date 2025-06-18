@@ -8,6 +8,7 @@ Sentry.init({
   enabled: !!SENTRY_DSN,
   environment: VERCEL_ENV || "development",
   release: buildStamp,
+  sendDefaultPii: true,
   // release is set in next.config.js in the Sentry webpack plugin
   /** @todo reduce perf sample rate from 100% when we have more traffic */
   tracesSampleRate: 1.0,

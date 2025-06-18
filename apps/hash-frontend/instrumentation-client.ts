@@ -29,8 +29,18 @@ Sentry.init({
   replaysSessionSampleRate: parseFloat(
     SENTRY_REPLAYS_SESSION_SAMPLE_RATE ?? "0",
   ),
+  sendDefaultPii: true,
   tracePropagationTargets: ["localhost", /^https:\/\/(?:.*\.)?hash\.ai/],
-  // release is set in next.config.js in the Sentry webpack plugin
-  /** @todo reduce perf sample rate from 100% when we have more traffic */
-  tracesSampleRate: 1.0,
+  tracesSampleRate: 1,
 });
+
+export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
+
+export const register = async () => {
+  if (process.env.NEXT_RUNTIME === "nodejs") {
+    await import("./sentry.server.config");
+  }
+  if (process.env.NEXT_RUNTIME === "edge") {
+    await import("./sentry.edge.config");
+  }
+};

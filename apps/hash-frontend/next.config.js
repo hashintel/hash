@@ -14,6 +14,7 @@ const withBundleAnalyzer = bundleAnalyzer({
 config({ silent: true, path: "../.." });
 
 const sentryWebpackPluginOptions = {
+  disableLogger: true,
   dryRun: !process.env.SENTRY_AUTH_TOKEN,
   release: buildStamp,
   silent: true,
