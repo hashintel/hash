@@ -371,20 +371,15 @@ export const create = (projectDirectory: string) =>
       },
     },
     {
-      files: ["**/*.{c,m,}js"],
+      files: ["**/*.cjs"],
 
       languageOptions: {
-        parser: babelParser,
         ecmaVersion: 5,
         sourceType: "script",
 
         parserOptions: {
           requireConfigFile: false,
           extraFileExtensions: [".cjs"],
-
-          babelOptions: {
-            presets: ["@babel/preset-react"],
-          },
         },
       },
     },
