@@ -14,7 +14,7 @@ use hash_graph_authorization::policies::{
 use hash_graph_types::ontology::DataTypeLookup;
 use serde::{Deserialize, de, de::IntoDeserializer as _};
 use type_system::{
-    knowledge::entity::{Entity, EntityId},
+    knowledge::entity::{Entity, EntityId, id::EntityEditionId},
     ontology::{
         EntityTypeWithMetadata,
         data_type::{DataTypeUuid, DataTypeWithMetadata, schema::DataTypeReference},
@@ -318,6 +318,16 @@ impl<'p> Filter<'p, Entity> {
                 }),
             ),
         ])
+    }
+
+    #[must_use]
+    pub const fn for_entity_edition_ids(entity_edition_ids: &'p [EntityEditionId]) -> Self {
+        Filter::In(
+            FilterExpression::Path {
+                path: EntityQueryPath::EditionId,
+            },
+            ParameterList::EntityEditionIds(entity_edition_ids),
+        )
     }
 }
 

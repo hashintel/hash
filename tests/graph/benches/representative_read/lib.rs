@@ -104,7 +104,9 @@ fn bench_representative_read_multiple_entities(crit: &mut Criterion) {
 
     let group_id = "representative_read_multiple_entities";
     let mut group = crit.benchmark_group(group_id);
-    let (runtime, store_wrapper) = setup(DB_NAME, false, false, account_id, NoAuthorization);
+    let (runtime, mut store_wrapper) = setup(DB_NAME, false, false, account_id, NoAuthorization);
+    let _samples = runtime.block_on(setup_and_extract_samples(&mut store_wrapper, account_id));
+
     group.sample_size(10);
     group.sampling_mode(SamplingMode::Flat);
 
