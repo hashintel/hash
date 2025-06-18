@@ -56,7 +56,7 @@ jobs:
     steps:
       - name: Authenticate Vault
         id: secrets
-        uses: hashicorp/vault-action@7709c609789c5e27b757a85817483caadbb5939a # v3.3.0
+        uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: jwt
@@ -85,7 +85,7 @@ jobs:
           MISE_NODE_COREPACK: 1
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: dawidd6/action-download-artifact@4c1e823582f43b179e2cbb49c3eade4e41f992e2 # v10
+      - uses: dawidd6/action-download-artifact@ac66b43f0e6a346234dd65d4d0c8fbb31cb316e5 # v11
         if: github.event.inputs.repoCache != 'disabled'
         continue-on-error: true
         with:

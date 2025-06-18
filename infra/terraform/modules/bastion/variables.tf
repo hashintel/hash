@@ -57,7 +57,7 @@ variable "device_name" {
 variable "volume_size" {
   type        = number
   description = "The size of the volume in gigabytes."
-  default     = 10
+  default     = 30
 }
 
 variable "volume_type" {

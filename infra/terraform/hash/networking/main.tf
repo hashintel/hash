@@ -57,3 +57,33 @@ resource "aws_vpc_endpoint" "s3" {
 
   tags = { Name = "${var.prefix}-vpces3" }
 }
+
+####################################
+# Interface VPC Endpoints for Private Subnet Access
+# These enable services in private subnets to access AWS APIs without NAT Gateway
+# Required for SSM Session Manager, ECR access, and CloudWatch logging
+####################################
+
+module "vpc_endpoints" {
+  source = "../../modules/privatelink_endpoints"
+  region = var.region
+}
+
+# Deploy SSM-specific VPC interface endpoints for Session Manager
+# Use only one subnet per AZ to avoid DuplicateSubnetsInSameZone error
+# Select unique availability zones to ensure proper VPC endpoint distribution
+resource "aws_vpc_endpoint" "ssm_endpoints" {
+  for_each = {
+    ssm = module.vpc_endpoints.endpoints.ssm
+  }
+
+  vpc_id            = module.base_network.vpc.id
+  service_name      = each.value.name
+  vpc_endpoint_type = each.value.type
+  # Use only one subnet per AZ - AWS automatically distributes across AZs
+  subnet_ids          = [for subnet in module.base_network.snpriv : subnet.id]
+  security_group_ids  = [aws_security_group.vpce.id]
+  private_dns_enabled = true
+
+  tags = { Name = "${var.prefix}-${each.key}" }
+}

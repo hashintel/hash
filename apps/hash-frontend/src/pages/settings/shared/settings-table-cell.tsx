@@ -2,7 +2,7 @@ import type { TableCellProps } from "@mui/material";
 import { TableCell, Typography } from "@mui/material";
 import type { ReactNode } from "react";
 
-export const Cell = ({
+export const SettingsTableCell = ({
   children,
   ...props
 }: TableCellProps & { children?: ReactNode }) => (

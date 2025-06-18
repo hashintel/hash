@@ -20,9 +20,10 @@ import { useMemoCompare } from "../../shared/use-memo-compare";
 
 export const useUsers = (): {
   loading: boolean;
+  refetch: () => void;
   users?: MinimalUser[];
 } => {
-  const { data, loading } = useQuery<
+  const { data, loading, refetch } = useQuery<
     QueryEntitiesQuery,
     QueryEntitiesQueryVariables
   >(queryEntitiesQuery, {
@@ -117,6 +118,7 @@ export const useUsers = (): {
 
   return {
     loading,
+    refetch,
     users,
   };
 };

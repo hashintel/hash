@@ -872,6 +872,10 @@ pub(crate) mod test {
         let properties = T::Properties::value(&frames);
 
         let error = report.current_context();
+        #[expect(
+            clippy::coerce_container_to_any,
+            reason = "False positive: https://github.com/rust-lang/rust-clippy/issues/15045"
+        )]
         let error = error
             .variant()
             .downcast_ref::<T>()

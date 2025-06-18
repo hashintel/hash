@@ -17,28 +17,24 @@ import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-id
 import { getLatestEntityById } from "../../../../graph/knowledge/primitive/entity";
 import {
   getLinearIntegrationById,
-  getSyncedWorkspacesForLinearIntegration,
-  linkIntegrationToWorkspace,
+  getSyncedWebsForLinearIntegration,
+  linkIntegrationToWeb,
 } from "../../../../graph/knowledge/system-types/linear-integration-entity";
 import { getLinearUserSecretByLinearOrgId } from "../../../../graph/knowledge/system-types/linear-user-secret";
 import { Linear } from "../../../../integrations/linear";
 import type {
-  MutationSyncLinearIntegrationWithWorkspacesArgs,
+  MutationSyncLinearIntegrationWithWebsArgs,
   ResolverFn,
 } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
 import { graphQLContextToImpureGraphContext } from "../../util";
 
-export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
+export const syncLinearIntegrationWithWebsMutation: ResolverFn<
   Promise<Entity>,
   Record<string, never>,
   LoggedInGraphQLContext,
-  MutationSyncLinearIntegrationWithWorkspacesArgs
-> = async (
-  _,
-  { linearIntegrationEntityId, syncWithWorkspaces },
-  graphQLContext,
-) => {
+  MutationSyncLinearIntegrationWithWebsArgs
+> = async (_, { linearIntegrationEntityId, syncWithWebs }, graphQLContext) => {
   const { dataSources, authentication, provenance, temporal, vault } =
     graphQLContext;
 
@@ -75,28 +71,6 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
     userAccountId,
   });
 
-  // await Promise.all(
-  //   [
-  //     linearIntegration.entity.metadata.recordId.entityId,
-  //     linearUserSecret.entity.metadata.recordId.entityId,
-  //   ].map((entityId) =>
-  //     modifyEntityAuthorizationRelationships(
-  //       impureGraphContext,
-  //       authentication,
-  //       [
-  //         {
-  //           operation: "touch",
-  //           relationship: {
-  //             resource: { kind: "entity", resourceId: entityId },
-  //             relation: "viewer",
-  //             subject: { kind: "account", subjectId: systemAccountId },
-  //           },
-  //         },
-  //       ],
-  //     ),
-  //   ),
-  // );
-
   const apiKey = vaultSecret.data.value;
 
   const linearClient = new Linear({
@@ -104,28 +78,37 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
     apiKey,
   });
 
-  const existingSyncedWorkspaces =
-    await getSyncedWorkspacesForLinearIntegration(
-      impureGraphContext,
-      authentication,
-      {
-        linearIntegrationEntityId,
-      },
-    );
+  const existingSyncedWebs = await getSyncedWebsForLinearIntegration(
+    impureGraphContext,
+    authentication,
+    {
+      linearIntegrationEntityId,
+    },
+  );
 
-  const removedSyncedWorkspaces = existingSyncedWorkspaces.filter(
-    ({ workspaceEntity }) =>
-      !syncWithWorkspaces.some(
-        ({ workspaceEntityId }) =>
-          workspaceEntity.metadata.recordId.entityId === workspaceEntityId,
+  const duplicateWorkspaceSyncsToRemove = existingSyncedWebs.filter(
+    ({ webEntity }) =>
+      !syncWithWebs.some(
+        ({ webEntityId }) =>
+          webEntity.metadata.recordId.entityId === webEntityId,
       ),
   );
 
+  const linearBotAccountId = await getMachineIdByIdentifier(
+    impureGraphContext,
+    authentication,
+    { identifier: "linear" },
+  );
+
+  if (!linearBotAccountId) {
+    throw new NotFoundError("Failed to get linear bot");
+  }
+
   await Promise.all([
-    ...removedSyncedWorkspaces.map(
-      async ({ syncLinearDataWithLinkEntity, workspaceEntity }) => {
+    ...duplicateWorkspaceSyncsToRemove.map(
+      async ({ syncLinearDataWithLinkEntity, webEntity }) => {
         if (
-          workspaceEntity.metadata.entityTypeIds.includes(
+          webEntity.metadata.entityTypeIds.includes(
             systemEntityTypes.organization.entityTypeId,
           )
         ) {
@@ -139,15 +122,15 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
         );
       },
     ),
-    ...syncWithWorkspaces.map(async ({ workspaceEntityId, linearTeamIds }) => {
-      const workspaceWebId = extractEntityUuidFromEntityId(
-        workspaceEntityId,
+    ...syncWithWebs.map(async ({ webEntityId, linearTeamIds }) => {
+      const webId = extractEntityUuidFromEntityId(
+        webEntityId,
       ) as string as WebId;
 
       const userOrOrganizationEntity = await getLatestEntityById(
         impureGraphContext,
         authentication,
-        { entityId: workspaceEntityId },
+        { entityId: webEntityId },
       );
 
       const webAccountId = extractEntityUuidFromEntityId(
@@ -158,17 +141,6 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
        * Add the Linear machine user to the web,
        * if it doesn't already have permission to read and edit entities in it.
        */
-      const linearBotAccountId = await getMachineIdByIdentifier(
-        dataSources,
-        authentication,
-        { identifier: "linear" },
-      ).then((maybeMachineId) => {
-        if (!maybeMachineId) {
-          throw new NotFoundError("Failed to get linear bot");
-        }
-        return maybeMachineId;
-      });
-
       const linearBotHasPermission = await dataSources.graphApi
         .checkWebPermission(linearBotAccountId, webAccountId, "create_entity")
         .then((resp) => resp.data.has_permission);
@@ -217,14 +189,15 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
       }
 
       return Promise.all([
-        linearClient.triggerWorkspaceSync({
+        linearClient.triggerWebSync({
           authentication: { actorId: linearBotAccountId },
-          workspaceWebId,
+          webId,
           teamIds: linearTeamIds,
         }),
-        linkIntegrationToWorkspace(impureGraphContext, authentication, {
+        linkIntegrationToWeb(impureGraphContext, authentication, {
+          linearBotMachineId: linearBotAccountId,
           linearIntegrationEntityId,
-          workspaceEntityId,
+          webEntityId,
           linearTeamIds,
         }),
       ]);

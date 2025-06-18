@@ -2,7 +2,6 @@ import type {
   EntityId,
   MachineId,
   OriginProvenance,
-  PropertyObject,
   ProvidedEntityEditionProvenance,
   VersionedUrl,
   WebId,
@@ -17,12 +16,15 @@ import type {
   UpdateHashEntityFromLinearData,
   UpdateLinearDataWorkflow,
 } from "@local/hash-backend-utils/temporal-integration-workflow-types";
-import type { GraphApi } from "@local/hash-graph-client";
+import type {
+  EntityRelationAndSubject,
+  GraphApi,
+} from "@local/hash-graph-client";
 import {
   HashEntity,
   HashLinkEntity,
   mergePropertyObjectAndMetadata,
-  propertyObjectToPatches,
+  patchesFromPropertyObjects,
 } from "@local/hash-graph-sdk/entity";
 import { createPolicy } from "@local/hash-graph-sdk/policy";
 import { linearPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -32,6 +34,7 @@ import {
   mapLinearDataToEntity,
   mapLinearDataToEntityWithOutgoingLinks,
 } from "./linear-activities/mappings";
+import { logger } from "./main";
 import {
   getEntitiesByLinearId,
   getEntityOutgoingLinks,
@@ -47,6 +50,42 @@ const provenance: ProvidedEntityEditionProvenance = {
     id: "linear-integration",
   } satisfies OriginProvenance,
 };
+
+const createLinearHashEntityAuthRelationships = ({
+  machineActorId,
+}: {
+  machineActorId: MachineId;
+}) =>
+  [
+    /**
+     * The Linear bot needs permissions to be able to archive and update entities
+     */
+    {
+      relation: "administrator",
+      subject: {
+        kind: "account",
+        subjectId: machineActorId,
+      },
+    },
+    /**
+     * @todo H-4778 make entities editable by web members once sync back to Linear is restored
+     */
+    // {
+    //   relation: "setting",
+    //   subject: {
+    //     kind: "setting",
+    //     subjectId: "administratorFromWeb",
+    //   },
+    // },
+    // {
+    //   relation: "setting",
+    //   subject: { kind: "setting", subjectId: "updateFromWeb" },
+    // },
+    {
+      relation: "setting",
+      subject: { kind: "setting", subjectId: "viewFromWeb" },
+    },
+  ] as const satisfies EntityRelationAndSubject[];
 
 const createHashEntity = async (params: {
   authentication: { actorId: MachineId };
@@ -66,27 +105,9 @@ const createHashEntity = async (params: {
     {
       webId,
       draft: false,
-      relationships: [
-        {
-          relation: "administrator",
-          subject: {
-            kind: "account",
-            subjectId: params.authentication.actorId,
-          },
-        },
-        {
-          relation: "setting",
-          subject: { kind: "setting", subjectId: "administratorFromWeb" },
-        },
-        {
-          relation: "setting",
-          subject: { kind: "setting", subjectId: "updateFromWeb" },
-        },
-        // {
-        //   relation: "setting",
-        //   subject: { kind: "setting", subjectId: "viewFromWeb" },
-        // },
-      ],
+      relationships: createLinearHashEntityAuthRelationships({
+        machineActorId: params.authentication.actorId,
+      }),
       properties: mergePropertyObjectAndMetadata(
         (params.partialEntity.properties as
           | HashEntity["properties"]
@@ -102,7 +123,7 @@ const createHashEntity = async (params: {
   //   see https://linear.app/hash/issue/H-4622/allow-creating-policies-alongside-entity-creation
   const entityUuid = extractEntityUuidFromEntityId(entity.entityId);
   await createPolicy(graphApiClient, params.authentication, {
-    name: `linear-synced-administer-entity-${entityUuid}`,
+    name: `linear-bot-view-linear-entity-${entityUuid}`,
     effect: "permit",
     principal: {
       type: "actor",
@@ -116,51 +137,38 @@ const createHashEntity = async (params: {
     },
   });
 
-  const linkEntities = await HashEntity.createMultiple(
-    graphApiClient,
-    { actorId: params.authentication.actorId },
-    params.outgoingLinks.map(({ linkEntityTypeId, destinationEntityId }) => ({
-      webId,
-      linkData: {
-        leftEntityId: entity.metadata.recordId.entityId,
-        rightEntityId: destinationEntityId,
-      },
-      entityTypeIds: [linkEntityTypeId],
-      properties: { value: {} },
-      provenance,
-      draft: false,
-      relationships: [
-        {
-          relation: "administrator",
-          subject: {
-            kind: "account",
-            subjectId: params.authentication.actorId,
-          },
-        },
-        {
-          relation: "setting",
-          subject: { kind: "setting", subjectId: "administratorFromWeb" },
-        },
-        {
-          relation: "setting",
-          subject: { kind: "setting", subjectId: "updateFromWeb" },
-        },
-        // {
-        //   relation: "setting",
-        //   subject: { kind: "setting", subjectId: "viewFromWeb" },
-        // },
-      ],
-    })),
-  );
+  const linkEntities =
+    params.outgoingLinks.length > 0
+      ? await HashEntity.createMultiple(
+          graphApiClient,
+          { actorId: params.authentication.actorId },
+          params.outgoingLinks.map(
+            ({ linkEntityTypeId, destinationEntityId }) => ({
+              webId,
+              linkData: {
+                leftEntityId: entity.metadata.recordId.entityId,
+                rightEntityId: destinationEntityId,
+              },
+              entityTypeIds: [linkEntityTypeId],
+              properties: { value: {} },
+              provenance,
+              draft: false,
+              relationships: createLinearHashEntityAuthRelationships({
+                machineActorId: params.authentication.actorId,
+              }),
+            }),
+          ),
+        )
+      : [];
 
   // TODO: allow creating policies alongside entity creation
   //   see https://linear.app/hash/issue/H-4622/allow-creating-policies-alongside-entity-creation
-  for (const createdEntity of [entity, ...linkEntities]) {
+  for (const createdEntity of linkEntities) {
     const createdEntityUuid = extractEntityUuidFromEntityId(
       createdEntity.entityId,
     );
     await createPolicy(graphApiClient, params.authentication, {
-      name: `linear-synced-administer-entity-${createdEntityUuid}`,
+      name: `linear-bot-view-linear-entity-${createdEntityUuid}`,
       effect: "permit",
       principal: {
         type: "actor",
@@ -246,32 +254,48 @@ const createOrUpdateHashEntity = async (params: {
           },
         }),
       ),
-      ...addedOutgoingLinks.map(({ linkEntityTypeId, destinationEntityId }) =>
-        HashLinkEntity.create(graphApiClient, params.authentication, {
-          entityTypeIds: [linkEntityTypeId],
-          linkData: {
-            leftEntityId: existingEntity.metadata.recordId.entityId,
-            rightEntityId: destinationEntityId,
-          },
-          properties: { value: {} },
-          provenance,
-          webId: params.webId,
-          draft: false,
-          relationships: [
+      ...addedOutgoingLinks.map(
+        async ({ linkEntityTypeId, destinationEntityId }) => {
+          const linkEntity = await HashLinkEntity.create(
+            graphApiClient,
+            params.authentication,
             {
-              relation: "setting",
-              subject: { kind: "setting", subjectId: "administratorFromWeb" },
+              entityTypeIds: [linkEntityTypeId],
+              linkData: {
+                leftEntityId: existingEntity.metadata.recordId.entityId,
+                rightEntityId: destinationEntityId,
+              },
+              properties: { value: {} },
+              provenance,
+              webId: params.webId,
+              draft: false,
+              relationships: createLinearHashEntityAuthRelationships({
+                machineActorId: params.authentication.actorId,
+              }),
             },
-            {
-              relation: "setting",
-              subject: { kind: "setting", subjectId: "updateFromWeb" },
+          );
+
+          const linkEntityUuid = extractEntityUuidFromEntityId(
+            linkEntity.entityId,
+          );
+
+          // TODO: allow creating policies alongside entity creation
+          //   see https://linear.app/hash/issue/H-4622/allow-creating-policies-alongside-entity-creation
+          await createPolicy(graphApiClient, params.authentication, {
+            name: `linear-bot-view-linear-entity-${linkEntityUuid}`,
+            effect: "permit",
+            principal: {
+              type: "actor",
+              actorType: "machine",
+              id: params.authentication.actorId,
             },
-            // {
-            //   relation: "setting",
-            //   subject: { kind: "setting", subjectId: "viewFromWeb" },
-            // },
-          ],
-        }),
+            actions: ["viewEntity"],
+            resource: {
+              type: "entity",
+              id: linkEntityUuid,
+            },
+          });
+        },
       ),
     ]);
 
@@ -283,25 +307,16 @@ const createOrUpdateHashEntity = async (params: {
       continue;
     }
 
-    /** @todo: check which values have changed in a more sophisticated manor */
-    const updatedProperties: PropertyObject = {
-      ...Object.entries(partialEntity.properties).reduce(
-        (acc, [propertyTypeUrl, value]) => ({
-          ...acc,
-          ...(typeof value === "undefined"
-            ? {}
-            : {
-                [propertyTypeUrl]: value,
-              }),
-        }),
-        {},
+    const propertyPatches = patchesFromPropertyObjects({
+      oldProperties: existingEntity.properties,
+      newProperties: mergePropertyObjectAndMetadata(
+        partialEntity.properties,
+        undefined,
       ),
-    };
+    });
 
     await existingEntity.patch(graphApiClient, params.authentication, {
-      propertyPatches: propertyObjectToPatches(
-        mergePropertyObjectAndMetadata(updatedProperties, undefined),
-      ),
+      propertyPatches,
       provenance,
     });
   }
@@ -332,7 +347,7 @@ const createHashEntityFromLinearData =
 
     const linearData = await client[methodName](linearId);
 
-    const { partialEntity, outgoingLinks } =
+    const { partialEntity, outgoingLinks: _outgoingLinks } =
       await mapLinearDataToEntityWithOutgoingLinks({
         ...params,
         graphApiClient,
@@ -345,7 +360,8 @@ const createHashEntityFromLinearData =
       authentication: params.authentication,
       webId: params.webId,
       partialEntity,
-      outgoingLinks,
+      /** @todo H-4479 fix creating destination and link entities in Linear integration */
+      outgoingLinks: [],
     });
   };
 
@@ -362,7 +378,7 @@ const updateHashEntityFromLinearData =
 
     const linearData = await client[methodName](linearId);
 
-    const { partialEntity, outgoingLinks } =
+    const { partialEntity, outgoingLinks: _outgoingLinks } =
       await mapLinearDataToEntityWithOutgoingLinks({
         ...params,
         graphApiClient,
@@ -374,22 +390,66 @@ const updateHashEntityFromLinearData =
       graphApiClient,
       authentication: params.authentication,
       partialEntity,
-      outgoingLinks,
+      /** @todo H-4479 fix creating destination and link entities in Linear integration */
+      outgoingLinks: [],
       webId: params.webId,
     });
   };
 
 const readNodes = async <T>(connection: Connection<T>): Promise<T[]> => {
-  const nodes = connection.nodes;
   while (connection.pageInfo.hasNextPage) {
     // eslint-disable-next-line no-param-reassign
     connection = await connection.fetchNext();
-    nodes.push(...connection.nodes);
   }
-  return nodes;
+
+  return connection.nodes;
 };
 
 type ParamsWithApiKey<T = Record<string, unknown>> = T & { apiKey: string };
+
+const readLinearIssues = async ({
+  apiKey,
+  filter,
+}: ParamsWithApiKey<{ filter?: { teamId?: string } }>): Promise<
+  PartialEntity[]
+> => {
+  const issuesQueryVariables: LinearDocument.IssuesQueryVariables = {
+    filter: {},
+  };
+  if (filter?.teamId) {
+    issuesQueryVariables.filter!.team = { id: { eq: filter.teamId } };
+  }
+  return createLinearClient(apiKey)
+    .issues(issuesQueryVariables)
+    .then(readNodes)
+    .then((issues) =>
+      issues.map((issue) =>
+        mapLinearDataToEntity({
+          linearType: "Issue",
+          linearData: issue,
+        }),
+      ),
+    );
+};
+
+const createPartialEntities = async (params: {
+  authentication: { actorId: MachineId };
+  entities: PartialEntity[];
+  graphApiClient: GraphApi;
+  webId: WebId;
+}): Promise<void> => {
+  await Promise.all(
+    params.entities.map((partialEntity) =>
+      createOrUpdateHashEntity({
+        graphApiClient: params.graphApiClient,
+        authentication: params.authentication,
+        webId: params.webId,
+        partialEntity,
+        outgoingLinks: [],
+      }),
+    ),
+  );
+};
 
 export const createLinearIntegrationActivities = ({
   graphApiClient,
@@ -399,25 +459,18 @@ export const createLinearIntegrationActivities = ({
   async createPartialEntities(params: {
     authentication: { actorId: MachineId };
     entities: PartialEntity[];
-    workspaceWebId: WebId;
+    webId: WebId;
   }): Promise<void> {
-    await Promise.all(
-      params.entities.map((partialEntity) =>
-        createOrUpdateHashEntity({
-          graphApiClient,
-          authentication: params.authentication,
-          webId: params.workspaceWebId,
-          partialEntity,
-          outgoingLinks: [],
-        }),
-      ),
-    );
+    await createPartialEntities({
+      ...params,
+      graphApiClient,
+    });
   },
 
   async readLinearOrganization({
     apiKey,
   }: ParamsWithApiKey): Promise<PartialEntity> {
-    return createLinearClient(apiKey).organization.then((organization) =>
+    return await createLinearClient(apiKey).organization.then((organization) =>
       mapLinearDataToEntity({
         linearType: "Organization",
         linearData: organization,
@@ -428,7 +481,7 @@ export const createLinearIntegrationActivities = ({
   async readLinearUsers({
     apiKey,
   }: ParamsWithApiKey): Promise<PartialEntity[]> {
-    return createLinearClient(apiKey)
+    return await createLinearClient(apiKey)
       .users()
       .then(readNodes)
       .then((users) =>
@@ -453,23 +506,37 @@ export const createLinearIntegrationActivities = ({
   }: ParamsWithApiKey<{ filter?: { teamId?: string } }>): Promise<
     PartialEntity[]
   > {
-    const issuesQueryVariables: LinearDocument.IssuesQueryVariables = {
-      filter: {},
-    };
-    if (filter?.teamId) {
-      issuesQueryVariables.filter!.team = { id: { eq: filter.teamId } };
+    return await readLinearIssues({ apiKey, filter });
+  },
+
+  async readAndCreateLinearIssues({
+    apiKey,
+    authentication,
+    filter,
+    webId,
+  }: ParamsWithApiKey<{
+    authentication: { actorId: MachineId };
+    filter?: { teamId?: string };
+    webId: WebId;
+  }>): Promise<void> {
+    const issues = await readLinearIssues({ apiKey, filter });
+
+    logger.info(`Found ${issues.length} issues to sync to ${webId}`);
+
+    const batchSize = 100;
+
+    for (let i = 0; i < issues.length; i += batchSize) {
+      const batch = issues.slice(i, i + batchSize);
+
+      await createPartialEntities({
+        authentication,
+        entities: batch,
+        graphApiClient,
+        webId,
+      });
     }
-    return createLinearClient(apiKey)
-      .issues(issuesQueryVariables)
-      .then(readNodes)
-      .then((issues) =>
-        issues.map((issue) =>
-          mapLinearDataToEntity({
-            linearType: "Issue",
-            linearData: issue,
-          }),
-        ),
-      );
+
+    logger.info(`Synced ${issues.length} issues to ${webId}`);
   },
 
   async readLinearTeams({ apiKey }: ParamsWithApiKey): Promise<Team[]> {

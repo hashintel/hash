@@ -17,8 +17,8 @@ import { useUserPermissionsOnEntity } from "../../../../shared/use-user-permissi
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
 import { getSettingsLayout } from "../../../shared/settings-layout";
 import { SettingsPageContainer } from "../../shared/settings-page-container";
-import { Cell } from "../shared/cell";
-import { OrgTable } from "../shared/org-table";
+import { SettingsTable } from "../../shared/settings-table";
+import { SettingsTableCell } from "../../shared/settings-table-cell";
 import { AddMemberForm } from "./members.page/add-member-form";
 import { MemberRow } from "./members.page/member-row";
 
@@ -71,12 +71,12 @@ const OrgMembersPage: NextPageWithLayout = () => {
         sectionLabel="Members"
         ref={topRef}
       >
-        <OrgTable>
+        <SettingsTable>
           <TableHead>
             <TableRow>
-              <Cell width="70%">Name</Cell>
-              <Cell>Username</Cell>
-              <Cell />
+              <SettingsTableCell width="70%">Name</SettingsTableCell>
+              <SettingsTableCell>Username</SettingsTableCell>
+              <SettingsTableCell />
             </TableRow>
           </TableHead>
           <TableBody>
@@ -125,7 +125,7 @@ const OrgMembersPage: NextPageWithLayout = () => {
               </TableCell>
             </TableRow>
           </TableFooter>
-        </OrgTable>
+        </SettingsTable>
       </SettingsPageContainer>
     </>
   );

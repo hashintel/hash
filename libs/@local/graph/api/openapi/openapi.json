@@ -818,6 +818,50 @@
         }
       }
     },
+    "/actors/ai/identifier/{identifier}": {
+      "get": {
+        "tags": [
+          "Graph",
+          "Web"
+        ],
+        "operationId": "get_ai_by_identifier",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          },
+          {
+            "name": "identifier",
+            "in": "path",
+            "description": "The identifier of the AI to get",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The AI was retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "nullable": true
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
     "/actors/machine/identifier/system/{identifier}": {
       "get": {
         "tags": [
@@ -882,7 +926,7 @@
         ],
         "responses": {
           "200": {
-            "description": "The web was retrieved successfully",
+            "description": "The machine was retrieved successfully",
             "content": {
               "application/json": {
                 "schema": {

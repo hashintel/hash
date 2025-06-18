@@ -48,7 +48,7 @@ use hash_graph_store::{
         CreateUserActorResponse, GetActorError, QueryWebError, TeamRetrievalError,
         WebInsertionError, WebRetrievalError,
     },
-    error::{InsertionError, QueryError, UpdateError},
+    error::{InsertionError, UpdateError},
     query::ConflictBehavior,
 };
 use hash_graph_temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
@@ -62,16 +62,12 @@ use type_system::{
     knowledge::entity::id::EntityUuid,
     ontology::{
         OntologyTemporalMetadata,
-        data_type::{
-            ClosedDataType, Conversions, DataType, DataTypeUuid,
-            schema::{DataTypeReference, DataTypeResolveData},
-        },
+        data_type::{ClosedDataType, DataType, DataTypeUuid, schema::DataTypeResolveData},
         entity_type::{
-            ClosedEntityType, EntityType, EntityTypeUuid,
-            schema::{EntityTypeReference, EntityTypeResolveData},
+            ClosedEntityType, EntityType, EntityTypeUuid, schema::EntityTypeResolveData,
         },
         id::{BaseUrl, OntologyTypeUuid, OntologyTypeVersion, VersionedUrl},
-        property_type::{PropertyType, schema::PropertyTypeReference},
+        property_type::PropertyType,
         provenance::{OntologyEditionProvenance, OntologyOwnership, OntologyProvenance},
     },
     principal::{
@@ -2003,6 +1999,14 @@ where
         Ok(ontology_id)
     }
 
+    /// Inserts data type inheritance references into the database.
+    ///
+    /// This function creates records for data type inheritance relationships
+    /// based on the provided metadata, including the inheritance depth.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`InsertionError`] if the database insertion operation fails.
     #[tracing::instrument(level = "debug", skip(self))]
     pub async fn insert_data_type_references(
         &self,
@@ -2028,41 +2032,6 @@ where
                 .await
                 .change_context(InsertionError)?;
         }
-
-        Ok(())
-    }
-
-    #[tracing::instrument(level = "debug", skip(self))]
-    async fn insert_data_type_conversion(
-        &self,
-        ontology_id: DataTypeUuid,
-        target_data_type: &BaseUrl,
-        conversions: &Conversions,
-    ) -> Result<(), Report<InsertionError>> {
-        self.as_client()
-            .query(
-                r#"
-                    INSERT INTO data_type_conversions (
-                        "source_data_type_ontology_id",
-                        "target_data_type_base_url",
-                        "from",
-                        "into"
-                    ) VALUES (
-                        $1,
-                        $2,
-                        $3,
-                        $4
-                    );
-                "#,
-                &[
-                    &ontology_id,
-                    &target_data_type,
-                    &Json(&conversions.from),
-                    &Json(&conversions.to),
-                ],
-            )
-            .await
-            .change_context(InsertionError)?;
 
         Ok(())
     }
@@ -2266,85 +2235,6 @@ where
         }
 
         Ok(())
-    }
-
-    // TODO: Tidy these up by having an `Into<VersionedUrl>` method or something for the references
-    #[tracing::instrument(level = "debug", skip(self, referenced_entity_types))]
-    async fn entity_type_reference_ids<'p, I>(
-        &self,
-        referenced_entity_types: I,
-    ) -> Result<Vec<OntologyTypeUuid>, Report<QueryError>>
-    where
-        I: IntoIterator<Item = &'p EntityTypeReference> + Send,
-        I::IntoIter: Send,
-    {
-        let referenced_entity_types = referenced_entity_types.into_iter();
-        let mut ids = Vec::with_capacity(referenced_entity_types.size_hint().0);
-        for reference in referenced_entity_types {
-            ids.push(self.ontology_id_by_url(&reference.url).await?);
-        }
-        Ok(ids)
-    }
-
-    #[tracing::instrument(level = "debug", skip(self, referenced_property_types))]
-    async fn property_type_reference_ids<'p, I>(
-        &self,
-        referenced_property_types: I,
-    ) -> Result<Vec<OntologyTypeUuid>, Report<QueryError>>
-    where
-        I: IntoIterator<Item = &'p PropertyTypeReference> + Send,
-        I::IntoIter: Send,
-    {
-        let referenced_property_types = referenced_property_types.into_iter();
-        let mut ids = Vec::with_capacity(referenced_property_types.size_hint().0);
-        for reference in referenced_property_types {
-            ids.push(self.ontology_id_by_url(&reference.url).await?);
-        }
-        Ok(ids)
-    }
-
-    #[tracing::instrument(level = "debug", skip(self, referenced_data_types))]
-    async fn data_type_reference_ids<'p, I>(
-        &self,
-        referenced_data_types: I,
-    ) -> Result<Vec<OntologyTypeUuid>, Report<QueryError>>
-    where
-        I: IntoIterator<Item = &'p DataTypeReference> + Send,
-        I::IntoIter: Send,
-    {
-        let referenced_data_types = referenced_data_types.into_iter();
-        let mut ids = Vec::with_capacity(referenced_data_types.size_hint().0);
-        for reference in referenced_data_types {
-            ids.push(self.ontology_id_by_url(&reference.url).await?);
-        }
-        Ok(ids)
-    }
-
-    /// Fetches the [`OntologyTypeUuid`] of the specified [`VersionedUrl`].
-    ///
-    /// # Errors:
-    ///
-    /// - if the entry referred to by `url` does not exist.
-    #[tracing::instrument(level = "debug", skip(self))]
-    async fn ontology_id_by_url(
-        &self,
-        url: &VersionedUrl,
-    ) -> Result<OntologyTypeUuid, Report<QueryError>> {
-        Ok(self
-            .client
-            .as_client()
-            .query_one(
-                "
-                SELECT ontology_id
-                FROM ontology_ids
-                WHERE base_url = $1 AND version = $2;
-                ",
-                &[&url.base_url, &url.version],
-            )
-            .await
-            .change_context(QueryError)
-            .attach_printable_lazy(|| url.clone())?
-            .get(0))
     }
 
     /// # Errors
@@ -3115,9 +3005,17 @@ where
     C: AsClient,
     A: Send + Sync,
 {
+    /// Deletes all principals (policies and actions) from the database.
+    ///
+    /// This function removes all policies and actions, effectively clearing
+    /// all authorization data from the system.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`DeletionError`] if any of the database deletion operations fail.
     #[tracing::instrument(level = "trace", skip(self))]
     pub async fn delete_principals(
-        &mut self,
+        &self,
         actor_id: ActorEntityUuid,
     ) -> Result<(), Report<DeletionError>> {
         self.as_client()

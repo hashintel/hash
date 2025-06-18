@@ -8,7 +8,7 @@ use crate::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
             SimplifyEnvironment, instantiate::InstantiateEnvironment,
         },
-        inference::{Constraint, PartialStructuralEdge, Variable, VariableKind},
+        inference::{Constraint, Variable, VariableKind},
         kind::{
             Generic, GenericArgument, GenericArguments, IntersectionType, PrimitiveType,
             StructType, TypeKind, UnionType,
@@ -671,8 +671,7 @@ fn collect_constraints() {
 }
 
 #[test]
-fn collect_structural_constraints() {
-    // Nothing should happen as they are invariant
+fn collect_dependencies() {
     let heap = Heap::new();
     let env = Environment::new(SpanId::SYNTHETIC, &heap);
 
@@ -688,17 +687,17 @@ fn collect_structural_constraints() {
         }]
     );
 
-    infer.collect_structural_edges(
+    infer.collect_dependencies(
         subtype,
-        PartialStructuralEdge::Source(Variable::synthetic(VariableKind::Hole(HoleId::new(0)))),
+        Variable::synthetic(VariableKind::Hole(HoleId::new(0))),
     );
 
     let constraints = infer.take_constraints();
     assert_eq!(
         constraints,
-        [Constraint::StructuralEdge {
+        [Constraint::Dependency {
             source: Variable::synthetic(VariableKind::Hole(HoleId::new(0))),
-            target: Variable::synthetic(VariableKind::Hole(HoleId::new(1)))
+            target: Variable::synthetic(VariableKind::Generic(GenericArgumentId::new(0)))
         }]
     );
 }

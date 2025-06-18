@@ -43,6 +43,10 @@ impl Context {
 
     #[must_use]
     pub fn request_ref<T: 'static>(&self) -> Option<&T> {
+        #[expect(
+            clippy::coerce_container_to_any,
+            reason = "False positive: https://github.com/rust-lang/rust-clippy/issues/15045"
+        )]
         self.inner.get(&TypeId::of::<T>())?.downcast_ref()
     }
 }

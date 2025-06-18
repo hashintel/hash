@@ -123,6 +123,7 @@ where
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
     #[tracing::instrument(level = "info", skip(self, traversal_context, subgraph, zookie))]
+    #[expect(clippy::too_many_lines)]
     pub(crate) async fn traverse_entities(
         &self,
         mut entity_queue: Vec<(
@@ -314,8 +315,16 @@ where
         Ok(())
     }
 
+    /// Deletes all entities from the database.
+    ///
+    /// This function removes all entities along with their associated metadata,
+    /// including temporal data, embeddings, drafts, and relationships.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`DeletionError`] if the database deletion operation fails.
     #[tracing::instrument(level = "info", skip(self))]
-    pub async fn delete_entities(&mut self) -> Result<(), Report<DeletionError>> {
+    pub async fn delete_entities(&self) -> Result<(), Report<DeletionError>> {
         tracing::debug!("Deleting all entities");
         self.as_client()
             .client()
@@ -412,6 +421,7 @@ where
     }
 
     #[tracing::instrument(level = "info", skip(self, params))]
+    #[expect(clippy::too_many_lines)]
     async fn get_entities_impl(
         &self,
         actor_id: ActorEntityUuid,
@@ -773,6 +783,7 @@ where
     A: AuthorizationApi,
 {
     #[tracing::instrument(level = "info", skip(self, params))]
+    #[expect(clippy::too_many_lines)]
     async fn create_entities<R>(
         &mut self,
         actor_id: ActorEntityUuid,
@@ -1376,6 +1387,7 @@ where
     }
 
     #[tracing::instrument(level = "info", skip(self, params))]
+    #[expect(clippy::too_many_lines)]
     async fn get_entity_subgraph(
         &self,
         actor_id: ActorEntityUuid,
@@ -1651,6 +1663,7 @@ where
         reason = "The connection is required to borrow the client"
     )]
     #[tracing::instrument(level = "info", skip(self, params))]
+    #[expect(clippy::too_many_lines)]
     async fn patch_entity(
         &mut self,
         actor_id: ActorEntityUuid,
@@ -2088,10 +2101,7 @@ where
 
         ensure!(
             validation_report.is_valid(),
-            Report::new(UpdateError).attach(HashMap::from([(
-                entities[0].metadata.record_id.entity_id,
-                validation_report
-            )]))
+            Report::new(UpdateError).attach(HashMap::from([(0_usize, validation_report)]))
         );
 
         transaction.commit().await.change_context(UpdateError)?;
@@ -2459,6 +2469,7 @@ where
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
+    #[expect(clippy::too_many_lines)]
     async fn update_temporal_metadata(
         &self,
         locked_row: LockedEntityEdition,

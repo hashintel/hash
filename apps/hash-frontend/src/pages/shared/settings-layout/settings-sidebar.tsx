@@ -36,7 +36,7 @@ const ItemLink = styled(Link)<{
   font-size: ${Math.max(16 - level, 13)}px;
   font-weight: ${level === 2 && active ? 600 : 500};
   text-decoration: none;
-  
+
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -197,9 +197,11 @@ const SidebarItem = ({
 export const SettingsSidebar = ({
   menuItems,
   heading,
+  width = 200,
 }: {
   menuItems: SidebarItemData[];
   heading: ReactNode;
+  width?: number;
 }) => {
   const router = useRouter();
 
@@ -274,7 +276,7 @@ export const SettingsSidebar = ({
   }, [handlePathChange, router.events]);
 
   return (
-    <Box mr={4} width={200}>
+    <Box mr={4} width={width}>
       <Typography
         variant="microText"
         sx={({ palette }) => ({

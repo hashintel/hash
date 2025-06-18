@@ -20,8 +20,6 @@ fn install_tracing_subscriber() {
 
 #[test]
 fn captured() {
-    install_tracing_subscriber();
-
     #[tracing::instrument]
     fn func_b() -> Result<(), Report<RootError>> {
         create_error()
@@ -31,6 +29,8 @@ fn captured() {
     fn func_a() -> Result<(), Report<RootError>> {
         func_b()
     }
+
+    install_tracing_subscriber();
 
     let report = capture_error(func_a);
 
@@ -54,8 +54,6 @@ fn captured() {
 
 #[test]
 fn provided() {
-    install_tracing_subscriber();
-
     #[tracing::instrument]
     fn func_b() -> ErrorA {
         ErrorA::new(0)
@@ -65,6 +63,8 @@ fn provided() {
     fn func_a() -> Result<(), Report<ErrorA>> {
         Err(Report::new(func_b()))
     }
+
+    install_tracing_subscriber();
 
     let report = capture_error(func_a);
     #[cfg(nightly)]

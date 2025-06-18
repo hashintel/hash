@@ -177,6 +177,7 @@ where
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
+    #[expect(clippy::too_many_lines)]
     pub(crate) async fn read_knowledge_edges<'t>(
         &self,
         traversal_data: &'t EntityEdgeTraversalData,

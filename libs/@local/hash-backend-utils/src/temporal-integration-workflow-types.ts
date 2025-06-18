@@ -9,7 +9,7 @@ import type { Team } from "@linear/sdk";
 import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
 
 export type PartialEntity = {
-  properties: Partial<Entity["properties"]>;
+  properties: Entity["properties"];
   entityTypeId: VersionedUrl;
 };
 
@@ -41,10 +41,10 @@ export type ReadLinearTeamsWorkflow = (params: {
   apiKey: string;
 }) => Promise<Team[]>;
 
-export type SyncWorkspaceWorkflow = (params: {
+export type SyncWebWorkflow = (params: {
   authentication: { actorId: MachineId };
   apiKey: string;
-  workspaceWebId: WebId;
+  webId: WebId;
   teamIds: string[];
 }) => Promise<void>;
 
@@ -62,7 +62,7 @@ export type SyncQueryToGoogleSheetWorkflow = (params: {
 }) => Promise<void>;
 
 export type WorkflowTypeMap = {
-  syncWorkspace: SyncWorkspaceWorkflow;
+  syncLinearToWeb: SyncWebWorkflow;
   readLinearTeams: ReadLinearTeamsWorkflow;
 
   createHashEntityFromLinearData: CreateHashEntityFromLinearData;

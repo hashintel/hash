@@ -16,7 +16,7 @@ use crate::{
             UnsupportedProjectionCategory, UnsupportedSubscriptCategory, type_mismatch,
             unsupported_projection, unsupported_subscript,
         },
-        inference::{Inference, PartialStructuralEdge},
+        inference::Inference,
         lattice::{Lattice, Projection, Subscript},
     },
 };
@@ -223,13 +223,6 @@ impl<'heap> Inference<'heap> for PrimitiveType {
     fn collect_constraints(
         self: Type<'heap, Self>,
         _: Type<'heap, Self>,
-        _: &mut InferenceEnvironment<'_, 'heap>,
-    ) {
-    }
-
-    fn collect_structural_edges(
-        self: Type<'heap, Self>,
-        _: PartialStructuralEdge,
         _: &mut InferenceEnvironment<'_, 'heap>,
     ) {
     }

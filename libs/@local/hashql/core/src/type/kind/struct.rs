@@ -20,7 +20,7 @@ use crate::{
             UnsupportedSubscriptCategory, missing_struct_field, struct_field_mismatch,
             struct_field_not_found, unsupported_subscript,
         },
-        inference::{Inference, PartialStructuralEdge},
+        inference::Inference,
         lattice::{Lattice, Projection, Subscript},
     },
 };
@@ -524,16 +524,6 @@ impl<'heap> Inference<'heap> for StructType<'heap> {
             };
 
             env.in_covariant(|env| env.collect_constraints(self_field.value, super_field.value));
-        }
-    }
-
-    fn collect_structural_edges(
-        self: Type<'heap, Self>,
-        variable: PartialStructuralEdge,
-        env: &mut InferenceEnvironment<'_, 'heap>,
-    ) {
-        for field in &*self.kind.fields {
-            env.in_covariant(|env| env.collect_structural_edges(field.value, variable));
         }
     }
 

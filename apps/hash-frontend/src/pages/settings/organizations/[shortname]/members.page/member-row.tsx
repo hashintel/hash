@@ -15,7 +15,7 @@ import { removeAccountGroupMemberMutation } from "../../../../../graphql/queries
 import type { Org } from "../../../../../lib/user-and-org";
 import { Link } from "../../../../../shared/ui/link";
 import { useAuthenticatedUser } from "../../../../shared/auth-info-context";
-import { Cell } from "../../shared/cell";
+import { SettingsTableCell } from "../../../shared/settings-table-cell";
 import { MemberContextMenu } from "./member-row/member-context-menu";
 
 export const MemberRow = ({
@@ -59,14 +59,14 @@ export const MemberRow = ({
 
   return (
     <TableRow key={membership.linkEntity.metadata.recordId.entityId}>
-      <Cell>
+      <SettingsTableCell>
         <Link
           href={`/@${membership.user.shortname}`}
           sx={{ textDecoration: "none" }}
         >
           {membership.user.displayName}
         </Link>
-      </Cell>
+      </SettingsTableCell>
       <TableCell>
         <Typography
           variant="smallTextLabels"
