@@ -405,7 +405,16 @@ const main = async () => {
   app.use((req, _res, next) => {
     const scope = Sentry.getCurrentScope();
 
+    // Clear the scope and breadcrumbs – requests seem to bleed into each other otherwise
+    scope.clear();
+    scope.clearBreadcrumbs();
+
     if (req.ip) {
+      /**
+       * Sentry has its own logic to attach an IP to requests, which will favour X-Forwarded-For headers.
+       * We additionally attach our req.ip as context (which comes from cf-connecting-ip in production).
+       * Both can be spoofed, but X-Forwarded-For is a bit easier to spoof, as it just involves adding an entry to that header with whatever.
+       */
       scope.setContext("request", { ip: req.ip });
     }
 
