@@ -1,6 +1,7 @@
 import * as Sentry from "@sentry/nextjs";
 
 import { buildStamp } from "./buildstamp";
+import { isProduction } from "./src/lib/config";
 import { SENTRY_DSN, VERCEL_ENV } from "./src/lib/public-env";
 
 Sentry.init({
@@ -11,5 +12,7 @@ Sentry.init({
   sendDefaultPii: true,
   // release is set in next.config.js in the Sentry webpack plugin
   /** @todo reduce perf sample rate from 100% when we have more traffic */
-  tracesSampleRate: 1.0,
+  tracesSampleRate: isProduction
+    ? 1.0 /** @todo reduce perf sample rate from 100% when we have more traffic */
+    : 0,
 });

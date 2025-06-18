@@ -4,6 +4,7 @@
 import * as Sentry from "@sentry/nextjs";
 
 import { buildStamp } from "./buildstamp";
+import { isProduction } from "./src/lib/config";
 import {
   SENTRY_DSN,
   SENTRY_REPLAYS_SESSION_SAMPLE_RATE,
@@ -31,7 +32,9 @@ Sentry.init({
   ),
   sendDefaultPii: true,
   tracePropagationTargets: ["localhost", /^https:\/\/(?:.*\.)?hash\.ai/],
-  tracesSampleRate: 1,
+  tracesSampleRate: isProduction
+    ? 1.0 /** @todo reduce perf sample rate from 100% when we have more traffic */
+    : 0,
 });
 
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;

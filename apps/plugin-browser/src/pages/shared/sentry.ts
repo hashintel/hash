@@ -25,7 +25,10 @@ export const initializeSentry = () =>
     replaysSessionSampleRate: 0.1,
     replaysOnErrorSampleRate: 1,
     tracePropagationTargets: ["localhost", /^https:\/\/(?:.*\.)?hash\.ai/],
-    tracesSampleRate: 1.0, // Capture 100% of the transactions
+    tracesSampleRate:
+      ENVIRONMENT === "production"
+        ? 1.0 /** @todo reduce perf sample rate from 100% when we have more traffic */
+        : 0,
   });
 
 export const setSentryUser = (user?: LocalStorage["user"] | null) => {

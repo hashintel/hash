@@ -5,7 +5,10 @@ import * as Sentry from "@sentry/node";
 Sentry.init({
   dsn: process.env.HASH_TEMPORAL_WORKER_AI_SENTRY_DSN,
   enabled: !!process.env.HASH_TEMPORAL_WORKER_AI_SENTRY_DSN,
-  tracesSampleRate: 1.0,
+  tracesSampleRate:
+    process.env.NODE_ENV === "production"
+      ? 1.0 /** @todo reduce perf sample rate from 100% when we have more traffic */
+      : 0,
 });
 
 import * as http from "node:http";
