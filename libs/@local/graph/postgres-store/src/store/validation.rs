@@ -7,6 +7,7 @@ use futures::TryStreamExt as _;
 use hash_graph_authorization::{
     AuthorizationApi,
     backend::PermissionAssertion,
+    policies::PolicyComponents,
     schema::{DataTypePermission, EntityPermission, EntityTypePermission, PropertyTypePermission},
     zanzibar::Consistency,
 };
@@ -133,8 +134,18 @@ pub struct StoreCache {
 #[derive(Debug)]
 pub struct StoreProvider<'a, S> {
     pub store: &'a S,
-    pub cache: StoreCache,
-    pub authorization: Option<(ActorEntityUuid, Consistency<'static>)>,
+    pub cache: Box<StoreCache>,
+    pub policy_components: Option<&'a PolicyComponents>,
+}
+
+impl<'a, S> StoreProvider<'a, S> {
+    pub fn new(store: &'a S, policy_components: &'a PolicyComponents) -> Self {
+        Self {
+            store,
+            cache: Box::new(StoreCache::default()),
+            policy_components: Some(policy_components),
+        }
+    }
 }
 
 impl<C, A> StoreProvider<'_, PostgresStore<C, A>>
@@ -143,14 +154,16 @@ where
     A: AuthorizationApi,
 {
     async fn authorize_data_type(&self, type_id: DataTypeUuid) -> Result<(), Report<QueryError>> {
-        if let Some((actor_id, consistency)) = self.authorization {
+        if let Some(policy_components) = &self.policy_components {
             self.store
                 .authorization_api
                 .check_data_type_permission(
-                    actor_id,
+                    policy_components
+                        .actor_id
+                        .map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from),
                     DataTypePermission::View,
                     type_id,
-                    consistency,
+                    Consistency::FullyConsistent,
                 )
                 .await
                 .change_context(QueryError)?
@@ -352,14 +365,16 @@ where
         &self,
         type_id: PropertyTypeUuid,
     ) -> Result<(), Report<QueryError>> {
-        if let Some((actor_id, consistency)) = self.authorization {
+        if let Some(policy_components) = &self.policy_components {
             self.store
                 .authorization_api
                 .check_property_type_permission(
-                    actor_id,
+                    policy_components
+                        .actor_id
+                        .map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from),
                     PropertyTypePermission::View,
                     type_id,
-                    consistency,
+                    Consistency::FullyConsistent,
                 )
                 .await
                 .change_context(QueryError)?
@@ -431,14 +446,16 @@ where
         &self,
         type_id: EntityTypeUuid,
     ) -> Result<(), Report<QueryError>> {
-        if let Some((actor_id, consistency)) = self.authorization {
+        if let Some(policy_components) = &self.policy_components {
             self.store
                 .authorization_api
                 .check_entity_type_permission(
-                    actor_id,
+                    policy_components
+                        .actor_id
+                        .map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from),
                     EntityTypePermission::View,
                     type_id,
-                    consistency,
+                    Consistency::FullyConsistent,
                 )
                 .await
                 .change_context(QueryError)?
@@ -591,10 +608,17 @@ where
         if let Some(cached) = self.cache.entities.get(&entity_id).await {
             return cached;
         }
-        if let Some((actor_id, consistency)) = self.authorization {
+        if let Some(policy_components) = &self.policy_components {
             self.store
                 .authorization_api
-                .check_entity_permission(actor_id, EntityPermission::View, entity_id, consistency)
+                .check_entity_permission(
+                    policy_components
+                        .actor_id
+                        .map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from),
+                    EntityPermission::View,
+                    entity_id,
+                    Consistency::FullyConsistent,
+                )
                 .await
                 .change_context(QueryError)?
                 .assert_permission()
