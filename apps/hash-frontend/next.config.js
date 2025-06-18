@@ -16,8 +16,12 @@ config({ silent: true, path: "../.." });
 const sentryWebpackPluginOptions = {
   disableLogger: true,
   dryRun: !process.env.SENTRY_AUTH_TOKEN,
+  reactComponentAnnotation: {
+    enabled: true,
+  },
   release: buildStamp,
   silent: true,
+  widenClientFileUpload: true,
   // For all available options, see:
   // https://github.com/getsentry/sentry-webpack-plugin#options.
 };
@@ -140,11 +144,6 @@ export default withSentryConfig(
       // Thus, we can get Playwright test results and Preview releases for WIP PRs.
       eslint: { ignoreDuringBuilds: true },
       typescript: { ignoreBuildErrors: true },
-
-      sentry: {
-        autoInstrumentServerFunctions: false,
-        hideSourceMaps: false,
-      },
 
       transpilePackages: [
         "@blockprotocol/service",
