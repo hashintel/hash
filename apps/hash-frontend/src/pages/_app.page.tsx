@@ -21,7 +21,7 @@ import { featureFlags } from "@local/hash-isomorphic-utils/feature-flags";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import type { User } from "@local/hash-isomorphic-utils/system-types/user";
 import { CssBaseline, GlobalStyles, ThemeProvider } from "@mui/material";
-import { ErrorBoundary, getCurrentScope } from "@sentry/nextjs";
+import { ErrorBoundary, getClient } from "@sentry/nextjs";
 import type { AppProps as NextAppProps } from "next/app";
 import { useRouter } from "next/router";
 import { SnackbarProvider } from "notistack";
@@ -81,9 +81,10 @@ const App: FunctionComponent<AppProps> = ({
   const router = useRouter();
 
   useEffect(() => {
-    const scope = getCurrentScope();
+    const release = getClient()?.getOptions().release;
+
     // eslint-disable-next-line no-console -- TODO: consider using logger
-    console.log(`Build: ${scope.getSession()?.release ?? "not set"}`);
+    console.log(`Build: ${release ?? "not set"}`);
 
     setSsr(false);
   }, []);

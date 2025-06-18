@@ -13,13 +13,17 @@ const withBundleAnalyzer = bundleAnalyzer({
 
 config({ silent: true, path: "../.." });
 
+/**
+ * @type {import('@sentry/nextjs').SentryBuildOptions}
+ */
 const sentryWebpackPluginOptions = {
   disableLogger: true,
-  dryRun: !process.env.SENTRY_AUTH_TOKEN,
   reactComponentAnnotation: {
     enabled: true,
   },
-  release: buildStamp,
+  release: {
+    name: buildStamp,
+  },
   silent: true,
   widenClientFileUpload: true,
   // For all available options, see:
@@ -32,10 +36,10 @@ const sentryWebpackPluginOptions = {
 
 // Show the worker cost in the UI. Always enabled for admins
 process.env.NEXT_PUBLIC_SHOW_WORKER_COST =
-  process.env.SHOW_WORKER_COST ?? false;
+  process.env.SHOW_WORKER_COST ?? "false";
 
 process.env.NEXT_PUBLIC_HASH_OPENSEARCH_ENABLED =
-  process.env.HASH_OPENSEARCH_ENABLED ?? false;
+  process.env.HASH_OPENSEARCH_ENABLED ?? "false";
 
 // This allows the frontend to generate the graph type IDs in the browser
 process.env.NEXT_PUBLIC_FRONTEND_URL = process.env.FRONTEND_URL;
@@ -46,7 +50,7 @@ process.env.NEXT_PUBLIC_API_ORIGIN =
 
 process.env.NEXT_PUBLIC_SENTRY_DSN = process.env.SENTRY_DSN ?? "";
 process.env.NEXT_PUBLIC_SENTRY_REPLAY_SESSION_SAMPLE_RATE =
-  process.env.SENTRY_REPLAY_SESSION_SAMPLE_RATE ?? 1;
+  process.env.SENTRY_REPLAY_SESSION_SAMPLE_RATE ?? "1";
 
 process.env.NEXT_PUBLIC_NOTIFICATION_POLL_INTERVAL =
   process.env.NOTIFICATION_POLL_INTERVAL ?? "";
@@ -94,7 +98,7 @@ export default withSentryConfig(
       images: {
         domains: [apiDomain],
       },
-      redirects() {
+      async redirects() {
         return [
           {
             source: "/settings/organizations/:shortname(^(?!new)$)",

@@ -20,7 +20,8 @@
     "**/*.ts",
     "**/*.tsx",
     "codegen.config.ts",
-    "instrumentation-client.ts"
+    "instrumentation-client.ts",
+    "next.config.js"
   ],
   "exclude": ["node_modules", ".next"]
 }
