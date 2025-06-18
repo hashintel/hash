@@ -29,7 +29,7 @@ use hash_graph_store::{
     entity_type::{EntityTypeQueryPath, EntityTypeStore as _, IncludeEntityTypeOption},
     error::{InsertionError, QueryError, UpdateError},
     filter::{Filter, FilterExpression, Parameter, ParameterList},
-    query::{QueryResult as _, Read, ReadPaginated, Sorting as _},
+    query::{QueryResult as _, Read, ReadPaginated},
     subgraph::{
         Subgraph, SubgraphRecord as _,
         edges::{EdgeDirection, GraphResolveDepths, KnowledgeGraphEdgeKind, SharedEdgeKind},
@@ -387,280 +387,217 @@ where
     #[expect(clippy::too_many_lines)]
     async fn get_entities_impl(
         &self,
-        mut params: GetEntitiesImplParams<'_>,
+        params: GetEntitiesImplParams<'_>,
         temporal_axes: &QueryTemporalAxes,
         policy_components: &PolicyComponents,
     ) -> Result<GetEntitiesResponse<'static>, Report<QueryError>> {
-        let actor_id = policy_components
-            .actor_id
-            .map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from);
-        let mut root_entities = Vec::new();
-        let filters: [Filter<'_, Entity>; 1] = [params.filter];
+        let mut filters = vec![params.filter];
 
-        let (
-            permissions,
-            count,
-            web_ids,
-            created_by_ids,
-            edition_created_by_ids,
-            type_ids,
-            type_titles,
-        ) = if params.include_count
-            || params.include_web_ids
-            || params.include_created_by_ids
-            || params.include_edition_created_by_ids
-            || params.include_type_ids
-        {
-            let mut compiler = SelectCompiler::new(Some(temporal_axes), params.include_drafts);
-            let web_id_idx = compiler.add_selection_path(&EntityQueryPath::WebId);
-            let entity_uuid_idx = compiler.add_selection_path(&EntityQueryPath::Uuid);
-            let draft_id_idx = compiler.add_selection_path(&EntityQueryPath::DraftId);
-            let provenance_idx = params
-                .include_created_by_ids
-                .then(|| compiler.add_selection_path(&EntityQueryPath::Provenance(None)));
-            let edition_provenance_idx = params
-                .include_edition_created_by_ids
-                .then(|| compiler.add_selection_path(&EntityQueryPath::EditionProvenance(None)));
-            let type_ids_idx = (params.include_type_ids || params.include_type_titles).then(|| {
-                (
-                    compiler.add_selection_path(&EntityQueryPath::TypeBaseUrls),
-                    compiler.add_selection_path(&EntityQueryPath::TypeVersions),
-                )
-            });
-
-            for filter in &filters {
-                compiler.add_filter(filter).change_context(QueryError)?;
-            }
-
-            let (statement, parameters) = compiler.compile();
-
-            let entities = self
-                .as_client()
-                .query_raw(&statement, parameters.iter().copied())
-                .instrument(tracing::trace_span!("query"))
-                .await
-                .change_context(QueryError)?
-                .map_ok(move |row| {
-                    (
-                        EntityId {
-                            web_id: row.get(web_id_idx),
-                            entity_uuid: row.get(entity_uuid_idx),
-                            draft_id: row.get(draft_id_idx),
-                        },
-                        row,
-                    )
-                })
-                .try_collect::<HashMap<_, _>>()
-                .await
-                .change_context(QueryError)?;
-
-            let (permissions, _zookie) = self
-                .authorization_api
-                .check_entities_permission(
-                    actor_id,
-                    EntityPermission::View,
-                    entities.keys().copied(),
-                    Consistency::FullyConsistent,
-                )
-                .await
-                .change_context(QueryError)?;
-
-            let permitted_ids = permissions
-                .into_iter()
-                .filter_map(|(entity_id, has_permission)| has_permission.then_some(entity_id))
-                .collect::<HashSet<_>>();
-
-            let mut web_ids = params.include_web_ids.then(ResponseCountMap::default);
-            let mut created_by_ids = params
-                .include_created_by_ids
-                .then(ResponseCountMap::default);
-            let mut edition_created_by_ids = params
-                .include_edition_created_by_ids
-                .then(ResponseCountMap::default);
-            let mut type_ids = (params.include_type_ids || params.include_type_titles)
-                .then(ResponseCountMap::default);
-
-            let count = entities
-                .into_iter()
-                .filter(|(entity_id, _)| permitted_ids.contains(&entity_id.entity_uuid))
-                .inspect(|(entity_id, row)| {
-                    if let Some(web_ids) = &mut web_ids {
-                        web_ids.extend_one(entity_id.web_id);
-                    }
-
-                    if let Some((created_by_ids, provenance_idx)) =
-                        created_by_ids.as_mut().zip(provenance_idx)
-                    {
-                        let provenance: InferredEntityProvenance = row.get(provenance_idx);
-                        created_by_ids.extend_one(provenance.created_by_id);
-                    }
-
-                    if let Some((edition_created_by_ids, provenance_idx)) =
-                        edition_created_by_ids.as_mut().zip(edition_provenance_idx)
-                    {
-                        let provenance: EntityEditionProvenance = row.get(provenance_idx);
-                        edition_created_by_ids.extend_one(provenance.created_by_id);
-                    }
-
-                    if let Some((type_ids, (base_urls_idx, versions_idx))) =
-                        type_ids.as_mut().zip(type_ids_idx)
-                    {
-                        let base_urls: Vec<BaseUrl> = row.get(base_urls_idx);
-                        let versions: Vec<OntologyTypeVersion> = row.get(versions_idx);
-                        type_ids.extend(
-                            base_urls
-                                .into_iter()
-                                .zip(versions)
-                                .map(|(base_url, version)| VersionedUrl { base_url, version }),
-                        );
-                    }
-                })
-                .count();
-            let type_ids = type_ids.map(HashMap::from);
-
-            let type_titles = if params.include_type_titles {
-                let type_uuids = type_ids
-                    .as_ref()
-                    .expect("type ids should be present")
-                    .keys()
-                    .map(EntityTypeUuid::from_url)
-                    .collect::<Vec<_>>();
-
-                let mut type_compiler = SelectCompiler::<EntityTypeWithMetadata>::new(
-                    Some(temporal_axes),
-                    params.include_drafts,
-                );
-                let base_url_idx = type_compiler.add_selection_path(&EntityTypeQueryPath::BaseUrl);
-                let version_idx = type_compiler.add_selection_path(&EntityTypeQueryPath::Version);
-                let title_idx = type_compiler.add_selection_path(&EntityTypeQueryPath::Title);
-
-                let filter = Filter::In(
-                    FilterExpression::Path {
-                        path: EntityTypeQueryPath::OntologyId,
-                    },
-                    ParameterList::EntityTypeIds(&type_uuids),
-                );
-                type_compiler
-                    .add_filter(&filter)
-                    .change_context(QueryError)?;
-
-                let (statement, parameters) = type_compiler.compile();
-
-                Some(
-                    self.as_client()
-                        .query_raw(&statement, parameters.iter().copied())
-                        .instrument(tracing::trace_span!("query"))
-                        .await
-                        .change_context(QueryError)?
-                        .map_ok(|row| {
-                            (
-                                VersionedUrl {
-                                    base_url: row.get(base_url_idx),
-                                    version: row.get(version_idx),
-                                },
-                                row.get::<_, String>(title_idx),
-                            )
-                        })
-                        .try_collect::<HashMap<_, _>>()
-                        .await
-                        .change_context(QueryError)?,
-                )
-            } else {
-                None
-            };
-
-            (
-                Some(permitted_ids),
-                params.include_count.then_some(count),
-                web_ids.map(HashMap::from),
-                created_by_ids.map(HashMap::from),
-                edition_created_by_ids.map(HashMap::from),
-                type_ids.filter(|_| params.include_type_ids),
-                type_titles,
+        match policy_components
+            .policy_set
+            .evaluate(
+                &Request {
+                    actor: policy_components.actor_id,
+                    action: ActionName::ViewEntity,
+                    resource: Some(&PartialResourceId::Entity(None)),
+                    context: RequestContext::default(),
+                },
+                &policy_components.context,
             )
-        } else {
-            (None, None, None, None, None, None, None)
-        };
-
-        let last = loop {
-            // We query one more than requested to determine if there are more entities to return.
-            let (rows, artifacts) =
-                ReadPaginated::<Entity, EntityQuerySorting>::read_paginated_vec(
-                    self,
-                    &filters,
-                    Some(temporal_axes),
-                    &params.sorting,
-                    params.limit,
-                    params.include_drafts,
-                )
-                .await?;
-            let entities = rows
-                .into_iter()
-                .map(|row| (row.decode_record(&artifacts), row))
-                .collect::<Vec<_>>();
-            if let Some(cursor) = entities
-                .last()
-                .map(|(_, row)| row.decode_cursor(&artifacts))
-            {
-                params.sorting.set_cursor(cursor);
+            .change_context(QueryError)?
+        {
+            Authorized::Always => {}
+            Authorized::Never => filters.push(Filter::Any(Vec::new())),
+            Authorized::Partial(partial) => {
+                filters.push(
+                    Filter::for_permission_condition(policy_components.actor_id, partial)
+                        .change_context(QueryError)?,
+                );
             }
+        }
 
-            let num_returned_entities = entities.len();
+        let (count, web_ids, created_by_ids, edition_created_by_ids, type_ids, type_titles) =
+            if params.include_count
+                || params.include_web_ids
+                || params.include_created_by_ids
+                || params.include_edition_created_by_ids
+                || params.include_type_ids
+            {
+                let mut compiler = SelectCompiler::new(Some(temporal_axes), params.include_drafts);
+                let web_id_idx = compiler.add_selection_path(&EntityQueryPath::WebId);
+                let entity_uuid_idx = compiler.add_selection_path(&EntityQueryPath::Uuid);
+                let draft_id_idx = compiler.add_selection_path(&EntityQueryPath::DraftId);
+                let provenance_idx = params
+                    .include_created_by_ids
+                    .then(|| compiler.add_selection_path(&EntityQueryPath::Provenance(None)));
+                let edition_provenance_idx = params.include_edition_created_by_ids.then(|| {
+                    compiler.add_selection_path(&EntityQueryPath::EditionProvenance(None))
+                });
+                let type_ids_idx =
+                    (params.include_type_ids || params.include_type_titles).then(|| {
+                        (
+                            compiler.add_selection_path(&EntityQueryPath::TypeBaseUrls),
+                            compiler.add_selection_path(&EntityQueryPath::TypeVersions),
+                        )
+                    });
 
-            let permitted_ids = if let Some(permitted_ids) = &permissions {
-                Cow::<HashSet<EntityUuid>>::Borrowed(permitted_ids)
-            } else {
-                // TODO: The subgraph structure differs from the API interface. At the API the
-                //       vertices are stored in a nested `HashMap` and here it's flattened. We need
-                //       to adjust the subgraph anyway so instead of refactoring this now this will
-                //       just copy the ids.
-                //   see https://linear.app/hash/issue/H-297/revisit-subgraph-layout-to-allow-temporal-ontology-types
-                let filtered_ids = entities
-                    .iter()
-                    .map(|(entity, _)| entity.metadata.record_id.entity_id)
-                    .collect::<HashSet<_>>();
+                for filter in &filters {
+                    compiler.add_filter(filter).change_context(QueryError)?;
+                }
 
-                let (permissions, _zookie) = self
-                    .authorization_api
-                    .check_entities_permission(
-                        actor_id,
-                        EntityPermission::View,
-                        filtered_ids,
-                        Consistency::FullyConsistent,
-                    )
+                let (statement, parameters) = compiler.compile();
+
+                let entities = self
+                    .as_client()
+                    .query_raw(&statement, parameters.iter().copied())
+                    .instrument(tracing::trace_span!("query"))
+                    .await
+                    .change_context(QueryError)?
+                    .map_ok(move |row| {
+                        (
+                            EntityId {
+                                web_id: row.get(web_id_idx),
+                                entity_uuid: row.get(entity_uuid_idx),
+                                draft_id: row.get(draft_id_idx),
+                            },
+                            row,
+                        )
+                    })
+                    .try_collect::<HashMap<_, _>>()
                     .await
                     .change_context(QueryError)?;
 
-                Cow::Owned(
-                    permissions
-                        .into_iter()
-                        .filter_map(|(entity_id, has_permission)| {
-                            has_permission.then_some(entity_id)
-                        })
-                        .collect::<HashSet<_>>(),
+                let mut web_ids = params.include_web_ids.then(ResponseCountMap::default);
+                let mut created_by_ids = params
+                    .include_created_by_ids
+                    .then(ResponseCountMap::default);
+                let mut edition_created_by_ids = params
+                    .include_edition_created_by_ids
+                    .then(ResponseCountMap::default);
+                let mut type_ids = (params.include_type_ids || params.include_type_titles)
+                    .then(ResponseCountMap::default);
+
+                let count = entities
+                    .into_iter()
+                    .inspect(|(entity_id, row)| {
+                        if let Some(web_ids) = &mut web_ids {
+                            web_ids.extend_one(entity_id.web_id);
+                        }
+
+                        if let Some((created_by_ids, provenance_idx)) =
+                            created_by_ids.as_mut().zip(provenance_idx)
+                        {
+                            let provenance: InferredEntityProvenance = row.get(provenance_idx);
+                            created_by_ids.extend_one(provenance.created_by_id);
+                        }
+
+                        if let Some((edition_created_by_ids, provenance_idx)) =
+                            edition_created_by_ids.as_mut().zip(edition_provenance_idx)
+                        {
+                            let provenance: EntityEditionProvenance = row.get(provenance_idx);
+                            edition_created_by_ids.extend_one(provenance.created_by_id);
+                        }
+
+                        if let Some((type_ids, (base_urls_idx, versions_idx))) =
+                            type_ids.as_mut().zip(type_ids_idx)
+                        {
+                            let base_urls: Vec<BaseUrl> = row.get(base_urls_idx);
+                            let versions: Vec<OntologyTypeVersion> = row.get(versions_idx);
+                            type_ids.extend(
+                                base_urls
+                                    .into_iter()
+                                    .zip(versions)
+                                    .map(|(base_url, version)| VersionedUrl { base_url, version }),
+                            );
+                        }
+                    })
+                    .count();
+                let type_ids = type_ids.map(HashMap::from);
+
+                let type_titles = if params.include_type_titles {
+                    let type_uuids = type_ids
+                        .as_ref()
+                        .expect("type ids should be present")
+                        .keys()
+                        .map(EntityTypeUuid::from_url)
+                        .collect::<Vec<_>>();
+
+                    let mut type_compiler = SelectCompiler::<EntityTypeWithMetadata>::new(
+                        Some(temporal_axes),
+                        params.include_drafts,
+                    );
+                    let base_url_idx =
+                        type_compiler.add_selection_path(&EntityTypeQueryPath::BaseUrl);
+                    let version_idx =
+                        type_compiler.add_selection_path(&EntityTypeQueryPath::Version);
+                    let title_idx = type_compiler.add_selection_path(&EntityTypeQueryPath::Title);
+
+                    let filter = Filter::In(
+                        FilterExpression::Path {
+                            path: EntityTypeQueryPath::OntologyId,
+                        },
+                        ParameterList::EntityTypeIds(&type_uuids),
+                    );
+                    type_compiler
+                        .add_filter(&filter)
+                        .change_context(QueryError)?;
+
+                    let (statement, parameters) = type_compiler.compile();
+
+                    Some(
+                        self.as_client()
+                            .query_raw(&statement, parameters.iter().copied())
+                            .instrument(tracing::trace_span!("query"))
+                            .await
+                            .change_context(QueryError)?
+                            .map_ok(|row| {
+                                (
+                                    VersionedUrl {
+                                        base_url: row.get(base_url_idx),
+                                        version: row.get(version_idx),
+                                    },
+                                    row.get::<_, String>(title_idx),
+                                )
+                            })
+                            .try_collect::<HashMap<_, _>>()
+                            .await
+                            .change_context(QueryError)?,
+                    )
+                } else {
+                    None
+                };
+
+                (
+                    params.include_count.then_some(count),
+                    web_ids.map(HashMap::from),
+                    created_by_ids.map(HashMap::from),
+                    edition_created_by_ids.map(HashMap::from),
+                    type_ids.filter(|_| params.include_type_ids),
+                    type_titles,
                 )
+            } else {
+                (None, None, None, None, None, None)
             };
 
-            root_entities.extend(entities.into_iter().filter(|(entity, _)| {
-                permitted_ids.contains(&entity.metadata.record_id.entity_id.entity_uuid)
-            }));
-
-            if let Some(limit) = params.limit {
-                if num_returned_entities < limit {
-                    // When the returned entities are less than the requested amount we know
-                    // that there are no more entities to return.
-                    break None;
-                }
-                if root_entities.len() == limit {
-                    // The requested limit is reached, so we can stop here.
-                    break root_entities
-                        .last()
-                        .map(|(_, row)| row.decode_cursor(&artifacts));
-                }
-            } else {
-                // Without a limit all entities are returned.
-                break None;
-            }
+        let (rows, artifacts) = ReadPaginated::<Entity, EntityQuerySorting>::read_paginated_vec(
+            self,
+            &filters,
+            Some(temporal_axes),
+            &params.sorting,
+            params.limit,
+            params.include_drafts,
+        )
+        .await?;
+        let root_entities = rows
+            .into_iter()
+            .map(|row| (row.decode_record(&artifacts), row))
+            .collect::<Vec<_>>();
+        let cursor = if params.limit == Some(root_entities.len()) {
+            root_entities
+                .last()
+                .map(|(_, row)| row.decode_cursor(&artifacts))
+        } else {
+            None
         };
 
         Ok(GetEntitiesResponse {
@@ -671,7 +608,9 @@ where
             closed_multi_entity_types: if params.include_entity_types.is_some() {
                 Some(
                     self.get_closed_multi_entity_types(
-                        actor_id,
+                        policy_components
+                            .actor_id
+                            .map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from),
                         root_entities
                             .iter()
                             .map(|(entity, _)| entity.metadata.entity_type_ids.clone()),
@@ -706,7 +645,9 @@ where
                         .collect::<Vec<_>>();
                     Some(
                         self.get_entity_type_resolve_definitions(
-                            actor_id,
+                            policy_components
+                                .actor_id
+                                .map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from),
                             &entity_type_uuids,
                             params.include_entity_types
                                 == Some(IncludeEntityTypeOption::ResolvedWithDataTypeChildren),
@@ -720,7 +661,7 @@ where
                 .into_iter()
                 .map(|(entity, _)| entity)
                 .collect(),
-            cursor: last,
+            cursor,
             count,
             web_ids,
             created_by_ids,
@@ -1527,39 +1468,41 @@ where
             .await
             .change_context(QueryError)?;
 
+        let mut filters = vec![params.filter];
+
+        match policy_components
+            .policy_set
+            .evaluate(
+                &Request {
+                    actor: policy_components.actor_id,
+                    action: ActionName::ViewEntity,
+                    resource: Some(&PartialResourceId::Entity(None)),
+                    context: RequestContext::default(),
+                },
+                &policy_components.context,
+            )
+            .change_context(QueryError)?
+        {
+            Authorized::Always => {}
+            Authorized::Never => filters.push(Filter::Any(Vec::new())),
+            Authorized::Partial(partial) => {
+                filters.push(
+                    Filter::for_permission_condition(policy_components.actor_id, partial)
+                        .change_context(QueryError)?,
+                );
+            }
+        }
+
         let temporal_axes = params.temporal_axes.resolve();
 
-        let entity_ids = Read::<Entity>::read(
-            self,
-            &[params.filter],
-            Some(&temporal_axes),
-            params.include_drafts,
-        )
-        .await?
-        .map_ok(|entity| entity.metadata.record_id.entity_id)
-        .try_collect::<Vec<_>>()
-        .await?;
+        let entity_ids =
+            Read::<Entity>::read(self, &filters, Some(&temporal_axes), params.include_drafts)
+                .await?
+                .map_ok(|entity| entity.metadata.record_id.entity_id)
+                .try_collect::<Vec<_>>()
+                .await?;
 
-        let permitted_ids = self
-            .authorization_api
-            .check_entities_permission(
-                actor_id,
-                EntityPermission::View,
-                entity_ids.iter().copied(),
-                Consistency::FullyConsistent,
-            )
-            .instrument(tracing::trace_span!("post_filter_entities"))
-            .await
-            .change_context(QueryError)?
-            .0
-            .into_iter()
-            .filter_map(|(entity_id, has_permission)| has_permission.then_some(entity_id))
-            .collect::<HashSet<_>>();
-
-        Ok(entity_ids
-            .into_iter()
-            .filter(|id| permitted_ids.contains(&id.entity_uuid))
-            .count())
+        Ok(entity_ids.len())
     }
 
     async fn get_entity_by_id(
@@ -1574,23 +1517,30 @@ where
             .await
             .change_context(QueryError)?;
 
-        let provider = StoreProvider::new(self, &policy_components);
+        let mut filters = vec![Filter::for_entity_by_entity_id(entity_id)];
 
-        provider
-            .store
-            .authorization_api
-            .check_entity_permission(
-                policy_components
-                    .actor_id
-                    .map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from),
-                EntityPermission::View,
-                entity_id,
-                Consistency::FullyConsistent,
+        match policy_components
+            .policy_set
+            .evaluate(
+                &Request {
+                    actor: policy_components.actor_id,
+                    action: ActionName::ViewEntity,
+                    resource: Some(&PartialResourceId::Entity(None)),
+                    context: RequestContext::default(),
+                },
+                &policy_components.context,
             )
-            .await
             .change_context(QueryError)?
-            .assert_permission()
-            .change_context(QueryError)?;
+        {
+            Authorized::Always => {}
+            Authorized::Never => filters.push(Filter::Any(Vec::new())),
+            Authorized::Partial(partial) => {
+                filters.push(
+                    Filter::for_permission_condition(policy_components.actor_id, partial)
+                        .change_context(QueryError)?,
+                );
+            }
+        }
 
         let temporal_axes = QueryTemporalAxesUnresolved::TransactionTime {
             pinned: PinnedTemporalAxisUnresolved::new(decision_time),
@@ -1603,7 +1553,7 @@ where
 
         Read::<Entity>::read_one(
             self,
-            &[Filter::for_entity_by_entity_id(entity_id)],
+            &filters,
             Some(&temporal_axes),
             entity_id.draft_id.is_some(),
         )
