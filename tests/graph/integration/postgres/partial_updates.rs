@@ -105,6 +105,7 @@ async fn properties_add() {
                 link_data: None,
                 draft: false,
                 relationships: [],
+                policies: Vec::new(),
                 provenance: ProvidedEntityEditionProvenance {
                     actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
@@ -225,6 +226,7 @@ async fn properties_remove() {
                 link_data: None,
                 draft: false,
                 relationships: [],
+                policies: Vec::new(),
                 provenance: ProvidedEntityEditionProvenance {
                     actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
@@ -312,6 +314,7 @@ async fn properties_replace() {
                 link_data: None,
                 draft: false,
                 relationships: [],
+                policies: Vec::new(),
                 provenance: ProvidedEntityEditionProvenance {
                     actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
@@ -414,6 +417,7 @@ async fn type_ids() {
                 link_data: None,
                 draft: false,
                 relationships: [],
+                policies: Vec::new(),
                 provenance: ProvidedEntityEditionProvenance {
                     actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),

@@ -126,7 +126,7 @@ const SEED_LINKS: &[(&str, usize, usize)] = &[
     clippy::significant_drop_tightening,
     reason = "transaction is committed which consumes the object"
 )]
-async fn seed_db<A: AuthorizationApi>(
+pub(crate) async fn seed_db<A: AuthorizationApi>(
     account_id: ActorEntityUuid,
     store_wrapper: &mut StoreWrapper<A>,
 ) {
@@ -207,6 +207,7 @@ async fn seed_db<A: AuthorizationApi>(
                         link_data: None,
                         draft: false,
                         relationships: [],
+                        policies: Vec::new(),
                         provenance: ProvidedEntityEditionProvenance {
                             actor_type: ActorType::User,
                             origin: OriginProvenance::from_empty_type(OriginType::Api),
@@ -256,6 +257,7 @@ async fn seed_db<A: AuthorizationApi>(
                         }),
                         draft: false,
                         relationships: [],
+                        policies: Vec::new(),
                         provenance: ProvidedEntityEditionProvenance {
                             actor_type: ActorType::User,
                             origin: OriginProvenance::from_empty_type(OriginType::Api),

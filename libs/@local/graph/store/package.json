@@ -3,6 +3,7 @@
   "version": "0.0.0-private",
   "private": true,
   "license": "AGPL-3",
+  "type": "module",
   "exports": {
     "./types": "./types/index.snap.js"
   },

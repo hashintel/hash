@@ -15,7 +15,6 @@ import { entityIdFromComponents } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { EntityRelationAndSubjectBranded } from "@local/hash-graph-sdk/authorization";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
-import { createPolicy } from "@local/hash-graph-sdk/policy";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
   currentTimeInstantTemporalAxes,
@@ -304,6 +303,19 @@ export const createUsageRecord = async (
     });
   }
 
+  const viewPrincipals: PrincipalConstraint[] = [
+    {
+      type: "actor",
+      actorType: "user",
+      id: userAccountId,
+    },
+    {
+      type: "actor",
+      actorType: "ai",
+      id: aiAssistantAccountId,
+    },
+  ];
+
   const usageRecordEntityUuid = generateUuid() as EntityUuid;
   const recordsUsageOfEntityUuid = generateUuid() as EntityUuid;
 
@@ -330,6 +342,12 @@ export const createUsageRecord = async (
       provenance,
       entityTypeIds: [systemEntityTypes.usageRecord.entityTypeId],
       relationships: entityRelationships,
+      policies: viewPrincipals.map((principal) => ({
+        name: `usage-record-view-entity-${usageRecordEntityUuid}`,
+        principal,
+        effect: "permit",
+        actions: ["viewEntity"],
+      })),
     },
     {
       webId: assignUsageToWebId,
@@ -343,38 +361,14 @@ export const createUsageRecord = async (
       },
       entityTypeIds: [systemLinkEntityTypes.recordsUsageOf.linkEntityTypeId],
       relationships: entityRelationships,
-    },
-  ]);
-
-  const viewPrincipals: PrincipalConstraint[] = [
-    {
-      type: "actor",
-      actorType: "user",
-      id: userAccountId,
-    },
-    {
-      type: "actor",
-      actorType: "ai",
-      id: aiAssistantAccountId,
-    },
-  ];
-
-  // TODO: allow creating policies alongside entity creation
-  //   see https://linear.app/hash/issue/H-4622/allow-creating-policies-alongside-entity-creation
-  for (const entityUuid of [usageRecordEntityUuid, recordsUsageOfEntityUuid]) {
-    for (const principal of viewPrincipals) {
-      await createPolicy(context.graphApi, authentication, {
-        name: `usage-record-view-entity-${entityUuid}`,
+      policies: viewPrincipals.map((principal) => ({
+        name: `usage-record-view-entity-${recordsUsageOfEntityUuid}`,
         principal,
         effect: "permit",
         actions: ["viewEntity"],
-        resource: {
-          type: "entity",
-          id: entityUuid,
-        },
-      });
-    }
-  }
+      })),
+    },
+  ]);
 
   return usageRecord;
 };
