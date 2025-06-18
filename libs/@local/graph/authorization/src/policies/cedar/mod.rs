@@ -1,3 +1,4 @@
+mod actor;
 mod entity;
 mod expression_tree;
 mod ontology;
@@ -12,6 +13,7 @@ use error_stack::{IntoReport, Report, ResultExt as _};
 
 pub use self::expression_tree::PolicyExpressionTree;
 pub(crate) use self::{
+    actor::ActorIdVisitor,
     entity::EntityUuidVisitor,
     ontology::{BaseUrlVisitor, EntityTypeIdVisitor, OntologyTypeVersionVisitor},
     visitor::{
@@ -22,8 +24,21 @@ pub(crate) use self::{
 };
 use crate::policies::error::FromCedarRefernceError;
 
+pub(crate) trait ToCedarRestrictedExpr {
+    fn to_cedar_restricted_expr(&self) -> ast::RestrictedExpr;
+}
+
 pub(crate) trait ToCedarExpr {
-    fn to_cedar(&self) -> ast::Expr;
+    fn to_cedar_expr(&self) -> ast::Expr;
+}
+
+impl<T> ToCedarExpr for T
+where
+    T: ToCedarRestrictedExpr,
+{
+    fn to_cedar_expr(&self) -> ast::Expr {
+        self.to_cedar_restricted_expr().into()
+    }
 }
 
 pub(crate) trait FromCedarExpr: Sized {

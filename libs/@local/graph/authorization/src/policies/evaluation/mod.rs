@@ -6,14 +6,15 @@ use error_stack::{Report, ResultExt as _};
 use type_system::{
     knowledge::entity::id::EntityUuid,
     ontology::{BaseUrl, VersionedUrl, id::OntologyTypeVersion},
-    principal::actor_group::WebId,
+    principal::{actor::ActorId, actor_group::WebId},
 };
 
 use super::{
     PartialResourceId,
     cedar::{
-        BaseUrlVisitor, CedarExpressionVisitor, EntityTypeIdVisitor, EntityUuidVisitor,
-        FromCedarEntityId as _, OntologyTypeVersionVisitor, WebIdVisitor, walk_expr,
+        ActorIdVisitor, BaseUrlVisitor, CedarExpressionVisitor, EntityTypeIdVisitor,
+        EntityUuidVisitor, FromCedarEntityId as _, OntologyTypeVersionVisitor, WebIdVisitor,
+        walk_expr,
     },
     resource::{EntityTypeId, ResourceVariableVisitor},
 };
@@ -24,6 +25,8 @@ pub enum ParsePermissionConditionError {
     InvalidAttribute,
     #[display("Could not parse resource id")]
     InvalidResourceId,
+    #[display("Could not parse actor id")]
+    InvalidActorId,
     #[display("Could not parse web id")]
     InvalidWebId,
 }
@@ -45,6 +48,8 @@ pub enum ResourceAttribute {
     BaseUrl(BaseUrl),
     OntologyTypeVersion(OntologyTypeVersion),
     IsOfType(VersionedUrl),
+    CreatedBy(Option<ActorId>),
+    CreatedByPrincipal,
 }
 
 pub(crate) struct ResourceAttributeVisitor;
@@ -77,6 +82,24 @@ impl CedarExpressionVisitor for ResourceAttributeVisitor {
                             .visit_expr(rhs)?
                             .change_context(ParsePermissionConditionError::InvalidAttribute)
                             .map(ResourceAttribute::OntologyTypeVersion),
+                    ),
+                    "created_by" => ActorIdVisitor.visit_expr(rhs).map_or_else(
+                        || {
+                            if let ast::ExprKind::GetAttr { expr, attr } = rhs.expr_kind() {
+                                (*expr.expr_kind() == ast::ExprKind::Var(ast::Var::Principal)
+                                    && attr.as_str() == "id")
+                                    .then(|| Ok(ResourceAttribute::CreatedByPrincipal))
+                            } else {
+                                None
+                            }
+                        },
+                        |actor_id| {
+                            Some(
+                                actor_id
+                                    .change_context(ParsePermissionConditionError::InvalidActorId)
+                                    .map(ResourceAttribute::CreatedBy),
+                            )
+                        },
                     ),
                     _ => None,
                 }

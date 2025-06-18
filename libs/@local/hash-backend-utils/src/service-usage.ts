@@ -36,7 +36,6 @@ import type {
   RecordsUsageOf,
   UsageRecord,
 } from "@local/hash-isomorphic-utils/system-types/usagerecord";
-import type { PrincipalConstraint } from "@rust/hash-graph-authorization/types";
 import { backOff } from "exponential-backoff";
 
 import { getInstanceAdminsTeam } from "./hash-instance.js";
@@ -303,19 +302,6 @@ export const createUsageRecord = async (
     });
   }
 
-  const viewPrincipals: PrincipalConstraint[] = [
-    {
-      type: "actor",
-      actorType: "user",
-      id: userAccountId,
-    },
-    {
-      type: "actor",
-      actorType: "ai",
-      id: aiAssistantAccountId,
-    },
-  ];
-
   const usageRecordEntityUuid = generateUuid() as EntityUuid;
   const recordsUsageOfEntityUuid = generateUuid() as EntityUuid;
 
@@ -342,12 +328,18 @@ export const createUsageRecord = async (
       provenance,
       entityTypeIds: [systemEntityTypes.usageRecord.entityTypeId],
       relationships: entityRelationships,
-      policies: viewPrincipals.map((principal) => ({
-        name: `usage-record-view-entity-${usageRecordEntityUuid}`,
-        principal,
-        effect: "permit",
-        actions: ["viewEntity"],
-      })),
+      policies: [
+        {
+          name: `usage-record-view-entity-${recordsUsageOfEntityUuid}`,
+          principal: {
+            type: "actor",
+            actorType: "ai",
+            id: aiAssistantAccountId,
+          },
+          effect: "permit",
+          actions: ["viewEntity"],
+        },
+      ],
     },
     {
       webId: assignUsageToWebId,
@@ -361,12 +353,18 @@ export const createUsageRecord = async (
       },
       entityTypeIds: [systemLinkEntityTypes.recordsUsageOf.linkEntityTypeId],
       relationships: entityRelationships,
-      policies: viewPrincipals.map((principal) => ({
-        name: `usage-record-view-entity-${recordsUsageOfEntityUuid}`,
-        principal,
-        effect: "permit",
-        actions: ["viewEntity"],
-      })),
+      policies: [
+        {
+          name: `usage-record-view-entity-${recordsUsageOfEntityUuid}`,
+          principal: {
+            type: "actor",
+            actorType: "ai",
+            id: aiAssistantAccountId,
+          },
+          effect: "permit",
+          actions: ["viewEntity"],
+        },
+      ],
     },
   ]);
 
