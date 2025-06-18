@@ -32,9 +32,7 @@ Sentry.init({
   ),
   sendDefaultPii: true,
   tracePropagationTargets: ["localhost", /^https:\/\/(?:.*\.)?hash\.ai/],
-  tracesSampleRate: isProduction
-    ? 1.0 /** @todo reduce perf sample rate from 100% when we have more traffic */
-    : 0,
+  tracesSampleRate: isProduction ? 1.0 : 0,
 });
 
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;

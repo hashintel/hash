@@ -11,7 +11,5 @@ Sentry.init({
   release: buildStamp,
   sendDefaultPii: true,
   // release is set in next.config.js in the Sentry webpack plugin
-  tracesSampleRate: isProduction
-    ? 1.0 /** @todo reduce perf sample rate from 100% when we have more traffic */
-    : 0,
+  tracesSampleRate: isProduction ? 1.0 : 0,
 });
