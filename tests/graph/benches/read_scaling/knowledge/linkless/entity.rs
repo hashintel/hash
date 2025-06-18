@@ -5,7 +5,7 @@ use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion};
 use criterion_macro::criterion;
 use hash_graph_authorization::{
     AuthorizationApi, NoAuthorization,
-    policies::store::{CreateWebParameter, LocalPrincipalStore as _, PolicyStore as _},
+    policies::store::{CreateWebParameter, PolicyStore as _, PrincipalStore as _},
 };
 use hash_graph_store::{
     entity::{CreateEntityParams, EntityQuerySorting, EntityStore as _, GetEntitiesParams},

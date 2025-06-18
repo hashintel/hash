@@ -42,7 +42,7 @@ provider "cloudflare" {
 data "vault_kv_secret_v2" "secrets" {
   mount = "automation"
   # Remove leading and trailing slashes from the path so we ensure it's a path and not a file
-  name  = "${trim(var.vault_kvv2_secret_path, "/ ")}/${local.env}"
+  name = "${trim(var.vault_kvv2_secret_path, "/ ")}/${local.env}"
 }
 
 module "vault_aws_auth" {
@@ -99,16 +99,16 @@ module "postgres" {
 }
 
 module "temporal" {
-  depends_on          = [module.networking, module.postgres]
-  source              = "./temporal"
-  prefix              = module.variables_temporal.prefix
-  param_prefix        = module.variables_temporal.param_prefix
-  subnets             = module.networking.snpub
-  vpc                 = module.networking.vpc
-  env                 = local.env
-  region              = local.region
-  cpu                 = 256
-  memory              = 512
+  depends_on   = [module.networking, module.postgres]
+  source       = "./temporal"
+  prefix       = module.variables_temporal.prefix
+  param_prefix = module.variables_temporal.param_prefix
+  subnets      = module.networking.snpub
+  vpc          = module.networking.vpc
+  env          = local.env
+  region       = local.region
+  cpu          = 256
+  memory       = 512
   # TODO: provide by the HASH variables.tf
   temporal_version    = "1.23.1.0"
   temporal_ui_version = "2.27.2"
@@ -220,6 +220,7 @@ module "application" {
   providers                    = { cloudflare = cloudflare }
   source                       = "./hash_application"
   subnets                      = module.networking.snpub
+  cluster_arn                  = module.application_ecs.ecs_cluster_arn
   env                          = local.env
   region                       = local.region
   vpc                          = module.networking.vpc
@@ -231,7 +232,7 @@ module "application" {
   worker_memory                = 1024
   ses_verified_domain_identity = var.ses_verified_domain_identity
   graph_image                  = module.graph_ecr
-  graph_migration_env_vars     = concat(var.hash_graph_env_vars, [
+  graph_migration_env_vars = concat(var.hash_graph_env_vars, [
     { name = "HASH_GRAPH_PG_USER", secret = false, value = "superuser" },
     {
       name  = "HASH_GRAPH_PG_PASSWORD", secret = true,
@@ -277,7 +278,7 @@ module "application" {
   # The type fetcher uses the same image as the graph right now
   type_fetcher_image = module.graph_ecr
   kratos_image       = module.kratos_ecr
-  kratos_env_vars    = concat(var.kratos_env_vars, [
+  kratos_env_vars = concat(var.kratos_env_vars, [
     {
       name  = "SECRETS_COOKIE", secret = true,
       value = sensitive(data.vault_kv_secret_v2.secrets.data["kratos_secrets_cookie"])
@@ -291,7 +292,7 @@ module "application" {
       value = "postgres://kratos:${sensitive(data.vault_kv_secret_v2.secrets.data["pg_kratos_user_password_raw"])}@${module.postgres.pg_host}:${module.postgres.pg_port}/kratos"
     },
   ])
-  hydra_image    = module.hydra_ecr
+  hydra_image = module.hydra_ecr
   hydra_env_vars = concat(var.hydra_env_vars, [
     {
       name  = "DSN", secret = true,
@@ -394,7 +395,7 @@ module "application" {
       value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_openai_api_key"])
     },
   ])
-  temporal_worker_ai_ts_image    = module.temporal_worker_ai_ts_ecr
+  temporal_worker_ai_ts_image = module.temporal_worker_ai_ts_ecr
   temporal_worker_ai_ts_env_vars = [
     { name = "LOG_LEVEL", secret = false, value = "debug" },
     {
@@ -462,15 +463,15 @@ module "application" {
       value = sensitive(data.vault_kv_secret_v2.secrets.data["aws_s3_uploads_secret_access_key"])
     },
     {
-      name = "HASH_TEMPORAL_WORKER_AI_AWS_ACCESS_KEY_ID", secret = true,
+      name  = "HASH_TEMPORAL_WORKER_AI_AWS_ACCESS_KEY_ID", secret = true,
       value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_temporal_worker_ai_aws_access_key_id"])
     },
     {
-      name = "HASH_TEMPORAL_WORKER_AI_AWS_SECRET_ACCESS_KEY", secret = true,
+      name  = "HASH_TEMPORAL_WORKER_AI_AWS_SECRET_ACCESS_KEY", secret = true,
       value = sensitive(data.vault_kv_secret_v2.secrets.data["hash_temporal_worker_ai_aws_secret_access_key"])
     }
   ]
-  temporal_worker_integration_image    = module.temporal_worker_integration_ecr
+  temporal_worker_integration_image = module.temporal_worker_integration_ecr
   temporal_worker_integration_env_vars = [
     { name = "AWS_REGION", secret = false, value = local.region },
     { name = "LOG_LEVEL", secret = false, value = "debug" },
