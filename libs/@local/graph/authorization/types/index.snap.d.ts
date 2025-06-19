@@ -13,7 +13,7 @@ export interface Policy {
 }
 import type { Brand } from "@local/advanced-types/brand";
 export type PolicyId = Brand<string, "PolicyId">;
-export type ActionName = "all" | "create" | "createWeb" | "view" | "viewEntity" | "viewEntityType" | "update" | "instantiate";
+export type ActionName = "createWeb" | "viewEntity" | "instantiate";
 export type PrincipalConstraint = {
 	type: "actor"
 } & ActorId | {
