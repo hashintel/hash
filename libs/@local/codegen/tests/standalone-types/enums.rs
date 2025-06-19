@@ -92,7 +92,6 @@ pub(crate) enum EnumUntagged {
 }
 
 #[derive(specta::Type)]
-#[serde(untagged)]
 pub(crate) enum EnumWithSkippedVariants {
     NotSkipped,
     #[specta(skip)]
