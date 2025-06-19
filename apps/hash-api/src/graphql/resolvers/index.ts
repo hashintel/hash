@@ -232,17 +232,6 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
       submitExternalInputResponse,
     ),
 
-    addAccountGroupMember: (_, { accountId, accountGroupId }, context) =>
-      addActorGroupMember(context.dataSources, context.authentication, {
-        actorId: accountId,
-        actorGroupId: accountGroupId,
-      }),
-    removeAccountGroupMember: (_, { accountId, accountGroupId }, context) =>
-      removeActorGroupMember(context.dataSources, context.authentication, {
-        actorId: accountId,
-        actorGroupId: accountGroupId,
-      }),
-
     // Integration
     syncLinearIntegrationWithWebs: loggedInAndSignedUpMiddleware(
       syncLinearIntegrationWithWebsMutation,

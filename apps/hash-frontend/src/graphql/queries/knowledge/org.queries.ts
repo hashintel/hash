@@ -10,3 +10,19 @@ export const createOrgMutation = gql`
 
   ${subgraphFieldsFragment}
 `;
+
+export const acceptOrgInvitationMutation = gql`
+  mutation acceptOrgInvitation($orgInvitationEntityId: EntityId!) {
+    acceptOrgInvitation(orgInvitationEntityId: $orgInvitationEntityId) {
+      accepted
+      expired
+      notForUser
+    }
+  }
+`;
+
+export const inviteUserToOrgMutation = gql`
+  mutation inviteUserToOrg($orgWebId: WebId!, $userEmail: String!) {
+    inviteUserToOrg(orgWebId: $orgWebId, userEmail: $userEmail)
+  }
+`;

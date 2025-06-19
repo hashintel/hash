@@ -1,4 +1,10 @@
-import type { EntityId, EntityUuid, UserId } from "@blockprotocol/type-system";
+import type {
+  ActorEntityUuid,
+  EntityId,
+  EntityUuid,
+  UserId,
+  WebId,
+} from "@blockprotocol/type-system";
 import {
   extractEntityUuidFromEntityId,
   extractWebIdFromEntityId,
@@ -139,6 +145,108 @@ export const getUserById: ImpureGraphFunction<
   const entity = await getLatestEntityById(ctx, authentication, { entityId });
 
   return getUserFromEntity({ entity });
+};
+
+/**
+ * Get a system user entity by their email.
+ *
+ * @param params.email - the email of the user
+ */
+export const getUserByEmail: ImpureGraphFunction<
+  { email: string; includeDrafts?: boolean },
+  Promise<User | null>
+> = async ({ graphApi }, { actorId }, params) => {
+  const [userEntity, ...unexpectedEntities] = await graphApi
+    .getEntities(actorId, {
+      filter: {
+        all: [
+          generateVersionedUrlMatchingFilter(
+            systemEntityTypes.user.entityTypeId,
+            { ignoreParents: true },
+          ),
+          {
+            equal: [
+              {
+                path: [
+                  "properties",
+                  systemPropertyTypes.email.propertyTypeBaseUrl,
+                ],
+              },
+              { parameter: params.email },
+            ],
+          },
+        ],
+      },
+      temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: false,
+    })
+    .then(({ data: response }) =>
+      response.entities.map((entity) =>
+        mapGraphApiEntityToEntity(entity, actorId),
+      ),
+    );
+
+  if (unexpectedEntities.length > 0) {
+    throw new Error(
+      `Critical: More than one user entity with email ${params.email} found in the graph.`,
+    );
+  }
+
+  return userEntity ? getUserFromEntity({ entity: userEntity }) : null;
+};
+
+export const getUserInvitationsToOrg: ImpureGraphFunction<
+  { orgWebId: WebId; userWebId: WebId },
+  Promise<
+    {
+      invitationEntityId: EntityId;
+      expiredAt: string;
+      archivedBy: ActorEntityUuid | null;
+    }[]
+  >
+> = async (ctx, authentication, { orgWebId, userWebId }) => {
+  const invitationEntities = await ctx.graphApi
+    .getEntities(authentication.actorId, {
+      filter: {
+        all: [
+          generateVersionedUrlMatchingFilter(
+            systemEntityTypes.isInvitedTo.entityTypeId,
+            { ignoreParents: true },
+          ),
+          {
+            equal: [
+              {
+                path: ["leftEntity", "webId "],
+              },
+              { parameter: userWebId },
+            ],
+          },
+          {
+            equal: [
+              {
+                path: ["rightEntity", "webId"],
+              },
+              { parameter: orgWebId },
+            ],
+          },
+        ],
+      },
+      temporalAxes: currentTimeInstantTemporalAxes,
+      includeDrafts: false,
+    })
+    .then(({ data: response }) =>
+      response.entities.map((entity) =>
+        mapGraphApiEntityToEntity(entity, null, true),
+      ),
+    );
+
+  return invitationEntities.map((invitationEntity) => ({
+    invitationEntityId: invitationEntity.metadata.recordId.entityId,
+    expiredAt: invitationEntity.properties.expiredAt,
+    archivedBy: invitationEntity.metadata.archived
+      ? invitationEntity.metadata.provenance.edition.createdById
+      : null,
+  }));
 };
 
 /**

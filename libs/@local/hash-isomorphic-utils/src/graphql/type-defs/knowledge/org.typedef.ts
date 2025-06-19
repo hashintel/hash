@@ -1,6 +1,12 @@
 import { gql } from "apollo-server-express";
 
 export const orgTypedef = gql`
+  type AcceptInvitationResult {
+    accepted: Boolean!
+    expired: Boolean!
+    notForUser: Boolean!
+  }
+
   extend type Mutation {
     """
     Create an organization. The creator will be automatically added as an org member.
@@ -27,5 +33,39 @@ export const orgTypedef = gql`
       """
       hasRightEntity: EdgeResolveDepthsInput! = { outgoing: 0, incoming: 0 }
     ): GqlSubgraph!
+
+    """
+    Invite a user to an organization.
+    """
+    inviteUserToOrg(
+      """
+      The email of the user to invite.
+      """
+      userEmail: String!
+      """
+      The webId of the organization to invite the user to.
+      """
+      orgWebId: WebId!
+    ): Boolean!
+
+    """
+    Accept an invitation to an organization.
+    """
+    acceptOrgInvitation(
+      """
+      The entityId of the organization invitation to accept.
+      """
+      orgInvitationEntityId: EntityId!
+    ): AcceptInvitationResult!
+
+    """
+    Decline an invitation to an organization.
+    """
+    declineOrgInvitation(
+      """
+      The entityId of the organization invitation to decline.
+      """
+      orgInvitationEntityId: EntityId!
+    ): Boolean!
   }
 `;
