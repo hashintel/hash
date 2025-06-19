@@ -167,7 +167,7 @@ describe("Policy CRUD", () => {
         },
       ],
     );
-    expect(updatedPolicy.actions).toStrictEqual(["view"]);
+    expect(updatedPolicy.actions).toStrictEqual(["viewEntity"]);
     expect(updatedPolicy.resource).toStrictEqual({
       type: "entity",
       id: extractEntityUuidFromEntityId(testUser.entity.entityId),
