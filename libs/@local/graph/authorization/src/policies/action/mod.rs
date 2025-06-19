@@ -29,20 +29,20 @@ use crate::policies::cedar::FromCedarEntityId;
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[serde(rename_all = "camelCase")]
 pub enum ActionName {
-    #[cfg_attr(feature = "codegen", specta(skip))]
+    #[cfg_attr(feature = "codegen", serde(skip))]
     All,
 
-    #[cfg_attr(feature = "codegen", specta(skip))]
+    #[cfg_attr(feature = "codegen", serde(skip))]
     Create,
     CreateWeb,
 
-    #[cfg_attr(feature = "codegen", specta(skip))]
+    #[cfg_attr(feature = "codegen", serde(skip))]
     View,
     ViewEntity,
-    #[cfg_attr(feature = "codegen", specta(skip))]
+    #[cfg_attr(feature = "codegen", serde(skip))]
     ViewEntityType,
 
-    #[cfg_attr(feature = "codegen", specta(skip))]
+    #[cfg_attr(feature = "codegen", serde(skip))]
     Update,
 
     Instantiate,
