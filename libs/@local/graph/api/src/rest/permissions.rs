@@ -18,7 +18,6 @@ use hash_graph_authorization::{
 use hash_graph_store::pool::StorePool;
 use hash_temporal_client::TemporalClient;
 use http::StatusCode;
-use type_system::principal::actor::ActorId;
 use utoipa::OpenApi;
 
 use crate::rest::{AuthenticatedUserHeader, json::Json, status::report_to_response};
@@ -29,7 +28,6 @@ use crate::rest::{AuthenticatedUserHeader, json::Json, status::report_to_respons
         create_policy,
         get_policy_by_id,
         query_policies,
-        resolve_policies_for_actor,
         update_policy_by_id,
         archive_policy_by_id,
         delete_policy_by_id,
@@ -67,7 +65,6 @@ impl PermissionResource {
                         .route("/delete", delete(delete_policy_by_id::<S, A>)),
                 )
                 .route("/query", post(query_policies::<S, A>))
-                .route("/resolve/actor", post(resolve_policies_for_actor::<S, A>))
                 .route("/seed", get(seed_system_policies::<S, A>)),
         )
     }
@@ -206,52 +203,6 @@ where
         .await
         .map_err(report_to_response)?
         .query_policies(authenticated_actor_id.into(), &filter)
-        .await
-        .map_err(report_to_response)
-        .map(Json)
-}
-
-#[utoipa::path(
-    post,
-    path = "/policies/resolve/actor",
-    request_body = Value,
-    tag = "Permission",
-    params(
-        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
-    ),
-    responses(
-        (status = 200, content_type = "application/json", description = "List of policies found for the actor", body = Vec<Value>),
-
-        (status = 500, description = "Store error occurred"),
-    )
-)]
-#[tracing::instrument(
-    level = "info",
-    skip(store_pool, authorization_api_pool, temporal_client)
-)]
-async fn resolve_policies_for_actor<S, A>(
-    AuthenticatedUserHeader(authenticated_actor_id): AuthenticatedUserHeader,
-    store_pool: Extension<Arc<S>>,
-    authorization_api_pool: Extension<Arc<A>>,
-    temporal_client: Extension<Option<Arc<TemporalClient>>>,
-    Json(actor_id): Json<ActorId>,
-) -> Result<Json<Vec<Policy>>, Response>
-where
-    S: StorePool + Send + Sync,
-    A: AuthorizationApiPool + Send + Sync,
-    for<'p, 'a> S::Store<'p, A::Api<'a>>: PolicyStore,
-{
-    store_pool
-        .acquire(
-            authorization_api_pool
-                .acquire()
-                .await
-                .map_err(report_to_response)?,
-            temporal_client.0,
-        )
-        .await
-        .map_err(report_to_response)?
-        .resolve_policies_for_actor(authenticated_actor_id.into(), Some(actor_id))
         .await
         .map_err(report_to_response)
         .map(Json)

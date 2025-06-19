@@ -8,6 +8,7 @@ use type_system::{
 
 use super::{
     Context, ContextBuilder, PolicySet,
+    action::ActionName,
     principal::actor::AuthenticatedActor,
     store::{PolicyStore, PrincipalStore, error::ContextCreationError},
 };
@@ -32,6 +33,7 @@ pub struct PolicyComponentsBuilder<'a, S> {
     context: ContextBuilder,
     entity_type_ids: HashSet<Cow<'a, VersionedUrl>>,
     entity_edition_ids: HashSet<EntityEditionId>,
+    actions: HashSet<ActionName>,
 }
 
 impl<'a, S> PolicyComponentsBuilder<'a, S> {
@@ -43,6 +45,7 @@ impl<'a, S> PolicyComponentsBuilder<'a, S> {
             context: ContextBuilder::default(),
             entity_type_ids: HashSet::new(),
             entity_edition_ids: HashSet::new(),
+            actions: HashSet::new(),
         }
     }
 
@@ -103,6 +106,26 @@ impl<'a, S> PolicyComponentsBuilder<'a, S> {
         entity_edition_ids: impl IntoIterator<Item = EntityEditionId>,
     ) -> Self {
         self.add_entity_edition_ids(entity_edition_ids);
+        self
+    }
+
+    pub fn add_action(&mut self, action: ActionName) {
+        self.actions.insert(action);
+    }
+
+    pub fn add_actions(&mut self, actions: impl IntoIterator<Item = ActionName>) {
+        self.actions.extend(actions);
+    }
+
+    #[must_use]
+    pub fn with_action(mut self, action: ActionName) -> Self {
+        self.add_action(action);
+        self
+    }
+
+    #[must_use]
+    pub fn with_actions(mut self, actions: impl IntoIterator<Item = ActionName>) -> Self {
+        self.add_actions(actions);
         self
     }
 }
@@ -170,15 +193,20 @@ where
                 }
             }
 
-            let policies = self
-                .store
-                .resolve_policies_for_actor(self.actor, actor_id)
-                .await
-                .change_context(ContextCreationError::ResolveActorPolicies { actor_id })?;
+            let actions = self.actions.iter().copied().collect::<Vec<_>>();
+            let policies = if actions.is_empty() {
+                Vec::new()
+            } else {
+                self.store
+                    .resolve_policies_for_actor(self.actor, actor_id, &actions)
+                    .await
+                    .change_context(ContextCreationError::ResolveActorPolicies { actor_id })?
+            };
 
             Ok(PolicyComponents {
                 actor_id,
                 policy_set: PolicySet::default()
+                    .with_tracked_actions(self.actions)
                     .with_policies(&policies)
                     .change_context(ContextCreationError::CreatePolicySet)?,
                 context: self

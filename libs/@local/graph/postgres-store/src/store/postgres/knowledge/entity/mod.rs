@@ -777,6 +777,7 @@ where
                     .flat_map(|params| &params.entity_type_ids)
                     .collect::<HashSet<_>>(),
             )
+            .with_action(ActionName::Instantiate)
             .await
             .change_context(InsertionError)?;
 
@@ -1676,6 +1677,7 @@ where
             .with_actor(actor_id)
             .with_entity_edition_id(previous_entity.metadata.record_id.edition_id)
             .with_entity_type_ids(&params.entity_type_ids)
+            .with_action(ActionName::Instantiate)
             .await
             .change_context(UpdateError)?;
 

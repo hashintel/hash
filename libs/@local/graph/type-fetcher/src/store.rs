@@ -7,6 +7,7 @@ use hash_graph_authorization::{
     AuthorizationApi,
     policies::{
         ContextBuilder, Policy, PolicyId,
+        action::ActionName,
         principal::actor::AuthenticatedActor,
         resource::{EntityResource, EntityTypeResource},
         store::{
@@ -316,9 +317,10 @@ where
         &self,
         authenticated_actor: AuthenticatedActor,
         actor_id: Option<ActorId>,
+        actions: &[ActionName],
     ) -> Result<Vec<Policy>, Report<GetPoliciesError>> {
         self.store
-            .resolve_policies_for_actor(authenticated_actor, actor_id)
+            .resolve_policies_for_actor(authenticated_actor, actor_id, actions)
             .await
     }
 

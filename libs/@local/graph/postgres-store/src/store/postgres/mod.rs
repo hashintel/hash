@@ -17,8 +17,8 @@ use hash_graph_authorization::{
     AuthorizationApi,
     backend::ModifyRelationshipOperation,
     policies::{
-        Authorized, ContextBuilder, Effect, Policy, PolicyId, PolicySet, Request, RequestContext,
-        ResourceId,
+        Authorized, ContextBuilder, Effect, PartialResourceId, Policy, PolicyComponents, PolicyId,
+        Request, RequestContext,
         action::ActionName,
         principal::{PrincipalConstraint, actor::AuthenticatedActor},
         resource::{EntityResource, EntityTypeId, EntityTypeResource, ResourceConstraint},
@@ -257,32 +257,24 @@ where
         actor: ActorId,
         parameter: CreateWebParameter,
     ) -> Result<CreateWebResponse, Report<WebCreationError>> {
-        let mut context_builder = ContextBuilder::default();
-        self.build_principal_context(actor, &mut context_builder)
+        let policy_components = PolicyComponents::builder(self)
+            .with_actor(actor)
+            .with_action(ActionName::CreateWeb)
             .await
-            .change_context(WebCreationError::StoreError)?;
-        let context = context_builder
-            .build()
-            .change_context(WebCreationError::StoreError)?;
-        let policies = self
-            .resolve_policies_for_actor(actor.into(), Some(actor))
-            .await
-            .change_context(WebCreationError::StoreError)?;
+            .change_context(WebCreationError::BuildPolicyComponents)?;
 
         let web_id = WebId::new(parameter.id.unwrap_or_else(Uuid::new_v4));
 
-        let policy_set = PolicySet::default()
-            .with_policies(&policies)
-            .change_context(WebCreationError::StoreError)?;
-        match policy_set
+        match policy_components
+            .policy_set
             .evaluate(
                 &Request {
-                    actor: Some(actor),
+                    actor: policy_components.actor_id,
                     action: ActionName::CreateWeb,
                     resource: &ResourceId::Web(web_id),
                     context: RequestContext::default(),
                 },
-                &context,
+                &policy_components.context,
             )
             .change_context(WebCreationError::StoreError)?
         {
@@ -1279,6 +1271,7 @@ where
         &self,
         authenticated_actor: AuthenticatedActor,
         actor_id: Option<ActorId>,
+        actions: &[ActionName],
     ) -> Result<Vec<Policy>, Report<GetPoliciesError>> {
         let Some(actor_id) = actor_id else {
             // If no actor is provided, only policies without principal constraints are returned.
@@ -1379,6 +1372,7 @@ where
                 LEFT JOIN policy_action
                        ON policy_action.policy_id = policy_edition.id
                       AND policy_action.transaction_time @> now()
+                      AND policy_action.action_name = ANY($3)
                 GROUP BY
                     policy_edition.id,
                     policy_edition.name,
@@ -1391,6 +1385,7 @@ where
                 [
                     &actor_id as &(dyn ToSql + Sync),
                     &PrincipalType::from(actor_id.actor_type()),
+                    &actions,
                 ],
             )
             .await
