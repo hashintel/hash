@@ -90,3 +90,56 @@ pub(crate) enum EnumUntagged {
         simple: StructSimple,
     },
 }
+
+// Untagged - no discriminator field, purely based on shape
+#[derive(specta::Type)]
+#[serde(untagged)]
+pub(crate) enum EnumWithSkippedVariants {
+    NotSkipped,
+    #[specta(skip)]
+    SkippedSpectaUnit,
+    #[serde(skip)]
+    SkippedSerdeUnit,
+    #[specta(skip)]
+    SkippedSpectaSingleUnnamed(i32),
+    #[serde(skip)]
+    SkippedSerdeSingleUnnamed(i32),
+    #[specta(skip)]
+    SkippedSpectaDoubleUnnamed(bool, String),
+    #[serde(skip)]
+    SkippedSerdeDoubleUnnamed(bool, String),
+    #[specta(skip)]
+    SkippedSpectaEmptyNamed {},
+    #[serde(skip)]
+    SkippedSerdeEmptyNamed {},
+    #[specta(skip)]
+    SkippedSpectaSingleNamed {
+        value: i32,
+    },
+    #[serde(skip)]
+    SkippedSerdeSingleNamed {
+        value: i32,
+    },
+    #[specta(skip)]
+    SkippedSpectaMultiNamed {
+        value_1: i32,
+        value_2: String,
+    },
+    #[serde(skip)]
+    SkippedSerdeMultiNamed {
+        value_1: i32,
+        value_2: String,
+    },
+    #[specta(skip)]
+    SkippedSpectaFlattenedStruct {
+        name: String,
+        #[serde(flatten)]
+        simple: StructSimple,
+    },
+    #[serde(skip)]
+    SkippedSerdeFlattenedStruct {
+        name: String,
+        #[serde(flatten)]
+        simple: StructSimple,
+    },
+}
