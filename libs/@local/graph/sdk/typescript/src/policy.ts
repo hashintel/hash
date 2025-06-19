@@ -5,6 +5,7 @@ import type {
   PolicyFilter,
   PolicyId,
   PolicyUpdateOperation,
+  ResolvePoliciesParams,
 } from "@rust/hash-graph-authorization/types";
 
 import type { AuthenticationContext } from "./authentication-context.js";
@@ -57,6 +58,28 @@ export const queryPolicies = (
 ): Promise<Policy[]> =>
   graphAPI
     .queryPolicies(authentication.actorId, filter)
+    .then(({ data: policies }) => policies as Policy[]);
+
+/**
+ * Searches for policies that apply to the given actor.
+ *
+ * This method queries the underlying policy store to find policies that are relevant to the
+ * specified actor. The policies returned may include those that apply to the actor directly,
+ * as well as policies that apply to any roles the actor has.
+ *
+ * This provides a complete set of policies that apply to an actor, including all policies that
+ *   - apply to the actor itself,
+ *   - apply to the actor's roles,
+ *   - apply to the actor's groups, and
+ *   - apply to the actor's parent groups (for teams).
+ */
+export const resolvePoliciesForActor = (
+  graphAPI: GraphApi,
+  authentication: AuthenticationContext,
+  params: ResolvePoliciesParams,
+): Promise<Policy[]> =>
+  graphAPI
+    .resolvePoliciesForActor(authentication.actorId, params)
     .then(({ data: policies }) => policies as Policy[]);
 
 /**

@@ -24,8 +24,8 @@ use hash_graph_authorization::{
         resource::{EntityResource, EntityTypeId, EntityTypeResource, ResourceConstraint},
         store::{
             CreateWebParameter, CreateWebResponse, PolicyCreationParams, PolicyFilter, PolicyStore,
-            PolicyUpdateOperation, PrincipalFilter, PrincipalStore, RoleAssignmentStatus,
-            RoleUnassignmentStatus,
+            PolicyUpdateOperation, PrincipalFilter, PrincipalStore, ResolvePoliciesParams,
+            RoleAssignmentStatus, RoleUnassignmentStatus,
             error::{
                 BuildEntityContextError, BuildEntityTypeContextError, BuildPrincipalContextError,
                 CreatePolicyError, DetermineActorError, EnsureSystemPoliciesError,
@@ -1273,10 +1273,9 @@ where
     async fn resolve_policies_for_actor(
         &self,
         authenticated_actor: AuthenticatedActor,
-        actor_id: Option<ActorId>,
-        actions: &[ActionName],
+        params: ResolvePoliciesParams<'_>,
     ) -> Result<Vec<Policy>, Report<GetPoliciesError>> {
-        let Some(actor_id) = actor_id else {
+        let Some(actor_id) = params.actor else {
             // If no actor is provided, only policies without principal constraints are returned.
             return self
                 .query_policies(
@@ -1388,7 +1387,7 @@ where
                 [
                     &actor_id as &(dyn ToSql + Sync),
                     &PrincipalType::from(actor_id.actor_type()),
-                    &actions,
+                    &&*params.actions,
                 ],
             )
             .await

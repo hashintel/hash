@@ -7,12 +7,12 @@ use hash_graph_authorization::{
     AuthorizationApi,
     policies::{
         ContextBuilder, Policy, PolicyId,
-        action::ActionName,
         principal::actor::AuthenticatedActor,
         resource::{EntityResource, EntityTypeResource},
         store::{
             CreateWebParameter, CreateWebResponse, PolicyCreationParams, PolicyFilter, PolicyStore,
-            PolicyUpdateOperation, PrincipalStore, RoleAssignmentStatus, RoleUnassignmentStatus,
+            PolicyUpdateOperation, PrincipalStore, ResolvePoliciesParams, RoleAssignmentStatus,
+            RoleUnassignmentStatus,
             error::{
                 BuildEntityContextError, BuildEntityTypeContextError, BuildPrincipalContextError,
                 CreatePolicyError, DetermineActorError, EnsureSystemPoliciesError,
@@ -316,11 +316,10 @@ where
     async fn resolve_policies_for_actor(
         &self,
         authenticated_actor: AuthenticatedActor,
-        actor_id: Option<ActorId>,
-        actions: &[ActionName],
+        params: ResolvePoliciesParams<'_>,
     ) -> Result<Vec<Policy>, Report<GetPoliciesError>> {
         self.store
-            .resolve_policies_for_actor(authenticated_actor, actor_id, actions)
+            .resolve_policies_for_actor(authenticated_actor, params)
             .await
     }
 

@@ -1,3 +1,4 @@
+use alloc::borrow::Cow;
 use core::error::Error;
 use std::collections::{HashMap, HashSet};
 
@@ -8,7 +9,10 @@ use hash_graph_authorization::{
         action::ActionName,
         principal::PrincipalConstraint,
         resource::{EntityResourceConstraint, EntityResourceFilter, ResourceConstraint},
-        store::{CreateWebParameter, PolicyCreationParams, PolicyStore as _, PrincipalStore as _},
+        store::{
+            CreateWebParameter, PolicyCreationParams, PolicyStore as _, PrincipalStore as _,
+            ResolvePoliciesParams,
+        },
     },
 };
 use hash_graph_postgres_store::store::{AsClient, PostgresStore};
@@ -403,8 +407,10 @@ async fn global_policies() -> Result<(), Box<dyn Error>> {
     let user1_policies = client
         .resolve_policies_for_actor(
             actor_id.into(),
-            Some(ActorId::User(env.user1)),
-            &[ActionName::All],
+            ResolvePoliciesParams {
+                actor: Some(ActorId::User(env.user1)),
+                actions: Cow::Borrowed(&[ActionName::All]),
+            },
         )
         .await?
         .into_iter()
@@ -413,8 +419,10 @@ async fn global_policies() -> Result<(), Box<dyn Error>> {
     let user2_policies = client
         .resolve_policies_for_actor(
             actor_id.into(),
-            Some(ActorId::User(env.user2)),
-            &[ActionName::All],
+            ResolvePoliciesParams {
+                actor: Some(ActorId::User(env.user2)),
+                actions: Cow::Borrowed(&[ActionName::All]),
+            },
         )
         .await?
         .into_iter()
@@ -423,8 +431,10 @@ async fn global_policies() -> Result<(), Box<dyn Error>> {
     let machine_policies = client
         .resolve_policies_for_actor(
             actor_id.into(),
-            Some(ActorId::Machine(env.machine_id)),
-            &[ActionName::All],
+            ResolvePoliciesParams {
+                actor: Some(ActorId::Machine(env.machine_id)),
+                actions: Cow::Borrowed(&[ActionName::All]),
+            },
         )
         .await?
         .into_iter()
@@ -433,8 +443,10 @@ async fn global_policies() -> Result<(), Box<dyn Error>> {
     let ai_policies = client
         .resolve_policies_for_actor(
             actor_id.into(),
-            Some(ActorId::Ai(env.ai_id)),
-            &[ActionName::All],
+            ResolvePoliciesParams {
+                actor: Some(ActorId::Ai(env.ai_id)),
+                actions: Cow::Borrowed(&[ActionName::All]),
+            },
         )
         .await?
         .into_iter()
@@ -443,8 +455,10 @@ async fn global_policies() -> Result<(), Box<dyn Error>> {
     let nonexisting_policies = client
         .resolve_policies_for_actor(
             actor_id.into(),
-            Some(ActorId::User(UserId::new(Uuid::new_v4()))),
-            &[ActionName::All],
+            ResolvePoliciesParams {
+                actor: Some(ActorId::User(UserId::new(Uuid::new_v4()))),
+                actions: Cow::Borrowed(&[ActionName::All]),
+            },
         )
         .await?
         .into_iter()
@@ -487,8 +501,10 @@ async fn actor_type_policies() -> Result<(), Box<dyn Error>> {
     let user1_policies = client
         .resolve_policies_for_actor(
             actor_id.into(),
-            Some(ActorId::User(env.user1)),
-            &[ActionName::All],
+            ResolvePoliciesParams {
+                actor: Some(ActorId::User(env.user1)),
+                actions: Cow::Borrowed(&[ActionName::All]),
+            },
         )
         .await?
         .into_iter()
@@ -497,8 +513,10 @@ async fn actor_type_policies() -> Result<(), Box<dyn Error>> {
     let user2_policies = client
         .resolve_policies_for_actor(
             actor_id.into(),
-            Some(ActorId::User(env.user2)),
-            &[ActionName::All],
+            ResolvePoliciesParams {
+                actor: Some(ActorId::User(env.user2)),
+                actions: Cow::Borrowed(&[ActionName::All]),
+            },
         )
         .await?
         .into_iter()
@@ -507,8 +525,10 @@ async fn actor_type_policies() -> Result<(), Box<dyn Error>> {
     let machine_policies = client
         .resolve_policies_for_actor(
             actor_id.into(),
-            Some(ActorId::Machine(env.machine_id)),
-            &[ActionName::All],
+            ResolvePoliciesParams {
+                actor: Some(ActorId::Machine(env.machine_id)),
+                actions: Cow::Borrowed(&[ActionName::All]),
+            },
         )
         .await?
         .into_iter()
@@ -517,8 +537,10 @@ async fn actor_type_policies() -> Result<(), Box<dyn Error>> {
     let nonexisting_machine_policies = client
         .resolve_policies_for_actor(
             actor_id.into(),
-            Some(ActorId::Machine(MachineId::new(Uuid::new_v4()))),
-            &[ActionName::All],
+            ResolvePoliciesParams {
+                actor: Some(ActorId::Machine(MachineId::new(Uuid::new_v4()))),
+                actions: Cow::Borrowed(&[ActionName::All]),
+            },
         )
         .await?
         .into_iter()
@@ -575,8 +597,10 @@ async fn specific_actor_policies() -> Result<(), Box<dyn Error>> {
     let user1_policies = client
         .resolve_policies_for_actor(
             actor_id.into(),
-            Some(ActorId::User(env.user1)),
-            &[ActionName::All],
+            ResolvePoliciesParams {
+                actor: Some(ActorId::User(env.user1)),
+                actions: Cow::Borrowed(&[ActionName::All]),
+            },
         )
         .await?
         .into_iter()
@@ -585,8 +609,10 @@ async fn specific_actor_policies() -> Result<(), Box<dyn Error>> {
     let user2_policies = client
         .resolve_policies_for_actor(
             actor_id.into(),
-            Some(ActorId::User(env.user2)),
-            &[ActionName::All],
+            ResolvePoliciesParams {
+                actor: Some(ActorId::User(env.user2)),
+                actions: Cow::Borrowed(&[ActionName::All]),
+            },
         )
         .await?
         .into_iter()
@@ -595,8 +621,10 @@ async fn specific_actor_policies() -> Result<(), Box<dyn Error>> {
     let nonexisting_user_policies = client
         .resolve_policies_for_actor(
             actor_id.into(),
-            Some(ActorId::User(UserId::new(Uuid::new_v4()))),
-            &[ActionName::All],
+            ResolvePoliciesParams {
+                actor: Some(ActorId::User(UserId::new(Uuid::new_v4()))),
+                actions: Cow::Borrowed(&[ActionName::All]),
+            },
         )
         .await?
         .into_iter()
@@ -631,8 +659,10 @@ async fn role_based_policies() -> Result<(), Box<dyn Error>> {
     let user1_policies = client
         .resolve_policies_for_actor(
             actor_id.into(),
-            Some(ActorId::User(env.user1)),
-            &[ActionName::All],
+            ResolvePoliciesParams {
+                actor: Some(ActorId::User(env.user1)),
+                actions: Cow::Borrowed(&[ActionName::All]),
+            },
         )
         .await?
         .into_iter()
@@ -641,8 +671,10 @@ async fn role_based_policies() -> Result<(), Box<dyn Error>> {
     let user2_policies = client
         .resolve_policies_for_actor(
             actor_id.into(),
-            Some(ActorId::User(env.user2)),
-            &[ActionName::All],
+            ResolvePoliciesParams {
+                actor: Some(ActorId::User(env.user2)),
+                actions: Cow::Borrowed(&[ActionName::All]),
+            },
         )
         .await?
         .into_iter()
@@ -673,8 +705,10 @@ async fn role_based_policies() -> Result<(), Box<dyn Error>> {
     let machine_policies = client
         .resolve_policies_for_actor(
             actor_id.into(),
-            Some(ActorId::Machine(special_machine_id)),
-            &[ActionName::All],
+            ResolvePoliciesParams {
+                actor: Some(ActorId::Machine(special_machine_id)),
+                actions: Cow::Borrowed(&[ActionName::All]),
+            },
         )
         .await?
         .into_iter()
@@ -707,8 +741,10 @@ async fn team_hierarchy_policies() -> Result<(), Box<dyn Error>> {
     let user2_policies = client
         .resolve_policies_for_actor(
             actor_id.into(),
-            Some(ActorId::User(env.user2)),
-            &[ActionName::All],
+            ResolvePoliciesParams {
+                actor: Some(ActorId::User(env.user2)),
+                actions: Cow::Borrowed(&[ActionName::All]),
+            },
         )
         .await?
         .into_iter()
@@ -717,8 +753,10 @@ async fn team_hierarchy_policies() -> Result<(), Box<dyn Error>> {
     let ai_policies = client
         .resolve_policies_for_actor(
             actor_id.into(),
-            Some(ActorId::Ai(env.ai_id)),
-            &[ActionName::All],
+            ResolvePoliciesParams {
+                actor: Some(ActorId::Ai(env.ai_id)),
+                actions: Cow::Borrowed(&[ActionName::All]),
+            },
         )
         .await?
         .into_iter()
@@ -753,8 +791,10 @@ async fn policy_count_and_content() -> Result<(), Box<dyn Error>> {
     let user1_policies = client
         .resolve_policies_for_actor(
             actor_id.into(),
-            Some(ActorId::User(env.user1)),
-            &[ActionName::All],
+            ResolvePoliciesParams {
+                actor: Some(ActorId::User(env.user1)),
+                actions: Cow::Borrowed(&[ActionName::All]),
+            },
         )
         .await?
         .into_iter()
@@ -763,8 +803,10 @@ async fn policy_count_and_content() -> Result<(), Box<dyn Error>> {
     let user2_policies = client
         .resolve_policies_for_actor(
             actor_id.into(),
-            Some(ActorId::User(env.user2)),
-            &[ActionName::All],
+            ResolvePoliciesParams {
+                actor: Some(ActorId::User(env.user2)),
+                actions: Cow::Borrowed(&[ActionName::All]),
+            },
         )
         .await?
         .into_iter()
@@ -773,8 +815,10 @@ async fn policy_count_and_content() -> Result<(), Box<dyn Error>> {
     let machine_policies = client
         .resolve_policies_for_actor(
             actor_id.into(),
-            Some(ActorId::Machine(env.machine_id)),
-            &[ActionName::All],
+            ResolvePoliciesParams {
+                actor: Some(ActorId::Machine(env.machine_id)),
+                actions: Cow::Borrowed(&[ActionName::All]),
+            },
         )
         .await?
         .into_iter()
@@ -783,8 +827,10 @@ async fn policy_count_and_content() -> Result<(), Box<dyn Error>> {
     let ai_policies = client
         .resolve_policies_for_actor(
             actor_id.into(),
-            Some(ActorId::Ai(env.ai_id)),
-            &[ActionName::All],
+            ResolvePoliciesParams {
+                actor: Some(ActorId::Ai(env.ai_id)),
+                actions: Cow::Borrowed(&[ActionName::All]),
+            },
         )
         .await?
         .into_iter()
@@ -793,8 +839,10 @@ async fn policy_count_and_content() -> Result<(), Box<dyn Error>> {
     let nonexistent_policies = client
         .resolve_policies_for_actor(
             actor_id.into(),
-            Some(ActorId::User(nonexistent_id)),
-            &[ActionName::All],
+            ResolvePoliciesParams {
+                actor: Some(ActorId::User(nonexistent_id)),
+                actions: Cow::Borrowed(&[ActionName::All]),
+            },
         )
         .await?
         .into_iter()
@@ -868,8 +916,10 @@ async fn role_assignment_changes() -> Result<(), Box<dyn Error>> {
     let user2_policies = client
         .resolve_policies_for_actor(
             actor_id.into(),
-            Some(ActorId::User(env.user2)),
-            &[ActionName::All],
+            ResolvePoliciesParams {
+                actor: Some(ActorId::User(env.user2)),
+                actions: Cow::Borrowed(&[ActionName::All]),
+            },
         )
         .await?
         .into_iter()
@@ -891,8 +941,10 @@ async fn role_assignment_changes() -> Result<(), Box<dyn Error>> {
     let updated_policies = client
         .resolve_policies_for_actor(
             actor_id.into(),
-            Some(ActorId::User(env.user2)),
-            &[ActionName::All],
+            ResolvePoliciesParams {
+                actor: Some(ActorId::User(env.user2)),
+                actions: Cow::Borrowed(&[ActionName::All]),
+            },
         )
         .await?
         .into_iter()
@@ -916,8 +968,10 @@ async fn role_assignment_changes() -> Result<(), Box<dyn Error>> {
     let final_policies = client
         .resolve_policies_for_actor(
             actor_id.into(),
-            Some(ActorId::User(env.user2)),
-            &[ActionName::All],
+            ResolvePoliciesParams {
+                actor: Some(ActorId::User(env.user2)),
+                actions: Cow::Borrowed(&[ActionName::All]),
+            },
         )
         .await?
         .into_iter()
@@ -963,8 +1017,10 @@ async fn resource_constraints_are_preserved() -> Result<(), Box<dyn Error>> {
     let policies = client
         .resolve_policies_for_actor(
             actor_id.into(),
-            Some(ActorId::User(user_id)),
-            &[ActionName::All],
+            ResolvePoliciesParams {
+                actor: Some(ActorId::User(user_id)),
+                actions: Cow::Borrowed(&[ActionName::All]),
+            },
         )
         .await?
         .into_iter()
@@ -1092,8 +1148,10 @@ async fn deep_team_hierarchy() -> Result<(), Box<dyn Error>> {
     let policies = client
         .resolve_policies_for_actor(
             actor_id.into(),
-            Some(ActorId::User(user_id)),
-            &[ActionName::All],
+            ResolvePoliciesParams {
+                actor: Some(ActorId::User(user_id)),
+                actions: Cow::Borrowed(&[ActionName::All]),
+            },
         )
         .await?
         .into_iter()

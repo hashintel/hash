@@ -111,3 +111,7 @@ export type PrincipalFilter = {
 } | {
 	filter: "constrained"
 } & PrincipalConstraint;
+export interface ResolvePoliciesParams {
+	actor: (ActorId | null);
+	actions: ActionName[];
+}

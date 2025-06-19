@@ -10,7 +10,7 @@ use super::{
     Context, ContextBuilder, PolicySet,
     action::ActionName,
     principal::actor::AuthenticatedActor,
-    store::{PolicyStore, PrincipalStore, error::ContextCreationError},
+    store::{PolicyStore, PrincipalStore, ResolvePoliciesParams, error::ContextCreationError},
 };
 
 #[derive(Debug)]
@@ -198,7 +198,13 @@ where
                 Vec::new()
             } else {
                 self.store
-                    .resolve_policies_for_actor(self.actor, actor_id, &actions)
+                    .resolve_policies_for_actor(
+                        self.actor,
+                        ResolvePoliciesParams {
+                            actor: actor_id,
+                            actions: Cow::Borrowed(&actions),
+                        },
+                    )
                     .await
                     .change_context(ContextCreationError::ResolveActorPolicies { actor_id })?
             };
