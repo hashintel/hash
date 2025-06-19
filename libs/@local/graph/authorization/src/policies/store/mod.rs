@@ -242,6 +242,7 @@ pub trait PolicyStore {
         &self,
         authenticated_actor: AuthenticatedActor,
         actor_id: Option<ActorId>,
+        actions: &[ActionName],
     ) -> Result<Vec<Policy>, Report<GetPoliciesError>>;
 
     /// Updates the policy specified by its ID.

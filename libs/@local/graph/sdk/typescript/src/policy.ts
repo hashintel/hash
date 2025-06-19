@@ -1,4 +1,3 @@
-import type { ActorId } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import type {
   Policy,
@@ -58,28 +57,6 @@ export const queryPolicies = (
 ): Promise<Policy[]> =>
   graphAPI
     .queryPolicies(authentication.actorId, filter)
-    .then(({ data: policies }) => policies as Policy[]);
-
-/**
- * Searches for policies that apply to the given actor.
- *
- * This method queries the underlying policy store to find policies that are relevant to the
- * specified actor. The policies returned may include those that apply to the actor directly,
- * as well as policies that apply to any roles the actor has.
- *
- * This provides a complete set of policies that apply to an actor, including all policies that
- *   - apply to the actor itself,
- *   - apply to the actor's roles,
- *   - apply to the actor's groups, and
- *   - apply to the actor's parent groups (for teams).
- */
-export const resolvePoliciesForActor = (
-  graphAPI: GraphApi,
-  authentication: AuthenticationContext,
-  actorId: ActorId,
-): Promise<Policy[]> =>
-  graphAPI
-    .resolvePoliciesForActor(authentication.actorId, actorId)
     .then(({ data: policies }) => policies as Policy[]);
 
 /**
