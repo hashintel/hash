@@ -91,7 +91,6 @@ pub(crate) enum EnumUntagged {
     },
 }
 
-// Untagged - no discriminator field, purely based on shape
 #[derive(specta::Type)]
 #[serde(untagged)]
 pub(crate) enum EnumWithSkippedVariants {
