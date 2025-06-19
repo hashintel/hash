@@ -13379,6 +13379,12 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@rust/hashql-eval@workspace:libs/@local/hashql/eval":
+  version: 0.0.0-use.local
+  resolution: "@rust/hashql-eval@workspace:libs/@local/hashql/eval"
+  languageName: unknown
+  linkType: soft
+
 "@rust/hashql-hir@npm:0.0.0-private, @rust/hashql-hir@workspace:libs/@local/hashql/hir":
   version: 0.0.0-use.local
   resolution: "@rust/hashql-hir@workspace:libs/@local/hashql/hir"

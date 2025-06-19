@@ -3950,6 +3950,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "hashql-eval"
+version = "0.0.0"
+
+[[package]]
 name = "hashql-hir"
 version = "0.0.0"
 dependencies = [
