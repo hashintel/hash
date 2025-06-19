@@ -1,6 +1,8 @@
 #![expect(clippy::panic_in_result_fn, clippy::significant_drop_tightening)]
 #![feature(assert_matches)]
 
+extern crate alloc;
+
 mod actions;
 mod ai;
 mod machine;

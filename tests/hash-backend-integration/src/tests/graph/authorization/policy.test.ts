@@ -112,8 +112,41 @@ describe("Policy CRUD", () => {
 
     expect(
       await resolvePoliciesForActor(graphApi, authentication, {
-        actorType: "user",
-        id: testUser.accountId,
+        actor: {
+          actorType: "user",
+          id: testUser.accountId,
+        },
+        actions: ["createWeb"],
+      }),
+    ).not.toContainEqual(testPolicy);
+
+    expect(
+      await resolvePoliciesForActor(graphApi, authentication, {
+        actor: {
+          actorType: "user",
+          id: testUser.accountId,
+        },
+        actions: [],
+      }),
+    ).not.toContainEqual(testPolicy);
+
+    expect(
+      await resolvePoliciesForActor(graphApi, authentication, {
+        actor: {
+          actorType: "user",
+          id: testUser.accountId,
+        },
+        actions: ["instantiate"],
+      }),
+    ).toContainEqual(testPolicy);
+
+    expect(
+      await resolvePoliciesForActor(graphApi, authentication, {
+        actor: {
+          actorType: "user",
+          id: testUser.accountId,
+        },
+        actions: ["createWeb", "instantiate"],
       }),
     ).toContainEqual(testPolicy);
   });
@@ -223,8 +256,11 @@ describe("Policy CRUD", () => {
 
     expect(
       await resolvePoliciesForActor(graphApi, authentication, {
-        actorType: "user",
-        id: testUser.accountId,
+        actor: {
+          actorType: "user",
+          id: testUser.accountId,
+        },
+        actions: ["instantiate"],
       }),
     ).not.toContainEqual(testPolicy);
   });
