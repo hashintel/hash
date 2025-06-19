@@ -1357,29 +1357,43 @@ where
                      AND policy_edition.principal_type = principals.principal_type
                     WHERE policy_edition.transaction_time @> now()
                       AND (policy_edition.actor_type IS NULL OR policy_edition.actor_type = $2)
+                ),
+
+                -- We have all the policies that apply to the actor, now we associate the actions
+                policy_with_actions AS (
+                    SELECT
+                        policy_edition.id,
+                        policy_edition.name,
+                        policy_edition.effect,
+                        policy_edition.principal_id,
+                        policy_edition.principal_type,
+                        policy_edition.actor_type,
+                        policy_edition.resource_constraint,
+                        array_remove(array_agg(policy_action.action_name), NULL) AS actions
+                    FROM policy_edition
+                    LEFT JOIN policy_action
+                        ON policy_action.policy_id = policy_edition.id
+                        AND policy_action.transaction_time @> now()
+                    GROUP BY
+                        policy_edition.id,
+                        policy_edition.name,
+                        policy_edition.effect,
+                        policy_edition.principal_id,
+                        policy_edition.principal_type,
+                        policy_edition.actor_type,
+                        policy_edition.resource_constraint
                 )
                 SELECT
-                    policy_edition.id,
-                    policy_edition.name,
-                    policy_edition.effect,
-                    policy_edition.principal_id,
-                    policy_edition.principal_type,
-                    policy_edition.actor_type,
-                    policy_edition.resource_constraint,
-                    array_remove(array_agg(policy_action.action_name), NULL)
-                FROM policy_edition
-                LEFT JOIN policy_action
-                       ON policy_action.policy_id = policy_edition.id
-                      AND policy_action.transaction_time @> now()
-                      AND policy_action.action_name = ANY($3)
-                GROUP BY
-                    policy_edition.id,
-                    policy_edition.name,
-                    policy_edition.effect,
-                    policy_edition.principal_id,
-                    policy_edition.principal_type,
-                    policy_edition.actor_type,
-                    policy_edition.resource_constraint
+                    id,
+                    name,
+                    effect,
+                    principal_id,
+                    principal_type,
+                    actor_type,
+                    resource_constraint,
+                    actions
+                FROM policy_with_actions
+                WHERE actions && $3
                 ",
                 [
                     &actor_id as &(dyn ToSql + Sync),

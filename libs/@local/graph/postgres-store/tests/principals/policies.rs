@@ -355,7 +355,7 @@ async fn setup_policy_test_environment(
                 principal: Some(PrincipalConstraint::Actor {
                     actor: ActorId::User(user1_id),
                 }),
-                actions: vec![ActionName::Update],
+                actions: vec![ActionName::Update, ActionName::ViewEntity],
                 resource: None,
             },
         )
@@ -503,7 +503,7 @@ async fn actor_type_policies() -> Result<(), Box<dyn Error>> {
             actor_id.into(),
             ResolvePoliciesParams {
                 actor: Some(ActorId::User(env.user1)),
-                actions: Cow::Borrowed(&[ActionName::All]),
+                actions: Cow::Owned(ActionName::all().collect()),
             },
         )
         .await?
@@ -515,7 +515,7 @@ async fn actor_type_policies() -> Result<(), Box<dyn Error>> {
             actor_id.into(),
             ResolvePoliciesParams {
                 actor: Some(ActorId::User(env.user2)),
-                actions: Cow::Borrowed(&[ActionName::All]),
+                actions: Cow::Owned(ActionName::all().collect()),
             },
         )
         .await?
@@ -527,7 +527,7 @@ async fn actor_type_policies() -> Result<(), Box<dyn Error>> {
             actor_id.into(),
             ResolvePoliciesParams {
                 actor: Some(ActorId::Machine(env.machine_id)),
-                actions: Cow::Borrowed(&[ActionName::All]),
+                actions: Cow::Owned(ActionName::all().collect()),
             },
         )
         .await?
@@ -539,7 +539,7 @@ async fn actor_type_policies() -> Result<(), Box<dyn Error>> {
             actor_id.into(),
             ResolvePoliciesParams {
                 actor: Some(ActorId::Machine(MachineId::new(Uuid::new_v4()))),
-                actions: Cow::Borrowed(&[ActionName::All]),
+                actions: Cow::Owned(ActionName::all().collect()),
             },
         )
         .await?
@@ -599,7 +599,7 @@ async fn specific_actor_policies() -> Result<(), Box<dyn Error>> {
             actor_id.into(),
             ResolvePoliciesParams {
                 actor: Some(ActorId::User(env.user1)),
-                actions: Cow::Borrowed(&[ActionName::All]),
+                actions: Cow::Owned(ActionName::all().collect()),
             },
         )
         .await?
@@ -611,7 +611,7 @@ async fn specific_actor_policies() -> Result<(), Box<dyn Error>> {
             actor_id.into(),
             ResolvePoliciesParams {
                 actor: Some(ActorId::User(env.user2)),
-                actions: Cow::Borrowed(&[ActionName::All]),
+                actions: Cow::Owned(ActionName::all().collect()),
             },
         )
         .await?
@@ -623,7 +623,7 @@ async fn specific_actor_policies() -> Result<(), Box<dyn Error>> {
             actor_id.into(),
             ResolvePoliciesParams {
                 actor: Some(ActorId::User(UserId::new(Uuid::new_v4()))),
-                actions: Cow::Borrowed(&[ActionName::All]),
+                actions: Cow::Owned(ActionName::all().collect()),
             },
         )
         .await?
@@ -661,7 +661,7 @@ async fn role_based_policies() -> Result<(), Box<dyn Error>> {
             actor_id.into(),
             ResolvePoliciesParams {
                 actor: Some(ActorId::User(env.user1)),
-                actions: Cow::Borrowed(&[ActionName::All]),
+                actions: Cow::Owned(ActionName::all().collect()),
             },
         )
         .await?
@@ -673,7 +673,7 @@ async fn role_based_policies() -> Result<(), Box<dyn Error>> {
             actor_id.into(),
             ResolvePoliciesParams {
                 actor: Some(ActorId::User(env.user2)),
-                actions: Cow::Borrowed(&[ActionName::All]),
+                actions: Cow::Owned(ActionName::all().collect()),
             },
         )
         .await?
@@ -707,7 +707,7 @@ async fn role_based_policies() -> Result<(), Box<dyn Error>> {
             actor_id.into(),
             ResolvePoliciesParams {
                 actor: Some(ActorId::Machine(special_machine_id)),
-                actions: Cow::Borrowed(&[ActionName::All]),
+                actions: Cow::Owned(ActionName::all().collect()),
             },
         )
         .await?
@@ -743,7 +743,7 @@ async fn team_hierarchy_policies() -> Result<(), Box<dyn Error>> {
             actor_id.into(),
             ResolvePoliciesParams {
                 actor: Some(ActorId::User(env.user2)),
-                actions: Cow::Borrowed(&[ActionName::All]),
+                actions: Cow::Owned(ActionName::all().collect()),
             },
         )
         .await?
@@ -755,7 +755,7 @@ async fn team_hierarchy_policies() -> Result<(), Box<dyn Error>> {
             actor_id.into(),
             ResolvePoliciesParams {
                 actor: Some(ActorId::Ai(env.ai_id)),
-                actions: Cow::Borrowed(&[ActionName::All]),
+                actions: Cow::Owned(ActionName::all().collect()),
             },
         )
         .await?
@@ -793,7 +793,15 @@ async fn policy_count_and_content() -> Result<(), Box<dyn Error>> {
             actor_id.into(),
             ResolvePoliciesParams {
                 actor: Some(ActorId::User(env.user1)),
-                actions: Cow::Borrowed(&[ActionName::All]),
+                // We don't list `ViewEntity` here to test that it is still included in the
+                // resulting policy
+                actions: Cow::Borrowed(&[
+                    ActionName::All,
+                    ActionName::View,
+                    ActionName::Update,
+                    ActionName::Instantiate,
+                    ActionName::Create,
+                ]),
             },
         )
         .await?
@@ -805,7 +813,7 @@ async fn policy_count_and_content() -> Result<(), Box<dyn Error>> {
             actor_id.into(),
             ResolvePoliciesParams {
                 actor: Some(ActorId::User(env.user2)),
-                actions: Cow::Borrowed(&[ActionName::All]),
+                actions: Cow::Owned(ActionName::all().collect()),
             },
         )
         .await?
@@ -817,7 +825,7 @@ async fn policy_count_and_content() -> Result<(), Box<dyn Error>> {
             actor_id.into(),
             ResolvePoliciesParams {
                 actor: Some(ActorId::Machine(env.machine_id)),
-                actions: Cow::Borrowed(&[ActionName::All]),
+                actions: Cow::Owned(ActionName::all().collect()),
             },
         )
         .await?
@@ -829,7 +837,7 @@ async fn policy_count_and_content() -> Result<(), Box<dyn Error>> {
             actor_id.into(),
             ResolvePoliciesParams {
                 actor: Some(ActorId::Ai(env.ai_id)),
-                actions: Cow::Borrowed(&[ActionName::All]),
+                actions: Cow::Owned(ActionName::all().collect()),
             },
         )
         .await?
@@ -841,7 +849,7 @@ async fn policy_count_and_content() -> Result<(), Box<dyn Error>> {
             actor_id.into(),
             ResolvePoliciesParams {
                 actor: Some(ActorId::User(nonexistent_id)),
-                actions: Cow::Borrowed(&[ActionName::All]),
+                actions: Cow::Owned(ActionName::all().collect()),
             },
         )
         .await?
@@ -897,8 +905,8 @@ async fn policy_count_and_content() -> Result<(), Box<dyn Error>> {
         "Deny policy should have Forbid effect"
     );
     assert_eq!(
-        deny_policy.actions,
-        vec![ActionName::Update],
+        deny_policy.actions.iter().copied().collect::<HashSet<_>>(),
+        HashSet::from([ActionName::ViewEntity, ActionName::Update]),
         "Deny policy should have Update action"
     );
 
@@ -918,7 +926,7 @@ async fn role_assignment_changes() -> Result<(), Box<dyn Error>> {
             actor_id.into(),
             ResolvePoliciesParams {
                 actor: Some(ActorId::User(env.user2)),
-                actions: Cow::Borrowed(&[ActionName::All]),
+                actions: Cow::Owned(ActionName::all().collect()),
             },
         )
         .await?
@@ -943,7 +951,7 @@ async fn role_assignment_changes() -> Result<(), Box<dyn Error>> {
             actor_id.into(),
             ResolvePoliciesParams {
                 actor: Some(ActorId::User(env.user2)),
-                actions: Cow::Borrowed(&[ActionName::All]),
+                actions: Cow::Owned(ActionName::all().collect()),
             },
         )
         .await?
@@ -970,7 +978,7 @@ async fn role_assignment_changes() -> Result<(), Box<dyn Error>> {
             actor_id.into(),
             ResolvePoliciesParams {
                 actor: Some(ActorId::User(env.user2)),
-                actions: Cow::Borrowed(&[ActionName::All]),
+                actions: Cow::Owned(ActionName::all().collect()),
             },
         )
         .await?
