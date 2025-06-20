@@ -12,13 +12,15 @@ use hash_graph_authorization::{
     AuthorizationApiPool,
     policies::{
         Policy, PolicyId,
-        store::{PolicyCreationParams, PolicyFilter, PolicyStore, PolicyUpdateOperation},
+        store::{
+            PolicyCreationParams, PolicyFilter, PolicyStore, PolicyUpdateOperation,
+            ResolvePoliciesParams,
+        },
     },
 };
 use hash_graph_store::pool::StorePool;
 use hash_temporal_client::TemporalClient;
 use http::StatusCode;
-use type_system::principal::actor::ActorId;
 use utoipa::OpenApi;
 
 use crate::rest::{AuthenticatedUserHeader, json::Json, status::report_to_response};
@@ -234,7 +236,7 @@ async fn resolve_policies_for_actor<S, A>(
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
-    Json(actor_id): Json<ActorId>,
+    Json(params): Json<ResolvePoliciesParams<'static>>,
 ) -> Result<Json<Vec<Policy>>, Response>
 where
     S: StorePool + Send + Sync,
@@ -251,7 +253,7 @@ where
         )
         .await
         .map_err(report_to_response)?
-        .resolve_policies_for_actor(authenticated_actor_id.into(), Some(actor_id))
+        .resolve_policies_for_actor(authenticated_actor_id.into(), params)
         .await
         .map_err(report_to_response)
         .map(Json)

@@ -1,5 +1,6 @@
 pub mod error;
 
+use alloc::borrow::Cow;
 use core::error::Error;
 use std::collections::{
     HashSet,
@@ -137,6 +138,14 @@ pub struct PolicyFilter {
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ResolvePoliciesParams<'a> {
+    pub actor: Option<ActorId>,
+    pub actions: Cow<'a, [ActionName]>,
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[serde(tag = "type", rename_all = "kebab-case", deny_unknown_fields)]
 pub enum PolicyUpdateOperation {
     AddAction {
@@ -241,7 +250,7 @@ pub trait PolicyStore {
     async fn resolve_policies_for_actor(
         &self,
         authenticated_actor: AuthenticatedActor,
-        actor_id: Option<ActorId>,
+        params: ResolvePoliciesParams,
     ) -> Result<Vec<Policy>, Report<GetPoliciesError>>;
 
     /// Updates the policy specified by its ID.

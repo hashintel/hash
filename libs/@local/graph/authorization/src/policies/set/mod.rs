@@ -1,4 +1,5 @@
 use core::fmt;
+use std::collections::HashSet;
 
 use cedar_policy_core::{
     ast,
@@ -8,6 +9,7 @@ use error_stack::{Report, ResultExt as _, TryReportIteratorExt as _};
 
 use super::{
     Context, Policy, Request,
+    action::ActionName,
     cedar::{CedarExpressionParser as _, SimpleParser},
     evaluation::{PermissionCondition, PermissionConditionVisitor},
 };
@@ -23,6 +25,7 @@ pub struct PolicyEvaluationError;
 #[derive(Default)]
 pub struct PolicySet {
     policies: ast::PolicySet,
+    tracked_actions: HashSet<ActionName>,
 }
 
 impl fmt::Debug for PolicySet {
@@ -48,6 +51,15 @@ pub enum Authorized {
 }
 
 impl PolicySet {
+    /// Sets the tracked actions for the policy set.
+    ///
+    /// The policy set will fail to evaluate requests with actions that are not in this set.
+    #[must_use]
+    pub fn with_tracked_actions(mut self, actions: HashSet<ActionName>) -> Self {
+        self.tracked_actions = actions;
+        self
+    }
+
     /// Adds a list of policies to the policy set.
     ///
     /// # Errors
@@ -121,6 +133,13 @@ impl PolicySet {
         request: &Request,
         context: &Context,
     ) -> Result<Authorized, Report<PolicyEvaluationError>> {
+        if !self.tracked_actions.contains(&request.action) {
+            return Err(Report::new(PolicyEvaluationError).attach_printable(format!(
+                "Action `{}` is not tracked and cannot be evaluated",
+                request.action
+            )));
+        }
+
         let authorizer = Authorizer::new();
 
         let response =

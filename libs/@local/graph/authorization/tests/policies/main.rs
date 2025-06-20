@@ -10,7 +10,7 @@ mod definitions;
 
 use alloc::borrow::Cow;
 use core::{assert_matches::assert_matches, error::Error, str::FromStr as _};
-use std::sync::LazyLock;
+use std::{collections::HashSet, sync::LazyLock};
 
 use hash_graph_authorization::policies::{
     Authorized, ContextBuilder, PartialResourceId, PolicySet, Request, RequestContext,
@@ -272,10 +272,12 @@ fn instantiate() -> Result<(), Box<dyn Error>> {
     let context = context.build()?;
 
     let system_machine_policy_set = PolicySet::default()
+        .with_tracked_actions(HashSet::from([ActionName::Instantiate]))
         .with_policies(policy_store.get_policies(ActorId::Machine(system.machine.id))?)?;
     println!("system_machine_policy_set:\n{system_machine_policy_set:?}");
 
     let system_web_machine_policy_set = PolicySet::default()
+        .with_tracked_actions(HashSet::from([ActionName::Instantiate]))
         .with_policies(policy_store.get_policies(ActorId::Machine(system.web.machine.id))?)?;
     println!("system_web_machine_policy_set:\n{system_web_machine_policy_set:?}");
 
@@ -393,11 +395,17 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
     policy_store.extend_context(&mut context, ActorId::Machine(user.web.machine.id))?;
     let context = context.build()?;
 
-    let user_policy_set =
-        PolicySet::default().with_policies(policy_store.get_policies(ActorId::User(user.id))?)?;
+    let user_policy_set = PolicySet::default()
+        .with_tracked_actions(HashSet::from([
+            ActionName::Instantiate,
+            ActionName::View,
+            ActionName::Update,
+        ]))
+        .with_policies(policy_store.get_policies(ActorId::User(user.id))?)?;
     println!("user_policy_set:\n{user_policy_set:?}");
 
     let user_machine_policy_set = PolicySet::default()
+        .with_tracked_actions(HashSet::from([ActionName::View, ActionName::Update]))
         .with_policies(policy_store.get_policies(ActorId::Machine(user.web.machine.id))?)?;
     println!("user_machine_policy_set:\n{user_machine_policy_set:?}");
 
@@ -568,18 +576,22 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
     let context = context.build()?;
 
     let org_machine_policy_set = PolicySet::default()
+        .with_tracked_actions(HashSet::from([ActionName::View, ActionName::Update]))
         .with_policies(policy_store.get_policies(ActorId::Machine(org_web.machine.id))?)?;
     println!("org_machine_policy_set:\n{org_machine_policy_set:?}");
 
-    let user_policy_set =
-        PolicySet::default().with_policies(policy_store.get_policies(ActorId::User(user.id))?)?;
+    let user_policy_set = PolicySet::default()
+        .with_tracked_actions(HashSet::from([ActionName::View, ActionName::Update]))
+        .with_policies(policy_store.get_policies(ActorId::User(user.id))?)?;
     println!("user_policy_set:\n{user_policy_set:?}");
 
     let user_machine_policy_set = PolicySet::default()
+        .with_tracked_actions(HashSet::from([ActionName::Update]))
         .with_policies(policy_store.get_policies(ActorId::Machine(user.web.machine.id))?)?;
     println!("user_machine_policy_set:\n{user_machine_policy_set:?}");
 
     let system_machine_policy_set = PolicySet::default()
+        .with_tracked_actions(HashSet::from([ActionName::View, ActionName::Update]))
         .with_policies(policy_store.get_policies(ActorId::Machine(system.machine.id))?)?;
     println!("system_machine_policy_set:\n{system_machine_policy_set:?}");
 
@@ -710,8 +722,9 @@ fn instance_admin_without_access_permissions() -> Result<(), Box<dyn Error>> {
     policy_store.extend_context(&mut context, ActorId::User(user.id))?;
     let context = context.build()?;
 
-    let user_policy_set =
-        PolicySet::default().with_policies(policy_store.get_policies(ActorId::User(user.id))?)?;
+    let user_policy_set = PolicySet::default()
+        .with_tracked_actions(HashSet::from([ActionName::View, ActionName::Update]))
+        .with_policies(policy_store.get_policies(ActorId::User(user.id))?)?;
     println!("user_policy_set:\n{user_policy_set:?}");
 
     assert_matches!(
@@ -763,8 +776,9 @@ fn instance_admin_with_access_permissions() -> Result<(), Box<dyn Error>> {
     policy_store.extend_context(&mut context, ActorId::User(user.id))?;
     let context = context.build()?;
 
-    let user_policy_set =
-        PolicySet::default().with_policies(policy_store.get_policies(ActorId::User(user.id))?)?;
+    let user_policy_set = PolicySet::default()
+        .with_tracked_actions(HashSet::from([ActionName::View, ActionName::Update]))
+        .with_policies(policy_store.get_policies(ActorId::User(user.id))?)?;
     println!("user_policy_set:\n{user_policy_set:?}");
 
     assert_matches!(
@@ -816,8 +830,9 @@ fn partial_resource_evaluation() -> Result<(), Box<dyn Error>> {
     policy_store.extend_context(&mut context, ActorId::User(user.id))?;
     let context = context.build()?;
 
-    let user_policy_set =
-        PolicySet::default().with_policies(policy_store.get_policies(ActorId::User(user.id))?)?;
+    let user_policy_set = PolicySet::default()
+        .with_tracked_actions(HashSet::from([ActionName::Instantiate]))
+        .with_policies(policy_store.get_policies(ActorId::User(user.id))?)?;
     println!("user_policy_set:\n{user_policy_set:?}");
 
     match user_policy_set.evaluate(
