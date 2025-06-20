@@ -1,9 +1,5 @@
-mod actor;
-mod entity;
 mod expression_tree;
-mod ontology;
 mod visitor;
-mod web;
 
 use alloc::sync::Arc;
 use core::iter;
@@ -12,16 +8,7 @@ use cedar_policy_core::ast;
 use error_stack::{IntoReport, Report, ResultExt as _};
 
 pub use self::expression_tree::PolicyExpressionTree;
-pub(crate) use self::{
-    actor::ActorIdVisitor,
-    entity::EntityUuidVisitor,
-    ontology::{BaseUrlVisitor, EntityTypeIdVisitor, OntologyTypeVersionVisitor},
-    visitor::{
-        CedarExpressionParseError, CedarExpressionParser, CedarExpressionVisitor, SimpleParser,
-        walk_expr,
-    },
-    web::WebIdVisitor,
-};
+pub(crate) use self::visitor::CedarExpressionParseError;
 use crate::policies::error::FromCedarRefernceError;
 
 pub(crate) trait ToCedarRestrictedExpr {

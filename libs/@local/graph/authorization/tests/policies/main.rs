@@ -1,8 +1,4 @@
 #![feature(assert_matches)]
-#![expect(
-    clippy::panic_in_result_fn,
-    reason = "Tests use assertions that may panic"
-)]
 
 extern crate alloc;
 
@@ -13,7 +9,7 @@ use core::{assert_matches::assert_matches, error::Error, str::FromStr as _};
 use std::sync::LazyLock;
 
 use hash_graph_authorization::policies::{
-    Authorized, ContextBuilder, PartialResourceId, PolicySet, Request, RequestContext,
+    Authorized, ContextBuilder, PolicySet, Request, RequestContext, ResourceId,
     action::ActionName,
     resource::{EntityResource, EntityTypeId, EntityTypeResource},
     store::{MemoryPolicyStore, OldPolicyStore},
@@ -285,9 +281,7 @@ fn instantiate() -> Result<(), Box<dyn Error>> {
             &Request {
                 actor: Some(ActorId::Machine(system.web.machine.id)),
                 action: ActionName::Instantiate,
-                resource: Some(&PartialResourceId::EntityType(Some(Cow::Borrowed(
-                    &machine_type.id
-                )))),
+                resource: &ResourceId::EntityType(Cow::Borrowed(&machine_type.id)),
                 context: RequestContext::default(),
             },
             &context,
@@ -299,9 +293,7 @@ fn instantiate() -> Result<(), Box<dyn Error>> {
             &Request {
                 actor: Some(ActorId::Machine(system.machine.id)),
                 action: ActionName::Instantiate,
-                resource: Some(&PartialResourceId::EntityType(Some(Cow::Borrowed(
-                    &machine_type.id
-                )))),
+                resource: &ResourceId::EntityType(Cow::Borrowed(&machine_type.id)),
                 context: RequestContext::default(),
             },
             &context,
@@ -314,9 +306,7 @@ fn instantiate() -> Result<(), Box<dyn Error>> {
             &Request {
                 actor: Some(ActorId::Machine(system.machine.id)),
                 action: ActionName::Instantiate,
-                resource: Some(&PartialResourceId::EntityType(Some(Cow::Borrowed(
-                    &document_type.id
-                )))),
+                resource: &ResourceId::EntityType(Cow::Borrowed(&document_type.id)),
                 context: RequestContext::default(),
             },
             &context,
@@ -328,9 +318,7 @@ fn instantiate() -> Result<(), Box<dyn Error>> {
             &Request {
                 actor: Some(ActorId::Machine(system.machine.id)),
                 action: ActionName::Instantiate,
-                resource: Some(&PartialResourceId::EntityType(Some(Cow::Borrowed(
-                    &document_type.id
-                )))),
+                resource: &ResourceId::EntityType(Cow::Borrowed(&document_type.id)),
                 context: RequestContext::default(),
             },
             &context,
@@ -408,9 +396,7 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
             &Request {
                 actor: Some(ActorId::User(user.id)),
                 action: ActionName::Instantiate,
-                resource: Some(&PartialResourceId::EntityType(Some(Cow::Borrowed(
-                    &machine_type.id
-                )))),
+                resource: &ResourceId::EntityType(Cow::Borrowed(&machine_type.id)),
                 context: RequestContext::default(),
             },
             &context,
@@ -422,9 +408,7 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
             &Request {
                 actor: Some(ActorId::User(user.id)),
                 action: ActionName::Instantiate,
-                resource: Some(&PartialResourceId::EntityType(Some(Cow::Borrowed(
-                    &document_type.id
-                )))),
+                resource: &ResourceId::EntityType(Cow::Borrowed(&document_type.id)),
                 context: RequestContext::default(),
             },
             &context,
@@ -436,9 +420,7 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
             &Request {
                 actor: Some(ActorId::User(user.id)),
                 action: ActionName::Instantiate,
-                resource: Some(&PartialResourceId::EntityType(Some(Cow::Borrowed(
-                    &web_type.id
-                )))),
+                resource: &ResourceId::EntityType(Cow::Borrowed(&web_type.id)),
                 context: RequestContext::default(),
             },
             &context,
@@ -451,7 +433,7 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
             &Request {
                 actor: Some(ActorId::User(user.id)),
                 action: ActionName::View,
-                resource: Some(&PartialResourceId::Entity(Some(web_entity.id.entity_uuid))),
+                resource: &ResourceId::Entity(web_entity.id.entity_uuid),
                 context: RequestContext::default(),
             },
             &context,
@@ -463,7 +445,7 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
             &Request {
                 actor: Some(ActorId::Machine(user.web.machine.id)),
                 action: ActionName::View,
-                resource: Some(&PartialResourceId::Entity(Some(web_entity.id.entity_uuid))),
+                resource: &ResourceId::Entity(web_entity.id.entity_uuid),
                 context: RequestContext::default(),
             },
             &context,
@@ -475,7 +457,7 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
             &Request {
                 actor: Some(ActorId::Machine(system.machine.id)),
                 action: ActionName::View,
-                resource: Some(&PartialResourceId::Entity(Some(web_entity.id.entity_uuid))),
+                resource: &ResourceId::Entity(web_entity.id.entity_uuid),
                 context: RequestContext::default(),
             },
             &context,
@@ -488,7 +470,7 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
             &Request {
                 actor: Some(ActorId::User(user.id)),
                 action: ActionName::Update,
-                resource: Some(&PartialResourceId::Entity(Some(web_entity.id.entity_uuid))),
+                resource: &ResourceId::Entity(web_entity.id.entity_uuid),
                 context: RequestContext::default(),
             },
             &context,
@@ -500,7 +482,7 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
             &Request {
                 actor: Some(ActorId::Machine(user.web.machine.id)),
                 action: ActionName::Update,
-                resource: Some(&PartialResourceId::Entity(Some(web_entity.id.entity_uuid))),
+                resource: &ResourceId::Entity(web_entity.id.entity_uuid),
                 context: RequestContext::default(),
             },
             &context,
@@ -512,7 +494,7 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
             &Request {
                 actor: Some(ActorId::Machine(system.machine.id)),
                 action: ActionName::Update,
-                resource: Some(&PartialResourceId::Entity(Some(web_entity.id.entity_uuid))),
+                resource: &ResourceId::Entity(web_entity.id.entity_uuid),
                 context: RequestContext::default(),
             },
             &context,
@@ -588,7 +570,7 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
             &Request {
                 actor: Some(ActorId::Machine(org_web.machine.id)),
                 action: ActionName::View,
-                resource: Some(&PartialResourceId::Entity(Some(user.web.machine.id.into()))),
+                resource: &ResourceId::Entity(user.web.machine.id.into()),
                 context: RequestContext::default(),
             },
             &context,
@@ -601,7 +583,7 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
             &Request {
                 actor: Some(ActorId::User(user.id)),
                 action: ActionName::View,
-                resource: Some(&PartialResourceId::Entity(Some(web_entity.id.entity_uuid))),
+                resource: &ResourceId::Entity(web_entity.id.entity_uuid),
                 context: RequestContext::default(),
             },
             &context,
@@ -613,7 +595,7 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
             &Request {
                 actor: Some(ActorId::Machine(org_web.machine.id)),
                 action: ActionName::View,
-                resource: Some(&PartialResourceId::Entity(Some(web_entity.id.entity_uuid))),
+                resource: &ResourceId::Entity(web_entity.id.entity_uuid),
                 context: RequestContext::default(),
             },
             &context,
@@ -625,7 +607,7 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
             &Request {
                 actor: Some(ActorId::Machine(user.web.machine.id)),
                 action: ActionName::View,
-                resource: Some(&PartialResourceId::Entity(Some(web_entity.id.entity_uuid))),
+                resource: &ResourceId::Entity(web_entity.id.entity_uuid),
                 context: RequestContext::default(),
             },
             &context,
@@ -637,7 +619,7 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
             &Request {
                 actor: Some(ActorId::Machine(system.web.machine.id)),
                 action: ActionName::View,
-                resource: Some(&PartialResourceId::Entity(Some(web_entity.id.entity_uuid))),
+                resource: &ResourceId::Entity(web_entity.id.entity_uuid),
                 context: RequestContext::default(),
             },
             &context,
@@ -650,7 +632,7 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
             &Request {
                 actor: Some(ActorId::User(user.id)),
                 action: ActionName::Update,
-                resource: Some(&PartialResourceId::Entity(Some(web_entity.id.entity_uuid))),
+                resource: &ResourceId::Entity(web_entity.id.entity_uuid),
                 context: RequestContext::default(),
             },
             &context,
@@ -662,7 +644,7 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
             &Request {
                 actor: Some(ActorId::Machine(org_web.machine.id)),
                 action: ActionName::Update,
-                resource: Some(&PartialResourceId::Entity(Some(web_entity.id.entity_uuid))),
+                resource: &ResourceId::Entity(web_entity.id.entity_uuid),
                 context: RequestContext::default(),
             },
             &context,
@@ -674,7 +656,7 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
             &Request {
                 actor: Some(ActorId::Machine(user.web.machine.id)),
                 action: ActionName::Update,
-                resource: Some(&PartialResourceId::Entity(Some(web_entity.id.entity_uuid))),
+                resource: &ResourceId::Entity(web_entity.id.entity_uuid),
                 context: RequestContext::default(),
             },
             &context,
@@ -686,7 +668,7 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
             &Request {
                 actor: Some(ActorId::Machine(system.web.machine.id)),
                 action: ActionName::Update,
-                resource: Some(&PartialResourceId::Entity(Some(web_entity.id.entity_uuid))),
+                resource: &ResourceId::Entity(web_entity.id.entity_uuid),
                 context: RequestContext::default(),
             },
             &context,
@@ -719,9 +701,7 @@ fn instance_admin_without_access_permissions() -> Result<(), Box<dyn Error>> {
             &Request {
                 actor: Some(ActorId::User(user.id)),
                 action: ActionName::View,
-                resource: Some(&PartialResourceId::Entity(Some(
-                    system.hash_instance_entity.id.entity_uuid
-                ))),
+                resource: &ResourceId::Entity(system.hash_instance_entity.id.entity_uuid),
                 context: RequestContext::default(),
             },
             &context,
@@ -733,9 +713,7 @@ fn instance_admin_without_access_permissions() -> Result<(), Box<dyn Error>> {
             &Request {
                 actor: Some(ActorId::User(user.id)),
                 action: ActionName::Update,
-                resource: Some(&PartialResourceId::Entity(Some(
-                    system.hash_instance_entity.id.entity_uuid
-                ))),
+                resource: &ResourceId::Entity(system.hash_instance_entity.id.entity_uuid),
                 context: RequestContext::default(),
             },
             &context,
@@ -772,9 +750,7 @@ fn instance_admin_with_access_permissions() -> Result<(), Box<dyn Error>> {
             &Request {
                 actor: Some(ActorId::User(user.id)),
                 action: ActionName::View,
-                resource: Some(&PartialResourceId::Entity(Some(
-                    system.hash_instance_entity.id.entity_uuid
-                ))),
+                resource: &ResourceId::Entity(system.hash_instance_entity.id.entity_uuid),
                 context: RequestContext::default(),
             },
             &context,
@@ -786,55 +762,13 @@ fn instance_admin_with_access_permissions() -> Result<(), Box<dyn Error>> {
             &Request {
                 actor: Some(ActorId::User(user.id)),
                 action: ActionName::Update,
-                resource: Some(&PartialResourceId::Entity(Some(
-                    system.hash_instance_entity.id.entity_uuid
-                ))),
+                resource: &ResourceId::Entity(system.hash_instance_entity.id.entity_uuid),
                 context: RequestContext::default(),
             },
             &context,
         )?,
         Authorized::Always
     );
-
-    Ok(())
-}
-
-#[test]
-fn partial_resource_evaluation() -> Result<(), Box<dyn Error>> {
-    let mut context = ContextBuilder::default();
-    let mut policy_store = MemoryPolicyStore::default();
-
-    let system = TestSystem::generate(&mut policy_store, &mut context)?;
-
-    let user = TestUser::generate(&mut policy_store, &mut context, "alice")?;
-    policy_store.assign_role(
-        ActorId::User(user.id),
-        system.hash_instance_admins,
-        RoleName::Administrator,
-    )?;
-
-    policy_store.extend_context(&mut context, ActorId::User(user.id))?;
-    let context = context.build()?;
-
-    let user_policy_set =
-        PolicySet::default().with_policies(policy_store.get_policies(ActorId::User(user.id))?)?;
-    println!("user_policy_set:\n{user_policy_set:?}");
-
-    match user_policy_set.evaluate(
-        &Request {
-            actor: Some(ActorId::User(user.id)),
-            action: ActionName::Instantiate,
-            resource: Some(&PartialResourceId::EntityType(None)),
-            context: RequestContext::default(),
-        },
-        &context,
-    )? {
-        Authorized::Partial(expr) => {
-            println!("expr:\n{expr:#?}");
-        }
-        Authorized::Always => panic!("expected partial evaluation, got always"),
-        Authorized::Never => panic!("expected partial evaluation, got never"),
-    }
 
     Ok(())
 }

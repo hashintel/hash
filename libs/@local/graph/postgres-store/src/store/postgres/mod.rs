@@ -17,8 +17,8 @@ use hash_graph_authorization::{
     AuthorizationApi,
     backend::ModifyRelationshipOperation,
     policies::{
-        Authorized, ContextBuilder, Effect, PartialResourceId, Policy, PolicyId, PolicySet,
-        Request, RequestContext,
+        Authorized, ContextBuilder, Effect, Policy, PolicyId, PolicySet, Request, RequestContext,
+        ResourceId,
         action::ActionName,
         principal::{PrincipalConstraint, actor::AuthenticatedActor},
         resource::{EntityResource, EntityTypeId, EntityTypeResource, ResourceConstraint},
@@ -279,7 +279,7 @@ where
                 &Request {
                     actor: Some(actor),
                     action: ActionName::CreateWeb,
-                    resource: Some(&PartialResourceId::Web(Some(web_id))),
+                    resource: &ResourceId::Web(web_id),
                     context: RequestContext::default(),
                 },
                 &context,
@@ -290,9 +290,6 @@ where
             Authorized::Never => {
                 return Err(Report::new(WebCreationError::NotAuthorized))
                     .attach_printable(StatusCode::PermissionDenied);
-            }
-            Authorized::Partial(_) => {
-                unimplemented!("Web creation is not supported for partial authorization");
             }
         }
 
