@@ -39,13 +39,13 @@ export const systemEntityTypes = {
     entityTypeBaseUrl: "https://hash.ai/@h/types/entity-type/claim/" as BaseUrl,
   },
   comment: {
-    entityTypeId: "https://hash.ai/@h/types/entity-type/comment/v/6",
+    entityTypeId: "https://hash.ai/@h/types/entity-type/comment/v/7",
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/comment/" as BaseUrl,
   },
   commentNotification: {
     entityTypeId:
-      "https://hash.ai/@h/types/entity-type/comment-notification/v/6",
+      "https://hash.ai/@h/types/entity-type/comment-notification/v/7",
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/comment-notification/" as BaseUrl,
   },
@@ -123,8 +123,13 @@ export const systemEntityTypes = {
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/integration/" as BaseUrl,
   },
+  invitedUser: {
+    entityTypeId: "https://hash.ai/@h/types/entity-type/invited-user/v/1",
+    entityTypeBaseUrl:
+      "https://hash.ai/@h/types/entity-type/invited-user/" as BaseUrl,
+  },
   linearIntegration: {
-    entityTypeId: "https://hash.ai/@h/types/entity-type/linear-integration/v/8",
+    entityTypeId: "https://hash.ai/@h/types/entity-type/linear-integration/v/9",
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/linear-integration/" as BaseUrl,
   },
@@ -140,7 +145,7 @@ export const systemEntityTypes = {
   },
   mentionNotification: {
     entityTypeId:
-      "https://hash.ai/@h/types/entity-type/mention-notification/v/6",
+      "https://hash.ai/@h/types/entity-type/mention-notification/v/7",
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/mention-notification/" as BaseUrl,
   },
@@ -237,7 +242,7 @@ export const systemEntityTypes = {
       "https://hash.ai/@h/types/entity-type/usage-record/" as BaseUrl,
   },
   user: {
-    entityTypeId: "https://hash.ai/@h/types/entity-type/user/v/6",
+    entityTypeId: "https://hash.ai/@h/types/entity-type/user/v/7",
     entityTypeBaseUrl: "https://hash.ai/@h/types/entity-type/user/" as BaseUrl,
   },
   userSecret: {
@@ -352,6 +357,11 @@ export const systemLinkEntityTypes = {
       "https://hash.ai/@h/types/entity-type/investigated-by/v/1",
     linkEntityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/investigated-by/" as BaseUrl,
+  },
+  isInvitedTo: {
+    linkEntityTypeId: "https://hash.ai/@h/types/entity-type/is-invited-to/v/1",
+    linkEntityTypeBaseUrl:
+      "https://hash.ai/@h/types/entity-type/is-invited-to/" as BaseUrl,
   },
   isMemberOf: {
     linkEntityTypeId: "https://hash.ai/@h/types/entity-type/is-member-of/v/1",

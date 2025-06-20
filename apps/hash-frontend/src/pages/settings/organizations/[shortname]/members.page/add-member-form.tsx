@@ -1,59 +1,39 @@
 import { useLazyQuery, useMutation } from "@apollo/client";
 import type { EntityRootType } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
-import {
-  type ActorEntityUuid,
-  extractWebIdFromEntityId,
-} from "@blockprotocol/type-system";
 import { TextField } from "@hashintel/design-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
-  createOrgMembershipAuthorizationRelationships,
   mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import {
-  systemLinkEntityTypes,
-  systemPropertyTypes,
-} from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { Box } from "@mui/material";
 import type { FormEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 
 import type {
-  AddAccountGroupMemberMutation,
-  AddAccountGroupMemberMutationVariables,
-  CreateEntityMutation,
-  CreateEntityMutationVariables,
+  InviteUserToOrgMutation,
+  InviteUserToOrgMutationVariables,
   QueryEntitiesQuery,
   QueryEntitiesQueryVariables,
 } from "../../../../../graphql/api-types.gen";
-import { addAccountGroupMemberMutation } from "../../../../../graphql/queries/account-group.queries";
-import {
-  createEntityMutation,
-  queryEntitiesQuery,
-} from "../../../../../graphql/queries/knowledge/entity.queries";
+import { queryEntitiesQuery } from "../../../../../graphql/queries/knowledge/entity.queries";
+import { inviteUserToOrgMutation } from "../../../../../graphql/queries/knowledge/org.queries";
 import type { Org } from "../../../../../lib/user-and-org";
 import { Button } from "../../../../../shared/ui/button";
-import { useAuthenticatedUser } from "../../../../shared/auth-info-context";
 
 export const AddMemberForm = ({ org }: { org: Org }) => {
   const [loading, setLoading] = useState(false);
   const [shortname, setShortname] = useState("");
+  const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { refetch } = useAuthenticatedUser();
-
-  const [addMemberPermission] = useMutation<
-    AddAccountGroupMemberMutation,
-    AddAccountGroupMemberMutationVariables
-  >(addAccountGroupMemberMutation);
-
-  const [createEntity] = useMutation<
-    CreateEntityMutation,
-    CreateEntityMutationVariables
-  >(createEntityMutation);
+  const [inviteUserToOrg] = useMutation<
+    InviteUserToOrgMutation,
+    InviteUserToOrgMutationVariables
+  >(inviteUserToOrgMutation);
 
   const [queryEntities] = useLazyQuery<
     QueryEntitiesQuery,
@@ -123,37 +103,18 @@ export const AddMemberForm = ({ org }: { org: Org }) => {
       return;
     }
 
-    await Promise.all([
-      createEntity({
-        variables: {
-          entityTypeIds: [systemLinkEntityTypes.isMemberOf.linkEntityTypeId],
-          properties: { value: {} },
-          linkData: {
-            leftEntityId: user.metadata.recordId.entityId,
-            rightEntityId: org.entity.metadata.recordId.entityId,
-          },
-          relationships: createOrgMembershipAuthorizationRelationships({
-            memberAccountId: extractWebIdFromEntityId(
-              user.metadata.recordId.entityId,
-            ) as ActorEntityUuid,
-          }),
-        },
-      }),
-      addMemberPermission({
-        variables: {
-          accountGroupId: org.webId,
-          accountId: extractWebIdFromEntityId(
-            user.metadata.recordId.entityId,
-          ) as ActorEntityUuid,
-        },
-      }),
-    ]);
-
-    void refetch();
+    await inviteUserToOrg({
+      variables: {
+        orgWebId: org.webId,
+        userEmail: email,
+        userShortname: shortname,
+      },
+    });
 
     inputRef.current?.blur();
 
     setShortname("");
+    setEmail("");
     setLoading(false);
   };
 

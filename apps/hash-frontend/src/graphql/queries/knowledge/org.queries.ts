@@ -22,7 +22,7 @@ export const acceptOrgInvitationMutation = gql`
 `;
 
 export const inviteUserToOrgMutation = gql`
-  mutation inviteUserToOrg($orgWebId: WebId!, $userEmail: String!) {
-    inviteUserToOrg(orgWebId: $orgWebId, userEmail: $userEmail)
+  mutation inviteUserToOrg($orgWebId: WebId!, $userEmail: String, $userShortname: String) {
+    inviteUserToOrg(orgWebId: $orgWebId, userEmail: $userEmail, userShortname: $userShortname)
   }
 `;

@@ -39,9 +39,13 @@ export const orgTypedef = gql`
     """
     inviteUserToOrg(
       """
-      The email of the user to invite.
+      The email of the user to invite (one of userEmail or userShortname must be provided).
       """
-      userEmail: String!
+      userEmail: String
+      """
+      The shortname of the user to invite (one of userEmail or userShortname must be provided).
+      """
+      userShortname: String
       """
       The webId of the organization to invite the user to.
       """
@@ -57,15 +61,5 @@ export const orgTypedef = gql`
       """
       orgInvitationEntityId: EntityId!
     ): AcceptInvitationResult!
-
-    """
-    Decline an invitation to an organization.
-    """
-    declineOrgInvitation(
-      """
-      The entityId of the organization invitation to decline.
-      """
-      orgInvitationEntityId: EntityId!
-    ): Boolean!
   }
 `;

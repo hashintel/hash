@@ -253,7 +253,7 @@ export type BytesDataTypeMetadata = {
  * Comment associated with the issue.
  */
 export type Comment = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/comment/v/6"];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/comment/v/7"];
   properties: CommentProperties;
   propertiesWithMetadata: CommentPropertiesWithMetadata;
 };
@@ -1019,6 +1019,33 @@ export type IntegrationProperties = {};
 export type IntegrationPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
   value: {};
+};
+
+/**
+ * Something that something is invited to.
+ */
+export type IsInvitedTo = {
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/is-invited-to/v/1"];
+  properties: IsInvitedToProperties;
+  propertiesWithMetadata: IsInvitedToPropertiesWithMetadata;
+};
+
+export type IsInvitedToOutgoingLinkAndTarget = never;
+
+export type IsInvitedToOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * Something that something is invited to.
+ */
+export type IsInvitedToProperties = LinkProperties & {
+  "https://hash.ai/@h/types/property-type/expired-at/": ExpiredAtPropertyValue;
+};
+
+export type IsInvitedToPropertiesWithMetadata = LinkPropertiesWithMetadata & {
+  metadata?: ObjectMetadata;
+  value: {
+    "https://hash.ai/@h/types/property-type/expired-at/": ExpiredAtPropertyValueWithMetadata;
+  };
 };
 
 /**
@@ -1801,7 +1828,7 @@ export type UploadCompletedAtPropertyValueWithMetadata =
  * A user of the HASH application.
  */
 export type User = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/user/v/6"];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/user/v/7"];
   properties: UserProperties;
   propertiesWithMetadata: UserPropertiesWithMetadata;
 };
@@ -1828,6 +1855,11 @@ export type UserHasServiceAccountLink = {
   rightEntity: ServiceAccount;
 };
 
+export type UserIsInvitedToLink = {
+  linkEntity: IsInvitedTo;
+  rightEntity: Organization;
+};
+
 export type UserIsMemberOfLink = {
   linkEntity: IsMemberOf;
   rightEntity: Organization;
@@ -1839,6 +1871,7 @@ export type UserOutgoingLinkAndTarget =
   | UserHasCoverImageLink
   | UserHasServiceAccountLink
   | UserHasLink
+  | UserIsInvitedToLink
   | UserIsMemberOfLink;
 
 export type UserOutgoingLinksByLinkEntityTypeId = {
@@ -1847,6 +1880,7 @@ export type UserOutgoingLinksByLinkEntityTypeId = {
   "https://hash.ai/@h/types/entity-type/has-cover-image/v/1": UserHasCoverImageLink;
   "https://hash.ai/@h/types/entity-type/has-service-account/v/1": UserHasServiceAccountLink;
   "https://hash.ai/@h/types/entity-type/has/v/1": UserHasLink;
+  "https://hash.ai/@h/types/entity-type/is-invited-to/v/1": UserIsInvitedToLink;
   "https://hash.ai/@h/types/entity-type/is-member-of/v/1": UserIsMemberOfLink;
 };
 

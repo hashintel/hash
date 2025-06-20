@@ -130,6 +130,11 @@ import type {
   IntegrationOutgoingLinksByLinkEntityTypeId,
   IntegrationProperties,
   IntegrationPropertiesWithMetadata,
+  IsInvitedTo,
+  IsInvitedToOutgoingLinkAndTarget,
+  IsInvitedToOutgoingLinksByLinkEntityTypeId,
+  IsInvitedToProperties,
+  IsInvitedToPropertiesWithMetadata,
   IsMemberOf,
   IsMemberOfOutgoingLinkAndTarget,
   IsMemberOfOutgoingLinksByLinkEntityTypeId,
@@ -199,6 +204,7 @@ import type {
   UserHasCoverImageLink,
   UserHasLink,
   UserHasServiceAccountLink,
+  UserIsInvitedToLink,
   UserIsMemberOfLink,
   UserOutgoingLinkAndTarget,
   UserOutgoingLinksByLinkEntityTypeId,
@@ -341,6 +347,11 @@ export type {
   IntegrationOutgoingLinksByLinkEntityTypeId,
   IntegrationProperties,
   IntegrationPropertiesWithMetadata,
+  IsInvitedTo,
+  IsInvitedToOutgoingLinkAndTarget,
+  IsInvitedToOutgoingLinksByLinkEntityTypeId,
+  IsInvitedToProperties,
+  IsInvitedToPropertiesWithMetadata,
   IsMemberOf,
   IsMemberOfOutgoingLinkAndTarget,
   IsMemberOfOutgoingLinksByLinkEntityTypeId,
@@ -410,6 +421,7 @@ export type {
   UserHasCoverImageLink,
   UserHasLink,
   UserHasServiceAccountLink,
+  UserIsInvitedToLink,
   UserIsMemberOfLink,
   UserOutgoingLinkAndTarget,
   UserOutgoingLinksByLinkEntityTypeId,
@@ -431,7 +443,7 @@ export type {
  */
 export type LinearIntegration = {
   entityTypeIds: [
-    "https://hash.ai/@h/types/entity-type/linear-integration/v/8",
+    "https://hash.ai/@h/types/entity-type/linear-integration/v/9",
   ];
   properties: LinearIntegrationProperties;
   propertiesWithMetadata: LinearIntegrationPropertiesWithMetadata;

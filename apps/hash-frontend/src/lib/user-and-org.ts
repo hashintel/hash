@@ -1,4 +1,8 @@
-import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import type {
+  EntityRootType,
+  LinkEntityAndRightEntity,
+  Subgraph,
+} from "@blockprotocol/graph";
 import {
   getIncomingLinksForEntity,
   getLeftEntityForLinkEntity,
@@ -29,6 +33,7 @@ import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-proper
 import type { ImageFile } from "@local/hash-isomorphic-utils/system-types/imagefile";
 import type {
   HasBio,
+  IsInvitedTo,
   IsMemberOf,
   Organization,
   ProfileBio,
@@ -284,6 +289,14 @@ export type User = MinimalUser & {
     linkEntity: LinkEntity;
     org: Org;
   }[];
+  invitedTo: {
+    invitationLinkEntity: LinkEntity<IsInvitedTo>;
+    org: {
+      webId: WebId;
+      name: string;
+      shortname: string;
+    };
+  }[];
   preferences?: UserPreferences;
 };
 
@@ -383,15 +396,97 @@ export const constructUser = (params: {
     };
   });
 
-  const avatarLinkAndEntities = getOutgoingLinkAndTargetEntities(
+  const outgoingLinkAndTargetEntities = getOutgoingLinkAndTargetEntities(
     subgraph,
     userEntity.metadata.recordId.entityId,
     intervalForTimestamp(currentTimestamp()),
-  ).filter(({ linkEntity }) =>
-    linkEntity[0]?.metadata.entityTypeIds.includes(
-      systemLinkEntityTypes.hasAvatar.linkEntityTypeId,
-    ),
   );
+
+  const avatarLinkAndEntities: LinkEntityAndRightEntity[] = [];
+  const coverImageLinkAndEntities: LinkEntityAndRightEntity[] = [];
+  const hasBioLinkAndEntities: LinkEntityAndRightEntity[] = [];
+  const hasServiceAccounts: User["hasServiceAccounts"] = [];
+  const invitedTo: User["invitedTo"] = [];
+
+  for (const linkAndEntity of outgoingLinkAndTargetEntities) {
+    const linkEntity = linkAndEntity.linkEntity[0];
+    const rightEntity = linkAndEntity.rightEntity[0];
+
+    if (!linkEntity || !rightEntity) {
+      continue;
+    }
+
+    const entityTypeIds = linkEntity.metadata.entityTypeIds;
+
+    if (
+      entityTypeIds.includes(systemLinkEntityTypes.hasAvatar.linkEntityTypeId)
+    ) {
+      avatarLinkAndEntities.push(linkAndEntity);
+      continue;
+    }
+
+    if (
+      entityTypeIds.includes(
+        systemLinkEntityTypes.hasCoverImage.linkEntityTypeId,
+      )
+    ) {
+      coverImageLinkAndEntities.push(linkAndEntity);
+      continue;
+    }
+
+    if (entityTypeIds.includes(systemLinkEntityTypes.hasBio.linkEntityTypeId)) {
+      hasBioLinkAndEntities.push(linkAndEntity);
+      continue;
+    }
+
+    if (
+      entityTypeIds.includes(systemLinkEntityTypes.isInvitedTo.linkEntityTypeId)
+    ) {
+      if (!isEntityOrgEntity(rightEntity)) {
+        continue;
+      }
+
+      const {
+        "https://hash.ai/@h/types/property-type/shortname/": shortname,
+        "https://hash.ai/@h/types/property-type/organization-name/": name,
+      } = rightEntity.properties;
+
+      invitedTo.push({
+        invitationLinkEntity: linkEntity as LinkEntity<IsInvitedTo>,
+        org: {
+          webId: extractWebIdFromEntityId(
+            rightEntity.metadata.recordId.entityId,
+          ),
+          name,
+          shortname,
+        },
+      });
+      continue;
+    }
+
+    if (
+      entityTypeIds.includes(
+        systemLinkEntityTypes.hasServiceAccount.linkEntityTypeId,
+      )
+    ) {
+      const serviceAccountEntity = linkAndEntity.rightEntity[0]!;
+
+      const { profileUrl } = simplifyProperties(
+        serviceAccountEntity.properties as ServiceAccount["properties"],
+      );
+
+      const kind = Object.entries(systemEntityTypes).find(([_, type]) =>
+        serviceAccountEntity.metadata.entityTypeIds.includes(type.entityTypeId),
+      )?.[0] as ServiceAccountKind;
+
+      hasServiceAccounts.push({
+        linkEntity,
+        serviceAccountEntity,
+        kind,
+        profileUrl,
+      });
+    }
+  }
 
   const hasAvatar = avatarLinkAndEntities[0]
     ? {
@@ -402,16 +497,6 @@ export const constructUser = (params: {
       }
     : undefined;
 
-  const coverImageLinkAndEntities = getOutgoingLinkAndTargetEntities(
-    subgraph,
-    userEntity.metadata.recordId.entityId,
-    intervalForTimestamp(currentTimestamp()),
-  ).filter(({ linkEntity }) =>
-    linkEntity[0]?.metadata.entityTypeIds.includes(
-      systemLinkEntityTypes.hasCoverImage.linkEntityTypeId,
-    ),
-  );
-
   const hasCoverImage = coverImageLinkAndEntities[0]
     ? {
         // these are each arrays because each entity can have multiple revisions
@@ -420,16 +505,6 @@ export const constructUser = (params: {
           .rightEntity[0]! as Entity<ImageFile>,
       }
     : undefined;
-
-  const hasBioLinkAndEntities = getOutgoingLinkAndTargetEntities(
-    subgraph,
-    userEntity.metadata.recordId.entityId,
-    intervalForTimestamp(currentTimestamp()),
-  ).filter(({ linkEntity }) =>
-    linkEntity[0]?.metadata.entityTypeIds.includes(
-      systemLinkEntityTypes.hasBio.linkEntityTypeId,
-    ),
-  );
 
   const hasBio = hasBioLinkAndEntities[0]
     ? {
@@ -441,35 +516,6 @@ export const constructUser = (params: {
       }
     : undefined;
 
-  const hasServiceAccounts = getOutgoingLinkAndTargetEntities(
-    subgraph,
-    userEntity.metadata.recordId.entityId,
-    intervalForTimestamp(currentTimestamp()),
-  )
-    .filter(({ linkEntity }) =>
-      linkEntity[0]?.metadata.entityTypeIds.includes(
-        systemLinkEntityTypes.hasServiceAccount.linkEntityTypeId,
-      ),
-    )
-    .map<User["hasServiceAccounts"][number]>(({ linkEntity, rightEntity }) => {
-      const serviceAccountEntity = rightEntity[0]!;
-
-      const { profileUrl } = simplifyProperties(
-        serviceAccountEntity.properties as ServiceAccount["properties"],
-      );
-
-      const kind = Object.entries(systemEntityTypes).find(([_, type]) =>
-        serviceAccountEntity.metadata.entityTypeIds.includes(type.entityTypeId),
-      )?.[0] as ServiceAccountKind;
-
-      return {
-        linkEntity: linkEntity[0]!,
-        serviceAccountEntity,
-        kind,
-        profileUrl,
-      };
-    });
-
   const joinedAt = new Date(
     userEntity.metadata.provenance.createdAtDecisionTime,
   );
@@ -480,6 +526,7 @@ export const constructUser = (params: {
     hasBio,
     hasCoverImage,
     hasServiceAccounts,
+    invitedTo,
     joinedAt,
     memberOf,
     preferences: userEntity.properties[

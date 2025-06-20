@@ -20,6 +20,9 @@ const migrate: MigrationFunction = async ({
   authentication,
   migrationState,
 }) => {
+  /**
+   * Step 1: Create the 'Is Invited To' link type
+   */
   const expiredAtPropertyTypeId = getCurrentHashPropertyTypeId({
     migrationState,
     propertyTypeKey: "expiredAt",
@@ -50,8 +53,42 @@ const migrate: MigrationFunction = async ({
     },
   );
 
+  const emailPropertyTypeId = getCurrentHashPropertyTypeId({
+    migrationState,
+    propertyTypeKey: "email",
+  });
+
   /**
-   * Step 2: Add the `Is Invited To` link type to the `User` entity type
+   * Step 2: Create an 'Invited User' entity type as a placeholder for users who are not signed up yet
+   */
+  const _invitedUserEntityTypeId = await createSystemEntityTypeIfNotExists(
+    context,
+    authentication,
+    {
+      entityTypeDefinition: {
+        title: "Invited User",
+        description:
+          "A potential user who has been invited to the application.",
+        properties: [
+          {
+            propertyType: emailPropertyTypeId,
+            required: true,
+          },
+        ],
+        outgoingLinks: [
+          {
+            linkEntityType: isInvitedToEntityType.schema.$id,
+            destinationEntityTypes: [organizationEntityTypeId],
+          },
+        ],
+      },
+      migrationState,
+      webShortname: "h",
+    },
+  );
+
+  /**
+   * Step 3: Add the `Is Invited To` link type to the `User` entity type
    */
 
   const currentUserEntityTypeId = getCurrentHashSystemEntityTypeId({

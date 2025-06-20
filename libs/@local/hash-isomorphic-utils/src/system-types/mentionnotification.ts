@@ -71,6 +71,8 @@ import type {
   EnabledFeatureFlagsPropertyValueWithMetadata,
   EntityEditionIdPropertyValue,
   EntityEditionIdPropertyValueWithMetadata,
+  ExpiredAtPropertyValue,
+  ExpiredAtPropertyValueWithMetadata,
   File,
   FileHashPropertyValue,
   FileHashPropertyValueWithMetadata,
@@ -152,6 +154,11 @@ import type {
   ImageFilePropertiesWithMetadata,
   InformationDataType,
   InformationDataTypeWithMetadata,
+  IsInvitedTo,
+  IsInvitedToOutgoingLinkAndTarget,
+  IsInvitedToOutgoingLinksByLinkEntityTypeId,
+  IsInvitedToProperties,
+  IsInvitedToPropertiesWithMetadata,
   IsMemberOf,
   IsMemberOfOutgoingLinkAndTarget,
   IsMemberOfOutgoingLinksByLinkEntityTypeId,
@@ -262,6 +269,7 @@ import type {
   UserHasCoverImageLink,
   UserHasLink,
   UserHasServiceAccountLink,
+  UserIsInvitedToLink,
   UserIsMemberOfLink,
   UserOutgoingLinkAndTarget,
   UserOutgoingLinksByLinkEntityTypeId,
@@ -338,6 +346,8 @@ export type {
   EnabledFeatureFlagsPropertyValueWithMetadata,
   EntityEditionIdPropertyValue,
   EntityEditionIdPropertyValueWithMetadata,
+  ExpiredAtPropertyValue,
+  ExpiredAtPropertyValueWithMetadata,
   File,
   FileHashPropertyValue,
   FileHashPropertyValueWithMetadata,
@@ -419,6 +429,11 @@ export type {
   ImageFilePropertiesWithMetadata,
   InformationDataType,
   InformationDataTypeWithMetadata,
+  IsInvitedTo,
+  IsInvitedToOutgoingLinkAndTarget,
+  IsInvitedToOutgoingLinksByLinkEntityTypeId,
+  IsInvitedToProperties,
+  IsInvitedToPropertiesWithMetadata,
   IsMemberOf,
   IsMemberOfOutgoingLinkAndTarget,
   IsMemberOfOutgoingLinksByLinkEntityTypeId,
@@ -529,6 +544,7 @@ export type {
   UserHasCoverImageLink,
   UserHasLink,
   UserHasServiceAccountLink,
+  UserIsInvitedToLink,
   UserIsMemberOfLink,
   UserOutgoingLinkAndTarget,
   UserOutgoingLinksByLinkEntityTypeId,
@@ -543,7 +559,7 @@ export type {
  */
 export type MentionNotification = {
   entityTypeIds: [
-    "https://hash.ai/@h/types/entity-type/mention-notification/v/6",
+    "https://hash.ai/@h/types/entity-type/mention-notification/v/7",
   ];
   properties: MentionNotificationProperties;
   propertiesWithMetadata: MentionNotificationPropertiesWithMetadata;

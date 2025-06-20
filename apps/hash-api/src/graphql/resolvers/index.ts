@@ -60,7 +60,9 @@ import { getEntityDiffsResolver } from "./knowledge/entity/get-entity-diffs";
 import { createFileFromUrl } from "./knowledge/file/create-file-from-url";
 import { requestFileUpload } from "./knowledge/file/request-file-upload";
 import { hashInstanceSettingsResolver } from "./knowledge/hash-instance/hash-instance";
+import { acceptOrgInvitationResolver } from "./knowledge/org/accept-org-invitation";
 import { createOrgResolver } from "./knowledge/org/create-org";
+import { inviteUserToOrgResolver } from "./knowledge/org/invite-user-to-org";
 import { pageContents } from "./knowledge/page";
 import {
   createPageResolver,
@@ -211,6 +213,10 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     updateCommentText: loggedInAndSignedUpMiddleware(updateCommentTextResolver),
 
     createOrg: loggedInAndSignedUpMiddleware(createOrgResolver),
+    inviteUserToOrg: loggedInAndSignedUpMiddleware(inviteUserToOrgResolver),
+    acceptOrgInvitation: loggedInAndSignedUpMiddleware(
+      acceptOrgInvitationResolver,
+    ),
 
     submitEarlyAccessForm: loggedInMiddleware(submitEarlyAccessFormResolver),
 
