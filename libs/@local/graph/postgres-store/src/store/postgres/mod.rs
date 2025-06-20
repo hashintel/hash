@@ -1375,8 +1375,8 @@ where
                         array_remove(array_agg(policy_action.action_name), NULL) AS actions
                     FROM policy_edition
                     LEFT JOIN policy_action
-                        ON policy_action.policy_id = policy_edition.id
-                        AND policy_action.transaction_time @> now()
+                           ON policy_action.policy_id = policy_edition.id
+                          AND policy_action.transaction_time @> now()
                     GROUP BY
                         policy_edition.id,
                         policy_edition.name,
