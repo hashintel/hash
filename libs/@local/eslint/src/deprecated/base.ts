@@ -11,7 +11,6 @@ import reactHooks from "eslint-plugin-react-hooks";
 import simpleImportSort from "eslint-plugin-simple-import-sort";
 import unicorn from "eslint-plugin-unicorn";
 import globals from "globals";
-import babelParser from "@babel/eslint-parser";
 import { fixupPluginRules } from "@eslint/compat";
 import { FlatCompat } from "@eslint/eslintrc";
 import js from "@eslint/js";
@@ -371,20 +370,15 @@ export const create = (projectDirectory: string) =>
       },
     },
     {
-      files: ["**/*.{c,m,}js"],
+      files: ["**/*.cjs"],
 
       languageOptions: {
-        parser: babelParser,
         ecmaVersion: 5,
         sourceType: "script",
 
         parserOptions: {
           requireConfigFile: false,
           extraFileExtensions: [".cjs"],
-
-          babelOptions: {
-            presets: ["@babel/preset-react"],
-          },
         },
       },
     },
