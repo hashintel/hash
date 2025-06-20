@@ -10,7 +10,7 @@ use hash_graph_authorization::{
     AuthorizationApi,
     backend::ModifyRelationshipOperation,
     policies::{
-        Authorized, PartialResourceId, PolicyComponents, Request, RequestContext,
+        Authorized, PolicyComponents, Request, RequestContext, ResourceId,
         action::ActionName,
         resource::{EntityResourceConstraint, ResourceConstraint},
         store::{PolicyCreationParams, PolicyStore as _},
@@ -996,9 +996,7 @@ where
                     &Request {
                         actor: policy_components.actor_id,
                         action: ActionName::Instantiate,
-                        resource: Some(&PartialResourceId::EntityType(Some(Cow::Borrowed(
-                            entity_type_id.into(),
-                        )))),
+                        resource: &ResourceId::EntityType(Cow::Borrowed(entity_type_id.into())),
                         context: RequestContext::default(),
                     },
                     &policy_components.context,
@@ -1009,10 +1007,6 @@ where
                 Authorized::Never => {
                     forbidden_instantiations.push(entity_type_id);
                 }
-                Authorized::Partial(partial) => unimplemented!(
-                    "Instantiation checking is not supported for partial authorization: \
-                     {partial:#?}"
-                ),
             }
         }
 
@@ -1751,9 +1745,7 @@ where
                         &Request {
                             actor: policy_components.actor_id,
                             action: ActionName::Instantiate,
-                            resource: Some(&PartialResourceId::EntityType(Some(Cow::Borrowed(
-                                entity_type_id.into(),
-                            )))),
+                            resource: &ResourceId::EntityType(Cow::Borrowed(entity_type_id.into())),
                             context: RequestContext::default(),
                         },
                         &policy_components.context,
@@ -1762,13 +1754,6 @@ where
                 {
                     Authorized::Always => {}
                     Authorized::Never => {
-                        forbidden_instantiations.push(entity_type_id);
-                    }
-                    Authorized::Partial(partial) => {
-                        tracing::error!(
-                            "Instantiation checking is not supported for partial authorization:\n
-                             {partial:#?}"
-                        );
                         forbidden_instantiations.push(entity_type_id);
                     }
                 }

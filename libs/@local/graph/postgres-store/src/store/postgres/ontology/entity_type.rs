@@ -8,8 +8,7 @@ use hash_graph_authorization::{
     AuthorizationApi,
     backend::ModifyRelationshipOperation,
     policies::{
-        Authorized, PartialResourceId, PolicyComponents, Request, RequestContext,
-        action::ActionName,
+        Authorized, PolicyComponents, Request, RequestContext, ResourceId, action::ActionName,
     },
     schema::{
         EntityTypeOwnerSubject, EntityTypePermission, EntityTypeRelationAndSubject, WebPermission,
@@ -1781,9 +1780,9 @@ where
                             &Request {
                                 actor: policy_components.actor_id,
                                 action: ActionName::Instantiate,
-                                resource: Some(&PartialResourceId::EntityType(Some(
-                                    Cow::Borrowed((&entity_type_id).into()),
-                                ))),
+                                resource: &ResourceId::EntityType(Cow::Borrowed(
+                                    (&entity_type_id).into(),
+                                )),
                                 context: RequestContext::default(),
                             },
                             &policy_components.context,
@@ -1792,10 +1791,6 @@ where
                         .map(|authorized| match authorized {
                             Authorized::Always => true,
                             Authorized::Never => false,
-                            Authorized::Partial(partial) => unimplemented!(
-                                "Instantiation checking is not supported for partial \
-                                 authorization: {partial:#?}"
-                            ),
                         })?;
                     if !allowed {
                         return Ok(false);

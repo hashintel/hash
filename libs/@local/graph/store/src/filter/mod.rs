@@ -2,22 +2,15 @@ mod parameter;
 mod path;
 
 use alloc::borrow::Cow;
-use core::{borrow::Borrow as _, error::Error, fmt, hash::Hash};
+use core::{borrow::Borrow as _, fmt, hash::Hash};
 use std::collections::HashMap;
 
 use derive_where::derive_where;
 use error_stack::{Report, ResultExt as _, bail};
-use hash_graph_authorization::policies::{
-    PartialResourceId, PolicyExpressionTree,
-    evaluation::{PermissionCondition, ResourceAttribute},
-};
 use hash_graph_types::ontology::DataTypeLookup;
 use serde::{Deserialize, de, de::IntoDeserializer as _};
 use type_system::{
-    knowledge::{
-        PropertyValue,
-        entity::{Entity, EntityId, id::EntityEditionId},
-    },
+    knowledge::entity::{Entity, EntityId, id::EntityEditionId},
     ontology::{
         EntityTypeWithMetadata,
         data_type::{DataTypeUuid, DataTypeWithMetadata, schema::DataTypeReference},
@@ -25,7 +18,6 @@ use type_system::{
         id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
         property_type::{PropertyTypeUuid, PropertyTypeWithMetadata},
     },
-    principal::actor::{ActorEntityUuid, ActorId},
 };
 
 pub use self::{
@@ -333,105 +325,6 @@ impl<'p> Filter<'p, Entity> {
             ParameterList::EntityEditionIds(entity_edition_ids),
         )
     }
-
-    /// Creates a `Filter` from a permission condition.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the permission condition is not supported.
-    pub fn for_permission_condition(
-        actor_id: Option<ActorId>,
-        condition: PermissionCondition,
-    ) -> Result<Self, Report<InvalidPermissionCondition>> {
-        match condition {
-            PermissionCondition::All(expressions) => Ok(Self::All(
-                expressions
-                    .into_iter()
-                    .map(|condition| Self::for_permission_condition(actor_id, condition))
-                    .collect::<Result<_, _>>()?,
-            )),
-            PermissionCondition::Any(expressions) => Ok(Self::Any(
-                expressions
-                    .into_iter()
-                    .map(|condition| Self::for_permission_condition(actor_id, condition))
-                    .collect::<Result<_, _>>()?,
-            )),
-            PermissionCondition::Not(condition) => Ok(Self::Not(Box::new(
-                Self::for_permission_condition(actor_id, *condition)?,
-            ))),
-            PermissionCondition::Attribute(ResourceAttribute::IsOfType(entity_type)) => {
-                Ok(Self::Equal(
-                    Some(FilterExpression::Path {
-                        path: EntityQueryPath::EntityTypeEdge {
-                            edge_kind: SharedEdgeKind::IsOfType,
-                            path: EntityTypeQueryPath::VersionedUrl,
-                            inheritance_depth: None,
-                        },
-                    }),
-                    Some(FilterExpression::Parameter {
-                        parameter: Parameter::Text(Cow::Owned(entity_type.to_string())),
-                        convert: None,
-                    }),
-                ))
-            }
-            PermissionCondition::Attribute(ResourceAttribute::CreatedBy(actor_id)) => {
-                Ok(Self::Equal(
-                    Some(FilterExpression::Path {
-                        path: EntityQueryPath::Provenance(Some(JsonPath::from_path_tokens(vec![
-                            PathToken::Field(Cow::Borrowed("createdById")),
-                        ]))),
-                    }),
-                    Some(FilterExpression::Parameter {
-                        parameter: Parameter::Any(PropertyValue::String(
-                            actor_id
-                                .map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from)
-                                .to_string(),
-                        )),
-                        convert: None,
-                    }),
-                ))
-            }
-            PermissionCondition::Attribute(ResourceAttribute::CreatedByPrincipal) => {
-                Ok(Self::Equal(
-                    Some(FilterExpression::Path {
-                        path: EntityQueryPath::Provenance(Some(JsonPath::from_path_tokens(vec![
-                            PathToken::Field(Cow::Borrowed("createdById")),
-                        ]))),
-                    }),
-                    Some(FilterExpression::Parameter {
-                        parameter: Parameter::Any(PropertyValue::String(
-                            actor_id
-                                .map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from)
-                                .to_string(),
-                        )),
-                        convert: None,
-                    }),
-                ))
-            }
-            PermissionCondition::Is(PartialResourceId::Entity(Some(entity_uuid))) => {
-                Ok(Self::Equal(
-                    Some(FilterExpression::Path {
-                        path: EntityQueryPath::Uuid,
-                    }),
-                    Some(FilterExpression::Parameter {
-                        parameter: Parameter::Uuid(entity_uuid.into()),
-                        convert: None,
-                    }),
-                ))
-            }
-            PermissionCondition::Is(PartialResourceId::Entity(None)) => Ok(Self::All(vec![])),
-            PermissionCondition::In(web_id) => Ok(Self::Equal(
-                Some(FilterExpression::Path {
-                    path: EntityQueryPath::WebId,
-                }),
-                Some(FilterExpression::Parameter {
-                    parameter: Parameter::Uuid(web_id.into()),
-                    convert: None,
-                }),
-            )),
-            _ => Err(Report::new(InvalidPermissionCondition(condition))),
-        }
-    }
 }
 
 impl<'p, R: QueryRecord> Filter<'p, R>
@@ -590,209 +483,6 @@ where
         }
 
         Ok(())
-    }
-}
-
-#[derive(Debug, derive_more::Display)]
-#[display("expression is not supported: {_0:?}")]
-pub struct InvalidPolicyExpressionTree(PolicyExpressionTree);
-
-impl Error for InvalidPolicyExpressionTree {}
-
-impl TryFrom<PolicyExpressionTree> for Filter<'_, Entity> {
-    type Error = Report<InvalidPolicyExpressionTree>;
-
-    fn try_from(expression: PolicyExpressionTree) -> Result<Self, Self::Error> {
-        match expression {
-            PolicyExpressionTree::All(expressions) => Ok(Self::All(
-                expressions
-                    .into_iter()
-                    .map(Self::try_from)
-                    .collect::<Result<_, _>>()?,
-            )),
-            PolicyExpressionTree::Any(expressions) => Ok(Self::Any(
-                expressions
-                    .into_iter()
-                    .map(Self::try_from)
-                    .collect::<Result<_, _>>()?,
-            )),
-            PolicyExpressionTree::Not(expression) => {
-                Ok(Self::Not(Box::new(Self::try_from(*expression)?)))
-            }
-            PolicyExpressionTree::IsOfType(entity_type) => Ok(Self::Equal(
-                Some(FilterExpression::Path {
-                    path: EntityQueryPath::EntityTypeEdge {
-                        edge_kind: SharedEdgeKind::IsOfType,
-                        path: EntityTypeQueryPath::VersionedUrl,
-                        inheritance_depth: None,
-                    },
-                }),
-                Some(FilterExpression::Parameter {
-                    parameter: Parameter::Text(Cow::Owned(entity_type.to_string())),
-                    convert: None,
-                }),
-            )),
-            PolicyExpressionTree::Is(PartialResourceId::Entity(Some(entity_uuid))) => {
-                Ok(Self::Equal(
-                    Some(FilterExpression::Path {
-                        path: EntityQueryPath::Uuid,
-                    }),
-                    Some(FilterExpression::Parameter {
-                        parameter: Parameter::Uuid(entity_uuid.into()),
-                        convert: None,
-                    }),
-                ))
-            }
-            PolicyExpressionTree::Is(PartialResourceId::Entity(None)) => Ok(Self::All(vec![])),
-            PolicyExpressionTree::In(web_id) => Ok(Self::Equal(
-                Some(FilterExpression::Path {
-                    path: EntityQueryPath::WebId,
-                }),
-                Some(FilterExpression::Parameter {
-                    parameter: Parameter::Uuid(web_id.into()),
-                    convert: None,
-                }),
-            )),
-            _ => Err(Report::new(InvalidPolicyExpressionTree(expression))),
-        }
-    }
-}
-
-impl TryFrom<PolicyExpressionTree> for Filter<'_, EntityTypeWithMetadata> {
-    type Error = Report<InvalidPolicyExpressionTree>;
-
-    fn try_from(expression: PolicyExpressionTree) -> Result<Self, Self::Error> {
-        match expression {
-            PolicyExpressionTree::All(expressions) => Ok(Self::All(
-                expressions
-                    .into_iter()
-                    .map(Self::try_from)
-                    .collect::<Result<_, _>>()?,
-            )),
-            PolicyExpressionTree::Any(expressions) => Ok(Self::Any(
-                expressions
-                    .into_iter()
-                    .map(Self::try_from)
-                    .collect::<Result<_, _>>()?,
-            )),
-            PolicyExpressionTree::Not(expression) => {
-                Ok(Self::Not(Box::new(Self::try_from(*expression)?)))
-            }
-            PolicyExpressionTree::BaseUrl(base_url) => Ok(Self::Equal(
-                Some(FilterExpression::Path {
-                    path: EntityTypeQueryPath::BaseUrl,
-                }),
-                Some(FilterExpression::Parameter {
-                    parameter: Parameter::Text(Cow::Owned(base_url.to_string())),
-                    convert: None,
-                }),
-            )),
-            PolicyExpressionTree::OntologyTypeVersion(ontology_type_version) => Ok(Self::Equal(
-                Some(FilterExpression::Path {
-                    path: EntityTypeQueryPath::Version,
-                }),
-                Some(FilterExpression::Parameter {
-                    parameter: Parameter::OntologyTypeVersion(ontology_type_version),
-                    convert: None,
-                }),
-            )),
-            PolicyExpressionTree::Is(PartialResourceId::EntityType(Some(entity_type_id))) => {
-                Ok(Self::Equal(
-                    Some(FilterExpression::Path {
-                        path: EntityTypeQueryPath::VersionedUrl,
-                    }),
-                    Some(FilterExpression::Parameter {
-                        parameter: Parameter::Text(Cow::Owned(entity_type_id.to_string())),
-                        convert: None,
-                    }),
-                ))
-            }
-            PolicyExpressionTree::Is(PartialResourceId::EntityType(None)) => Ok(Self::All(vec![])),
-            PolicyExpressionTree::In(web_id) => Ok(Self::Equal(
-                Some(FilterExpression::Path {
-                    path: EntityTypeQueryPath::WebId,
-                }),
-                Some(FilterExpression::Parameter {
-                    parameter: Parameter::Uuid(web_id.into()),
-                    convert: None,
-                }),
-            )),
-            _ => Err(Report::new(InvalidPolicyExpressionTree(expression))),
-        }
-    }
-}
-
-#[derive(Debug, derive_more::Display)]
-#[display("expression is not supported: {_0:?}")]
-pub struct InvalidPermissionCondition(PermissionCondition);
-
-impl Error for InvalidPermissionCondition {}
-
-impl TryFrom<PermissionCondition> for Filter<'_, EntityTypeWithMetadata> {
-    type Error = Report<InvalidPermissionCondition>;
-
-    fn try_from(expression: PermissionCondition) -> Result<Self, Self::Error> {
-        match expression {
-            PermissionCondition::All(expressions) => Ok(Self::All(
-                expressions
-                    .into_iter()
-                    .map(Self::try_from)
-                    .collect::<Result<_, _>>()?,
-            )),
-            PermissionCondition::Any(expressions) => Ok(Self::Any(
-                expressions
-                    .into_iter()
-                    .map(Self::try_from)
-                    .collect::<Result<_, _>>()?,
-            )),
-            PermissionCondition::Not(expression) => {
-                Ok(Self::Not(Box::new(Self::try_from(*expression)?)))
-            }
-            PermissionCondition::Attribute(ResourceAttribute::BaseUrl(base_url)) => {
-                Ok(Self::Equal(
-                    Some(FilterExpression::Path {
-                        path: EntityTypeQueryPath::BaseUrl,
-                    }),
-                    Some(FilterExpression::Parameter {
-                        parameter: Parameter::Text(Cow::Owned(base_url.to_string())),
-                        convert: None,
-                    }),
-                ))
-            }
-            PermissionCondition::Attribute(ResourceAttribute::OntologyTypeVersion(
-                ontology_type_version,
-            )) => Ok(Self::Equal(
-                Some(FilterExpression::Path {
-                    path: EntityTypeQueryPath::Version,
-                }),
-                Some(FilterExpression::Parameter {
-                    parameter: Parameter::OntologyTypeVersion(ontology_type_version),
-                    convert: None,
-                }),
-            )),
-            PermissionCondition::Is(PartialResourceId::EntityType(Some(entity_type_id))) => {
-                Ok(Self::Equal(
-                    Some(FilterExpression::Path {
-                        path: EntityTypeQueryPath::VersionedUrl,
-                    }),
-                    Some(FilterExpression::Parameter {
-                        parameter: Parameter::Text(Cow::Owned(entity_type_id.to_string())),
-                        convert: None,
-                    }),
-                ))
-            }
-            PermissionCondition::Is(PartialResourceId::EntityType(None)) => Ok(Self::All(vec![])),
-            PermissionCondition::In(web_id) => Ok(Self::Equal(
-                Some(FilterExpression::Path {
-                    path: EntityTypeQueryPath::WebId,
-                }),
-                Some(FilterExpression::Parameter {
-                    parameter: Parameter::Uuid(web_id.into()),
-                    convert: None,
-                }),
-            )),
-            _ => Err(Report::new(InvalidPermissionCondition(expression))),
-        }
     }
 }
 
