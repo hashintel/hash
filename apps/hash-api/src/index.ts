@@ -1,22 +1,3 @@
-/* eslint-disable import/first */
-
-import {
-  getRequiredEnv,
-  monorepoRootDir,
-  realtimeSyncEnabled,
-  waitOnResource,
-} from "@local/hash-backend-utils/environment";
-import type { ErrorRequestHandler } from "express";
-import express, { raw } from "express";
-import { create as handlebarsCreate } from "express-handlebars";
-
-// eslint-disable-next-line import/order
-import { initSentry } from "./sentry";
-
-const app = express();
-
-initSentry(app);
-
 import http from "node:http";
 import path from "node:path";
 import { promisify } from "node:util";
@@ -27,6 +8,12 @@ import { Client as RpcClient, Transport } from "@local/harpc-client/net";
 import { RequestIdProducer } from "@local/harpc-client/wire-protocol";
 import { getAwsRegion } from "@local/hash-backend-utils/aws-config";
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
+import {
+  getRequiredEnv,
+  monorepoRootDir,
+  realtimeSyncEnabled,
+  waitOnResource,
+} from "@local/hash-backend-utils/environment";
 import { OpenSearch } from "@local/hash-backend-utils/search/opensearch";
 import { GracefulShutdown } from "@local/hash-backend-utils/shutdown";
 import { createTemporalClient } from "@local/hash-backend-utils/temporal";
@@ -39,6 +26,9 @@ import bodyParser from "body-parser";
 import cors from "cors";
 import { Effect, Exit, Layer, Logger, LogLevel, ManagedRuntime } from "effect";
 import { RuntimeException } from "effect/Cause";
+import type { ErrorRequestHandler } from "express";
+import express, { raw } from "express";
+import { create as handlebarsCreate } from "express-handlebars";
 import proxy from "express-http-proxy";
 import type { Options as RateLimitOptions } from "express-rate-limit";
 import { rateLimit } from "express-rate-limit";
@@ -100,6 +90,8 @@ import {
   setupStorageProviders,
 } from "./storage";
 import { setupTelemetry } from "./telemetry/snowplow-setup";
+
+const app = express();
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 
@@ -178,14 +170,6 @@ const main = async () => {
   } catch (err) {
     logger.error(`Could not start StatsD client: ${err}`);
   }
-
-  // Configure Sentry error / trace handling
-  app.use(
-    Sentry.Handlers.requestHandler({
-      ip: true,
-    }),
-  );
-  app.use(Sentry.Handlers.tracingHandler());
 
   app.use(cors(CORS_CONFIG));
 
@@ -424,16 +408,14 @@ const main = async () => {
     scope.clear();
     scope.clearBreadcrumbs();
 
-    /**
-     * Sentry automatically populates a 'Headers' object, but for some reason it doesn't do this for GraphQL requests.
-     * This might be something to do with how Sentry hooks into fetch that doesn't play nicely with ApolloServer,
-     * or how we're loading it.
-     */
-    const userAgent = req.header("user-agent");
-    const origin = req.header("origin");
-    const ip = req.ip;
-
-    scope.setContext("request", { ip, origin, userAgent });
+    if (req.ip) {
+      /**
+       * Sentry has its own logic to attach an IP to requests, which will favour X-Forwarded-For headers.
+       * We additionally attach our req.ip as context (which comes from cf-connecting-ip in production).
+       * Both can be spoofed, but X-Forwarded-For is a bit easier to spoof, as it just involves adding an entry to that header with whatever.
+       */
+      scope.setContext("request", { ip: req.ip });
+    }
 
     const user = req.user;
     scope.setUser({
@@ -687,16 +669,14 @@ const main = async () => {
    * 1. Come AFTER all non-error controllers
    * 2. Come BEFORE all error controllers/middleware
    */
-  app.use(
-    Sentry.Handlers.errorHandler({
-      shouldHandleError(_error) {
-        /**
-         * Capture all errors for now – we can selectively filter out errors based on code if needed.
-         */
-        return true;
-      },
-    }),
-  );
+  Sentry.setupExpressErrorHandler(app, {
+    shouldHandleError(_error) {
+      /**
+       * Capture all errors for now – we can selectively filter out errors based on code if needed.
+       */
+      return true;
+    },
+  });
 
   // Fallback error handler for errors that haven't been caught and sent as a response already
   const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {

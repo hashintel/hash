@@ -104,11 +104,17 @@ export const ErrorFallback: FallbackRender = ({
           </Box>
           <Box mt={2}>
             <Typography variant="smallCaps">Error message</Typography>
-            <CopyableMonospace text={error.message} />
+            <CopyableMonospace
+              text={error instanceof Error ? error.message : String(error)}
+            />
           </Box>
           <Box mt={2}>
             <Typography variant="smallCaps">Stack trace</Typography>
-            <CopyableMonospace text={error.stack ?? ""} />
+            <CopyableMonospace
+              text={
+                error instanceof Error ? (error.stack ?? "") : String(error)
+              }
+            />
           </Box>
         </Box>
       </Collapse>

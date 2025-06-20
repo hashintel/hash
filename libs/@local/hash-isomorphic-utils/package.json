@@ -31,7 +31,7 @@
     "@local/advanced-types": "0.0.0-private",
     "@local/hash-graph-client": "0.0.0-private",
     "@local/hash-graph-sdk": "0.0.0-private",
-    "@sentry/browser": "7.120.3",
+    "@sentry/browser": "9.30.0",
     "@sindresorhus/slugify": "1.1.2",
     "apollo-server-express": "3.9.0",
     "big.js": "7.0.1",
