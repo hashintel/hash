@@ -8865,7 +8865,7 @@ __metadata:
     "@local/eslint": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     "@multiformats/dns": "npm:1.0.6"
-    "@multiformats/multiaddr": "npm:12.4.1"
+    "@multiformats/multiaddr": "npm:12.5.0"
     "@rust/harpc-wire-protocol": "npm:0.0.0-private"
     "@types/node": "npm:22.15.32"
     "@vitest/coverage-istanbul": "npm:3.2.3"
@@ -9472,17 +9472,18 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@multiformats/multiaddr@npm:12.4.1, @multiformats/multiaddr@npm:^12.0.0, @multiformats/multiaddr@npm:^12.4.0":
-  version: 12.4.1
-  resolution: "@multiformats/multiaddr@npm:12.4.1"
+"@multiformats/multiaddr@npm:12.5.0, @multiformats/multiaddr@npm:^12.0.0, @multiformats/multiaddr@npm:^12.4.0":
+  version: 12.5.0
+  resolution: "@multiformats/multiaddr@npm:12.5.0"
   dependencies:
     "@chainsafe/is-ip": "npm:^2.0.1"
     "@chainsafe/netmask": "npm:^2.0.0"
     "@multiformats/dns": "npm:^1.0.3"
+    abort-error: "npm:^1.0.1"
     multiformats: "npm:^13.0.0"
     uint8-varint: "npm:^2.0.1"
     uint8arrays: "npm:^5.0.0"
-  checksum: 10c0/2ef621eea362de0b7936f958c91de34073d71bd59af0ef88912bf9ffa4279507738a2a71f00d2222e32c157dfac4b54bc4ec77d7b1e917690f39a531bf208a36
+  checksum: 10c0/7c367f4018da0e44c9aa3c1b751a40032a46bfea341d1ca970047d1242168bed0eba2f778c1a409c87f9a3d41098b49650b3bd3899eab96480229e07d8a8c963
   languageName: node
   linkType: hard
 
