@@ -223,7 +223,7 @@ rayon                    = { version = "=1.10.0", default-features = false }
 refinery                 = { version = "=0.8.16", default-features = false }
 regex                    = { version = "=1.11.1", default-features = false, features = ["perf", "unicode"] }
 reqwest                  = { version = "=0.12.20", default-features = false, features = ["rustls-tls"] }
-roaring                  = { version = "=0.10.12", default-features = false }
+roaring                  = { version = "=0.11.0", default-features = false }
 rstest                   = { version = "=0.25.0", default-features = false }
 rustc_version            = { version = "=0.4.1", default-features = false }
 scc                      = { version = "=2.3.4", default-features = false }
