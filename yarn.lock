@@ -408,7 +408,7 @@ __metadata:
     express: "npm:4.21.2"
     express-handlebars: "npm:7.1.3"
     express-http-proxy: "npm:2.1.1"
-    express-rate-limit: "npm:7.5.0"
+    express-rate-limit: "npm:7.5.1"
     fractional-indexing: "npm:2.1.0"
     googleapis: "npm:133.0.0"
     graphql: "npm:16.11.0"
@@ -26977,12 +26977,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"express-rate-limit@npm:7.5.0, express-rate-limit@npm:^7.5.0":
-  version: 7.5.0
-  resolution: "express-rate-limit@npm:7.5.0"
+"express-rate-limit@npm:7.5.1, express-rate-limit@npm:^7.5.0":
+  version: 7.5.1
+  resolution: "express-rate-limit@npm:7.5.1"
   peerDependencies:
-    express: ^4.11 || 5 || ^5.0.0-beta.1
-  checksum: 10c0/3e96afa05b4f577395688ede37e0cb19901f20c350b32575fb076f3d25176209fb88d3648151755c232aaf304147c58531f070757978f376e2f08326449299fd
+    express: ">= 4.11"
+  checksum: 10c0/b07de84d700a2c07c4bf2f040e7558ed5a1f660f03ed5f30bf8ff7b51e98ba7a85215640e70fc48cbbb9151066ea51239d9a1b41febc9b84d98c7915b0186161
   languageName: node
   linkType: hard
 
