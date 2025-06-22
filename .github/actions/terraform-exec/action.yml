@@ -24,11 +24,6 @@ runs:
         # pin until https://github.com/cyrilgdn/terraform-provider-postgresql/issues/357 is fixed
         terraform_version: 1.5.7
 
-    - name: Setup AWS CLI
-      uses: jdx/mise-action@13abe502c30c1559a5c37dff303831bab82c9402 # v2.2.3
-      with:
-        install_args: awscli
-
     - name: Authenticate Vault
       id: secrets
       uses: hashicorp/vault-action@4c06c5ccf5c0761b6029f56cfb1dcf5565918a3b # v3.4.0
@@ -76,18 +71,7 @@ runs:
         VAULT_ADDR: ${{ inputs.vault-address }}
       working-directory: ${{ inputs.working-directory }}
       shell: bash
-      run: |
-        set +e  # Don't exit on error
-        terraform ${{ inputs.command == 'plan' && 'plan' || 'apply -auto-approve' }} -no-color -var-file=${{ inputs.env }}-usea1.tfvars | tee cmd.out
-        TERRAFORM_EXIT_CODE=$?
-        
-        # Show SSM tunnel debug logs if they exist
-        if [ -f /tmp/ssm_tunnel_logs ]; then
-          echo "=== SSM Tunnel Debug Logs ==="
-          cat /tmp/ssm_tunnel_logs
-        fi
-        
-        exit $TERRAFORM_EXIT_CODE
+      run: terraform ${{ inputs.command == 'plan' && 'plan' || 'apply -auto-approve' }} -no-color -var-file=${{ inputs.env }}-usea1.tfvars | tee cmd.out
 
     - uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
       with:
