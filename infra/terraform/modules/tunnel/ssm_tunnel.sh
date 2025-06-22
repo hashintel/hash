@@ -8,9 +8,8 @@ SSM_TUNNEL_DEBUG=1
 
 input="$(< /dev/stdin)"
 
-# Always output to stderr for visibility in terraform logs
-exec 2>&1
-set -x
+# Output debug info to stderr only (not stdout to avoid breaking terraform JSON parsing)
+# set -x would break terraform's JSON parsing, so we use manual logging instead
 
 # Check if debugging is enabled
 if [ "${SSM_TUNNEL_DEBUG:-0}" -ne 0 ]; then
@@ -34,17 +33,24 @@ if ! command -v aws >/dev/null 2>&1; then
     echo "Error: aws command not found. Please install AWS CLI." >&2
     exit 1
 fi
+echo "AWS CLI found: $(command -v aws)" >&2
 
 # Check if nc (netcat) is available for tunnel verification
 if ! command -v nc >/dev/null 2>&1; then
     echo "Error: nc (netcat) command not found. Please install netcat for tunnel verification." >&2
     exit 1
 fi
+echo "Netcat found: $(command -v nc)" >&2
 
 # Clean up any existing SSM sessions using the same local port
 pkill -f "aws ssm start-session.*localPortNumber=$LOCAL_TUNNEL_PORT" 2>/dev/null || true
 
 # Start SSM port forwarding session in background
+echo "=== Starting SSM session ===" >&2
+echo "Target: $BASTION_INSTANCE_ID" >&2
+echo "Tunnel: $TUNNEL_TARGET_HOST:$TUNNEL_TARGET_PORT -> 127.0.0.1:$LOCAL_TUNNEL_PORT" >&2
+echo "Region: $AWS_REGION" >&2
+
 aws ssm start-session \
     --target "$BASTION_INSTANCE_ID" \
     --document-name AWS-StartPortForwardingSessionToRemoteHost \
