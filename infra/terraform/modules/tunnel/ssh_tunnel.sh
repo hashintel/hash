@@ -6,7 +6,9 @@ TUNNEL_DEBUG=0
 
 input="$(< /dev/stdin)"
 
-if [ -n "$TUNNEL_DEBUG" ] ; then
+# Check if debugging is enabled. The fallback `${TUNNEL_DEBUG:-0}` ensures a default value of 0
+# if `TUNNEL_DEBUG` is unset. A non-zero value enables debugging.
+if [ "${TUNNEL_DEBUG:-0}" -ne 0 ]; then
   exec 2>/tmp/tunnel_logs
   set -x
   env >&2
