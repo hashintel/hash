@@ -72,12 +72,12 @@ services:
       - no-new-privileges:true
 
   otel-collector:
-    image: otel/opentelemetry-collector-contrib:0.128.0
+    image: otel/opentelemetry-collector:0.128.0
     depends_on:
       jaeger:
         condition: service_healthy
     volumes:
-      - ./opentelemetry-collector/otel-collector-config.yaml:/etc/otelcol-contrib/config.yaml:ro
+      - ./opentelemetry-collector/otel-collector-config.yaml:/etc/otelcol/config.yaml:ro
     ports:
       - 4317:4317
     read_only: true
