@@ -58,7 +58,7 @@ where
 
     // TODO: Currently, this mostly duplicates the error printed below, when more information is
     //       added to the `Report` event consider commenting in this line again.
-    // hash_tracing::sentry::capture_report(&report);
+    // hash_telemetry::sentry::capture_report(&report);
 
     let message = report.to_string();
     if let Some(validation) = report

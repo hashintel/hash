@@ -36,8 +36,8 @@ members = [
     "libs/@local/hashql/*",
     "libs/@local/repo-chores/rust",
     "libs/@local/status/rust",
+    "libs/@local/telemetry",
     "libs/@local/temporal-client",
-    "libs/@local/tracing",
     "libs/antsi",
     "libs/chonky",
     "libs/deer",
@@ -89,8 +89,8 @@ hash-graph-types.path               = "libs/@local/graph/types"
 hash-graph-validation.path          = "libs/@local/graph/validation"
 hash-repo-chores.path               = "libs/@local/repo-chores/rust"
 hash-status.path                    = "libs/@local/status/rust"
+hash-telemetry.path                 = "libs/@local/telemetry"
 hash-temporal-client.path           = "libs/@local/temporal-client"
-hash-tracing.path                   = "libs/@local/tracing"
 hashql-ast.path                     = "libs/@local/hashql/ast"
 hashql-compiletest.path             = "libs/@local/hashql/compiletest"
 hashql-core.path                    = "libs/@local/hashql/core"

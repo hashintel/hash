@@ -601,8 +601,8 @@ __metadata:
     "@rust/hash-graph-store": "npm:0.0.0-private"
     "@rust/hash-graph-test-server": "npm:0.0.0-private"
     "@rust/hash-graph-type-fetcher": "npm:0.0.0-private"
+    "@rust/hash-telemetry": "npm:0.0.0-private"
     "@rust/hash-temporal-client": "npm:0.0.0-private"
-    "@rust/hash-tracing": "npm:0.0.0-private"
   languageName: unknown
   linkType: soft
 
@@ -13155,7 +13155,7 @@ __metadata:
     "@rust/hash-graph-store": "npm:0.0.0-private"
     "@rust/hash-graph-temporal-versioning": "npm:0.0.0-private"
     "@rust/hash-graph-test-data": "npm:0.0.0-private"
-    "@rust/hash-tracing": "npm:0.0.0-private"
+    "@rust/hash-telemetry": "npm:0.0.0-private"
   languageName: unknown
   linkType: soft
 
@@ -13171,7 +13171,7 @@ __metadata:
   dependencies:
     "@rust/error-stack": "npm:0.5.0"
     "@rust/hash-graph-migrations-macros": "npm:0.0.0-private"
-    "@rust/hash-tracing": "npm:0.0.0-private"
+    "@rust/hash-telemetry": "npm:0.0.0-private"
   languageName: unknown
   linkType: soft
 
@@ -13201,8 +13201,8 @@ __metadata:
     "@rust/hash-graph-types": "npm:0.0.0-private"
     "@rust/hash-graph-validation": "npm:0.0.0-private"
     "@rust/hash-status": "npm:0.0.0-private"
+    "@rust/hash-telemetry": "npm:0.0.0-private"
     "@rust/hash-temporal-client": "npm:0.0.0-private"
-    "@rust/hash-tracing": "npm:0.0.0-private"
     tsx: "npm:4.20.3"
   languageName: unknown
   linkType: soft
@@ -13312,7 +13312,7 @@ __metadata:
   resolution: "@rust/hash-repo-chores@workspace:libs/@local/repo-chores/rust"
   dependencies:
     "@rust/error-stack": "npm:0.5.0"
-    "@rust/hash-tracing": "npm:0.0.0-private"
+    "@rust/hash-telemetry": "npm:0.0.0-private"
   languageName: unknown
   linkType: soft
 
@@ -13324,19 +13324,19 @@ __metadata:
   languageName: unknown
   linkType: soft
 
+"@rust/hash-telemetry@npm:0.0.0-private, @rust/hash-telemetry@workspace:libs/@local/telemetry":
+  version: 0.0.0-use.local
+  resolution: "@rust/hash-telemetry@workspace:libs/@local/telemetry"
+  dependencies:
+    "@rust/error-stack": "npm:0.5.0"
+  languageName: unknown
+  linkType: soft
+
 "@rust/hash-temporal-client@npm:0.0.0-private, @rust/hash-temporal-client@workspace:libs/@local/temporal-client":
   version: 0.0.0-use.local
   resolution: "@rust/hash-temporal-client@workspace:libs/@local/temporal-client"
   dependencies:
     "@blockprotocol/type-system-rs": "npm:0.0.0-private"
-    "@rust/error-stack": "npm:0.5.0"
-  languageName: unknown
-  linkType: soft
-
-"@rust/hash-tracing@npm:0.0.0-private, @rust/hash-tracing@workspace:libs/@local/tracing":
-  version: 0.0.0-use.local
-  resolution: "@rust/hash-tracing@workspace:libs/@local/tracing"
-  dependencies:
     "@rust/error-stack": "npm:0.5.0"
   languageName: unknown
   linkType: soft
