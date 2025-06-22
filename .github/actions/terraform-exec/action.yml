@@ -25,10 +25,9 @@ runs:
         terraform_version: 1.5.7
 
     - name: Setup AWS CLI
-      shell: bash
-      run: |
-        mise use awscli
-        mise exec -- aws --version
+      uses: jdx/mise-action@13abe502c30c1559a5c37dff303831bab82c9402 # v2.2.3
+      with:
+        install_args: awscli
 
     - name: Authenticate Vault
       id: secrets
