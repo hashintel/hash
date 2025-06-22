@@ -10,7 +10,7 @@
 
 extern crate alloc;
 
-pub mod logs;
+pub mod logging;
 pub mod metrics;
 pub mod traces;
 
@@ -25,7 +25,7 @@ use tracing_error::ErrorLayer;
 use tracing_subscriber::{layer::SubscriberExt as _, util::SubscriberInitExt as _};
 
 pub use self::otlp::OtlpConfig;
-use self::{logs::LoggingConfig, traces::sentry::SentryConfig};
+use self::{logging::LoggingConfig, traces::sentry::SentryConfig};
 
 /// Arguments for configuring the logging setup
 #[derive(Debug, Clone)]
@@ -84,14 +84,14 @@ pub fn init_tracing(
 ) -> Result<TracingGuard<impl Drop>, Report<InitTracingError>> {
     let error_layer = ErrorLayer::default();
 
-    let console_layer = self::logs::console_layer(&config.logging.console);
-    let (file_layer, file_guard) = self::logs::file_layer(config.logging.file);
+    let console_layer = self::logging::console_layer(&config.logging.console);
+    let (file_layer, file_guard) = self::logging::file_layer(config.logging.file);
 
     let sentry_layer = self::traces::sentry::layer(&config.sentry);
 
     let otlp_logs_provider =
-        self::logs::otlp::provider(&config.otlp).change_context(InitTracingError)?;
-    let otel_logs_layer = otlp_logs_provider.as_ref().map(self::logs::otlp::layer);
+        self::logging::otlp::provider(&config.otlp).change_context(InitTracingError)?;
+    let otel_logs_layer = otlp_logs_provider.as_ref().map(self::logging::otlp::layer);
 
     let otlp_traces_provider =
         self::traces::otlp::provider(&config.otlp).change_context(InitTracingError)?;

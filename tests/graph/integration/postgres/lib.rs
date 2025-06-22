@@ -78,7 +78,7 @@ use hash_graph_store::{
     subgraph::temporal_axes::QueryTemporalAxesUnresolved,
 };
 use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
-use hash_telemetry::logs::env_filter;
+use hash_telemetry::logging::env_filter;
 use time::Duration;
 use tokio_postgres::{NoTls, Transaction};
 use type_system::{
