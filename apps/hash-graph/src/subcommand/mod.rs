@@ -10,7 +10,7 @@ mod type_fetcher;
 use core::time::Duration;
 
 use error_stack::{Report, ensure};
-use hash_tracing::{TracingConfig, init_tracing};
+use hash_telemetry::{TracingConfig, init_tracing};
 use tokio::{runtime::Handle, time::sleep};
 
 #[cfg(feature = "test-server")]

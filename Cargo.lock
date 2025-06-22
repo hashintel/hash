@@ -3356,8 +3356,8 @@ dependencies = [
  "hash-graph-store",
  "hash-graph-test-server",
  "hash-graph-type-fetcher",
+ "hash-telemetry",
  "hash-temporal-client",
- "hash-tracing",
  "mimalloc",
  "multiaddr",
  "regex",
@@ -3498,7 +3498,7 @@ dependencies = [
  "hash-graph-store",
  "hash-graph-temporal-versioning",
  "hash-graph-test-data",
- "hash-tracing",
+ "hash-telemetry",
  "pretty_assertions",
  "serde",
  "serde_json",
@@ -3521,7 +3521,7 @@ dependencies = [
  "error-stack",
  "futures",
  "hash-graph-migrations-macros",
- "hash-tracing",
+ "hash-telemetry",
  "include_dir",
  "postgres-types",
  "sha2",
@@ -3583,8 +3583,8 @@ dependencies = [
  "hash-graph-types",
  "hash-graph-validation",
  "hash-status",
+ "hash-telemetry",
  "hash-temporal-client",
- "hash-tracing",
  "postgres-types",
  "pretty_assertions",
  "refinery",
@@ -3777,7 +3777,7 @@ dependencies = [
  "error-stack",
  "globset",
  "guppy",
- "hash-tracing",
+ "hash-telemetry",
  "inferno",
  "serde",
  "serde_json",
@@ -3797,23 +3797,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "hash-temporal-client"
-version = "0.0.0"
-dependencies = [
- "error-stack",
- "serde",
- "serde_json",
- "simple-mermaid",
- "temporal-client",
- "temporal-sdk-core-protos",
- "thiserror 2.0.12",
- "type-system",
- "url",
- "uuid",
-]
-
-[[package]]
-name = "hash-tracing"
+name = "hash-telemetry"
 version = "0.0.0"
 dependencies = [
  "clap",
@@ -3833,6 +3817,22 @@ dependencies = [
  "tracing-error",
  "tracing-opentelemetry 0.31.0",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "hash-temporal-client"
+version = "0.0.0"
+dependencies = [
+ "error-stack",
+ "serde",
+ "serde_json",
+ "simple-mermaid",
+ "temporal-client",
+ "temporal-sdk-core-protos",
+ "thiserror 2.0.12",
+ "type-system",
+ "url",
+ "uuid",
 ]
 
 [[package]]

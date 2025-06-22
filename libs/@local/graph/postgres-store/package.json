@@ -25,7 +25,7 @@
   },
   "devDependencies": {
     "@rust/hash-graph-migrations": "0.0.0-private",
-    "@rust/hash-tracing": "0.0.0-private",
+    "@rust/hash-telemetry": "0.0.0-private",
     "tsx": "4.20.3"
   }
 }

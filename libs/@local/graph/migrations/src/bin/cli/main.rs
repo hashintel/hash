@@ -8,7 +8,7 @@ mod subcommand;
 use core::error::Error;
 
 use clap::Parser as _;
-use hash_tracing::{TracingConfig, init_tracing};
+use hash_telemetry::{TracingConfig, init_tracing};
 use tokio::runtime::Handle;
 
 pub trait Command {

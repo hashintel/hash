@@ -17,7 +17,7 @@ mod subcommand;
 
 use error_stack::Report;
 use hash_graph_postgres_store::load_env;
-use hash_tracing::sentry::{init, release_name};
+use hash_telemetry::sentry::{init, release_name};
 
 use self::{args::Args, error::GraphError};
 

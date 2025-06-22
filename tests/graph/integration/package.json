@@ -18,6 +18,6 @@
     "@rust/hash-graph-store": "0.0.0-private",
     "@rust/hash-graph-temporal-versioning": "0.0.0-private",
     "@rust/hash-graph-test-data": "0.0.0-private",
-    "@rust/hash-tracing": "0.0.0-private"
+    "@rust/hash-telemetry": "0.0.0-private"
   }
 }

@@ -5,7 +5,7 @@ use clap::{
         styling::{AnsiColor, Effects},
     },
 };
-use hash_tracing::TracingConfig;
+use hash_telemetry::TracingConfig;
 
 use crate::subcommand::Subcommand;
 

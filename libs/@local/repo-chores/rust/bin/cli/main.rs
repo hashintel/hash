@@ -1,7 +1,7 @@
 use core::error::Error;
 
 use clap::Parser;
-use hash_tracing::{TracingConfig, init_tracing};
+use hash_telemetry::{TracingConfig, init_tracing};
 use tokio::runtime::Handle;
 
 mod subcommand;
