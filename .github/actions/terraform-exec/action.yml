@@ -24,12 +24,11 @@ runs:
         # pin until https://github.com/cyrilgdn/terraform-provider-postgresql/issues/357 is fixed
         terraform_version: 1.5.7
 
-    - name: Install AWS CLI
+    - name: Setup AWS CLI
       shell: bash
       run: |
-        curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-        unzip awscliv2.zip
-        sudo ./aws/install
+        mise use awscli
+        mise exec -- aws --version
 
     - name: Authenticate Vault
       id: secrets
