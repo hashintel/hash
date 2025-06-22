@@ -76,7 +76,18 @@ runs:
         VAULT_ADDR: ${{ inputs.vault-address }}
       working-directory: ${{ inputs.working-directory }}
       shell: bash
-      run: terraform ${{ inputs.command == 'plan' && 'plan' || 'apply -auto-approve' }} -no-color -var-file=${{ inputs.env }}-usea1.tfvars | tee cmd.out
+      run: |
+        set +e  # Don't exit on error
+        terraform ${{ inputs.command == 'plan' && 'plan' || 'apply -auto-approve' }} -no-color -var-file=${{ inputs.env }}-usea1.tfvars | tee cmd.out
+        TERRAFORM_EXIT_CODE=$?
+        
+        # Show SSM tunnel debug logs if they exist
+        if [ -f /tmp/ssm_tunnel_logs ]; then
+          echo "=== SSM Tunnel Debug Logs ==="
+          cat /tmp/ssm_tunnel_logs
+        fi
+        
+        exit $TERRAFORM_EXIT_CODE
 
     - uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
       with:

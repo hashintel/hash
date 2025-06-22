@@ -4,7 +4,7 @@
 # Uses AWS Systems Manager Session Manager for secure tunneling
 
 # To debug, set this to 1 and tail the /tmp/ssm_tunnel_logs file.
-SSM_TUNNEL_DEBUG=0
+SSM_TUNNEL_DEBUG=1
 
 input="$(< /dev/stdin)"
 
