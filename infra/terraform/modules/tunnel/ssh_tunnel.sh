@@ -6,7 +6,7 @@ TUNNEL_DEBUG=0
 
 input="$(< /dev/stdin)"
 
-if [ -n "$TUNNEL_DEBUG" ] ; then
+if [ "${TUNNEL_DEBUG:-0}" -ne 0 ]; then
   exec 2>/tmp/tunnel_logs
   set -x
   env >&2
