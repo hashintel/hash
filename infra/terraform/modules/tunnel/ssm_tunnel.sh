@@ -4,15 +4,20 @@
 # Uses AWS Systems Manager Session Manager for secure tunneling
 
 # To debug, set this to 1 and tail the /tmp/ssm_tunnel_logs file.
-SSM_TUNNEL_DEBUG=0
+SSM_TUNNEL_DEBUG=1
 
 input="$(< /dev/stdin)"
 
+# Always output to stderr for visibility in terraform logs
+exec 2>&1
+set -x
+
 # Check if debugging is enabled
 if [ "${SSM_TUNNEL_DEBUG:-0}" -ne 0 ]; then
-  exec 2>/tmp/ssm_tunnel_logs
-  set -x
+  echo "=== SSM Tunnel Debug Mode Enabled ===" >&2
   env >&2
+  echo "=== Input Parameters ===" >&2
+  echo "$input" >&2
 fi
 
 # Parse input parameters
@@ -54,11 +59,15 @@ echo "$SSM_PID" > "/tmp/ssm_tunnel_pid_$LOCAL_TUNNEL_PORT"
 
 # Wait for the tunnel to be established
 attempt=0
+echo "=== Waiting for SSM tunnel to establish ===" >&2
 while [ $attempt -lt $TUNNEL_MAX_ATTEMPTS ]; do
+  echo "Attempt $((attempt + 1))/$TUNNEL_MAX_ATTEMPTS: Testing connection to 127.0.0.1:$LOCAL_TUNNEL_PORT" >&2
   if nc -z 127.0.0.1 "$LOCAL_TUNNEL_PORT" 2>/dev/null; then
+    echo "=== SSM tunnel established successfully ===" >&2
     echo "{ \"host\": \"127.0.0.1\", \"port\": \"$LOCAL_TUNNEL_PORT\", \"ssm_pid\": \"$SSM_PID\" }"
     exit 0
   fi
+  echo "Connection not ready, waiting 2 seconds..." >&2
   sleep 2
   attempt=$((attempt + 1))
 done
