@@ -10,7 +10,7 @@ authors.workspace = true
 # Public workspace dependencies
 error-stack        = { workspace = true, public = true }
 opentelemetry      = { workspace = true, public = true }
-opentelemetry-otlp = { workspace = true, public = true, features = ["trace", "grpc-tonic"] }
+opentelemetry-otlp = { workspace = true, public = true, features = ["trace", "logs", "metrics", "grpc-tonic"] }
 
 # Public third-party dependencies
 clap_builder       = { workspace = true, public = true }
@@ -23,14 +23,15 @@ tracing-subscriber = { workspace = true, public = true, features = ["std", "ansi
 # Private workspace dependencies
 
 # Private third-party dependencies
-clap                  = { workspace = true, optional = true, features = ["derive", "env"] }
-derive_more           = { workspace = true, features = ["display", "error"] }
-opentelemetry_sdk     = { workspace = true, features = ["rt-tokio"] }
-sentry                = { workspace = true }
-simple-mermaid        = { workspace = true }
-tracing               = { workspace = true }
-tracing-error         = { workspace = true }
-tracing-opentelemetry = { workspace = true }
+clap                           = { workspace = true, optional = true, features = ["derive", "env"] }
+derive_more                    = { workspace = true, features = ["display", "error"] }
+opentelemetry-appender-tracing = { workspace = true }
+opentelemetry_sdk              = { workspace = true, features = ["trace", "logs", "metrics", "rt-tokio"] }
+sentry                         = { workspace = true }
+simple-mermaid                 = { workspace = true }
+tracing                        = { workspace = true }
+tracing-error                  = { workspace = true }
+tracing-opentelemetry          = { workspace = true }
 
 [features]
 clap = ["dep:clap"]

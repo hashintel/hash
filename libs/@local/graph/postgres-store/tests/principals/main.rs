@@ -23,7 +23,7 @@ use hash_graph_postgres_store::{
     },
 };
 use hash_graph_store::pool::StorePool;
-use hash_telemetry::logging::env_filter;
+use hash_telemetry::logs::env_filter;
 use tokio_postgres::NoTls;
 use type_system::principal::actor::ActorId;
 
