@@ -139,7 +139,6 @@ where
     sentry::init(sentry::ClientOptions {
         dsn: config.dsn.clone(),
         release: release.into(),
-        session_mode: sentry::SessionMode::Request,
         traces_sampler: Some(Arc::new(|ctx| {
             if Some(true) == ctx.sampled() {
                 1.0
@@ -178,7 +177,7 @@ where
     layer
         .span_filter(move |metadata| *metadata.level() <= span_filter)
         .event_filter(move |metadata| match *metadata.level() {
-            tracing::Level::ERROR => EventFilter::Exception,
+            tracing::Level::ERROR => EventFilter::Event,
             level if level <= event_filter => EventFilter::Breadcrumb,
             _ => EventFilter::Ignore,
         })
