@@ -6308,8 +6308,8 @@ checksum = "26995317201fa17f3656c36716aed4a7c81743a9634ac4c99c0eeda495db0cec"
 
 [[package]]
 name = "oxc"
-version = "0.67.0"
-source = "git+https://github.com/TimDiekmann/oxc?rev=333f583e#333f583e3f20d40530ca414fbf9c14e49d066fff"
+version = "0.72.3"
+source = "git+https://github.com/TimDiekmann/oxc?rev=5adc2e3#5adc2e36ef727fe02fb9ffc8a3fa9d47bda4a1d3"
 dependencies = [
  "oxc_allocator",
  "oxc_ast",
@@ -6347,24 +6347,23 @@ dependencies = [
 
 [[package]]
 name = "oxc_allocator"
-version = "0.67.0"
-source = "git+https://github.com/TimDiekmann/oxc?rev=333f583e#333f583e3f20d40530ca414fbf9c14e49d066fff"
+version = "0.72.3"
+source = "git+https://github.com/TimDiekmann/oxc?rev=5adc2e3#5adc2e36ef727fe02fb9ffc8a3fa9d47bda4a1d3"
 dependencies = [
  "allocator-api2",
  "bumpalo",
  "hashbrown 0.15.4",
  "oxc_data_structures",
  "rustc-hash 2.1.1",
- "simdutf8",
+ "rustversion",
 ]
 
 [[package]]
 name = "oxc_ast"
-version = "0.67.0"
-source = "git+https://github.com/TimDiekmann/oxc?rev=333f583e#333f583e3f20d40530ca414fbf9c14e49d066fff"
+version = "0.72.3"
+source = "git+https://github.com/TimDiekmann/oxc?rev=5adc2e3#5adc2e36ef727fe02fb9ffc8a3fa9d47bda4a1d3"
 dependencies = [
  "bitflags 2.9.1",
- "cow-utils",
  "oxc_allocator",
  "oxc_ast_macros",
  "oxc_data_structures",
@@ -6376,9 +6375,10 @@ dependencies = [
 
 [[package]]
 name = "oxc_ast_macros"
-version = "0.67.0"
-source = "git+https://github.com/TimDiekmann/oxc?rev=333f583e#333f583e3f20d40530ca414fbf9c14e49d066fff"
+version = "0.72.3"
+source = "git+https://github.com/TimDiekmann/oxc?rev=5adc2e3#5adc2e36ef727fe02fb9ffc8a3fa9d47bda4a1d3"
 dependencies = [
+ "phf",
  "proc-macro2",
  "quote",
  "syn 2.0.104",
@@ -6386,8 +6386,8 @@ dependencies = [
 
 [[package]]
 name = "oxc_ast_visit"
-version = "0.67.0"
-source = "git+https://github.com/TimDiekmann/oxc?rev=333f583e#333f583e3f20d40530ca414fbf9c14e49d066fff"
+version = "0.72.3"
+source = "git+https://github.com/TimDiekmann/oxc?rev=5adc2e3#5adc2e36ef727fe02fb9ffc8a3fa9d47bda4a1d3"
 dependencies = [
  "oxc_allocator",
  "oxc_ast",
@@ -6397,8 +6397,8 @@ dependencies = [
 
 [[package]]
 name = "oxc_cfg"
-version = "0.67.0"
-source = "git+https://github.com/TimDiekmann/oxc?rev=333f583e#333f583e3f20d40530ca414fbf9c14e49d066fff"
+version = "0.72.3"
+source = "git+https://github.com/TimDiekmann/oxc?rev=5adc2e3#5adc2e36ef727fe02fb9ffc8a3fa9d47bda4a1d3"
 dependencies = [
  "bitflags 2.9.1",
  "itertools 0.14.0",
@@ -6411,8 +6411,8 @@ dependencies = [
 
 [[package]]
 name = "oxc_codegen"
-version = "0.67.0"
-source = "git+https://github.com/TimDiekmann/oxc?rev=333f583e#333f583e3f20d40530ca414fbf9c14e49d066fff"
+version = "0.72.3"
+source = "git+https://github.com/TimDiekmann/oxc?rev=5adc2e3#5adc2e36ef727fe02fb9ffc8a3fa9d47bda4a1d3"
 dependencies = [
  "bitflags 2.9.1",
  "cow-utils",
@@ -6431,13 +6431,16 @@ dependencies = [
 
 [[package]]
 name = "oxc_data_structures"
-version = "0.67.0"
-source = "git+https://github.com/TimDiekmann/oxc?rev=333f583e#333f583e3f20d40530ca414fbf9c14e49d066fff"
+version = "0.72.3"
+source = "git+https://github.com/TimDiekmann/oxc?rev=5adc2e3#5adc2e36ef727fe02fb9ffc8a3fa9d47bda4a1d3"
+dependencies = [
+ "rustversion",
+]
 
 [[package]]
 name = "oxc_diagnostics"
-version = "0.67.0"
-source = "git+https://github.com/TimDiekmann/oxc?rev=333f583e#333f583e3f20d40530ca414fbf9c14e49d066fff"
+version = "0.72.3"
+source = "git+https://github.com/TimDiekmann/oxc?rev=5adc2e3#5adc2e36ef727fe02fb9ffc8a3fa9d47bda4a1d3"
 dependencies = [
  "cow-utils",
  "oxc-miette",
@@ -6445,10 +6448,9 @@ dependencies = [
 
 [[package]]
 name = "oxc_ecmascript"
-version = "0.67.0"
-source = "git+https://github.com/TimDiekmann/oxc?rev=333f583e#333f583e3f20d40530ca414fbf9c14e49d066fff"
+version = "0.72.3"
+source = "git+https://github.com/TimDiekmann/oxc?rev=5adc2e3#5adc2e36ef727fe02fb9ffc8a3fa9d47bda4a1d3"
 dependencies = [
- "cow-utils",
  "num-bigint",
  "num-traits",
  "oxc_ast",
@@ -6458,8 +6460,8 @@ dependencies = [
 
 [[package]]
 name = "oxc_estree"
-version = "0.67.0"
-source = "git+https://github.com/TimDiekmann/oxc?rev=333f583e#333f583e3f20d40530ca414fbf9c14e49d066fff"
+version = "0.72.3"
+source = "git+https://github.com/TimDiekmann/oxc?rev=5adc2e3#5adc2e36ef727fe02fb9ffc8a3fa9d47bda4a1d3"
 
 [[package]]
 name = "oxc_index"
@@ -6469,8 +6471,8 @@ checksum = "2fa07b0cfa997730afed43705766ef27792873fdf5215b1391949fec678d2392"
 
 [[package]]
 name = "oxc_parser"
-version = "0.67.0"
-source = "git+https://github.com/TimDiekmann/oxc?rev=333f583e#333f583e3f20d40530ca414fbf9c14e49d066fff"
+version = "0.72.3"
+source = "git+https://github.com/TimDiekmann/oxc?rev=5adc2e3#5adc2e36ef727fe02fb9ffc8a3fa9d47bda4a1d3"
 dependencies = [
  "bitflags 2.9.1",
  "cow-utils",
@@ -6491,13 +6493,13 @@ dependencies = [
 
 [[package]]
 name = "oxc_regular_expression"
-version = "0.67.0"
-source = "git+https://github.com/TimDiekmann/oxc?rev=333f583e#333f583e3f20d40530ca414fbf9c14e49d066fff"
+version = "0.72.3"
+source = "git+https://github.com/TimDiekmann/oxc?rev=5adc2e3#5adc2e36ef727fe02fb9ffc8a3fa9d47bda4a1d3"
 dependencies = [
+ "bitflags 2.9.1",
  "oxc_allocator",
  "oxc_ast_macros",
  "oxc_diagnostics",
- "oxc_estree",
  "oxc_span",
  "phf",
  "rustc-hash 2.1.1",
@@ -6506,8 +6508,8 @@ dependencies = [
 
 [[package]]
 name = "oxc_semantic"
-version = "0.67.0"
-source = "git+https://github.com/TimDiekmann/oxc?rev=333f583e#333f583e3f20d40530ca414fbf9c14e49d066fff"
+version = "0.72.3"
+source = "git+https://github.com/TimDiekmann/oxc?rev=5adc2e3#5adc2e36ef727fe02fb9ffc8a3fa9d47bda4a1d3"
 dependencies = [
  "itertools 0.14.0",
  "oxc_allocator",
@@ -6541,8 +6543,8 @@ dependencies = [
 
 [[package]]
 name = "oxc_span"
-version = "0.67.0"
-source = "git+https://github.com/TimDiekmann/oxc?rev=333f583e#333f583e3f20d40530ca414fbf9c14e49d066fff"
+version = "0.72.3"
+source = "git+https://github.com/TimDiekmann/oxc?rev=5adc2e3#5adc2e36ef727fe02fb9ffc8a3fa9d47bda4a1d3"
 dependencies = [
  "compact_str",
  "oxc-miette",
@@ -6553,8 +6555,8 @@ dependencies = [
 
 [[package]]
 name = "oxc_syntax"
-version = "0.67.0"
-source = "git+https://github.com/TimDiekmann/oxc?rev=333f583e#333f583e3f20d40530ca414fbf9c14e49d066fff"
+version = "0.72.3"
+source = "git+https://github.com/TimDiekmann/oxc?rev=5adc2e3#5adc2e36ef727fe02fb9ffc8a3fa9d47bda4a1d3"
 dependencies = [
  "bitflags 2.9.1",
  "cow-utils",
@@ -8443,12 +8445,6 @@ checksum = "95890f873bec569a0362c235787f3aca6e1e887302ba4840839bcc6459c42da6"
 dependencies = [
  "quote",
 ]
-
-[[package]]
-name = "simdutf8"
-version = "0.1.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e3a9fe34e3e7a50316060351f37187a3f546bce95496156754b601a5fa71b76e"
 
 [[package]]
 name = "similar"
