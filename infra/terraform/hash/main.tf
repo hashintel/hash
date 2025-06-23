@@ -133,6 +133,10 @@ module "tunnel" {
   tunnel_target_host  = module.postgres.pg_host
   tunnel_target_port  = 5432
   local_tunnel_port   = 45678
+  # Set this to a rather high value to avoid the tunnel being terminated too early.
+  # We've seen the tunnel being established after the first attempt, but it's not reliable.
+  # In particular in CI, it sometimes takes a while to establish the tunnel and we've seen
+  # waiting times of more than a minute.
   tunnel_max_attempts = 30
 }
 
