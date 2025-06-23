@@ -7,12 +7,7 @@ use cedar_policy_core::{
 };
 use error_stack::{Report, ResultExt as _, TryReportIteratorExt as _};
 
-use super::{
-    Context, Policy, Request,
-    action::ActionName,
-    cedar::{CedarExpressionParser as _, SimpleParser},
-    evaluation::{PermissionCondition, PermissionConditionVisitor},
-};
+use super::{Context, Policy, Request, action::ActionName};
 
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 #[display("policy set insertion failed")]

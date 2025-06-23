@@ -17,8 +17,8 @@ use hash_graph_authorization::{
     AuthorizationApi,
     backend::ModifyRelationshipOperation,
     policies::{
-        Authorized, ContextBuilder, Effect, PartialResourceId, Policy, PolicyComponents, PolicyId,
-        Request, RequestContext,
+        Authorized, ContextBuilder, Effect, Policy, PolicyComponents, PolicyId, Request,
+        RequestContext, ResourceId,
         action::ActionName,
         principal::{PrincipalConstraint, actor::AuthenticatedActor},
         resource::{EntityResource, EntityTypeId, EntityTypeResource, ResourceConstraint},
