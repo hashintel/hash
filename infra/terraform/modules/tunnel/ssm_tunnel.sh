@@ -79,6 +79,10 @@ while [ $attempt -lt $TUNNEL_MAX_ATTEMPTS ]; do
 done
 
 # If we get here, tunnel failed
+echo "=== SSM Session Output ===" >&2
+cat "/tmp/ssm_session_output_$LOCAL_TUNNEL_PORT.log" >&2 2>/dev/null || echo "No session log found" >&2
+echo "=== End SSM Session Output ===" >&2
+
 echo "Failed to establish SSM tunnel to $TUNNEL_TARGET_HOST:$TUNNEL_TARGET_PORT via $BASTION_INSTANCE_ID after $TUNNEL_MAX_ATTEMPTS attempts" >&2
 kill $SSM_PID 2>/dev/null || true
 rm -f "/tmp/ssm_tunnel_pid_$LOCAL_TUNNEL_PORT"
