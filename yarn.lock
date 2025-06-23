@@ -503,7 +503,7 @@ __metadata:
     "@types/dotenv-flow": "npm:3.3.3"
     "@types/gapi": "npm:0.0.47"
     "@types/google.accounts": "npm:0.0.17"
-    "@types/google.picker": "npm:0.0.50"
+    "@types/google.picker": "npm:0.0.51"
     "@types/iframe-resizer": "npm:3.5.13"
     "@types/jsonpath": "npm:0.2.4"
     "@types/lodash": "npm:4.17.18"
@@ -18096,10 +18096,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/google.picker@npm:0.0.50":
-  version: 0.0.50
-  resolution: "@types/google.picker@npm:0.0.50"
-  checksum: 10c0/355e032848df6a2143ae5d573c56e320df081efcc1b42df9e5c6790f1b4a1e3fb6751cd3f66328fc4d6fc9989a23e0e52d61457e745563c9a58db007e5d49891
+"@types/google.picker@npm:0.0.51":
+  version: 0.0.51
+  resolution: "@types/google.picker@npm:0.0.51"
+  checksum: 10c0/2dde89d735a5e4d353685ec21b4e08c3331f88bf4a5707086b1103b6b08f1d3f7fc93400ef8807a842baa1a514f6d0afd6a5939d99f59ea4e4ac0252b14cf73c
   languageName: node
   linkType: hard
 
