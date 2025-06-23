@@ -1,3 +1,7 @@
+pub mod console;
+pub(crate) mod formatter;
+pub mod otlp;
+
 use std::{
     io,
     io::IsTerminal as _,
@@ -18,7 +22,7 @@ use tracing_subscriber::{
     registry::LookupSpan,
 };
 
-use crate::{console::ConsoleMakeWriter, formatter::TracingFormatter};
+use self::{console::ConsoleMakeWriter, formatter::TracingFormatter};
 
 /// Output format emitted to the terminal
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
