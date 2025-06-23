@@ -1745,6 +1745,7 @@ where
         let policy_components = PolicyComponents::builder(self)
             .with_actor(authenticated_user)
             .with_entity_type_ids(entity_type_ids.iter())
+            .with_action(ActionName::Instantiate)
             .await
             .change_context(QueryError)?;
 

@@ -17,15 +17,15 @@ use hash_graph_authorization::{
     AuthorizationApi,
     backend::ModifyRelationshipOperation,
     policies::{
-        Authorized, ContextBuilder, Effect, Policy, PolicyId, PolicySet, Request, RequestContext,
-        ResourceId,
+        Authorized, ContextBuilder, Effect, Policy, PolicyComponents, PolicyId, Request,
+        RequestContext, ResourceId,
         action::ActionName,
         principal::{PrincipalConstraint, actor::AuthenticatedActor},
         resource::{EntityResource, EntityTypeId, EntityTypeResource, ResourceConstraint},
         store::{
             CreateWebParameter, CreateWebResponse, PolicyCreationParams, PolicyFilter, PolicyStore,
-            PolicyUpdateOperation, PrincipalFilter, PrincipalStore, RoleAssignmentStatus,
-            RoleUnassignmentStatus,
+            PolicyUpdateOperation, PrincipalFilter, PrincipalStore, ResolvePoliciesParams,
+            RoleAssignmentStatus, RoleUnassignmentStatus,
             error::{
                 BuildEntityContextError, BuildEntityTypeContextError, BuildPrincipalContextError,
                 CreatePolicyError, DetermineActorError, EnsureSystemPoliciesError,
@@ -257,32 +257,24 @@ where
         actor: ActorId,
         parameter: CreateWebParameter,
     ) -> Result<CreateWebResponse, Report<WebCreationError>> {
-        let mut context_builder = ContextBuilder::default();
-        self.build_principal_context(actor, &mut context_builder)
+        let policy_components = PolicyComponents::builder(self)
+            .with_actor(actor)
+            .with_action(ActionName::CreateWeb)
             .await
-            .change_context(WebCreationError::StoreError)?;
-        let context = context_builder
-            .build()
-            .change_context(WebCreationError::StoreError)?;
-        let policies = self
-            .resolve_policies_for_actor(actor.into(), Some(actor))
-            .await
-            .change_context(WebCreationError::StoreError)?;
+            .change_context(WebCreationError::BuildPolicyComponents)?;
 
         let web_id = WebId::new(parameter.id.unwrap_or_else(Uuid::new_v4));
 
-        let policy_set = PolicySet::default()
-            .with_policies(&policies)
-            .change_context(WebCreationError::StoreError)?;
-        match policy_set
+        match policy_components
+            .policy_set
             .evaluate(
                 &Request {
-                    actor: Some(actor),
+                    actor: policy_components.actor_id,
                     action: ActionName::CreateWeb,
                     resource: &ResourceId::Web(web_id),
                     context: RequestContext::default(),
                 },
-                &context,
+                &policy_components.context,
             )
             .change_context(WebCreationError::StoreError)?
         {
@@ -1278,9 +1270,9 @@ where
     async fn resolve_policies_for_actor(
         &self,
         authenticated_actor: AuthenticatedActor,
-        actor_id: Option<ActorId>,
+        params: ResolvePoliciesParams<'_>,
     ) -> Result<Vec<Policy>, Report<GetPoliciesError>> {
-        let Some(actor_id) = actor_id else {
+        let Some(actor_id) = params.actor else {
             // If no actor is provided, only policies without principal constraints are returned.
             return self
                 .query_policies(
@@ -1365,32 +1357,48 @@ where
                      AND policy_edition.principal_type = principals.principal_type
                     WHERE policy_edition.transaction_time @> now()
                       AND (policy_edition.actor_type IS NULL OR policy_edition.actor_type = $2)
+                ),
+
+                -- We have all the policies that apply to the actor, now we associate the actions
+                policy_with_actions AS (
+                    SELECT
+                        policy_edition.id,
+                        policy_edition.name,
+                        policy_edition.effect,
+                        policy_edition.principal_id,
+                        policy_edition.principal_type,
+                        policy_edition.actor_type,
+                        policy_edition.resource_constraint,
+                        array_remove(array_agg(policy_action.action_name), NULL) AS actions
+                    FROM policy_edition
+                    LEFT JOIN policy_action
+                        ON policy_action.policy_id = policy_edition.id
+                        AND policy_action.transaction_time @> now()
+                    GROUP BY
+                        policy_edition.id,
+                        policy_edition.name,
+                        policy_edition.effect,
+                        policy_edition.principal_id,
+                        policy_edition.principal_type,
+                        policy_edition.actor_type,
+                        policy_edition.resource_constraint
                 )
                 SELECT
-                    policy_edition.id,
-                    policy_edition.name,
-                    policy_edition.effect,
-                    policy_edition.principal_id,
-                    policy_edition.principal_type,
-                    policy_edition.actor_type,
-                    policy_edition.resource_constraint,
-                    array_remove(array_agg(policy_action.action_name), NULL)
-                FROM policy_edition
-                LEFT JOIN policy_action
-                       ON policy_action.policy_id = policy_edition.id
-                      AND policy_action.transaction_time @> now()
-                GROUP BY
-                    policy_edition.id,
-                    policy_edition.name,
-                    policy_edition.effect,
-                    policy_edition.principal_id,
-                    policy_edition.principal_type,
-                    policy_edition.actor_type,
-                    policy_edition.resource_constraint
+                    id,
+                    name,
+                    effect,
+                    principal_id,
+                    principal_type,
+                    actor_type,
+                    resource_constraint,
+                    actions
+                FROM policy_with_actions
+                WHERE actions && $3
                 ",
                 [
                     &actor_id as &(dyn ToSql + Sync),
                     &PrincipalType::from(actor_id.actor_type()),
+                    &&*params.actions,
                 ],
             )
             .await

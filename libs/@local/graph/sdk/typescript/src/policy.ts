@@ -1,4 +1,3 @@
-import type { ActorId } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import type {
   Policy,
@@ -6,6 +5,7 @@ import type {
   PolicyFilter,
   PolicyId,
   PolicyUpdateOperation,
+  ResolvePoliciesParams,
 } from "@rust/hash-graph-authorization/types";
 
 import type { AuthenticationContext } from "./authentication-context.js";
@@ -76,10 +76,10 @@ export const queryPolicies = (
 export const resolvePoliciesForActor = (
   graphAPI: GraphApi,
   authentication: AuthenticationContext,
-  actorId: ActorId,
+  params: ResolvePoliciesParams,
 ): Promise<Policy[]> =>
   graphAPI
-    .resolvePoliciesForActor(authentication.actorId, actorId)
+    .resolvePoliciesForActor(authentication.actorId, params)
     .then(({ data: policies }) => policies as Policy[]);
 
 /**
