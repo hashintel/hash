@@ -21,26 +21,31 @@ const migrate: MigrationFunction = async ({
   migrationState,
 }) => {
   /**
-   * Step 1: Create the 'Is Invited To' link type
+   * Step 1: Create the 'Invitation Via Email' and 'Invitation Via Shortname' link types,
+   * and the 'Has Issued Invitation' link type which will link these from an Organization
    */
   const expiredAtPropertyTypeId = getCurrentHashPropertyTypeId({
     migrationState,
     propertyTypeKey: "expiredAt",
   });
 
-  const organizationEntityTypeId = getCurrentHashSystemEntityTypeId({
+  const emailPropertyTypeId = getCurrentHashPropertyTypeId({
     migrationState,
-    entityTypeKey: "organization",
+    propertyTypeKey: "email",
   });
 
-  const isInvitedToEntityType = await createSystemEntityTypeIfNotExists(
+  const shortnamePropertyTypeId = getCurrentHashPropertyTypeId({
+    migrationState,
+    propertyTypeKey: "shortname",
+  });
+
+  const invitationEntityType = await createSystemEntityTypeIfNotExists(
     context,
     authentication,
     {
       entityTypeDefinition: {
-        allOf: [blockProtocolEntityTypes.link.entityTypeId],
-        title: "Is Invited To",
-        description: "Something that something is invited to.",
+        title: "Invitation",
+        description: "A request or offer to join or attend something.",
         properties: [
           {
             propertyType: expiredAtPropertyTypeId,
@@ -53,32 +58,18 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  const emailPropertyTypeId = getCurrentHashPropertyTypeId({
-    migrationState,
-    propertyTypeKey: "email",
-  });
-
-  /**
-   * Step 2: Create an 'Invited User' entity type as a placeholder for users who are not signed up yet
-   */
-  const _invitedUserEntityTypeId = await createSystemEntityTypeIfNotExists(
+  const invitationViaEmailEntityType = await createSystemEntityTypeIfNotExists(
     context,
     authentication,
     {
       entityTypeDefinition: {
-        title: "Invited User",
-        description:
-          "A potential user who has been invited to the application.",
+        title: "Invitation Via Email",
+        description: "An invitation issued to an email address.",
+        allOf: [invitationEntityType.schema.$id],
         properties: [
           {
             propertyType: emailPropertyTypeId,
             required: true,
-          },
-        ],
-        outgoingLinks: [
-          {
-            linkEntityType: isInvitedToEntityType.schema.$id,
-            destinationEntityTypes: [organizationEntityTypeId],
           },
         ],
       },
@@ -87,33 +78,67 @@ const migrate: MigrationFunction = async ({
     },
   );
 
-  /**
-   * Step 3: Add the `Is Invited To` link type to the `User` entity type
-   */
+  const invitationViaShortnameEntityType =
+    await createSystemEntityTypeIfNotExists(context, authentication, {
+      entityTypeDefinition: {
+        title: "Invitation Via Shortname",
+        description: "An invitation issued to a user via their shortname.",
+        allOf: [invitationEntityType.schema.$id],
+        properties: [
+          {
+            propertyType: shortnamePropertyTypeId,
+            required: true,
+          },
+        ],
+      },
+      migrationState,
+      webShortname: "h",
+    });
 
-  const currentUserEntityTypeId = getCurrentHashSystemEntityTypeId({
-    entityTypeKey: "user",
-    migrationState,
-  });
-
-  const { schema: userEntityTypeSchema } = await getEntityTypeById(
+  const hasIssuedInvitationLinkType = await createSystemEntityTypeIfNotExists(
     context,
     authentication,
     {
-      entityTypeId: currentUserEntityTypeId,
+      entityTypeDefinition: {
+        allOf: [blockProtocolEntityTypes.link.entityTypeId],
+        title: "Has Issued Invitation",
+        description: "An invitation that something has issued.",
+      },
+      migrationState,
+      webShortname: "h",
     },
   );
 
-  const newUserEntityTypeSchema: EntityType = {
-    ...userEntityTypeSchema,
+  /**
+   * Step 2: Add the `Has Issued Invitation` link type to the `Organization` entity type
+   */
+
+  const currentOrganizationEntityTypeId = getCurrentHashSystemEntityTypeId({
+    entityTypeKey: "organization",
+    migrationState,
+  });
+
+  const { schema: organizationEntityTypeSchema } = await getEntityTypeById(
+    context,
+    authentication,
+    {
+      entityTypeId: currentOrganizationEntityTypeId,
+    },
+  );
+
+  const newOrganizationEntityTypeSchema: EntityType = {
+    ...organizationEntityTypeSchema,
     links: {
-      ...userEntityTypeSchema.links,
-      [isInvitedToEntityType.schema.$id]: {
+      ...organizationEntityTypeSchema.links,
+      [hasIssuedInvitationLinkType.schema.$id]: {
         type: "array",
         items: {
           oneOf: [
             {
-              $ref: organizationEntityTypeId,
+              $ref: invitationViaEmailEntityType.schema.$id,
+            },
+            {
+              $ref: invitationViaShortnameEntityType.schema.$id,
             },
           ],
         },
@@ -121,37 +146,45 @@ const migrate: MigrationFunction = async ({
     },
   };
 
-  const { updatedEntityTypeId: updatedUserEntityTypeId } =
+  const { updatedEntityTypeId: updatedOrganizationEntityTypeId } =
     await updateSystemEntityType(context, authentication, {
-      currentEntityTypeId: currentUserEntityTypeId,
+      currentEntityTypeId: currentOrganizationEntityTypeId,
       migrationState,
-      newSchema: newUserEntityTypeSchema,
+      newSchema: newOrganizationEntityTypeSchema,
     });
 
   /**
-   * Step 4: Update the dependencies of the `User` entity type
+   * Step 3: Update the dependencies of the `Organization` entity type
    * */
   await upgradeDependenciesInHashEntityType(context, authentication, {
-    upgradedEntityTypeIds: [updatedUserEntityTypeId],
+    upgradedEntityTypeIds: [updatedOrganizationEntityTypeId],
+
     dependentEntityTypeKeys: [
-      // These can all link to a User
+      /**
+       * The Linear Integration and User types can link to the `Organization` entity type
+       */
+      "user",
+      "linearIntegration",
+      /**
+       * These can link to a User
+       */
       "comment",
       "commentNotification",
-      "linearIntegration",
       "mentionNotification",
     ],
+
     migrationState,
   });
 
   /**
-   * Step 5: Assign entities of updated types to the latest version
+   * Step 4: Assign entities of updated types to the latest version
    */
   const baseUrls = [
+    systemEntityTypes.organization.entityTypeBaseUrl,
+    systemEntityTypes.linearIntegration.entityTypeBaseUrl,
     systemEntityTypes.user.entityTypeBaseUrl,
-    // Types that reference `User` which were updated
     systemEntityTypes.comment.entityTypeBaseUrl,
     systemEntityTypes.commentNotification.entityTypeBaseUrl,
-    systemEntityTypes.linearIntegration.entityTypeBaseUrl,
     systemEntityTypes.mentionNotification.entityTypeBaseUrl,
   ] as BaseUrl[];
 

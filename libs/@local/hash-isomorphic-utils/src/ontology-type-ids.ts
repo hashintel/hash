@@ -123,10 +123,22 @@ export const systemEntityTypes = {
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/integration/" as BaseUrl,
   },
-  invitedUser: {
-    entityTypeId: "https://hash.ai/@h/types/entity-type/invited-user/v/1",
+  invitation: {
+    entityTypeId: "https://hash.ai/@h/types/entity-type/invitation/v/1",
     entityTypeBaseUrl:
-      "https://hash.ai/@h/types/entity-type/invited-user/" as BaseUrl,
+      "https://hash.ai/@h/types/entity-type/invitation/" as BaseUrl,
+  },
+  invitationViaEmail: {
+    entityTypeId:
+      "https://hash.ai/@h/types/entity-type/invitation-via-email/v/1",
+    entityTypeBaseUrl:
+      "https://hash.ai/@h/types/entity-type/invitation-via-email/" as BaseUrl,
+  },
+  invitationViaShortname: {
+    entityTypeId:
+      "https://hash.ai/@h/types/entity-type/invitation-via-shortname/v/1",
+    entityTypeBaseUrl:
+      "https://hash.ai/@h/types/entity-type/invitation-via-shortname/" as BaseUrl,
   },
   linearIntegration: {
     entityTypeId: "https://hash.ai/@h/types/entity-type/linear-integration/v/9",
@@ -159,7 +171,7 @@ export const systemEntityTypes = {
       "https://hash.ai/@h/types/entity-type/notification/" as BaseUrl,
   },
   organization: {
-    entityTypeId: "https://hash.ai/@h/types/entity-type/organization/v/2",
+    entityTypeId: "https://hash.ai/@h/types/entity-type/organization/v/3",
     entityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/organization/" as BaseUrl,
   },
@@ -315,6 +327,12 @@ export const systemLinkEntityTypes = {
     linkEntityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/has-indexed-content/" as BaseUrl,
   },
+  hasIssuedInvitation: {
+    linkEntityTypeId:
+      "https://hash.ai/@h/types/entity-type/has-issued-invitation/v/1",
+    linkEntityTypeBaseUrl:
+      "https://hash.ai/@h/types/entity-type/has-issued-invitation/" as BaseUrl,
+  },
   hasObject: {
     linkEntityTypeId: "https://hash.ai/@h/types/entity-type/has-object/v/1",
     linkEntityTypeBaseUrl:
@@ -357,11 +375,6 @@ export const systemLinkEntityTypes = {
       "https://hash.ai/@h/types/entity-type/investigated-by/v/1",
     linkEntityTypeBaseUrl:
       "https://hash.ai/@h/types/entity-type/investigated-by/" as BaseUrl,
-  },
-  isInvitedTo: {
-    linkEntityTypeId: "https://hash.ai/@h/types/entity-type/is-invited-to/v/1",
-    linkEntityTypeBaseUrl:
-      "https://hash.ai/@h/types/entity-type/is-invited-to/" as BaseUrl,
   },
   isMemberOf: {
     linkEntityTypeId: "https://hash.ai/@h/types/entity-type/is-member-of/v/1",

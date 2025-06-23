@@ -816,6 +816,32 @@ export type HasIndexedContentPropertiesWithMetadata =
     };
   };
 
+/**
+ * An invitation that something has issued.
+ */
+export type HasIssuedInvitation = {
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/has-issued-invitation/v/1",
+  ];
+  properties: HasIssuedInvitationProperties;
+  propertiesWithMetadata: HasIssuedInvitationPropertiesWithMetadata;
+};
+
+export type HasIssuedInvitationOutgoingLinkAndTarget = never;
+
+export type HasIssuedInvitationOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * An invitation that something has issued.
+ */
+export type HasIssuedInvitationProperties = LinkProperties & {};
+
+export type HasIssuedInvitationPropertiesWithMetadata =
+  LinkPropertiesWithMetadata & {
+    metadata?: ObjectMetadata;
+    value: {};
+  };
+
 export type HasOutgoingLinkAndTarget = never;
 
 export type HasOutgoingLinksByLinkEntityTypeId = {};
@@ -1022,31 +1048,91 @@ export type IntegrationPropertiesWithMetadata = {
 };
 
 /**
- * Something that something is invited to.
+ * A request or offer to join or attend something.
  */
-export type IsInvitedTo = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/is-invited-to/v/1"];
-  properties: IsInvitedToProperties;
-  propertiesWithMetadata: IsInvitedToPropertiesWithMetadata;
+export type Invitation = {
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/invitation/v/1"];
+  properties: InvitationProperties;
+  propertiesWithMetadata: InvitationPropertiesWithMetadata;
 };
 
-export type IsInvitedToOutgoingLinkAndTarget = never;
+export type InvitationOutgoingLinkAndTarget = never;
 
-export type IsInvitedToOutgoingLinksByLinkEntityTypeId = {};
+export type InvitationOutgoingLinksByLinkEntityTypeId = {};
 
 /**
- * Something that something is invited to.
+ * A request or offer to join or attend something.
  */
-export type IsInvitedToProperties = LinkProperties & {
+export type InvitationProperties = {
   "https://hash.ai/@h/types/property-type/expired-at/": ExpiredAtPropertyValue;
 };
 
-export type IsInvitedToPropertiesWithMetadata = LinkPropertiesWithMetadata & {
+export type InvitationPropertiesWithMetadata = {
   metadata?: ObjectMetadata;
   value: {
     "https://hash.ai/@h/types/property-type/expired-at/": ExpiredAtPropertyValueWithMetadata;
   };
 };
+
+/**
+ * An invitation issued to an email address.
+ */
+export type InvitationViaEmail = {
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/invitation-via-email/v/1",
+  ];
+  properties: InvitationViaEmailProperties;
+  propertiesWithMetadata: InvitationViaEmailPropertiesWithMetadata;
+};
+
+export type InvitationViaEmailOutgoingLinkAndTarget = never;
+
+export type InvitationViaEmailOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * An invitation issued to an email address.
+ */
+export type InvitationViaEmailProperties = InvitationProperties & {
+  "https://hash.ai/@h/types/property-type/email/": EmailPropertyValue;
+};
+
+export type InvitationViaEmailPropertiesWithMetadata =
+  InvitationPropertiesWithMetadata & {
+    metadata?: ObjectMetadata;
+    value: {
+      "https://hash.ai/@h/types/property-type/email/": EmailPropertyValueWithMetadata;
+    };
+  };
+
+/**
+ * An invitation issued to a user via their shortname.
+ */
+export type InvitationViaShortname = {
+  entityTypeIds: [
+    "https://hash.ai/@h/types/entity-type/invitation-via-shortname/v/1",
+  ];
+  properties: InvitationViaShortnameProperties;
+  propertiesWithMetadata: InvitationViaShortnamePropertiesWithMetadata;
+};
+
+export type InvitationViaShortnameOutgoingLinkAndTarget = never;
+
+export type InvitationViaShortnameOutgoingLinksByLinkEntityTypeId = {};
+
+/**
+ * An invitation issued to a user via their shortname.
+ */
+export type InvitationViaShortnameProperties = InvitationProperties & {
+  "https://hash.ai/@h/types/property-type/shortname/": ShortnamePropertyValue;
+};
+
+export type InvitationViaShortnamePropertiesWithMetadata =
+  InvitationPropertiesWithMetadata & {
+    metadata?: ObjectMetadata;
+    value: {
+      "https://hash.ai/@h/types/property-type/shortname/": ShortnamePropertyValueWithMetadata;
+    };
+  };
 
 /**
  * Something that someone or something is a member of.
@@ -1263,7 +1349,7 @@ export type OccurredInEntityPropertiesWithMetadata =
  * An organization. Organizations are root-level objects that contain user accounts and teams.
  */
 export type Organization = {
-  entityTypeIds: ["https://hash.ai/@h/types/entity-type/organization/v/2"];
+  entityTypeIds: ["https://hash.ai/@h/types/entity-type/organization/v/3"];
   properties: OrganizationProperties;
   propertiesWithMetadata: OrganizationPropertiesWithMetadata;
 };
@@ -1283,6 +1369,11 @@ export type OrganizationHasCoverImageLink = {
   rightEntity: ImageFile;
 };
 
+export type OrganizationHasIssuedInvitationLink = {
+  linkEntity: HasIssuedInvitation;
+  rightEntity: InvitationViaEmail | InvitationViaShortname;
+};
+
 /**
  * The name of an organization.
  */
@@ -1294,12 +1385,14 @@ export type OrganizationNamePropertyValueWithMetadata =
 export type OrganizationOutgoingLinkAndTarget =
   | OrganizationHasAvatarLink
   | OrganizationHasBioLink
-  | OrganizationHasCoverImageLink;
+  | OrganizationHasCoverImageLink
+  | OrganizationHasIssuedInvitationLink;
 
 export type OrganizationOutgoingLinksByLinkEntityTypeId = {
   "https://hash.ai/@h/types/entity-type/has-avatar/v/1": OrganizationHasAvatarLink;
   "https://hash.ai/@h/types/entity-type/has-bio/v/1": OrganizationHasBioLink;
   "https://hash.ai/@h/types/entity-type/has-cover-image/v/1": OrganizationHasCoverImageLink;
+  "https://hash.ai/@h/types/entity-type/has-issued-invitation/v/1": OrganizationHasIssuedInvitationLink;
 };
 
 /**
@@ -1855,11 +1948,6 @@ export type UserHasServiceAccountLink = {
   rightEntity: ServiceAccount;
 };
 
-export type UserIsInvitedToLink = {
-  linkEntity: IsInvitedTo;
-  rightEntity: Organization;
-};
-
 export type UserIsMemberOfLink = {
   linkEntity: IsMemberOf;
   rightEntity: Organization;
@@ -1871,7 +1959,6 @@ export type UserOutgoingLinkAndTarget =
   | UserHasCoverImageLink
   | UserHasServiceAccountLink
   | UserHasLink
-  | UserIsInvitedToLink
   | UserIsMemberOfLink;
 
 export type UserOutgoingLinksByLinkEntityTypeId = {
@@ -1880,7 +1967,6 @@ export type UserOutgoingLinksByLinkEntityTypeId = {
   "https://hash.ai/@h/types/entity-type/has-cover-image/v/1": UserHasCoverImageLink;
   "https://hash.ai/@h/types/entity-type/has-service-account/v/1": UserHasServiceAccountLink;
   "https://hash.ai/@h/types/entity-type/has/v/1": UserHasLink;
-  "https://hash.ai/@h/types/entity-type/is-invited-to/v/1": UserIsInvitedToLink;
   "https://hash.ai/@h/types/entity-type/is-member-of/v/1": UserIsMemberOfLink;
 };
 
