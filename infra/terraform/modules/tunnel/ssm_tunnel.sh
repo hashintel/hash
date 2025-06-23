@@ -63,7 +63,8 @@ SSM_PID=$!
 # Store the PID for cleanup
 echo "$SSM_PID" > "/tmp/ssm_tunnel_pid_$LOCAL_TUNNEL_PORT"
 
-# Wait for the tunnel to be established
+# Wait for the tunnel to be established with exponential backoff
+# SSM port forwarding needs time after session establishment, especially in CI environments
 attempt=0
 echo "=== Waiting for SSM tunnel to establish ===" >&2
 while [ $attempt -lt $TUNNEL_MAX_ATTEMPTS ]; do
@@ -73,8 +74,14 @@ while [ $attempt -lt $TUNNEL_MAX_ATTEMPTS ]; do
     echo "{ \"host\": \"127.0.0.1\", \"port\": \"$LOCAL_TUNNEL_PORT\", \"ssm_pid\": \"$SSM_PID\" }"
     exit 0
   fi
-  echo "Connection not ready, waiting 2 seconds..." >&2
-  sleep 2
+  
+  # Exponential backoff: 1s, 2s, 4s, 8s, then 8s for remaining attempts
+  # This gives SSM more time on later attempts when AWS might be slower
+  delay=$((attempt < 3 ? 2 ** attempt : 8))
+  [ $delay -eq 0 ] && delay=1
+  
+  echo "Connection not ready, waiting ${delay} seconds..." >&2
+  sleep $delay
   attempt=$((attempt + 1))
 done
 
