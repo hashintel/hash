@@ -23,7 +23,7 @@ FROM mise AS base
 WORKDIR /app
 
 RUN mise install npm:turbo && \
-    mise use --global yq
+    mise install yq
 
 COPY . .
 # `turbo prune` does not include Cargo workspaces, so we create dummy projects for each workspace member
@@ -45,8 +45,13 @@ ENV MISE_CARGO_HOME="/usr/local/cargo" \
     PATH="$PATH:/usr/local/cargo/bin"
 
 COPY rust-toolchain.toml .
-RUN mise use --global yq && \
+RUN mise install yq && \
+    echo "Installing Rust toolchain: $(yq '.toolchain.channel' rust-toolchain.toml)" && \
     mise use --global rust[profile=minimal]@$(yq '.toolchain.channel' rust-toolchain.toml) && \
+    echo "Rust installation completed. Checking versions:" && \
+    mise list rust && \
+    rustc --version && \
+    cargo --version && \
     rm rust-toolchain.toml
 
 
