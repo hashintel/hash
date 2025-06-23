@@ -133,6 +133,7 @@ module "tunnel" {
   tunnel_target_host  = module.postgres.pg_host
   tunnel_target_port  = 5432
   local_tunnel_port   = 45678
+  tunnel_max_attempts = 30
 }
 
 # This provider is accessed through the bastion host using the above SSH tunnel
