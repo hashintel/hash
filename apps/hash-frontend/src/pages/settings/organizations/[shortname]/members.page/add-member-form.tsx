@@ -25,8 +25,7 @@ import { Button } from "../../../../../shared/ui/button";
 
 export const AddMemberForm = ({ org }: { org: Org }) => {
   const [loading, setLoading] = useState(false);
-  const [shortname, setShortname] = useState("");
-  const [email, setEmail] = useState("");
+  const [shortnameOrEmail, setShortnameOrEmail] = useState("");
   const [error, setError] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -53,9 +52,11 @@ export const AddMemberForm = ({ org }: { org: Org }) => {
 
     setLoading(true);
 
+    const isEmail = shortnameOrEmail.includes("@");
+
     if (
       org.memberships.find(
-        (membership) => membership.user.shortname === shortname,
+        (membership) => membership.user.shortname === shortnameOrEmail,
       )
     ) {
       setError("Already a member");
@@ -72,9 +73,11 @@ export const AddMemberForm = ({ org }: { org: Org }) => {
               {
                 field: [
                   "properties",
-                  systemPropertyTypes.shortname.propertyTypeBaseUrl,
+                  isEmail
+                    ? systemPropertyTypes.email.propertyTypeBaseUrl
+                    : systemPropertyTypes.shortname.propertyTypeBaseUrl,
                 ],
-                value: shortname,
+                value: shortnameOrEmail,
                 operator: "EQUALS",
               },
             ],
@@ -97,24 +100,29 @@ export const AddMemberForm = ({ org }: { org: Org }) => {
 
     const user = getRoots(subgraph)[0];
 
-    if (!user) {
-      setError("User not found");
+    if (!user && !isEmail) {
+      setError(`User with shortname ${shortnameOrEmail} not found`);
       setLoading(false);
       return;
     }
 
-    await inviteUserToOrg({
-      variables: {
-        orgWebId: org.webId,
-        userEmail: email,
-        userShortname: shortname,
-      },
-    });
+    try {
+      await inviteUserToOrg({
+        variables: {
+          orgWebId: org.webId,
+          userEmail: isEmail ? shortnameOrEmail : undefined,
+          userShortname: isEmail ? undefined : shortnameOrEmail,
+        },
+      });
+    } catch (err) {
+      setError((err as Error).message);
+      setLoading(false);
+      return;
+    }
 
     inputRef.current?.blur();
 
-    setShortname("");
-    setEmail("");
+    setShortnameOrEmail("");
     setLoading(false);
   };
 
@@ -136,11 +144,12 @@ export const AddMemberForm = ({ org }: { org: Org }) => {
         }}
         onChange={(evt) => {
           setError("");
-          setShortname(evt.target.value.replace(/[^a-zA-Z0-9-_]/g, ""));
+          setShortnameOrEmail(evt.target.value);
         }}
-        placeholder="username"
+        placeholder="Existing username, or new user email..."
         size="xs"
-        value={shortname}
+        sx={{ width: 300 }}
+        value={shortnameOrEmail}
       />
       <Button
         disabled={loading}

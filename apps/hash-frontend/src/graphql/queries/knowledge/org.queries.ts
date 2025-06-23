@@ -26,3 +26,9 @@ export const inviteUserToOrgMutation = gql`
     inviteUserToOrg(orgWebId: $orgWebId, userEmail: $userEmail, userShortname: $userShortname)
   }
 `;
+
+export const removeUserFromOrgMutation = gql`
+  mutation removeUserFromOrg($orgWebId: WebId!, $userEntityId: EntityId!) {
+    removeUserFromOrg(orgWebId: $orgWebId, userEntityId: $userEntityId)
+  }
+`;

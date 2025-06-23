@@ -170,6 +170,7 @@ export const getUserByEmail: ImpureGraphFunction<
                 path: [
                   "properties",
                   systemPropertyTypes.email.propertyTypeBaseUrl,
+                  0,
                 ],
               },
               { parameter: params.email },

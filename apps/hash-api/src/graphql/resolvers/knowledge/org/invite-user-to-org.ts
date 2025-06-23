@@ -1,12 +1,21 @@
 import {
   type Entity,
+  type EntityId,
   entityIdFromComponents,
+  extractEntityUuidFromEntityId,
+  type WebId,
 } from "@blockprotocol/type-system";
-import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
+import {
+  createDefaultAuthorizationRelationships,
+  currentTimeInstantTemporalAxes,
+  generateVersionedUrlMatchingFilter,
+} from "@local/hash-isomorphic-utils/graph-queries";
 import type { MutationInviteUserToOrgArgs } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import {
   systemDataTypes,
+  systemEntityTypes,
   systemLinkEntityTypes,
+  systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type {
   InvitedUser,
@@ -14,7 +23,10 @@ import type {
 } from "@local/hash-isomorphic-utils/system-types/inviteduser";
 import { ApolloError } from "apollo-server-errors";
 
-import { createEntity } from "../../../../graph/knowledge/primitive/entity";
+import {
+  createEntity,
+  getEntities,
+} from "../../../../graph/knowledge/primitive/entity";
 import { createLinkEntity } from "../../../../graph/knowledge/primitive/link-entity";
 import {
   getOrgById,
@@ -32,6 +44,59 @@ import { graphQLContextToImpureGraphContext } from "../../util";
 
 const invitationDurationInDays = 30;
 
+const generateExistingInvitationFilter = (
+  orgWebId: WebId,
+  userEntityId: EntityId,
+) => {
+  return {
+    all: [
+      generateVersionedUrlMatchingFilter(
+        systemLinkEntityTypes.isInvitedTo.linkEntityTypeId,
+      ),
+      {
+        equal: [
+          {
+            path: ["webId"],
+          },
+          {
+            parameter: orgWebId,
+          },
+        ],
+      },
+      {
+        equal: [
+          {
+            path: ["archived"],
+          },
+          {
+            parameter: false,
+          },
+        ],
+      },
+      {
+        equal: [
+          {
+            path: ["rightEntity", "uuid"],
+          },
+          {
+            parameter: orgWebId,
+          },
+        ],
+      },
+      {
+        equal: [
+          {
+            path: ["leftEntity", "uuid"],
+          },
+          {
+            parameter: extractEntityUuidFromEntityId(userEntityId),
+          },
+        ],
+      },
+    ],
+  };
+};
+
 export const inviteUserToOrgResolver: ResolverFn<
   Promise<boolean>,
   Record<string, never>,
@@ -48,6 +113,13 @@ export const inviteUserToOrgResolver: ResolverFn<
     userToInvite = await getUserByEmail(context, authentication, {
       email: userEmail,
     });
+
+    if (userToInvite) {
+      throw new ApolloError(
+        "User with email already exists, please provide their username instead",
+        "BAD_REQUEST",
+      );
+    }
   } else if (userShortname) {
     userToInvite = await getUserByShortname(context, authentication, {
       shortname: userShortname,
@@ -55,7 +127,7 @@ export const inviteUserToOrgResolver: ResolverFn<
 
     if (!userToInvite) {
       throw new ApolloError(
-        `User with shortname ${userShortname} not found`,
+        `User with username ${userShortname} not found`,
         "NOT_FOUND",
       );
     }
@@ -75,6 +147,66 @@ export const inviteUserToOrgResolver: ResolverFn<
     );
   }
 
+  const existingMembershipLink = !userToInvite
+    ? null
+    : await getEntities(context, authentication, {
+        includeDrafts: false,
+        temporalAxes: currentTimeInstantTemporalAxes,
+        filter: {
+          all: [
+            {
+              equal: [
+                {
+                  path: ["webId"],
+                },
+                {
+                  parameter: orgWebId,
+                },
+              ],
+            },
+            {
+              equal: [
+                {
+                  path: ["type", "versionedUrl"],
+                },
+                {
+                  parameter: systemLinkEntityTypes.isMemberOf.linkEntityTypeId,
+                },
+              ],
+            },
+            {
+              equal: [
+                {
+                  path: ["rightEntity", "uuid"],
+                },
+                {
+                  parameter: orgWebId,
+                },
+              ],
+            },
+            {
+              equal: [
+                {
+                  path: ["leftEntity", "uuid"],
+                },
+                {
+                  parameter: extractEntityUuidFromEntityId(
+                    userToInvite.entity.metadata.recordId.entityId,
+                  ),
+                },
+              ],
+            },
+          ],
+        },
+      }).then((entities) => entities[0]);
+
+  if (existingMembershipLink) {
+    throw new ApolloError(
+      "User is already a member of this organization",
+      "BAD_REQUEST",
+    );
+  }
+
   const isOrgAdmin = await context.graphApi
     .hasActorGroupRole(
       authentication.actorId,
@@ -91,10 +223,6 @@ export const inviteUserToOrgResolver: ResolverFn<
     );
   }
 
-  /**
-   * @TODO archive any existing invitation to this user from this organization
-   */
-
   let userEntity: Entity | null = null;
   if (!userToInvite) {
     if (!userEmail) {
@@ -104,25 +232,93 @@ export const inviteUserToOrgResolver: ResolverFn<
       );
     }
 
-    userEntity = await createEntity<InvitedUser>(context, authentication, {
-      entityTypeIds: ["https://hash.ai/@h/types/entity-type/invited-user/v/1"],
-      properties: {
-        value: {
-          "https://hash.ai/@h/types/property-type/email/": {
-            value: userEmail,
-            metadata: {
-              dataTypeId: systemDataTypes.email.dataTypeId,
+    const existingPendingUserEntity = await getEntities(
+      context,
+      authentication,
+      {
+        includeDrafts: false,
+        temporalAxes: currentTimeInstantTemporalAxes,
+        filter: {
+          all: [
+            generateVersionedUrlMatchingFilter(
+              systemEntityTypes.invitedUser.entityTypeId,
+            ),
+            {
+              equal: [
+                {
+                  path: [
+                    "properties",
+                    systemPropertyTypes.email.propertyTypeBaseUrl,
+                  ],
+                },
+                {
+                  parameter: userEmail,
+                },
+              ],
+            },
+          ],
+        },
+      },
+    ).then((entities) => entities[0]);
+
+    const existingLink = !existingPendingUserEntity
+      ? null
+      : await getEntities(context, authentication, {
+          includeDrafts: false,
+          temporalAxes: currentTimeInstantTemporalAxes,
+          filter: generateExistingInvitationFilter(
+            orgWebId,
+            existingPendingUserEntity.metadata.recordId.entityId,
+          ),
+        });
+
+    if (existingLink) {
+      throw new ApolloError(
+        "There is already an invitation pending for this user",
+        "BAD_REQUEST",
+      );
+    }
+
+    userEntity =
+      existingPendingUserEntity ??
+      (await createEntity<InvitedUser>(context, authentication, {
+        entityTypeIds: [systemEntityTypes.invitedUser.entityTypeId],
+        properties: {
+          value: {
+            "https://hash.ai/@h/types/property-type/email/": {
+              value: userEmail,
+              metadata: {
+                dataTypeId: systemDataTypes.email.dataTypeId,
+              },
             },
           },
         },
-      },
-      relationships: createDefaultAuthorizationRelationships({
-        actorId: systemAccountId,
-      }),
-      webId: orgWebId,
-    });
+        /**
+         * We need the system account to be able to see this entity, because we need to be able to check for it when a new user signs up
+         */
+        relationships: createDefaultAuthorizationRelationships({
+          actorId: systemAccountId,
+        }),
+        webId: orgWebId,
+      }));
   } else {
     userEntity = userToInvite.entity;
+
+    const existingLink = await getEntities(context, authentication, {
+      includeDrafts: false,
+      temporalAxes: currentTimeInstantTemporalAxes,
+      filter: generateExistingInvitationFilter(
+        orgWebId,
+        userToInvite.entity.metadata.recordId.entityId,
+      ),
+    }).then((entities) => entities[0]);
+
+    if (existingLink) {
+      throw new ApolloError(
+        "There is already an invitation pending for this user",
+        "BAD_REQUEST",
+      );
+    }
   }
 
   await createLinkEntity<IsInvitedTo>(context, authentication, {

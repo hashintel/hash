@@ -7,6 +7,18 @@ export const orgTypedef = gql`
     notForUser: Boolean!
   }
 
+  type PendingOrgInvitationNewUser {
+    expiresAt: Date!
+    email: String
+  }
+
+  type PendingOrgInvitationExistingUser {
+    expiresAt: Date!
+    shortname: String!
+  }
+
+  union PendingOrgInvitation = PendingOrgInvitationNewUser | PendingOrgInvitationExistingUser
+
   extend type Mutation {
     """
     Create an organization. The creator will be automatically added as an org member.
@@ -61,5 +73,29 @@ export const orgTypedef = gql`
       """
       orgInvitationEntityId: EntityId!
     ): AcceptInvitationResult!
+
+    """
+    Remove a user from an organization.
+    """
+    removeUserFromOrg(
+      """
+      The entityId of the organization to remove the user from.
+      """
+      orgWebId: WebId!
+      """
+      The entityId of the user to remove from the organization.
+      """
+      userEntityId: EntityId!
+    ): Boolean!
+
+    """
+    Get invitations to an organization which are still outstanding.
+    """
+    getPendingOrgInvitations(
+      """
+      The webId of the organization to get pending invitations for.
+      """
+      orgWebId: WebId!
+    ): [PendingOrgInvitation!]!
   }
 `;

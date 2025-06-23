@@ -1,9 +1,5 @@
 import { JSONObjectResolver } from "graphql-scalars";
 
-import {
-  addActorGroupMember,
-  removeActorGroupMember,
-} from "../../graph/account-permission-management";
 import type {
   EntityAuthorizationSubject,
   MutationResolvers,
@@ -63,6 +59,7 @@ import { hashInstanceSettingsResolver } from "./knowledge/hash-instance/hash-ins
 import { acceptOrgInvitationResolver } from "./knowledge/org/accept-org-invitation";
 import { createOrgResolver } from "./knowledge/org/create-org";
 import { inviteUserToOrgResolver } from "./knowledge/org/invite-user-to-org";
+import { removeUserFromOrgResolver } from "./knowledge/org/remove-user-from-org";
 import { pageContents } from "./knowledge/page";
 import {
   createPageResolver,
@@ -217,6 +214,7 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     acceptOrgInvitation: loggedInAndSignedUpMiddleware(
       acceptOrgInvitationResolver,
     ),
+    removeUserFromOrg: loggedInAndSignedUpMiddleware(removeUserFromOrgResolver),
 
     submitEarlyAccessForm: loggedInMiddleware(submitEarlyAccessFormResolver),
 
