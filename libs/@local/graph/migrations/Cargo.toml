@@ -23,7 +23,7 @@ tokio-postgres = { workspace = true, public = true }
 
 # Private workspace dependencies
 hash-graph-migrations-macros = { workspace = true, optional = true }
-hash-tracing                 = { workspace = true, optional = true, features = ["clap"] }
+hash-telemetry               = { workspace = true, optional = true, features = ["clap"] }
 
 # Private third-party dependencies
 clap           = { workspace = true, optional = true, features = ["cargo", "derive", "env", "wrap_help"] }
@@ -38,7 +38,7 @@ tracing        = { workspace = true }
 
 [features]
 macros = ["dep:hash-graph-migrations-macros", "dep:include_dir"]
-cli    = ["macros", "dep:clap", "dep:clap_complete", "dep:hash-tracing", "tokio/rt-multi-thread", "tokio-postgres/runtime"]
+cli    = ["macros", "dep:clap", "dep:clap_complete", "dep:hash-telemetry", "tokio/rt-multi-thread", "tokio-postgres/runtime"]
 
 [lints]
 workspace = true

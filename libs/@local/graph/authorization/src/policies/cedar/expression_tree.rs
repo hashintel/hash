@@ -11,7 +11,7 @@ use type_system::{
 };
 
 use super::FromCedarEntityUId as _;
-use crate::policies::{PartialResourceId, cedar::FromCedarEntityId as _, resource::EntityTypeId};
+use crate::policies::{ResourceId, cedar::FromCedarEntityId as _, resource::EntityTypeId};
 
 #[derive(Debug)]
 pub enum PolicyExpressionTree {
@@ -19,7 +19,7 @@ pub enum PolicyExpressionTree {
     All(Vec<Self>),
 
     Any(Vec<Self>),
-    Is(PartialResourceId<'static>),
+    Is(ResourceId<'static>),
     In(WebId),
     BaseUrl(BaseUrl),
     OntologyTypeVersion(OntologyTypeVersion),
@@ -263,11 +263,11 @@ impl PolicyExpressionTree {
             (AttributeType::Resource, ast::ExprKind::Lit(ast::Literal::EntityUID(euid))) => {
                 if *euid.entity_type() == **EntityTypeId::entity_type() {
                     EntityTypeId::from_eid(euid.eid())
-                        .map(|id| PartialResourceId::EntityType(Some(Cow::Owned(id))))
+                        .map(|id| ResourceId::EntityType(Cow::Owned(id)))
                         .change_context(ParseBinaryExpressionError::Right)
                 } else if *euid.entity_type() == **EntityUuid::entity_type() {
                     EntityUuid::from_eid(euid.eid())
-                        .map(|id| PartialResourceId::Entity(Some(id)))
+                        .map(ResourceId::Entity)
                         .change_context(ParseBinaryExpressionError::Right)
                 } else {
                     Err(Report::new(ParseExpressionError::Unexpected)

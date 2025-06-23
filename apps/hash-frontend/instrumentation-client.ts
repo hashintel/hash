@@ -4,6 +4,7 @@
 import * as Sentry from "@sentry/nextjs";
 
 import { buildStamp } from "./buildstamp";
+import { isProduction } from "./src/lib/config";
 import {
   SENTRY_DSN,
   SENTRY_REPLAYS_SESSION_SAMPLE_RATE,
@@ -14,13 +15,24 @@ Sentry.init({
   dsn: SENTRY_DSN,
   enabled: !!SENTRY_DSN,
   environment: VERCEL_ENV || "development",
-  integrations: [new Sentry.Replay({ stickySession: true })],
+  integrations: [
+    Sentry.browserApiErrorsIntegration(),
+    Sentry.browserProfilingIntegration(),
+    Sentry.browserSessionIntegration(),
+    Sentry.browserTracingIntegration(),
+    Sentry.graphqlClientIntegration({
+      endpoints: [/\/graphql$/],
+    }),
+    Sentry.replayIntegration(),
+  ],
   release: buildStamp,
   replaysOnErrorSampleRate: 1,
   replaysSessionSampleRate: parseFloat(
     SENTRY_REPLAYS_SESSION_SAMPLE_RATE ?? "0",
   ),
-  // release is set in next.config.js in the Sentry webpack plugin
-  /** @todo reduce perf sample rate from 100% when we have more traffic */
-  tracesSampleRate: 1.0,
+  sendDefaultPii: true,
+  tracePropagationTargets: ["localhost", /^https:\/\/(?:.*\.)?hash\.ai/],
+  tracesSampleRate: isProduction ? 1.0 : 0,
 });
+
+export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;

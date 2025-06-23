@@ -15,7 +15,7 @@ hash-graph-postgres-store      = { workspace = true }
 hash-graph-store               = { workspace = true }
 hash-graph-temporal-versioning = { workspace = true }
 hash-graph-test-data           = { workspace = true }
-hash-tracing                   = { workspace = true }
+hash-telemetry                 = { workspace = true }
 type-system                    = { workspace = true }
 
 # Private third-party dependencies

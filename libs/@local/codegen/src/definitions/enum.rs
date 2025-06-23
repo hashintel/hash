@@ -52,6 +52,7 @@ impl Enum {
             variants: enum_type
                 .variants()
                 .iter()
+                .filter(|&(_, variant)| !variant.skip())
                 .map(|(name, variant)| EnumVariant {
                     name: name.clone(),
                     fields: Fields::from_specta(variant.fields(), type_collection),

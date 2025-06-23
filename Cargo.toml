@@ -36,8 +36,8 @@ members = [
     "libs/@local/hashql/*",
     "libs/@local/repo-chores/rust",
     "libs/@local/status/rust",
+    "libs/@local/telemetry",
     "libs/@local/temporal-client",
-    "libs/@local/tracing",
     "libs/antsi",
     "libs/chonky",
     "libs/deer",
@@ -89,8 +89,8 @@ hash-graph-types.path               = "libs/@local/graph/types"
 hash-graph-validation.path          = "libs/@local/graph/validation"
 hash-repo-chores.path               = "libs/@local/repo-chores/rust"
 hash-status.path                    = "libs/@local/status/rust"
+hash-telemetry.path                 = "libs/@local/telemetry"
 hash-temporal-client.path           = "libs/@local/temporal-client"
-hash-tracing.path                   = "libs/@local/tracing"
 hashql-ast.path                     = "libs/@local/hashql/ast"
 hashql-compiletest.path             = "libs/@local/hashql/compiletest"
 hashql-core.path                    = "libs/@local/hashql/core"
@@ -111,7 +111,7 @@ ariadne                  = { version = "=0.5.1", default-features = false }
 async-scoped             = { version = "=0.9.0", default-features = false }
 async-trait              = { version = "=0.1.88", default-features = false }
 aws-config               = { version = "=1.8.0" }
-aws-sdk-s3               = { version = "=1.92.0", default-features = false }
+aws-sdk-s3               = { version = "=1.93.0", default-features = false }
 aws-types                = { version = "=1.3.7", default-features = false }
 axum                     = { version = "=0.7.5" }
 axum-core                = { version = "=0.5.0" }
@@ -135,7 +135,7 @@ dashu-base               = { version = "=0.4.1", default-features = false }
 dashu-float              = { version = "=0.4.3", default-features = false }
 deadpool                 = { version = "=0.12.2", default-features = false }
 deadpool-postgres        = { version = "=0.14.1", default-features = false }
-derive-where             = { version = "=1.4.0", default-features = false, features = ["nightly"] }
+derive-where             = { version = "=1.5.0", default-features = false, features = ["nightly"] }
 derive_more              = { version = "=2.0.1", default-features = false }
 dotenv-flow              = { version = "=0.16.2", default-features = false }
 ecow                     = { version = "=0.2.5", default-features = false }
@@ -186,7 +186,7 @@ libtest-mimic            = { version = "=0.8.1", default-features = false }
 line-index               = { version = "=0.1.2", default-features = false }
 logos                    = { version = "=0.15.0", default-features = false }
 memchr                   = { version = "=2.7.5", default-features = false }
-mimalloc                 = { version = "=0.1.46", default-features = false }
+mimalloc                 = { version = "=0.1.47", default-features = false }
 mime                     = { version = "=0.3.17", default-features = false }
 multiaddr                = { version = "=0.18.2", default-features = false }
 multistream-select       = { version = "=0.13.0", default-features = false }
@@ -223,7 +223,7 @@ rayon                    = { version = "=1.10.0", default-features = false }
 refinery                 = { version = "=0.8.16", default-features = false }
 regex                    = { version = "=1.11.1", default-features = false, features = ["perf", "unicode"] }
 reqwest                  = { version = "=0.12.20", default-features = false, features = ["rustls-tls"] }
-roaring                  = { version = "=0.10.12", default-features = false }
+roaring                  = { version = "=0.11.0", default-features = false }
 rstest                   = { version = "=0.25.0", default-features = false }
 rustc_version            = { version = "=0.4.1", default-features = false }
 scc                      = { version = "=2.3.4", default-features = false }
@@ -242,7 +242,7 @@ smol_str                 = { version = "=0.3.2" }
 specta                   = { version = "=2.0.0-rc.22", default-features = false }
 supports-color           = { version = "=3.0.2", default-features = false }
 supports-unicode         = { version = "=3.0.0", default-features = false }
-syn                      = { version = "=2.0.103", default-features = false }
+syn                      = { version = "=2.0.104", default-features = false }
 tachyonix                = { version = "=0.3.1", default-features = false }
 tarpc                    = { version = "=0.36.0", default-features = false }
 temporal-client          = { git = "https://github.com/temporalio/sdk-core", rev = "4a2368d" }

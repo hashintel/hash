@@ -128,11 +128,11 @@ describe("Policy CRUD", () => {
       [
         {
           type: "add-action",
-          action: "view",
+          action: "viewEntity",
         },
         {
           type: "add-action",
-          action: "create",
+          action: "createWeb",
         },
         {
           type: "remove-action",
@@ -156,7 +156,7 @@ describe("Policy CRUD", () => {
       [
         {
           type: "remove-action",
-          action: "create",
+          action: "createWeb",
         },
         {
           type: "set-resource-constraint",
@@ -167,7 +167,7 @@ describe("Policy CRUD", () => {
         },
       ],
     );
-    expect(updatedPolicy.actions).toStrictEqual(["view"]);
+    expect(updatedPolicy.actions).toStrictEqual(["viewEntity"]);
     expect(updatedPolicy.resource).toStrictEqual({
       type: "entity",
       id: extractEntityUuidFromEntityId(testUser.entity.entityId),
@@ -178,7 +178,7 @@ describe("Policy CRUD", () => {
       updatePolicyById(graphApi, authentication, testPolicy.id, [
         {
           type: "remove-action",
-          action: "view",
+          action: "viewEntity",
         },
       ]),
     ).rejects.toThrowError(
@@ -193,7 +193,7 @@ describe("Policy CRUD", () => {
       [
         {
           type: "remove-action",
-          action: "view",
+          action: "viewEntity",
         },
         {
           type: "add-action",
