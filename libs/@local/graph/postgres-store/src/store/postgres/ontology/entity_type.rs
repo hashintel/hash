@@ -988,7 +988,9 @@ where
 
             Err(error.change_context(InsertionError))
         } else {
-            if let Some(temporal_client) = &self.temporal_client {
+            if !self.settings.skip_embedding_creation
+                && let Some(temporal_client) = &self.temporal_client
+            {
                 temporal_client
                     .start_update_entity_type_embeddings_workflow(
                         actor_id,
@@ -1544,7 +1546,9 @@ where
 
             Err(error.change_context(UpdateError))
         } else {
-            if let Some(temporal_client) = &self.temporal_client {
+            if !self.settings.skip_embedding_creation
+                && let Some(temporal_client) = &self.temporal_client
+            {
                 temporal_client
                     .start_update_entity_type_embeddings_workflow(
                         actor_id,

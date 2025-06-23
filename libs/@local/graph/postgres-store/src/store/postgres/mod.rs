@@ -95,12 +95,14 @@ use crate::store::error::{
 #[derive(Debug, Clone)]
 pub struct PostgresStoreSettings {
     pub validate_links: bool,
+    pub skip_embedding_creation: bool,
 }
 
 impl Default for PostgresStoreSettings {
     fn default() -> Self {
         Self {
             validate_links: true,
+            skip_embedding_creation: false,
         }
     }
 }
