@@ -3,21 +3,7 @@
 # SSM-based tunnel script for PostgreSQL access
 # Uses AWS Systems Manager Session Manager for secure tunneling
 
-# To debug, set this to 1 and tail the /tmp/ssm_tunnel_logs file.
-SSM_TUNNEL_DEBUG=1
-
 input="$(< /dev/stdin)"
-
-# Output debug info to stderr only (not stdout to avoid breaking terraform JSON parsing)
-# set -x would break terraform's JSON parsing, so we use manual logging instead
-
-# Check if debugging is enabled
-if [ "${SSM_TUNNEL_DEBUG:-0}" -ne 0 ]; then
-  echo "=== SSM Tunnel Debug Mode Enabled ===" >&2
-  env >&2
-  echo "=== Input Parameters ===" >&2
-  echo "$input" >&2
-fi
 
 # Parse input parameters
 BASTION_INSTANCE_ID=$(jq -j '.bastion_instance_id' <<< "$input")
