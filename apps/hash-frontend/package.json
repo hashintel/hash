@@ -135,7 +135,7 @@
     "@types/dotenv-flow": "3.3.3",
     "@types/gapi": "0.0.47",
     "@types/google.accounts": "0.0.17",
-    "@types/google.picker": "0.0.50",
+    "@types/google.picker": "0.0.51",
     "@types/iframe-resizer": "3.5.13",
     "@types/jsonpath": "0.2.4",
     "@types/lodash": "4.17.18",
