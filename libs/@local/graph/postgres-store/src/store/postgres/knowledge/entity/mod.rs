@@ -1171,7 +1171,9 @@ where
 
             Err(error.change_context(InsertionError))
         } else {
-            if let Some(temporal_client) = &self.temporal_client {
+            if !self.settings.skip_embedding_creation
+                && let Some(temporal_client) = &self.temporal_client
+            {
                 temporal_client
                     .start_update_entity_embeddings_workflow(actor_id, &entities)
                     .await
@@ -2019,7 +2021,9 @@ where
 
         transaction.commit().await.change_context(UpdateError)?;
 
-        if let Some(temporal_client) = &self.temporal_client {
+        if !self.settings.skip_embedding_creation
+            && let Some(temporal_client) = &self.temporal_client
+        {
             temporal_client
                 .start_update_entity_embeddings_workflow(actor_id, &entities)
                 .await

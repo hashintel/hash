@@ -177,6 +177,10 @@ pub struct ServerArgs {
     #[clap(long)]
     pub skip_link_validation: bool,
 
+    /// Skips the creation of embeddings when creating/updating entities or types.
+    #[clap(long, env = "HASH_GRAPH_SKIP_EMBEDDING_CREATION")]
+    pub skip_embedding_creation: bool,
+
     /// Outputs the queries made to the graph to the specified file.
     #[clap(long)]
     pub log_queries: Option<PathBuf>,
@@ -252,6 +256,7 @@ pub async fn server(args: ServerArgs) -> Result<(), Report<GraphError>> {
         NoTls,
         PostgresStoreSettings {
             validate_links: !args.skip_link_validation,
+            skip_embedding_creation: args.skip_embedding_creation,
         },
     )
     .await
