@@ -83,6 +83,7 @@ jobs:
           AWS_REGION: ${{ env.AWS_REGION }}
           AWS_ECR_URL: ${{ env.AWS_ECR_URL }}
           IMAGE_NAME: ${{ env.HASH_GRAPH_RESOURCE_NAME }}
+          GITHUB_TOKEN: ${{ github.token }}
 
   build-api:
     name: Build and push HASH api image
@@ -121,6 +122,7 @@ jobs:
           AWS_REGION: ${{ env.AWS_REGION }}
           AWS_ECR_URL: ${{ env.AWS_ECR_URL }}
           IMAGE_NAME: ${{ env.HASH_API_RESOURCE_NAME }}
+          GITHUB_TOKEN: ${{ github.token }}
 
   build-kratos:
     name: Build and push Kratos image
@@ -159,6 +161,7 @@ jobs:
           AWS_REGION: ${{ env.AWS_REGION }}
           AWS_ECR_URL: ${{ env.AWS_ECR_URL }}
           IMAGE_NAME: ${{ env.HASH_KRATOS_RESOURCE_NAME }}
+          GITHUB_TOKEN: ${{ github.token }}
           BUILD_ARGS: |
             ENV=prod
             API_SECRET=${{ secrets.HASH_KRATOS_API_SECRET }}
@@ -200,6 +203,7 @@ jobs:
           AWS_REGION: ${{ env.AWS_REGION }}
           AWS_ECR_URL: ${{ env.AWS_ECR_URL }}
           IMAGE_NAME: ${{ env.HASH_HYDRA_RESOURCE_NAME }}
+          GITHUB_TOKEN: ${{ github.token }}
           BUILD_ARGS: |
             ENV=prod
 
@@ -240,6 +244,7 @@ jobs:
           AWS_REGION: ${{ env.AWS_REGION }}
           AWS_ECR_URL: ${{ env.AWS_ECR_URL }}
           IMAGE_NAME: ${{ env.HASH_TEMPORAL_AI_TS_WORKER_RESOURCE_NAME }}
+          GITHUB_TOKEN: ${{ github.token }}
           BUILD_ARGS: |
             GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON: ${{ secrets.GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON }}
 
@@ -280,6 +285,7 @@ jobs:
           AWS_REGION: ${{ env.AWS_REGION }}
           AWS_ECR_URL: ${{ env.AWS_ECR_URL }}
           IMAGE_NAME: ${{ env.HASH_TEMPORAL_INTEGRATION_WORKER_RESOURCE_NAME }}
+          GITHUB_TOKEN: ${{ github.token }}
 
   build-temporal-migrate:
     name: Build and push Temporal Migrate image
@@ -318,6 +324,7 @@ jobs:
           AWS_REGION: ${{ env.AWS_REGION }}
           AWS_ECR_URL: ${{ env.AWS_ECR_URL }}
           IMAGE_NAME: ${{ env.HASH_TEMPORAL_MIGRATE_RESOURCE_NAME }}
+          GITHUB_TOKEN: ${{ github.token }}
           IMAGE_TAG: ${{ env.HASH_TEMPORAL_VERSION }}
           BUILD_ARGS: |
             TEMPORAL_VERSION=${{ env.HASH_TEMPORAL_VERSION }}
@@ -359,6 +366,7 @@ jobs:
           AWS_REGION: ${{ env.AWS_REGION }}
           AWS_ECR_URL: ${{ env.AWS_ECR_URL }}
           IMAGE_NAME: ${{ env.HASH_TEMPORAL_SETUP_RESOURCE_NAME }}
+          GITHUB_TOKEN: ${{ github.token }}
           IMAGE_TAG: ${{ env.HASH_TEMPORAL_VERSION }}
           BUILD_ARGS: |
             TEMPORAL_VERSION=${{ env.HASH_TEMPORAL_VERSION }}
