@@ -95,7 +95,7 @@ where
                     .authorization_api
                     .check_data_types_permission(
                         policy_components
-                            .actor_id
+                            .actor_id()
                             .map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from),
                         DataTypePermission::View,
                         ids.iter().copied(),

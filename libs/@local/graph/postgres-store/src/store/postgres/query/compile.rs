@@ -970,6 +970,14 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 self.artifacts.parameters.push(uuids);
                 ParameterType::Uuid
             }
+            ParameterList::EntityUuids(uuids) => {
+                self.artifacts.parameters.push(uuids);
+                ParameterType::Uuid
+            }
+            ParameterList::WebIds(web_ids) => {
+                self.artifacts.parameters.push(web_ids);
+                ParameterType::Uuid
+            }
         };
         (
             Expression::Parameter(self.artifacts.parameters.len()),
