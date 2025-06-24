@@ -1,3 +1,7 @@
+/**
+ * @todo H-2421: Check this file for redundancy after implementing email verification.
+ */
+
 import type { ParsedUrlQueryInput } from "node:querystring";
 
 import type { GraphQLError } from "graphql";
@@ -78,17 +82,6 @@ export const ORG_ROLES = [
   { label: "Cross-Functional", value: "Cross-Functional" },
   { label: "Other", value: "Other" },
 ];
-
-export const ORG_SIZES = [
-  { label: "1-10 people", value: "ONE_TO_TEN" },
-  { label: "11-50 people", value: "ELEVEN_TO_FIFTY" },
-  { label: "51-250 people", value: "FIFTY_ONE_TO_TWO_HUNDRED_AND_FIFTY" },
-  { label: "250+ people", value: "TWO_HUNDRED_AND_FIFTY_PLUS" },
-];
-
-// https://emailregex.com/
-export const EMAIL_REGEX =
-  /^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/;
 
 export const parseGraphQLError = (
   errors: GraphQLError[],

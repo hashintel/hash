@@ -1,3 +1,7 @@
+/**
+ * @todo H-2421: Check this file for redundancy after implementing email verification.
+ */
+
 import { Box } from "@mui/material";
 import type {
   ClipboardEventHandler,

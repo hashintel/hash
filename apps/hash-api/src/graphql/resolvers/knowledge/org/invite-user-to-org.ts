@@ -1,28 +1,34 @@
 import {
-  type Entity,
   type EntityId,
   entityIdFromComponents,
   extractEntityUuidFromEntityId,
   type WebId,
 } from "@blockprotocol/type-system";
+import type { EntityRelationAndSubjectBranded } from "@local/hash-graph-sdk/authorization";
+import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { createPolicy } from "@local/hash-graph-sdk/policy";
+import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import {
-  createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import type { MutationInviteUserToOrgArgs } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import {
+  blockProtocolDataTypes,
   systemDataTypes,
   systemEntityTypes,
   systemLinkEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type {
-  InvitedUser,
-  IsInvitedTo,
-} from "@local/hash-isomorphic-utils/system-types/inviteduser";
+  HasIssuedInvitation,
+  InvitationViaEmail,
+  InvitationViaShortname,
+} from "@local/hash-isomorphic-utils/system-types/shared";
 import { ApolloError } from "apollo-server-errors";
+import dedent from "dedent";
 
+import type { EmailTransporter } from "../../../../email/transporters";
 import {
   createEntity,
   getEntities,
@@ -44,14 +50,49 @@ import { graphQLContextToImpureGraphContext } from "../../util";
 
 const invitationDurationInDays = 30;
 
+const sendOrgEmailInvitationToEmailAddress = async (params: {
+  org: Org;
+  invitationId: EntityId;
+  emailAddress: string;
+  emailTransporter: EmailTransporter;
+}): Promise<void> => {
+  const { org, invitationId, emailAddress, emailTransporter } = params;
+
+  const queryParams = new URLSearchParams({
+    invitationId,
+    email: emailAddress,
+  }).toString();
+
+  const invitationLink = `${frontendUrl}/signup?${queryParams}`;
+
+  await emailTransporter.sendMail({
+    to: emailAddress,
+    subject: "You've been invited to join an organization at HASH",
+    html: dedent`
+        <p>You've been invited to join the <strong>${org.orgName}</strong> organization in the HASH platform.</p>
+        <p>To set up your HASH account and join the organization <a href="${invitationLink}">click here</a>.</p>
+      `,
+  });
+};
+
 const generateExistingInvitationFilter = (
   orgWebId: WebId,
-  userEntityId: EntityId,
+  invitation:
+    | {
+        type: "email";
+        email: string;
+      }
+    | {
+        type: "shortname";
+        shortname: string;
+      },
 ) => {
   return {
     all: [
       generateVersionedUrlMatchingFilter(
-        systemLinkEntityTypes.isInvitedTo.linkEntityTypeId,
+        invitation.type === "email"
+          ? systemEntityTypes.invitationViaEmail.entityTypeId
+          : systemEntityTypes.invitationViaShortname.entityTypeId,
       ),
       {
         equal: [
@@ -76,7 +117,7 @@ const generateExistingInvitationFilter = (
       {
         equal: [
           {
-            path: ["rightEntity", "uuid"],
+            path: ["leftEntity", "uuid"],
           },
           {
             parameter: orgWebId,
@@ -86,10 +127,19 @@ const generateExistingInvitationFilter = (
       {
         equal: [
           {
-            path: ["leftEntity", "uuid"],
+            path: [
+              "rightEntity",
+              "properties",
+              invitation.type === "email"
+                ? systemPropertyTypes.email.propertyTypeBaseUrl
+                : systemPropertyTypes.shortname.propertyTypeBaseUrl,
+            ],
           },
           {
-            parameter: extractEntityUuidFromEntityId(userEntityId),
+            parameter:
+              invitation.type === "email"
+                ? invitation.email
+                : invitation.shortname,
           },
         ],
       },
@@ -107,30 +157,30 @@ export const inviteUserToOrgResolver: ResolverFn<
 
   const context = graphQLContextToImpureGraphContext(graphQLContext);
 
-  let userToInvite: User | null = null;
+  let existingUserToInvite: User | null = null;
 
   if (userEmail) {
-    userToInvite = await getUserByEmail(context, authentication, {
+    existingUserToInvite = await getUserByEmail(context, authentication, {
       email: userEmail,
     });
-
-    if (userToInvite) {
-      throw new ApolloError(
-        "User with email already exists, please provide their username instead",
-        "BAD_REQUEST",
-      );
-    }
   } else if (userShortname) {
-    userToInvite = await getUserByShortname(context, authentication, {
+    existingUserToInvite = await getUserByShortname(context, authentication, {
       shortname: userShortname,
     });
 
-    if (!userToInvite) {
+    if (!existingUserToInvite) {
       throw new ApolloError(
         `User with username ${userShortname} not found`,
         "NOT_FOUND",
       );
     }
+  }
+
+  if (!existingUserToInvite && !userEmail) {
+    throw new ApolloError(
+      "Somehow no user found and no email address provided.",
+      "BAD_REQUEST",
+    );
   }
 
   const orgEntityId = entityIdFromComponents(orgWebId, orgWebId);
@@ -147,7 +197,7 @@ export const inviteUserToOrgResolver: ResolverFn<
     );
   }
 
-  const existingMembershipLink = !userToInvite
+  const existingMembershipLink = !existingUserToInvite
     ? null
     : await getEntities(context, authentication, {
         includeDrafts: false,
@@ -191,7 +241,7 @@ export const inviteUserToOrgResolver: ResolverFn<
                 },
                 {
                   parameter: extractEntityUuidFromEntityId(
-                    userToInvite.entity.metadata.recordId.entityId,
+                    existingUserToInvite.entity.metadata.recordId.entityId,
                   ),
                 },
               ],
@@ -223,68 +273,82 @@ export const inviteUserToOrgResolver: ResolverFn<
     );
   }
 
-  let userEntity: Entity | null = null;
-  if (!userToInvite) {
-    if (!userEmail) {
-      throw new ApolloError(
-        "No existing user found, and no email to issue an invitation to provided",
-        "BAD_REQUEST",
-      );
-    }
+  const existingInvitation = await getEntities(context, authentication, {
+    includeDrafts: false,
+    temporalAxes: currentTimeInstantTemporalAxes,
+    filter: generateExistingInvitationFilter(
+      orgWebId,
+      userEmail
+        ? {
+            type: "email",
+            email: userEmail,
+          }
+        : {
+            type: "shortname",
+            shortname: userShortname!,
+          },
+    ),
+  }).then((entities) => entities[0]);
 
-    const existingPendingUserEntity = await getEntities(
+  if (existingInvitation) {
+    throw new ApolloError(
+      `There is already an invitation pending for ${userEmail ?? userShortname}`,
+      "BAD_REQUEST",
+    );
+  }
+
+  const invitationAuthorizationRelationships: EntityRelationAndSubjectBranded[] =
+    [
+      {
+        relation: "administrator",
+        subject: {
+          kind: "account",
+          /**
+           * We use the system account to manage invitations (viewing and archiving) on the invited user's behalf.
+           * We cannot add the invited user directly, because:
+           *
+           * 1. They may not have an account yet (if invited via email with no account attached)
+           * 2. If they DO have an account and are invited by email, giving them permission on the entity would reveal
+           *    to the inviter which user account was associated with the email address (via inspection of the entity's permissions).
+           *
+           * Note that the inviter will know the user associated with an email if they accept the invitation.
+           */
+          subjectId: systemAccountId,
+        },
+      },
+      {
+        relation: "setting",
+        subject: {
+          kind: "setting",
+          subjectId: "administratorFromWeb",
+        },
+      },
+      /** We don't need any other permissions on the entity – normal web members don't need to view or manage pending invitations */
+    ];
+
+  let invitation: HashEntity<InvitationViaEmail | InvitationViaShortname>;
+
+  const expiresAtIsoString = new Date(
+    Date.now() + invitationDurationInDays * 24 * 60 * 60 * 1000,
+  ).toISOString();
+
+  const expiredAtProperty = {
+    value: expiresAtIsoString,
+    metadata: {
+      dataTypeId: systemDataTypes.datetime.dataTypeId,
+    },
+  };
+
+  if (userEmail) {
+    invitation = await createEntity<InvitationViaEmail>(
       context,
       authentication,
       {
-        includeDrafts: false,
-        temporalAxes: currentTimeInstantTemporalAxes,
-        filter: {
-          all: [
-            generateVersionedUrlMatchingFilter(
-              systemEntityTypes.invitedUser.entityTypeId,
-            ),
-            {
-              equal: [
-                {
-                  path: [
-                    "properties",
-                    systemPropertyTypes.email.propertyTypeBaseUrl,
-                  ],
-                },
-                {
-                  parameter: userEmail,
-                },
-              ],
-            },
-          ],
-        },
-      },
-    ).then((entities) => entities[0]);
-
-    const existingLink = !existingPendingUserEntity
-      ? null
-      : await getEntities(context, authentication, {
-          includeDrafts: false,
-          temporalAxes: currentTimeInstantTemporalAxes,
-          filter: generateExistingInvitationFilter(
-            orgWebId,
-            existingPendingUserEntity.metadata.recordId.entityId,
-          ),
-        });
-
-    if (existingLink) {
-      throw new ApolloError(
-        "There is already an invitation pending for this user",
-        "BAD_REQUEST",
-      );
-    }
-
-    userEntity =
-      existingPendingUserEntity ??
-      (await createEntity<InvitedUser>(context, authentication, {
-        entityTypeIds: [systemEntityTypes.invitedUser.entityTypeId],
+        entityTypeIds: [systemEntityTypes.invitationViaEmail.entityTypeId],
         properties: {
           value: {
+            "https://hash.ai/@h/types/property-type/expired-at/":
+              expiredAtProperty,
             "https://hash.ai/@h/types/property-type/email/": {
               value: userEmail,
               metadata: {
@@ -293,63 +357,97 @@ export const inviteUserToOrgResolver: ResolverFn<
             },
           },
         },
-        /**
-         * We need the system account to be able to see this entity, because we need to be able to check for it when a new user signs up
-         */
-        relationships: createDefaultAuthorizationRelationships({
-          actorId: systemAccountId,
-        }),
+        relationships: invitationAuthorizationRelationships,
         webId: orgWebId,
-      }));
+      },
+    );
   } else {
-    userEntity = userToInvite.entity;
-
-    const existingLink = await getEntities(context, authentication, {
-      includeDrafts: false,
-      temporalAxes: currentTimeInstantTemporalAxes,
-      filter: generateExistingInvitationFilter(
-        orgWebId,
-        userToInvite.entity.metadata.recordId.entityId,
-      ),
-    }).then((entities) => entities[0]);
-
-    if (existingLink) {
-      throw new ApolloError(
-        "There is already an invitation pending for this user",
-        "BAD_REQUEST",
-      );
-    }
-  }
-
-  await createLinkEntity<IsInvitedTo>(context, authentication, {
-    entityTypeIds: [systemLinkEntityTypes.isInvitedTo.linkEntityTypeId],
-    properties: {
-      value: {
-        "https://hash.ai/@h/types/property-type/expired-at/": {
-          value: new Date(
-            Date.now() + invitationDurationInDays * 24 * 60 * 60 * 1000,
-          ).toISOString(),
-          metadata: {
-            dataTypeId: systemDataTypes.datetime.dataTypeId,
+    invitation = await createEntity<InvitationViaShortname>(
+      context,
+      authentication,
+      {
+        entityTypeIds: [systemEntityTypes.invitationViaShortname.entityTypeId],
+        properties: {
+          value: {
+            "https://hash.ai/@h/types/property-type/expired-at/":
+              expiredAtProperty,
+            "https://hash.ai/@h/types/property-type/shortname/": {
+              value: userShortname!,
+              metadata: {
+                dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+              },
+            },
           },
         },
+        relationships: invitationAuthorizationRelationships,
+        webId: orgWebId,
       },
+    );
+  }
+
+  const linkEntity = await createLinkEntity<HasIssuedInvitation>(
+    context,
+    authentication,
+    {
+      entityTypeIds: [
+        systemLinkEntityTypes.hasIssuedInvitation.linkEntityTypeId,
+      ],
+      linkData: {
+        leftEntityId: org.entity.metadata.recordId.entityId,
+        rightEntityId: invitation.metadata.recordId.entityId,
+      },
+      properties: { value: {} },
+      relationships: invitationAuthorizationRelationships,
+      webId: orgWebId,
     },
-    linkData: {
-      leftEntityId: userEntity.metadata.recordId.entityId,
-      rightEntityId: org.entity.metadata.recordId.entityId,
-    },
-    relationships: createDefaultAuthorizationRelationships({
-      /**
-       * There are two circumstances in which we need to be able to see this link:
-       * 1. When a user already has an account, and has been invited – in which case _they_ need to see it
-       * 2. If someone arrives from an invitation link sent to their email, but doesn't yet have an account
-       *    - in which case we need to retrieve it on their behalf using the system account.
-       */
-      actorId: userToInvite ? userToInvite.accountId : systemAccountId,
+  );
+
+  const invitationEntityUuid = extractEntityUuidFromEntityId(
+    invitation.metadata.recordId.entityId,
+  );
+  const linkEntityUuid = extractEntityUuidFromEntityId(
+    linkEntity.metadata.recordId.entityId,
+  );
+
+  await Promise.all([
+    createPolicy(context.graphApi, authentication, {
+      name: `system-account-administer-org-invitation-${invitationEntityUuid}`,
+      effect: "permit",
+      actions: ["viewEntity"],
+      principal: {
+        type: "actor",
+        actorType: "machine",
+        id: systemAccountId,
+      },
+      resource: {
+        type: "entity",
+        id: invitationEntityUuid,
+      },
     }),
-    webId: orgWebId,
-  });
+    createPolicy(context.graphApi, authentication, {
+      name: `system-account-administer-org-invitation-link-${linkEntityUuid}`,
+      effect: "permit",
+      actions: ["viewEntity"],
+      principal: {
+        type: "actor",
+        actorType: "machine",
+        id: systemAccountId,
+      },
+      resource: {
+        type: "entity",
+        id: linkEntityUuid,
+      },
+    }),
+  ]);
+
+  if (!existingUserToInvite) {
+    await sendOrgEmailInvitationToEmailAddress({
+      org,
+      invitationId: invitation.metadata.recordId.entityId,
+      emailAddress: userEmail!,
+      emailTransporter: graphQLContext.emailTransporter,
+    });
+  }
 
   return true;
 };

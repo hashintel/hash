@@ -542,6 +542,7 @@ type UpdateEntityFunction<Properties extends TypeIdsAndPropertiesForEntity> =
       entityTypeIds?: [VersionedUrl, ...VersionedUrl[]];
       propertyPatches?: PropertyPatchOperation[];
       draft?: boolean;
+      archived?: boolean;
     },
     Promise<HashEntity<Properties>>,
     false,
@@ -581,6 +582,7 @@ export const updateEntity = async <
       draft: params.draft,
       propertyPatches,
       provenance: context.provenance,
+      archived: params.archived,
     },
   );
 
@@ -763,19 +765,19 @@ export const getEntityOutgoingLinks: ImpureGraphFunction<
 /**
  * Get subgraph rooted at the entity.
  *
- * @param params.entity - the entity
+ * @param params.entityId - the entityId of the entity
  * @param params.graphResolveDepths - the custom resolve depths of the subgraph
  */
 export const getLatestEntityRootedSubgraph: ImpureGraphFunction<
   {
-    entity: Entity;
+    entityId: EntityId;
     graphResolveDepths: Partial<GraphResolveDepths>;
   },
-  Promise<Subgraph<EntityRootType>>,
+  Promise<Subgraph<EntityRootType<HashEntity>>>,
   false,
   true
 > = async (context, authentication, params) => {
-  const { entity, graphResolveDepths } = params;
+  const { entityId, graphResolveDepths } = params;
 
   const { subgraph } = await getEntitySubgraphResponse(
     context,
@@ -787,9 +789,7 @@ export const getLatestEntityRootedSubgraph: ImpureGraphFunction<
             equal: [
               { path: ["uuid"] },
               {
-                parameter: extractEntityUuidFromEntityId(
-                  entity.metadata.recordId.entityId,
-                ),
+                parameter: extractEntityUuidFromEntityId(entityId),
               },
             ],
           },
@@ -797,9 +797,7 @@ export const getLatestEntityRootedSubgraph: ImpureGraphFunction<
             equal: [
               { path: ["webId"] },
               {
-                parameter: extractWebIdFromEntityId(
-                  entity.metadata.recordId.entityId,
-                ),
+                parameter: extractWebIdFromEntityId(entityId),
               },
             ],
           },

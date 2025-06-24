@@ -58,6 +58,9 @@ import { requestFileUpload } from "./knowledge/file/request-file-upload";
 import { hashInstanceSettingsResolver } from "./knowledge/hash-instance/hash-instance";
 import { acceptOrgInvitationResolver } from "./knowledge/org/accept-org-invitation";
 import { createOrgResolver } from "./knowledge/org/create-org";
+import { declineOrgInvitationResolver } from "./knowledge/org/decline-org-invitation";
+import { getMyPendingInvitationsResolver } from "./knowledge/org/get-my-pending-invitations";
+import { getPendingInvitationByEntityIdResolver } from "./knowledge/org/get-pending-invitation-by-entity-id";
 import { inviteUserToOrgResolver } from "./knowledge/org/invite-user-to-org";
 import { removeUserFromOrgResolver } from "./knowledge/org/remove-user-from-org";
 import { pageContents } from "./knowledge/page";
@@ -148,6 +151,10 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     countEntities: countEntitiesResolver,
     getEntitySubgraph: getEntitySubgraphResolver,
     hashInstanceSettings: hashInstanceSettingsResolver,
+    getMyPendingInvitations: loggedInAndSignedUpMiddleware(
+      getMyPendingInvitationsResolver,
+    ),
+    getPendingInvitationByEntityId: getPendingInvitationByEntityIdResolver,
     // Integration
     getLinearOrganization: loggedInAndSignedUpMiddleware(
       getLinearOrganizationResolver,
@@ -213,6 +220,9 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     inviteUserToOrg: loggedInAndSignedUpMiddleware(inviteUserToOrgResolver),
     acceptOrgInvitation: loggedInAndSignedUpMiddleware(
       acceptOrgInvitationResolver,
+    ),
+    declineOrgInvitation: loggedInAndSignedUpMiddleware(
+      declineOrgInvitationResolver,
     ),
     removeUserFromOrg: loggedInAndSignedUpMiddleware(removeUserFromOrgResolver),
 

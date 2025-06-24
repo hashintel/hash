@@ -7,17 +7,39 @@ export const orgTypedef = gql`
     notForUser: Boolean!
   }
 
-  type PendingOrgInvitationNewUser {
-    expiresAt: Date!
-    email: String
-  }
-
-  type PendingOrgInvitationExistingUser {
-    expiresAt: Date!
+  type MinimalGqlUser {
+    accountId: AccountId!
+    displayName: String!
     shortname: String!
   }
 
-  union PendingOrgInvitation = PendingOrgInvitationNewUser | PendingOrgInvitationExistingUser
+  type MinimalGqlOrg {
+    webId: WebId!
+    displayName: String!
+    shortname: String!
+  }
+
+  type PendingOrgInvitationByEmail {
+    email: String!
+    invitationEntityId: EntityId!
+    orgToInvitationLinkEntityId: EntityId!
+    expiresAt: Date!
+    invitedBy: MinimalGqlUser!
+    invitedAt: Date!
+    org: MinimalGqlOrg!
+  }
+
+  type PendingOrgInvitationByShortname {
+    shortname: String!
+    invitationEntityId: EntityId!
+    orgToInvitationLinkEntityId: EntityId!
+    expiresAt: Date!
+    invitedBy: MinimalGqlUser!
+    invitedAt: Date!
+    org: MinimalGqlOrg!
+  }
+
+  union PendingOrgInvitation = PendingOrgInvitationByEmail | PendingOrgInvitationByShortname
 
   extend type Mutation {
     """
@@ -75,6 +97,16 @@ export const orgTypedef = gql`
     ): AcceptInvitationResult!
 
     """
+    Decline an invitation to an organization.
+    """
+    declineOrgInvitation(
+      """
+      The entityId of the organization invitation to decline.
+      """
+      orgInvitationEntityId: EntityId!
+    ): Boolean!
+
+    """
     Remove a user from an organization.
     """
     removeUserFromOrg(
@@ -87,15 +119,22 @@ export const orgTypedef = gql`
       """
       userEntityId: EntityId!
     ): Boolean!
+  }
+
+  extend type Query {
+    """
+    Get a pending invitation by invitation entityId.
+    """
+    getPendingInvitationByEntityId(
+      """
+      The entityId of the invitation.
+      """
+      entityId: EntityId!
+    ): PendingOrgInvitation
 
     """
-    Get invitations to an organization which are still outstanding.
+    Get pending invitations for the authenticated user.
     """
-    getPendingOrgInvitations(
-      """
-      The webId of the organization to get pending invitations for.
-      """
-      orgWebId: WebId!
-    ): [PendingOrgInvitation!]!
+    getMyPendingInvitations: [PendingOrgInvitation!]!
   }
 `;

@@ -27,8 +27,74 @@ export const inviteUserToOrgMutation = gql`
   }
 `;
 
+export const declineOrgInvitationMutation = gql`
+  mutation declineOrgInvitation($orgInvitationEntityId: EntityId!) {
+    declineOrgInvitation(orgInvitationEntityId: $orgInvitationEntityId)
+  }
+`;
+
 export const removeUserFromOrgMutation = gql`
   mutation removeUserFromOrg($orgWebId: WebId!, $userEntityId: EntityId!) {
     removeUserFromOrg(orgWebId: $orgWebId, userEntityId: $userEntityId)
   }
+`;
+
+const pendingInvitationViaEmailFragment = gql`
+  fragment PendingInvitationViaEmail on PendingOrgInvitationByEmail {
+    email
+    invitationEntityId
+    orgToInvitationLinkEntityId
+    invitedAt
+    expiresAt
+    invitedBy {
+      accountId
+      displayName
+      shortname
+    }
+    org {
+      webId
+    }
+  }
+`;
+
+const pendingInvitationViaShortnameFragment = gql`
+  fragment PendingInvitationViaShortname on PendingOrgInvitationByShortname {
+    shortname
+    invitationEntityId
+    orgToInvitationLinkEntityId
+    invitedAt
+    expiresAt
+    invitedBy {
+      accountId
+      displayName
+      shortname
+    }
+    org {
+      webId
+    }
+  }
+`;
+
+export const getPendingInvitationByEntityIdQuery = gql`
+  query getPendingInvitationByEntityId($entityId: EntityId!) {
+    getPendingInvitationByEntityId(entityId: $entityId) {
+      ...PendingInvitationViaEmail
+      ...PendingInvitationViaShortname
+    }
+  }
+
+  ${pendingInvitationViaEmailFragment}
+  ${pendingInvitationViaShortnameFragment}
+`;
+
+export const getMyPendingInvitationsQuery = gql`
+  query getMyPendingInvitations {
+    getMyPendingInvitations {
+      ...PendingInvitationViaEmail
+      ...PendingInvitationViaShortname
+    }
+  }
+
+  ${pendingInvitationViaEmailFragment}
+  ${pendingInvitationViaShortnameFragment}
 `;

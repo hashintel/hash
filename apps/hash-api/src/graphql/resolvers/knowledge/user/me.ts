@@ -20,7 +20,7 @@ export const meResolver: ResolverFn<
     context,
     authentication,
     {
-      entity: user.entity,
+      entityId: user.entity.metadata.recordId.entityId,
       graphResolveDepths: {
         hasLeftEntity,
         hasRightEntity,
