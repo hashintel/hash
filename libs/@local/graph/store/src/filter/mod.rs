@@ -781,7 +781,7 @@ mod tests {
     use type_system::{
         knowledge::entity::id::{DraftId, EntityUuid},
         ontology::data_type::{ClosedDataType, ConversionExpression},
-        principal::{actor::ActorId, actor_group::WebId},
+        principal::actor_group::WebId,
     };
     use uuid::Uuid;
 
@@ -974,7 +974,7 @@ mod tests {
             }
         }
 
-        /// Helper to extract (Effect, Option<ResourceConstraint>) tuples for Filter::for_policies
+        /// Helper to extract (Effect, Option<ResourceConstraint>) tuples for `Filter::for_policies`
         fn policy_to_tuple(policy: &Policy) -> (Effect, Option<&ResourceConstraint>) {
             (policy.effect, policy.resource.as_ref())
         }
