@@ -7,10 +7,17 @@ use std::collections::HashMap;
 
 use derive_where::derive_where;
 use error_stack::{Report, ResultExt as _, bail};
+use hash_graph_authorization::policies::{
+    Effect,
+    resource::{EntityResourceConstraint, EntityResourceFilter, ResourceConstraint},
+};
 use hash_graph_types::ontology::DataTypeLookup;
 use serde::{Deserialize, de, de::IntoDeserializer as _};
 use type_system::{
-    knowledge::entity::{Entity, EntityId, id::EntityEditionId},
+    knowledge::{
+        PropertyValue,
+        entity::{Entity, EntityId, id::EntityEditionId},
+    },
     ontology::{
         EntityTypeWithMetadata,
         data_type::{DataTypeUuid, DataTypeWithMetadata, schema::DataTypeReference},
@@ -18,6 +25,7 @@ use type_system::{
         id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
         property_type::{PropertyTypeUuid, PropertyTypeWithMetadata},
     },
+    principal::actor::{ActorEntityUuid, ActorId},
 };
 
 pub use self::{
@@ -325,6 +333,212 @@ impl<'p> Filter<'p, Entity> {
             ParameterList::EntityEditionIds(entity_edition_ids),
         )
     }
+
+    #[must_use]
+    pub fn for_resource_filter(
+        resource_filter: &'p EntityResourceFilter,
+        actor_id: Option<ActorId>,
+    ) -> Self {
+        match resource_filter {
+            EntityResourceFilter::All { filters } => Self::All(
+                filters
+                    .iter()
+                    .map(|filter| Self::for_resource_filter(filter, actor_id))
+                    .collect(),
+            ),
+            EntityResourceFilter::Any { filters } => Self::Any(
+                filters
+                    .iter()
+                    .map(|filter: &EntityResourceFilter| {
+                        Self::for_resource_filter(filter, actor_id)
+                    })
+                    .collect(),
+            ),
+            EntityResourceFilter::Not { filter } => {
+                Self::Not(Box::new(Self::for_resource_filter(filter, actor_id)))
+            }
+            EntityResourceFilter::CreatedByPrincipal => Self::Equal(
+                Some(FilterExpression::Path {
+                    path: EntityQueryPath::Provenance(Some(JsonPath::from_path_tokens(vec![
+                        PathToken::Field(Cow::Borrowed("createdById")),
+                    ]))),
+                }),
+                Some(FilterExpression::Parameter {
+                    parameter: Parameter::Any(PropertyValue::String(
+                        actor_id
+                            .map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from)
+                            .to_string(),
+                    )),
+                    convert: None,
+                }),
+            ),
+            EntityResourceFilter::IsOfType { entity_type } => {
+                Self::for_entity_by_type_id(entity_type)
+            }
+        }
+    }
+
+    #[must_use]
+    pub fn for_resource_constraint(
+        resource_constraint: &'p ResourceConstraint,
+        actor_id: Option<ActorId>,
+    ) -> Self {
+        match resource_constraint {
+            ResourceConstraint::Web { web_id } => Self::Equal(
+                Some(FilterExpression::Path {
+                    path: EntityQueryPath::WebId,
+                }),
+                Some(FilterExpression::Parameter {
+                    parameter: Parameter::Uuid((*web_id).into()),
+                    convert: None,
+                }),
+            ),
+            ResourceConstraint::Entity(entity_constraint) => match entity_constraint {
+                EntityResourceConstraint::Exact { id } => Self::Equal(
+                    Some(FilterExpression::Path {
+                        path: EntityQueryPath::Uuid,
+                    }),
+                    Some(FilterExpression::Parameter {
+                        parameter: Parameter::Uuid((*id).into()),
+                        convert: None,
+                    }),
+                ),
+                EntityResourceConstraint::Web { web_id, filter } => Self::All(vec![
+                    Self::Equal(
+                        Some(FilterExpression::Path {
+                            path: EntityQueryPath::WebId,
+                        }),
+                        Some(FilterExpression::Parameter {
+                            parameter: Parameter::Uuid((*web_id).into()),
+                            convert: None,
+                        }),
+                    ),
+                    Self::for_resource_filter(filter, actor_id),
+                ]),
+                EntityResourceConstraint::Any { filter } => {
+                    Self::for_resource_filter(filter, actor_id)
+                }
+            },
+            ResourceConstraint::EntityType(_) => Self::Any(Vec::new()),
+        }
+    }
+
+    #[must_use]
+    pub fn for_policies(
+        policies: impl IntoIterator<Item = (Effect, Option<&'p ResourceConstraint>)>,
+        actor_id: Option<ActorId>,
+    ) -> Self {
+        let mut blank_permit = false;
+        let mut permits = Vec::new();
+        let mut forbids = Vec::new();
+
+        for (effect, resource_constraint) in policies {
+            match (resource_constraint, effect) {
+                (Some(resource), Effect::Permit) => {
+                    permits.push(Self::for_resource_constraint(resource, actor_id));
+                }
+                (Some(resource), Effect::Forbid) => {
+                    forbids.push(Self::for_resource_constraint(resource, actor_id));
+                }
+                (None, Effect::Permit) => {
+                    blank_permit = true;
+                }
+                (None, Effect::Forbid) => {
+                    // A forbid without a filter means we never allow access.
+                    return Self::Any(Vec::new());
+                }
+            }
+        }
+        if blank_permit {
+            if forbids.is_empty() {
+                // We have a blank permit without any forbids, so we allow access.
+                Self::All(Vec::new())
+            } else {
+                // We have a blank permit and some forbids, so we deny access if there is at least
+                // one forbid
+                Self::Not(Box::new(Self::Any(forbids)))
+            }
+        } else {
+            match (!permits.is_empty(), !forbids.is_empty()) {
+                // We don't have any permits, so we never allow access.
+                (false, _) => Self::Any(Vec::new()),
+
+                // We have permits but no forbids, so we allow access if there is at least one
+                // permit
+                (true, false) => Self::Any(permits),
+
+                // We have permits and forbids, so we allow access if there is at least one permit
+                (true, true) => Self::All(vec![
+                    Self::Any(permits),
+                    Self::Not(Box::new(Self::Any(forbids))),
+                ]),
+            }
+        }
+    }
+
+    // #[must_use]
+    // pub fn for_resource_constraints(
+    //     resource_constraints: impl IntoIterator<Item = &'p ResourceConstraint>,
+    //     actor_id: Option<ActorId>,
+    // ) -> Self {
+    //     let mut exact_filters = Vec::new();
+    //     let mut general_filters = Vec::new();
+    //     for resource_constraint in resource_constraints {
+    //         match resource_constraint {
+    //             ResourceConstraint::Web { web_id } => general_filters.push(Self::Equal(
+    //                 Some(FilterExpression::Path {
+    //                     path: EntityQueryPath::WebId,
+    //                 }),
+    //                 Some(FilterExpression::Parameter {
+    //                     parameter: Parameter::Uuid((*web_id).into()),
+    //                     convert: None,
+    //                 }),
+    //             )),
+    //             ResourceConstraint::Entity(entity_constraint) => match entity_constraint {
+    //                 EntityResourceConstraint::Exact { id } => exact_filters.push(*id),
+    //                 EntityResourceConstraint::Web { web_id, filter } => {
+    //                     general_filters.push(Self::All(vec![
+    //                         Self::Equal(
+    //                             Some(FilterExpression::Path {
+    //                                 path: EntityQueryPath::WebId,
+    //                             }),
+    //                             Some(FilterExpression::Parameter {
+    //                                 parameter: Parameter::Uuid((*web_id).into()),
+    //                                 convert: None,
+    //                             }),
+    //                         ),
+    //                         Self::for_resource_filter(filter, actor_id),
+    //                     ]));
+    //                 }
+    //                 EntityResourceConstraint::Any { filter } => {
+    //                     general_filters.push(Self::for_resource_filter(filter, actor_id));
+    //                 }
+    //             },
+    //             ResourceConstraint::EntityType(_) => {}
+    //         }
+    //     }
+
+    //     match *exact_filters.as_slice() {
+    //         [] => {}
+    //         [id] => general_filters.push(Self::Equal(
+    //             Some(FilterExpression::Path {
+    //                 path: EntityQueryPath::Uuid,
+    //             }),
+    //             Some(FilterExpression::Parameter {
+    //                 parameter: Parameter::Uuid(id.into()),
+    //                 convert: None,
+    //             }),
+    //         )),
+    //         _ => general_filters.push(Self::In(
+    //             FilterExpression::Path {
+    //                 path: EntityQueryPath::Uuid,
+    //             },
+    //             ParameterList::EntityUuids(Cow::Owned(exact_filters)),
+    //         )),
+    //     }
+
+    //     Self::Any(general_filters)
+    // }
 }
 
 impl<'p, R: QueryRecord> Filter<'p, R>
@@ -567,7 +781,7 @@ mod tests {
     use type_system::{
         knowledge::entity::id::{DraftId, EntityUuid},
         ontology::data_type::{ClosedDataType, ConversionExpression},
-        principal::actor_group::WebId,
+        principal::{actor::ActorId, actor_group::WebId},
     };
     use uuid::Uuid;
 
@@ -728,5 +942,256 @@ mod tests {
             &expected,
         )
         .await;
+    }
+
+    mod policy_conversion {
+        use hash_graph_authorization::policies::{
+            Effect, Policy, PolicyId,
+            resource::{EntityResourceConstraint, ResourceConstraint},
+        };
+        use type_system::{
+            knowledge::entity::{Entity, id::EntityUuid},
+            principal::actor::{ActorId, UserId},
+        };
+        use uuid::Uuid;
+
+        use super::{Filter, FilterExpression, Parameter};
+        use crate::entity::EntityQueryPath;
+
+        /// Helper to create a complete test policy
+        fn create_test_policy(
+            effect: Effect,
+            resource_constraint: Option<ResourceConstraint>,
+        ) -> Policy {
+            Policy {
+                id: PolicyId::new(Uuid::new_v4()),
+                name: None,
+                effect,
+                principal: None, // No principal constraint for these tests
+                actions: vec![], // No action constraint for these tests
+                resource: resource_constraint,
+                constraints: None,
+            }
+        }
+
+        /// Helper to extract (Effect, Option<ResourceConstraint>) tuples for Filter::for_policies
+        fn policy_to_tuple(policy: &Policy) -> (Effect, Option<&ResourceConstraint>) {
+            (policy.effect, policy.resource.as_ref())
+        }
+
+        #[test]
+        fn single_permit_exact_entity() {
+            let entity_uuid = EntityUuid::new(Uuid::new_v4());
+            let actor_id = Some(ActorId::User(UserId::new(Uuid::new_v4())));
+
+            let policy = create_test_policy(
+                Effect::Permit,
+                Some(ResourceConstraint::Entity(
+                    EntityResourceConstraint::Exact { id: entity_uuid },
+                )),
+            );
+
+            let filter = Filter::<Entity>::for_policies([policy_to_tuple(&policy)], actor_id);
+
+            // Should create an Any filter with one Equal condition for the entity UUID
+            match filter {
+                Filter::Any(permits) => {
+                    assert_eq!(permits.len(), 1);
+                    match &permits[0] {
+                        Filter::Equal(
+                            Some(FilterExpression::Path {
+                                path: EntityQueryPath::Uuid,
+                            }),
+                            Some(FilterExpression::Parameter {
+                                parameter: Parameter::Uuid(uuid),
+                                ..
+                            }),
+                        ) => {
+                            assert_eq!(*uuid, Uuid::from(entity_uuid));
+                        }
+                        other => panic!("Unexpected permit filter: {other:?}"),
+                    }
+                }
+                other => panic!("Expected Any filter, got: {other:?}"),
+            }
+        }
+
+        #[test]
+        fn single_forbid_exact_entity() {
+            let entity_uuid = EntityUuid::new(Uuid::new_v4());
+            let actor_id = Some(ActorId::User(UserId::new(Uuid::new_v4())));
+
+            let policy = create_test_policy(
+                Effect::Forbid,
+                Some(ResourceConstraint::Entity(
+                    EntityResourceConstraint::Exact { id: entity_uuid },
+                )),
+            );
+
+            let filter = Filter::<Entity>::for_policies([policy_to_tuple(&policy)], actor_id);
+
+            // Should create Any(Vec::new()) - no permits, only forbids
+            match filter {
+                Filter::Any(permits) => {
+                    assert!(
+                        permits.is_empty(),
+                        "Expected no permits when only forbids exist"
+                    );
+                }
+                other => panic!("Expected Any filter, got: {other:?}"),
+            }
+        }
+
+        #[test]
+        fn multiple_permits_same_entity_type() {
+            let entity_uuid_1 = EntityUuid::new(Uuid::new_v4());
+            let entity_uuid_2 = EntityUuid::new(Uuid::new_v4());
+            let entity_uuid_3 = EntityUuid::new(Uuid::new_v4());
+            let actor_id = Some(ActorId::User(UserId::new(Uuid::new_v4())));
+
+            let policies = [
+                create_test_policy(
+                    Effect::Permit,
+                    Some(ResourceConstraint::Entity(
+                        EntityResourceConstraint::Exact { id: entity_uuid_1 },
+                    )),
+                ),
+                create_test_policy(
+                    Effect::Permit,
+                    Some(ResourceConstraint::Entity(
+                        EntityResourceConstraint::Exact { id: entity_uuid_2 },
+                    )),
+                ),
+                create_test_policy(
+                    Effect::Permit,
+                    Some(ResourceConstraint::Entity(
+                        EntityResourceConstraint::Exact { id: entity_uuid_3 },
+                    )),
+                ),
+            ];
+
+            let filter =
+                Filter::<Entity>::for_policies(policies.iter().map(policy_to_tuple), actor_id);
+
+            // Should create an Any filter with three Equal conditions
+            // This is the case we want to optimize to use IN clause
+            match filter {
+                Filter::Any(permits) => {
+                    assert_eq!(permits.len(), 3);
+
+                    // Extract all the UUIDs from the permits
+                    let mut found_uuids = Vec::new();
+                    for permit in &permits {
+                        match permit {
+                            Filter::Equal(
+                                Some(FilterExpression::Path {
+                                    path: EntityQueryPath::Uuid,
+                                }),
+                                Some(FilterExpression::Parameter {
+                                    parameter: Parameter::Uuid(uuid),
+                                    ..
+                                }),
+                            ) => {
+                                found_uuids.push(*uuid);
+                            }
+                            other => panic!("Unexpected permit filter: {other:?}"),
+                        }
+                    }
+
+                    // Check that all expected UUIDs are present
+                    assert!(found_uuids.contains(&Uuid::from(entity_uuid_1)));
+                    assert!(found_uuids.contains(&Uuid::from(entity_uuid_2)));
+                    assert!(found_uuids.contains(&Uuid::from(entity_uuid_3)));
+                }
+                other => panic!("Expected Any filter, got: {other:?}"),
+            }
+        }
+
+        #[test]
+        fn permit_with_forbid() {
+            let permit_uuid = EntityUuid::new(Uuid::new_v4());
+            let forbid_uuid = EntityUuid::new(Uuid::new_v4());
+            let actor_id = Some(ActorId::User(UserId::new(Uuid::new_v4())));
+
+            let policies = [
+                create_test_policy(
+                    Effect::Permit,
+                    Some(ResourceConstraint::Entity(
+                        EntityResourceConstraint::Exact { id: permit_uuid },
+                    )),
+                ),
+                create_test_policy(
+                    Effect::Forbid,
+                    Some(ResourceConstraint::Entity(
+                        EntityResourceConstraint::Exact { id: forbid_uuid },
+                    )),
+                ),
+            ];
+
+            let filter =
+                Filter::<Entity>::for_policies(policies.iter().map(policy_to_tuple), actor_id);
+
+            // Should create All([Any([permit]), Not(Any([forbid]))])
+            match filter {
+                Filter::All(conditions) => {
+                    assert_eq!(conditions.len(), 2);
+
+                    // First condition should be the permits
+                    match &conditions[0] {
+                        Filter::Any(permits) => {
+                            assert_eq!(permits.len(), 1);
+                        }
+                        other => panic!("Expected Any(permits), got: {other:?}"),
+                    }
+
+                    // Second condition should be Not(Any(forbids))
+                    match &conditions[1] {
+                        Filter::Not(inner) => match &**inner {
+                            Filter::Any(forbids) => {
+                                assert_eq!(forbids.len(), 1);
+                            }
+                            other => panic!("Expected Any(forbids), got: {other:?}"),
+                        },
+                        other => panic!("Expected Not(Any(forbids)), got: {other:?}"),
+                    }
+                }
+                other => panic!("Expected All filter, got: {other:?}"),
+            }
+        }
+
+        #[test]
+        fn blank_permit() {
+            let actor_id = Some(ActorId::User(UserId::new(Uuid::new_v4())));
+
+            let policy = create_test_policy(Effect::Permit, None);
+            let filter = Filter::<Entity>::for_policies([policy_to_tuple(&policy)], actor_id);
+
+            // Should create All(Vec::new()) - allow everything
+            match filter {
+                Filter::All(conditions) => {
+                    assert!(
+                        conditions.is_empty(),
+                        "Blank permit should allow everything"
+                    );
+                }
+                other => panic!("Expected All filter, got: {other:?}"),
+            }
+        }
+
+        #[test]
+        fn blank_forbid() {
+            let actor_id = Some(ActorId::User(UserId::new(Uuid::new_v4())));
+
+            let policy = create_test_policy(Effect::Forbid, None);
+            let filter = Filter::<Entity>::for_policies([policy_to_tuple(&policy)], actor_id);
+
+            // Should create Any(Vec::new()) - forbid everything
+            match filter {
+                Filter::Any(permits) => {
+                    assert!(permits.is_empty(), "Blank forbid should forbid everything");
+                }
+                other => panic!("Expected Any filter, got: {other:?}"),
+            }
+        }
     }
 }
