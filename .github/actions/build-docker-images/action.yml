@@ -80,6 +80,8 @@ runs:
           org.opencontainers.image.source="https://github.com/hashintel/hash"
           org.opencontainers.image.licenses="AGPL-3.0-only,"
           org.opencontainers.image.description="The entity-graph query-layer for the HASH datastore"
+        secrets: |
+          GITHUB_TOKEN=${{ inputs.repo-token }}
         build-args: |
           PROFILE=${{ env.GRAPH_PROFILE }}
           ENABLE_TYPE_FETCHER=yes
@@ -96,6 +98,8 @@ runs:
           hash-graph:test
         cache-from: |
           type=registry,ref=ghcr.io/hashintel/hash-graph
+        secrets: |
+          GITHUB_TOKEN=${{ inputs.repo-token }}
         build-args: |
           PROFILE=${{ env.GRAPH_PROFILE }}
           ENABLE_TYPE_FETCHER=yes
@@ -117,6 +121,8 @@ runs:
           org.opencontainers.image.source="https://github.com/hashintel/hash"
           org.opencontainers.image.licenses="AGPL-3.0-only,"
           org.opencontainers.image.description="A TypeScript 'AI' worker for HASH"
+        secrets: |
+          GITHUB_TOKEN=${{ inputs.repo-token }}
         build-args: |
           GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON=${{ inputs.GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON }}
 
@@ -129,6 +135,8 @@ runs:
         tags: hash-ai-worker-ts
         cache-from: |
           type=registry,ref=ghcr.io/hashintel/hash-ai-worker-ts
+        secrets: |
+          GITHUB_TOKEN=${{ inputs.repo-token }}
         build-args: |
           GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON=${{ inputs.google_cloud_workload_identity_federation_config_json }}
 
@@ -148,6 +156,8 @@ runs:
           org.opencontainers.image.source="https://github.com/hashintel/hash"
           org.opencontainers.image.licenses="AGPL-3.0-only,"
           org.opencontainers.image.description="A TypeScript worker for HASH for data integration"
+        secrets: |
+          GITHUB_TOKEN=${{ inputs.repo-token }}
 
     - name: Build hash-integration-worker image (fork)
       if: inputs.hash-integration-worker == 'true' && github.event.pull_request.head.repo.full_name != github.repository
@@ -158,6 +168,8 @@ runs:
         tags: hash-integration-worker
         cache-from: |
           type=registry,ref=ghcr.io/hashintel/hash-integration-worker
+        secrets: |
+          GITHUB_TOKEN=${{ inputs.repo-token }}
 
     - name: Build hash-api image
       if: inputs.hash-api == 'true' && github.event.pull_request.head.repo.full_name == github.repository
@@ -175,6 +187,8 @@ runs:
           org.opencontainers.image.source="https://github.com/hashintel/hash"
           org.opencontainers.image.licenses="AGPL-3.0-only,"
           org.opencontainers.image.description="API and data store for HASH"
+        secrets: |
+          GITHUB_TOKEN=${{ inputs.repo-token }}
 
     - name: Build hash-api image (fork)
       if: inputs.hash-api == 'true' && github.event.pull_request.head.repo.full_name != github.repository
@@ -185,3 +199,5 @@ runs:
         tags: hash-api
         cache-from: |
           type=registry,ref=ghcr.io/hashintel/hash-api
+        secrets: |
+          GITHUB_TOKEN=${{ inputs.repo-token }}
