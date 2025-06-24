@@ -27,7 +27,7 @@ impl PolicyComponents {
         PolicyComponentsBuilder::new(store)
     }
 
-    /// Creates a [`PolicySet`] for Cedar evaluation.
+    /// Builds a [`PolicySet`] for Cedar evaluation.
     ///
     /// This is only needed when actually evaluating policies with Cedar.
     /// For filter optimization, use the raw `policies` field directly.
@@ -35,7 +35,7 @@ impl PolicyComponents {
     /// # Errors
     ///
     /// Returns error if policy set creation fails.
-    pub fn create_policy_set(
+    pub fn build_policy_set(
         &self,
     ) -> Result<PolicySet, Report<super::set::PolicySetInsertionError>> {
         PolicySet::default()

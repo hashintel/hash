@@ -1780,7 +1780,7 @@ where
                 // to see if the user can instantiate it.
                 for entity_type_id in iter::once(base).chain(parents) {
                     let allowed = policy_components
-                        .create_policy_set()
+                        .build_policy_set()
                         .change_context(QueryError)?
                         .evaluate(
                             &Request {

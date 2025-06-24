@@ -992,7 +992,7 @@ where
         let mut forbidden_instantiations = Vec::new();
         for entity_type_id in &entity_type_id_set {
             match policy_components
-                .create_policy_set()
+                .build_policy_set()
                 .change_context(InsertionError)?
                 .evaluate(
                     &Request {
@@ -1745,7 +1745,7 @@ where
             let mut forbidden_instantiations = Vec::new();
             for entity_type_id in &affected_type_ids {
                 match policy_components
-                    .create_policy_set()
+                    .build_policy_set()
                     .change_context(UpdateError)?
                     .evaluate(
                         &Request {
