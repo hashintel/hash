@@ -83,14 +83,6 @@ impl PolicyComponents {
     /// This method returns an iterator of `(Effect, Option<&ResourceConstraint>)` tuples
     /// that can be used directly with filter creation methods. This encapsulates the
     /// extraction logic and provides a clean interface for filter optimization.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// // Usage in filter creation (would be in store package):
-    /// let filter_data = policy_components.extract_filter_policies();
-    /// let filter = Filter::for_policies(filter_data, policy_components.actor_id());
-    /// ```
     #[tracing::instrument(level = "info", skip(self))]
     pub fn extract_filter_policies(
         &self,
@@ -116,8 +108,9 @@ impl PolicyComponents {
     ///
     /// This method examines the policies to find patterns that can be optimized
     /// for database query generation. It extracts optimizable policies from the
-    /// policies vec using [`swap_remove`] for efficiency and stores them in [`optimization_data`].
-    /// The remaining policies vec will only contain non-optimizable policies.
+    /// policies vec using [`Vec::swap_remove`] for efficiency and stores them in
+    /// [`OptimizationData`]. The remaining policies vec will only contain non-optimizable
+    /// policies.
     ///
     /// Uses [`HashSet`] during analysis for deduplication and fast lookups, then converts
     /// to [`Vec`] for efficient filter parameter usage.
