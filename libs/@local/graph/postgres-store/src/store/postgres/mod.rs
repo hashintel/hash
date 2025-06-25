@@ -268,7 +268,8 @@ where
         let web_id = WebId::new(parameter.id.unwrap_or_else(Uuid::new_v4));
 
         match policy_components
-            .policy_set
+            .build_policy_set()
+            .change_context(WebCreationError::PolicySetCreation)?
             .evaluate(
                 &Request {
                     actor: policy_components.actor_id,

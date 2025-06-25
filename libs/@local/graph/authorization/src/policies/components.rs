@@ -7,7 +7,7 @@ use type_system::{
 };
 
 use super::{
-    Context, ContextBuilder, PolicySet,
+    Context, ContextBuilder, Policy, PolicySet,
     action::ActionName,
     principal::actor::AuthenticatedActor,
     store::{PolicyStore, PrincipalStore, ResolvePoliciesParams, error::ContextCreationError},
@@ -16,7 +16,8 @@ use super::{
 #[derive(Debug)]
 pub struct PolicyComponents {
     pub actor_id: Option<ActorId>,
-    pub policy_set: PolicySet,
+    pub policies: Vec<Policy>,
+    pub tracked_actions: HashSet<ActionName>,
     pub context: Context,
 }
 
@@ -24,6 +25,22 @@ impl PolicyComponents {
     #[must_use]
     pub fn builder<S>(store: &S) -> PolicyComponentsBuilder<'_, S> {
         PolicyComponentsBuilder::new(store)
+    }
+
+    /// Builds a [`PolicySet`] for Cedar evaluation.
+    ///
+    /// This is only needed when actually evaluating policies with Cedar.
+    /// For filter optimization, use the raw `policies` field directly.
+    ///
+    /// # Errors
+    ///
+    /// Returns error if policy set creation fails.
+    pub fn build_policy_set(
+        &self,
+    ) -> Result<PolicySet, Report<super::set::PolicySetInsertionError>> {
+        PolicySet::default()
+            .with_tracked_actions(self.tracked_actions.clone())
+            .with_policies(&self.policies)
     }
 }
 
@@ -211,10 +228,8 @@ where
 
             Ok(PolicyComponents {
                 actor_id,
-                policy_set: PolicySet::default()
-                    .with_tracked_actions(self.actions)
-                    .with_policies(&policies)
-                    .change_context(ContextCreationError::CreatePolicySet)?,
+                policies,
+                tracked_actions: self.actions,
                 context: self
                     .context
                     .build()
