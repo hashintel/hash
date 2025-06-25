@@ -5,6 +5,7 @@ import {
   blockProtocolPropertyTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { useTheme } from "@mui/material";
 import { useRouter } from "next/router";
 import { NextSeo } from "next-seo";
 import { useRef } from "react";
@@ -16,6 +17,7 @@ import type {
 } from "../../../../graphql/api-types.gen";
 import { updateEntityMutation } from "../../../../graphql/queries/knowledge/entity.queries";
 import type { NextPageWithLayout } from "../../../../shared/layout";
+import { Link } from "../../../../shared/ui";
 import { useUserPermissionsOnEntity } from "../../../../shared/use-user-permissions-on-entity";
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
 import { getSettingsLayout } from "../../../shared/settings-layout";
@@ -44,6 +46,8 @@ const OrgGeneralSettingsPage: NextPageWithLayout = () => {
 
   const { userPermissions } = useUserPermissionsOnEntity(org?.entity);
 
+  const theme = useTheme();
+
   if (!org) {
     // @todo show a 404 page
     void router.push("/");
@@ -62,11 +66,16 @@ const OrgGeneralSettingsPage: NextPageWithLayout = () => {
       if (typeof value !== "undefined") {
         propertyPatches.push({
           path: [
-            key === "name" || key === "description"
-              ? blockProtocolPropertyTypes.name.propertyTypeBaseUrl
-              : systemPropertyTypes[key].propertyTypeBaseUrl,
+            key === "name"
+              ? systemPropertyTypes.organizationName.propertyTypeBaseUrl
+              : key === "description"
+                ? blockProtocolPropertyTypes.description.propertyTypeBaseUrl
+                : systemPropertyTypes[key].propertyTypeBaseUrl,
           ],
-          op: "add",
+          op:
+            key === "websiteUrl" && !value.startsWith("http")
+              ? "remove"
+              : "add",
           property: {
             value,
             metadata: {
@@ -98,7 +107,17 @@ const OrgGeneralSettingsPage: NextPageWithLayout = () => {
       <NextSeo title={`${org.name} | Settings`} />
 
       <SettingsPageContainer
-        heading={org.name}
+        heading={
+          <Link
+            href={`/@${org.shortname}`}
+            style={{
+              color: theme.palette.common.black,
+              textDecoration: "none",
+            }}
+          >
+            {org.name}
+          </Link>
+        }
         sectionLabel="General"
         ref={topRef}
       >

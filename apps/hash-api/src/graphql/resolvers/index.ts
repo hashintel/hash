@@ -3,6 +3,7 @@ import { JSONObjectResolver } from "graphql-scalars";
 import type {
   EntityAuthorizationSubject,
   MutationResolvers,
+  PendingOrgInvitation,
   QueryResolvers,
   Resolvers,
 } from "../api-types.gen";
@@ -287,6 +288,16 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
       } else {
         return "PublicAuthorizationSubject";
       }
+    },
+  },
+
+  PendingOrgInvitation: {
+    __resolveType(object: PendingOrgInvitation) {
+      if ("email" in object) {
+        return "PendingOrgInvitationByEmail";
+      }
+
+      return "PendingOrgInvitationByShortname";
     },
   },
 };

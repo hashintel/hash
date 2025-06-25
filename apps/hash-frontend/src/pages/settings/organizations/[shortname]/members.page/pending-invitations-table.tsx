@@ -1,38 +1,61 @@
 import { useMutation } from "@apollo/client";
-import type {   type ActorGroupEntityUuid,
-ActorGroupEntityUuid ,
-  type WebId,
-} from "@blockprotocol/type-system";
-import { isInvitationByEmail, isInvitationByShortname } from "@local/hash-isomorphic-utils/organization";
+import { isInvitationByShortname } from "@local/hash-isomorphic-utils/organization";
 import {
+  Box,
+  ListItemText,
+  Menu,
   TableBody,
-  type TableCell,
-  TableFooter,
   TableHead,
   TableRow,
   Typography,
-  version,
 } from "@mui/material";
-import { TableCell, TableRow, Typography } from "@mui/material";
-import { formatDistance } from "date-fns";
-import { now } from "lodash";
+import { formatDistanceToNowStrict } from "date-fns";
+import {
+  bindMenu,
+  bindTrigger,
+  usePopupState,
+} from "material-ui-popup-state/hooks";
 
 import type {
   ArchiveEntityMutation,
   ArchiveEntityMutationVariables,
-  RemoveUserFromOrgMutation,
-  RemoveUserFromOrgMutationVariables,
 } from "../../../../../graphql/api-types.gen";
 import { archiveEntityMutation } from "../../../../../graphql/queries/knowledge/entity.queries";
-import { removeUserFromOrgMutation } from "../../../../../graphql/queries/knowledge/org.queries";
 import type { Org } from "../../../../../lib/user-and-org";
 import { Link } from "../../../../../shared/ui/link";
-import { useAuthenticatedUser } from "../../../../shared/auth-info-context";
+import { MenuItem } from "../../../../../shared/ui/menu-item";
+import { ContextButton, contextMenuProps } from "../../../shared/context-menu";
 import { SettingsTable } from "../../../shared/settings-table";
 import { SettingsTableCell } from "../../../shared/settings-table-cell";
-import { AddMemberForm } from "./add-member-form";
-import { MemberRow } from "./member-row";
-import { MemberContextMenu } from "./member-row/member-context-menu";
+
+export const PendingInvitationContextMenu = ({
+  revokeInvitation,
+}: {
+  revokeInvitation: () => void;
+}) => {
+  const popupState = usePopupState({
+    variant: "popover",
+    popupId: "invitations-dropdown-menu",
+  });
+
+  return (
+    <Box>
+      <ContextButton {...bindTrigger(popupState)}>...</ContextButton>
+
+      <Menu {...bindMenu(popupState)} {...contextMenuProps}>
+        <MenuItem
+          dangerous
+          onClick={() => {
+            revokeInvitation();
+            popupState.close();
+          }}
+        >
+          <ListItemText primary="Revoke invitation" />
+        </MenuItem>
+      </Menu>
+    </Box>
+  );
+};
 
 const PendingInvitationRow = ({
   invitation,
@@ -70,40 +93,44 @@ const PendingInvitationRow = ({
           <Link
             href={`/@${invitation.invitationEntity.properties["https://hash.ai/@h/types/property-type/shortname/"]}`}
             sx={{ textDecoration: "none" }}
-        >
-          @{invitation.invitationEntity.properties["https://hash.ai/@h/types/property-type/shortname/"]}
-        </Link>
-        ) : (
-          <Typography
-            variant="smallTextLabels"
           >
-            {invitation.invitationEntity.properties["https://hash.ai/@h/types/property-type/email/"]}
+            @
+            {
+              invitation.invitationEntity.properties[
+                "https://hash.ai/@h/types/property-type/shortname/"
+              ]
+            }
+          </Link>
+        ) : (
+          <Typography variant="smallTextLabels">
+            {
+              invitation.invitationEntity.properties[
+                "https://hash.ai/@h/types/property-type/email/"
+              ]
+            }
           </Typography>
         )}
       </SettingsTableCell>
       <SettingsTableCell>
-        <Typography
-          variant="smallTextLabels"
-          sx={({ palette }) => ({
-            background: palette.gray[10],
-            borderRadius: 10,
-            lineHeight: 1,
-            px: "10px",
-            py: "4px",
-            color: palette.gray[60],
-            fontWeight: 500,
-            whiteSpace: "nowrap",
-          })}
-        >
-            {formatDistance(new Date(invitation.invitationEntity.properties["https://hash.ai/@h/types/property-type/expired-at/"]), new Date(), {
+        <Typography variant="smallTextLabels">
+          {formatDistanceToNowStrict(
+            new Date(
+              invitation.invitationEntity.properties[
+                "https://hash.ai/@h/types/property-type/expired-at/"
+              ],
+            ),
+            {
               addSuffix: true,
-            })}
+            },
+          )}
         </Typography>
+      </SettingsTableCell>
+      <SettingsTableCell>
+        <PendingInvitationContextMenu revokeInvitation={revokeInvitation} />
       </SettingsTableCell>
     </TableRow>
   );
 };
-
 
 export const PendingInvitationsTable = ({
   invitations,
@@ -117,11 +144,11 @@ export const PendingInvitationsTable = ({
   }
 
   return (
-    <SettingsTable>
+    <SettingsTable sx={{ background: ({ palette }) => palette.common.white }}>
       <TableHead>
         <TableRow>
           <SettingsTableCell width="70%">Issued to</SettingsTableCell>
-          <SettingsTableCell>Expires on</SettingsTableCell>
+          <SettingsTableCell>Expires</SettingsTableCell>
           <SettingsTableCell />
         </TableRow>
       </TableHead>

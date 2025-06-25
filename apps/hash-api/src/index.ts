@@ -444,13 +444,9 @@ const main = async () => {
   app.set("view engine", "hbs");
   app.set("views", "./views");
 
-  // Create an email transporter
   const emailTransporter =
     isTestEnv || isDevEnv || process.env.HASH_EMAIL_TRANSPORTER === "dummy"
       ? new DummyEmailTransporter({
-          copyCodesOrLinksToClipboard:
-            process.env.DUMMY_EMAIL_TRANSPORTER_USE_CLIPBOARD === "true",
-          displayCodesOrLinksInStdout: true,
           filePath: process.env.DUMMY_EMAIL_TRANSPORTER_FILE_PATH
             ? path.resolve(
                 monorepoRootDir,

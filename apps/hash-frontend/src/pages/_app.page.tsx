@@ -41,6 +41,7 @@ import { constructMinimalUser } from "../lib/user-and-org";
 import { DraftEntitiesCountContextProvider } from "../shared/draft-entities-count-context";
 import { EntityTypesContextProvider } from "../shared/entity-types-context/provider";
 import { FileUploadsProvider } from "../shared/file-upload-context";
+import { InvitesContextProvider } from "../shared/invites-context";
 import { KeyboardShortcutsContextProvider } from "../shared/keyboard-shortcuts-context";
 import type { NextPageWithLayout } from "../shared/layout";
 import { getLayoutWithSidebar, getPlainLayout } from "../shared/layout";
@@ -116,30 +117,32 @@ const App: FunctionComponent<AppProps> = ({
                 <SnackbarProvider maxSnack={3}>
                   <NotificationCountContextProvider>
                     <DraftEntitiesCountContextProvider>
-                      <EntityTypesContextProvider>
-                        <PropertyTypesContextProvider includeArchived>
-                          <DataTypesContextProvider>
-                            <FileUploadsProvider>
-                              <SidebarContextProvider>
-                                <SlideStackProvider>
-                                  <ErrorBoundary
-                                    beforeCapture={(scope) => {
-                                      scope.setTag("error-boundary", "_app");
-                                    }}
-                                    fallback={(props) =>
-                                      getLayoutWithSidebar(
-                                        <ErrorFallback {...props} />,
-                                      )
-                                    }
-                                  >
-                                    {getLayout(<Component {...pageProps} />)}
-                                  </ErrorBoundary>
-                                </SlideStackProvider>
-                              </SidebarContextProvider>
-                            </FileUploadsProvider>
-                          </DataTypesContextProvider>
-                        </PropertyTypesContextProvider>
-                      </EntityTypesContextProvider>
+                      <InvitesContextProvider>
+                        <EntityTypesContextProvider>
+                          <PropertyTypesContextProvider includeArchived>
+                            <DataTypesContextProvider>
+                              <FileUploadsProvider>
+                                <SidebarContextProvider>
+                                  <SlideStackProvider>
+                                    <ErrorBoundary
+                                      beforeCapture={(scope) => {
+                                        scope.setTag("error-boundary", "_app");
+                                      }}
+                                      fallback={(props) =>
+                                        getLayoutWithSidebar(
+                                          <ErrorFallback {...props} />,
+                                        )
+                                      }
+                                    >
+                                      {getLayout(<Component {...pageProps} />)}
+                                    </ErrorBoundary>
+                                  </SlideStackProvider>
+                                </SidebarContextProvider>
+                              </FileUploadsProvider>
+                            </DataTypesContextProvider>
+                          </PropertyTypesContextProvider>
+                        </EntityTypesContextProvider>
+                      </InvitesContextProvider>
                     </DraftEntitiesCountContextProvider>
                   </NotificationCountContextProvider>
                 </SnackbarProvider>

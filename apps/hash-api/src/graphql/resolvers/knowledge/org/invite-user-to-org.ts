@@ -41,6 +41,7 @@ import {
 import {
   getUserByEmail,
   getUserByShortname,
+  isUserMemberOfOrg,
   type User,
 } from "../../../../graph/knowledge/system-types/user";
 import { systemAccountId } from "../../../../graph/system-account";
@@ -55,23 +56,34 @@ const sendOrgEmailInvitationToEmailAddress = async (params: {
   invitationId: EntityId;
   emailAddress: string;
   emailTransporter: EmailTransporter;
+  isSignedUpUser: boolean;
 }): Promise<void> => {
-  const { org, invitationId, emailAddress, emailTransporter } = params;
+  const { org, invitationId, emailAddress, emailTransporter, isSignedUpUser } =
+    params;
 
-  const queryParams = new URLSearchParams({
-    invitationId,
-    email: emailAddress,
-  }).toString();
+  let html: string;
 
-  const invitationLink = `${frontendUrl}/signup?${queryParams}`;
+  if (isSignedUpUser) {
+    html = dedent`
+      <p>You've been invited to join the <strong>${org.orgName}</strong> organization in HASH.</p>
+      <p>To join the organization or decline the invitation, <a href="${frontendUrl}/invites">click here</a>.</p>
+    `;
+  } else {
+    const queryParams = new URLSearchParams({
+      invitationId,
+      email: emailAddress,
+    }).toString();
+
+    html = dedent`
+      <p>You've been invited to join the <strong>${org.orgName}</strong> organization in the HASH platform.</p>
+      <p>To set up your HASH account and join the organization <a href="${frontendUrl}/signup?${queryParams}">click here</a>.</p>
+    `;
+  }
 
   await emailTransporter.sendMail({
     to: emailAddress,
     subject: "You've been invited to join an organization at HASH",
-    html: dedent`
-        <p>You've been invited to join the <strong>${org.orgName}</strong> organization in the HASH platform.</p>
-        <p>To set up your HASH account and join the organization <a href="${invitationLink}">click here</a>.</p>
-      `,
+    html,
   });
 };
 
@@ -87,12 +99,10 @@ const generateExistingInvitationFilter = (
         shortname: string;
       },
 ) => {
-  return {
+  const filter = {
     all: [
       generateVersionedUrlMatchingFilter(
-        invitation.type === "email"
-          ? systemEntityTypes.invitationViaEmail.entityTypeId
-          : systemEntityTypes.invitationViaShortname.entityTypeId,
+        systemLinkEntityTypes.hasIssuedInvitation.linkEntityTypeId,
       ),
       {
         equal: [
@@ -145,6 +155,8 @@ const generateExistingInvitationFilter = (
       },
     ],
   };
+
+  return filter;
 };
 
 export const inviteUserToOrgResolver: ResolverFn<
@@ -197,60 +209,14 @@ export const inviteUserToOrgResolver: ResolverFn<
     );
   }
 
-  const existingMembershipLink = !existingUserToInvite
+  const isAlreadyAMember = !existingUserToInvite
     ? null
-    : await getEntities(context, authentication, {
-        includeDrafts: false,
-        temporalAxes: currentTimeInstantTemporalAxes,
-        filter: {
-          all: [
-            {
-              equal: [
-                {
-                  path: ["webId"],
-                },
-                {
-                  parameter: orgWebId,
-                },
-              ],
-            },
-            {
-              equal: [
-                {
-                  path: ["type", "versionedUrl"],
-                },
-                {
-                  parameter: systemLinkEntityTypes.isMemberOf.linkEntityTypeId,
-                },
-              ],
-            },
-            {
-              equal: [
-                {
-                  path: ["rightEntity", "uuid"],
-                },
-                {
-                  parameter: orgWebId,
-                },
-              ],
-            },
-            {
-              equal: [
-                {
-                  path: ["leftEntity", "uuid"],
-                },
-                {
-                  parameter: extractEntityUuidFromEntityId(
-                    existingUserToInvite.entity.metadata.recordId.entityId,
-                  ),
-                },
-              ],
-            },
-          ],
-        },
-      }).then((entities) => entities[0]);
+    : await isUserMemberOfOrg(context, authentication, {
+        userEntityId: existingUserToInvite.entity.metadata.recordId.entityId,
+        orgEntityUuid: org.webId,
+      });
 
-  if (existingMembershipLink) {
+  if (isAlreadyAMember) {
     throw new ApolloError(
       "User is already a member of this organization",
       "BAD_REQUEST",
@@ -440,14 +406,13 @@ export const inviteUserToOrgResolver: ResolverFn<
     }),
   ]);
 
-  if (!existingUserToInvite) {
-    await sendOrgEmailInvitationToEmailAddress({
-      org,
-      invitationId: invitation.metadata.recordId.entityId,
-      emailAddress: userEmail!,
-      emailTransporter: graphQLContext.emailTransporter,
-    });
-  }
+  await sendOrgEmailInvitationToEmailAddress({
+    org,
+    invitationId: invitation.metadata.recordId.entityId,
+    emailAddress: userEmail!,
+    emailTransporter: graphQLContext.emailTransporter,
+    isSignedUpUser: !!existingUserToInvite,
+  });
 
   return true;
 };

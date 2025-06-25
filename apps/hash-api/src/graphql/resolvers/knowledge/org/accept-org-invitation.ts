@@ -1,25 +1,25 @@
-import { type ActorGroupEntityUuid } from "@blockprotocol/type-system";
+import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import { createOrgMembershipAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import type { MutationAcceptOrgInvitationArgs } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
   isInvitationByEmail,
   isInvitationByShortname,
 } from "@local/hash-isomorphic-utils/organization";
-import type { IsMemberOf } from "@local/hash-isomorphic-utils/system-types/shared";
 import { ApolloError } from "apollo-server-errors";
 
-import { addActorGroupMember } from "../../../../graph/account-permission-management";
 import {
   getEntityIncomingLinks,
   getLatestEntityById,
 } from "../../../../graph/knowledge/primitive/entity";
-import { createLinkEntity } from "../../../../graph/knowledge/primitive/link-entity";
 import {
   getOrgById,
   type Org,
 } from "../../../../graph/knowledge/system-types/org";
+import {
+  isUserMemberOfOrg,
+  joinOrg,
+} from "../../../../graph/knowledge/system-types/user";
 import { systemAccountId } from "../../../../graph/system-account";
 import type {
   AcceptInvitationResult,
@@ -81,9 +81,10 @@ export const acceptOrgInvitationResolver: ResolverFn<
 
   if (!isForUser) {
     return {
+      accepted: false,
+      alreadyAMember: false,
       expired: false,
       notForUser: true,
-      accepted: false,
     };
   }
 
@@ -101,6 +102,15 @@ export const acceptOrgInvitationResolver: ResolverFn<
     throw new ApolloError("Invitation link not found", "NOT_FOUND");
   }
 
+  const isAlreadyAMember = await isUserMemberOfOrg(
+    context,
+    graphQLContext.authentication,
+    {
+      userEntityId: user.entity.metadata.recordId.entityId,
+      orgEntityUuid: extractWebIdFromEntityId(invitation.entityId),
+    },
+  );
+
   const archiveInvitation = () =>
     Promise.all([
       invitation.archive(
@@ -114,6 +124,17 @@ export const acceptOrgInvitationResolver: ResolverFn<
         context.provenance,
       ),
     ]);
+
+  if (isAlreadyAMember) {
+    await archiveInvitation();
+
+    return {
+      accepted: false,
+      alreadyAMember: true,
+      expired: false,
+      notForUser: false,
+    };
+  }
 
   let org: Org | null;
   try {
@@ -137,9 +158,10 @@ export const acceptOrgInvitationResolver: ResolverFn<
     await archiveInvitation();
 
     return {
+      accepted: false,
+      alreadyAMember: false,
       expired: true,
       notForUser: false,
-      accepted: false,
     };
   }
 
@@ -172,45 +194,17 @@ export const acceptOrgInvitationResolver: ResolverFn<
     actorId: linkCreator,
   };
 
-  const linkEntity = await createLinkEntity<IsMemberOf>(
-    context,
-    membershipCreationAuthentication,
-    {
-      entityTypeIds: [systemLinkEntityTypes.isMemberOf.linkEntityTypeId],
-      properties: { value: {} },
-      linkData: {
-        leftEntityId: user.entity.metadata.recordId.entityId,
-        rightEntityId: org.entity.metadata.recordId.entityId,
-      },
-      relationships: createOrgMembershipAuthorizationRelationships({
-        memberAccountId: user.accountId,
-      }),
-      webId: orgWebId,
-    },
-  );
-
-  try {
-    await addActorGroupMember(context, membershipCreationAuthentication, {
-      actorId: user.accountId,
-      actorGroupId: orgWebId as ActorGroupEntityUuid,
-    });
-  } catch (error) {
-    await linkEntity.archive(
-      context.graphApi,
-      membershipCreationAuthentication,
-      context.provenance,
-    );
-
-    throw new ApolloError(
-      `Failed to add actor group member: ${(error as Error).message}`,
-    );
-  }
+  await joinOrg(context, membershipCreationAuthentication, {
+    userEntityId: user.entity.metadata.recordId.entityId,
+    orgEntityId: org.entity.metadata.recordId.entityId,
+  });
 
   await archiveInvitation();
 
   return {
+    accepted: true,
+    alreadyAMember: false,
     expired: false,
     notForUser: false,
-    accepted: true,
   };
 };

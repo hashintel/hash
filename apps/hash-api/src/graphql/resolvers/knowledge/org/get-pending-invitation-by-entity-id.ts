@@ -17,7 +17,7 @@ import { getPendingOrgInvitationsFromSubgraph } from "./shared";
  * – the user needs to have id, and it's vanishingly unlikely anyone can guess a webUuid–uuid combo that happens to match an active one.
  */
 export const getPendingInvitationByEntityIdResolver: ResolverFn<
-  Promise<PendingOrgInvitation | null>,
+  PendingOrgInvitation | null,
   Record<string, never>,
   LoggedInGraphQLContext,
   QueryGetPendingInvitationByEntityIdArgs

@@ -1,10 +1,4 @@
-import type {
-  ActorEntityUuid,
-  EntityId,
-  EntityUuid,
-  UserId,
-  WebId,
-} from "@blockprotocol/type-system";
+import type { EntityId, EntityUuid, UserId } from "@blockprotocol/type-system";
 import {
   extractEntityUuidFromEntityId,
   extractWebIdFromEntityId,
@@ -20,7 +14,9 @@ import {
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
+  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import type { PendingOrgInvitation } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -38,6 +34,7 @@ import type {
   KratosUserIdentityTraits,
 } from "../../../auth/ory-kratos";
 import { kratosIdentityApi } from "../../../auth/ory-kratos";
+import { getPendingOrgInvitationsFromSubgraph } from "../../../graphql/resolvers/knowledge/org/shared";
 import { logger } from "../../../logger";
 import {
   addActorGroupMember,
@@ -47,9 +44,11 @@ import type {
   ImpureGraphFunction,
   PureGraphFunction,
 } from "../../context-types";
+import { systemAccountId } from "../../system-account";
 import {
   createEntity,
   getEntityOutgoingLinks,
+  getEntitySubgraphResponse,
   getLatestEntityById,
 } from "../primitive/entity";
 import {
@@ -194,60 +193,6 @@ export const getUserByEmail: ImpureGraphFunction<
   }
 
   return userEntity ? getUserFromEntity({ entity: userEntity }) : null;
-};
-
-export const getUserInvitationsToOrg: ImpureGraphFunction<
-  { orgWebId: WebId; userWebId: WebId },
-  Promise<
-    {
-      invitationEntityId: EntityId;
-      expiredAt: string;
-      archivedBy: ActorEntityUuid | null;
-    }[]
-  >
-> = async (ctx, authentication, { orgWebId, userWebId }) => {
-  const invitationEntities = await ctx.graphApi
-    .getEntities(authentication.actorId, {
-      filter: {
-        all: [
-          generateVersionedUrlMatchingFilter(
-            systemEntityTypes.isInvitedTo.entityTypeId,
-            { ignoreParents: true },
-          ),
-          {
-            equal: [
-              {
-                path: ["leftEntity", "webId "],
-              },
-              { parameter: userWebId },
-            ],
-          },
-          {
-            equal: [
-              {
-                path: ["rightEntity", "webId"],
-              },
-              { parameter: orgWebId },
-            ],
-          },
-        ],
-      },
-      temporalAxes: currentTimeInstantTemporalAxes,
-      includeDrafts: false,
-    })
-    .then(({ data: response }) =>
-      response.entities.map((entity) =>
-        mapGraphApiEntityToEntity(entity, null, true),
-      ),
-    );
-
-  return invitationEntities.map((invitationEntity) => ({
-    invitationEntityId: invitationEntity.metadata.recordId.entityId,
-    expiredAt: invitationEntity.properties.expiredAt,
-    archivedBy: invitationEntity.metadata.archived
-      ? invitationEntity.metadata.provenance.edition.createdById
-      : null,
-  }));
 };
 
 /**
@@ -598,7 +543,6 @@ export const updateUserKratosIdentityTraits: ImpureGraphFunction<
  *
  * @param params.user - the user
  * @param params.org - the organization the user is joining
- * @param params.actorId - the id of the account that is making the user a member of the organization
  */
 export const joinOrg: ImpureGraphFunction<
   {
@@ -668,4 +612,93 @@ export const isUserMemberOfOrg: ImpureGraphFunction<
       extractEntityUuidFromEntityId(org.entity.metadata.recordId.entityId) ===
       params.orgEntityUuid,
   );
+};
+
+export const getUserPendingInvitations: ImpureGraphFunction<
+  { user: User },
+  Promise<PendingOrgInvitation[]>
+> = async (context, _authentication, { user }) => {
+  /**
+   * The system account is used to manage invitations on behalf of the user,
+   * because the user does not have permissions on them,
+   * to avoid accidentally leaking their identity before they have accepted the invitation.
+   *
+   * Otherwise an org admin could issue an invitation to an email address and check which user was given permission on the invitation.
+   */
+  const systemAccountAuthentication = {
+    actorId: systemAccountId,
+  };
+
+  const { subgraph: invitationSubgraph } = await getEntitySubgraphResponse(
+    context,
+    systemAccountAuthentication,
+    {
+      includeDrafts: false,
+      temporalAxes: currentTimeInstantTemporalAxes,
+      filter: {
+        all: [
+          generateVersionedUrlMatchingFilter(
+            systemEntityTypes.invitation.entityTypeId,
+          ),
+          {
+            equal: [
+              {
+                path: ["archived"],
+              },
+              { parameter: false },
+            ],
+          },
+          {
+            any: [
+              {
+                equal: [
+                  {
+                    path: [
+                      "properties",
+                      systemPropertyTypes.email.propertyTypeBaseUrl,
+                    ],
+                  },
+                  { parameter: user.emails[0] },
+                ],
+              },
+              ...(user.shortname
+                ? [
+                    {
+                      equal: [
+                        {
+                          path: [
+                            "properties",
+                            systemPropertyTypes.shortname.propertyTypeBaseUrl,
+                          ],
+                        },
+                        { parameter: user.shortname },
+                      ],
+                    },
+                  ]
+                : []),
+            ],
+          },
+        ],
+      },
+      graphResolveDepths: {
+        ...zeroedGraphResolveDepths,
+        hasLeftEntity: {
+          incoming: 0,
+          outgoing: 1,
+        },
+        hasRightEntity: {
+          incoming: 1,
+          outgoing: 0,
+        },
+      },
+    },
+  );
+
+  const pendingInvitations = await getPendingOrgInvitationsFromSubgraph(
+    context,
+    systemAccountAuthentication,
+    invitationSubgraph,
+  );
+
+  return pendingInvitations;
 };

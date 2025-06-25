@@ -22,6 +22,7 @@ import { queryEntitiesQuery } from "../../../../../graphql/queries/knowledge/ent
 import { inviteUserToOrgMutation } from "../../../../../graphql/queries/knowledge/org.queries";
 import type { Org } from "../../../../../lib/user-and-org";
 import { Button } from "../../../../../shared/ui/button";
+import { useAuthenticatedUser } from "../../../../shared/auth-info-context";
 
 export const AddMemberForm = ({ org }: { org: Org }) => {
   const [loading, setLoading] = useState(false);
@@ -38,6 +39,8 @@ export const AddMemberForm = ({ org }: { org: Org }) => {
     QueryEntitiesQuery,
     QueryEntitiesQueryVariables
   >(queryEntitiesQuery);
+
+  const { refetch: refetchAuthenticatedUser } = useAuthenticatedUser();
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -124,6 +127,8 @@ export const AddMemberForm = ({ org }: { org: Org }) => {
 
     setShortnameOrEmail("");
     setLoading(false);
+
+    void refetchAuthenticatedUser();
   };
 
   return (
@@ -146,7 +151,7 @@ export const AddMemberForm = ({ org }: { org: Org }) => {
           setError("");
           setShortnameOrEmail(evt.target.value);
         }}
-        placeholder="Existing username, or new user email..."
+        placeholder="Username or email..."
         size="xs"
         sx={{ width: 300 }}
         value={shortnameOrEmail}

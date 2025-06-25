@@ -15,6 +15,7 @@ export const acceptOrgInvitationMutation = gql`
   mutation acceptOrgInvitation($orgInvitationEntityId: EntityId!) {
     acceptOrgInvitation(orgInvitationEntityId: $orgInvitationEntityId) {
       accepted
+      alreadyAMember
       expired
       notForUser
     }
@@ -53,6 +54,8 @@ const pendingInvitationViaEmailFragment = gql`
     }
     org {
       webId
+      displayName
+      shortname
     }
   }
 `;
@@ -71,6 +74,8 @@ const pendingInvitationViaShortnameFragment = gql`
     }
     org {
       webId
+      displayName
+      shortname
     }
   }
 `;

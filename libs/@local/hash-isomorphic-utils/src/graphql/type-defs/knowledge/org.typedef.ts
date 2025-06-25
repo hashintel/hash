@@ -3,6 +3,7 @@ import { gql } from "apollo-server-express";
 export const orgTypedef = gql`
   type AcceptInvitationResult {
     accepted: Boolean!
+    alreadyAMember: Boolean!
     expired: Boolean!
     notForUser: Boolean!
   }

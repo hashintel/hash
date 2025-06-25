@@ -1,7 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
-import clipboardy from "clipboardy";
 import dedent from "dedent";
 import { convert } from "html-to-text";
 import { dump } from "js-yaml";
@@ -12,29 +11,13 @@ import type {
   EmailTransporterSendMailOptions,
 } from "./types";
 
-interface PlainEmailDump {
+interface EmailDump {
   date: string;
   from: string;
   to: string;
   subject: string;
   text?: string;
   html?: string;
-}
-
-type DerivedPayload =
-  | { payloadType: "unknown" }
-  | {
-      payloadType: "orgInvitation";
-      orgName: string;
-      invitationLink: string;
-      invitationLinkOrgEntityId: string;
-      invitationLinkToken: string;
-    };
-
-type DerivedPayloadType = DerivedPayload["payloadType"];
-
-interface EmailDump extends PlainEmailDump {
-  derivedPayload: DerivedPayload;
 }
 
 const yamlFileHeader = dedent`
@@ -45,44 +28,7 @@ const yamlFileHeader = dedent`
   ## Note that the file is emptied when the API server is restarted.
 `;
 
-/**
- * The transporter does not have direct access to the semantic meaning of the emails.
- * However, we can extract bits from it by parsing the dump, similar to what humans do
- * in their inboxes. Derived data is used when communicating codes or links in dev mode.
- * Tests can access the derived payload too and thus avoid html parsing.
- */
-const derivePayload = (plainEmailDump: PlainEmailDump): DerivedPayload => {
-  try {
-    const { subject, html } = plainEmailDump;
-    if (subject === "You've been invited to join an organization at HASH") {
-      const invitationLink = html!.match(/href="(.*)"/)![1]!;
-
-      return {
-        payloadType: "orgInvitation",
-        orgName: html!.match(/<strong>(.*)<\/strong>/)![1]!,
-        invitationLink,
-        invitationLinkOrgEntityId: invitationLink.match(
-          /orgEntityId=([\w-]+)&/,
-        )![1]!,
-        invitationLinkToken: invitationLink.match(
-          /invitationEmailToken=(\w+)&/,
-        )![1]!,
-      };
-    }
-  } catch (error) {
-    throw new Error(
-      `Unable to parse plainEmailDump: ${JSON.stringify(
-        plainEmailDump,
-      )}\n\n${error}`,
-    );
-  }
-
-  return { payloadType: "unknown" };
-};
-
 export interface DummyEmailTransporterConfig {
-  copyCodesOrLinksToClipboard?: boolean;
-  displayCodesOrLinksInStdout?: boolean;
   filePath?: string;
   from?: string;
 }
@@ -101,7 +47,7 @@ export class DummyEmailTransporter implements EmailTransporter {
   }
 
   async sendMail({ to, subject, html }: EmailTransporterSendMailOptions) {
-    const plainEmailDump: PlainEmailDump = {
+    const emailDump: EmailDump = {
       date: new Date().toString(),
       from: this.config.from ?? defaultFrom,
       to,
@@ -110,79 +56,23 @@ export class DummyEmailTransporter implements EmailTransporter {
       html,
     };
 
-    const emailDump = {
-      ...plainEmailDump,
-      derivedPayload: derivePayload(plainEmailDump),
-    };
-
-    await this.communicateCodesOrLinks(emailDump);
+    await this.logEmail(emailDump);
 
     this.emailDumps.unshift(emailDump);
     await this.writeEmailsToFile();
   }
 
-  getMostRecentEmail<T extends DerivedPayloadType>(options: {
-    assertDerivedPayloadType: T;
-  }): EmailDump & { derivedPayload: { payloadType: T } };
-
-  getMostRecentEmail(): EmailDump | undefined;
-
-  getMostRecentEmail(options?: {
-    assertDerivedPayloadType: DerivedPayloadType;
-  }): EmailDump | undefined {
-    const result = this.emailDumps[0];
-
-    if (!options?.assertDerivedPayloadType) {
-      return result;
-    }
-
-    if (!result) {
-      throw new Error("No emails have been sent yet");
-    }
-
-    if (
-      result.derivedPayload.payloadType !== options.assertDerivedPayloadType
-    ) {
-      throw new Error(
-        `Expected most recent email to have derived payload type "${
-          options.assertDerivedPayloadType
-        }", got ${JSON.stringify(result)} `,
-      );
-    }
-
-    return result;
-  }
-
-  private async communicateCodesOrLinks(emailDump: EmailDump): Promise<void> {
-    const { copyCodesOrLinksToClipboard, displayCodesOrLinksInStdout } =
-      this.config;
-
-    const rowsToDisplay: string[] = [`New email to ${emailDump.to}!`, ""];
-
-    switch (emailDump.derivedPayload.payloadType) {
-      case "orgInvitation":
-        rowsToDisplay.push(
-          "Org invitation link:",
-          emailDump.derivedPayload.invitationLink,
-        );
-        break;
-    }
+  private async logEmail(emailDump: EmailDump): Promise<void> {
+    const rowsToDisplay: string[] = [
+      `New email to ${emailDump.to}!`,
+      `Subject: ${emailDump.subject}`,
+      `From: ${emailDump.from}`,
+      `Date: ${emailDump.date}`,
+      `Text: ${emailDump.text}`,
+      "",
+    ];
 
     if (!rowsToDisplay.length) {
-      return;
-    }
-
-    if (copyCodesOrLinksToClipboard) {
-      try {
-        await clipboardy.write(rowsToDisplay[rowsToDisplay.length - 1]!);
-      } catch {
-        // Prevent hard crash on Ubuntu without xsel installed (e.g. in CI)
-        rowsToDisplay.push("(could not copy to clipboard)");
-      }
-      rowsToDisplay.push("(copied to clipboard)");
-    }
-
-    if (!displayCodesOrLinksInStdout) {
       return;
     }
 

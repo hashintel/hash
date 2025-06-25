@@ -37,7 +37,6 @@ import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-proper
 import type { ImageFile } from "@local/hash-isomorphic-utils/system-types/imagefile";
 import type {
   HasBio,
-  HasIssuedInvitation,
   InvitationViaEmail,
   InvitationViaShortname,
   IsMemberOf,
