@@ -7,8 +7,8 @@ use futures::TryStreamExt as _;
 use hash_graph_authorization::{
     AuthorizationApi,
     backend::PermissionAssertion,
-    policies::PolicyComponents,
-    schema::{DataTypePermission, EntityPermission, EntityTypePermission, PropertyTypePermission},
+    policies::{PolicyComponents, action::ActionName},
+    schema::{DataTypePermission, EntityTypePermission, PropertyTypePermission},
     zanzibar::Consistency,
 };
 use hash_graph_store::{
@@ -608,27 +608,22 @@ where
         if let Some(cached) = self.cache.entities.get(&entity_id).await {
             return cached;
         }
+
+        let mut filters = vec![Filter::for_entity_by_entity_id(entity_id)];
+
         if let Some(policy_components) = &self.policy_components {
-            self.store
-                .authorization_api
-                .check_entity_permission(
-                    policy_components
-                        .actor_id()
-                        .map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from),
-                    EntityPermission::View,
-                    entity_id,
-                    Consistency::FullyConsistent,
-                )
-                .await
-                .change_context(QueryError)?
-                .assert_permission()
-                .change_context(QueryError)?;
+            let filter = Filter::for_policies(
+                policy_components.extract_filter_policies(ActionName::ViewEntity),
+                policy_components.actor_id(),
+                policy_components.optimization_data(),
+            );
+            filters.push(filter);
         }
 
         let entity = self
             .store
             .read_one(
-                &[Filter::for_entity_by_entity_id(entity_id)],
+                &filters,
                 Some(
                     &QueryTemporalAxesUnresolved::DecisionTime {
                         pinned: PinnedTemporalAxisUnresolved::new(None),

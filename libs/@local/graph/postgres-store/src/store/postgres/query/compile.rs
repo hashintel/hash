@@ -402,12 +402,12 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
 
     /// Adds a new filter to the selection.
     #[instrument(level = "debug", skip_all)]
-    pub fn add_filter(
+    pub fn add_filter<'f: 'q>(
         &mut self,
-        filter: &'p Filter<'q, R>,
+        filter: &'p Filter<'f, R>,
     ) -> Result<(), Report<SelectCompilerError>>
     where
-        R::QueryPath<'q>: PostgresQueryPath,
+        R::QueryPath<'f>: PostgresQueryPath,
     {
         let condition = self.compile_filter(filter)?;
         self.artifacts.condition_index += 1;
@@ -427,12 +427,12 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     /// Compiles a [`Filter`] to a `Condition`.
     #[expect(clippy::too_many_lines)]
     #[instrument(level = "debug", skip_all)]
-    pub fn compile_filter(
+    pub fn compile_filter<'f: 'q>(
         &mut self,
-        filter: &'p Filter<'q, R>,
+        filter: &'p Filter<'f, R>,
     ) -> Result<Condition, Report<SelectCompilerError>>
     where
-        R::QueryPath<'q>: PostgresQueryPath,
+        R::QueryPath<'f>: PostgresQueryPath,
     {
         if let Some(condition) = self.compile_special_filter(filter) {
             return Ok(condition);
@@ -690,13 +690,13 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     // TODO: Remove CTE to allow limit or cursor selection
     //   see https://linear.app/hash/issue/H-1442
     #[instrument(level = "debug", skip_all)]
-    fn compile_latest_ontology_version_filter(
+    fn compile_latest_ontology_version_filter<'f: 'q>(
         &mut self,
-        path: &R::QueryPath<'q>,
+        path: &R::QueryPath<'f>,
         operator: EqualityOperator,
     ) -> Condition
     where
-        R::QueryPath<'q>: PostgresQueryPath,
+        R::QueryPath<'f>: PostgresQueryPath,
     {
         self.artifacts.cursor_disallowed_reason =
             Some("Cannot use latest version filter with cursor");
@@ -771,9 +771,9 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     /// The following [`Filter`]s will be special cased:
     /// - Comparing the `"version"` field on [`Table::OntologyIds`] with `"latest"` for equality.
     #[instrument(level = "info", skip(self, filter))]
-    fn compile_special_filter(&mut self, filter: &'p Filter<'q, R>) -> Option<Condition>
+    fn compile_special_filter<'f: 'q>(&mut self, filter: &'p Filter<'f, R>) -> Option<Condition>
     where
-        R::QueryPath<'q>: PostgresQueryPath,
+        R::QueryPath<'f>: PostgresQueryPath,
     {
         match filter {
             Filter::Equal(lhs, rhs) | Filter::NotEqual(lhs, rhs) => match (lhs, rhs) {
@@ -814,9 +814,9 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     }
 
     #[instrument(level = "debug", skip_all)]
-    pub fn compile_path_column(&mut self, path: &'p R::QueryPath<'q>) -> Expression
+    pub fn compile_path_column<'f: 'q>(&mut self, path: &'p R::QueryPath<'f>) -> Expression
     where
-        R::QueryPath<'q>: PostgresQueryPath,
+        R::QueryPath<'f>: PostgresQueryPath,
     {
         let (column, json_field) = path.terminating_column();
         let parameter = json_field.map(|field| {
@@ -934,12 +934,12 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     }
 
     #[instrument(level = "debug", skip_all)]
-    pub fn compile_filter_expression(
+    pub fn compile_filter_expression<'f: 'q>(
         &mut self,
-        expression: &'p FilterExpression<'q, R>,
+        expression: &'p FilterExpression<'f, R>,
     ) -> (Expression, ParameterType)
     where
-        R::QueryPath<'q>: PostgresQueryPath,
+        R::QueryPath<'f>: PostgresQueryPath,
     {
         match expression {
             FilterExpression::Path { path } => {
@@ -1004,9 +1004,9 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     ///
     /// [`Relation`]: super::table::Relation
     #[instrument(level = "debug", skip_all)]
-    fn add_join_statements(&mut self, path: &R::QueryPath<'q>) -> Alias
+    fn add_join_statements<'f: 'q>(&mut self, path: &R::QueryPath<'f>) -> Alias
     where
-        R::QueryPath<'q>: PostgresQueryPath,
+        R::QueryPath<'f>: PostgresQueryPath,
     {
         let mut current_table = AliasedTable {
             table: R::base_table(),
