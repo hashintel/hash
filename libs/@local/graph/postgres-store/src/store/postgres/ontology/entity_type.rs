@@ -104,7 +104,7 @@ where
                     .authorization_api
                     .check_entity_types_permission(
                         policy_components
-                            .actor_id
+                            .actor_id()
                             .map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from),
                         EntityTypePermission::View,
                         ids.iter().copied(),
@@ -1784,14 +1784,14 @@ where
                         .change_context(QueryError)?
                         .evaluate(
                             &Request {
-                                actor: policy_components.actor_id,
+                                actor: policy_components.actor_id(),
                                 action: ActionName::Instantiate,
                                 resource: &ResourceId::EntityType(Cow::Borrowed(
                                     (&entity_type_id).into(),
                                 )),
                                 context: RequestContext::default(),
                             },
-                            &policy_components.context,
+                            policy_components.context(),
                         )
                         .change_context(QueryError)
                         .map(|authorized| match authorized {

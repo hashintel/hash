@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use derive_where::derive_where;
 use error_stack::{Report, ResultExt as _, bail};
 use hash_graph_authorization::policies::{
-    Effect,
+    Effect, OptimizationData,
     resource::{EntityResourceConstraint, EntityResourceFilter, ResourceConstraint},
 };
 use hash_graph_types::ontology::DataTypeLookup;
@@ -423,122 +423,120 @@ impl<'p> Filter<'p, Entity> {
         }
     }
 
+    /// Creates filters using policy data with optimization applied.
+    ///
+    /// This method checks for optimization opportunities first, and if found,
+    /// creates more efficient database queries. If no optimizations are possible,
+    /// it falls back to the standard policy-based filter creation.
+    ///
+    /// # Optimizations
+    ///
+    /// Currently supports:
+    /// - Multiple exact entity permits → IN clause for entity UUIDs
+    /// - Multiple web permits → IN clause for web IDs
+    ///
+    /// # Arguments
+    ///
+    /// * `policies` - Iterator of (Effect, Option<&[`ResourceConstraint`]>) pairs
+    /// * `actor_id` - Optional actor ID for context-aware filters
+    /// * `optimization_data` - Pre-analyzed optimization opportunities
     #[must_use]
     pub fn for_policies(
         policies: impl IntoIterator<Item = (Effect, Option<&'p ResourceConstraint>)>,
         actor_id: Option<ActorId>,
+        optimization_data: &'p OptimizationData,
     ) -> Self {
-        let mut blank_permit = false;
+        // Follow the same pattern as for_policies: separate permits and forbids
         let mut permits = Vec::new();
         let mut forbids = Vec::new();
+        let mut blank_permit = false;
 
-        for (effect, resource_constraint) in policies {
-            match (resource_constraint, effect) {
+        for (effect, resource) in policies {
+            match (resource, effect) {
+                (None, Effect::Permit) => blank_permit = true,
+                (None, Effect::Forbid) => return Self::Any(Vec::new()), // Blank forbid = deny all
                 (Some(resource), Effect::Permit) => {
+                    // Non-optimizable permits
                     permits.push(Self::for_resource_constraint(resource, actor_id));
                 }
                 (Some(resource), Effect::Forbid) => {
+                    // All forbids
                     forbids.push(Self::for_resource_constraint(resource, actor_id));
-                }
-                (None, Effect::Permit) => {
-                    blank_permit = true;
-                }
-                (None, Effect::Forbid) => {
-                    // A forbid without a filter means we never allow access.
-                    return Self::Any(Vec::new());
                 }
             }
         }
+
+        // Add optimized entity permits if any
+        match optimization_data.permitted_entity_uuids.len() {
+            0 => {}
+            1 => {
+                let id = optimization_data.permitted_entity_uuids[0];
+                permits.push(Self::Equal(
+                    Some(FilterExpression::Path {
+                        path: EntityQueryPath::Uuid,
+                    }),
+                    Some(FilterExpression::Parameter {
+                        parameter: Parameter::Uuid(id.into()),
+                        convert: None,
+                    }),
+                ));
+            }
+            _ => {
+                // Use the Vec directly for the IN clause
+                permits.push(Self::In(
+                    FilterExpression::Path {
+                        path: EntityQueryPath::Uuid,
+                    },
+                    ParameterList::EntityUuids(&optimization_data.permitted_entity_uuids),
+                ));
+            }
+        }
+
+        // Add optimized web ID permits if any
+        match optimization_data.permitted_web_ids.len() {
+            0 => {}
+            1 => {
+                let web_id = optimization_data.permitted_web_ids[0];
+                permits.push(Self::Equal(
+                    Some(FilterExpression::Path {
+                        path: EntityQueryPath::WebId,
+                    }),
+                    Some(FilterExpression::Parameter {
+                        parameter: Parameter::Uuid(web_id.into()),
+                        convert: None,
+                    }),
+                ));
+            }
+            _ => {
+                // Use the Vec directly for the IN clause
+                permits.push(Self::In(
+                    FilterExpression::Path {
+                        path: EntityQueryPath::WebId,
+                    },
+                    ParameterList::WebIds(&optimization_data.permitted_web_ids),
+                ));
+            }
+        }
+
+        // Apply the same combination logic as for_policies
         if blank_permit {
             if forbids.is_empty() {
-                // We have a blank permit without any forbids, so we allow access.
-                Self::All(Vec::new())
+                Self::All(Vec::new()) // Allow all
             } else {
-                // We have a blank permit and some forbids, so we deny access if there is at least
-                // one forbid
-                Self::Not(Box::new(Self::Any(forbids)))
+                Self::Not(Box::new(Self::Any(forbids))) // Allow all except forbids
             }
         } else {
             match (!permits.is_empty(), !forbids.is_empty()) {
-                // We don't have any permits, so we never allow access.
-                (false, _) => Self::Any(Vec::new()),
-
-                // We have permits but no forbids, so we allow access if there is at least one
-                // permit
-                (true, false) => Self::Any(permits),
-
-                // We have permits and forbids, so we allow access if there is at least one permit
+                (false, _) => Self::Any(Vec::new()), // No permits = deny all
+                (true, false) => Self::Any(permits), // Only permits
                 (true, true) => Self::All(vec![
+                    // Both permits and forbids
                     Self::Any(permits),
                     Self::Not(Box::new(Self::Any(forbids))),
                 ]),
             }
         }
     }
-
-    // #[must_use]
-    // pub fn for_resource_constraints(
-    //     resource_constraints: impl IntoIterator<Item = &'p ResourceConstraint>,
-    //     actor_id: Option<ActorId>,
-    // ) -> Self {
-    //     let mut exact_filters = Vec::new();
-    //     let mut general_filters = Vec::new();
-    //     for resource_constraint in resource_constraints {
-    //         match resource_constraint {
-    //             ResourceConstraint::Web { web_id } => general_filters.push(Self::Equal(
-    //                 Some(FilterExpression::Path {
-    //                     path: EntityQueryPath::WebId,
-    //                 }),
-    //                 Some(FilterExpression::Parameter {
-    //                     parameter: Parameter::Uuid((*web_id).into()),
-    //                     convert: None,
-    //                 }),
-    //             )),
-    //             ResourceConstraint::Entity(entity_constraint) => match entity_constraint {
-    //                 EntityResourceConstraint::Exact { id } => exact_filters.push(*id),
-    //                 EntityResourceConstraint::Web { web_id, filter } => {
-    //                     general_filters.push(Self::All(vec![
-    //                         Self::Equal(
-    //                             Some(FilterExpression::Path {
-    //                                 path: EntityQueryPath::WebId,
-    //                             }),
-    //                             Some(FilterExpression::Parameter {
-    //                                 parameter: Parameter::Uuid((*web_id).into()),
-    //                                 convert: None,
-    //                             }),
-    //                         ),
-    //                         Self::for_resource_filter(filter, actor_id),
-    //                     ]));
-    //                 }
-    //                 EntityResourceConstraint::Any { filter } => {
-    //                     general_filters.push(Self::for_resource_filter(filter, actor_id));
-    //                 }
-    //             },
-    //             ResourceConstraint::EntityType(_) => {}
-    //         }
-    //     }
-
-    //     match *exact_filters.as_slice() {
-    //         [] => {}
-    //         [id] => general_filters.push(Self::Equal(
-    //             Some(FilterExpression::Path {
-    //                 path: EntityQueryPath::Uuid,
-    //             }),
-    //             Some(FilterExpression::Parameter {
-    //                 parameter: Parameter::Uuid(id.into()),
-    //                 convert: None,
-    //             }),
-    //         )),
-    //         _ => general_filters.push(Self::In(
-    //             FilterExpression::Path {
-    //                 path: EntityQueryPath::Uuid,
-    //             },
-    //             ParameterList::EntityUuids(Cow::Owned(exact_filters)),
-    //         )),
-    //     }
-
-    //     Self::Any(general_filters)
-    // }
 }
 
 impl<'p, R: QueryRecord> Filter<'p, R>
@@ -666,7 +664,9 @@ where
                         ParameterList::DataTypeIds(_)
                         | ParameterList::PropertyTypeIds(_)
                         | ParameterList::EntityTypeIds(_)
-                        | ParameterList::EntityEditionIds(_) => {
+                        | ParameterList::EntityEditionIds(_)
+                        | ParameterList::EntityUuids(_)
+                        | ParameterList::WebIds(_) => {
                             parameter.convert_to_parameter_type(&ParameterType::Uuid)?;
                         }
                     }
@@ -946,7 +946,7 @@ mod tests {
 
     mod policy_conversion {
         use hash_graph_authorization::policies::{
-            Effect, Policy, PolicyId,
+            Effect, OptimizationData, Policy, PolicyId,
             resource::{EntityResourceConstraint, ResourceConstraint},
         };
         use type_system::{
@@ -992,7 +992,12 @@ mod tests {
                 )),
             );
 
-            let filter = Filter::<Entity>::for_policies([policy_to_tuple(&policy)], actor_id);
+            let optimization_data = OptimizationData::default();
+            let filter = Filter::<Entity>::for_policies(
+                [policy_to_tuple(&policy)],
+                actor_id,
+                &optimization_data,
+            );
 
             // Should create an Any filter with one Equal condition for the entity UUID
             match filter {
@@ -1029,7 +1034,12 @@ mod tests {
                 )),
             );
 
-            let filter = Filter::<Entity>::for_policies([policy_to_tuple(&policy)], actor_id);
+            let optimization_data = OptimizationData::default();
+            let filter = Filter::<Entity>::for_policies(
+                [policy_to_tuple(&policy)],
+                actor_id,
+                &optimization_data,
+            );
 
             // Should create Any(Vec::new()) - no permits, only forbids
             match filter {
@@ -1071,8 +1081,12 @@ mod tests {
                 ),
             ];
 
-            let filter =
-                Filter::<Entity>::for_policies(policies.iter().map(policy_to_tuple), actor_id);
+            let optimization_data = OptimizationData::default();
+            let filter = Filter::<Entity>::for_policies(
+                policies.iter().map(policy_to_tuple),
+                actor_id,
+                &optimization_data,
+            );
 
             // Should create an Any filter with three Equal conditions
             // This is the case we want to optimize to use IN clause
@@ -1129,8 +1143,12 @@ mod tests {
                 ),
             ];
 
-            let filter =
-                Filter::<Entity>::for_policies(policies.iter().map(policy_to_tuple), actor_id);
+            let optimization_data = OptimizationData::default();
+            let filter = Filter::<Entity>::for_policies(
+                policies.iter().map(policy_to_tuple),
+                actor_id,
+                &optimization_data,
+            );
 
             // Should create All([Any([permit]), Not(Any([forbid]))])
             match filter {
@@ -1165,7 +1183,12 @@ mod tests {
             let actor_id = Some(ActorId::User(UserId::new(Uuid::new_v4())));
 
             let policy = create_test_policy(Effect::Permit, None);
-            let filter = Filter::<Entity>::for_policies([policy_to_tuple(&policy)], actor_id);
+            let optimization_data = OptimizationData::default();
+            let filter = Filter::<Entity>::for_policies(
+                [policy_to_tuple(&policy)],
+                actor_id,
+                &optimization_data,
+            );
 
             // Should create All(Vec::new()) - allow everything
             match filter {
@@ -1184,7 +1207,12 @@ mod tests {
             let actor_id = Some(ActorId::User(UserId::new(Uuid::new_v4())));
 
             let policy = create_test_policy(Effect::Forbid, None);
-            let filter = Filter::<Entity>::for_policies([policy_to_tuple(&policy)], actor_id);
+            let optimization_data = OptimizationData::default();
+            let filter = Filter::<Entity>::for_policies(
+                [policy_to_tuple(&policy)],
+                actor_id,
+                &optimization_data,
+            );
 
             // Should create Any(Vec::new()) - forbid everything
             match filter {
@@ -1192,6 +1220,331 @@ mod tests {
                     assert!(permits.is_empty(), "Blank forbid should forbid everything");
                 }
                 other => panic!("Expected Any filter, got: {other:?}"),
+            }
+        }
+    }
+
+    mod optimization {
+        //! Tests for policy optimization in filter creation.
+        //!
+        //! These tests verify that the optimization system correctly converts multiple OR
+        //! conditions to efficient IN clauses while preserving all non-optimizable
+        //! policies.
+
+        use hash_graph_authorization::policies::{
+            Effect, OptimizationData, resource::ResourceConstraint,
+        };
+        use type_system::{
+            knowledge::entity::{Entity, id::EntityUuid},
+            principal::{
+                actor::{ActorId, UserId},
+                actor_group::WebId,
+            },
+        };
+        use uuid::Uuid;
+
+        use super::{Filter, FilterExpression, ParameterList};
+        use crate::entity::EntityQueryPath;
+
+        /// Tests optimization with remaining non-optimizable policies.
+        ///
+        /// Verifies that optimization creates IN clauses for entity UUIDs while preserving
+        /// web permits that cannot be optimized.
+        #[test]
+        fn optimization_combines_with_remaining_policies() {
+            let entity_uuid1 = EntityUuid::new(Uuid::new_v4());
+            let entity_uuid2 = EntityUuid::new(Uuid::new_v4());
+            let web_id = WebId::new(Uuid::new_v4());
+            let actor_id = Some(ActorId::User(UserId::new(Uuid::new_v4())));
+
+            let web_resource = ResourceConstraint::Web { web_id };
+
+            // After optimization analysis: entity permits extracted, web permit remains
+            let policy_tuples = vec![(Effect::Permit, Some(&web_resource))];
+
+            let mut optimization_data = OptimizationData::default();
+            optimization_data.permitted_entity_uuids.push(entity_uuid1);
+            optimization_data.permitted_entity_uuids.push(entity_uuid2);
+
+            let optimized_filter =
+                Filter::<Entity>::for_policies(policy_tuples, actor_id, &optimization_data);
+
+            match optimized_filter {
+                Filter::Any(permits) => {
+                    assert_eq!(
+                        permits.len(),
+                        2,
+                        "should have web permit and entity IN clause"
+                    );
+
+                    let has_web_permit = permits.iter().any(|permit| {
+                        matches!(
+                            permit,
+                            Filter::Equal(
+                                Some(FilterExpression::Path {
+                                    path: EntityQueryPath::WebId
+                                }),
+                                _
+                            )
+                        )
+                    });
+
+                    let has_entity_in = permits.iter().any(|permit| {
+                        matches!(
+                            permit,
+                            Filter::In(
+                                FilterExpression::Path {
+                                    path: EntityQueryPath::Uuid
+                                },
+                                ParameterList::EntityUuids(_)
+                            )
+                        )
+                    });
+
+                    assert!(has_web_permit, "should contain web permit filter");
+                    assert!(
+                        has_entity_in,
+                        "should contain entity IN clause optimization"
+                    );
+                }
+                other => panic!("should create Any filter with combined permits, got: {other:?}"),
+            }
+        }
+
+        /// Tests optimization behavior with forbid policies.
+        ///
+        /// Verifies that optimization preserves forbid policies while creating IN clauses
+        /// for optimizable permits.
+        #[test]
+        fn optimization_preserves_forbid_policies() {
+            let entity_uuid1 = EntityUuid::new(Uuid::new_v4());
+            let entity_uuid2 = EntityUuid::new(Uuid::new_v4());
+            let web_id_forbid = WebId::new(Uuid::new_v4());
+            let actor_id = Some(ActorId::User(UserId::new(Uuid::new_v4())));
+
+            let web_resource_forbid = ResourceConstraint::Web {
+                web_id: web_id_forbid,
+            };
+
+            // After optimization analysis: entity permits extracted, web forbid remains
+            let policy_tuples = vec![(Effect::Forbid, Some(&web_resource_forbid))];
+
+            let mut optimization_data = OptimizationData::default();
+            optimization_data.permitted_entity_uuids.push(entity_uuid1);
+            optimization_data.permitted_entity_uuids.push(entity_uuid2);
+
+            let optimized_filter =
+                Filter::<Entity>::for_policies(policy_tuples, actor_id, &optimization_data);
+
+            match optimized_filter {
+                Filter::All(conditions) => {
+                    assert_eq!(
+                        conditions.len(),
+                        2,
+                        "should have permits and forbid handling"
+                    );
+
+                    let has_permits = conditions
+                        .iter()
+                        .any(|condition| matches!(condition, Filter::Any(_)));
+                    let has_forbids = conditions
+                        .iter()
+                        .any(|condition| matches!(condition, Filter::Not(_)));
+
+                    assert!(has_permits, "should contain permit filters");
+                    assert!(has_forbids, "should contain forbid filters");
+                }
+                other => {
+                    panic!("should create All filter with permits and forbids, got: {other:?}")
+                }
+            }
+        }
+
+        /// Tests entity optimization with other non-optimizable permits.
+        ///
+        /// Verifies that entity UUID optimization works alongside web permits.
+        #[test]
+        fn entity_optimization_with_other_permits() {
+            let entity_uuid1 = EntityUuid::new(Uuid::new_v4());
+            let entity_uuid2 = EntityUuid::new(Uuid::new_v4());
+            let web_id = WebId::new(Uuid::new_v4());
+            let actor_id = Some(ActorId::User(UserId::new(Uuid::new_v4())));
+
+            let web_resource = ResourceConstraint::Web { web_id };
+
+            let policy_tuples = vec![(Effect::Permit, Some(&web_resource))];
+
+            let mut optimization_data = OptimizationData::default();
+            optimization_data.permitted_entity_uuids.push(entity_uuid1);
+            optimization_data.permitted_entity_uuids.push(entity_uuid2);
+
+            let optimized_filter =
+                Filter::<Entity>::for_policies(policy_tuples, actor_id, &optimization_data);
+
+            match optimized_filter {
+                Filter::Any(permits) => {
+                    assert_eq!(permits.len(), 2, "should have IN clause and web permit");
+
+                    let has_entity_in = permits.iter().any(|permit| {
+                        matches!(
+                            permit,
+                            Filter::In(
+                                FilterExpression::Path {
+                                    path: EntityQueryPath::Uuid
+                                },
+                                ParameterList::EntityUuids(_)
+                            )
+                        )
+                    });
+
+                    assert!(
+                        has_entity_in,
+                        "should contain entity IN clause optimization"
+                    );
+                }
+                other => panic!("should create Any filter with combined permits, got: {other:?}"),
+            }
+        }
+
+        /// Tests web ID optimization functionality.
+        ///
+        /// Verifies that multiple web ID permits are converted to a single IN clause.
+        #[test]
+        fn web_id_optimization_creates_in_clause() {
+            let web_id1 = WebId::new(Uuid::new_v4());
+            let web_id2 = WebId::new(Uuid::new_v4());
+            let web_id3 = WebId::new(Uuid::new_v4());
+            let actor_id = Some(ActorId::User(UserId::new(Uuid::new_v4())));
+
+            // After optimization analysis: all web permits extracted
+            let policy_tuples = vec![];
+
+            let mut optimization_data = OptimizationData::default();
+            optimization_data.permitted_web_ids.push(web_id1);
+            optimization_data.permitted_web_ids.push(web_id2);
+            optimization_data.permitted_web_ids.push(web_id3);
+
+            let optimized_filter =
+                Filter::<Entity>::for_policies(policy_tuples, actor_id, &optimization_data);
+
+            match optimized_filter {
+                Filter::Any(permits) => {
+                    assert_eq!(permits.len(), 1, "should have exactly one web ID IN clause");
+
+                    let has_web_in = permits.iter().any(|permit| {
+                        matches!(
+                            permit,
+                            Filter::In(
+                                FilterExpression::Path {
+                                    path: EntityQueryPath::WebId
+                                },
+                                ParameterList::WebIds(_)
+                            )
+                        )
+                    });
+
+                    assert!(has_web_in, "should contain web ID IN clause optimization");
+                }
+                other => panic!("should create Any filter with web IN clause, got: {other:?}"),
+            }
+        }
+
+        /// Tests combined entity and web ID optimization.
+        ///
+        /// Verifies that both entity UUID and web ID optimizations work together,
+        /// creating separate IN clauses for each type.
+        #[test]
+        fn mixed_entity_and_web_optimization() {
+            let entity_uuid1 = EntityUuid::new(Uuid::new_v4());
+            let entity_uuid2 = EntityUuid::new(Uuid::new_v4());
+            let web_id1 = WebId::new(Uuid::new_v4());
+            let web_id2 = WebId::new(Uuid::new_v4());
+            let actor_id = Some(ActorId::User(UserId::new(Uuid::new_v4())));
+
+            // After optimization analysis: all permits extracted
+            let policy_tuples = vec![];
+
+            let mut optimization_data = OptimizationData::default();
+            optimization_data.permitted_entity_uuids.push(entity_uuid1);
+            optimization_data.permitted_entity_uuids.push(entity_uuid2);
+            optimization_data.permitted_web_ids.push(web_id1);
+            optimization_data.permitted_web_ids.push(web_id2);
+
+            let optimized_filter =
+                Filter::<Entity>::for_policies(policy_tuples, actor_id, &optimization_data);
+
+            match optimized_filter {
+                Filter::Any(permits) => {
+                    assert_eq!(permits.len(), 2, "should have entity and web IN clauses");
+
+                    let has_entity_in = permits.iter().any(|permit| {
+                        matches!(
+                            permit,
+                            Filter::In(
+                                FilterExpression::Path {
+                                    path: EntityQueryPath::Uuid
+                                },
+                                ParameterList::EntityUuids(_)
+                            )
+                        )
+                    });
+
+                    let has_web_in = permits.iter().any(|permit| {
+                        matches!(
+                            permit,
+                            Filter::In(
+                                FilterExpression::Path {
+                                    path: EntityQueryPath::WebId
+                                },
+                                ParameterList::WebIds(_)
+                            )
+                        )
+                    });
+
+                    assert!(
+                        has_entity_in,
+                        "should contain entity IN clause optimization"
+                    );
+                    assert!(has_web_in, "should contain web ID IN clause optimization");
+                }
+                other => panic!("should create Any filter with both IN clauses, got: {other:?}"),
+            }
+        }
+
+        /// Tests entity optimization with forbid policies.
+        ///
+        /// Verifies that the filter correctly combines optimized entity permits
+        /// with forbid policies in an All structure.
+        #[test]
+        fn entity_optimization_with_forbids() {
+            let entity_uuid1 = EntityUuid::new(Uuid::new_v4());
+            let entity_uuid2 = EntityUuid::new(Uuid::new_v4());
+            let web_id_forbid = WebId::new(Uuid::new_v4());
+            let actor_id = Some(ActorId::User(UserId::new(Uuid::new_v4())));
+
+            let web_resource_forbid = ResourceConstraint::Web {
+                web_id: web_id_forbid,
+            };
+
+            let policy_tuples = vec![(Effect::Forbid, Some(&web_resource_forbid))];
+
+            let mut optimization_data = OptimizationData::default();
+            optimization_data.permitted_entity_uuids.push(entity_uuid1);
+            optimization_data.permitted_entity_uuids.push(entity_uuid2);
+
+            let optimized_filter =
+                Filter::<Entity>::for_policies(policy_tuples, actor_id, &optimization_data);
+
+            match &optimized_filter {
+                Filter::All(conditions) => {
+                    assert!(
+                        matches!(conditions.as_slice(), [Filter::Any(_), Filter::Not(_)]),
+                        "should create All(permits, Not(forbids)) structure"
+                    );
+                }
+                other => {
+                    panic!("should create All filter with permits and forbids, got: {other:?}")
+                }
             }
         }
     }

@@ -159,7 +159,7 @@ where
                 .authorization_api
                 .check_data_type_permission(
                     policy_components
-                        .actor_id
+                        .actor_id()
                         .map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from),
                     DataTypePermission::View,
                     type_id,
@@ -370,7 +370,7 @@ where
                 .authorization_api
                 .check_property_type_permission(
                     policy_components
-                        .actor_id
+                        .actor_id()
                         .map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from),
                     PropertyTypePermission::View,
                     type_id,
@@ -451,7 +451,7 @@ where
                 .authorization_api
                 .check_entity_type_permission(
                     policy_components
-                        .actor_id
+                        .actor_id()
                         .map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from),
                     EntityTypePermission::View,
                     type_id,
@@ -613,7 +613,7 @@ where
                 .authorization_api
                 .check_entity_permission(
                     policy_components
-                        .actor_id
+                        .actor_id()
                         .map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from),
                     EntityPermission::View,
                     entity_id,

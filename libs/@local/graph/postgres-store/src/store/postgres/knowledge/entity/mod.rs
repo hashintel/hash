@@ -392,7 +392,7 @@ where
         policy_components: &PolicyComponents,
     ) -> Result<GetEntitiesResponse<'static>, Report<QueryError>> {
         let actor_id = policy_components
-            .actor_id
+            .actor_id()
             .map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from);
         let mut root_entities = Vec::new();
         let filters: [Filter<'_, Entity>; 1] = [params.filter];
@@ -996,12 +996,12 @@ where
                 .change_context(InsertionError)?
                 .evaluate(
                     &Request {
-                        actor: policy_components.actor_id,
+                        actor: policy_components.actor_id(),
                         action: ActionName::Instantiate,
                         resource: &ResourceId::EntityType(Cow::Borrowed(entity_type_id.into())),
                         context: RequestContext::default(),
                     },
-                    &policy_components.context,
+                    policy_components.context(),
                 )
                 .change_context(InsertionError)?
             {
@@ -1579,7 +1579,7 @@ where
             .authorization_api
             .check_entity_permission(
                 policy_components
-                    .actor_id
+                    .actor_id()
                     .map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from),
                 EntityPermission::View,
                 entity_id,
@@ -1749,12 +1749,12 @@ where
                     .change_context(UpdateError)?
                     .evaluate(
                         &Request {
-                            actor: policy_components.actor_id,
+                            actor: policy_components.actor_id(),
                             action: ActionName::Instantiate,
                             resource: &ResourceId::EntityType(Cow::Borrowed(entity_type_id.into())),
                             context: RequestContext::default(),
                         },
-                        &policy_components.context,
+                        policy_components.context(),
                     )
                     .change_context(UpdateError)?
                 {

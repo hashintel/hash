@@ -12,7 +12,7 @@ alwaysApply: false
 - Begin doc comments with a single-line summary of the item's purpose
 - Include a blank line after the summary line for longer documentation
 - Structure complex documentation with Markdown headers
-- Always use intra-doc links (`[`Item`]`) whenever referencing other items in the codebase
+- Always use intra-doc links (`[`Item`]`) whenever referencing other items in the codebase, including standard library types like [`Vec`], [`HashMap`], etc.
 - Prefer inline descriptions over section headers for parameters and return values
 
 ```rust
@@ -25,9 +25,11 @@ alwaysApply: false
 ## Intra-Doc Links
 
 - Use intra-doc links (Rust's reference syntax) liberally to improve user experience
-- Link to every type, trait, function, or other item you mention in documentation
+- Link to every type, trait, function, or other item you mention in documentation, including standard library items
 - Use the full path for items from other modules: `[`crate::module::Item`]`
 - When referring to items in the current module, just use `[`Item`]`
+- For standard library items, use their simple name: `[`Vec`]`, `[`HashMap`]`, `[`swap_remove`]`
+- Link method names on types where appropriate: `[`Vec::swap_remove`]`
 - Add reference link definitions at the bottom of the doc comment if needed
 
 ```rust

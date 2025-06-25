@@ -305,7 +305,7 @@ where
                     .authorization_api
                     .check_entities_permission(
                         policy_components
-                            .actor_id
+                            .actor_id()
                             .map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from),
                         EntityPermission::View,
                         // TODO: Filter for entities, which were not already added to the

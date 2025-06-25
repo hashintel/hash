@@ -272,12 +272,12 @@ where
             .change_context(WebCreationError::PolicySetCreation)?
             .evaluate(
                 &Request {
-                    actor: policy_components.actor_id,
+                    actor: policy_components.actor_id(),
                     action: ActionName::CreateWeb,
                     resource: &ResourceId::Web(web_id),
                     context: RequestContext::default(),
                 },
-                &policy_components.context,
+                policy_components.context(),
             )
             .change_context(WebCreationError::StoreError)?
         {
