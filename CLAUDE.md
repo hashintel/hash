@@ -77,6 +77,102 @@ When documenting Rust code, follow these guidelines:
 
 This balanced approach maintains readability while providing necessary structure for complex APIs.
 
+## Tracing and Instrumentation
+
+### Function-level Instrumentation (Preferred)
+
+For most cases, use `#[tracing::instrument]` directly on functions:
+
+```rust
+// ✅ Best - automatic span creation with function name and arguments
+#[tracing::instrument(level = "info", skip(self))]
+async fn compile_query(&self, params: &QueryParams) -> Result<Query, Error> {
+    // Function body automatically wrapped in span
+}
+
+// ✅ Good - customize span name and fields
+#[tracing::instrument(level = "info", name = "db_query", skip(self), fields(table = %table_name))]
+async fn execute_query(&self, table_name: &str) -> Result<Rows, Error> {
+    // Function body
+}
+```
+
+### Manual Instrumentation for Async Calls
+
+#### Creating New Spans
+
+When adding tracing spans to async code, use `.instrument()` before `.await`:
+
+```rust
+// ✅ Good - clean and readable
+let result = some_async_function()
+    .instrument(tracing::info_span!("operation_name"))
+    .await?;
+
+// ❌ Avoid - unnecessarily verbose
+let result = async {
+    some_async_function().await
+}
+.instrument(tracing::info_span!("operation_name"))
+.await?;
+```
+
+#### Inheriting Current Span Context
+
+For certain scenarios where span context needs to be explicitly inherited, use `.in_current_span()`:
+
+```rust
+// ✅ Required for spawned tasks - inherits current span context
+tokio::spawn(async {
+    background_work().await
+}.in_current_span());
+
+// ❌ Bad - loses tracing context
+tokio::spawn(async {
+    background_work().await
+});
+
+// ✅ Required for non-async functions returning Future with combinators
+#[tracing::instrument]
+fn some_function() -> impl Future<Output = Result<T, E>> {
+    async_operation()
+        .and_then(|x| other_operation(x))
+        .in_current_span()  // Required because no .await possible here
+}
+
+// ✅ Not needed - async functions inherit span context automatically
+#[tracing::instrument]
+async fn some_function() -> Result<T, E> {
+    let result = async_operation().await?;  // Span context preserved automatically
+    other_operation(result).await
+}
+```
+
+### When to Use `.in_current_span()`
+
+**Simple Rule: Use `.in_current_span()` when you CANNOT use `.await`**
+
+- **Can you write `.await`?** → No `.in_current_span()` needed (span context transfers automatically)
+- **Cannot write `.await`?** → `.in_current_span()` likely needed
+
+**Specific cases requiring `.in_current_span()`:**
+
+1. **Spawned tasks**: `tokio::spawn(async { ... }.in_current_span())`
+2. **Non-async functions returning Future**: Functions with `#[instrument]` that return `impl Future` using combinator chains (`.and_then`, `.map`, etc.)
+3. **Cross-thread async work**: When moving async work across thread boundaries
+
+**Cases NOT requiring `.in_current_span()`:**
+
+- **Async functions**: Span context is automatically inherited across `.await` points
+- **Async blocks in non-async functions**: `async { ... }` blocks automatically inherit span context
+- **Normal function calls**: Synchronous code within the same thread
+
+### When to Use Each Approach
+
+- **Function-level (`#[instrument]`)**: Use for entire functions, especially when you want to trace function entry/exit and arguments
+- **Manual (`.instrument()`)**: Use for specific async operations within a function or when you need fine-grained control over span creation
+- **Context inheritance (`.in_current_span()`)**: Use when span context would otherwise be lost (spawned tasks, combinator chains without `.await`)
+
 ## Creating code context in Rust
 
 To get an idea about an API in rust, the easiest way is to generate it's documentation:

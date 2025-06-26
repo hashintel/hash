@@ -287,6 +287,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     ///
     /// Optionally, the added selection can be distinct or ordered by providing [`Distinctness`]
     /// and [`Ordering`].
+    #[instrument(level = "debug", skip_all)]
     pub fn add_selection_path(&mut self, path: &'p R::QueryPath<'q>) -> usize
     where
         R::QueryPath<'q>: PostgresQueryPath,
@@ -298,6 +299,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     ///
     /// Optionally, the added selection can be distinct or ordered by providing [`Distinctness`]
     /// and [`Ordering`].
+    #[instrument(level = "debug", skip_all)]
     pub fn add_distinct_selection_with_ordering(
         &mut self,
         path: &'p R::QueryPath<'q>,
@@ -372,6 +374,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     }
 
     /// Adds a new path to the selection which can be used as cursor.
+    #[instrument(level = "debug", skip_all)]
     pub fn add_cursor_selection(
         &mut self,
         path: &'p R::QueryPath<'q>,
@@ -398,6 +401,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     }
 
     /// Adds a new filter to the selection.
+    #[instrument(level = "debug", skip_all)]
     pub fn add_filter(
         &mut self,
         filter: &'p Filter<'q, R>,
@@ -412,7 +416,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     }
 
     /// Transpiles the statement into SQL and the parameter to be passed to a prepared statement.
-    #[instrument(level = "info", skip(self))]
+    #[instrument(level = "debug", skip_all)]
     pub fn compile(&self) -> (String, &[&'p (dyn ToSql + Sync)]) {
         (
             self.statement.transpile_to_string(),
@@ -422,6 +426,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
 
     /// Compiles a [`Filter`] to a `Condition`.
     #[expect(clippy::too_many_lines)]
+    #[instrument(level = "debug", skip_all)]
     pub fn compile_filter(
         &mut self,
         filter: &'p Filter<'q, R>,
@@ -484,6 +489,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                     FilterExpression::Parameter { parameter, convert },
                     FilterExpression::Path { path },
                 ) => {
+                    let _span = tracing::info_span!("compile_cosine_distance").entered();
                     // We don't support custom sorting yet and limit/cursor implicitly set an order.
                     // We special case the distance function to allow sorting by distance, so we
                     // need to make sure that we don't have a limit or cursor.
@@ -683,6 +689,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     //          statement to ensure compatibility
     // TODO: Remove CTE to allow limit or cursor selection
     //   see https://linear.app/hash/issue/H-1442
+    #[instrument(level = "debug", skip_all)]
     fn compile_latest_ontology_version_filter(
         &mut self,
         path: &R::QueryPath<'q>,
@@ -763,6 +770,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     ///
     /// The following [`Filter`]s will be special cased:
     /// - Comparing the `"version"` field on [`Table::OntologyIds`] with `"latest"` for equality.
+    #[instrument(level = "info", skip(self, filter))]
     fn compile_special_filter(&mut self, filter: &'p Filter<'q, R>) -> Option<Condition>
     where
         R::QueryPath<'q>: PostgresQueryPath,
@@ -805,6 +813,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         }
     }
 
+    #[instrument(level = "debug", skip_all)]
     pub fn compile_path_column(&mut self, path: &'p R::QueryPath<'q>) -> Expression
     where
         R::QueryPath<'q>: PostgresQueryPath,
@@ -878,6 +887,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         Expression::Parameter(self.artifacts.parameters.len())
     }
 
+    #[instrument(level = "debug", skip_all)]
     pub fn compile_parameter<'f: 'p>(
         &mut self,
         parameter: &'p Parameter<'f>,
@@ -923,6 +933,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         )
     }
 
+    #[instrument(level = "debug", skip_all)]
     pub fn compile_filter_expression(
         &mut self,
         expression: &'p FilterExpression<'q, R>,
@@ -949,6 +960,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         }
     }
 
+    #[instrument(level = "debug", skip_all)]
     pub fn compile_parameter_list<'f: 'p>(
         &mut self,
         parameters: &'p ParameterList<'f>,
@@ -991,6 +1003,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     /// compiled, each subsequent call will result in a new join-chain.
     ///
     /// [`Relation`]: super::table::Relation
+    #[instrument(level = "debug", skip_all)]
     fn add_join_statements(&mut self, path: &R::QueryPath<'q>) -> Alias
     where
         R::QueryPath<'q>: PostgresQueryPath,

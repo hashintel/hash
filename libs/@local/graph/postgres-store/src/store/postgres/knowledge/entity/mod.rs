@@ -143,6 +143,7 @@ where
         let variable_axis = subgraph.temporal_axes.resolved.variable_time_axis();
 
         let mut entity_type_queue = Vec::new();
+        let process_traversal_edges_span = tracing::trace_span!("process_traversal_edges");
 
         while !entity_queue.is_empty() {
             let mut shared_edges_to_traverse = Option::<EntityEdgeTraversalData>::None;
@@ -176,6 +177,15 @@ where
             for (entity_vertex_id, graph_resolve_depths, traversal_interval) in
                 entity_queue.drain(..)
             {
+                let _span = tracing::trace_span!(
+                    "traverse_edges",
+                    entity_id = %entity_vertex_id.base_id,
+                    entity_revision = %entity_vertex_id.revision_id,
+                    graph_resolve_depths = ?graph_resolve_depths,
+                    traversal_interval = ?traversal_interval
+                )
+                .entered();
+
                 if let Some(new_graph_resolve_depths) = graph_resolve_depths
                     .decrement_depth_for_edge(SharedEdgeKind::IsOfType, EdgeDirection::Outgoing)
                 {
@@ -220,7 +230,6 @@ where
                         self.read_shared_edges(&traversal_data, Some(0)).await?,
                         provider,
                     )
-                    .instrument(tracing::trace_span!("post_filter_entity_types"))
                     .await?
                     .flat_map(|edge| {
                         subgraph.insert_edge(
@@ -243,31 +252,31 @@ where
                 if let Some(traversal_data) =
                     knowledge_edges_to_traverse.get(&(edge_kind, edge_direction))
                 {
-                    entity_queue.extend(
-                        self.read_knowledge_edges(traversal_data, table, edge_direction, provider)
-                            .await?
-                            .flat_map(|edge| {
-                                subgraph.insert_edge(
-                                    &edge.left_endpoint,
-                                    edge_kind,
-                                    edge_direction,
-                                    EntityIdWithInterval {
-                                        entity_id: edge.right_endpoint.base_id,
-                                        interval: edge.edge_interval,
-                                    },
-                                );
+                    let knowledge_edges = self
+                        .read_knowledge_edges(traversal_data, table, edge_direction, provider)
+                        .await?;
+                    let _entered = process_traversal_edges_span.enter();
+                    entity_queue.extend(knowledge_edges.flat_map(|edge| {
+                        subgraph.insert_edge(
+                            &edge.left_endpoint,
+                            edge_kind,
+                            edge_direction,
+                            EntityIdWithInterval {
+                                entity_id: edge.right_endpoint.base_id,
+                                interval: edge.edge_interval,
+                            },
+                        );
 
-                                traversal_context
-                                    .add_entity_id(
-                                        edge.right_endpoint_edition_id,
-                                        edge.resolve_depths,
-                                        edge.traversal_interval,
-                                    )
-                                    .map(move |(_, resolve_depths, interval)| {
-                                        (edge.right_endpoint, resolve_depths, interval)
-                                    })
-                            }),
-                    );
+                        traversal_context
+                            .add_entity_id(
+                                edge.right_endpoint_edition_id,
+                                edge.resolve_depths,
+                                edge.traversal_interval,
+                            )
+                            .map(move |(_, resolve_depths, interval)| {
+                                (edge.right_endpoint, resolve_depths, interval)
+                            })
+                    }));
                 }
             }
         }
@@ -355,6 +364,7 @@ where
         metadata.data_type_id = Some(target_data_type_id.clone());
     }
 
+    #[tracing::instrument(level = "info", skip(self, provider, entity, conversions))]
     async fn convert_entity<P: DataTypeLookup + Sync>(
         &self,
         provider: &P,

@@ -135,6 +135,7 @@ where
     }
 
     #[expect(clippy::too_many_lines)]
+    #[tracing::instrument(level = "info", skip(self, entity_types))]
     pub(crate) async fn get_entity_type_resolve_definitions(
         &self,
         actor_id: ActorEntityUuid,
@@ -179,6 +180,7 @@ where
                 ",
                 &[&entity_types],
             )
+            .instrument(tracing::trace_span!("query_resolve_definitions"))
             .await
             .change_context(QueryError)?;
 
@@ -258,6 +260,7 @@ where
         definitions.data_types.extend(
             self.as_client()
                 .query(query, &[&data_type_uuids])
+                .instrument(tracing::trace_span!("query_data_types"))
                 .await
                 .change_context(QueryError)?
                 .into_iter()
@@ -1095,6 +1098,10 @@ where
         Ok(response)
     }
 
+    #[tracing::instrument(
+        level = "info",
+        skip(self, actor_id, entity_type_ids, temporal_axes, include_resolved)
+    )]
     async fn get_closed_multi_entity_types<I, J>(
         &self,
         actor_id: ActorEntityUuid,

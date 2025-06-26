@@ -135,8 +135,7 @@ where
         )
         .await?;
 
-        let span = tracing::trace_span!("insert_into_subgraph", count = entities.len());
-        let _enter = span.enter();
+        let _span = tracing::info_span!("insert_into_subgraph", count = entities.len()).entered();
 
         for entity in entities {
             subgraph.insert_vertex(
