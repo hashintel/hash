@@ -85,6 +85,7 @@ pub struct InsertStatementBuilder<'p> {
 struct SliceWrapper<'a, T>(&'a [T]);
 
 impl<'p> InsertStatementBuilder<'p> {
+    #[must_use]
     pub fn new(table: Table) -> Self {
         Self {
             statement: InsertStatement {
@@ -97,10 +98,12 @@ impl<'p> InsertStatementBuilder<'p> {
         }
     }
 
+    #[must_use]
     pub fn compile(self) -> (String, Vec<&'p (dyn ToSql + Sync)>) {
         (self.statement.transpile_to_string(), self.parameters)
     }
 
+    #[must_use]
     pub fn with_expression(mut self, column: impl Into<Column>, expression: Expression) -> Self {
         self.add_expression(column, expression);
         self
@@ -120,6 +123,7 @@ impl<'p> InsertStatementBuilder<'p> {
         self
     }
 
+    #[must_use]
     pub fn with_value(mut self, column: impl Into<Column>, value: &'p (impl ToSql + Sync)) -> Self {
         self.add_value(column, value);
         self
@@ -134,6 +138,7 @@ impl<'p> InsertStatementBuilder<'p> {
         self.add_expression(column, Expression::Parameter(self.parameters.len()))
     }
 
+    #[must_use]
     pub fn with_row(mut self, row: &'p (impl PostgresRow + Sync)) -> Self {
         self.add_row(row);
         self
@@ -155,6 +160,7 @@ impl<'p> InsertStatementBuilder<'p> {
         self
     }
 
+    #[must_use]
     pub fn from_rows<R>(table: Table, rows: &'p Vec<R>) -> Self
     where
         R: ToSql + Sync,

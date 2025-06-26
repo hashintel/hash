@@ -3,7 +3,7 @@ mod knowledge;
 mod migration;
 mod ontology;
 mod pool;
-pub(crate) mod query;
+pub mod query;
 mod seed_policies;
 mod traversal_context;
 

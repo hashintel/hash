@@ -137,6 +137,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     }
 
     /// Creates a new compiler, which will select everything using the asterisk (`*`).
+    #[must_use]
     pub fn with_asterisk(
         temporal_axes: Option<&'p QueryTemporalAxes>,
         include_drafts: bool,

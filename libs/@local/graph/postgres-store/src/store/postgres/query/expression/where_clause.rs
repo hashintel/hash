@@ -32,10 +32,12 @@ impl WhereExpression {
         self.cursor.push((lhs, rhs, ordering, null_location));
     }
 
+    #[must_use]
     pub const fn len(&self) -> usize {
         self.conditions.len()
     }
 
+    #[must_use]
     pub const fn is_empty(&self) -> bool {
         self.conditions.is_empty()
     }

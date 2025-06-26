@@ -62,6 +62,7 @@ pub enum ReferenceTable {
 }
 
 impl ReferenceTable {
+    #[must_use]
     pub const fn inheritance_depth_column(self) -> Option<Column> {
         match self {
             Self::DataTypeInheritsFrom { inheritance_depth } => Some(Column::DataTypeInheritsFrom(
@@ -97,6 +98,7 @@ impl ReferenceTable {
         }
     }
 
+    #[must_use]
     pub const fn source_relation(self) -> ForeignKeyReference {
         match self {
             Self::DataTypeInheritsFrom { inheritance_depth } => ForeignKeyReference::Single {
@@ -189,6 +191,7 @@ impl ReferenceTable {
         }
     }
 
+    #[must_use]
     pub const fn target_relation(self) -> ForeignKeyReference {
         match self {
             Self::DataTypeInheritsFrom { inheritance_depth } => ForeignKeyReference::Single {
@@ -312,10 +315,12 @@ impl ReferenceTable {
 }
 
 impl Table {
+    #[must_use]
     pub const fn aliased(self, alias: Alias) -> AliasedTable {
         AliasedTable { table: self, alias }
     }
 
+    #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::OntologyIds => "ontology_ids",
@@ -1573,6 +1578,7 @@ impl From<EntityHasRightEntity> for Column {
 }
 
 impl Column {
+    #[must_use]
     pub const fn table(self) -> Table {
         match self {
             Self::OntologyIds(_) => Table::OntologyIds,
@@ -1630,6 +1636,7 @@ impl Column {
         }
     }
 
+    #[must_use]
     pub const fn inheritance_depth(self) -> Option<u32> {
         match self {
             Self::DataTypeInheritsFrom(_, inheritance_depth)
@@ -1642,6 +1649,7 @@ impl Column {
         }
     }
 
+    #[must_use]
     pub const fn to_expression(self, table_alias: Option<Alias>) -> Expression {
         Expression::ColumnReference {
             column: self,
@@ -1881,6 +1889,7 @@ pub enum ForeignKeyReference {
 }
 
 impl ForeignKeyReference {
+    #[must_use]
     pub const fn reverse(self) -> Self {
         match self {
             Self::Single {
