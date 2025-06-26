@@ -353,8 +353,13 @@ macro_rules! impl_real_from_primitive_float {
                 // The order of operations is important here! If we raise the precision first, it
                 // will lead to rounding errors for values that cannot be represented exactly in
                 // base 2 (such as 0.11).
+                // We need to first explicitly change the precision to the native type manually so
+                // that it can be converted to decimal, otherwise conversion with 0 precision (`0`)
+                // to decimal would panic.
                 let value = dashu_float::FBig::<mode::HalfAway>::try_from(primitive)
                     .map_err(ConversionError)?
+                    .with_precision(<$primitive>::MANTISSA_DIGITS as usize)
+                    .value()
                     .to_decimal()
                     .value()
                     .with_precision(MIN_PRECISION)
