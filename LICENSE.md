@@ -1,5 +1,6 @@
 [apache license 2.0]: https://github.com/hashintel/hash/blob/main/.github/licenses/LICENSE-APACHE.md
 [contact us]: https://hash.ai/contact?utm_medium=organic&utm_source=github_license_repo-root-file
+[contributor agreements]: https://hash.ai/legal/developers/contributing?utm_medium=organic&utm_source=github_license_repo-root-file
 [gnu affero general public license 3.0]: https://github.com/hashintel/hash/blob/main/.github/licenses/LICENSE-AGPL.md
 [mit license]: https://github.com/hashintel/hash/blob/main/.github/licenses/LICENSE-MIT.md
 [hash license]: https://github.com/hashintel/hash/blob/main/.github/licenses/LICENSE-HASH.md
@@ -10,7 +11,7 @@ The vast majority of the HASH monorepo contains **open-source code** variously l
 - the [MIT License] and [Apache License 2.0] dually (default); or
 - the [GNU Affero General Public License 3.0].
 
-In the interests of transparency, certain proprietary code is also made available under the source-available [HASH License].
+In the interests of transparency, certain proprietary code is also made available under the source-available [HASH License]. Per our [contributor agreements], all external contributions to this repository are accompanied by grants of any applicable copyright and patent licenses.
 
 ## 1. License Determination
 
