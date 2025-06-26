@@ -375,6 +375,10 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     }
 
     /// Adds a new path to the selection which can be used as cursor.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if cursors are disallowed due to other query constraints.
     #[instrument(level = "debug", skip_all)]
     pub fn add_cursor_selection(
         &mut self,
@@ -402,6 +406,10 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     }
 
     /// Adds a new filter to the selection.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the filter compilation fails.
     #[instrument(level = "debug", skip_all)]
     pub fn add_filter(
         &mut self,
@@ -426,6 +434,10 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
     }
 
     /// Compiles a [`Filter`] to a `Condition`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the filter compilation fails.
     #[expect(clippy::too_many_lines)]
     #[instrument(level = "debug", skip_all)]
     pub fn compile_filter(

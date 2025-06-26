@@ -69,6 +69,7 @@ pub trait PostgresQueryPath: Sized {
     fn terminating_column(&self) -> (Column, Option<JsonField<'_>>);
 
     #[expect(unused_variables, reason = "No-op")]
+    #[must_use]
     fn label_property_path(inheritance_depth: Option<u32>) -> Option<Self> {
         None
     }
@@ -77,6 +78,10 @@ pub trait PostgresQueryPath: Sized {
 /// Renders the object into a Postgres compatible format.
 pub trait Transpile: 'static {
     /// Renders the value using the given [`Formatter`].
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the value cannot be formatted or written to the formatter.
     fn transpile(&self, fmt: &mut Formatter) -> fmt::Result;
 
     fn transpile_to_string(&self) -> String {
@@ -98,8 +103,18 @@ pub trait PostgresSorting<'s, R: QueryRecord>:
 
     type Error: Error + Send + Sync + 'static + Send + Sync + 'static;
 
+    /// Encodes the sorting parameters for use in the query.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the sorting parameters cannot be encoded.
     fn encode(&self) -> Result<Option<Self::CompilationParameters>, Self::Error>;
 
+    /// Compiles the sorting into column selections and ordering expressions.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the sorting cannot be compiled into valid SQL expressions.
     fn compile<'p, 'q: 'p>(
         &'p self,
         compiler: &mut SelectCompiler<'p, 'q, R>,

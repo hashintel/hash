@@ -214,6 +214,12 @@ pub struct TraversalContext {
 }
 
 impl TraversalContext {
+    /// Reads all vertices that have been marked for traversal and inserts them into the subgraph.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if any of the database read operations fail or if there are issues
+    /// inserting vertices into the subgraph.
     #[tracing::instrument(level = "info", skip(self, store, subgraph))]
     pub async fn read_traversed_vertices<C: AsClient, A: Send + Sync>(
         self,
