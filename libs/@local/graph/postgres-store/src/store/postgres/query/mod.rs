@@ -101,7 +101,7 @@ pub trait PostgresSorting<'s, R: QueryRecord>:
 {
     type CompilationParameters: Send;
 
-    type Error: Error + Send + Sync + 'static + Send + Sync + 'static;
+    type Error: Error + Send + Sync + 'static;
 
     /// Encodes the sorting parameters for use in the query.
     ///
