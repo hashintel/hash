@@ -257,8 +257,7 @@ impl Default for QueryTemporalAxesUnresolved {
 
 impl QueryTemporalAxesUnresolved {
     #[must_use]
-    pub fn resolve(self) -> QueryTemporalAxes {
-        let now = Timestamp::now();
+    pub fn resolve_relative_to(self, now: Timestamp<()>) -> QueryTemporalAxes {
         match self {
             Self::DecisionTime { pinned, variable } => QueryTemporalAxes::DecisionTime {
                 pinned: pinned.resolve(now),
@@ -269,6 +268,12 @@ impl QueryTemporalAxesUnresolved {
                 variable: variable.resolve(now),
             },
         }
+    }
+
+    #[must_use]
+    pub fn resolve(self) -> QueryTemporalAxes {
+        let now = Timestamp::now();
+        self.resolve_relative_to(now)
     }
 }
 
