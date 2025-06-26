@@ -8,13 +8,30 @@ version.workspace = true
 
 [dependencies]
 # Public workspace dependencies
+hash-graph-store   = { workspace = true, optional = true, public = true }
+hashql-diagnostics = { workspace = true, public = true }
+hashql-hir         = { workspace = true, optional = true, public = true }
 
 # Public third-party dependencies
 
 # Private workspace dependencies
+hashql-core = { workspace = true, optional = true }
+type-system = { workspace = true, optional = true }
 
 # Private third-party dependencies
+derive_more = { workspace = true, features = ["display"] }
 simple-mermaid = { workspace = true }
+
+[dev-dependencies]
+hashql-compiletest.workspace = true
+simple-mermaid.workspace = true
+
+[features]
+graph = ["dep:hash-graph-store", "dep:hashql-core", "dep:hashql-hir", "dep:type-system"]
 
 [lints]
 workspace = true
+
+[[test]]
+name    = "compiletest"
+harness = false
