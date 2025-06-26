@@ -72,7 +72,7 @@ pub struct ParseError(dashu_base::ParseError);
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
 pub struct Real(#[cfg_attr(feature = "codegen", specta(type = f64))] dashu_float::DBig);
 
-const MIN_PRECISION: usize = 64;
+const MIN_PRECISION: usize = 53; // 53 is the minimum precision required for f64
 
 impl Real {
     /// Creates a new `Real` from a natural number with given significand and exponent.
@@ -335,14 +335,17 @@ macro_rules! impl_real_from_primitive_float {
             type Error = ConversionError;
 
             fn try_from(primitive: $primitive) -> Result<Self, Self::Error> {
-                Ok(Self(
-                    dashu_float::FBig::<mode::Zero>::try_from(primitive)
-                        .map_err(ConversionError)?
-                        .with_precision(MIN_PRECISION)
-                        .value()
-                        .to_decimal()
-                        .value(),
-                ))
+                let mut value = dashu_float::FBig::<mode::Zero>::try_from(primitive)
+                    .map_err(ConversionError)?;
+
+                // We only increase the precision if required, otherwise we keep the original
+                // precision This allows us to avoid unnecessary precision loss when
+                // converting from floating-point numbers
+                if value.precision() < MIN_PRECISION {
+                    value = value.with_precision(MIN_PRECISION).value();
+                }
+
+                Ok(Self(value.to_decimal().value()))
             }
         }
 
