@@ -16,6 +16,7 @@
     // Language Features
     arbitrary_self_types,
     associated_type_defaults,
+    if_let_guard,
     impl_trait_in_assoc_type,
     macro_metavar_expr,
     macro_metavar_expr_concat,
@@ -37,3 +38,4 @@ pub mod similarity;
 pub mod span;
 pub mod symbol;
 pub mod r#type;
+pub mod value;

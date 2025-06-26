@@ -1,5 +1,9 @@
+use core::str::FromStr as _;
+
+use hash_codec::numeric::Real;
 use lexical::{FromLexicalWithOptions as _, ParseFloatOptions, ParseFloatOptionsBuilder, format};
 
+use super::IntegerLiteral;
 use crate::symbol::Symbol;
 
 pub(crate) const PARSE: ParseFloatOptions = match ParseFloatOptionsBuilder::new().build() {
@@ -34,12 +38,12 @@ pub(crate) const PARSE: ParseFloatOptions = match ParseFloatOptionsBuilder::new(
 /// ```
 ///
 /// [JSON specification (RFC 8259)]: https://datatracker.ietf.org/doc/html/rfc8259#section-6
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct FloatLiteral<'heap> {
     pub value: Symbol<'heap>,
 }
 
-impl FloatLiteral<'_> {
+impl<'heap> FloatLiteral<'heap> {
     // `f16` and `f128` are currently unsupported as they cannot be formatted or parsed from either
     // lexical or rust standard library
     //
@@ -81,6 +85,34 @@ impl FloatLiteral<'_> {
     #[must_use]
     pub fn as_f64(&self) -> f64 {
         f64::from_lexical_with_options::<{ format::JSON }>(self.value.as_bytes(), &PARSE)
+            .expect("float literal should be formatted according to JSON specification")
+    }
+
+    /// Converts the float literal to an integer literal.
+    ///
+    /// Conversion is lossless, meaning that the resulting [`IntegerLiteral`] value will be exactly
+    /// equal to the original value.
+    ///
+    /// Assumes that the float literal is a valid JSON-formatted floating-point number.
+    #[must_use]
+    pub fn as_integer(self) -> Option<IntegerLiteral<'heap>> {
+        let is_integer = memchr::memchr3(b'.', b'e', b'E', self.value.as_bytes()).is_none();
+
+        is_integer.then_some(IntegerLiteral { value: self.value })
+    }
+
+    /// Converts the float literal to a real literal.
+    ///
+    /// Conversion is lossy, meaning that the resulting [`Real`] value may not be exactly equal to
+    /// the original value.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the float literal is not a valid JSON-formatted floating-point number.
+    /// This should never happen for properly constructed AST nodes.
+    #[must_use]
+    pub fn as_real(self) -> Real {
+        Real::from_str(self.value.as_str())
             .expect("float literal should be formatted according to JSON specification")
     }
 }

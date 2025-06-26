@@ -24,7 +24,7 @@
 
 #[cfg(feature = "postgres")]
 use core::error::Error;
-use core::{fmt, ops};
+use core::{fmt, ops, str::FromStr};
 
 #[cfg(feature = "postgres")]
 use bytes::BytesMut;
@@ -39,6 +39,11 @@ use serde::{Deserialize, Serialize, de};
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 #[display("Could not convert to a Real: {_0}")]
 pub struct ConversionError(dashu_base::ConversionError);
+
+/// Error that occurs when a string cannot be parsed into a [`Real`].
+#[derive(Debug, Copy, Clone, PartialEq, Eq, derive_more::Display, derive_more::Error)]
+#[display("Could not parse a Real: {_0}")]
+pub struct ParseError(dashu_base::ParseError);
 
 /// A high-precision real number type.
 ///
@@ -107,6 +112,15 @@ impl Real {
     #[must_use]
     pub fn to_f64(&self) -> f64 {
         self.0.to_f64().value()
+    }
+}
+
+impl FromStr for Real {
+    type Err = ParseError;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        let decimal = dashu_float::DBig::from_str(value).map_err(ParseError)?;
+        Ok(Self(decimal))
     }
 }
 

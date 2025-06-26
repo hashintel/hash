@@ -21,7 +21,7 @@ use crate::symbol::Symbol;
 /// "こんにちは"       // Non-ASCII characters are fully supported
 /// "😊 🚀 🌍"        // Emoji and other Unicode characters
 /// ```
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct StringLiteral<'heap> {
     pub value: Symbol<'heap>,
 }
@@ -31,5 +31,10 @@ impl StringLiteral<'_> {
     #[must_use]
     pub const fn as_str(&self) -> &str {
         self.value.as_str()
+    }
+
+    #[must_use]
+    pub const fn as_bytes(&self) -> &[u8] {
+        self.value.as_bytes()
     }
 }

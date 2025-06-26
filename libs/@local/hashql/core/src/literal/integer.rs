@@ -1,3 +1,9 @@
+use core::{
+    fmt::{self, Display},
+    str::FromStr as _,
+};
+
+use hash_codec::numeric::Real;
 use lexical::{
     FromLexicalWithOptions as _, ParseIntegerOptions, ParseIntegerOptionsBuilder, format,
 };
@@ -29,7 +35,7 @@ const PARSE: ParseIntegerOptions = match ParseIntegerOptionsBuilder::new().build
 /// 0
 /// 9223372036854775807  // Large integers are preserved exactly
 /// ```
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct IntegerLiteral<'heap> {
     pub value: Symbol<'heap>,
 }
@@ -75,6 +81,14 @@ impl IntegerLiteral<'_> {
         u128::from_lexical_with_options::<{ format::JSON }>(self.value.as_bytes(), &PARSE).ok()
     }
 
+    /// Attempts to convert the integer literal to an unsigned pointer-sized integer.
+    ///
+    /// Returns `None` if the value is negative or exceeds the range of [`usize`].
+    #[must_use]
+    pub fn as_usize(&self) -> Option<usize> {
+        usize::from_lexical_with_options::<{ format::JSON }>(self.value.as_bytes(), &PARSE).ok()
+    }
+
     /// Attempts to convert the integer literal to a signed 8-bit integer.
     ///
     /// Returns `None` if the value exceeds the range of [`i8`].
@@ -115,6 +129,14 @@ impl IntegerLiteral<'_> {
         i128::from_lexical_with_options::<{ format::JSON }>(self.value.as_bytes(), &PARSE).ok()
     }
 
+    /// Attempts to convert the integer literal to a signed pointer-sized integer.
+    ///
+    /// Returns `None` if the value is negative or exceeds the range of [`isize`].
+    #[must_use]
+    pub fn as_isize(&self) -> Option<isize> {
+        isize::from_lexical_with_options::<{ format::JSON }>(self.value.as_bytes(), &PARSE).ok()
+    }
+
     /// Converts the integer literal to a 32-bit floating-point number.
     ///
     /// This conversion is always successful for valid integer literals. In case the value exceeds
@@ -143,6 +165,26 @@ impl IntegerLiteral<'_> {
     pub fn as_f64(&self) -> f64 {
         f64::from_lexical_with_options::<{ format::JSON }>(self.value.as_bytes(), &float::PARSE)
             .expect("integer literal should be formatted according to JSON specification")
+    }
+
+    /// Converts the integer literal to a real number.
+    ///
+    /// This conversion is always successful for valid integer literals.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the stored value is not a valid JSON-formatted integer.
+    /// This should never happen for properly constructed AST nodes.
+    #[must_use]
+    pub fn as_real(&self) -> Real {
+        Real::from_str(self.value.as_str())
+            .expect("integer literal should be formatted according to JSON specification")
+    }
+}
+
+impl Display for IntegerLiteral<'_> {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.value, fmt)
     }
 }
 
