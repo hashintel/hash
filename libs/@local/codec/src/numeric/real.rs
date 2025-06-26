@@ -294,7 +294,7 @@ impl PartialEq<Real> for &Real {
 
 impl fmt::Display for Real {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Display::fmt(&self.0.to_f64().value(), fmt)
+        fmt::Display::fmt(&self.0, fmt)
     }
 }
 
