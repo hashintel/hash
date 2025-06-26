@@ -7,9 +7,14 @@ publish.workspace = true
 version.workspace = true
 
 [dependencies]
+# Public workspace dependencies
+
+# Public third-party dependencies
+
+# Private workspace dependencies
+
+# Private third-party dependencies
+simple-mermaid = { workspace = true }
 
 [lints]
 workspace = true
-
-[dev-dependencies]
-simple-mermaid.workspace = true
