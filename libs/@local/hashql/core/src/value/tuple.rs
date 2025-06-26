@@ -17,7 +17,7 @@ pub enum TupleError<'heap> {
 
 impl core::error::Error for TupleError<'_> {}
 
-/// A fixed-size collection of ordered values accessed by position.
+/// A fixed-size collection of values accessed by position.
 ///
 /// Tuples store values where each element's position has semantic meaning.
 /// Elements are accessed by index and tuples cannot be modified after creation.
@@ -48,9 +48,7 @@ pub struct Tuple<'heap> {
 }
 
 impl<'heap> Tuple<'heap> {
-    /// Creates a new [`Tuple`] from an iterable collection of values.
-    ///
-    /// The values are stored in the order provided by the iterator.
+    /// Creates a new [`Tuple`] from values.
     ///
     /// # Examples
     ///
@@ -80,16 +78,14 @@ impl<'heap> Tuple<'heap> {
         }
     }
 
-    /// Returns a reference to the value at the index specified by the symbol.
+    /// Returns the value at the given index.
     ///
     /// The symbol must represent a valid non-negative integer that is within
-    /// the bounds of the tuple. This method provides named access to tuple elements
-    /// by parsing the symbol as an index.
+    /// the bounds of the tuple.
     ///
     /// # Errors
     ///
-    /// Returns [`TupleError::InvalidInteger`] if the symbol cannot be parsed as a valid integer.
-    /// Returns [`TupleError::OutOfBounds`] if the parsed index is out of bounds.
+    /// Returns an error if the symbol is not a valid integer or is out of bounds.
     ///
     /// # Examples
     ///
@@ -187,9 +183,7 @@ impl<'heap> Tuple<'heap> {
         self.values.is_empty()
     }
 
-    /// Returns an iterator over the values in the tuple.
-    ///
-    /// The iterator yields references to each value in the tuple in order.
+    /// Returns an iterator over the values.
     ///
     /// # Examples
     ///

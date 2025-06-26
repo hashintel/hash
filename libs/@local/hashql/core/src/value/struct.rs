@@ -13,9 +13,9 @@ pub enum StructError<'heap> {
 
 impl core::error::Error for StructError<'_> {}
 
-/// A named tuple with field-based access to ordered values.
+/// A named tuple with field-based access to values.
 ///
-/// Structs provide named access to values, where the internal order of fields is not guaranteed.
+/// Fields can be accessed by name. The internal order of fields is not guaranteed.
 ///
 /// # Examples
 ///
@@ -78,13 +78,11 @@ pub struct Struct<'heap> {
 }
 
 impl<'heap> Struct<'heap> {
-    /// Creates a new [`Struct`] from an iterable collection of field-value pairs.
-    ///
-    /// The order of fields is not guaranteed.
+    /// Creates a new [`Struct`] from field-value pairs.
     ///
     /// # Panics
     ///
-    /// Panics if there are any duplicate fields, as a struct cannot have duplicate fields.
+    /// Panics if there are duplicate fields.
     ///
     /// # Examples
     ///
@@ -133,11 +131,11 @@ impl<'heap> Struct<'heap> {
         Self { fields, values }
     }
 
-    /// Returns a reference to the value associated with the given field name.
+    /// Returns the value for the given field.
     ///
     /// # Errors
     ///
-    /// Returns [`StructError::FieldNotFound`] if the field name is not present in the struct.
+    /// Returns [`StructError::FieldNotFound`] if the field doesn't exist.
     ///
     /// # Examples
     ///
@@ -245,11 +243,9 @@ impl<'heap> Struct<'heap> {
         self.fields.is_empty()
     }
 
-    /// Returns an iterator over the field-value pairs in the struct.
+    /// Returns an iterator over the field-value pairs.
     ///
-    /// The iterator yields tuples of `(Symbol, &Value)` representing each field name
-    /// and its corresponding value. The order is undefined, but stable, and may change in the
-    /// future.
+    /// The order is unspecified but stable.
     ///
     /// # Examples
     ///

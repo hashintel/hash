@@ -4,9 +4,7 @@ use super::Value;
 
 /// A persistent key-value mapping.
 ///
-/// Dicts store unique key-value associations maintained in sorted key order.
-/// All operations return new [`Dict`] instances without modifying the original utilizing structural
-/// sharing for efficient memory usage.
+/// All operations return new [`Dict`] instances without modifying the original.
 ///
 /// # Examples
 ///
@@ -46,10 +44,9 @@ pub struct Dict<'heap> {
 }
 
 impl<'heap> Dict<'heap> {
-    /// Creates a new [`Dict`] from an iterable collection of key-value pairs.
+    /// Creates a new [`Dict`] from key-value pairs.
     ///
     /// If duplicate keys are provided, the last value for each key is retained.
-    /// The resulting dict contains all provided entries.
     ///
     /// # Examples
     ///
@@ -80,9 +77,7 @@ impl<'heap> Dict<'heap> {
         }
     }
 
-    /// Returns a reference to the value associated with the given key.
-    ///
-    /// Returns [`None`] if the key is not present in the dict.
+    /// Returns the value for the given key.
     ///
     /// # Examples
     ///
@@ -108,11 +103,7 @@ impl<'heap> Dict<'heap> {
         self.values.get(key)
     }
 
-    /// Returns references to both the key and value for the given key.
-    ///
-    /// This is useful when you need access to the stored key instance,
-    /// which may be different from the lookup key due to structural sharing.
-    /// Returns [`None`] if the key is not present in the dict.
+    /// Returns both the stored key and value for the given key.
     ///
     /// # Examples
     ///
@@ -142,8 +133,7 @@ impl<'heap> Dict<'heap> {
 
     /// Returns a new [`Dict`] with the given key-value pair inserted.
     ///
-    /// If the key already exists, its value is replaced in the new dict.
-    /// The original dict remains unchanged.
+    /// If the key already exists, its value is replaced.
     ///
     /// # Examples
     ///
@@ -177,8 +167,7 @@ impl<'heap> Dict<'heap> {
 
     /// Returns a new [`Dict`] with the given key removed.
     ///
-    /// If the key doesn't exist, returns a dict equivalent to the original.
-    /// The original dict remains unchanged.
+    /// If the key doesn't exist, returns an equivalent dict.
     ///
     /// # Examples
     ///
@@ -291,10 +280,7 @@ impl<'heap> Dict<'heap> {
         self.values.is_empty()
     }
 
-    /// Returns an iterator over the key-value pairs in the dict.
-    ///
-    /// The iterator yields tuples of `(&Value, &Value)` representing each key
-    /// and its corresponding value. The pairs are returned in sorted key order.
+    /// Returns an iterator over the key-value pairs.
     ///
     /// # Examples
     ///

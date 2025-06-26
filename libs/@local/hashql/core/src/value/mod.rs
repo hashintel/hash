@@ -44,11 +44,10 @@ pub enum IndexAccessError {
 
 impl core::error::Error for IndexAccessError {}
 
-/// A value in HashQL
+/// A value in HashQL.
 ///
-/// Represents all data types in HashQL, from atomic primitives to composite
-/// collections. All values are immutable and support structural equality,
-/// ordering, and hashing operations.
+/// Values are immutable and can be primitives (null, boolean, integer, float, string) or
+/// collections (struct, tuple, list, dict, opaque).
 ///
 /// # Examples
 ///
@@ -104,10 +103,7 @@ pub enum Value<'heap> {
 }
 
 impl<'heap> Value<'heap> {
-    /// Returns the type name of this value as a static string.
-    ///
-    /// This provides a human-readable representation of the value's type,
-    /// useful for error messages and debugging.
+    /// Returns the type name of this value.
     ///
     /// # Examples
     ///
@@ -147,17 +143,13 @@ impl<'heap> Value<'heap> {
         }
     }
 
-    /// Accesses a field on this value using the provided symbol.
+    /// Accesses a field by symbol name.
     ///
-    /// This method provides uniform field access across different value types.
-    /// For structs, it accesses named fields. For tuples, it parses the symbol
-    /// as an integer index.
+    /// For structs, accesses named fields. For tuples, parses the symbol as an integer index.
     ///
     /// # Errors
     ///
-    /// Returns [`FieldAccessError::Struct`] if struct field access fails.
-    /// Returns [`FieldAccessError::Tuple`] if tuple field access fails.
-    /// Returns [`FieldAccessError::UnableToAccess`] if the value type doesn't support field access.
+    /// Returns an error if the field doesn't exist or the value type doesn't support field access.
     ///
     /// # Examples
     ///
@@ -207,20 +199,13 @@ impl<'heap> Value<'heap> {
         }
     }
 
-    /// Accesses an element in this value using the provided index.
+    /// Accesses an element by index or key.
     ///
-    /// This method provides uniform index access across different collection types.
-    /// For lists, the index must be an integer or float that converts to integer.
-    /// For dicts, any value can be used as a key.
-    ///
-    /// Returns [`Some`] with a reference to the value if found, [`None`] if the
-    /// index is valid but no value exists at that position.
+    /// For lists, the index must be an integer. For dicts, any value can be used as a key.
     ///
     /// # Errors
     ///
-    /// Returns [`IndexAccessError::InvalidListIndexType`] if the index type is not valid for list
-    /// access. Returns [`IndexAccessError::UnableToAccess`] if the value type doesn't support
-    /// index access.
+    /// Returns an error if the index type is invalid or the value type doesn't support indexing.
     ///
     /// # Examples
     ///

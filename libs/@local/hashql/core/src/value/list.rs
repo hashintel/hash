@@ -1,10 +1,8 @@
 use super::Value;
 
-/// A persistent sequence supporting efficient functional updates.
+/// A persistent sequence of values.
 ///
-/// Lists store values in sequence and can be functionally modified through operations
-/// like push, pop, and indexed updates. All operations return new [`List`] instances
-/// without modifying the original, providing structural sharing for efficient memory usage.
+/// All operations return new [`List`] instances without modifying the original.
 ///
 /// # Examples
 ///
@@ -42,9 +40,7 @@ pub struct List<'heap> {
 }
 
 impl<'heap> List<'heap> {
-    /// Creates a new [`List`] from an iterable collection of values.
-    ///
-    /// The values are stored in the order provided by the iterator.
+    /// Creates a new [`List`] from values.
     ///
     /// # Examples
     ///
@@ -74,9 +70,7 @@ impl<'heap> List<'heap> {
         }
     }
 
-    /// Returns a new [`List`] with the given value appended to the end.
-    ///
-    /// The original list remains unchanged.
+    /// Returns a new [`List`] with the given value appended.
     ///
     /// # Examples
     ///
@@ -106,7 +100,9 @@ impl<'heap> List<'heap> {
 
     /// Returns a new [`List`] with the last element removed.
     ///
-    /// Returns [`None`] if the list is empty. The original list remains unchanged.
+    /// # Returns
+    ///
+    /// [`None`] if the list is empty.
     ///
     /// # Examples
     ///
@@ -139,7 +135,9 @@ impl<'heap> List<'heap> {
 
     /// Returns a reference to the value at the given index.
     ///
-    /// Returns [`None`] if the index is out of bounds.
+    /// # Returns
+    ///
+    /// [`None`] if the index is out of bounds.
     ///
     /// # Examples
     ///
@@ -166,7 +164,9 @@ impl<'heap> List<'heap> {
 
     /// Returns a new [`List`] with the value at the given index replaced.
     ///
-    /// Returns [`None`] if the index is out of bounds. The original list remains unchanged.
+    /// # Returns
+    ///
+    /// [`None`] if the index is out of bounds.
     ///
     /// # Examples
     ///
@@ -248,9 +248,7 @@ impl<'heap> List<'heap> {
         self.values.is_empty()
     }
 
-    /// Returns an iterator over the values in the list.
-    ///
-    /// The iterator yields references to each value in the list in order.
+    /// Returns an iterator over the values.
     ///
     /// # Examples
     ///
