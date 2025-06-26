@@ -33,7 +33,7 @@ lexical              = { workspace = true, features = ["parse-integers", "parse-
 memchr               = { workspace = true }
 rapidfuzz            = { workspace = true }
 roaring              = { workspace = true, features = ["std", "simd"] }
-rpds                 = "1.1.1"
+rpds                 = { workspace = true, features = ["std"] }
 serde                = { workspace = true, optional = true, features = ["alloc", "derive"] }
 simple-mermaid       = { workspace = true }
 tracing              = { workspace = true }
@@ -47,5 +47,7 @@ serde = ["dep:serde", "text-size/serde"]
 workspace = true
 
 [dev-dependencies]
-insta  = { workspace = true }
-rstest = { workspace = true }
+insta         = { workspace = true }
+proptest      = { workspace = true }
+rstest        = { workspace = true }
+test-strategy = { workspace = true }
