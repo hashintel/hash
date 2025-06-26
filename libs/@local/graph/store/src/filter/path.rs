@@ -27,6 +27,10 @@ impl<'p> JsonPath<'p> {
         Self { path }
     }
 
+    pub fn push(&mut self, token: PathToken<'p>) {
+        self.path.push(token);
+    }
+
     fn write(&self, writer: &mut impl Write) -> Result<(), fmt::Error> {
         writer.write_char('$')?;
         for token in &self.path {
