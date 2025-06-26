@@ -1,0 +1,35 @@
+[graph-read-compiler::closure-unsupported] Error: Closures not supported
+    ╭─[ <unknown>:12:10 ]
+    │
+  9 │ ╭─▶       ["==",
+    ┆ ┆   
+ 12 │ │           "identity"
+    │ │            ────┬───  
+    │ │                ╰───── Closure definition not supported here
+    ┆ ┆   
+ 14 │ ├─▶       ]
+    │ │             
+    │ ╰───────────── ... within this filter expression
+    │     
+    │     Help: Filter expressions do not currently support closure definitions. Move the closure outside the filter expression, assign the result to a variable, and use that variable in the filter instead.
+    │     
+    │     Note: Closures in filter expressions are not yet implemented. This is a current limitation that is being tracked in [Linear Issue].
+────╯
+
+
+[graph-read-compiler::closure-unsupported] Error: Closures not supported
+    ╭─[ <unknown>:10:10 ]
+    │
+  9 │ ╭─▶       ["==",
+ 10 │ │           "identity", // This is very silly and isn't something you should probably do
+    │ │            ────┬───  
+    │ │                ╰───── Closure definition not supported here
+    ┆ ┆   
+ 14 │ ├─▶       ]
+    │ │             
+    │ ╰───────────── ... within this filter expression
+    │     
+    │     Help: Filter expressions do not currently support closure definitions. Move the closure outside the filter expression, assign the result to a variable, and use that variable in the filter instead.
+    │     
+    │     Note: Closures in filter expressions are not yet implemented. This is a current limitation that is being tracked in [Linear Issue].
+────╯
