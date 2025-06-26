@@ -25,14 +25,21 @@ impl core::error::Error for TupleError<'_> {}
 /// # Examples
 ///
 /// ```
-/// use hashql_core::value::{Tuple, Value};
+/// use hashql_core::{
+///     heap::Heap,
+///     literal::{FloatLiteral, LiteralKind},
+///     value::{Tuple, Value},
+/// };
+///
+/// let heap = Heap::new();
+/// # let float = |value: &'static str| Value::Primitive(LiteralKind::Float(FloatLiteral { value: heap.intern_symbol(value) }));
 ///
 /// // A 3D point represented as a tuple
-/// let point = Tuple::from_values([Value::from(1.23), Value::from(4.56), Value::from(7.89)]);
+/// let point = Tuple::from_values([float("1.23"), float("4.56"), float("7.89")]);
 ///
 /// // Access elements by index
-/// assert_eq!(point[0], Value::from(1.23));
-/// assert_eq!(point[1], Value::from(4.56));
+/// assert_eq!(point[0], float("1.23"));
+/// assert_eq!(point[1], float("4.56"));
 /// assert_eq!(point.len(), 3);
 /// ```
 #[derive(Debug, Clone, PartialOrd, Ord, PartialEq, Eq, Hash)]
@@ -48,17 +55,24 @@ impl<'heap> Tuple<'heap> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::value::{Tuple, Value};
+    /// use hashql_core::{
+    ///     heap::Heap,
+    ///     literal::{LiteralKind, StringLiteral},
+    ///     value::{Tuple, Value},
+    /// };
     ///
-    /// let values = vec![
-    ///     Value::from("red"),
-    ///     Value::from("green"),
-    ///     Value::from("blue"),
+    /// let heap = Heap::new();
+    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
+    ///
+    /// let values = [
+    ///     string("red"),
+    ///     string("green"),
+    ///     string("blue"),
     /// ];
     ///
     /// let color_tuple = Tuple::from_values(values);
     /// assert_eq!(color_tuple.len(), 3);
-    /// assert_eq!(color_tuple[0], Value::from("red"));
+    /// assert_eq!(color_tuple[0], string("red"));
     /// ```
     pub fn from_values(values: impl IntoIterator<Item = Value<'heap>>) -> Self {
         Self {
@@ -80,30 +94,37 @@ impl<'heap> Tuple<'heap> {
     /// # Examples
     ///
     /// ```
+    /// # #![feature(assert_matches)]
+    /// # use core::assert_matches::assert_matches;
     /// use hashql_core::{
+    ///     heap::Heap,
+    ///     literal::{LiteralKind, StringLiteral},
     ///     symbol::Symbol,
     ///     value::{Tuple, TupleError, Value},
     /// };
     ///
-    /// let tuple = Tuple::from_values([Value::from("first"), Value::from("second")]);
+    /// let heap = Heap::new();
+    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
+    ///
+    /// let tuple = Tuple::from_values([string("first"), string("second")]);
     ///
     /// // Valid index access
-    /// let index_0 = Symbol::from("0");
-    /// assert_eq!(tuple.get(index_0).unwrap(), &Value::from("first"));
+    /// let index_0 = heap.intern_symbol("0");
+    /// assert_eq!(tuple.get(index_0).unwrap(), &string("first"));
     ///
     /// // Invalid integer
-    /// let invalid = Symbol::from("not_a_number");
-    /// assert!(matches!(
+    /// let invalid = heap.intern_symbol("not_a_number");
+    /// assert_matches!(
     ///     tuple.get(invalid),
     ///     Err(TupleError::InvalidInteger(_, _))
-    /// ));
+    /// );
     ///
     /// // Out of bounds
-    /// let out_of_bounds = Symbol::from("10");
-    /// assert!(matches!(
+    /// let out_of_bounds = heap.intern_symbol("10");
+    /// assert_matches!(
     ///     tuple.get(out_of_bounds),
     ///     Err(TupleError::OutOfBounds(_, _))
-    /// ));
+    /// );
     /// ```
     pub fn get(&self, field: Symbol<'heap>) -> Result<&Value<'heap>, TupleError<'heap>> {
         let index = field
@@ -121,12 +142,19 @@ impl<'heap> Tuple<'heap> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::value::{Tuple, Value};
+    /// use hashql_core::{
+    ///     heap::Heap,
+    ///     literal::{LiteralKind, StringLiteral},
+    ///     value::{Tuple, Value},
+    /// };
+    ///
+    /// let heap = Heap::new();
+    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
     ///
     /// let empty_tuple = Tuple::from_values([]);
     /// assert_eq!(empty_tuple.len(), 0);
     ///
-    /// let tuple = Tuple::from_values([Value::from("a"), Value::from("b"), Value::from("c")]);
+    /// let tuple = Tuple::from_values([string("a"), string("b"), string("c")]);
     /// assert_eq!(tuple.len(), 3);
     /// ```
     #[must_use]
@@ -139,12 +167,19 @@ impl<'heap> Tuple<'heap> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::value::{Tuple, Value};
+    /// use hashql_core::{
+    ///     heap::Heap,
+    ///     literal::{LiteralKind, StringLiteral},
+    ///     value::{Tuple, Value},
+    /// };
+    ///
+    /// let heap = Heap::new();
+    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
     ///
     /// let empty_tuple = Tuple::from_values([]);
     /// assert!(empty_tuple.is_empty());
     ///
-    /// let tuple = Tuple::from_values([Value::from("element")]);
+    /// let tuple = Tuple::from_values([string("element")]);
     /// assert!(!tuple.is_empty());
     /// ```
     #[must_use]
@@ -152,6 +187,37 @@ impl<'heap> Tuple<'heap> {
         self.values.is_empty()
     }
 
+    /// Returns an iterator over the values in the tuple.
+    ///
+    /// The iterator yields references to each value in the tuple in order.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_core::{
+    ///     heap::Heap,
+    ///     literal::{LiteralKind, StringLiteral},
+    ///     value::{Tuple, Value},
+    /// };
+    ///
+    /// let heap = Heap::new();
+    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
+    ///
+    /// let tuple = Tuple::from_values([string("first"), string("second"), string("third")]);
+    ///
+    /// for (index, value) in tuple.iter().enumerate() {
+    ///     println!("Element {}: {:?}", index, value);
+    /// }
+    ///
+    /// assert_eq!(
+    ///     tuple.iter().collect::<Vec<_>>(),
+    ///     [
+    ///         &string("first"),
+    ///         &string("second"),
+    ///         &string("third")
+    ///     ]
+    /// );
+    /// ```
     pub fn iter(&self) -> impl Iterator<Item = &Value<'heap>> {
         self.values.iter()
     }

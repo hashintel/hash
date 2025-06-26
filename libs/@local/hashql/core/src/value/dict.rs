@@ -11,25 +11,29 @@ use super::Value;
 /// # Examples
 ///
 /// ```
-/// use hashql_core::value::{Dict, Value};
+/// use hashql_core::{
+///     heap::Heap,
+///     literal::{IntegerLiteral, LiteralKind, StringLiteral},
+///     value::{Dict, Value},
+/// };
+///
+/// let heap = Heap::new();
+/// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
+/// # let integer = |value: &'static str| Value::Primitive(LiteralKind::Integer(IntegerLiteral { value: heap.intern_symbol(value) }));
 ///
 /// // Create a dict from key-value pairs
-/// let name_key = Value::from("name");
-/// let age_key = Value::from("age");
-/// let name_value = Value::from("Alice");
-/// let age_value = Value::from(30);
-///
-/// let person = Dict::from_entries([(name_key.clone(), name_value), (age_key.clone(), age_value)]);
+/// let person = Dict::from_entries([
+///     (string("name"), string("Alice")),
+///     (string("age"), integer("30"))
+/// ]);
 ///
 /// // Access values
-/// if let Some(name) = person.get(&name_key) {
-///     println!("Name: {}", name);
+/// if let Some(name) = person.get(&string("name")) {
+///     println!("Name: {:?}", name);
 /// }
 ///
 /// // Insert returns a new dict
-/// let email_key = Value::from("email");
-/// let email_value = Value::from("alice@example.com");
-/// let updated_person = person.insert(email_key, email_value);
+/// let updated_person = person.insert(string("email"), string("alice@example.com"));
 ///
 /// assert_eq!(person.len(), 2); // Original unchanged
 /// assert_eq!(updated_person.len(), 3); // New dict has additional entry
@@ -50,12 +54,20 @@ impl<'heap> Dict<'heap> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::value::{Dict, Value};
+    /// use hashql_core::{
+    ///     heap::Heap,
+    ///     literal::{IntegerLiteral, LiteralKind, StringLiteral},
+    ///     value::{Dict, Value},
+    /// };
+    ///
+    /// let heap = Heap::new();
+    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
+    /// # let integer = |value: &'static str| Value::Primitive(LiteralKind::Integer(IntegerLiteral { value: heap.intern_symbol(value) }));
     ///
     /// let entries = [
-    ///     (Value::from("b"), Value::from(2)),
-    ///     (Value::from("a"), Value::from(1)),
-    ///     (Value::from("c"), Value::from(3)),
+    ///     (string("b"), integer("2")),
+    ///     (string("a"), integer("1")),
+    ///     (string("c"), integer("3")),
     /// ];
     ///
     /// let dict = Dict::from_entries(entries);
@@ -75,14 +87,21 @@ impl<'heap> Dict<'heap> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::value::{Dict, Value};
+    /// use hashql_core::{
+    ///     heap::Heap,
+    ///     literal::{LiteralKind, StringLiteral},
+    ///     value::{Dict, Value},
+    /// };
     ///
-    /// let key = Value::from("username");
-    /// let value = Value::from("alice");
+    /// let heap = Heap::new();
+    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
+    ///
+    /// let key = string("username");
+    /// let value = string("alice");
     /// let dict = Dict::from_entries([(key.clone(), value.clone())]);
     ///
     /// assert_eq!(dict.get(&key), Some(&value));
-    /// assert_eq!(dict.get(&Value::from("nonexistent")), None);
+    /// assert_eq!(dict.get(&string("nonexistent")), None);
     /// ```
     #[must_use]
     pub fn get(&self, key: &Value<'heap>) -> Option<&Value<'heap>> {
@@ -98,15 +117,22 @@ impl<'heap> Dict<'heap> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::value::{Dict, Value};
+    /// use hashql_core::{
+    ///     heap::Heap,
+    ///     literal::{LiteralKind, StringLiteral},
+    ///     value::{Dict, Value},
+    /// };
     ///
-    /// let key = Value::from("config");
-    /// let value = Value::from("enabled");
-    /// let dict = Dict::from_entries([(key.clone(), value.clone())]);
+    /// let heap = Heap::new();
+    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
     ///
-    /// if let Some((stored_key, stored_value)) = dict.get_key_value(&key) {
-    ///     assert_eq!(stored_key, &key);
-    ///     assert_eq!(stored_value, &value);
+    /// let dict = Dict::from_entries([
+    ///     (string("config"), string("enabled"))
+    /// ]);
+    ///
+    /// if let Some((stored_key, stored_value)) = dict.get_key_value(&string("config")) {
+    ///     assert_eq!(stored_key, &string("config"));
+    ///     assert_eq!(stored_value, &string("enabled"));
     /// }
     /// ```
     #[must_use]
@@ -122,15 +148,25 @@ impl<'heap> Dict<'heap> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::value::{Dict, Value};
+    /// use hashql_core::{
+    ///     heap::Heap,
+    ///     literal::{IntegerLiteral, LiteralKind, StringLiteral},
+    ///     value::{Dict, Value},
+    /// };
     ///
-    /// let original = Dict::from_entries([(Value::from("a"), Value::from(1))]);
+    /// let heap = Heap::new();
+    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
+    /// # let integer = |value: &'static str| Value::Primitive(LiteralKind::Integer(IntegerLiteral { value: heap.intern_symbol(value) }));
     ///
-    /// let updated = original.insert(Value::from("b"), Value::from(2));
+    /// let original = Dict::from_entries([
+    ///     (string("a"), integer("1"))
+    /// ]);
+    ///
+    /// let updated = original.insert(string("b"), integer("2"));
     ///
     /// assert_eq!(original.len(), 1); // Original unchanged
     /// assert_eq!(updated.len(), 2); // New dict has both entries
-    /// assert!(updated.contains_key(&Value::from("b")));
+    /// assert!(updated.contains_key(&string("b")));
     /// ```
     #[must_use]
     pub fn insert(&self, key: Value<'heap>, value: Value<'heap>) -> Self {
@@ -147,18 +183,26 @@ impl<'heap> Dict<'heap> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::value::{Dict, Value};
+    /// use hashql_core::{
+    ///     heap::Heap,
+    ///     literal::{IntegerLiteral, LiteralKind, StringLiteral},
+    ///     value::{Dict, Value},
+    /// };
+    ///
+    /// let heap = Heap::new();
+    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
+    /// # let integer = |value: &'static str| Value::Primitive(LiteralKind::Integer(IntegerLiteral { value: heap.intern_symbol(value) }));
     ///
     /// let original = Dict::from_entries([
-    ///     (Value::from("a"), Value::from(1)),
-    ///     (Value::from("b"), Value::from(2)),
+    ///     (string("a"), integer("1")),
+    ///     (string("b"), integer("2")),
     /// ]);
     ///
-    /// let updated = original.remove(&Value::from("a"));
+    /// let updated = original.remove(&string("a"));
     ///
     /// assert_eq!(original.len(), 2); // Original unchanged
     /// assert_eq!(updated.len(), 1); // New dict has one less entry
-    /// assert!(!updated.contains_key(&Value::from("a")));
+    /// assert!(!updated.contains_key(&string("a")));
     /// ```
     #[must_use]
     pub fn remove(&self, key: &Value<'heap>) -> Self {
@@ -172,12 +216,19 @@ impl<'heap> Dict<'heap> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::value::{Dict, Value};
+    /// use hashql_core::{
+    ///     heap::Heap,
+    ///     literal::{LiteralKind, StringLiteral},
+    ///     value::{Dict, Value},
+    /// };
     ///
-    /// let dict = Dict::from_entries([(Value::from("key1"), Value::from("value1"))]);
+    /// let heap = Heap::new();
+    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
     ///
-    /// assert!(dict.contains_key(&Value::from("key1")));
-    /// assert!(!dict.contains_key(&Value::from("key2")));
+    /// let dict = Dict::from_entries([(string("key1"), string("value1"))]);
+    ///
+    /// assert!(dict.contains_key(&string("key1")));
+    /// assert!(!dict.contains_key(&string("key2")));
     /// ```
     #[must_use]
     pub fn contains_key(&self, key: &Value<'heap>) -> bool {
@@ -189,14 +240,22 @@ impl<'heap> Dict<'heap> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::value::{Dict, Value};
+    /// use hashql_core::{
+    ///     heap::Heap,
+    ///     literal::{IntegerLiteral, LiteralKind, StringLiteral},
+    ///     value::{Dict, Value},
+    /// };
+    ///
+    /// let heap = Heap::new();
+    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
+    /// # let integer = |value: &'static str| Value::Primitive(LiteralKind::Integer(IntegerLiteral { value: heap.intern_symbol(value) }));
     ///
     /// let empty_dict = Dict::from_entries([]);
     /// assert_eq!(empty_dict.len(), 0);
     ///
     /// let dict = Dict::from_entries([
-    ///     (Value::from("a"), Value::from(1)),
-    ///     (Value::from("b"), Value::from(2)),
+    ///     (string("a"), integer("1")),
+    ///     (string("b"), integer("2")),
     /// ]);
     /// assert_eq!(dict.len(), 2);
     /// ```
@@ -210,12 +269,21 @@ impl<'heap> Dict<'heap> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::value::{Dict, Value};
+    /// use hashql_core::{
+    ///     heap::Heap,
+    ///     literal::{LiteralKind, StringLiteral},
+    ///     value::{Dict, Value},
+    /// };
+    ///
+    /// let heap = Heap::new();
+    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
     ///
     /// let empty_dict = Dict::from_entries([]);
     /// assert!(empty_dict.is_empty());
     ///
-    /// let dict = Dict::from_entries([(Value::from("key"), Value::from("value"))]);
+    /// let dict = Dict::from_entries([
+    ///     (string("key"), string("value")),
+    /// ]);
     /// assert!(!dict.is_empty());
     /// ```
     #[must_use]
@@ -223,6 +291,42 @@ impl<'heap> Dict<'heap> {
         self.values.is_empty()
     }
 
+    /// Returns an iterator over the key-value pairs in the dict.
+    ///
+    /// The iterator yields tuples of `(&Value, &Value)` representing each key
+    /// and its corresponding value. The pairs are returned in sorted key order.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_core::{
+    ///     heap::Heap,
+    ///     literal::{IntegerLiteral, LiteralKind, StringLiteral},
+    ///     value::{Dict, Value},
+    /// };
+    ///
+    /// let heap = Heap::new();
+    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
+    /// # let integer = |value: &'static str| Value::Primitive(LiteralKind::Integer(IntegerLiteral { value: heap.intern_symbol(value) }));
+    ///
+    /// let dict = Dict::from_entries([
+    ///     (string("name"), string("Alice")),
+    ///     (string("age"), integer("30")),
+    ///     (string("city"), string("Boston")),
+    /// ]);
+    ///
+    /// // Iterate over all key-value pairs
+    /// let pairs: Vec<_> = dict.iter().collect();
+    /// assert_eq!(pairs.len(), 3);
+    ///
+    /// // Check that we can find specific entries
+    /// assert!(pairs.iter().any(|(k, v)| **k == string("name") && **v == string("Alice")));
+    ///
+    /// // Use with for loop
+    /// for (key, value) in dict.iter() {
+    ///     println!("{:?}: {:?}", key, value);
+    /// }
+    /// ```
     pub fn iter(&self) -> impl Iterator<Item = (&Value<'heap>, &Value<'heap>)> {
         self.values.iter()
     }

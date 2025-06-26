@@ -22,11 +22,14 @@ impl core::error::Error for StructError<'_> {}
 /// ```
 /// use hashql_core::{
 ///     heap::Heap,
+///     literal::{IntegerLiteral, LiteralKind, StringLiteral},
 ///     symbol::Symbol,
 ///     value::{Struct, Value},
 /// };
 ///
 /// let heap = Heap::new();
+/// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
+/// # let integer = |value: &'static str| Value::Primitive(LiteralKind::Integer(IntegerLiteral { value: heap.intern_symbol(value) }));
 ///
 /// // Create a struct representing a person
 /// let name_field = heap.intern_symbol("name");
@@ -36,18 +39,36 @@ impl core::error::Error for StructError<'_> {}
 /// let person = Struct::from_fields(
 ///     &heap,
 ///     [
-///         (name_field, Value::from("Alice")),
-///         (age_field, Value::from(30)),
-///         (email_field, Value::from("alice@example.com")),
+///         (
+///             name_field,
+///             string("Alice"),
+///         ),
+///         (
+///             age_field,
+///             integer("30"),
+///         ),
+///         (
+///             email_field,
+///             string("alice@example.com"),
+///         ),
 ///     ],
 /// );
 ///
 /// // Access fields by name
-/// assert_eq!(person.get(name_field, Ok(&Value::from("Alice")));
-/// assert_eq!(person.get(age_field, Ok(&Value::from(30)));
+/// assert_eq!(
+///     person.get(name_field).unwrap(),
+///     &string("Alice")
+/// );
+/// assert_eq!(
+///     person.get(age_field).unwrap(),
+///     &integer("30")
+/// );
 ///
 /// // Using index syntax
-/// assert_eq!(person[name_field], Value::from("Alice"));
+/// assert_eq!(
+///     person[name_field],
+///     string("Alice")
+/// );
 /// ```
 #[derive(Debug, Clone, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct Struct<'heap> {
@@ -70,20 +91,24 @@ impl<'heap> Struct<'heap> {
     /// ```
     /// use hashql_core::{
     ///     heap::Heap,
+    ///     literal::{FloatLiteral, IntegerLiteral, LiteralKind, StringLiteral},
     ///     symbol::Symbol,
     ///     value::{Struct, Value},
     /// };
     ///
     /// let heap = Heap::new();
+    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
+    /// # let integer = |value: &'static str| Value::Primitive(LiteralKind::Integer(IntegerLiteral { value: heap.intern_symbol(value) }));
+    /// # let float = |value: &'static str| Value::Primitive(LiteralKind::Float(FloatLiteral { value: heap.intern_symbol(value) }));
     ///
     /// let fields = [
-    ///     (Symbol::from("id"), Value::from(42)),
-    ///     (Symbol::from("name"), Value::from("Product")),
-    ///     (Symbol::from("price"), Value::from(19.99)),
+    ///     (heap.intern_symbol("id"), integer("42")),
+    ///     (heap.intern_symbol("name"), string("Product")),
+    ///     (heap.intern_symbol("price"), float("19.99")),
     /// ];
     ///
     /// let product = Struct::from_fields(&heap, fields);
-    /// assert_eq!(product.get(Symbol::from("id")).unwrap(), &Value::from(42));
+    /// assert_eq!(product.get(heap.intern_symbol("id")).unwrap(), &integer("42"));
     /// ```
     pub fn from_fields(
         heap: &'heap Heap,
@@ -117,35 +142,39 @@ impl<'heap> Struct<'heap> {
     /// # Examples
     ///
     /// ```
+    /// # #![feature(assert_matches)]
+    /// # use core::assert_matches::assert_matches;
     /// use hashql_core::{
     ///     heap::Heap,
+    ///     literal::{IntegerLiteral, LiteralKind, StringLiteral},
     ///     symbol::Symbol,
     ///     value::{Struct, StructError, Value},
     /// };
     ///
     /// let heap = Heap::new();
-    /// let name_field = Symbol::from("name");
-    /// let age_field = Symbol::from("age");
+    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
+    /// # let integer = |value: &'static str| Value::Primitive(LiteralKind::Integer(IntegerLiteral { value: heap.intern_symbol(value) }));
+    ///
+    /// let name_field = heap.intern_symbol("name");
+    /// let age_field = heap.intern_symbol("age");
     ///
     /// let person = Struct::from_fields(
     ///     &heap,
     ///     [
-    ///         (name_field, Value::from("Bob")),
-    ///         (age_field, Value::from(25)),
+    ///         (name_field, string("Bob")),
+    ///         (age_field, integer("25")),
     ///     ],
     /// );
     ///
     /// // Successful field access
-    /// assert_eq!(person.get(name_field), Ok(&Value::from("Bob")));
+    /// assert_eq!(person.get(name_field), Ok(&string("Bob")));
     ///
     /// // Field not found
-    /// let unknown_field = Symbol::from("unknown");
-    /// let error = person.get(unknown_field) {
-    ///     Err(StructError::FieldNotFound(field)) => {
-    ///         assert_eq!(field, unknown_field);
-    ///     }
-    ///     _ => panic!("Expected FieldNotFound error"),
-    /// }
+    /// let unknown_field = heap.intern_symbol("unknown");
+    /// assert_matches!(
+    ///     person.get(unknown_field),
+    ///     Err(StructError::FieldNotFound(field)) if field == unknown_field
+    /// );
     /// ```
     pub fn get(&self, field: Symbol<'heap>) -> Result<&Value<'heap>, StructError<'heap>> {
         let Some(position) = self.fields.iter().position(|name| *name == field) else {
@@ -153,6 +182,67 @@ impl<'heap> Struct<'heap> {
         };
 
         Ok(&self.values[position])
+    }
+
+    /// Returns the number of fields in the struct.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_core::{
+    ///     heap::Heap,
+    ///     literal::{IntegerLiteral, LiteralKind, StringLiteral},
+    ///     value::{Struct, Value},
+    /// };
+    ///
+    /// let heap = Heap::new();
+    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
+    /// # let integer = |value: &'static str| Value::Primitive(LiteralKind::Integer(IntegerLiteral { value: heap.intern_symbol(value) }));
+    ///
+    /// let empty_struct = Struct::from_fields(&heap, []);
+    /// assert_eq!(empty_struct.len(), 0);
+    ///
+    /// let person = Struct::from_fields(
+    ///     &heap,
+    ///     [
+    ///         (heap.intern_symbol("name"), string("Alice")),
+    ///         (heap.intern_symbol("age"), integer("30")),
+    ///         (heap.intern_symbol("city"), string("Boston")),
+    ///     ],
+    /// );
+    /// assert_eq!(person.len(), 3);
+    /// ```
+    #[must_use]
+    pub const fn len(&self) -> usize {
+        self.fields.len()
+    }
+
+    /// Returns `true` if the struct contains no fields.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_core::{
+    ///     heap::Heap,
+    ///     literal::{LiteralKind, StringLiteral},
+    ///     value::{Struct, Value},
+    /// };
+    ///
+    /// let heap = Heap::new();
+    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
+    ///
+    /// let empty_struct = Struct::from_fields(&heap, []);
+    /// assert!(empty_struct.is_empty());
+    ///
+    /// let person = Struct::from_fields(
+    ///     &heap,
+    ///     [(heap.intern_symbol("name"), string("Alice"))],
+    /// );
+    /// assert!(!person.is_empty());
+    /// ```
+    #[must_use]
+    pub const fn is_empty(&self) -> bool {
+        self.fields.is_empty()
     }
 
     /// Returns an iterator over the field-value pairs in the struct.
@@ -166,18 +256,21 @@ impl<'heap> Struct<'heap> {
     /// ```
     /// use hashql_core::{
     ///     heap::Heap,
+    ///     literal::{IntegerLiteral, LiteralKind, StringLiteral},
     ///     symbol::Symbol,
     ///     value::{Struct, Value},
     /// };
     ///
     /// let heap = Heap::new();
+    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
+    /// # let integer = |value: &'static str| Value::Primitive(LiteralKind::Integer(IntegerLiteral { value: heap.intern_symbol(value) }));
     ///
     /// let person = Struct::from_fields(
     ///     &heap,
     ///     [
-    ///         (heap.intern_symbol("name"), Value::from("Alice")),
-    ///         (heap.intern_symbol("age"), Value::from(30)),
-    ///         (heap.intern_symbol("city"), Value::from("Boston")),
+    ///         (heap.intern_symbol("name"), string("Alice")),
+    ///         (heap.intern_symbol("age"), integer("30")),
+    ///         (heap.intern_symbol("city"), string("Boston")),
     ///     ],
     /// );
     ///

@@ -5,8 +5,13 @@ mod opaque;
 mod r#struct;
 mod tuple;
 
-pub use self::{dict::Dict, list::List, opaque::Opaque, r#struct::Struct, tuple::Tuple};
-use self::{r#struct::StructError, tuple::TupleError};
+pub use self::{
+    dict::Dict,
+    list::List,
+    opaque::Opaque,
+    r#struct::{Struct, StructError},
+    tuple::{Tuple, TupleError},
+};
 use crate::{literal::LiteralKind, symbol::Symbol};
 
 /// Errors that can occur when accessing fields on values.
@@ -50,17 +55,19 @@ impl core::error::Error for IndexAccessError {}
 /// ```
 /// use hashql_core::{
 ///     heap::Heap,
-///     literal::LiteralKind,
-///     symbol::Symbol,
+///     literal::{IntegerLiteral, LiteralKind, StringLiteral},
 ///     value::{Dict, List, Struct, Tuple, Value},
 /// };
 ///
 /// let heap = Heap::new();
+/// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
+/// # let integer = |value: &'static str| Value::Primitive(LiteralKind::Integer(IntegerLiteral { value: heap.intern_symbol(value) }));
+/// # let boolean = |value: bool| Value::Primitive(LiteralKind::Boolean(value));
 ///
 /// // Primitive values
-/// let number = Value::Primitive(LiteralKind::Integer(42.into()));
-/// let text = Value::Primitive(LiteralKind::String("hello".into()));
-/// let flag = Value::Primitive(LiteralKind::Boolean(true));
+/// let number = integer("42");
+/// let text = string("hello");
+/// let flag = boolean(true);
 ///
 /// // Collections
 /// let list = Value::List(List::from_values([number.clone(), text.clone()]));
@@ -70,14 +77,14 @@ impl core::error::Error for IndexAccessError {}
 /// let person = Value::Struct(Struct::from_fields(
 ///     &heap,
 ///     [
-///         (Symbol::from("name"), text.clone()),
-///         (Symbol::from("age"), number.clone()),
+///         (heap.intern_symbol("name"), text.clone()),
+///         (heap.intern_symbol("age"), number.clone()),
 ///     ],
 /// ));
 ///
 /// let config = Value::Dict(Dict::from_entries([
-///     (Value::from("debug"), flag),
-///     (Value::from("port"), number),
+///     (string("debug"), flag),
+///     (string("port"), number),
 /// ]));
 /// ```
 #[derive(Debug, Clone, PartialOrd, Ord, PartialEq, Eq, Hash, derive_more::From)]
@@ -105,12 +112,20 @@ impl<'heap> Value<'heap> {
     /// # Examples
     ///
     /// ```
-    /// use hashql_core::{literal::LiteralKind, value::Value};
+    /// use hashql_core::{
+    ///     heap::Heap,
+    ///     literal::{IntegerLiteral, LiteralKind, StringLiteral},
+    ///     value::Value,
+    /// };
     ///
-    /// let number = Value::Primitive(LiteralKind::Integer(42.into()));
+    /// let heap = Heap::new();
+    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
+    /// # let integer = |value: &'static str| Value::Primitive(LiteralKind::Integer(IntegerLiteral { value: heap.intern_symbol(value) }));
+    ///
+    /// let number = integer("42");
     /// assert_eq!(number.type_name(), "integer");
     ///
-    /// let text = Value::Primitive(LiteralKind::String("hello".into()));
+    /// let text = string("hello");
     /// assert_eq!(text.type_name(), "string");
     ///
     /// let flag = Value::Primitive(LiteralKind::Boolean(true));
@@ -147,37 +162,41 @@ impl<'heap> Value<'heap> {
     /// # Examples
     ///
     /// ```
+    /// # #![feature(assert_matches)]
+    /// # use core::assert_matches::assert_matches;
     /// use hashql_core::{
     ///     heap::Heap,
-    ///     symbol::Symbol,
+    ///     literal::{IntegerLiteral, LiteralKind, StringLiteral},
     ///     value::{FieldAccessError, Struct, Tuple, Value},
     /// };
     ///
     /// let heap = Heap::new();
+    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
+    /// # let integer = |value: &'static str| Value::Primitive(LiteralKind::Integer(IntegerLiteral { value: heap.intern_symbol(value) }));
     ///
     /// // Struct field access
     /// let person = Value::Struct(Struct::from_fields(
     ///     &heap,
-    ///     [(Symbol::from("name"), Value::from("Alice"))],
+    ///     [(heap.intern_symbol("name"), string("Alice"))],
     /// ));
-    /// let name_field = Symbol::from("name");
+    /// let name_field = heap.intern_symbol("name");
     /// assert_eq!(
     ///     person.access_by_field(name_field).unwrap(),
-    ///     &Value::from("Alice")
+    ///     &string("Alice")
     /// );
     ///
     /// // Tuple field access (using string index)
-    /// let point = Value::Tuple(Tuple::from_values([Value::from(1), Value::from(2)]));
-    /// let index_0 = Symbol::from("0");
-    /// assert_eq!(point.access_by_field(index_0).unwrap(), &Value::from(1));
+    /// let point = Value::Tuple(Tuple::from_values([integer("1"), integer("2")]));
+    /// let index_0 = heap.intern_symbol("0");
+    /// assert_eq!(point.access_by_field(index_0).unwrap(), &integer("1"));
     ///
     /// // Error case - field access on primitive
-    /// let number = Value::from(42);
-    /// let field = Symbol::from("invalid");
-    /// assert!(matches!(
+    /// let number = integer("42");
+    /// let field = heap.intern_symbol("invalid");
+    /// assert_matches!(
     ///     number.access_by_field(field),
     ///     Err(FieldAccessError::UnableToAccess("integer", _))
-    /// ));
+    /// );
     /// ```
     pub fn access_by_field(&self, field: Symbol<'heap>) -> Result<&Self, FieldAccessError<'heap>> {
         match self {
@@ -206,43 +225,48 @@ impl<'heap> Value<'heap> {
     /// # Examples
     ///
     /// ```
-    /// use core::assert_matches::assert_matches;
+    /// # #![feature(assert_matches)]
+    /// # use core::assert_matches::assert_matches;
     /// use hashql_core::{
-    ///     literal::LiteralKind,
+    ///     heap::Heap,
+    ///     literal::{IntegerLiteral, LiteralKind, StringLiteral},
     ///     value::{Dict, IndexAccessError, List, Value},
     /// };
     ///
+    /// let heap = Heap::new();
+    /// # let string = |value: &'static str| Value::Primitive(LiteralKind::String(StringLiteral { value: heap.intern_symbol(value) }));
+    /// # let integer = |value: &'static str| Value::Primitive(LiteralKind::Integer(IntegerLiteral { value: heap.intern_symbol(value) }));
+    ///
     /// // List index access
     /// let list = Value::List(List::from_values([
-    ///     Value::from("first"),
-    ///     Value::from("second"),
+    ///     string("first"),
+    ///     string("second"),
     /// ]));
-    /// let index = Value::Primitive(LiteralKind::Integer(0.into()));
+    /// let index = integer("0");
     /// assert_eq!(
     ///     list.access_by_index(&index).unwrap(),
-    ///     Some(&Value::from("first"))
+    ///     Some(&string("first"))
     /// );
     ///
     /// // Dict key access
-    /// let dict = Value::Dict(Dict::from_entries([(
-    ///     Value::from("key"),
-    ///     Value::from("value"),
-    /// )]));
-    /// let key = Value::from("key");
+    /// let dict = Value::Dict(Dict::from_entries([
+    ///     (string("key"), string("value"))
+    /// ]));
+    /// let key = string("key");
     /// assert_eq!(
     ///     dict.access_by_index(&key).unwrap(),
-    ///     Some(&Value::from("value"))
+    ///     Some(&string("value"))
     /// );
     ///
     /// // Error case - invalid index type for list
-    /// let invalid_index = Value::from("not_a_number");
+    /// let invalid_index = string("not_a_number");
     /// assert_matches!(
     ///     list.access_by_index(&invalid_index),
     ///     Err(IndexAccessError::InvalidListIndexType(_))
-    /// ));
+    /// );
     ///
     /// // Error case - index access on primitive
-    /// let number = Value::from(42);
+    /// let number = integer("42");
     /// assert_matches!(
     ///     number.access_by_index(&index),
     ///     Err(IndexAccessError::UnableToAccess("integer"))
