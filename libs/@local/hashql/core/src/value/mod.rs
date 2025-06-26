@@ -267,7 +267,7 @@ impl<'heap> Value<'heap> {
                     {
                         integer
                     }
-                    _ => return Err(IndexAccessError::InvalidListIndexType(self.type_name())),
+                    _ => return Err(IndexAccessError::InvalidListIndexType(index.type_name())),
                 };
 
                 let Some(index) = integer.as_usize() else {
