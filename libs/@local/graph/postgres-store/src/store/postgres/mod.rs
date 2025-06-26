@@ -58,6 +58,7 @@ use hash_temporal_client::TemporalClient;
 use postgres_types::{Json, ToSql};
 use time::OffsetDateTime;
 use tokio_postgres::{GenericClient as _, error::SqlState};
+use tracing::Instrument as _;
 use type_system::{
     Valid,
     knowledge::entity::{
@@ -836,6 +837,7 @@ where
         }
     }
 
+    #[tracing::instrument(skip(self))]
     async fn determine_actor(
         &self,
         actor_entity_uuid: ActorEntityUuid,
@@ -862,6 +864,7 @@ where
         }))
     }
 
+    #[tracing::instrument(level = "debug", skip(self, context_builder))]
     async fn build_principal_context(
         &self,
         actor_id: ActorId,
@@ -1270,6 +1273,7 @@ where
     }
 
     #[expect(clippy::too_many_lines)]
+    #[tracing::instrument(level = "info", skip(self, params), fields(actor_id = ?params.actor, action_count = params.actions.len()))]
     async fn resolve_policies_for_actor(
         &self,
         authenticated_actor: AuthenticatedActor,
@@ -1304,7 +1308,9 @@ where
         // The actions are associated in the `policy_action` table. We join that table and aggregate
         // the actions for each policy. All actions are included, but the action hierarchy is used
         // to determine which actions are relevant to the actor.
-        self.as_client()
+
+        self
+            .as_client()
             .query_raw(
                 "
                 WITH principals AS (
@@ -1404,10 +1410,22 @@ where
                     &&*params.actions,
                 ],
             )
+            .instrument(tracing::info_span!(
+                "sql_policy_query_execution",
+                actor_uuid = %actor_id,
+                actor_type = ?actor_id.actor_type(),
+                action_count = params.actions.len()
+            ))
             .await
             .change_context(GetPoliciesError::StoreError)?
             .map_err(|error| Report::new(error).change_context(GetPoliciesError::StoreError))
             .and_then(async |row| -> Result<_, Report<GetPoliciesError>> {
+                let _span = tracing::info_span!(
+                    "policy_conversion",
+                    policy_id = ?row.get::<_, PolicyId>(0),
+                    has_resource_constraint = row.get::<_, Option<Json<ResourceConstraint>>>(6).is_some()
+                ).entered();
+
                 PolicyParts {
                     id: row.get(0),
                     name: row.get(1),
@@ -1423,6 +1441,7 @@ where
                 .into_policy()
             })
             .try_collect::<Vec<_>>()
+            .instrument(tracing::info_span!("policy_result_collection"))
             .await
     }
 
@@ -1730,6 +1749,7 @@ where
             .change_context(EnsureSystemPoliciesError::StoreError)
     }
 
+    #[tracing::instrument(level = "debug", skip(self, entity_type_ids))]
     async fn build_entity_type_context(
         &self,
         entity_type_ids: &[&VersionedUrl],
@@ -1816,6 +1836,7 @@ where
             .change_context(BuildEntityTypeContextError::StoreError)?)
     }
 
+    #[tracing::instrument(level = "debug", skip(self, entity_edition_ids))]
     async fn build_entity_context(
         &self,
         entity_edition_ids: &[EntityEditionId],

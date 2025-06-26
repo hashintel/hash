@@ -263,7 +263,7 @@ where
                     &traversal_data.pinned_timestamp,
                 ],
             )
-            .instrument(tracing::trace_span!("query"))
+            .instrument(tracing::trace_span!("query_edges"))
             .await
             .change_context(QueryError)?
             .into_iter()
