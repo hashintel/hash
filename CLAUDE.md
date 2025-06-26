@@ -99,8 +99,6 @@ async fn execute_query(&self, table_name: &str) -> Result<Rows, Error> {
 
 ### Manual Instrumentation for Async Calls
 
-#### Creating New Spans
-
 When adding tracing spans to async code, use `.instrument()` before `.await`:
 
 ```rust
@@ -117,12 +115,12 @@ let result = async {
 .await?;
 ```
 
-#### Inheriting Current Span Context
+### Span Context Inheritance
 
-For certain scenarios where span context needs to be explicitly inherited, use `.in_current_span()`:
+Use `.in_current_span()` when span context would otherwise be lost:
 
 ```rust
-// ✅ Required for spawned tasks - inherits current span context
+// ✅ Required for spawned tasks
 tokio::spawn(async {
     background_work().await
 }.in_current_span());
@@ -148,24 +146,39 @@ async fn some_function() -> Result<T, E> {
 }
 ```
 
-### When to Use `.in_current_span()`
-
 **Simple Rule: Use `.in_current_span()` when you CANNOT use `.await`**
 
-- **Can you write `.await`?** → No `.in_current_span()` needed (span context transfers automatically)
-- **Cannot write `.await`?** → `.in_current_span()` likely needed
+### Synchronous Span Execution
 
-**Specific cases requiring `.in_current_span()`:**
+For synchronous operations within a specific span context:
 
-1. **Spawned tasks**: `tokio::spawn(async { ... }.in_current_span())`
-2. **Non-async functions returning Future**: Functions with `#[instrument]` that return `impl Future` using combinator chains (`.and_then`, `.map`, etc.)
-3. **Cross-thread async work**: When moving async work across thread boundaries
+```rust
+// ✅ Execute synchronous work within a span
+let span = tracing::info_span!("sync_operation", field = %value);
+let result = span.in_scope(|| {
+    expensive_computation()
+});
+```
 
-**Cases NOT requiring `.in_current_span()`:**
+**Prefer `.in_scope()` over `.enter()` when possible:**
 
-- **Async functions**: Span context is automatically inherited across `.await` points
-- **Async blocks in non-async functions**: `async { ... }` blocks automatically inherit span context
-- **Normal function calls**: Synchronous code within the same thread
+- **Cannot use `.await`**: `.in_scope()` requires a synchronous closure - cannot accidentally mix async code
+- **Clear boundaries**: Explicit scope for when the span is active
+
+### Span API Reference
+
+**Creating and Entering Spans:**
+
+- `tracing::info_span!("name")` - Create a span
+- `span.in_scope(|| { ... })` - Execute closure within span context
+- `span.enter()` - Enter span context (less preferred than `.in_scope()`, in particular in async code as it's not compatible with `.await`)
+- `#[tracing::instrument]` - Automatic function-level instrumentation
+
+**Async Span Integration:**
+
+- `.instrument(span)` - Wrap Future with span
+- `.in_current_span()` - Inherit current span context for Future
+- `#[tracing::instrument]` - Automatic function-level instrumentation
 
 ### When to Use Each Approach
 

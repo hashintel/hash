@@ -135,14 +135,14 @@ where
         )
         .await?;
 
-        let _span = tracing::info_span!("insert_into_subgraph", count = entities.len()).entered();
-
-        for entity in entities {
-            subgraph.insert_vertex(
-                entity.vertex_id(subgraph.temporal_axes.resolved.variable_time_axis()),
-                entity,
-            );
-        }
+        tracing::info_span!("insert_into_subgraph", count = entities.len()).in_scope(|| {
+            for entity in entities {
+                subgraph.insert_vertex(
+                    entity.vertex_id(subgraph.temporal_axes.resolved.variable_time_axis()),
+                    entity,
+                );
+            }
+        });
 
         Ok(())
     }

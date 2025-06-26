@@ -177,39 +177,19 @@ where
             for (entity_vertex_id, graph_resolve_depths, traversal_interval) in
                 entity_queue.drain(..)
             {
-                let _span = tracing::trace_span!(
+                tracing::trace_span!(
                     "traverse_edges",
                     entity_id = %entity_vertex_id.base_id,
                     entity_revision = %entity_vertex_id.revision_id,
                     graph_resolve_depths = ?graph_resolve_depths,
                     traversal_interval = ?traversal_interval
                 )
-                .entered();
-
-                if let Some(new_graph_resolve_depths) = graph_resolve_depths
-                    .decrement_depth_for_edge(SharedEdgeKind::IsOfType, EdgeDirection::Outgoing)
-                {
-                    shared_edges_to_traverse
-                        .get_or_insert_with(|| {
-                            EntityEdgeTraversalData::new(
-                                subgraph.temporal_axes.resolved.pinned_timestamp(),
-                                variable_axis,
-                            )
-                        })
-                        .push(
-                            entity_vertex_id,
-                            traversal_interval,
-                            new_graph_resolve_depths,
-                        );
-                }
-
-                for (edge_kind, edge_direction, _) in entity_edges {
-                    if let Some(new_graph_resolve_depths) =
-                        graph_resolve_depths.decrement_depth_for_edge(edge_kind, edge_direction)
+                .in_scope(|| {
+                    if let Some(new_graph_resolve_depths) = graph_resolve_depths
+                        .decrement_depth_for_edge(SharedEdgeKind::IsOfType, EdgeDirection::Outgoing)
                     {
-                        knowledge_edges_to_traverse
-                            .entry((edge_kind, edge_direction))
-                            .or_insert_with(|| {
+                        shared_edges_to_traverse
+                            .get_or_insert_with(|| {
                                 EntityEdgeTraversalData::new(
                                     subgraph.temporal_axes.resolved.pinned_timestamp(),
                                     variable_axis,
@@ -221,7 +201,27 @@ where
                                 new_graph_resolve_depths,
                             );
                     }
-                }
+
+                    for (edge_kind, edge_direction, _) in entity_edges {
+                        if let Some(new_graph_resolve_depths) =
+                            graph_resolve_depths.decrement_depth_for_edge(edge_kind, edge_direction)
+                        {
+                            knowledge_edges_to_traverse
+                                .entry((edge_kind, edge_direction))
+                                .or_insert_with(|| {
+                                    EntityEdgeTraversalData::new(
+                                        subgraph.temporal_axes.resolved.pinned_timestamp(),
+                                        variable_axis,
+                                    )
+                                })
+                                .push(
+                                    entity_vertex_id,
+                                    traversal_interval,
+                                    new_graph_resolve_depths,
+                                );
+                        }
+                    }
+                });
             }
 
             if let Some(traversal_data) = shared_edges_to_traverse.take() {
