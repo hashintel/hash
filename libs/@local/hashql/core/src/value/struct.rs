@@ -154,3 +154,35 @@ impl<'heap> Index<Symbol<'heap>> for Struct<'heap> {
         self.get(index).expect("struct field not found")
     }
 }
+
+#[expect(unsafe_code)]
+#[inline]
+fn co_sort<T: Ord, U>(lhs: &mut [T], rhs: &mut [U]) {
+    let n = lhs.len();
+    assert_eq!(n, rhs.len(), "lhs and rhs must have the same length");
+
+    // permutation[i] == original index of the i-th smallest element
+    let mut permutation: Vec<usize> = (0..n).collect();
+
+    permutation.sort_unstable_by_key(|&idx| {
+        // SAFETY: 0 ≤ idx < n by construction
+        unsafe { lhs.get_unchecked(idx) }
+    });
+
+    assert_eq!(permutation.len(), n); // guides LLVM to remove bounds checks
+    for index in 0..n {
+        let mut position = permutation[index];
+        while index != position {
+            debug_assert!(position < n);
+            debug_assert_ne!(index, position);
+
+            // SAFETY: both indices < n and distinct
+            unsafe {
+                lhs.swap_unchecked(index, position);
+                rhs.swap_unchecked(index, position);
+                permutation.swap_unchecked(index, position);
+            }
+            position = permutation[index];
+        }
+    }
+}

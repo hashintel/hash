@@ -12,6 +12,7 @@
     default_field_values,
     iter_map_windows,
     slice_partition_dedup,
+    slice_swap_unchecked,
     variant_count,
     // Language Features
     arbitrary_self_types,
