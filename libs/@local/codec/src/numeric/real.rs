@@ -68,6 +68,17 @@ pub struct ParseError(dashu_base::ParseError);
 /// let maybe_int = value.to_i32(); // Some(42)
 /// let float_val = value.to_f64(); // 42.0
 /// ```
+///
+/// # Implementation Notes
+///
+/// - **Decimal radix** – The significand is stored in base-10, so values such as `0.1` and `0.01`
+///   round-trip without error (`Real::from_str("0.1")?.to_string() == "0.1"`).
+/// - **Software fallback** – CPUs only accelerate binary FP; decimal math runs in software and is
+///   typically **3–10x** slower and larger than `f64`.
+/// - **Deterministic text I/O** – Converting to and from strings is loss-free, which ensures that
+///   serialized data, logs, and config files preserve every digit.
+/// - **When to pick `Real`** – Prefer it for financial or audit-grade workflows where correctness
+///   outweighs raw throughput. For hot paths that tolerate a few ULPs, stick to `f32`/`f64`.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
 pub struct Real(#[cfg_attr(feature = "codegen", specta(type = f64))] dashu_float::DBig);
