@@ -39,12 +39,12 @@ pub use self::{
     statement::{
         Distinctness, InsertStatementBuilder, SelectStatement, Statement, WindowStatement,
     },
-    table::{Alias, AliasedTable, Column, ForeignKeyReference, ReferenceTable, Table},
+    table::{
+        Alias, AliasedTable, Column, ForeignKeyReference, JsonField, ReferenceTable, Relation,
+        Table,
+    },
 };
-use crate::store::postgres::{
-    crud::QueryRecordDecode,
-    query::table::{JsonField, Relation},
-};
+use crate::store::postgres::crud::QueryRecordDecode;
 
 pub trait PostgresRecord: QueryRecord + QueryRecordDecode<Output = Self> {
     type CompilationParameters: Send + 'static;

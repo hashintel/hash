@@ -369,6 +369,7 @@ pub enum JsonField<'p> {
 }
 
 impl<'p> JsonField<'p> {
+    #[must_use]
     pub const fn into_owned(
         self,
         current_parameter_index: usize,
@@ -1948,6 +1949,7 @@ impl Iterator for ForeignKeyJoin {
 
 impl Relation {
     #[expect(clippy::too_many_lines)]
+    #[must_use]
     pub fn joins(self) -> ForeignKeyJoin {
         match self {
             Self::OntologyIds => ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
@@ -2111,6 +2113,7 @@ impl Relation {
         }
     }
 
+    #[must_use]
     pub fn additional_conditions(self, aliased_table: AliasedTable) -> Vec<Condition> {
         match (self, aliased_table.table) {
             (Self::Reference { table, .. }, Table::Reference(reference_table))
