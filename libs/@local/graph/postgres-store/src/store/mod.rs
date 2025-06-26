@@ -3,7 +3,7 @@ pub mod error;
 mod config;
 mod validation;
 
-pub mod postgres;
+pub(crate) mod postgres;
 
 pub use self::{
     config::{DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType},
