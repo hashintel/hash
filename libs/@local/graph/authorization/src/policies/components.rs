@@ -86,9 +86,17 @@ impl PolicyComponents {
     #[tracing::instrument(level = "info", skip(self))]
     pub fn extract_filter_policies(
         &self,
+        action: ActionName,
     ) -> impl Iterator<Item = (Effect, Option<&ResourceConstraint>)> {
+        debug_assert!(
+            self.tracked_actions.contains(&action),
+            "action `{}` not tracked",
+            action.to_string()
+        );
+
         self.policies
             .iter()
+            .filter(move |policy| policy.actions.contains(&action))
             .map(|policy| (policy.effect, policy.resource.as_ref()))
     }
 
@@ -584,12 +592,14 @@ mod tests {
                 Uuid::new_v4(),
             ))),
             policies: vec![policy],
-            tracked_actions: HashSet::new(),
+            tracked_actions: HashSet::from([ActionName::View]),
             context: Context::default(),
             optimization_data: OptimizationData::default(),
         };
 
-        let filter_policies: Vec<_> = policy_components.extract_filter_policies().collect();
+        let filter_policies: Vec<_> = policy_components
+            .extract_filter_policies(ActionName::View)
+            .collect();
 
         assert_eq!(
             filter_policies.len(),
