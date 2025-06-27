@@ -1756,7 +1756,7 @@ where
         let policy_components = PolicyComponents::builder(self)
             .with_actor(authenticated_user)
             .with_entity_type_ids(entity_type_ids.iter())
-            .with_action(ActionName::Instantiate)
+            .with_action(ActionName::Instantiate, false)
             .await
             .change_context(QueryError)?;
 
@@ -1780,15 +1780,17 @@ where
             );
         }
 
+        let policy_set = policy_components
+            .build_policy_set([ActionName::Instantiate])
+            .change_context(QueryError)?;
+
         entity_type_id_set
             .into_iter()
             .map(|(base, parents)| {
                 // We need to check the base entity type and all its parents
                 // to see if the user can instantiate it.
                 for entity_type_id in iter::once(base).chain(parents) {
-                    let allowed = policy_components
-                        .build_policy_set()
-                        .change_context(QueryError)?
+                    let allowed = policy_set
                         .evaluate(
                             &Request {
                                 actor: policy_components.actor_id(),

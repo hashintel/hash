@@ -262,14 +262,14 @@ where
     ) -> Result<CreateWebResponse, Report<WebCreationError>> {
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor)
-            .with_action(ActionName::CreateWeb)
+            .with_action(ActionName::CreateWeb, false)
             .await
             .change_context(WebCreationError::BuildPolicyComponents)?;
 
         let web_id = WebId::new(parameter.id.unwrap_or_else(Uuid::new_v4));
 
         match policy_components
-            .build_policy_set()
+            .build_policy_set([ActionName::CreateWeb])
             .change_context(WebCreationError::PolicySetCreation)?
             .evaluate(
                 &Request {

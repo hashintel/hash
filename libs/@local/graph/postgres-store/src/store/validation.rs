@@ -615,7 +615,7 @@ where
             let filter = Filter::for_policies(
                 policy_components.extract_filter_policies(ActionName::ViewEntity),
                 policy_components.actor_id(),
-                policy_components.optimization_data(),
+                policy_components.optimization_data(ActionName::ViewEntity),
             );
             filters.push(filter);
         }
