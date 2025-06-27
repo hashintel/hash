@@ -136,7 +136,11 @@ impl Real {
             .0
             .clone()
             .with_rounding::<mode::HalfEven>()
-            .with_base_and_precision::<2>(f32::MANTISSA_DIGITS as usize)
+            .with_base::<2>()
+            .and_then(|value|
+                // We cannot use `with_base_and_precision` here, because if we do that, the significand
+                // could be larger than f32::MANTISSA_DIGITS as usize
+                value.with_precision(f32::MANTISSA_DIGITS as usize))
             .value();
 
         if value.repr().significand().bit_len() > f32::MANTISSA_DIGITS as usize {
@@ -180,7 +184,11 @@ impl Real {
             .0
             .clone()
             .with_rounding::<mode::HalfEven>()
-            .with_base_and_precision::<2>(f64::MANTISSA_DIGITS as usize)
+            .with_base::<2>()
+            .and_then(|value|
+                // We cannot use `with_base_and_precision` here, because if we do that, the significand
+                // could be larger than f64::MANTISSA_DIGITS as usize
+                value.with_precision(f64::MANTISSA_DIGITS as usize))
             .value();
 
         if value.repr().significand().bit_len() > f64::MANTISSA_DIGITS as usize {
@@ -191,11 +199,8 @@ impl Real {
     }
 
     #[must_use]
-    #[expect(clippy::float_arithmetic, clippy::print_stdout, clippy::print_stderr)]
+    #[expect(clippy::float_arithmetic)]
     pub fn to_f64_lossy(&self) -> f64 {
-        println!("Converting: {self}");
-        eprintln!("Converting: {self}");
-
         if let Some(value) = self.to_f64() {
             return value;
         }
@@ -375,7 +380,7 @@ impl<'de> Deserialize<'de> for Real {
 #[cfg(feature = "serde")]
 impl Serialize for Real {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        self.0.to_f64().value().serialize(serializer)
+        self.to_f64_lossy().serialize(serializer)
     }
 }
 
@@ -626,14 +631,25 @@ mod tests {
         let outside_f64 = Real::from_natural(123_456_789, 20); // 123456789 * 10^20
 
         assert_eq!(inside_f32.to_f32(), Some(inside_f32.to_f32_lossy()));
-        assert_eq!(inside_f64.to_f32(), None);
+        assert_eq!(inside_f64.to_f32(), Some(16_777_216.0)); // This works because the significand is less than 24 after conversion
         assert_eq!(inside_f64.to_f32_lossy(), 16_777_216.0);
-        assert_eq!(outside_f64.to_f32(), None);
+        assert_eq!(outside_f64.to_f32(), Some(1.234_567_9e28)); // This works because the significand is less than 24 after conversion
         assert_eq!(outside_f64.to_f32_lossy(), 1.234_567_9e28); // 12345679 * 10^21
 
         assert_eq!(inside_f32.to_f64(), Some(inside_f32.to_f64_lossy()));
         assert_eq!(inside_f64.to_f64(), Some(inside_f64.to_f64_lossy()));
-        assert_eq!(outside_f64.to_f64(), None);
+        assert_eq!(outside_f64.to_f64(), Some(1.234_567_89e28)); // This works because the significand is less than 53 after conversion
         assert_eq!(outside_f64.to_f64_lossy(), 1.234_567_89e28); // 123456789 * 10^21
+    }
+
+    #[test]
+    #[expect(clippy::float_cmp)]
+    fn regression() {
+        let value = Real::try_from(0.0254).expect("valid value");
+        assert_eq!(value.to_f64_lossy(), 0.0254);
+
+        let value = Real::from_str("88888888888888888").expect("valid value");
+        assert_eq!(value.to_f64(), Some(8.888_888_888_888_89e16));
+        assert_eq!(value.to_f64_lossy(), 88_888_888_888_888_900.0);
     }
 }
