@@ -191,8 +191,9 @@ impl Real {
     }
 
     #[must_use]
-    #[expect(clippy::float_arithmetic)]
+    #[expect(clippy::float_arithmetic, clippy::print_stdout, clippy::print_stderr)]
     pub fn to_f64_lossy(&self) -> f64 {
+        println!("Converting: {self}");
         eprintln!("Converting: {self}");
 
         if let Some(value) = self.to_f64() {
