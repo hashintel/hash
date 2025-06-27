@@ -9,6 +9,9 @@ use bytes::BytesMut;
 use postgres_types::{IsNull, ToSql, Type};
 use serde::{Deserialize, Serialize, Serializer};
 
+/// A single component in a JSON path.
+///
+/// Represents either a field access by name or an array index access.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Deserialize)]
 #[serde(untagged)]
 pub enum PathToken<'p> {
@@ -16,17 +19,41 @@ pub enum PathToken<'p> {
     Index(usize),
 }
 
+/// A JSON path expression for navigating JSON data structures.
+///
+/// Represents a path through nested JSON objects and arrays using dot notation
+/// for field access and bracket notation for array indices. Paths always start
+/// with a `$` root indicator.
+///
+/// # Examples
+///
+/// ```
+/// use std::borrow::Cow;
+///
+/// use hash_graph_store::filter::{JsonPath, PathToken};
+///
+/// // Create a path for $.users[0].name
+/// let path = JsonPath::from_path_tokens(vec![
+///     PathToken::Field(Cow::Borrowed("users")),
+///     PathToken::Index(0),
+///     PathToken::Field(Cow::Borrowed("name")),
+/// ]);
+///
+/// assert_eq!(path.to_string(), r#"$."users"[0]."name""#);
+/// ```
 #[derive(Clone, PartialEq, Eq, Hash)]
 pub struct JsonPath<'p> {
     path: Vec<PathToken<'p>>,
 }
 
 impl<'p> JsonPath<'p> {
+    /// Creates a new JSON path from a sequence of path tokens.
     #[must_use]
     pub const fn from_path_tokens(path: Vec<PathToken<'p>>) -> Self {
         Self { path }
     }
 
+    /// Appends a path token to the end of this JSON path.
     pub fn push(&mut self, token: PathToken<'p>) {
         self.path.push(token);
     }
@@ -46,6 +73,7 @@ impl<'p> JsonPath<'p> {
         Ok(())
     }
 
+    /// Converts this JSON path into an owned version with `'static` lifetime.
     #[must_use]
     pub fn into_owned(self) -> JsonPath<'static> {
         JsonPath {
