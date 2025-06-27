@@ -485,7 +485,7 @@ mod tests {
         let mut policy_components = PolicyComponents {
             actor_id: None,
             policies,
-            tracked_actions: HashMap::new(),
+            tracked_actions: HashMap::from([(ActionName::View, None)]),
             context: Context::default(),
         };
 
@@ -511,8 +511,10 @@ mod tests {
             "should show basic error message"
         );
         assert!(
-            debug_message.contains("Cannot create PolicySet when optimization has occurred"),
-            "should include detailed error information"
+            debug_message.contains(
+                "Action `view` has been optimized and cannot be used to create a `PolicySet`"
+            ),
+            "should include detailed error information",
         );
     }
 
@@ -533,7 +535,7 @@ mod tests {
         let policy_components_without_optimization = PolicyComponents {
             actor_id: None,
             policies: policies_without_optimization,
-            tracked_actions: HashMap::new(),
+            tracked_actions: HashMap::from([(ActionName::View, None)]),
             context: Context::default(),
         };
 
