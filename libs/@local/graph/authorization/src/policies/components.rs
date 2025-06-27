@@ -312,21 +312,57 @@ impl<'a, S> PolicyComponentsBuilder<'a, S> {
         self
     }
 
+    /// Adds an action to be tracked during policy resolution.
+    ///
+    /// The `action` will be included in policy queries and evaluation. The `optimize`
+    /// parameter controls whether this action undergoes optimization analysis, which
+    /// can improve database query performance by extracting optimizable policies.
+    ///
+    /// When `optimize` is `true`, the resulting [`PolicyComponents`] cannot be used
+    /// to create a [`PolicySet`] for this action, as optimizable policies are
+    /// extracted during analysis.
     pub fn add_action(&mut self, action: ActionName, optimize: bool) {
         self.actions.insert(action, optimize);
     }
 
+    /// Adds multiple actions to be tracked during policy resolution.
+    ///
+    /// All provided `actions` will be included in policy queries and evaluation.
+    /// The `optimize` parameter applies to all actions and controls whether they
+    /// undergo optimization analysis for improved database query performance.
+    ///
+    /// When `optimize` is `true`, the resulting [`PolicyComponents`] cannot be used
+    /// to create a [`PolicySet`] for any of these actions, as optimizable policies
+    /// are extracted during analysis.
     pub fn add_actions(&mut self, actions: impl IntoIterator<Item = ActionName>, optimize: bool) {
         self.actions
             .extend(actions.into_iter().map(|action| (action, optimize)));
     }
 
+    /// Adds an action to be tracked and returns the builder.
+    ///
+    /// The `action` will be included in policy queries and evaluation. The `optimize`
+    /// parameter controls whether this action undergoes optimization analysis, which
+    /// can improve database query performance by extracting optimizable policies.
+    ///
+    /// When `optimize` is `true`, the resulting [`PolicyComponents`] cannot be used
+    /// to create a [`PolicySet`] for this action, as optimizable policies are
+    /// extracted during analysis.
     #[must_use]
     pub fn with_action(mut self, action: ActionName, optimize: bool) -> Self {
         self.add_action(action, optimize);
         self
     }
 
+    /// Adds multiple actions to be tracked and returns the builder.
+    ///
+    /// All provided `actions` will be included in policy queries and evaluation.
+    /// The `optimize` parameter applies to all actions and controls whether they
+    /// undergo optimization analysis for improved database query performance.
+    ///
+    /// When `optimize` is `true`, the resulting [`PolicyComponents`] cannot be used
+    /// to create a [`PolicySet`] for any of these actions, as optimizable policies
+    /// are extracted during analysis.
     #[must_use]
     pub fn with_actions(
         mut self,
