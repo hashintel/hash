@@ -193,6 +193,8 @@ impl Real {
     #[must_use]
     #[expect(clippy::float_arithmetic)]
     pub fn to_f64_lossy(&self) -> f64 {
+        eprintln!("Converting: {self}");
+
         if let Some(value) = self.to_f64() {
             return value;
         }
