@@ -28,7 +28,7 @@ use core::{fmt, ops, str::FromStr};
 
 #[cfg(feature = "postgres")]
 use bytes::BytesMut;
-use dashu_base::Sign;
+use dashu_base::{BitTest as _, Sign};
 use dashu_float::round::mode;
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, IsNull, ToSql, Type};
@@ -118,14 +118,96 @@ impl Real {
         self.0.to_int().value().try_into().ok()
     }
 
-    #[must_use]
-    pub fn to_f32(&self) -> f32 {
-        self.0.to_f32().value()
+    const fn is_infinite(&self) -> bool {
+        self.0.repr().is_infinite()
     }
 
     #[must_use]
-    pub fn to_f64(&self) -> f64 {
-        self.0.to_f64().value()
+    pub fn to_f32(&self) -> Option<f32> {
+        // Infinite values can always be converted to f32, regardless of precision
+        if self.is_infinite() {
+            return Some(self.0.to_f32().value());
+        }
+
+        // Emulate the same thing that's happening in f32, we need to do this beforehand to
+        // determine if we can actually losslessly convert to `f32`, otherwise `to_f32` will panic.
+        // see: https://github.com/cmpute/dashu/issues/56
+        let value = self
+            .0
+            .clone()
+            .with_rounding::<mode::HalfEven>()
+            .with_base_and_precision::<2>(f32::MANTISSA_DIGITS as usize)
+            .value();
+
+        if value.repr().significand().bit_len() > f32::MANTISSA_DIGITS as usize {
+            return None;
+        }
+
+        Some(value.to_f32().value())
+    }
+
+    #[must_use]
+    #[expect(clippy::float_arithmetic)]
+    pub fn to_f32_lossy(&self) -> f32 {
+        if let Some(value) = self.to_f32() {
+            return value;
+        }
+
+        let (significant, exponent) = (self.0.repr().significand(), self.0.repr().exponent());
+
+        // We cannot use `to_f32` natively even with smaller precision due to how dashu works, see:
+        // https://github.com/cmpute/dashu/issues/56
+        let exponent = exponent.try_into().map_or_else(
+            #[expect(clippy::cast_precision_loss)]
+            |_| 10_f32.powf(exponent as f32),
+            |exponent| 10_f32.powi(exponent),
+        );
+
+        significant.to_f32().value() * exponent
+    }
+
+    #[must_use]
+    pub fn to_f64(&self) -> Option<f64> {
+        // Infinite values can always be converted to f64, regardless of precision
+        if self.is_infinite() {
+            return Some(self.0.to_f64().value());
+        }
+
+        // Emulate the same thing that's happening in f64, we need to do this beforehand to
+        // determine if we can actually losslessly convert to `f64`, otherwise `to_f64` will panic.
+        // see: https://github.com/cmpute/dashu/issues/56
+        let value = self
+            .0
+            .clone()
+            .with_rounding::<mode::HalfEven>()
+            .with_base_and_precision::<2>(f64::MANTISSA_DIGITS as usize)
+            .value();
+
+        if value.repr().significand().bit_len() > f64::MANTISSA_DIGITS as usize {
+            return None;
+        }
+
+        Some(value.to_f64().value())
+    }
+
+    #[must_use]
+    #[expect(clippy::float_arithmetic)]
+    pub fn to_f64_lossy(&self) -> f64 {
+        if let Some(value) = self.to_f64() {
+            return value;
+        }
+
+        let (significant, exponent) = (self.0.repr().significand(), self.0.repr().exponent());
+
+        // We cannot use `to_f64` natively even with smaller precision due to how dashu works, see:
+        // https://github.com/cmpute/dashu/issues/56
+        let exponent = exponent.try_into().map_or_else(
+            #[expect(clippy::cast_precision_loss)]
+            |_| 10_f64.powf(exponent as f64),
+            |exponent| 10_f64.powi(exponent),
+        );
+
+        significant.to_f64().value() * exponent
     }
 }
 
@@ -162,8 +244,8 @@ impl ToSql for Real {
         Self: Sized,
     {
         match *ty {
-            Type::FLOAT4 => <f32 as ToSql>::to_sql(&self.to_f32(), ty, out),
-            Type::FLOAT8 => <f64 as ToSql>::to_sql(&self.to_f64(), ty, out),
+            Type::FLOAT4 => <f32 as ToSql>::to_sql(&self.to_f32_lossy(), ty, out),
+            Type::FLOAT8 => <f64 as ToSql>::to_sql(&self.to_f64_lossy(), ty, out),
             _ => Err("Invalid type".into()),
         }
     }
@@ -433,7 +515,7 @@ mod tests {
         let real = Real::from_natural(42, 0);
         assert_eq!(real.to_i32(), Some(42));
         assert!(
-            (real.to_f64() - 42.0).abs() < f64::EPSILON,
+            (real.to_f64_lossy() - 42.0).abs() < f64::EPSILON,
             "Expected real.to_f64() to be approximately 42.0"
         );
     }
@@ -497,7 +579,7 @@ mod tests {
             .expect("should deserialize float value successfully");
 
         assert!(
-            (value.to_f64() - 123.456).abs() < 0.000_001,
+            (value.to_f64_lossy() - 123.456).abs() < 0.000_001,
             "Expected value.to_f64() to be approximately 123.456"
         );
     }
@@ -530,6 +612,25 @@ mod tests {
         let large_value = Real::try_from(f64::MAX).expect("Failed to convert f64::MAX to Real");
 
         // Should fail to give an accurate result
-        assert!(large_value.to_f32().is_infinite());
+        assert!(large_value.to_f32_lossy().is_infinite());
+    }
+
+    #[test]
+    #[expect(clippy::float_cmp, clippy::decimal_literal_representation)]
+    fn lossy_vs_exact_conversion() {
+        let inside_f32 = Real::from_natural(123_456, 0); // 123456 - needs ~17 bits
+        let inside_f64 = Real::from_natural(16_777_217, 0); // 2^24 + 1 - needs 25 bits
+        let outside_f64 = Real::from_natural(123_456_789, 20); // 123456789 * 10^20
+
+        assert_eq!(inside_f32.to_f32(), Some(inside_f32.to_f32_lossy()));
+        assert_eq!(inside_f64.to_f32(), None);
+        assert_eq!(inside_f64.to_f32_lossy(), 16_777_216.0);
+        assert_eq!(outside_f64.to_f32(), None);
+        assert_eq!(outside_f64.to_f32_lossy(), 1.234_567_9e28); // 12345679 * 10^21
+
+        assert_eq!(inside_f32.to_f64(), Some(inside_f32.to_f64_lossy()));
+        assert_eq!(inside_f64.to_f64(), Some(inside_f64.to_f64_lossy()));
+        assert_eq!(outside_f64.to_f64(), None);
+        assert_eq!(outside_f64.to_f64_lossy(), 1.234_567_89e28); // 123456789 * 10^21
     }
 }
