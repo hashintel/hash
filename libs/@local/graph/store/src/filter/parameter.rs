@@ -284,7 +284,7 @@ impl Parameter<'_> {
                                     expected: expected.clone(),
                                 });
                             };
-                            Ok(number.to_f32())
+                            Ok(number.to_f32_lossy())
                         })
                         .collect::<Result<_, _>>()?,
                 );
