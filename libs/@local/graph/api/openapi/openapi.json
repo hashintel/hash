@@ -4512,6 +4512,12 @@
               }
             ]
           },
+          "policies": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
           "properties": {
             "$ref": "#/components/schemas/PropertyObjectWithMetadata"
           },

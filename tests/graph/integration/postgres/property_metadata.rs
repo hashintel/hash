@@ -192,6 +192,7 @@ async fn initial_metadata() {
                 link_data: None,
                 draft: true,
                 relationships: [],
+                policies: Vec::new(),
                 provenance: ProvidedEntityEditionProvenance {
                     actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
@@ -329,6 +330,7 @@ async fn no_initial_metadata() {
                 link_data: None,
                 draft: false,
                 relationships: [],
+                policies: Vec::new(),
                 provenance: ProvidedEntityEditionProvenance {
                     actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
@@ -549,6 +551,7 @@ async fn properties_add() {
                 link_data: None,
                 draft: false,
                 relationships: [],
+                policies: Vec::new(),
                 provenance: ProvidedEntityEditionProvenance {
                     actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
@@ -654,6 +657,7 @@ async fn properties_remove() {
                 link_data: None,
                 draft: false,
                 relationships: [],
+                policies: Vec::new(),
                 provenance: ProvidedEntityEditionProvenance {
                     actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),

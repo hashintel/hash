@@ -12,13 +12,15 @@ use hash_graph_authorization::{
     AuthorizationApiPool,
     policies::{
         Policy, PolicyId,
-        store::{PolicyCreationParams, PolicyFilter, PolicyStore, PolicyUpdateOperation},
+        store::{
+            PolicyCreationParams, PolicyFilter, PolicyStore, PolicyUpdateOperation,
+            ResolvePoliciesParams,
+        },
     },
 };
 use hash_graph_store::pool::StorePool;
 use hash_temporal_client::TemporalClient;
 use http::StatusCode;
-use type_system::principal::actor::ActorId;
 use utoipa::OpenApi;
 
 use crate::rest::{AuthenticatedUserHeader, json::Json, status::report_to_response};
@@ -113,7 +115,7 @@ where
         )
         .await
         .map_err(report_to_response)?
-        .create_policy(authenticated_actor_id, policy)
+        .create_policy(authenticated_actor_id.into(), policy)
         .await
         .map_err(report_to_response)
         .map(Json)
@@ -159,7 +161,7 @@ where
         )
         .await
         .map_err(report_to_response)?
-        .get_policy_by_id(authenticated_actor_id, policy_id)
+        .get_policy_by_id(authenticated_actor_id.into(), policy_id)
         .await
         .map_err(report_to_response)
         .map(Json)
@@ -205,7 +207,7 @@ where
         )
         .await
         .map_err(report_to_response)?
-        .query_policies(authenticated_actor_id, &filter)
+        .query_policies(authenticated_actor_id.into(), &filter)
         .await
         .map_err(report_to_response)
         .map(Json)
@@ -234,7 +236,7 @@ async fn resolve_policies_for_actor<S, A>(
     store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
-    Json(actor_id): Json<ActorId>,
+    Json(params): Json<ResolvePoliciesParams<'static>>,
 ) -> Result<Json<Vec<Policy>>, Response>
 where
     S: StorePool + Send + Sync,
@@ -251,7 +253,7 @@ where
         )
         .await
         .map_err(report_to_response)?
-        .resolve_policies_for_actor(authenticated_actor_id, Some(actor_id))
+        .resolve_policies_for_actor(authenticated_actor_id.into(), params)
         .await
         .map_err(report_to_response)
         .map(Json)
@@ -299,7 +301,7 @@ where
         )
         .await
         .map_err(report_to_response)?
-        .update_policy_by_id(authenticated_actor_id, policy_id, &operations)
+        .update_policy_by_id(authenticated_actor_id.into(), policy_id, &operations)
         .await
         .map_err(report_to_response)
         .map(Json)
@@ -345,7 +347,7 @@ where
         )
         .await
         .map_err(report_to_response)?
-        .archive_policy_by_id(authenticated_actor_id, policy_id)
+        .archive_policy_by_id(authenticated_actor_id.into(), policy_id)
         .await
         .map_err(report_to_response)
         .map(|()| StatusCode::NO_CONTENT)
@@ -391,7 +393,7 @@ where
         )
         .await
         .map_err(report_to_response)?
-        .delete_policy_by_id(authenticated_actor_id, policy_id)
+        .delete_policy_by_id(authenticated_actor_id.into(), policy_id)
         .await
         .map_err(report_to_response)
         .map(|()| StatusCode::NO_CONTENT)

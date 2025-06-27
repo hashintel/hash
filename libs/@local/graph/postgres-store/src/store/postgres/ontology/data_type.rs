@@ -7,8 +7,9 @@ use futures::StreamExt as _;
 use hash_graph_authorization::{
     AuthorizationApi,
     backend::ModifyRelationshipOperation,
+    policies::PolicyComponents,
     schema::{DataTypeOwnerSubject, DataTypePermission, DataTypeRelationAndSubject, WebPermission},
-    zanzibar::{Consistency, Zookie},
+    zanzibar::Consistency,
 };
 use hash_graph_store::{
     data_type::{
@@ -65,7 +66,7 @@ use crate::store::{
             Table, rows::DataTypeConversionsRow,
         },
     },
-    validation::{StoreCache, StoreProvider},
+    validation::StoreProvider,
 };
 
 impl<C, A> PostgresStore<C, A>
@@ -73,12 +74,10 @@ where
     C: AsClient,
     A: AuthorizationApi,
 {
-    #[tracing::instrument(level = "trace", skip(data_types, authorization_api, zookie))]
+    #[tracing::instrument(level = "trace", skip(data_types, provider))]
     pub(crate) async fn filter_data_types_by_permission<I, T>(
         data_types: impl IntoIterator<Item = (I, T)> + Send,
-        actor_id: ActorEntityUuid,
-        authorization_api: &A,
-        zookie: &Zookie<'static>,
+        provider: &StoreProvider<'_, Self>,
     ) -> Result<impl Iterator<Item = T>, Report<QueryError>>
     where
         I: Into<DataTypeUuid> + Send,
@@ -89,21 +88,35 @@ where
             .map(|(id, edge)| (id.into(), edge))
             .unzip();
 
-        let permissions = authorization_api
-            .check_data_types_permission(
-                actor_id,
-                DataTypePermission::View,
-                ids.iter().copied(),
-                Consistency::AtExactSnapshot(zookie),
+        let permissions = if let Some(policy_components) = provider.policy_components {
+            Some(
+                provider
+                    .store
+                    .authorization_api
+                    .check_data_types_permission(
+                        policy_components
+                            .actor_id()
+                            .map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from),
+                        DataTypePermission::View,
+                        ids.iter().copied(),
+                        Consistency::FullyConsistent,
+                    )
+                    .await
+                    .change_context(QueryError)?
+                    .0,
             )
-            .await
-            .change_context(QueryError)?
-            .0;
+        } else {
+            None
+        };
 
         Ok(ids
             .into_iter()
             .zip(data_types)
             .filter_map(move |(id, data_type)| {
+                let Some(permissions) = &permissions else {
+                    return Some(data_type);
+                };
+
                 permissions
                     .get(&id)
                     .copied()
@@ -164,7 +177,7 @@ where
         actor_id: ActorEntityUuid,
         params: GetDataTypesParams<'_>,
         temporal_axes: &QueryTemporalAxes,
-    ) -> Result<(GetDataTypesResponse, Zookie<'static>), Report<QueryError>> {
+    ) -> Result<GetDataTypesResponse, Report<QueryError>> {
         #[expect(clippy::if_then_some_else_none, reason = "Function is async")]
         let count = if params.include_count {
             Some(
@@ -213,7 +226,7 @@ where
             .map(|(data_type_id, _)| *data_type_id)
             .collect::<Vec<_>>();
 
-        let (permissions, zookie) = self
+        let (permissions, _zookie) = self
             .authorization_api
             .check_data_types_permission(
                 actor_id,
@@ -235,26 +248,23 @@ where
             })
             .collect::<Vec<_>>();
 
-        Ok((
-            GetDataTypesResponse {
-                cursor: if params.limit.is_some() {
-                    data_types
-                        .last()
-                        .map(|data_type| data_type.schema.id.clone())
-                } else {
-                    None
-                },
-                data_types,
-                count,
+        Ok(GetDataTypesResponse {
+            cursor: if params.limit.is_some() {
+                data_types
+                    .last()
+                    .map(|data_type| data_type.schema.id.clone())
+            } else {
+                None
             },
-            zookie,
-        ))
+            data_types,
+            count,
+        })
     }
 
     /// Internal method to read a [`DataTypeWithMetadata`] into a [`TraversalContext`].
     ///
     /// This is used to recursively resolve a type, so the result can be reused.
-    #[tracing::instrument(level = "info", skip(self))]
+    #[tracing::instrument(level = "info", skip(self, provider, subgraph))]
     pub(crate) async fn traverse_data_types(
         &self,
         mut data_type_queue: Vec<(
@@ -263,8 +273,7 @@ where
             RightBoundedTemporalInterval<VariableAxis>,
         )>,
         traversal_context: &mut TraversalContext,
-        actor_id: ActorEntityUuid,
-        zookie: &Zookie<'static>,
+        provider: &StoreProvider<'_, Self>,
         subgraph: &mut Subgraph,
     ) -> Result<(), Report<QueryError>> {
         while !data_type_queue.is_empty() {
@@ -305,9 +314,7 @@ where
                                 table,
                             )
                             .await?,
-                            actor_id,
-                            &self.authorization_api,
-                            zookie,
+                            provider,
                         )
                         .await?
                         .flat_map(|edge| {
@@ -628,7 +635,9 @@ where
 
             Err(error.change_context(InsertionError))
         } else {
-            if let Some(temporal_client) = &self.temporal_client {
+            if !self.settings.skip_embedding_creation
+                && let Some(temporal_client) = &self.temporal_client
+            {
                 temporal_client
                     .start_update_data_type_embeddings_workflow(
                         actor_id,
@@ -654,20 +663,20 @@ where
         actor_id: ActorEntityUuid,
         mut params: GetDataTypesParams<'_>,
     ) -> Result<GetDataTypesResponse, Report<QueryError>> {
+        let policy_components = PolicyComponents::builder(self)
+            .with_actor(actor_id)
+            .await
+            .change_context(QueryError)?;
+
         params
             .filter
-            .convert_parameters(&StoreProvider {
-                store: self,
-                cache: StoreCache::default(),
-                authorization: Some((actor_id, Consistency::FullyConsistent)),
-            })
+            .convert_parameters(&StoreProvider::new(self, &policy_components))
             .await
             .change_context(QueryError)?;
 
         let temporal_axes = params.temporal_axes.clone().resolve();
         self.get_data_types_impl(actor_id, params, &temporal_axes)
             .await
-            .map(|(response, _)| response)
     }
 
     // TODO: take actor ID into consideration, but currently we don't have any non-public data types
@@ -677,13 +686,14 @@ where
         actor_id: ActorEntityUuid,
         mut params: CountDataTypesParams<'_>,
     ) -> Result<usize, Report<QueryError>> {
+        let policy_components = PolicyComponents::builder(self)
+            .with_actor(actor_id)
+            .await
+            .change_context(QueryError)?;
+
         params
             .filter
-            .convert_parameters(&StoreProvider {
-                store: self,
-                cache: StoreCache::default(),
-                authorization: Some((actor_id, Consistency::FullyConsistent)),
-            })
+            .convert_parameters(&StoreProvider::new(self, &policy_components))
             .await
             .change_context(QueryError)?;
 
@@ -704,27 +714,27 @@ where
         actor_id: ActorEntityUuid,
         mut params: GetDataTypeSubgraphParams<'_>,
     ) -> Result<GetDataTypeSubgraphResponse, Report<QueryError>> {
+        let policy_components = PolicyComponents::builder(self)
+            .with_actor(actor_id)
+            .await
+            .change_context(QueryError)?;
+
+        let provider = StoreProvider::new(self, &policy_components);
+
         params
             .filter
-            .convert_parameters(&StoreProvider {
-                store: self,
-                cache: StoreCache::default(),
-                authorization: Some((actor_id, Consistency::FullyConsistent)),
-            })
+            .convert_parameters(&provider)
             .await
             .change_context(QueryError)?;
 
         let temporal_axes = params.temporal_axes.clone().resolve();
         let time_axis = temporal_axes.variable_time_axis();
 
-        let (
-            GetDataTypesResponse {
-                data_types,
-                cursor,
-                count,
-            },
-            zookie,
-        ) = self
+        let GetDataTypesResponse {
+            data_types,
+            cursor,
+            count,
+        } = self
             .get_data_types_impl(
                 actor_id,
                 GetDataTypesParams {
@@ -776,8 +786,7 @@ where
                 })
                 .collect(),
             &mut traversal_context,
-            actor_id,
-            &zookie,
+            &provider,
             &mut subgraph,
         )
         .await?;
@@ -1041,7 +1050,9 @@ where
 
             Err(error.change_context(UpdateError))
         } else {
-            if let Some(temporal_client) = &self.temporal_client {
+            if !self.settings.skip_embedding_creation
+                && let Some(temporal_client) = &self.temporal_client
+            {
                 temporal_client
                     .start_update_data_type_embeddings_workflow(
                         actor_id,

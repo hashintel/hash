@@ -2,7 +2,7 @@ mod entity;
 mod entity_type;
 
 use alloc::sync::Arc;
-use core::{error::Error, fmt, str::FromStr as _};
+use core::{error::Error, str::FromStr as _};
 
 use cedar_policy_core::ast;
 use error_stack::{Report, ResultExt as _, bail};
@@ -18,30 +18,8 @@ pub use self::{
         EntityTypeResourceConstraints, EntityTypeResourceFilter,
     },
 };
-use super::cedar::{CedarExpressionVisitor, FromCedarExpr as _, ToCedarEntityId as _};
+use super::cedar::{FromCedarExpr as _, ToCedarEntityId as _};
 use crate::policies::cedar::FromCedarEntityId as _;
-
-pub(crate) struct ResourceVariableVisitor;
-
-impl CedarExpressionVisitor for ResourceVariableVisitor {
-    type Error = !;
-    type Value = ();
-
-    fn expecting(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(fmt, "a resource variable")
-    }
-
-    fn visit_resource_variable(&self) -> Option<Result<(), !>> {
-        Some(Ok(()))
-    }
-
-    fn visit_unknown(&self, name: &str) -> Option<Result<(), !>> {
-        match name {
-            "resource" => Some(Ok(())),
-            _ => None,
-        }
-    }
-}
 
 #[derive(Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "codegen", derive(specta::Type))]

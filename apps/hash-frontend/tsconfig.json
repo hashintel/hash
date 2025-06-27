@@ -19,7 +19,9 @@
     "theme-override.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    "codegen.config.ts"
+    "codegen.config.ts",
+    "instrumentation-client.ts",
+    "next.config.js"
   ],
   "exclude": ["node_modules", ".next"]
 }

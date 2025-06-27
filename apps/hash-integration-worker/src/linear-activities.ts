@@ -1,12 +1,12 @@
 import type {
   EntityId,
+  EntityUuid,
   MachineId,
   OriginProvenance,
   ProvidedEntityEditionProvenance,
   VersionedUrl,
   WebId,
 } from "@blockprotocol/type-system";
-import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import type { Connection, LinearDocument, Team } from "@linear/sdk";
 import { LinearClient } from "@linear/sdk";
 import { getLinearMappingByHashEntityTypeId } from "@local/hash-backend-utils/linear-type-mappings";
@@ -26,8 +26,8 @@ import {
   mergePropertyObjectAndMetadata,
   patchesFromPropertyObjects,
 } from "@local/hash-graph-sdk/entity";
-import { createPolicy } from "@local/hash-graph-sdk/policy";
 import { linearPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { v4 as uuidv4 } from "uuid";
 
 import {
   mapHashEntityToLinearUpdateInput,
@@ -99,6 +99,7 @@ const createHashEntity = async (params: {
 }): Promise<void> => {
   const { graphApiClient, webId } = params;
 
+  const entityUuid = uuidv4() as EntityUuid;
   const entity = await HashEntity.create(
     graphApiClient,
     params.authentication,
@@ -108,6 +109,18 @@ const createHashEntity = async (params: {
       relationships: createLinearHashEntityAuthRelationships({
         machineActorId: params.authentication.actorId,
       }),
+      policies: [
+        {
+          name: `linear-bot-view-linear-entity-${entityUuid}`,
+          effect: "permit",
+          principal: {
+            type: "actor",
+            actorType: "machine",
+            id: params.authentication.actorId,
+          },
+          actions: ["viewEntity"],
+        },
+      ],
       properties: mergePropertyObjectAndMetadata(
         (params.partialEntity.properties as
           | HashEntity["properties"]
@@ -119,68 +132,41 @@ const createHashEntity = async (params: {
     },
   );
 
-  // TODO: allow creating policies alongside entity creation
-  //   see https://linear.app/hash/issue/H-4622/allow-creating-policies-alongside-entity-creation
-  const entityUuid = extractEntityUuidFromEntityId(entity.entityId);
-  await createPolicy(graphApiClient, params.authentication, {
-    name: `linear-bot-view-linear-entity-${entityUuid}`,
-    effect: "permit",
-    principal: {
-      type: "actor",
-      actorType: "machine",
-      id: params.authentication.actorId,
-    },
-    actions: ["viewEntity"],
-    resource: {
-      type: "entity",
-      id: entityUuid,
-    },
-  });
-
-  const linkEntities =
-    params.outgoingLinks.length > 0
-      ? await HashEntity.createMultiple(
-          graphApiClient,
-          { actorId: params.authentication.actorId },
-          params.outgoingLinks.map(
-            ({ linkEntityTypeId, destinationEntityId }) => ({
-              webId,
-              linkData: {
-                leftEntityId: entity.metadata.recordId.entityId,
-                rightEntityId: destinationEntityId,
+  if (params.outgoingLinks.length > 0) {
+    await HashEntity.createMultiple(
+      graphApiClient,
+      { actorId: params.authentication.actorId },
+      params.outgoingLinks.map(({ linkEntityTypeId, destinationEntityId }) => {
+        const linkEntityUuid = uuidv4() as EntityUuid;
+        return {
+          webId,
+          entityUuid: linkEntityUuid,
+          linkData: {
+            leftEntityId: entity.metadata.recordId.entityId,
+            rightEntityId: destinationEntityId,
+          },
+          entityTypeIds: [linkEntityTypeId],
+          properties: { value: {} },
+          provenance,
+          draft: false,
+          relationships: createLinearHashEntityAuthRelationships({
+            machineActorId: params.authentication.actorId,
+          }),
+          policies: [
+            {
+              name: `linear-bot-view-linear-entity-${linkEntityUuid}`,
+              effect: "permit",
+              principal: {
+                type: "actor",
+                actorType: "machine",
+                id: params.authentication.actorId,
               },
-              entityTypeIds: [linkEntityTypeId],
-              properties: { value: {} },
-              provenance,
-              draft: false,
-              relationships: createLinearHashEntityAuthRelationships({
-                machineActorId: params.authentication.actorId,
-              }),
-            }),
-          ),
-        )
-      : [];
-
-  // TODO: allow creating policies alongside entity creation
-  //   see https://linear.app/hash/issue/H-4622/allow-creating-policies-alongside-entity-creation
-  for (const createdEntity of linkEntities) {
-    const createdEntityUuid = extractEntityUuidFromEntityId(
-      createdEntity.entityId,
+              actions: ["viewEntity"],
+            },
+          ],
+        };
+      }),
     );
-    await createPolicy(graphApiClient, params.authentication, {
-      name: `linear-bot-view-linear-entity-${createdEntityUuid}`,
-      effect: "permit",
-      principal: {
-        type: "actor",
-        actorType: "machine",
-        id: params.authentication.actorId,
-      },
-      actions: ["viewEntity"],
-      resource: {
-        type: "entity",
-        id: createdEntityUuid,
-      },
-    });
   }
 };
 
@@ -256,44 +242,33 @@ const createOrUpdateHashEntity = async (params: {
       ),
       ...addedOutgoingLinks.map(
         async ({ linkEntityTypeId, destinationEntityId }) => {
-          const linkEntity = await HashLinkEntity.create(
-            graphApiClient,
-            params.authentication,
-            {
-              entityTypeIds: [linkEntityTypeId],
-              linkData: {
-                leftEntityId: existingEntity.metadata.recordId.entityId,
-                rightEntityId: destinationEntityId,
+          const linkEntityUuid = uuidv4() as EntityUuid;
+          await HashLinkEntity.create(graphApiClient, params.authentication, {
+            entityTypeIds: [linkEntityTypeId],
+            linkData: {
+              leftEntityId: existingEntity.metadata.recordId.entityId,
+              rightEntityId: destinationEntityId,
+            },
+            properties: { value: {} },
+            provenance,
+            webId: params.webId,
+            entityUuid: linkEntityUuid,
+            draft: false,
+            relationships: createLinearHashEntityAuthRelationships({
+              machineActorId: params.authentication.actorId,
+            }),
+            policies: [
+              {
+                name: `linear-bot-view-linear-entity-${linkEntityUuid}`,
+                effect: "permit",
+                principal: {
+                  type: "actor",
+                  actorType: "machine",
+                  id: params.authentication.actorId,
+                },
+                actions: ["viewEntity"],
               },
-              properties: { value: {} },
-              provenance,
-              webId: params.webId,
-              draft: false,
-              relationships: createLinearHashEntityAuthRelationships({
-                machineActorId: params.authentication.actorId,
-              }),
-            },
-          );
-
-          const linkEntityUuid = extractEntityUuidFromEntityId(
-            linkEntity.entityId,
-          );
-
-          // TODO: allow creating policies alongside entity creation
-          //   see https://linear.app/hash/issue/H-4622/allow-creating-policies-alongside-entity-creation
-          await createPolicy(graphApiClient, params.authentication, {
-            name: `linear-bot-view-linear-entity-${linkEntityUuid}`,
-            effect: "permit",
-            principal: {
-              type: "actor",
-              actorType: "machine",
-              id: params.authentication.actorId,
-            },
-            actions: ["viewEntity"],
-            resource: {
-              type: "entity",
-              id: linkEntityUuid,
-            },
+            ],
           });
         },
       ),

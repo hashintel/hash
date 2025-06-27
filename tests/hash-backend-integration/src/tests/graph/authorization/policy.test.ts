@@ -112,8 +112,41 @@ describe("Policy CRUD", () => {
 
     expect(
       await resolvePoliciesForActor(graphApi, authentication, {
-        actorType: "user",
-        id: testUser.accountId,
+        actor: {
+          actorType: "user",
+          id: testUser.accountId,
+        },
+        actions: ["createWeb"],
+      }),
+    ).not.toContainEqual(testPolicy);
+
+    expect(
+      await resolvePoliciesForActor(graphApi, authentication, {
+        actor: {
+          actorType: "user",
+          id: testUser.accountId,
+        },
+        actions: [],
+      }),
+    ).not.toContainEqual(testPolicy);
+
+    expect(
+      await resolvePoliciesForActor(graphApi, authentication, {
+        actor: {
+          actorType: "user",
+          id: testUser.accountId,
+        },
+        actions: ["instantiate"],
+      }),
+    ).toContainEqual(testPolicy);
+
+    expect(
+      await resolvePoliciesForActor(graphApi, authentication, {
+        actor: {
+          actorType: "user",
+          id: testUser.accountId,
+        },
+        actions: ["createWeb", "instantiate"],
       }),
     ).toContainEqual(testPolicy);
   });
@@ -128,11 +161,11 @@ describe("Policy CRUD", () => {
       [
         {
           type: "add-action",
-          action: "view",
+          action: "viewEntity",
         },
         {
           type: "add-action",
-          action: "create",
+          action: "createWeb",
         },
         {
           type: "remove-action",
@@ -156,7 +189,7 @@ describe("Policy CRUD", () => {
       [
         {
           type: "remove-action",
-          action: "create",
+          action: "createWeb",
         },
         {
           type: "set-resource-constraint",
@@ -167,7 +200,7 @@ describe("Policy CRUD", () => {
         },
       ],
     );
-    expect(updatedPolicy.actions).toStrictEqual(["view"]);
+    expect(updatedPolicy.actions).toStrictEqual(["viewEntity"]);
     expect(updatedPolicy.resource).toStrictEqual({
       type: "entity",
       id: extractEntityUuidFromEntityId(testUser.entity.entityId),
@@ -178,7 +211,7 @@ describe("Policy CRUD", () => {
       updatePolicyById(graphApi, authentication, testPolicy.id, [
         {
           type: "remove-action",
-          action: "view",
+          action: "viewEntity",
         },
       ]),
     ).rejects.toThrowError(
@@ -193,7 +226,7 @@ describe("Policy CRUD", () => {
       [
         {
           type: "remove-action",
-          action: "view",
+          action: "viewEntity",
         },
         {
           type: "add-action",
@@ -223,8 +256,11 @@ describe("Policy CRUD", () => {
 
     expect(
       await resolvePoliciesForActor(graphApi, authentication, {
-        actorType: "user",
-        id: testUser.accountId,
+        actor: {
+          actorType: "user",
+          id: testUser.accountId,
+        },
+        actions: ["instantiate"],
       }),
     ).not.toContainEqual(testPolicy);
   });

@@ -137,8 +137,9 @@ test("user can update values on property table", async ({ page }) => {
 
   await clickOnValueCell(page, propertyTableCanvas, 0);
 
+  await expect(page.getByPlaceholder("Start typing...")).toBeVisible();
+
   const profileUrl = "https://github.com/Example";
-  await sleep(200);
 
   await page.keyboard.type(profileUrl);
   await page.keyboard.press("Enter");

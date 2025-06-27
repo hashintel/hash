@@ -413,11 +413,11 @@ where
         .await
         .map_err(report_to_response)?;
 
-    let response = Ok(Json(
-        store
-            .validate_entity(actor_id, Consistency::FullyConsistent, params)
-            .await,
-    ));
+    let response = store
+        .validate_entity(actor_id, Consistency::FullyConsistent, params)
+        .await
+        .map_err(report_to_response)
+        .map(Json);
     if let Some(query_logger) = &mut query_logger {
         query_logger.send().await.map_err(report_to_response)?;
     }
@@ -1164,7 +1164,7 @@ async fn modify_entity_authorization_relationships<A>(
 where
     A: AuthorizationApiPool + Send + Sync,
 {
-    let mut authorization_api = authorization_api_pool
+    let authorization_api = authorization_api_pool
         .acquire()
         .await
         .map_err(report_to_response)?;

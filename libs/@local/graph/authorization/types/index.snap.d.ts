@@ -13,7 +13,7 @@ export interface Policy {
 }
 import type { Brand } from "@local/advanced-types/brand";
 export type PolicyId = Brand<string, "PolicyId">;
-export type ActionName = "all" | "create" | "createWeb" | "view" | "viewEntity" | "viewEntityType" | "update" | "instantiate";
+export type ActionName = "createEntity" | "createWeb" | "viewEntity" | "instantiate";
 export type PrincipalConstraint = {
 	type: "actor"
 } & ActorId | {
@@ -54,6 +54,8 @@ export type EntityResourceFilter = {
 } | {
 	type: "isOfType"
 	entityType: VersionedUrl
+} | {
+	type: "createdByPrincipal"
 };
 export type EntityTypeId = string;
 export type EntityTypeResourceConstraint = {
@@ -109,3 +111,7 @@ export type PrincipalFilter = {
 } | {
 	filter: "constrained"
 } & PrincipalConstraint;
+export interface ResolvePoliciesParams {
+	actor: (ActorId | null);
+	actions: ActionName[];
+}

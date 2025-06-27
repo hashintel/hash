@@ -43,7 +43,7 @@ services:
       mc mb myminio/$$AWS_S3_UPLOADS_BUCKET --ignore-existing
       '
 
-  telemetry-collector:
+  jaeger:
     image: jaegertracing/all-in-one:1.60
     deploy:
       restart_policy:
@@ -59,17 +59,38 @@ services:
       timeout: 2s
       retries: 10
     ports:
+      # Jaeger UI
       - "16686:16686"
-      # To expose OTLP collector over gRPC on the host
-      - "4317:4317"
-      # To expose OTLP collector over HTTP on the host
-      # - "4318:4318"
       # serve configs (sampling, etc.)
       - "5778:5778"
       # accept jaeger.thrift over Thrift-compact protocol (used by most SDKs)
       - "6831:6831"
     environment:
       COLLECTOR_OTLP_ENABLED: "true"
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+
+  otel-collector:
+    image: otel/opentelemetry-collector:0.128.0
+    depends_on:
+      jaeger:
+        condition: service_healthy
+    volumes:
+      - ./opentelemetry-collector/otel-collector-config.yaml:/etc/otelcol/config.yaml:ro
+    ports:
+      - 4317:4317
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+
+  otel-collector-healthcheck:
+    image: busybox
+    depends_on:
+      otel-collector:
+        condition: service_started
+    command: >
+      sh -c 'for i in $(seq 1 60); do wget -q --spider http://otel-collector:13133 && exit 0 || sleep 1; done; exit 1'
 
   spicedb-migrate:
     image: authzed/spicedb:v${HASH_SPICEDB_VERSION}
@@ -91,8 +112,8 @@ services:
         condition: service_healthy
       spicedb-migrate:
         condition: service_completed_successfully
-      telemetry-collector:
-        condition: service_healthy
+      otel-collector-healthcheck:
+        condition: service_completed_successfully
     ports:
       - "${HASH_SPICEDB_HTTP_PORT}:8443"
       - "${HASH_SPICEDB_GRPC_PORT}:50051"
@@ -101,12 +122,12 @@ services:
       SPICEDB_DATASTORE_CONN_URI: "postgres://${HASH_SPICEDB_PG_USER}:${HASH_SPICEDB_PG_PASSWORD}@postgres:${POSTGRES_PORT}/${HASH_SPICEDB_PG_DATABASE}?plan_cache_mode=force_custom_plan"
       SPICEDB_GRPC_PRESHARED_KEY: "${HASH_SPICEDB_GRPC_PRESHARED_KEY}"
       SPICEDB_OTEL_PROVIDER: "otlpgrpc"
-      SPICEDB_OTEL_ENDPOINT: "telemetry-collector:4317"
+      SPICEDB_OTEL_ENDPOINT: "otel-collector:4317"
       SPICEDB_OTEL_INSECURE: "True"
 
   kratos:
     depends_on:
-      telemetry-collector:
+      jaeger:
         condition: service_healthy
     ports:
       - "4433:4433" # public API
@@ -114,8 +135,8 @@ services:
     environment:
       OAUTH2_PROVIDER_URL: "http://hydra:4445"
       TRACING_PROVIDER: "jaeger"
-      TRACING_PROVIDERS_JAEGER_SAMPLING_SERVER_URL: "telemetry-collector:5778/sampling"
-      TRACING_PROVIDERS_JAEGER_LOCAL_AGENT_ADDRESS: "telemetry-collector:6831"
+      TRACING_PROVIDERS_JAEGER_SAMPLING_SERVER_URL: "jaeger:5778/sampling"
+      TRACING_PROVIDERS_JAEGER_LOCAL_AGENT_ADDRESS: "jaeger:6831"
       LOG_LEVEL: trace
     command: serve --dev --watch-courier
 

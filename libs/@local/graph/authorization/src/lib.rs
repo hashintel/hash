@@ -147,7 +147,7 @@ impl AuthorizationApi for NoAuthorization {
     }
 
     async fn modify_entity_relations(
-        &mut self,
+        &self,
         _: impl IntoIterator<
             Item = (
                 ModifyRelationshipOperation,

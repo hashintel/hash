@@ -29,15 +29,21 @@ use crate::policies::cedar::FromCedarEntityId;
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[serde(rename_all = "camelCase")]
 pub enum ActionName {
+    #[cfg_attr(feature = "codegen", specta(skip))]
     All,
 
+    #[cfg_attr(feature = "codegen", specta(skip))]
     Create,
+    CreateEntity,
     CreateWeb,
 
+    #[cfg_attr(feature = "codegen", specta(skip))]
     View,
     ViewEntity,
+    #[cfg_attr(feature = "codegen", specta(skip))]
     ViewEntityType,
 
+    #[cfg_attr(feature = "codegen", specta(skip))]
     Update,
 
     Instantiate,
@@ -55,6 +61,7 @@ impl ActionName {
             Self::Create | Self::CreateWeb | Self::View | Self::Update | Self::Instantiate => {
                 Some(Self::All)
             }
+            Self::CreateEntity => Some(Self::Create),
             Self::ViewEntity | Self::ViewEntityType => Some(Self::View),
         }
     }
@@ -347,6 +354,10 @@ mod tests {
 
         // Second level actions have their direct parent and All as ancestors
         assert_eq!(
+            ActionName::CreateEntity.parents().collect::<Vec<_>>(),
+            vec![ActionName::Create, ActionName::All]
+        );
+        assert_eq!(
             ActionName::ViewEntity.parents().collect::<Vec<_>>(),
             vec![ActionName::View, ActionName::All]
         );
@@ -358,6 +369,9 @@ mod tests {
 
     #[test]
     fn is_parent_of() {
+        // Create is parent of CreateEntity
+        assert!(ActionName::Create.is_parent_of(ActionName::CreateEntity));
+
         // View is parent of ViewEntity and ViewEntityType
         assert!(ActionName::View.is_parent_of(ActionName::ViewEntity));
         assert!(ActionName::View.is_parent_of(ActionName::ViewEntityType));
@@ -367,10 +381,14 @@ mod tests {
         assert!(!ActionName::View.is_parent_of(ActionName::Create));
         assert!(!ActionName::All.is_parent_of(ActionName::All));
         assert!(!ActionName::ViewEntity.is_parent_of(ActionName::View));
+        assert!(!ActionName::CreateEntity.is_parent_of(ActionName::Create));
     }
 
     #[test]
     fn is_child_of() {
+        // CreateEntity is child of Create
+        assert!(ActionName::CreateEntity.is_child_of(ActionName::Create));
+
         // ViewEntity and ViewEntityType are children of View
         assert!(ActionName::ViewEntity.is_child_of(ActionName::View));
         assert!(ActionName::ViewEntityType.is_child_of(ActionName::View));
@@ -380,5 +398,6 @@ mod tests {
         assert!(!ActionName::Create.is_child_of(ActionName::View));
         assert!(!ActionName::All.is_child_of(ActionName::All));
         assert!(!ActionName::View.is_child_of(ActionName::ViewEntity));
+        assert!(!ActionName::Create.is_child_of(ActionName::CreateEntity));
     }
 }

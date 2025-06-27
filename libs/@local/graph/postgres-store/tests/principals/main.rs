@@ -1,6 +1,8 @@
 #![expect(clippy::panic_in_result_fn, clippy::significant_drop_tightening)]
 #![feature(assert_matches)]
 
+extern crate alloc;
+
 mod actions;
 mod ai;
 mod machine;
@@ -23,7 +25,7 @@ use hash_graph_postgres_store::{
     },
 };
 use hash_graph_store::pool::StorePool;
-use hash_tracing::logging::env_filter;
+use hash_telemetry::logging::env_filter;
 use tokio_postgres::NoTls;
 use type_system::principal::actor::ActorId;
 

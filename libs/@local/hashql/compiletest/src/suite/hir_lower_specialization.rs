@@ -94,8 +94,12 @@ impl Suite for HirLowerSpecializationSuite {
         let (mut residual, checking_diagnostics) = checking.finish();
         process_diagnostics(diagnostics, checking_diagnostics)?;
 
-        let mut specialisation =
-            Specialization::new(&interner, &mut residual.types, residual.intrinsics);
+        let mut specialisation = Specialization::new(
+            &environment,
+            &interner,
+            &mut residual.types,
+            residual.intrinsics,
+        );
 
         let node = match specialisation.fold_node(node) {
             Ok(node) => node,

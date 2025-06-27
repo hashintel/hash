@@ -1,5 +1,6 @@
 pub mod error;
 
+use alloc::borrow::Cow;
 use core::error::Error;
 use std::collections::{
     HashSet,
@@ -8,7 +9,7 @@ use std::collections::{
 
 use error_stack::{Report, bail, ensure};
 use type_system::{
-    knowledge::property::PropertyObjectWithMetadata,
+    knowledge::{entity::id::EntityEditionId, property::PropertyObjectWithMetadata},
     ontology::VersionedUrl,
     principal::{
         actor::{Actor, ActorEntityUuid, ActorId, ActorType, Machine, MachineId, User, UserId},
@@ -19,14 +20,17 @@ use type_system::{
 use uuid::Uuid;
 
 use self::error::{
-    ActorCreationError, ContextCreationError, CreatePolicyError, EnsureSystemPoliciesError,
-    GetPoliciesError, GetSystemAccountError, PolicyStoreError, RemovePolicyError,
-    RoleAssignmentError, TeamCreationError, TeamRoleCreationError, TeamRoleError,
-    UpdatePolicyError, WebCreationError, WebRoleCreationError, WebRoleError,
+    ActorCreationError, BuildEntityContextError, BuildEntityTypeContextError,
+    BuildPrincipalContextError, ContextCreationError, CreatePolicyError, DetermineActorError,
+    EnsureSystemPoliciesError, GetPoliciesError, GetSystemAccountError, PolicyStoreError,
+    RemovePolicyError, RoleAssignmentError, TeamCreationError, TeamRoleCreationError,
+    TeamRoleError, UpdatePolicyError, WebCreationError, WebRoleCreationError, WebRoleError,
 };
 use super::{
-    ContextBuilder, Effect, Policy, PolicyId, action::ActionName, principal::PrincipalConstraint,
-    resource::ResourceConstraint,
+    ContextBuilder, Effect, Policy, PolicyId,
+    action::ActionName,
+    principal::{PrincipalConstraint, actor::AuthenticatedActor},
+    resource::{EntityResource, EntityTypeResource, ResourceConstraint},
 };
 
 #[derive(Debug, derive_more::Display)]
@@ -134,6 +138,14 @@ pub struct PolicyFilter {
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ResolvePoliciesParams<'a> {
+    pub actor: Option<ActorId>,
+    pub actions: Cow<'a, [ActionName]>,
+}
+
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[serde(tag = "type", rename_all = "kebab-case", deny_unknown_fields)]
 pub enum PolicyUpdateOperation {
     AddAction {
@@ -175,7 +187,7 @@ pub trait PolicyStore {
     /// [`StoreError`]: CreatePolicyError::StoreError
     async fn create_policy(
         &mut self,
-        authenticated_actor: ActorEntityUuid,
+        authenticated_actor: AuthenticatedActor,
         policy: PolicyCreationParams,
     ) -> Result<PolicyId, Report<CreatePolicyError>>;
 
@@ -188,7 +200,7 @@ pub trait PolicyStore {
     /// [`StoreError`]: GetPoliciesError::StoreError
     async fn get_policy_by_id(
         &self,
-        authenticated_actor: ActorEntityUuid,
+        authenticated_actor: AuthenticatedActor,
         id: PolicyId,
     ) -> Result<Option<Policy>, Report<GetPoliciesError>>;
 
@@ -211,7 +223,7 @@ pub trait PolicyStore {
     /// [`StoreError`]: GetPoliciesError::StoreError
     async fn query_policies(
         &self,
-        authenticated_actor: ActorEntityUuid,
+        authenticated_actor: AuthenticatedActor,
         filter: &PolicyFilter,
     ) -> Result<Vec<Policy>, Report<GetPoliciesError>>;
 
@@ -237,8 +249,8 @@ pub trait PolicyStore {
     /// [`StoreError`]: GetPoliciesError::StoreError
     async fn resolve_policies_for_actor(
         &self,
-        authenticated_actor: ActorEntityUuid,
-        actor_id: Option<ActorId>,
+        authenticated_actor: AuthenticatedActor,
+        params: ResolvePoliciesParams,
     ) -> Result<Vec<Policy>, Report<GetPoliciesError>>;
 
     /// Updates the policy specified by its ID.
@@ -258,7 +270,7 @@ pub trait PolicyStore {
     /// [`StoreError`]: UpdatePolicyError::StoreError
     async fn update_policy_by_id(
         &mut self,
-        authenticated_actor: ActorEntityUuid,
+        authenticated_actor: AuthenticatedActor,
         policy_id: PolicyId,
         operations: &[PolicyUpdateOperation],
     ) -> Result<Policy, Report<UpdatePolicyError>>;
@@ -274,7 +286,7 @@ pub trait PolicyStore {
     /// [`StoreError`]: RemovePolicyError::StoreError
     async fn archive_policy_by_id(
         &mut self,
-        authenticated_actor: ActorEntityUuid,
+        authenticated_actor: AuthenticatedActor,
         policy_id: PolicyId,
     ) -> Result<(), Report<RemovePolicyError>>;
 
@@ -295,7 +307,7 @@ pub trait PolicyStore {
     /// [`StoreError`]: RemovePolicyError::StoreError
     async fn delete_policy_by_id(
         &mut self,
-        authenticated_actor: ActorEntityUuid,
+        authenticated_actor: AuthenticatedActor,
         policy_id: PolicyId,
     ) -> Result<(), Report<RemovePolicyError>>;
 
@@ -319,10 +331,34 @@ pub trait PolicyStore {
     /// [`AddRequiredPoliciesFailed`]: EnsureSystemPoliciesError::AddRequiredPoliciesFailed
     /// [`RemoveOldPolicyFailed`]: EnsureSystemPoliciesError::RemoveOldPolicyFailed
     async fn seed_system_policies(&mut self) -> Result<(), Report<EnsureSystemPoliciesError>>;
+
+    /// Builds a context used to evaluate policies for a set of entity types.
+    ///
+    /// # Errors
+    ///
+    /// - If a database error occurs
+    fn build_entity_type_context(
+        &self,
+        entity_type_ids: &[&VersionedUrl],
+    ) -> impl Future<
+        Output = Result<Vec<EntityTypeResource<'_>>, Report<[BuildEntityTypeContextError]>>,
+    > + Send;
+
+    /// Builds a context used to evaluate policies for a set of entities.
+    ///
+    /// # Errors
+    ///
+    /// - If a database error occurs
+    fn build_entity_context(
+        &self,
+        entity_edition_ids: &[EntityEditionId],
+    ) -> impl Future<
+        Output = Result<Vec<EntityResource<'static>>, Report<[BuildEntityContextError]>>,
+    > + Send;
 }
 
-#[trait_variant::make(PrincipalStore: Send)]
-pub trait LocalPrincipalStore {
+#[trait_variant::make(Send)]
+pub trait PrincipalStore {
     /// Searches for the system account and returns its ID.
     ///
     /// If the system account does not exist, it is created. Calling this function
@@ -455,6 +491,37 @@ pub trait LocalPrincipalStore {
         actor_group_id: ActorGroupEntityUuid,
         name: RoleName,
     ) -> Result<RoleUnassignmentStatus, Report<RoleAssignmentError>>;
+
+    /// Determines the type of an actor by its ID.
+    ///
+    /// Returns `None` if the ID is the public actor.
+    ///
+    /// # Errors
+    ///
+    /// - [`StoreError`] if a database error occurs
+    /// - [`ActorNotFound`] if the actor with the given ID doesn't exist
+    ///
+    /// [`StoreError`]: DetermineActorError::StoreError
+    /// [`ActorNotFound`]: DetermineActorError::ActorNotFound
+    async fn determine_actor(
+        &self,
+        actor_entity_uuid: ActorEntityUuid,
+    ) -> Result<Option<ActorId>, Report<DetermineActorError>>;
+
+    /// Builds a context used to evaluate policies for an actor.
+    ///
+    /// # Errors
+    ///
+    /// - [`ActorNotFound`] if the actor with the given ID doesn't exist
+    /// - [`StoreError`] if a database error occurs
+    ///
+    /// [`ActorNotFound`]: BuildPrincipalContextError::ActorNotFound
+    /// [`StoreError`]: BuildPrincipalContextError::StoreError
+    async fn build_principal_context(
+        &self,
+        actor_id: ActorId,
+        context_builder: &mut ContextBuilder,
+    ) -> Result<(), Report<BuildPrincipalContextError>>;
 }
 
 pub trait OldPolicyStore {

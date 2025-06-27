@@ -1,11 +1,11 @@
 pub mod action;
 pub mod error;
-pub mod evaluation;
 pub mod principal;
 pub mod resource;
 pub mod store;
 
 pub(crate) mod cedar;
+mod components;
 mod context;
 mod set;
 mod validation;
@@ -13,7 +13,6 @@ mod validation;
 use alloc::{borrow::Cow, collections::BTreeMap, sync::Arc};
 use core::fmt;
 
-use cedar::FromCedarEntityId as _;
 use cedar_policy_core::{ast, extensions::Extensions, parser::parse_policy};
 use error_stack::{Report, ResultExt as _, TryReportIteratorExt as _};
 use type_system::{
@@ -25,12 +24,13 @@ use uuid::Uuid;
 pub(crate) use self::cedar::cedar_resource_type;
 use self::{
     action::ActionName,
-    cedar::{FromCedarEntityUId as _, ToCedarEntityId as _},
+    cedar::{FromCedarEntityUId as _, ToCedarEntityId},
     principal::{PrincipalConstraint, actor::PublicActor},
     resource::{EntityTypeId, ResourceConstraint},
 };
 pub use self::{
     cedar::PolicyExpressionTree,
+    components::{OptimizationData, PolicyComponents, PolicyComponentsBuilder},
     context::{Context, ContextBuilder, ContextError},
     set::{
         Authorized, PolicyConstraintError, PolicyEvaluationError, PolicySet,
@@ -127,80 +127,49 @@ impl RequestContext {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum PartialResourceId<'a> {
-    Web(Option<WebId>),
-    Entity(Option<EntityUuid>),
-    EntityType(Option<Cow<'a, EntityTypeId>>),
+pub enum ResourceId<'a> {
+    Web(WebId),
+    Entity(EntityUuid),
+    EntityType(Cow<'a, EntityTypeId>),
+}
+
+impl ToCedarEntityId for ResourceId<'_> {
+    fn to_cedar_entity_type(&self) -> &'static Arc<ast::EntityType> {
+        match self {
+            Self::Web(web_id) => web_id.to_cedar_entity_type(),
+            Self::Entity(entity) => entity.to_cedar_entity_type(),
+            Self::EntityType(entity_type) => entity_type.to_cedar_entity_type(),
+        }
+    }
+
+    fn to_eid(&self) -> ast::Eid {
+        match self {
+            Self::Web(web_id) => web_id.to_eid(),
+            Self::Entity(entity_uuid) => entity_uuid.to_eid(),
+            Self::EntityType(entity_type) => entity_type.to_eid(),
+        }
+    }
 }
 
 #[derive(Debug)]
 pub struct Request<'a> {
     pub actor: Option<ActorId>,
     pub action: ActionName,
-    pub resource: Option<&'a PartialResourceId<'a>>,
+    pub resource: &'a ResourceId<'a>,
     pub context: RequestContext,
-}
-
-impl PartialResourceId<'_> {
-    fn to_euid(&self) -> ast::EntityUIDEntry {
-        match self {
-            Self::Web(web_id) => web_id.as_ref().map_or_else(
-                || ast::EntityUIDEntry::Unknown {
-                    ty: Some((**WebId::entity_type()).clone()),
-                    loc: None,
-                },
-                |web_id| ast::EntityUIDEntry::Known {
-                    euid: Arc::new(web_id.to_euid()),
-                    loc: None,
-                },
-            ),
-            Self::Entity(entity_uuid) => entity_uuid.as_ref().map_or_else(
-                || ast::EntityUIDEntry::Unknown {
-                    ty: Some((**EntityUuid::entity_type()).clone()),
-                    loc: None,
-                },
-                |entity_uuid| ast::EntityUIDEntry::Known {
-                    euid: Arc::new(entity_uuid.to_euid()),
-                    loc: None,
-                },
-            ),
-            Self::EntityType(entity_type_id) => entity_type_id.as_ref().map_or_else(
-                || ast::EntityUIDEntry::Unknown {
-                    ty: Some((**EntityTypeId::entity_type()).clone()),
-                    loc: None,
-                },
-                |entity_type_id| ast::EntityUIDEntry::Known {
-                    euid: Arc::new(entity_type_id.to_euid()),
-                    loc: None,
-                },
-            ),
-        }
-    }
 }
 
 impl Request<'_> {
     pub(crate) fn to_cedar(&self) -> ast::Request {
         ast::Request::new_with_unknowns(
-            ast::EntityUIDEntry::Known {
-                euid: Arc::new(match self.actor {
-                    Some(ActorId::User(user_id)) => user_id.to_euid(),
-                    Some(ActorId::Machine(machine_id)) => machine_id.to_euid(),
-                    Some(ActorId::Ai(ai_id)) => ai_id.to_euid(),
-                    None => PublicActor.to_euid(),
-                }),
-                loc: None,
-            },
-            ast::EntityUIDEntry::Known {
-                euid: Arc::new(self.action.to_euid()),
-                loc: None,
-            },
-            self.resource.map_or(
-                ast::EntityUIDEntry::Unknown {
-                    ty: None,
-                    loc: None,
-                },
-                PartialResourceId::to_euid,
+            ast::EntityUIDEntry::known(
+                self.actor
+                    .as_ref()
+                    .map_or_else(|| PublicActor.to_euid(), ActorId::to_euid),
+                None,
             ),
+            ast::EntityUIDEntry::known(self.action.to_euid(), None),
+            ast::EntityUIDEntry::known(self.resource.to_euid(), None),
             Some(self.context.to_cedar()),
             Some(PolicyValidator::schema()),
             Extensions::none(),
@@ -381,7 +350,7 @@ mod tests {
         use std::collections::HashSet;
 
         use type_system::{
-            knowledge::entity::id::EntityUuid,
+            knowledge::entity::{EntityId, id::EntityUuid},
             ontology::VersionedUrl,
             principal::{
                 actor::{ActorId, User, UserId},
@@ -391,8 +360,8 @@ mod tests {
 
         use super::*;
         use crate::policies::{
-            ActionName, Authorized, ContextBuilder, Effect, PartialResourceId, PolicyId,
-            PrincipalConstraint, Request, RequestContext, ResourceConstraint,
+            ActionName, Authorized, ContextBuilder, Effect, PolicyId, PrincipalConstraint, Request,
+            RequestContext, ResourceConstraint, ResourceId,
             resource::{EntityResource, EntityResourceConstraint},
         };
 
@@ -448,29 +417,34 @@ mod tests {
                 roles: HashSet::new(),
             };
             let user_entity = EntityResource {
-                web_id: WebId::from(user_id),
-                id: entity_uuid,
+                id: EntityId {
+                    web_id: WebId::from(user_id),
+                    entity_uuid,
+                    draft_id: None,
+                },
                 entity_type: Cow::Owned(vec![
                     VersionedUrl::from_str("https://hash.ai/@hash/types/entity-type/user/v/6")?,
                     VersionedUrl::from_str("https://hash.ai/@hash/types/entity-type/actor/v/2")?,
                 ]),
+                created_by: user.id.into(),
             };
-            let resource_id = PartialResourceId::Entity(Some(user_entity.id));
+            let resource_id = ResourceId::Entity(user_entity.id.entity_uuid);
             let mut context = ContextBuilder::default();
             context.add_entity(&user_entity);
             let context = context.build()?;
 
             let actor_id = ActorId::User(user.id);
 
-            let mut policy_set = PolicySet::default();
-            policy_set.add_policy(&policy)?;
+            let policy_set = PolicySet::default()
+                .with_tracked_actions(HashSet::from([ActionName::View, ActionName::Update]))
+                .with_policy(&policy)?;
 
             assert!(matches!(
                 policy_set.evaluate(
                     &Request {
                         actor: Some(actor_id),
                         action: ActionName::View,
-                        resource: Some(&resource_id),
+                        resource: &resource_id,
                         context: RequestContext,
                     },
                     &context
@@ -483,7 +457,7 @@ mod tests {
                     &Request {
                         actor: Some(actor_id),
                         action: ActionName::Update,
-                        resource: Some(&resource_id),
+                        resource: &resource_id,
                         context: RequestContext,
                     },
                     &context

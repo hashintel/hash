@@ -27,7 +27,7 @@ clap_complete  = { workspace = true }
 derive_more    = { workspace = true, features = ["display"] }
 globset        = { workspace = true }
 guppy          = { workspace = true }
-hash-tracing   = { workspace = true, features = ["clap"] }
+hash-telemetry = { workspace = true, features = ["clap"] }
 serde          = { workspace = true, features = ["derive", "std"] }
 serde_json     = { workspace = true }
 simple-mermaid = { workspace = true }

@@ -8,6 +8,7 @@ import type {
   BaseUrl,
   Entity,
   EntityId,
+  EntityUuid,
   MachineId,
 } from "@blockprotocol/type-system";
 import {
@@ -17,7 +18,7 @@ import {
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import type { EntityRelationAndSubjectBranded } from "@local/hash-graph-sdk/authorization";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import { createPolicy } from "@local/hash-graph-sdk/policy";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -391,42 +392,31 @@ export const linkIntegrationToWeb: ImpureGraphFunction<
       linearIntegrationEntityId,
     );
 
-    const linkEntity = await createLinkEntity<SyncLinearDataWith>(
-      context,
-      authentication,
-      {
-        webId: linearIntegrationWebId,
-        properties,
-        linkData: {
-          leftEntityId: linearIntegrationEntityId,
-          rightEntityId: webEntityId,
+    const linkEntityUuid = generateUuid() as EntityUuid;
+    await createLinkEntity<SyncLinearDataWith>(context, authentication, {
+      webId: linearIntegrationWebId,
+      entityUuid: linkEntityUuid,
+      properties,
+      linkData: {
+        leftEntityId: linearIntegrationEntityId,
+        rightEntityId: webEntityId,
+      },
+      entityTypeIds: [
+        systemLinkEntityTypes.syncLinearDataWith.linkEntityTypeId,
+      ],
+      relationships: linearIntegrationRelationships,
+      policies: [
+        {
+          name: `linear-integration-bot-view-link-entity-${linkEntityUuid}`,
+          principal: {
+            type: "actor",
+            actorType: "machine",
+            id: linearBotMachineId,
+          },
+          effect: "permit",
+          actions: ["viewEntity"],
         },
-        entityTypeIds: [
-          systemLinkEntityTypes.syncLinearDataWith.linkEntityTypeId,
-        ],
-        relationships: linearIntegrationRelationships,
-      },
-    );
-
-    const linkEntityUuid = extractEntityUuidFromEntityId(
-      linkEntity.metadata.recordId.entityId,
-    );
-
-    // TODO: allow creating policies alongside entity creation
-    //   see https://linear.app/hash/issue/H-4622/allow-creating-policies-alongside-entity-creation
-    await createPolicy(context.graphApi, authentication, {
-      name: `linear-integration-bot-view-link-entity-${linkEntityUuid}`,
-      principal: {
-        type: "actor",
-        actorType: "machine",
-        id: linearBotMachineId,
-      },
-      effect: "permit",
-      actions: ["viewEntity"],
-      resource: {
-        type: "entity",
-        id: linkEntityUuid,
-      },
+      ],
     });
   }
 };

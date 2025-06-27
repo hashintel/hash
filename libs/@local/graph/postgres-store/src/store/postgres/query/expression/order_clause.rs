@@ -28,6 +28,7 @@ impl OrderByExpression {
         self.columns.insert(0, (expression, ordering, nulls));
     }
 
+    #[must_use]
     pub const fn is_empty(&self) -> bool {
         self.columns.is_empty()
     }

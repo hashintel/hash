@@ -1,0 +1,33 @@
+graph TD
+    linkStyle default stroke-width:1.5px
+    classDef default stroke-width:1px
+    classDef root stroke-width:3px
+    classDef dev stroke-width:1px
+    classDef build stroke-width:1px
+    %% Legend
+    %% --> : Normal dependency
+    %% -.-> : Dev dependency
+    %% ---> : Build dependency
+    0[<a href="../hash_graph">hash-graph</a>]
+    1[<a href="../hash_graph_api">hash-graph-api</a>]
+    2[<a href="../hash_graph_migrations">hash-graph-migrations</a>]
+    3[<a href="../hash_graph_postgres_queries">hash-graph-postgres-queries</a>]
+    4[<a href="../hash_graph_postgres_store">hash-graph-postgres-store</a>]
+    5[<a href="../hash_graph_test_server">hash-graph-test-server</a>]
+    6[<a href="../hash_repo_chores">hash-repo-chores</a>]
+    7[hash-telemetry]
+    class 7 root
+    8[<a href="../error_stack">error-stack</a>]
+    9[<a href="../hash_graph_benches">hash-graph-benches</a>]
+    10[<a href="../hash_graph_integration">hash-graph-integration</a>]
+    0 --> 5
+    1 --> 4
+    2 --> 7
+    3 -.-> 2
+    4 --> 3
+    5 --> 1
+    6 --> 7
+    7 --> 8
+    9 -.-> 1
+    9 -.-> 6
+    10 -.-> 4

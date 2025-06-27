@@ -84,6 +84,7 @@ async fn insert() {
                 link_data: None,
                 draft: false,
                 relationships: [],
+                policies: Vec::new(),
                 confidence: None,
                 provenance: ProvidedEntityEditionProvenance {
                     actor_type: ActorType::User,
@@ -108,6 +109,7 @@ async fn insert() {
                 link_data: None,
                 draft: false,
                 relationships: [],
+                policies: Vec::new(),
                 confidence: None,
                 provenance: ProvidedEntityEditionProvenance {
                     actor_type: ActorType::User,
@@ -146,6 +148,7 @@ async fn insert() {
             }),
             draft: false,
             relationships: [],
+            policies: Vec::new(),
             confidence: None,
             provenance: ProvidedEntityEditionProvenance {
                 actor_type: ActorType::User,
@@ -335,6 +338,7 @@ async fn get_entity_links() {
                 link_data: None,
                 draft: false,
                 relationships: [],
+                policies: Vec::new(),
                 confidence: None,
                 provenance: ProvidedEntityEditionProvenance {
                     actor_type: ActorType::User,
@@ -359,6 +363,7 @@ async fn get_entity_links() {
                 link_data: None,
                 draft: false,
                 relationships: [],
+                policies: Vec::new(),
                 confidence: None,
                 provenance: ProvidedEntityEditionProvenance {
                     actor_type: ActorType::User,
@@ -384,6 +389,7 @@ async fn get_entity_links() {
                 link_data: None,
                 draft: false,
                 relationships: [],
+                policies: Vec::new(),
                 provenance: ProvidedEntityEditionProvenance {
                     actor_type: ActorType::User,
                     origin: OriginProvenance::from_empty_type(OriginType::Api),
@@ -413,6 +419,7 @@ async fn get_entity_links() {
             }),
             draft: false,
             relationships: [],
+            policies: Vec::new(),
             confidence: None,
             provenance: ProvidedEntityEditionProvenance {
                 actor_type: ActorType::User,
@@ -443,6 +450,7 @@ async fn get_entity_links() {
             }),
             draft: false,
             relationships: [],
+            policies: Vec::new(),
             confidence: None,
             provenance: ProvidedEntityEditionProvenance {
                 actor_type: ActorType::User,
@@ -590,6 +598,7 @@ async fn remove_link() {
                 link_data: None,
                 draft: false,
                 relationships: [],
+                policies: Vec::new(),
                 confidence: None,
                 provenance: ProvidedEntityEditionProvenance {
                     actor_type: ActorType::User,
@@ -614,6 +623,7 @@ async fn remove_link() {
                 link_data: None,
                 draft: false,
                 relationships: [],
+                policies: Vec::new(),
                 confidence: None,
                 provenance: ProvidedEntityEditionProvenance {
                     actor_type: ActorType::User,
@@ -645,6 +655,7 @@ async fn remove_link() {
                 }),
                 draft: false,
                 relationships: [],
+                policies: Vec::new(),
                 confidence: None,
                 provenance: ProvidedEntityEditionProvenance {
                     actor_type: ActorType::User,

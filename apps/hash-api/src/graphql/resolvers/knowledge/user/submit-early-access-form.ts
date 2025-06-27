@@ -128,25 +128,20 @@ export const submitEarlyAccessFormResolver: ResolverFn<
         //   },
         // },
       ],
+      policies: [
+        {
+          name: "prospective-user-view-entity",
+          principal: {
+            type: "actor",
+            actorType: "user",
+            id: user.accountId,
+          },
+          effect: "permit",
+          actions: ["viewEntity"],
+        },
+      ],
     },
   );
-
-  // TODO: allow creating policies alongside entity creation
-  //   see https://linear.app/hash/issue/H-4622/allow-creating-policies-alongside-entity-creation
-  await createPolicy(context.graphApi, authentication, {
-    name: "prospective-user-view-entity",
-    principal: {
-      type: "actor",
-      actorType: "user",
-      id: user.accountId,
-    },
-    effect: "permit",
-    actions: ["viewEntity"],
-    resource: {
-      type: "entity",
-      id: extractEntityUuidFromEntityId(entity.entityId),
-    },
-  });
 
   if (process.env.ACCESS_FORM_SLACK_WEBHOOK_URL) {
     const simpleProperties = simplifyProperties(properties);

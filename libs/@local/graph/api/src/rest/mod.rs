@@ -387,7 +387,7 @@ where
     // The `/api-doc` endpoints are nested as we don't want any layers or handlers for the api-doc
     let mut router = merged_routes
         .layer(NewSentryLayer::new_from_top())
-        .layer(SentryHttpLayer::with_transaction())
+        .layer(SentryHttpLayer::default().enable_transaction())
         .layer(Extension(dependencies.store))
         .layer(Extension(dependencies.authorization_api))
         .layer(Extension(dependencies.temporal_client.map(Arc::new)))

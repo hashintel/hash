@@ -41,18 +41,9 @@ impl FetchServer {
                     .map_err(io::Error::from)
                     .attach_printable_lazy(|| file.path().display().to_string())?;
                 let id = match &ontology_type {
-                    FetchedOntologyType::DataType(data_type) => {
-                        tracing::info!(%data_type.id, "Loaded predefined data type");
-                        data_type.id.clone()
-                    }
-                    FetchedOntologyType::PropertyType(property_type) => {
-                        tracing::info!(%property_type.id, "Loaded predefined property type");
-                        property_type.id.clone()
-                    }
-                    FetchedOntologyType::EntityType(entity_type) => {
-                        tracing::info!(%entity_type.id, "Loaded predefined entity type");
-                        entity_type.id.clone()
-                    }
+                    FetchedOntologyType::DataType(data_type) => data_type.id.clone(),
+                    FetchedOntologyType::PropertyType(property_type) => property_type.id.clone(),
+                    FetchedOntologyType::EntityType(entity_type) => entity_type.id.clone(),
                 };
                 self.predefined_types.insert(id, ontology_type);
             }

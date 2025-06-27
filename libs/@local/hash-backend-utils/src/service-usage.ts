@@ -14,7 +14,6 @@ import { entityIdFromComponents } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { EntityRelationAndSubjectBranded } from "@local/hash-graph-sdk/authorization";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
-import { createPolicy } from "@local/hash-graph-sdk/policy";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
   currentTimeInstantTemporalAxes,
@@ -36,7 +35,6 @@ import type {
   RecordsUsageOf,
   UsageRecord,
 } from "@local/hash-isomorphic-utils/system-types/usagerecord";
-import type { PrincipalConstraint } from "@rust/hash-graph-authorization/types";
 import { backOff } from "exponential-backoff";
 
 import { getInstanceAdminsTeam } from "./hash-instance.js";
@@ -322,6 +320,18 @@ export const createUsageRecord = async (
       provenance,
       entityTypeIds: [systemEntityTypes.usageRecord.entityTypeId],
       relationships: entityRelationships,
+      policies: [
+        {
+          name: `usage-record-view-entity-${recordsUsageOfEntityUuid}`,
+          principal: {
+            type: "actor",
+            actorType: "ai",
+            id: aiAssistantAccountId,
+          },
+          effect: "permit",
+          actions: ["viewEntity"],
+        },
+      ],
     },
     {
       webId: assignUsageToWebId,
@@ -335,38 +345,20 @@ export const createUsageRecord = async (
       },
       entityTypeIds: [systemLinkEntityTypes.recordsUsageOf.linkEntityTypeId],
       relationships: entityRelationships,
+      policies: [
+        {
+          name: `usage-record-view-entity-${recordsUsageOfEntityUuid}`,
+          principal: {
+            type: "actor",
+            actorType: "ai",
+            id: aiAssistantAccountId,
+          },
+          effect: "permit",
+          actions: ["viewEntity"],
+        },
+      ],
     },
   ]);
-
-  const viewPrincipals: PrincipalConstraint[] = [
-    {
-      type: "actor",
-      actorType: "user",
-      id: userAccountId,
-    },
-    {
-      type: "actor",
-      actorType: "ai",
-      id: aiAssistantAccountId,
-    },
-  ];
-
-  // TODO: allow creating policies alongside entity creation
-  //   see https://linear.app/hash/issue/H-4622/allow-creating-policies-alongside-entity-creation
-  for (const entityUuid of [usageRecordEntityUuid, recordsUsageOfEntityUuid]) {
-    for (const principal of viewPrincipals) {
-      await createPolicy(context.graphApi, authentication, {
-        name: `usage-record-view-entity-${entityUuid}`,
-        principal,
-        effect: "permit",
-        actions: ["viewEntity"],
-        resource: {
-          type: "entity",
-          id: entityUuid,
-        },
-      });
-    }
-  }
 
   return usageRecord;
 };

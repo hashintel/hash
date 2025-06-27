@@ -126,13 +126,18 @@ module "temporal" {
 
 
 module "tunnel" {
-  source             = "../modules/tunnel"
-  ssh_host           = module.bastion.ssh_info.host
-  ssh_port           = 22
-  ssh_user           = module.bastion.ssh_info.user
-  ssh_private_key    = module.bastion.ssh_info.private_key
-  tunnel_target_host = module.postgres.pg_host
-  tunnel_target_port = 5432
+  source              = "../modules/tunnel"
+  use_ssm             = true
+  bastion_instance_id = module.bastion.instance_id
+  aws_region          = local.region
+  tunnel_target_host  = module.postgres.pg_host
+  tunnel_target_port  = 5432
+  local_tunnel_port   = 45678
+  # Set this to a rather high value to avoid the tunnel being terminated too early.
+  # We've seen the tunnel being established after the first attempt, but it's not reliable.
+  # In particular in CI, it sometimes takes a while to establish the tunnel and we've seen
+  # waiting times of more than a minute.
+  tunnel_max_attempts = 30
 }
 
 # This provider is accessed through the bastion host using the above SSH tunnel

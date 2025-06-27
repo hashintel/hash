@@ -3,7 +3,7 @@ mod knowledge;
 mod migration;
 mod ontology;
 mod pool;
-pub(crate) mod query;
+pub mod query;
 mod seed_policies;
 mod traversal_context;
 
@@ -11,25 +11,26 @@ use alloc::{borrow::Cow, sync::Arc};
 use core::{fmt::Debug, hash::Hash};
 use std::collections::{HashMap, HashSet};
 
-use error_stack::{Report, ReportSink, ResultExt as _};
-use futures::TryStreamExt as _;
+use error_stack::{Report, ReportSink, ResultExt as _, TryReportStreamExt as _};
+use futures::{StreamExt as _, TryStreamExt as _};
 use hash_graph_authorization::{
     AuthorizationApi,
     backend::ModifyRelationshipOperation,
     policies::{
-        Authorized, ContextBuilder, Effect, PartialResourceId, Policy, PolicyId, PolicySet,
-        Request, RequestContext,
+        Authorized, ContextBuilder, Effect, Policy, PolicyComponents, PolicyId, Request,
+        RequestContext, ResourceId,
         action::ActionName,
-        principal::PrincipalConstraint,
-        resource::ResourceConstraint,
+        principal::{PrincipalConstraint, actor::AuthenticatedActor},
+        resource::{EntityResource, EntityTypeId, EntityTypeResource, ResourceConstraint},
         store::{
             CreateWebParameter, CreateWebResponse, PolicyCreationParams, PolicyFilter, PolicyStore,
-            PolicyUpdateOperation, PrincipalFilter, PrincipalStore, RoleAssignmentStatus,
-            RoleUnassignmentStatus,
+            PolicyUpdateOperation, PrincipalFilter, PrincipalStore, ResolvePoliciesParams,
+            RoleAssignmentStatus, RoleUnassignmentStatus,
             error::{
-                CreatePolicyError, EnsureSystemPoliciesError, GetPoliciesError,
-                GetSystemAccountError, RemovePolicyError, RoleAssignmentError, TeamRoleError,
-                UpdatePolicyError, WebCreationError, WebRoleError,
+                BuildEntityContextError, BuildEntityTypeContextError, BuildPrincipalContextError,
+                CreatePolicyError, DetermineActorError, EnsureSystemPoliciesError,
+                GetPoliciesError, GetSystemAccountError, RemovePolicyError, RoleAssignmentError,
+                TeamRoleError, UpdatePolicyError, WebCreationError, WebRoleError,
             },
         },
     },
@@ -57,9 +58,13 @@ use hash_temporal_client::TemporalClient;
 use postgres_types::{Json, ToSql};
 use time::OffsetDateTime;
 use tokio_postgres::{GenericClient as _, error::SqlState};
+use tracing::Instrument as _;
 use type_system::{
     Valid,
-    knowledge::entity::id::EntityUuid,
+    knowledge::entity::{
+        EntityId,
+        id::{EntityEditionId, EntityUuid},
+    },
     ontology::{
         OntologyTemporalMetadata,
         data_type::{ClosedDataType, DataType, DataTypeUuid, schema::DataTypeResolveData},
@@ -71,7 +76,7 @@ use type_system::{
         provenance::{OntologyEditionProvenance, OntologyOwnership, OntologyProvenance},
     },
     principal::{
-        PrincipalId, PrincipalType,
+        ActorGroup, PrincipalId, PrincipalType,
         actor::{ActorEntityUuid, ActorId, ActorType, Ai, AiId, Machine, MachineId, User, UserId},
         actor_group::{ActorGroupEntityUuid, ActorGroupId, Team, TeamId, Web, WebId},
         role::{RoleId, RoleName, TeamRole, TeamRoleId, WebRole, WebRoleId},
@@ -91,12 +96,14 @@ use crate::store::error::{
 #[derive(Debug, Clone)]
 pub struct PostgresStoreSettings {
     pub validate_links: bool,
+    pub skip_embedding_creation: bool,
 }
 
 impl Default for PostgresStoreSettings {
     fn default() -> Self {
         Self {
             validate_links: true,
+            skip_embedding_creation: false,
         }
     }
 }
@@ -253,32 +260,25 @@ where
         actor: ActorId,
         parameter: CreateWebParameter,
     ) -> Result<CreateWebResponse, Report<WebCreationError>> {
-        let mut context_builder = ContextBuilder::default();
-        self.build_principal_context(actor, &mut context_builder)
+        let policy_components = PolicyComponents::builder(self)
+            .with_actor(actor)
+            .with_action(ActionName::CreateWeb, false)
             .await
-            .change_context(WebCreationError::StoreError)?;
-        let context = context_builder
-            .build()
-            .change_context(WebCreationError::StoreError)?;
-        let policies = self
-            .resolve_policies_for_actor(actor.into(), Some(actor))
-            .await
-            .change_context(WebCreationError::StoreError)?;
+            .change_context(WebCreationError::BuildPolicyComponents)?;
 
         let web_id = WebId::new(parameter.id.unwrap_or_else(Uuid::new_v4));
 
-        let policy_set = PolicySet::default()
-            .with_policies(&policies)
-            .change_context(WebCreationError::StoreError)?;
-        match policy_set
+        match policy_components
+            .build_policy_set([ActionName::CreateWeb])
+            .change_context(WebCreationError::PolicySetCreation)?
             .evaluate(
                 &Request {
-                    actor: Some(actor),
+                    actor: policy_components.actor_id(),
                     action: ActionName::CreateWeb,
-                    resource: Some(&PartialResourceId::Web(Some(web_id))),
+                    resource: &ResourceId::Web(web_id),
                     context: RequestContext::default(),
                 },
-                &context,
+                policy_components.context(),
             )
             .change_context(WebCreationError::StoreError)?
         {
@@ -286,9 +286,6 @@ where
             Authorized::Never => {
                 return Err(Report::new(WebCreationError::NotAuthorized))
                     .attach_printable(StatusCode::PermissionDenied);
-            }
-            Authorized::Partial(_) => {
-                unimplemented!("Web creation is not supported for partial authorization");
             }
         }
 
@@ -839,6 +836,130 @@ where
             Ok(status)
         }
     }
+
+    #[tracing::instrument(skip(self))]
+    async fn determine_actor(
+        &self,
+        actor_entity_uuid: ActorEntityUuid,
+    ) -> Result<Option<ActorId>, Report<DetermineActorError>> {
+        if actor_entity_uuid.is_public_actor() {
+            return Ok(None);
+        }
+
+        let row = self
+            .as_client()
+            .query_opt(
+                "SELECT principal_type FROM actor WHERE id = $1",
+                &[&actor_entity_uuid],
+            )
+            .await
+            .change_context(DetermineActorError::StoreError)?
+            .ok_or(DetermineActorError::ActorNotFound { actor_entity_uuid })?;
+
+        Ok(Some(match row.get(0) {
+            PrincipalType::User => ActorId::User(UserId::new(actor_entity_uuid)),
+            PrincipalType::Machine => ActorId::Machine(MachineId::new(actor_entity_uuid)),
+            PrincipalType::Ai => ActorId::Ai(AiId::new(actor_entity_uuid)),
+            principal_type => unreachable!("Unexpected actor type: {principal_type:?}"),
+        }))
+    }
+
+    #[tracing::instrument(level = "debug", skip(self, context_builder))]
+    async fn build_principal_context(
+        &self,
+        actor_id: ActorId,
+        context_builder: &mut ContextBuilder,
+    ) -> Result<(), Report<BuildPrincipalContextError>> {
+        // This function performs multiple database queries to collect all entities needed for
+        // policy evaluation, which could become a performance bottleneck for frequently
+        // accessed actors. Future optimizations may include:
+        //   - Combining some queries into a single more complex query
+        //   - Implementing caching strategies for frequently accessed contexts
+        //   - Prefetching contexts for related actors in batch operations
+
+        let actor = self
+            .get_actor(actor_id.into(), actor_id)
+            .await
+            .change_context(BuildPrincipalContextError::StoreError)?
+            .ok_or(BuildPrincipalContextError::ActorNotFound { actor_id })?;
+        context_builder.add_actor(&actor);
+
+        let group_ids = self
+            .get_actor_roles(actor_id)
+            .await
+            .change_context(BuildPrincipalContextError::StoreError)?
+            .into_values()
+            .map(|role| {
+                context_builder.add_role(&role);
+                role.actor_group_id()
+            })
+            .collect::<Vec<_>>();
+
+        self.as_client()
+            .query_raw(
+                "
+                WITH groups AS (
+                    SELECT parent_id AS id FROM team_hierarchy WHERE child_id = ANY($1)
+                    UNION ALL
+                    SELECT id FROM actor_group WHERE id = ANY($1)
+                )
+                SELECT
+                    'team'::PRINCIPAL_TYPE,
+                    team.id,
+                    team.name,
+                    parent.principal_type,
+                    parent.id
+                 FROM team
+                 JOIN groups ON team.id = groups.id
+                 JOIN actor_group parent ON team.parent_id = parent.id
+
+                 UNION
+
+                 SELECT
+                    'web'::PRINCIPAL_TYPE,
+                    web.id,
+                    web.shortname,
+                    NULL,
+                    NULL
+                 FROM web
+                 JOIN groups ON web.id = groups.id
+                 ",
+                &[&group_ids],
+            )
+            .await
+            .change_context(BuildPrincipalContextError::StoreError)?
+            .map_ok(|row| match row.get(0) {
+                PrincipalType::Web => ActorGroup::Web(Web {
+                    id: row.get(1),
+                    shortname: row.get(2),
+                    roles: HashSet::new(),
+                }),
+                PrincipalType::Team => ActorGroup::Team(Team {
+                    id: row.get(1),
+                    name: row.get(2),
+                    parent_id: match row.get(3) {
+                        PrincipalType::Web => ActorGroupId::Web(row.get(4)),
+                        PrincipalType::Team => ActorGroupId::Team(row.get(4)),
+                        actor_group_type => {
+                            unreachable!("Unexpected actor group type: {actor_group_type:?}")
+                        }
+                    },
+                    roles: HashSet::new(),
+                }),
+                actor_group_type => {
+                    unreachable!("Unexpected actor group type: {actor_group_type:?}")
+                }
+            })
+            .try_collect::<Vec<_>>()
+            .await
+            .change_context(BuildPrincipalContextError::StoreError)?
+            .into_iter()
+            .for_each(|actor_group| {
+                context_builder.add_actor_group(&actor_group);
+            });
+
+        Ok(())
+    }
 }
 
 pub(crate) struct PolicyParts {
@@ -907,7 +1028,7 @@ where
 {
     async fn create_policy(
         &mut self,
-        _authenticated_actor: ActorEntityUuid,
+        _authenticated_actor: AuthenticatedActor,
         policy: PolicyCreationParams,
     ) -> Result<PolicyId, Report<CreatePolicyError>> {
         if policy.actions.is_empty() {
@@ -999,7 +1120,7 @@ where
 
     async fn get_policy_by_id(
         &self,
-        _authenticated_actor: ActorEntityUuid,
+        _authenticated_actor: AuthenticatedActor,
         id: PolicyId,
     ) -> Result<Option<Policy>, Report<GetPoliciesError>> {
         self.as_client()
@@ -1047,7 +1168,7 @@ where
 
     async fn query_policies(
         &self,
-        _authenticated_actor: ActorEntityUuid,
+        _authenticated_actor: AuthenticatedActor,
         filter: &PolicyFilter,
     ) -> Result<Vec<Policy>, Report<GetPoliciesError>> {
         let mut filters = vec!["policy_edition.transaction_time @> now()".to_owned()];
@@ -1152,12 +1273,13 @@ where
     }
 
     #[expect(clippy::too_many_lines)]
+    #[tracing::instrument(level = "info", skip(self, params), fields(actor_id = ?params.actor, action_count = params.actions.len()))]
     async fn resolve_policies_for_actor(
         &self,
-        authenticated_actor: ActorEntityUuid,
-        actor_id: Option<ActorId>,
+        authenticated_actor: AuthenticatedActor,
+        params: ResolvePoliciesParams<'_>,
     ) -> Result<Vec<Policy>, Report<GetPoliciesError>> {
-        let Some(actor_id) = actor_id else {
+        let Some(actor_id) = params.actor else {
             // If no actor is provided, only policies without principal constraints are returned.
             return self
                 .query_policies(
@@ -1186,7 +1308,9 @@ where
         // The actions are associated in the `policy_action` table. We join that table and aggregate
         // the actions for each policy. All actions are included, but the action hierarchy is used
         // to determine which actions are relevant to the actor.
-        self.as_client()
+
+        self
+            .as_client()
             .query_raw(
                 "
                 WITH principals AS (
@@ -1242,38 +1366,66 @@ where
                      AND policy_edition.principal_type = principals.principal_type
                     WHERE policy_edition.transaction_time @> now()
                       AND (policy_edition.actor_type IS NULL OR policy_edition.actor_type = $2)
+                ),
+
+                -- We have all the policies that apply to the actor, now we associate the actions
+                policy_with_actions AS (
+                    SELECT
+                        policy_edition.id,
+                        policy_edition.name,
+                        policy_edition.effect,
+                        policy_edition.principal_id,
+                        policy_edition.principal_type,
+                        policy_edition.actor_type,
+                        policy_edition.resource_constraint,
+                        array_remove(array_agg(policy_action.action_name), NULL) AS actions
+                    FROM policy_edition
+                    LEFT JOIN policy_action
+                        ON policy_action.policy_id = policy_edition.id
+                        AND policy_action.transaction_time @> now()
+                    GROUP BY
+                        policy_edition.id,
+                        policy_edition.name,
+                        policy_edition.effect,
+                        policy_edition.principal_id,
+                        policy_edition.principal_type,
+                        policy_edition.actor_type,
+                        policy_edition.resource_constraint
                 )
                 SELECT
-                    policy_edition.id,
-                    policy_edition.name,
-                    policy_edition.effect,
-                    policy_edition.principal_id,
-                    policy_edition.principal_type,
-                    policy_edition.actor_type,
-                    policy_edition.resource_constraint,
-                    array_remove(array_agg(policy_action.action_name), NULL)
-                FROM policy_edition
-                LEFT JOIN policy_action
-                       ON policy_action.policy_id = policy_edition.id
-                      AND policy_action.transaction_time @> now()
-                GROUP BY
-                    policy_edition.id,
-                    policy_edition.name,
-                    policy_edition.effect,
-                    policy_edition.principal_id,
-                    policy_edition.principal_type,
-                    policy_edition.actor_type,
-                    policy_edition.resource_constraint
+                    id,
+                    name,
+                    effect,
+                    principal_id,
+                    principal_type,
+                    actor_type,
+                    resource_constraint,
+                    actions
+                FROM policy_with_actions
+                WHERE actions && $3
                 ",
                 [
                     &actor_id as &(dyn ToSql + Sync),
                     &PrincipalType::from(actor_id.actor_type()),
+                    &&*params.actions,
                 ],
             )
+            .instrument(tracing::info_span!(
+                "sql_policy_query_execution",
+                actor_uuid = %actor_id,
+                actor_type = ?actor_id.actor_type(),
+                action_count = params.actions.len()
+            ))
             .await
             .change_context(GetPoliciesError::StoreError)?
             .map_err(|error| Report::new(error).change_context(GetPoliciesError::StoreError))
             .and_then(async |row| -> Result<_, Report<GetPoliciesError>> {
+                let _span = tracing::info_span!(
+                    "policy_conversion",
+                    policy_id = ?row.get::<_, PolicyId>(0),
+                    has_resource_constraint = row.get::<_, Option<Json<ResourceConstraint>>>(6).is_some()
+                ).entered();
+
                 PolicyParts {
                     id: row.get(0),
                     name: row.get(1),
@@ -1289,13 +1441,14 @@ where
                 .into_policy()
             })
             .try_collect::<Vec<_>>()
+            .instrument(tracing::info_span!("policy_result_collection"))
             .await
     }
 
     #[expect(clippy::too_many_lines)]
     async fn update_policy_by_id(
         &mut self,
-        authenticated_actor: ActorEntityUuid,
+        authenticated_actor: AuthenticatedActor,
         policy_id: PolicyId,
         operations: &[PolicyUpdateOperation],
     ) -> Result<Policy, Report<UpdatePolicyError>> {
@@ -1455,7 +1608,7 @@ where
 
     async fn archive_policy_by_id(
         &mut self,
-        _authenticated_actor: ActorEntityUuid,
+        _authenticated_actor: AuthenticatedActor,
         policy_id: PolicyId,
     ) -> Result<(), Report<RemovePolicyError>> {
         let num_deleted = self
@@ -1488,7 +1641,7 @@ where
 
     async fn delete_policy_by_id(
         &mut self,
-        _authenticated_actor: ActorEntityUuid,
+        _authenticated_actor: AuthenticatedActor,
         policy_id: PolicyId,
     ) -> Result<(), Report<RemovePolicyError>> {
         let num_deleted = self
@@ -1594,6 +1747,188 @@ where
             .commit()
             .await
             .change_context(EnsureSystemPoliciesError::StoreError)
+    }
+
+    #[tracing::instrument(level = "debug", skip(self, entity_type_ids))]
+    async fn build_entity_type_context(
+        &self,
+        entity_type_ids: &[&VersionedUrl],
+    ) -> Result<Vec<EntityTypeResource<'_>>, Report<[BuildEntityTypeContextError]>> {
+        let () = self
+            .as_client()
+            .query_raw(
+                "
+                    SELECT input.idx
+                    FROM unnest($1::text[]) WITH ORDINALITY AS input(url, idx)
+                    WHERE NOT EXISTS (
+                        SELECT 1 FROM entity_types
+                        WHERE entity_types.schema ->> '$id' = input.url
+                    )",
+                [&entity_type_ids],
+            )
+            .await
+            .change_context(BuildEntityTypeContextError::StoreError)?
+            .map(|row| {
+                let row = row.change_context(BuildEntityTypeContextError::StoreError)?;
+                #[expect(
+                    clippy::cast_possible_truncation,
+                    clippy::cast_sign_loss,
+                    reason = "The index is 1-based and is always less than or equal to the length \
+                              of the array"
+                )]
+                Err(Report::new(
+                    BuildEntityTypeContextError::EntityTypeNotFound {
+                        entity_type_id: entity_type_ids[row.get::<_, i64>(0) as usize - 1].clone(),
+                    },
+                ))
+            })
+            .try_collect_reports()
+            .await
+            .attach(StatusCode::NotFound)?;
+
+        Ok(self
+            .as_client()
+            .query_raw(
+                "
+                    WITH filtered AS (
+                        SELECT entity_types.ontology_id
+                        FROM entity_types
+                        WHERE entity_types.schema ->> '$id' = any($1)
+                    )
+                    SELECT
+                        ontology_ids.base_url,
+                        ontology_ids.version,
+                        ontology_owned_metadata.web_id
+                    FROM filtered
+                    INNER JOIN ontology_ids
+                        ON filtered.ontology_id = ontology_ids.ontology_id
+                    LEFT OUTER JOIN ontology_owned_metadata
+                        ON ontology_ids.ontology_id = ontology_owned_metadata.ontology_id
+
+                    UNION
+
+                    SELECT
+                        ontology_ids.base_url,
+                        ontology_ids.version,
+                        ontology_owned_metadata.web_id
+                    FROM filtered
+                    INNER JOIN
+                        entity_type_inherits_from
+                        ON filtered.ontology_id = source_entity_type_ontology_id
+                    INNER JOIN ontology_ids
+                        ON target_entity_type_ontology_id = ontology_ids.ontology_id
+                    LEFT OUTER JOIN ontology_owned_metadata
+                        ON ontology_ids.ontology_id = ontology_owned_metadata.ontology_id;
+                 ",
+                [&entity_type_ids],
+            )
+            .await
+            .change_context(BuildEntityTypeContextError::StoreError)?
+            .map_ok(|row| EntityTypeResource {
+                id: Cow::Owned(EntityTypeId::new(VersionedUrl {
+                    base_url: row.get(0),
+                    version: row.get(1),
+                })),
+                web_id: row.get(2),
+            })
+            .try_collect()
+            .await
+            .change_context(BuildEntityTypeContextError::StoreError)?)
+    }
+
+    #[tracing::instrument(level = "debug", skip(self, entity_edition_ids))]
+    async fn build_entity_context(
+        &self,
+        entity_edition_ids: &[EntityEditionId],
+    ) -> Result<Vec<EntityResource<'static>>, Report<[BuildEntityContextError]>> {
+        let () = self
+            .as_client()
+            .query_raw(
+                "
+                    SELECT input.idx
+                    FROM unnest($1::uuid[]) WITH ORDINALITY AS input(edition_id, idx)
+                    WHERE NOT EXISTS (
+                        SELECT 1 FROM entity_temporal_metadata
+                        WHERE entity_temporal_metadata.entity_edition_id = input.edition_id
+                    )",
+                [&entity_edition_ids],
+            )
+            .await
+            .change_context(BuildEntityContextError::StoreError)?
+            .map(|row| {
+                let row = row.change_context(BuildEntityContextError::StoreError)?;
+                #[expect(
+                    clippy::cast_possible_truncation,
+                    clippy::cast_sign_loss,
+                    reason = "The index is 1-based and is always less than or equal to the length \
+                              of the array"
+                )]
+                Err(Report::new(BuildEntityContextError::EntityNotFound {
+                    entity_edition_id: entity_edition_ids[row.get::<_, i64>(0) as usize - 1],
+                }))
+            })
+            .try_collect_reports()
+            .await
+            .attach(StatusCode::NotFound)?;
+
+        Ok(self
+            .as_client()
+            .query_raw(
+                "
+                    SELECT
+                        entity_temporal_metadata.web_id,
+                        entity_temporal_metadata.entity_uuid,
+                        entity_temporal_metadata.draft_id,
+                        created_by.id AS created_by_id,
+                        created_by.principal_type AS created_by_type,
+                        array_agg(entity_types.schema ->> '$id') AS entity_type
+                    FROM entity_temporal_metadata
+                    INNER JOIN entity_editions
+                        ON entity_temporal_metadata.entity_edition_id
+                           = entity_editions.entity_edition_id
+                    INNER JOIN actor AS created_by
+                        ON (entity_editions.provenance ->> 'createdById')::UUID
+                           = created_by.id
+                    INNER JOIN entity_is_of_type
+                        ON entity_temporal_metadata.entity_edition_id
+                           = entity_is_of_type.entity_edition_id
+                    INNER JOIN entity_types
+                        ON entity_is_of_type.entity_type_ontology_id
+                           = entity_types.ontology_id
+                    WHERE entity_temporal_metadata.entity_edition_id = any($1::uuid[])
+                    GROUP BY
+                        entity_temporal_metadata.web_id,
+                        entity_temporal_metadata.entity_uuid,
+                        entity_temporal_metadata.draft_id,
+                        created_by.id,
+                        created_by.principal_type;
+                 ",
+                [&entity_edition_ids],
+            )
+            .await
+            .change_context(BuildEntityContextError::StoreError)?
+            .map_ok(|row| EntityResource {
+                id: EntityId {
+                    web_id: row.get(0),
+                    entity_uuid: row.get(1),
+                    draft_id: row.get(2),
+                },
+                entity_type: Cow::Owned(row.get(5)),
+                created_by: ActorId::new(
+                    row.get::<_, ActorEntityUuid>(3),
+                    match row.get(4) {
+                        PrincipalType::User => ActorType::User,
+                        PrincipalType::Machine => ActorType::Machine,
+                        PrincipalType::Ai => ActorType::Ai,
+                        principal_type => unreachable!(
+                            "Unexpected actor type `{principal_type:?}` in entity context"
+                        ),
+                    },
+                ),
+            })
+            .try_collect()
+            .await
+            .change_context(BuildEntityContextError::StoreError)?)
     }
 }
 

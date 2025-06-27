@@ -5,7 +5,7 @@ use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion, Sampling
 use criterion_macro::criterion;
 use hash_graph_authorization::{
     AuthorizationApi, NoAuthorization,
-    policies::store::{CreateWebParameter, LocalPrincipalStore as _, PolicyStore as _},
+    policies::store::{CreateWebParameter, PolicyStore as _, PrincipalStore as _},
 };
 use hash_graph_store::{
     entity::{CreateEntityParams, EntityQuerySorting, EntityStore as _, GetEntitySubgraphParams},
@@ -150,6 +150,7 @@ async fn seed_db<A: AuthorizationApi>(
                     link_data: None,
                     draft: false,
                     relationships: [],
+                    policies: Vec::new(),
                     provenance: ProvidedEntityEditionProvenance {
                         actor_type: ActorType::User,
                         origin: OriginProvenance::from_empty_type(OriginType::Api),
@@ -190,6 +191,7 @@ async fn seed_db<A: AuthorizationApi>(
                         }),
                         draft: false,
                         relationships: [],
+                        policies: Vec::new(),
                         provenance: ProvidedEntityEditionProvenance {
                             actor_type: ActorType::User,
                             origin: OriginProvenance::from_empty_type(OriginType::Api),

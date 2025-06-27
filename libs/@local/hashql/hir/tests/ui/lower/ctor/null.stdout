@@ -4,4 +4,4 @@ Marker:0()
 
 ════ HIR after ctor conversion ═════════════════════════════════════════════════
 
-#ctor(fn() -> ::main::Marker:0[Null], arguments: [])()
+#ctor(fn() -> Marker:0[Null], arguments: [])()

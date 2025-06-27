@@ -7,7 +7,8 @@ use futures::TryStreamExt as _;
 use hash_graph_authorization::{
     AuthorizationApi,
     backend::PermissionAssertion,
-    schema::{DataTypePermission, EntityPermission, EntityTypePermission, PropertyTypePermission},
+    policies::{PolicyComponents, action::ActionName},
+    schema::{DataTypePermission, EntityTypePermission, PropertyTypePermission},
     zanzibar::Consistency,
 };
 use hash_graph_store::{
@@ -133,8 +134,18 @@ pub struct StoreCache {
 #[derive(Debug)]
 pub struct StoreProvider<'a, S> {
     pub store: &'a S,
-    pub cache: StoreCache,
-    pub authorization: Option<(ActorEntityUuid, Consistency<'static>)>,
+    pub cache: Box<StoreCache>,
+    pub policy_components: Option<&'a PolicyComponents>,
+}
+
+impl<'a, S> StoreProvider<'a, S> {
+    pub fn new(store: &'a S, policy_components: &'a PolicyComponents) -> Self {
+        Self {
+            store,
+            cache: Box::new(StoreCache::default()),
+            policy_components: Some(policy_components),
+        }
+    }
 }
 
 impl<C, A> StoreProvider<'_, PostgresStore<C, A>>
@@ -143,14 +154,16 @@ where
     A: AuthorizationApi,
 {
     async fn authorize_data_type(&self, type_id: DataTypeUuid) -> Result<(), Report<QueryError>> {
-        if let Some((actor_id, consistency)) = self.authorization {
+        if let Some(policy_components) = &self.policy_components {
             self.store
                 .authorization_api
                 .check_data_type_permission(
-                    actor_id,
+                    policy_components
+                        .actor_id()
+                        .map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from),
                     DataTypePermission::View,
                     type_id,
-                    consistency,
+                    Consistency::FullyConsistent,
                 )
                 .await
                 .change_context(QueryError)?
@@ -352,14 +365,16 @@ where
         &self,
         type_id: PropertyTypeUuid,
     ) -> Result<(), Report<QueryError>> {
-        if let Some((actor_id, consistency)) = self.authorization {
+        if let Some(policy_components) = &self.policy_components {
             self.store
                 .authorization_api
                 .check_property_type_permission(
-                    actor_id,
+                    policy_components
+                        .actor_id()
+                        .map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from),
                     PropertyTypePermission::View,
                     type_id,
-                    consistency,
+                    Consistency::FullyConsistent,
                 )
                 .await
                 .change_context(QueryError)?
@@ -431,14 +446,16 @@ where
         &self,
         type_id: EntityTypeUuid,
     ) -> Result<(), Report<QueryError>> {
-        if let Some((actor_id, consistency)) = self.authorization {
+        if let Some(policy_components) = &self.policy_components {
             self.store
                 .authorization_api
                 .check_entity_type_permission(
-                    actor_id,
+                    policy_components
+                        .actor_id()
+                        .map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from),
                     EntityTypePermission::View,
                     type_id,
-                    consistency,
+                    Consistency::FullyConsistent,
                 )
                 .await
                 .change_context(QueryError)?
@@ -591,20 +608,22 @@ where
         if let Some(cached) = self.cache.entities.get(&entity_id).await {
             return cached;
         }
-        if let Some((actor_id, consistency)) = self.authorization {
-            self.store
-                .authorization_api
-                .check_entity_permission(actor_id, EntityPermission::View, entity_id, consistency)
-                .await
-                .change_context(QueryError)?
-                .assert_permission()
-                .change_context(QueryError)?;
+
+        let mut filters = vec![Filter::for_entity_by_entity_id(entity_id)];
+
+        if let Some(policy_components) = &self.policy_components {
+            let filter = Filter::for_policies(
+                policy_components.extract_filter_policies(ActionName::ViewEntity),
+                policy_components.actor_id(),
+                policy_components.optimization_data(ActionName::ViewEntity),
+            );
+            filters.push(filter);
         }
 
         let entity = self
             .store
             .read_one(
-                &[Filter::for_entity_by_entity_id(entity_id)],
+                &filters,
                 Some(
                     &QueryTemporalAxesUnresolved::DecisionTime {
                         pinned: PinnedTemporalAxisUnresolved::new(None),

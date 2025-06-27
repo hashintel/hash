@@ -230,30 +230,6 @@ pub(crate) fn global_policies() -> impl Iterator<Item = PolicyCreationParams> {
 }
 
 fn web_view_entity_policies(role: &WebRole) -> impl Iterator<Item = PolicyCreationParams> {
-    let mut filters = Vec::new();
-    filters.extend(create_version_filters(
-        base_url!("https://hash.ai/@h/types/entity-type/user-secret/"),
-        1,
-    ));
-    if role.name != RoleName::Administrator {
-        filters.extend(
-            create_version_filters(
-                base_url!("https://hash.ai/@h/types/entity-type/usage-record/"),
-                2,
-            )
-            .chain(
-                create_version_filters(
-                    base_url!("https://hash.ai/@h/types/entity-type/incurred-in/"),
-                    2,
-                )
-                .chain(create_version_filters(
-                    base_url!("https://hash.ai/@h/types/entity-type/records-usage-of/"),
-                    1,
-                )),
-            ),
-        );
-    }
-
     iter::once(PolicyCreationParams {
         name: Some("default-web-view-entity".to_owned()),
         effect: Effect::Permit,
@@ -264,16 +240,61 @@ fn web_view_entity_policies(role: &WebRole) -> impl Iterator<Item = PolicyCreati
         actions: vec![ActionName::ViewEntity],
         resource: Some(ResourceConstraint::Entity(EntityResourceConstraint::Web {
             web_id: role.web_id,
-            filter: EntityResourceFilter::Not {
-                filter: Box::new(EntityResourceFilter::Any { filters }),
+            filter: match role.name {
+                RoleName::Administrator => EntityResourceFilter::All { filters: vec![] },
+                RoleName::Member => EntityResourceFilter::Any {
+                    filters: vec![
+                        EntityResourceFilter::CreatedByPrincipal,
+                        EntityResourceFilter::Not {
+                            filter: Box::new(EntityResourceFilter::Any {
+                                filters: create_version_filters(
+                                    base_url!("https://hash.ai/@h/types/entity-type/user-secret/"),
+                                    1,
+                                )
+                                .chain(create_version_filters(
+                                    base_url!("https://hash.ai/@h/types/entity-type/usage-record/"),
+                                    2,
+                                ))
+                                .chain(create_version_filters(
+                                    base_url!("https://hash.ai/@h/types/entity-type/incurred-in/"),
+                                    2,
+                                ))
+                                .chain(create_version_filters(
+                                    base_url!(
+                                        "https://hash.ai/@h/types/entity-type/records-usage-of/"
+                                    ),
+                                    1,
+                                ))
+                                .collect(),
+                            }),
+                        },
+                    ],
+                },
             },
         })),
     })
 }
 
+fn web_create_entity_policies(role: &WebRole) -> impl Iterator<Item = PolicyCreationParams> {
+    iter::once(PolicyCreationParams {
+        name: Some("default-web-create-entity".to_owned()),
+        effect: Effect::Permit,
+        principal: Some(PrincipalConstraint::Role {
+            role: RoleId::Web(role.id),
+            actor_type: None,
+        }),
+        actions: vec![ActionName::CreateEntity],
+        resource: Some(ResourceConstraint::Web {
+            web_id: role.web_id,
+        }),
+    })
+}
+
 // TODO: Returning an iterator causes a borrow checker error
 pub(crate) fn web_policies(role: &WebRole) -> Vec<PolicyCreationParams> {
-    web_view_entity_policies(role).collect()
+    web_view_entity_policies(role)
+        .chain(web_create_entity_policies(role))
+        .collect()
 }
 
 fn instance_admins_view_entity_policy(

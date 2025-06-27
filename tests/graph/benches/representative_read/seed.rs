@@ -1,9 +1,9 @@
-use core::{iter::repeat_n, str::FromStr as _};
+use core::iter::repeat_n;
 use std::collections::{HashMap, HashSet, hash_map::Entry};
 
 use hash_graph_authorization::{
     AuthorizationApi,
-    policies::store::{CreateWebParameter, LocalPrincipalStore as _, PolicyStore as _},
+    policies::store::{CreateWebParameter, PolicyStore as _, PrincipalStore as _},
 };
 use hash_graph_postgres_store::store::AsClient as _;
 use hash_graph_store::entity::{CreateEntityParams, EntityStore as _};
@@ -20,7 +20,6 @@ use type_system::{
     },
     provenance::{OriginProvenance, OriginType},
 };
-use uuid::Uuid;
 
 use crate::util::{StoreWrapper, seed};
 
@@ -127,7 +126,7 @@ const SEED_LINKS: &[(&str, usize, usize)] = &[
     clippy::significant_drop_tightening,
     reason = "transaction is committed which consumes the object"
 )]
-async fn seed_db<A: AuthorizationApi>(
+pub(crate) async fn seed_db<A: AuthorizationApi>(
     account_id: ActorEntityUuid,
     store_wrapper: &mut StoreWrapper<A>,
 ) {
@@ -208,6 +207,7 @@ async fn seed_db<A: AuthorizationApi>(
                         link_data: None,
                         draft: false,
                         relationships: [],
+                        policies: Vec::new(),
                         provenance: ProvidedEntityEditionProvenance {
                             actor_type: ActorType::User,
                             origin: OriginProvenance::from_empty_type(OriginType::Api),
@@ -257,6 +257,7 @@ async fn seed_db<A: AuthorizationApi>(
                         }),
                         draft: false,
                         relationships: [],
+                        policies: Vec::new(),
                         provenance: ProvidedEntityEditionProvenance {
                             actor_type: ActorType::User,
                             origin: OriginProvenance::from_empty_type(OriginType::Api),
@@ -360,16 +361,8 @@ async fn get_samples<A: AuthorizationApi>(
 
 pub async fn setup_and_extract_samples<A: AuthorizationApi>(
     store_wrapper: &mut StoreWrapper<A>,
+    account_id: ActorEntityUuid,
 ) -> Samples {
-    // TODO: We'll want to test distribution across accounts
-    //   see https://linear.app/hash/issue/H-3012
-    //
-    // We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
-    // parameter argument to criterion and get comparison analysis
-    let account_id = ActorEntityUuid::new(
-        Uuid::from_str("d4e16033-c281-4cde-aa35-9085bf2e7579").expect("invalid UUID"),
-    );
-
     // We use the existence of the account ID as a marker for if the DB has been seeded already
     let already_seeded: bool = store_wrapper
         .store

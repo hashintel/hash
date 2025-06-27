@@ -11,7 +11,7 @@ use type_system::{
 };
 
 use super::FromCedarEntityUId as _;
-use crate::policies::{PartialResourceId, cedar::FromCedarEntityId as _, resource::EntityTypeId};
+use crate::policies::{ResourceId, cedar::FromCedarEntityId as _, resource::EntityTypeId};
 
 #[derive(Debug)]
 pub enum PolicyExpressionTree {
@@ -19,11 +19,12 @@ pub enum PolicyExpressionTree {
     All(Vec<Self>),
 
     Any(Vec<Self>),
-    Is(PartialResourceId<'static>),
+    Is(ResourceId<'static>),
     In(WebId),
     BaseUrl(BaseUrl),
     OntologyTypeVersion(OntologyTypeVersion),
     IsOfType(VersionedUrl),
+    CreatedByPrincipal,
 }
 
 #[derive(Debug, derive_more::Display)]
@@ -38,6 +39,8 @@ impl Error for ParseBinaryExpressionError {}
 
 #[derive(Debug, derive_more::Display)]
 pub(crate) enum ParseGetAttrExpressionError {
+    #[display("No principal id found")]
+    NoPrincipalId,
     #[display("No resource variable found")]
     NoResourceVariable,
     #[display("Invalid attribute: `{_0}`")]
@@ -160,6 +163,21 @@ impl PolicyExpressionTree {
         }
     }
 
+    fn expect_principal_id(
+        expr: &Arc<ast::Expr>,
+    ) -> Result<(), Report<ParseGetAttrExpressionError>> {
+        match expr.expr_kind() {
+            ast::ExprKind::GetAttr { expr, attr } => match (expr.expr_kind(), attr.as_str()) {
+                (ast::ExprKind::Var(ast::Var::Principal), "id") => Ok(()),
+                (ast::ExprKind::Unknown(unknown), "id") if unknown.name == "principal" => Ok(()),
+                _ => Err(Report::new(ParseGetAttrExpressionError::NoPrincipalId)
+                    .attach_printable(Arc::clone(expr))),
+            },
+            _ => Err(Report::new(ParseGetAttrExpressionError::NoPrincipalId)
+                .attach_printable(Arc::clone(expr))),
+        }
+    }
+
     fn expect_resource_variable(
         expr: &Arc<ast::Expr>,
     ) -> Result<(), Report<ParseGetAttrExpressionError>> {
@@ -197,6 +215,7 @@ impl PolicyExpressionTree {
             BaseUrl,
             OntologyTypeVersion,
             Resource,
+            CreatedBy,
         }
 
         let attribute_type = match lhs.expr_kind() {
@@ -204,6 +223,7 @@ impl PolicyExpressionTree {
                 let attr_type = match attr.as_str() {
                     "base_url" => Ok(AttributeType::BaseUrl),
                     "ontology_type_version" => Ok(AttributeType::OntologyTypeVersion),
+                    "created_by" => Ok(AttributeType::CreatedBy),
                     _ => Err(Report::new(ParseGetAttrExpressionError::InvalidAttribute(
                         attr.clone(),
                     ))),
@@ -237,14 +257,17 @@ impl PolicyExpressionTree {
                     .change_context(ParseBinaryExpressionError::Right)
                     .map(|version| Self::OntologyTypeVersion(OntologyTypeVersion::new(version)))
             }
+            (AttributeType::CreatedBy, _) => Self::expect_principal_id(rhs)
+                .change_context(ParseBinaryExpressionError::Right)
+                .map(|()| Self::CreatedByPrincipal),
             (AttributeType::Resource, ast::ExprKind::Lit(ast::Literal::EntityUID(euid))) => {
                 if *euid.entity_type() == **EntityTypeId::entity_type() {
                     EntityTypeId::from_eid(euid.eid())
-                        .map(|id| PartialResourceId::EntityType(Some(Cow::Owned(id))))
+                        .map(|id| ResourceId::EntityType(Cow::Owned(id)))
                         .change_context(ParseBinaryExpressionError::Right)
                 } else if *euid.entity_type() == **EntityUuid::entity_type() {
                     EntityUuid::from_eid(euid.eid())
-                        .map(|id| PartialResourceId::Entity(Some(id)))
+                        .map(ResourceId::Entity)
                         .change_context(ParseBinaryExpressionError::Right)
                 } else {
                     Err(Report::new(ParseExpressionError::Unexpected)
