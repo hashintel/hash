@@ -256,6 +256,10 @@ impl Default for QueryTemporalAxesUnresolved {
 }
 
 impl QueryTemporalAxesUnresolved {
+    /// Resolves temporal axes relative to the specified timestamp.
+    ///
+    /// Converts unresolved temporal axes into concrete temporal axes by resolving
+    /// relative timestamps and intervals against the provided reference time.
     #[must_use]
     pub fn resolve_relative_to(self, now: Timestamp<()>) -> QueryTemporalAxes {
         match self {
@@ -270,6 +274,10 @@ impl QueryTemporalAxesUnresolved {
         }
     }
 
+    /// Resolves temporal axes using the current timestamp.
+    ///
+    /// Convenience method that resolves temporal axes against the current time.
+    /// Equivalent to calling `resolve_relative_to(Timestamp::now())`.
     #[must_use]
     pub fn resolve(self) -> QueryTemporalAxes {
         let now = Timestamp::now();
