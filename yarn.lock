@@ -13367,6 +13367,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@rust/hashql-core@workspace:libs/@local/hashql/core"
   dependencies:
+    "@rust/hash-codec": "npm:0.0.0-private"
     "@rust/hashql-diagnostics": "npm:0.0.0-private"
   languageName: unknown
   linkType: soft

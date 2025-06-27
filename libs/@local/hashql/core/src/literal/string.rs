@@ -21,15 +21,47 @@ use crate::symbol::Symbol;
 /// "こんにちは"       // Non-ASCII characters are fully supported
 /// "😊 🚀 🌍"        // Emoji and other Unicode characters
 /// ```
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub struct StringLiteral<'heap> {
     pub value: Symbol<'heap>,
 }
 
 impl StringLiteral<'_> {
     /// Returns the string value as a string slice.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_core::{heap::Heap, literal::StringLiteral};
+    ///
+    /// let heap = Heap::new();
+    /// let literal = StringLiteral {
+    ///     value: heap.intern_symbol("Hello, world!"),
+    /// };
+    ///
+    /// assert_eq!(literal.as_str(), "Hello, world!");
+    /// ```
     #[must_use]
     pub const fn as_str(&self) -> &str {
         self.value.as_str()
+    }
+
+    /// Returns the string value as a byte slice.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use hashql_core::{heap::Heap, literal::StringLiteral};
+    ///
+    /// let heap = Heap::new();
+    /// let literal = StringLiteral {
+    ///     value: heap.intern_symbol("Hello"),
+    /// };
+    ///
+    /// assert_eq!(literal.as_bytes(), b"Hello");
+    /// ```
+    #[must_use]
+    pub const fn as_bytes(&self) -> &[u8] {
+        self.value.as_bytes()
     }
 }

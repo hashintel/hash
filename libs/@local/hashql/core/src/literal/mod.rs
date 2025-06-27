@@ -58,7 +58,7 @@ mod string;
 /// Each variant represents a specific type of literal that can appear in expressions.
 /// Literals are constant values that are directly expressed in the source code
 /// rather than being computed at runtime.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialOrd, Ord, PartialEq, Eq, Hash)]
 pub enum LiteralKind<'heap> {
     /// Represents a null value.
     ///

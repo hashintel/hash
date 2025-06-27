@@ -28,9 +28,14 @@ graph TD
     16[<a href="../harpc_server">harpc-server</a>]
     17[<a href="../harpc_system">harpc-system</a>]
     18[<a href="../harpc_tower">harpc-tower</a>]
-    19[<a href="../hash_temporal_client">hash-temporal-client</a>]
-    20[<a href="../hash_graph_benches">hash-graph-benches</a>]
-    21[<a href="../hash_graph_integration">hash-graph-integration</a>]
+    19[<a href="../hashql_ast">hashql-ast</a>]
+    20[<a href="../hashql_compiletest">hashql-compiletest</a>]
+    21[<a href="../hashql_core">hashql-core</a>]
+    22[<a href="../hashql_hir">hashql-hir</a>]
+    23[<a href="../hashql_syntax_jexpr">hashql-syntax-jexpr</a>]
+    24[<a href="../hash_temporal_client">hash-temporal-client</a>]
+    25[<a href="../hash_graph_benches">hash-graph-benches</a>]
+    26[<a href="../hash_graph_integration">hash-graph-integration</a>]
     0 --> 10
     1 --> 9
     2 -.-> 3
@@ -43,7 +48,7 @@ graph TD
     7 --> 13
     8 --> 5
     8 --> 12
-    8 --> 19
+    8 --> 24
     9 --> 2
     10 --> 4
     11 --> 8
@@ -56,6 +61,13 @@ graph TD
     17 --> 18
     18 -.-> 15
     18 --> 15
-    19 --> 1
-    20 -.-> 4
-    21 -.-> 7
+    19 -.-> 20
+    20 --> 22
+    20 --> 23
+    21 --> 2
+    22 -.-> 20
+    23 --> 19
+    23 --> 21
+    24 --> 1
+    25 -.-> 4
+    26 -.-> 7
