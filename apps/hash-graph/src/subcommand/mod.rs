@@ -11,7 +11,7 @@ use core::time::Duration;
 
 use error_stack::{Report, ensure};
 use hash_telemetry::{TracingConfig, init_tracing};
-use tokio::{runtime::Handle, time::sleep};
+use tokio::time::sleep;
 
 #[cfg(feature = "test-server")]
 pub use self::test_server::{TestServerArgs, test_server};
@@ -59,9 +59,8 @@ fn block_on(
         .build()
         .expect("failed to create runtime")
         .block_on(async {
-            let handle = Handle::current();
-            let _log_guard = init_tracing(tracing_config, &handle)
-                .expect("should be able to initialize tracing");
+            let _telemetry_guard =
+                init_tracing(tracing_config).expect("should be able to initialize telemetry");
 
             future.await
         })

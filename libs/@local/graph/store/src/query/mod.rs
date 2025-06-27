@@ -8,7 +8,7 @@ mod pagination;
 
 use error_stack::Report;
 use futures::{Stream, TryFutureExt as _, TryStreamExt};
-use tracing::instrument;
+use tracing::Instrument as _;
 
 use crate::{
     error::QueryError,
@@ -64,7 +64,7 @@ pub trait ReadPaginated<R: QueryRecord, S: Sorting + Sync>: Read<R> {
         clippy::type_complexity,
         reason = "simplification of type would lead to more unreadable code"
     )]
-    #[instrument(level = "info", skip(self, filters, sorting))]
+    #[tracing::instrument(level = "debug", skip(self, filters, sorting))]
     fn read_paginated_vec(
         &self,
         filters: &[Filter<'_, R>],
@@ -81,12 +81,13 @@ pub trait ReadPaginated<R: QueryRecord, S: Sorting + Sync>: Read<R> {
             Report<QueryError>,
         >,
     > + Send {
-        async move {
-            let (stream, artifacts) = self
-                .read_paginated(filters, temporal_axes, sorting, limit, include_drafts)
-                .await?;
-            Ok((stream.try_collect().await?, artifacts))
-        }
+        self.read_paginated(filters, temporal_axes, sorting, limit, include_drafts)
+            .and_then(|(stream, indices)| {
+                stream
+                    .try_collect::<Vec<_>>()
+                    .map_ok(|records| (records, indices))
+            })
+            .in_current_span()
     }
 }
 
@@ -101,7 +102,7 @@ pub trait Read<R: QueryRecord>: Sync {
         include_drafts: bool,
     ) -> impl Future<Output = Result<Self::ReadStream, Report<QueryError>>> + Send;
 
-    #[instrument(level = "info", skip(self, filters))]
+    #[tracing::instrument(level = "debug", skip(self, filters))]
     fn read_vec(
         &self,
         filters: &[Filter<'_, R>],
@@ -110,6 +111,7 @@ pub trait Read<R: QueryRecord>: Sync {
     ) -> impl Future<Output = Result<Vec<R>, Report<QueryError>>> + Send {
         self.read(filters, temporal_axes, include_drafts)
             .and_then(TryStreamExt::try_collect)
+            .in_current_span()
     }
 
     fn read_one(

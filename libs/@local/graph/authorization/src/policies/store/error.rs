@@ -96,6 +96,10 @@ impl Error for ActorCreationError {}
 #[derive(Debug, derive_more::Display)]
 #[display("Could not create web: {_variant}")]
 pub enum WebCreationError {
+    #[display("Could not build policy components")]
+    BuildPolicyComponents,
+    #[display("Could not create policy set")]
+    PolicySetCreation,
     #[display("Web with ID `{web_id}` already exists")]
     AlreadyExists { web_id: WebId },
     #[display("Permission to create web was denied")]

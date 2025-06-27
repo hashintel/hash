@@ -3,7 +3,7 @@ mod knowledge;
 mod migration;
 mod ontology;
 mod pool;
-pub(crate) mod query;
+pub mod query;
 mod seed_policies;
 mod traversal_context;
 
@@ -17,15 +17,15 @@ use hash_graph_authorization::{
     AuthorizationApi,
     backend::ModifyRelationshipOperation,
     policies::{
-        Authorized, ContextBuilder, Effect, Policy, PolicyId, PolicySet, Request, RequestContext,
-        ResourceId,
+        Authorized, ContextBuilder, Effect, Policy, PolicyComponents, PolicyId, Request,
+        RequestContext, ResourceId,
         action::ActionName,
         principal::{PrincipalConstraint, actor::AuthenticatedActor},
         resource::{EntityResource, EntityTypeId, EntityTypeResource, ResourceConstraint},
         store::{
             CreateWebParameter, CreateWebResponse, PolicyCreationParams, PolicyFilter, PolicyStore,
-            PolicyUpdateOperation, PrincipalFilter, PrincipalStore, RoleAssignmentStatus,
-            RoleUnassignmentStatus,
+            PolicyUpdateOperation, PrincipalFilter, PrincipalStore, ResolvePoliciesParams,
+            RoleAssignmentStatus, RoleUnassignmentStatus,
             error::{
                 BuildEntityContextError, BuildEntityTypeContextError, BuildPrincipalContextError,
                 CreatePolicyError, DetermineActorError, EnsureSystemPoliciesError,
@@ -58,6 +58,7 @@ use hash_temporal_client::TemporalClient;
 use postgres_types::{Json, ToSql};
 use time::OffsetDateTime;
 use tokio_postgres::{GenericClient as _, error::SqlState};
+use tracing::Instrument as _;
 use type_system::{
     Valid,
     knowledge::entity::{
@@ -95,12 +96,14 @@ use crate::store::error::{
 #[derive(Debug, Clone)]
 pub struct PostgresStoreSettings {
     pub validate_links: bool,
+    pub skip_embedding_creation: bool,
 }
 
 impl Default for PostgresStoreSettings {
     fn default() -> Self {
         Self {
             validate_links: true,
+            skip_embedding_creation: false,
         }
     }
 }
@@ -257,32 +260,25 @@ where
         actor: ActorId,
         parameter: CreateWebParameter,
     ) -> Result<CreateWebResponse, Report<WebCreationError>> {
-        let mut context_builder = ContextBuilder::default();
-        self.build_principal_context(actor, &mut context_builder)
+        let policy_components = PolicyComponents::builder(self)
+            .with_actor(actor)
+            .with_action(ActionName::CreateWeb)
             .await
-            .change_context(WebCreationError::StoreError)?;
-        let context = context_builder
-            .build()
-            .change_context(WebCreationError::StoreError)?;
-        let policies = self
-            .resolve_policies_for_actor(actor.into(), Some(actor))
-            .await
-            .change_context(WebCreationError::StoreError)?;
+            .change_context(WebCreationError::BuildPolicyComponents)?;
 
         let web_id = WebId::new(parameter.id.unwrap_or_else(Uuid::new_v4));
 
-        let policy_set = PolicySet::default()
-            .with_policies(&policies)
-            .change_context(WebCreationError::StoreError)?;
-        match policy_set
+        match policy_components
+            .build_policy_set()
+            .change_context(WebCreationError::PolicySetCreation)?
             .evaluate(
                 &Request {
-                    actor: Some(actor),
+                    actor: policy_components.actor_id(),
                     action: ActionName::CreateWeb,
                     resource: &ResourceId::Web(web_id),
                     context: RequestContext::default(),
                 },
-                &context,
+                policy_components.context(),
             )
             .change_context(WebCreationError::StoreError)?
         {
@@ -841,6 +837,7 @@ where
         }
     }
 
+    #[tracing::instrument(skip(self))]
     async fn determine_actor(
         &self,
         actor_entity_uuid: ActorEntityUuid,
@@ -867,6 +864,7 @@ where
         }))
     }
 
+    #[tracing::instrument(level = "debug", skip(self, context_builder))]
     async fn build_principal_context(
         &self,
         actor_id: ActorId,
@@ -1275,12 +1273,13 @@ where
     }
 
     #[expect(clippy::too_many_lines)]
+    #[tracing::instrument(level = "info", skip(self, params), fields(actor_id = ?params.actor, action_count = params.actions.len()))]
     async fn resolve_policies_for_actor(
         &self,
         authenticated_actor: AuthenticatedActor,
-        actor_id: Option<ActorId>,
+        params: ResolvePoliciesParams<'_>,
     ) -> Result<Vec<Policy>, Report<GetPoliciesError>> {
-        let Some(actor_id) = actor_id else {
+        let Some(actor_id) = params.actor else {
             // If no actor is provided, only policies without principal constraints are returned.
             return self
                 .query_policies(
@@ -1309,7 +1308,9 @@ where
         // The actions are associated in the `policy_action` table. We join that table and aggregate
         // the actions for each policy. All actions are included, but the action hierarchy is used
         // to determine which actions are relevant to the actor.
-        self.as_client()
+
+        self
+            .as_client()
             .query_raw(
                 "
                 WITH principals AS (
@@ -1365,38 +1366,66 @@ where
                      AND policy_edition.principal_type = principals.principal_type
                     WHERE policy_edition.transaction_time @> now()
                       AND (policy_edition.actor_type IS NULL OR policy_edition.actor_type = $2)
+                ),
+
+                -- We have all the policies that apply to the actor, now we associate the actions
+                policy_with_actions AS (
+                    SELECT
+                        policy_edition.id,
+                        policy_edition.name,
+                        policy_edition.effect,
+                        policy_edition.principal_id,
+                        policy_edition.principal_type,
+                        policy_edition.actor_type,
+                        policy_edition.resource_constraint,
+                        array_remove(array_agg(policy_action.action_name), NULL) AS actions
+                    FROM policy_edition
+                    LEFT JOIN policy_action
+                        ON policy_action.policy_id = policy_edition.id
+                        AND policy_action.transaction_time @> now()
+                    GROUP BY
+                        policy_edition.id,
+                        policy_edition.name,
+                        policy_edition.effect,
+                        policy_edition.principal_id,
+                        policy_edition.principal_type,
+                        policy_edition.actor_type,
+                        policy_edition.resource_constraint
                 )
                 SELECT
-                    policy_edition.id,
-                    policy_edition.name,
-                    policy_edition.effect,
-                    policy_edition.principal_id,
-                    policy_edition.principal_type,
-                    policy_edition.actor_type,
-                    policy_edition.resource_constraint,
-                    array_remove(array_agg(policy_action.action_name), NULL)
-                FROM policy_edition
-                LEFT JOIN policy_action
-                       ON policy_action.policy_id = policy_edition.id
-                      AND policy_action.transaction_time @> now()
-                GROUP BY
-                    policy_edition.id,
-                    policy_edition.name,
-                    policy_edition.effect,
-                    policy_edition.principal_id,
-                    policy_edition.principal_type,
-                    policy_edition.actor_type,
-                    policy_edition.resource_constraint
+                    id,
+                    name,
+                    effect,
+                    principal_id,
+                    principal_type,
+                    actor_type,
+                    resource_constraint,
+                    actions
+                FROM policy_with_actions
+                WHERE actions && $3
                 ",
                 [
                     &actor_id as &(dyn ToSql + Sync),
                     &PrincipalType::from(actor_id.actor_type()),
+                    &&*params.actions,
                 ],
             )
+            .instrument(tracing::info_span!(
+                "sql_policy_query_execution",
+                actor_uuid = %actor_id,
+                actor_type = ?actor_id.actor_type(),
+                action_count = params.actions.len()
+            ))
             .await
             .change_context(GetPoliciesError::StoreError)?
             .map_err(|error| Report::new(error).change_context(GetPoliciesError::StoreError))
             .and_then(async |row| -> Result<_, Report<GetPoliciesError>> {
+                let _span = tracing::info_span!(
+                    "policy_conversion",
+                    policy_id = ?row.get::<_, PolicyId>(0),
+                    has_resource_constraint = row.get::<_, Option<Json<ResourceConstraint>>>(6).is_some()
+                ).entered();
+
                 PolicyParts {
                     id: row.get(0),
                     name: row.get(1),
@@ -1412,6 +1441,7 @@ where
                 .into_policy()
             })
             .try_collect::<Vec<_>>()
+            .instrument(tracing::info_span!("policy_result_collection"))
             .await
     }
 
@@ -1719,6 +1749,7 @@ where
             .change_context(EnsureSystemPoliciesError::StoreError)
     }
 
+    #[tracing::instrument(level = "debug", skip(self, entity_type_ids))]
     async fn build_entity_type_context(
         &self,
         entity_type_ids: &[&VersionedUrl],
@@ -1805,6 +1836,7 @@ where
             .change_context(BuildEntityTypeContextError::StoreError)?)
     }
 
+    #[tracing::instrument(level = "debug", skip(self, entity_edition_ids))]
     async fn build_entity_context(
         &self,
         entity_edition_ids: &[EntityEditionId],

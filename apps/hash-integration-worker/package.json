@@ -15,9 +15,9 @@
     "lint:tsc": "tsc --noEmit",
     "sentry:sourcemaps": "sentry-cli sourcemaps inject --org hashintel --project hash-temporal-worker-integration ./dist && sentry-cli sourcemaps upload --org hashintel --project hash-temporal-worker-integration ./dist",
     "start": "NODE_ENV=production NODE_OPTIONS=--max-old-space-size=2048 tsx ./src/main.ts",
-    "start:healthcheck": "wait-on --timeout 300000 http-get://localhost:4300/health",
+    "start:healthcheck": "wait-on --timeout 600000 http-get://localhost:4300/health",
     "start:test": "NODE_ENV=test NODE_OPTIONS=--max-old-space-size=2048 tsx ./dist/main.js",
-    "start:test:healthcheck": "wait-on --timeout 300000 http-get://localhost:4300/health"
+    "start:test:healthcheck": "wait-on --timeout 600000 http-get://localhost:4300/health"
   },
   "dependencies": {
     "@blockprotocol/graph": "0.4.0-canary.0",
@@ -28,7 +28,7 @@
     "@local/hash-graph-client": "0.0.0-private",
     "@local/hash-graph-sdk": "0.0.0-private",
     "@local/hash-isomorphic-utils": "0.0.0-private",
-    "@sentry/node": "9.30.0",
+    "@sentry/node": "9.31.0",
     "@temporalio/activity": "1.11.8",
     "@temporalio/worker": "1.11.8",
     "@temporalio/workflow": "1.11.8",

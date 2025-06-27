@@ -95,7 +95,7 @@ where
                     .authorization_api
                     .check_data_types_permission(
                         policy_components
-                            .actor_id
+                            .actor_id()
                             .map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from),
                         DataTypePermission::View,
                         ids.iter().copied(),
@@ -635,7 +635,9 @@ where
 
             Err(error.change_context(InsertionError))
         } else {
-            if let Some(temporal_client) = &self.temporal_client {
+            if !self.settings.skip_embedding_creation
+                && let Some(temporal_client) = &self.temporal_client
+            {
                 temporal_client
                     .start_update_data_type_embeddings_workflow(
                         actor_id,
@@ -1048,7 +1050,9 @@ where
 
             Err(error.change_context(UpdateError))
         } else {
-            if let Some(temporal_client) = &self.temporal_client {
+            if !self.settings.skip_embedding_creation
+                && let Some(temporal_client) = &self.temporal_client
+            {
                 temporal_client
                     .start_update_data_type_embeddings_workflow(
                         actor_id,

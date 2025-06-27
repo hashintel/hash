@@ -30,7 +30,7 @@ use self::{
 };
 pub use self::{
     cedar::PolicyExpressionTree,
-    components::{PolicyComponents, PolicyComponentsBuilder},
+    components::{OptimizationData, PolicyComponents, PolicyComponentsBuilder},
     context::{Context, ContextBuilder, ContextError},
     set::{
         Authorized, PolicyConstraintError, PolicyEvaluationError, PolicySet,
@@ -435,8 +435,9 @@ mod tests {
 
             let actor_id = ActorId::User(user.id);
 
-            let mut policy_set = PolicySet::default();
-            policy_set.add_policy(&policy)?;
+            let policy_set = PolicySet::default()
+                .with_tracked_actions(HashSet::from([ActionName::View, ActionName::Update]))
+                .with_policy(&policy)?;
 
             assert!(matches!(
                 policy_set.evaluate(

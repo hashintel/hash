@@ -134,6 +134,9 @@ seed-users.json
 # Block Protocol
 .blockprotocolrc
 
+# Claude Code
+.claude/settings.local.json
+
 # Terraform
 **/.terraform
 *.tfstate
