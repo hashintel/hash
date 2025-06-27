@@ -1,8 +1,4 @@
-import {
-  extractEntityUuidFromEntityId,
-  type WebId,
-} from "@blockprotocol/type-system";
-import { createPolicy } from "@local/hash-graph-sdk/policy";
+import type { WebId } from "@blockprotocol/type-system";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { ProspectiveUser } from "@local/hash-isomorphic-utils/system-types/prospectiveuser";
@@ -29,7 +25,7 @@ export const submitEarlyAccessFormResolver: ResolverFn<
     actorId: systemAccountId,
   };
 
-  const entity = await createEntity<ProspectiveUser>(
+  await createEntity<ProspectiveUser>(
     context,
     /** The user does not yet have permissions to create entities, so we do it with the HASH system account instead */
     authentication,
