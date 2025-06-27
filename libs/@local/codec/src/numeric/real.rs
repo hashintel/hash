@@ -77,16 +77,15 @@ pub struct ParseError(dashu_base::ParseError);
 ///   typically **3–10x** slower and larger than `f64`.
 /// - **Deterministic text I/O** – Converting to and from strings is loss-free, which ensures that
 ///   serialized data, logs, and config files preserve every digit.
-/// - **When to pick `Real`** – Prefer it for financial or audit-grade workflows where correctness
-///   outweighs raw throughput. For hot paths that tolerate a few ULPs, stick to `f32`/`f64`.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
 pub struct Real(#[cfg_attr(feature = "codegen", specta(type = f64))] dashu_float::DBig);
 
-// Minimum precision for internal representation (64 bits). This balances accuracy and performance,
-// providing higher precision than f64 (53 bits) while maintaining reasonable computational costs.
-// This gives us ~19 decimal digits of precision vs ~15 for f64, reducing rounding errors in
-// financial calculations and iterative computations.
+/// Minimum precision for internal representation (64 bits).
+///
+/// This balances accuracy and performance, providing higher precision than f64 (53 bits) while
+/// maintaining reasonable computational costs. This gives us ~19 decimal digits of precision vs
+/// ~15 for f64, reducing rounding errors in financial calculations and iterative computations.
 const MIN_PRECISION: usize = 64;
 
 impl Real {
@@ -350,7 +349,7 @@ macro_rules! impl_real_from_primitive_float {
             type Error = ConversionError;
 
             fn try_from(primitive: $primitive) -> Result<Self, Self::Error> {
-                // The order of operations is important here! If we raise the precision first, it
+                // The order of operations is important here. If we raise the precision first, it
                 // will lead to rounding errors for values that cannot be represented exactly in
                 // base 2 (such as 0.11).
                 // We need to first explicitly change the precision to the native type manually so
