@@ -1,13 +1,14 @@
 import {
   type EntityId,
   entityIdFromComponents,
+  type EntityUuid,
   extractEntityUuidFromEntityId,
   type WebId,
 } from "@blockprotocol/type-system";
 import type { EntityRelationAndSubjectBranded } from "@local/hash-graph-sdk/authorization";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import { createPolicy } from "@local/hash-graph-sdk/policy";
-import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
+import type { frontendUrl } from "@local/hash-isomorphic-utils/environment";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -25,6 +26,7 @@ import type {
   InvitationViaEmail,
   InvitationViaShortname,
 } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { CreateEntityPolicyParams } from "@rust/hash-graph-store/types";
 import { ApolloError } from "apollo-server-errors";
 import dedent from "dedent";
 
@@ -305,6 +307,18 @@ export const inviteUserToOrgResolver: ResolverFn<
     },
   };
 
+  const invitationEntityUuid = generateUuid() as EntityUuid;
+  const systemAccountViewInvitationPolicy: CreateEntityPolicyParams = {
+    name: `system-account-administer-org-invitation-${invitationEntityUuid}`,
+    effect: "permit",
+    actions: ["viewEntity"],
+    principal: {
+      type: "actor",
+      actorType: "machine",
+      id: systemAccountId,
+    },
+  };
+
   if (userEmail) {
     invitation = await createEntity<InvitationViaEmail>(
       context,
@@ -323,6 +337,7 @@ export const inviteUserToOrgResolver: ResolverFn<
             },
           },
         },
+        policies: [systemAccountViewInvitationPolicy],
         relationships: invitationAuthorizationRelationships,
         webId: orgWebId,
       },
@@ -345,66 +360,36 @@ export const inviteUserToOrgResolver: ResolverFn<
             },
           },
         },
+        policies: [systemAccountViewInvitationPolicy],
         relationships: invitationAuthorizationRelationships,
         webId: orgWebId,
       },
     );
   }
 
-  const linkEntity = await createLinkEntity<HasIssuedInvitation>(
-    context,
-    authentication,
-    {
-      entityTypeIds: [
-        systemLinkEntityTypes.hasIssuedInvitation.linkEntityTypeId,
-      ],
-      linkData: {
-        leftEntityId: org.entity.metadata.recordId.entityId,
-        rightEntityId: invitation.metadata.recordId.entityId,
-      },
-      properties: { value: {} },
-      relationships: invitationAuthorizationRelationships,
-      webId: orgWebId,
+  const linkEntityUuid = generateUuid() as EntityUuid;
+  await createLinkEntity<HasIssuedInvitation>(context, authentication, {
+    entityTypeIds: [systemLinkEntityTypes.hasIssuedInvitation.linkEntityTypeId],
+    linkData: {
+      leftEntityId: org.entity.metadata.recordId.entityId,
+      rightEntityId: invitation.metadata.recordId.entityId,
     },
-  );
-
-  const invitationEntityUuid = extractEntityUuidFromEntityId(
-    invitation.metadata.recordId.entityId,
-  );
-  const linkEntityUuid = extractEntityUuidFromEntityId(
-    linkEntity.metadata.recordId.entityId,
-  );
-
-  await Promise.all([
-    createPolicy(context.graphApi, authentication, {
-      name: `system-account-administer-org-invitation-${invitationEntityUuid}`,
-      effect: "permit",
-      actions: ["viewEntity"],
-      principal: {
-        type: "actor",
-        actorType: "machine",
-        id: systemAccountId,
+    policies: [
+      {
+        name: `system-account-administer-org-invitation-link-${linkEntityUuid}`,
+        effect: "permit",
+        actions: ["viewEntity"],
+        principal: {
+          type: "actor",
+          actorType: "machine",
+          id: systemAccountId,
+        },
       },
-      resource: {
-        type: "entity",
-        id: invitationEntityUuid,
-      },
-    }),
-    createPolicy(context.graphApi, authentication, {
-      name: `system-account-administer-org-invitation-link-${linkEntityUuid}`,
-      effect: "permit",
-      actions: ["viewEntity"],
-      principal: {
-        type: "actor",
-        actorType: "machine",
-        id: systemAccountId,
-      },
-      resource: {
-        type: "entity",
-        id: linkEntityUuid,
-      },
-    }),
-  ]);
+    ],
+    properties: { value: {} },
+    relationships: invitationAuthorizationRelationships,
+    webId: orgWebId,
+  });
 
   await sendOrgEmailInvitationToEmailAddress({
     org,
