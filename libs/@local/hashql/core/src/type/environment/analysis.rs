@@ -89,6 +89,18 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
         self.diagnostics.as_mut().map(core::mem::take)
     }
 
+    pub fn clear_diagnostics(&mut self) {
+        if let Some(diagnostics) = &mut self.diagnostics {
+            diagnostics.clear();
+        }
+    }
+
+    pub fn merge_diagnostics_into(&mut self, diagnostics: &mut Diagnostics) {
+        if let Some(local) = &mut self.diagnostics {
+            local.merge_into(diagnostics);
+        }
+    }
+
     pub fn fatal_diagnostics(&self) -> usize {
         self.diagnostics.as_ref().map_or(0, Diagnostics::fatal)
     }
