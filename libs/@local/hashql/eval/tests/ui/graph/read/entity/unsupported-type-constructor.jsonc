@@ -1,5 +1,5 @@
 //@ run: fail
-//@ description: Read entity by UUID
+//@ description: Type constructors not supported as values in filter expressions
 // biome-ignore format: readability
 ["::core::graph::tail::collect",
   ["::core::graph::body::filter",

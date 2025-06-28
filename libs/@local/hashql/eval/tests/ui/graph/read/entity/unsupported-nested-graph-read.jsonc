@@ -1,5 +1,5 @@
 //@ run: fail
-//@ description: Read entity by UUID
+//@ description: Nested graph read operations not supported in filter expressions
 // biome-ignore format: readability
 ["let", "read",
   ["::core::graph::tail::collect",
