@@ -47,6 +47,12 @@ pub struct JsonPath<'p> {
 }
 
 impl<'p> JsonPath<'p> {
+    /// Creates a new empty JSON path.
+    #[must_use]
+    pub const fn new() -> Self {
+        Self { path: Vec::new() }
+    }
+
     /// Creates a new JSON path from a sequence of path tokens.
     #[must_use]
     pub const fn from_path_tokens(path: Vec<PathToken<'p>>) -> Self {
@@ -86,6 +92,12 @@ impl<'p> JsonPath<'p> {
                 })
                 .collect(),
         }
+    }
+}
+
+impl Default for JsonPath<'_> {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
