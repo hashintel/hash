@@ -1,5 +1,5 @@
 //@ run: fail
-//@ description: Read entity by UUID
+//@ description: Function calls not supported in filter expressions
 // biome-ignore format: readability
 ["let", "identity", ["fn", {"#tuple": ["T"]}, {"#struct": {"value": "T"}}, "T", "value"],
 ["::core::graph::tail::collect",

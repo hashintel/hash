@@ -1,5 +1,5 @@
 //@ run: pass
-//@ description: Read entity by UUID
+//@ description: Let bindings propagate correctly in graph operations
 // biome-ignore format: readability
 ["let", "foo", {"#literal": 2},
 ["::core::graph::tail::collect",
