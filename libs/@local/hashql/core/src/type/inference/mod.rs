@@ -2,6 +2,8 @@ pub(crate) mod solver;
 mod variable;
 mod visit;
 
+use pretty::RcDoc;
+
 pub use self::{
     solver::InferenceSolver,
     variable::{Variable, VariableKind},
@@ -12,7 +14,11 @@ use super::{
     environment::{Environment, InferenceEnvironment, instantiate::InstantiateEnvironment},
     kind::{generic::GenericArgumentId, infer::HoleId},
 };
-use crate::{collection::FastHashMap, symbol::Ident};
+use crate::{
+    collection::FastHashMap,
+    pretty::{PrettyPrint, PrettyPrintBoundary},
+    symbol::Ident,
+};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Subject {
@@ -48,6 +54,19 @@ impl Subject {
         match self {
             Self::Type(id) => env.r#type(id),
             Self::Variable(variable) => variable.into_type(env),
+        }
+    }
+}
+
+impl<'heap> PrettyPrint<'heap> for Subject {
+    fn pretty(
+        &self,
+        env: &Environment<'heap>,
+        boundary: &mut PrettyPrintBoundary,
+    ) -> RcDoc<'heap, anstyle::Style> {
+        match self {
+            &Self::Type(id) => boundary.pretty_type(env, id),
+            Self::Variable(variable) => variable.pretty(env, boundary),
         }
     }
 }
@@ -294,6 +313,79 @@ impl Constraint<'_> {
         };
 
         array.into_iter().flatten()
+    }
+}
+
+impl<'heap> PrettyPrint<'heap> for Constraint<'heap> {
+    fn pretty(
+        &self,
+        env: &Environment<'heap>,
+        boundary: &mut PrettyPrintBoundary,
+    ) -> pretty::RcDoc<'heap, anstyle::Style> {
+        match self {
+            Constraint::Unify { lhs, rhs } => lhs
+                .pretty(env, boundary)
+                .append(" \u{2261}")
+                .append(RcDoc::softline())
+                .append(rhs.pretty(env, boundary))
+                .group(),
+            Constraint::UpperBound { variable, bound } => variable
+                .pretty(env, boundary)
+                .append(" <:")
+                .append(RcDoc::softline())
+                .append(boundary.pretty_type(env, *bound)),
+            Constraint::LowerBound { variable, bound } => boundary
+                .pretty_type(env, *bound)
+                .append(" <:")
+                .append(RcDoc::softline())
+                .append(variable.pretty(env, boundary)),
+            Constraint::Equals { variable, r#type } => variable
+                .pretty(env, boundary)
+                .append(" \u{2261}")
+                .append(RcDoc::softline())
+                .append(boundary.pretty_type(env, *r#type)),
+            Constraint::Ordering { lower, upper } => lower
+                .pretty(env, boundary)
+                .append(" <:")
+                .append(RcDoc::softline())
+                .append(upper.pretty(env, boundary)),
+            Constraint::Dependency { source, target } => source
+                .pretty(env, boundary)
+                .append(" depends on")
+                .append(RcDoc::softline())
+                .append(target.pretty(env, boundary)),
+            Constraint::Selection(
+                SelectionConstraint::Projection {
+                    subject,
+                    field,
+                    output,
+                },
+                _,
+                _,
+            ) => subject
+                .pretty(env, boundary)
+                .append(".")
+                .append(field.value.unwrap())
+                .append(" \u{2261}")
+                .append(RcDoc::softline())
+                .append(output.pretty(env, boundary)),
+            Constraint::Selection(
+                SelectionConstraint::Subscript {
+                    subject,
+                    index,
+                    output,
+                },
+                _,
+                _,
+            ) => subject
+                .pretty(env, boundary)
+                .append("[")
+                .append(index.pretty(env, boundary))
+                .append("]")
+                .append(" \u{2261}")
+                .append(RcDoc::softline())
+                .append(output.pretty(env, boundary)),
+        }
     }
 }
 

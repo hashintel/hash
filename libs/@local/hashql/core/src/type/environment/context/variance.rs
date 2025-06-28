@@ -81,7 +81,7 @@ impl Variance {
             (Self::Invariant, _) | (_, Self::Invariant) => Self::Invariant,
 
             // Otherwise preserve the context
-            _ => next,
+            (Self::Covariant, Self::Covariant) => next,
         }
     }
 }
