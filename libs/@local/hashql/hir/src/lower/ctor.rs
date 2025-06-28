@@ -274,6 +274,8 @@ impl<'heap> Fold<'heap> for ConvertTypeConstructor<'_, 'heap> {
         } else if let Some(converted) = self.convert_variable(&node) {
             self.cache.insert(node_id, converted);
             node = converted;
+        } else {
+            // Node cannot be converted, use the original node as-is
         }
 
         if !self.nested && !self.diagnostics.is_empty() {

@@ -98,6 +98,8 @@ where
         } else if is_link {
             validation_report.link_data =
                 Some(LinkDataStateError::Missing(Report::new(MissingLinkData)));
+        } else {
+            // No link data and not a link entity - this is normal
         }
 
         validation_report
@@ -501,6 +503,8 @@ impl EntityVisitor for EntityPreprocessor {
                     }
                 }
             }
+        } else {
+            // Either source or target data type ID is None, no conversion needed
         }
 
         property.metadata.canonical.clear();
