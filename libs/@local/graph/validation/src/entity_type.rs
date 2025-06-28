@@ -413,7 +413,7 @@ impl EntityVisitor for EntityPreprocessor {
             let mut possible_data_types = HashSet::new();
 
             for values in schema {
-                if let PropertyValues::DataTypeReference(data_type_ref) = values {
+                if let PropertyValues::Value(data_type_ref) = values {
                     let Ok(data_type) = type_provider
                         .lookup_data_type_by_ref(data_type_ref)
                         .await

@@ -72,6 +72,11 @@ impl Permission<EntityUuid> for EntityPermission {}
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase")]
+#[expect(
+    clippy::enum_variant_names,
+    reason = "Just happened that all variants share the same suffix. Also, changing it would be a \
+              breaking Database change and we're going to remove this as part of H-4148."
+)]
 pub enum EntitySetting {
     AdministratorFromWeb,
     UpdateFromWeb,

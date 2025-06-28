@@ -181,15 +181,15 @@ impl Request<'_> {
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 pub enum InvalidPolicy {
     #[display("Invalid policy ID")]
-    InvalidPolicyId,
+    PolicyId,
     #[display("Invalid principal constraint")]
-    InvalidPrincipalConstraint,
+    PrincipalConstraint,
     #[display("Invalid action constraint")]
-    InvalidActionConstraint,
+    ActionConstraint,
     #[display("Invalid resource constraint")]
-    InvalidResourceConstraint,
+    ResourceConstraint,
     #[display("Invalid policy syntax")]
-    InvalidSyntax,
+    Syntax,
 }
 
 impl Policy {
@@ -202,7 +202,7 @@ impl Policy {
                     .id()
                     .as_ref()
                     .parse()
-                    .change_context(InvalidPolicy::InvalidPolicyId)?,
+                    .change_context(InvalidPolicy::PolicyId)?,
             ),
             name: None,
             effect: match policy.effect() {
@@ -210,24 +210,24 @@ impl Policy {
                 ast::Effect::Forbid => Effect::Forbid,
             },
             principal: PrincipalConstraint::try_from_cedar(policy.principal_constraint())
-                .change_context(InvalidPolicy::InvalidPrincipalConstraint)?,
+                .change_context(InvalidPolicy::PrincipalConstraint)?,
             actions: match policy.action_constraint() {
                 ast::ActionConstraint::Any => vec![ActionName::All],
                 ast::ActionConstraint::Eq(action) => vec![
                     ActionName::from_euid(action)
-                        .change_context(InvalidPolicy::InvalidActionConstraint)?,
+                        .change_context(InvalidPolicy::ActionConstraint)?,
                 ],
                 ast::ActionConstraint::In(actions) => actions
                     .iter()
                     .map(|action| ActionName::from_euid(action))
                     .try_collect_reports()
-                    .change_context(InvalidPolicy::InvalidActionConstraint)?,
+                    .change_context(InvalidPolicy::ActionConstraint)?,
             },
             resource: ResourceConstraint::try_from_cedar(
                 policy.resource_constraint(),
                 policy.non_scope_constraints(),
             )
-            .change_context(InvalidPolicy::InvalidResourceConstraint)?,
+            .change_context(InvalidPolicy::ResourceConstraint)?,
             constraints: None,
         })
     }
@@ -290,7 +290,7 @@ impl Policy {
                 )),
                 text,
             )
-            .change_context(InvalidPolicy::InvalidSyntax)
+            .change_context(InvalidPolicy::Syntax)
             .attach_printable_lazy(|| text.to_owned())?,
         )
     }
