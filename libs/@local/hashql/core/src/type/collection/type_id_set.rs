@@ -2,7 +2,7 @@ use core::cmp::Ordering;
 
 use smallvec::SmallVec;
 
-use crate::r#type::{TypeId, environment::Environment};
+use crate::r#type::{Type, TypeId, environment::Environment};
 
 /// Compares two pointers by their memory addresses.
 ///
@@ -31,7 +31,9 @@ fn ptr_eq<T: ?Sized>(lhs: *const T, rhs: *const T) -> bool {
 #[derive(Debug)]
 pub(crate) struct TypeIdSet<'env, 'heap, const CAPACITY: usize> {
     env: &'env Environment<'heap>,
-    items: SmallVec<TypeId, CAPACITY>,
+
+    provisioned: SmallVec<TypeId, CAPACITY>,
+    materialized: SmallVec<Type<'heap>, CAPACITY>,
 }
 
 impl<'env, 'heap, const CAPACITY: usize> TypeIdSet<'env, 'heap, CAPACITY> {
@@ -40,7 +42,9 @@ impl<'env, 'heap, const CAPACITY: usize> TypeIdSet<'env, 'heap, CAPACITY> {
     pub(crate) const fn new(env: &'env Environment<'heap>) -> Self {
         Self {
             env,
-            items: SmallVec::new(),
+
+            provisioned: SmallVec::new(),
+            materialized: SmallVec::new(),
         }
     }
 
@@ -52,7 +56,8 @@ impl<'env, 'heap, const CAPACITY: usize> TypeIdSet<'env, 'heap, CAPACITY> {
     pub(crate) fn with_capacity(env: &'env Environment<'heap>, capacity: usize) -> Self {
         Self {
             env,
-            items: SmallVec::with_capacity(capacity),
+            provisioned: SmallVec::with_capacity(capacity),
+            materialized: SmallVec::with_capacity(capacity),
         }
     }
 
@@ -61,12 +66,21 @@ impl<'env, 'heap, const CAPACITY: usize> TypeIdSet<'env, 'heap, CAPACITY> {
     /// Note that deduplication happens during the `finish` operation,
     /// not when items are added.
     pub(crate) fn push(&mut self, item: TypeId) {
-        self.items.push(item);
+        if let Some(materialized) = self.env.types.get(item) {
+            self.materialized.push(materialized);
+        } else {
+            self.provisioned.push(item);
+        }
     }
 
     /// Adds multiple `TypeId` values from a slice to the set.
     pub(crate) fn extend_from_slice(&mut self, other: &[TypeId]) {
-        self.items.extend_from_slice(other);
+        self.provisioned.reserve(other.len());
+        self.materialized.reserve(other.len());
+
+        for &item in other {
+            self.push(item);
+        }
     }
 
     /// Finalizes the set by sorting and deduplicating the items.
@@ -105,55 +119,28 @@ impl<'env, 'heap, const CAPACITY: usize> TypeIdSet<'env, 'heap, CAPACITY> {
         // in the future this leads to performance issues these are possible ways to optimize
         // further.
 
-        // Due to the fact that some of the items might not yet be materialized (e.g. are
-        // provisioned and referenced, but do not exist yet), we need to split the set into two
-        // parts and partition and dedupe them separately.
-        self.items
-            .sort_unstable_by_key(|&id| self.env.types.contains(id));
-        let partition_point = self
-            .items
-            .partition_point(|&id| !self.env.types.contains(id));
+        self.materialized
+            .sort_unstable_by(|lhs, rhs| ptr_cmp(lhs.kind, rhs.kind));
+        self.materialized
+            .dedup_by(|lhs, rhs| ptr_eq(lhs.kind, rhs.kind));
 
-        let (provisioned, materialized) = self.items.split_at_mut(partition_point);
+        // We don't need to dedupe the provisioned upfront, because we can just do that once we've
+        // merged with the materialized types.
 
-        // Handle provisioned types, which - unlike materialized types - can only be compared by
-        // their ID.
-        provisioned.sort_unstable();
-        let len_provisioned = provisioned.len();
-        let (_, removed) = provisioned.partition_dedup();
-        let excess_provisioned = removed.len();
+        self.provisioned
+            .extend(self.materialized.into_iter().map(|r#type| r#type.id));
+        self.provisioned.sort_unstable();
+        self.provisioned.dedup();
 
-        // Handle materialized types, which can be compared by their kind, making deduplication
-        // irrespective of the span.
-        materialized.sort_unstable_by(|&lhs, &rhs| {
-            ptr_cmp(self.env.r#type(lhs).kind, self.env.r#type(rhs).kind)
-        });
-        let len_materialized = materialized.len();
-        let (_, removed) = materialized.partition_dedup_by(|lhs, rhs| {
-            ptr_eq(self.env.r#type(*lhs).kind, self.env.r#type(*rhs).kind)
-        });
-        let excess_materialized = removed.len();
-
-        // We're now at a place where we have the following layout:
-        // [provisioned, excess, materialized, excess]
-        // What we now need to do is shift the materialized items to the excess, and then cut the
-        // excess items
-        self.items.copy_within(
-            len_provisioned..(len_provisioned + len_materialized - excess_materialized),
-            len_provisioned - excess_provisioned,
-        );
-
-        self.items.truncate(
-            len_provisioned + len_materialized - excess_provisioned - excess_materialized,
-        );
-
-        self.items
+        self.provisioned
     }
 }
 
 impl<const CAPACITY: usize> Extend<TypeId> for TypeIdSet<'_, '_, CAPACITY> {
     fn extend<T: IntoIterator<Item = TypeId>>(&mut self, iter: T) {
-        self.items.extend(iter);
+        for type_id in iter {
+            self.push(type_id);
+        }
     }
 }
 
@@ -211,9 +198,7 @@ mod test {
         set.push(integer);
 
         let result = set.finish();
-        // Because we decided to create a non-prefilled version of the environment, the order of the
-        // types is guaranteed to be reverse insertion order (bumpalo always bumps down)
-        assert_eq!(result, [string, integer, boolean]);
+        assert_eq!(result, [boolean, integer, string]);
     }
 
     #[test]
@@ -284,32 +269,25 @@ mod test {
 
         // Create materialized types
         let boolean = primitive!(env, PrimitiveType::Boolean);
-        let string = primitive!(env, PrimitiveType::String);
-
-        // Create provisioned types (not yet materialized)
         let provisioned1 = env.types.provision();
+        let string = primitive!(env, PrimitiveType::String);
         let provisioned2 = env.types.provision();
 
         let mut set = TypeIdSet::<16>::new(&env);
-        set.push(boolean);
         set.push(provisioned1.value());
-        set.push(string);
         set.push(provisioned2.value());
+        set.push(boolean);
+        set.push(string);
 
         let result = set.finish();
 
         // We should have 4 unique types: 2 materialized and 2 provisioned
         assert_eq!(result.len(), 4);
 
-        // The result should be partitioned with provisioned types first, then materialized
-        // We can verify this by checking if the first elements are not in the environment
-        for i in 0..2 {
-            assert!(!env.types.contains(result[i]));
-        }
-
-        for i in 2..4 {
-            assert!(env.types.contains(result[i]));
-        }
+        assert_eq!(
+            result,
+            [boolean, provisioned1.value(), string, provisioned2.value()]
+        );
     }
 
     #[test]
@@ -368,7 +346,6 @@ mod test {
         assert_eq!(materialized_count, 2);
     }
 
-    #[expect(clippy::missing_asserts_for_indexing)]
     #[test]
     fn mostly_empty_with_few_types() {
         let heap = Heap::new();
@@ -385,11 +362,7 @@ mod test {
         let result = set.finish();
 
         // Should preserve both types
-        assert_eq!(result.len(), 2);
-
-        // The provisioned type should come first
-        assert!(!env.types.contains(result[0]));
-        assert!(env.types.contains(result[1]));
+        assert_eq!(result, [boolean, provisioned.value()]);
     }
 
     /// Tests with a larger number of items to ensure the algorithm scales.
