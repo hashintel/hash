@@ -4,9 +4,11 @@ use hashql_ast::node::expr::Expr;
 use hashql_core::{
     collection::FastHashMap,
     heap::Heap,
+    literal::{IntegerLiteral, LiteralKind, StringLiteral},
     module::ModuleRegistry,
     pretty::{PrettyOptions, PrettyPrint as _},
     r#type::environment::Environment,
+    value::{List, Opaque, Struct, Value},
 };
 use hashql_eval::graph::read::{FilterSlice, GraphReadCompiler};
 use hashql_hir::{intern::Interner, node::Node, visit::Visitor as _};
@@ -58,8 +60,35 @@ impl Suite for EvalGraphReadEntitySuite {
             node.pretty_print(&environment, PrettyOptions::default().without_color())
         );
 
-        // TODO: currently we don't support any inputs in tests
-        let inputs = FastHashMap::default();
+        let user_id_value = Value::Opaque(Opaque::new(
+            heap.intern_symbol("::core::graph::types::knowledge::entity::EntityUuid"),
+            Value::Opaque(Opaque::new(
+                heap.intern_symbol("::core::uuid::Uuid"),
+                Value::Primitive(LiteralKind::String(StringLiteral {
+                    value: heap.intern_symbol("e2851dbb-7376-4959-9bca-f72cafc4448f"),
+                })),
+            )),
+        ));
+
+        let mut inputs = FastHashMap::default();
+        inputs.insert(
+            heap.intern_symbol("example_integer"),
+            Value::Primitive(LiteralKind::Integer(IntegerLiteral {
+                value: heap.intern_symbol("42"),
+            })),
+        );
+        inputs.insert(heap.intern_symbol("user_id"), user_id_value.clone());
+        inputs.insert(
+            heap.intern_symbol("user"),
+            Value::Struct(Struct::from_fields(
+                heap,
+                [(heap.intern_symbol("id"), user_id_value.clone())],
+            )),
+        );
+        inputs.insert(
+            heap.intern_symbol("user_ids"),
+            Value::List(List::from_values([user_id_value])),
+        );
 
         let mut compiler = GraphReadCompiler::new(heap, &inputs);
         compiler.visit_node(&node);
