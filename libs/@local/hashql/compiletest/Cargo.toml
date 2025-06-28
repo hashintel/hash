@@ -13,7 +13,6 @@ version.workspace = true
 
 # Private workspace dependencies
 error-stack                    = { workspace = true }
-hash-graph-postgres-store      = { workspace = true }
 hash-graph-store               = { workspace = true }
 hash-graph-temporal-versioning = { workspace = true }
 hashql-ast                     = { workspace = true }
