@@ -13340,9 +13340,12 @@ __metadata:
   resolution: "@rust/hashql-compiletest@workspace:libs/@local/hashql/compiletest"
   dependencies:
     "@rust/error-stack": "npm:0.5.0"
+    "@rust/hash-graph-store": "npm:0.0.0-private"
+    "@rust/hash-graph-temporal-versioning": "npm:0.0.0-private"
     "@rust/hashql-ast": "npm:0.0.0-private"
     "@rust/hashql-core": "npm:0.0.0-private"
     "@rust/hashql-diagnostics": "npm:0.0.0-private"
+    "@rust/hashql-eval": "npm:0.0.0-private"
     "@rust/hashql-hir": "npm:0.0.0-private"
     "@rust/hashql-syntax-jexpr": "npm:0.0.0-private"
   languageName: unknown
@@ -13365,9 +13368,15 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@rust/hashql-eval@workspace:libs/@local/hashql/eval":
+"@rust/hashql-eval@npm:0.0.0-private, @rust/hashql-eval@workspace:libs/@local/hashql/eval":
   version: 0.0.0-use.local
   resolution: "@rust/hashql-eval@workspace:libs/@local/hashql/eval"
+  dependencies:
+    "@blockprotocol/type-system-rs": "npm:0.0.0-private"
+    "@rust/hash-graph-store": "npm:0.0.0-private"
+    "@rust/hashql-core": "npm:0.0.0-private"
+    "@rust/hashql-diagnostics": "npm:0.0.0-private"
+    "@rust/hashql-hir": "npm:0.0.0-private"
   languageName: unknown
   linkType: soft
 
