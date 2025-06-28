@@ -3,7 +3,9 @@ use core::ops::Deref;
 
 use smallvec::SmallVec;
 
-use super::{AnalysisEnvironment, Diagnostics, Environment, context::provision::ProvisionedGuard};
+use super::{
+    AnalysisEnvironment, Diagnostics, Environment, Variance, context::provision::ProvisionedGuard,
+};
 use crate::{
     intern::Provisioned,
     pretty::{PrettyOptions, PrettyPrint as _},
@@ -83,8 +85,13 @@ impl<'env, 'heap> SimplifyEnvironment<'env, 'heap> {
     }
 
     #[inline]
-    pub fn is_subtype_of(&mut self, subtype: TypeId, supertype: TypeId) -> bool {
-        self.analysis.is_subtype_of(subtype, supertype)
+    pub fn is_subtype_of(
+        &mut self,
+        variance: Variance,
+        subtype: TypeId,
+        supertype: TypeId,
+    ) -> bool {
+        self.analysis.is_subtype_of(variance, subtype, supertype)
     }
 
     // Two types are disjoint if neither is a subtype of the other

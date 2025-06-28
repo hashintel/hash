@@ -21,7 +21,7 @@ use crate::{
         PartialType, Type, TypeId,
         environment::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
-            SimplifyEnvironment,
+            SimplifyEnvironment, Variance,
             instantiate::{ArgumentsState, InstantiateEnvironment},
         },
         inference::Inference,
@@ -387,7 +387,7 @@ impl<'heap> Lattice<'heap> for Generic<'heap> {
         supertype: Type<'heap, Self>,
         env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool {
-        env.is_subtype_of(self.kind.base, supertype.kind.base)
+        env.is_subtype_of(Variance::Covariant, self.kind.base, supertype.kind.base)
     }
 
     fn is_equivalent(
@@ -471,11 +471,11 @@ impl<'heap> Generic<'heap> {
             // If the type is rigid e.g. a skolem type, we additionally discharge an equality
             // constraint between the parameter and the argument
             if rigid {
-                env.in_invariant(|env| env.collect_constraints(param, constraint));
+                env.collect_constraints(Variance::Invariant, param, constraint);
             }
 
             // if `T: Number`, than `T <: Number`.
-            env.in_covariant(|env| env.collect_constraints(param, constraint));
+            env.collect_constraints(Variance::Covariant, param, constraint);
         }
     }
 }
@@ -493,7 +493,7 @@ impl<'heap> Inference<'heap> for Generic<'heap> {
             .kind
             .collect_argument_constraints(supertype.span, env, false);
 
-        env.collect_constraints(self.kind.base, supertype.kind.base);
+        env.collect_constraints(Variance::Covariant, self.kind.base, supertype.kind.base);
     }
 
     fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {

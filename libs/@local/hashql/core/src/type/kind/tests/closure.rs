@@ -12,7 +12,7 @@ use crate::{
         PartialType, TypeBuilder, TypeId,
         environment::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
-            SimplifyEnvironment, instantiate::InstantiateEnvironment,
+            SimplifyEnvironment, Variance, instantiate::InstantiateEnvironment,
         },
         error::TypeCheckDiagnosticCategory,
         inference::{Constraint, Inference as _, Variable, VariableKind},
@@ -756,7 +756,7 @@ fn collect_constraints_with_generic_args() {
     let mut inference_env = InferenceEnvironment::new(&env);
 
     // Collect constraints between closures with generic parameters
-    inference_env.collect_constraints(fn_a, fn_b);
+    inference_env.collect_constraints(Variance::Covariant, fn_a, fn_b);
 
     let constraints = inference_env.take_constraints();
     assert_eq!(
@@ -990,9 +990,7 @@ fn collect_dependencies_invariant_context() {
     let variable = Variable::synthetic(VariableKind::Hole(HoleId::new(1)));
 
     // Collect structural edges in an invariant context
-    inference_env.in_invariant(|env| {
-        env.collect_dependencies(fn_with_infer.id, variable);
-    });
+    inference_env.collect_dependencies(fn_with_infer.id, variable);
 
     // In invariant context, no structural edges should be collected
     let constraints = inference_env.take_constraints();
