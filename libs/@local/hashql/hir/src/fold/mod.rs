@@ -55,7 +55,7 @@ use hashql_core::{
     intern::Interned,
     module::locals::TypeDef,
     span::{SpanId, Spanned},
-    symbol::Ident,
+    symbol::{Ident, Symbol},
     r#type::{TypeId, kind::generic::GenericArgumentReference},
 };
 
@@ -148,6 +148,10 @@ pub trait Fold<'heap> {
 
     fn fold_type_def(&mut self, def: TypeDef<'heap>) -> Self::Output<TypeDef<'heap>> {
         walk_type_def(self, def)
+    }
+
+    fn fold_symbol(&mut self, symbol: Symbol<'heap>) -> Self::Output<Symbol<'heap>> {
+        Try::from_output(symbol)
     }
 
     // TODO: we might want to expand on these in the future, for now tho this is sufficient.
@@ -391,6 +395,7 @@ pub fn walk_ident<'heap, T: Fold<'heap> + ?Sized>(
     Ident { value, span, kind }: Ident<'heap>,
 ) -> T::Output<Ident<'heap>> {
     let span = visitor.fold_span(span)?;
+    let value = visitor.fold_symbol(value)?;
 
     Try::from_output(Ident { value, span, kind })
 }
@@ -662,16 +667,19 @@ pub fn walk_type_constructor<'heap, T: Fold<'heap> + ?Sized>(
     visitor: &mut T,
     TypeConstructor {
         span,
+        name,
         closure,
         arguments,
     }: TypeConstructor<'heap>,
 ) -> T::Output<TypeConstructor<'heap>> {
     let span = visitor.fold_span(span)?;
+    let name = visitor.fold_symbol(name)?;
     let closure = visitor.fold_type_id(closure)?;
     let arguments = visitor.fold_generic_argument_references(arguments)?;
 
     Try::from_output(TypeConstructor {
         span,
+        name,
         closure,
         arguments,
     })

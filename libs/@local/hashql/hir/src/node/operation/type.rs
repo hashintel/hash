@@ -1,6 +1,7 @@
 use hashql_core::{
     intern::Interned,
     span::SpanId,
+    symbol::Symbol,
     r#type::{TypeId, kind::generic::GenericArgumentReference},
 };
 
@@ -47,6 +48,8 @@ pub struct TypeAssertion<'heap> {
 pub struct TypeConstructor<'heap> {
     pub span: SpanId,
 
+    /// The name of the opaque type being constructed.
+    pub name: Symbol<'heap>,
     // The closure that performs the conversion
     pub closure: TypeId,
     // Any unapplied arguments to the constructor
