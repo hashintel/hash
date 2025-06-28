@@ -8,29 +8,48 @@ graph TD
     %% --> : Normal dependency
     %% -.-> : Dev dependency
     %% ---> : Build dependency
-    0[<a href="../hash_codec">hash-codec</a>]
-    1[<a href="../hash_codegen">hash-codegen</a>]
-    2[<a href="../harpc_types">harpc-types</a>]
-    3[<a href="../harpc_wire_protocol">harpc-wire-protocol</a>]
-    4[hashql-ast]
-    class 4 root
-    5[<a href="../hashql_compiletest">hashql-compiletest</a>]
-    6[<a href="../hashql_core">hashql-core</a>]
-    7[<a href="../hashql_diagnostics">hashql-diagnostics</a>]
-    8[<a href="../hashql_hir">hashql-hir</a>]
-    9[<a href="../hashql_syntax_jexpr">hashql-syntax-jexpr</a>]
-    10[<a href="../error_stack">error-stack</a>]
-    0 -.-> 1
-    0 --> 3
-    3 -.-> 2
-    3 --> 2
-    3 --> 10
-    4 -.-> 5
-    5 --> 8
-    5 --> 9
+    0[<a href="../type_system">type-system</a>]
+    1[<a href="../hash_codec">hash-codec</a>]
+    2[<a href="../hash_codegen">hash-codegen</a>]
+    3[<a href="../hash_graph_authorization">hash-graph-authorization</a>]
+    4[<a href="../hash_graph_store">hash-graph-store</a>]
+    5[<a href="../hash_graph_temporal_versioning">hash-graph-temporal-versioning</a>]
+    6[<a href="../hash_graph_types">hash-graph-types</a>]
+    7[<a href="../harpc_types">harpc-types</a>]
+    8[<a href="../harpc_wire_protocol">harpc-wire-protocol</a>]
+    9[hashql-ast]
+    class 9 root
+    10[<a href="../hashql_compiletest">hashql-compiletest</a>]
+    11[<a href="../hashql_core">hashql-core</a>]
+    12[<a href="../hashql_diagnostics">hashql-diagnostics</a>]
+    13[<a href="../hashql_eval">hashql-eval</a>]
+    14[<a href="../hashql_hir">hashql-hir</a>]
+    15[<a href="../hashql_syntax_jexpr">hashql-syntax-jexpr</a>]
+    16[<a href="../hash_temporal_client">hash-temporal-client</a>]
+    17[<a href="../error_stack">error-stack</a>]
+    18[<a href="../hash_graph_test_data">hash-graph-test-data</a>]
+    0 --> 5
+    0 -.-> 18
+    1 -.-> 2
+    1 --> 8
+    3 --> 0
+    4 --> 3
+    4 --> 6
+    4 --> 16
+    5 --> 1
     6 --> 0
-    6 --> 7
-    7 --> 10
-    8 -.-> 5
-    9 --> 4
-    9 --> 6
+    8 -.-> 7
+    8 --> 7
+    8 --> 17
+    9 -.-> 10
+    10 --> 13
+    10 --> 15
+    11 --> 1
+    11 --> 12
+    12 --> 17
+    13 --> 4
+    13 --> 14
+    14 -.-> 10
+    15 --> 9
+    15 --> 11
+    16 --> 0
