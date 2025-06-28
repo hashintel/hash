@@ -12,7 +12,8 @@ use hashql_core::{
     r#type::{
         TypeBuilder, TypeId,
         environment::{
-            AnalysisEnvironment, Environment, LatticeEnvironment, SimplifyEnvironment, Variance,
+            AnalysisEnvironment, Diagnostics, Environment, LatticeEnvironment, SimplifyEnvironment,
+            Variance,
         },
         kind::generic::GenericArgumentReference,
     },
@@ -64,6 +65,7 @@ pub struct TypeChecking<'env, 'heap> {
     current: HirId,
     visited: FastHashSet<HirId>,
     diagnostics: Vec<LoweringDiagnostic>,
+    analysis_diagnostics: Diagnostics,
 
     types: FastRealmsMap<HirId, TypeId>,
     inputs: FastRealmsMap<Symbol<'heap>, TypeId>,
@@ -99,6 +101,7 @@ impl<'env, 'heap> TypeChecking<'env, 'heap> {
             current: HirId::PLACEHOLDER,
             visited: FastHashSet::default(),
             diagnostics: Vec::new(),
+            analysis_diagnostics: Diagnostics::new(),
 
             types: FastRealmsMap::new(),
             inputs: FastRealmsMap::new(),
@@ -153,8 +156,6 @@ impl<'env, 'heap> TypeChecking<'env, 'heap> {
     }
 
     fn verify_subtype(&mut self, subtype: TypeId, supertype: TypeId) {
-        let fatal = self.analysis.fatal_diagnostics();
-
         // We're not directly interested in the result, as we initialize the analysis environment
         // with diagnostics, in that case, if verification fails we'll have a diagnostic telling us
         // why. We just use the return type to ensure that said diagnostics have been emitted and we
@@ -163,12 +164,17 @@ impl<'env, 'heap> TypeChecking<'env, 'heap> {
             .analysis
             .is_subtype_of(Variance::Covariant, subtype, supertype);
 
-        if !compatible {
+        if compatible {
+            self.analysis.clear_diagnostics();
+        } else {
             debug_assert_ne!(
-                fatal,
                 self.analysis.fatal_diagnostics(),
+                0,
                 "subtype verification should've contributed to the amount of fatal diagnostics"
             );
+
+            self.analysis
+                .merge_diagnostics_into(&mut self.analysis_diagnostics);
         }
     }
 
@@ -178,6 +184,7 @@ impl<'env, 'heap> TypeChecking<'env, 'heap> {
             .chain(self.lattice.take_diagnostics())
             .chain(self.simplify.take_diagnostics().into_iter().flatten())
             .chain(self.analysis.take_diagnostics().into_iter().flatten())
+            .chain(self.analysis_diagnostics)
             .map(|diagnostic| diagnostic.map_category(LoweringDiagnosticCategory::TypeChecking));
 
         self.diagnostics.extend(diagnostics);

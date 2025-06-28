@@ -111,13 +111,13 @@ impl Drop for VarianceGuard {
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum VarianceFlow {
     /// The variance transition preserves the direction of type relationships.
-    Forward = 1,
+    Forward,
 
     /// The variance transition flips the direction of type relationships.
-    Reverse = -1,
+    Reverse,
 
     /// The variance transition results in no meaningful direction.
-    Invariant = 0,
+    Invariant,
 }
 
 /// Represents the type relationship variance used in generic type checking.

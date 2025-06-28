@@ -681,14 +681,14 @@ fn collect_constraints_nested_closure() {
 
     // Collect constraints with nested closures
     // closure_a <: closure_b
-    // This requires inner_closure_a <: inner_closure_b
-    // For return types, this means ?T <: Boolean
+    // This requires inner_closure_b <: inner_closure_a
+    // For return types, this means Boolean <: ?T
     closure_a.collect_constraints(closure_b, &mut inference_env);
 
     let constraints = inference_env.take_constraints();
     assert_eq!(
         constraints,
-        [Constraint::UpperBound {
+        [Constraint::LowerBound {
             variable: Variable::synthetic(VariableKind::Hole(hole)),
             bound: boolean
         }]
@@ -1132,4 +1132,22 @@ fn subscript() {
         diagnostics[0].category,
         TypeCheckDiagnosticCategory::UnsupportedSubscript
     );
+}
+
+#[test]
+fn regression_contravariance_flip_flop() {
+    // given
+    // A: `fn(List<Number>) -> Number`
+    // B: `fn(List<Integer>) -> Number`
+    // then if `A <: B`
+    // List<Integer> <: List<Number>
+    // Integer <: Number
+    // Ok!
+    // before https://linear.app/hash/issue/H-4899/hashql-fix-contravariance-applying-unilaterally this would've failed
+    scaffold!(heap, env, builder, [analysis: analysis]);
+
+    let a = builder.closure([builder.list(builder.number())], builder.number());
+    let b = builder.closure([builder.list(builder.integer())], builder.number());
+
+    assert!(analysis.is_subtype_of(Variance::Covariant, a, b));
 }
