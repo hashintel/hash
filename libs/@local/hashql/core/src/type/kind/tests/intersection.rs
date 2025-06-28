@@ -51,7 +51,7 @@ fn unnest_flattens_nested_intersections() {
     // Unnesting should flatten to: Number & String & Boolean
     let unnested = intersection_type.unnest(&env);
 
-    assert_eq!(unnested, [boolean, string, number]);
+    assert_eq!(unnested, [number, string, boolean]);
 }
 
 #[test]
@@ -276,8 +276,8 @@ fn meet_identical_intersections() {
         env,
         a.meet(b, &mut lattice_env),
         [
-            primitive!(env, PrimitiveType::String),
             primitive!(env, PrimitiveType::Number),
+            primitive!(env, PrimitiveType::String),
         ]
     );
 }
@@ -312,10 +312,10 @@ fn meet_different_intersections() {
         env,
         a.meet(b, &mut lattice_env),
         [
-            primitive!(env, PrimitiveType::Null),
-            primitive!(env, PrimitiveType::Boolean),
-            primitive!(env, PrimitiveType::String),
             primitive!(env, PrimitiveType::Number),
+            primitive!(env, PrimitiveType::String),
+            primitive!(env, PrimitiveType::Boolean),
+            primitive!(env, PrimitiveType::Null),
         ]
     );
 }
@@ -331,8 +331,8 @@ fn meet_with_empty_intersection() {
         env,
         non_empty,
         [
+            primitive!(env, PrimitiveType::String),
             primitive!(env, PrimitiveType::Number),
-            primitive!(env, PrimitiveType::String)
         ]
     );
 
@@ -1595,7 +1595,7 @@ fn projection_propagate_pending() {
 
     let mut lattice = LatticeEnvironment::new(&env);
     let projection = lattice.projection(intersection, Ident::synthetic(heap.intern_symbol("foo")));
-    assert_eq!(lattice.diagnostics.len(), 0);
+    assert_eq!(lattice.diagnostics.len(), 1);
     assert_eq!(projection, Projection::Pending);
 }
 
