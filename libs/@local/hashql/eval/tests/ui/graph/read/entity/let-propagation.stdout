@@ -1,5 +1,6 @@
 ════ HIR ═══════════════════════════════════════════════════════════════════════
 
+#let foo:0 = 2 in
 ::core::graph::head::entities(::core::graph::tmp::decision_time_now())
 |> ::core::graph::body::filter(#fn(vertex:0: _0«Entity[(id:
  EntityRecordId[(edition_id: EntityEditionId[Uuid[String]], entity_id:

@@ -1,10 +1,5 @@
 use core::fmt::Write as _;
 
-use hash_graph_postgres_store::store::postgres::query::SelectCompiler;
-use hash_graph_store::subgraph::temporal_axes::{
-    PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
-};
-use hash_graph_temporal_versioning::Timestamp;
 use hashql_ast::node::expr::Expr;
 use hashql_core::{
     collection::FastHashMap,
@@ -74,33 +69,12 @@ impl Suite for EvalGraphReadEntitySuite {
 
         let filters = residual.filters.entity(range);
 
-        let axes = QueryTemporalAxesUnresolved::DecisionTime {
-            pinned: PinnedTemporalAxisUnresolved::new(None),
-            variable: VariableTemporalAxisUnresolved::new(None, None),
-        }
-        .resolve_relative_to(Timestamp::UNIX_EPOCH);
-
-        let mut compiler = SelectCompiler::new(Some(&axes), false);
-        for filter in filters {
-            compiler
-                .add_filter(filter)
-                .expect("Should be able to add filter");
-        }
-
-        let (statement, parameters) = compiler.compile();
-
-        let _ = writeln!(
-            output,
-            "\n{}\n\n{}",
-            Header::new("SQL Statement"),
-            statement
-        );
         #[expect(clippy::use_debug)]
         let _ = writeln!(
             output,
             "\n{}\n\n{:#?}",
-            Header::new("Parameters"),
-            parameters
+            Header::new("Entity Filter"),
+            filters
         );
 
         Ok(output)

@@ -3857,7 +3857,6 @@ dependencies = [
  "derive_more 2.0.1",
  "error-stack",
  "guppy",
- "hash-graph-postgres-store",
  "hash-graph-store",
  "hash-graph-temporal-versioning",
  "hashql-ast",
