@@ -1,10 +1,10 @@
 [graph-read-compiler::index-access-internal-error] Internal Compiler Error: Internal error during index access
-    ╭─[ <unknown>:12:11 ]
+    ╭─[ <unknown>:14:11 ]
     │
- 11 │           ["input", "user_ids", "Dict<String, ::core::graph::types::knowledge::entity::EntityUuid>"],
+ 13 │           ["input", "user_ids", "Dict<String, ::core::graph::types::knowledge::entity::EntityUuid>"],
     │           ─────────────────────────────────────────────┬────────────────────────────────────────────  
     │                                                        ╰────────────────────────────────────────────── ... on this value
- 12 │           {"#literal": "abc"}
+ 14 │           {"#literal": "abc"}
     │           ─────────┬─────────  
     │                    ╰─────────── Index access failed unexpectedly
     │ 
