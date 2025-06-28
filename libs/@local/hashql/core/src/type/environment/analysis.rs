@@ -3,7 +3,13 @@ use core::ops::{ControlFlow, Deref};
 
 use smallvec::SmallVec;
 
-use super::{Diagnostics, Environment, Variance, context::provision::ProvisionedScope};
+use super::{
+    Diagnostics, Environment, Variance,
+    context::{
+        provision::ProvisionedScope,
+        variance::{VarianceFlow, VarianceState},
+    },
+};
 use crate::r#type::{
     Type, TypeId,
     error::{TypeCheckDiagnostic, circular_type_reference},
@@ -28,7 +34,7 @@ pub struct AnalysisEnvironment<'env, 'heap> {
     substitution: Option<Substitution>,
     pub(crate) provisioned: Rc<ProvisionedScope<TypeId>>,
 
-    variance: Variance,
+    variance: VarianceState,
 }
 
 impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
@@ -44,7 +50,7 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
             substitution: None,
             provisioned: Rc::default(),
 
-            variance: Variance::Covariant,
+            variance: VarianceState::new(Variance::Covariant),
         }
     }
 
@@ -463,11 +469,18 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
         cycle.should_discharge()
     }
 
-    pub fn is_subtype_of(&mut self, subtype: TypeId, supertype: TypeId) -> bool {
-        let (subtype, supertype) = match self.variance {
-            Variance::Covariant => (subtype, supertype),
-            Variance::Contravariant => (supertype, subtype),
-            Variance::Invariant => return self.is_equivalent(subtype, supertype),
+    pub fn is_subtype_of(
+        &mut self,
+        variance: Variance,
+        subtype: TypeId,
+        supertype: TypeId,
+    ) -> bool {
+        let (_guard, variance_flow) = self.variance.transition(variance);
+
+        let (subtype, supertype) = match variance_flow {
+            VarianceFlow::Forward => (subtype, supertype),
+            VarianceFlow::Reverse => (supertype, subtype),
+            VarianceFlow::Invariant => return self.is_equivalent(subtype, supertype),
         };
 
         let subtype = self.environment.r#type(self.resolve_id(subtype));
@@ -582,32 +595,6 @@ impl<'env, 'heap> AnalysisEnvironment<'env, 'heap> {
 
         self.boundary.exit(lhs, rhs);
         result
-    }
-
-    pub(crate) fn with_variance<T>(
-        &mut self,
-        variance: Variance,
-        closure: impl FnOnce(&mut Self) -> T,
-    ) -> T {
-        let old_variance = self.variance;
-
-        self.variance = old_variance.transition(variance);
-
-        let result = closure(self);
-        self.variance = old_variance;
-        result
-    }
-
-    pub(crate) fn in_contravariant<T>(&mut self, closure: impl FnOnce(&mut Self) -> T) -> T {
-        self.with_variance(Variance::Contravariant, closure)
-    }
-
-    pub(crate) fn in_covariant<T>(&mut self, closure: impl FnOnce(&mut Self) -> T) -> T {
-        self.with_variance(Variance::Covariant, closure)
-    }
-
-    pub(crate) fn in_invariant<T>(&mut self, closure: impl FnOnce(&mut Self) -> T) -> T {
-        self.with_variance(Variance::Invariant, closure)
     }
 }
 

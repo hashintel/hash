@@ -34,7 +34,7 @@ use super::{
     PartialType, Type, TypeId,
     environment::{
         AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
-        SimplifyEnvironment, instantiate::InstantiateEnvironment,
+        SimplifyEnvironment, Variance, instantiate::InstantiateEnvironment,
     },
     error::{
         UnsupportedProjectionCategory, UnsupportedSubscriptCategory, no_type_inference,
@@ -1528,7 +1528,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 | Self::Closure(_)
                 | Self::Union(_)
                 | Self::Intersection(_),
-            ) => return env.is_subtype_of(lhs.base, supertype.id),
+            ) => return env.is_subtype_of(Variance::Covariant, lhs.base, supertype.id),
             (
                 Self::Opaque(_)
                 | Self::Primitive(_)
@@ -1539,7 +1539,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 | Self::Union(_)
                 | Self::Intersection(_),
                 Self::Apply(rhs),
-            ) => return env.is_subtype_of(self.id, rhs.base),
+            ) => return env.is_subtype_of(Variance::Covariant, self.id, rhs.base),
 
             // Generic <: _
             (Self::Generic(lhs), Self::Generic(rhs)) => {
@@ -1556,7 +1556,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 | Self::Union(_)
                 | Self::Intersection(_)
                 | Self::Apply(_),
-            ) => return env.is_subtype_of(lhs.base, supertype.id),
+            ) => return env.is_subtype_of(Variance::Covariant, lhs.base, supertype.id),
             (
                 Self::Opaque(_)
                 | Self::Primitive(_)
@@ -1568,7 +1568,7 @@ impl<'heap> Lattice<'heap> for TypeKind<'heap> {
                 | Self::Intersection(_)
                 | Self::Apply(_),
                 Self::Generic(rhs),
-            ) => return env.is_subtype_of(self.id, rhs.base),
+            ) => return env.is_subtype_of(Variance::Covariant, self.id, rhs.base),
 
             // Union <: _
             (Self::Union(lhs), Self::Union(rhs)) => {
@@ -1908,7 +1908,7 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 | Self::Param(_),
             ) => {
                 lhs.collect_substitution_constraints(self.span, env);
-                env.collect_constraints(lhs.base, supertype.id);
+                env.collect_constraints(Variance::Covariant, lhs.base, supertype.id);
             }
             (
                 Self::Opaque(_)
@@ -1924,7 +1924,7 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 Self::Apply(rhs),
             ) => {
                 rhs.collect_substitution_constraints(supertype.span, env);
-                env.collect_constraints(self.id, rhs.base);
+                env.collect_constraints(Variance::Covariant, self.id, rhs.base);
             }
 
             // Generic <: _
@@ -1946,7 +1946,7 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 | Self::Param(_),
             ) => {
                 lhs.collect_argument_constraints(self.span, env, false);
-                env.collect_constraints(lhs.base, supertype.id);
+                env.collect_constraints(Variance::Covariant, lhs.base, supertype.id);
             }
             (
                 Self::Opaque(_)
@@ -1963,7 +1963,7 @@ impl<'heap> Inference<'heap> for TypeKind<'heap> {
                 Self::Generic(rhs),
             ) => {
                 rhs.collect_argument_constraints(supertype.span, env, false);
-                env.collect_constraints(self.id, rhs.base);
+                env.collect_constraints(Variance::Covariant, self.id, rhs.base);
             }
 
             // Union <: _

@@ -11,7 +11,9 @@ use hashql_core::{
     symbol::Symbol,
     r#type::{
         TypeBuilder, TypeId,
-        environment::{AnalysisEnvironment, Environment, LatticeEnvironment, SimplifyEnvironment},
+        environment::{
+            AnalysisEnvironment, Environment, LatticeEnvironment, SimplifyEnvironment, Variance,
+        },
         kind::generic::GenericArgumentReference,
     },
 };
@@ -157,7 +159,9 @@ impl<'env, 'heap> TypeChecking<'env, 'heap> {
         // with diagnostics, in that case, if verification fails we'll have a diagnostic telling us
         // why. We just use the return type to ensure that said diagnostics have been emitted and we
         // don't silently swallow an error.
-        let compatible = self.analysis.is_subtype_of(subtype, supertype);
+        let compatible = self
+            .analysis
+            .is_subtype_of(Variance::Covariant, subtype, supertype);
 
         if !compatible {
             debug_assert_ne!(

@@ -9,7 +9,7 @@ use crate::{
         PartialType,
         environment::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
-            SimplifyEnvironment, instantiate::InstantiateEnvironment,
+            SimplifyEnvironment, Variance, instantiate::InstantiateEnvironment,
         },
         error::TypeCheckDiagnosticCategory,
         inference::{Constraint, Inference as _, Variable, VariableKind},
@@ -915,7 +915,7 @@ fn collect_constraints_generic_params() {
     let mut inference_env = InferenceEnvironment::new(&env);
 
     // Collect constraints between the generic tuples
-    inference_env.collect_constraints(tuple_a, tuple_b);
+    inference_env.collect_constraints(Variance::Covariant, tuple_a, tuple_b);
 
     let constraints = inference_env.take_constraints();
     assert_eq!(
