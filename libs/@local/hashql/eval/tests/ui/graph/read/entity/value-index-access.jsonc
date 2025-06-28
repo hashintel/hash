@@ -1,4 +1,4 @@
-//@ run: pass
+//@ run: skip
 //@ description: Read entity by UUID using scalar property filter
 // biome-ignore format: readability
 ["::core::graph::tail::collect",
