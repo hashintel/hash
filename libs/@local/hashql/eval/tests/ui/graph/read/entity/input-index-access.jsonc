@@ -1,4 +1,4 @@
-//@ run: skip
+//@ run: pass
 //@ description: Test index access on input parameter values
 // biome-ignore format: readability
 ["::core::graph::tail::collect",
