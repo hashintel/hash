@@ -1,0 +1,147 @@
+════ HIR ═══════════════════════════════════════════════════════════════════════
+
+::core::graph::head::entities(::core::graph::tmp::decision_time_now())
+|> ::core::graph::body::filter(#fn(vertex:0: _0«Entity[(id:
+ EntityRecordId[(edition_id: EntityEditionId[Uuid[String]], entity_id:
+  EntityId[(draft_id: (Some[DraftId[Uuid[String]]] | None[Null]), entity_uuid:
+   EntityUuid[Uuid[String]], web_id:
+   WebId[ActorGroupEntityUuid[Uuid[String]]])])], link_data:
+ (Some[LinkData[(left_entity_id: EntityId[(draft_id:
+    (Some[DraftId[Uuid[String]]] | None[Null]), entity_uuid:
+    EntityUuid[Uuid[String]], web_id:
+    WebId[ActorGroupEntityUuid[Uuid[String]]])], right_entity_id:
+   EntityId[(draft_id: (Some[DraftId[Uuid[String]]] | None[Null]), entity_uuid:
+    EntityUuid[Uuid[String]], web_id:
+    WebId[ActorGroupEntityUuid[Uuid[String]]])])]]
+  | None[Null]), properties: ?)]»): _1«Boolean» ->
+    ((1 > 2) || ((1 >= 2) || ((1 < 2) || (1 <= 2)))))
+|> ::core::graph::tail::collect
+
+════ Entity Filter ═════════════════════════════════════════════════════════════
+
+[
+    Any(
+        [
+            Greater(
+                Parameter {
+                    parameter: Decimal(
+                        Real(
+                            FBig {
+                                significand: 1 (1 digits, 1 bits),
+                                exponent: 10 ^ 0,
+                                precision: 1,
+                                rounding: HalfAway,
+                            },
+                        ),
+                    ),
+                    convert: None,
+                },
+                Parameter {
+                    parameter: Decimal(
+                        Real(
+                            FBig {
+                                significand: 2 (1 digits, 2 bits),
+                                exponent: 10 ^ 0,
+                                precision: 1,
+                                rounding: HalfAway,
+                            },
+                        ),
+                    ),
+                    convert: None,
+                },
+            ),
+            Any(
+                [
+                    GreaterOrEqual(
+                        Parameter {
+                            parameter: Decimal(
+                                Real(
+                                    FBig {
+                                        significand: 1 (1 digits, 1 bits),
+                                        exponent: 10 ^ 0,
+                                        precision: 1,
+                                        rounding: HalfAway,
+                                    },
+                                ),
+                            ),
+                            convert: None,
+                        },
+                        Parameter {
+                            parameter: Decimal(
+                                Real(
+                                    FBig {
+                                        significand: 2 (1 digits, 2 bits),
+                                        exponent: 10 ^ 0,
+                                        precision: 1,
+                                        rounding: HalfAway,
+                                    },
+                                ),
+                            ),
+                            convert: None,
+                        },
+                    ),
+                    Any(
+                        [
+                            Less(
+                                Parameter {
+                                    parameter: Decimal(
+                                        Real(
+                                            FBig {
+                                                significand: 1 (1 digits, 1 bits),
+                                                exponent: 10 ^ 0,
+                                                precision: 1,
+                                                rounding: HalfAway,
+                                            },
+                                        ),
+                                    ),
+                                    convert: None,
+                                },
+                                Parameter {
+                                    parameter: Decimal(
+                                        Real(
+                                            FBig {
+                                                significand: 2 (1 digits, 2 bits),
+                                                exponent: 10 ^ 0,
+                                                precision: 1,
+                                                rounding: HalfAway,
+                                            },
+                                        ),
+                                    ),
+                                    convert: None,
+                                },
+                            ),
+                            LessOrEqual(
+                                Parameter {
+                                    parameter: Decimal(
+                                        Real(
+                                            FBig {
+                                                significand: 1 (1 digits, 1 bits),
+                                                exponent: 10 ^ 0,
+                                                precision: 1,
+                                                rounding: HalfAway,
+                                            },
+                                        ),
+                                    ),
+                                    convert: None,
+                                },
+                                Parameter {
+                                    parameter: Decimal(
+                                        Real(
+                                            FBig {
+                                                significand: 2 (1 digits, 2 bits),
+                                                exponent: 10 ^ 0,
+                                                precision: 1,
+                                                rounding: HalfAway,
+                                            },
+                                        ),
+                                    ),
+                                    convert: None,
+                                },
+                            ),
+                        ],
+                    ),
+                ],
+            ),
+        ],
+    ),
+]
