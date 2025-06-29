@@ -13,7 +13,7 @@
     │     
     │     Help: Filter expressions can only query against simple scalar properties that map to database columns, not complex objects. Use individual properties of the object instead (e.g., `entity.id.entity_uuid` instead of `entity.id`).
     │     
-    │     Note: This is a temporary limitation of the current query compiler. Support for querying against complex objects in filter expressions is being tracked in [Linear Issue].
+    │     Note: This is a temporary limitation of the current query compiler. Support for querying against complex objects in filter expressions is being tracked in https://linear.app/hash/issue/H-4911/hashql-allow-for-querying-against-complex-objects.
 ────╯
 
 
@@ -31,5 +31,5 @@
     │     
     │     Help: Filter expressions can only query against simple scalar properties that map to database columns, not complex objects. Use individual properties of the object instead (e.g., `entity.id.entity_uuid` instead of `entity.id`).
     │     
-    │     Note: This is a temporary limitation of the current query compiler. Support for querying against complex objects in filter expressions is being tracked in [Linear Issue].
+    │     Note: This is a temporary limitation of the current query compiler. Support for querying against complex objects in filter expressions is being tracked in https://linear.app/hash/issue/H-4911/hashql-allow-for-querying-against-complex-objects.
 ────╯

@@ -16,5 +16,5 @@
     │     
     │     Help: Dynamic indexing using database values is not currently supported in filter expressions. Use a literal value like `["key"]` or `[0]` instead of computed values like `[entity.id]`. This limitation exists because such operations are complex to translate into database queries.
     │     
-    │     Note: This is a temporary limitation of the database query compiler. Support for dynamic indexing using computed values in filter expressions is being tracked in [Linear Issue].
+    │     Note: This is a temporary limitation of the database query compiler. Support for dynamic indexing using computed values in filter expressions is being tracked in https://linear.app/hash/issue/H-4914/hashql-support-indexing-into-collections-based-on-query-paths.
 ────╯
