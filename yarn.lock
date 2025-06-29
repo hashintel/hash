@@ -4412,9 +4412,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@chainsafe/libp2p-yamux@npm:7.0.2":
-  version: 7.0.2
-  resolution: "@chainsafe/libp2p-yamux@npm:7.0.2"
+"@chainsafe/libp2p-yamux@npm:7.0.4":
+  version: 7.0.4
+  resolution: "@chainsafe/libp2p-yamux@npm:7.0.4"
   dependencies:
     "@libp2p/interface": "npm:^2.0.0"
     "@libp2p/utils": "npm:^6.0.0"
@@ -4422,8 +4422,9 @@ __metadata:
     it-foreach: "npm:^2.0.6"
     it-pushable: "npm:^3.2.3"
     it-stream-types: "npm:^2.0.1"
+    race-signal: "npm:^1.1.3"
     uint8arraylist: "npm:^2.4.8"
-  checksum: 10c0/fc14b81b1e5d73841c872365311d7560611794933b5938be1c9066e408a9784b3e373a3e51e2ca16753c70186f6a419a955861e8133fd4fead794428a083c330
+  checksum: 10c0/d89af12a3d540b3d871f7bf980fa246c1ebaa64ae9fa52f67d4422585a9c402cb6d1f1bf93d4171171aa06b6ee68137c33393ba0ff855390fb7cabc3f2d68c39
   languageName: node
   linkType: hard
 
@@ -8855,7 +8856,7 @@ __metadata:
   resolution: "@local/harpc-client@workspace:libs/@local/harpc/client/typescript"
   dependencies:
     "@chainsafe/libp2p-noise": "npm:16.1.3"
-    "@chainsafe/libp2p-yamux": "npm:7.0.2"
+    "@chainsafe/libp2p-yamux": "npm:7.0.4"
     "@effect/platform": "npm:0.79.2"
     "@effect/platform-node": "npm:0.75.2"
     "@effect/vitest": "npm:0.23.10"
