@@ -170,6 +170,8 @@ impl Trial {
             write!(output, " ({YELLOW}ignored{YELLOW:#} by parent)")?;
         } else if self.ignore {
             write!(output, " ({YELLOW}ignored{YELLOW:#})")?;
+        } else {
+            // Test is not ignored, runs normally
         }
 
         if let Some(description) = &self.annotations.directive.description {

@@ -72,7 +72,7 @@ where
                 |_, spans, _| leading_commas(&spans),
             )
             .change_category(C::from)?;
-        } else if index != 0 {
+        } else {
             // we need to check if the next token is a comma
             // in case it isn't we error out
             if next_kind == SyntaxKind::Comma {

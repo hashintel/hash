@@ -161,6 +161,8 @@ where
                     // initiated it.
                     tracing::warn!("response byte stream has been prematurely dropped");
                     reset = true;
+                } else {
+                    // Successfully sent bytes to the consumer, continue processing
                 }
             } else {
                 tracing::warn!("received frame without a begin");

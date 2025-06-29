@@ -183,6 +183,9 @@ where
 
                 let neighbor_discovery = self.discovery_time[neighbour];
                 self.lowlink[node] = self.lowlink[node].min(neighbor_discovery);
+            } else {
+                // Forward/cross edge: Neighbor is visited but not on stack
+                // These edges don't contribute to the current SCC, so we ignore them
             }
 
             // Note: Forward/cross edges (to visited nodes not on stack) are ignored

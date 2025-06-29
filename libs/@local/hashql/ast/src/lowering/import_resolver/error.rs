@@ -666,6 +666,8 @@ pub(crate) fn from_resolution_error<'heap>(
                         .with_order(1)
                         .with_color(Color::Ansi(AnsiColor::Blue)),
                 );
+            } else {
+                // No secondary label needed - neither module nor import context available
             }
 
             let mut help = "Check the spelling and ensure the item is exported and available in \

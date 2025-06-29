@@ -30,7 +30,7 @@ use hash_graph_authorization::{
 };
 use hash_graph_postgres_store::{snapshot::SnapshotStore, store::PostgresStorePool};
 use hash_graph_store::pool::StorePool as _;
-use hash_graph_type_defs::error::{ErrorInfo, StatusPayloads};
+use hash_graph_type_defs::error::{ErrorInfo, StatusPayloadInfo};
 use hash_status::{Status, StatusCode};
 use tokio::io;
 use tokio_util::{codec::FramedRead, io::StreamReader};
@@ -66,7 +66,7 @@ fn store_acquisition_error(report: Report<impl Error + Send + Sync + 'static>) -
             "{report}\n\nThis is an internal error, please report to the developers of the HASH \
              Graph with whatever information you can provide including request details and logs."
         )),
-        vec![StatusPayloads::ErrorInfo(ErrorInfo::new(
+        vec![StatusPayloadInfo::Error(ErrorInfo::new(
             // TODO: add information from the report here
             //   see https://linear.app/hash/issue/H-3009
             HashMap::new(),
@@ -86,7 +86,7 @@ fn report_to_response<C>(report: &Report<C>, code: impl Into<String>) -> Respons
             .next()
             .unwrap_or(StatusCode::Unknown),
         Some(report.to_string()),
-        vec![StatusPayloads::ErrorInfo(ErrorInfo::new(
+        vec![StatusPayloadInfo::Error(ErrorInfo::new(
             HashMap::new(),
             code.into(),
         ))],
@@ -207,7 +207,7 @@ where
                     .next()
                     .unwrap_or(StatusCode::Unknown),
                 Some(report.to_string()),
-                vec![StatusPayloads::ErrorInfo(ErrorInfo::new(
+                vec![StatusPayloadInfo::Error(ErrorInfo::new(
                     HashMap::new(),
                     "DATA_TYPE_DELETION_FAILURE".to_owned(),
                 ))],

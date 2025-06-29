@@ -624,7 +624,7 @@ where
 
     for schema in schema {
         match schema {
-            PropertyValues::DataTypeReference(data_type_ref) => {
+            PropertyValues::Value(data_type_ref) => {
                 if let Err(report) = visitor
                     .visit_value(
                         data_type_ref,
@@ -640,7 +640,7 @@ where
                     return Ok(());
                 }
             }
-            PropertyValues::ArrayOfPropertyValues(_) | PropertyValues::PropertyTypeObject(_) => {
+            PropertyValues::Array(_) | PropertyValues::Object(_) => {
                 property_validations.push(PropertyValueValidationReport::WrongType {
                     data: PropertyValueTypeMismatch {
                         actual: schema.property_value_type(),
@@ -676,7 +676,7 @@ where
 
     for schema in schema {
         match schema {
-            PropertyValues::ArrayOfPropertyValues(array_schema) => {
+            PropertyValues::Array(array_schema) => {
                 if let Err(report) =
                     Box::pin(visitor.visit_array(array_schema, array, type_provider)).await
                 {
@@ -685,7 +685,7 @@ where
                     return Ok(());
                 }
             }
-            PropertyValues::DataTypeReference(_) | PropertyValues::PropertyTypeObject(_) => {
+            PropertyValues::Value(_) | PropertyValues::Object(_) => {
                 array_validations.push(PropertyArrayValidationReport::WrongType(
                     PropertyValueTypeMismatch {
                         actual: schema.property_value_type(),
@@ -720,7 +720,7 @@ where
 
     for schema in schema {
         match schema {
-            PropertyValues::PropertyTypeObject(object_schema) => {
+            PropertyValues::Object(object_schema) => {
                 if let Err(report) =
                     Box::pin(visitor.visit_object(object_schema, object, type_provider)).await
                 {
@@ -730,7 +730,7 @@ where
                     return Ok(());
                 }
             }
-            PropertyValues::DataTypeReference(_) | PropertyValues::ArrayOfPropertyValues(_) => {
+            PropertyValues::Value(_) | PropertyValues::Array(_) => {
                 object_validations.push(PropertyObjectValidationReport::WrongType {
                     data: PropertyValueTypeMismatch {
                         actual: schema.property_value_type(),

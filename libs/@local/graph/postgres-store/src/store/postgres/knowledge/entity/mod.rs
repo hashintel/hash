@@ -742,8 +742,8 @@ where
                     .collect::<HashSet<_>>(),
             )
             .with_action(ActionName::Instantiate, false)
-            .with_action(ActionName::CreateEntity,  false) // for entity creation authorization
-            .with_action(ActionName::ViewEntity, true) // for validation
+            .with_action(ActionName::CreateEntity, false)
+            .with_action(ActionName::ViewEntity, true)
             .await
             .change_context(InsertionError)?;
 
@@ -1167,7 +1167,7 @@ where
     ) -> Result<HashMap<usize, EntityValidationReport>, Report<QueryError>> {
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor_id)
-            .with_action(ActionName::ViewEntity, true) // for validation
+            .with_action(ActionName::ViewEntity, true)
             .await
             .change_context(QueryError)?;
 
@@ -1644,7 +1644,7 @@ where
             .with_entity_edition_id(previous_entity.metadata.record_id.edition_id)
             .with_entity_type_ids(&params.entity_type_ids)
             .with_action(ActionName::Instantiate, false)
-            .with_action(ActionName::ViewEntity, true) // for validation
+            .with_action(ActionName::ViewEntity, true)
             .await
             .change_context(UpdateError)?;
 

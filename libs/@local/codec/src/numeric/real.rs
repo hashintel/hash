@@ -137,10 +137,11 @@ impl Real {
             .clone()
             .with_rounding::<mode::HalfEven>()
             .with_base::<2>()
-            .and_then(|value|
-                // We cannot use `with_base_and_precision` here, because if we do that, the significand
-                // could be larger than f32::MANTISSA_DIGITS as usize
-                value.with_precision(f32::MANTISSA_DIGITS as usize))
+            .and_then(|value| {
+                // We cannot use `with_base_and_precision` here, because if we do that, the
+                // significand could be larger than f32::MANTISSA_DIGITS as usize
+                value.with_precision(f32::MANTISSA_DIGITS as usize)
+            })
             .value();
 
         if value.repr().significand().bit_len() > f32::MANTISSA_DIGITS as usize {
@@ -185,10 +186,11 @@ impl Real {
             .clone()
             .with_rounding::<mode::HalfEven>()
             .with_base::<2>()
-            .and_then(|value|
-                // We cannot use `with_base_and_precision` here, because if we do that, the significand
-                // could be larger than f64::MANTISSA_DIGITS as usize
-                value.with_precision(f64::MANTISSA_DIGITS as usize))
+            .and_then(|value| {
+                // We cannot use `with_base_and_precision` here, because if we do that, the
+                // significand could be larger than f64::MANTISSA_DIGITS as usize
+                value.with_precision(f64::MANTISSA_DIGITS as usize)
+            })
             .value();
 
         if value.repr().significand().bit_len() > f64::MANTISSA_DIGITS as usize {

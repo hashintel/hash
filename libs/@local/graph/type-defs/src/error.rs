@@ -5,10 +5,10 @@ use hash_status::Status as HashStatus;
 pub use crate::status_payloads::{ErrorInfo, RequestInfo, ResourceInfo};
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
-pub enum StatusPayloads {
-    ErrorInfo(ErrorInfo),
-    RequestInfo(RequestInfo),
-    ResourceInfo(ResourceInfo),
+pub enum StatusPayloadInfo {
+    Error(ErrorInfo),
+    Request(RequestInfo),
+    Resource(ResourceInfo),
 }
 
 impl ErrorInfo {
@@ -25,4 +25,4 @@ impl ErrorInfo {
     }
 }
 
-pub type Status = HashStatus<StatusPayloads>;
+pub type Status = HashStatus<StatusPayloadInfo>;

@@ -54,8 +54,8 @@ impl Validator<PropertyValues> for PropertyTypeValidator {
         value: &'v PropertyValues,
     ) -> Result<&'v Valid<PropertyValues>, Self::Error> {
         match value {
-            PropertyValues::DataTypeReference(_) => {}
-            PropertyValues::PropertyTypeObject(object) => {
+            PropertyValues::Value(_) => {}
+            PropertyValues::Object(object) => {
                 ObjectSchemaValidator.validate_ref(object)?;
                 for (property, value) in &object.properties {
                     let reference = match value {
@@ -73,7 +73,7 @@ impl Validator<PropertyValues> for PropertyTypeValidator {
                     }
                 }
             }
-            PropertyValues::ArrayOfPropertyValues(array) => {
+            PropertyValues::Array(array) => {
                 for property_values in &array.items.possibilities {
                     self.validate_ref(property_values)?;
                 }

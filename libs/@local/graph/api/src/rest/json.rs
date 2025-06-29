@@ -12,7 +12,7 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use bytes::{BufMut as _, BytesMut};
-use hash_graph_type_defs::error::{ErrorInfo, Status, StatusPayloads};
+use hash_graph_type_defs::error::{ErrorInfo, Status, StatusPayloadInfo};
 use hash_status::StatusCode;
 use serde::{Serialize, de::DeserializeOwned};
 use serde_json::error::Category;
@@ -39,7 +39,7 @@ where
                 status_to_response(Status::new(
                     StatusCode::InvalidArgument,
                     Some("Failed to buffer body of request".to_owned()),
-                    vec![StatusPayloads::ErrorInfo(ErrorInfo::new(
+                    vec![StatusPayloadInfo::Error(ErrorInfo::new(
                         HashMap::from([(
                             "bufferError".to_owned(),
                             serde_json::to_value(err.to_string())
@@ -75,7 +75,7 @@ where
                     return Err(status_to_response(Status::new(
                         StatusCode::InvalidArgument,
                         Some(message),
-                        vec![StatusPayloads::ErrorInfo(ErrorInfo::new(
+                        vec![StatusPayloadInfo::Error(ErrorInfo::new(
                             HashMap::from([(
                                 "deserializationError".to_owned(),
                                 serde_json::to_value(err.to_string())
@@ -141,7 +141,7 @@ where
             Err(err) => status_to_response(Status::new(
                 StatusCode::Internal,
                 Some("Failed to serialize response".to_owned()),
-                vec![StatusPayloads::ErrorInfo(ErrorInfo::new(
+                vec![StatusPayloadInfo::Error(ErrorInfo::new(
                     HashMap::from([(
                         "serializationError".to_owned(),
                         serde_json::to_value(err.to_string())

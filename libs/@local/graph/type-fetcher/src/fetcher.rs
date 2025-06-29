@@ -30,6 +30,10 @@ impl fmt::Display for FetcherError {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
+#[expect(
+    clippy::enum_variant_names,
+    reason = "Ontology types share a common suffix"
+)]
 pub enum FetchedOntologyType {
     DataType(Box<DataType>),
     PropertyType(Box<PropertyType>),
