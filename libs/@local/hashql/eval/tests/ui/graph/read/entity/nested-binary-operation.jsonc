@@ -1,0 +1,18 @@
+//@ run: fail
+//@ description: Nested binary operations not supported in filter expressions
+// biome-ignore format: readability
+["::core::graph::tail::collect",
+  ["::core::graph::body::filter",
+    ["::core::graph::head::entities", ["::core::graph::tmp::decision_time_now"]],
+    ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
+      ["==",
+        {"#literal": true},
+        ["&&",
+          //~^ ERROR Operation `&&` not supported here
+          {"#literal": true},
+          {"#literal": true}
+        ]
+      ]
+    ]
+  ]
+]

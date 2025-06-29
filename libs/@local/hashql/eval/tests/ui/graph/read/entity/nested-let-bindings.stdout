@@ -1,0 +1,41 @@
+════ HIR ═══════════════════════════════════════════════════════════════════════
+
+::core::graph::head::entities(::core::graph::tmp::decision_time_now())
+|> ::core::graph::body::filter(#fn(vertex:0: _0«Entity[(id:
+ EntityRecordId[(edition_id: EntityEditionId[Uuid[String]], entity_id:
+  EntityId[(draft_id: (Some[DraftId[Uuid[String]]] | None[Null]), entity_uuid:
+   EntityUuid[Uuid[String]], web_id:
+   WebId[ActorGroupEntityUuid[Uuid[String]]])])], link_data:
+ (Some[LinkData[(left_entity_id: EntityId[(draft_id:
+    (Some[DraftId[Uuid[String]]] | None[Null]), entity_uuid:
+    EntityUuid[Uuid[String]], web_id:
+    WebId[ActorGroupEntityUuid[Uuid[String]]])], right_entity_id:
+   EntityId[(draft_id: (Some[DraftId[Uuid[String]]] | None[Null]), entity_uuid:
+    EntityUuid[Uuid[String]], web_id:
+    WebId[ActorGroupEntityUuid[Uuid[String]]])])]]
+  | None[Null]), properties: ?)]»): _1«Boolean» ->
+    #let entity_uuid:0 = vertex:0.id.entity_id.entity_uuid in
+    #let user_id:0 = #ctor(fn(Uuid[String]) -> EntityUuid[Uuid[String]],
+    arguments: [])(#ctor(fn(String) -> Uuid[String],
+    arguments: [])("e2851dbb-7376-4959-9bca-f72cafc4448f")) in
+    (entity_uuid:0 == user_id:0)) |> ::core::graph::tail::collect
+
+════ Entity Filter ═════════════════════════════════════════════════════════════
+
+[
+    Equal(
+        Some(
+            Path {
+                path: Uuid,
+            },
+        ),
+        Some(
+            Parameter {
+                parameter: Text(
+                    "e2851dbb-7376-4959-9bca-f72cafc4448f",
+                ),
+                convert: None,
+            },
+        ),
+    ),
+]

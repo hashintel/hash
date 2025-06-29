@@ -17,20 +17,22 @@ graph TD
     6[hashql-core]
     class 6 root
     7[<a href="../hashql_diagnostics">hashql-diagnostics</a>]
-    8[<a href="../hashql_hir">hashql-hir</a>]
-    9[<a href="../hashql_syntax_jexpr">hashql-syntax-jexpr</a>]
-    10[<a href="../error_stack">error-stack</a>]
+    8[<a href="../hashql_eval">hashql-eval</a>]
+    9[<a href="../hashql_hir">hashql-hir</a>]
+    10[<a href="../hashql_syntax_jexpr">hashql-syntax-jexpr</a>]
+    11[<a href="../error_stack">error-stack</a>]
     0 -.-> 1
     0 --> 3
     3 -.-> 2
     3 --> 2
-    3 --> 10
+    3 --> 11
     4 -.-> 5
     5 --> 8
-    5 --> 9
+    5 --> 10
     6 --> 0
     6 --> 7
-    7 --> 10
-    8 -.-> 5
-    9 --> 4
-    9 --> 6
+    7 --> 11
+    8 --> 9
+    9 -.-> 5
+    10 --> 4
+    10 --> 6

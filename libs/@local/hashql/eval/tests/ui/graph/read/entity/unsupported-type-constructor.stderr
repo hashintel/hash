@@ -1,0 +1,35 @@
+[graph-read-compiler::type-constructor-unsupported] Error: Type constructors not supported as values
+    ╭─[ <unknown>:11:10 ]
+    │
+  8 │ ╭─▶       ["==",
+    ┆ ┆   
+ 11 │ │           "Some"
+    │ │            ──┬─  
+    │ │              ╰─── Cannot use constructor as value here
+    ┆ ┆   
+ 13 │ ├─▶       ]
+    │ │             
+    │ ╰───────────── ... within this filter expression
+    │     
+    │     Help: Constructor functions cannot currently be used as first-class values in filter expressions. You can still call constructors to create values (e.g., `SomeType(x)`), but you cannot use the constructor itself in comparisons or pass it as an argument within filter contexts.
+    │     
+    │     Note: This is a current limitation of the filter expression compiler. Constructors work as first-class values elsewhere in the language, and support for this in filter expressions is being tracked in https://linear.app/hash/issue/H-4913/hashql-implement-vm.
+────╯
+
+
+[graph-read-compiler::type-constructor-unsupported] Error: Type constructors not supported as values
+    ╭─[ <unknown>:9:10 ]
+    │
+  8 │ ╭─▶       ["==",
+  9 │ │           "Some",
+    │ │            ──┬─  
+    │ │              ╰─── Cannot use constructor as value here
+    ┆ ┆   
+ 13 │ ├─▶       ]
+    │ │             
+    │ ╰───────────── ... within this filter expression
+    │     
+    │     Help: Constructor functions cannot currently be used as first-class values in filter expressions. You can still call constructors to create values (e.g., `SomeType(x)`), but you cannot use the constructor itself in comparisons or pass it as an argument within filter contexts.
+    │     
+    │     Note: This is a current limitation of the filter expression compiler. Constructors work as first-class values elsewhere in the language, and support for this in filter expressions is being tracked in https://linear.app/hash/issue/H-4913/hashql-implement-vm.
+────╯

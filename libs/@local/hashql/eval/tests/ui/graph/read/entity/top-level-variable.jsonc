@@ -1,0 +1,13 @@
+//@ run: pass
+//@ description: Test variables at the top level of filter expressions
+// biome-ignore format: readability
+["::core::graph::tail::collect",
+  ["::core::graph::body::filter",
+    ["::core::graph::head::entities", ["::core::graph::tmp::decision_time_now"]],
+    ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
+      ["let", "foo", {"#literal": true},
+      "foo"
+      ]
+    ]
+  ]
+]

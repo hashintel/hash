@@ -1,0 +1,27 @@
+//@ run: fail
+//@ description: Nested graph read operations not supported in filter expressions
+// biome-ignore format: readability
+["let", "read",
+  ["::core::graph::tail::collect",
+    ["::core::graph::body::filter",
+      ["::core::graph::head::entities", ["::core::graph::tmp::decision_time_now"]],
+      ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
+        ["==",
+          "vertex.id.entity_id.entity_uuid",
+          "vertex.id.entity_id.entity_uuid"
+        ]
+      ]
+    ]],
+["::core::graph::tail::collect",
+  ["::core::graph::body::filter",
+    ["::core::graph::head::entities", ["::core::graph::tmp::decision_time_now"]],
+    ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
+      ["==",
+        "read",
+        //~^ ERROR Nested graph operation not supported here
+        "read"
+        //~^ ERROR Nested graph operation not supported here
+      ]
+    ]
+  ]
+]]

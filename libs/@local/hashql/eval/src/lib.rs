@@ -2,6 +2,19 @@
 //!
 //! ## Workspace dependencies
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
+#![feature(
+    // Library Features
+    coverage_attribute,
+    iterator_try_collect,
+    // Language Features
+    exhaustive_patterns,
+    if_let_guard,
+)]
+
+extern crate alloc;
+
+#[cfg(feature = "graph")]
+pub mod graph;
 
 #[cfg(test)]
 mod tests {

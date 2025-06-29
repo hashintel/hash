@@ -33,6 +33,26 @@ where
     fatal.map_or(Ok(()), Err)
 }
 
+#[track_caller]
+pub(crate) fn process_result<C, T, I>(
+    output: &mut Vec<SuiteDiagnostic>,
+    result: Result<T, I>,
+) -> Result<T, SuiteDiagnostic>
+where
+    I: IntoIterator<Item = Diagnostic<C, SpanId>>,
+    C: DiagnosticCategory + 'static,
+{
+    match result {
+        Ok(value) => Ok(value),
+        Err(diagnostics) => {
+            let diagnostic = process_diagnostics(output, diagnostics)
+                .expect_err("reported diagnostics should always be fatal");
+
+            Err(diagnostic)
+        }
+    }
+}
+
 pub(crate) struct Header(&'static str);
 
 impl Header {

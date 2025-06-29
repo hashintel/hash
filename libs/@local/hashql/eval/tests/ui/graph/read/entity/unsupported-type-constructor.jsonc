@@ -1,0 +1,16 @@
+//@ run: fail
+//@ description: Type constructors not supported as values in filter expressions
+// biome-ignore format: readability
+["::core::graph::tail::collect",
+  ["::core::graph::body::filter",
+    ["::core::graph::head::entities", ["::core::graph::tmp::decision_time_now"]],
+    ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
+      ["==",
+        "Some",
+        //~^ ERROR Cannot use constructor as value here
+        "Some"
+        //~^ ERROR Cannot use constructor as value here
+      ]
+    ]
+  ]
+]

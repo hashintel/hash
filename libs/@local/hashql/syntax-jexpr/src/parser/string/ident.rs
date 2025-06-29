@@ -57,7 +57,7 @@ fn is_symbol(char: char) -> bool {
     match char.as_ascii().map(|char| char as u8) {
         Some(
             b'!' | b'#' | b'$' | b'%' | b'&' | b'*' | b'+' | b'.' | b'/' | b'<' | b'=' | b'>'
-            | b'?' | b'@' | b'\\' | b'^' | b'|' | b'-' | b'~',
+            | b'?' | b'@' | b'\\' | b'^' | b'|' | b'-' | b'~' | b'[' | b']',
         ) => true,
         Some(_) => false,
         None => {
