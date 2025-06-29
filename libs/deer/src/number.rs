@@ -131,17 +131,19 @@ impl FromPrimitive for Number {
         // difference between 8 bytes vs 16 bytes per number might be significant.
 
         if let Ok(n) = u64::try_from(n) {
-            Some(Self::pos(n))
+            return Some(Self::pos(n));
         } else if let Ok(n) = u64::try_from(n.unsigned_abs()) {
             // we do not need to check if the value already is negative, because the previous if
             // statement covers the complete range of `u64`, therefore only negative values or
             // values greater than `u64::MAX` are left, this means that if we `abs` all values the
             // values left in the range of `u64` are negative and therefore we're able to
             // ensure that the `try_from` will only cover negative values
-            Some(Self::neg(n))
+            return Some(Self::neg(n));
         } else {
-            None
+            // The value is too large to fit into any of the supported integer types
         }
+
+        None
     }
 
     #[cfg(feature = "arbitrary-precision")]
