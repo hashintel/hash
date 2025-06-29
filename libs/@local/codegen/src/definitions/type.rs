@@ -61,7 +61,9 @@ impl Type {
             specta::DataType::Map(map_type) => {
                 Self::Map(Map::from_specta(map_type, type_collection))
             }
-            data_type => todo!("Unsupported data type {data_type:?}"),
+            data_type @ (specta::DataType::Literal(_) | specta::DataType::Generic(_)) => {
+                todo!("Unsupported data type {data_type:?}")
+            }
         }
     }
 }

@@ -209,7 +209,15 @@ fn parse_dict<'heap>(
     let is_object = match token.kind.syntax() {
         SyntaxKind::LBrace => true,
         SyntaxKind::LBracket => false,
-        kind => {
+        kind @ (SyntaxKind::String
+        | SyntaxKind::Number
+        | SyntaxKind::True
+        | SyntaxKind::False
+        | SyntaxKind::Null
+        | SyntaxKind::Comma
+        | SyntaxKind::Colon
+        | SyntaxKind::RBrace
+        | SyntaxKind::RBracket) => {
             let span = state.insert_range(token.span);
 
             return Err(dict_expected_format(span, kind)).change_category(From::from)?;

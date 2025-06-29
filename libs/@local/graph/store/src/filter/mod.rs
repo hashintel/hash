@@ -775,6 +775,10 @@ impl<R: QueryRecord> FilterExpression<'_, R> {
 
 #[cfg(test)]
 mod tests {
+    #![expect(
+        clippy::wildcard_enum_match_arm,
+        reason = "It's fine to error on unused arms in tests"
+    )]
 
     use hash_graph_types::ontology::DataTypeLookup;
     use serde_json::json;
@@ -1507,7 +1511,9 @@ mod tests {
                     );
                     assert!(has_web_in, "should contain web ID IN clause optimization");
                 }
-                other => panic!("should create Any filter with both IN clauses, got: {other:?}"),
+                other => {
+                    panic!("should create Any filter with both IN clauses, got: {other:?}")
+                }
             }
         }
 

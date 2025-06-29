@@ -23,7 +23,18 @@ fn scan_object(deserializer: &Deserializer, stop: &Token) -> usize {
             Token::ArrayEnd => arrays = arrays.saturating_sub(1),
             Token::Object { .. } => objects += 1,
             Token::ObjectEnd => objects = objects.saturating_sub(1),
-            _ => {}
+            Token::Bool(_)
+            | Token::Number(_)
+            | Token::U128(_)
+            | Token::I128(_)
+            | Token::Char(_)
+            | Token::Str(_)
+            | Token::BorrowedStr(_)
+            | Token::String(_)
+            | Token::Bytes(_)
+            | Token::BorrowedBytes(_)
+            | Token::BytesBuf(_)
+            | Token::Null => {}
         }
 
         n += 1;
@@ -36,7 +47,20 @@ pub(crate) fn skip_tokens(deserializer: &mut Deserializer, start: &Token) {
     let n = match start {
         Token::Array { .. } => scan_object(&*deserializer, &Token::ArrayEnd),
         Token::Object { .. } => scan_object(&*deserializer, &Token::ObjectEnd),
-        _ => 0,
+        Token::Bool(_)
+        | Token::Number(_)
+        | Token::U128(_)
+        | Token::I128(_)
+        | Token::Char(_)
+        | Token::Str(_)
+        | Token::BorrowedStr(_)
+        | Token::String(_)
+        | Token::Bytes(_)
+        | Token::BorrowedBytes(_)
+        | Token::BytesBuf(_)
+        | Token::ArrayEnd
+        | Token::ObjectEnd
+        | Token::Null => 0,
     };
 
     if n > 0 {

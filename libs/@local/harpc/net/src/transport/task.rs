@@ -327,7 +327,22 @@ impl TransportTask {
             SwarmEvent::Behaviour(TransportBehaviourEvent::Ping(event)) => {
                 self.metrics.record(event);
             }
-            event => self.metrics.record(event),
+            event @ (SwarmEvent::Behaviour(_)
+            | SwarmEvent::ConnectionEstablished { .. }
+            | SwarmEvent::ConnectionClosed { .. }
+            | SwarmEvent::IncomingConnection { .. }
+            | SwarmEvent::IncomingConnectionError { .. }
+            | SwarmEvent::OutgoingConnectionError { .. }
+            | SwarmEvent::NewListenAddr { .. }
+            | SwarmEvent::ExpiredListenAddr { .. }
+            | SwarmEvent::ListenerClosed { .. }
+            | SwarmEvent::ListenerError { .. }
+            | SwarmEvent::Dialing { .. }
+            | SwarmEvent::NewExternalAddrCandidate { .. }
+            | SwarmEvent::ExternalAddrConfirmed { .. }
+            | SwarmEvent::ExternalAddrExpired { .. }
+            | SwarmEvent::NewExternalAddrOfPeer { .. }
+            | _) => self.metrics.record(event),
         }
 
         match event {
@@ -347,7 +362,19 @@ impl TransportTask {
             } => {
                 self.handle_outgoing_connection_error(connection_id, peer_id, error);
             }
-            _ => {}
+            SwarmEvent::Behaviour(_)
+            | SwarmEvent::ConnectionEstablished { .. }
+            | SwarmEvent::ConnectionClosed { .. }
+            | SwarmEvent::IncomingConnection { .. }
+            | SwarmEvent::IncomingConnectionError { .. }
+            | SwarmEvent::ExpiredListenAddr { .. }
+            | SwarmEvent::ListenerClosed { .. }
+            | SwarmEvent::ListenerError { .. }
+            | SwarmEvent::Dialing { .. }
+            | SwarmEvent::NewExternalAddrCandidate { .. }
+            | SwarmEvent::ExternalAddrConfirmed { .. }
+            | SwarmEvent::ExternalAddrExpired { .. }
+            | _ => {}
         }
     }
 

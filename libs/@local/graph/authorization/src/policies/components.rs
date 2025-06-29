@@ -648,7 +648,9 @@ mod tests {
             ResourceConstraint::Entity(EntityResourceConstraint::Exact { id }) => {
                 assert_eq!(*id, entity_uuid);
             }
-            _ => panic!("should create exact entity constraint"),
+            ResourceConstraint::Web { .. }
+            | ResourceConstraint::Entity(_)
+            | ResourceConstraint::EntityType(_) => panic!("should create exact entity constraint"),
         }
     }
 }
