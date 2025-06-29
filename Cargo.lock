@@ -222,15 +222,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e16d2d3311acee920a9eb8d33b8cbc1787ce4a264e85f964c2404b969bdcd487"
 
 [[package]]
-name = "approx"
-version = "0.5.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "cab112f0a86d568ea0e627cc1d6be74a1e9cd55214684db5561995f6dad897c6"
-dependencies = [
- "num-traits",
-]
-
-[[package]]
 name = "arbitrary"
 version = "1.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2086,53 +2077,6 @@ dependencies = [
  "serde",
  "uuid",
 ]
-
-[[package]]
-name = "deer"
-version = "0.0.0-reserved"
-dependencies = [
- "approx",
- "deer-desert",
- "erased-serde",
- "error-stack",
- "num-traits",
- "paste",
- "proptest",
- "rustc_version",
- "seq-macro",
- "serde",
- "serde_json",
- "similar-asserts",
-]
-
-[[package]]
-name = "deer-desert"
-version = "0.0.0"
-dependencies = [
- "bitvec",
- "deer",
- "error-stack",
- "num-traits",
- "serde",
- "serde_json",
- "similar-asserts",
-]
-
-[[package]]
-name = "deer-json"
-version = "0.0.0-reserved"
-dependencies = [
- "deer",
- "error-stack",
- "justjson",
- "lexical",
- "memchr",
- "rustc_version",
-]
-
-[[package]]
-name = "deer-macros"
-version = "0.0.0-reserved"
 
 [[package]]
 name = "der"
@@ -8504,7 +8448,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b5b441962c817e33508847a22bd82f03a30cff43642dc2fae8b050566121eb9a"
 dependencies = [
  "console",
- "serde",
  "similar",
 ]
 
