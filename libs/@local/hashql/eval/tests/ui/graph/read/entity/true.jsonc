@@ -1,0 +1,11 @@
+//@ run: pass
+//@ description: Read entity by UUID using scalar property filter
+// biome-ignore format: readability
+["::core::graph::tail::collect",
+  ["::core::graph::body::filter",
+    ["::core::graph::head::entities", ["::core::graph::tmp::decision_time_now"]],
+    ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
+      {"#literal": true}
+    ]
+  ]
+]
