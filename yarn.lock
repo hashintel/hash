@@ -336,11 +336,11 @@ __metadata:
   resolution: "@apps/hash-api@workspace:apps/hash-api"
   dependencies:
     "@apps/hash-graph": "npm:0.0.0-private"
-    "@aws-sdk/client-s3": "npm:3.835.0"
+    "@aws-sdk/client-s3": "npm:3.837.0"
     "@aws-sdk/client-ses": "npm:3.835.0"
     "@aws-sdk/credential-provider-node": "npm:3.835.0"
-    "@aws-sdk/s3-presigned-post": "npm:3.835.0"
-    "@aws-sdk/s3-request-presigner": "npm:3.835.0"
+    "@aws-sdk/s3-presigned-post": "npm:3.837.0"
+    "@aws-sdk/s3-request-presigner": "npm:3.837.0"
     "@blockprotocol/core": "patch:@blockprotocol/core@npm%3A0.1.3#~/.yarn/patches/@blockprotocol-core-npm-0.1.3-7c4f062e15.patch"
     "@blockprotocol/graph": "npm:0.4.0-canary.0"
     "@blockprotocol/type-system": "npm:0.1.2-canary.0"
@@ -1218,9 +1218,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@aws-sdk/client-s3@npm:3.835.0":
-  version: 3.835.0
-  resolution: "@aws-sdk/client-s3@npm:3.835.0"
+"@aws-sdk/client-s3@npm:3.837.0":
+  version: 3.837.0
+  resolution: "@aws-sdk/client-s3@npm:3.837.0"
   dependencies:
     "@aws-crypto/sha1-browser": "npm:5.2.0"
     "@aws-crypto/sha256-browser": "npm:5.2.0"
@@ -1280,7 +1280,7 @@ __metadata:
     "@types/uuid": "npm:^9.0.1"
     tslib: "npm:^2.6.2"
     uuid: "npm:^9.0.1"
-  checksum: 10c0/ab4659d5699e2d6352cd77e782ff46ecc8b4c9553066cecb6cf8756674ae19ba4075a41430431f6e206cc4102c42508804fc0f9457a511b295544fcff87617d2
+  checksum: 10c0/b6e851da52364e4dcdd4d7600a830cdc175f707a8c0bd5ea585a7e28e71258176d56cdea2344ad3d0f80c6c03d6f88f0b1ae5b1630c338aedfea5b1b8189fc7f
   languageName: node
   linkType: hard
 
@@ -2163,11 +2163,11 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@aws-sdk/s3-presigned-post@npm:3.835.0":
-  version: 3.835.0
-  resolution: "@aws-sdk/s3-presigned-post@npm:3.835.0"
+"@aws-sdk/s3-presigned-post@npm:3.837.0":
+  version: 3.837.0
+  resolution: "@aws-sdk/s3-presigned-post@npm:3.837.0"
   dependencies:
-    "@aws-sdk/client-s3": "npm:3.835.0"
+    "@aws-sdk/client-s3": "npm:3.837.0"
     "@aws-sdk/types": "npm:3.821.0"
     "@aws-sdk/util-format-url": "npm:3.821.0"
     "@smithy/middleware-endpoint": "npm:^4.1.12"
@@ -2176,13 +2176,13 @@ __metadata:
     "@smithy/util-hex-encoding": "npm:^4.0.0"
     "@smithy/util-utf8": "npm:^4.0.0"
     tslib: "npm:^2.6.2"
-  checksum: 10c0/6c9b8e51f5b075fa56405f54d2bf867fbfd08748bf133b1ae73497f69a7bf5b28ceeb241adc983b67d4020253359db5fdfa33a033901f35f35651d2dba07256f
+  checksum: 10c0/81b182e0f4821d6626a4ccac0cf288239fff52d10fb395b01dc68e43ba510959e295212a9689ae5f6723d9a2691a3e5343326e8e22b78b11182c0d753a35b4fa
   languageName: node
   linkType: hard
 
-"@aws-sdk/s3-request-presigner@npm:3.835.0":
-  version: 3.835.0
-  resolution: "@aws-sdk/s3-request-presigner@npm:3.835.0"
+"@aws-sdk/s3-request-presigner@npm:3.837.0":
+  version: 3.837.0
+  resolution: "@aws-sdk/s3-request-presigner@npm:3.837.0"
   dependencies:
     "@aws-sdk/signature-v4-multi-region": "npm:3.835.0"
     "@aws-sdk/types": "npm:3.821.0"
@@ -2192,7 +2192,7 @@ __metadata:
     "@smithy/smithy-client": "npm:^4.4.4"
     "@smithy/types": "npm:^4.3.1"
     tslib: "npm:^2.6.2"
-  checksum: 10c0/4692e784a2cdaf9bdadd3675afd64bbbb435607cc1babc6b44e5b6f7d6e914c71dd9332bafa76536fe394978440c1b476c49a9a5112859e3b8e4f09f31ab9e86
+  checksum: 10c0/f5c55607f6d8168c599280f3bd92d521c58cec6ed84bdb0eb86023e56983e599b9c42a0740a40e17e46b71aac34c0deb92e89ff0c8eb11fed6c4c0f3fa8ccb54
   languageName: node
   linkType: hard
 
@@ -8888,9 +8888,9 @@ __metadata:
   resolution: "@local/hash-backend-utils@workspace:libs/@local/hash-backend-utils"
   dependencies:
     "@aws-crypto/sha256-js": "npm:5.2.0"
-    "@aws-sdk/client-s3": "npm:3.835.0"
+    "@aws-sdk/client-s3": "npm:3.837.0"
     "@aws-sdk/credential-provider-node": "npm:3.835.0"
-    "@aws-sdk/s3-request-presigner": "npm:3.835.0"
+    "@aws-sdk/s3-request-presigner": "npm:3.837.0"
     "@blockprotocol/core": "patch:@blockprotocol/core@npm%3A0.1.3#~/.yarn/patches/@blockprotocol-core-npm-0.1.3-7c4f062e15.patch"
     "@blockprotocol/graph": "npm:0.4.0-canary.0"
     "@blockprotocol/type-system": "npm:0.1.2-canary.0"
