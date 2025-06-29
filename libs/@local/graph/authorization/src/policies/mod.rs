@@ -275,7 +275,7 @@ impl Policy {
     ///
     /// # Errors
     ///
-    /// - [`InvalidPolicy::InvalidSyntax`] if the Cedar policy is invalid.
+    /// - [`InvalidPolicy::Syntax`] if the Cedar policy is invalid.
     /// - [`InvalidPolicy`] if the Cedar policy cannot be converted to a [`Policy`].
     pub fn parse_cedar_policy(
         text: &str,
@@ -299,7 +299,7 @@ impl Policy {
     ///
     /// # Errors
     ///
-    /// - [`InvalidPolicy::InvalidSyntax`] if the Cedar policy is invalid.
+    /// - [`InvalidPolicy::Syntax`] if the Cedar policy is invalid.
     /// - [`InvalidPolicy`] if the Cedar policy cannot be converted to a [`Policy`].
     pub fn parse_cedar_policies(text: &str) -> Result<Vec<Self>, Report<InvalidPolicy>> {
         text.split_inclusive(';')

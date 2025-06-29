@@ -362,11 +362,10 @@ impl PropertyValues {
     /// Collects all [`DataTypeReference`]s that are directly or indirectly referenced by this
     /// property value structure. The collection method depends on the variant:
     ///
-    /// - For [`PropertyValues::DataTypeReference`], returns the single reference
-    /// - For [`PropertyValues::ArrayOfPropertyValues`], recursively collects references from all
-    ///   possibilities
-    /// - For [`PropertyValues::PropertyTypeObject`], returns an empty collection (objects only
-    ///   reference property types)
+    /// - For [`PropertyValues::Value`], returns the single reference
+    /// - For [`PropertyValues::Array`], recursively collects references from all possibilities
+    /// - For [`PropertyValues::Object`], returns an empty collection (objects only reference
+    ///   property types)
     #[must_use]
     fn data_type_references(&self) -> Vec<&DataTypeReference> {
         match self {
@@ -386,11 +385,10 @@ impl PropertyValues {
     /// Collects all [`PropertyTypeReference`]s that are directly or indirectly referenced by this
     /// property value structure. The collection method depends on the variant:
     ///
-    /// - For [`PropertyValues::DataTypeReference`], returns an empty collection (data types don't
-    ///   reference property types)
-    /// - For [`PropertyValues::ArrayOfPropertyValues`], recursively collects references from all
-    ///   possibilities
-    /// - For [`PropertyValues::PropertyTypeObject`], collects references from all object properties
+    /// - For [`PropertyValues::Value`], returns an empty collection (data types don't reference
+    ///   property types)
+    /// - For [`PropertyValues::Array`], recursively collects references from all possibilities
+    /// - For [`PropertyValues::Object`], collects references from all object properties
     #[must_use]
     fn property_type_references(&self) -> Vec<&PropertyTypeReference> {
         match self {

@@ -74,10 +74,6 @@ impl fmt::Display for ParameterType {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-#[expect(
-    clippy::enum_variant_names,
-    reason = "Just happened that all variants share the same suffix"
-)]
 pub enum ParameterList<'p> {
     DataTypeIds(&'p [DataTypeUuid]),
     PropertyTypeIds(&'p [PropertyTypeUuid]),
