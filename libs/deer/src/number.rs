@@ -130,20 +130,19 @@ impl FromPrimitive for Number {
         // feature. This library should also be able to be used in no-std environments, where the
         // difference between 8 bytes vs 16 bytes per number might be significant.
 
+        #[expect(clippy::option_if_let_else, reason = "would be harder to read")]
         if let Ok(n) = u64::try_from(n) {
-            return Some(Self::pos(n));
+            Some(Self::pos(n))
         } else if let Ok(n) = u64::try_from(n.unsigned_abs()) {
             // we do not need to check if the value already is negative, because the previous if
             // statement covers the complete range of `u64`, therefore only negative values or
             // values greater than `u64::MAX` are left, this means that if we `abs` all values the
             // values left in the range of `u64` are negative and therefore we're able to
             // ensure that the `try_from` will only cover negative values
-            return Some(Self::neg(n));
+            Some(Self::neg(n))
         } else {
-            // The value is too large to fit into any of the supported integer types
+            None
         }
-
-        None
     }
 
     #[cfg(feature = "arbitrary-precision")]
