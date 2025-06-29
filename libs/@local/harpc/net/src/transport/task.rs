@@ -217,9 +217,17 @@ impl TransportTask {
         match self.swarm.listen_on(address) {
             Ok(id) => {
                 if let Some(addresses) = self.listeners.get(&id) {
-                    let address = addresses[0].clone();
-
-                    Self::send_ipc_response(tx, Ok(address));
+                    match addresses.as_slice() {
+                        [] => {
+                            unreachable!(
+                                "we just listened on the address, so we should have at least one \
+                                 address"
+                            );
+                        }
+                        [address, ..] => {
+                            Self::send_ipc_response(tx, Ok(address.clone()));
+                        }
+                    }
                 } else {
                     let entry = self.listeners_waiting.entry(id);
 

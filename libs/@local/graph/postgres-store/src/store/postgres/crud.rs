@@ -188,12 +188,10 @@ where
             .await
             .change_context(QueryError)?;
 
-        match rows.len() {
-            1 => Ok(R::decode(&rows[0], &record_indices)),
-            len => {
-                Err(Report::new(QueryError)
-                    .attach_printable(format!("Expected 1 result, got {len}")))
-            }
+        match rows.as_slice() {
+            [row] => Ok(R::decode(row, &record_indices)),
+            rows => Err(Report::new(QueryError)
+                .attach_printable(format!("Expected 1 result, got {}", rows.len()))),
         }
     }
 }

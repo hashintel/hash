@@ -187,7 +187,9 @@ impl Document {
     // new() ensures that an item of reference always exists
     #[must_use]
     pub fn schema(&self) -> &Schema {
-        &self.schemas[&self.id]
+        self.schemas.get(&self.id).unwrap_or_else(|| {
+            unreachable!("`new()` should have created a schema for the main schema")
+        })
     }
 
     #[must_use]

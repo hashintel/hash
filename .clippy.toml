@@ -1,4 +1,5 @@
 allow-expect-in-tests              = true
+allow-indexing-slicing-in-tests    = true
 allow-print-in-tests               = true
 allow-renamed-params-for           = ["core::fmt::Debug", "core::fmt::Display", "core::fmt::LowerHex", "core::fmt::UpperHex", "core::fmt::Pointer", "futures_sink::Sink", "serde::de::Visitor", ".."]
 avoid-breaking-exported-api        = false

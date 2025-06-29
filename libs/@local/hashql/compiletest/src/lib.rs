@@ -1,5 +1,6 @@
 //! ## Workspace dependencies
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
+#![expect(clippy::indexing_slicing)]
 #![feature(
     // Library Features
     assert_matches,
@@ -9,10 +10,12 @@
     lock_value_accessors,
     panic_payload_as_str,
     pattern,
+
     // Language Features
     decl_macro,
     if_let_guard,
 )]
+
 extern crate alloc;
 
 use core::sync::atomic::{AtomicBool, Ordering};

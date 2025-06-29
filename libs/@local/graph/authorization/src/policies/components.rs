@@ -127,8 +127,7 @@ impl PolicyComponents {
         let mut web_ids_set = HashSet::new();
 
         let mut i = 0;
-        while i < self.policies.len() {
-            let policy = &mut self.policies[i];
+        while let Some(policy) = self.policies.get_mut(i) {
             if !policy.actions.contains(&action) {
                 i += 1;
                 continue;

@@ -20,9 +20,9 @@ pub struct AnyOfConstraints {
 
 impl From<AnyOfConstraints> for ValueConstraints {
     fn from(mut constraints: AnyOfConstraints) -> Self {
-        if constraints.any_of.len() == 1
-            && constraints.any_of[0].description.is_none()
-            && constraints.any_of[0].label.is_empty()
+        if let [any_of] = constraints.any_of.as_slice()
+            && any_of.description.is_none()
+            && any_of.label.is_empty()
         {
             Self::Typed(Box::new(constraints.any_of.remove(0).constraints))
         } else {

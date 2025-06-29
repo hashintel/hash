@@ -233,9 +233,15 @@ pub(crate) async fn seed_db<A: AuthorizationApi>(
         let uuids = transaction
             .create_entities(
                 account_id,
-                entity_uuids[*left_entity_index]
+                entity_uuids
+                    .get(*left_entity_index)
+                    .unwrap_or_else(|| {
+                        panic!("left entity index `{left_entity_index}` out of bounds")
+                    })
                     .iter()
-                    .zip(&entity_uuids[*right_entity_index])
+                    .zip(entity_uuids.get(*right_entity_index).unwrap_or_else(|| {
+                        panic!("right entity index `{right_entity_index}` out of bounds")
+                    }))
                     .map(|(left_entity, right_entity)| CreateEntityParams {
                         web_id: WebId::new(account_id),
                         entity_uuid: None,

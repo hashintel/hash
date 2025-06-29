@@ -24,7 +24,7 @@ pub(crate) mod color_option {
 }
 
 pub(crate) mod color {
-    #![expect(clippy::trivially_copy_pass_by_ref)]
+    #![expect(clippy::trivially_copy_pass_by_ref, clippy::indexing_slicing)]
     use core::fmt;
 
     use anstyle::{Color, RgbColor};

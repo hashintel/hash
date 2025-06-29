@@ -152,10 +152,12 @@ pub mod pdf_segmentation {
         config: &'a PdfRenderConfig,
     ) -> Result<PdfBitmap<'a>, Report<ChonkyError>> {
         // read the first page to get page dimesnions
-        let page_dimensions = pdf
+        let page_dimensions = *pdf
             .pages()
             .page_sizes()
-            .change_context(ChonkyError::Pdfium)?[0];
+            .change_context(ChonkyError::Pdfium)?
+            .first()
+            .ok_or(ChonkyError::Pdfium)?;
 
         let page = pdf.pages().get(0).change_context(ChonkyError::Pdfium)?;
 
