@@ -59,6 +59,7 @@ pub struct JoinExpression {
 }
 
 impl JoinExpression {
+    #[must_use]
     pub fn from_foreign_key(
         foreign_key_reference: ForeignKeyReference,
         on_alias: Alias,

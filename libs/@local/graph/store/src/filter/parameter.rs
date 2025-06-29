@@ -7,13 +7,17 @@ use hash_graph_temporal_versioning::Timestamp;
 use hash_graph_types::Embedding;
 use serde::Deserialize;
 use type_system::{
-    knowledge::{PropertyValue, entity::id::EntityEditionId},
+    knowledge::{
+        PropertyValue,
+        entity::id::{EntityEditionId, EntityUuid},
+    },
     ontology::{
         data_type::DataTypeUuid,
         entity_type::EntityTypeUuid,
         id::{OntologyTypeVersion, VersionedUrl},
         property_type::PropertyTypeUuid,
     },
+    principal::actor_group::WebId,
 };
 use uuid::Uuid;
 
@@ -75,6 +79,8 @@ pub enum ParameterList<'p> {
     PropertyTypeIds(&'p [PropertyTypeUuid]),
     EntityTypeIds(&'p [EntityTypeUuid]),
     EntityEditionIds(&'p [EntityEditionId]),
+    EntityUuids(&'p [EntityUuid]),
+    WebIds(&'p [WebId]),
 }
 
 impl Parameter<'_> {
@@ -278,7 +284,7 @@ impl Parameter<'_> {
                                     expected: expected.clone(),
                                 });
                             };
-                            Ok(number.to_f32())
+                            Ok(number.to_f32_lossy())
                         })
                         .collect::<Result<_, _>>()?,
                 );

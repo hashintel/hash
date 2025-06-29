@@ -6,6 +6,7 @@
 #![feature(
     // Library Features
     allocator_api,
+    array_windows,
     assert_matches,
     binary_heap_into_iter_sorted,
     cold_path,
@@ -13,11 +14,13 @@
     default_field_values,
     iter_map_windows,
     slice_partition_dedup,
+    slice_swap_unchecked,
     variant_count,
 
     // Language Features
     arbitrary_self_types,
     associated_type_defaults,
+    if_let_guard,
     impl_trait_in_assoc_type,
     macro_metavar_expr,
     macro_metavar_expr_concat,
@@ -39,3 +42,4 @@ pub mod similarity;
 pub mod span;
 pub mod symbol;
 pub mod r#type;
+pub mod value;

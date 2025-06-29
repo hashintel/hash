@@ -17,8 +17,8 @@ use crate::store::{
 };
 
 pub struct QueryIndices<R: QueryRecordDecode, S: QueryRecordDecode> {
-    record_indices: R::Indices,
-    cursor_indices: S::Indices,
+    pub record_indices: R::Indices,
+    pub cursor_indices: S::Indices,
 }
 
 pub trait QueryRecordDecode {

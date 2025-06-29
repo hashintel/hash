@@ -86,7 +86,7 @@ where
                     .authorization_api
                     .check_property_types_permission(
                         policy_components
-                            .actor_id
+                            .actor_id()
                             .map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from),
                         PropertyTypePermission::View,
                         ids.iter().copied(),

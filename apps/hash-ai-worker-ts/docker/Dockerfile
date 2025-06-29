@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1
+
 FROM debian:12.10-slim AS mise
 
 SHELL ["/bin/bash", "-euo", "pipefail", "-c"]
@@ -9,7 +11,8 @@ ENV PATH="/mise/shims:$PATH"
 
 COPY .config/mise /etc/mise
 
-RUN apt-get update && \
+RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
+    apt-get update && \
     apt-get install -y --no-install-recommends curl ca-certificates && \
     curl https://mise.run | sh && \
     apt-get clean && \
@@ -22,8 +25,8 @@ FROM mise AS base
 
 WORKDIR /app
 
-RUN mise install npm:turbo && \
-    mise install yq
+RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
+    mise install npm:turbo yq
 
 COPY . .
 # `turbo prune` does not include Cargo workspaces, so we create dummy projects for each workspace member
@@ -45,7 +48,8 @@ ENV MISE_CARGO_HOME="/usr/local/cargo" \
     PATH="$PATH:/usr/local/cargo/bin"
 
 COPY rust-toolchain.toml .
-RUN mise install yq && \
+RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
+    mise install yq && \
     echo "Installing Rust toolchain: $(yq '.toolchain.channel' rust-toolchain.toml)" && \
     mise use --global rust[profile=minimal]@$(yq '.toolchain.channel' rust-toolchain.toml) && \
     echo "Rust installation completed. Checking versions:" && \
@@ -64,7 +68,8 @@ COPY --from=base /app/out/yarn.lock ./yarn.lock
 COPY --from=base /app/out/full/.yarn .yarn
 COPY --from=base /app/out/full/turbo.json turbo.json
 
-RUN apt-get update && \
+RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN \
+    apt-get update && \
     apt-get install -y --no-install-recommends build-essential && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/* && \
@@ -91,7 +96,7 @@ ENV GOOGLE_CLOUD_WORKLOAD_IDENTITY_FEDERATION_CONFIG_JSON=${GOOGLE_CLOUD_WORKLOA
 
 # Set a writable Corepack cache directory
 ENV COREPACK_HOME=/usr/local/src/var/corepack-cache
-RUN mise install node && \
+RUN GITHUB_TOKEN="" mise install node && \
     groupadd --system --gid 60000 hash && \
     useradd --system tsworker -G hash && \
     install -d -m 0775 -o tsworker -g hash /log /home/tsworker officeParserTemp/tempfiles $COREPACK_HOME && \

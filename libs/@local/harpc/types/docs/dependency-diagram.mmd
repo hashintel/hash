@@ -30,9 +30,14 @@ graph TD
     19[harpc-types]
     class 19 root
     20[<a href="../harpc_wire_protocol">harpc-wire-protocol</a>]
-    21[<a href="../hash_temporal_client">hash-temporal-client</a>]
-    22[<a href="../hash_graph_benches">hash-graph-benches</a>]
-    23[<a href="../hash_graph_integration">hash-graph-integration</a>]
+    21[<a href="../hashql_ast">hashql-ast</a>]
+    22[<a href="../hashql_compiletest">hashql-compiletest</a>]
+    23[<a href="../hashql_core">hashql-core</a>]
+    24[<a href="../hashql_hir">hashql-hir</a>]
+    25[<a href="../hashql_syntax_jexpr">hashql-syntax-jexpr</a>]
+    26[<a href="../hash_temporal_client">hash-temporal-client</a>]
+    27[<a href="../hash_graph_benches">hash-graph-benches</a>]
+    28[<a href="../hash_graph_integration">hash-graph-integration</a>]
     0 --> 9
     1 --> 8
     2 --> 20
@@ -45,7 +50,7 @@ graph TD
     6 --> 12
     7 --> 4
     7 --> 11
-    7 --> 21
+    7 --> 26
     8 --> 2
     9 --> 3
     10 --> 7
@@ -63,6 +68,13 @@ graph TD
     18 --> 15
     20 -.-> 19
     20 --> 19
-    21 --> 1
-    22 -.-> 3
-    23 -.-> 6
+    21 -.-> 22
+    22 --> 24
+    22 --> 25
+    23 --> 2
+    24 -.-> 22
+    25 --> 21
+    25 --> 23
+    26 --> 1
+    27 -.-> 3
+    28 -.-> 6

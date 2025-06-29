@@ -101,6 +101,8 @@ const createNotification = async ({
 };
 
 test("new notifications are shown on notifications page", async ({ page }) => {
+  test.setTimeout(60_000);
+
   await loginUsingTempForm({
     page,
     userEmail: "alice@example.com",

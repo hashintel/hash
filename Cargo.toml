@@ -95,6 +95,7 @@ hashql-ast.path                     = "libs/@local/hashql/ast"
 hashql-compiletest.path             = "libs/@local/hashql/compiletest"
 hashql-core.path                    = "libs/@local/hashql/core"
 hashql-diagnostics.path             = "libs/@local/hashql/diagnostics"
+hashql-eval.path                    = "libs/@local/hashql/eval"
 hashql-hir.path                     = "libs/@local/hashql/hir"
 hashql-syntax-jexpr.path            = "libs/@local/hashql/syntax-jexpr"
 type-system.path                    = "libs/@blockprotocol/type-system/rust"
@@ -225,6 +226,7 @@ refinery                       = { version = "=0.8.16", default-features = false
 regex                          = { version = "=1.11.1", default-features = false, features = ["perf", "unicode"] }
 reqwest                        = { version = "=0.12.20", default-features = false, features = ["rustls-tls"] }
 roaring                        = { version = "=0.11.0", default-features = false }
+rpds                           = { version = "=1.1.1", default-features = false }
 rstest                         = { version = "=0.25.0", default-features = false }
 rustc_version                  = { version = "=0.4.1", default-features = false }
 scc                            = { version = "=2.3.4", default-features = false }
