@@ -36,13 +36,13 @@ export const createNotificationEntityPermissions = ({
         subjectId: machineActorId,
       },
     },
-    {
-      relation: "setting",
-      subject: {
-        kind: "setting",
-        subjectId: "viewFromWeb",
-      },
-    },
+    // {
+    //   relation: "setting",
+    //   subject: {
+    //     kind: "setting",
+    //     subjectId: "viewFromWeb",
+    //   },
+    // },
   ],
   notificationEntityRelationships: [
     {
@@ -59,13 +59,13 @@ export const createNotificationEntityPermissions = ({
         subjectId: "updateFromWeb",
       },
     },
-    {
-      relation: "setting",
-      subject: {
-        kind: "setting",
-        subjectId: "viewFromWeb",
-      },
-    },
+    // {
+    //   relation: "setting",
+    //   subject: {
+    //     kind: "setting",
+    //     subjectId: "viewFromWeb",
+    //   },
+    // },
   ],
 });
 

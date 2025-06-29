@@ -67,6 +67,10 @@ const createLinearHashEntityAuthRelationships = ({
         subjectId: machineActorId,
       },
     },
+    // {
+    //   relation: "setting",
+    //   subject: { kind: "setting", subjectId: "viewFromWeb" },
+    // },
     /**
      * @todo H-4778 make entities editable by web members once sync back to Linear is restored
      */
@@ -81,10 +85,6 @@ const createLinearHashEntityAuthRelationships = ({
     //   relation: "setting",
     //   subject: { kind: "setting", subjectId: "updateFromWeb" },
     // },
-    {
-      relation: "setting",
-      subject: { kind: "setting", subjectId: "viewFromWeb" },
-    },
   ] as const satisfies EntityRelationAndSubject[];
 
 const createHashEntity = async (params: {

@@ -379,13 +379,13 @@ export const linkIntegrationToWeb: ImpureGraphFunction<
           subjectId: "administratorFromWeb",
         },
       },
-      {
-        relation: "setting",
-        subject: {
-          kind: "setting",
-          subjectId: "viewFromWeb",
-        },
-      },
+      // {
+      //   relation: "setting",
+      //   subject: {
+      //     kind: "setting",
+      //     subjectId: "viewFromWeb",
+      //   },
+      // },
     ];
 
     const linearIntegrationWebId = extractWebIdFromEntityId(
