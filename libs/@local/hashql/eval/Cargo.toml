@@ -1,0 +1,20 @@
+[package]
+name              = "hashql-eval"
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+version.workspace = true
+
+[dependencies]
+# Public workspace dependencies
+
+# Public third-party dependencies
+
+# Private workspace dependencies
+
+# Private third-party dependencies
+simple-mermaid = { workspace = true }
+
+[lints]
+workspace = true

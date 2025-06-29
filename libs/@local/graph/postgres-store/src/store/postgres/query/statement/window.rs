@@ -8,6 +8,7 @@ pub struct WindowStatement {
 }
 
 impl WindowStatement {
+    #[must_use]
     pub fn partition_by(expression: Expression) -> Self {
         Self {
             partition: vec![expression],

@@ -313,6 +313,7 @@ where
         self.store.query_policies(authenticated_actor, filter).await
     }
 
+    #[tracing::instrument(level = "debug", skip(self))]
     async fn resolve_policies_for_actor(
         &self,
         authenticated_actor: AuthenticatedActor,

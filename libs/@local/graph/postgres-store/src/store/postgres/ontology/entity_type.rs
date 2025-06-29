@@ -104,7 +104,7 @@ where
                     .authorization_api
                     .check_entity_types_permission(
                         policy_components
-                            .actor_id
+                            .actor_id()
                             .map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from),
                         EntityTypePermission::View,
                         ids.iter().copied(),
@@ -135,6 +135,7 @@ where
     }
 
     #[expect(clippy::too_many_lines)]
+    #[tracing::instrument(level = "info", skip(self, entity_types))]
     pub(crate) async fn get_entity_type_resolve_definitions(
         &self,
         actor_id: ActorEntityUuid,
@@ -179,6 +180,7 @@ where
                 ",
                 &[&entity_types],
             )
+            .instrument(tracing::trace_span!("query_resolve_definitions"))
             .await
             .change_context(QueryError)?;
 
@@ -258,6 +260,7 @@ where
         definitions.data_types.extend(
             self.as_client()
                 .query(query, &[&data_type_uuids])
+                .instrument(tracing::trace_span!("query_data_types"))
                 .await
                 .change_context(QueryError)?
                 .into_iter()
@@ -1095,6 +1098,10 @@ where
         Ok(response)
     }
 
+    #[tracing::instrument(
+        level = "info",
+        skip(self, actor_id, entity_type_ids, temporal_axes, include_resolved)
+    )]
     async fn get_closed_multi_entity_types<I, J>(
         &self,
         actor_id: ActorEntityUuid,
@@ -1749,7 +1756,7 @@ where
         let policy_components = PolicyComponents::builder(self)
             .with_actor(authenticated_user)
             .with_entity_type_ids(entity_type_ids.iter())
-            .with_action(ActionName::Instantiate)
+            .with_action(ActionName::Instantiate, false)
             .await
             .change_context(QueryError)?;
 
@@ -1773,24 +1780,27 @@ where
             );
         }
 
+        let policy_set = policy_components
+            .build_policy_set([ActionName::Instantiate])
+            .change_context(QueryError)?;
+
         entity_type_id_set
             .into_iter()
             .map(|(base, parents)| {
                 // We need to check the base entity type and all its parents
                 // to see if the user can instantiate it.
                 for entity_type_id in iter::once(base).chain(parents) {
-                    let allowed = policy_components
-                        .policy_set
+                    let allowed = policy_set
                         .evaluate(
                             &Request {
-                                actor: policy_components.actor_id,
+                                actor: policy_components.actor_id(),
                                 action: ActionName::Instantiate,
                                 resource: &ResourceId::EntityType(Cow::Borrowed(
                                     (&entity_type_id).into(),
                                 )),
                                 context: RequestContext::default(),
                             },
-                            &policy_components.context,
+                            policy_components.context(),
                         )
                         .change_context(QueryError)
                         .map(|authorized| match authorized {
