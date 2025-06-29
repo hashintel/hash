@@ -1,5 +1,5 @@
 //@ run: fail
-//@ description: Read entity by UUID using scalar property filter
+//@ description: Test error when using computed paths for indexing in filter expressions
 // biome-ignore format: readability
 ["::core::graph::tail::collect",
   ["::core::graph::body::filter",
