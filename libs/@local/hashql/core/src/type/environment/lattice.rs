@@ -2,7 +2,7 @@ use core::ops::Deref;
 
 use smallvec::SmallVec;
 
-use super::{Diagnostics, Environment, InferenceEnvironment, SimplifyEnvironment};
+use super::{Diagnostics, Environment, InferenceEnvironment, SimplifyEnvironment, Variance};
 use crate::{
     symbol::Ident,
     r#type::{
@@ -370,8 +370,13 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
     }
 
     #[inline]
-    pub fn is_subtype_of(&mut self, subtype: TypeId, supertype: TypeId) -> bool {
-        self.simplify.is_subtype_of(subtype, supertype)
+    pub fn is_subtype_of(
+        &mut self,
+        variance: Variance,
+        subtype: TypeId,
+        supertype: TypeId,
+    ) -> bool {
+        self.simplify.is_subtype_of(variance, subtype, supertype)
     }
 
     #[inline]

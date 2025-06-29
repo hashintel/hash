@@ -11,7 +11,7 @@ use crate::{
         PartialType, Type, TypeId,
         environment::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
-            SimplifyEnvironment, instantiate::InstantiateEnvironment,
+            SimplifyEnvironment, Variance, instantiate::InstantiateEnvironment,
         },
         error::{
             UnsupportedProjectionCategory, dict_subscript_mismatch, list_subscript_mismatch,
@@ -86,14 +86,12 @@ impl<'heap> Lattice<'heap> for ListType {
         // Check if `index` is concrete, if it isn't we need to issue a `Pending` and discharge a
         // subtyping constraint.
         if !env.is_concrete(index) {
-            infer.in_covariant(|infer| {
-                infer.collect_constraints(index, number);
-            });
+            infer.collect_constraints(Variance::Covariant, index, number);
 
             return Subscript::Pending;
         }
 
-        if env.is_subtype_of(index, number) {
+        if env.is_subtype_of(Variance::Covariant, index, number) {
             return Subscript::Resolved(self.kind.element);
         }
 
@@ -172,7 +170,11 @@ impl<'heap> Lattice<'heap> for ListType {
         supertype: Type<'heap, Self>,
         env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool {
-        env.in_covariant(|env| env.is_subtype_of(self.kind.element, supertype.kind.element))
+        env.is_subtype_of(
+            Variance::Covariant,
+            self.kind.element,
+            supertype.kind.element,
+        )
     }
 
     fn is_equivalent(
@@ -180,7 +182,7 @@ impl<'heap> Lattice<'heap> for ListType {
         other: Type<'heap, Self>,
         env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool {
-        env.in_covariant(|env| env.is_equivalent(self.kind.element, other.kind.element))
+        env.is_equivalent(self.kind.element, other.kind.element)
     }
 
     fn simplify(self: Type<'heap, Self>, env: &mut SimplifyEnvironment<'_, 'heap>) -> TypeId {
@@ -203,9 +205,11 @@ impl<'heap> Inference<'heap> for ListType {
         supertype: Type<'heap, Self>,
         env: &mut InferenceEnvironment<'_, 'heap>,
     ) {
-        env.in_covariant(|env| {
-            env.collect_constraints(self.kind.element, supertype.kind.element);
-        });
+        env.collect_constraints(
+            Variance::Covariant,
+            self.kind.element,
+            supertype.kind.element,
+        );
     }
 
     fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {
@@ -394,9 +398,7 @@ impl<'heap> Lattice<'heap> for DictType {
     ) -> Subscript {
         // Check if `index` and `key` are concrete, if not collect the constraints between them
         if !env.is_concrete(index) || !env.is_concrete(self.kind.key) {
-            infer.in_invariant(|infer| {
-                infer.collect_constraints(index, self.kind.key);
-            });
+            infer.collect_constraints(Variance::Invariant, index, self.kind.key);
 
             return Subscript::Pending;
         }
@@ -487,8 +489,8 @@ impl<'heap> Lattice<'heap> for DictType {
         supertype: Type<'heap, Self>,
         env: &mut AnalysisEnvironment<'_, 'heap>,
     ) -> bool {
-        env.in_invariant(|env| env.is_subtype_of(self.kind.key, supertype.kind.key))
-            && env.in_covariant(|env| env.is_subtype_of(self.kind.value, supertype.kind.value))
+        env.is_subtype_of(Variance::Invariant, self.kind.key, supertype.kind.key)
+            && env.is_subtype_of(Variance::Covariant, self.kind.value, supertype.kind.value)
     }
 
     fn is_equivalent(
@@ -526,8 +528,8 @@ impl<'heap> Inference<'heap> for DictType {
         env: &mut InferenceEnvironment<'_, 'heap>,
     ) {
         // Key is invariant, Value is covariant
-        env.in_invariant(|env| env.collect_constraints(self.kind.key, supertype.kind.key));
-        env.in_covariant(|env| env.collect_constraints(self.kind.value, supertype.kind.value));
+        env.collect_constraints(Variance::Invariant, self.kind.key, supertype.kind.key);
+        env.collect_constraints(Variance::Covariant, self.kind.value, supertype.kind.value);
     }
 
     fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {

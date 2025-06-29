@@ -12,7 +12,9 @@ use hashql_core::{
     symbol::Symbol,
     r#type::{
         PartialType, TypeBuilder, TypeId,
-        environment::{Environment, InferenceEnvironment, instantiate::InstantiateEnvironment},
+        environment::{
+            Environment, InferenceEnvironment, Variance, instantiate::InstantiateEnvironment,
+        },
         error::TypeCheckDiagnostic,
         inference::InferenceSolver,
         kind::generic::{GenericArgumentReference, GenericSubstitution},
@@ -298,8 +300,11 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
         // If a default exists, we additionally need to discharge a constraint that the default is
         // `<:` to the type specified.
         if let Some(default) = &input.default {
-            self.inference
-                .collect_constraints(self.types[Universe::Value][&default.id], input.r#type);
+            self.inference.collect_constraints(
+                Variance::Covariant,
+                self.types[Universe::Value][&default.id],
+                input.r#type,
+            );
         }
     }
 
@@ -317,6 +322,7 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
 
         // value <: assertion
         self.inference.collect_constraints(
+            Variance::Covariant,
             self.types[Universe::Value][&assertion.value.id],
             assertion.r#type,
         );
@@ -403,7 +409,8 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
         // - covariant return value: `R <: ρ`
         //
         // For closure literals we invert the direction and collect `C <: F`
-        self.inference.collect_constraints(function, closure);
+        self.inference
+            .collect_constraints(Variance::Covariant, function, closure);
 
         self.types
             .insert_unique(Universe::Value, self.current, returns_id);
@@ -468,6 +475,7 @@ impl<'heap> Visitor<'heap> for TypeInference<'_, 'heap> {
 
         // `body <: return`
         self.inference.collect_constraints(
+            Variance::Covariant,
             self.types[Universe::Value][&body.id],
             type_signature.returns,
         );

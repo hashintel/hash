@@ -9,7 +9,7 @@ use crate::{
         PartialType,
         environment::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
-            SimplifyEnvironment, instantiate::InstantiateEnvironment,
+            SimplifyEnvironment, Variance, instantiate::InstantiateEnvironment,
         },
         inference::{Constraint, Inference as _, Variable, VariableKind},
         kind::{
@@ -482,7 +482,7 @@ fn collect_constraints_generic_params() {
     let mut inference_env = InferenceEnvironment::new(&env);
 
     // Collect constraints between the two opaque types with generic parameters
-    inference_env.collect_constraints(opaque_a, opaque_b);
+    inference_env.collect_constraints(Variance::Covariant, opaque_a, opaque_b);
 
     // Due to invariance, we should get an equality constraint between the generic parameters
     let constraints = inference_env.take_constraints();

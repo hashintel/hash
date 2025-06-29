@@ -13,7 +13,7 @@ use crate::{
         PartialType, Type, TypeId,
         environment::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
-            SimplifyEnvironment, instantiate::InstantiateEnvironment,
+            SimplifyEnvironment, Variance, instantiate::InstantiateEnvironment,
         },
         error::{
             UnsupportedSubscriptCategory, invalid_tuple_index, tuple_index_out_of_bounds,
@@ -241,7 +241,7 @@ impl<'heap> Lattice<'heap> for TupleType<'heap> {
         // Unify corresponding fields in each tuple
         for (&lhs_field, &rhs_field) in self.kind.fields.iter().zip(supertype.kind.fields.iter()) {
             // Fields are covariant
-            compatible &= env.in_covariant(|env| env.is_subtype_of(lhs_field, rhs_field));
+            compatible &= env.is_subtype_of(Variance::Covariant, lhs_field, rhs_field);
 
             if !compatible && env.is_fail_fast() {
                 return false;
@@ -278,7 +278,7 @@ impl<'heap> Lattice<'heap> for TupleType<'heap> {
         // Unify corresponding fields in each tuple
         for (&lhs_field, &rhs_field) in self.kind.fields.iter().zip(other.kind.fields.iter()) {
             // Fields are covariant
-            equivalent &= env.in_covariant(|env| env.is_equivalent(lhs_field, rhs_field));
+            equivalent &= env.is_equivalent(lhs_field, rhs_field);
 
             if !equivalent && env.is_fail_fast() {
                 return false;
@@ -333,7 +333,7 @@ impl<'heap> Inference<'heap> for TupleType<'heap> {
         // root cause.
         for (&field, &supertype_field) in self.kind.fields.iter().zip(supertype.kind.fields.iter())
         {
-            env.in_covariant(|env| env.collect_constraints(field, supertype_field));
+            env.collect_constraints(Variance::Covariant, field, supertype_field);
         }
     }
 

@@ -9,7 +9,7 @@ use crate::{
     symbol::Ident,
     r#type::{
         PartialType,
-        environment::{AnalysisEnvironment, Environment, InferenceEnvironment},
+        environment::{AnalysisEnvironment, Environment, InferenceEnvironment, Variance},
         error::TypeCheckDiagnosticCategory,
         inference::{
             Variable, VariableKind,
@@ -1167,7 +1167,7 @@ fn pipeline_environment_to_solver() {
     let number = primitive!(env, PrimitiveType::Number);
 
     let mut environment = InferenceEnvironment::new(&env);
-    environment.collect_constraints(union, number);
+    environment.collect_constraints(Variance::Covariant, union, number);
 
     let solver = environment.into_solver();
     let (substitution, diagnostics) = solver.solve();
@@ -1281,6 +1281,7 @@ fn early_projection() {
     let mut environment = InferenceEnvironment::new(&env);
 
     environment.collect_constraints(
+        Variance::Covariant,
         variable,
         r#struct!(
             env,
@@ -1332,6 +1333,7 @@ fn late_projection() {
     );
 
     environment.collect_constraints(
+        Variance::Covariant,
         variable,
         r#struct!(
             env,
@@ -1455,6 +1457,7 @@ fn projection_equality_constraint() {
     );
 
     environment.collect_constraints(
+        Variance::Covariant,
         variable.into_type(&env).id,
         primitive!(env, PrimitiveType::String),
     );
@@ -1488,7 +1491,11 @@ fn projection_unify_variables_lower() {
     let r#struct = r#struct!(env, [struct_field!(env, "a", hole1_type)]);
 
     let mut environment = InferenceEnvironment::new(&env);
-    environment.collect_constraints(hole1_type, primitive!(env, PrimitiveType::Number));
+    environment.collect_constraints(
+        Variance::Covariant,
+        hole1_type,
+        primitive!(env, PrimitiveType::Number),
+    );
 
     let variable = environment.add_projection(
         SpanId::SYNTHETIC,
@@ -1497,6 +1504,7 @@ fn projection_unify_variables_lower() {
     );
 
     environment.collect_constraints(
+        Variance::Covariant,
         variable.into_type(&env).id,
         primitive!(env, PrimitiveType::Integer),
     );
@@ -1530,7 +1538,11 @@ fn projection_unify_variables_upper() {
     let r#struct = r#struct!(env, [struct_field!(env, "a", hole1_type)]);
 
     let mut environment = InferenceEnvironment::new(&env);
-    environment.collect_constraints(primitive!(env, PrimitiveType::Number), hole1_type);
+    environment.collect_constraints(
+        Variance::Covariant,
+        primitive!(env, PrimitiveType::Number),
+        hole1_type,
+    );
 
     let variable = environment.add_projection(
         SpanId::SYNTHETIC,
@@ -1539,6 +1551,7 @@ fn projection_unify_variables_upper() {
     );
 
     environment.collect_constraints(
+        Variance::Covariant,
         primitive!(env, PrimitiveType::Integer),
         variable.into_type(&env).id,
     );
@@ -1790,7 +1803,11 @@ fn early_subscript() {
 
     let mut environment = InferenceEnvironment::new(&env);
 
-    environment.collect_constraints(variable, list!(env, primitive!(env, PrimitiveType::String)));
+    environment.collect_constraints(
+        Variance::Covariant,
+        variable,
+        list!(env, primitive!(env, PrimitiveType::String)),
+    );
 
     let variable = environment.add_subscript(
         SpanId::SYNTHETIC,
@@ -1838,6 +1855,7 @@ fn late_subscript() {
     );
 
     environment.collect_constraints(
+        Variance::Covariant,
         hole_type,
         list!(env, primitive!(env, PrimitiveType::String)),
     );
@@ -1950,6 +1968,7 @@ fn discharged_element_subscript() {
     let mut environment = InferenceEnvironment::new(&env);
 
     environment.collect_constraints(
+        Variance::Covariant,
         instantiate_infer(&env, hole),
         primitive!(env, PrimitiveType::String),
     );
@@ -2277,8 +2296,16 @@ fn nested_inference_constraints() {
     let string = builder.string();
 
     let mut inference = InferenceEnvironment::new(&env);
-    inference.collect_constraints(builder.list(builder.infer(hole1)), builder.infer(hole2));
-    inference.collect_constraints(builder.infer(hole2), builder.list(string));
+    inference.collect_constraints(
+        Variance::Covariant,
+        builder.list(builder.infer(hole1)),
+        builder.infer(hole2),
+    );
+    inference.collect_constraints(
+        Variance::Covariant,
+        builder.infer(hole2),
+        builder.list(string),
+    );
 
     let solver = inference.into_solver();
     let (substitution, diagnostics) = solver.solve();
