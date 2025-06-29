@@ -13,7 +13,7 @@
     │     
     │     Help: Filter expressions do not currently support closure definitions. Move the closure outside the filter expression, assign the result to a variable, and use that variable in the filter instead.
     │     
-    │     Note: Closures in filter expressions are not yet implemented. This is a current limitation that is being tracked in [Linear Issue].
+    │     Note: Closures in filter expressions are not yet implemented. This is a current limitation that is being tracked in https://linear.app/hash/issue/H-4913/hashql-implement-vm.
 ────╯
 
 
@@ -31,5 +31,5 @@
     │     
     │     Help: Filter expressions do not currently support closure definitions. Move the closure outside the filter expression, assign the result to a variable, and use that variable in the filter instead.
     │     
-    │     Note: Closures in filter expressions are not yet implemented. This is a current limitation that is being tracked in [Linear Issue].
+    │     Note: Closures in filter expressions are not yet implemented. This is a current limitation that is being tracked in https://linear.app/hash/issue/H-4913/hashql-implement-vm.
 ────╯

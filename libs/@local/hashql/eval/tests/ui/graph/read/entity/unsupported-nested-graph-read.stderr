@@ -13,7 +13,7 @@
     │     
     │     Help: Filter expressions do not currently support nested graph operations. Move the graph operation outside the filter expression, assign the result to a variable, and use that variable in the filter instead.
     │     
-    │     Note: Nested graph operations in filter expressions are not yet implemented. This is a current limitation that is being tracked in [Linear Issue].
+    │     Note: Nested graph operations in filter expressions are not yet implemented. This is a current limitation that is being tracked in https://linear.app/hash/issue/H-4913/hashql-implement-vm and https://linear.app/hash/issue/H-4915/hashql-hoist-nested-graph-operations-inside-filters.
 ────╯
 
 
@@ -31,5 +31,5 @@
     │     
     │     Help: Filter expressions do not currently support nested graph operations. Move the graph operation outside the filter expression, assign the result to a variable, and use that variable in the filter instead.
     │     
-    │     Note: Nested graph operations in filter expressions are not yet implemented. This is a current limitation that is being tracked in [Linear Issue].
+    │     Note: Nested graph operations in filter expressions are not yet implemented. This is a current limitation that is being tracked in https://linear.app/hash/issue/H-4913/hashql-implement-vm and https://linear.app/hash/issue/H-4915/hashql-hoist-nested-graph-operations-inside-filters.
 ────╯

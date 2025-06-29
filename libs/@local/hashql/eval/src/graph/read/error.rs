@@ -189,7 +189,8 @@ pub(super) fn path_conversion_error(
 
     diagnostic.add_note(Note::new(
         "This is a temporary limitation of the current query compiler. Support for querying \
-         against complex objects in filter expressions is being tracked in [Linear Issue].",
+         against complex objects in filter expressions is being tracked in \
+         https://linear.app/hash/issue/H-4911/hashql-allow-for-querying-against-complex-objects.",
     ));
 
     diagnostic
@@ -230,7 +231,7 @@ pub(super) fn qualified_variable_unsupported(
 
     diagnostic.add_note(Note::new(
         "Qualified variables are not yet supported. Implementation of a proper module system is \
-         being tracked in [Linear Issue].",
+         being tracked in https://linear.app/hash/issue/H-4912/hashql-implement-modules.",
     ));
 
     diagnostic
@@ -266,7 +267,7 @@ pub(super) fn type_constructor_unsupported(
     diagnostic.add_note(Note::new(
         "This is a current limitation of the filter expression compiler. Constructors work as \
          first-class values elsewhere in the language, and support for this in filter expressions \
-         is being tracked in [Linear Issue].",
+         is being tracked in https://linear.app/hash/issue/H-4913/hashql-implement-vm.",
     ));
 
     diagnostic
@@ -302,7 +303,8 @@ pub(super) fn binary_operation_unsupported(
     diagnostic.add_note(Note::new(
         "This is an intentional current limitation to keep expressions simple, but there are \
          plans to remove this restriction in the future to allow more complex expressions. \
-         Progress on this enhancement is tracked in [Linear Issue].",
+         Progress on this enhancement is tracked in \
+         https://linear.app/hash/issue/H-4911/hashql-allow-for-querying-against-complex-objects.",
     ));
 
     diagnostic
@@ -345,7 +347,8 @@ pub(super) fn path_indexing_unsupported(
 
     diagnostic.add_note(Note::new(
         "This is a temporary limitation of the database query compiler. Support for dynamic \
-         indexing using computed values in filter expressions is being tracked in [Linear Issue].",
+         indexing using computed values in filter expressions is being tracked in \
+         https://linear.app/hash/issue/H-4914/hashql-support-indexing-into-collections-based-on-query-paths.",
     ));
 
     diagnostic
@@ -502,7 +505,7 @@ pub(super) fn call_unsupported(
     diagnostic.add_note(Note::new(
         "Function calls in filter expressions are not yet implemented. This feature may be added \
          in future versions for specific categories of pure functions. Progress is tracked in \
-         [Linear Issue].",
+         https://linear.app/hash/issue/H-4913/hashql-implement-vm.",
     ));
 
     diagnostic
@@ -536,7 +539,7 @@ pub(super) fn closure_unsupported(
 
     diagnostic.add_note(Note::new(
         "Closures in filter expressions are not yet implemented. This is a current limitation \
-         that is being tracked in [Linear Issue].",
+         that is being tracked in https://linear.app/hash/issue/H-4913/hashql-implement-vm.",
     ));
 
     diagnostic
@@ -570,7 +573,8 @@ pub(super) fn nested_graph_read_unsupported(
 
     diagnostic.add_note(Note::new(
         "Nested graph operations in filter expressions are not yet implemented. This is a current \
-         limitation that is being tracked in [Linear Issue].",
+         limitation that is being tracked in https://linear.app/hash/issue/H-4913/hashql-implement-vm and \
+         https://linear.app/hash/issue/H-4915/hashql-hoist-nested-graph-operations-inside-filters.",
     ));
 
     diagnostic
