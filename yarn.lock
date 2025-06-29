@@ -4387,9 +4387,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@chainsafe/libp2p-noise@npm:16.1.3":
-  version: 16.1.3
-  resolution: "@chainsafe/libp2p-noise@npm:16.1.3"
+"@chainsafe/libp2p-noise@npm:16.1.4":
+  version: 16.1.4
+  resolution: "@chainsafe/libp2p-noise@npm:16.1.4"
   dependencies:
     "@chainsafe/as-chacha20poly1305": "npm:^0.1.0"
     "@chainsafe/as-sha256": "npm:^1.0.0"
@@ -4408,7 +4408,7 @@ __metadata:
     uint8arraylist: "npm:^2.4.3"
     uint8arrays: "npm:^5.0.0"
     wherearewe: "npm:^2.0.1"
-  checksum: 10c0/11a2b835d68914f2c7a4deaf26c26f73c6a79e0e9bbbcf2178387dd7306ac9cd481fd6781470d36c8485c12e0661eda0f213b74651d8b3a25061df6c64186b90
+  checksum: 10c0/af337a73a6b5f04cbefa50e0855377689aefe6fb95977dbc5c35d61bbd4bf49a0d9cc3b892a884e08c43f39066bca72891ac92b09f3b99c9faac88a2e045208f
   languageName: node
   linkType: hard
 
@@ -8855,7 +8855,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@local/harpc-client@workspace:libs/@local/harpc/client/typescript"
   dependencies:
-    "@chainsafe/libp2p-noise": "npm:16.1.3"
+    "@chainsafe/libp2p-noise": "npm:16.1.4"
     "@chainsafe/libp2p-yamux": "npm:7.0.4"
     "@effect/platform": "npm:0.79.2"
     "@effect/platform-node": "npm:0.75.2"
