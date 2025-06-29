@@ -99,7 +99,7 @@
     "@types/lodash": "4.17.18",
     "@types/md5": "2.3.5",
     "@types/mime-types": "2.1.4",
-    "@types/node": "22.15.32",
+    "@types/node": "22.15.33",
     "@types/papaparse": "5.3.16",
     "@types/sanitize-html": "2.16.0",
     "@vitest/coverage-istanbul": "3.2.4",
