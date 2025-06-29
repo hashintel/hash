@@ -461,7 +461,7 @@ __metadata:
     "@dnd-kit/utilities": "npm:3.2.2"
     "@emotion/react": "npm:11.14.0"
     "@emotion/server": "npm:11.11.0"
-    "@emotion/styled": "npm:11.14.0"
+    "@emotion/styled": "npm:11.14.1"
     "@fortawesome/free-regular-svg-icons": "npm:6.7.2"
     "@fortawesome/free-solid-svg-icons": "npm:6.7.2"
     "@glideapps/glide-data-grid": "patch:@glideapps/glide-data-grid@npm%3A6.0.3#~/.yarn/patches/@glideapps-glide-data-grid-npm-6.0.3-f71d586425.patch"
@@ -694,7 +694,7 @@ __metadata:
   peerDependencies:
     "@emotion/cache": 11.14.0
     "@emotion/react": 11.14.0
-    "@emotion/styled": 11.14.0
+    "@emotion/styled": 11.14.1
     "@mui/material": 5.17.1
     "@mui/system": 5.17.1
     react: ^19.0.0
@@ -5128,9 +5128,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@emotion/styled@npm:11.14.0, @emotion/styled@npm:^11.3.0":
-  version: 11.14.0
-  resolution: "@emotion/styled@npm:11.14.0"
+"@emotion/styled@npm:11.14.1, @emotion/styled@npm:^11.3.0":
+  version: 11.14.1
+  resolution: "@emotion/styled@npm:11.14.1"
   dependencies:
     "@babel/runtime": "npm:^7.18.3"
     "@emotion/babel-plugin": "npm:^11.13.5"
@@ -5144,7 +5144,7 @@ __metadata:
   peerDependenciesMeta:
     "@types/react":
       optional: true
-  checksum: 10c0/20aa5c488e4edecf63659212fc5ba1ccff2d3a66593fc8461de7cd5fe9192a741db357ffcd270a455bd61898d7f37cd5c84b4fd2b7974dade712badf7860ca9c
+  checksum: 10c0/2bbf8451df49c967e41fbcf8111a7f6dafe6757f0cc113f2f6e287206c45ac1d54dc8a95a483b7c0cee8614b8a8d08155bded6453d6721de1f8cc8d5b9216963
   languageName: node
   linkType: hard
 
@@ -7032,7 +7032,7 @@ __metadata:
     "@blockprotocol/graph": "npm:0.4.0-canary.0"
     "@blockprotocol/type-system": "npm:0.1.2-canary.0"
     "@emotion/react": "npm:11.14.0"
-    "@emotion/styled": "npm:11.14.0"
+    "@emotion/styled": "npm:11.14.1"
     "@hashintel/design-system": "npm:0.0.8"
     "@local/eslint": "npm:0.0.0-private"
     "@local/hash-isomorphic-utils": "npm:0.0.0-private"
@@ -7052,7 +7052,7 @@ __metadata:
     typescript: "npm:5.7.3"
   peerDependencies:
     "@emotion/react": 11.14.0
-    "@emotion/styled": 11.14.0
+    "@emotion/styled": 11.14.1
     "@mui/material": 5.17.1
     "@mui/system": 5.17.1
     react: ^19.0.0
@@ -7068,7 +7068,7 @@ __metadata:
     "@blockprotocol/type-system": "npm:0.1.2-canary.0"
     "@emotion/cache": "npm:11.14.0"
     "@emotion/react": "npm:11.14.0"
-    "@emotion/styled": "npm:11.14.0"
+    "@emotion/styled": "npm:11.14.1"
     "@fortawesome/free-regular-svg-icons": "npm:6.7.2"
     "@fortawesome/free-solid-svg-icons": "npm:6.7.2"
     "@local/eslint": "npm:0.0.0-private"
@@ -7090,7 +7090,7 @@ __metadata:
   peerDependencies:
     "@emotion/cache": 11.14.0
     "@emotion/react": 11.14.0
-    "@emotion/styled": 11.14.0
+    "@emotion/styled": 11.14.1
     "@mui/material": 5.17.1
     "@mui/system": 5.17.1
     react: ^19.0.0
