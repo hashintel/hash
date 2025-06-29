@@ -16,6 +16,10 @@ pub(crate) fn try_convert_number(number: &JsonNumber) -> Result<Number, Report<E
     let number_source = number.source();
     let negative = number_source.as_bytes().first().copied() == Some(b'-');
 
+    #[expect(
+        clippy::wildcard_enum_match_arm,
+        reason = "A fallback for all other errors"
+    )]
     if memchr::memchr(b'.', number_source.as_bytes()).is_some() {
         // justjson ensures that the value itself is valid JSON, can only error out if there are too
         // many digits
