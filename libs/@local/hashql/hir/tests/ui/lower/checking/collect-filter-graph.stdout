@@ -9,18 +9,16 @@
 
 ::core::graph::tail::collect(::core::graph::body::filter(::core::graph::head::entities(::core::graph::tmp::decision_time_now()),
 #fn(vertex:0: _0«Entity[(id: EntityRecordId[(edition_id:
-  EntityEditionId[Uuid[String]], entity_id: EntityId[(draft_id:
-   (Some[DraftId[Uuid[String]]] | None[Null]), entity_uuid:
-   EntityUuid[Uuid[String]], web_id:
-   WebId[ActorGroupEntityUuid[Uuid[String]]])])], link_data:
- (Some[LinkData[(left_entity_id: EntityId[(draft_id:
-    (Some[DraftId[Uuid[String]]] | None[Null]), entity_uuid:
+  EntityEditionId[Uuid[String]], entity_id: EntityId[(draft_id: (None[Null]
+    | Some[DraftId[Uuid[String]]]), entity_uuid: EntityUuid[Uuid[String]],
+   web_id: WebId[ActorGroupEntityUuid[Uuid[String]]])])], link_data: (None[Null]
+  | Some[LinkData[(left_entity_id: EntityId[(draft_id: (None[Null]
+     | Some[DraftId[Uuid[String]]]), entity_uuid: EntityUuid[Uuid[String]],
+    web_id: WebId[ActorGroupEntityUuid[Uuid[String]]])], right_entity_id:
+   EntityId[(draft_id: (None[Null] | Some[DraftId[Uuid[String]]]), entity_uuid:
     EntityUuid[Uuid[String]], web_id:
-    WebId[ActorGroupEntityUuid[Uuid[String]]])], right_entity_id:
-   EntityId[(draft_id: (Some[DraftId[Uuid[String]]] | None[Null]), entity_uuid:
-    EntityUuid[Uuid[String]], web_id:
-    WebId[ActorGroupEntityUuid[Uuid[String]]])])]]
-  | None[Null]), properties: ?)]»): _1«Boolean» ->
+    WebId[ActorGroupEntityUuid[Uuid[String]]])])]]), properties: ?)]»):
+_1«Boolean» ->
     ::core::cmp::eq(vertex:0.id.entity_id.entity_uuid, #ctor(fn(Uuid[String]) ->
     EntityUuid[Uuid[String]], arguments: [])(#ctor(fn(String) -> Uuid[String],
     arguments: [])("e2851dbb-7376-4959-9bca-f72cafc4448f")))))
@@ -29,84 +27,73 @@
 
 ┌─ ::core::graph::tail::collect
 └→ fn(Graph[('marker: Entity[(id: EntityRecordId[(edition_id:
-      EntityEditionId[Uuid[String]], entity_id: EntityId[(draft_id:
-       (Some[DraftId[Uuid[String]]] | None[Null]), entity_uuid:
-       EntityUuid[Uuid[String]], web_id:
-       WebId[ActorGroupEntityUuid[Uuid[String]]])])], link_data:
-     (Some[LinkData[(left_entity_id: EntityId[(draft_id:
-        (Some[DraftId[Uuid[String]]] | None[Null]), entity_uuid:
+      EntityEditionId[Uuid[String]], entity_id: EntityId[(draft_id: (None[Null]
+        | Some[DraftId[Uuid[String]]]), entity_uuid: EntityUuid[Uuid[String]],
+       web_id: WebId[ActorGroupEntityUuid[Uuid[String]]])])], link_data:
+     (None[Null]
+      | Some[LinkData[(left_entity_id: EntityId[(draft_id: (None[Null]
+         | Some[DraftId[Uuid[String]]]), entity_uuid: EntityUuid[Uuid[String]],
+        web_id: WebId[ActorGroupEntityUuid[Uuid[String]]])], right_entity_id:
+       EntityId[(draft_id: (None[Null] | Some[DraftId[Uuid[String]]]), entity_uuid:
         EntityUuid[Uuid[String]], web_id:
-        WebId[ActorGroupEntityUuid[Uuid[String]]])], right_entity_id:
-       EntityId[(draft_id: (Some[DraftId[Uuid[String]]] | None[Null]), entity_uuid:
-        EntityUuid[Uuid[String]], web_id:
-        WebId[ActorGroupEntityUuid[Uuid[String]]])])]]
-      | None[Null]), properties: ?)])]) -> List<Entity[(id:
-    EntityRecordId[(edition_id: EntityEditionId[Uuid[String]], entity_id:
-     EntityId[(draft_id: (Some[DraftId[Uuid[String]]] | None[Null]), entity_uuid:
-      EntityUuid[Uuid[String]], web_id:
-      WebId[ActorGroupEntityUuid[Uuid[String]]])])], link_data:
-    (Some[LinkData[(left_entity_id: EntityId[(draft_id:
-       (Some[DraftId[Uuid[String]]] | None[Null]), entity_uuid:
+        WebId[ActorGroupEntityUuid[Uuid[String]]])])]]), properties: ?)])]) ->
+   List<Entity[(id: EntityRecordId[(edition_id: EntityEditionId[Uuid[String]],
+     entity_id: EntityId[(draft_id: (None[Null] | Some[DraftId[Uuid[String]]]),
+      entity_uuid: EntityUuid[Uuid[String]], web_id:
+      WebId[ActorGroupEntityUuid[Uuid[String]]])])], link_data: (None[Null]
+     | Some[LinkData[(left_entity_id: EntityId[(draft_id: (None[Null]
+        | Some[DraftId[Uuid[String]]]), entity_uuid: EntityUuid[Uuid[String]],
+       web_id: WebId[ActorGroupEntityUuid[Uuid[String]]])], right_entity_id:
+      EntityId[(draft_id: (None[Null] | Some[DraftId[Uuid[String]]]), entity_uuid:
        EntityUuid[Uuid[String]], web_id:
-       WebId[ActorGroupEntityUuid[Uuid[String]]])], right_entity_id:
-      EntityId[(draft_id: (Some[DraftId[Uuid[String]]] | None[Null]), entity_uuid:
-       EntityUuid[Uuid[String]], web_id:
-       WebId[ActorGroupEntityUuid[Uuid[String]]])])]]
-     | None[Null]), properties: ?)]>
+       WebId[ActorGroupEntityUuid[Uuid[String]]])])]]), properties: ?)]>
 
 ┌─ ::core::graph::body::filter
 └→ fn(Graph[('marker: Entity[(id: EntityRecordId[(edition_id:
-      EntityEditionId[Uuid[String]], entity_id: EntityId[(draft_id:
-       (Some[DraftId[Uuid[String]]] | None[Null]), entity_uuid:
-       EntityUuid[Uuid[String]], web_id:
-       WebId[ActorGroupEntityUuid[Uuid[String]]])])], link_data:
-     (Some[LinkData[(left_entity_id: EntityId[(draft_id:
-        (Some[DraftId[Uuid[String]]] | None[Null]), entity_uuid:
+      EntityEditionId[Uuid[String]], entity_id: EntityId[(draft_id: (None[Null]
+        | Some[DraftId[Uuid[String]]]), entity_uuid: EntityUuid[Uuid[String]],
+       web_id: WebId[ActorGroupEntityUuid[Uuid[String]]])])], link_data:
+     (None[Null]
+      | Some[LinkData[(left_entity_id: EntityId[(draft_id: (None[Null]
+         | Some[DraftId[Uuid[String]]]), entity_uuid: EntityUuid[Uuid[String]],
+        web_id: WebId[ActorGroupEntityUuid[Uuid[String]]])], right_entity_id:
+       EntityId[(draft_id: (None[Null] | Some[DraftId[Uuid[String]]]), entity_uuid:
         EntityUuid[Uuid[String]], web_id:
-        WebId[ActorGroupEntityUuid[Uuid[String]]])], right_entity_id:
-       EntityId[(draft_id: (Some[DraftId[Uuid[String]]] | None[Null]), entity_uuid:
-        EntityUuid[Uuid[String]], web_id:
-        WebId[ActorGroupEntityUuid[Uuid[String]]])])]]
-      | None[Null]), properties: ?)])], fn(Entity[(id: EntityRecordId[(edition_id:
-     EntityEditionId[Uuid[String]], entity_id: EntityId[(draft_id:
-      (Some[DraftId[Uuid[String]]] | None[Null]), entity_uuid:
-      EntityUuid[Uuid[String]], web_id:
-      WebId[ActorGroupEntityUuid[Uuid[String]]])])], link_data:
-    (Some[LinkData[(left_entity_id: EntityId[(draft_id:
-       (Some[DraftId[Uuid[String]]] | None[Null]), entity_uuid:
+        WebId[ActorGroupEntityUuid[Uuid[String]]])])]]), properties: ?)])],
+   fn(Entity[(id: EntityRecordId[(edition_id: EntityEditionId[Uuid[String]],
+     entity_id: EntityId[(draft_id: (None[Null] | Some[DraftId[Uuid[String]]]),
+      entity_uuid: EntityUuid[Uuid[String]], web_id:
+      WebId[ActorGroupEntityUuid[Uuid[String]]])])], link_data: (None[Null]
+     | Some[LinkData[(left_entity_id: EntityId[(draft_id: (None[Null]
+        | Some[DraftId[Uuid[String]]]), entity_uuid: EntityUuid[Uuid[String]],
+       web_id: WebId[ActorGroupEntityUuid[Uuid[String]]])], right_entity_id:
+      EntityId[(draft_id: (None[Null] | Some[DraftId[Uuid[String]]]), entity_uuid:
        EntityUuid[Uuid[String]], web_id:
-       WebId[ActorGroupEntityUuid[Uuid[String]]])], right_entity_id:
-      EntityId[(draft_id: (Some[DraftId[Uuid[String]]] | None[Null]), entity_uuid:
-       EntityUuid[Uuid[String]], web_id:
-       WebId[ActorGroupEntityUuid[Uuid[String]]])])]]
-     | None[Null]), properties: ?)]) -> Boolean) -> Graph[('marker: Entity[(id:
-     EntityRecordId[(edition_id: EntityEditionId[Uuid[String]], entity_id:
-      EntityId[(draft_id: (Some[DraftId[Uuid[String]]] | None[Null]), entity_uuid:
-       EntityUuid[Uuid[String]], web_id:
-       WebId[ActorGroupEntityUuid[Uuid[String]]])])], link_data:
-     (Some[LinkData[(left_entity_id: EntityId[(draft_id:
-        (Some[DraftId[Uuid[String]]] | None[Null]), entity_uuid:
+       WebId[ActorGroupEntityUuid[Uuid[String]]])])]]), properties: ?)]) ->
+   Boolean) -> Graph[('marker: Entity[(id: EntityRecordId[(edition_id:
+      EntityEditionId[Uuid[String]], entity_id: EntityId[(draft_id: (None[Null]
+        | Some[DraftId[Uuid[String]]]), entity_uuid: EntityUuid[Uuid[String]],
+       web_id: WebId[ActorGroupEntityUuid[Uuid[String]]])])], link_data:
+     (None[Null]
+      | Some[LinkData[(left_entity_id: EntityId[(draft_id: (None[Null]
+         | Some[DraftId[Uuid[String]]]), entity_uuid: EntityUuid[Uuid[String]],
+        web_id: WebId[ActorGroupEntityUuid[Uuid[String]]])], right_entity_id:
+       EntityId[(draft_id: (None[Null] | Some[DraftId[Uuid[String]]]), entity_uuid:
         EntityUuid[Uuid[String]], web_id:
-        WebId[ActorGroupEntityUuid[Uuid[String]]])], right_entity_id:
-       EntityId[(draft_id: (Some[DraftId[Uuid[String]]] | None[Null]), entity_uuid:
-        EntityUuid[Uuid[String]], web_id:
-        WebId[ActorGroupEntityUuid[Uuid[String]]])])]]
-      | None[Null]), properties: ?)])]
+        WebId[ActorGroupEntityUuid[Uuid[String]]])])]]), properties: ?)])]
 
 ┌─ ::core::graph::head::entities
 └→ fn(TimeAxis[(:)]) -> Graph[('marker: Entity[(id: EntityRecordId[(edition_id:
-      EntityEditionId[Uuid[String]], entity_id: EntityId[(draft_id:
-       (Some[DraftId[Uuid[String]]] | None[Null]), entity_uuid:
-       EntityUuid[Uuid[String]], web_id:
-       WebId[ActorGroupEntityUuid[Uuid[String]]])])], link_data:
-     (Some[LinkData[(left_entity_id: EntityId[(draft_id:
-        (Some[DraftId[Uuid[String]]] | None[Null]), entity_uuid:
+      EntityEditionId[Uuid[String]], entity_id: EntityId[(draft_id: (None[Null]
+        | Some[DraftId[Uuid[String]]]), entity_uuid: EntityUuid[Uuid[String]],
+       web_id: WebId[ActorGroupEntityUuid[Uuid[String]]])])], link_data:
+     (None[Null]
+      | Some[LinkData[(left_entity_id: EntityId[(draft_id: (None[Null]
+         | Some[DraftId[Uuid[String]]]), entity_uuid: EntityUuid[Uuid[String]],
+        web_id: WebId[ActorGroupEntityUuid[Uuid[String]]])], right_entity_id:
+       EntityId[(draft_id: (None[Null] | Some[DraftId[Uuid[String]]]), entity_uuid:
         EntityUuid[Uuid[String]], web_id:
-        WebId[ActorGroupEntityUuid[Uuid[String]]])], right_entity_id:
-       EntityId[(draft_id: (Some[DraftId[Uuid[String]]] | None[Null]), entity_uuid:
-        EntityUuid[Uuid[String]], web_id:
-        WebId[ActorGroupEntityUuid[Uuid[String]]])])]]
-      | None[Null]), properties: ?)])]
+        WebId[ActorGroupEntityUuid[Uuid[String]]])])]]), properties: ?)])]
 
 ┌─ ::core::graph::tmp::decision_time_now
 └→ fn() -> TimeAxis[(:)]
@@ -116,44 +103,40 @@
 
 ┌─ ::core::graph::head::entities(::core::graph::tmp::decision_time_now())
 └→ Graph[('marker: Entity[(id: EntityRecordId[(edition_id:
-      EntityEditionId[Uuid[String]], entity_id: EntityId[(draft_id:
-       (Some[DraftId[Uuid[String]]] | None[Null]), entity_uuid:
-       EntityUuid[Uuid[String]], web_id:
-       WebId[ActorGroupEntityUuid[Uuid[String]]])])], link_data:
-     (Some[LinkData[(left_entity_id: EntityId[(draft_id:
-        (Some[DraftId[Uuid[String]]] | None[Null]), entity_uuid:
+      EntityEditionId[Uuid[String]], entity_id: EntityId[(draft_id: (None[Null]
+        | Some[DraftId[Uuid[String]]]), entity_uuid: EntityUuid[Uuid[String]],
+       web_id: WebId[ActorGroupEntityUuid[Uuid[String]]])])], link_data:
+     (None[Null]
+      | Some[LinkData[(left_entity_id: EntityId[(draft_id: (None[Null]
+         | Some[DraftId[Uuid[String]]]), entity_uuid: EntityUuid[Uuid[String]],
+        web_id: WebId[ActorGroupEntityUuid[Uuid[String]]])], right_entity_id:
+       EntityId[(draft_id: (None[Null] | Some[DraftId[Uuid[String]]]), entity_uuid:
         EntityUuid[Uuid[String]], web_id:
-        WebId[ActorGroupEntityUuid[Uuid[String]]])], right_entity_id:
-       EntityId[(draft_id: (Some[DraftId[Uuid[String]]] | None[Null]), entity_uuid:
-        EntityUuid[Uuid[String]], web_id:
-        WebId[ActorGroupEntityUuid[Uuid[String]]])])]]
-      | None[Null]), properties: ?)])]
+        WebId[ActorGroupEntityUuid[Uuid[String]]])])]]), properties: ?)])]
 
 ┌─ ::core::cmp::eq
 └→ fn(EntityUuid[Uuid[String]], EntityUuid[Uuid[String]]) -> Boolean
 
 ┌─ vertex:0
 └→ Entity[(id: EntityRecordId[(edition_id: EntityEditionId[Uuid[String]],
-     entity_id: EntityId[(draft_id: (Some[DraftId[Uuid[String]]] | None[Null]),
+     entity_id: EntityId[(draft_id: (None[Null] | Some[DraftId[Uuid[String]]]),
       entity_uuid: EntityUuid[Uuid[String]], web_id:
-      WebId[ActorGroupEntityUuid[Uuid[String]]])])], link_data:
-    (Some[LinkData[(left_entity_id: EntityId[(draft_id:
-       (Some[DraftId[Uuid[String]]] | None[Null]), entity_uuid:
+      WebId[ActorGroupEntityUuid[Uuid[String]]])])], link_data: (None[Null]
+     | Some[LinkData[(left_entity_id: EntityId[(draft_id: (None[Null]
+        | Some[DraftId[Uuid[String]]]), entity_uuid: EntityUuid[Uuid[String]],
+       web_id: WebId[ActorGroupEntityUuid[Uuid[String]]])], right_entity_id:
+      EntityId[(draft_id: (None[Null] | Some[DraftId[Uuid[String]]]), entity_uuid:
        EntityUuid[Uuid[String]], web_id:
-       WebId[ActorGroupEntityUuid[Uuid[String]]])], right_entity_id:
-      EntityId[(draft_id: (Some[DraftId[Uuid[String]]] | None[Null]), entity_uuid:
-       EntityUuid[Uuid[String]], web_id:
-       WebId[ActorGroupEntityUuid[Uuid[String]]])])]]
-     | None[Null]), properties: ?)]
+       WebId[ActorGroupEntityUuid[Uuid[String]]])])]]), properties: ?)]
 
 ┌─ vertex:0.id
 └→ EntityRecordId[(edition_id: EntityEditionId[Uuid[String]], entity_id:
-    EntityId[(draft_id: (Some[DraftId[Uuid[String]]] | None[Null]), entity_uuid:
+    EntityId[(draft_id: (None[Null] | Some[DraftId[Uuid[String]]]), entity_uuid:
      EntityUuid[Uuid[String]], web_id:
      WebId[ActorGroupEntityUuid[Uuid[String]]])])]
 
 ┌─ vertex:0.id.entity_id
-└→ EntityId[(draft_id: (Some[DraftId[Uuid[String]]] | None[Null]), entity_uuid:
+└→ EntityId[(draft_id: (None[Null] | Some[DraftId[Uuid[String]]]), entity_uuid:
     EntityUuid[Uuid[String]], web_id: WebId[ActorGroupEntityUuid[Uuid[String]]])]
 
 ┌─ vertex:0.id.entity_id.entity_uuid
@@ -183,92 +166,80 @@
 └→ Boolean
 
 ┌─ #fn(vertex:0: _0«Entity[(id: EntityRecordId[(edition_id:
-│    EntityEditionId[Uuid[String]], entity_id: EntityId[(draft_id:
-│     (Some[DraftId[Uuid[String]]] | None[Null]), entity_uuid:
-│     EntityUuid[Uuid[String]], web_id:
-│     WebId[ActorGroupEntityUuid[Uuid[String]]])])], link_data:
-│   (Some[LinkData[(left_entity_id: EntityId[(draft_id:
-│      (Some[DraftId[Uuid[String]]] | None[Null]), entity_uuid:
+│    EntityEditionId[Uuid[String]], entity_id: EntityId[(draft_id: (None[Null]
+│      | Some[DraftId[Uuid[String]]]), entity_uuid: EntityUuid[Uuid[String]],
+│     web_id: WebId[ActorGroupEntityUuid[Uuid[String]]])])], link_data: (None[Null]
+│    | Some[LinkData[(left_entity_id: EntityId[(draft_id: (None[Null]
+│       | Some[DraftId[Uuid[String]]]), entity_uuid: EntityUuid[Uuid[String]],
+│      web_id: WebId[ActorGroupEntityUuid[Uuid[String]]])], right_entity_id:
+│     EntityId[(draft_id: (None[Null] | Some[DraftId[Uuid[String]]]), entity_uuid:
 │      EntityUuid[Uuid[String]], web_id:
-│      WebId[ActorGroupEntityUuid[Uuid[String]]])], right_entity_id:
-│     EntityId[(draft_id: (Some[DraftId[Uuid[String]]] | None[Null]), entity_uuid:
-│      EntityUuid[Uuid[String]], web_id:
-│      WebId[ActorGroupEntityUuid[Uuid[String]]])])]]
-│    | None[Null]), properties: ?)]»): _1«Boolean» ->
+│      WebId[ActorGroupEntityUuid[Uuid[String]]])])]]), properties: ?)]»):
+│  _1«Boolean» ->
 │      ::core::cmp::eq(vertex:0.id.entity_id.entity_uuid, #ctor(fn(Uuid[String]) ->
 │      EntityUuid[Uuid[String]], arguments: [])(#ctor(fn(String) -> Uuid[String],
 │      arguments: [])("e2851dbb-7376-4959-9bca-f72cafc4448f")))
 └→ fn(Entity[(id: EntityRecordId[(edition_id: EntityEditionId[Uuid[String]],
-     entity_id: EntityId[(draft_id: (Some[DraftId[Uuid[String]]] | None[Null]),
+     entity_id: EntityId[(draft_id: (None[Null] | Some[DraftId[Uuid[String]]]),
       entity_uuid: EntityUuid[Uuid[String]], web_id:
-      WebId[ActorGroupEntityUuid[Uuid[String]]])])], link_data:
-    (Some[LinkData[(left_entity_id: EntityId[(draft_id:
-       (Some[DraftId[Uuid[String]]] | None[Null]), entity_uuid:
+      WebId[ActorGroupEntityUuid[Uuid[String]]])])], link_data: (None[Null]
+     | Some[LinkData[(left_entity_id: EntityId[(draft_id: (None[Null]
+        | Some[DraftId[Uuid[String]]]), entity_uuid: EntityUuid[Uuid[String]],
+       web_id: WebId[ActorGroupEntityUuid[Uuid[String]]])], right_entity_id:
+      EntityId[(draft_id: (None[Null] | Some[DraftId[Uuid[String]]]), entity_uuid:
        EntityUuid[Uuid[String]], web_id:
-       WebId[ActorGroupEntityUuid[Uuid[String]]])], right_entity_id:
-      EntityId[(draft_id: (Some[DraftId[Uuid[String]]] | None[Null]), entity_uuid:
-       EntityUuid[Uuid[String]], web_id:
-       WebId[ActorGroupEntityUuid[Uuid[String]]])])]]
-     | None[Null]), properties: ?)]) -> Boolean
+       WebId[ActorGroupEntityUuid[Uuid[String]]])])]]), properties: ?)]) -> Boolean
 
 ┌─ ::core::graph::body::filter(::core::graph::head::entities(::core::graph::tmp::decision_time_now()),
 │  #fn(vertex:0: _0«Entity[(id: EntityRecordId[(edition_id:
-│    EntityEditionId[Uuid[String]], entity_id: EntityId[(draft_id:
-│     (Some[DraftId[Uuid[String]]] | None[Null]), entity_uuid:
-│     EntityUuid[Uuid[String]], web_id:
-│     WebId[ActorGroupEntityUuid[Uuid[String]]])])], link_data:
-│   (Some[LinkData[(left_entity_id: EntityId[(draft_id:
-│      (Some[DraftId[Uuid[String]]] | None[Null]), entity_uuid:
+│    EntityEditionId[Uuid[String]], entity_id: EntityId[(draft_id: (None[Null]
+│      | Some[DraftId[Uuid[String]]]), entity_uuid: EntityUuid[Uuid[String]],
+│     web_id: WebId[ActorGroupEntityUuid[Uuid[String]]])])], link_data: (None[Null]
+│    | Some[LinkData[(left_entity_id: EntityId[(draft_id: (None[Null]
+│       | Some[DraftId[Uuid[String]]]), entity_uuid: EntityUuid[Uuid[String]],
+│      web_id: WebId[ActorGroupEntityUuid[Uuid[String]]])], right_entity_id:
+│     EntityId[(draft_id: (None[Null] | Some[DraftId[Uuid[String]]]), entity_uuid:
 │      EntityUuid[Uuid[String]], web_id:
-│      WebId[ActorGroupEntityUuid[Uuid[String]]])], right_entity_id:
-│     EntityId[(draft_id: (Some[DraftId[Uuid[String]]] | None[Null]), entity_uuid:
-│      EntityUuid[Uuid[String]], web_id:
-│      WebId[ActorGroupEntityUuid[Uuid[String]]])])]]
-│    | None[Null]), properties: ?)]»): _1«Boolean» ->
+│      WebId[ActorGroupEntityUuid[Uuid[String]]])])]]), properties: ?)]»):
+│  _1«Boolean» ->
 │      ::core::cmp::eq(vertex:0.id.entity_id.entity_uuid, #ctor(fn(Uuid[String]) ->
 │      EntityUuid[Uuid[String]], arguments: [])(#ctor(fn(String) -> Uuid[String],
 │      arguments: [])("e2851dbb-7376-4959-9bca-f72cafc4448f"))))
 └→ Graph[('marker: Entity[(id: EntityRecordId[(edition_id:
-      EntityEditionId[Uuid[String]], entity_id: EntityId[(draft_id:
-       (Some[DraftId[Uuid[String]]] | None[Null]), entity_uuid:
-       EntityUuid[Uuid[String]], web_id:
-       WebId[ActorGroupEntityUuid[Uuid[String]]])])], link_data:
-     (Some[LinkData[(left_entity_id: EntityId[(draft_id:
-        (Some[DraftId[Uuid[String]]] | None[Null]), entity_uuid:
+      EntityEditionId[Uuid[String]], entity_id: EntityId[(draft_id: (None[Null]
+        | Some[DraftId[Uuid[String]]]), entity_uuid: EntityUuid[Uuid[String]],
+       web_id: WebId[ActorGroupEntityUuid[Uuid[String]]])])], link_data:
+     (None[Null]
+      | Some[LinkData[(left_entity_id: EntityId[(draft_id: (None[Null]
+         | Some[DraftId[Uuid[String]]]), entity_uuid: EntityUuid[Uuid[String]],
+        web_id: WebId[ActorGroupEntityUuid[Uuid[String]]])], right_entity_id:
+       EntityId[(draft_id: (None[Null] | Some[DraftId[Uuid[String]]]), entity_uuid:
         EntityUuid[Uuid[String]], web_id:
-        WebId[ActorGroupEntityUuid[Uuid[String]]])], right_entity_id:
-       EntityId[(draft_id: (Some[DraftId[Uuid[String]]] | None[Null]), entity_uuid:
-        EntityUuid[Uuid[String]], web_id:
-        WebId[ActorGroupEntityUuid[Uuid[String]]])])]]
-      | None[Null]), properties: ?)])]
+        WebId[ActorGroupEntityUuid[Uuid[String]]])])]]), properties: ?)])]
 
 ┌─ ::core::graph::tail::collect(::core::graph::body::filter(::core::graph::head::entities(::core::graph::tmp::decision_time_now()),
 │  #fn(vertex:0: _0«Entity[(id: EntityRecordId[(edition_id:
-│    EntityEditionId[Uuid[String]], entity_id: EntityId[(draft_id:
-│     (Some[DraftId[Uuid[String]]] | None[Null]), entity_uuid:
-│     EntityUuid[Uuid[String]], web_id:
-│     WebId[ActorGroupEntityUuid[Uuid[String]]])])], link_data:
-│   (Some[LinkData[(left_entity_id: EntityId[(draft_id:
-│      (Some[DraftId[Uuid[String]]] | None[Null]), entity_uuid:
+│    EntityEditionId[Uuid[String]], entity_id: EntityId[(draft_id: (None[Null]
+│      | Some[DraftId[Uuid[String]]]), entity_uuid: EntityUuid[Uuid[String]],
+│     web_id: WebId[ActorGroupEntityUuid[Uuid[String]]])])], link_data: (None[Null]
+│    | Some[LinkData[(left_entity_id: EntityId[(draft_id: (None[Null]
+│       | Some[DraftId[Uuid[String]]]), entity_uuid: EntityUuid[Uuid[String]],
+│      web_id: WebId[ActorGroupEntityUuid[Uuid[String]]])], right_entity_id:
+│     EntityId[(draft_id: (None[Null] | Some[DraftId[Uuid[String]]]), entity_uuid:
 │      EntityUuid[Uuid[String]], web_id:
-│      WebId[ActorGroupEntityUuid[Uuid[String]]])], right_entity_id:
-│     EntityId[(draft_id: (Some[DraftId[Uuid[String]]] | None[Null]), entity_uuid:
-│      EntityUuid[Uuid[String]], web_id:
-│      WebId[ActorGroupEntityUuid[Uuid[String]]])])]]
-│    | None[Null]), properties: ?)]»): _1«Boolean» ->
+│      WebId[ActorGroupEntityUuid[Uuid[String]]])])]]), properties: ?)]»):
+│  _1«Boolean» ->
 │      ::core::cmp::eq(vertex:0.id.entity_id.entity_uuid, #ctor(fn(Uuid[String]) ->
 │      EntityUuid[Uuid[String]], arguments: [])(#ctor(fn(String) -> Uuid[String],
 │      arguments: [])("e2851dbb-7376-4959-9bca-f72cafc4448f")))))
 └→ List<Entity[(id: EntityRecordId[(edition_id: EntityEditionId[Uuid[String]],
-     entity_id: EntityId[(draft_id: (Some[DraftId[Uuid[String]]] | None[Null]),
+     entity_id: EntityId[(draft_id: (None[Null] | Some[DraftId[Uuid[String]]]),
       entity_uuid: EntityUuid[Uuid[String]], web_id:
-      WebId[ActorGroupEntityUuid[Uuid[String]]])])], link_data:
-    (Some[LinkData[(left_entity_id: EntityId[(draft_id:
-       (Some[DraftId[Uuid[String]]] | None[Null]), entity_uuid:
+      WebId[ActorGroupEntityUuid[Uuid[String]]])])], link_data: (None[Null]
+     | Some[LinkData[(left_entity_id: EntityId[(draft_id: (None[Null]
+        | Some[DraftId[Uuid[String]]]), entity_uuid: EntityUuid[Uuid[String]],
+       web_id: WebId[ActorGroupEntityUuid[Uuid[String]]])], right_entity_id:
+      EntityId[(draft_id: (None[Null] | Some[DraftId[Uuid[String]]]), entity_uuid:
        EntityUuid[Uuid[String]], web_id:
-       WebId[ActorGroupEntityUuid[Uuid[String]]])], right_entity_id:
-      EntityId[(draft_id: (Some[DraftId[Uuid[String]]] | None[Null]), entity_uuid:
-       EntityUuid[Uuid[String]], web_id:
-       WebId[ActorGroupEntityUuid[Uuid[String]]])])]]
-     | None[Null]), properties: ?)]>
+       WebId[ActorGroupEntityUuid[Uuid[String]]])])]]), properties: ?)]>
 

@@ -9,8 +9,8 @@
 ════ Types ═════════════════════════════════════════════════════════════════════
 
 ┌─ ::core::math::add
-└→ fn<T?25: Number, U?26: Number>(?25«Integer», ?26«Integer») -> (?26«Integer»
-    | ?25«Integer»)
+└→ fn<T?25: Number, U?26: Number>(?25«Integer», ?26«Integer») -> (?25«Integer»
+    | ?26«Integer»)
 
 ┌─ 123
 └→ Integer
