@@ -94,7 +94,10 @@ impl ReferenceTable {
                 EntityIsOfType::InheritanceDepth,
                 inheritance_depth,
             )),
-            _ => None,
+            Self::PropertyTypeConstrainsValuesOn
+            | Self::PropertyTypeConstrainsPropertiesOn
+            | Self::EntityHasLeftEntity
+            | Self::EntityHasRightEntity => None,
         }
     }
 
@@ -1646,7 +1649,32 @@ impl Column {
             | Self::EntityTypeConstrainsLinksOn(_, inheritance_depth)
             | Self::EntityTypeConstrainsLinkDestinationsOn(_, inheritance_depth)
             | Self::EntityIsOfType(_, inheritance_depth) => inheritance_depth,
-            _ => None,
+            Self::OntologyIds(_)
+            | Self::OntologyTemporalMetadata(_)
+            | Self::OntologyOwnedMetadata(_)
+            | Self::OntologyExternalMetadata(_)
+            | Self::OntologyAdditionalMetadata(_)
+            | Self::DataTypes(_)
+            | Self::DataTypeEmbeddings(_)
+            | Self::DataTypeConversions(_)
+            | Self::DataTypeConversionAggregation(_)
+            | Self::PropertyTypes(_)
+            | Self::PropertyTypeEmbeddings(_)
+            | Self::EntityTypes(_)
+            | Self::EntityTypeEmbeddings(_)
+            | Self::EntityIds(_)
+            | Self::EntityTemporalMetadata(_)
+            | Self::EntityEditions(_)
+            | Self::FirstLabelForEntity(_)
+            | Self::LastLabelForEntity(_)
+            | Self::FirstTitleForEntity(_)
+            | Self::LastTitleForEntity(_)
+            | Self::EntityEmbeddings(_)
+            | Self::PropertyTypeConstrainsValuesOn(_)
+            | Self::PropertyTypeConstrainsPropertiesOn(_)
+            | Self::EntityIsOfTypeIds(_)
+            | Self::EntityHasLeftEntity(_)
+            | Self::EntityHasRightEntity(_) => None,
         }
     }
 

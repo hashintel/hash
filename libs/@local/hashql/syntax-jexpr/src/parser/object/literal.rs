@@ -102,7 +102,12 @@ fn parse_literal<'heap>(
         TokenKind::String(value) => LiteralKind::String(StringLiteral {
             value: state.intern_symbol(value),
         }),
-        kind => {
+        kind @ (TokenKind::LBrace
+        | TokenKind::RBrace
+        | TokenKind::LBracket
+        | TokenKind::RBracket
+        | TokenKind::Colon
+        | TokenKind::Comma) => {
             return Err(literal_expected_primitive(span, kind.syntax()).map_category(From::from));
         }
     };

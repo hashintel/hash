@@ -29,7 +29,12 @@ fn skip_nested(tokenizer: &mut Tokenizer<false>, stop: &Token) {
             Token::ArrayEnd => arrays = arrays.saturating_sub(1),
             Token::Object => objects += 1,
             Token::ObjectEnd => objects = objects.saturating_sub(1),
-            _ => {}
+            Token::Null
+            | Token::Bool(_)
+            | Token::String(_)
+            | Token::Number(_)
+            | Token::Colon
+            | Token::Comma => {}
         }
     }
 }
@@ -40,6 +45,13 @@ pub(crate) fn skip_tokens(tokenizer: &mut Tokenizer<false>, start: &Token) {
     match start {
         Token::Array => skip_nested(tokenizer, &Token::ArrayEnd),
         Token::Object => skip_nested(tokenizer, &Token::ObjectEnd),
-        _ => {}
+        Token::Null
+        | Token::Bool(_)
+        | Token::String(_)
+        | Token::Number(_)
+        | Token::ObjectEnd
+        | Token::ArrayEnd
+        | Token::Colon
+        | Token::Comma => {}
     }
 }

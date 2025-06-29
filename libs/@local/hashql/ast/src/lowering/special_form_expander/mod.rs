@@ -295,7 +295,11 @@ impl<'heap> SpecialFormExpander<'heap> {
                     ExprKind::Index(_) => InvalidTypeExpressionKind::Index,
                     ExprKind::Is(_) => InvalidTypeExpressionKind::Is,
                     ExprKind::Dummy => InvalidTypeExpressionKind::Dummy,
-                    _ => unreachable!(),
+                    ExprKind::Call(_)
+                    | ExprKind::Struct(_)
+                    | ExprKind::Tuple(_)
+                    | ExprKind::Path(_)
+                    | ExprKind::Underscore => unreachable!(),
                 };
 
                 self.diagnostics
@@ -720,7 +724,23 @@ impl<'heap> SpecialFormExpander<'heap> {
 
                     continue;
                 }
-                _ => {
+                ExprKind::Call(_)
+                | ExprKind::Struct(_)
+                | ExprKind::Dict(_)
+                | ExprKind::Tuple(_)
+                | ExprKind::List(_)
+                | ExprKind::Literal(_)
+                | ExprKind::Let(_)
+                | ExprKind::Type(_)
+                | ExprKind::NewType(_)
+                | ExprKind::Use(_)
+                | ExprKind::Input(_)
+                | ExprKind::Closure(_)
+                | ExprKind::If(_)
+                | ExprKind::Field(_)
+                | ExprKind::Index(_)
+                | ExprKind::Is(_)
+                | ExprKind::Dummy => {
                     self.diagnostics.push(invalid_use_import(entry.value.span));
                     continue;
                 }
@@ -827,7 +847,22 @@ impl<'heap> SpecialFormExpander<'heap> {
             }
             ExprKind::Struct(r#struct) => self.lower_use_imports_struct(r#struct),
             ExprKind::Tuple(tuple) => self.lower_use_imports_tuple(tuple),
-            _ => {
+            ExprKind::Call(_)
+            | ExprKind::Dict(_)
+            | ExprKind::List(_)
+            | ExprKind::Literal(_)
+            | ExprKind::Let(_)
+            | ExprKind::Type(_)
+            | ExprKind::NewType(_)
+            | ExprKind::Use(_)
+            | ExprKind::Input(_)
+            | ExprKind::Closure(_)
+            | ExprKind::If(_)
+            | ExprKind::Field(_)
+            | ExprKind::Index(_)
+            | ExprKind::Is(_)
+            | ExprKind::Underscore
+            | ExprKind::Dummy => {
                 self.diagnostics
                     .push(invalid_use_import(argument.value.span));
                 None
@@ -984,7 +1019,23 @@ impl<'heap> SpecialFormExpander<'heap> {
         match argument.value.kind {
             ExprKind::Tuple(tuple) => self.lower_fn_generics_tuple(tuple),
             ExprKind::Struct(r#struct) => self.lower_fn_generics_struct(r#struct),
-            _ => {
+            ExprKind::Call(_)
+            | ExprKind::Dict(_)
+            | ExprKind::List(_)
+            | ExprKind::Literal(_)
+            | ExprKind::Path(_)
+            | ExprKind::Let(_)
+            | ExprKind::Type(_)
+            | ExprKind::NewType(_)
+            | ExprKind::Use(_)
+            | ExprKind::Input(_)
+            | ExprKind::Closure(_)
+            | ExprKind::If(_)
+            | ExprKind::Field(_)
+            | ExprKind::Index(_)
+            | ExprKind::Is(_)
+            | ExprKind::Underscore
+            | ExprKind::Dummy => {
                 self.diagnostics
                     .push(invalid_fn_generics_expression(argument.value.span));
                 None

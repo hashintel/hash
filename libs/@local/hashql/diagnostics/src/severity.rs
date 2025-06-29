@@ -266,7 +266,7 @@ impl Severity {
                     ] as &[_]
                 }
             }
-            _ => &[],
+            Self::Fatal | Self::Error | Self::Warning | Self::Note | Self::Debug => &[],
         }
     }
 
@@ -285,7 +285,7 @@ impl Severity {
                     )] as &[_]
                 }
             }
-            _ => &[],
+            Self::Fatal | Self::Error | Self::Warning | Self::Note | Self::Debug => &[],
         }
     }
 

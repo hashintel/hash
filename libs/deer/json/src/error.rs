@@ -267,7 +267,20 @@ pub(crate) fn convert_tokenizer_error(error: &justjson::Error) -> Report<deer::e
         ErrorKind::UnclosedString => SyntaxError::UnclosedString.into_error(),
         ErrorKind::ExpectedString => SyntaxError::ExpectedString.into_error(),
         ErrorKind::ExpectedNumber => SyntaxError::ExpectedNumber.into_error(),
-        kind => NativeError(kind.clone()).into_error(),
+        kind @ (ErrorKind::ExpectedObjectKey
+        | ErrorKind::ExpectedValue
+        | ErrorKind::ExpectedCommaOrEndOfObject
+        | ErrorKind::ExpectedCommaOrEndOfArray
+        | ErrorKind::IllegalTrailingComma
+        | ErrorKind::TrailingNonWhitespace
+        | ErrorKind::ObjectKeysMustBeStrings
+        | ErrorKind::UnclosedObject
+        | ErrorKind::UnclosedArray
+        | ErrorKind::RecursionLimitReached
+        | ErrorKind::PayloadsShouldBeObjectOrArray
+        | ErrorKind::PaylodTooLarge
+        | ErrorKind::ErrorFromDelegate(_)
+        | _) => NativeError(kind.clone()).into_error(),
     };
 
     Report::new(error).attach(Position::new(offset))

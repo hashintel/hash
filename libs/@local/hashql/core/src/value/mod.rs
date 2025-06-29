@@ -195,7 +195,9 @@ impl<'heap> Value<'heap> {
             Self::Struct(r#struct) => r#struct.get(field).map_err(FieldAccessError::Struct),
             Self::Tuple(tuple) => tuple.get(field).map_err(FieldAccessError::Tuple),
             Self::Opaque(opaque) => opaque.value().access_by_field(field),
-            _ => Err(FieldAccessError::UnableToAccess(self.type_name(), field)),
+            Self::Primitive(_) | Self::List(_) | Self::Dict(_) => {
+                Err(FieldAccessError::UnableToAccess(self.type_name(), field))
+            }
         }
     }
 
@@ -267,7 +269,14 @@ impl<'heap> Value<'heap> {
                     {
                         integer
                     }
-                    _ => return Err(IndexAccessError::InvalidListIndexType(index.type_name())),
+                    Self::Primitive(_)
+                    | Self::Struct(_)
+                    | Self::Tuple(_)
+                    | Self::List(_)
+                    | Self::Dict(_)
+                    | Self::Opaque(_) => {
+                        return Err(IndexAccessError::InvalidListIndexType(index.type_name()));
+                    }
                 };
 
                 let Some(index) = integer.as_usize() else {
@@ -278,7 +287,9 @@ impl<'heap> Value<'heap> {
             }
             Value::Dict(dict) => Ok(dict.get(index)),
             Value::Opaque(opaque) => opaque.value().access_by_index(index),
-            _ => Err(IndexAccessError::UnableToAccess(self.type_name())),
+            Value::Primitive(_) | Value::Struct(_) | Value::Tuple(_) => {
+                Err(IndexAccessError::UnableToAccess(self.type_name()))
+            }
         }
     }
 }

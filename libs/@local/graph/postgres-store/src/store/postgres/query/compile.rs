@@ -544,7 +544,31 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                             Table::EntityEmbeddings => {
                                 Column::EntityEmbeddings(EntityEmbeddings::Distance)
                             }
-                            _ => bail!(SelectCompilerError::UnsupportedEmbeddingPath),
+                            Table::OntologyIds
+                            | Table::OntologyTemporalMetadata
+                            | Table::OntologyOwnedMetadata
+                            | Table::OntologyExternalMetadata
+                            | Table::OntologyAdditionalMetadata
+                            | Table::DataTypes
+                            | Table::DataTypeConversions
+                            | Table::DataTypeConversionAggregation
+                            | Table::PropertyTypes
+                            | Table::EntityTypes
+                            | Table::FirstTitleForEntity
+                            | Table::LastTitleForEntity
+                            | Table::FirstLabelForEntity
+                            | Table::LastLabelForEntity
+                            | Table::EntityIds
+                            | Table::EntityDrafts
+                            | Table::EntityTemporalMetadata
+                            | Table::EntityEditions
+                            | Table::EntityIsOfType
+                            | Table::EntityIsOfTypeIds
+                            | Table::EntityHasLeftEntity
+                            | Table::EntityHasRightEntity
+                            | Table::Reference(_) => {
+                                bail!(SelectCompilerError::UnsupportedEmbeddingPath)
+                            }
                         },
                         table_alias: Some(path_alias),
                     };
@@ -575,7 +599,29 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                                 Column::EntityEmbeddings(EntityEmbeddings::WebId),
                                 Column::EntityEmbeddings(EntityEmbeddings::EntityUuid),
                             ],
-                            _ => unreachable!(),
+                            Table::OntologyIds
+                            | Table::OntologyTemporalMetadata
+                            | Table::OntologyOwnedMetadata
+                            | Table::OntologyExternalMetadata
+                            | Table::OntologyAdditionalMetadata
+                            | Table::DataTypes
+                            | Table::DataTypeConversions
+                            | Table::DataTypeConversionAggregation
+                            | Table::PropertyTypes
+                            | Table::EntityTypes
+                            | Table::FirstTitleForEntity
+                            | Table::LastTitleForEntity
+                            | Table::FirstLabelForEntity
+                            | Table::LastLabelForEntity
+                            | Table::EntityIds
+                            | Table::EntityDrafts
+                            | Table::EntityTemporalMetadata
+                            | Table::EntityEditions
+                            | Table::EntityIsOfType
+                            | Table::EntityIsOfTypeIds
+                            | Table::EntityHasLeftEntity
+                            | Table::EntityHasRightEntity
+                            | Table::Reference(_) => unreachable!(),
                         };
 
                         last_join.statement = Some(SelectStatement {
@@ -822,7 +868,18 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 },
                 _ => None,
             },
-            _ => None,
+            Filter::All(_)
+            | Filter::Any(_)
+            | Filter::Not(_)
+            | Filter::Greater(..)
+            | Filter::GreaterOrEqual(..)
+            | Filter::Less(..)
+            | Filter::LessOrEqual(..)
+            | Filter::CosineDistance(..)
+            | Filter::In(..)
+            | Filter::StartsWith(..)
+            | Filter::EndsWith(..)
+            | Filter::ContainsSegment(..) => None,
         }
     }
 

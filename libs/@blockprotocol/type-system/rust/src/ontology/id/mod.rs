@@ -435,7 +435,10 @@ impl FromStr for VersionedUrl {
                                     )
                                 }
                             }
-                            _ => ParseVersionedUrlError::InvalidVersion(
+                            IntErrorKind::PosOverflow
+                            | IntErrorKind::NegOverflow
+                            | IntErrorKind::Zero
+                            | _ => ParseVersionedUrlError::InvalidVersion(
                                 version.to_owned(),
                                 error.to_string(),
                             ),

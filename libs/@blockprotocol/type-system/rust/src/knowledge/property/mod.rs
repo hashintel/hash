@@ -501,13 +501,13 @@ impl Property {
                 PropertyPathElement::Property(key) => {
                     value = match value {
                         Self::Object(object) => object.properties().get(&key)?,
-                        _ => return None,
+                        Self::Array(_) | Self::Value(_) => return None,
                     };
                 }
                 PropertyPathElement::Index(index) => {
                     value = match value {
                         Self::Array(array) => array.get(index)?,
-                        _ => return None,
+                        Self::Object(_) | Self::Value(_) => return None,
                     };
                 }
             }

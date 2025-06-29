@@ -112,7 +112,10 @@ impl<'a, 'de> Deserializer<'a, 'de> {
         match token {
             ValueToken::Object => skip_tokens(&mut self.tokenizer, &Token::Object),
             ValueToken::Array => skip_tokens(&mut self.tokenizer, &Token::Array),
-            _ => {}
+            ValueToken::Null
+            | ValueToken::Bool(_)
+            | ValueToken::String(_)
+            | ValueToken::Number(_) => {}
         }
     }
 
@@ -222,7 +225,11 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
 
         match token {
             ValueToken::Null => visitor.visit_null().change_context(DeserializerError),
-            token => Err(self.error_invalid_type(&token, <()>::reflection())),
+            token @ (ValueToken::Bool(_)
+            | ValueToken::String(_)
+            | ValueToken::Number(_)
+            | ValueToken::Object
+            | ValueToken::Array) => Err(self.error_invalid_type(&token, <()>::reflection())),
         }
     }
 
@@ -234,7 +241,11 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
 
         match token {
             ValueToken::Bool(value) => visitor.visit_bool(value).change_context(DeserializerError),
-            token => Err(self.error_invalid_type(&token, bool::reflection())),
+            token @ (ValueToken::Null
+            | ValueToken::String(_)
+            | ValueToken::Number(_)
+            | ValueToken::Object
+            | ValueToken::Array) => Err(self.error_invalid_type(&token, bool::reflection())),
         }
     }
 
@@ -248,7 +259,11 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
             ValueToken::Number(value) => visitor
                 .visit_number(try_convert_number(&value).change_context(DeserializerError)?)
                 .change_context(DeserializerError),
-            token => Err(self.error_invalid_type(&token, Number::reflection())),
+            token @ (ValueToken::Null
+            | ValueToken::Bool(_)
+            | ValueToken::String(_)
+            | ValueToken::Object
+            | ValueToken::Array) => Err(self.error_invalid_type(&token, Number::reflection())),
         }
     }
 
@@ -278,7 +293,11 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
                 AnyStr::Borrowed(value) => visitor.visit_borrowed_str(value),
             }
             .change_context(DeserializerError),
-            token => Err(self.error_invalid_type(&token, str::document())),
+            token @ (ValueToken::Null
+            | ValueToken::Bool(_)
+            | ValueToken::Number(_)
+            | ValueToken::Object
+            | ValueToken::Array) => Err(self.error_invalid_type(&token, str::document())),
         }
     }
 
@@ -306,7 +325,13 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
             ValueToken::Array => visitor
                 .visit_array(ArrayAccess::new(self)?)
                 .change_context(DeserializerError),
-            token => Err(self.error_invalid_type(&token, ValueToken::Array.schema())),
+            token @ (ValueToken::Null
+            | ValueToken::Bool(_)
+            | ValueToken::String(_)
+            | ValueToken::Number(_)
+            | ValueToken::Object) => {
+                Err(self.error_invalid_type(&token, ValueToken::Array.schema()))
+            }
         }
     }
 
@@ -320,7 +345,13 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
             ValueToken::Object => visitor
                 .visit_object(ObjectAccess::new(self)?)
                 .change_context(DeserializerError),
-            token => Err(self.error_invalid_type(&token, ValueToken::Object.schema())),
+            token @ (ValueToken::Null
+            | ValueToken::Bool(_)
+            | ValueToken::String(_)
+            | ValueToken::Number(_)
+            | ValueToken::Array) => {
+                Err(self.error_invalid_type(&token, ValueToken::Object.schema()))
+            }
         }
     }
 
@@ -443,7 +474,13 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
                 .visit_object(ObjectAccess::new(self)?)
                 .change_context(DeserializerError),
 
-            token => Err(self.error_invalid_type(&token, ValueToken::Object.schema())),
+            token @ (ValueToken::Null
+            | ValueToken::Bool(_)
+            | ValueToken::String(_)
+            | ValueToken::Number(_)
+            | ValueToken::Array) => {
+                Err(self.error_invalid_type(&token, ValueToken::Object.schema()))
+            }
         }
     }
 
@@ -460,7 +497,11 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
             }
             .change_context(DeserializerError),
 
-            token => Err(self.error_invalid_type(&token, str::document())),
+            token @ (ValueToken::Null
+            | ValueToken::Bool(_)
+            | ValueToken::Number(_)
+            | ValueToken::Object
+            | ValueToken::Array) => Err(self.error_invalid_type(&token, str::document())),
         }
     }
 }

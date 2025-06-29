@@ -104,7 +104,20 @@ impl PolicyExpressionTree {
                 arg2,
             } => Self::from_contains(arg1, arg2)
                 .change_context(ParseExpressionError::ContainsExpression),
-            _ => Err(Report::new(ParseExpressionError::Unexpected)),
+            ast::ExprKind::Lit(_)
+            | ast::ExprKind::Var(_)
+            | ast::ExprKind::Slot(_)
+            | ast::ExprKind::Unknown(_)
+            | ast::ExprKind::If { .. }
+            | ast::ExprKind::UnaryApp { .. }
+            | ast::ExprKind::BinaryApp { .. }
+            | ast::ExprKind::ExtensionFunctionApp { .. }
+            | ast::ExprKind::GetAttr { .. }
+            | ast::ExprKind::HasAttr { .. }
+            | ast::ExprKind::Like { .. }
+            | ast::ExprKind::Is { .. }
+            | ast::ExprKind::Set(_)
+            | ast::ExprKind::Record(_) => Err(Report::new(ParseExpressionError::Unexpected)),
         }
         .attach_printable_lazy(|| expr.clone())
     }
@@ -123,12 +136,26 @@ impl PolicyExpressionTree {
 
         let mut all = match lhs {
             Self::All(expressions) => expressions,
-            expression => vec![expression],
+            expression @ (Self::Not(_)
+            | Self::Any(_)
+            | Self::Is(_)
+            | Self::In(_)
+            | Self::BaseUrl(_)
+            | Self::OntologyTypeVersion(_)
+            | Self::IsOfType(_)
+            | Self::CreatedByPrincipal) => vec![expression],
         };
 
         match rhs {
             Self::All(expressions) => all.extend(expressions),
-            expression => all.push(expression),
+            expression @ (Self::Not(_)
+            | Self::Any(_)
+            | Self::Is(_)
+            | Self::In(_)
+            | Self::BaseUrl(_)
+            | Self::OntologyTypeVersion(_)
+            | Self::IsOfType(_)
+            | Self::CreatedByPrincipal) => all.push(expression),
         }
 
         if all.len() == 1 {
@@ -148,12 +175,26 @@ impl PolicyExpressionTree {
 
         let mut any = match lhs {
             Self::Any(expressions) => expressions,
-            expression => vec![expression],
+            expression @ (Self::Not(_)
+            | Self::All(_)
+            | Self::Is(_)
+            | Self::In(_)
+            | Self::BaseUrl(_)
+            | Self::OntologyTypeVersion(_)
+            | Self::IsOfType(_)
+            | Self::CreatedByPrincipal) => vec![expression],
         };
 
         match rhs {
             Self::Any(expressions) => any.extend(expressions),
-            expression => any.push(expression),
+            expression @ (Self::Not(_)
+            | Self::All(_)
+            | Self::Is(_)
+            | Self::In(_)
+            | Self::BaseUrl(_)
+            | Self::OntologyTypeVersion(_)
+            | Self::IsOfType(_)
+            | Self::CreatedByPrincipal) => any.push(expression),
         }
 
         if any.len() == 1 {
@@ -173,8 +214,24 @@ impl PolicyExpressionTree {
                 _ => Err(Report::new(ParseGetAttrExpressionError::NoPrincipalId)
                     .attach_printable(Arc::clone(expr))),
             },
-            _ => Err(Report::new(ParseGetAttrExpressionError::NoPrincipalId)
-                .attach_printable(Arc::clone(expr))),
+            ast::ExprKind::Lit(_)
+            | ast::ExprKind::Var(_)
+            | ast::ExprKind::Slot(_)
+            | ast::ExprKind::Unknown(_)
+            | ast::ExprKind::If { .. }
+            | ast::ExprKind::And { .. }
+            | ast::ExprKind::Or { .. }
+            | ast::ExprKind::UnaryApp { .. }
+            | ast::ExprKind::BinaryApp { .. }
+            | ast::ExprKind::ExtensionFunctionApp { .. }
+            | ast::ExprKind::HasAttr { .. }
+            | ast::ExprKind::Like { .. }
+            | ast::ExprKind::Is { .. }
+            | ast::ExprKind::Set(_)
+            | ast::ExprKind::Record(_) => {
+                Err(Report::new(ParseGetAttrExpressionError::NoPrincipalId)
+                    .attach_printable(Arc::clone(expr)))
+            }
         }
     }
 
@@ -184,8 +241,25 @@ impl PolicyExpressionTree {
         match expr.expr_kind() {
             ast::ExprKind::Var(ast::Var::Resource) => Ok(()),
             ast::ExprKind::Unknown(unknown) if unknown.name == "resource" => Ok(()),
-            _ => Err(Report::new(ParseGetAttrExpressionError::NoResourceVariable)
-                .attach_printable(Arc::clone(expr))),
+            ast::ExprKind::Lit(_)
+            | ast::ExprKind::Var(_)
+            | ast::ExprKind::Slot(_)
+            | ast::ExprKind::Unknown(_)
+            | ast::ExprKind::If { .. }
+            | ast::ExprKind::And { .. }
+            | ast::ExprKind::Or { .. }
+            | ast::ExprKind::UnaryApp { .. }
+            | ast::ExprKind::BinaryApp { .. }
+            | ast::ExprKind::ExtensionFunctionApp { .. }
+            | ast::ExprKind::GetAttr { .. }
+            | ast::ExprKind::HasAttr { .. }
+            | ast::ExprKind::Like { .. }
+            | ast::ExprKind::Is { .. }
+            | ast::ExprKind::Set(_)
+            | ast::ExprKind::Record(_) => {
+                Err(Report::new(ParseGetAttrExpressionError::NoResourceVariable)
+                    .attach_printable(Arc::clone(expr)))
+            }
         }
     }
 
@@ -201,7 +275,22 @@ impl PolicyExpressionTree {
             ast::ExprKind::Lit(ast::Literal::EntityUID(euid)) => WebId::from_euid(euid)
                 .change_context(ParseBinaryExpressionError::Right)
                 .map(Self::In),
-            _ => Err(Report::new(ParseExpressionError::Unexpected)
+            ast::ExprKind::Lit(_)
+            | ast::ExprKind::Var(_)
+            | ast::ExprKind::Slot(_)
+            | ast::ExprKind::Unknown(_)
+            | ast::ExprKind::If { .. }
+            | ast::ExprKind::And { .. }
+            | ast::ExprKind::Or { .. }
+            | ast::ExprKind::UnaryApp { .. }
+            | ast::ExprKind::BinaryApp { .. }
+            | ast::ExprKind::ExtensionFunctionApp { .. }
+            | ast::ExprKind::GetAttr { .. }
+            | ast::ExprKind::HasAttr { .. }
+            | ast::ExprKind::Like { .. }
+            | ast::ExprKind::Is { .. }
+            | ast::ExprKind::Set(_)
+            | ast::ExprKind::Record(_) => Err(Report::new(ParseExpressionError::Unexpected)
                 .change_context(ParseBinaryExpressionError::Right)),
         }
         .attach_printable(Arc::clone(rhs))
@@ -239,7 +328,21 @@ impl PolicyExpressionTree {
             ast::ExprKind::Unknown(unknown) if unknown.name == "resource" => {
                 AttributeType::Resource
             }
-            _ => {
+            ast::ExprKind::Lit(_)
+            | ast::ExprKind::Var(_)
+            | ast::ExprKind::Slot(_)
+            | ast::ExprKind::Unknown(_)
+            | ast::ExprKind::If { .. }
+            | ast::ExprKind::And { .. }
+            | ast::ExprKind::Or { .. }
+            | ast::ExprKind::UnaryApp { .. }
+            | ast::ExprKind::BinaryApp { .. }
+            | ast::ExprKind::ExtensionFunctionApp { .. }
+            | ast::ExprKind::HasAttr { .. }
+            | ast::ExprKind::Like { .. }
+            | ast::ExprKind::Is { .. }
+            | ast::ExprKind::Set(_)
+            | ast::ExprKind::Record(_) => {
                 return Err(
                     Report::new(ParseBinaryExpressionError::Left).attach_printable(Arc::clone(lhs))
                 );
@@ -304,7 +407,21 @@ impl PolicyExpressionTree {
                     .attach_printable_lazy(|| Arc::clone(lhs))?;
                 attr_type
             }
-            _ => {
+            ast::ExprKind::Lit(_)
+            | ast::ExprKind::Var(_)
+            | ast::ExprKind::Slot(_)
+            | ast::ExprKind::Unknown(_)
+            | ast::ExprKind::If { .. }
+            | ast::ExprKind::And { .. }
+            | ast::ExprKind::Or { .. }
+            | ast::ExprKind::UnaryApp { .. }
+            | ast::ExprKind::BinaryApp { .. }
+            | ast::ExprKind::ExtensionFunctionApp { .. }
+            | ast::ExprKind::HasAttr { .. }
+            | ast::ExprKind::Like { .. }
+            | ast::ExprKind::Is { .. }
+            | ast::ExprKind::Set(_)
+            | ast::ExprKind::Record(_) => {
                 return Err(
                     Report::new(ParseBinaryExpressionError::Left).attach_printable(Arc::clone(lhs))
                 );

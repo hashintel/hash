@@ -356,7 +356,13 @@ where
             .map(|row| match row.get(0) {
                 PrincipalType::Web => ActorGroupId::Web(WebId::new(id)),
                 PrincipalType::Team => ActorGroupId::Team(TeamId::new(id)),
-                principal_type => unreachable!("Unexpected actor group type: {principal_type:?}"),
+                principal_type @ (PrincipalType::User
+                | PrincipalType::Machine
+                | PrincipalType::Ai
+                | PrincipalType::WebRole
+                | PrincipalType::TeamRole) => {
+                    unreachable!("Unexpected actor group type: {principal_type:?}")
+                }
             })
             .change_context(PrincipalError::StoreError)
     }
@@ -495,7 +501,11 @@ where
             .map_ok(|row| match row.get(0) {
                 PrincipalType::Web => ActorGroupId::Web(row.get(1)),
                 PrincipalType::Team => ActorGroupId::Team(row.get(1)),
-                principal_type => {
+                principal_type @ (PrincipalType::User
+                | PrincipalType::Machine
+                | PrincipalType::Ai
+                | PrincipalType::WebRole
+                | PrincipalType::TeamRole) => {
                     unreachable!("Unexpected principal type {principal_type}")
                 }
             })
@@ -763,7 +773,13 @@ where
                             name: row.get(3),
                         }),
                     ),
-                    principal_type => unreachable!("Unexpected role type: {principal_type:?}"),
+                    principal_type @ (PrincipalType::User
+                    | PrincipalType::Machine
+                    | PrincipalType::Ai
+                    | PrincipalType::Web
+                    | PrincipalType::Team) => {
+                        unreachable!("Unexpected role type: {principal_type:?}")
+                    }
                 }
             })
             .try_collect()
@@ -805,7 +821,12 @@ where
                 PrincipalType::User => ActorId::User(row.get(1)),
                 PrincipalType::Machine => ActorId::Machine(row.get(1)),
                 PrincipalType::Ai => ActorId::Ai(row.get(1)),
-                principal_type => unreachable!("Unexpected principal type: {principal_type:?}"),
+                principal_type @ (PrincipalType::Web
+                | PrincipalType::Team
+                | PrincipalType::WebRole
+                | PrincipalType::TeamRole) => {
+                    unreachable!("Unexpected principal type: {principal_type:?}")
+                }
             })
             .try_collect()
             .await

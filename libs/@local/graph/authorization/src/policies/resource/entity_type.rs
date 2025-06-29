@@ -143,7 +143,12 @@ impl TryFrom<PolicyExpressionTree> for EntityTypeResourceFilter {
             }),
             PolicyExpressionTree::BaseUrl(base_url) => Ok(Self::IsBaseUrl { base_url }),
             PolicyExpressionTree::OntologyTypeVersion(version) => Ok(Self::IsVersion { version }),
-            condition => Err(Report::new(InvalidEntityTypeResourceFilter(condition))),
+            condition @ (PolicyExpressionTree::Is(_)
+            | PolicyExpressionTree::In(_)
+            | PolicyExpressionTree::IsOfType(_)
+            | PolicyExpressionTree::CreatedByPrincipal) => {
+                Err(Report::new(InvalidEntityTypeResourceFilter(condition)))
+            }
         }
     }
 }

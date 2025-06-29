@@ -77,7 +77,7 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
             Token::Array { length } => visitor.visit_array(ArrayAccess::new(self, length)),
             Token::Object { length } => visitor.visit_object(ObjectAccess::new(self, length)),
             Token::Null => visitor.visit_null(),
-            _ => {
+            Token::ArrayEnd | Token::ObjectEnd => {
                 panic!("Deserializer did not expect {token}");
             }
         }
@@ -96,7 +96,21 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
                 self.next();
                 visitor.visit_null()
             }
-            _ => visitor.visit_some(self),
+            Token::Bool(_)
+            | Token::Number(_)
+            | Token::U128(_)
+            | Token::I128(_)
+            | Token::Char(_)
+            | Token::Str(_)
+            | Token::BorrowedStr(_)
+            | Token::String(_)
+            | Token::Bytes(_)
+            | Token::BorrowedBytes(_)
+            | Token::BytesBuf(_)
+            | Token::Array { .. }
+            | Token::ArrayEnd
+            | Token::Object { .. }
+            | Token::ObjectEnd => visitor.visit_some(self),
         }
         .change_context(DeserializerError)
     }
@@ -133,7 +147,20 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
             Token::Object { length } => visitor
                 .visit_object(ObjectAccess::new(self, length))
                 .change_context(DeserializerError),
-            other => Err(Report::new(TypeError.into_error())
+            other @ (Token::Bool(_)
+            | Token::Number(_)
+            | Token::U128(_)
+            | Token::I128(_)
+            | Token::Char(_)
+            | Token::Str(_)
+            | Token::BorrowedStr(_)
+            | Token::String(_)
+            | Token::Bytes(_)
+            | Token::BorrowedBytes(_)
+            | Token::BytesBuf(_)
+            | Token::ArrayEnd
+            | Token::ObjectEnd
+            | Token::Null) => Err(Report::new(TypeError.into_error())
                 .attach(ExpectedType::new(visitor.expecting()))
                 .attach(ReceivedType::new(other.schema()))
                 .change_context(DeserializerError)),
@@ -188,7 +215,13 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
                     visitor.visit_u64(value).change_context(DeserializerError)
                 }
             }
-            token => {
+            token @ (Token::Bool(_)
+            | Token::Char(_)
+            | Token::Array { .. }
+            | Token::ArrayEnd
+            | Token::Object { .. }
+            | Token::ObjectEnd
+            | Token::Null) => {
                 skip_tokens(self, &token);
 
                 Err(Report::new(TypeError.into_error())

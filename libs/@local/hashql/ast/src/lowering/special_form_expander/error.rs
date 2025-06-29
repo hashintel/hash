@@ -492,7 +492,20 @@ pub(crate) fn invalid_type_expression(
         InvalidTypeExpressionKind::If => {
             Cow::Borrowed("Replace this conditional with a concrete type")
         }
-        _ => Cow::Owned(format!("Replace this {kind} with a proper type expression")),
+        InvalidTypeExpressionKind::Dict
+        | InvalidTypeExpressionKind::List
+        | InvalidTypeExpressionKind::Let
+        | InvalidTypeExpressionKind::Type
+        | InvalidTypeExpressionKind::NewType
+        | InvalidTypeExpressionKind::Use
+        | InvalidTypeExpressionKind::Input
+        | InvalidTypeExpressionKind::Closure
+        | InvalidTypeExpressionKind::Field
+        | InvalidTypeExpressionKind::Index
+        | InvalidTypeExpressionKind::Is
+        | InvalidTypeExpressionKind::Dummy => {
+            Cow::Owned(format!("Replace this {kind} with a proper type expression"))
+        }
     };
 
     diagnostic.labels.push(Label::new(span, message));
@@ -509,7 +522,19 @@ pub(crate) fn invalid_type_expression(
         InvalidTypeExpressionKind::If => {
             "HashQL does not support conditional types. Use a concrete type like Int or String."
         }
-        _ => "Replace this expression with a valid type reference, struct type, or tuple type",
+        InvalidTypeExpressionKind::Literal
+        | InvalidTypeExpressionKind::Let
+        | InvalidTypeExpressionKind::Type
+        | InvalidTypeExpressionKind::NewType
+        | InvalidTypeExpressionKind::Use
+        | InvalidTypeExpressionKind::Input
+        | InvalidTypeExpressionKind::Closure
+        | InvalidTypeExpressionKind::Field
+        | InvalidTypeExpressionKind::Index
+        | InvalidTypeExpressionKind::Is
+        | InvalidTypeExpressionKind::Dummy => {
+            "Replace this expression with a valid type reference, struct type, or tuple type"
+        }
     };
 
     diagnostic.add_help(Help::new(help_text));

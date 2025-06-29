@@ -123,7 +123,7 @@ impl<'heap> ModuleDef<'heap> {
     fn expect_type(&self, name: Symbol<'heap>) -> TypeDef<'heap> {
         match self.expect(name).def {
             ItemDef::Type(type_def) => type_def,
-            _ => panic!("expected type definition"),
+            ItemDef::Newtype(_) | ItemDef::Intrinsic(_) => panic!("expected type definition"),
         }
     }
 
@@ -131,7 +131,7 @@ impl<'heap> ModuleDef<'heap> {
     fn expect_newtype(&self, name: Symbol<'heap>) -> TypeDef<'heap> {
         match self.expect(name).def {
             ItemDef::Newtype(newtype_def) => newtype_def,
-            _ => panic!("expected newtype definition"),
+            ItemDef::Type(_) | ItemDef::Intrinsic(_) => panic!("expected newtype definition"),
         }
     }
 }

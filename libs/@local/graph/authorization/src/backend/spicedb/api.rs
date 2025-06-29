@@ -273,7 +273,9 @@ impl ZanzibarBackend for SpiceDbOpenApi {
                             //       current: 10ms, 40ms, 90ms
                             sleep(core::time::Duration::from_millis(10) * attempt * attempt).await;
                         }
-                        _ => break Err(report),
+                        InvocationError::Request
+                        | InvocationError::Response
+                        | InvocationError::Api(_) => break Err(report),
                     },
                 }
             }

@@ -113,7 +113,9 @@ async fn test_root_sorting<A: AuthorizationApi>(
                 GraphElementVertexId::KnowledgeGraph(entity_vertex_id) => {
                     subgraph.vertices.entities.remove(&entity_vertex_id)
                 }
-                _ => unreachable!(),
+                GraphElementVertexId::DataType(_)
+                | GraphElementVertexId::PropertyType(_)
+                | GraphElementVertexId::EntityType(_) => unreachable!(),
             })
             .collect::<Vec<_>>();
         assert_eq!(count, Some(expected_order.len()));

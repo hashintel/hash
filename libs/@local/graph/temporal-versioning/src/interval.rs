@@ -475,7 +475,7 @@ where
                 BoundType::End,
                 PartialOrd::partial_cmp,
             ),
-            ordering => Some(ordering),
+            ordering @ (Ordering::Less | Ordering::Greater) => Some(ordering),
         }
     }
 }

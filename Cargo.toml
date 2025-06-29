@@ -358,7 +358,6 @@ multiple_inherent_impl  = "allow"
 panic                   = "allow"
 partial_pub_fields      = "allow"
 unwrap_in_result        = "allow"
-wildcard_enum_match_arm = "allow"
 
 # Consider enabling:
 default_numeric_fallback      = "allow"
