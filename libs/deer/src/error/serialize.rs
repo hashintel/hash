@@ -91,9 +91,9 @@ impl<'a> StackEntry<'a> {
             return EitherIterator::Left(once(StackEntry { head, next: None }));
         };
 
-        while next.sources().len() == 1 {
+        while let [source] = next.sources() {
             head.push(next);
-            next = &next.sources()[0];
+            next = source;
         }
 
         head.push(next);

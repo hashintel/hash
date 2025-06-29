@@ -50,7 +50,14 @@ impl<'de, T: Deserialize<'de>, const N: usize> Visitor<'de> for ArrayVisitor<'de
                     unreachable!()
                 }
                 Some(Ok(value)) if !failed => {
-                    this[index].write(value);
+                    this.get_mut(index)
+                        .unwrap_or_else(|| {
+                            unreachable!(
+                                "`ArrayAccess::next` returned more items than expected, this is a \
+                                 bug in the implementation of the `ArrayAccess` trait"
+                            )
+                        })
+                        .write(value);
                     index += 1;
                 }
                 Some(Ok(_)) => {

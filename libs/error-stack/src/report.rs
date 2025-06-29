@@ -403,9 +403,12 @@ impl<C> Report<C> {
     /// [`frames()`]: Self::frames
     #[must_use]
     pub fn current_frame(&self) -> &Frame {
-        // this never fails, because one cannot push an additional frame without making it a
-        // `Report<[C]>`
-        &self.frames[0]
+        self.frames.first().unwrap_or_else(|| {
+            unreachable!(
+                "Report does not contain any frames. This should not happen as a Report must \
+                 always contain at least one frame. Report:\n{self:?}",
+            )
+        })
     }
 
     /// Returns the current context of the `Report`.

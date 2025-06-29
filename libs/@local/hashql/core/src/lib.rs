@@ -2,6 +2,7 @@
 //!
 //! ## Workspace dependencies
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
+#![expect(clippy::indexing_slicing)]
 #![feature(
     // Library Features
     allocator_api,
@@ -13,6 +14,7 @@
     iter_map_windows,
     slice_partition_dedup,
     variant_count,
+
     // Language Features
     arbitrary_self_types,
     associated_type_defaults,

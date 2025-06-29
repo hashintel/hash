@@ -2,6 +2,7 @@
 //!
 //! ## Workspace dependencies
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
+#![expect(clippy::indexing_slicing)]
 #![feature(trait_alias, variant_count, int_from_ascii)]
 
 extern crate alloc;
