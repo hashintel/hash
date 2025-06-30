@@ -407,10 +407,13 @@ mod test {
 
         match diagnostic.category {
             LexerDiagnosticCategory::InvalidNumber => {}
-            _ => panic!(
-                "Expected InvalidNumber error, got {:?}",
-                diagnostic.category
-            ),
+            category @ (LexerDiagnosticCategory::InvalidString
+            | LexerDiagnosticCategory::InvalidCharacter
+            | LexerDiagnosticCategory::InvalidUtf8
+            | LexerDiagnosticCategory::UnexpectedEof
+            | LexerDiagnosticCategory::UnexpectedToken) => {
+                panic!("Expected InvalidNumber error, got {category:?}")
+            }
         }
     }
 

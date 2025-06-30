@@ -118,10 +118,22 @@ impl TypeCollection {
         self.ordered_keys.iter().map(|key| {
             (
                 TypeId::from_specta(key.id),
-                self.collection
-                    .get(key.id)
-                    .unwrap_or_else(|| unreachable!()),
-                &self.types[&TypeId::from_specta(key.id)],
+                self.collection.get(key.id).unwrap_or_else(|| {
+                    unreachable!(
+                        "TypeCollection should contain a data type for every key in \
+                         `ordered_keys` but did not find one for `{}`",
+                        key.name
+                    )
+                }),
+                self.types
+                    .get(&TypeId::from_specta(key.id))
+                    .unwrap_or_else(|| {
+                        unreachable!(
+                            "`TypeCollection` should contain a type for every key in \
+                             `ordered_keys` but did not find one for `{}`",
+                            key.name,
+                        )
+                    }),
             )
         })
     }

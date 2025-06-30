@@ -202,6 +202,10 @@ impl<C: AsClient, A: Send + Sync> PostgresStore<C, A> {
                 let right_endpoint_ontology_id = row.get(5);
                 (
                     right_endpoint_ontology_id,
+                    #[expect(
+                        clippy::indexing_slicing,
+                        reason = "index is guaranteed to be in bounds"
+                    )]
                     OntologyEdgeTraversal {
                         left_endpoint: L::from(VersionedUrl {
                             base_url: row.get(1),

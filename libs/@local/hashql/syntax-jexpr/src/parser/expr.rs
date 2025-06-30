@@ -31,7 +31,14 @@ pub(crate) fn parse_expr<'heap>(
         }
         SyntaxKind::LBracket => parse_array(state, token),
         SyntaxKind::LBrace => parse_object(state, token),
-        _ => {
+        SyntaxKind::Number
+        | SyntaxKind::True
+        | SyntaxKind::False
+        | SyntaxKind::Null
+        | SyntaxKind::Comma
+        | SyntaxKind::Colon
+        | SyntaxKind::RBrace
+        | SyntaxKind::RBracket => {
             unreachable!()
         }
     }

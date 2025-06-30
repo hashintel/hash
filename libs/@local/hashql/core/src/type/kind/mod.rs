@@ -77,7 +77,19 @@ impl<'heap> TypeKind<'heap> {
     pub const fn opaque(&self) -> Option<&OpaqueType<'heap>> {
         match self {
             Self::Opaque(r#type) => Some(r#type),
-            _ => None,
+            Self::Primitive(_)
+            | Self::Intrinsic(_)
+            | Self::Struct(_)
+            | Self::Tuple(_)
+            | Self::Union(_)
+            | Self::Intersection(_)
+            | Self::Closure(_)
+            | Self::Apply(_)
+            | Self::Generic(_)
+            | Self::Param(_)
+            | Self::Infer(_)
+            | Self::Never
+            | Self::Unknown => None,
         }
     }
 
@@ -85,7 +97,19 @@ impl<'heap> TypeKind<'heap> {
     pub const fn primitive(&self) -> Option<&PrimitiveType> {
         match self {
             Self::Primitive(r#type) => Some(r#type),
-            _ => None,
+            Self::Opaque(_)
+            | Self::Intrinsic(_)
+            | Self::Struct(_)
+            | Self::Tuple(_)
+            | Self::Union(_)
+            | Self::Intersection(_)
+            | Self::Closure(_)
+            | Self::Apply(_)
+            | Self::Generic(_)
+            | Self::Param(_)
+            | Self::Infer(_)
+            | Self::Never
+            | Self::Unknown => None,
         }
     }
 
@@ -93,7 +117,19 @@ impl<'heap> TypeKind<'heap> {
     pub const fn intrinsic(&self) -> Option<&IntrinsicType> {
         match self {
             Self::Intrinsic(r#type) => Some(r#type),
-            _ => None,
+            Self::Opaque(_)
+            | Self::Primitive(_)
+            | Self::Struct(_)
+            | Self::Tuple(_)
+            | Self::Union(_)
+            | Self::Intersection(_)
+            | Self::Closure(_)
+            | Self::Apply(_)
+            | Self::Generic(_)
+            | Self::Param(_)
+            | Self::Infer(_)
+            | Self::Never
+            | Self::Unknown => None,
         }
     }
 
@@ -101,7 +137,19 @@ impl<'heap> TypeKind<'heap> {
     pub const fn r#struct(&self) -> Option<&StructType<'heap>> {
         match self {
             Self::Struct(r#type) => Some(r#type),
-            _ => None,
+            Self::Opaque(_)
+            | Self::Primitive(_)
+            | Self::Intrinsic(_)
+            | Self::Tuple(_)
+            | Self::Union(_)
+            | Self::Intersection(_)
+            | Self::Closure(_)
+            | Self::Apply(_)
+            | Self::Generic(_)
+            | Self::Param(_)
+            | Self::Infer(_)
+            | Self::Never
+            | Self::Unknown => None,
         }
     }
 
@@ -109,7 +157,19 @@ impl<'heap> TypeKind<'heap> {
     pub const fn tuple(&self) -> Option<&TupleType<'heap>> {
         match self {
             Self::Tuple(r#type) => Some(r#type),
-            _ => None,
+            Self::Opaque(_)
+            | Self::Primitive(_)
+            | Self::Intrinsic(_)
+            | Self::Struct(_)
+            | Self::Union(_)
+            | Self::Intersection(_)
+            | Self::Closure(_)
+            | Self::Apply(_)
+            | Self::Generic(_)
+            | Self::Param(_)
+            | Self::Infer(_)
+            | Self::Never
+            | Self::Unknown => None,
         }
     }
 
@@ -117,7 +177,19 @@ impl<'heap> TypeKind<'heap> {
     pub const fn closure(&self) -> Option<&ClosureType<'heap>> {
         match self {
             Self::Closure(r#type) => Some(r#type),
-            _ => None,
+            Self::Opaque(_)
+            | Self::Primitive(_)
+            | Self::Intrinsic(_)
+            | Self::Struct(_)
+            | Self::Tuple(_)
+            | Self::Union(_)
+            | Self::Intersection(_)
+            | Self::Apply(_)
+            | Self::Generic(_)
+            | Self::Param(_)
+            | Self::Infer(_)
+            | Self::Never
+            | Self::Unknown => None,
         }
     }
 
@@ -125,7 +197,19 @@ impl<'heap> TypeKind<'heap> {
     pub const fn union(&self) -> Option<&UnionType<'heap>> {
         match self {
             Self::Union(r#type) => Some(r#type),
-            _ => None,
+            Self::Opaque(_)
+            | Self::Primitive(_)
+            | Self::Intrinsic(_)
+            | Self::Struct(_)
+            | Self::Tuple(_)
+            | Self::Intersection(_)
+            | Self::Closure(_)
+            | Self::Apply(_)
+            | Self::Generic(_)
+            | Self::Param(_)
+            | Self::Infer(_)
+            | Self::Never
+            | Self::Unknown => None,
         }
     }
 
@@ -133,7 +217,19 @@ impl<'heap> TypeKind<'heap> {
     pub const fn intersection(&self) -> Option<&IntersectionType<'heap>> {
         match self {
             Self::Intersection(r#type) => Some(r#type),
-            _ => None,
+            Self::Opaque(_)
+            | Self::Primitive(_)
+            | Self::Intrinsic(_)
+            | Self::Struct(_)
+            | Self::Tuple(_)
+            | Self::Union(_)
+            | Self::Closure(_)
+            | Self::Apply(_)
+            | Self::Generic(_)
+            | Self::Param(_)
+            | Self::Infer(_)
+            | Self::Never
+            | Self::Unknown => None,
         }
     }
 
@@ -141,7 +237,19 @@ impl<'heap> TypeKind<'heap> {
     pub const fn apply(&self) -> Option<&Apply<'heap>> {
         match self {
             Self::Apply(r#type) => Some(r#type),
-            _ => None,
+            Self::Opaque(_)
+            | Self::Primitive(_)
+            | Self::Intrinsic(_)
+            | Self::Struct(_)
+            | Self::Tuple(_)
+            | Self::Union(_)
+            | Self::Intersection(_)
+            | Self::Closure(_)
+            | Self::Generic(_)
+            | Self::Param(_)
+            | Self::Infer(_)
+            | Self::Never
+            | Self::Unknown => None,
         }
     }
 
@@ -149,7 +257,19 @@ impl<'heap> TypeKind<'heap> {
     pub const fn generic(&self) -> Option<&Generic<'heap>> {
         match self {
             Self::Generic(r#type) => Some(r#type),
-            _ => None,
+            Self::Opaque(_)
+            | Self::Primitive(_)
+            | Self::Intrinsic(_)
+            | Self::Struct(_)
+            | Self::Tuple(_)
+            | Self::Union(_)
+            | Self::Intersection(_)
+            | Self::Closure(_)
+            | Self::Apply(_)
+            | Self::Param(_)
+            | Self::Infer(_)
+            | Self::Never
+            | Self::Unknown => None,
         }
     }
 
@@ -157,7 +277,19 @@ impl<'heap> TypeKind<'heap> {
     pub const fn param(&self) -> Option<&Param> {
         match self {
             Self::Param(r#type) => Some(r#type),
-            _ => None,
+            Self::Opaque(_)
+            | Self::Primitive(_)
+            | Self::Intrinsic(_)
+            | Self::Struct(_)
+            | Self::Tuple(_)
+            | Self::Union(_)
+            | Self::Intersection(_)
+            | Self::Closure(_)
+            | Self::Apply(_)
+            | Self::Generic(_)
+            | Self::Infer(_)
+            | Self::Never
+            | Self::Unknown => None,
         }
     }
 
@@ -165,7 +297,18 @@ impl<'heap> TypeKind<'heap> {
         match self {
             Self::Infer(Infer { hole }) => Some(VariableKind::Hole(hole)),
             Self::Param(Param { argument }) => Some(VariableKind::Generic(argument)),
-            _ => None,
+            Self::Opaque(_)
+            | Self::Primitive(_)
+            | Self::Intrinsic(_)
+            | Self::Struct(_)
+            | Self::Tuple(_)
+            | Self::Union(_)
+            | Self::Intersection(_)
+            | Self::Closure(_)
+            | Self::Apply(_)
+            | Self::Generic(_)
+            | Self::Never
+            | Self::Unknown => None,
         }
     }
 }
