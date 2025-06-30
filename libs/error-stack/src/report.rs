@@ -451,9 +451,11 @@ impl<C> Report<C> {
             // create a `Report` without a valid context and this method can only be called when `T`
             // is a valid context, it's guaranteed that the context is available.
             unreachable!(
-                "Report does not contain a context. This is considered a bug and should be \
-                reported to https://github.com/hashintel/hash/issues/new/choose"
-            );
+                "Report does not contain a context. This should not happen as a Report must \
+                 always contain at least one frame.\n\n
+                 Please file an issue to https://github.com/hashintel/hash/issues/new?template=bug-report-error-stack.yml\n\n
+                 Report:\n{self:?}",
+            )
         })
     }
 
