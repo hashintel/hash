@@ -406,7 +406,9 @@ impl<C> Report<C> {
         self.frames.first().unwrap_or_else(|| {
             unreachable!(
                 "Report does not contain any frames. This should not happen as a Report must \
-                 always contain at least one frame. Report:\n{self:?}",
+                 always contain at least one frame.\n\n
+                 Please file an issue to https://github.com/hashintel/hash/issues/new?template=bug-report-error-stack.yml\n\n
+                 Report:\n{self:?}",
             )
         })
     }
