@@ -8,19 +8,29 @@ graph TD
     %% --> : Normal dependency
     %% -.-> : Dev dependency
     %% ---> : Build dependency
-    0[hashql-ast]
-    class 0 root
-    1[<a href="../hashql_compiletest">hashql-compiletest</a>]
-    2[<a href="../hashql_core">hashql-core</a>]
-    3[<a href="../hashql_diagnostics">hashql-diagnostics</a>]
-    4[<a href="../hashql_hir">hashql-hir</a>]
-    5[<a href="../hashql_syntax_jexpr">hashql-syntax-jexpr</a>]
-    6[<a href="../error_stack">error-stack</a>]
+    0[<a href="../hash_codec">hash-codec</a>]
+    1[<a href="../hash_codegen">hash-codegen</a>]
+    2[<a href="../harpc_types">harpc-types</a>]
+    3[<a href="../harpc_wire_protocol">harpc-wire-protocol</a>]
+    4[hashql-ast]
+    class 4 root
+    5[<a href="../hashql_compiletest">hashql-compiletest</a>]
+    6[<a href="../hashql_core">hashql-core</a>]
+    7[<a href="../hashql_diagnostics">hashql-diagnostics</a>]
+    8[<a href="../hashql_hir">hashql-hir</a>]
+    9[<a href="../hashql_syntax_jexpr">hashql-syntax-jexpr</a>]
+    10[<a href="../error_stack">error-stack</a>]
     0 -.-> 1
-    1 --> 4
-    1 --> 5
-    2 --> 3
-    3 --> 6
-    4 -.-> 1
-    5 --> 0
-    5 --> 2
+    0 --> 3
+    3 -.-> 2
+    3 --> 2
+    3 --> 10
+    4 -.-> 5
+    5 --> 8
+    5 --> 9
+    6 --> 0
+    6 --> 7
+    7 --> 10
+    8 -.-> 5
+    9 --> 4
+    9 --> 6

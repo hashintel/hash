@@ -54,7 +54,7 @@
 //! [`Fold`]: crate::fold::Fold
 use hashql_core::{
     span::SpanId,
-    symbol::Ident,
+    symbol::{Ident, Symbol},
     r#type::{TypeId, kind::generic::GenericArgumentReference},
 };
 
@@ -135,6 +135,11 @@ pub trait Visitor<'heap> {
 
     #[expect(unused_variables, reason = "trait definition")]
     fn visit_span(&mut self, span: SpanId) {
+        // do nothing, no fields to walk
+    }
+
+    #[expect(unused_variables, reason = "trait definition")]
+    fn visit_symbol(&mut self, symbol: &'heap Symbol<'heap>) {
         // do nothing, no fields to walk
     }
 
@@ -250,12 +255,13 @@ pub trait Visitor<'heap> {
 pub fn walk_ident<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
     Ident {
-        value: _,
+        value,
         span,
         kind: _,
     }: &'heap Ident<'heap>,
 ) {
     visitor.visit_span(*span);
+    visitor.visit_symbol(value);
 }
 
 pub fn walk_qualified_path<'heap, T: Visitor<'heap> + ?Sized>(
@@ -427,11 +433,13 @@ pub fn walk_type_constructor<'heap, T: Visitor<'heap> + ?Sized>(
     visitor: &mut T,
     TypeConstructor {
         span,
+        name,
         closure,
         arguments,
     }: &'heap TypeConstructor<'heap>,
 ) {
     visitor.visit_span(*span);
+    visitor.visit_symbol(name);
     visitor.visit_type_id(*closure);
 
     for reference in arguments {

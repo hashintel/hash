@@ -24,11 +24,11 @@
 
 #[cfg(feature = "postgres")]
 use core::error::Error;
-use core::{fmt, ops};
+use core::{fmt, ops, str::FromStr};
 
 #[cfg(feature = "postgres")]
 use bytes::BytesMut;
-use dashu_base::Sign;
+use dashu_base::{BitTest as _, Sign};
 use dashu_float::round::mode;
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, IsNull, ToSql, Type};
@@ -39,6 +39,11 @@ use serde::{Deserialize, Serialize, de};
 #[derive(Debug, derive_more::Display, derive_more::Error)]
 #[display("Could not convert to a Real: {_0}")]
 pub struct ConversionError(dashu_base::ConversionError);
+
+/// Error that occurs when a string cannot be parsed into a [`Real`].
+#[derive(Debug, Copy, Clone, PartialEq, Eq, derive_more::Display, derive_more::Error)]
+#[display("Could not parse a Real: {_0}")]
+pub struct ParseError(dashu_base::ParseError);
 
 /// A high-precision real number type.
 ///
@@ -63,10 +68,24 @@ pub struct ConversionError(dashu_base::ConversionError);
 /// let maybe_int = value.to_i32(); // Some(42)
 /// let float_val = value.to_f64(); // 42.0
 /// ```
+///
+/// # Implementation Notes
+///
+/// - **Decimal radix** – The significand is stored in base-10, so values such as `0.1` and `0.01`
+///   round-trip without error (`Real::from_str("0.1")?.to_string() == "0.1"`).
+/// - **Software fallback** – CPUs only accelerate binary FP; decimal math runs in software and is
+///   typically **3–10x** slower and larger than `f64`.
+/// - **Deterministic text I/O** – Converting to and from strings is loss-free, which ensures that
+///   serialized data, logs, and config files preserve every digit.
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
 pub struct Real(#[cfg_attr(feature = "codegen", specta(type = f64))] dashu_float::DBig);
 
+/// Minimum precision for internal representation (64 bits).
+///
+/// This balances accuracy and performance, providing higher precision than f64 (53 bits) while
+/// maintaining reasonable computational costs. This gives us ~19 decimal digits of precision vs
+/// ~15 for f64, reducing rounding errors in financial calculations and iterative computations.
 const MIN_PRECISION: usize = 64;
 
 impl Real {
@@ -99,14 +118,113 @@ impl Real {
         self.0.to_int().value().try_into().ok()
     }
 
-    #[must_use]
-    pub fn to_f32(&self) -> f32 {
-        self.0.to_f32().value()
+    const fn is_infinite(&self) -> bool {
+        self.0.repr().is_infinite()
     }
 
     #[must_use]
-    pub fn to_f64(&self) -> f64 {
-        self.0.to_f64().value()
+    pub fn to_f32(&self) -> Option<f32> {
+        // Infinite values can always be converted to f32, regardless of precision
+        if self.is_infinite() {
+            return Some(self.0.to_f32().value());
+        }
+
+        // Emulate the same thing that's happening in f32, we need to do this beforehand to
+        // determine if we can actually losslessly convert to `f32`, otherwise `to_f32` will panic.
+        // see: https://github.com/cmpute/dashu/issues/56
+        let value = self
+            .0
+            .clone()
+            .with_rounding::<mode::HalfEven>()
+            .with_base::<2>()
+            .and_then(|value|
+                // We cannot use `with_base_and_precision` here, because if we do that, the significand
+                // could be larger than f32::MANTISSA_DIGITS as usize
+                value.with_precision(f32::MANTISSA_DIGITS as usize))
+            .value();
+
+        if value.repr().significand().bit_len() > f32::MANTISSA_DIGITS as usize {
+            return None;
+        }
+
+        Some(value.to_f32().value())
+    }
+
+    #[must_use]
+    #[expect(clippy::float_arithmetic)]
+    pub fn to_f32_lossy(&self) -> f32 {
+        if let Some(value) = self.to_f32() {
+            return value;
+        }
+
+        let (significant, exponent) = (self.0.repr().significand(), self.0.repr().exponent());
+
+        // We cannot use `to_f32` natively even with smaller precision due to how dashu works, see:
+        // https://github.com/cmpute/dashu/issues/56
+        let exponent = exponent.try_into().map_or_else(
+            #[expect(clippy::cast_precision_loss)]
+            |_| 10_f32.powf(exponent as f32),
+            |exponent| 10_f32.powi(exponent),
+        );
+
+        significant.to_f32().value() * exponent
+    }
+
+    #[must_use]
+    pub fn to_f64(&self) -> Option<f64> {
+        // Infinite values can always be converted to f64, regardless of precision
+        if self.is_infinite() {
+            return Some(self.0.to_f64().value());
+        }
+
+        // Emulate the same thing that's happening in f64, we need to do this beforehand to
+        // determine if we can actually losslessly convert to `f64`, otherwise `to_f64` will panic.
+        // see: https://github.com/cmpute/dashu/issues/56
+        let value = self
+            .0
+            .clone()
+            .with_rounding::<mode::HalfEven>()
+            .with_base::<2>()
+            .and_then(|value|
+                // We cannot use `with_base_and_precision` here, because if we do that, the significand
+                // could be larger than f64::MANTISSA_DIGITS as usize
+                value.with_precision(f64::MANTISSA_DIGITS as usize))
+            .value();
+
+        if value.repr().significand().bit_len() > f64::MANTISSA_DIGITS as usize {
+            return None;
+        }
+
+        Some(value.to_f64().value())
+    }
+
+    #[must_use]
+    #[expect(clippy::float_arithmetic)]
+    pub fn to_f64_lossy(&self) -> f64 {
+        if let Some(value) = self.to_f64() {
+            return value;
+        }
+
+        let (significant, exponent) = (self.0.repr().significand(), self.0.repr().exponent());
+
+        // We cannot use `to_f64` natively even with smaller precision due to how dashu works, see:
+        // https://github.com/cmpute/dashu/issues/56
+        let exponent = exponent.try_into().map_or_else(
+            #[expect(clippy::cast_precision_loss)]
+            |_| 10_f64.powf(exponent as f64),
+            |exponent| 10_f64.powi(exponent),
+        );
+
+        significant.to_f64().value() * exponent
+    }
+}
+
+impl FromStr for Real {
+    type Err = ParseError;
+
+    fn from_str(value: &str) -> Result<Self, Self::Err> {
+        let decimal = dashu_float::DBig::from_str(value).map_err(ParseError)?;
+        Ok(Self(decimal))
     }
 }
 
@@ -134,8 +252,8 @@ impl ToSql for Real {
         Self: Sized,
     {
         match *ty {
-            Type::FLOAT4 => <f32 as ToSql>::to_sql(&self.to_f32(), ty, out),
-            Type::FLOAT8 => <f64 as ToSql>::to_sql(&self.to_f64(), ty, out),
+            Type::FLOAT4 => <f32 as ToSql>::to_sql(&self.to_f32_lossy(), ty, out),
+            Type::FLOAT8 => <f64 as ToSql>::to_sql(&self.to_f64_lossy(), ty, out),
             _ => Err("Invalid type".into()),
         }
     }
@@ -262,7 +380,7 @@ impl<'de> Deserialize<'de> for Real {
 #[cfg(feature = "serde")]
 impl Serialize for Real {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        self.0.to_f64().value().serialize(serializer)
+        self.to_f64_lossy().serialize(serializer)
     }
 }
 
@@ -280,7 +398,7 @@ impl PartialEq<Real> for &Real {
 
 impl fmt::Display for Real {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        fmt::Display::fmt(&self.0.to_f64().value(), fmt)
+        fmt::Display::fmt(&self.0, fmt)
     }
 }
 
@@ -321,14 +439,22 @@ macro_rules! impl_real_from_primitive_float {
             type Error = ConversionError;
 
             fn try_from(primitive: $primitive) -> Result<Self, Self::Error> {
-                Ok(Self(
-                    dashu_float::FBig::<mode::Zero>::try_from(primitive)
-                        .map_err(ConversionError)?
-                        .with_precision(MIN_PRECISION)
-                        .value()
-                        .to_decimal()
-                        .value(),
-                ))
+                // The order of operations is important here. If we raise the precision first, it
+                // will lead to rounding errors for values that cannot be represented exactly in
+                // base 2 (such as 0.11).
+                // We need to first explicitly change the precision to the native type manually so
+                // that it can be converted to decimal, otherwise conversion with 0 precision (`0`)
+                // to decimal would panic.
+                let value = dashu_float::FBig::<mode::HalfAway>::try_from(primitive)
+                    .map_err(ConversionError)?
+                    .with_precision(<$primitive>::MANTISSA_DIGITS as usize)
+                    .value()
+                    .to_decimal()
+                    .value()
+                    .with_precision(MIN_PRECISION)
+                    .value();
+
+                Ok(Self(value))
             }
         }
 
@@ -397,7 +523,7 @@ mod tests {
         let real = Real::from_natural(42, 0);
         assert_eq!(real.to_i32(), Some(42));
         assert!(
-            (real.to_f64() - 42.0).abs() < f64::EPSILON,
+            (real.to_f64_lossy() - 42.0).abs() < f64::EPSILON,
             "Expected real.to_f64() to be approximately 42.0"
         );
     }
@@ -461,7 +587,7 @@ mod tests {
             .expect("should deserialize float value successfully");
 
         assert!(
-            (value.to_f64() - 123.456).abs() < 0.000_001,
+            (value.to_f64_lossy() - 123.456).abs() < 0.000_001,
             "Expected value.to_f64() to be approximately 123.456"
         );
     }
@@ -494,6 +620,36 @@ mod tests {
         let large_value = Real::try_from(f64::MAX).expect("Failed to convert f64::MAX to Real");
 
         // Should fail to give an accurate result
-        assert!(large_value.to_f32().is_infinite());
+        assert!(large_value.to_f32_lossy().is_infinite());
+    }
+
+    #[test]
+    #[expect(clippy::float_cmp, clippy::decimal_literal_representation)]
+    fn lossy_vs_exact_conversion() {
+        let inside_f32 = Real::from_natural(123_456, 0); // 123456 - needs ~17 bits
+        let inside_f64 = Real::from_natural(16_777_217, 0); // 2^24 + 1 - needs 25 bits
+        let outside_f64 = Real::from_natural(123_456_789, 20); // 123456789 * 10^20
+
+        assert_eq!(inside_f32.to_f32(), Some(inside_f32.to_f32_lossy()));
+        assert_eq!(inside_f64.to_f32(), Some(16_777_216.0)); // This works because the significand is less than 24 after conversion
+        assert_eq!(inside_f64.to_f32_lossy(), 16_777_216.0);
+        assert_eq!(outside_f64.to_f32(), Some(1.234_567_9e28)); // This works because the significand is less than 24 after conversion
+        assert_eq!(outside_f64.to_f32_lossy(), 1.234_567_9e28); // 12345679 * 10^21
+
+        assert_eq!(inside_f32.to_f64(), Some(inside_f32.to_f64_lossy()));
+        assert_eq!(inside_f64.to_f64(), Some(inside_f64.to_f64_lossy()));
+        assert_eq!(outside_f64.to_f64(), Some(1.234_567_89e28)); // This works because the significand is less than 53 after conversion
+        assert_eq!(outside_f64.to_f64_lossy(), 1.234_567_89e28); // 123456789 * 10^21
+    }
+
+    #[test]
+    #[expect(clippy::float_cmp)]
+    fn regression() {
+        let value = Real::try_from(0.0254).expect("valid value");
+        assert_eq!(value.to_f64_lossy(), 0.0254);
+
+        let value = Real::from_str("88888888888888888").expect("valid value");
+        assert_eq!(value.to_f64(), Some(8.888_888_888_888_89e16));
+        assert_eq!(value.to_f64_lossy(), 88_888_888_888_888_900.0);
     }
 }
