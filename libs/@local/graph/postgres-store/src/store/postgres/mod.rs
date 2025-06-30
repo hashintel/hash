@@ -1900,8 +1900,7 @@ where
                         entity_temporal_metadata.draft_id,
                         created_by.id AS created_by_id,
                         created_by.principal_type AS created_by_type,
-                        array_agg(entity_types.schema ->> '$id') AS entity_types,
-                        array_agg(ontology_ids.base_url) AS base_urls
+                        array_agg(entity_types.schema ->> '$id') AS entity_types
                     FROM entity_temporal_metadata
                     INNER JOIN entity_editions
                         ON entity_temporal_metadata.entity_edition_id
@@ -1912,9 +1911,6 @@ where
                     INNER JOIN entity_is_of_type
                         ON entity_temporal_metadata.entity_edition_id
                            = entity_is_of_type.entity_edition_id
-                    INNER JOIN ontology_ids
-                        ON entity_is_of_type.entity_type_ontology_id
-                           = ontology_ids.ontology_id
                     INNER JOIN entity_types
                         ON entity_is_of_type.entity_type_ontology_id
                            = entity_types.ontology_id
