@@ -1854,6 +1854,7 @@ where
     }
 
     #[tracing::instrument(level = "debug", skip(self, entity_edition_ids))]
+    #[expect(clippy::too_many_lines)]
     async fn build_entity_context(
         &self,
         entity_edition_ids: &[EntityEditionId],
@@ -1899,7 +1900,8 @@ where
                         entity_temporal_metadata.draft_id,
                         created_by.id AS created_by_id,
                         created_by.principal_type AS created_by_type,
-                        array_agg(entity_types.schema ->> '$id') AS entity_type
+                        array_agg(entity_types.schema ->> '$id') AS entity_types,
+                        array_agg(ontology_ids.base_url) AS base_urls
                     FROM entity_temporal_metadata
                     INNER JOIN entity_editions
                         ON entity_temporal_metadata.entity_edition_id
@@ -1910,6 +1912,9 @@ where
                     INNER JOIN entity_is_of_type
                         ON entity_temporal_metadata.entity_edition_id
                            = entity_is_of_type.entity_edition_id
+                    INNER JOIN ontology_ids
+                        ON entity_is_of_type.entity_type_ontology_id
+                           = ontology_ids.ontology_id
                     INNER JOIN entity_types
                         ON entity_is_of_type.entity_type_ontology_id
                            = entity_types.ontology_id
@@ -1925,27 +1930,36 @@ where
             )
             .await
             .change_context(BuildEntityContextError::StoreError)?
-            .map_ok(|row| EntityResource {
-                id: EntityId {
-                    web_id: row.get(0),
-                    entity_uuid: row.get(1),
-                    draft_id: row.get(2),
-                },
-                entity_type: Cow::Owned(row.get(5)),
-                created_by: ActorId::new(
-                    row.get::<_, ActorEntityUuid>(3),
-                    match row.get(4) {
-                        PrincipalType::User => ActorType::User,
-                        PrincipalType::Machine => ActorType::Machine,
-                        PrincipalType::Ai => ActorType::Ai,
-                        principal_type @ (PrincipalType::Web
-                        | PrincipalType::Team
-                        | PrincipalType::WebRole
-                        | PrincipalType::TeamRole) => unreachable!(
-                            "Unexpected actor type `{principal_type:?}` in entity context"
-                        ),
+            .map_ok(|row| {
+                let entity_types = row.get::<_, Vec<VersionedUrl>>(5);
+                EntityResource {
+                    id: EntityId {
+                        web_id: row.get(0),
+                        entity_uuid: row.get(1),
+                        draft_id: row.get(2),
                     },
-                ),
+                    entity_base_types: Cow::Owned(
+                        entity_types
+                            .iter()
+                            .map(|url| url.base_url.clone())
+                            .collect(),
+                    ),
+                    entity_types: Cow::Owned(entity_types),
+                    created_by: ActorId::new(
+                        row.get::<_, ActorEntityUuid>(3),
+                        match row.get(4) {
+                            PrincipalType::User => ActorType::User,
+                            PrincipalType::Machine => ActorType::Machine,
+                            PrincipalType::Ai => ActorType::Ai,
+                            principal_type @ (PrincipalType::Web
+                            | PrincipalType::Team
+                            | PrincipalType::WebRole
+                            | PrincipalType::TeamRole) => unreachable!(
+                                "Unexpected actor type `{principal_type:?}` in entity context"
+                            ),
+                        },
+                    ),
+                }
             })
             .try_collect()
             .await

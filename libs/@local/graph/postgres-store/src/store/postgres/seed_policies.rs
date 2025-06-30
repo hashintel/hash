@@ -20,7 +20,7 @@ use hash_graph_authorization::{
 };
 use tokio_postgres::Transaction;
 use type_system::{
-    ontology::{BaseUrl, VersionedUrl, id::OntologyTypeVersion},
+    ontology::BaseUrl,
     principal::{
         actor::{ActorId, ActorType, MachineId},
         role::{RoleId, RoleName, TeamRole, WebRole},
@@ -33,28 +33,6 @@ macro_rules! base_url {
     ($url:expr) => {
         BaseUrl::new($url.to_owned()).expect("should be a valid base URL")
     };
-}
-
-/// Creates a list of filters for entities with their type versions from 1 to `max_version`.
-// TODO: Allow entity filter for only the BaseURL
-//   see https://linear.app/hash/issue/H-4599/support-baseurl-and-version-filter-of-types-in-entity-resource
-fn create_version_filters(
-    base_url: BaseUrl,
-    max_version: u32,
-) -> impl Iterator<Item = EntityResourceFilter> {
-    let mut base_url = Some(base_url);
-
-    (1..=max_version).map(move |version| EntityResourceFilter::IsOfType {
-        entity_type: VersionedUrl {
-            base_url: if version < max_version {
-                base_url.clone()
-            } else {
-                base_url.take()
-            }
-            .unwrap_or_else(|| unreachable!()),
-            version: OntologyTypeVersion::new(version),
-        },
-    })
 }
 
 pub(crate) fn system_actor_create_web_policy(
@@ -83,15 +61,18 @@ fn system_actor_view_entity_policies(
         actions: vec![ActionName::ViewEntity],
         resource: Some(ResourceConstraint::Entity(EntityResourceConstraint::Any {
             filter: EntityResourceFilter::Any {
-                filters: create_version_filters(
-                    base_url!("https://hash.ai/@h/types/entity-type/sync-linear-data-with/"),
-                    1,
-                )
-                .chain(create_version_filters(
-                    base_url!("https://hash.ai/@h/types/entity-type/prospective-user/"),
-                    1,
-                ))
-                .collect(),
+                filters: vec![
+                    EntityResourceFilter::IsOfBaseType {
+                        entity_type: base_url!(
+                            "https://hash.ai/@h/types/entity-type/sync-linear-data-with/"
+                        ),
+                    },
+                    EntityResourceFilter::IsOfBaseType {
+                        entity_type: base_url!(
+                            "https://hash.ai/@h/types/entity-type/prospective-user/"
+                        ),
+                    },
+                ],
             },
         })),
     })
@@ -115,12 +96,8 @@ fn google_bot_view_entity_policies(
         }),
         actions: vec![ActionName::ViewEntity],
         resource: Some(ResourceConstraint::Entity(EntityResourceConstraint::Any {
-            filter: EntityResourceFilter::Any {
-                filters: create_version_filters(
-                    base_url!("https://hash.ai/@google/types/entity-type/account/"),
-                    1,
-                )
-                .collect(),
+            filter: EntityResourceFilter::IsOfBaseType {
+                entity_type: base_url!("https://hash.ai/@google/types/entity-type/account/"),
             },
         })),
     })
@@ -179,19 +156,21 @@ fn global_view_entity_policies() -> impl Iterator<Item = PolicyCreationParams> {
         actions: vec![ActionName::ViewEntity],
         resource: Some(ResourceConstraint::Entity(EntityResourceConstraint::Any {
             filter: EntityResourceFilter::Any {
-                filters: create_version_filters(
-                    base_url!("https://hash.ai/@h/types/entity-type/hash-instance/"),
-                    1,
-                )
-                .chain(create_version_filters(
-                    base_url!("https://hash.ai/@h/types/entity-type/user/"),
-                    6,
-                ))
-                .chain(create_version_filters(
-                    base_url!("https://hash.ai/@h/types/entity-type/organization/"),
-                    2,
-                ))
-                .collect(),
+                filters: vec![
+                    EntityResourceFilter::IsOfBaseType {
+                        entity_type: base_url!(
+                            "https://hash.ai/@h/types/entity-type/hash-instance/"
+                        ),
+                    },
+                    EntityResourceFilter::IsOfBaseType {
+                        entity_type: base_url!("https://hash.ai/@h/types/entity-type/user/"),
+                    },
+                    EntityResourceFilter::IsOfBaseType {
+                        entity_type: base_url!(
+                            "https://hash.ai/@h/types/entity-type/organization/"
+                        ),
+                    },
+                ],
             },
         })),
     });
@@ -205,19 +184,21 @@ fn global_view_entity_policies() -> impl Iterator<Item = PolicyCreationParams> {
             actions: vec![ActionName::ViewEntity],
             resource: Some(ResourceConstraint::Entity(EntityResourceConstraint::Any {
                 filter: EntityResourceFilter::Any {
-                    filters: create_version_filters(
-                        base_url!("https://hash.ai/@h/types/entity-type/machine/"),
-                        2,
-                    )
-                    .chain(create_version_filters(
-                        base_url!("https://hash.ai/@h/types/entity-type/service-feature/"),
-                        1,
-                    ))
-                    .chain(create_version_filters(
-                        base_url!("https://hash.ai/@h/types/entity-type/is-member-of/"),
-                        1,
-                    ))
-                    .collect(),
+                    filters: vec![
+                        EntityResourceFilter::IsOfBaseType {
+                            entity_type: base_url!("https://hash.ai/@h/types/entity-type/machine/"),
+                        },
+                        EntityResourceFilter::IsOfBaseType {
+                            entity_type: base_url!(
+                                "https://hash.ai/@h/types/entity-type/service-feature/"
+                            ),
+                        },
+                        EntityResourceFilter::IsOfBaseType {
+                            entity_type: base_url!(
+                                "https://hash.ai/@h/types/entity-type/is-member-of/"
+                            ),
+                        },
+                    ],
                 },
             })),
         });
@@ -247,25 +228,28 @@ fn web_view_entity_policies(role: &WebRole) -> impl Iterator<Item = PolicyCreati
                         EntityResourceFilter::CreatedByPrincipal,
                         EntityResourceFilter::Not {
                             filter: Box::new(EntityResourceFilter::Any {
-                                filters: create_version_filters(
-                                    base_url!("https://hash.ai/@h/types/entity-type/user-secret/"),
-                                    1,
-                                )
-                                .chain(create_version_filters(
-                                    base_url!("https://hash.ai/@h/types/entity-type/usage-record/"),
-                                    2,
-                                ))
-                                .chain(create_version_filters(
-                                    base_url!("https://hash.ai/@h/types/entity-type/incurred-in/"),
-                                    2,
-                                ))
-                                .chain(create_version_filters(
-                                    base_url!(
-                                        "https://hash.ai/@h/types/entity-type/records-usage-of/"
-                                    ),
-                                    1,
-                                ))
-                                .collect(),
+                                filters: vec![
+                                    EntityResourceFilter::IsOfBaseType {
+                                        entity_type: base_url!(
+                                            "https://hash.ai/@h/types/entity-type/user-secret/"
+                                        ),
+                                    },
+                                    EntityResourceFilter::IsOfBaseType {
+                                        entity_type: base_url!(
+                                            "https://hash.ai/@h/types/entity-type/usage-record//"
+                                        ),
+                                    },
+                                    EntityResourceFilter::IsOfBaseType {
+                                        entity_type: base_url!(
+                                            "https://hash.ai/@h/types/entity-type/incurred-in/"
+                                        ),
+                                    },
+                                    EntityResourceFilter::IsOfBaseType {
+                                        entity_type: base_url!(
+                                            "https://hash.ai/@h/types/entity-type/records-usage-of/"
+                                        ),
+                                    },
+                                ],
                             }),
                         },
                     ],
@@ -310,23 +294,26 @@ fn instance_admins_view_entity_policy(
         actions: vec![ActionName::ViewEntity],
         resource: Some(ResourceConstraint::Entity(EntityResourceConstraint::Any {
             filter: EntityResourceFilter::Any {
-                filters: create_version_filters(
-                    base_url!("https://hash.ai/@h/types/entity-type/incurred-in/"),
-                    1,
-                )
-                .chain(create_version_filters(
-                    base_url!("https://hash.ai/@h/types/entity-type/usage-record/"),
-                    2,
-                ))
-                .chain(create_version_filters(
-                    base_url!("https://hash.ai/@h/types/entity-type/records-usage-of/"),
-                    1,
-                ))
-                .chain(create_version_filters(
-                    base_url!("https://hash.ai/@h/types/entity-type/prospective-user/"),
-                    1,
-                ))
-                .collect(),
+                filters: vec![
+                    EntityResourceFilter::IsOfBaseType {
+                        entity_type: base_url!("https://hash.ai/@h/types/entity-type/incurred-in/"),
+                    },
+                    EntityResourceFilter::IsOfBaseType {
+                        entity_type: base_url!(
+                            "https://hash.ai/@h/types/entity-type/usage-record//"
+                        ),
+                    },
+                    EntityResourceFilter::IsOfBaseType {
+                        entity_type: base_url!(
+                            "https://hash.ai/@h/types/entity-type/records-usage-of/"
+                        ),
+                    },
+                    EntityResourceFilter::IsOfBaseType {
+                        entity_type: base_url!(
+                            "https://hash.ai/@h/types/entity-type/prospective-user/"
+                        ),
+                    },
+                ],
             },
         })),
     })

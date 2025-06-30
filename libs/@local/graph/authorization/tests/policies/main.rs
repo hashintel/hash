@@ -16,7 +16,7 @@ use hash_graph_authorization::policies::{
 };
 use type_system::{
     knowledge::entity::{EntityId, id::EntityUuid},
-    ontology::VersionedUrl,
+    ontology::{BaseUrl, VersionedUrl},
     principal::{
         actor::{ActorId, MachineId, UserId},
         actor_group::{ActorGroupId, WebId},
@@ -104,7 +104,13 @@ impl TestUser {
                 entity_uuid: id.into(),
                 draft_id: None,
             },
-            entity_type: Cow::Borrowed(ENTITY_TYPES.as_slice()),
+            entity_types: Cow::Borrowed(ENTITY_TYPES.as_slice()),
+            entity_base_types: Cow::Owned(
+                ENTITY_TYPES
+                    .iter()
+                    .map(|url| url.base_url.clone())
+                    .collect(),
+            ),
             created_by: id.into(),
         };
 
@@ -150,7 +156,13 @@ impl TestMachine {
                 entity_uuid: id.into(),
                 draft_id: None,
             },
-            entity_type: Cow::Borrowed(ENTITY_TYPES.as_slice()),
+            entity_types: Cow::Borrowed(ENTITY_TYPES.as_slice()),
+            entity_base_types: Cow::Owned(
+                ENTITY_TYPES
+                    .iter()
+                    .map(|url| url.base_url.clone())
+                    .collect(),
+            ),
             created_by: id.into(),
         };
 
@@ -217,8 +229,12 @@ impl TestSystem {
                 entity_uuid: EntityUuid::new(Uuid::new_v4()),
                 draft_id: None,
             },
-            entity_type: Cow::Owned(vec![
+            entity_types: Cow::Owned(vec![
                 VersionedUrl::from_str("https://hash.ai/@h/types/entity-type/hash-instance/v/1")
+                    .expect("should be a valid URL"),
+            ]),
+            entity_base_types: Cow::Owned(vec![
+                BaseUrl::new("https://hash.ai/@h/types/entity-type/hash-instance/".to_owned())
                     .expect("should be a valid URL"),
             ]),
             created_by: machine.id.into(),
@@ -374,7 +390,8 @@ fn user_web_permissions() -> Result<(), Box<dyn Error>> {
             entity_uuid: EntityUuid::new(Uuid::new_v4()),
             draft_id: None,
         },
-        entity_type: Cow::Owned(vec![web_type.id.as_url().clone()]),
+        entity_types: Cow::Owned(vec![web_type.id.as_url().clone()]),
+        entity_base_types: Cow::Owned(vec![web_type.id.as_url().base_url.clone()]),
         created_by: user.id.into(),
     };
     context.add_entity(&web_entity);
@@ -547,7 +564,8 @@ fn org_web_permissions() -> Result<(), Box<dyn Error>> {
             entity_uuid: EntityUuid::new(Uuid::new_v4()),
             draft_id: None,
         },
-        entity_type: Cow::Owned(vec![web_type.id.as_url().clone()]),
+        entity_types: Cow::Owned(vec![web_type.id.as_url().clone()]),
+        entity_base_types: Cow::Owned(vec![web_type.id.as_url().base_url.clone()]),
         created_by: user.id.into(),
     };
     context.add_entity(&web_entity);
