@@ -84,8 +84,17 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
         Codegen::new().build(&self.program).code
     }
 
+    /// Adds a type declaration to the program body by its `TypeId`.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the `TypeId` does not exist in the type collection.
     pub fn add_type_declaration_by_id(&mut self, id: TypeId) {
-        let definition = &self.collection.types[&id];
+        let definition = self
+            .collection
+            .types
+            .get(&id)
+            .expect("type collection should contain the type");
         let type_declaration = self.visit_type_definition(definition);
         self.program.body.push(if definition.public {
             ast::Statement::ExportNamedDeclaration(self.ast.alloc_export_named_declaration(
@@ -267,14 +276,23 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
                             let Type::Reference(type_id) = &field.r#type else {
                                 panic!("Expected reference type for flattened field");
                             };
-                            extends.push(self.ast.ts_interface_heritage(
-                                SPAN,
-                                ast::Expression::Identifier(self.ast.alloc_identifier_reference(
+                            extends.push(
+                                self.ast.ts_interface_heritage(
                                     SPAN,
-                                    self.collection.types[type_id].name.as_ref(),
-                                )),
-                                None::<ast::TSTypeParameterInstantiation<'a>>,
-                            ));
+                                    ast::Expression::Identifier(
+                                        self.ast.alloc_identifier_reference(
+                                            SPAN,
+                                            self.collection
+                                                .types
+                                                .get(type_id)
+                                                .expect("type collection should contain the type")
+                                                .name
+                                                .as_ref(),
+                                        ),
+                                    ),
+                                    None::<ast::TSTypeParameterInstantiation<'a>>,
+                                ),
+                            );
                             continue;
                         }
                         members.push(
@@ -332,7 +350,12 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
             SPAN,
             self.ast.ts_type_name_identifier_reference(
                 SPAN,
-                self.collection.types[&type_id].name.as_ref(),
+                self.collection
+                    .types
+                    .get(&type_id)
+                    .expect("type collection should contain the type")
+                    .name
+                    .as_ref(),
             ),
             None::<ast::TSTypeParameterInstantiation<'a>>,
         )

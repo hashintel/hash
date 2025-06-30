@@ -1789,6 +1789,7 @@ where
                 #[expect(
                     clippy::cast_possible_truncation,
                     clippy::cast_sign_loss,
+                    clippy::indexing_slicing,
                     reason = "The index is 1-based and is always less than or equal to the length \
                               of the array"
                 )]
@@ -1876,6 +1877,7 @@ where
                 #[expect(
                     clippy::cast_possible_truncation,
                     clippy::cast_sign_loss,
+                    clippy::indexing_slicing,
                     reason = "The index is 1-based and is always less than or equal to the length \
                               of the array"
                 )]
