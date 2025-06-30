@@ -18,7 +18,7 @@ The HASH repository is organized into several key directories:
   - `/@blockprotocol` - Block Protocol related libraries
   - `/@hashintel` - HASH-specific libraries
   - `/@local` - Internal libraries for the monorepo
-  - Other core libraries (e.g., `error-stack`, `deer`)
+  - Other core libraries (e.g., `error-stack`)
 
 - `/infra` - Deployment and infrastructure code
   - `/docker` - Docker configurations
