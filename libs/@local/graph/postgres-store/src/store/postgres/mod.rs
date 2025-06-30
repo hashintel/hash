@@ -1854,7 +1854,6 @@ where
     }
 
     #[tracing::instrument(level = "debug", skip(self, entity_edition_ids))]
-    #[expect(clippy::too_many_lines)]
     async fn build_entity_context(
         &self,
         entity_edition_ids: &[EntityEditionId],
