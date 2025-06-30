@@ -279,7 +279,23 @@ impl<'heap> Visitor<'heap> for TypeDefinitionExtractor<'_, 'heap> {
 
                 body
             }
-            _ => unreachable!(),
+            ExprKind::Call(_)
+            | ExprKind::Struct(_)
+            | ExprKind::Dict(_)
+            | ExprKind::Tuple(_)
+            | ExprKind::List(_)
+            | ExprKind::Literal(_)
+            | ExprKind::Path(_)
+            | ExprKind::Let(_)
+            | ExprKind::Use(_)
+            | ExprKind::Input(_)
+            | ExprKind::Closure(_)
+            | ExprKind::If(_)
+            | ExprKind::Field(_)
+            | ExprKind::Index(_)
+            | ExprKind::Is(_)
+            | ExprKind::Underscore
+            | ExprKind::Dummy => unreachable!(),
         };
 
         *expr = body;

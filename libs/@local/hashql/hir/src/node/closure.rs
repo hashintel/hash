@@ -24,7 +24,19 @@ pub(crate) fn extract_signature<'heap>(
                 type_id = base;
             }
             TypeKind::Closure(closure) => return closure,
-            _ => unreachable!("ClosureSignature::returns() called on a non-closure type"),
+            TypeKind::Opaque(_)
+            | TypeKind::Primitive(_)
+            | TypeKind::Intrinsic(_)
+            | TypeKind::Struct(_)
+            | TypeKind::Tuple(_)
+            | TypeKind::Union(_)
+            | TypeKind::Intersection(_)
+            | TypeKind::Param(_)
+            | TypeKind::Infer(_)
+            | TypeKind::Never
+            | TypeKind::Unknown => {
+                unreachable!("ClosureSignature::returns() called on a non-closure type")
+            }
         }
     }
 }
@@ -74,7 +86,19 @@ impl<'heap> ClosureSignature<'heap> {
                 }
                 TypeKind::Generic(generic) => return Some(generic),
                 TypeKind::Closure(_) => return None,
-                _ => unreachable!("ClosureSignature::returns() called on a non-closure type"),
+                TypeKind::Opaque(_)
+                | TypeKind::Primitive(_)
+                | TypeKind::Intrinsic(_)
+                | TypeKind::Struct(_)
+                | TypeKind::Tuple(_)
+                | TypeKind::Union(_)
+                | TypeKind::Intersection(_)
+                | TypeKind::Param(_)
+                | TypeKind::Infer(_)
+                | TypeKind::Never
+                | TypeKind::Unknown => {
+                    unreachable!("ClosureSignature::returns() called on a non-closure type")
+                }
             }
         }
     }

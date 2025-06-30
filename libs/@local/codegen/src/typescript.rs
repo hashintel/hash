@@ -127,7 +127,13 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
                     })
                     .r#type,
             ),
-            r#type => self.should_export_as_interface(r#type),
+            r#type @ (Type::Primitive(_)
+            | Type::Enum(_)
+            | Type::Struct(_)
+            | Type::Tuple(_)
+            | Type::List(_)
+            | Type::Map(_)
+            | Type::Nullable(_)) => self.should_export_as_interface(r#type),
         }
     }
 
@@ -146,7 +152,13 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
                     false
                 }
             }
-            _ => false,
+            Type::Reference(_)
+            | Type::Primitive(_)
+            | Type::Enum(_)
+            | Type::Tuple(_)
+            | Type::List(_)
+            | Type::Map(_)
+            | Type::Nullable(_) => false,
         }
     }
 
@@ -282,11 +294,19 @@ impl<'a, 'c> TypeScriptGenerator<'a, 'c> {
                     }
                     (members, extends)
                 }
-                _ => unimplemented!(
+                Fields::Named { .. } | Fields::Unnamed { .. } | Fields::Unit => unimplemented!(
                     "Tried to generate an interface from tuple-struct or unit struct"
                 ),
             },
-            ty => unimplemented!("Tried to generate an interface from unsupported type: {ty:?}",),
+            ty @ (Type::Reference(_)
+            | Type::Primitive(_)
+            | Type::Enum(_)
+            | Type::Tuple(_)
+            | Type::List(_)
+            | Type::Map(_)
+            | Type::Nullable(_)) => {
+                unimplemented!("Tried to generate an interface from unsupported type: {ty:?}",)
+            }
         };
 
         self.ast.declaration_ts_interface(

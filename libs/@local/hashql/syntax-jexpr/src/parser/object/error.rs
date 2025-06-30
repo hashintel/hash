@@ -135,7 +135,24 @@ impl ObjectDiagnosticCategory {
     pub(crate) fn hoist(&self) -> &dyn DiagnosticCategory {
         match self {
             Self::Lexer(category) => category.subcategory().unwrap_or(category),
-            _ => self,
+            Self::LeadingComma
+            | Self::TrailingComma
+            | Self::ConsecutiveComma
+            | Self::ConsecutiveColon
+            | Self::UnknownKey
+            | Self::Empty
+            | Self::OrphanedType
+            | Self::DuplicateKey
+            | Self::StructExpectedObject
+            | Self::StructKeyExpectedIdentifier
+            | Self::DictExpectedFormat
+            | Self::DictEntryTooFewItems
+            | Self::DictEntryTooManyItems
+            | Self::DictEntryExpectedArray
+            | Self::TupleExpectedArray
+            | Self::ListExpectedArray
+            | Self::TypeExpectedString
+            | Self::LiteralExpectedPrimitive => self,
         }
     }
 }
@@ -144,14 +161,48 @@ impl DiagnosticCategory for ObjectDiagnosticCategory {
     fn id(&self) -> Cow<'_, str> {
         match self {
             Self::Lexer(category) => category.id(),
-            _ => Cow::Borrowed("object"),
+            Self::LeadingComma
+            | Self::TrailingComma
+            | Self::ConsecutiveComma
+            | Self::ConsecutiveColon
+            | Self::UnknownKey
+            | Self::Empty
+            | Self::OrphanedType
+            | Self::DuplicateKey
+            | Self::StructExpectedObject
+            | Self::StructKeyExpectedIdentifier
+            | Self::DictExpectedFormat
+            | Self::DictEntryTooFewItems
+            | Self::DictEntryTooManyItems
+            | Self::DictEntryExpectedArray
+            | Self::TupleExpectedArray
+            | Self::ListExpectedArray
+            | Self::TypeExpectedString
+            | Self::LiteralExpectedPrimitive => Cow::Borrowed("object"),
         }
     }
 
     fn name(&self) -> Cow<'_, str> {
         match self {
             Self::Lexer(category) => category.name(),
-            _ => Cow::Borrowed("Object"),
+            Self::LeadingComma
+            | Self::TrailingComma
+            | Self::ConsecutiveComma
+            | Self::ConsecutiveColon
+            | Self::UnknownKey
+            | Self::Empty
+            | Self::OrphanedType
+            | Self::DuplicateKey
+            | Self::StructExpectedObject
+            | Self::StructKeyExpectedIdentifier
+            | Self::DictExpectedFormat
+            | Self::DictEntryTooFewItems
+            | Self::DictEntryTooManyItems
+            | Self::DictEntryExpectedArray
+            | Self::TupleExpectedArray
+            | Self::ListExpectedArray
+            | Self::TypeExpectedString
+            | Self::LiteralExpectedPrimitive => Cow::Borrowed("Object"),
         }
     }
 

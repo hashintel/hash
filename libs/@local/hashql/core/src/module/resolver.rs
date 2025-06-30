@@ -126,7 +126,10 @@ impl<'heap> Resolver<'_, 'heap> {
             .copied()
             .find_map(|item| match item.kind {
                 ItemKind::Module(module) if item.name == name => Some(module),
-                _ => None,
+                ItemKind::Module(_)
+                | ItemKind::Type(_)
+                | ItemKind::Constructor(_)
+                | ItemKind::Intrinsic(_) => None,
             });
 
         let Some(module) = candidate else {
@@ -323,7 +326,10 @@ impl<'heap> Resolver<'_, 'heap> {
             .rev()
             .find_map(|import| match import.item.kind {
                 ItemKind::Module(module) if import.name == name => Some(module),
-                _ => None,
+                ItemKind::Module(_)
+                | ItemKind::Type(_)
+                | ItemKind::Constructor(_)
+                | ItemKind::Intrinsic(_) => None,
             });
 
         let Some(module) = module else {
@@ -362,7 +368,10 @@ impl<'heap> Resolver<'_, 'heap> {
                 .rev()
                 .find_map(|import| match import.item.kind {
                     ItemKind::Module(module) if import.name == name => Some(module),
-                    _ => None,
+                    ItemKind::Module(_)
+                    | ItemKind::Type(_)
+                    | ItemKind::Constructor(_)
+                    | ItemKind::Intrinsic(_) => None,
                 });
 
             let Some(module) = module else {
