@@ -236,7 +236,7 @@ fn web_view_entity_policies(role: &WebRole) -> impl Iterator<Item = PolicyCreati
                                     },
                                     EntityResourceFilter::IsOfBaseType {
                                         entity_type: base_url!(
-                                            "https://hash.ai/@h/types/entity-type/usage-record//"
+                                            "https://hash.ai/@h/types/entity-type/usage-record/"
                                         ),
                                     },
                                     EntityResourceFilter::IsOfBaseType {
