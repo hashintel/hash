@@ -485,7 +485,7 @@ mod test {
 
         // Create a large graph with a lot of small SCCs
         for i in 0..node_count {
-            if i % 2 == 0 {
+            if i.is_multiple_of(2) {
                 adjacency_list.push([(i + 1) % node_count]);
             } else {
                 adjacency_list.push([(i - 1) % node_count]);
