@@ -300,7 +300,7 @@ fn instance_admins_view_entity_policy(
                     },
                     EntityResourceFilter::IsOfBaseType {
                         entity_type: base_url!(
-                            "https://hash.ai/@h/types/entity-type/usage-record//"
+                            "https://hash.ai/@h/types/entity-type/usage-record/"
                         ),
                     },
                     EntityResourceFilter::IsOfBaseType {
