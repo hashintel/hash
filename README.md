@@ -291,9 +291,14 @@ By default, files are uploaded locally, which is **not** recommended for product
 
 During development, the dummy email transporter writes emails to a local folder.
 
-- `HASH_EMAIL_TRANSPORTER`: `dummy` or `aws`. If set to dummy, the local dummy email transporter will be used during development instead of aws (default: `dummy`)
+- `HASH_EMAIL_TRANSPORTER`: `dummy`, `aws`, or `smtp`. If set to dummy, the local dummy email transporter will be used in development or test environments (it logs to the console).
 - `DUMMY_EMAIL_TRANSPORTER_FILE_PATH`: Default is `var/api/dummy-email-transporter/email-dumps.yml`
-- `DUMMY_EMAIL_TRANSPORTER_USE_CLIPBOARD`: `true` or `false` (default: `true`)
+- `SYSTEM_EMAIL_SENDER_NAME`: the display name for the email sender (required if transport is `aws` or `smtp`)
+- `SYSTEM_EMAIL_ADDRESS`: the email address for the email sender (required if transport is `aws` or `smtp`)
+- `SMTP_SERVER_HOST`: the host for a SMTP server (required if transporter is `smtp`)
+- `SMTP_SERVER_PORT`: the port for a SMTP server (required if transporter is `smtp`)
+- `SMTP_SERVER_USERNAME`: auth username for SMTP server (optional if API is automatically authenticated)
+- `SMTP_SERVER_PASSWORD`: password for SMTP server (optional if API is automatically authenticated)
 
 #### OpenSearch
 

@@ -82,9 +82,7 @@ hash_api_env_vars = [
   { name = "HASH_HYDRA_PUBLIC_URL", secret = false, value = "http://localhost:4444" },
   { name = "HASH_HYDRA_ADMIN_URL", secret = false, value = "http://localhost:4445" },
 
-  # TODO: remove these deprecated system org variables
-  { name = "SYSTEM_ACCOUNT_NAME", secret = false, value = "HASH" },
-  { name = "SYSTEM_ACCOUNT_SHORTNAME", secret = false, value = "hash" },
+  { name = "HASH_EMAIL_TRANSPORTER", secret = false, value = "aws" },
   { name = "SYSTEM_EMAIL_ADDRESS", secret = false, value = "noreply@hash.ai" },
   { name = "SYSTEM_EMAIL_SENDER_NAME", secret = false, value = "HASH" },
 ]

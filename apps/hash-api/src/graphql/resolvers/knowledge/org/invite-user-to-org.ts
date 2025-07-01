@@ -2,12 +2,11 @@ import {
   type EntityId,
   entityIdFromComponents,
   type EntityUuid,
-  extractEntityUuidFromEntityId,
   type WebId,
 } from "@blockprotocol/type-system";
 import type { EntityRelationAndSubjectBranded } from "@local/hash-graph-sdk/authorization";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import type { frontendUrl } from "@local/hash-isomorphic-utils/environment";
+import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
   currentTimeInstantTemporalAxes,

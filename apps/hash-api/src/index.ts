@@ -55,11 +55,7 @@ import { hydraPublicUrl } from "./auth/ory-hydra";
 import { kratosPublicUrl } from "./auth/ory-kratos";
 import { setupBlockProtocolExternalServiceMethodProxy } from "./block-protocol-external-service-method-proxy";
 import { RedisCache } from "./cache";
-import type { EmailTransporter } from "./email/transporters";
-import {
-  AwsSesEmailTransporter,
-  DummyEmailTransporter,
-} from "./email/transporters";
+import { createEmailTransporter } from "./email/create-email-transporter";
 import { ensureSystemGraphIsInitialized } from "./graph/ensure-system-graph-is-initialized";
 import { ensureHashSystemAccountExists } from "./graph/system-account";
 import { createApolloServer } from "./graphql/create-apollo-server";
@@ -444,29 +440,7 @@ const main = async () => {
   app.set("view engine", "hbs");
   app.set("views", "./views");
 
-  const emailTransporter =
-    isTestEnv || isDevEnv || process.env.HASH_EMAIL_TRANSPORTER === "dummy"
-      ? new DummyEmailTransporter({
-          filePath: process.env.DUMMY_EMAIL_TRANSPORTER_FILE_PATH
-            ? path.resolve(
-                monorepoRootDir,
-                process.env.DUMMY_EMAIL_TRANSPORTER_FILE_PATH,
-              )
-            : undefined,
-        })
-      : process.env.AWS_REGION
-        ? new AwsSesEmailTransporter({
-            from: `${getRequiredEnv(
-              "SYSTEM_EMAIL_SENDER_NAME",
-            )} <${getRequiredEnv("SYSTEM_EMAIL_ADDRESS")}>`,
-            region: getAwsRegion(),
-            subjectPrefix: isProdEnv ? undefined : "[DEV SITE] ",
-          })
-        : ({
-            sendMail: (mail) => {
-              logger.info(`Tried to send mail to ${mail.to}:\n${mail.html}`);
-            },
-          } as EmailTransporter);
+  const emailTransporter = createEmailTransporter();
 
   let search: OpenSearch | undefined;
   if (process.env.HASH_OPENSEARCH_ENABLED === "true") {

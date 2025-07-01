@@ -185,11 +185,11 @@ fn global_view_entity_policies() -> impl Iterator<Item = PolicyCreationParams> {
                 )
                 .chain(create_version_filters(
                     base_url!("https://hash.ai/@h/types/entity-type/user/"),
-                    6,
+                    7,
                 ))
                 .chain(create_version_filters(
                     base_url!("https://hash.ai/@h/types/entity-type/organization/"),
-                    2,
+                    3,
                 ))
                 .collect(),
             },
