@@ -1109,6 +1109,8 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                     join_expression.join = JoinType::LeftOuter;
                 } else if join_expression.join != JoinType::Inner {
                     is_outer_join_chain = true;
+                } else {
+                    // Join is Inner type, keep as-is
                 }
 
                 // TODO: If we join on the same column as the previous join, we can reuse the that
@@ -1160,6 +1162,8 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                         // We have a join statement for the same table but with different
                         // conditions.
                         join_expression.table.alias.number += 1;
+                    } else {
+                        // No alias conflict, continue with existing alias
                     }
                 }
 

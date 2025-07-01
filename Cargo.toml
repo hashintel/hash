@@ -344,8 +344,6 @@ arithmetic_side_effects        = "allow"
 as_conversions                 = "allow"
 # Too many false positives when macros and/or loops are involved
 cognitive_complexity    = "allow"
-else_if_without_else    = "allow"
-enum_variant_names      = "allow"
 expect_used             = "allow"
 let_underscore_must_use = "allow"
 missing_assert_message  = "allow"

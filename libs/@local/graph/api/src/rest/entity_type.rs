@@ -36,7 +36,7 @@ use hash_graph_store::{
     pool::StorePool,
     query::ConflictBehavior,
 };
-use hash_graph_type_defs::error::{ErrorInfo, Status, StatusPayloads};
+use hash_graph_type_defs::error::{ErrorInfo, Status, StatusPayloadInfo};
 use hash_graph_types::ontology::EntityTypeEmbedding;
 use hash_map::HashMap;
 use hash_temporal_client::TemporalClient;
@@ -435,7 +435,7 @@ where
                      including request details and logs."
                         .to_owned(),
                 ),
-                vec![StatusPayloads::ErrorInfo(ErrorInfo::new(
+                vec![StatusPayloadInfo::Error(ErrorInfo::new(
                     // TODO: add information from the report here
                     //   see https://linear.app/hash/issue/H-3009
                     HashMap::new(),
@@ -466,7 +466,7 @@ where
                     status_to_response(Status::new(
                         hash_status::StatusCode::InvalidArgument,
                         Some("Entity Type ID failed to validate against the given domain regex. Are you sure the service is able to host a type under the domain you supplied?".to_owned()),
-                        vec![StatusPayloads::ErrorInfo(ErrorInfo::new(
+                        vec![StatusPayloadInfo::Error(ErrorInfo::new(
                             HashMap::from([
                                 (
                                     "entityTypeId".to_owned(),
@@ -523,7 +523,7 @@ where
                          you intended to call `updateEntityType` instead?"
                             .to_owned(),
                     ),
-                    vec![StatusPayloads::ErrorInfo(ErrorInfo::new(
+                    vec![StatusPayloadInfo::Error(ErrorInfo::new(
                         metadata,
                         // TODO: We should encapsulate these Reasons within the type system,
                         //       perhaps requiring top level contexts to implement a trait
@@ -541,7 +541,7 @@ where
                      whatever information you can provide including request details and logs."
                         .to_owned(),
                 ),
-                vec![StatusPayloads::ErrorInfo(ErrorInfo::new(
+                vec![StatusPayloadInfo::Error(ErrorInfo::new(
                     HashMap::new(),
                     // TODO: We should encapsulate these Reasons within the type system, perhaps
                     //       requiring top level contexts to implement a trait
@@ -635,7 +635,7 @@ where
                      including request details and logs."
                         .to_owned(),
                 ),
-                vec![StatusPayloads::ErrorInfo(ErrorInfo::new(
+                vec![StatusPayloadInfo::Error(ErrorInfo::new(
                     // TODO: add information from the report here
                     //   see https://linear.app/hash/issue/H-3009
                     HashMap::new(),

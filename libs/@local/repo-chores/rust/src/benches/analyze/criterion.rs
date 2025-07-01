@@ -103,6 +103,8 @@ pub fn format_github_markdown<'b>(
             group_end(fmt)?;
             group_start(fmt, &analysis.measurement.info.group_id)?;
             table_header(fmt)?;
+        } else {
+            // Group hasn't changed, continue with the current group
         }
         last_group_id = Some(analysis.measurement.info.group_id.as_str());
         table_row(fmt, analysis, name)?;
