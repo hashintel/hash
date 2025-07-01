@@ -8,7 +8,7 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { Box } from "@mui/material";
+import { Stack } from "@mui/material";
 import type { FormEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 
@@ -132,7 +132,7 @@ export const AddMemberForm = ({ org }: { org: Org }) => {
   };
 
   return (
-    <Box component="form" onSubmit={addMember}>
+    <Stack gap={2} direction="row" component="form" onSubmit={addMember}>
       <TextField
         autoComplete="off"
         error={!!error}
@@ -164,6 +164,6 @@ export const AddMemberForm = ({ org }: { org: Org }) => {
       >
         {loading ? "Pending..." : "Add member"}
       </Button>
-    </Box>
+    </Stack>
   );
 };
