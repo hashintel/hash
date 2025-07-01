@@ -114,32 +114,39 @@ fn find_next<'a>(head: &[&'a Frame], mut current: &'a Frame) -> Vec<SerializeCon
     attachments.extend(head);
 
     loop {
-        if let FrameKind::Context(context) = current.kind() {
-            // found the context, return all attachments (reversed)
-            attachments.reverse();
+        match current.kind() {
+            FrameKind::Context(context) => {
+                // found the context, return all attachments (reversed)
+                attachments.reverse();
 
-            return vec![SerializeContext {
-                attachments,
-                context,
-                sources: current.sources(),
-            }];
-        } else if current.sources().len() > 1 {
-            // current is an attachment, add to attachments and recursively probe
-            attachments.push(current);
+                return vec![SerializeContext {
+                    attachments,
+                    context,
+                    sources: current.sources(),
+                }];
+            }
+            FrameKind::Attachment(_) => match current.sources() {
+                [] => {
+                    // there are no more frames, therefore we need to abandon
+                    // this is theoretically impossible (the bottom is always a context), but not
+                    // enforced
+                    return vec![];
+                }
+                [source] => {
+                    attachments.push(current);
 
-            return current
-                .sources()
-                .iter()
-                .flat_map(|source| find_next(&attachments, source))
-                .collect();
-        } else if current.sources().len() == 1 {
-            attachments.push(current);
+                    current = source;
+                }
+                sources => {
+                    // there are multiple sources, we need to recursively probe each of them
+                    attachments.push(current);
 
-            current = &current.sources()[0];
-        } else {
-            // there are no more frames, therefore we need to abandon
-            // this is theoretically impossible (the bottom is always a context), but not enforced
-            return vec![];
+                    return sources
+                        .iter()
+                        .flat_map(|source| find_next(&attachments, source))
+                        .collect();
+                }
+            },
         }
     }
 }

@@ -354,7 +354,23 @@ impl<'heap> Visitor<'heap> for ImportResolver<'_, 'heap> {
                     self.handled_diagnostics = fatal;
                 }
             }
-            _ => {}
+            ExprKind::Call(_)
+            | ExprKind::Struct(_)
+            | ExprKind::Dict(_)
+            | ExprKind::Tuple(_)
+            | ExprKind::List(_)
+            | ExprKind::Literal(_)
+            | ExprKind::Let(_)
+            | ExprKind::Type(_)
+            | ExprKind::NewType(_)
+            | ExprKind::Input(_)
+            | ExprKind::Closure(_)
+            | ExprKind::If(_)
+            | ExprKind::Field(_)
+            | ExprKind::Index(_)
+            | ExprKind::Is(_)
+            | ExprKind::Underscore
+            | ExprKind::Dummy => {}
         }
     }
 

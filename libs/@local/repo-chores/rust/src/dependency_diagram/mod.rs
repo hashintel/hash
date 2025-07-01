@@ -300,8 +300,12 @@ fn graph_to_mermaid(
     let mut edges = BTreeMap::new();
 
     for link in set.links(DependencyDirection::Forward) {
-        let from = package_id_lookup[link.from().id()];
-        let to = package_id_lookup[link.to().id()];
+        let from = *package_id_lookup
+            .get(link.from().id())
+            .expect("package should exist");
+        let to = *package_id_lookup
+            .get(link.to().id())
+            .expect("package should exist");
         edges.insert((from, to), link);
     }
 

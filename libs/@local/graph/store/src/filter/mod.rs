@@ -467,36 +467,34 @@ impl<'p> Filter<'p, Entity> {
         }
 
         // Add optimized entity permits if any
-        match optimization_data.permitted_entity_uuids.len() {
-            0 => {}
-            1 => {
-                let id = optimization_data.permitted_entity_uuids[0];
+        match optimization_data.permitted_entity_uuids.as_slice() {
+            [] => {}
+            &[entity_uuid] => {
                 permits.push(Self::Equal(
                     Some(FilterExpression::Path {
                         path: EntityQueryPath::Uuid,
                     }),
                     Some(FilterExpression::Parameter {
-                        parameter: Parameter::Uuid(id.into()),
+                        parameter: Parameter::Uuid(entity_uuid.into()),
                         convert: None,
                     }),
                 ));
             }
-            _ => {
+            entity_uuids => {
                 // Use the Vec directly for the IN clause
                 permits.push(Self::In(
                     FilterExpression::Path {
                         path: EntityQueryPath::Uuid,
                     },
-                    ParameterList::EntityUuids(&optimization_data.permitted_entity_uuids),
+                    ParameterList::EntityUuids(entity_uuids),
                 ));
             }
         }
 
         // Add optimized web ID permits if any
-        match optimization_data.permitted_web_ids.len() {
-            0 => {}
-            1 => {
-                let web_id = optimization_data.permitted_web_ids[0];
+        match optimization_data.permitted_web_ids.as_slice() {
+            [] => {}
+            &[web_id] => {
                 permits.push(Self::Equal(
                     Some(FilterExpression::Path {
                         path: EntityQueryPath::WebId,
@@ -507,13 +505,13 @@ impl<'p> Filter<'p, Entity> {
                     }),
                 ));
             }
-            _ => {
+            web_ids => {
                 // Use the Vec directly for the IN clause
                 permits.push(Self::In(
                     FilterExpression::Path {
                         path: EntityQueryPath::WebId,
                     },
-                    ParameterList::WebIds(&optimization_data.permitted_web_ids),
+                    ParameterList::WebIds(web_ids),
                 ));
             }
         }
@@ -775,6 +773,10 @@ impl<R: QueryRecord> FilterExpression<'_, R> {
 
 #[cfg(test)]
 mod tests {
+    #![expect(
+        clippy::wildcard_enum_match_arm,
+        reason = "It's fine to error on unused arms in tests"
+    )]
 
     use hash_graph_types::ontology::DataTypeLookup;
     use serde_json::json;
@@ -1507,7 +1509,9 @@ mod tests {
                     );
                     assert!(has_web_in, "should contain web ID IN clause optimization");
                 }
-                other => panic!("should create Any filter with both IN clauses, got: {other:?}"),
+                other => {
+                    panic!("should create Any filter with both IN clauses, got: {other:?}")
+                }
             }
         }
 

@@ -85,6 +85,7 @@ impl<'v> FromSql<'v> for Embedding<'_> {
     )]
     #[expect(
         clippy::missing_asserts_for_indexing,
+        clippy::indexing_slicing,
         reason = "We error if the buffer is too small"
     )]
     fn from_sql(_ty: &Type, raw: &'v [u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {

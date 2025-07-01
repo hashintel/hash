@@ -860,7 +860,12 @@ where
             PrincipalType::User => ActorId::User(UserId::new(actor_entity_uuid)),
             PrincipalType::Machine => ActorId::Machine(MachineId::new(actor_entity_uuid)),
             PrincipalType::Ai => ActorId::Ai(AiId::new(actor_entity_uuid)),
-            principal_type => unreachable!("Unexpected actor type: {principal_type:?}"),
+            principal_type @ (PrincipalType::Web
+            | PrincipalType::Team
+            | PrincipalType::WebRole
+            | PrincipalType::TeamRole) => {
+                unreachable!("Unexpected actor type: {principal_type:?}")
+            }
         }))
     }
 
@@ -940,13 +945,21 @@ where
                     parent_id: match row.get(3) {
                         PrincipalType::Web => ActorGroupId::Web(row.get(4)),
                         PrincipalType::Team => ActorGroupId::Team(row.get(4)),
-                        actor_group_type => {
+                        actor_group_type @ (PrincipalType::User
+                        | PrincipalType::Machine
+                        | PrincipalType::Ai
+                        | PrincipalType::WebRole
+                        | PrincipalType::TeamRole) => {
                             unreachable!("Unexpected actor group type: {actor_group_type:?}")
                         }
                     },
                     roles: HashSet::new(),
                 }),
-                actor_group_type => {
+                actor_group_type @ (PrincipalType::User
+                | PrincipalType::Machine
+                | PrincipalType::Ai
+                | PrincipalType::WebRole
+                | PrincipalType::TeamRole) => {
                     unreachable!("Unexpected actor group type: {actor_group_type:?}")
                 }
             })
@@ -989,7 +1002,10 @@ impl PolicyParts {
                 PrincipalType::User => Ok(ActorType::User),
                 PrincipalType::Machine => Ok(ActorType::Machine),
                 PrincipalType::Ai => Ok(ActorType::Ai),
-                _ => Err(GetPoliciesError::InvalidPrincipalConstraint),
+                PrincipalType::Web
+                | PrincipalType::Team
+                | PrincipalType::WebRole
+                | PrincipalType::TeamRole => Err(GetPoliciesError::InvalidPrincipalConstraint),
             })
             .transpose()?;
 
@@ -1773,6 +1789,7 @@ where
                 #[expect(
                     clippy::cast_possible_truncation,
                     clippy::cast_sign_loss,
+                    clippy::indexing_slicing,
                     reason = "The index is 1-based and is always less than or equal to the length \
                               of the array"
                 )]
@@ -1860,6 +1877,7 @@ where
                 #[expect(
                     clippy::cast_possible_truncation,
                     clippy::cast_sign_loss,
+                    clippy::indexing_slicing,
                     reason = "The index is 1-based and is always less than or equal to the length \
                               of the array"
                 )]
@@ -1920,7 +1938,10 @@ where
                         PrincipalType::User => ActorType::User,
                         PrincipalType::Machine => ActorType::Machine,
                         PrincipalType::Ai => ActorType::Ai,
-                        principal_type => unreachable!(
+                        principal_type @ (PrincipalType::Web
+                        | PrincipalType::Team
+                        | PrincipalType::WebRole
+                        | PrincipalType::TeamRole) => unreachable!(
                             "Unexpected actor type `{principal_type:?}` in entity context"
                         ),
                     },
@@ -2856,7 +2877,13 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
                         .map(|(id, principal_type)| match principal_type {
                             PrincipalType::WebRole => RoleId::Web(WebRoleId::new(id)),
                             PrincipalType::TeamRole => RoleId::Team(TeamRoleId::new(id)),
-                            _ => unreachable!("Unexpected role type: {principal_type:?}"),
+                            PrincipalType::User
+                            | PrincipalType::Machine
+                            | PrincipalType::Ai
+                            | PrincipalType::Web
+                            | PrincipalType::Team => {
+                                unreachable!("Unexpected role type: {principal_type:?}")
+                            }
                         })
                         .collect(),
                 }
@@ -2897,7 +2924,13 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
                         .map(|(id, principal_type)| match principal_type {
                             PrincipalType::WebRole => RoleId::Web(WebRoleId::new(id)),
                             PrincipalType::TeamRole => RoleId::Team(TeamRoleId::new(id)),
-                            _ => unreachable!("Unexpected role type: {principal_type:?}"),
+                            PrincipalType::User
+                            | PrincipalType::Machine
+                            | PrincipalType::Ai
+                            | PrincipalType::Web
+                            | PrincipalType::Team => {
+                                unreachable!("Unexpected role type: {principal_type:?}")
+                            }
                         })
                         .collect(),
                 }
@@ -2938,7 +2971,13 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
                         .map(|(id, principal_type)| match principal_type {
                             PrincipalType::WebRole => RoleId::Web(WebRoleId::new(id)),
                             PrincipalType::TeamRole => RoleId::Team(TeamRoleId::new(id)),
-                            _ => unreachable!("Unexpected role type: {principal_type:?}"),
+                            PrincipalType::User
+                            | PrincipalType::Machine
+                            | PrincipalType::Ai
+                            | PrincipalType::Web
+                            | PrincipalType::Team => {
+                                unreachable!("Unexpected role type: {principal_type:?}")
+                            }
                         })
                         .collect(),
                 }
@@ -2979,7 +3018,13 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
                         .map(|(id, principal_type)| match principal_type {
                             PrincipalType::WebRole => RoleId::Web(WebRoleId::new(id)),
                             PrincipalType::TeamRole => RoleId::Team(TeamRoleId::new(id)),
-                            _ => unreachable!("Unexpected role type: {principal_type:?}"),
+                            PrincipalType::User
+                            | PrincipalType::Machine
+                            | PrincipalType::Ai
+                            | PrincipalType::Web
+                            | PrincipalType::Team => {
+                                unreachable!("Unexpected role type: {principal_type:?}")
+                            }
                         })
                         .collect(),
                 }
@@ -3020,7 +3065,13 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
                         .map(|(id, principal_type)| match principal_type {
                             PrincipalType::WebRole => RoleId::Web(WebRoleId::new(id)),
                             PrincipalType::TeamRole => RoleId::Team(TeamRoleId::new(id)),
-                            _ => unreachable!("Unexpected role type: {principal_type:?}"),
+                            PrincipalType::User
+                            | PrincipalType::Machine
+                            | PrincipalType::Ai
+                            | PrincipalType::Web
+                            | PrincipalType::Team => {
+                                unreachable!("Unexpected role type: {principal_type:?}")
+                            }
                         })
                         .collect(),
                 }
@@ -3258,7 +3309,11 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
                     parent_id: match row.get(0) {
                         PrincipalType::Web => ActorGroupId::Web(row.get(1)),
                         PrincipalType::Team => ActorGroupId::Team(row.get(1)),
-                        principal_type => {
+                        principal_type @ (PrincipalType::User
+                        | PrincipalType::Machine
+                        | PrincipalType::Ai
+                        | PrincipalType::WebRole
+                        | PrincipalType::TeamRole) => {
                             unreachable!("Unexpected principal type {principal_type}")
                         }
                     },
@@ -3299,7 +3354,11 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
                     parent_id: match row.get(1) {
                         PrincipalType::Web => ActorGroupId::Web(row.get(2)),
                         PrincipalType::Team => ActorGroupId::Team(row.get(2)),
-                        principal_type => {
+                        principal_type @ (PrincipalType::User
+                        | PrincipalType::Machine
+                        | PrincipalType::Ai
+                        | PrincipalType::WebRole
+                        | PrincipalType::TeamRole) => {
                             unreachable!("Unexpected principal type {principal_type}")
                         }
                     },

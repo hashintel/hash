@@ -40,10 +40,6 @@ members = [
     "libs/@local/temporal-client",
     "libs/antsi",
     "libs/chonky",
-    "libs/deer",
-    "libs/deer/desert",
-    "libs/deer/json",
-    "libs/deer/macros",
     "libs/error-stack",
     "libs/error-stack/macros",
     "libs/sarif",
@@ -351,14 +347,12 @@ cognitive_complexity    = "allow"
 else_if_without_else    = "allow"
 enum_variant_names      = "allow"
 expect_used             = "allow"
-indexing_slicing        = "allow"
 let_underscore_must_use = "allow"
 missing_assert_message  = "allow"
 multiple_inherent_impl  = "allow"
 panic                   = "allow"
 partial_pub_fields      = "allow"
 unwrap_in_result        = "allow"
-wildcard_enum_match_arm = "allow"
 
 # Consider enabling:
 default_numeric_fallback      = "allow"

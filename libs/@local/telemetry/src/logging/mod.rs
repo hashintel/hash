@@ -404,10 +404,12 @@ where
             None,
             Right::<S, W>::Some(layer(format, level, writer, JsonFields::new(), ansi)),
         ),
-        _ => <Left<S, W> as Layer<S>>::and_then(
-            Some(layer(format, level, writer, DefaultFields::new(), ansi)),
-            Right::<S, W>::None,
-        ),
+        LogFormat::Full | LogFormat::Pretty | LogFormat::Compact => {
+            <Left<S, W> as Layer<S>>::and_then(
+                Some(layer(format, level, writer, DefaultFields::new(), ansi)),
+                Right::<S, W>::None,
+            )
+        }
     }
 }
 

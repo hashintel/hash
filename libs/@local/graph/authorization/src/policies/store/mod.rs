@@ -723,6 +723,10 @@ pub struct MemoryPolicyStore {
     policies: HashMap<PrincipalIndex, HashMap<PolicyId, Policy>>,
 }
 
+#[expect(
+    clippy::indexing_slicing,
+    reason = "Deprecated implementation which is not used outside of tests"
+)]
 impl OldPolicyStore for MemoryPolicyStore {
     fn create_user(&mut self, web_id: WebId) -> Result<UserId, Report<ActorCreationError>> {
         ensure!(
