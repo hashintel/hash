@@ -99,7 +99,6 @@ const createHashEntity = async (params: {
 }): Promise<void> => {
   const { graphApiClient, webId } = params;
 
-  const entityUuid = uuidv4() as EntityUuid;
   const entity = await HashEntity.create(
     graphApiClient,
     params.authentication,
@@ -109,18 +108,6 @@ const createHashEntity = async (params: {
       relationships: createLinearHashEntityAuthRelationships({
         machineActorId: params.authentication.actorId,
       }),
-      policies: [
-        {
-          name: `linear-bot-view-linear-entity-${entityUuid}`,
-          effect: "permit",
-          principal: {
-            type: "actor",
-            actorType: "machine",
-            id: params.authentication.actorId,
-          },
-          actions: ["viewEntity"],
-        },
-      ],
       properties: mergePropertyObjectAndMetadata(
         (params.partialEntity.properties as
           | HashEntity["properties"]
@@ -137,10 +124,8 @@ const createHashEntity = async (params: {
       graphApiClient,
       { actorId: params.authentication.actorId },
       params.outgoingLinks.map(({ linkEntityTypeId, destinationEntityId }) => {
-        const linkEntityUuid = uuidv4() as EntityUuid;
         return {
           webId,
-          entityUuid: linkEntityUuid,
           linkData: {
             leftEntityId: entity.metadata.recordId.entityId,
             rightEntityId: destinationEntityId,
@@ -152,18 +137,6 @@ const createHashEntity = async (params: {
           relationships: createLinearHashEntityAuthRelationships({
             machineActorId: params.authentication.actorId,
           }),
-          policies: [
-            {
-              name: `linear-bot-view-linear-entity-${linkEntityUuid}`,
-              effect: "permit",
-              principal: {
-                type: "actor",
-                actorType: "machine",
-                id: params.authentication.actorId,
-              },
-              actions: ["viewEntity"],
-            },
-          ],
         };
       }),
     );
@@ -257,18 +230,6 @@ const createOrUpdateHashEntity = async (params: {
             relationships: createLinearHashEntityAuthRelationships({
               machineActorId: params.authentication.actorId,
             }),
-            policies: [
-              {
-                name: `linear-bot-view-linear-entity-${linkEntityUuid}`,
-                effect: "permit",
-                principal: {
-                  type: "actor",
-                  actorType: "machine",
-                  id: params.authentication.actorId,
-                },
-                actions: ["viewEntity"],
-              },
-            ],
           });
         },
       ),

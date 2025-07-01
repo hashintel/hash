@@ -405,18 +405,6 @@ export const linkIntegrationToWeb: ImpureGraphFunction<
         systemLinkEntityTypes.syncLinearDataWith.linkEntityTypeId,
       ],
       relationships: linearIntegrationRelationships,
-      policies: [
-        {
-          name: `linear-integration-bot-view-link-entity-${linkEntityUuid}`,
-          principal: {
-            type: "actor",
-            actorType: "machine",
-            id: linearBotMachineId,
-          },
-          effect: "permit",
-          actions: ["viewEntity"],
-        },
-      ],
     });
   }
 };

@@ -45,6 +45,11 @@ pub enum ActionName {
 
     #[cfg_attr(feature = "codegen", specta(skip))]
     Update,
+    UpdateEntity,
+
+    #[cfg_attr(feature = "codegen", specta(skip))]
+    Archive,
+    ArchiveEntity,
 
     Instantiate,
 }
@@ -58,11 +63,16 @@ impl ActionName {
     pub const fn parent(self) -> Option<Self> {
         match self {
             Self::All => None,
-            Self::Create | Self::CreateWeb | Self::View | Self::Update | Self::Instantiate => {
-                Some(Self::All)
-            }
+            Self::Create
+            | Self::CreateWeb
+            | Self::View
+            | Self::Update
+            | Self::Archive
+            | Self::Instantiate => Some(Self::All),
             Self::CreateEntity => Some(Self::Create),
             Self::ViewEntity | Self::ViewEntityType => Some(Self::View),
+            Self::UpdateEntity => Some(Self::Update),
+            Self::ArchiveEntity => Some(Self::Archive),
         }
     }
 
@@ -348,6 +358,10 @@ mod tests {
             vec![ActionName::All]
         );
         assert_eq!(
+            ActionName::Archive.parents().collect::<Vec<_>>(),
+            vec![ActionName::All]
+        );
+        assert_eq!(
             ActionName::Instantiate.parents().collect::<Vec<_>>(),
             vec![ActionName::All]
         );
@@ -365,6 +379,14 @@ mod tests {
             ActionName::ViewEntityType.parents().collect::<Vec<_>>(),
             vec![ActionName::View, ActionName::All]
         );
+        assert_eq!(
+            ActionName::UpdateEntity.parents().collect::<Vec<_>>(),
+            vec![ActionName::Update, ActionName::All]
+        );
+        assert_eq!(
+            ActionName::ArchiveEntity.parents().collect::<Vec<_>>(),
+            vec![ActionName::Archive, ActionName::All]
+        );
     }
 
     #[test]
@@ -375,6 +397,12 @@ mod tests {
         // View is parent of ViewEntity and ViewEntityType
         assert!(ActionName::View.is_parent_of(ActionName::ViewEntity));
         assert!(ActionName::View.is_parent_of(ActionName::ViewEntityType));
+
+        // Update is parent of UpdateEntity
+        assert!(ActionName::Update.is_parent_of(ActionName::UpdateEntity));
+
+        // Archive is parent of ArchiveEntity
+        assert!(ActionName::Archive.is_parent_of(ActionName::ArchiveEntity));
 
         // Negative cases
         assert!(!ActionName::Create.is_parent_of(ActionName::View));
@@ -392,6 +420,12 @@ mod tests {
         // ViewEntity and ViewEntityType are children of View
         assert!(ActionName::ViewEntity.is_child_of(ActionName::View));
         assert!(ActionName::ViewEntityType.is_child_of(ActionName::View));
+
+        // UpdateEntity is child of Update
+        assert!(ActionName::UpdateEntity.is_child_of(ActionName::Update));
+
+        // ArchiveEntity is child of Archive
+        assert!(ActionName::ArchiveEntity.is_child_of(ActionName::Archive));
 
         // Negative cases
         assert!(!ActionName::View.is_child_of(ActionName::Create));

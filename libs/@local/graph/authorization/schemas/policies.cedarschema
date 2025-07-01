@@ -47,7 +47,7 @@ namespace HASH {
     resource: [Web],
   };
 
-  action viewEntity in [view] appliesTo {
+  action viewEntity, updateEntity, archiveEntity in [view] appliesTo {
     principal: [User, Machine, Ai, Public],
     resource: [Entity],
   };

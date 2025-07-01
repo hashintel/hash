@@ -1,10 +1,11 @@
-import type { EntityId } from "@blockprotocol/type-system";
+import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import type { EntityRelationAndSubjectBranded } from "@local/hash-graph-sdk/authorization";
 import type {
   CreateEntityParameters,
   HashEntity,
 } from "@local/hash-graph-sdk/entity";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
   blockProtocolPropertyTypes,
   systemEntityTypes,
@@ -178,8 +179,10 @@ export const createComment: ImpureGraphFunction<
     },
   ];
 
+  const textEntityEntityUuid = generateUuid() as EntityUuid;
   const textEntity = await createEntity<TextEntity>(ctx, authentication, {
     webId,
+    entityUuid: textEntityEntityUuid,
     properties: {
       value: {
         "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/":
@@ -196,6 +199,18 @@ export const createComment: ImpureGraphFunction<
     },
     entityTypeIds: [systemEntityTypes.text.entityTypeId],
     relationships,
+    policies: [
+      {
+        name: `comment-text-creator-update-entity-${textEntityEntityUuid}`,
+        principal: {
+          type: "actor",
+          actorType: "user",
+          id: author.accountId,
+        },
+        effect: "permit",
+        actions: ["updateEntity", "archiveEntity"],
+      },
+    ],
   });
 
   const commentEntity = await createEntity<CommentEntity>(ctx, authentication, {

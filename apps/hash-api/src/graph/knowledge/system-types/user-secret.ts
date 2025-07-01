@@ -194,14 +194,14 @@ export const createUserSecret = async <
       relationships: botEditorUserViewerOnly,
       policies: [
         {
-          name: `user-secret-view-entity-${userSecretEntityUuid}`,
+          name: `user-secret-entity-${userSecretEntityUuid}`,
           principal: {
             type: "actor",
             actorType: "machine",
             id: managingBotAccountId,
           },
           effect: "permit",
-          actions: ["viewEntity"],
+          actions: ["viewEntity", "updateEntity", "archiveEntity"],
         },
       ],
     },
@@ -223,14 +223,14 @@ export const createUserSecret = async <
       relationships: botEditorUserViewerOnly,
       policies: [
         {
-          name: `user-secret-view-entity-${userSecretEntityUuid}`,
+          name: `user-secret-entity-${userSecretEntityUuid}`,
           principal: {
             type: "actor",
             actorType: "machine",
             id: managingBotAccountId,
           },
           effect: "permit",
-          actions: ["viewEntity"],
+          actions: ["viewEntity", "updateEntity", "archiveEntity"],
         },
       ],
     },

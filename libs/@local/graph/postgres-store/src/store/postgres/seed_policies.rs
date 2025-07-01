@@ -1,5 +1,8 @@
 use core::iter;
-use std::collections::{HashMap, HashSet};
+use std::{
+    collections::{HashMap, HashSet},
+    sync::LazyLock,
+};
 
 use error_stack::{Report, ResultExt as _};
 use hash_graph_authorization::{
@@ -27,13 +30,102 @@ use type_system::{
     },
 };
 
-use super::PostgresStore;
-
-macro_rules! base_url {
-    ($url:expr) => {
-        BaseUrl::new($url.to_owned()).expect("should be a valid base URL")
-    };
+struct EntityTypeConfig {
+    base_url: BaseUrl,
 }
+
+impl EntityTypeConfig {
+    fn new(base_url: &'static str) -> Self {
+        Self {
+            base_url: BaseUrl::new(base_url.to_owned()).expect("should be a valid base URL"),
+        }
+    }
+
+    fn entity_is_of_base_type(&self) -> EntityResourceFilter {
+        EntityResourceFilter::IsOfBaseType {
+            entity_type: self.base_url.clone(),
+        }
+    }
+
+    fn entity_type_is_base_url(&self) -> EntityTypeResourceFilter {
+        EntityTypeResourceFilter::IsBaseUrl {
+            base_url: self.base_url.clone(),
+        }
+    }
+}
+
+static HASH_INSTANCE: LazyLock<EntityTypeConfig> =
+    LazyLock::new(|| EntityTypeConfig::new("https://hash.ai/@h/types/entity-type/hash-instance/"));
+
+static USER: LazyLock<EntityTypeConfig> =
+    LazyLock::new(|| EntityTypeConfig::new("https://hash.ai/@h/types/entity-type/user/"));
+static PROSPECTIVE_USER: LazyLock<EntityTypeConfig> = LazyLock::new(|| {
+    EntityTypeConfig::new("https://hash.ai/@h/types/entity-type/prospective-user/")
+});
+static ACTOR: LazyLock<EntityTypeConfig> =
+    LazyLock::new(|| EntityTypeConfig::new("https://hash.ai/@h/types/entity-type/actor/"));
+static ORGANIZATION: LazyLock<EntityTypeConfig> =
+    LazyLock::new(|| EntityTypeConfig::new("https://hash.ai/@h/types/entity-type/organization/"));
+static IS_MEMBER_OF: LazyLock<EntityTypeConfig> =
+    LazyLock::new(|| EntityTypeConfig::new("https://hash.ai/@h/types/entity-type/is-member-of/"));
+static MACHINE: LazyLock<EntityTypeConfig> =
+    LazyLock::new(|| EntityTypeConfig::new("https://hash.ai/@h/types/entity-type/machine/"));
+static COMMENT: LazyLock<EntityTypeConfig> =
+    LazyLock::new(|| EntityTypeConfig::new("https://hash.ai/@h/types/entity-type/comment/"));
+
+static SERVICE_FEATURE: LazyLock<EntityTypeConfig> = LazyLock::new(|| {
+    EntityTypeConfig::new("https://hash.ai/@h/types/entity-type/service-feature/")
+});
+static USAGE_RECORD: LazyLock<EntityTypeConfig> =
+    LazyLock::new(|| EntityTypeConfig::new("https://hash.ai/@h/types/entity-type/usage-record/"));
+static INCURRED_IN: LazyLock<EntityTypeConfig> =
+    LazyLock::new(|| EntityTypeConfig::new("https://hash.ai/@h/types/entity-type/incurred-in/"));
+static RECORDS_USAGE_OF: LazyLock<EntityTypeConfig> = LazyLock::new(|| {
+    EntityTypeConfig::new("https://hash.ai/@h/types/entity-type/records-usage-of/")
+});
+
+static USER_SECRET: LazyLock<EntityTypeConfig> =
+    LazyLock::new(|| EntityTypeConfig::new("https://hash.ai/@h/types/entity-type/user-secret/"));
+
+static SYNC_LINEAR_DATA_WITH: LazyLock<EntityTypeConfig> = LazyLock::new(|| {
+    EntityTypeConfig::new("https://hash.ai/@h/types/entity-type/sync-linear-data-with/")
+});
+
+static NOTIFICATION: LazyLock<EntityTypeConfig> =
+    LazyLock::new(|| EntityTypeConfig::new("https://hash.ai/@h/types/entity-type/notification/"));
+static GRAPH_CHANGE_NOTIFICATION: LazyLock<EntityTypeConfig> = LazyLock::new(|| {
+    EntityTypeConfig::new("https://hash.ai/@h/types/entity-type/graph-change-notification/")
+});
+static COMMENT_NOTIFICATION: LazyLock<EntityTypeConfig> = LazyLock::new(|| {
+    EntityTypeConfig::new("https://hash.ai/@h/types/entity-type/comment-notification/")
+});
+static MENTION_NOTIFICATION: LazyLock<EntityTypeConfig> = LazyLock::new(|| {
+    EntityTypeConfig::new("https://hash.ai/@h/types/entity-type/mention-notification/")
+});
+
+static TRIGGERED_BY_USER: LazyLock<EntityTypeConfig> = LazyLock::new(|| {
+    EntityTypeConfig::new("https://hash.ai/@h/types/entity-type/triggered-by-user/")
+});
+static OCCURRED_IN_BLOCK: LazyLock<EntityTypeConfig> = LazyLock::new(|| {
+    EntityTypeConfig::new("https://hash.ai/@h/types/entity-type/occurred-in-block/")
+});
+static OCCURRED_IN_ENTITY: LazyLock<EntityTypeConfig> = LazyLock::new(|| {
+    EntityTypeConfig::new("https://hash.ai/@h/types/entity-type/occurred-in-entity/")
+});
+static OCCURRED_IN_COMMENT: LazyLock<EntityTypeConfig> = LazyLock::new(|| {
+    EntityTypeConfig::new("https://hash.ai/@h/types/entity-type/occurred-in-comment/")
+});
+static OCCURRED_IN_TEXT: LazyLock<EntityTypeConfig> = LazyLock::new(|| {
+    EntityTypeConfig::new("https://hash.ai/@h/types/entity-type/occurred-in-text/")
+});
+
+static GOOGLE_ACCOUNT: LazyLock<EntityTypeConfig> =
+    LazyLock::new(|| EntityTypeConfig::new("https://hash.ai/@google/types/entity-type/account/"));
+static LINEAR_INTEGRATION: LazyLock<EntityTypeConfig> = LazyLock::new(|| {
+    EntityTypeConfig::new("https://hash.ai/@h/types/entity-type/linear-integration/")
+});
+
+use super::PostgresStore;
 
 pub(crate) fn system_actor_create_web_policy(
     system_machine_actor: MachineId,
@@ -62,18 +154,42 @@ fn system_actor_view_entity_policies(
         resource: Some(ResourceConstraint::Entity(EntityResourceConstraint::Any {
             filter: EntityResourceFilter::Any {
                 filters: vec![
-                    EntityResourceFilter::IsOfBaseType {
-                        entity_type: base_url!(
-                            "https://hash.ai/@h/types/entity-type/sync-linear-data-with/"
-                        ),
-                    },
-                    EntityResourceFilter::IsOfBaseType {
-                        entity_type: base_url!(
-                            "https://hash.ai/@h/types/entity-type/prospective-user/"
-                        ),
-                    },
+                    SYNC_LINEAR_DATA_WITH.entity_is_of_base_type(),
+                    PROSPECTIVE_USER.entity_is_of_base_type(),
                 ],
             },
+        })),
+    })
+}
+
+fn system_actor_update_entity_policies(
+    system_machine_actor: MachineId,
+) -> impl Iterator<Item = PolicyCreationParams> {
+    iter::once(PolicyCreationParams {
+        name: Some("system-machine-update-entity".to_owned()),
+        effect: Effect::Permit,
+        principal: Some(PrincipalConstraint::Actor {
+            actor: ActorId::Machine(system_machine_actor),
+        }),
+        actions: vec![ActionName::UpdateEntity],
+        resource: Some(ResourceConstraint::Entity(EntityResourceConstraint::Any {
+            filter: SERVICE_FEATURE.entity_is_of_base_type(),
+        })),
+    })
+}
+
+fn system_actor_archive_entity_policies(
+    system_machine_actor: MachineId,
+) -> impl Iterator<Item = PolicyCreationParams> {
+    iter::once(PolicyCreationParams {
+        name: Some("system-machine-archive-entity".to_owned()),
+        effect: Effect::Permit,
+        principal: Some(PrincipalConstraint::Actor {
+            actor: ActorId::Machine(system_machine_actor),
+        }),
+        actions: vec![ActionName::ArchiveEntity],
+        resource: Some(ResourceConstraint::Entity(EntityResourceConstraint::Any {
+            filter: SERVICE_FEATURE.entity_is_of_base_type(),
         })),
     })
 }
@@ -83,22 +199,22 @@ pub(crate) fn system_actor_policies(
 ) -> impl Iterator<Item = PolicyCreationParams> {
     iter::once(system_actor_create_web_policy(system_machine_actor))
         .chain(system_actor_view_entity_policies(system_machine_actor))
+        .chain(system_actor_update_entity_policies(system_machine_actor))
+        .chain(system_actor_archive_entity_policies(system_machine_actor))
 }
 
 fn google_bot_view_entity_policies(
     google_bot_machine: MachineId,
 ) -> impl Iterator<Item = PolicyCreationParams> {
     iter::once(PolicyCreationParams {
-        name: Some("google-bot-view-entity".to_owned()),
+        name: Some("google-bot-entity".to_owned()),
         effect: Effect::Permit,
         principal: Some(PrincipalConstraint::Actor {
             actor: ActorId::Machine(google_bot_machine),
         }),
-        actions: vec![ActionName::ViewEntity],
+        actions: vec![ActionName::ViewEntity, ActionName::UpdateEntity],
         resource: Some(ResourceConstraint::Entity(EntityResourceConstraint::Any {
-            filter: EntityResourceFilter::IsOfBaseType {
-                entity_type: base_url!("https://hash.ai/@google/types/entity-type/account/"),
-            },
+            filter: GOOGLE_ACCOUNT.entity_is_of_base_type(),
         })),
     })
 }
@@ -109,27 +225,63 @@ pub(crate) fn google_bot_policies(
     google_bot_view_entity_policies(google_bot_machine)
 }
 
-pub(crate) fn linear_bot_policies(
-    _linear_bot_machine: MachineId,
+pub(crate) fn linear_bot_created_entity_policies(
+    linear_bot_machine: MachineId,
 ) -> impl Iterator<Item = PolicyCreationParams> {
-    iter::empty()
+    iter::once(PolicyCreationParams {
+        name: Some("linear-bot-created-entity".to_owned()),
+        effect: Effect::Permit,
+        principal: Some(PrincipalConstraint::Actor {
+            actor: ActorId::Machine(linear_bot_machine),
+        }),
+        actions: vec![
+            ActionName::ViewEntity,
+            ActionName::UpdateEntity,
+            ActionName::ArchiveEntity,
+        ],
+        resource: Some(ResourceConstraint::Entity(EntityResourceConstraint::Any {
+            filter: EntityResourceFilter::CreatedByPrincipal,
+        })),
+    })
+}
+
+pub(crate) fn linear_bot_view_entity_policies(
+    linear_bot_machine: MachineId,
+) -> impl Iterator<Item = PolicyCreationParams> {
+    iter::once(PolicyCreationParams {
+        name: Some("linear-bot-view-entity".to_owned()),
+        effect: Effect::Permit,
+        principal: Some(PrincipalConstraint::Actor {
+            actor: ActorId::Machine(linear_bot_machine),
+        }),
+        actions: vec![ActionName::ViewEntity],
+        resource: Some(ResourceConstraint::Entity(EntityResourceConstraint::Any {
+            filter: EntityResourceFilter::Any {
+                filters: vec![
+                    LINEAR_INTEGRATION.entity_is_of_base_type(),
+                    SYNC_LINEAR_DATA_WITH.entity_is_of_base_type(),
+                ],
+            },
+        })),
+    })
+}
+
+pub(crate) fn linear_bot_policies(
+    linear_bot_machine: MachineId,
+) -> impl Iterator<Item = PolicyCreationParams> {
+    linear_bot_created_entity_policies(linear_bot_machine)
+        .chain(linear_bot_view_entity_policies(linear_bot_machine))
 }
 
 fn global_instantiate_policies() -> impl Iterator<Item = PolicyCreationParams> {
     [ActorType::User, ActorType::Machine, ActorType::Ai]
         .into_iter()
         .map(|actor_type| {
-            let mut filters = vec![EntityTypeResourceFilter::IsBaseUrl {
-                base_url: base_url!("https://hash.ai/@h/types/entity-type/hash-instance/"),
-            }];
+            let mut filters = vec![HASH_INSTANCE.entity_type_is_base_url()];
             if actor_type != ActorType::Machine {
                 filters.extend([
-                    EntityTypeResourceFilter::IsBaseUrl {
-                        base_url: base_url!("https://hash.ai/@h/types/entity-type/actor/"),
-                    },
-                    EntityTypeResourceFilter::IsBaseUrl {
-                        base_url: base_url!("https://hash.ai/@h/types/entity-type/organization/"),
-                    },
+                    ACTOR.entity_type_is_base_url(),
+                    ORGANIZATION.entity_type_is_base_url(),
                 ]);
             }
             PolicyCreationParams {
@@ -157,19 +309,9 @@ fn global_view_entity_policies() -> impl Iterator<Item = PolicyCreationParams> {
         resource: Some(ResourceConstraint::Entity(EntityResourceConstraint::Any {
             filter: EntityResourceFilter::Any {
                 filters: vec![
-                    EntityResourceFilter::IsOfBaseType {
-                        entity_type: base_url!(
-                            "https://hash.ai/@h/types/entity-type/hash-instance/"
-                        ),
-                    },
-                    EntityResourceFilter::IsOfBaseType {
-                        entity_type: base_url!("https://hash.ai/@h/types/entity-type/user/"),
-                    },
-                    EntityResourceFilter::IsOfBaseType {
-                        entity_type: base_url!(
-                            "https://hash.ai/@h/types/entity-type/organization/"
-                        ),
-                    },
+                    HASH_INSTANCE.entity_is_of_base_type(),
+                    USER.entity_is_of_base_type(),
+                    ORGANIZATION.entity_is_of_base_type(),
                 ],
             },
         })),
@@ -185,19 +327,9 @@ fn global_view_entity_policies() -> impl Iterator<Item = PolicyCreationParams> {
             resource: Some(ResourceConstraint::Entity(EntityResourceConstraint::Any {
                 filter: EntityResourceFilter::Any {
                     filters: vec![
-                        EntityResourceFilter::IsOfBaseType {
-                            entity_type: base_url!("https://hash.ai/@h/types/entity-type/machine/"),
-                        },
-                        EntityResourceFilter::IsOfBaseType {
-                            entity_type: base_url!(
-                                "https://hash.ai/@h/types/entity-type/service-feature/"
-                            ),
-                        },
-                        EntityResourceFilter::IsOfBaseType {
-                            entity_type: base_url!(
-                                "https://hash.ai/@h/types/entity-type/is-member-of/"
-                            ),
-                        },
+                        MACHINE.entity_is_of_base_type(),
+                        SERVICE_FEATURE.entity_is_of_base_type(),
+                        IS_MEMBER_OF.entity_is_of_base_type(),
                     ],
                 },
             })),
@@ -206,8 +338,99 @@ fn global_view_entity_policies() -> impl Iterator<Item = PolicyCreationParams> {
     public_policies.chain(authenticated_actor_policies)
 }
 
+fn global_update_entity_policies() -> impl Iterator<Item = PolicyCreationParams> {
+    [
+        PolicyCreationParams {
+            name: Some("user-creator-update-entity".to_owned()),
+            effect: Effect::Permit,
+            principal: Some(PrincipalConstraint::ActorType {
+                actor_type: ActorType::User,
+            }),
+            actions: vec![ActionName::UpdateEntity],
+            resource: Some(ResourceConstraint::Entity(EntityResourceConstraint::Any {
+                filter: EntityResourceFilter::All {
+                    filters: vec![
+                        EntityResourceFilter::CreatedByPrincipal,
+                        EntityResourceFilter::Any {
+                            filters: vec![COMMENT.entity_is_of_base_type()],
+                        },
+                    ],
+                },
+            })),
+        },
+        PolicyCreationParams {
+            name: Some("machine-creator-update-entity".to_owned()),
+            effect: Effect::Permit,
+            principal: Some(PrincipalConstraint::ActorType {
+                actor_type: ActorType::Machine,
+            }),
+            actions: vec![ActionName::UpdateEntity],
+            resource: Some(ResourceConstraint::Entity(EntityResourceConstraint::Any {
+                filter: EntityResourceFilter::All {
+                    filters: vec![
+                        EntityResourceFilter::CreatedByPrincipal,
+                        EntityResourceFilter::Any {
+                            filters: vec![
+                                MACHINE.entity_is_of_base_type(),
+                                ORGANIZATION.entity_is_of_base_type(),
+                                NOTIFICATION.entity_is_of_base_type(),
+                                GRAPH_CHANGE_NOTIFICATION.entity_is_of_base_type(),
+                                COMMENT_NOTIFICATION.entity_is_of_base_type(),
+                                MENTION_NOTIFICATION.entity_is_of_base_type(),
+                                TRIGGERED_BY_USER.entity_is_of_base_type(),
+                                OCCURRED_IN_BLOCK.entity_is_of_base_type(),
+                                OCCURRED_IN_ENTITY.entity_is_of_base_type(),
+                                OCCURRED_IN_COMMENT.entity_is_of_base_type(),
+                                OCCURRED_IN_TEXT.entity_is_of_base_type(),
+                            ],
+                        },
+                    ],
+                },
+            })),
+        },
+    ]
+    .into_iter()
+}
+
+fn global_archive_entity_policies() -> impl Iterator<Item = PolicyCreationParams> {
+    iter::once(PolicyCreationParams {
+        name: Some("user-creator-archive-entity".to_owned()),
+        effect: Effect::Permit,
+        principal: Some(PrincipalConstraint::ActorType {
+            actor_type: ActorType::User,
+        }),
+        actions: vec![ActionName::ArchiveEntity],
+        resource: Some(ResourceConstraint::Entity(EntityResourceConstraint::Any {
+            filter: EntityResourceFilter::All {
+                filters: vec![
+                    EntityResourceFilter::CreatedByPrincipal,
+                    COMMENT.entity_is_of_base_type(),
+                ],
+            },
+        })),
+    })
+}
+
 pub(crate) fn global_policies() -> impl Iterator<Item = PolicyCreationParams> {
-    global_instantiate_policies().chain(global_view_entity_policies())
+    global_instantiate_policies()
+        .chain(global_view_entity_policies())
+        .chain(global_update_entity_policies())
+        .chain(global_archive_entity_policies())
+}
+
+fn web_create_entity_policies(role: &WebRole) -> impl Iterator<Item = PolicyCreationParams> {
+    iter::once(PolicyCreationParams {
+        name: Some("default-web-create-entity".to_owned()),
+        effect: Effect::Permit,
+        principal: Some(PrincipalConstraint::Role {
+            role: RoleId::Web(role.id),
+            actor_type: None,
+        }),
+        actions: vec![ActionName::CreateEntity],
+        resource: Some(ResourceConstraint::Web {
+            web_id: role.web_id,
+        }),
+    })
 }
 
 fn web_view_entity_policies(role: &WebRole) -> impl Iterator<Item = PolicyCreationParams> {
@@ -229,26 +452,10 @@ fn web_view_entity_policies(role: &WebRole) -> impl Iterator<Item = PolicyCreati
                         EntityResourceFilter::Not {
                             filter: Box::new(EntityResourceFilter::Any {
                                 filters: vec![
-                                    EntityResourceFilter::IsOfBaseType {
-                                        entity_type: base_url!(
-                                            "https://hash.ai/@h/types/entity-type/user-secret/"
-                                        ),
-                                    },
-                                    EntityResourceFilter::IsOfBaseType {
-                                        entity_type: base_url!(
-                                            "https://hash.ai/@h/types/entity-type/usage-record/"
-                                        ),
-                                    },
-                                    EntityResourceFilter::IsOfBaseType {
-                                        entity_type: base_url!(
-                                            "https://hash.ai/@h/types/entity-type/incurred-in/"
-                                        ),
-                                    },
-                                    EntityResourceFilter::IsOfBaseType {
-                                        entity_type: base_url!(
-                                            "https://hash.ai/@h/types/entity-type/records-usage-of/"
-                                        ),
-                                    },
+                                    USER_SECRET.entity_is_of_base_type(),
+                                    USAGE_RECORD.entity_is_of_base_type(),
+                                    INCURRED_IN.entity_is_of_base_type(),
+                                    RECORDS_USAGE_OF.entity_is_of_base_type(),
                                 ],
                             }),
                         },
@@ -259,25 +466,129 @@ fn web_view_entity_policies(role: &WebRole) -> impl Iterator<Item = PolicyCreati
     })
 }
 
-fn web_create_entity_policies(role: &WebRole) -> impl Iterator<Item = PolicyCreationParams> {
+fn web_update_entity_policies(role: &WebRole) -> impl Iterator<Item = PolicyCreationParams> {
     iter::once(PolicyCreationParams {
-        name: Some("default-web-create-entity".to_owned()),
+        name: Some("default-web-update-entity".to_owned()),
         effect: Effect::Permit,
         principal: Some(PrincipalConstraint::Role {
             role: RoleId::Web(role.id),
             actor_type: None,
         }),
-        actions: vec![ActionName::CreateEntity],
-        resource: Some(ResourceConstraint::Web {
+        actions: vec![ActionName::UpdateEntity],
+        resource: Some(ResourceConstraint::Entity(EntityResourceConstraint::Web {
             web_id: role.web_id,
+            filter: match role.name {
+                RoleName::Administrator => EntityResourceFilter::Not {
+                    filter: Box::new(EntityResourceFilter::Any {
+                        filters: vec![
+                            MACHINE.entity_is_of_base_type(),
+                            PROSPECTIVE_USER.entity_is_of_base_type(),
+                            SERVICE_FEATURE.entity_is_of_base_type(),
+                            USAGE_RECORD.entity_is_of_base_type(),
+                            INCURRED_IN.entity_is_of_base_type(),
+                            NOTIFICATION.entity_is_of_base_type(),
+                            GRAPH_CHANGE_NOTIFICATION.entity_is_of_base_type(),
+                            COMMENT_NOTIFICATION.entity_is_of_base_type(),
+                            MENTION_NOTIFICATION.entity_is_of_base_type(),
+                            TRIGGERED_BY_USER.entity_is_of_base_type(),
+                            OCCURRED_IN_BLOCK.entity_is_of_base_type(),
+                            OCCURRED_IN_ENTITY.entity_is_of_base_type(),
+                            OCCURRED_IN_COMMENT.entity_is_of_base_type(),
+                            OCCURRED_IN_TEXT.entity_is_of_base_type(),
+                            GOOGLE_ACCOUNT.entity_is_of_base_type(),
+                        ],
+                    }),
+                },
+                RoleName::Member => EntityResourceFilter::Not {
+                    filter: Box::new(EntityResourceFilter::Any {
+                        filters: vec![
+                            MACHINE.entity_is_of_base_type(),
+                            ORGANIZATION.entity_is_of_base_type(),
+                            PROSPECTIVE_USER.entity_is_of_base_type(),
+                            SERVICE_FEATURE.entity_is_of_base_type(),
+                            USAGE_RECORD.entity_is_of_base_type(),
+                            INCURRED_IN.entity_is_of_base_type(),
+                            COMMENT.entity_is_of_base_type(),
+                            IS_MEMBER_OF.entity_is_of_base_type(),
+                            NOTIFICATION.entity_is_of_base_type(),
+                            GRAPH_CHANGE_NOTIFICATION.entity_is_of_base_type(),
+                            COMMENT_NOTIFICATION.entity_is_of_base_type(),
+                            MENTION_NOTIFICATION.entity_is_of_base_type(),
+                            TRIGGERED_BY_USER.entity_is_of_base_type(),
+                            OCCURRED_IN_BLOCK.entity_is_of_base_type(),
+                            OCCURRED_IN_ENTITY.entity_is_of_base_type(),
+                            OCCURRED_IN_COMMENT.entity_is_of_base_type(),
+                            OCCURRED_IN_TEXT.entity_is_of_base_type(),
+                            GOOGLE_ACCOUNT.entity_is_of_base_type(),
+                        ],
+                    }),
+                },
+            },
+        })),
+    })
+}
+
+fn web_archive_entity_policies(role: &WebRole) -> impl Iterator<Item = PolicyCreationParams> {
+    iter::once(PolicyCreationParams {
+        name: Some("default-web-archive-entity".to_owned()),
+        effect: Effect::Permit,
+        principal: Some(PrincipalConstraint::Role {
+            role: RoleId::Web(role.id),
+            actor_type: None,
         }),
+        actions: vec![ActionName::ArchiveEntity],
+        resource: Some(ResourceConstraint::Entity(EntityResourceConstraint::Web {
+            web_id: role.web_id,
+            filter: match role.name {
+                RoleName::Administrator => EntityResourceFilter::Not {
+                    filter: Box::new(EntityResourceFilter::Any {
+                        filters: vec![
+                            MACHINE.entity_is_of_base_type(),
+                            ORGANIZATION.entity_is_of_base_type(),
+                            PROSPECTIVE_USER.entity_is_of_base_type(),
+                            SERVICE_FEATURE.entity_is_of_base_type(),
+                            USAGE_RECORD.entity_is_of_base_type(),
+                            INCURRED_IN.entity_is_of_base_type(),
+                            TRIGGERED_BY_USER.entity_is_of_base_type(),
+                            OCCURRED_IN_BLOCK.entity_is_of_base_type(),
+                            OCCURRED_IN_ENTITY.entity_is_of_base_type(),
+                            OCCURRED_IN_COMMENT.entity_is_of_base_type(),
+                            OCCURRED_IN_TEXT.entity_is_of_base_type(),
+                            GOOGLE_ACCOUNT.entity_is_of_base_type(),
+                        ],
+                    }),
+                },
+                RoleName::Member => EntityResourceFilter::Not {
+                    filter: Box::new(EntityResourceFilter::Any {
+                        filters: vec![
+                            MACHINE.entity_is_of_base_type(),
+                            ORGANIZATION.entity_is_of_base_type(),
+                            PROSPECTIVE_USER.entity_is_of_base_type(),
+                            SERVICE_FEATURE.entity_is_of_base_type(),
+                            USAGE_RECORD.entity_is_of_base_type(),
+                            INCURRED_IN.entity_is_of_base_type(),
+                            COMMENT.entity_is_of_base_type(),
+                            IS_MEMBER_OF.entity_is_of_base_type(),
+                            TRIGGERED_BY_USER.entity_is_of_base_type(),
+                            OCCURRED_IN_BLOCK.entity_is_of_base_type(),
+                            OCCURRED_IN_ENTITY.entity_is_of_base_type(),
+                            OCCURRED_IN_COMMENT.entity_is_of_base_type(),
+                            OCCURRED_IN_TEXT.entity_is_of_base_type(),
+                            GOOGLE_ACCOUNT.entity_is_of_base_type(),
+                        ],
+                    }),
+                },
+            },
+        })),
     })
 }
 
 // TODO: Returning an iterator causes a borrow checker error
 pub(crate) fn web_policies(role: &WebRole) -> Vec<PolicyCreationParams> {
-    web_view_entity_policies(role)
-        .chain(web_create_entity_policies(role))
+    web_create_entity_policies(role)
+        .chain(web_view_entity_policies(role))
+        .chain(web_update_entity_policies(role))
+        .chain(web_archive_entity_policies(role))
         .collect()
 }
 
@@ -295,24 +606,32 @@ fn instance_admins_view_entity_policy(
         resource: Some(ResourceConstraint::Entity(EntityResourceConstraint::Any {
             filter: EntityResourceFilter::Any {
                 filters: vec![
-                    EntityResourceFilter::IsOfBaseType {
-                        entity_type: base_url!("https://hash.ai/@h/types/entity-type/incurred-in/"),
-                    },
-                    EntityResourceFilter::IsOfBaseType {
-                        entity_type: base_url!(
-                            "https://hash.ai/@h/types/entity-type/usage-record/"
-                        ),
-                    },
-                    EntityResourceFilter::IsOfBaseType {
-                        entity_type: base_url!(
-                            "https://hash.ai/@h/types/entity-type/records-usage-of/"
-                        ),
-                    },
-                    EntityResourceFilter::IsOfBaseType {
-                        entity_type: base_url!(
-                            "https://hash.ai/@h/types/entity-type/prospective-user/"
-                        ),
-                    },
+                    INCURRED_IN.entity_is_of_base_type(),
+                    USAGE_RECORD.entity_is_of_base_type(),
+                    RECORDS_USAGE_OF.entity_is_of_base_type(),
+                    PROSPECTIVE_USER.entity_is_of_base_type(),
+                ],
+            },
+        })),
+    })
+}
+
+fn instance_admins_update_entity_policy(
+    role: &TeamRole,
+) -> impl Iterator<Item = PolicyCreationParams> {
+    iter::once(PolicyCreationParams {
+        name: Some("hash-admins-update-entity".to_owned()),
+        effect: Effect::Permit,
+        principal: Some(PrincipalConstraint::Role {
+            role: RoleId::Team(role.id),
+            actor_type: None,
+        }),
+        actions: vec![ActionName::ViewEntity],
+        resource: Some(ResourceConstraint::Entity(EntityResourceConstraint::Any {
+            filter: EntityResourceFilter::Any {
+                filters: vec![
+                    HASH_INSTANCE.entity_is_of_base_type(),
+                    USER.entity_is_of_base_type(),
                 ],
             },
         })),
@@ -321,7 +640,9 @@ fn instance_admins_view_entity_policy(
 
 // TODO: Returning an iterator causes a borrow checker error, even if using `+ use<'_>`
 pub(crate) fn instance_admins_policies(role: &TeamRole) -> Vec<PolicyCreationParams> {
-    instance_admins_view_entity_policy(role).collect()
+    instance_admins_view_entity_policy(role)
+        .chain(instance_admins_update_entity_policy(role))
+        .collect()
 }
 
 impl<A> PostgresStore<Transaction<'_>, A>
