@@ -324,6 +324,7 @@ export const inviteUserToOrgResolver: ResolverFn<
       authentication,
       {
         entityTypeIds: [systemEntityTypes.invitationViaEmail.entityTypeId],
+        entityUuid: invitationEntityUuid,
         properties: {
           value: {
             "https://hash.ai/@h/types/property-type/expired-at/":
@@ -347,6 +348,7 @@ export const inviteUserToOrgResolver: ResolverFn<
       authentication,
       {
         entityTypeIds: [systemEntityTypes.invitationViaShortname.entityTypeId],
+        entityUuid: invitationEntityUuid,
         properties: {
           value: {
             "https://hash.ai/@h/types/property-type/expired-at/":

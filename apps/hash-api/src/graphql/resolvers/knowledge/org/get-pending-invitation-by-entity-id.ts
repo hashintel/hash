@@ -28,33 +28,29 @@ export const getPendingInvitationByEntityIdResolver: ResolverFn<
 
   const context = graphQLContextToImpureGraphContext(graphQLContext);
 
-  try {
-    const invitationSubgraph = await getLatestEntityRootedSubgraph(
-      context,
-      systemAccountAuthentication,
-      {
-        entityId,
-        graphResolveDepths: {
-          hasLeftEntity: {
-            incoming: 0,
-            outgoing: 1,
-          },
-          hasRightEntity: {
-            incoming: 1,
-            outgoing: 0,
-          },
+  const invitationSubgraph = await getLatestEntityRootedSubgraph(
+    context,
+    systemAccountAuthentication,
+    {
+      entityId,
+      graphResolveDepths: {
+        hasLeftEntity: {
+          incoming: 0,
+          outgoing: 1,
+        },
+        hasRightEntity: {
+          incoming: 1,
+          outgoing: 0,
         },
       },
-    );
+    },
+  );
 
-    const pendingInvitations = await getPendingOrgInvitationsFromSubgraph(
-      context,
-      systemAccountAuthentication,
-      invitationSubgraph,
-    );
+  const pendingInvitations = await getPendingOrgInvitationsFromSubgraph(
+    context,
+    systemAccountAuthentication,
+    invitationSubgraph,
+  );
 
-    return pendingInvitations[0] ?? null;
-  } catch {
-    return null;
-  }
+  return pendingInvitations[0] ?? null;
 };

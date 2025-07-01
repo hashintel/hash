@@ -27,7 +27,7 @@ import {
 } from "../../graphql/queries/knowledge/org.queries";
 import { useInvites } from "../../shared/invites-context";
 import { Button, Link } from "../../shared/ui";
-import { useAuthenticatedUser, useAuthInfo } from "../shared/auth-info-context";
+import { useAuthenticatedUser } from "../shared/auth-info-context";
 
 const Table = styled(MuiTable)(({ theme }) => ({
   borderCollapse: "separate",

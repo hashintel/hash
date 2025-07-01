@@ -1,16 +1,13 @@
 import http from "node:http";
-import path from "node:path";
 import { promisify } from "node:util";
 
 import type { ProvidedEntityEditionProvenance } from "@blockprotocol/type-system";
 import { JsonDecoder, JsonEncoder } from "@local/harpc-client/codec";
 import { Client as RpcClient, Transport } from "@local/harpc-client/net";
 import { RequestIdProducer } from "@local/harpc-client/wire-protocol";
-import { getAwsRegion } from "@local/hash-backend-utils/aws-config";
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import {
   getRequiredEnv,
-  monorepoRootDir,
   realtimeSyncEnabled,
   waitOnResource,
 } from "@local/hash-backend-utils/environment";
@@ -72,13 +69,7 @@ import {
   getEnvStorageType,
   LOCAL_FILE_UPLOAD_PATH,
 } from "./lib/config";
-import {
-  isDevEnv,
-  isProdEnv,
-  isStatsDEnabled,
-  isTestEnv,
-  port,
-} from "./lib/env-config";
+import { isDevEnv, isProdEnv, isStatsDEnabled, port } from "./lib/env-config";
 import { logger } from "./logger";
 import { seedOrgsAndUsers } from "./seed-data";
 import {
