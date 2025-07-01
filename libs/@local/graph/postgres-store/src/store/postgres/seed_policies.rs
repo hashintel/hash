@@ -162,45 +162,11 @@ fn system_actor_view_entity_policies(
     })
 }
 
-fn system_actor_update_entity_policies(
-    system_machine_actor: MachineId,
-) -> impl Iterator<Item = PolicyCreationParams> {
-    iter::once(PolicyCreationParams {
-        name: Some("system-machine-update-entity".to_owned()),
-        effect: Effect::Permit,
-        principal: Some(PrincipalConstraint::Actor {
-            actor: ActorId::Machine(system_machine_actor),
-        }),
-        actions: vec![ActionName::UpdateEntity],
-        resource: Some(ResourceConstraint::Entity(EntityResourceConstraint::Any {
-            filter: SERVICE_FEATURE.entity_is_of_base_type(),
-        })),
-    })
-}
-
-fn system_actor_archive_entity_policies(
-    system_machine_actor: MachineId,
-) -> impl Iterator<Item = PolicyCreationParams> {
-    iter::once(PolicyCreationParams {
-        name: Some("system-machine-archive-entity".to_owned()),
-        effect: Effect::Permit,
-        principal: Some(PrincipalConstraint::Actor {
-            actor: ActorId::Machine(system_machine_actor),
-        }),
-        actions: vec![ActionName::ArchiveEntity],
-        resource: Some(ResourceConstraint::Entity(EntityResourceConstraint::Any {
-            filter: SERVICE_FEATURE.entity_is_of_base_type(),
-        })),
-    })
-}
-
 pub(crate) fn system_actor_policies(
     system_machine_actor: MachineId,
 ) -> impl Iterator<Item = PolicyCreationParams> {
     iter::once(system_actor_create_web_policy(system_machine_actor))
         .chain(system_actor_view_entity_policies(system_machine_actor))
-        .chain(system_actor_update_entity_policies(system_machine_actor))
-        .chain(system_actor_archive_entity_policies(system_machine_actor))
 }
 
 fn google_bot_view_entity_policies(
@@ -372,7 +338,6 @@ fn global_update_entity_policies() -> impl Iterator<Item = PolicyCreationParams>
                         EntityResourceFilter::Any {
                             filters: vec![
                                 MACHINE.entity_is_of_base_type(),
-                                ORGANIZATION.entity_is_of_base_type(),
                                 NOTIFICATION.entity_is_of_base_type(),
                                 GRAPH_CHANGE_NOTIFICATION.entity_is_of_base_type(),
                                 COMMENT_NOTIFICATION.entity_is_of_base_type(),
@@ -467,7 +432,7 @@ fn web_view_entity_policies(role: &WebRole) -> impl Iterator<Item = PolicyCreati
 }
 
 fn web_update_entity_policies(role: &WebRole) -> impl Iterator<Item = PolicyCreationParams> {
-    iter::once(PolicyCreationParams {
+    let mut policies = vec![PolicyCreationParams {
         name: Some("default-web-update-entity".to_owned()),
         effect: Effect::Permit,
         principal: Some(PrincipalConstraint::Role {
@@ -483,7 +448,6 @@ fn web_update_entity_policies(role: &WebRole) -> impl Iterator<Item = PolicyCrea
                         filters: vec![
                             MACHINE.entity_is_of_base_type(),
                             PROSPECTIVE_USER.entity_is_of_base_type(),
-                            SERVICE_FEATURE.entity_is_of_base_type(),
                             USAGE_RECORD.entity_is_of_base_type(),
                             INCURRED_IN.entity_is_of_base_type(),
                             NOTIFICATION.entity_is_of_base_type(),
@@ -505,7 +469,6 @@ fn web_update_entity_policies(role: &WebRole) -> impl Iterator<Item = PolicyCrea
                             MACHINE.entity_is_of_base_type(),
                             ORGANIZATION.entity_is_of_base_type(),
                             PROSPECTIVE_USER.entity_is_of_base_type(),
-                            SERVICE_FEATURE.entity_is_of_base_type(),
                             USAGE_RECORD.entity_is_of_base_type(),
                             INCURRED_IN.entity_is_of_base_type(),
                             COMMENT.entity_is_of_base_type(),
@@ -520,12 +483,34 @@ fn web_update_entity_policies(role: &WebRole) -> impl Iterator<Item = PolicyCrea
                             OCCURRED_IN_COMMENT.entity_is_of_base_type(),
                             OCCURRED_IN_TEXT.entity_is_of_base_type(),
                             GOOGLE_ACCOUNT.entity_is_of_base_type(),
+                            LINEAR_INTEGRATION.entity_is_of_base_type(),
+                            SYNC_LINEAR_DATA_WITH.entity_is_of_base_type(),
                         ],
                     }),
                 },
             },
         })),
-    })
+    }];
+
+    // Required to update entities for the web-bot
+    if role.name == RoleName::Member {
+        policies.push(PolicyCreationParams {
+            name: Some("default-web-update-entity".to_owned()),
+            effect: Effect::Permit,
+            principal: Some(PrincipalConstraint::Role {
+                role: RoleId::Web(role.id),
+                actor_type: Some(ActorType::Machine),
+            }),
+            actions: vec![ActionName::UpdateEntity],
+            resource: Some(ResourceConstraint::Entity(EntityResourceConstraint::Web {
+                web_id: role.web_id,
+                filter: EntityResourceFilter::IsOfBaseType {
+                    entity_type: ORGANIZATION.base_url.clone(),
+                },
+            })),
+        });
+    }
+    policies.into_iter()
 }
 
 fn web_archive_entity_policies(role: &WebRole) -> impl Iterator<Item = PolicyCreationParams> {
@@ -546,7 +531,6 @@ fn web_archive_entity_policies(role: &WebRole) -> impl Iterator<Item = PolicyCre
                             MACHINE.entity_is_of_base_type(),
                             ORGANIZATION.entity_is_of_base_type(),
                             PROSPECTIVE_USER.entity_is_of_base_type(),
-                            SERVICE_FEATURE.entity_is_of_base_type(),
                             USAGE_RECORD.entity_is_of_base_type(),
                             INCURRED_IN.entity_is_of_base_type(),
                             TRIGGERED_BY_USER.entity_is_of_base_type(),
@@ -564,7 +548,6 @@ fn web_archive_entity_policies(role: &WebRole) -> impl Iterator<Item = PolicyCre
                             MACHINE.entity_is_of_base_type(),
                             ORGANIZATION.entity_is_of_base_type(),
                             PROSPECTIVE_USER.entity_is_of_base_type(),
-                            SERVICE_FEATURE.entity_is_of_base_type(),
                             USAGE_RECORD.entity_is_of_base_type(),
                             INCURRED_IN.entity_is_of_base_type(),
                             COMMENT.entity_is_of_base_type(),
@@ -575,6 +558,8 @@ fn web_archive_entity_policies(role: &WebRole) -> impl Iterator<Item = PolicyCre
                             OCCURRED_IN_COMMENT.entity_is_of_base_type(),
                             OCCURRED_IN_TEXT.entity_is_of_base_type(),
                             GOOGLE_ACCOUNT.entity_is_of_base_type(),
+                            LINEAR_INTEGRATION.entity_is_of_base_type(),
+                            SYNC_LINEAR_DATA_WITH.entity_is_of_base_type(),
                         ],
                     }),
                 },
@@ -626,12 +611,13 @@ fn instance_admins_update_entity_policy(
             role: RoleId::Team(role.id),
             actor_type: None,
         }),
-        actions: vec![ActionName::ViewEntity],
+        actions: vec![ActionName::UpdateEntity],
         resource: Some(ResourceConstraint::Entity(EntityResourceConstraint::Any {
             filter: EntityResourceFilter::Any {
                 filters: vec![
                     HASH_INSTANCE.entity_is_of_base_type(),
                     USER.entity_is_of_base_type(),
+                    USAGE_RECORD.entity_is_of_base_type(),
                 ],
             },
         })),

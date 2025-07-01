@@ -92,7 +92,7 @@ export const createOrgMembershipLinkEntity: ImpureGraphFunction<
     }),
     policies: [
       {
-        name: `org-membership-editor-${linkEntityEntityUuid}`,
+        name: `org-membership-update-entity-${linkEntityEntityUuid}`,
         principal: {
           type: "actor",
           actorType: "user",
