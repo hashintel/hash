@@ -228,6 +228,8 @@ This ensures traceability between code changes and Linear issues, making it easi
 
 ## Pull Request Template
 
+**IMPORTANT: PR titles should start with the Linear issue number in format `H-XXXX: Description`**
+
 When creating PRs, use the template located at `.github/pull_request_template.md`. This template ensures consistency and includes all necessary sections:
 
 - Purpose and high-level explanation
@@ -236,6 +238,12 @@ When creating PRs, use the template located at `.github/pull_request_template.md
 - Pre-merge checklist for publishable libraries
 - Documentation and Turbo Graph impact assessment
 - Testing coverage and manual testing steps
+
+Examples of proper PR titles:
+
+- `H-4922: Add branch naming and PR template instructions to CLAUDE.md`
+- `H-1234: Implement user authentication system`
+- `H-5678: Fix database connection timeout issue`
 
 The template helps reviewers understand the context and ensures all important aspects are covered before merging.
 
