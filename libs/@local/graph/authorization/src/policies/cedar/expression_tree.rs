@@ -144,6 +144,7 @@ impl PolicyExpressionTree {
             | Self::BaseUrl(_)
             | Self::OntologyTypeVersion(_)
             | Self::IsOfType(_)
+            | Self::IsOfBaseType(_)
             | Self::CreatedByPrincipal) => vec![expression],
         };
 
@@ -156,6 +157,7 @@ impl PolicyExpressionTree {
             | Self::BaseUrl(_)
             | Self::OntologyTypeVersion(_)
             | Self::IsOfType(_)
+            | Self::IsOfBaseType(_)
             | Self::CreatedByPrincipal) => all.push(expression),
         }
 
@@ -183,6 +185,7 @@ impl PolicyExpressionTree {
             | Self::BaseUrl(_)
             | Self::OntologyTypeVersion(_)
             | Self::IsOfType(_)
+            | Self::IsOfBaseType(_)
             | Self::CreatedByPrincipal) => vec![expression],
         };
 
@@ -195,6 +198,7 @@ impl PolicyExpressionTree {
             | Self::BaseUrl(_)
             | Self::OntologyTypeVersion(_)
             | Self::IsOfType(_)
+            | Self::IsOfBaseType(_)
             | Self::CreatedByPrincipal) => any.push(expression),
         }
 
