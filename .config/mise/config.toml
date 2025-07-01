@@ -8,7 +8,7 @@ node        = { version = "22.17.0", postinstall = "corepack enable" }
 
 # Helper to install tools
 cargo-binstall = "1.12.5"
-uv             = "0.7.13"
+uv             = "0.7.17"
 
 # Tools to compile the project
 'cargo:wasm-opt'  = "0.116.1"
