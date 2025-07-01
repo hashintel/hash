@@ -128,8 +128,8 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
                     }),
             }) => self.compile_filter(context, value),
             // If we came to this match arm using these nodes, then that means that the filter
-            // must've evaluated to a boolean expression. Therefore we can just check:
-            // did the expression evaluate to true?
+            // must have evaluated to a boolean expression. Therefore we can just check if the
+            // expression evaluates to true.
             NodeKind::Operation(Operation {
                 span: _,
                 kind:
