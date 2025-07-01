@@ -206,6 +206,39 @@ These commands will generate HTML documentation from the code and docstrings, pr
 4. Understanding error conditions and handling
 5. Generating test data based on documented structures
 
+## Branch Naming Convention
+
+**IMPORTANT: Branch names should always include the Linear ticket number.**
+
+When creating branches for Linear issues, use the format:
+
+- `<shortname>/h-XXXX-description`
+
+Examples:
+
+- `t/h-4892-support-baseurl-and-version-filter`
+- `alice/h-1234-add-user-authentication`
+- `bob/h-5678-resolve-database-connection-issue`
+
+This ensures traceability between code changes and Linear issues, making it easier to:
+
+- Track progress on specific tickets
+- Link PRs to their corresponding issues
+- Maintain a clear development history
+
+## Pull Request Template
+
+When creating PRs, use the template located at `.github/pull_request_template.md`. This template ensures consistency and includes all necessary sections:
+
+- Purpose and high-level explanation
+- Related links (Linear issues, discussions, etc.)
+- Detailed changes and implementation notes
+- Pre-merge checklist for publishable libraries
+- Documentation and Turbo Graph impact assessment
+- Testing coverage and manual testing steps
+
+The template helps reviewers understand the context and ensures all important aspects are covered before merging.
+
 ## Common Commands
 
 ### Development
