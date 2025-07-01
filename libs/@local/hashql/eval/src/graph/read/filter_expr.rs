@@ -434,7 +434,16 @@ impl<'env, 'heap: 'env> GraphReadCompiler<'env, 'heap> {
                 span: _,
                 kind: VariableKind::Local(local),
             }) => self.compile_filter_expr_call_ctor(context, span, self.locals[&local.name.value]),
-            _ => {
+            NodeKind::Data(_)
+            | NodeKind::Variable(_)
+            | NodeKind::Let(_)
+            | NodeKind::Input(_)
+            | NodeKind::Operation(_)
+            | NodeKind::Access(_)
+            | NodeKind::Call(_)
+            | NodeKind::Branch(_)
+            | NodeKind::Closure(_)
+            | NodeKind::Graph(_) => {
                 self.diagnostics.push(call_unsupported(context, span));
                 Err(CompilationError)
             }

@@ -236,7 +236,12 @@ fn value_as_usize(value: &Value<'_>) -> Option<usize> {
         Value::Primitive(LiteralKind::Float(float)) if let Some(integer) = float.as_integer() => {
             integer.as_usize()
         }
-        _ => None,
+        Value::Primitive(_)
+        | Value::Struct(_)
+        | Value::Tuple(_)
+        | Value::List(_)
+        | Value::Dict(_)
+        | Value::Opaque(_) => None,
     }
 }
 

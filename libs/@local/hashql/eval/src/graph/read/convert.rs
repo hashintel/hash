@@ -14,7 +14,11 @@ fn value_to_string(value: &Value<'_>) -> Option<String> {
     match value {
         Value::Primitive(LiteralKind::String(string)) => Some(string.as_str().to_owned()),
         Value::Opaque(opaque) => value_to_string(opaque.value()),
-        _ => None,
+        Value::Primitive(_)
+        | Value::Struct(_)
+        | Value::Tuple(_)
+        | Value::List(_)
+        | Value::Dict(_) => None,
     }
 }
 
