@@ -34,6 +34,7 @@ import type {
   EntityTypeResolveDefinitions as GraphApiEntityTypeResolveDefinitions,
   EntityTypeWithMetadata as GraphApiEntityTypeWithMetadata,
   KnowledgeGraphVertex as KnowledgeGraphVertexGraphApi,
+  PropertyObjectMetadata as GraphApiPropertyObjectMetadata,
   PropertyTypeWithMetadata as GraphApiPropertyTypeWithMetadata,
   Subgraph as GraphApiSubgraph,
   Vertices as VerticesGraphApi,
@@ -55,14 +56,39 @@ const restrictedPropertyBaseUrls: string[] = [
   systemPropertyTypes.email.propertyTypeBaseUrl,
 ];
 
+const filterProperties = <
+  T extends PropertyObject | GraphApiPropertyObjectMetadata["value"],
+>({
+  properties,
+  entity,
+  userAccountId,
+}: {
+  properties: T;
+  entity: GraphApiEntity;
+  userAccountId: ActorEntityUuid | null;
+}): T =>
+  Object.entries(properties).reduce<T>((acc, [key, value]) => {
+    const webId = extractWebIdFromEntityId(
+      entity.metadata.recordId.entityId as EntityId,
+    );
+
+    const requesterOwnsEntity =
+      userAccountId && (userAccountId as string as WebId) === webId;
+
+    if (!restrictedPropertyBaseUrls.includes(key) || requesterOwnsEntity) {
+      acc[key as T extends PropertyObject ? BaseUrl : BaseUrl] = value;
+    }
+    return acc;
+  }, {} as T);
+
 export const mapGraphApiEntityToEntity = <
   T extends TypeIdsAndPropertiesForEntity,
 >(
   entity: GraphApiEntity,
   userAccountId: ActorEntityUuid | null,
   preserveProperties = false,
-) =>
-  new HashEntity<T>({
+) => {
+  return new HashEntity<T>({
     ...entity,
     /**
      * Until cell-level permissions is implemented (H-814), remove user properties that shouldn't be generally visible
@@ -73,26 +99,24 @@ export const mapGraphApiEntityToEntity = <
         systemEntityTypes.user.entityTypeId,
       )
         ? entity.properties
-        : Object.entries(entity.properties).reduce<PropertyObject>(
-            (acc, [key, value]) => {
-              const webId = extractWebIdFromEntityId(
-                entity.metadata.recordId.entityId as EntityId,
-              );
-
-              const requesterOwnsEntity =
-                userAccountId && (userAccountId as string as WebId) === webId;
-
-              if (
-                !restrictedPropertyBaseUrls.includes(key) ||
-                requesterOwnsEntity
-              ) {
-                acc[key as BaseUrl] = value;
-              }
-              return acc;
-            },
-            {} as PropertyObject,
-          ),
+        : filterProperties({
+            properties: entity.properties,
+            entity,
+            userAccountId,
+          }),
+    metadata: {
+      ...entity.metadata,
+      properties: {
+        ...entity.metadata.properties,
+        value: filterProperties<GraphApiPropertyObjectMetadata["value"]>({
+          properties: entity.metadata.properties?.value ?? {},
+          entity,
+          userAccountId,
+        }),
+      },
+    },
   });
+};
 
 const mapKnowledgeGraphVertex = (
   vertex: KnowledgeGraphVertexGraphApi,

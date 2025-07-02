@@ -9,6 +9,7 @@ mod ast_lowering_special_form_expander;
 mod ast_lowering_type_definition_extractor;
 mod ast_lowering_type_extractor;
 pub(crate) mod common;
+mod eval_graph_read_entity;
 mod hir_lower_alias_replacement;
 mod hir_lower_checking;
 mod hir_lower_ctor;
@@ -34,6 +35,7 @@ use self::{
     ast_lowering_special_form_expander::AstLoweringSpecialFormExpanderSuite,
     ast_lowering_type_definition_extractor::AstLoweringTypeDefinitionExtractorSuite,
     ast_lowering_type_extractor::AstLoweringTypeExtractorSuite,
+    eval_graph_read_entity::EvalGraphReadEntitySuite,
     hir_lower_alias_replacement::HirLowerAliasReplacementSuite,
     hir_lower_checking::HirLowerTypeCheckingSuite, hir_lower_ctor::HirLowerCtorSuite,
     hir_lower_inference::HirLowerTypeInferenceSuite,
@@ -67,6 +69,7 @@ const SUITES: &[&dyn Suite] = &[
     &AstLoweringSpecialFormExpanderSuite,
     &AstLoweringTypeDefinitionExtractorSuite,
     &AstLoweringTypeExtractorSuite,
+    &EvalGraphReadEntitySuite,
     &HirLowerAliasReplacementSuite,
     &HirLowerCtorSuite,
     &HirLowerSpecializationSuite,

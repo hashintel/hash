@@ -22,11 +22,16 @@ impl Field {
             .ty()
             .map(|ty| Type::from_specta(ty, type_collection))?;
 
-        // If the field is optional, we don't want to use `null` but only the optional
-        // type.
         let field_type = match r#type {
             Type::Nullable(r#type) if field.optional() && !field.flatten() => *r#type,
-            field_type => field_type,
+            field_type @ (Type::Reference(_)
+            | Type::Primitive(_)
+            | Type::Enum(_)
+            | Type::Struct(_)
+            | Type::Tuple(_)
+            | Type::List(_)
+            | Type::Map(_)
+            | Type::Nullable(_)) => field_type,
         };
         Some(Self {
             r#type: field_type,

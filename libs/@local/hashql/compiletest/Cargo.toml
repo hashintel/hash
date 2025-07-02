@@ -12,12 +12,15 @@ version.workspace = true
 # Public third-party dependencies
 
 # Private workspace dependencies
-error-stack         = { workspace = true }
-hashql-ast          = { workspace = true }
-hashql-core         = { workspace = true }
-hashql-diagnostics  = { workspace = true }
-hashql-hir          = { workspace = true }
-hashql-syntax-jexpr = { workspace = true }
+error-stack                    = { workspace = true }
+hash-graph-store               = { workspace = true }
+hash-graph-temporal-versioning = { workspace = true }
+hashql-ast                     = { workspace = true }
+hashql-core                    = { workspace = true }
+hashql-diagnostics             = { workspace = true }
+hashql-eval                    = { workspace = true, features = ["graph"] }
+hashql-hir                     = { workspace = true }
+hashql-syntax-jexpr            = { workspace = true }
 
 # Private third-party dependencies
 anstream           = { workspace = true }
@@ -41,6 +44,7 @@ tracing            = { workspace = true }
 tracing-indicatif  = { workspace = true }
 tracing-subscriber = { workspace = true, features = ["ansi", "env-filter", "fmt"] }
 walkdir            = { workspace = true }
+
 
 [lints]
 workspace = true

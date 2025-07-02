@@ -277,22 +277,22 @@ impl DictType {
         // Check if the result is the same as the original types, if that is the case we can
         // return the original type id, instead of allocating a new one.
         if value == self.kind.value && keys == [self.kind.key] {
-            return SmallVec::from_slice(&[self.id]);
+            SmallVec::from_slice(&[self.id])
         } else if value == other.kind.value && keys == [other.kind.key] {
-            return SmallVec::from_slice(&[other.id]);
-        }
-
-        keys.iter()
-            .map(|&key| {
-                env.intern_type(PartialType {
-                    span: self.span,
-                    kind: env.intern_kind(TypeKind::Intrinsic(IntrinsicType::Dict(Self {
-                        key,
-                        value,
-                    }))),
+            SmallVec::from_slice(&[other.id])
+        } else {
+            keys.iter()
+                .map(|&key| {
+                    env.intern_type(PartialType {
+                        span: self.span,
+                        kind: env.intern_kind(TypeKind::Intrinsic(IntrinsicType::Dict(Self {
+                            key,
+                            value,
+                        }))),
+                    })
                 })
-            })
-            .collect()
+                .collect()
+        }
     }
 }
 

@@ -8,19 +8,48 @@ graph TD
     %% --> : Normal dependency
     %% -.-> : Dev dependency
     %% ---> : Build dependency
-    0[<a href="../hashql_ast">hashql-ast</a>]
-    1[<a href="../hashql_compiletest">hashql-compiletest</a>]
-    2[<a href="../hashql_core">hashql-core</a>]
-    3[<a href="../hashql_diagnostics">hashql-diagnostics</a>]
-    4[hashql-hir]
-    class 4 root
-    5[<a href="../hashql_syntax_jexpr">hashql-syntax-jexpr</a>]
-    6[<a href="../error_stack">error-stack</a>]
-    0 -.-> 1
-    1 --> 4
-    1 --> 5
-    2 --> 3
-    3 --> 6
-    4 -.-> 1
-    5 --> 0
-    5 --> 2
+    0[<a href="../type_system">type-system</a>]
+    1[<a href="../hash_codec">hash-codec</a>]
+    2[<a href="../hash_codegen">hash-codegen</a>]
+    3[<a href="../hash_graph_authorization">hash-graph-authorization</a>]
+    4[<a href="../hash_graph_store">hash-graph-store</a>]
+    5[<a href="../hash_graph_temporal_versioning">hash-graph-temporal-versioning</a>]
+    6[<a href="../hash_graph_types">hash-graph-types</a>]
+    7[<a href="../harpc_types">harpc-types</a>]
+    8[<a href="../harpc_wire_protocol">harpc-wire-protocol</a>]
+    9[<a href="../hashql_ast">hashql-ast</a>]
+    10[<a href="../hashql_compiletest">hashql-compiletest</a>]
+    11[<a href="../hashql_core">hashql-core</a>]
+    12[<a href="../hashql_diagnostics">hashql-diagnostics</a>]
+    13[<a href="../hashql_eval">hashql-eval</a>]
+    14[hashql-hir]
+    class 14 root
+    15[<a href="../hashql_syntax_jexpr">hashql-syntax-jexpr</a>]
+    16[<a href="../hash_temporal_client">hash-temporal-client</a>]
+    17[<a href="../error_stack">error-stack</a>]
+    18[<a href="../hash_graph_test_data">hash-graph-test-data</a>]
+    0 --> 5
+    0 -.-> 18
+    1 -.-> 2
+    1 --> 8
+    3 --> 0
+    4 --> 3
+    4 --> 6
+    4 --> 16
+    5 --> 1
+    6 --> 0
+    8 -.-> 7
+    8 --> 7
+    8 --> 17
+    9 -.-> 10
+    10 --> 13
+    10 --> 15
+    11 --> 1
+    11 --> 12
+    12 --> 17
+    13 --> 4
+    13 --> 14
+    14 -.-> 10
+    15 --> 9
+    15 --> 11
+    16 --> 0

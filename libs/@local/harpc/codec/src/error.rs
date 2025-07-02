@@ -56,7 +56,12 @@ impl NetworkError {
         );
         let length = length as u32;
 
-        buffer[..4].copy_from_slice(&length.to_be_bytes());
+        buffer
+            .get_mut(..4)
+            .unwrap_or_else(|| {
+                unreachable!("We just wrote 4 bytes, so this should never fail");
+            })
+            .copy_from_slice(&length.to_be_bytes());
 
         buffer.freeze()
     }
@@ -104,18 +109,18 @@ impl NetworkError {
     /// of the `bytes` parameter does not match the actual length of the remaining data.
     #[expect(
         clippy::big_endian_bytes,
-        clippy::panic_in_result_fn,
-        clippy::missing_panics_doc,
         reason = "numbers are always encoded in big-endian in our encoding scheme"
+    )]
+    #[expect(
+        clippy::missing_asserts_for_indexing,
+        clippy::indexing_slicing,
+        reason = "We error if the buffer is too small"
     )]
     pub fn try_from_parts(code: ErrorCode, bytes: Bytes) -> Result<Self, Bytes> {
         let slice = bytes.as_ref();
         if slice.len() < 4 {
             return Err(bytes);
         }
-
-        // assert only exists to elide bounds checks and satisfy clippy
-        assert!(slice.len() >= 4);
 
         let expected_length = u32::from_be_bytes([slice[0], slice[1], slice[2], slice[3]]) as usize;
         let actual_length = bytes.len() - 4;
@@ -131,7 +136,9 @@ impl NetworkError {
 impl Display for NetworkError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         // First 4 bytes are always the length of the message
-        let message = &self.bytes[4..];
+        let message = self.bytes.get(4..).unwrap_or_else(|| {
+            unreachable!("`NetworkError` should always have at least 4 bytes for the length");
+        });
 
         if let Ok(message) = core::str::from_utf8(message) {
             Display::fmt(message, fmt)

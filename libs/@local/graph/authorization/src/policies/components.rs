@@ -1,5 +1,5 @@
 use alloc::borrow::Cow;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use error_stack::{Report, ResultExt as _};
 use type_system::{
@@ -28,21 +28,12 @@ pub struct OptimizationData {
     pub permitted_web_ids: Vec<WebId>,
 }
 
-impl OptimizationData {
-    /// Returns true if any optimization opportunities were found.
-    #[must_use]
-    pub const fn has_optimizations(&self) -> bool {
-        !self.permitted_entity_uuids.is_empty() || !self.permitted_web_ids.is_empty()
-    }
-}
-
 #[derive(Debug)]
 pub struct PolicyComponents {
     actor_id: Option<ActorId>,
     policies: Vec<Policy>,
-    tracked_actions: HashSet<ActionName>,
+    tracked_actions: HashMap<ActionName, Option<OptimizationData>>,
     context: Context,
-    optimization_data: OptimizationData,
 }
 
 impl PolicyComponents {
@@ -63,21 +54,6 @@ impl PolicyComponents {
         &self.context
     }
 
-    /// Returns a reference to the policies for direct access.
-    ///
-    /// This is primarily used for filter optimization where the raw policies
-    /// need to be analyzed without building a full [`PolicySet`].
-    #[must_use]
-    pub fn policies(&self) -> &[Policy] {
-        &self.policies
-    }
-
-    /// Returns a reference to the tracked actions.
-    #[must_use]
-    pub const fn tracked_actions(&self) -> &HashSet<ActionName> {
-        &self.tracked_actions
-    }
-
     /// Extracts policy data suitable for database filter creation.
     ///
     /// This method returns an iterator of `(Effect, Option<&ResourceConstraint>)` tuples
@@ -89,7 +65,7 @@ impl PolicyComponents {
         action: ActionName,
     ) -> impl Iterator<Item = (Effect, Option<&ResourceConstraint>)> {
         debug_assert!(
-            self.tracked_actions.contains(&action),
+            self.tracked_actions.contains_key(&action),
             "action `{}` not tracked",
             action.to_string()
         );
@@ -108,8 +84,27 @@ impl PolicyComponents {
     /// `entity_uuid = a OR entity_uuid = b OR entity_uuid = c`
     /// to: `entity_uuid = ANY([a, b, c])`
     #[must_use]
-    pub const fn optimization_data(&self) -> &OptimizationData {
-        &self.optimization_data
+    pub fn optimization_data(&self, action: ActionName) -> &OptimizationData {
+        const EMPTY_OPTIMIZATION_DATA: &OptimizationData = &OptimizationData {
+            permitted_entity_uuids: Vec::new(),
+            permitted_web_ids: Vec::new(),
+        };
+
+        self.tracked_actions
+            .get(&action)
+            .unwrap_or_else(|| {
+                unreachable!("Action `{action}` is not tracked in this `PolicyComponents`")
+            })
+            .as_ref()
+            .unwrap_or_else(|| {
+                if cfg!(debug_assertions) {
+                    unreachable!("Action `{action}` is not optimized in this `PolicyComponents`")
+                }
+
+                tracing::warn!("No optimization data for action `{action}`");
+
+                EMPTY_OPTIMIZATION_DATA
+            })
     }
 
     /// Analyzes policies and extracts optimization opportunities.
@@ -127,13 +122,18 @@ impl PolicyComponents {
     /// - Multiple exact entity permits that can be converted to IN clauses
     /// - Multiple web resource permits that can be converted to IN clauses
     #[tracing::instrument(level = "info", skip(self))]
-    fn analyze_optimization_opportunities(&mut self) {
+    fn analyze_optimization_opportunities(&mut self, action: ActionName) {
         let mut entity_uuids_set = HashSet::new();
         let mut web_ids_set = HashSet::new();
 
         let mut i = 0;
-        while i < self.policies.len() {
-            let should_extract = match (&self.policies[i].effect, &self.policies[i].resource) {
+        while let Some(policy) = self.policies.get_mut(i) {
+            if !policy.actions.contains(&action) {
+                i += 1;
+                continue;
+            }
+
+            let should_extract = match (policy.effect, &policy.resource) {
                 (
                     Effect::Permit,
                     Some(ResourceConstraint::Entity(EntityResourceConstraint::Exact { id })),
@@ -149,16 +149,29 @@ impl PolicyComponents {
             };
 
             if should_extract {
-                self.policies.swap_remove(i);
-                // Don't increment i since we just moved the last element to position i
+                // The policy matches the action and is optimizable, so we extract it from the
+                // policies vec.
+                policy.actions.retain(|&x| x != action);
+                if policy.actions.is_empty() {
+                    // If no actions remain, remove the policy
+                    self.policies.swap_remove(i);
+                } else {
+                    // Otherwise, keep the policy but remove the action
+                    i += 1;
+                }
             } else {
                 i += 1;
             }
         }
 
         // Convert HashSets to Vecs for efficient filter usage
-        self.optimization_data.permitted_entity_uuids = entity_uuids_set.into_iter().collect();
-        self.optimization_data.permitted_web_ids = web_ids_set.into_iter().collect();
+        self.tracked_actions
+            .entry(action)
+            .or_default()
+            .replace(OptimizationData {
+                permitted_entity_uuids: entity_uuids_set.into_iter().collect(),
+                permitted_web_ids: web_ids_set.into_iter().collect(),
+            });
     }
 
     /// Builds a [`PolicySet`] for Cedar evaluation.
@@ -171,21 +184,46 @@ impl PolicyComponents {
     /// # Errors
     ///
     /// Returns error if policy set creation fails or if optimization has occurred.
-    #[tracing::instrument(level = "info", skip(self))]
+    #[tracing::instrument(level = "info", skip(self, actions))]
     pub fn build_policy_set(
         &self,
+        actions: impl IntoIterator<Item = ActionName>,
     ) -> Result<PolicySet, Report<super::set::PolicySetInsertionError>> {
-        if self.optimization_data.has_optimizations() {
-            return Err(
-                Report::new(super::set::PolicySetInsertionError).attach_printable(
-                    "Cannot create PolicySet when optimization has occurred. Extracted policies \
-                     are missing proper action tracking. Use filter creation methods instead.",
-                ),
-            );
+        let tracked_actions = actions.into_iter().collect::<HashSet<_>>();
+        for action in &tracked_actions {
+            if let Some(optimization_data) = self.tracked_actions.get(action) {
+                if optimization_data.is_some() {
+                    return Err(
+                        Report::new(super::set::PolicySetInsertionError).attach_printable(format!(
+                            "Action `{action}` has been optimized and cannot be used to create a \
+                             `PolicySet`"
+                        )),
+                    );
+                }
+            } else {
+                return Err(
+                    Report::new(super::set::PolicySetInsertionError).attach_printable(format!(
+                        "Action `{action}` is not tracked in this `PolicyComponents`"
+                    )),
+                );
+            }
         }
 
+        // Note: We don't need to filter policies by actions here because the PolicySet
+        // only evaluates actions that are in `tracked_actions`. Including all policies
+        // is safe since untracked actions won't be evaluated anyway.
+        //
+        // Optional performance optimization: Filter policies to reduce PolicySet size:
+        // ```
+        // .with_policies(
+        //     &self.policies
+        //         .iter()
+        //         .filter(|p| p.actions.iter().any(|a| tracked_actions.contains(a)))
+        //         .collect::<Vec<_>>()
+        // )
+        // ```
         PolicySet::default()
-            .with_tracked_actions(self.tracked_actions.clone())
+            .with_tracked_actions(tracked_actions)
             .with_policies(&self.policies)
     }
 }
@@ -196,8 +234,8 @@ pub struct PolicyComponentsBuilder<'a, S> {
     context: ContextBuilder,
     entity_type_ids: HashSet<Cow<'a, VersionedUrl>>,
     entity_edition_ids: HashSet<EntityEditionId>,
-    actions: HashSet<ActionName>,
-    enable_optimization: bool,
+    /// Actions to track, with optimization flag.
+    actions: HashMap<ActionName, bool>,
 }
 
 impl<'a, S> PolicyComponentsBuilder<'a, S> {
@@ -209,8 +247,7 @@ impl<'a, S> PolicyComponentsBuilder<'a, S> {
             context: ContextBuilder::default(),
             entity_type_ids: HashSet::new(),
             entity_edition_ids: HashSet::new(),
-            actions: HashSet::new(),
-            enable_optimization: true, // Default to optimization enabled (opt-out)
+            actions: HashMap::new(),
         }
     }
 
@@ -274,39 +311,64 @@ impl<'a, S> PolicyComponentsBuilder<'a, S> {
         self
     }
 
-    pub fn add_action(&mut self, action: ActionName) {
-        self.actions.insert(action);
+    /// Adds an action to be tracked during policy resolution.
+    ///
+    /// The `action` will be included in policy queries and evaluation. The `optimize`
+    /// parameter controls whether this action undergoes optimization analysis, which
+    /// can improve database query performance by extracting optimizable policies.
+    ///
+    /// When `optimize` is `true`, the resulting [`PolicyComponents`] cannot be used
+    /// to create a [`PolicySet`] for this action, as optimizable policies are
+    /// extracted during analysis.
+    pub fn add_action(&mut self, action: ActionName, optimize: bool) {
+        self.actions.insert(action, optimize);
     }
 
-    pub fn add_actions(&mut self, actions: impl IntoIterator<Item = ActionName>) {
-        self.actions.extend(actions);
+    /// Adds multiple actions to be tracked during policy resolution.
+    ///
+    /// All provided `actions` will be included in policy queries and evaluation.
+    /// The `optimize` parameter applies to all actions and controls whether they
+    /// undergo optimization analysis for improved database query performance.
+    ///
+    /// When `optimize` is `true`, the resulting [`PolicyComponents`] cannot be used
+    /// to create a [`PolicySet`] for any of these actions, as optimizable policies
+    /// are extracted during analysis.
+    pub fn add_actions(&mut self, actions: impl IntoIterator<Item = ActionName>, optimize: bool) {
+        self.actions
+            .extend(actions.into_iter().map(|action| (action, optimize)));
     }
 
+    /// Adds an action to be tracked and returns the builder.
+    ///
+    /// The `action` will be included in policy queries and evaluation. The `optimize`
+    /// parameter controls whether this action undergoes optimization analysis, which
+    /// can improve database query performance by extracting optimizable policies.
+    ///
+    /// When `optimize` is `true`, the resulting [`PolicyComponents`] cannot be used
+    /// to create a [`PolicySet`] for this action, as optimizable policies are
+    /// extracted during analysis.
     #[must_use]
-    pub fn with_action(mut self, action: ActionName) -> Self {
-        self.add_action(action);
+    pub fn with_action(mut self, action: ActionName, optimize: bool) -> Self {
+        self.add_action(action, optimize);
         self
     }
 
+    /// Adds multiple actions to be tracked and returns the builder.
+    ///
+    /// All provided `actions` will be included in policy queries and evaluation.
+    /// The `optimize` parameter applies to all actions and controls whether they
+    /// undergo optimization analysis for improved database query performance.
+    ///
+    /// When `optimize` is `true`, the resulting [`PolicyComponents`] cannot be used
+    /// to create a [`PolicySet`] for any of these actions, as optimizable policies
+    /// are extracted during analysis.
     #[must_use]
-    pub fn with_actions(mut self, actions: impl IntoIterator<Item = ActionName>) -> Self {
-        self.add_actions(actions);
-        self
-    }
-
-    pub const fn set_optimization_enabled(&mut self, enabled: bool) {
-        self.enable_optimization = enabled;
-    }
-
-    #[must_use]
-    pub const fn with_optimization_enabled(mut self, enabled: bool) -> Self {
-        self.set_optimization_enabled(enabled);
-        self
-    }
-
-    #[must_use]
-    pub const fn without_optimization(mut self) -> Self {
-        self.set_optimization_enabled(false);
+    pub fn with_actions(
+        mut self,
+        actions: impl IntoIterator<Item = ActionName>,
+        optimize: bool,
+    ) -> Self {
+        self.add_actions(actions, optimize);
         self
     }
 }
@@ -375,7 +437,7 @@ where
                 }
             }
 
-            let actions = self.actions.iter().copied().collect::<Vec<_>>();
+            let actions = self.actions.keys().copied().collect::<Vec<_>>();
             let policies = if actions.is_empty() {
                 Vec::new()
             } else {
@@ -394,17 +456,18 @@ where
             let mut policy_components = PolicyComponents {
                 actor_id,
                 policies,
-                tracked_actions: self.actions,
+                tracked_actions: actions.iter().map(|action| (*action, None)).collect(),
                 context: self
                     .context
                     .build()
                     .change_context(ContextCreationError::CreatePolicyContext)?,
-                optimization_data: OptimizationData::default(),
             };
 
             // Analyze for optimization opportunities if enabled
-            if self.enable_optimization {
-                policy_components.analyze_optimization_opportunities();
+            for (action, optimize) in &self.actions {
+                if *optimize {
+                    policy_components.analyze_optimization_opportunities(*action);
+                }
             }
 
             Ok(policy_components)
@@ -414,12 +477,12 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashSet;
+    use std::collections::HashMap;
 
     use type_system::{knowledge::entity::id::EntityUuid, principal::actor::ActorId};
     use uuid::Uuid;
 
-    use super::{OptimizationData, PolicyComponents};
+    use super::PolicyComponents;
     use crate::policies::{
         Context, Effect, Policy, PolicyId,
         action::ActionName,
@@ -440,32 +503,6 @@ mod tests {
         }
     }
 
-    /// Tests that default [`OptimizationData`] has no optimizations.
-    #[test]
-    fn optimization_data_empty_by_default() {
-        let optimization_data = OptimizationData::default();
-        assert!(
-            !optimization_data.has_optimizations(),
-            "should have no optimizations when empty"
-        );
-    }
-
-    /// Tests that [`OptimizationData`] detects optimizations when entity UUIDs are present.
-    #[test]
-    fn optimization_data_detects_entity_optimizations() {
-        let mut optimization_data = OptimizationData::default();
-        optimization_data
-            .permitted_entity_uuids
-            .push(EntityUuid::new(Uuid::new_v4()));
-        optimization_data
-            .permitted_entity_uuids
-            .push(EntityUuid::new(Uuid::new_v4()));
-        assert!(
-            optimization_data.has_optimizations(),
-            "should detect optimizations when entity UUIDs present"
-        );
-    }
-
     /// Tests that [`PolicySet`] creation is prevented after optimization.
     ///
     /// Verifies that optimization analysis makes [`PolicySet`] unavailable to prevent
@@ -483,19 +520,18 @@ mod tests {
         let mut policy_components = PolicyComponents {
             actor_id: None,
             policies,
-            tracked_actions: HashSet::new(),
+            tracked_actions: HashMap::from([(ActionName::View, None)]),
             context: Context::default(),
-            optimization_data: OptimizationData::default(),
         };
 
-        let result_before = policy_components.build_policy_set();
+        let result_before = policy_components.build_policy_set([ActionName::View]);
         assert!(
             result_before.is_ok(),
             "should allow PolicySet creation before optimization"
         );
 
-        policy_components.analyze_optimization_opportunities();
-        let result_after = policy_components.build_policy_set();
+        policy_components.analyze_optimization_opportunities(ActionName::View);
+        let result_after = policy_components.build_policy_set([ActionName::View]);
         assert!(
             result_after.is_err(),
             "should prevent PolicySet creation after optimization"
@@ -510,8 +546,10 @@ mod tests {
             "should show basic error message"
         );
         assert!(
-            debug_message.contains("Cannot create PolicySet when optimization has occurred"),
-            "should include detailed error information"
+            debug_message.contains(
+                "Action `view` has been optimized and cannot be used to create a `PolicySet`"
+            ),
+            "should include detailed error information",
         );
     }
 
@@ -532,19 +570,17 @@ mod tests {
         let policy_components_without_optimization = PolicyComponents {
             actor_id: None,
             policies: policies_without_optimization,
-            tracked_actions: HashSet::new(),
+            tracked_actions: HashMap::from([(ActionName::View, None)]),
             context: Context::default(),
-            optimization_data: OptimizationData::default(),
         };
 
         assert!(
-            !policy_components_without_optimization
-                .optimization_data
-                .has_optimizations(),
+            policy_components_without_optimization.tracked_actions[&ActionName::View].is_none(),
             "should have no optimizations initially"
         );
 
-        let policy_set_result = policy_components_without_optimization.build_policy_set();
+        let policy_set_result =
+            policy_components_without_optimization.build_policy_set([ActionName::View]);
         assert!(
             policy_set_result.is_ok(),
             "should allow PolicySet creation when optimization disabled"
@@ -558,20 +594,18 @@ mod tests {
         let mut policy_components_with_optimization = PolicyComponents {
             actor_id: None,
             policies: policies_with_optimization,
-            tracked_actions: HashSet::new(),
+            tracked_actions: HashMap::new(),
             context: Context::default(),
-            optimization_data: OptimizationData::default(),
         };
 
-        policy_components_with_optimization.analyze_optimization_opportunities();
+        policy_components_with_optimization.analyze_optimization_opportunities(ActionName::View);
         assert!(
-            policy_components_with_optimization
-                .optimization_data
-                .has_optimizations(),
+            policy_components_with_optimization.tracked_actions[&ActionName::View].is_some(),
             "should detect optimizations"
         );
 
-        let policy_set_result = policy_components_with_optimization.build_policy_set();
+        let policy_set_result =
+            policy_components_with_optimization.build_policy_set([ActionName::View]);
         assert!(
             policy_set_result.is_err(),
             "should prevent PolicySet creation when optimization enabled"
@@ -592,9 +626,8 @@ mod tests {
                 Uuid::new_v4(),
             ))),
             policies: vec![policy],
-            tracked_actions: HashSet::from([ActionName::View]),
+            tracked_actions: HashMap::from([(ActionName::View, None)]),
             context: Context::default(),
-            optimization_data: OptimizationData::default(),
         };
 
         let filter_policies: Vec<_> = policy_components
@@ -614,7 +647,9 @@ mod tests {
             ResourceConstraint::Entity(EntityResourceConstraint::Exact { id }) => {
                 assert_eq!(*id, entity_uuid);
             }
-            _ => panic!("should create exact entity constraint"),
+            ResourceConstraint::Web { .. }
+            | ResourceConstraint::Entity(_)
+            | ResourceConstraint::EntityType(_) => panic!("should create exact entity constraint"),
         }
     }
 }

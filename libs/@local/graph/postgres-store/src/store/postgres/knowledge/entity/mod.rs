@@ -15,7 +15,7 @@ use hash_graph_authorization::{
         resource::{EntityResourceConstraint, ResourceConstraint},
         store::{PolicyCreationParams, PolicyStore as _},
     },
-    schema::{EntityOwnerSubject, EntityPermission, EntityRelationAndSubject, WebPermission},
+    schema::{EntityOwnerSubject, EntityPermission, EntityRelationAndSubject},
     zanzibar::Consistency,
 };
 use hash_graph_store::{
@@ -406,7 +406,7 @@ where
         let policy_filter = Filter::for_policies(
             policy_components.extract_filter_policies(ActionName::ViewEntity),
             policy_components.actor_id(),
-            policy_components.optimization_data(),
+            policy_components.optimization_data(ActionName::ViewEntity),
         );
 
         let mut compiler = SelectCompiler::new(Some(temporal_axes), params.include_drafts);
@@ -741,8 +741,9 @@ where
                     .flat_map(|params| &params.entity_type_ids)
                     .collect::<HashSet<_>>(),
             )
-            .with_action(ActionName::Instantiate)
-            .with_action(ActionName::ViewEntity) // for validation
+            .with_action(ActionName::Instantiate, false)
+            .with_action(ActionName::CreateEntity, false)
+            .with_action(ActionName::ViewEntity, true)
             .await
             .change_context(InsertionError)?;
 
@@ -954,11 +955,13 @@ where
             );
         }
 
+        let policy_set = policy_components
+            .build_policy_set([ActionName::Instantiate, ActionName::CreateEntity])
+            .change_context(InsertionError)?;
+
         let mut forbidden_instantiations = Vec::new();
         for entity_type_id in &entity_type_id_set {
-            match policy_components
-                .build_policy_set()
-                .change_context(InsertionError)?
+            match policy_set
                 .evaluate(
                     &Request {
                         actor: policy_components.actor_id(),
@@ -992,40 +995,41 @@ where
                 ));
         }
 
-        if !checked_web_ids.is_empty() {
-            let (create_entity_permissions, _zookie) = transaction
-                .authorization_api
-                .check_webs_permission(
-                    actor_id,
-                    WebPermission::CreateEntity,
-                    checked_web_ids,
-                    Consistency::FullyConsistent,
-                )
-                .await
-                .change_context(InsertionError)?;
-            let forbidden_webs = create_entity_permissions
-                .iter()
-                .filter_map(
-                    |(web_id, permission)| {
-                        if *permission { None } else { Some(web_id) }
+        // Cedar authorization check for entity creation (per web)
+        let mut forbidden_web_creations = Vec::new();
+        for web_id in &checked_web_ids {
+            match policy_set
+                .evaluate(
+                    &Request {
+                        actor: policy_components.actor_id(),
+                        action: ActionName::CreateEntity,
+                        resource: &ResourceId::Web(*web_id),
+                        context: RequestContext::default(),
                     },
+                    policy_components.context(),
                 )
-                .collect::<Vec<_>>();
-            if !forbidden_webs.is_empty() {
-                return Err(Report::new(InsertionError)
-                    .attach(StatusCode::PermissionDenied)
-                    .attach_printable(
-                        "The actor does not have permission to create entities for one or more \
-                         web ids",
-                    )
-                    .attach_printable(
-                        forbidden_webs
-                            .into_iter()
-                            .map(ToString::to_string)
-                            .collect::<Vec<_>>()
-                            .join(", "),
-                    ));
+                .change_context(InsertionError)?
+            {
+                Authorized::Always => {}
+                Authorized::Never => {
+                    forbidden_web_creations.push(web_id);
+                }
             }
+        }
+
+        if !forbidden_web_creations.is_empty() {
+            return Err(Report::new(InsertionError)
+                .attach(StatusCode::PermissionDenied)
+                .attach_printable(
+                    "The actor does not have permission to create entities in one or more webs",
+                )
+                .attach_printable(
+                    forbidden_web_creations
+                        .into_iter()
+                        .map(ToString::to_string)
+                        .collect::<Vec<_>>()
+                        .join(", "),
+                ));
         }
 
         let insertions = [
@@ -1163,7 +1167,7 @@ where
     ) -> Result<HashMap<usize, EntityValidationReport>, Report<QueryError>> {
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor_id)
-            .with_action(ActionName::ViewEntity) // for validation
+            .with_action(ActionName::ViewEntity, true)
             .await
             .change_context(QueryError)?;
 
@@ -1250,7 +1254,7 @@ where
     ) -> Result<GetEntitiesResponse<'static>, Report<QueryError>> {
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor_id)
-            .with_action(ActionName::ViewEntity)
+            .with_action(ActionName::ViewEntity, true)
             .await
             .change_context(QueryError)?;
 
@@ -1304,7 +1308,7 @@ where
     ) -> Result<GetEntitySubgraphResponse<'static>, Report<QueryError>> {
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor_id)
-            .with_action(ActionName::ViewEntity)
+            .with_action(ActionName::ViewEntity, true)
             .into_future()
             .await
             .change_context(QueryError)?;
@@ -1484,7 +1488,7 @@ where
     ) -> Result<usize, Report<QueryError>> {
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor_id)
-            .with_action(ActionName::ViewEntity)
+            .with_action(ActionName::ViewEntity, true)
             .await
             .change_context(QueryError)?;
 
@@ -1499,7 +1503,7 @@ where
         let policy_filter = Filter::for_policies(
             policy_components.extract_filter_policies(ActionName::ViewEntity),
             policy_components.actor_id(),
-            policy_components.optimization_data(),
+            policy_components.optimization_data(ActionName::ViewEntity),
         );
 
         let temporal_axes = params.temporal_axes.resolve();
@@ -1536,7 +1540,7 @@ where
     ) -> Result<Entity, Report<QueryError>> {
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor_id)
-            .with_action(ActionName::ViewEntity)
+            .with_action(ActionName::ViewEntity, true)
             .await
             .change_context(QueryError)?;
 
@@ -1545,7 +1549,7 @@ where
         let filter = Filter::for_policies(
             policy_components.extract_filter_policies(ActionName::ViewEntity),
             policy_components.actor_id(),
-            policy_components.optimization_data(),
+            policy_components.optimization_data(ActionName::ViewEntity),
         );
         filters.push(filter);
 
@@ -1639,8 +1643,8 @@ where
             .with_actor(actor_id)
             .with_entity_edition_id(previous_entity.metadata.record_id.edition_id)
             .with_entity_type_ids(&params.entity_type_ids)
-            .with_action(ActionName::Instantiate)
-            .with_action(ActionName::ViewEntity) // for validation
+            .with_action(ActionName::Instantiate, false)
+            .with_action(ActionName::ViewEntity, true)
             .await
             .change_context(UpdateError)?;
 
@@ -1701,12 +1705,14 @@ where
             )
         };
 
+        let policy_set = policy_components
+            .build_policy_set([ActionName::Instantiate])
+            .change_context(UpdateError)?;
+
         if !affected_type_ids.is_empty() {
             let mut forbidden_instantiations = Vec::new();
             for entity_type_id in &affected_type_ids {
-                match policy_components
-                    .build_policy_set()
-                    .change_context(UpdateError)?
+                match policy_set
                     .evaluate(
                         &Request {
                             actor: policy_components.actor_id(),

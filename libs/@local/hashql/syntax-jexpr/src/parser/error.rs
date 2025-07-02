@@ -43,7 +43,11 @@ impl DiagnosticCategory for ParserDiagnosticCategory {
             Self::Lexer(category)
             | Self::Object(ObjectDiagnosticCategory::Lexer(category))
             | Self::Array(ArrayDiagnosticCategory::Lexer(category)) => category.id(),
-            _ => Cow::Borrowed("parser"),
+            Self::String(_)
+            | Self::Array(_)
+            | Self::Object(_)
+            | Self::ExpectedLanguageItem
+            | Self::ExpectedEof => Cow::Borrowed("parser"),
         }
     }
 
@@ -52,7 +56,11 @@ impl DiagnosticCategory for ParserDiagnosticCategory {
             Self::Lexer(category)
             | Self::Object(ObjectDiagnosticCategory::Lexer(category))
             | Self::Array(ArrayDiagnosticCategory::Lexer(category)) => category.name(),
-            _ => Cow::Borrowed("Parser"),
+            Self::String(_)
+            | Self::Array(_)
+            | Self::Object(_)
+            | Self::ExpectedLanguageItem
+            | Self::ExpectedEof => Cow::Borrowed("Parser"),
         }
     }
 

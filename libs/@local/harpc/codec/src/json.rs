@@ -92,13 +92,33 @@ impl<T, S> JsonDecoderStream<T, S> {
         }
     }
 
+    /// Polls the stream for a complete item starting at the given offset.
+    ///
+    /// If a complete item is found, it is deserialized and returned.
+    /// If no complete item is found, [`None`] is returned.
+    ///
+    /// # Errors
+    ///
+    /// If the item cannot be deserialized, an error wrapped in [`Some`] is returned.
+    ///
+    /// # Panics
+    ///
+    /// This function panics if the offset is greater than the length of the buffer.
     fn poll_item(mut self: Pin<&mut Self>, offset: usize) -> Option<Result<T, serde_json::Error>>
     where
         T: DeserializeOwned,
     {
         let this = self.as_mut().project();
 
-        let index = memchr::memchr(JsonCodec::SEPARATOR, &this.buffer[offset..])?;
+        let index = memchr::memchr(
+            JsonCodec::SEPARATOR,
+            this.buffer.get(offset..).unwrap_or_else(|| {
+                panic!(
+                    "Attempted to access buffer out of bounds, offset: {offset}, buffer length: {}",
+                    this.buffer.len()
+                )
+            }),
+        )?;
 
         let mut message = this.buffer.split_to(offset + index + 1);
         // remove the last byte, which is the separator

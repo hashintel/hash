@@ -544,7 +544,31 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                             Table::EntityEmbeddings => {
                                 Column::EntityEmbeddings(EntityEmbeddings::Distance)
                             }
-                            _ => bail!(SelectCompilerError::UnsupportedEmbeddingPath),
+                            Table::OntologyIds
+                            | Table::OntologyTemporalMetadata
+                            | Table::OntologyOwnedMetadata
+                            | Table::OntologyExternalMetadata
+                            | Table::OntologyAdditionalMetadata
+                            | Table::DataTypes
+                            | Table::DataTypeConversions
+                            | Table::DataTypeConversionAggregation
+                            | Table::PropertyTypes
+                            | Table::EntityTypes
+                            | Table::FirstTitleForEntity
+                            | Table::LastTitleForEntity
+                            | Table::FirstLabelForEntity
+                            | Table::LastLabelForEntity
+                            | Table::EntityIds
+                            | Table::EntityDrafts
+                            | Table::EntityTemporalMetadata
+                            | Table::EntityEditions
+                            | Table::EntityIsOfType
+                            | Table::EntityIsOfTypeIds
+                            | Table::EntityHasLeftEntity
+                            | Table::EntityHasRightEntity
+                            | Table::Reference(_) => {
+                                bail!(SelectCompilerError::UnsupportedEmbeddingPath)
+                            }
                         },
                         table_alias: Some(path_alias),
                     };
@@ -575,7 +599,29 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                                 Column::EntityEmbeddings(EntityEmbeddings::WebId),
                                 Column::EntityEmbeddings(EntityEmbeddings::EntityUuid),
                             ],
-                            _ => unreachable!(),
+                            Table::OntologyIds
+                            | Table::OntologyTemporalMetadata
+                            | Table::OntologyOwnedMetadata
+                            | Table::OntologyExternalMetadata
+                            | Table::OntologyAdditionalMetadata
+                            | Table::DataTypes
+                            | Table::DataTypeConversions
+                            | Table::DataTypeConversionAggregation
+                            | Table::PropertyTypes
+                            | Table::EntityTypes
+                            | Table::FirstTitleForEntity
+                            | Table::LastTitleForEntity
+                            | Table::FirstLabelForEntity
+                            | Table::LastLabelForEntity
+                            | Table::EntityIds
+                            | Table::EntityDrafts
+                            | Table::EntityTemporalMetadata
+                            | Table::EntityEditions
+                            | Table::EntityIsOfType
+                            | Table::EntityIsOfTypeIds
+                            | Table::EntityHasLeftEntity
+                            | Table::EntityHasRightEntity
+                            | Table::Reference(_) => unreachable!(),
                         };
 
                         last_join.statement = Some(SelectStatement {
@@ -822,7 +868,18 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 },
                 _ => None,
             },
-            _ => None,
+            Filter::All(_)
+            | Filter::Any(_)
+            | Filter::Not(_)
+            | Filter::Greater(..)
+            | Filter::GreaterOrEqual(..)
+            | Filter::Less(..)
+            | Filter::LessOrEqual(..)
+            | Filter::CosineDistance(..)
+            | Filter::In(..)
+            | Filter::StartsWith(..)
+            | Filter::EndsWith(..)
+            | Filter::ContainsSegment(..) => None,
         }
     }
 
@@ -1052,6 +1109,8 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                     join_expression.join = JoinType::LeftOuter;
                 } else if join_expression.join != JoinType::Inner {
                     is_outer_join_chain = true;
+                } else {
+                    // Join is Inner type, keep as-is
                 }
 
                 // TODO: If we join on the same column as the previous join, we can reuse the that
@@ -1103,6 +1162,8 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                         // We have a join statement for the same table but with different
                         // conditions.
                         join_expression.table.alias.number += 1;
+                    } else {
+                        // No alias conflict, continue with existing alias
                     }
                 }
 

@@ -256,19 +256,32 @@ impl Default for QueryTemporalAxesUnresolved {
 }
 
 impl QueryTemporalAxesUnresolved {
+    /// Resolves temporal axes using the provided timestamp.
+    ///
+    /// Converts unresolved temporal axes into concrete temporal axes by resolving unset values
+    /// with the provided timestamp.
+    #[must_use]
+    pub fn resolve_with(self, timestamp: Timestamp<()>) -> QueryTemporalAxes {
+        match self {
+            Self::DecisionTime { pinned, variable } => QueryTemporalAxes::DecisionTime {
+                pinned: pinned.resolve(timestamp),
+                variable: variable.resolve(timestamp),
+            },
+            Self::TransactionTime { pinned, variable } => QueryTemporalAxes::TransactionTime {
+                pinned: pinned.resolve(timestamp),
+                variable: variable.resolve(timestamp),
+            },
+        }
+    }
+
+    /// Resolves temporal axes using the current timestamp.
+    ///
+    /// Convenience method that resolves temporal axes against the current time.
+    /// Equivalent to calling `resolve_relative_to(Timestamp::now())`.
     #[must_use]
     pub fn resolve(self) -> QueryTemporalAxes {
         let now = Timestamp::now();
-        match self {
-            Self::DecisionTime { pinned, variable } => QueryTemporalAxes::DecisionTime {
-                pinned: pinned.resolve(now),
-                variable: variable.resolve(now),
-            },
-            Self::TransactionTime { pinned, variable } => QueryTemporalAxes::TransactionTime {
-                pinned: pinned.resolve(now),
-                variable: variable.resolve(now),
-            },
-        }
+        self.resolve_with(now)
     }
 }
 

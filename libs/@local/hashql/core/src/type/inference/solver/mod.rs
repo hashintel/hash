@@ -455,7 +455,10 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                     Some((EdgeKind::SubtypeOf, lhs, rhs)),
                     Some((EdgeKind::SubtypeOf, rhs, lhs)),
                 ],
-                _ => continue,
+                Constraint::UpperBound { .. }
+                | Constraint::LowerBound { .. }
+                | Constraint::Equals { .. }
+                | Constraint::Selection(..) => continue,
             };
 
             for (kind, source, target) in edges.into_iter().flatten() {
@@ -1476,7 +1479,12 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                     // These might still exist, because we haven't made any progress, but(!) they
                     // should be the only ones that survive
                 }
-                _ => unreachable!(
+                Constraint::Unify { .. }
+                | Constraint::UpperBound { .. }
+                | Constraint::LowerBound { .. }
+                | Constraint::Equals { .. }
+                | Constraint::Ordering { .. }
+                | Constraint::Dependency { .. } => unreachable!(
                     "only selection constraints can be remaining on a fix-point system"
                 ),
             }

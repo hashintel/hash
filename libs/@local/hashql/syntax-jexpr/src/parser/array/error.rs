@@ -61,7 +61,12 @@ impl ArrayDiagnosticCategory {
     pub(crate) fn hoist(&self) -> &dyn DiagnosticCategory {
         match self {
             Self::Lexer(category) => category.subcategory().unwrap_or(category),
-            _ => self,
+            Self::LeadingComma
+            | Self::TrailingComma
+            | Self::ConsecutiveComma
+            | Self::Empty
+            | Self::LabeledArgumentMissingPrefix
+            | Self::LabeledArgumentInvalidIdentifier => self,
         }
     }
 }
@@ -70,14 +75,24 @@ impl DiagnosticCategory for ArrayDiagnosticCategory {
     fn id(&self) -> Cow<'_, str> {
         match self {
             Self::Lexer(category) => category.id(),
-            _ => Cow::Borrowed("array"),
+            Self::LeadingComma
+            | Self::TrailingComma
+            | Self::ConsecutiveComma
+            | Self::Empty
+            | Self::LabeledArgumentMissingPrefix
+            | Self::LabeledArgumentInvalidIdentifier => Cow::Borrowed("array"),
         }
     }
 
     fn name(&self) -> Cow<'_, str> {
         match self {
             Self::Lexer(category) => category.name(),
-            _ => Cow::Borrowed("Array"),
+            Self::LeadingComma
+            | Self::TrailingComma
+            | Self::ConsecutiveComma
+            | Self::Empty
+            | Self::LabeledArgumentMissingPrefix
+            | Self::LabeledArgumentInvalidIdentifier => Cow::Borrowed("Array"),
         }
     }
 
