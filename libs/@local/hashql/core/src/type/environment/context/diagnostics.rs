@@ -65,6 +65,16 @@ impl Diagnostics {
         self.inner.extend(other.inner);
     }
 
+    /// Merges another diagnostics collection into this one.
+    ///
+    /// This adds the diagnostics from the other collection to this one and updates the fatal error
+    /// count accordingly.
+    pub fn merge_into(&mut self, diagnostics: &mut Self) {
+        diagnostics.fatal += self.fatal;
+        diagnostics.inner.append(&mut self.inner);
+        self.fatal = 0;
+    }
+
     /// Consumes the diagnostics collection and returns a vector of diagnostics.
     #[must_use]
     pub fn into_vec(self) -> Vec<TypeCheckDiagnostic> {

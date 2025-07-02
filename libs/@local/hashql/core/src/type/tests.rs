@@ -13,6 +13,7 @@ use crate::{
     symbol::Ident,
     r#type::{
         builder::lazy,
+        environment::Variance,
         error::TypeCheckDiagnosticCategory,
         lattice::{Projection, Subscript},
     },
@@ -141,7 +142,7 @@ fn unify_never_types() {
     let never1 = builder.never();
     let never2 = builder.never();
 
-    analysis.is_subtype_of(never1, never2);
+    analysis.is_subtype_of(Variance::Covariant, never1, never2);
 
     assert_matches!(env.r#type(never1).kind, TypeKind::Never);
     assert_matches!(env.r#type(never2).kind, TypeKind::Never);
@@ -154,7 +155,7 @@ fn never_with_other_type() {
     let never = builder.never();
     let other = builder.unknown();
 
-    analysis.is_subtype_of(never, other);
+    analysis.is_subtype_of(Variance::Covariant, never, other);
 
     assert!(
         analysis
@@ -175,7 +176,7 @@ fn unify_unknown_types() {
     let unknown1 = builder.unknown();
     let unknown2 = builder.unknown();
 
-    analysis.is_subtype_of(unknown1, unknown2);
+    analysis.is_subtype_of(Variance::Covariant, unknown1, unknown2);
 
     assert_matches!(env.r#type(unknown1).kind, TypeKind::Unknown);
     assert_matches!(env.r#type(unknown2).kind, TypeKind::Unknown);
@@ -188,7 +189,7 @@ fn unknown_with_other_type() {
     let unknown = builder.unknown();
     let never = builder.never();
 
-    analysis.is_subtype_of(unknown, never);
+    analysis.is_subtype_of(Variance::Covariant, unknown, never);
 
     assert!(
         analysis
@@ -208,8 +209,8 @@ fn direct_circular_reference() {
     let b = builder.tuple(lazy(|id, _| [id.value()]));
 
     // Test subtyping with the circular type
-    assert!(analysis.is_subtype_of(a, b));
-    assert!(analysis.is_subtype_of(b, a));
+    assert!(analysis.is_subtype_of(Variance::Covariant, a, b));
+    assert!(analysis.is_subtype_of(Variance::Covariant, b, a));
 
     // Ensure should be an error reported
     assert_eq!(analysis.fatal_diagnostics(), 0);
@@ -243,9 +244,9 @@ fn indirect_circular_reference() {
     let c = c.expect("c should be Some").value();
 
     // Test subtyping with circular references
-    assert!(analysis.is_subtype_of(a, b));
-    assert!(analysis.is_subtype_of(b, c));
-    assert!(analysis.is_subtype_of(c, a));
+    assert!(analysis.is_subtype_of(Variance::Covariant, a, b));
+    assert!(analysis.is_subtype_of(Variance::Covariant, b, c));
+    assert!(analysis.is_subtype_of(Variance::Covariant, c, a));
 
     assert_eq!(analysis.fatal_diagnostics(), 0);
 
@@ -285,8 +286,8 @@ fn alternating_direction_cycle() {
         .value();
 
     // Test the cycle with subtyping - these should succeed with recursive handling
-    assert!(analysis.is_subtype_of(union_id, union_id));
-    assert!(analysis.is_subtype_of(intersection_id, intersection_id));
+    assert!(analysis.is_subtype_of(Variance::Covariant, union_id, union_id));
+    assert!(analysis.is_subtype_of(Variance::Covariant, intersection_id, intersection_id));
 
     // Ensure no errors occurred during subtyping
     assert_eq!(analysis.fatal_diagnostics(), 0);
@@ -355,14 +356,14 @@ fn recursive_subtyping() {
     // Since Integer <: Number, and we use coinductive reasoning for the recursive part,
     // A <: B should be true
     assert!(
-        analysis.is_subtype_of(type_a, type_b),
+        analysis.is_subtype_of(Variance::Covariant, type_a, type_b),
         "A should be a subtype of B"
     );
 
     // The reverse should not be true: B </: A
     // Since Number </: Integer
     assert!(
-        !analysis.is_subtype_of(type_b, type_a),
+        !analysis.is_subtype_of(Variance::Covariant, type_b, type_a),
         "B should not be a subtype of A"
     );
 
@@ -390,7 +391,7 @@ fn recursive_join_operation() {
 
     // First check subtyping relationships to confirm our premise
     assert!(
-        analysis.is_subtype_of(type_a, type_b),
+        analysis.is_subtype_of(Variance::Covariant, type_a, type_b),
         "A should be a subtype of B"
     );
 
@@ -400,7 +401,7 @@ fn recursive_join_operation() {
     // The join should produce something that acts like B (in this case, it should be a supertype of
     // A)
     assert!(
-        analysis.is_subtype_of(type_a, joined),
+        analysis.is_subtype_of(Variance::Covariant, type_a, joined),
         "type_a should be a subtype of join result"
     );
 

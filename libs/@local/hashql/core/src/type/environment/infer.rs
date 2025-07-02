@@ -1,6 +1,9 @@
 use core::ops::Deref;
 
-use super::{Environment, Variance};
+use super::{
+    Environment, Variance,
+    context::variance::{VarianceFlow, VarianceState},
+};
 use crate::{
     span::SpanId,
     symbol::Ident,
@@ -22,7 +25,7 @@ pub struct InferenceEnvironment<'env, 'heap> {
 
     pub constraints: Vec<Constraint<'heap>>,
 
-    variance: Variance,
+    variance: VarianceState,
 }
 
 impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
@@ -32,7 +35,7 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
             boundary: RecursionBoundary::new(),
             variables: VariableDependencyCollector::new(environment),
             constraints: Vec::new(),
-            variance: Variance::default(),
+            variance: VarianceState::new(Variance::Covariant),
         }
     }
 
@@ -59,7 +62,7 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
 
     pub fn add_constraint(&mut self, mut constraint: Constraint<'heap>) {
         #[expect(clippy::match_same_arms, reason = "readability")]
-        if self.variance == Variance::Invariant {
+        if self.variance.get() == Variance::Invariant {
             constraint = match constraint {
                 Constraint::Unify { .. } => constraint,
                 Constraint::UpperBound { variable, bound }
@@ -152,16 +155,18 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
         }
     }
 
-    pub fn collect_constraints(&mut self, subtype: TypeId, supertype: TypeId) {
+    pub fn collect_constraints(&mut self, variance: Variance, subtype: TypeId, supertype: TypeId) {
+        let (_guard, variance_flow) = self.variance.transition(variance);
+
         #[expect(
             clippy::match_same_arms,
             reason = "explicit to document why invariant is covariant in disguise"
         )]
-        let (subtype, supertype) = match self.variance {
-            Variance::Covariant => (subtype, supertype),
-            Variance::Contravariant => (supertype, subtype),
+        let (subtype, supertype) = match variance_flow {
+            VarianceFlow::Forward => (subtype, supertype),
+            VarianceFlow::Reverse => (supertype, subtype),
             // The same subtype relationship, but `add_constraint` changes what's registered
-            Variance::Invariant => (subtype, supertype),
+            VarianceFlow::Invariant => (subtype, supertype),
         };
 
         let subtype = self.environment.r#type(subtype);
@@ -187,32 +192,6 @@ impl<'env, 'heap> InferenceEnvironment<'env, 'heap> {
                 target: depends_on,
             });
         }
-    }
-
-    pub(crate) fn with_variance<T>(
-        &mut self,
-        variance: Variance,
-        closure: impl FnOnce(&mut Self) -> T,
-    ) -> T {
-        let old_variance = self.variance;
-
-        self.variance = old_variance.transition(variance);
-
-        let result = closure(self);
-        self.variance = old_variance;
-        result
-    }
-
-    pub fn in_contravariant<T>(&mut self, closure: impl FnOnce(&mut Self) -> T) -> T {
-        self.with_variance(Variance::Contravariant, closure)
-    }
-
-    pub fn in_covariant<T>(&mut self, closure: impl FnOnce(&mut Self) -> T) -> T {
-        self.with_variance(Variance::Covariant, closure)
-    }
-
-    pub fn in_invariant<T>(&mut self, closure: impl FnOnce(&mut Self) -> T) -> T {
-        self.with_variance(Variance::Invariant, closure)
     }
 
     #[must_use]

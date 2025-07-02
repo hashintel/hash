@@ -6,7 +6,7 @@ use crate::{
         PartialType,
         environment::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
-            SimplifyEnvironment, instantiate::InstantiateEnvironment,
+            SimplifyEnvironment, Variance, instantiate::InstantiateEnvironment,
         },
         inference::{Constraint, Variable, VariableKind},
         kind::{
@@ -603,8 +603,8 @@ fn is_subtype_of() {
     let number = generic!(env, primitive!(env, PrimitiveType::Number), []);
 
     let mut analysis = AnalysisEnvironment::new(&env);
-    assert!(analysis.is_subtype_of(integer, number));
-    assert!(!analysis.is_subtype_of(number, integer));
+    assert!(analysis.is_subtype_of(Variance::Covariant, integer, number));
+    assert!(!analysis.is_subtype_of(Variance::Covariant, number, integer));
 }
 
 #[test]
@@ -658,7 +658,7 @@ fn collect_constraints() {
 
     let supertype = generic!(env, primitive!(env, PrimitiveType::String), []);
 
-    infer.collect_constraints(subtype, supertype);
+    infer.collect_constraints(Variance::Covariant, subtype, supertype);
 
     let constraints = infer.take_constraints();
     assert_eq!(

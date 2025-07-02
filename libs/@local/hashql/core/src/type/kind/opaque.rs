@@ -11,7 +11,7 @@ use crate::{
         PartialType, Type, TypeId,
         environment::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
-            SimplifyEnvironment, instantiate::InstantiateEnvironment,
+            SimplifyEnvironment, Variance, instantiate::InstantiateEnvironment,
         },
         error::opaque_type_name_mismatch,
         inference::Inference,
@@ -256,7 +256,7 @@ impl<'heap> Lattice<'heap> for OpaqueType<'heap> {
             return false;
         }
 
-        env.in_invariant(|env| env.is_subtype_of(self.kind.repr, supertype.kind.repr))
+        env.is_subtype_of(Variance::Invariant, self.kind.repr, supertype.kind.repr)
     }
 
     fn is_equivalent(
@@ -306,7 +306,7 @@ impl<'heap> Inference<'heap> for OpaqueType<'heap> {
         }
 
         // Opaque types are invariant in regards to their arguments
-        env.in_invariant(|env| env.collect_constraints(self.kind.repr, supertype.kind.repr));
+        env.collect_constraints(Variance::Invariant, self.kind.repr, supertype.kind.repr);
     }
 
     fn instantiate(self: Type<'heap, Self>, env: &mut InstantiateEnvironment<'_, 'heap>) -> TypeId {

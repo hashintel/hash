@@ -14,7 +14,7 @@ use crate::{
         PartialType, Type, TypeId,
         environment::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
-            SimplifyEnvironment, instantiate::InstantiateEnvironment,
+            SimplifyEnvironment, Variance, instantiate::InstantiateEnvironment,
         },
         error::{
             UnsupportedSubscriptCategory, missing_struct_field, struct_field_mismatch,
@@ -416,7 +416,7 @@ impl<'heap> Lattice<'heap> for StructType<'heap> {
             };
 
             compatible &=
-                env.in_covariant(|env| env.is_subtype_of(self_field.value, super_field.value));
+                env.is_subtype_of(Variance::Covariant, self_field.value, super_field.value);
 
             if !compatible && env.is_fail_fast() {
                 return false;
@@ -453,8 +453,7 @@ impl<'heap> Lattice<'heap> for StructType<'heap> {
         // We checked that they share the same fields, as all fields are always sorted, we can just
         // zip them together
         for (lhs_field, rhs_field) in self.kind.fields.iter().zip(other.kind.fields.iter()) {
-            equivalent &=
-                env.in_covariant(|env| env.is_equivalent(lhs_field.value, rhs_field.value));
+            equivalent &= env.is_equivalent(lhs_field.value, rhs_field.value);
 
             if !equivalent && env.is_fail_fast() {
                 return false;
@@ -523,7 +522,7 @@ impl<'heap> Inference<'heap> for StructType<'heap> {
                 continue;
             };
 
-            env.in_covariant(|env| env.collect_constraints(self_field.value, super_field.value));
+            env.collect_constraints(Variance::Covariant, self_field.value, super_field.value);
         }
     }
 
