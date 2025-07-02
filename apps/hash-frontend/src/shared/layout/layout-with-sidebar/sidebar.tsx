@@ -133,6 +133,11 @@ export const PageSidebar: FunctionComponent = () => {
     }
 
     const numberOfPendingActions = draftEntitiesCount ?? 0;
+    const unreadNotifications = numberOfUnreadNotifications ?? 0;
+
+    const shouldInboxLinkToActions =
+      numberOfPendingActions > 0 ||
+      (unreadNotifications === 0 && pendingInvites.length === 0);
 
     return [
       {
@@ -145,13 +150,15 @@ export const PageSidebar: FunctionComponent = () => {
       ...toggleableLinks,
       {
         title: "Inbox",
-        path: "/actions",
+        path: shouldInboxLinkToActions
+          ? "/actions"
+          : unreadNotifications > 0
+            ? "/notifications"
+            : "/invites",
         icon: <InboxIcon sx={{ fontSize: 16 }} />,
         tooltipTitle: "",
         count:
-          (numberOfUnreadNotifications ?? 0) +
-          numberOfPendingActions +
-          pendingInvites.length,
+          unreadNotifications + numberOfPendingActions + pendingInvites.length,
         children: [
           {
             title: "Actions",

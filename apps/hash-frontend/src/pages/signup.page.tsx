@@ -98,12 +98,6 @@ const SignupPage: NextPageWithLayout = () => {
   const [updateAuthenticatedUser, { loading: updateUserLoading }] =
     useUpdateAuthenticatedUser();
 
-  useEffect(() => {
-    if (authenticatedUser && authenticatedUser.accountSignupComplete) {
-      void router.push("/");
-    }
-  }, [authenticatedUser, router]);
-
   const [invitationInfo] = useState<null>(null);
   const [errorMessage, setErrorMessage] = useState<string>();
 
@@ -127,16 +121,18 @@ const SignupPage: NextPageWithLayout = () => {
             orgInvitationEntityId: invitation.invitationEntityId,
           },
         });
-        await refetchAuthenticatedUser();
       }
 
-      // Redirecting to the homepage is covered by the useEffect to redirect all authenticated users away from /signup
+      await refetchAuthenticatedUser();
+
+      void router.push("/");
     },
     [
       acceptInvitation,
       invitation,
       refetchAuthenticatedUser,
       updateAuthenticatedUser,
+      router,
     ],
   );
 

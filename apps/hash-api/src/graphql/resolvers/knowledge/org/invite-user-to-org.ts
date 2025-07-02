@@ -179,6 +179,7 @@ export const inviteUserToOrgResolver: ResolverFn<
   } else if (userShortname) {
     existingUserToInvite = await getUserByShortname(context, authentication, {
       shortname: userShortname,
+      includeEmails: true,
     });
 
     if (!existingUserToInvite) {
@@ -395,7 +396,9 @@ export const inviteUserToOrgResolver: ResolverFn<
   await sendOrgEmailInvitationToEmailAddress({
     org,
     invitationId: invitation.metadata.recordId.entityId,
-    emailAddress: userEmail!,
+    emailAddress: existingUserToInvite
+      ? existingUserToInvite.emails[0]!
+      : userEmail!,
     emailTransporter: graphQLContext.emailTransporter,
     isSignedUpUser: !!existingUserToInvite,
   });

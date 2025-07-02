@@ -201,7 +201,7 @@ export const getUserByEmail: ImpureGraphFunction<
  * @param params.shortname - the shortname of the user
  */
 export const getUserByShortname: ImpureGraphFunction<
-  { shortname: string; includeDrafts?: boolean },
+  { shortname: string; includeDrafts?: boolean; includeEmails?: boolean },
   Promise<User | null>
 > = async ({ graphApi }, { actorId }, params) => {
   const [userEntity, ...unexpectedEntities] = await graphApi
@@ -234,7 +234,7 @@ export const getUserByShortname: ImpureGraphFunction<
     })
     .then(({ data: response }) =>
       response.entities.map((entity) =>
-        mapGraphApiEntityToEntity(entity, actorId),
+        mapGraphApiEntityToEntity(entity, actorId, params.includeEmails),
       ),
     );
 

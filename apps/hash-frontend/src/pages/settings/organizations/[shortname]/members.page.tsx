@@ -132,7 +132,7 @@ const OrgMembersPage: NextPageWithLayout = () => {
             </TableRow>
           </TableFooter>
         </SettingsTable>
-        {org.invitations.length > 0 && (
+        {!readonly && org.invitations.length > 0 && (
           <Box mt={6}>
             <Typography component="h4" variant="mediumCaps" mb={2}>
               Pending invitations

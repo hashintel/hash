@@ -159,7 +159,7 @@ export const AddMemberForm = ({ org }: { org: Org }) => {
       <Button
         disabled={loading}
         size="xs"
-        sx={{ marginLeft: -1 }}
+        sx={{ marginLeft: -1, alignSelf: "flex-start" }}
         type="submit"
       >
         {loading ? "Pending..." : "Add member"}
