@@ -11,6 +11,7 @@ import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
+  zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import type { MutationInviteUserToOrgArgs } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import {
@@ -32,7 +33,7 @@ import dedent from "dedent";
 import type { EmailTransporter } from "../../../../email/transporters";
 import {
   createEntity,
-  getEntities,
+  getEntitySubgraphResponse,
 } from "../../../../graph/knowledge/primitive/entity";
 import { createLinkEntity } from "../../../../graph/knowledge/primitive/link-entity";
 import {
@@ -49,6 +50,7 @@ import { systemAccountId } from "../../../../graph/system-account";
 import type { ResolverFn } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
 import { graphQLContextToImpureGraphContext } from "../../util";
+import { getPendingOrgInvitationsFromSubgraph } from "./shared";
 
 const invitationDurationInDays = 30;
 
@@ -103,7 +105,9 @@ const generateExistingInvitationFilter = (
   const filter = {
     all: [
       generateVersionedUrlMatchingFilter(
-        systemLinkEntityTypes.hasIssuedInvitation.linkEntityTypeId,
+        invitation.type === "email"
+          ? systemEntityTypes.invitationViaEmail.entityTypeId
+          : systemEntityTypes.invitationViaShortname.entityTypeId,
       ),
       {
         equal: [
@@ -128,18 +132,7 @@ const generateExistingInvitationFilter = (
       {
         equal: [
           {
-            path: ["leftEntity", "uuid"],
-          },
-          {
-            parameter: orgWebId,
-          },
-        ],
-      },
-      {
-        equal: [
-          {
             path: [
-              "rightEntity",
               "properties",
               invitation.type === "email"
                 ? systemPropertyTypes.email.propertyTypeBaseUrl
@@ -241,24 +234,66 @@ export const inviteUserToOrgResolver: ResolverFn<
     );
   }
 
-  const existingInvitation = await getEntities(context, authentication, {
-    includeDrafts: false,
-    temporalAxes: currentTimeInstantTemporalAxes,
-    filter: generateExistingInvitationFilter(
-      orgWebId,
-      userEmail
-        ? {
-            type: "email",
-            email: userEmail,
-          }
-        : {
-            type: "shortname",
-            shortname: userShortname!,
-          },
-    ),
-  }).then((entities) => entities[0]);
+  const existingInvitations = await getEntitySubgraphResponse(
+    context,
+    authentication,
+    {
+      includeDrafts: false,
+      temporalAxes: currentTimeInstantTemporalAxes,
+      filter: generateExistingInvitationFilter(
+        orgWebId,
+        userEmail
+          ? {
+              type: "email",
+              email: userEmail,
+            }
+          : {
+              type: "shortname",
+              shortname: userShortname!,
+            },
+      ),
+      graphResolveDepths: {
+        ...zeroedGraphResolveDepths,
+        hasLeftEntity: {
+          incoming: 0,
+          outgoing: 1,
+        },
+        hasRightEntity: {
+          incoming: 1,
+          outgoing: 0,
+        },
+      },
+    },
+  ).then(({ subgraph }) =>
+    getPendingOrgInvitationsFromSubgraph(context, authentication, subgraph),
+  );
 
-  if (existingInvitation) {
+  let outstandingInvitationCount = existingInvitations.length;
+
+  for (const {
+    expiresAt,
+    invitationEntity,
+    linkEntity,
+  } of existingInvitations) {
+    if (new Date(expiresAt).valueOf() < new Date().valueOf() - 1000 * 60 * 60) {
+      await Promise.all([
+        invitationEntity.archive(
+          context.graphApi,
+          authentication,
+          context.provenance,
+        ),
+        linkEntity.archive(
+          context.graphApi,
+          authentication,
+          context.provenance,
+        ),
+      ]);
+
+      outstandingInvitationCount--;
+    }
+  }
+
+  if (outstandingInvitationCount > 0) {
     throw new ApolloError(
       `There is already an invitation pending for ${userEmail ?? userShortname}`,
       "BAD_REQUEST",
