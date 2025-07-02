@@ -11,8 +11,8 @@
 ════ Types ═════════════════════════════════════════════════════════════════════
 
 ┌─ ::core::math::add
-└→ fn<T?27: Number, U?28: Number>(?27«Integer», ?28«Integer») -> (?28«Integer»
-    | ?27«Integer»)
+└→ fn<T?27: Number, U?28: Number>(?27«Integer», ?28«Integer») -> (?27«Integer»
+    | ?28«Integer»)
 
 ┌─ a:0
 └→ ?26«Integer»

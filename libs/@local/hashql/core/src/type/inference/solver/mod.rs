@@ -1605,7 +1605,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
 
             // Clear the diagnostics this round, so that they do not pollute the next round
             self.diagnostics.clear();
-            self.lattice.take_diagnostics();
+            self.lattice.clear_diagnostics();
 
             // Step 1.1: Register all variables with the unification system (including any new ones)
             self.upsert_variables(&mut graph);

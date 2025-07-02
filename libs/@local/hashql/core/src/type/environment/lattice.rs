@@ -86,6 +86,11 @@ impl<'env, 'heap> LatticeEnvironment<'env, 'heap> {
         this
     }
 
+    pub fn clear_diagnostics(&mut self) {
+        self.diagnostics.clear();
+        self.simplify.clear_diagnostics();
+    }
+
     pub const fn set_inference_enabled(&mut self, enabled: bool) -> &mut Self {
         self.inference = enabled;
         self

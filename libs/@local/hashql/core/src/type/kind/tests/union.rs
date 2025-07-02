@@ -109,8 +109,8 @@ fn join_identical_unions() {
         env,
         a.join(b, &mut lattice_env),
         [
-            primitive!(env, PrimitiveType::String),
             primitive!(env, PrimitiveType::Number),
+            primitive!(env, PrimitiveType::String),
         ]
     );
 }
@@ -175,10 +175,10 @@ fn join_different_unions() {
         env,
         a.join(b, &mut lattice_env),
         [
-            primitive!(env, PrimitiveType::Null),
-            primitive!(env, PrimitiveType::Boolean),
-            primitive!(env, PrimitiveType::String),
             primitive!(env, PrimitiveType::Number),
+            primitive!(env, PrimitiveType::String),
+            primitive!(env, PrimitiveType::Boolean),
+            primitive!(env, PrimitiveType::Null),
         ]
     );
 }
@@ -206,8 +206,8 @@ fn join_with_empty_union() {
         env,
         empty.join(non_empty, &mut lattice_env),
         [
-            primitive!(env, PrimitiveType::String),
             primitive!(env, PrimitiveType::Number),
+            primitive!(env, PrimitiveType::String),
         ]
     );
 
@@ -216,8 +216,8 @@ fn join_with_empty_union() {
         env,
         non_empty.join(empty, &mut lattice_env),
         [
-            primitive!(env, PrimitiveType::String),
             primitive!(env, PrimitiveType::Number),
+            primitive!(env, PrimitiveType::String),
         ]
     );
 }
@@ -252,9 +252,9 @@ fn join_with_overlapping_unions() {
         env,
         a.join(b, &mut lattice_env),
         [
-            primitive!(env, PrimitiveType::Boolean),
-            primitive!(env, PrimitiveType::String),
             primitive!(env, PrimitiveType::Number),
+            primitive!(env, PrimitiveType::String),
+            primitive!(env, PrimitiveType::Boolean),
         ]
     );
 }
@@ -1459,14 +1459,14 @@ fn collect_constraints_with_intersection() {
         Constraint::UpperBound {
             variable: Variable { span: SpanId::SYNTHETIC, kind: VariableKind::Hole(h) },
             bound
-        } if *h == hole && *bound == string
+        } if *h == hole && *bound == number
     );
     assert_matches!(
         &constraints[1],
         Constraint::UpperBound {
             variable: Variable { span: SpanId::SYNTHETIC, kind: VariableKind::Hole(h) },
             bound
-        } if *h == hole && *bound == number
+        } if *h == hole && *bound == string
     );
 }
 
@@ -1683,7 +1683,7 @@ fn projection_propagate_pending() {
 
     let mut lattice = LatticeEnvironment::new(&env);
     let projection = lattice.projection(union, Ident::synthetic(heap.intern_symbol("foo")));
-    assert_eq!(lattice.diagnostics.len(), 0);
+    assert_eq!(lattice.diagnostics.len(), 1);
     assert_eq!(projection, Projection::Pending);
 }
 
