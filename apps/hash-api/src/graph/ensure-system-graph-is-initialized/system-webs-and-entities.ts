@@ -1,5 +1,4 @@
 import type {
-  ActorGroupEntityUuid,
   MachineId,
   VersionedUrl,
   WebId,
@@ -258,7 +257,7 @@ export const ensureSystemEntitiesExist = async (params: {
 
     await addActorGroupMember(context, authentication, {
       actorId: aiAssistantAccountId,
-      actorGroupId: hashWebId as ActorGroupEntityUuid,
+      actorGroupId: hashWebId,
     });
     await context.graphApi.modifyWebAuthorizationRelationships(
       systemAccountId,

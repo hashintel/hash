@@ -1,6 +1,5 @@
 import type {
   ActorEntityUuid,
-  ActorGroupEntityUuid,
   EntityId,
   EntityUuid,
   UserId,
@@ -132,7 +131,7 @@ export const createOrgMembership: ImpureGraphFunction<
 
   await addActorGroupMember(ctx, authentication, {
     actorId: userActorId,
-    actorGroupId: orgWebId as ActorGroupEntityUuid,
+    actorGroupId: orgWebId,
   });
 
   try {
@@ -143,7 +142,7 @@ export const createOrgMembership: ImpureGraphFunction<
   } catch (error) {
     await removeActorGroupMember(ctx, authentication, {
       actorId: userActorId,
-      actorGroupId: orgWebId as ActorGroupEntityUuid,
+      actorGroupId: orgWebId,
     });
 
     throw error;
