@@ -212,7 +212,7 @@ impl Trial {
     }
 
     fn run_impl(&self, context: &TrialContext) -> Result<(), Report<[TrialError]>> {
-        let heap = Heap::new();
+        let heap = Heap::with_capacity(4 * 1024 * 1024); // 4MiB
 
         let (source, line_index, annotations) = self.load_source()?;
 

@@ -1,0 +1,11 @@
+//@ run: pass
+//@ description: Test logical AND and OR operations with boolean literals
+// biome-ignore format: readability
+["::core::graph::tail::collect",
+  ["::core::graph::body::filter",
+    ["::core::graph::head::entities", ["::core::graph::tmp::decision_time_now"]],
+    ["fn", { "#tuple": [] }, { "#struct": { "vertex": "_" } }, "_",
+      ["&&", {"#literal": true}, ["||", {"#literal": true}, {"#literal": false}]]
+    ]
+  ]
+]

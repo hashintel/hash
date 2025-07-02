@@ -3857,9 +3857,12 @@ dependencies = [
  "derive_more 2.0.1",
  "error-stack",
  "guppy",
+ "hash-graph-store",
+ "hash-graph-temporal-versioning",
  "hashql-ast",
  "hashql-core",
  "hashql-diagnostics",
+ "hashql-eval",
  "hashql-hir",
  "hashql-syntax-jexpr",
  "indicatif",
@@ -3935,7 +3938,14 @@ dependencies = [
 name = "hashql-eval"
 version = "0.0.0"
 dependencies = [
+ "derive_more 2.0.1",
+ "hash-graph-store",
+ "hashql-compiletest",
+ "hashql-core",
+ "hashql-diagnostics",
+ "hashql-hir",
  "simple-mermaid",
+ "type-system",
 ]
 
 [[package]]
