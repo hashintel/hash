@@ -3,7 +3,7 @@ import type { EntityId } from "@blockprotocol/type-system";
 import { ArrowUpRightRegularIcon } from "@hashintel/design-system";
 import { Grid, styled } from "@mui/material";
 import { useRouter } from "next/router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 
 import { useUpdateAuthenticatedUser } from "../components/hooks/use-update-authenticated-user";
 import type {
@@ -98,7 +98,6 @@ const SignupPage: NextPageWithLayout = () => {
   const [updateAuthenticatedUser, { loading: updateUserLoading }] =
     useUpdateAuthenticatedUser();
 
-  const [invitationInfo] = useState<null>(null);
   const [errorMessage, setErrorMessage] = useState<string>();
 
   const handleAccountSetupSubmit = useCallback(
@@ -176,8 +175,6 @@ const SignupPage: NextPageWithLayout = () => {
                 onSubmit={handleAccountSetupSubmit}
                 loading={updateUserLoading}
                 errorMessage={errorMessage}
-                email={authenticatedUser.emails[0]!.address}
-                invitationInfo={invitationInfo}
               />
             ) : /** @todo: add verification form */
             null
