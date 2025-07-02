@@ -289,7 +289,7 @@ __metadata:
     "@types/dedent": "npm:0.7.2"
     "@types/dotenv-flow": "npm:3.3.3"
     "@types/jsdom": "npm:21.1.7"
-    "@types/lodash": "npm:4.17.19"
+    "@types/lodash": "npm:4.17.20"
     "@types/md5": "npm:2.3.5"
     "@types/mime-types": "npm:2.1.4"
     "@types/node": "npm:22.15.34"
@@ -383,7 +383,7 @@ __metadata:
     "@types/express-http-proxy": "npm:1.6.6"
     "@types/html-to-text": "npm:8.1.1"
     "@types/jsonpath": "npm:0.2.4"
-    "@types/lodash": "npm:4.17.19"
+    "@types/lodash": "npm:4.17.20"
     "@types/mailchimp__mailchimp_marketing": "npm:3.0.21"
     "@types/md5": "npm:2.3.5"
     "@types/mime-types": "npm:2.1.4"
@@ -506,7 +506,7 @@ __metadata:
     "@types/google.picker": "npm:0.0.51"
     "@types/iframe-resizer": "npm:3.5.13"
     "@types/jsonpath": "npm:0.2.4"
-    "@types/lodash": "npm:4.17.19"
+    "@types/lodash": "npm:4.17.20"
     "@types/papaparse": "npm:5.3.16"
     "@types/prismjs": "npm:1.26.5"
     "@types/react": "npm:19.1.8"
@@ -18312,10 +18312,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/lodash@npm:*, @types/lodash@npm:4.17.19, @types/lodash@npm:^4.14.167, @types/lodash@npm:^4.14.182, @types/lodash@npm:^4.17.13, @types/lodash@npm:^4.17.7":
-  version: 4.17.19
-  resolution: "@types/lodash@npm:4.17.19"
-  checksum: 10c0/0d512e90a92c09b48ec0e46945876392d3ef60c0be7d023fdab22ecb0224a65ff4ed0b76c7acbf1c0152c27768aa4661ea7a1c3afb5b5ab13a50bda674a7c3f7
+"@types/lodash@npm:*, @types/lodash@npm:4.17.20, @types/lodash@npm:^4.14.167, @types/lodash@npm:^4.14.182, @types/lodash@npm:^4.17.13, @types/lodash@npm:^4.17.7":
+  version: 4.17.20
+  resolution: "@types/lodash@npm:4.17.20"
+  checksum: 10c0/98cdd0faae22cbb8079a01a3bb65aa8f8c41143367486c1cbf5adc83f16c9272a2a5d2c1f541f61d0d73da543c16ee1d21cf2ef86cb93cd0cc0ac3bced6dd88f
   languageName: node
   linkType: hard
 
