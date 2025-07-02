@@ -183,6 +183,9 @@ where
 
                 let neighbor_discovery = self.discovery_time[neighbour];
                 self.lowlink[node] = self.lowlink[node].min(neighbor_discovery);
+            } else {
+                // Forward/cross edge: Neighbor is visited but not on stack
+                // These edges don't contribute to the current SCC, so we ignore them
             }
 
             // Note: Forward/cross edges (to visited nodes not on stack) are ignored
@@ -485,7 +488,7 @@ mod test {
 
         // Create a large graph with a lot of small SCCs
         for i in 0..node_count {
-            if i % 2 == 0 {
+            if i.is_multiple_of(2) {
                 adjacency_list.push([(i + 1) % node_count]);
             } else {
                 adjacency_list.push([(i - 1) % node_count]);

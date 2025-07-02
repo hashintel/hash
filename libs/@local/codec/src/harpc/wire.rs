@@ -110,7 +110,11 @@ where
     /// - `Ok(Some(item))` if a complete message was successfully decoded
     /// - `Ok(None)` if more data is needed to complete a message
     /// - `Err(error)` if decoding failed
-    #[expect(clippy::missing_asserts_for_indexing, reason = "false positive")]
+    #[expect(
+        clippy::missing_asserts_for_indexing,
+        clippy::indexing_slicing,
+        reason = "We return if the buffer is too small"
+    )]
     fn decode(&mut self, src: &mut BytesMut) -> Result<Option<Self::Item>, Self::Error> {
         if src.len() < 32 {
             // Not enough data to decode a request

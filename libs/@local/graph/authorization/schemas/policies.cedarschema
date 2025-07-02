@@ -41,6 +41,11 @@ namespace HASH {
     resource: [Entity, EntityType],
   };
 
+  action createEntity in [create] appliesTo {
+    principal: [User, Machine, Ai],
+    resource: [Web],
+  };
+
   action viewEntity in [view] appliesTo {
     principal: [User, Machine, Ai, Public],
     resource: [Entity],

@@ -1,0 +1,17 @@
+[graph-read-compiler::binary-operation-unsupported] Error: Binary operations not supported in this context
+    ╭─[ <unknown>:10:11 ]
+    │
+  8 │ ╭─▶       ["==",
+    ┆ ┆   
+ 10 │ │           ["&&",
+    │ │             ─┬  
+    │ │              ╰── Operation `&&` not supported here
+    ┆ ┆   
+ 15 │ ├─▶       ]
+    │ │             
+    │ ╰───────────── ... within this filter expression
+    │     
+    │     Help: The `&&` operation can only be used at the top level of filter conditions, not as an operand in other operations. For example, `(a && b) == c` is not allowed, but `(a && b) && (c == d)` is valid.
+    │     
+    │     Note: This is an intentional current limitation to keep expressions simple, but there are plans to remove this restriction in the future to allow more complex expressions. Progress on this enhancement is tracked in https://linear.app/hash/issue/H-4911/hashql-allow-for-querying-against-complex-objects.
+────╯

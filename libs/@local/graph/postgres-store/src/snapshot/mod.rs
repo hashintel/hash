@@ -396,7 +396,13 @@ impl PostgresStorePool {
                         .map(|(id, principal_type)| match principal_type {
                             PrincipalType::WebRole => RoleId::Web(WebRoleId::new(id)),
                             PrincipalType::TeamRole => RoleId::Team(TeamRoleId::new(id)),
-                            _ => unreachable!("Unexpected role type: {principal_type:?}"),
+                            PrincipalType::User
+                            | PrincipalType::Machine
+                            | PrincipalType::Ai
+                            | PrincipalType::Web
+                            | PrincipalType::Team => {
+                                unreachable!("Unexpected role type: {principal_type:?}")
+                            }
                         })
                         .collect(),
                 }))
@@ -444,7 +450,13 @@ impl PostgresStorePool {
                         .map(|(id, principal_type)| match principal_type {
                             PrincipalType::WebRole => RoleId::Web(WebRoleId::new(id)),
                             PrincipalType::TeamRole => RoleId::Team(TeamRoleId::new(id)),
-                            _ => unreachable!("Unexpected role type: {principal_type:?}"),
+                            PrincipalType::User
+                            | PrincipalType::Machine
+                            | PrincipalType::Ai
+                            | PrincipalType::Web
+                            | PrincipalType::Team => {
+                                unreachable!("Unexpected role type: {principal_type:?}")
+                            }
                         })
                         .collect(),
                 }))
@@ -492,7 +504,13 @@ impl PostgresStorePool {
                         .map(|(id, principal_type)| match principal_type {
                             PrincipalType::WebRole => RoleId::Web(WebRoleId::new(id)),
                             PrincipalType::TeamRole => RoleId::Team(TeamRoleId::new(id)),
-                            _ => unreachable!("Unexpected role type: {principal_type:?}"),
+                            PrincipalType::User
+                            | PrincipalType::Machine
+                            | PrincipalType::Ai
+                            | PrincipalType::Web
+                            | PrincipalType::Team => {
+                                unreachable!("Unexpected role type: {principal_type:?}")
+                            }
                         })
                         .collect(),
                 }))
@@ -568,7 +586,11 @@ impl PostgresStorePool {
                     parent_id: match row.get(1) {
                         PrincipalType::Web => ActorGroupId::Web(row.get(2)),
                         PrincipalType::Team => ActorGroupId::Team(row.get(2)),
-                        principal_type => {
+                        principal_type @ (PrincipalType::User
+                        | PrincipalType::Machine
+                        | PrincipalType::Ai
+                        | PrincipalType::WebRole
+                        | PrincipalType::TeamRole) => {
                             unreachable!("Unexpected principal type {principal_type}")
                         }
                     },
@@ -613,7 +635,13 @@ impl PostgresStorePool {
                         team_id: row.get(2),
                         name: row.get(3),
                     }),
-                    principal_type => unreachable!("Unexpected principal type {principal_type}"),
+                    principal_type @ (PrincipalType::User
+                    | PrincipalType::Machine
+                    | PrincipalType::Ai
+                    | PrincipalType::Web
+                    | PrincipalType::Team) => {
+                        unreachable!("Unexpected principal type {principal_type}")
+                    }
                 })
             })
             .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Read)))

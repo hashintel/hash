@@ -206,6 +206,8 @@ impl<'env, 'heap> Specialization<'env, 'heap> {
                     return Ok(None);
                 };
 
+                let read = fold::walk_graph_read(self, read)?;
+
                 return Ok(Some(self.interner.intern_node(PartialNode {
                     span: call.span,
                     kind: NodeKind::Graph(Graph {

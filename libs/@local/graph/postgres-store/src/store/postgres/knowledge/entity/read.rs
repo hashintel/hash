@@ -168,6 +168,10 @@ where
                 let right_endpoint_ontology_id = row.get(3);
                 (
                     right_endpoint_ontology_id,
+                    #[expect(
+                        clippy::indexing_slicing,
+                        reason = "index is guaranteed to be in bounds"
+                    )]
                     SharedEdgeTraversal {
                         left_endpoint: EntityVertexId {
                             base_id: EntityId {
@@ -280,6 +284,10 @@ where
                 let right_endpoint_edition_id = row.get(4);
                 (
                     right_endpoint_edition_id,
+                    #[expect(
+                        clippy::indexing_slicing,
+                        reason = "index is guaranteed to be in bounds"
+                    )]
                     KnowledgeEdgeTraversal {
                         left_endpoint: EntityVertexId {
                             base_id: EntityId {
@@ -339,7 +347,7 @@ where
                 let permission_filter = Filter::for_policies(
                     policy_components.extract_filter_policies(ActionName::ViewEntity),
                     policy_components.actor_id(),
-                    policy_components.optimization_data(),
+                    policy_components.optimization_data(ActionName::ViewEntity),
                 );
                 compiler
                     .add_filter(&permission_filter)
