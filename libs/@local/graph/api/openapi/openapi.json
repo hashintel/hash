@@ -1877,6 +1877,57 @@
         }
       }
     },
+    "/entities/permissions": {
+      "post": {
+        "tags": [
+          "Graph",
+          "Entity"
+        ],
+        "operationId": "has_permission_for_entities",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HasPermissionForEntitiesParams"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Information if the actor has the permission for the entities",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/EntityEditionId"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error occurred"
+          }
+        }
+      }
+    },
     "/entities/query": {
       "post": {
         "tags": [
@@ -2335,59 +2386,6 @@
           },
           "403": {
             "description": "Permission denied"
-          }
-        }
-      }
-    },
-    "/entities/{entity_id}/permissions/{permission}": {
-      "get": {
-        "tags": [
-          "Graph",
-          "Entity"
-        ],
-        "operationId": "check_entity_permission",
-        "parameters": [
-          {
-            "name": "X-Authenticated-User-Actor-Id",
-            "in": "header",
-            "description": "The ID of the actor which is used to authorize the request",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ActorEntityUuid"
-            }
-          },
-          {
-            "name": "entity_id",
-            "in": "path",
-            "description": "The entity ID to check if the actor has the permission",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/EntityId"
-            }
-          },
-          {
-            "name": "permission",
-            "in": "path",
-            "description": "The permission to check for",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/EntityPermission"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Information if the actor has the permission for the entity",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PermissionResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal error occurred"
           }
         }
       }
@@ -7804,6 +7802,33 @@
           },
           "isOfType": {
             "$ref": "#/components/schemas/OutgoingEdgeResolveDepth"
+          }
+        },
+        "additionalProperties": false
+      },
+      "HasPermissionForEntitiesParams": {
+        "type": "object",
+        "required": [
+          "action",
+          "entityIds",
+          "temporalAxes",
+          "includeDrafts"
+        ],
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "entityIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntityId"
+            }
+          },
+          "includeDrafts": {
+            "type": "boolean"
+          },
+          "temporalAxes": {
+            "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
           }
         },
         "additionalProperties": false

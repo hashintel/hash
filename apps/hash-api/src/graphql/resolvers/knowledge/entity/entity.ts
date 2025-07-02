@@ -696,7 +696,7 @@ export const isEntityPublicResolver: ResolverFn<
   checkEntityPermission(
     graphQLContextToImpureGraphContext(graphQLContext),
     { actorId: publicUserAccountId },
-    { entityId, permission: "view" },
+    { entityId, permission: "viewEntity" },
   );
 
 export const getEntityAuthorizationRelationshipsResolver: ResolverFn<

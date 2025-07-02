@@ -36,7 +36,7 @@ export const resetFlow: ResolverFn<
     authentication,
     {
       entityId: flow.entityId,
-      permission: "update",
+      permission: "updateEntity",
     },
   );
 

@@ -29,7 +29,10 @@ use std::collections::HashMap;
 use error_stack::{Report, ResultExt as _};
 use hash_graph_authorization::{
     AuthorizationApi, NoAuthorization,
-    policies::store::{PolicyStore as _, PrincipalStore as _},
+    policies::{
+        principal::actor::AuthenticatedActor,
+        store::{PolicyStore as _, PrincipalStore as _},
+    },
     schema::{
         DataTypeRelationAndSubject, DataTypeViewerSubject, EntityRelationAndSubject,
         EntityTypeRelationAndSubject, EntityTypeSetting, EntityTypeSettingSubject,
@@ -57,7 +60,8 @@ use hash_graph_store::{
     entity::{
         CountEntitiesParams, CreateEntityParams, EntityStore, EntityValidationReport,
         GetEntitiesParams, GetEntitiesResponse, GetEntitySubgraphParams, GetEntitySubgraphResponse,
-        PatchEntityParams, UpdateEntityEmbeddingsParams, ValidateEntityParams,
+        HasPermissionForEntitiesParams, PatchEntityParams, UpdateEntityEmbeddingsParams,
+        ValidateEntityParams,
     },
     entity_type::{
         ArchiveEntityTypeParams, CountEntityTypesParams, CreateEntityTypeParams, EntityTypeStore,
@@ -66,7 +70,7 @@ use hash_graph_store::{
         IncludeResolvedEntityTypeOption, UnarchiveEntityTypeParams,
         UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
     },
-    error::{InsertionError, QueryError, UpdateError},
+    error::{CheckPermissionError, InsertionError, QueryError, UpdateError},
     pool::StorePool,
     property_type::{
         ArchivePropertyTypeParams, CountPropertyTypesParams, CreatePropertyTypeParams,
@@ -82,7 +86,7 @@ use hash_telemetry::logging::env_filter;
 use time::Duration;
 use tokio_postgres::{NoTls, Transaction};
 use type_system::{
-    knowledge::entity::{Entity, EntityId},
+    knowledge::entity::{Entity, EntityId, id::EntityEditionId},
     ontology::{
         OntologyTemporalMetadata, VersionedUrl,
         data_type::{DataType, DataTypeMetadata},
@@ -896,6 +900,16 @@ where
 
     async fn reindex_entity_cache(&mut self) -> Result<(), Report<UpdateError>> {
         self.store.reindex_entity_cache().await
+    }
+
+    async fn has_permission_for_entities(
+        &self,
+        authenticated_actor: AuthenticatedActor,
+        params: HasPermissionForEntitiesParams<'_>,
+    ) -> Result<HashMap<EntityId, Vec<EntityEditionId>>, Report<CheckPermissionError>> {
+        self.store
+            .has_permission_for_entities(authenticated_actor, params)
+            .await
     }
 }
 

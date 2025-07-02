@@ -12,6 +12,7 @@ use hash_graph_authorization::{
     policies::{
         Authorized, PolicyComponents, Request, RequestContext, ResourceId,
         action::ActionName,
+        principal::actor::AuthenticatedActor,
         resource::{EntityResourceConstraint, ResourceConstraint},
         store::{PolicyCreationParams, PolicyStore as _},
     },
@@ -23,11 +24,12 @@ use hash_graph_store::{
         CountEntitiesParams, CreateEntityParams, EmptyEntityTypes, EntityQueryCursor,
         EntityQueryPath, EntityQuerySorting, EntityStore, EntityTypeRetrieval, EntityTypesError,
         EntityValidationReport, EntityValidationType, GetEntitiesParams, GetEntitiesResponse,
-        GetEntitySubgraphParams, GetEntitySubgraphResponse, PatchEntityParams, QueryConversion,
-        UpdateEntityEmbeddingsParams, ValidateEntityComponents, ValidateEntityParams,
+        GetEntitySubgraphParams, GetEntitySubgraphResponse, HasPermissionForEntitiesParams,
+        PatchEntityParams, QueryConversion, UpdateEntityEmbeddingsParams, ValidateEntityComponents,
+        ValidateEntityParams,
     },
     entity_type::{EntityTypeQueryPath, EntityTypeStore as _, IncludeEntityTypeOption},
-    error::{InsertionError, QueryError, UpdateError},
+    error::{CheckPermissionError, InsertionError, QueryError, UpdateError},
     filter::{Filter, FilterExpression, Parameter, ParameterList},
     query::{QueryResult as _, Read},
     subgraph::{
@@ -2203,6 +2205,80 @@ where
         transaction.commit().await.change_context(UpdateError)?;
 
         Ok(())
+    }
+
+    #[tracing::instrument(skip(self, params))]
+    async fn has_permission_for_entities(
+        &self,
+        authenticated_actor: AuthenticatedActor,
+        params: HasPermissionForEntitiesParams<'_>,
+    ) -> Result<HashMap<EntityId, Vec<EntityEditionId>>, Report<CheckPermissionError>> {
+        let temporal_axes = params.temporal_axes.resolve();
+        let mut compiler = SelectCompiler::new(Some(&temporal_axes), params.include_drafts);
+
+        let entity_uuids = params
+            .entity_ids
+            .iter()
+            .map(|id| id.entity_uuid)
+            .collect::<Vec<_>>();
+
+        let entity_filter = Filter::In(
+            FilterExpression::Path {
+                path: EntityQueryPath::Uuid,
+            },
+            ParameterList::EntityUuids(&entity_uuids),
+        );
+        compiler
+            .add_filter(&entity_filter)
+            .change_context(CheckPermissionError::CompileFilter)?;
+
+        let policy_components = PolicyComponents::builder(self)
+            .with_actor(authenticated_actor)
+            .with_action(params.action, true)
+            .await
+            .change_context(CheckPermissionError::BuildPolicyContext)?;
+        let policy_filter = Filter::for_policies(
+            policy_components.extract_filter_policies(params.action),
+            policy_components.actor_id(),
+            policy_components.optimization_data(params.action),
+        );
+        compiler
+            .add_filter(&policy_filter)
+            .change_context(CheckPermissionError::CompileFilter)?;
+
+        let web_id_idx = compiler.add_selection_path(&EntityQueryPath::WebId);
+        let uuid_idx = compiler.add_selection_path(&EntityQueryPath::Uuid);
+        let draft_id_idx = compiler.add_selection_path(&EntityQueryPath::DraftId);
+        let edition_id_idx = compiler.add_distinct_selection_with_ordering(
+            &EntityQueryPath::EditionId,
+            Distinctness::Distinct,
+            None,
+        );
+
+        let mut permitted_ids = HashMap::<EntityId, Vec<EntityEditionId>>::new();
+
+        let (statement, parameters) = compiler.compile();
+        let () = self
+            .as_client()
+            .query_raw(&statement, parameters.iter().copied())
+            .instrument(tracing::trace_span!("query"))
+            .await
+            .change_context(CheckPermissionError::StoreError)?
+            .map_ok(|row| {
+                permitted_ids
+                    .entry(EntityId {
+                        web_id: row.get(web_id_idx),
+                        entity_uuid: row.get(uuid_idx),
+                        draft_id: row.get(draft_id_idx),
+                    })
+                    .or_default()
+                    .push(row.get(edition_id_idx));
+            })
+            .try_collect()
+            .await
+            .change_context(CheckPermissionError::StoreError)?;
+
+        Ok(permitted_ids)
     }
 }
 

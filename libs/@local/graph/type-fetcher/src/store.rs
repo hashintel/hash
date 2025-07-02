@@ -45,7 +45,8 @@ use hash_graph_store::{
     entity::{
         CountEntitiesParams, CreateEntityParams, EntityStore, EntityValidationReport,
         GetEntitiesParams, GetEntitiesResponse, GetEntitySubgraphParams, GetEntitySubgraphResponse,
-        PatchEntityParams, UpdateEntityEmbeddingsParams, ValidateEntityParams,
+        HasPermissionForEntitiesParams, PatchEntityParams, UpdateEntityEmbeddingsParams,
+        ValidateEntityParams,
     },
     entity_type::{
         ArchiveEntityTypeParams, CountEntityTypesParams, CreateEntityTypeParams, EntityTypeStore,
@@ -54,7 +55,7 @@ use hash_graph_store::{
         IncludeResolvedEntityTypeOption, UnarchiveEntityTypeParams,
         UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
     },
-    error::{InsertionError, QueryError, UpdateError},
+    error::{CheckPermissionError, InsertionError, QueryError, UpdateError},
     filter::{Filter, QueryRecord},
     pool::StorePool,
     property_type::{
@@ -1689,5 +1690,15 @@ where
 
     async fn reindex_entity_cache(&mut self) -> Result<(), Report<UpdateError>> {
         self.store.reindex_entity_cache().await
+    }
+
+    async fn has_permission_for_entities(
+        &self,
+        authenticated_actor: AuthenticatedActor,
+        params: HasPermissionForEntitiesParams<'_>,
+    ) -> Result<HashMap<EntityId, Vec<EntityEditionId>>, Report<CheckPermissionError>> {
+        self.store
+            .has_permission_for_entities(authenticated_actor, params)
+            .await
     }
 }

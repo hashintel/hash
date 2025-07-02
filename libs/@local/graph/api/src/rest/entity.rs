@@ -14,6 +14,7 @@ use error_stack::{Report, ResultExt as _};
 use hash_graph_authorization::{
     AuthorizationApi as _, AuthorizationApiPool,
     backend::{ModifyRelationshipOperation, PermissionAssertion},
+    policies::principal::actor::AuthenticatedActor,
     schema::{
         EntityAdministratorSubject, EntityEditorSubject, EntityOwnerSubject, EntityPermission,
         EntityRelationAndSubject, EntitySetting, EntitySettingSubject, EntitySubjectSet,
@@ -27,13 +28,13 @@ use hash_graph_store::{
     entity::{
         ClosedMultiEntityTypeMap, CountEntitiesParams, CreateEntityRequest, DiffEntityParams,
         DiffEntityResult, EntityQueryCursor, EntityQueryPath, EntityQuerySorting,
-        EntityQuerySortingRecord, EntityQuerySortingToken, EntityQueryToken, EntityStore as _,
+        EntityQuerySortingRecord, EntityQuerySortingToken, EntityQueryToken, EntityStore,
         EntityTypesError, EntityValidationReport, EntityValidationType, GetEntitiesParams,
-        GetEntitiesResponse, GetEntitySubgraphParams, LinkDataStateError, LinkDataValidationReport,
-        LinkError, LinkTargetError, LinkValidationReport, LinkedEntityError,
-        MetadataValidationReport, PatchEntityParams, PropertyMetadataValidationReport,
-        QueryConversion, UnexpectedEntityType, UpdateEntityEmbeddingsParams,
-        ValidateEntityComponents, ValidateEntityParams,
+        GetEntitiesResponse, GetEntitySubgraphParams, HasPermissionForEntitiesParams,
+        LinkDataStateError, LinkDataValidationReport, LinkError, LinkTargetError,
+        LinkValidationReport, LinkedEntityError, MetadataValidationReport, PatchEntityParams,
+        PropertyMetadataValidationReport, QueryConversion, UnexpectedEntityType,
+        UpdateEntityEmbeddingsParams, ValidateEntityComponents, ValidateEntityParams,
     },
     entity_type::{EntityTypeResolveDefinitions, IncludeEntityTypeOption},
     filter::Filter,
@@ -91,8 +92,8 @@ use type_system::{
 use utoipa::{OpenApi, ToSchema};
 
 use crate::rest::{
-    AuthenticatedUserHeader, OpenApiQuery, PermissionResponse, QueryLogger, json::Json,
-    status::report_to_response, utoipa_typedef::subgraph::Subgraph,
+    AuthenticatedUserHeader, OpenApiQuery, QueryLogger, json::Json, status::report_to_response,
+    utoipa_typedef::subgraph::Subgraph,
 };
 
 #[derive(OpenApi)]
@@ -101,7 +102,7 @@ use crate::rest::{
         create_entity,
         create_entities,
         validate_entity,
-        check_entity_permission,
+        has_permission_for_entities,
         get_entities,
         get_entity_subgraph,
         count_entities,
@@ -147,6 +148,7 @@ use crate::rest::{
             ModifyEntityAuthorizationRelationship,
             ModifyRelationshipOperation,
             EntitySetting,
+            HasPermissionForEntitiesParams,
 
             GetEntitiesRequest,
             GetEntitySubgraphRequest,
@@ -269,12 +271,9 @@ impl EntityResource {
                         .route(
                             "/editors/:subject_id",
                             post(add_entity_editor::<A, S>).delete(remove_entity_editor::<A, S>),
-                        )
-                        .route(
-                            "/permissions/:permission",
-                            get(check_entity_permission::<A>),
                         ),
                 )
+                .route("/permissions", post(has_permission_for_entities::<S, A>))
                 .nest(
                     "/query",
                     Router::new()
@@ -449,59 +448,49 @@ where
 }
 
 #[utoipa::path(
-    get,
-    path = "/entities/{entity_id}/permissions/{permission}",
+    post,
+    path = "/entities/permissions",
     tag = "Entity",
+    request_body = HasPermissionForEntitiesParams,
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
-        ("entity_id" = EntityId, Path, description = "The entity ID to check if the actor has the permission"),
-        ("permission" = EntityPermission, Path, description = "The permission to check for"),
     ),
     responses(
-        (status = 200, body = PermissionResponse, description = "Information if the actor has the permission for the entity"),
+        (status = 200, body = HashMap<EntityUuid, Vec<EntityEditionId>>, description = "Information if the actor has the permission for the entities"),
 
         (status = 500, description = "Internal error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(authorization_api_pool))]
-async fn check_entity_permission<A>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    Path((entity_id, permission)): Path<(EntityId, EntityPermission)>,
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client)
+)]
+async fn has_permission_for_entities<S, A>(
+    AuthenticatedUserHeader(actor): AuthenticatedUserHeader,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
-    mut query_logger: Option<Extension<QueryLogger>>,
-) -> Result<Json<PermissionResponse>, Response>
+    Json(params): Json<HasPermissionForEntitiesParams<'static>>,
+) -> Result<Json<HashMap<EntityId, Vec<EntityEditionId>>>, Response>
 where
+    S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
+    for<'p, 'a> S::Store<'p, A::Api<'a>>: EntityStore,
 {
-    if let Some(query_logger) = &mut query_logger {
-        query_logger.capture(
-            actor_id,
-            OpenApiQuery::CheckEntityPermission {
-                entity_id,
-                permission,
-            },
-        );
-    }
-
-    let response = Ok(Json(PermissionResponse {
-        has_permission: authorization_api_pool
-            .acquire()
-            .await
-            .map_err(report_to_response)?
-            .check_entity_permission(
-                actor_id,
-                permission,
-                entity_id,
-                Consistency::FullyConsistent,
-            )
-            .await
-            .map_err(report_to_response)?
-            .has_permission,
-    }));
-    if let Some(query_logger) = &mut query_logger {
-        query_logger.send().await.map_err(report_to_response)?;
-    }
-    response
+    store_pool
+        .acquire(
+            authorization_api_pool
+                .acquire()
+                .await
+                .map_err(report_to_response)?,
+            temporal_client.0,
+        )
+        .await
+        .map_err(report_to_response)?
+        .has_permission_for_entities(AuthenticatedActor::from(actor), params)
+        .await
+        .map(Json)
+        .map_err(report_to_response)
 }
 
 fn generate_sorting_paths(

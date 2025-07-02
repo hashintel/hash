@@ -7,7 +7,10 @@ import {
   isActorGroupMember,
 } from "@apps/hash-api/src/graph/account-permission-management";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
-import { updateEntity } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
+import {
+  checkEntityPermission,
+  updateEntity,
+} from "@apps/hash-api/src/graph/knowledge/primitive/entity";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import {
   createUser,
@@ -74,6 +77,17 @@ describe("User model class", () => {
       shortname,
       displayName: "Alice",
     });
+
+    expect(
+      await checkEntityPermission(
+        graphContext,
+        { actorId: createdUser.accountId },
+        {
+          entityId: createdUser.entity.entityId,
+          permission: "updateEntity",
+        },
+      ),
+    ).toBe(true);
 
     expect(
       await isActorGroupAdministrator(graphContext, authentication, {
@@ -242,6 +256,17 @@ describe("User model class", () => {
         actorGroupId: incompleteUser.accountId,
       }),
     ).toBe(false);
+
+    await expect(
+      checkEntityPermission(
+        graphContext,
+        { actorId: incompleteUser.accountId },
+        {
+          entityId: incompleteUser.entity.entityId,
+          permission: "updateEntity",
+        },
+      ),
+    ).resolves.toBe(false);
   });
 
   it("can update shortname of incomplete user", async () => {
@@ -272,6 +297,17 @@ describe("User model class", () => {
         },
       ],
     });
+
+    await expect(
+      checkEntityPermission(
+        graphContext,
+        { actorId: incompleteUser.accountId },
+        {
+          entityId: incompleteUser.entity.entityId,
+          permission: "updateEntity",
+        },
+      ),
+    ).resolves.toBe(true);
 
     expect(
       await isActorGroupAdministrator(graphContext, authentication, {

@@ -34,7 +34,7 @@ export const cancelFlow: ResolverFn<
     authentication,
     {
       entityId: flow.entityId,
-      permission: "update",
+      permission: "updateEntity",
     },
   );
 
