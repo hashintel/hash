@@ -3,7 +3,10 @@ use std::collections::{HashMap, HashSet};
 
 use error_stack::{Report, ResultExt as _};
 use type_system::{
-    knowledge::entity::id::{EntityEditionId, EntityUuid},
+    knowledge::entity::{
+        EntityId,
+        id::{EntityEditionId, EntityUuid},
+    },
     ontology::VersionedUrl,
     principal::{actor::ActorId, actor_group::WebId},
 };
@@ -12,7 +15,7 @@ use super::{
     Context, ContextBuilder, Effect, Policy, PolicySet,
     action::ActionName,
     principal::actor::AuthenticatedActor,
-    resource::{EntityResourceConstraint, ResourceConstraint},
+    resource::{EntityResource, EntityResourceConstraint, ResourceConstraint},
     store::{PolicyStore, PrincipalStore, ResolvePoliciesParams, error::ContextCreationError},
 };
 
@@ -33,6 +36,7 @@ pub struct PolicyComponents {
     actor_id: Option<ActorId>,
     policies: Vec<Policy>,
     tracked_actions: HashMap<ActionName, Option<OptimizationData>>,
+    tracked_entity_types: HashSet<VersionedUrl>,
     context: Context,
 }
 
@@ -105,6 +109,11 @@ impl PolicyComponents {
 
                 EMPTY_OPTIMIZATION_DATA
             })
+    }
+
+    #[must_use]
+    pub const fn tracked_entity_types(&self) -> &HashSet<VersionedUrl> {
+        &self.tracked_entity_types
     }
 
     /// Analyzes policies and extracts optimization opportunities.
@@ -371,6 +380,25 @@ impl<'a, S> PolicyComponentsBuilder<'a, S> {
         self.add_actions(actions, optimize);
         self
     }
+
+    pub fn add_entity(
+        &mut self,
+        actor: ActorId,
+        id: EntityId,
+        entity_types: Cow<'a, [VersionedUrl]>,
+    ) {
+        self.context.add_entity(&EntityResource {
+            id,
+            entity_base_types: Cow::Owned(
+                entity_types
+                    .iter()
+                    .map(|url| url.base_url.clone())
+                    .collect(),
+            ),
+            entity_types,
+            created_by: actor,
+        });
+    }
 }
 
 impl<S> IntoFuture for PolicyComponentsBuilder<'_, S>
@@ -423,7 +451,9 @@ where
                 }
             }
 
-            if !entity_type_ids.is_empty() {
+            let tracked_entity_types = if entity_type_ids.is_empty() {
+                HashSet::new()
+            } else {
                 let entity_type_ids = entity_type_ids.iter().map(Cow::as_ref).collect::<Vec<_>>();
                 let entity_type_resources = self
                     .store
@@ -435,7 +465,11 @@ where
                 for entity_type_resource in &entity_type_resources {
                     self.context.add_entity_type(entity_type_resource);
                 }
-            }
+                entity_type_resources
+                    .into_iter()
+                    .map(|resource| resource.id.into_owned().into_url())
+                    .collect::<HashSet<_>>()
+            };
 
             let actions = self.actions.keys().copied().collect::<Vec<_>>();
             let policies = if actions.is_empty() {
@@ -457,6 +491,7 @@ where
                 actor_id,
                 policies,
                 tracked_actions: actions.iter().map(|action| (*action, None)).collect(),
+                tracked_entity_types,
                 context: self
                     .context
                     .build()
@@ -477,7 +512,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
+    use std::collections::{HashMap, HashSet};
 
     use type_system::{knowledge::entity::id::EntityUuid, principal::actor::ActorId};
     use uuid::Uuid;
@@ -521,6 +556,7 @@ mod tests {
             actor_id: None,
             policies,
             tracked_actions: HashMap::from([(ActionName::View, None)]),
+            tracked_entity_types: HashSet::new(),
             context: Context::default(),
         };
 
@@ -571,6 +607,7 @@ mod tests {
             actor_id: None,
             policies: policies_without_optimization,
             tracked_actions: HashMap::from([(ActionName::View, None)]),
+            tracked_entity_types: HashSet::new(),
             context: Context::default(),
         };
 
@@ -595,6 +632,7 @@ mod tests {
             actor_id: None,
             policies: policies_with_optimization,
             tracked_actions: HashMap::new(),
+            tracked_entity_types: HashSet::new(),
             context: Context::default(),
         };
 
@@ -627,6 +665,7 @@ mod tests {
             ))),
             policies: vec![policy],
             tracked_actions: HashMap::from([(ActionName::View, None)]),
+            tracked_entity_types: HashSet::new(),
             context: Context::default(),
         };
 
