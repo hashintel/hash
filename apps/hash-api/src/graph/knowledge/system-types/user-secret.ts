@@ -223,7 +223,7 @@ export const createUserSecret = async <
       relationships: botEditorUserViewerOnly,
       policies: [
         {
-          name: `user-secret-entity-${userSecretEntityUuid}`,
+          name: `user-secret-entity-${usesUserSecretEntityUuid}`,
           principal: {
             type: "actor",
             actorType: "machine",
