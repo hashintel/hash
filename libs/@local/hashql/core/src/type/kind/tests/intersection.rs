@@ -9,7 +9,7 @@ use crate::{
         PartialType,
         environment::{
             AnalysisEnvironment, Environment, InferenceEnvironment, LatticeEnvironment,
-            SimplifyEnvironment, instantiate::InstantiateEnvironment,
+            SimplifyEnvironment, Variance, instantiate::InstantiateEnvironment,
         },
         error::TypeCheckDiagnosticCategory,
         inference::{Constraint, Inference as _, Variable, VariableKind},
@@ -51,7 +51,7 @@ fn unnest_flattens_nested_intersections() {
     // Unnesting should flatten to: Number & String & Boolean
     let unnested = intersection_type.unnest(&env);
 
-    assert_eq!(unnested, [boolean, string, number]);
+    assert_eq!(unnested, [number, string, boolean]);
 }
 
 #[test]
@@ -276,8 +276,8 @@ fn meet_identical_intersections() {
         env,
         a.meet(b, &mut lattice_env),
         [
-            primitive!(env, PrimitiveType::String),
             primitive!(env, PrimitiveType::Number),
+            primitive!(env, PrimitiveType::String),
         ]
     );
 }
@@ -312,10 +312,10 @@ fn meet_different_intersections() {
         env,
         a.meet(b, &mut lattice_env),
         [
-            primitive!(env, PrimitiveType::Null),
-            primitive!(env, PrimitiveType::Boolean),
-            primitive!(env, PrimitiveType::String),
             primitive!(env, PrimitiveType::Number),
+            primitive!(env, PrimitiveType::String),
+            primitive!(env, PrimitiveType::Boolean),
+            primitive!(env, PrimitiveType::Null),
         ]
     );
 }
@@ -331,8 +331,8 @@ fn meet_with_empty_intersection() {
         env,
         non_empty,
         [
+            primitive!(env, PrimitiveType::String),
             primitive!(env, PrimitiveType::Number),
-            primitive!(env, PrimitiveType::String)
         ]
     );
 
@@ -461,7 +461,7 @@ fn is_subtype_of_self() {
 
     // ... as `Integer & String` is equivalent to `Never`, the `TypeKind` implementation should
     // short-circuit to never
-    assert!(analysis_env.is_subtype_of(a.id, b.id));
+    assert!(analysis_env.is_subtype_of(Variance::Covariant, a.id, b.id));
 }
 
 #[test]
@@ -488,14 +488,14 @@ fn subtype_supertype_relation() {
     // Number & String <: Number
     // see is_subtype_of_self for an in-depth explanation
     assert!(!number_string.is_subtype_of(just_number, &mut analysis_env));
-    assert!(analysis_env.is_subtype_of(number_string.id, just_number.id));
+    assert!(analysis_env.is_subtype_of(Variance::Covariant, number_string.id, just_number.id));
 
     // Number ≮: Number & String
     assert!(!just_number.is_subtype_of(number_string, &mut analysis_env));
 
     // Number & Integer <: Number
     assert!(number_integer.is_subtype_of(just_number, &mut analysis_env));
-    assert!(analysis_env.is_subtype_of(number_integer.id, just_number.id));
+    assert!(analysis_env.is_subtype_of(Variance::Covariant, number_integer.id, just_number.id));
 }
 
 #[test]
@@ -849,7 +849,7 @@ fn intersection_with_complex_types() {
     // tuple1 & tuple2 <: tuple1
     // see for an in-depth explanation see is_subtype_of_self
     assert!(!intersection_type.is_subtype_of(single_tuple, &mut analysis_env));
-    assert!(analysis_env.is_subtype_of(intersection_type.id, single_tuple.id));
+    assert!(analysis_env.is_subtype_of(Variance::Covariant, intersection_type.id, single_tuple.id));
 
     // tuple1 ≮: tuple1 & tuple2
     assert!(!single_tuple.is_subtype_of(intersection_type, &mut analysis_env));
@@ -1595,7 +1595,7 @@ fn projection_propagate_pending() {
 
     let mut lattice = LatticeEnvironment::new(&env);
     let projection = lattice.projection(intersection, Ident::synthetic(heap.intern_symbol("foo")));
-    assert_eq!(lattice.diagnostics.len(), 0);
+    assert_eq!(lattice.diagnostics.len(), 1);
     assert_eq!(projection, Projection::Pending);
 }
 

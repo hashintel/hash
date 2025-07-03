@@ -42,7 +42,7 @@ use crate::{
     collection::{FastHashMap, SmallVec, fast_hash_map, fast_hash_map_in},
     r#type::{
         PartialType, TypeId,
-        environment::{Diagnostics, InferenceEnvironment, LatticeEnvironment},
+        environment::{Diagnostics, InferenceEnvironment, LatticeEnvironment, Variance},
         error::{
             bound_constraint_violation, conflicting_equality_constraints,
             incompatible_lower_equal_constraint, incompatible_upper_equal_constraint,
@@ -1046,7 +1046,8 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
         discharge.dedup();
 
         for (subtype, supertype) in discharge {
-            self.inference.collect_constraints(subtype, supertype);
+            self.inference
+                .collect_constraints(Variance::Covariant, subtype, supertype);
         }
     }
 
@@ -1112,7 +1113,9 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                 lower: Some(lower),
                 upper: Some(upper),
             } = constraint
-                && !self.lattice.is_subtype_of(lower, upper)
+                && !self
+                    .lattice
+                    .is_subtype_of(Variance::Covariant, lower, upper)
             {
                 // Report error: incompatible bounds
                 self.diagnostics.push(bound_constraint_violation(
@@ -1178,7 +1181,9 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                     // We need to check that both the lower and upper bounds are compatible with the
                     // equal bound
                     if let Some(lower) = lower
-                        && !self.lattice.is_subtype_of(lower, equal)
+                        && !self
+                            .lattice
+                            .is_subtype_of(Variance::Covariant, lower, equal)
                     {
                         self.diagnostics.push(incompatible_lower_equal_constraint(
                             &self.lattice,
@@ -1191,7 +1196,9 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
                     }
 
                     if let Some(upper) = upper
-                        && !self.lattice.is_subtype_of(equal, upper)
+                        && !self
+                            .lattice
+                            .is_subtype_of(Variance::Covariant, equal, upper)
                     {
                         self.diagnostics.push(incompatible_upper_equal_constraint(
                             &self.lattice,
@@ -1598,7 +1605,7 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
 
             // Clear the diagnostics this round, so that they do not pollute the next round
             self.diagnostics.clear();
-            self.lattice.take_diagnostics();
+            self.lattice.clear_diagnostics();
 
             // Step 1.1: Register all variables with the unification system (including any new ones)
             self.upsert_variables(&mut graph);
