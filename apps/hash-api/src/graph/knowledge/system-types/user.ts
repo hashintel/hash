@@ -166,6 +166,9 @@ export const getUserByEmail: ImpureGraphFunction<
           {
             equal: [
               {
+                /**
+                 * @todo H-4936 update when users can have more than one email
+                 */
                 path: [
                   "properties",
                   systemPropertyTypes.email.propertyTypeBaseUrl,
@@ -653,6 +656,9 @@ export const getUserPendingInvitations: ImpureGraphFunction<
               {
                 equal: [
                   {
+                    /**
+                     * @todo H-4936 update when users can have more than one email
+                     */
                     path: [
                       "properties",
                       systemPropertyTypes.email.propertyTypeBaseUrl,
