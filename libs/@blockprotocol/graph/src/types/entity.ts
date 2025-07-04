@@ -32,14 +32,20 @@ export const isEntityRecordId = (
   );
 };
 
-export type LinkEntityAndRightEntity = {
-  linkEntity: LinkEntity[];
-  rightEntity: Entity[];
+export type LinkEntityAndRightEntity<
+  EntityImpl extends Entity = Entity,
+  LinkEntityImpl extends LinkEntity = LinkEntity,
+> = {
+  linkEntity: LinkEntityImpl[];
+  rightEntity: EntityImpl[];
 };
 
-export type LinkEntityAndLeftEntity = {
-  linkEntity: LinkEntity[];
-  leftEntity: Entity[];
+export type LinkEntityAndLeftEntity<
+  EntityImpl extends Entity = Entity,
+  LinkEntityImpl extends LinkEntity = LinkEntity,
+> = {
+  linkEntity: LinkEntityImpl[];
+  leftEntity: EntityImpl[];
 };
 
 export type CreateEntityData = {

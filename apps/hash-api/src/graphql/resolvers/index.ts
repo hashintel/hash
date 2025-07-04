@@ -1,12 +1,9 @@
 import { JSONObjectResolver } from "graphql-scalars";
 
-import {
-  addActorGroupMember,
-  removeActorGroupMember,
-} from "../../graph/account-permission-management";
 import type {
   EntityAuthorizationSubject,
   MutationResolvers,
+  PendingOrgInvitation,
   QueryResolvers,
   Resolvers,
 } from "../api-types.gen";
@@ -60,7 +57,13 @@ import { getEntityDiffsResolver } from "./knowledge/entity/get-entity-diffs";
 import { createFileFromUrl } from "./knowledge/file/create-file-from-url";
 import { requestFileUpload } from "./knowledge/file/request-file-upload";
 import { hashInstanceSettingsResolver } from "./knowledge/hash-instance/hash-instance";
+import { acceptOrgInvitationResolver } from "./knowledge/org/accept-org-invitation";
 import { createOrgResolver } from "./knowledge/org/create-org";
+import { declineOrgInvitationResolver } from "./knowledge/org/decline-org-invitation";
+import { getMyPendingInvitationsResolver } from "./knowledge/org/get-my-pending-invitations";
+import { getPendingInvitationByEntityIdResolver } from "./knowledge/org/get-pending-invitation-by-entity-id";
+import { inviteUserToOrgResolver } from "./knowledge/org/invite-user-to-org";
+import { removeUserFromOrgResolver } from "./knowledge/org/remove-user-from-org";
 import { pageContents } from "./knowledge/page";
 import {
   createPageResolver,
@@ -149,6 +152,10 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     countEntities: countEntitiesResolver,
     getEntitySubgraph: getEntitySubgraphResolver,
     hashInstanceSettings: hashInstanceSettingsResolver,
+    getMyPendingInvitations: loggedInAndSignedUpMiddleware(
+      getMyPendingInvitationsResolver,
+    ),
+    getPendingInvitationByEntityId: getPendingInvitationByEntityIdResolver,
     // Integration
     getLinearOrganization: loggedInAndSignedUpMiddleware(
       getLinearOrganizationResolver,
@@ -211,6 +218,14 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     updateCommentText: loggedInAndSignedUpMiddleware(updateCommentTextResolver),
 
     createOrg: loggedInAndSignedUpMiddleware(createOrgResolver),
+    inviteUserToOrg: loggedInAndSignedUpMiddleware(inviteUserToOrgResolver),
+    acceptOrgInvitation: loggedInAndSignedUpMiddleware(
+      acceptOrgInvitationResolver,
+    ),
+    declineOrgInvitation: loggedInAndSignedUpMiddleware(
+      declineOrgInvitationResolver,
+    ),
+    removeUserFromOrg: loggedInAndSignedUpMiddleware(removeUserFromOrgResolver),
 
     submitEarlyAccessForm: loggedInMiddleware(submitEarlyAccessFormResolver),
 
@@ -231,17 +246,6 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     submitExternalInputResponse: loggedInAndSignedUpMiddleware(
       submitExternalInputResponse,
     ),
-
-    addAccountGroupMember: (_, { accountId, accountGroupId }, context) =>
-      addActorGroupMember(context.dataSources, context.authentication, {
-        actorId: accountId,
-        actorGroupId: accountGroupId,
-      }),
-    removeAccountGroupMember: (_, { accountId, accountGroupId }, context) =>
-      removeActorGroupMember(context.dataSources, context.authentication, {
-        actorId: accountId,
-        actorGroupId: accountGroupId,
-      }),
 
     // Integration
     syncLinearIntegrationWithWebs: loggedInAndSignedUpMiddleware(
@@ -284,6 +288,16 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
       } else {
         return "PublicAuthorizationSubject";
       }
+    },
+  },
+
+  PendingOrgInvitation: {
+    __resolveType(object: PendingOrgInvitation) {
+      if ("email" in object) {
+        return "PendingOrgInvitationByEmail";
+      }
+
+      return "PendingOrgInvitationByShortname";
     },
   },
 };

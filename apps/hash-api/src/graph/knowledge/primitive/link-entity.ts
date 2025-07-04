@@ -35,27 +35,12 @@ export const createLinkEntity = async <
   ...args: Parameters<CreateLinkEntityFunction<Properties>>
 ): ReturnType<CreateLinkEntityFunction<Properties>> => {
   const [context, authentication, params] = args;
-  const {
-    webId,
-    linkData,
-    entityTypeIds,
-    properties = { value: {} },
-    draft = false,
-    relationships,
-    confidence,
-  } = params;
 
   const linkEntity = await HashLinkEntity.create<Properties>(
     context.graphApi,
     authentication,
     {
-      webId,
-      linkData,
-      entityTypeIds,
-      properties,
-      draft,
-      relationships,
-      confidence,
+      ...params,
       provenance: context.provenance,
     },
   );

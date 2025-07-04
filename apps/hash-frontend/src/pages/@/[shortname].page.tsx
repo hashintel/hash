@@ -79,7 +79,6 @@ const ProfilePage: NextPageWithLayout = () => {
         hasRightEntity: { incoming: 1, outgoing: 1 },
       },
       includePermissions: true,
-      temporalAxes: currentTimeInstantTemporalAxes,
     });
 
   const profile = useMemo(() => {

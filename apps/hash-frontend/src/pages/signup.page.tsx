@@ -1,9 +1,21 @@
+import { useMutation, useQuery } from "@apollo/client";
+import type { EntityId } from "@blockprotocol/type-system";
 import { ArrowUpRightRegularIcon } from "@hashintel/design-system";
 import { Grid, styled } from "@mui/material";
 import { useRouter } from "next/router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 
 import { useUpdateAuthenticatedUser } from "../components/hooks/use-update-authenticated-user";
+import type {
+  AcceptOrgInvitationMutation,
+  AcceptOrgInvitationMutationVariables,
+  GetPendingInvitationByEntityIdQuery,
+  GetPendingInvitationByEntityIdQueryVariables,
+} from "../graphql/api-types.gen";
+import {
+  acceptOrgInvitationMutation,
+  getPendingInvitationByEntityIdQuery,
+} from "../graphql/queries/knowledge/org.queries";
 import type { NextPageWithLayout } from "../shared/layout";
 import { getPlainLayout } from "../shared/layout";
 import type { ButtonProps } from "../shared/ui";
@@ -11,6 +23,7 @@ import { Button } from "../shared/ui";
 import { useAuthInfo } from "./shared/auth-info-context";
 import { AuthLayout } from "./shared/auth-layout";
 import { parseGraphQLError } from "./shared/auth-utils";
+import { AcceptOrgInvitation } from "./signup.page/accept-org-invitation";
 import type { AccountSetupFormData } from "./signup.page/account-setup-form";
 import { AccountSetupForm } from "./signup.page/account-setup-form";
 import { SignupRegistrationForm } from "./signup.page/signup-registration-form";
@@ -51,18 +64,40 @@ const distanceFromLeft = `calc(
 const SignupPage: NextPageWithLayout = () => {
   const router = useRouter();
 
-  const { authenticatedUser } = useAuthInfo();
+  const { authenticatedUser, refetch: refetchAuthenticatedUser } =
+    useAuthInfo();
+
+  const { invitationId } = router.query;
+
+  const [showInvitationStep, setShowInvitationStep] = useState(true);
+
+  const { data: invitationData, loading: invitationLoading } = useQuery<
+    GetPendingInvitationByEntityIdQuery,
+    GetPendingInvitationByEntityIdQueryVariables
+  >(getPendingInvitationByEntityIdQuery, {
+    onCompleted: (data) => {
+      if (data.getPendingInvitationByEntityId && !authenticatedUser) {
+        setShowInvitationStep(true);
+      } else {
+        setShowInvitationStep(false);
+      }
+    },
+    variables: {
+      entityId: invitationId as EntityId,
+    },
+    skip: !invitationId,
+  });
+
+  const [acceptInvitation] = useMutation<
+    AcceptOrgInvitationMutation,
+    AcceptOrgInvitationMutationVariables
+  >(acceptOrgInvitationMutation);
+
+  const invitation = invitationData?.getPendingInvitationByEntityId;
 
   const [updateAuthenticatedUser, { loading: updateUserLoading }] =
     useUpdateAuthenticatedUser();
 
-  useEffect(() => {
-    if (authenticatedUser && authenticatedUser.accountSignupComplete) {
-      void router.push("/");
-    }
-  }, [authenticatedUser, router]);
-
-  const [invitationInfo] = useState<null>(null);
   const [errorMessage, setErrorMessage] = useState<string>();
 
   const handleAccountSetupSubmit = useCallback(
@@ -79,9 +114,25 @@ const SignupPage: NextPageWithLayout = () => {
         setErrorMessage(message);
       }
 
-      // Redirecting to the homepage is covered by the useEffect to redirect all authenticated users away from /signup
+      if (invitation) {
+        await acceptInvitation({
+          variables: {
+            orgInvitationEntityId: invitation.invitationEntityId,
+          },
+        });
+      }
+
+      await refetchAuthenticatedUser();
+
+      void router.push("/");
     },
-    [updateAuthenticatedUser],
+    [
+      acceptInvitation,
+      invitation,
+      refetchAuthenticatedUser,
+      updateAuthenticatedUser,
+      router,
+    ],
   );
 
   /** @todo: un-comment this to actually check whether the email is verified */
@@ -96,7 +147,7 @@ const SignupPage: NextPageWithLayout = () => {
           xs: undefined,
           md: `linear-gradient(
             to right,
-            ${palette.gray[10]} 0%, 
+            ${palette.gray[10]} 0%,
             ${palette.gray[10]} ${distanceFromLeft},
             ${palette.gray[20]} ${distanceFromLeft},
             ${palette.gray[20]} 100%)`,
@@ -112,15 +163,18 @@ const SignupPage: NextPageWithLayout = () => {
     >
       <Grid container columnSpacing={16}>
         <Grid item xs={12} md={7}>
-          {authenticatedUser ? (
+          {invitationLoading ? null : invitation && showInvitationStep ? (
+            <AcceptOrgInvitation
+              invitation={invitation}
+              onAccept={() => setShowInvitationStep(false)}
+            />
+          ) : authenticatedUser ? (
             // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
             userHasVerifiedEmail ? (
               <AccountSetupForm
                 onSubmit={handleAccountSetupSubmit}
                 loading={updateUserLoading}
                 errorMessage={errorMessage}
-                email={authenticatedUser.emails[0]!.address}
-                invitationInfo={invitationInfo}
               />
             ) : /** @todo: add verification form */
             null
@@ -141,8 +195,15 @@ const SignupPage: NextPageWithLayout = () => {
             },
           }}
         >
-          {authenticatedUser ? (
-            <SignupSteps currentStep="reserve-username" />
+          {authenticatedUser || invitation ? (
+            <SignupSteps
+              currentStep={
+                invitation && !authenticatedUser
+                  ? "accept-invitation"
+                  : "reserve-username"
+              }
+              withInvitation={!!invitation}
+            />
           ) : (
             <SignupRegistrationRightInfo />
           )}

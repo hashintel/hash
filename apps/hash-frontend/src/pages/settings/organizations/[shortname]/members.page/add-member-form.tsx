@@ -1,64 +1,46 @@
 import { useLazyQuery, useMutation } from "@apollo/client";
 import type { EntityRootType } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
-import {
-  type ActorEntityUuid,
-  extractWebIdFromEntityId,
-} from "@blockprotocol/type-system";
 import { TextField } from "@hashintel/design-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
-  createOrgMembershipAuthorizationRelationships,
   mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import {
-  systemLinkEntityTypes,
-  systemPropertyTypes,
-} from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { Box } from "@mui/material";
+import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { Stack } from "@mui/material";
 import type { FormEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 
 import type {
-  AddAccountGroupMemberMutation,
-  AddAccountGroupMemberMutationVariables,
-  CreateEntityMutation,
-  CreateEntityMutationVariables,
+  InviteUserToOrgMutation,
+  InviteUserToOrgMutationVariables,
   QueryEntitiesQuery,
   QueryEntitiesQueryVariables,
 } from "../../../../../graphql/api-types.gen";
-import { addAccountGroupMemberMutation } from "../../../../../graphql/queries/account-group.queries";
-import {
-  createEntityMutation,
-  queryEntitiesQuery,
-} from "../../../../../graphql/queries/knowledge/entity.queries";
+import { queryEntitiesQuery } from "../../../../../graphql/queries/knowledge/entity.queries";
+import { inviteUserToOrgMutation } from "../../../../../graphql/queries/knowledge/org.queries";
 import type { Org } from "../../../../../lib/user-and-org";
 import { Button } from "../../../../../shared/ui/button";
 import { useAuthenticatedUser } from "../../../../shared/auth-info-context";
 
 export const AddMemberForm = ({ org }: { org: Org }) => {
   const [loading, setLoading] = useState(false);
-  const [shortname, setShortname] = useState("");
+  const [shortnameOrEmail, setShortnameOrEmail] = useState("");
   const [error, setError] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { refetch } = useAuthenticatedUser();
-
-  const [addMemberPermission] = useMutation<
-    AddAccountGroupMemberMutation,
-    AddAccountGroupMemberMutationVariables
-  >(addAccountGroupMemberMutation);
-
-  const [createEntity] = useMutation<
-    CreateEntityMutation,
-    CreateEntityMutationVariables
-  >(createEntityMutation);
+  const [inviteUserToOrg] = useMutation<
+    InviteUserToOrgMutation,
+    InviteUserToOrgMutationVariables
+  >(inviteUserToOrgMutation);
 
   const [queryEntities] = useLazyQuery<
     QueryEntitiesQuery,
     QueryEntitiesQueryVariables
   >(queryEntitiesQuery);
+
+  const { refetch: refetchAuthenticatedUser } = useAuthenticatedUser();
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -73,9 +55,11 @@ export const AddMemberForm = ({ org }: { org: Org }) => {
 
     setLoading(true);
 
+    const isEmail = shortnameOrEmail.includes("@");
+
     if (
       org.memberships.find(
-        (membership) => membership.user.shortname === shortname,
+        (membership) => membership.user.shortname === shortnameOrEmail,
       )
     ) {
       setError("Already a member");
@@ -92,9 +76,11 @@ export const AddMemberForm = ({ org }: { org: Org }) => {
               {
                 field: [
                   "properties",
-                  systemPropertyTypes.shortname.propertyTypeBaseUrl,
+                  isEmail
+                    ? systemPropertyTypes.email.propertyTypeBaseUrl
+                    : systemPropertyTypes.shortname.propertyTypeBaseUrl,
                 ],
-                value: shortname,
+                value: shortnameOrEmail,
                 operator: "EQUALS",
               },
             ],
@@ -117,48 +103,36 @@ export const AddMemberForm = ({ org }: { org: Org }) => {
 
     const user = getRoots(subgraph)[0];
 
-    if (!user) {
-      setError("User not found");
+    if (!user && !isEmail) {
+      setError(`User with shortname ${shortnameOrEmail} not found`);
       setLoading(false);
       return;
     }
 
-    await Promise.all([
-      createEntity({
+    try {
+      await inviteUserToOrg({
         variables: {
-          entityTypeIds: [systemLinkEntityTypes.isMemberOf.linkEntityTypeId],
-          properties: { value: {} },
-          linkData: {
-            leftEntityId: user.metadata.recordId.entityId,
-            rightEntityId: org.entity.metadata.recordId.entityId,
-          },
-          relationships: createOrgMembershipAuthorizationRelationships({
-            memberAccountId: extractWebIdFromEntityId(
-              user.metadata.recordId.entityId,
-            ) as ActorEntityUuid,
-          }),
+          orgWebId: org.webId,
+          userEmail: isEmail ? shortnameOrEmail : undefined,
+          userShortname: isEmail ? undefined : shortnameOrEmail,
         },
-      }),
-      addMemberPermission({
-        variables: {
-          accountGroupId: org.webId,
-          accountId: extractWebIdFromEntityId(
-            user.metadata.recordId.entityId,
-          ) as ActorEntityUuid,
-        },
-      }),
-    ]);
-
-    void refetch();
+      });
+    } catch (err) {
+      setError((err as Error).message);
+      setLoading(false);
+      return;
+    }
 
     inputRef.current?.blur();
 
-    setShortname("");
+    setShortnameOrEmail("");
     setLoading(false);
+
+    void refetchAuthenticatedUser();
   };
 
   return (
-    <Box component="form" onSubmit={addMember}>
+    <Stack gap={2} direction="row" component="form" onSubmit={addMember}>
       <TextField
         autoComplete="off"
         error={!!error}
@@ -175,20 +149,21 @@ export const AddMemberForm = ({ org }: { org: Org }) => {
         }}
         onChange={(evt) => {
           setError("");
-          setShortname(evt.target.value.replace(/[^a-zA-Z0-9-_]/g, ""));
+          setShortnameOrEmail(evt.target.value);
         }}
-        placeholder="username"
+        placeholder="Username or email..."
         size="xs"
-        value={shortname}
+        sx={{ width: 300 }}
+        value={shortnameOrEmail}
       />
       <Button
         disabled={loading}
         size="xs"
-        sx={{ marginLeft: -1 }}
+        sx={{ marginLeft: -1, alignSelf: "flex-start" }}
         type="submit"
       >
         {loading ? "Pending..." : "Add member"}
       </Button>
-    </Box>
+    </Stack>
   );
 };

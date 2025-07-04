@@ -1,16 +1,13 @@
 import http from "node:http";
-import path from "node:path";
 import { promisify } from "node:util";
 
 import type { ProvidedEntityEditionProvenance } from "@blockprotocol/type-system";
 import { JsonDecoder, JsonEncoder } from "@local/harpc-client/codec";
 import { Client as RpcClient, Transport } from "@local/harpc-client/net";
 import { RequestIdProducer } from "@local/harpc-client/wire-protocol";
-import { getAwsRegion } from "@local/hash-backend-utils/aws-config";
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import {
   getRequiredEnv,
-  monorepoRootDir,
   realtimeSyncEnabled,
   waitOnResource,
 } from "@local/hash-backend-utils/environment";
@@ -55,11 +52,7 @@ import { hydraPublicUrl } from "./auth/ory-hydra";
 import { kratosPublicUrl } from "./auth/ory-kratos";
 import { setupBlockProtocolExternalServiceMethodProxy } from "./block-protocol-external-service-method-proxy";
 import { RedisCache } from "./cache";
-import type { EmailTransporter } from "./email/transporters";
-import {
-  AwsSesEmailTransporter,
-  DummyEmailTransporter,
-} from "./email/transporters";
+import { createEmailTransporter } from "./email/create-email-transporter";
 import { ensureSystemGraphIsInitialized } from "./graph/ensure-system-graph-is-initialized";
 import { ensureHashSystemAccountExists } from "./graph/system-account";
 import { createApolloServer } from "./graphql/create-apollo-server";
@@ -76,13 +69,7 @@ import {
   getEnvStorageType,
   LOCAL_FILE_UPLOAD_PATH,
 } from "./lib/config";
-import {
-  isDevEnv,
-  isProdEnv,
-  isStatsDEnabled,
-  isTestEnv,
-  port,
-} from "./lib/env-config";
+import { isDevEnv, isProdEnv, isStatsDEnabled, port } from "./lib/env-config";
 import { logger } from "./logger";
 import { seedOrgsAndUsers } from "./seed-data";
 import {
@@ -444,33 +431,7 @@ const main = async () => {
   app.set("view engine", "hbs");
   app.set("views", "./views");
 
-  // Create an email transporter
-  const emailTransporter =
-    isTestEnv || isDevEnv || process.env.HASH_EMAIL_TRANSPORTER === "dummy"
-      ? new DummyEmailTransporter({
-          copyCodesOrLinksToClipboard:
-            process.env.DUMMY_EMAIL_TRANSPORTER_USE_CLIPBOARD === "true",
-          displayCodesOrLinksInStdout: true,
-          filePath: process.env.DUMMY_EMAIL_TRANSPORTER_FILE_PATH
-            ? path.resolve(
-                monorepoRootDir,
-                process.env.DUMMY_EMAIL_TRANSPORTER_FILE_PATH,
-              )
-            : undefined,
-        })
-      : process.env.AWS_REGION
-        ? new AwsSesEmailTransporter({
-            from: `${getRequiredEnv(
-              "SYSTEM_EMAIL_SENDER_NAME",
-            )} <${getRequiredEnv("SYSTEM_EMAIL_ADDRESS")}>`,
-            region: getAwsRegion(),
-            subjectPrefix: isProdEnv ? undefined : "[DEV SITE] ",
-          })
-        : ({
-            sendMail: (mail) => {
-              logger.info(`Tried to send mail to ${mail.to}:\n${mail.html}`);
-            },
-          } as EmailTransporter);
+  const emailTransporter = createEmailTransporter();
 
   let search: OpenSearch | undefined;
   if (process.env.HASH_OPENSEARCH_ENABLED === "true") {

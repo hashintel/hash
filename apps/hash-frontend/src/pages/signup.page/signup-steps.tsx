@@ -9,9 +9,15 @@ import { Circle2RegularIcon } from "../../shared/icons/circle-2-regular-icon";
 import { Circle3RegularIcon } from "../../shared/icons/circle-3-regular-icon";
 import { CircleArrowRightRegularIcon } from "../../shared/icons/circle-arrow-right-regular-icon";
 
-type StepName = "reserve-username" | "start-using-hash";
+type StepName = "reserve-username" | "start-using-hash" | "accept-invitation";
 
-const steps: { name: StepName; label: string; labelPastTense?: string }[] = [
+type Step = {
+  name: StepName;
+  label: string;
+  labelPastTense?: string;
+};
+
+const stepsWithoutInvitation: Step[] = [
   // {
   //   name: "verify-email",
   //   label: "Verify your email address",
@@ -28,6 +34,15 @@ const steps: { name: StepName; label: string; labelPastTense?: string }[] = [
   },
 ];
 
+const stepsWithInvitation: Step[] = [
+  {
+    name: "accept-invitation",
+    label: "Accept invitation",
+    labelPastTense: "Invitation accepted",
+  },
+  ...stepsWithoutInvitation,
+];
+
 const stepNumberToHumanReadable: Record<number, string> = {
   1: "One",
   2: "Two",
@@ -42,10 +57,15 @@ const stepNumberToCircleIcon: Record<number, ReactNode> = {
 
 export const SignupSteps: FunctionComponent<{
   currentStep: StepName;
-}> = ({ currentStep }) => {
+  withInvitation: boolean;
+}> = ({ currentStep, withInvitation }) => {
+  const stepsToDisplay = withInvitation
+    ? stepsWithInvitation
+    : stepsWithoutInvitation;
+
   const currentStepIndex = useMemo(
-    () => steps.findIndex(({ name }) => name === currentStep),
-    [currentStep],
+    () => stepsToDisplay.findIndex(({ name }) => name === currentStep),
+    [currentStep, stepsToDisplay],
   );
 
   return (
@@ -57,7 +77,7 @@ export const SignupSteps: FunctionComponent<{
         rowGap: 2,
       }}
     >
-      {steps.map(({ name, label, labelPastTense }, index) => {
+      {stepsToDisplay.map(({ name, label, labelPastTense }, index) => {
         const isCurrentStep = currentStepIndex === index;
 
         const isCompletedStep = currentStepIndex > index;

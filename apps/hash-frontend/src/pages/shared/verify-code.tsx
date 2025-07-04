@@ -1,3 +1,7 @@
+/**
+ * @todo H-2421: Check this file for redundancy after implementing email verification.
+ */
+
 import { Box } from "@mui/material";
 import type {
   ClipboardEventHandler,
@@ -7,9 +11,7 @@ import type {
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { KeyboardReturnIcon } from "../../shared/icons";
-import type { InvitationInfo } from "./auth-utils";
 import { SYNTHETIC_LOADING_TIME_MS } from "./auth-utils";
-import { InviteHeader } from "./invite-header";
 
 type VerifyCodeProps = {
   defaultCode?: string;
@@ -20,7 +22,6 @@ type VerifyCodeProps = {
   handleSubmit: (code: string, withSyntheticLoading?: boolean) => void;
   requestCode: () => void | Promise<void>;
   requestCodeLoading: boolean;
-  invitationInfo: InvitationInfo | null;
 };
 
 const isShortname = (identifier: string) => !identifier.includes("@");
@@ -42,7 +43,6 @@ export const VerifyCode: FunctionComponent<VerifyCodeProps> = ({
   loading,
   requestCode,
   requestCodeLoading,
-  invitationInfo,
 }) => {
   const [state, setState] = useState({
     text: defaultCode ?? "",
@@ -131,7 +131,6 @@ export const VerifyCode: FunctionComponent<VerifyCodeProps> = ({
         }}
       >
         <div style={{ width: "66.666667%" }}>
-          {!!invitationInfo && <InviteHeader invitationInfo={invitationInfo} />}
           <p style={{ fontWeight: "700" }}>
             A verification code has been sent to{" "}
             <span>

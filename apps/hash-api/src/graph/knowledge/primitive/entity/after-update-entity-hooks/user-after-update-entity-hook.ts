@@ -25,7 +25,7 @@ export const userAfterUpdateEntityHookCallback: AfterUpdateEntityHookCallback =
 
     if (updatedEmails?.[0] && isProdEnv) {
       /**
-       * @todo: when we allow users to have more than one email, come up with
+       * @todo H-4936: when we allow users to have more than one email, come up with
        * a better way of determining which to use for mailchimp.
        */
       const email = updatedEmails[0];
