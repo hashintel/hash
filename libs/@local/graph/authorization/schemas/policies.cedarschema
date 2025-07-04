@@ -37,7 +37,7 @@ namespace HASH {
     resource: [Web],
   };
 
-  action create, view, update in [all] appliesTo {
+  action create, view, update, archive in [all] appliesTo {
     principal: [User, Machine, Ai],
     resource: [Entity, EntityType],
   };
@@ -49,6 +49,16 @@ namespace HASH {
 
   action viewEntity in [view] appliesTo {
     principal: [User, Machine, Ai, Public],
+    resource: [Entity],
+  };
+
+  action updateEntity in [update] appliesTo {
+    principal: [User, Machine, Ai],
+    resource: [Entity],
+  };
+
+  action archiveEntity in [archive] appliesTo {
+    principal: [User, Machine, Ai],
     resource: [Entity],
   };
 

@@ -4,7 +4,11 @@ use std::collections::{HashMap, HashSet};
 use error_stack::Report;
 use futures::TryFutureExt as _;
 use hash_graph_authorization::{
-    policies::{Effect, action::ActionName, principal::PrincipalConstraint},
+    policies::{
+        Effect,
+        action::ActionName,
+        principal::{PrincipalConstraint, actor::AuthenticatedActor},
+    },
     schema::EntityRelationAndSubject,
     zanzibar::Consistency,
 };
@@ -16,7 +20,7 @@ use type_system::{
         Confidence,
         entity::{
             Entity, LinkData,
-            id::{EntityId, EntityUuid},
+            id::{EntityEditionId, EntityId, EntityUuid},
             metadata::EntityTypeIdDiff,
             provenance::ProvidedEntityEditionProvenance,
         },
@@ -36,7 +40,7 @@ use utoipa::{
 use crate::{
     entity::{EntityQueryCursor, EntityQuerySorting, EntityValidationReport},
     entity_type::{EntityTypeResolveDefinitions, IncludeEntityTypeOption},
-    error::{InsertionError, QueryError, UpdateError},
+    error::{CheckPermissionError, InsertionError, QueryError, UpdateError},
     filter::Filter,
     subgraph::{Subgraph, edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved},
 };
@@ -385,6 +389,17 @@ pub struct DiffEntityResult<'e> {
     pub draft_state: Option<bool>,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct HasPermissionForEntitiesParams<'a> {
+    #[cfg_attr(feature = "utoipa", schema(value_type = String))]
+    pub action: ActionName,
+    pub entity_ids: Cow<'a, [EntityId]>,
+    pub temporal_axes: QueryTemporalAxesUnresolved,
+    pub include_drafts: bool,
+}
+
 /// Describes the API of a store implementation for [Entities].
 ///
 /// [Entities]: Entity
@@ -583,4 +598,22 @@ pub trait EntityStore {
     fn reindex_entity_cache(
         &mut self,
     ) -> impl Future<Output = Result<(), Report<UpdateError>>> + Send;
+
+    /// Checks if the actor has permission for the given entities.
+    ///
+    /// Returns a map of entity IDs to the edition IDs that the actor has permission for. If the
+    /// actor has no permission for an entity, it will not be included in the map.
+    ///
+    /// # Errors
+    ///
+    /// - [`StoreError`] if the underlying store returns an error
+    ///
+    /// [`StoreError`]: CheckPermissionError::StoreError
+    fn has_permission_for_entities(
+        &self,
+        authenticated_actor: AuthenticatedActor,
+        params: HasPermissionForEntitiesParams<'_>,
+    ) -> impl Future<
+        Output = Result<HashMap<EntityId, Vec<EntityEditionId>>, Report<CheckPermissionError>>,
+    > + Send;
 }

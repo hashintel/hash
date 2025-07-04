@@ -1,11 +1,13 @@
 import type {
   ActorEntityUuid,
-  ActorGroupEntityUuid,
   EntityId,
+  EntityUuid,
+  UserId,
 } from "@blockprotocol/type-system";
 import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import type { HashLinkEntity } from "@local/hash-graph-sdk/entity";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { createOrgMembershipAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { IsMemberOf } from "@local/hash-isomorphic-utils/system-types/shared";
@@ -71,11 +73,13 @@ export const createOrgMembershipLinkEntity: ImpureGraphFunction<
   },
   Promise<OrgMembership>
 > = async (ctx, authentication, { userEntityId, orgEntityId }) => {
-  const userActorId = extractWebIdFromEntityId(userEntityId) as ActorEntityUuid;
+  const userActorId = extractWebIdFromEntityId(userEntityId) as UserId;
   const orgWebId = extractWebIdFromEntityId(orgEntityId);
 
+  const linkEntityEntityUuid = generateUuid() as EntityUuid;
   const linkEntity = await createLinkEntity<IsMemberOf>(ctx, authentication, {
     webId: orgWebId,
+    entityUuid: linkEntityEntityUuid,
     properties: { value: {} },
     linkData: {
       leftEntityId: userEntityId,
@@ -85,6 +89,18 @@ export const createOrgMembershipLinkEntity: ImpureGraphFunction<
     relationships: createOrgMembershipAuthorizationRelationships({
       memberAccountId: userActorId,
     }),
+    policies: [
+      {
+        name: `org-membership-update-entity-${linkEntityEntityUuid}`,
+        principal: {
+          type: "actor",
+          actorType: "user",
+          id: userActorId,
+        },
+        effect: "permit",
+        actions: ["updateEntity", "archiveEntity"],
+      },
+    ],
   });
 
   return { linkEntity };
@@ -115,7 +131,7 @@ export const createOrgMembership: ImpureGraphFunction<
 
   await addActorGroupMember(ctx, authentication, {
     actorId: userActorId,
-    actorGroupId: orgWebId as ActorGroupEntityUuid,
+    actorGroupId: orgWebId,
   });
 
   try {
@@ -126,7 +142,7 @@ export const createOrgMembership: ImpureGraphFunction<
   } catch (error) {
     await removeActorGroupMember(ctx, authentication, {
       actorId: userActorId,
-      actorGroupId: orgWebId as ActorGroupEntityUuid,
+      actorGroupId: orgWebId,
     });
 
     throw error;

@@ -262,28 +262,6 @@ export const oAuthLinearCallback: RequestHandler<
             },
           },
         ],
-        policies: [
-          {
-            name: `linear-integration-bot-view-entity-${entityUuid}`,
-            principal: {
-              type: "actor",
-              actorType: "machine",
-              id: linearBotAccountId,
-            },
-            effect: "permit",
-            actions: ["viewEntity"],
-          },
-          {
-            name: `linear-integration-user-view-entity-${entityUuid}`,
-            principal: {
-              type: "actor",
-              actorType: "user",
-              id: userAccountId,
-            },
-            effect: "permit",
-            actions: ["viewEntity"],
-          },
-        ],
       },
     );
 

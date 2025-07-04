@@ -35,7 +35,7 @@ export const canUserEdit: ResolverFn<
     graphQLContext.authentication,
     {
       entityId: entity.metadata.recordId.entityId,
-      permission: "update",
+      permission: "updateEntity",
     },
   );
 };

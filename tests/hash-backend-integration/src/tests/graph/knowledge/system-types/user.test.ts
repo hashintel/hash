@@ -2,7 +2,15 @@ import {
   createKratosIdentity,
   kratosIdentityApi,
 } from "@apps/hash-api/src/auth/ory-kratos";
+import {
+  isActorGroupAdministrator,
+  isActorGroupMember,
+} from "@apps/hash-api/src/graph/account-permission-management";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
+import {
+  checkEntityPermission,
+  updateEntity,
+} from "@apps/hash-api/src/graph/knowledge/primitive/entity";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import {
   createUser,
@@ -15,6 +23,11 @@ import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { getWebRoles } from "@local/hash-graph-sdk/principal/web";
+import {
+  blockProtocolDataTypes,
+  blockProtocolPropertyTypes,
+  systemPropertyTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
@@ -49,8 +62,6 @@ describe("User model class", () => {
 
   let createdUser: User;
 
-  let kratosIdentityId: string;
-
   it("can create a user", async () => {
     const authentication = { actorId: systemAccountId };
 
@@ -60,14 +71,49 @@ describe("User model class", () => {
       },
     });
 
-    kratosIdentityId = identity.id;
-
     createdUser = await createUser(graphContext, authentication, {
       emails: ["test-user@example.com"],
-      kratosIdentityId,
+      kratosIdentityId: identity.id,
       shortname,
       displayName: "Alice",
     });
+
+    expect(
+      await checkEntityPermission(
+        graphContext,
+        { actorId: createdUser.accountId },
+        {
+          entityId: createdUser.entity.entityId,
+          permission: "updateEntity",
+        },
+      ),
+    ).toBe(true);
+
+    expect(
+      await isActorGroupAdministrator(graphContext, authentication, {
+        actorId: createdUser.accountId,
+        actorGroupId: createdUser.accountId,
+      }),
+    ).toBe(true);
+    expect(
+      await isActorGroupMember(graphContext, authentication, {
+        actorId: createdUser.accountId,
+        actorGroupId: createdUser.accountId,
+      }),
+    ).toBe(false);
+
+    expect(
+      await isActorGroupAdministrator(graphContext, authentication, {
+        actorId: systemAccountId,
+        actorGroupId: createdUser.accountId,
+      }),
+    ).toBe(false);
+    expect(
+      await isActorGroupMember(graphContext, authentication, {
+        actorId: systemAccountId,
+        actorGroupId: createdUser.accountId,
+      }),
+    ).toBe(false);
   });
 
   it("cannot create a user with a kratos identity id that is already taken", async () => {
@@ -76,9 +122,9 @@ describe("User model class", () => {
     await expect(
       createUser(graphContext, authentication, {
         emails: ["bob@example.com"],
-        kratosIdentityId,
+        kratosIdentityId: createdUser.kratosIdentityId,
       }),
-    ).rejects.toThrowError(`"${kratosIdentityId}" already exists.`);
+    ).rejects.toThrowError(`"${createdUser.kratosIdentityId}" already exists.`);
   });
 
   it("can get a user by its shortname", async () => {
@@ -100,7 +146,7 @@ describe("User model class", () => {
       graphContext,
       authentication,
       {
-        kratosIdentityId,
+        kratosIdentityId: createdUser.kratosIdentityId,
       },
     );
 
@@ -169,7 +215,133 @@ describe("User model class", () => {
     });
   });
 
+  let incompleteUser: User;
+
+  it("can create an incomplete user", async () => {
+    const authentication = { actorId: systemAccountId };
+
+    const identity = await createKratosIdentity({
+      traits: {
+        emails: ["incomplete-user@example.com"],
+      },
+    });
+
+    incompleteUser = await createUser(graphContext, authentication, {
+      emails: ["incomplete-user@example.com"],
+      kratosIdentityId: identity.id,
+    });
+
+    expect(
+      await isActorGroupAdministrator(graphContext, authentication, {
+        actorId: incompleteUser.accountId,
+        actorGroupId: incompleteUser.accountId,
+      }),
+    ).toBe(false);
+    expect(
+      await isActorGroupMember(graphContext, authentication, {
+        actorId: incompleteUser.accountId,
+        actorGroupId: incompleteUser.accountId,
+      }),
+    ).toBe(false);
+
+    expect(
+      await isActorGroupAdministrator(graphContext, authentication, {
+        actorId: systemAccountId,
+        actorGroupId: incompleteUser.accountId,
+      }),
+    ).toBe(true);
+    expect(
+      await isActorGroupMember(graphContext, authentication, {
+        actorId: systemAccountId,
+        actorGroupId: incompleteUser.accountId,
+      }),
+    ).toBe(false);
+
+    await expect(
+      checkEntityPermission(
+        graphContext,
+        { actorId: incompleteUser.accountId },
+        {
+          entityId: incompleteUser.entity.entityId,
+          permission: "updateEntity",
+        },
+      ),
+    ).resolves.toBe(false);
+  });
+
+  it("can update shortname of incomplete user", async () => {
+    const authentication = { actorId: incompleteUser.accountId };
+
+    await updateEntity(graphContext, authentication, {
+      entity: incompleteUser.entity,
+      propertyPatches: [
+        {
+          op: "add",
+          path: [systemPropertyTypes.shortname.propertyTypeBaseUrl],
+          property: {
+            value: "incomplete",
+            metadata: {
+              dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+            },
+          },
+        },
+        {
+          op: "add",
+          path: [blockProtocolPropertyTypes.displayName.propertyTypeBaseUrl],
+          property: {
+            value: "Now complete",
+            metadata: {
+              dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+            },
+          },
+        },
+      ],
+    });
+
+    await expect(
+      checkEntityPermission(
+        graphContext,
+        { actorId: incompleteUser.accountId },
+        {
+          entityId: incompleteUser.entity.entityId,
+          permission: "updateEntity",
+        },
+      ),
+    ).resolves.toBe(true);
+
+    expect(
+      await isActorGroupAdministrator(graphContext, authentication, {
+        actorId: incompleteUser.accountId,
+        actorGroupId: incompleteUser.accountId,
+      }),
+    ).toBe(true);
+    expect(
+      await isActorGroupMember(graphContext, authentication, {
+        actorId: incompleteUser.accountId,
+        actorGroupId: incompleteUser.accountId,
+      }),
+    ).toBe(false);
+
+    expect(
+      await isActorGroupAdministrator(graphContext, authentication, {
+        actorId: systemAccountId,
+        actorGroupId: incompleteUser.accountId,
+      }),
+    ).toBe(false);
+    expect(
+      await isActorGroupMember(graphContext, authentication, {
+        actorId: systemAccountId,
+        actorGroupId: incompleteUser.accountId,
+      }),
+    ).toBe(false);
+  });
+
   afterAll(async () => {
-    await kratosIdentityApi.deleteIdentity({ id: kratosIdentityId });
+    await kratosIdentityApi.deleteIdentity({
+      id: createdUser.kratosIdentityId,
+    });
+    await kratosIdentityApi.deleteIdentity({
+      id: incompleteUser.kratosIdentityId,
+    });
   });
 });

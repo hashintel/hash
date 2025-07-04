@@ -37,7 +37,7 @@ use hash_graph_authorization::{
     schema::{
         AccountGroupAdministratorSubject, AccountGroupMemberSubject, AccountGroupPermission,
         AccountGroupRelationAndSubject, WebDataTypeViewerSubject, WebEntityCreatorSubject,
-        WebEntityEditorSubject, WebEntityTypeViewerSubject, WebOwnerSubject,
+        WebEntityEditorSubject, WebEntityTypeViewerSubject, WebOwnerSubject, WebPermission,
         WebPropertyTypeViewerSubject, WebRelationAndSubject, WebSubjectSet,
     },
     zanzibar::Consistency,
@@ -565,6 +565,10 @@ where
         Ok(roles)
     }
 
+    #[expect(
+        clippy::too_many_lines,
+        reason = "This function currently handles two principal systems"
+    )]
     async fn assign_role(
         &mut self,
         actor_id: ActorEntityUuid,
@@ -593,17 +597,34 @@ where
         // As long as we use SpiceDB as the authorization backend, we need to check if the actor
         // has permission to add a member to the account group. Also, we need to update the
         // relationship in SpiceDB.
-        let has_permission = transaction
-            .authorization_api
-            .check_account_group_permission(
-                actor_id,
-                AccountGroupPermission::AddMember,
-                actor_group_id.into(),
-                Consistency::FullyConsistent,
-            )
-            .await
-            .change_context(RoleAssignmentError::StoreError)?
-            .has_permission;
+        let has_permission = match actor_group_id {
+            ActorGroupId::Web(web_id) => {
+                transaction
+                    .authorization_api
+                    .check_web_permission(
+                        actor_id,
+                        WebPermission::ChangePermission,
+                        web_id,
+                        Consistency::FullyConsistent,
+                    )
+                    .await
+                    .change_context(RoleAssignmentError::StoreError)?
+                    .has_permission
+            }
+            ActorGroupId::Team(team_id) => {
+                transaction
+                    .authorization_api
+                    .check_account_group_permission(
+                        actor_id,
+                        AccountGroupPermission::AddMember,
+                        team_id.into(),
+                        Consistency::FullyConsistent,
+                    )
+                    .await
+                    .change_context(RoleAssignmentError::StoreError)?
+                    .has_permission
+            }
+        };
 
         if !has_permission {
             return Err(Report::new(RoleAssignmentError::PermissionDenied));
@@ -728,6 +749,10 @@ where
             .change_context(RoleAssignmentError::StoreError)
     }
 
+    #[expect(
+        clippy::too_many_lines,
+        reason = "This function currently handles two principal systems"
+    )]
     async fn unassign_role(
         &mut self,
         actor_id: ActorEntityUuid,
@@ -756,17 +781,34 @@ where
         // As long as we use SpiceDB as the authorization backend, we need to check if the actor
         // has permission to add a member to the account group. Also, we need to update the
         // relationship in SpiceDB.
-        let has_permission = transaction
-            .authorization_api
-            .check_account_group_permission(
-                actor_id,
-                AccountGroupPermission::RemoveMember,
-                actor_group_id.into(),
-                Consistency::FullyConsistent,
-            )
-            .await
-            .change_context(RoleAssignmentError::StoreError)?
-            .has_permission;
+        let has_permission = match actor_group_id {
+            ActorGroupId::Web(web_id) => {
+                transaction
+                    .authorization_api
+                    .check_web_permission(
+                        actor_id,
+                        WebPermission::ChangePermission,
+                        web_id,
+                        Consistency::FullyConsistent,
+                    )
+                    .await
+                    .change_context(RoleAssignmentError::StoreError)?
+                    .has_permission
+            }
+            ActorGroupId::Team(team_id) => {
+                transaction
+                    .authorization_api
+                    .check_account_group_permission(
+                        actor_id,
+                        AccountGroupPermission::RemoveMember,
+                        team_id.into(),
+                        Consistency::FullyConsistent,
+                    )
+                    .await
+                    .change_context(RoleAssignmentError::StoreError)?
+                    .has_permission
+            }
+        };
 
         if !has_permission {
             return Err(Report::new(RoleAssignmentError::PermissionDenied)

@@ -3,6 +3,7 @@ import type {
   ActorGroupEntityUuid,
   AiId,
   MachineId,
+  TeamId,
   UserId,
   WebId,
 } from "@blockprotocol/type-system";
@@ -26,7 +27,7 @@ export const getActorGroupMembers: ImpureGraphFunction<
     .then(({ data }) => data as ActorEntityUuid[]);
 
 export const addActorGroupMember: ImpureGraphFunction<
-  { actorId: ActorEntityUuid; actorGroupId: ActorGroupEntityUuid },
+  { actorId: ActorEntityUuid; actorGroupId: WebId | TeamId },
   Promise<RoleAssignmentStatus>
 > = async ({ graphApi }, authentication, params) =>
   graphApi
@@ -39,7 +40,7 @@ export const addActorGroupMember: ImpureGraphFunction<
     .then(({ data }) => data);
 
 export const isActorGroupMember: ImpureGraphFunction<
-  { actorId: ActorEntityUuid; actorGroupId: ActorGroupEntityUuid },
+  { actorId: ActorEntityUuid; actorGroupId: WebId | TeamId },
   Promise<boolean>
 > = async ({ graphApi }, authentication, params) =>
   graphApi
@@ -52,7 +53,7 @@ export const isActorGroupMember: ImpureGraphFunction<
     .then(({ data }) => data);
 
 export const removeActorGroupMember: ImpureGraphFunction<
-  { actorId: ActorEntityUuid; actorGroupId: ActorGroupEntityUuid },
+  { actorId: ActorEntityUuid; actorGroupId: WebId | TeamId },
   Promise<RoleUnassignmentStatus>
 > = async ({ graphApi }, authentication, params) =>
   graphApi
@@ -60,6 +61,45 @@ export const removeActorGroupMember: ImpureGraphFunction<
       authentication.actorId,
       params.actorGroupId,
       "member",
+      params.actorId,
+    )
+    .then(({ data }) => data);
+
+export const addActorGroupAdministrator: ImpureGraphFunction<
+  { actorId: ActorEntityUuid; actorGroupId: WebId | TeamId },
+  Promise<RoleAssignmentStatus>
+> = async ({ graphApi }, authentication, params) =>
+  graphApi
+    .assignActorGroupRole(
+      authentication.actorId,
+      params.actorGroupId,
+      "administrator",
+      params.actorId,
+    )
+    .then(({ data }) => data);
+
+export const isActorGroupAdministrator: ImpureGraphFunction<
+  { actorId: ActorEntityUuid; actorGroupId: WebId | TeamId },
+  Promise<boolean>
+> = async ({ graphApi }, authentication, params) =>
+  graphApi
+    .hasActorGroupRole(
+      authentication.actorId,
+      params.actorGroupId,
+      "administrator",
+      params.actorId,
+    )
+    .then(({ data }) => data);
+
+export const removeActorGroupAdministrator: ImpureGraphFunction<
+  { actorId: ActorEntityUuid; actorGroupId: WebId | TeamId },
+  Promise<RoleUnassignmentStatus>
+> = async ({ graphApi }, authentication, params) =>
+  graphApi
+    .unassignActorGroupRole(
+      authentication.actorId,
+      params.actorGroupId,
+      "administrator",
       params.actorId,
     )
     .then(({ data }) => data);
