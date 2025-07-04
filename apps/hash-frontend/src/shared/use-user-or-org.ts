@@ -1,9 +1,5 @@
 import { useQuery } from "@apollo/client";
-import type {
-  EntityRootType,
-  GraphResolveDepths,
-  QueryTemporalAxesUnresolved,
-} from "@blockprotocol/graph";
+import type { EntityRootType, GraphResolveDepths } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import type {
   ActorEntityUuid,
@@ -36,7 +32,6 @@ export const useUserOrOrg = (
   params: {
     includePermissions?: boolean;
     graphResolveDepths?: Partial<GraphResolveDepths>;
-    temporalAxes?: QueryTemporalAxesUnresolved;
   } & (
     | { shortname?: string }
     | { accountOrAccountGroupId?: ActorEntityUuid | ActorGroupEntityUuid }
@@ -93,7 +88,7 @@ export const useUserOrOrg = (
           ...zeroedGraphResolveDepths,
           ...params.graphResolveDepths,
         },
-        temporalAxes: params.temporalAxes ?? currentTimeInstantTemporalAxes,
+        temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: false,
       },
     },

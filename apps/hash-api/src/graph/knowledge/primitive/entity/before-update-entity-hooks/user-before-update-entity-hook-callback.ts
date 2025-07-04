@@ -54,7 +54,7 @@ const validateAccountShortname = async (
 };
 
 export const userBeforeEntityUpdateHookCallback: BeforeUpdateEntityHookCallback =
-  async ({ previousEntity, propertyPatches, context }) => {
+  async ({ previousEntity, propertyPatches, context, authentication }) => {
     const user = getUserFromEntity({ entity: previousEntity });
 
     const isShortnameRemoved = isValueRemovedByPatches<UserProperties>({
@@ -131,7 +131,7 @@ export const userBeforeEntityUpdateHookCallback: BeforeUpdateEntityHookCallback 
        * we need to forbid them from completing account signup
        * and prevent them from receiving ownership of the web.
        */
-      if (!userHasAccessToHash({ user })) {
+      if (!(await userHasAccessToHash(context, authentication, user))) {
         throw new Error(
           "The user does not have access to the HASH instance, and therefore cannot complete account signup.",
         );

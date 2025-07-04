@@ -329,15 +329,5 @@ export const entityTypedef = gql`
       entityId: EntityId!
       viewer: AuthorizationViewerInput!
     ): Boolean!
-
-    addAccountGroupMember(
-      accountGroupId: AccountGroupId!
-      accountId: AccountId!
-    ): RoleAssignmentStatus!
-
-    removeAccountGroupMember(
-      accountGroupId: AccountGroupId!
-      accountId: AccountId!
-    ): RoleUnassignmentStatus!
   }
 `;

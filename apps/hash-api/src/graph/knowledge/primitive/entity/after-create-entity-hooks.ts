@@ -282,7 +282,7 @@ const userCreateHookCallback: AfterCreateEntityHookCallback = async ({
     } = simplifyProperties(entity.properties as UserProperties);
 
     /**
-     * @todo: when we allow users to have more than one email, come up with
+     * @todo H-4936: when we allow users to have more than one email, come up with
      * a better way of determining which to use for mailchimp.
      */
     const [email] = emails;

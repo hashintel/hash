@@ -1,7 +1,10 @@
-import type { EntityRootType, Subgraph } from "@blockprotocol/graph";
+import type {
+  EntityRootType,
+  LinkEntityAndRightEntity,
+  Subgraph,
+} from "@blockprotocol/graph";
 import {
-  getIncomingLinksForEntity,
-  getLeftEntityForLinkEntity,
+  getIncomingLinkAndSourceEntities,
   getOutgoingLinkAndTargetEntities,
   getOutgoingLinksForEntity,
   getRightEntityForLinkEntity,
@@ -19,16 +22,23 @@ import {
   currentTimestamp,
   extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
+import type { HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import { getFirstEntityRevision } from "@local/hash-isomorphic-utils/entity";
 import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import {
+  isInvitationByEmail,
+  isInvitationByShortname,
+} from "@local/hash-isomorphic-utils/organization";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { ImageFile } from "@local/hash-isomorphic-utils/system-types/imagefile";
 import type {
   HasBio,
+  InvitationViaEmail,
+  InvitationViaShortname,
   IsMemberOf,
   Organization,
   ProfileBio,
@@ -125,6 +135,12 @@ export type Org = MinimalOrg & {
     linkEntity: LinkEntity<IsMemberOf>;
     user: MinimalUser;
   }[];
+  invitations: {
+    linkEntity: HashLinkEntity;
+    invitationEntity:
+      | HashEntity<InvitationViaEmail>
+      | HashEntity<InvitationViaShortname>;
+  }[];
 };
 
 export const isEntityOrgEntity = (
@@ -146,7 +162,7 @@ export const isEntityOrgEntity = (
  *   -   hasRightEntity: { incoming: 1 }
  */
 export const constructOrg = (params: {
-  subgraph: Subgraph;
+  subgraph: Subgraph<EntityRootType<HashEntity>>;
   orgEntity: Entity<Organization>;
 }): Org => {
   const { subgraph, orgEntity } = params;
@@ -155,87 +171,115 @@ export const constructOrg = (params: {
     orgEntity,
   });
 
-  const avatarLinkAndEntities = getOutgoingLinkAndTargetEntities(
-    subgraph,
-    orgEntity.metadata.recordId.entityId,
-    intervalForTimestamp(currentTimestamp()),
-  ).filter(({ linkEntity }) =>
-    linkEntity[0]?.metadata.entityTypeIds.includes(
-      systemLinkEntityTypes.hasAvatar.linkEntityTypeId,
-    ),
-  );
+  let hasAvatar: Org["hasAvatar"];
+  let hasBio: Org["hasBio"];
+  const memberships: Org["memberships"] = [];
+  const invitations: Org["invitations"] = [];
+  const outgoingLinkAndEntities = getOutgoingLinkAndTargetEntities<
+    LinkEntityAndRightEntity<HashEntity, HashLinkEntity>[]
+  >(subgraph, orgEntity.metadata.recordId.entityId);
 
-  const hasAvatar = avatarLinkAndEntities[0]
-    ? {
-        // these are each arrays because each entity can have multiple revisions
-        linkEntity: avatarLinkAndEntities[0].linkEntity[0]!,
-        imageEntity: avatarLinkAndEntities[0]
-          .rightEntity[0]! as Entity<ImageFile>,
+  for (const { linkEntity, rightEntity } of outgoingLinkAndEntities) {
+    const linkEntityRevision = linkEntity[0];
+
+    if (!linkEntityRevision) {
+      continue;
+    }
+
+    const rightEntityRevision = rightEntity[0];
+
+    if (!rightEntityRevision) {
+      continue;
+    }
+
+    if (
+      linkEntityRevision.metadata.entityTypeIds.includes(
+        systemLinkEntityTypes.hasAvatar.linkEntityTypeId,
+      )
+    ) {
+      hasAvatar = {
+        linkEntity: linkEntityRevision,
+        imageEntity: rightEntityRevision as HashEntity<ImageFile>,
+      };
+      continue;
+    }
+
+    if (
+      linkEntityRevision.metadata.entityTypeIds.includes(
+        systemLinkEntityTypes.hasBio.linkEntityTypeId,
+      )
+    ) {
+      hasBio = {
+        linkEntity: linkEntityRevision,
+        profileBioEntity: rightEntityRevision as HashEntity<ProfileBio>,
+      };
+      continue;
+    }
+
+    if (
+      linkEntityRevision.metadata.entityTypeIds.includes(
+        systemLinkEntityTypes.hasIssuedInvitation.linkEntityTypeId,
+      )
+    ) {
+      if (
+        !isInvitationByEmail(rightEntityRevision) &&
+        !isInvitationByShortname(rightEntityRevision)
+      ) {
+        throw new Error(
+          `Entity linked from org via Has Issued Invitation with type(s) ${rightEntityRevision.metadata.entityTypeIds.join(
+            ", ",
+          )} is not an invitation entity`,
+        );
       }
-    : undefined;
 
-  const hasBioLinkAndEntities = getOutgoingLinkAndTargetEntities(
+      invitations.push({
+        linkEntity: linkEntityRevision,
+        invitationEntity: rightEntityRevision,
+      });
+
+      continue;
+    }
+  }
+
+  const incomingLinkAndEntities = getIncomingLinkAndSourceEntities(
     subgraph,
     orgEntity.metadata.recordId.entityId,
-    intervalForTimestamp(currentTimestamp()),
-  ).filter(({ linkEntity }) =>
-    linkEntity[0]?.metadata.entityTypeIds.includes(
-      systemLinkEntityTypes.hasBio.linkEntityTypeId,
-    ),
   );
 
-  const hasBio = hasBioLinkAndEntities[0]
-    ? {
-        // these are each arrays because each entity can have multiple revisions
-        linkEntity: hasBioLinkAndEntities[0].linkEntity[0]!,
-        profileBioEntity: hasBioLinkAndEntities[0]
-          .rightEntity[0]! as Entity<ProfileBio>,
-      }
-    : undefined;
+  for (const { linkEntity, leftEntity } of incomingLinkAndEntities) {
+    const linkEntityRevision = linkEntity[0];
 
-  const orgMemberships = getIncomingLinksForEntity(
-    subgraph,
-    orgEntity.metadata.recordId.entityId,
-    intervalForTimestamp(currentTimestamp()),
-  ).filter((linkEntity): linkEntity is LinkEntity<IsMemberOf> =>
-    linkEntity.metadata.entityTypeIds.includes(
-      systemLinkEntityTypes.isMemberOf.linkEntityTypeId,
-    ),
-  );
+    if (!linkEntityRevision) {
+      continue;
+    }
 
-  const memberships = orgMemberships.map((linkEntity) => {
-    const userEntityRevisions = getLeftEntityForLinkEntity(
-      subgraph,
-      linkEntity.metadata.recordId.entityId,
-      intervalForTimestamp(currentTimestamp()),
-    );
+    if (
+      !linkEntityRevision.metadata.entityTypeIds.includes(
+        systemLinkEntityTypes.isMemberOf.linkEntityTypeId,
+      )
+    ) {
+      continue;
+    }
 
-    if (!userEntityRevisions || userEntityRevisions.length === 0) {
+    const userEntityRevision = leftEntity[0];
+
+    if (!userEntityRevision) {
       throw new Error(
-        `Failed to find the current user entity associated with the membership with entity ID: ${linkEntity.metadata.recordId.entityId}`,
+        `Failed to find the current user entity associated with the membership with entity ID: ${linkEntityRevision.metadata.recordId.entityId}`,
       );
     }
 
-    const variableAxis = subgraph.temporalAxes.resolved.variable.axis;
-    userEntityRevisions.sort((entityA, entityB) =>
-      intervalCompareWithInterval(
-        entityA.metadata.temporalVersioning[variableAxis],
-        entityB.metadata.temporalVersioning[variableAxis],
-      ),
-    );
-    const userEntity = userEntityRevisions.at(-1)!;
-
-    if (!isEntityUserEntity(userEntity)) {
+    if (!isEntityUserEntity(userEntityRevision)) {
       throw new Error(
-        `Entity with type(s) ${userEntity.metadata.entityTypeIds.join(", ")} is not a user entity`,
+        `Entity with type(s) ${userEntityRevision.metadata.entityTypeIds.join(", ")} is not a user entity`,
       );
     }
 
-    return {
-      user: constructMinimalUser({ userEntity }),
-      linkEntity,
-    };
-  });
+    memberships.push({
+      user: constructMinimalUser({ userEntity: userEntityRevision }),
+      linkEntity: linkEntityRevision as LinkEntity<IsMemberOf>,
+    });
+  }
 
   const firstRevision = getFirstEntityRevision(
     subgraph,
@@ -246,7 +290,14 @@ export const constructOrg = (params: {
     firstRevision.metadata.temporalVersioning.decisionTime.start.limit,
   );
 
-  return { ...minimalOrg, createdAt, hasAvatar, memberships, hasBio };
+  return {
+    ...minimalOrg,
+    createdAt,
+    hasAvatar,
+    hasBio,
+    invitations,
+    memberships,
+  };
 };
 
 export type ServiceAccountKind =
@@ -304,7 +355,7 @@ export type User = MinimalUser & {
  */
 export const constructUser = (params: {
   orgMembershipLinks?: LinkEntity[];
-  subgraph: Subgraph<EntityRootType>;
+  subgraph: Subgraph<EntityRootType<HashEntity>>;
   resolvedOrgs?: Org[];
   userEntity: Entity<UserEntity>;
 }): User => {
@@ -383,15 +434,71 @@ export const constructUser = (params: {
     };
   });
 
-  const avatarLinkAndEntities = getOutgoingLinkAndTargetEntities(
+  const outgoingLinkAndTargetEntities = getOutgoingLinkAndTargetEntities(
     subgraph,
     userEntity.metadata.recordId.entityId,
     intervalForTimestamp(currentTimestamp()),
-  ).filter(({ linkEntity }) =>
-    linkEntity[0]?.metadata.entityTypeIds.includes(
-      systemLinkEntityTypes.hasAvatar.linkEntityTypeId,
-    ),
   );
+
+  const avatarLinkAndEntities: LinkEntityAndRightEntity[] = [];
+  const coverImageLinkAndEntities: LinkEntityAndRightEntity[] = [];
+  const hasBioLinkAndEntities: LinkEntityAndRightEntity[] = [];
+  const hasServiceAccounts: User["hasServiceAccounts"] = [];
+
+  for (const linkAndEntity of outgoingLinkAndTargetEntities) {
+    const linkEntity = linkAndEntity.linkEntity[0];
+    const rightEntity = linkAndEntity.rightEntity[0];
+
+    if (!linkEntity || !rightEntity) {
+      continue;
+    }
+
+    const entityTypeIds = linkEntity.metadata.entityTypeIds;
+
+    if (
+      entityTypeIds.includes(systemLinkEntityTypes.hasAvatar.linkEntityTypeId)
+    ) {
+      avatarLinkAndEntities.push(linkAndEntity);
+      continue;
+    }
+
+    if (
+      entityTypeIds.includes(
+        systemLinkEntityTypes.hasCoverImage.linkEntityTypeId,
+      )
+    ) {
+      coverImageLinkAndEntities.push(linkAndEntity);
+      continue;
+    }
+
+    if (entityTypeIds.includes(systemLinkEntityTypes.hasBio.linkEntityTypeId)) {
+      hasBioLinkAndEntities.push(linkAndEntity);
+      continue;
+    }
+
+    if (
+      entityTypeIds.includes(
+        systemLinkEntityTypes.hasServiceAccount.linkEntityTypeId,
+      )
+    ) {
+      const serviceAccountEntity = linkAndEntity.rightEntity[0]!;
+
+      const { profileUrl } = simplifyProperties(
+        serviceAccountEntity.properties as ServiceAccount["properties"],
+      );
+
+      const kind = Object.entries(systemEntityTypes).find(([_, type]) =>
+        serviceAccountEntity.metadata.entityTypeIds.includes(type.entityTypeId),
+      )?.[0] as ServiceAccountKind;
+
+      hasServiceAccounts.push({
+        linkEntity,
+        serviceAccountEntity,
+        kind,
+        profileUrl,
+      });
+    }
+  }
 
   const hasAvatar = avatarLinkAndEntities[0]
     ? {
@@ -402,16 +509,6 @@ export const constructUser = (params: {
       }
     : undefined;
 
-  const coverImageLinkAndEntities = getOutgoingLinkAndTargetEntities(
-    subgraph,
-    userEntity.metadata.recordId.entityId,
-    intervalForTimestamp(currentTimestamp()),
-  ).filter(({ linkEntity }) =>
-    linkEntity[0]?.metadata.entityTypeIds.includes(
-      systemLinkEntityTypes.hasCoverImage.linkEntityTypeId,
-    ),
-  );
-
   const hasCoverImage = coverImageLinkAndEntities[0]
     ? {
         // these are each arrays because each entity can have multiple revisions
@@ -420,16 +517,6 @@ export const constructUser = (params: {
           .rightEntity[0]! as Entity<ImageFile>,
       }
     : undefined;
-
-  const hasBioLinkAndEntities = getOutgoingLinkAndTargetEntities(
-    subgraph,
-    userEntity.metadata.recordId.entityId,
-    intervalForTimestamp(currentTimestamp()),
-  ).filter(({ linkEntity }) =>
-    linkEntity[0]?.metadata.entityTypeIds.includes(
-      systemLinkEntityTypes.hasBio.linkEntityTypeId,
-    ),
-  );
 
   const hasBio = hasBioLinkAndEntities[0]
     ? {
@@ -440,35 +527,6 @@ export const constructUser = (params: {
           .rightEntity[0]! as Entity<ProfileBio>,
       }
     : undefined;
-
-  const hasServiceAccounts = getOutgoingLinkAndTargetEntities(
-    subgraph,
-    userEntity.metadata.recordId.entityId,
-    intervalForTimestamp(currentTimestamp()),
-  )
-    .filter(({ linkEntity }) =>
-      linkEntity[0]?.metadata.entityTypeIds.includes(
-        systemLinkEntityTypes.hasServiceAccount.linkEntityTypeId,
-      ),
-    )
-    .map<User["hasServiceAccounts"][number]>(({ linkEntity, rightEntity }) => {
-      const serviceAccountEntity = rightEntity[0]!;
-
-      const { profileUrl } = simplifyProperties(
-        serviceAccountEntity.properties as ServiceAccount["properties"],
-      );
-
-      const kind = Object.entries(systemEntityTypes).find(([_, type]) =>
-        serviceAccountEntity.metadata.entityTypeIds.includes(type.entityTypeId),
-      )?.[0] as ServiceAccountKind;
-
-      return {
-        linkEntity: linkEntity[0]!,
-        serviceAccountEntity,
-        kind,
-        profileUrl,
-      };
-    });
 
   const joinedAt = new Date(
     userEntity.metadata.provenance.createdAtDecisionTime,

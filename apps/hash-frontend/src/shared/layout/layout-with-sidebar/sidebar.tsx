@@ -22,6 +22,7 @@ import { ArrowRightToLineIcon } from "../../icons";
 import { BoltLightIcon } from "../../icons/bolt-light-icon";
 import { InboxIcon } from "../../icons/inbox-icon";
 import { NoteIcon } from "../../icons/note-icon";
+import { useInvites } from "../../invites-context";
 import { useNotificationCount } from "../../notification-count-context";
 import { useRoutePageInfo } from "../../routing";
 import { useUserPreferences } from "../../use-user-preferences";
@@ -75,6 +76,8 @@ export const PageSidebar: FunctionComponent = () => {
   const { numberOfUnreadNotifications } = useNotificationCount();
 
   const { count: draftEntitiesCount } = useDraftEntitiesCount();
+
+  const { pendingInvites } = useInvites();
 
   const workersSection = useMemo<NavLinkDefinition[]>(
     () =>
@@ -130,6 +133,11 @@ export const PageSidebar: FunctionComponent = () => {
     }
 
     const numberOfPendingActions = draftEntitiesCount ?? 0;
+    const unreadNotifications = numberOfUnreadNotifications ?? 0;
+
+    const shouldInboxLinkToActions =
+      numberOfPendingActions > 0 ||
+      (unreadNotifications === 0 && pendingInvites.length === 0);
 
     return [
       {
@@ -142,10 +150,15 @@ export const PageSidebar: FunctionComponent = () => {
       ...toggleableLinks,
       {
         title: "Inbox",
-        path: "/actions",
+        path: shouldInboxLinkToActions
+          ? "/actions"
+          : unreadNotifications > 0
+            ? "/notifications"
+            : "/invites",
         icon: <InboxIcon sx={{ fontSize: 16 }} />,
         tooltipTitle: "",
-        count: (numberOfUnreadNotifications ?? 0) + numberOfPendingActions,
+        count:
+          unreadNotifications + numberOfPendingActions + pendingInvites.length,
         children: [
           {
             title: "Actions",
@@ -156,6 +169,11 @@ export const PageSidebar: FunctionComponent = () => {
             title: "Notifications",
             path: "/notifications",
             count: numberOfUnreadNotifications,
+          },
+          {
+            title: "Invites",
+            path: "/invites",
+            count: pendingInvites.length,
           },
         ],
       },
@@ -171,11 +189,13 @@ export const PageSidebar: FunctionComponent = () => {
         : []),
     ];
   }, [
+    preferences.sidebarSections.entities.variant,
+    preferences.sidebarSections.entityTypes.variant,
     draftEntitiesCount,
-    numberOfUnreadNotifications,
-    enabledFeatureFlags,
-    preferences,
     workersSection,
+    numberOfUnreadNotifications,
+    pendingInvites.length,
+    enabledFeatureFlags.notes,
   ]);
 
   return (
