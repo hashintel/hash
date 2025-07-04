@@ -74,6 +74,11 @@ When you first create an account you may be placed on a waitlist. To jump the qu
    rustup --version
    ## ≥ 1.27.1 (Required to match the toolchain as specified in `rust-toolchain.toml`, lower versions most likely will work as well)
 
+   rustc --version
+   ## Should match the toolchain specified in `rust-toolchain.toml`. If this is not the case, you can update the toolchain with
+   rustup toolchain install
+   ## If this still is not the correct toolchain, you may have set `RUSTUP_TOOLCHAIN` somewhere (e.g. in a global `mise` config file)
+
    docker --version
    ## ≥ 20.10
 

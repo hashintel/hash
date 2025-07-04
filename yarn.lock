@@ -484,7 +484,7 @@ __metadata:
     "@mui/icons-material": "npm:5.17.1"
     "@mui/material": "npm:5.17.1"
     "@mui/system": "npm:5.17.1"
-    "@next/bundle-analyzer": "npm:15.3.4"
+    "@next/bundle-analyzer": "npm:15.3.5"
     "@ory/client": "npm:1.1.41"
     "@ory/integrations": "npm:1.1.4"
     "@popperjs/core": "npm:2.11.8"
@@ -540,7 +540,7 @@ __metadata:
     marked: "npm:4.3.0"
     material-ui-popup-state: "npm:4.1.0"
     millify: "npm:6.1.0"
-    next: "npm:15.3.4"
+    next: "npm:15.3.5"
     next-seo: "npm:6.8.0"
     nextjs-progressbar: "npm:0.0.16"
     notistack: "npm:2.0.8"
@@ -710,7 +710,7 @@ __metadata:
     "@local/eslint": "npm:0.0.0-private"
     "@local/hash-backend-utils": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
-    "@modelcontextprotocol/sdk": "npm:1.13.3"
+    "@modelcontextprotocol/sdk": "npm:1.15.0"
     "@types/dotenv-flow": "npm:3.3.3"
     "@types/node": "npm:22.16.0"
     chokidar-cli: "npm:3.0.0"
@@ -720,7 +720,7 @@ __metadata:
     shx: "npm:0.4.0"
     tsx: "npm:4.20.3"
     typescript: "npm:5.7.3"
-    zod: "npm:3.25.69"
+    zod: "npm:3.25.71"
     zod-to-json-schema: "npm:3.24.6"
   bin:
     linear-mcp: ./dist/index.js
@@ -733,7 +733,7 @@ __metadata:
   dependencies:
     "@local/eslint": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
-    "@modelcontextprotocol/sdk": "npm:1.13.3"
+    "@modelcontextprotocol/sdk": "npm:1.15.0"
     "@notionhq/client": "npm:2.3.0"
     "@types/dotenv-flow": "npm:3.3.3"
     "@types/node": "npm:22.16.0"
@@ -745,7 +745,7 @@ __metadata:
     shx: "npm:0.4.0"
     tsx: "npm:4.20.3"
     typescript: "npm:5.7.3"
-    zod: "npm:3.25.69"
+    zod: "npm:3.25.71"
     zod-to-json-schema: "npm:3.24.6"
   bin:
     notion-mcp: ./dist/index.js
@@ -4371,7 +4371,7 @@ __metadata:
     "@local/eslint": "npm:0.0.0-private"
     "@local/tsconfig": "npm:0.0.0-private"
     "@rollup/plugin-node-resolve": "npm:16.0.1"
-    "@rollup/plugin-typescript": "npm:12.1.3"
+    "@rollup/plugin-typescript": "npm:12.1.4"
     "@rollup/plugin-wasm": "npm:6.2.2"
     "@types/node": "npm:22.16.0"
     "@types/react": "npm:19.1.8"
@@ -5005,13 +5005,13 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@effect/vitest@npm:0.23.11":
-  version: 0.23.11
-  resolution: "@effect/vitest@npm:0.23.11"
+"@effect/vitest@npm:0.23.12":
+  version: 0.23.12
+  resolution: "@effect/vitest@npm:0.23.12"
   peerDependencies:
-    effect: ^3.16.11
+    effect: ^3.16.12
     vitest: ^3.0.0
-  checksum: 10c0/78bd14134140d3bfa86f0f592a7db09adabb4204cebf10976957ddbd04e8a95e49960d0fb5f37b835e1ed36c6d2f90e24057eb28ee64749e134e9b73e8730e89
+  checksum: 10c0/e0157ef11d619835f67bde4d592a2ac50dea5511f077fa7aeced3a0d16108a935e2bd85c84e4242041914e37920616554465481b46860a855f5a0feeb40e196d
   languageName: node
   linkType: hard
 
@@ -8889,7 +8889,7 @@ __metadata:
     "@chainsafe/libp2p-yamux": "npm:7.0.4"
     "@effect/platform": "npm:0.79.2"
     "@effect/platform-node": "npm:0.75.2"
-    "@effect/vitest": "npm:0.23.11"
+    "@effect/vitest": "npm:0.23.12"
     "@libp2p/crypto": "npm:5.1.5"
     "@libp2p/identify": "npm:3.0.33"
     "@libp2p/interface": "npm:2.10.3"
@@ -9038,7 +9038,7 @@ __metadata:
     immer: "npm:9.0.21"
     jsonschema: "npm:1.5.0"
     lodash-es: "npm:4.17.21"
-    next: "npm:15.3.4"
+    next: "npm:15.3.5"
     pluralize: "npm:8.0.0"
     prosemirror-commands: "npm:1.3.1"
     prosemirror-dropcursor: "npm:1.6.1"
@@ -9093,7 +9093,7 @@ __metadata:
     sort-package-json: "npm:2.15.1"
     tsx: "npm:4.20.3"
     typescript: "npm:5.7.3"
-    zod: "npm:3.25.69"
+    zod: "npm:3.25.71"
     zod-to-json-schema: "npm:3.24.6"
   languageName: unknown
   linkType: soft
@@ -9255,9 +9255,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@modelcontextprotocol/sdk@npm:1.13.3":
-  version: 1.13.3
-  resolution: "@modelcontextprotocol/sdk@npm:1.13.3"
+"@modelcontextprotocol/sdk@npm:1.15.0":
+  version: 1.15.0
+  resolution: "@modelcontextprotocol/sdk@npm:1.15.0"
   dependencies:
     ajv: "npm:^6.12.6"
     content-type: "npm:^1.0.5"
@@ -9271,7 +9271,7 @@ __metadata:
     raw-body: "npm:^3.0.0"
     zod: "npm:^3.23.8"
     zod-to-json-schema: "npm:^3.24.1"
-  checksum: 10c0/ae9dabcaebc47d3d390253bece5d86a88ec97547820fde2a4286a81a8f94a9db455cee5d79d2d9dada92827f159d9ff7f51ca679ef4af7020859cab089f26a74
+  checksum: 10c0/ab94ce1ef997c6109dda8de60b9cbfaff96904a24971fb0bdc5c36ac8ae8c58f2b66faac58e654fdb0dc11627348192d8ade8e772af3b8da15022adb9fcd255a
   languageName: node
   linkType: hard
 
@@ -9602,19 +9602,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@next/bundle-analyzer@npm:15.3.4":
-  version: 15.3.4
-  resolution: "@next/bundle-analyzer@npm:15.3.4"
+"@next/bundle-analyzer@npm:15.3.5":
+  version: 15.3.5
+  resolution: "@next/bundle-analyzer@npm:15.3.5"
   dependencies:
     webpack-bundle-analyzer: "npm:4.10.1"
-  checksum: 10c0/2db698f9ff40aada0739310daa1437eac46dddc4724d09475371cfa949b0bbd7fe4f5675e1b270b4add3303270bd1aa4ba34af2f9bde8f483ed6598843eb2d80
+  checksum: 10c0/6b69446543bf806ad2a2a373394e6b042fdbe847acf7cdcb408c4cae94cab416ee7c6516fb2868670331c60509f6fa2bbe9f0dfd67eff89f5a7f8e256dc6cebd
   languageName: node
   linkType: hard
 
-"@next/env@npm:15.3.4":
-  version: 15.3.4
-  resolution: "@next/env@npm:15.3.4"
-  checksum: 10c0/43d37896e1422c9c353d9ded1d1b01545aa30b2bb125bcc40ffd4474dbc6e0ba603a77fc2a598616964a925379bb5a39eb1a242f0c49fc933e39e099fb2f7d75
+"@next/env@npm:15.3.5":
+  version: 15.3.5
+  resolution: "@next/env@npm:15.3.5"
+  checksum: 10c0/7ffad993e85710bbfbf52826bb6a8726d807e714715b5f28fa1b770ea38e3757c1bef9dbe1a1c31ea8eae39a097aa8fc2987ea8d47a3d9f6f30a88e72919fd7b
   languageName: node
   linkType: hard
 
@@ -9627,58 +9627,58 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@next/swc-darwin-arm64@npm:15.3.4":
-  version: 15.3.4
-  resolution: "@next/swc-darwin-arm64@npm:15.3.4"
+"@next/swc-darwin-arm64@npm:15.3.5":
+  version: 15.3.5
+  resolution: "@next/swc-darwin-arm64@npm:15.3.5"
   conditions: os=darwin & cpu=arm64
   languageName: node
   linkType: hard
 
-"@next/swc-darwin-x64@npm:15.3.4":
-  version: 15.3.4
-  resolution: "@next/swc-darwin-x64@npm:15.3.4"
+"@next/swc-darwin-x64@npm:15.3.5":
+  version: 15.3.5
+  resolution: "@next/swc-darwin-x64@npm:15.3.5"
   conditions: os=darwin & cpu=x64
   languageName: node
   linkType: hard
 
-"@next/swc-linux-arm64-gnu@npm:15.3.4":
-  version: 15.3.4
-  resolution: "@next/swc-linux-arm64-gnu@npm:15.3.4"
+"@next/swc-linux-arm64-gnu@npm:15.3.5":
+  version: 15.3.5
+  resolution: "@next/swc-linux-arm64-gnu@npm:15.3.5"
   conditions: os=linux & cpu=arm64 & libc=glibc
   languageName: node
   linkType: hard
 
-"@next/swc-linux-arm64-musl@npm:15.3.4":
-  version: 15.3.4
-  resolution: "@next/swc-linux-arm64-musl@npm:15.3.4"
+"@next/swc-linux-arm64-musl@npm:15.3.5":
+  version: 15.3.5
+  resolution: "@next/swc-linux-arm64-musl@npm:15.3.5"
   conditions: os=linux & cpu=arm64 & libc=musl
   languageName: node
   linkType: hard
 
-"@next/swc-linux-x64-gnu@npm:15.3.4":
-  version: 15.3.4
-  resolution: "@next/swc-linux-x64-gnu@npm:15.3.4"
+"@next/swc-linux-x64-gnu@npm:15.3.5":
+  version: 15.3.5
+  resolution: "@next/swc-linux-x64-gnu@npm:15.3.5"
   conditions: os=linux & cpu=x64 & libc=glibc
   languageName: node
   linkType: hard
 
-"@next/swc-linux-x64-musl@npm:15.3.4":
-  version: 15.3.4
-  resolution: "@next/swc-linux-x64-musl@npm:15.3.4"
+"@next/swc-linux-x64-musl@npm:15.3.5":
+  version: 15.3.5
+  resolution: "@next/swc-linux-x64-musl@npm:15.3.5"
   conditions: os=linux & cpu=x64 & libc=musl
   languageName: node
   linkType: hard
 
-"@next/swc-win32-arm64-msvc@npm:15.3.4":
-  version: 15.3.4
-  resolution: "@next/swc-win32-arm64-msvc@npm:15.3.4"
+"@next/swc-win32-arm64-msvc@npm:15.3.5":
+  version: 15.3.5
+  resolution: "@next/swc-win32-arm64-msvc@npm:15.3.5"
   conditions: os=win32 & cpu=arm64
   languageName: node
   linkType: hard
 
-"@next/swc-win32-x64-msvc@npm:15.3.4":
-  version: 15.3.4
-  resolution: "@next/swc-win32-x64-msvc@npm:15.3.4"
+"@next/swc-win32-x64-msvc@npm:15.3.5":
+  version: 15.3.5
+  resolution: "@next/swc-win32-x64-msvc@npm:15.3.5"
   conditions: os=win32 & cpu=x64
   languageName: node
   linkType: hard
@@ -12584,9 +12584,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@rollup/plugin-typescript@npm:12.1.3":
-  version: 12.1.3
-  resolution: "@rollup/plugin-typescript@npm:12.1.3"
+"@rollup/plugin-typescript@npm:12.1.4":
+  version: 12.1.4
+  resolution: "@rollup/plugin-typescript@npm:12.1.4"
   dependencies:
     "@rollup/pluginutils": "npm:^5.1.0"
     resolve: "npm:^1.22.1"
@@ -12599,7 +12599,7 @@ __metadata:
       optional: true
     tslib:
       optional: true
-  checksum: 10c0/0eb76c5dbcf504e2f720bf14cf5a26cb50387d40ee1c17e0eabe555f594c924e5134a05a888685fdb9b175da3789b339ef7fedbf5124b3223067d5d70add394e
+  checksum: 10c0/b5bf7f54794d0b33ae5441c5aa202a95beb7068c206f40102f94997e888756c06c2bfe00517eb74a58771078432f94e8a34e99f5c6dbf89a22b49431b83c4798
   languageName: node
   linkType: hard
 
@@ -17126,7 +17126,7 @@ __metadata:
     "@ory/client": "npm:1.1.41"
     "@rollup/plugin-commonjs": "npm:28.0.6"
     "@rollup/plugin-node-resolve": "npm:16.0.1"
-    "@rollup/plugin-typescript": "npm:12.1.3"
+    "@rollup/plugin-typescript": "npm:12.1.4"
     "@types/dotenv-flow": "npm:3.3.3"
     artillery: "npm:2.0.23"
     dotenv-flow: "npm:3.3.0"
@@ -29303,7 +29303,7 @@ __metadata:
     "@changesets/changelog-github": "npm:0.5.1"
     "@changesets/cli": "patch:@changesets/cli@npm%3A2.26.0#~/.yarn/patches/@changesets-cli-npm-2.26.0-49d5c5f72d.patch"
     "@yarnpkg/types": "npm:^4.0.0"
-    lefthook: "npm:1.11.14"
+    lefthook: "npm:1.11.16"
     npm-run-all2: "npm:7.0.2"
   languageName: unknown
   linkType: soft
@@ -32501,90 +32501,90 @@ __metadata:
   languageName: node
   linkType: hard
 
-"lefthook-darwin-arm64@npm:1.11.14":
-  version: 1.11.14
-  resolution: "lefthook-darwin-arm64@npm:1.11.14"
+"lefthook-darwin-arm64@npm:1.11.16":
+  version: 1.11.16
+  resolution: "lefthook-darwin-arm64@npm:1.11.16"
   conditions: os=darwin & cpu=arm64
   languageName: node
   linkType: hard
 
-"lefthook-darwin-x64@npm:1.11.14":
-  version: 1.11.14
-  resolution: "lefthook-darwin-x64@npm:1.11.14"
+"lefthook-darwin-x64@npm:1.11.16":
+  version: 1.11.16
+  resolution: "lefthook-darwin-x64@npm:1.11.16"
   conditions: os=darwin & cpu=x64
   languageName: node
   linkType: hard
 
-"lefthook-freebsd-arm64@npm:1.11.14":
-  version: 1.11.14
-  resolution: "lefthook-freebsd-arm64@npm:1.11.14"
+"lefthook-freebsd-arm64@npm:1.11.16":
+  version: 1.11.16
+  resolution: "lefthook-freebsd-arm64@npm:1.11.16"
   conditions: os=freebsd & cpu=arm64
   languageName: node
   linkType: hard
 
-"lefthook-freebsd-x64@npm:1.11.14":
-  version: 1.11.14
-  resolution: "lefthook-freebsd-x64@npm:1.11.14"
+"lefthook-freebsd-x64@npm:1.11.16":
+  version: 1.11.16
+  resolution: "lefthook-freebsd-x64@npm:1.11.16"
   conditions: os=freebsd & cpu=x64
   languageName: node
   linkType: hard
 
-"lefthook-linux-arm64@npm:1.11.14":
-  version: 1.11.14
-  resolution: "lefthook-linux-arm64@npm:1.11.14"
+"lefthook-linux-arm64@npm:1.11.16":
+  version: 1.11.16
+  resolution: "lefthook-linux-arm64@npm:1.11.16"
   conditions: os=linux & cpu=arm64
   languageName: node
   linkType: hard
 
-"lefthook-linux-x64@npm:1.11.14":
-  version: 1.11.14
-  resolution: "lefthook-linux-x64@npm:1.11.14"
+"lefthook-linux-x64@npm:1.11.16":
+  version: 1.11.16
+  resolution: "lefthook-linux-x64@npm:1.11.16"
   conditions: os=linux & cpu=x64
   languageName: node
   linkType: hard
 
-"lefthook-openbsd-arm64@npm:1.11.14":
-  version: 1.11.14
-  resolution: "lefthook-openbsd-arm64@npm:1.11.14"
+"lefthook-openbsd-arm64@npm:1.11.16":
+  version: 1.11.16
+  resolution: "lefthook-openbsd-arm64@npm:1.11.16"
   conditions: os=openbsd & cpu=arm64
   languageName: node
   linkType: hard
 
-"lefthook-openbsd-x64@npm:1.11.14":
-  version: 1.11.14
-  resolution: "lefthook-openbsd-x64@npm:1.11.14"
+"lefthook-openbsd-x64@npm:1.11.16":
+  version: 1.11.16
+  resolution: "lefthook-openbsd-x64@npm:1.11.16"
   conditions: os=openbsd & cpu=x64
   languageName: node
   linkType: hard
 
-"lefthook-windows-arm64@npm:1.11.14":
-  version: 1.11.14
-  resolution: "lefthook-windows-arm64@npm:1.11.14"
+"lefthook-windows-arm64@npm:1.11.16":
+  version: 1.11.16
+  resolution: "lefthook-windows-arm64@npm:1.11.16"
   conditions: os=win32 & cpu=arm64
   languageName: node
   linkType: hard
 
-"lefthook-windows-x64@npm:1.11.14":
-  version: 1.11.14
-  resolution: "lefthook-windows-x64@npm:1.11.14"
+"lefthook-windows-x64@npm:1.11.16":
+  version: 1.11.16
+  resolution: "lefthook-windows-x64@npm:1.11.16"
   conditions: os=win32 & cpu=x64
   languageName: node
   linkType: hard
 
-"lefthook@npm:1.11.14":
-  version: 1.11.14
-  resolution: "lefthook@npm:1.11.14"
+"lefthook@npm:1.11.16":
+  version: 1.11.16
+  resolution: "lefthook@npm:1.11.16"
   dependencies:
-    lefthook-darwin-arm64: "npm:1.11.14"
-    lefthook-darwin-x64: "npm:1.11.14"
-    lefthook-freebsd-arm64: "npm:1.11.14"
-    lefthook-freebsd-x64: "npm:1.11.14"
-    lefthook-linux-arm64: "npm:1.11.14"
-    lefthook-linux-x64: "npm:1.11.14"
-    lefthook-openbsd-arm64: "npm:1.11.14"
-    lefthook-openbsd-x64: "npm:1.11.14"
-    lefthook-windows-arm64: "npm:1.11.14"
-    lefthook-windows-x64: "npm:1.11.14"
+    lefthook-darwin-arm64: "npm:1.11.16"
+    lefthook-darwin-x64: "npm:1.11.16"
+    lefthook-freebsd-arm64: "npm:1.11.16"
+    lefthook-freebsd-x64: "npm:1.11.16"
+    lefthook-linux-arm64: "npm:1.11.16"
+    lefthook-linux-x64: "npm:1.11.16"
+    lefthook-openbsd-arm64: "npm:1.11.16"
+    lefthook-openbsd-x64: "npm:1.11.16"
+    lefthook-windows-arm64: "npm:1.11.16"
+    lefthook-windows-x64: "npm:1.11.16"
   dependenciesMeta:
     lefthook-darwin-arm64:
       optional: true
@@ -32608,7 +32608,7 @@ __metadata:
       optional: true
   bin:
     lefthook: bin/index.js
-  checksum: 10c0/bc2e7b9c895c1b9092846e0d2de8fafe88eabb82a4894eda80aee7dc50015caf4fcffa64f432d7473d417beed0025ab0824dc031d772d97b76ba14c3860589a1
+  checksum: 10c0/a199d1874e65e817ee8bdccbce329f0e9f54c987d08555ffc53e994f11209c2f8748c1df099ab2074a164252c876fec0eb927ee08e19f5f8ef4a7c779aa4bf79
   languageName: node
   linkType: hard
 
@@ -35242,19 +35242,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"next@npm:15.3.4, next@npm:>=12.0.10":
-  version: 15.3.4
-  resolution: "next@npm:15.3.4"
+"next@npm:15.3.5, next@npm:>=12.0.10":
+  version: 15.3.5
+  resolution: "next@npm:15.3.5"
   dependencies:
-    "@next/env": "npm:15.3.4"
-    "@next/swc-darwin-arm64": "npm:15.3.4"
-    "@next/swc-darwin-x64": "npm:15.3.4"
-    "@next/swc-linux-arm64-gnu": "npm:15.3.4"
-    "@next/swc-linux-arm64-musl": "npm:15.3.4"
-    "@next/swc-linux-x64-gnu": "npm:15.3.4"
-    "@next/swc-linux-x64-musl": "npm:15.3.4"
-    "@next/swc-win32-arm64-msvc": "npm:15.3.4"
-    "@next/swc-win32-x64-msvc": "npm:15.3.4"
+    "@next/env": "npm:15.3.5"
+    "@next/swc-darwin-arm64": "npm:15.3.5"
+    "@next/swc-darwin-x64": "npm:15.3.5"
+    "@next/swc-linux-arm64-gnu": "npm:15.3.5"
+    "@next/swc-linux-arm64-musl": "npm:15.3.5"
+    "@next/swc-linux-x64-gnu": "npm:15.3.5"
+    "@next/swc-linux-x64-musl": "npm:15.3.5"
+    "@next/swc-win32-arm64-msvc": "npm:15.3.5"
+    "@next/swc-win32-x64-msvc": "npm:15.3.5"
     "@swc/counter": "npm:0.1.3"
     "@swc/helpers": "npm:0.5.15"
     busboy: "npm:1.6.0"
@@ -35299,7 +35299,7 @@ __metadata:
       optional: true
   bin:
     next: dist/bin/next
-  checksum: 10c0/52d3fba6f53d5d2a339cbde433ab360301e9a0a0d9b95a656bf29ce1af43f02e9cc32571d5d4095bcb8ab7a795207d6e75c64b33fc1f90d21f2f9b157cc9a503
+  checksum: 10c0/7a397be891adb86c57fbe48403e7b4f9f26220882d01938d6e2443e984509bf5f198654249de842e4e95598930bb22f10715b432c48f92e8641d3ae241b0e6d4
   languageName: node
   linkType: hard
 
@@ -46202,10 +46202,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"zod@npm:3.25.69, zod@npm:^3.23.8":
-  version: 3.25.69
-  resolution: "zod@npm:3.25.69"
-  checksum: 10c0/05381edd0485ddebbb0d35f9193747e186dd87a58fc4747f8d12c769a4eb0acc66403af153f478dc6f424d0778cf7c9b436bf304b0939cc1ffe225210c0c6d08
+"zod@npm:3.25.71, zod@npm:^3.23.8":
+  version: 3.25.71
+  resolution: "zod@npm:3.25.71"
+  checksum: 10c0/ccb251859609e6eed04b83f96ad7b2b7a189ca78b47176cde2c368102a5416b9c472e91b3fd96ceaa5043b2e513b3aec39fd99c36686ad2ad84f6c440afca53a
   languageName: node
   linkType: hard
 

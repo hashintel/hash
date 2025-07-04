@@ -24,6 +24,7 @@ pub enum PolicyExpressionTree {
     BaseUrl(BaseUrl),
     OntologyTypeVersion(OntologyTypeVersion),
     IsOfType(VersionedUrl),
+    IsOfBaseType(BaseUrl),
     CreatedByPrincipal,
 }
 
@@ -143,6 +144,7 @@ impl PolicyExpressionTree {
             | Self::BaseUrl(_)
             | Self::OntologyTypeVersion(_)
             | Self::IsOfType(_)
+            | Self::IsOfBaseType(_)
             | Self::CreatedByPrincipal) => vec![expression],
         };
 
@@ -155,6 +157,7 @@ impl PolicyExpressionTree {
             | Self::BaseUrl(_)
             | Self::OntologyTypeVersion(_)
             | Self::IsOfType(_)
+            | Self::IsOfBaseType(_)
             | Self::CreatedByPrincipal) => all.push(expression),
         }
 
@@ -182,6 +185,7 @@ impl PolicyExpressionTree {
             | Self::BaseUrl(_)
             | Self::OntologyTypeVersion(_)
             | Self::IsOfType(_)
+            | Self::IsOfBaseType(_)
             | Self::CreatedByPrincipal) => vec![expression],
         };
 
@@ -194,6 +198,7 @@ impl PolicyExpressionTree {
             | Self::BaseUrl(_)
             | Self::OntologyTypeVersion(_)
             | Self::IsOfType(_)
+            | Self::IsOfBaseType(_)
             | Self::CreatedByPrincipal) => any.push(expression),
         }
 
@@ -390,12 +395,14 @@ impl PolicyExpressionTree {
     ) -> Result<Self, Report<ParseBinaryExpressionError>> {
         enum AttributeType {
             IsOfType,
+            IsOfBaseType,
         }
 
         let attribute_type = match lhs.expr_kind() {
             ast::ExprKind::GetAttr { expr, attr } => {
                 let attr_type = match attr.as_str() {
                     "entity_types" => Ok(AttributeType::IsOfType),
+                    "entity_base_types" => Ok(AttributeType::IsOfBaseType),
                     _ => Err(Report::new(ParseGetAttrExpressionError::InvalidAttribute(
                         attr.clone(),
                     ))),
@@ -433,6 +440,11 @@ impl PolicyExpressionTree {
                 EntityTypeId::from_euid(euid)
                     .change_context(ParseBinaryExpressionError::Right)
                     .map(|id| Self::IsOfType(id.into_url()))
+            }
+            (AttributeType::IsOfBaseType, ast::ExprKind::Lit(ast::Literal::String(base_url))) => {
+                BaseUrl::new(base_url.to_string())
+                    .change_context(ParseBinaryExpressionError::Right)
+                    .map(Self::IsOfBaseType)
             }
             _ => Err(Report::new(ParseExpressionError::Unexpected)
                 .change_context(ParseBinaryExpressionError::Right)),

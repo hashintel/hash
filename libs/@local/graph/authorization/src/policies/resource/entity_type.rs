@@ -146,6 +146,7 @@ impl TryFrom<PolicyExpressionTree> for EntityTypeResourceFilter {
             condition @ (PolicyExpressionTree::Is(_)
             | PolicyExpressionTree::In(_)
             | PolicyExpressionTree::IsOfType(_)
+            | PolicyExpressionTree::IsOfBaseType(_)
             | PolicyExpressionTree::CreatedByPrincipal) => {
                 Err(Report::new(InvalidEntityTypeResourceFilter(condition)))
             }

@@ -55,6 +55,9 @@ export type EntityResourceFilter = {
 	type: "isOfType"
 	entityType: VersionedUrl
 } | {
+	type: "isOfBaseType"
+	entityType: BaseUrl
+} | {
 	type: "createdByPrincipal"
 };
 export type EntityTypeId = string;
