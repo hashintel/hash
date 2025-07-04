@@ -142,6 +142,7 @@ const migrate: MigrationFunction = async ({
   const exampleOrg = await getOrgByShortname(context, authentication, {
     shortname: "example",
   });
+
   if (!exampleOrg) {
     await createOrg(context, authentication, {
       shortname: "example",

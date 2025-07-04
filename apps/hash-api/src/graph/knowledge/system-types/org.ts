@@ -61,14 +61,12 @@ export type Org = {
 
 function assertOrganizationEntity(
   entity: HashEntity,
-  permitOlderVersions = false,
 ): asserts entity is HashEntity<Organization> {
   if (
-    !entity.metadata.entityTypeIds.find((entityTypeId) =>
-      permitOlderVersions
-        ? extractBaseUrl(entityTypeId) ===
-          systemEntityTypes.organization.entityTypeBaseUrl
-        : entityTypeId === systemEntityTypes.organization.entityTypeId,
+    !entity.metadata.entityTypeIds.some(
+      (entityTypeId) =>
+        extractBaseUrl(entityTypeId) ===
+        systemEntityTypes.organization.entityTypeBaseUrl,
     )
   ) {
     throw new EntityTypeMismatchError(
@@ -80,10 +78,10 @@ function assertOrganizationEntity(
 }
 
 export const getOrgFromEntity: PureGraphFunction<
-  { entity: HashEntity; permitOlderVersions?: boolean },
+  { entity: HashEntity },
   Org
-> = ({ entity, permitOlderVersions }) => {
-  assertOrganizationEntity(entity, permitOlderVersions);
+> = ({ entity }) => {
+  assertOrganizationEntity(entity);
 
   const { organizationName: orgName, shortname } = simplifyProperties(
     entity.properties,

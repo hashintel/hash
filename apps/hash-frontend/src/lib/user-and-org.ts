@@ -20,6 +20,7 @@ import type {
 } from "@blockprotocol/type-system";
 import {
   currentTimestamp,
+  extractBaseUrl,
   extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
 import type { HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
@@ -87,7 +88,10 @@ export type MinimalUser = {
 export const isEntityUserEntity = (
   entity: Entity,
 ): entity is Entity<UserEntity> =>
-  entity.metadata.entityTypeIds.includes(systemEntityTypes.user.entityTypeId);
+  entity.metadata.entityTypeIds.some(
+    (entityTypeId) =>
+      extractBaseUrl(entityTypeId) === systemEntityTypes.user.entityTypeBaseUrl,
+  );
 
 export const constructMinimalUser = (params: {
   userEntity: Entity<UserEntity>;
@@ -146,8 +150,10 @@ export type Org = MinimalOrg & {
 export const isEntityOrgEntity = (
   entity: Entity,
 ): entity is Entity<Organization> =>
-  entity.metadata.entityTypeIds.includes(
-    systemEntityTypes.organization.entityTypeId,
+  entity.metadata.entityTypeIds.some(
+    (entityTypeId) =>
+      extractBaseUrl(entityTypeId) ===
+      systemEntityTypes.organization.entityTypeBaseUrl,
   );
 
 /**

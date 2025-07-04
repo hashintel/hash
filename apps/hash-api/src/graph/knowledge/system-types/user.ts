@@ -1,5 +1,6 @@
 import type { EntityId, EntityUuid, UserId } from "@blockprotocol/type-system";
 import {
+  extractBaseUrl,
   extractEntityUuidFromEntityId,
   extractWebIdFromEntityId,
 } from "@blockprotocol/type-system";
@@ -88,7 +89,11 @@ function assertUserEntity(
   entity: HashEntity,
 ): asserts entity is HashEntity<UserEntity> {
   if (
-    !entity.metadata.entityTypeIds.includes(systemEntityTypes.user.entityTypeId)
+    !entity.metadata.entityTypeIds.some(
+      (entityTypeId) =>
+        extractBaseUrl(entityTypeId) ===
+        systemEntityTypes.user.entityTypeBaseUrl,
+    )
   ) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
