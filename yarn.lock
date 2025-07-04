@@ -8976,7 +8976,7 @@ __metadata:
     "@rust/hash-graph-api": "npm:0.0.0-private"
     "@types/node": "npm:22.16.0"
     axios: "npm:1.10.0"
-    fix-esm-import-path: "npm:1.10.1"
+    fix-esm-import-path: "npm:1.10.2"
     rimraf: "npm:6.0.1"
     typescript: "npm:5.7.3"
   languageName: unknown
@@ -9032,7 +9032,7 @@ __metadata:
     apollo-server-express: "npm:3.9.0"
     big.js: "npm:7.0.1"
     eslint: "npm:9.20.1"
-    fix-esm-import-path: "npm:1.10.1"
+    fix-esm-import-path: "npm:1.10.2"
     fractional-indexing: "npm:2.1.0"
     graphql: "npm:16.11.0"
     immer: "npm:9.0.21"
@@ -27768,14 +27768,14 @@ __metadata:
   languageName: node
   linkType: hard
 
-"fix-esm-import-path@npm:1.10.1":
-  version: 1.10.1
-  resolution: "fix-esm-import-path@npm:1.10.1"
+"fix-esm-import-path@npm:1.10.2":
+  version: 1.10.2
+  resolution: "fix-esm-import-path@npm:1.10.2"
   dependencies:
     debug: "npm:^4.3.2"
   bin:
     fix-esm-import-path: fix-esm-import-path.js
-  checksum: 10c0/d3515eddba64bf039e629b45100322d5ceac752c447ba00600616afd919e8466ee92189e1182d8e5a001fb521be98f5787cf4a35fb6fae89eee7cc01ae38c787
+  checksum: 10c0/b7c869cfd92e776403162756141618a5af3c0bff2479ff2fff774123e13c7677930dd117b5d7d137838507d90f239ce63736b908ce8490000623819e0ad7c690
   languageName: node
   linkType: hard
 
