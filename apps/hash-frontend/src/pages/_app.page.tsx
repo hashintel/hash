@@ -286,6 +286,12 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
       // ...then redirect them to the home page.
       redirectInGetInitialProps({ appContext, location: "/" });
     }
+  } else if (redirectIfAuthenticatedPathnames.includes(pathname)) {
+    /**
+     * If the user has completed signup and is on a page they shouldn't be on
+     * (e.g. /signup), then redirect them to the home page.
+     */
+    redirectInGetInitialProps({ appContext, location: "/" });
   }
 
   // For each feature flag...
@@ -310,10 +316,6 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
         redirectInGetInitialProps({ appContext, location: "/" });
       }
     }
-  }
-
-  if (redirectIfAuthenticatedPathnames.includes(pathname)) {
-    redirectInGetInitialProps({ appContext, location: "/" });
   }
 
   return { initialAuthenticatedUserSubgraph, user };
