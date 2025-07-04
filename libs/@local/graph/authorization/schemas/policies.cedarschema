@@ -17,6 +17,7 @@ namespace HASH {
   entity EntityType in [Web] {
     base_url: String,
     version: Long,
+    is_remote: Bool,
   };
 
   entity User, Machine, Ai in [HASH::Web::Role, HASH::Team::Role] {
@@ -47,9 +48,19 @@ namespace HASH {
     resource: [Entity],
   };
 
+  action createEntityType in [create] appliesTo {
+    principal: [User, Machine, Ai],
+    resource: [EntityType],
+  };
+
   action viewEntity in [view] appliesTo {
     principal: [User, Machine, Ai, Public],
     resource: [Entity],
+  };
+
+  action viewEntityType in [view] appliesTo {
+    principal: [User, Machine, Ai, Public],
+    resource: [EntityType],
   };
 
   action updateEntity in [update] appliesTo {
@@ -57,13 +68,18 @@ namespace HASH {
     resource: [Entity],
   };
 
+  action updateEntityType in [update] appliesTo {
+    principal: [User, Machine, Ai],
+    resource: [EntityType],
+  };
+
   action archiveEntity in [archive] appliesTo {
     principal: [User, Machine, Ai],
     resource: [Entity],
   };
 
-  action viewEntityType in [view] appliesTo {
-    principal: [User, Machine, Ai, Public],
+  action archiveEntityType in [archive] appliesTo {
+    principal: [User, Machine, Ai],
     resource: [EntityType],
   };
 

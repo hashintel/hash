@@ -26,7 +26,10 @@ use postgres_types::ToSql;
 use tokio_postgres::GenericClient as _;
 use tracing::Instrument as _;
 use type_system::{
-    knowledge::entity::id::{EntityEditionId, EntityId, EntityUuid},
+    knowledge::{
+        Entity,
+        entity::id::{EntityEditionId, EntityId, EntityUuid},
+    },
     ontology::id::{BaseUrl, OntologyTypeUuid},
     principal::actor_group::WebId,
 };
@@ -347,7 +350,7 @@ where
                 // TODO: Ideally, we'd incorporate the filter in the above query, but that's
                 //       not easily possible as the query above uses features that the query
                 //       compiler does not support yet.
-                let permission_filter = Filter::for_policies(
+                let permission_filter = Filter::<Entity>::for_policies(
                     policy_components.extract_filter_policies(ActionName::ViewEntity),
                     policy_components.actor_id(),
                     policy_components.optimization_data(ActionName::ViewEntity),

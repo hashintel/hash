@@ -85,6 +85,10 @@ impl EntityTypeResource<'_> {
                     SmolStr::new_static("version"),
                     ast::RestrictedExpr::val(i64::from(self.id.as_url().version.inner())),
                 ),
+                (
+                    SmolStr::new_static("is_remote"),
+                    ast::RestrictedExpr::val(self.web_id.is_none()),
+                ),
             ],
             HashSet::new(),
             self.web_id
@@ -113,6 +117,8 @@ pub enum EntityTypeResourceFilter {
     IsBaseUrl { base_url: BaseUrl },
     #[serde(rename_all = "camelCase")]
     IsVersion { version: OntologyTypeVersion },
+    #[serde(rename_all = "camelCase")]
+    IsRemote,
 }
 
 #[derive(Debug, derive_more::Display)]
@@ -181,6 +187,10 @@ impl ToCedarExpr for EntityTypeResourceFilter {
                     SmolStr::new_static("version"),
                 ),
                 ast::Expr::val(version.inner().to_string()),
+            ),
+            Self::IsRemote => ast::Expr::get_attr(
+                ast::Expr::var(ast::Var::Resource),
+                SmolStr::new_static("is_remote"),
             ),
         }
     }

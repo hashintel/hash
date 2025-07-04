@@ -10,10 +10,7 @@ use hash_graph_authorization::{
     policies::{
         Authorized, PolicyComponents, Request, RequestContext, ResourceId, action::ActionName,
     },
-    schema::{
-        EntityTypeOwnerSubject, EntityTypePermission, EntityTypeRelationAndSubject, WebPermission,
-    },
-    zanzibar::Consistency,
+    schema::{EntityTypeOwnerSubject, EntityTypeRelationAndSubject},
 };
 use hash_graph_store::{
     entity::ClosedMultiEntityTypeMap,
@@ -28,7 +25,7 @@ use hash_graph_store::{
     error::{InsertionError, QueryError, UpdateError},
     filter::{Filter, FilterExpression, ParameterList},
     property_type::{GetPropertyTypeSubgraphParams, PropertyTypeStore as _},
-    query::{Ordering, QueryResult as _, Read, ReadPaginated, VersionedUrlSorting},
+    query::{Ordering, QueryResult as _, Read, VersionedUrlSorting},
     subgraph::{
         Subgraph, SubgraphRecord as _,
         edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind, OutgoingEdgeResolveDepth},
@@ -41,6 +38,7 @@ use hash_graph_store::{
 };
 use hash_graph_temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTime};
 use hash_graph_types::{Embedding, ontology::OntologyTypeProvider};
+use hash_status::StatusCode;
 use postgres_types::{Json, ToSql};
 use serde::Deserialize as _;
 use serde_json::Value as JsonValue;
@@ -71,9 +69,11 @@ use crate::store::{
     error::DeletionError,
     postgres::{
         AsClient, PostgresStore, ResponseCountMap, TraversalContext,
-        crud::QueryRecordDecode,
+        crud::{QueryIndices, QueryRecordDecode, TypedRow},
         ontology::{PostgresOntologyOwnership, read::OntologyTypeTraversalData},
-        query::{Distinctness, PostgresRecord, ReferenceTable, SelectCompiler, Table},
+        query::{
+            Distinctness, PostgresRecord, PostgresSorting, ReferenceTable, SelectCompiler, Table,
+        },
     },
     validation::StoreProvider,
 };
@@ -87,6 +87,7 @@ where
     pub(crate) async fn filter_entity_types_by_permission<I, T>(
         entity_types: impl IntoIterator<Item = (I, T)> + Send,
         provider: &StoreProvider<'_, Self>,
+        temporal_axes: QueryTemporalAxes,
     ) -> Result<impl Iterator<Item = T>, Report<QueryError>>
     where
         I: Into<EntityTypeUuid> + Send,
@@ -98,21 +99,42 @@ where
             .unzip();
 
         let permissions = if let Some(policy_components) = provider.policy_components {
+            let mut compiler = SelectCompiler::new(Some(&temporal_axes), true);
+
+            let entity_type_ids_filter = Filter::for_entity_type_uuids(&ids);
+            compiler
+                .add_filter(&entity_type_ids_filter)
+                .change_context(QueryError)?;
+
+            // TODO: Ideally, we'd incorporate the filter in the caller function, but that's not
+            //       easily possible as the query there uses features that the query compiler does
+            //       not support yet.
+            let permission_filter = Filter::<EntityTypeWithMetadata>::for_policies(
+                policy_components.extract_filter_policies(ActionName::ViewEntityType),
+                policy_components.optimization_data(ActionName::ViewEntityType),
+            );
+            compiler
+                .add_filter(&permission_filter)
+                .change_context(QueryError)?;
+
+            let entity_type_uuid_idx =
+                compiler.add_selection_path(&EntityTypeQueryPath::OntologyId);
+
+            let (statement, parameters) = compiler.compile();
+
             Some(
                 provider
                     .store
-                    .authorization_api
-                    .check_entity_types_permission(
-                        policy_components
-                            .actor_id()
-                            .map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from),
-                        EntityTypePermission::View,
-                        ids.iter().copied(),
-                        Consistency::FullyConsistent,
-                    )
+                    .as_client()
+                    .query_raw(&statement, parameters.iter().copied())
+                    .instrument(tracing::trace_span!("query_permitted_entity_type_uuids"))
                     .await
                     .change_context(QueryError)?
-                    .0,
+                    .map_ok(|row| row.get::<_, EntityTypeUuid>(entity_type_uuid_idx))
+                    .try_collect::<HashSet<_>>()
+                    .instrument(tracing::trace_span!("collect_permitted_entity_type_uuids"))
+                    .await
+                    .change_context(QueryError)?,
             )
         } else {
             None
@@ -126,11 +148,7 @@ where
                     return Some(entity_type);
                 };
 
-                permissions
-                    .get(&id)
-                    .copied()
-                    .unwrap_or(false)
-                    .then_some(entity_type)
+                permissions.contains(&id).then_some(entity_type)
             }))
     }
 
@@ -393,16 +411,29 @@ where
     #[expect(clippy::too_many_lines)]
     async fn get_entity_types_impl(
         &self,
-        actor_id: ActorEntityUuid,
         params: GetEntityTypesParams<'_>,
         temporal_axes: &QueryTemporalAxes,
+        policy_components: &PolicyComponents,
     ) -> Result<GetEntityTypesResponse, Report<QueryError>> {
+        let policy_filter = Filter::<EntityTypeWithMetadata>::for_policies(
+            policy_components.extract_filter_policies(ActionName::ViewEntityType),
+            policy_components.optimization_data(ActionName::ViewEntityType),
+        );
+
+        let mut compiler = SelectCompiler::new(Some(temporal_axes), params.include_drafts);
+        compiler
+            .add_filter(&policy_filter)
+            .change_context(QueryError)?;
+        compiler
+            .add_filter(&params.filter)
+            .change_context(QueryError)?;
+
+        let ontology_id_idx = compiler.add_selection_path(&EntityTypeQueryPath::OntologyId);
+
         let (count, web_ids, edition_created_by_ids) = if params.include_count
             || params.include_web_ids
             || params.include_edition_created_by_ids
         {
-            let mut compiler = SelectCompiler::new(Some(temporal_axes), params.include_drafts);
-            let ontology_id_idx = compiler.add_selection_path(&EntityTypeQueryPath::OntologyId);
             let web_id_idx = params
                 .include_web_ids
                 .then(|| compiler.add_selection_path(&EntityTypeQueryPath::WebId));
@@ -410,50 +441,23 @@ where
                 compiler.add_selection_path(&EntityTypeQueryPath::EditionProvenance(None))
             });
 
-            compiler
-                .add_filter(&params.filter)
-                .change_context(QueryError)?;
-
             let (statement, parameters) = compiler.compile();
 
-            let entity_types = self
+            let entity_type_rows = self
                 .as_client()
-                .query_raw(&statement, parameters.iter().copied())
+                .query(&statement, parameters)
                 .instrument(tracing::trace_span!("query"))
                 .await
-                .change_context(QueryError)?
-                .map(|row| row.change_context(QueryError))
-                .map_ok(move |row| (row.get(ontology_id_idx), row))
-                .try_collect::<HashMap<EntityTypeUuid, _>>()
-                .await?;
-
-            let (permissions, _zookie) = self
-                .authorization_api
-                .check_entity_types_permission(
-                    actor_id,
-                    EntityTypePermission::View,
-                    entity_types.keys().copied(),
-                    Consistency::FullyConsistent,
-                )
-                .await
                 .change_context(QueryError)?;
-
-            let permitted_ids = permissions
-                .into_iter()
-                .filter_map(|(entity_type_id, has_permission)| {
-                    has_permission.then_some(entity_type_id)
-                })
-                .collect::<HashSet<_>>();
 
             let mut web_ids = params.include_web_ids.then(ResponseCountMap::default);
             let mut edition_created_by_ids = params
                 .include_edition_created_by_ids
                 .then(ResponseCountMap::default);
 
-            let count = entity_types
+            let count = entity_type_rows
                 .into_iter()
-                .filter(|(entity_type_id, _)| permitted_ids.contains(entity_type_id))
-                .inspect(|(_, row)| {
+                .inspect(|row| {
                     if let Some((web_ids, web_id_idx)) = web_ids.as_mut().zip(web_id_idx) {
                         let web_id: WebId = row.get(web_id_idx);
                         web_ids.extend_one(web_id);
@@ -477,67 +481,66 @@ where
             (None, None, None)
         };
 
+        if let Some(limit) = params.limit {
+            compiler.set_limit(limit);
+        }
+
+        let sorting = VersionedUrlSorting {
+            cursor: params.after,
+        };
+        let cursor_parameters = PostgresSorting::<EntityTypeWithMetadata>::encode(&sorting)
+            .change_context(QueryError)?;
+        let cursor_indices = sorting
+            .compile(&mut compiler, cursor_parameters.as_ref(), temporal_axes)
+            .change_context(QueryError)?;
+
+        let record_indices = EntityTypeWithMetadata::compile(&mut compiler, &());
+
+        let (statement, parameters) = compiler.compile();
+
+        let rows = self
+            .as_client()
+            .query(&statement, parameters)
+            .instrument(tracing::info_span!(
+                "query_entity_types",
+                statement_length = statement.len(),
+                param_count = parameters.len()
+            ))
+            .await
+            .change_context(QueryError)?;
+        let indices = QueryIndices::<EntityTypeWithMetadata, VersionedUrlSorting> {
+            record_indices,
+            cursor_indices,
+        };
+
         // TODO: Remove again when subgraph logic was revisited
         //   see https://linear.app/hash/issue/H-297
         let mut visited_ontology_ids = HashSet::new();
-
-        let (data, artifacts) =
-            ReadPaginated::<EntityTypeWithMetadata, VersionedUrlSorting>::read_paginated_vec(
-                self,
-                &[params.filter],
-                Some(temporal_axes),
-                &VersionedUrlSorting {
-                    cursor: params.after,
-                },
-                params.limit,
-                params.include_drafts,
-            )
-            .await?;
-        let entity_types = data
-            .into_iter()
-            .filter_map(|row| {
-                let entity_type = row.decode_record(&artifacts);
-                let id = EntityTypeUuid::from_url(&entity_type.schema.id);
-                // The records are already sorted by time, so we can just take the first one
-                visited_ontology_ids.insert(id).then_some((id, entity_type))
-            })
-            .collect::<Vec<_>>();
-
-        let filtered_ids = entity_types
-            .iter()
-            .map(|(entity_type_id, _)| *entity_type_id)
-            .collect::<Vec<_>>();
-
-        let (permissions, _zookie) = self
-            .authorization_api
-            .check_entity_types_permission(
-                actor_id,
-                EntityTypePermission::View,
-                filtered_ids,
-                Consistency::FullyConsistent,
-            )
-            .await
-            .change_context(QueryError)?;
-
-        let entity_types = entity_types
-            .into_iter()
-            .filter_map(|(id, entity_type)| {
-                permissions
-                    .get(&id)
-                    .copied()
-                    .unwrap_or(false)
-                    .then_some(entity_type)
-            })
-            .collect::<Vec<_>>();
+        let (entity_types, cursor) = {
+            let _span =
+                tracing::trace_span!("process_query_results", row_count = rows.len()).entered();
+            let mut cursor = None;
+            let num_rows = rows.len();
+            let entity_types = rows
+                .into_iter()
+                .enumerate()
+                .filter_map(|(idx, row)| {
+                    let id = row.get::<_, EntityTypeUuid>(ontology_id_idx);
+                    let typed_row = TypedRow::<EntityTypeWithMetadata, VersionedUrl>::from(row);
+                    // The records are already sorted by time, so we can just take the first one
+                    if idx == num_rows - 1 && params.limit == Some(num_rows) {
+                        cursor = Some(typed_row.decode_cursor(&indices));
+                    }
+                    visited_ontology_ids
+                        .insert(id)
+                        .then(|| typed_row.decode_record(&indices))
+                })
+                .collect::<Vec<_>>();
+            (entity_types, cursor)
+        };
 
         Ok(GetEntityTypesResponse {
-            cursor: if params.limit.is_some() {
-                entity_types
-                    .last()
-                    .map(|entity_type| entity_type.schema.id.clone())
-            } else {
-                None
-            },
+            cursor,
             entity_types,
             closed_entity_types: params.include_entity_types.is_some().then(Vec::new),
             definitions: (params.include_entity_types == Some(IncludeEntityTypeOption::Resolved))
@@ -690,6 +693,7 @@ where
                             )
                             .await?,
                             provider,
+                            subgraph.temporal_axes.resolved.clone(),
                         )
                         .await?
                         .flat_map(|edge| {
@@ -791,6 +795,8 @@ where
         let mut inserted_entity_types = Vec::new();
         let mut entity_type_reference_ids = Vec::new();
 
+        let mut policy_components_builder = PolicyComponents::builder(&transaction);
+
         for parameters in params {
             let provenance = OntologyProvenance {
                 edition: OntologyEditionProvenance {
@@ -804,19 +810,6 @@ where
             let entity_type_id = EntityTypeUuid::from_url(&parameters.schema.id);
 
             if let OntologyOwnership::Local { web_id } = &parameters.ownership {
-                transaction
-                    .authorization_api
-                    .check_web_permission(
-                        actor_id,
-                        WebPermission::CreateEntityType,
-                        *web_id,
-                        Consistency::FullyConsistent,
-                    )
-                    .await
-                    .change_context(InsertionError)?
-                    .assert_permission()
-                    .change_context(InsertionError)?;
-
                 relationships.insert((
                     entity_type_id,
                     EntityTypeRelationAndSubject::Owner {
@@ -824,6 +817,10 @@ where
                         level: 0,
                     },
                 ));
+
+                policy_components_builder.add_entity_type(&parameters.schema.id, Some(*web_id));
+            } else {
+                policy_components_builder.add_entity_type(&parameters.schema.id, None);
             }
 
             relationships.extend(
@@ -858,9 +855,44 @@ where
             }
         }
 
+        let policy_components = policy_components_builder
+            .with_actor(actor_id)
+            .with_actions([ActionName::CreateEntityType], false)
+            .await
+            .change_context(InsertionError)?;
+
+        let policy_set = policy_components
+            .build_policy_set([ActionName::CreateEntityType])
+            .change_context(InsertionError)?;
+
         let mut ontology_type_resolver = OntologyTypeResolver::default();
 
         for (entity_type_id, inserted_entity_type) in &inserted_entity_types {
+            match policy_set
+                .evaluate(
+                    &Request {
+                        actor: policy_components.actor_id(),
+                        action: ActionName::CreateEntityType,
+                        resource: &ResourceId::EntityType(Cow::Borrowed(
+                            (&inserted_entity_type.id).into(),
+                        )),
+                        context: RequestContext::default(),
+                    },
+                    policy_components.context(),
+                )
+                .change_context(InsertionError)?
+            {
+                Authorized::Always => {}
+                Authorized::Never => {
+                    return Err(Report::new(InsertionError)
+                        .attach(StatusCode::PermissionDenied)
+                        .attach_printable(format!(
+                            "The actor does not have permission to create the entity type `{}`",
+                            inserted_entity_type.id
+                        )));
+                }
+            }
+
             ontology_type_resolver
                 .add_unresolved_entity_type(*entity_type_id, Arc::clone(inserted_entity_type));
         }
@@ -1023,6 +1055,7 @@ where
     ) -> Result<usize, Report<QueryError>> {
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor_id)
+            .with_action(ActionName::ViewEntityType, true)
             .await
             .change_context(QueryError)?;
 
@@ -1032,13 +1065,32 @@ where
             .await
             .change_context(QueryError)?;
 
+        let policy_filter = Filter::<EntityTypeWithMetadata>::for_policies(
+            policy_components.extract_filter_policies(ActionName::ViewEntityType),
+            policy_components.optimization_data(ActionName::ViewEntityType),
+        );
+
+        let temporal_axes = params.temporal_axes.resolve();
+        let mut compiler = SelectCompiler::new(Some(&temporal_axes), params.include_drafts);
+        compiler
+            .add_filter(&policy_filter)
+            .change_context(QueryError)?;
+        compiler
+            .add_filter(&params.filter)
+            .change_context(QueryError)?;
+
+        let (statement, parameters) = compiler.compile();
+
         Ok(self
-            .read(
-                &[params.filter],
-                Some(&params.temporal_axes.resolve()),
-                params.include_drafts,
-            )
-            .await?
+            .as_client()
+            .query_raw(&statement, parameters.iter().copied())
+            .instrument(tracing::info_span!(
+                "count_entity_types",
+                statement_length = statement.len(),
+                param_count = parameters.len()
+            ))
+            .await
+            .change_context(QueryError)?
             .count()
             .await)
     }
@@ -1050,6 +1102,7 @@ where
     ) -> Result<GetEntityTypesResponse, Report<QueryError>> {
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor_id)
+            .with_action(ActionName::ViewEntityType, true)
             .await
             .change_context(QueryError)?;
 
@@ -1063,7 +1116,7 @@ where
         let temporal_axes = params.temporal_axes.clone();
         let resolved_temporal_axes = temporal_axes.clone().resolve();
         let mut response = self
-            .get_entity_types_impl(actor_id, params, &resolved_temporal_axes)
+            .get_entity_types_impl(params, &resolved_temporal_axes, &policy_components)
             .await?;
 
         if let Some(include_entity_types) = include_entity_types {
@@ -1235,6 +1288,7 @@ where
     ) -> Result<GetEntityTypeSubgraphResponse, Report<QueryError>> {
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor_id)
+            .with_action(ActionName::ViewEntityType, true)
             .await
             .change_context(QueryError)?;
 
@@ -1259,7 +1313,6 @@ where
             edition_created_by_ids,
         } = self
             .get_entity_types_impl(
-                actor_id,
                 GetEntityTypesParams {
                     filter: params.filter,
                     temporal_axes: params.temporal_axes.clone(),
@@ -1272,6 +1325,7 @@ where
                     include_edition_created_by_ids: params.include_edition_created_by_ids,
                 },
                 &temporal_axes,
+                &policy_components,
             )
             .await?;
 
@@ -1349,6 +1403,8 @@ where
         let mut inserted_entity_types = Vec::new();
         let mut entity_type_reference_ids = Vec::new();
 
+        let mut old_entity_type_ids = Vec::new();
+
         for parameters in params {
             let provenance = OntologyProvenance {
                 edition: OntologyEditionProvenance {
@@ -1358,7 +1414,7 @@ where
                 },
             };
 
-            let old_ontology_id = EntityTypeUuid::from_url(&VersionedUrl {
+            old_entity_type_ids.push(VersionedUrl {
                 base_url: parameters.schema.id.base_url.clone(),
                 version: OntologyTypeVersion::new(
                     parameters
@@ -1374,21 +1430,9 @@ where
                         )?,
                 ),
             });
+
             let record_id = OntologyTypeRecordId::from(parameters.schema.id.clone());
             let entity_type_id = EntityTypeUuid::from_url(&parameters.schema.id);
-
-            transaction
-                .authorization_api
-                .check_entity_type_permission(
-                    actor_id,
-                    EntityTypePermission::Update,
-                    old_ontology_id,
-                    Consistency::FullyConsistent,
-                )
-                .await
-                .change_context(UpdateError)?
-                .assert_permission()
-                .change_context(UpdateError)?;
 
             let (_ontology_id, web_id, temporal_versioning) = transaction
                 .update_owned_ontology_id(&parameters.schema.id, &provenance.edition)
@@ -1416,6 +1460,42 @@ where
                 temporal_versioning,
                 provenance,
             });
+        }
+
+        let policy_components = PolicyComponents::builder(&transaction)
+            .with_actor(actor_id)
+            .with_entity_type_ids(&old_entity_type_ids)
+            .with_actions([ActionName::UpdateEntityType], false)
+            .await
+            .change_context(UpdateError)?;
+
+        let policy_set = policy_components
+            .build_policy_set([ActionName::UpdateEntityType])
+            .change_context(UpdateError)?;
+
+        for entity_type_id in &old_entity_type_ids {
+            match policy_set
+                .evaluate(
+                    &Request {
+                        actor: policy_components.actor_id(),
+                        action: ActionName::UpdateEntityType,
+                        resource: &ResourceId::EntityType(Cow::Borrowed(entity_type_id.into())),
+                        context: RequestContext::default(),
+                    },
+                    policy_components.context(),
+                )
+                .change_context(UpdateError)?
+            {
+                Authorized::Always => {}
+                Authorized::Never => {
+                    return Err(Report::new(UpdateError)
+                        .attach(StatusCode::PermissionDenied)
+                        .attach_printable(format!(
+                            "The actor does not have permission to update the entity type \
+                             `{entity_type_id}`"
+                        )));
+                }
+            }
         }
 
         let mut ontology_type_resolver = OntologyTypeResolver::default();
@@ -1757,6 +1837,7 @@ where
             .with_actor(authenticated_user)
             .with_entity_type_ids(entity_type_ids.iter())
             .with_action(ActionName::Instantiate, false)
+            .with_action(ActionName::ViewEntityType, true)
             .await
             .change_context(QueryError)?;
 

@@ -30,6 +30,8 @@ use type_system::{
     },
 };
 
+use super::PostgresStore;
+
 struct EntityTypeConfig {
     base_url: BaseUrl,
 }
@@ -124,8 +126,6 @@ static GOOGLE_ACCOUNT: LazyLock<EntityTypeConfig> =
 static LINEAR_INTEGRATION: LazyLock<EntityTypeConfig> = LazyLock::new(|| {
     EntityTypeConfig::new("https://hash.ai/@h/types/entity-type/linear-integration/")
 });
-
-use super::PostgresStore;
 
 pub(crate) fn system_actor_create_web_policy(
     system_machine_actor: MachineId,
@@ -304,6 +304,29 @@ fn global_view_entity_policies() -> impl Iterator<Item = PolicyCreationParams> {
     public_policies.chain(authenticated_actor_policies)
 }
 
+fn global_view_ontology_policies() -> impl Iterator<Item = PolicyCreationParams> {
+    [ActorType::User, ActorType::Machine]
+        .into_iter()
+        .map(|actor_type| PolicyCreationParams {
+            name: Some("authenticated-create-external-ontology".to_owned()),
+            effect: Effect::Permit,
+            principal: Some(PrincipalConstraint::ActorType { actor_type }),
+            actions: vec![ActionName::CreateEntityType],
+            resource: Some(ResourceConstraint::EntityType(
+                EntityTypeResourceConstraint::Any {
+                    filter: EntityTypeResourceFilter::IsRemote,
+                },
+            )),
+        })
+        .chain(iter::once(PolicyCreationParams {
+            name: Some("public-view-ontology".to_owned()),
+            effect: Effect::Permit,
+            principal: None,
+            actions: vec![ActionName::ViewEntityType],
+            resource: None,
+        }))
+}
+
 fn global_update_entity_policies() -> impl Iterator<Item = PolicyCreationParams> {
     [
         PolicyCreationParams {
@@ -379,6 +402,7 @@ fn global_archive_entity_policies() -> impl Iterator<Item = PolicyCreationParams
 pub(crate) fn global_policies() -> impl Iterator<Item = PolicyCreationParams> {
     global_instantiate_policies()
         .chain(global_view_entity_policies())
+        .chain(global_view_ontology_policies())
         .chain(global_update_entity_policies())
         .chain(global_archive_entity_policies())
 }
@@ -578,6 +602,51 @@ fn web_archive_entity_policies(role: &WebRole) -> impl Iterator<Item = PolicyCre
         })),
     })
 }
+fn web_crud_ontology_policies(role: &WebRole) -> impl Iterator<Item = PolicyCreationParams> {
+    let mut filters = vec![
+        PolicyCreationParams {
+            name: Some("default-create-web-ontology".to_owned()),
+            effect: Effect::Permit,
+            principal: Some(PrincipalConstraint::Role {
+                role: RoleId::Web(role.id),
+                actor_type: None,
+            }),
+            actions: vec![ActionName::CreateEntityType],
+            resource: Some(ResourceConstraint::Web {
+                web_id: role.web_id,
+            }),
+        },
+        PolicyCreationParams {
+            name: Some("default-update-web-ontology".to_owned()),
+            effect: Effect::Permit,
+            principal: Some(PrincipalConstraint::Role {
+                role: RoleId::Web(role.id),
+                actor_type: None,
+            }),
+            actions: vec![ActionName::UpdateEntityType],
+            resource: Some(ResourceConstraint::Web {
+                web_id: role.web_id,
+            }),
+        },
+    ];
+
+    if role.name == RoleName::Administrator {
+        filters.push(PolicyCreationParams {
+            name: Some("default-archive-web-ontology".to_owned()),
+            effect: Effect::Permit,
+            principal: Some(PrincipalConstraint::Role {
+                role: RoleId::Web(role.id),
+                actor_type: None,
+            }),
+            actions: vec![ActionName::ArchiveEntityType],
+            resource: Some(ResourceConstraint::Web {
+                web_id: role.web_id,
+            }),
+        });
+    }
+
+    filters.into_iter()
+}
 
 // TODO: Returning an iterator causes a borrow checker error
 pub(crate) fn web_policies(role: &WebRole) -> Vec<PolicyCreationParams> {
@@ -585,6 +654,7 @@ pub(crate) fn web_policies(role: &WebRole) -> Vec<PolicyCreationParams> {
         .chain(web_view_entity_policies(role))
         .chain(web_update_entity_policies(role))
         .chain(web_archive_entity_policies(role))
+        .chain(web_crud_ontology_policies(role))
         .collect()
 }
 

@@ -13,7 +13,7 @@ export interface Policy {
 }
 import type { Brand } from "@local/advanced-types/brand";
 export type PolicyId = Brand<string, "PolicyId">;
-export type ActionName = "createEntity" | "createWeb" | "viewEntity" | "updateEntity" | "archiveEntity" | "instantiate";
+export type ActionName = "createEntity" | "createEntityType" | "createWeb" | "viewEntity" | "viewEntityType" | "updateEntity" | "updateEntityType" | "archiveEntity" | "archiveEntityType" | "instantiate";
 export type PrincipalConstraint = {
 	type: "actor"
 } & ActorId | {
@@ -84,6 +84,8 @@ export type EntityTypeResourceFilter = {
 } | {
 	type: "isVersion"
 	version: OntologyTypeVersion
+} | {
+	type: "isRemote"
 };
 export interface PolicyCreationParams {
 	name?: string;
