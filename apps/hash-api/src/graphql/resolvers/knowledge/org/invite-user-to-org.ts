@@ -31,6 +31,7 @@ import { ApolloError } from "apollo-server-errors";
 import dedent from "dedent";
 
 import type { EmailTransporter } from "../../../../email/transporters";
+import { isActorGroupAdministrator } from "../../../../graph/account-permission-management";
 import {
   createEntity,
   getEntitySubgraphResponse,
@@ -218,14 +219,10 @@ export const inviteUserToOrgResolver: ResolverFn<
     );
   }
 
-  const isOrgAdmin = await context.graphApi
-    .hasActorGroupRole(
-      authentication.actorId,
-      org.webId,
-      "administrator",
-      authentication.actorId,
-    )
-    .then(({ data }) => data);
+  const isOrgAdmin = await isActorGroupAdministrator(context, authentication, {
+    actorId: authentication.actorId,
+    actorGroupId: org.webId,
+  });
 
   if (!isOrgAdmin) {
     throw new ApolloError(
