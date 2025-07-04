@@ -357,7 +357,6 @@ const migrate: MigrationFunction = async ({
 
   const hashOrg = await getOrgByShortname(context, authentication, {
     shortname: "h",
-    permitOlderVersions: true,
   });
   if (!hashOrg) {
     throw new Error(
