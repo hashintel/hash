@@ -773,13 +773,13 @@ where
 {
     async fn create_entities<R>(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_uuid: ActorEntityUuid,
         params: Vec<CreateEntityParams<R>>,
     ) -> Result<Vec<Entity>, Report<InsertionError>>
     where
         R: IntoIterator<Item = EntityRelationAndSubject> + Send + Sync,
     {
-        self.store.create_entities(actor_id, params).await
+        self.store.create_entities(actor_uuid, params).await
     }
 
     async fn validate_entities(

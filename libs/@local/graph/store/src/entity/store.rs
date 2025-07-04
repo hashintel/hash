@@ -434,7 +434,7 @@ pub trait EntityStore {
     /// Creates new [`Entities`][Entity].
     fn create_entities<R>(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_uuid: ActorEntityUuid,
         params: Vec<CreateEntityParams<R>>,
     ) -> impl Future<Output = Result<Vec<Entity>, Report<InsertionError>>> + Send
     where
