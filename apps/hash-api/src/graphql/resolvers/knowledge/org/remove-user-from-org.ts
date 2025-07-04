@@ -1,7 +1,4 @@
-import {
-  type ActorGroupEntityUuid,
-  entityIdFromComponents,
-} from "@blockprotocol/type-system";
+import { entityIdFromComponents } from "@blockprotocol/type-system";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import type { MutationRemoveUserFromOrgArgs } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -108,7 +105,7 @@ export const removeUserFromOrgResolver: ResolverFn<
   await Promise.all([
     removeActorGroupMember(context, authentication, {
       actorId: user.accountId,
-      actorGroupId: orgWebId as ActorGroupEntityUuid,
+      actorGroupId: orgWebId,
     }),
     membershipLink.archive(
       context.graphApi,
