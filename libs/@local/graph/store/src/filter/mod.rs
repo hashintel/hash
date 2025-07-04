@@ -293,27 +293,32 @@ impl<'p> Filter<'p, Entity> {
     }
 
     #[must_use]
+    pub const fn for_entity_by_base_type_id(base_type_id: &'p BaseUrl) -> Self {
+        Filter::Equal(
+            Some(FilterExpression::Path {
+                path: EntityQueryPath::EntityTypeEdge {
+                    edge_kind: SharedEdgeKind::IsOfType,
+                    path: EntityTypeQueryPath::BaseUrl,
+                    inheritance_depth: None,
+                },
+            }),
+            Some(FilterExpression::Parameter {
+                parameter: Parameter::Text(Cow::Borrowed(base_type_id.as_str())),
+                convert: None,
+            }),
+        )
+    }
+
+    #[must_use]
     pub fn for_entity_by_type_id(entity_type_id: &'p VersionedUrl) -> Self {
         Filter::All(vec![
-            Filter::Equal(
-                Some(FilterExpression::Path {
-                    path: EntityQueryPath::EntityTypeEdge {
-                        edge_kind: SharedEdgeKind::IsOfType,
-                        path: EntityTypeQueryPath::BaseUrl,
-                        inheritance_depth: Some(0),
-                    },
-                }),
-                Some(FilterExpression::Parameter {
-                    parameter: Parameter::Text(Cow::Borrowed(entity_type_id.base_url.as_str())),
-                    convert: None,
-                }),
-            ),
+            Self::for_entity_by_base_type_id(&entity_type_id.base_url),
             Filter::Equal(
                 Some(FilterExpression::Path {
                     path: EntityQueryPath::EntityTypeEdge {
                         edge_kind: SharedEdgeKind::IsOfType,
                         path: EntityTypeQueryPath::Version,
-                        inheritance_depth: Some(0),
+                        inheritance_depth: None,
                     },
                 }),
                 Some(FilterExpression::Parameter {
@@ -374,6 +379,9 @@ impl<'p> Filter<'p, Entity> {
             ),
             EntityResourceFilter::IsOfType { entity_type } => {
                 Self::for_entity_by_type_id(entity_type)
+            }
+            EntityResourceFilter::IsOfBaseType { entity_type } => {
+                Self::for_entity_by_base_type_id(entity_type)
             }
         }
     }

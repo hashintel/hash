@@ -7,7 +7,7 @@ use error_stack::{Report, ResultExt as _};
 use smol_str::SmolStr;
 use type_system::{
     knowledge::entity::{EntityId, id::EntityUuid},
-    ontology::VersionedUrl,
+    ontology::{BaseUrl, VersionedUrl},
     principal::{actor::ActorId, actor_group::WebId},
 };
 use uuid::Uuid;
@@ -22,7 +22,8 @@ use crate::policies::cedar::{
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct EntityResource<'a> {
     pub id: EntityId,
-    pub entity_type: Cow<'a, [VersionedUrl]>,
+    pub entity_types: Cow<'a, [VersionedUrl]>,
+    pub entity_base_types: Cow<'a, [BaseUrl]>,
     pub created_by: ActorId,
 }
 
@@ -38,6 +39,8 @@ pub enum EntityResourceFilter {
     Not { filter: Box<Self> },
     #[serde(rename_all = "camelCase")]
     IsOfType { entity_type: VersionedUrl },
+    #[serde(rename_all = "camelCase")]
+    IsOfBaseType { entity_type: BaseUrl },
     #[serde(rename_all = "camelCase")]
     CreatedByPrincipal,
 }
@@ -69,6 +72,9 @@ impl TryFrom<PolicyExpressionTree> for EntityResourceFilter {
                     .collect::<Result<_, _>>()?,
             }),
             PolicyExpressionTree::IsOfType(entity_type) => Ok(Self::IsOfType { entity_type }),
+            PolicyExpressionTree::IsOfBaseType(entity_type) => {
+                Ok(Self::IsOfBaseType { entity_type })
+            }
             PolicyExpressionTree::CreatedByPrincipal => Ok(Self::CreatedByPrincipal),
             condition @ (PolicyExpressionTree::Is(_)
             | PolicyExpressionTree::In(_)
@@ -91,22 +97,16 @@ fn versioned_url_to_euid(url: &VersionedUrl) -> ast::EntityUID {
 impl ToCedarExpr for EntityResourceFilter {
     fn to_cedar_expr(&self) -> ast::Expr {
         match self {
-            Self::All { filters } => {
-                filters
-                    .iter()
-                    .map(Self::to_cedar_expr)
-                    .reduce(ast::Expr::and)
-                    .unwrap_or_else(|| ast::Expr::val(true))
-                // }
-            }
-            Self::Any { filters } => {
-                filters
-                    .iter()
-                    .map(Self::to_cedar_expr)
-                    .reduce(ast::Expr::or)
-                    .unwrap_or_else(|| ast::Expr::val(false))
-                // }
-            }
+            Self::All { filters } => filters
+                .iter()
+                .map(Self::to_cedar_expr)
+                .reduce(ast::Expr::and)
+                .unwrap_or_else(|| ast::Expr::val(true)),
+            Self::Any { filters } => filters
+                .iter()
+                .map(Self::to_cedar_expr)
+                .reduce(ast::Expr::or)
+                .unwrap_or_else(|| ast::Expr::val(false)),
             Self::Not { filter } => ast::Expr::not(filter.to_cedar_expr()),
 
             Self::IsOfType { entity_type } => ast::Expr::contains(
@@ -115,6 +115,13 @@ impl ToCedarExpr for EntityResourceFilter {
                     SmolStr::new_static("entity_types"),
                 ),
                 ast::Expr::val(versioned_url_to_euid(entity_type)),
+            ),
+            Self::IsOfBaseType { entity_type } => ast::Expr::contains(
+                ast::Expr::get_attr(
+                    ast::Expr::var(ast::Var::Resource),
+                    SmolStr::new_static("entity_base_types"),
+                ),
+                ast::Expr::val(entity_type.as_str()),
             ),
             Self::CreatedByPrincipal => ast::Expr::is_eq(
                 ast::Expr::get_attr(
@@ -149,9 +156,17 @@ impl EntityResource<'_> {
                 (
                     SmolStr::new_static("entity_types"),
                     ast::RestrictedExpr::set(
-                        self.entity_type
+                        self.entity_types
                             .iter()
                             .map(|url| ast::RestrictedExpr::val(versioned_url_to_euid(url))),
+                    ),
+                ),
+                (
+                    SmolStr::new_static("entity_base_types"),
+                    ast::RestrictedExpr::set(
+                        self.entity_base_types
+                            .iter()
+                            .map(|url| ast::RestrictedExpr::val(url.as_str())),
                     ),
                 ),
                 (

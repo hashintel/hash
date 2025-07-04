@@ -10,6 +10,7 @@ namespace HASH {
 
   entity Entity in [Web] {
     entity_types: Set<EntityType>,
+    entity_base_types: Set<String>,
     created_by: ActorId,
   };
 

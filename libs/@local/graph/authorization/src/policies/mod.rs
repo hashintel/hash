@@ -351,7 +351,7 @@ mod tests {
 
         use type_system::{
             knowledge::entity::{EntityId, id::EntityUuid},
-            ontology::VersionedUrl,
+            ontology::{BaseUrl, VersionedUrl},
             principal::{
                 actor::{ActorId, User, UserId},
                 actor_group::WebId,
@@ -422,9 +422,13 @@ mod tests {
                     entity_uuid,
                     draft_id: None,
                 },
-                entity_type: Cow::Owned(vec![
+                entity_types: Cow::Owned(vec![
                     VersionedUrl::from_str("https://hash.ai/@hash/types/entity-type/user/v/6")?,
                     VersionedUrl::from_str("https://hash.ai/@hash/types/entity-type/actor/v/2")?,
+                ]),
+                entity_base_types: Cow::Owned(vec![
+                    BaseUrl::new("https://hash.ai/@hash/types/entity-type/user/".to_owned())?,
+                    BaseUrl::new("https://hash.ai/@hash/types/entity-type/actor/".to_owned())?,
                 ]),
                 created_by: user.id.into(),
             };

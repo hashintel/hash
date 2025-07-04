@@ -419,7 +419,7 @@ where
                     })?;
                 for entity_resource in &entity_resources {
                     self.context.add_entity(entity_resource);
-                    entity_type_ids.extend(entity_resource.entity_type.iter().map(Cow::Borrowed));
+                    entity_type_ids.extend(entity_resource.entity_types.iter().map(Cow::Borrowed));
                 }
             }
 
