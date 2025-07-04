@@ -267,7 +267,6 @@ export const createOrg: ImpureGraphFunction<
 
     return getOrgFromEntity({
       entity,
-      permitOlderVersions: orgEntityTypeVersion !== undefined,
     });
   } finally {
     if (temporaryInstantiationPolicy) {
@@ -307,7 +306,7 @@ export const getOrgById: ImpureGraphFunction<
  * @param params.shortname - the shortname of the organization
  */
 export const getOrgByShortname: ImpureGraphFunction<
-  { permitOlderVersions?: boolean; shortname: string },
+  { shortname: string },
   Promise<Org | null>
 > = async ({ graphApi }, { actorId }, params) => {
   const [orgEntity, ...unexpectedEntities] = await graphApi
@@ -355,7 +354,6 @@ export const getOrgByShortname: ImpureGraphFunction<
   return orgEntity
     ? getOrgFromEntity({
         entity: orgEntity,
-        permitOlderVersions: params.permitOlderVersions,
       })
     : null;
 };
