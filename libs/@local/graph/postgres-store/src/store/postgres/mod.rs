@@ -22,19 +22,19 @@ use hash_graph_authorization::{
         action::ActionName,
         principal::{PrincipalConstraint, actor::AuthenticatedActor},
         resource::{
-            EntityResource, EntityTypeId, EntityTypeResource, PropertyTypeId, PropertyTypeResource,
-            ResourceConstraint,
+            DataTypeId, DataTypeResource, EntityResource, EntityTypeId, EntityTypeResource,
+            PropertyTypeId, PropertyTypeResource, ResourceConstraint,
         },
         store::{
             CreateWebParameter, CreateWebResponse, PolicyCreationParams, PolicyFilter, PolicyStore,
             PolicyUpdateOperation, PrincipalFilter, PrincipalStore, ResolvePoliciesParams,
             RoleAssignmentStatus, RoleUnassignmentStatus,
             error::{
-                BuildEntityContextError, BuildEntityTypeContextError, BuildPrincipalContextError,
-                BuildPropertyTypeContextError, CreatePolicyError, DetermineActorError,
-                EnsureSystemPoliciesError, GetPoliciesError, GetSystemAccountError,
-                RemovePolicyError, RoleAssignmentError, TeamRoleError, UpdatePolicyError,
-                WebCreationError, WebRoleError,
+                BuildDataTypeContextError, BuildEntityContextError, BuildEntityTypeContextError,
+                BuildPrincipalContextError, BuildPropertyTypeContextError, CreatePolicyError,
+                DetermineActorError, EnsureSystemPoliciesError, GetPoliciesError,
+                GetSystemAccountError, RemovePolicyError, RoleAssignmentError, TeamRoleError,
+                UpdatePolicyError, WebCreationError, WebRoleError,
             },
         },
     },
@@ -1967,6 +1967,73 @@ where
             .try_collect()
             .await
             .change_context(BuildPropertyTypeContextError::StoreError)?)
+    }
+
+    #[tracing::instrument(level = "debug", skip(self, data_type_ids))]
+    async fn build_data_type_context(
+        &self,
+        data_type_ids: &[&VersionedUrl],
+    ) -> Result<Vec<DataTypeResource<'_>>, Report<[BuildDataTypeContextError]>> {
+        let () = self
+            .as_client()
+            .query_raw(
+                "
+                    SELECT input.idx
+                    FROM unnest($1::text[]) WITH ORDINALITY AS input(url, idx)
+                    WHERE NOT EXISTS (
+                        SELECT 1 FROM data_types
+                        WHERE data_types.schema ->> '$id' = input.url
+                    )",
+                [&data_type_ids],
+            )
+            .await
+            .change_context(BuildDataTypeContextError::StoreError)?
+            .map(|row| {
+                let row = row.change_context(BuildDataTypeContextError::StoreError)?;
+                #[expect(
+                    clippy::cast_possible_truncation,
+                    clippy::cast_sign_loss,
+                    clippy::indexing_slicing,
+                    reason = "The index is 1-based and is always less than or equal to the length \
+                              of the array"
+                )]
+                Err(Report::new(BuildDataTypeContextError::DataTypeNotFound {
+                    data_type_id: data_type_ids[row.get::<_, i64>(0) as usize - 1].clone(),
+                }))
+            })
+            .try_collect_reports()
+            .await
+            .attach(StatusCode::NotFound)?;
+
+        Ok(self
+            .as_client()
+            .query_raw(
+                "
+                    SELECT
+                        ontology_ids.base_url,
+                        ontology_ids.version,
+                        ontology_owned_metadata.web_id
+                    FROM data_types
+                    INNER JOIN ontology_ids
+                        ON data_types.ontology_id = ontology_ids.ontology_id
+                    LEFT OUTER JOIN ontology_owned_metadata
+                        ON ontology_ids.ontology_id = ontology_owned_metadata.ontology_id
+                    WHERE data_types.schema ->> '$id' = any($1);
+                 ",
+                [&data_type_ids],
+            )
+            .await
+            .change_context(BuildDataTypeContextError::StoreError)?
+            .map_ok(|row| DataTypeResource {
+                id: Cow::Owned(DataTypeId::new(VersionedUrl {
+                    base_url: row.get(0),
+                    version: row.get(1),
+                })),
+                web_id: row.get(2),
+            })
+            .try_collect()
+            .await
+            .change_context(BuildDataTypeContextError::StoreError)?)
     }
 
     #[tracing::instrument(level = "debug", skip(self, entity_edition_ids))]

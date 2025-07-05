@@ -8,8 +8,6 @@ use hash_graph_authorization::{
     AuthorizationApi,
     backend::PermissionAssertion,
     policies::{PolicyComponents, action::ActionName},
-    schema::DataTypePermission,
-    zanzibar::Consistency,
 };
 use hash_graph_store::{
     error::QueryError,
@@ -36,7 +34,6 @@ use type_system::{
         entity_type::{ClosedEntityType, ClosedEntityTypeWithMetadata, EntityTypeUuid},
         property_type::{PropertyType, PropertyTypeUuid},
     },
-    principal::actor::ActorEntityUuid,
 };
 
 use crate::store::postgres::{AsClient, PostgresStore};
@@ -155,23 +152,36 @@ where
 {
     async fn authorize_data_type(&self, type_id: DataTypeUuid) -> Result<(), Report<QueryError>> {
         if let Some(policy_components) = &self.policy_components {
-            self.store
-                .authorization_api
-                .check_data_type_permission(
-                    policy_components
-                        .actor_id()
-                        .map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from),
-                    DataTypePermission::View,
-                    type_id,
-                    Consistency::FullyConsistent,
-                )
-                .await
-                .change_context(QueryError)?
-                .assert_permission()
-                .change_context(QueryError)?;
-        }
+            let filters = vec![
+                Filter::for_data_type_uuid(type_id),
+                Filter::<DataTypeWithMetadata>::for_policies(
+                    policy_components.extract_filter_policies(ActionName::ViewDataType),
+                    policy_components.optimization_data(ActionName::ViewDataType),
+                ),
+            ];
 
-        Ok(())
+            let result = self
+                .store
+                .read_one(
+                    &filters,
+                    Some(
+                        &QueryTemporalAxesUnresolved::DecisionTime {
+                            pinned: PinnedTemporalAxisUnresolved::new(None),
+                            variable: VariableTemporalAxisUnresolved::new(None, None),
+                        }
+                        .resolve(),
+                    ),
+                    false,
+                )
+                .await;
+
+            match result {
+                Ok(_) => Ok(()),
+                Err(error) => Err(error),
+            }
+        } else {
+            Ok(())
+        }
     }
 }
 
@@ -197,18 +207,19 @@ where
             return cached;
         }
 
-        if let Err(error) = self.authorize_data_type(data_type_uuid).await {
-            self.cache
-                .data_types_with_metadata
-                .deny(data_type_uuid)
-                .await;
-            return Err(error);
+        let mut filters = vec![Filter::for_data_type_uuid(data_type_uuid)];
+
+        if let Some(policy_components) = self.policy_components {
+            filters.push(Filter::<DataTypeWithMetadata>::for_policies(
+                policy_components.extract_filter_policies(ActionName::ViewDataType),
+                policy_components.optimization_data(ActionName::ViewDataType),
+            ));
         }
 
         let schema = self
             .store
             .read_one(
-                &[Filter::for_data_type_uuid(data_type_uuid)],
+                &filters,
                 Some(
                     &QueryTemporalAxesUnresolved::DecisionTime {
                         pinned: PinnedTemporalAxisUnresolved::new(None),

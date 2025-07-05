@@ -1,24 +1,21 @@
 //! Web routes for CRU operations on Data Types.
 
 use alloc::sync::Arc;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use axum::{
     Extension, Router,
-    extract::Path,
-    http::StatusCode,
     response::Response,
-    routing::{get, post, put},
+    routing::{post, put},
 };
 use error_stack::{Report, ResultExt as _};
 use hash_graph_authorization::{
-    AuthorizationApi as _, AuthorizationApiPool,
-    backend::{ModifyRelationshipOperation, PermissionAssertion},
+    AuthorizationApiPool,
+    policies::principal::actor::AuthenticatedActor,
     schema::{
         DataTypeEditorSubject, DataTypeOwnerSubject, DataTypePermission,
         DataTypeRelationAndSubject, DataTypeSetting, DataTypeSettingSubject, DataTypeViewerSubject,
     },
-    zanzibar::Consistency,
 };
 use hash_graph_postgres_store::{
     ontology::patch_id_and_parse,
@@ -27,9 +24,9 @@ use hash_graph_postgres_store::{
 use hash_graph_store::{
     data_type::{
         ArchiveDataTypeParams, CreateDataTypeParams, DataTypeConversionTargets, DataTypeQueryToken,
-        DataTypeStore as _, GetDataTypeConversionTargetsParams,
-        GetDataTypeConversionTargetsResponse, GetDataTypeSubgraphParams, GetDataTypesParams,
-        GetDataTypesResponse, UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams,
+        DataTypeStore, GetDataTypeConversionTargetsParams, GetDataTypeConversionTargetsResponse,
+        GetDataTypeSubgraphParams, GetDataTypesParams, GetDataTypesResponse,
+        HasPermissionForDataTypesParams, UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams,
         UpdateDataTypesParams,
     },
     entity_type::ClosedDataTypeDefinition,
@@ -46,7 +43,7 @@ use type_system::{
         OntologyTypeReference,
         data_type::{
             ConversionDefinition, ConversionExpression, ConversionValue, Conversions, DataType,
-            DataTypeMetadata, DataTypeUuid, Operator, Variable,
+            DataTypeMetadata, Operator, Variable,
         },
         id::{BaseUrl, OntologyTypeVersion, VersionedUrl},
         json_schema::{DomainValidator, JsonSchemaValueType, ValidateOntologyType as _},
@@ -57,7 +54,7 @@ use type_system::{
 use utoipa::{OpenApi, ToSchema};
 
 use crate::rest::{
-    AuthenticatedUserHeader, OpenApiQuery, PermissionResponse, QueryLogger, RestApiStore,
+    AuthenticatedUserHeader, OpenApiQuery, QueryLogger, RestApiStore,
     json::Json,
     status::{report_to_response, status_to_response},
     utoipa_typedef::{ListOrValue, MaybeListOfDataType, subgraph::Subgraph},
@@ -66,9 +63,7 @@ use crate::rest::{
 #[derive(OpenApi)]
 #[openapi(
     paths(
-        get_data_type_authorization_relationships,
-        modify_data_type_authorization_relationships,
-        check_data_type_permission,
+        has_permission_for_data_types,
 
         create_data_type,
         load_external_data_type,
@@ -92,7 +87,7 @@ use crate::rest::{
             DataTypeViewerSubject,
             DataTypePermission,
             DataTypeRelationAndSubject,
-            ModifyDataTypeAuthorizationRelationship,
+            HasPermissionForDataTypesParams,
 
             CreateDataTypeRequest,
             LoadExternalDataTypeRequest,
@@ -142,22 +137,7 @@ impl DataTypeResource {
                     post(create_data_type::<S, A>).put(update_data_type::<S, A>),
                 )
                 .route("/bulk", put(update_data_types::<S, A>))
-                .route(
-                    "/relationships",
-                    post(modify_data_type_authorization_relationships::<A>),
-                )
-                .nest(
-                    "/:data_type_id",
-                    Router::new()
-                        .route(
-                            "/relationships",
-                            get(get_data_type_authorization_relationships::<A>),
-                        )
-                        .route(
-                            "/permissions/:permission",
-                            get(check_data_type_permission::<A>),
-                        ),
-                )
+                .route("/permissions", post(has_permission_for_data_types::<S, A>))
                 .nest(
                     "/query",
                     Router::new()
@@ -908,191 +888,48 @@ where
         .map(Json)
 }
 
-#[derive(Debug, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-struct ModifyDataTypeAuthorizationRelationship {
-    operation: ModifyRelationshipOperation,
-    resource: VersionedUrl,
-    relation_and_subject: DataTypeRelationAndSubject,
-}
-
 #[utoipa::path(
     post,
-    path = "/data-types/relationships",
+    path = "/data-types/permissions",
     tag = "DataType",
-    request_body = [ModifyDataTypeAuthorizationRelationship],
+    request_body = HasPermissionForDataTypesParams,
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
     ),
     responses(
-        (status = 204, description = "The relationship was modified for the data"),
-
-        (status = 403, description = "Permission denied"),
-    )
-)]
-#[tracing::instrument(level = "info", skip(authorization_api_pool))]
-async fn modify_data_type_authorization_relationships<A>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    authorization_api_pool: Extension<Arc<A>>,
-    relationships: Json<Vec<ModifyDataTypeAuthorizationRelationship>>,
-) -> Result<StatusCode, Response>
-where
-    A: AuthorizationApiPool + Send + Sync,
-{
-    let mut authorization_api = authorization_api_pool
-        .acquire()
-        .await
-        .map_err(report_to_response)?;
-
-    let (data_types, operations): (Vec<_>, Vec<_>) = relationships
-        .0
-        .into_iter()
-        .map(|request| {
-            let resource = DataTypeUuid::from_url(&request.resource);
-            (
-                resource,
-                (request.operation, resource, request.relation_and_subject),
-            )
-        })
-        .unzip();
-
-    let (permissions, _zookie) = authorization_api
-        .check_data_types_permission(
-            actor_id,
-            DataTypePermission::Update,
-            data_types,
-            Consistency::FullyConsistent,
-        )
-        .await
-        .map_err(report_to_response)?;
-
-    let mut failed = false;
-    // TODO: Change interface for `check_data_types_permission` to avoid this loop
-    for (_data_type_id, has_permission) in permissions {
-        if !has_permission {
-            tracing::error!("Insufficient permissions to modify relationship for data type");
-            failed = true;
-        }
-    }
-
-    if failed {
-        return Err(report_to_response(
-            Report::new(PermissionAssertion).attach(hash_status::StatusCode::PermissionDenied),
-        ));
-    }
-
-    // for request in relationships.0 {
-    authorization_api
-        .modify_data_type_relations(operations)
-        .await
-        .map_err(report_to_response)?;
-
-    Ok(StatusCode::NO_CONTENT)
-}
-
-#[utoipa::path(
-    get,
-    path = "/data-types/{data_type_id}/relationships",
-    tag = "DataType",
-    params(
-        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
-        ("data_type_id" = VersionedUrl, Path, description = "The Data type to read the relations for"),
-    ),
-    responses(
-        (status = 200, description = "The relations of the data type", body = [DataTypeRelationAndSubject]),
-
-        (status = 403, description = "Permission denied"),
-    )
-)]
-#[tracing::instrument(level = "info", skip(authorization_api_pool))]
-async fn get_data_type_authorization_relationships<A>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    Path(data_type_id): Path<VersionedUrl>,
-    authorization_api_pool: Extension<Arc<A>>,
-    mut query_logger: Option<Extension<QueryLogger>>,
-) -> Result<Json<Vec<DataTypeRelationAndSubject>>, Response>
-where
-    A: AuthorizationApiPool + Send + Sync,
-{
-    if let Some(query_logger) = &mut query_logger {
-        query_logger.capture(
-            actor_id,
-            OpenApiQuery::GetDataTypeAuthorizationRelationships {
-                data_type_id: &data_type_id,
-            },
-        );
-    }
-
-    let authorization_api = authorization_api_pool
-        .acquire()
-        .await
-        .map_err(report_to_response)?;
-
-    let response = authorization_api
-        .get_data_type_relations(
-            DataTypeUuid::from_url(&data_type_id),
-            Consistency::FullyConsistent,
-        )
-        .await
-        .map_err(report_to_response)?;
-    if let Some(query_logger) = &mut query_logger {
-        query_logger.send().await.map_err(report_to_response)?;
-    }
-    Ok(Json(response))
-}
-
-#[utoipa::path(
-    get,
-    path = "/data-types/{data_type_id}/permissions/{permission}",
-    tag = "DataType",
-    params(
-        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
-        ("data_type_id" = VersionedUrl, Path, description = "The data type ID to check if the actor has the permission"),
-        ("permission" = DataTypePermission, Path, description = "The permission to check for"),
-    ),
-    responses(
-        (status = 200, body = PermissionResponse, description = "Information if the actor has the permission for the data type"),
+        (status = 200, body = Vec<VersionedUrl>, description = "Information if the actor has the permission for the data types"),
 
         (status = 500, description = "Internal error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(authorization_api_pool))]
-async fn check_data_type_permission<A>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    mut query_logger: Option<Extension<QueryLogger>>,
-    Path((data_type_id, permission)): Path<(VersionedUrl, DataTypePermission)>,
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client)
+)]
+async fn has_permission_for_data_types<S, A>(
+    AuthenticatedUserHeader(actor): AuthenticatedUserHeader,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
-) -> Result<Json<PermissionResponse>, Response>
+    Json(params): Json<HasPermissionForDataTypesParams<'static>>,
+) -> Result<Json<HashSet<VersionedUrl>>, Response>
 where
+    S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
+    for<'p, 'a> S::Store<'p, A::Api<'a>>: DataTypeStore,
 {
-    if let Some(query_logger) = &mut query_logger {
-        query_logger.capture(
-            actor_id,
-            OpenApiQuery::CheckDataTypePermission {
-                data_type_id: &data_type_id,
-                permission,
-            },
-        );
-    }
-
-    let response = Ok(Json(PermissionResponse {
-        has_permission: authorization_api_pool
-            .acquire()
-            .await
-            .map_err(report_to_response)?
-            .check_data_type_permission(
-                actor_id,
-                permission,
-                DataTypeUuid::from_url(&data_type_id),
-                Consistency::FullyConsistent,
-            )
-            .await
-            .map_err(report_to_response)?
-            .has_permission,
-    }));
-    if let Some(query_logger) = &mut query_logger {
-        query_logger.send().await.map_err(report_to_response)?;
-    }
-    response
+    store_pool
+        .acquire(
+            authorization_api_pool
+                .acquire()
+                .await
+                .map_err(report_to_response)?,
+            temporal_client.0,
+        )
+        .await
+        .map_err(report_to_response)?
+        .has_permission_for_data_types(AuthenticatedActor::from(actor), params)
+        .await
+        .map(Json)
+        .map_err(report_to_response)
 }

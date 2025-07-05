@@ -57,8 +57,8 @@ use hash_graph_store::{
         ArchiveDataTypeParams, CountDataTypesParams, CreateDataTypeParams, DataTypeStore,
         GetDataTypeConversionTargetsParams, GetDataTypeConversionTargetsResponse,
         GetDataTypeSubgraphParams, GetDataTypeSubgraphResponse, GetDataTypesParams,
-        GetDataTypesResponse, UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams,
-        UpdateDataTypesParams,
+        GetDataTypesResponse, HasPermissionForDataTypesParams, UnarchiveDataTypeParams,
+        UpdateDataTypeEmbeddingParams, UpdateDataTypesParams,
     },
     entity::{
         CountEntitiesParams, CreateEntityParams, EntityStore, EntityValidationReport,
@@ -462,6 +462,16 @@ impl<A: AuthorizationApi> DataTypeStore for DatabaseApi<'_, A> {
 
     async fn reindex_data_type_cache(&mut self) -> Result<(), Report<UpdateError>> {
         self.store.reindex_entity_type_cache().await
+    }
+
+    async fn has_permission_for_data_types(
+        &self,
+        authenticated_actor: AuthenticatedActor,
+        params: HasPermissionForDataTypesParams<'_>,
+    ) -> Result<HashSet<VersionedUrl>, Report<CheckPermissionError>> {
+        self.store
+            .has_permission_for_data_types(authenticated_actor, params)
+            .await
     }
 }
 
