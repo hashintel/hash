@@ -746,26 +746,24 @@ where
         // We will use the added entity type IDs to check for the instantiation permission later.
         // This means that we need to make sure, that exactly the required entity types are passed
         // here.
-        let entity_type_id_set = params
-            .iter()
-            .flat_map(|params| {
-                let entity_id = EntityId {
-                    web_id: params.web_id,
-                    entity_uuid: params
-                        .entity_uuid
-                        .unwrap_or_else(|| EntityUuid::new(Uuid::new_v4())),
-                    draft_id: params.draft.then(|| DraftId::new(Uuid::new_v4())),
-                };
-                policy_components_builder.add_entity(
-                    actor_id,
-                    entity_id,
-                    Cow::Owned(params.entity_type_ids.iter().cloned().collect()),
-                );
-                entity_ids.push(entity_id);
+        let mut entity_type_id_set = HashSet::with_capacity(params.len());
+        for params in &params {
+            let entity_id = EntityId {
+                web_id: params.web_id,
+                entity_uuid: params
+                    .entity_uuid
+                    .unwrap_or_else(|| EntityUuid::new(Uuid::new_v4())),
+                draft_id: params.draft.then(|| DraftId::new(Uuid::new_v4())),
+            };
+            policy_components_builder.add_entity(
+                actor_id,
+                entity_id,
+                Cow::Owned(params.entity_type_ids.iter().cloned().collect()),
+            );
+            entity_ids.push(entity_id);
 
-                &params.entity_type_ids
-            })
-            .collect::<HashSet<_>>();
+            entity_type_id_set.extend(&params.entity_type_ids);
+        }
 
         // The policy components builder will make sure, that also parent entity types are added to
         // the set of entity type IDs. These are accessible via `tracked_entity_types` method.
