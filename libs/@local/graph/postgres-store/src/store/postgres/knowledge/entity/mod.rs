@@ -857,6 +857,14 @@ where
         let validator_provider = StoreProvider::new(&transaction, &policy_components);
 
         let mut validation_reports = HashMap::<usize, EntityValidationReport>::new();
+
+        debug_assert_eq!(
+            params.len(),
+            entity_ids.len(),
+            "Number of parameters ({}) and entity ids ({}) must be the same",
+            params.len(),
+            entity_ids.len(),
+        );
         for (index, (mut params, &entity_id)) in params.into_iter().zip(&entity_ids).enumerate() {
             let entity_type = ClosedMultiEntityType::from_multi_type_closed_schema(
                 stream::iter(&params.entity_type_ids)
