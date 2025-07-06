@@ -812,8 +812,9 @@ where
                     forbidden_instantiations
                         .into_iter()
                         .map(ToString::to_string)
-                        .collect::<Vec<_>>()
-                        .join(", "),
+                        .map(Cow::Owned)
+                        .intersperse(Cow::Borrowed(", "))
+                        .collect::<String>(),
                 ));
         }
 

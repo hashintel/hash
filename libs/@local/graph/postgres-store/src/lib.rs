@@ -13,6 +13,7 @@
 #![feature(never_type)]
 #![feature(extend_one)]
 #![feature(doc_auto_cfg)]
+#![feature(iter_intersperse)]
 #![cfg_attr(not(miri), doc(test(attr(deny(warnings, clippy::all)))))]
 #![expect(
     unreachable_pub,
