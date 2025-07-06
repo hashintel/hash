@@ -264,8 +264,9 @@ where
                           ON target.{pinned_axis} @> $5::timestamptz
                          AND target.{variable_axis} && source.{variable_axis}
                          AND target.{variable_axis} && filter.interval
-                         AND NOT isempty(source.{variable_axis} * target.{variable_axis} * \
-                     filter.interval)
+                         AND NOT isempty(
+                            source.{variable_axis} * target.{variable_axis} * filter.interval
+                         )
                          AND target.web_id = {target_1}
                          AND target.entity_uuid = {target_2}
                     "
