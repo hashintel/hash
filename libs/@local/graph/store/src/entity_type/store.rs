@@ -256,7 +256,6 @@ pub struct HasPermissionForEntityTypesParams<'a> {
     #[cfg_attr(feature = "utoipa", schema(value_type = String))]
     pub action: ActionName,
     pub entity_type_ids: Cow<'a, [VersionedUrl]>,
-    pub include_parents: bool,
 }
 
 /// Describes the API of a store implementation for [`EntityType`]s.

@@ -82,7 +82,6 @@ export const checkPermissionsOnEntityType: ImpureGraphFunction<
           {
             entityTypeIds: [entityTypeId],
             action: "updateEntityType",
-            includeParents: false,
           },
         ).then((permitted) => permitted.includes(entityTypeId)),
     isPublicUser
@@ -93,7 +92,6 @@ export const checkPermissionsOnEntityType: ImpureGraphFunction<
           {
             entityTypeIds: [entityTypeId],
             action: "instantiate",
-            includeParents: true,
           },
         ).then((permitted) => permitted.includes(entityTypeId)),
   ]);

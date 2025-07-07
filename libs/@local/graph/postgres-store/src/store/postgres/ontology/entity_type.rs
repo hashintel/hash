@@ -1831,91 +1831,140 @@ where
     }
 
     #[tracing::instrument(skip(self, params))]
+    #[expect(
+        clippy::too_many_lines,
+        reason = "We currently need to special-case the `Instantiate` permission until it's going \
+                  to be removed in https://linear.app/hash/issue/H-4956"
+    )]
     async fn has_permission_for_entity_types(
         &self,
         authenticated_actor: AuthenticatedActor,
         params: HasPermissionForEntityTypesParams<'_>,
     ) -> Result<HashSet<VersionedUrl>, Report<CheckPermissionError>> {
-        let mut policy_components_builder =
-            PolicyComponents::builder(self).with_action(params.action, false);
-        if params.include_parents && params.action != ActionName::ViewEntityType {
-            policy_components_builder.add_action(ActionName::ViewEntityType, true);
-        }
+        if params.action == ActionName::Instantiate {
+            // For `Instantiate`, we need to check the base entity type and all its parents
+            // to see if the user can instantiate it.
+            // TODO: Remove this branch
+            //   see https://linear.app/hash/issue/H-4956
 
-        let policy_components = policy_components_builder
-            .with_actor(authenticated_actor)
-            .with_entity_type_ids(params.entity_type_ids.iter())
-            .await
-            .change_context(CheckPermissionError::BuildPolicyContext)?;
+            let policy_components = PolicyComponents::builder(self)
+                .with_actor(authenticated_actor)
+                .with_action(ActionName::Instantiate, false)
+                .with_action(ActionName::ViewEntityType, true)
+                .with_entity_type_ids(params.entity_type_ids.iter())
+                .await
+                .change_context(CheckPermissionError::BuildPolicyContext)?;
 
-        let validator_provider = StoreProvider::new(self, &policy_components);
+            let validator_provider = StoreProvider::new(self, &policy_components);
 
-        let mut entity_type_id_set = HashMap::new();
-        for entity_type_id in params.entity_type_ids.iter() {
-            if !params.include_parents {
-                // If we do not include parents, we only need the base entity type.
-                entity_type_id_set.insert(entity_type_id.clone(), Some(HashSet::new()));
-                continue;
+            let mut entity_type_id_set = HashMap::new();
+            for entity_type_id in params.entity_type_ids.iter() {
+                entity_type_id_set.insert(
+                    entity_type_id.clone(),
+                    OntologyTypeProvider::<ClosedEntityType>::provide_type(
+                        &validator_provider,
+                        entity_type_id,
+                    )
+                    .await
+                    .map(|entity_type| {
+                        entity_type
+                            .all_of
+                            .iter()
+                            .map(|metadata| metadata.id.clone())
+                            .collect::<HashSet<_>>()
+                    })
+                    .ok(),
+                );
             }
 
-            entity_type_id_set.insert(
-                entity_type_id.clone(),
-                OntologyTypeProvider::<ClosedEntityType>::provide_type(
-                    &validator_provider,
-                    entity_type_id,
-                )
-                .await
-                .map(|entity_type| {
-                    entity_type
-                        .all_of
-                        .iter()
-                        .map(|metadata| metadata.id.clone())
-                        .collect::<HashSet<_>>()
-                })
-                .ok(),
-            );
-        }
+            let policy_set = policy_components
+                .build_policy_set([params.action])
+                .change_context(CheckPermissionError::BuildPolicySet)?;
 
-        let policy_set = policy_components
-            .build_policy_set([params.action])
-            .change_context(CheckPermissionError::BuildPolicySet)?;
+            entity_type_id_set
+                .into_iter()
+                .filter_map(|(base, parents)| {
+                    let Some(parents) = parents else {
+                        // We could not resolve the entity type, so we cannot check permissions.
+                        // This is likely because the entity type does not exist or is not
+                        // accessible.
+                        return None;
+                    };
 
-        entity_type_id_set
-            .into_iter()
-            .filter_map(|(base, parents)| {
-                let Some(parents) = parents else {
-                    // We could not resolve the entity type, so we cannot check permissions.
-                    // This is likely because the entity type does not exist or is not accessible.
-                    return None;
-                };
-
-                // We need to check the base entity type and all its parents
-                // to see if the user can instantiate it.
-                for entity_type_id in iter::once(&base).chain(&parents) {
-                    let allowed = policy_set.evaluate(
-                        &Request {
-                            actor: policy_components.actor_id(),
-                            action: params.action,
-                            resource: &ResourceId::EntityType(Cow::Borrowed(entity_type_id.into())),
-                            context: RequestContext::default(),
-                        },
-                        policy_components.context(),
-                    );
-                    match allowed {
-                        Ok(Authorized::Always) => {}
-                        Ok(Authorized::Never) => {
-                            return None;
-                        }
-                        Err(err) => {
-                            return Some(Err(
-                                err.change_context(CheckPermissionError::EvaluatePolicySet)
-                            ));
+                    // We need to check the base entity type and all its parents
+                    // to see if the user can instantiate it.
+                    for entity_type_id in iter::once(&base).chain(&parents) {
+                        let allowed = policy_set.evaluate(
+                            &Request {
+                                actor: policy_components.actor_id(),
+                                action: params.action,
+                                resource: &ResourceId::EntityType(Cow::Borrowed(
+                                    entity_type_id.into(),
+                                )),
+                                context: RequestContext::default(),
+                            },
+                            policy_components.context(),
+                        );
+                        match allowed {
+                            Ok(Authorized::Always) => {}
+                            Ok(Authorized::Never) => {
+                                return None;
+                            }
+                            Err(err) => {
+                                return Some(Err(
+                                    err.change_context(CheckPermissionError::EvaluatePolicySet)
+                                ));
+                            }
                         }
                     }
-                }
-                Some(Ok(base))
-            })
-            .collect()
+                    Some(Ok(base))
+                })
+                .collect()
+        } else {
+            let temporal_axes = QueryTemporalAxesUnresolved::DecisionTime {
+                pinned: PinnedTemporalAxisUnresolved::new(None),
+                variable: VariableTemporalAxisUnresolved::new(None, None),
+            }
+            .resolve();
+            let mut compiler = SelectCompiler::new(Some(&temporal_axes), true);
+
+            let entity_type_uuids = params
+                .entity_type_ids
+                .iter()
+                .map(EntityTypeUuid::from_url)
+                .collect::<Vec<_>>();
+
+            let entity_type_filter = Filter::for_entity_type_uuids(&entity_type_uuids);
+            compiler
+                .add_filter(&entity_type_filter)
+                .change_context(CheckPermissionError::CompileFilter)?;
+
+            let policy_components = PolicyComponents::builder(self)
+                .with_actor(authenticated_actor)
+                .with_action(params.action, true)
+                .await
+                .change_context(CheckPermissionError::BuildPolicyContext)?;
+            let policy_filter = Filter::<EntityTypeWithMetadata>::for_policies(
+                policy_components.extract_filter_policies(params.action),
+                policy_components.optimization_data(params.action),
+            );
+            compiler
+                .add_filter(&policy_filter)
+                .change_context(CheckPermissionError::CompileFilter)?;
+
+            let versioned_url_idx = compiler.add_selection_path(&EntityTypeQueryPath::VersionedUrl);
+
+            let (statement, parameters) = compiler.compile();
+            self.as_client()
+                .query_raw(&statement, parameters.iter().copied())
+                .instrument(tracing::trace_span!("query"))
+                .await
+                .change_context(CheckPermissionError::StoreError)?
+                .map_ok(|row| row.get(versioned_url_idx))
+                .try_collect()
+                .await
+                .change_context(CheckPermissionError::StoreError)
+        }
     }
 }
 

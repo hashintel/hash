@@ -7733,8 +7733,7 @@
         "type": "object",
         "required": [
           "action",
-          "entityTypeIds",
-          "includeParents"
+          "entityTypeIds"
         ],
         "properties": {
           "action": {
@@ -7745,9 +7744,6 @@
             "items": {
               "$ref": "#/components/schemas/VersionedUrl"
             }
-          },
-          "includeParents": {
-            "type": "boolean"
           }
         },
         "additionalProperties": false

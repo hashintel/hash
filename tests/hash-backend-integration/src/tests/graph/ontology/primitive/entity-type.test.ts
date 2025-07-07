@@ -557,7 +557,6 @@ describe("Entity type CRU", () => {
       await hasPermissionForEntityTypes(graphContext.graphApi, authentication, {
         entityTypeIds: [createdEntityType.schema.$id],
         action: "viewEntityType",
-        includeParents: true,
       }),
     ).toStrictEqual([createdEntityType.schema.$id]);
   });

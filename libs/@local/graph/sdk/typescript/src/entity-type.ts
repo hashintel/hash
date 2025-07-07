@@ -22,7 +22,6 @@ export const hasPermissionForEntityTypes = (
         | "archiveEntityType"
         | "instantiate"
       >;
-      includeParents: boolean;
     }
   >,
 ): Promise<VersionedUrl[]> =>
