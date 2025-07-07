@@ -18,7 +18,11 @@ mod json;
 mod utoipa_typedef;
 use alloc::{borrow::Cow, sync::Arc};
 use core::str::FromStr as _;
-use std::{fs, io, time::Instant};
+use std::{
+    fs,
+    io::{self, Write as _},
+    time::Instant,
+};
 
 use async_trait::async_trait;
 use axum::{
@@ -503,15 +507,18 @@ impl OpenApiDocumentation {
         fs::create_dir_all(path).attach_printable_lazy(|| path.display().to_string())?;
 
         let openapi_json_path = path.join("openapi.json");
-        serde_json::to_writer_pretty(
-            io::BufWriter::new(
+
+        {
+            let mut writer = io::BufWriter::new(
                 fs::File::create(&openapi_json_path)
                     .attach_printable("could not write openapi.json")
                     .attach_printable_lazy(|| openapi_json_path.display().to_string())?,
-            ),
-            &openapi,
-        )
-        .map_err(io::Error::from)?;
+            );
+            serde_json::to_writer_pretty(&mut writer, &openapi).map_err(io::Error::from)?;
+            // Add a newline to the end of the file because many IDEs and tools expect or
+            // automatically add a trailing newline.
+            writeln!(&mut writer)?;
+        }
 
         let model_def_path = std::path::Path::new(&env!("CARGO_MANIFEST_DIR"))
             .join("src")
