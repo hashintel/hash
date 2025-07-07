@@ -12,6 +12,7 @@
 
     // Library Features
     extend_one,
+    iter_intersperse,
     try_find,
 )]
 #![cfg_attr(not(miri), doc(test(attr(deny(warnings, clippy::all)))))]
