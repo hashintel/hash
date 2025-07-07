@@ -1,4 +1,10 @@
-#![feature(extend_one, impl_trait_in_assoc_type)]
+#![feature(
+    // Language Features
+    impl_trait_in_assoc_type,
+
+    // Library Features
+    extend_one,
+)]
 #![expect(unsafe_code)]
 #![cfg_attr(
     target_arch = "wasm32",

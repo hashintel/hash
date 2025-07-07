@@ -3,10 +3,13 @@
 //! ## Workspace dependencies
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
 #![feature(
+    // Language Features
     impl_trait_in_assoc_type,
     never_type,
     type_changing_struct_update,
-    error_generic_member_access
+
+    // Library Features
+    error_generic_member_access,
 )]
 #![cfg_attr(test, feature(assert_matches, macro_metavar_expr))]
 

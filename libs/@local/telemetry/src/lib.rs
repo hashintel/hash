@@ -4,9 +4,14 @@
 //!
 //! ## Workspace dependencies
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
-#![feature(type_alias_impl_trait)]
-#![feature(can_vector)]
-#![feature(write_all_vectored)]
+#![feature(
+    // Language Features
+    type_alias_impl_trait,
+
+    // Library Features
+    can_vector,
+    write_all_vectored,
+)]
 
 extern crate alloc;
 

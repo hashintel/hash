@@ -4,7 +4,6 @@
 //!
 //! ## Workspace dependencies
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
-#![feature(let_chains)]
 
 extern crate alloc;
 
