@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "jq -r '.tool_input.file_path | select(endswith(\".rs\"))' | xargs -r cargo fmt --"
+            "command": "jq -r '.tool_input.file_path | select(endswith(\".rs\"))' | xargs -r rustfmt"
           }
         ]
       }

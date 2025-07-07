@@ -3,9 +3,12 @@
 //! ## Workspace dependencies
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
 #![feature(
+    // Language Features
+    impl_trait_in_assoc_type,
     macro_metavar_expr,
+
+    // Library Features
     error_generic_member_access,
-    impl_trait_in_assoc_type
 )]
 
 use bytes::Buf;
