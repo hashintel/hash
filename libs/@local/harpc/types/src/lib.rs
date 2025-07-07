@@ -2,7 +2,11 @@
 //!
 //! ## Workspace dependencies
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
-#![feature(macro_metavar_expr, never_type)]
+#![feature(
+    // Language Features
+    macro_metavar_expr,
+    never_type,
+)]
 
 pub mod error_code;
 pub mod procedure;

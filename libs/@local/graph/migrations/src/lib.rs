@@ -2,7 +2,12 @@
 //!
 //! ## Workspace dependencies
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
-#![feature(impl_trait_in_assoc_type, return_type_notation, never_type)]
+#![feature(
+    // Language Features
+    impl_trait_in_assoc_type,
+    never_type,
+    return_type_notation,
+)]
 #![expect(clippy::future_not_send)]
 
 extern crate alloc;

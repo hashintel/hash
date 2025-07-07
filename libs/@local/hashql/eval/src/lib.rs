@@ -4,12 +4,13 @@
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
 #![expect(clippy::indexing_slicing)]
 #![feature(
-    // Library Features
-    coverage_attribute,
-    iterator_try_collect,
     // Language Features
+    coverage_attribute,
     exhaustive_patterns,
     if_let_guard,
+
+    // Library Features
+    iterator_try_collect,
 )]
 
 extern crate alloc;

@@ -2,7 +2,11 @@
 //!
 //! ## Workspace dependencies
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
-#![feature(impl_trait_in_assoc_type, never_type)]
+#![feature(
+    // Language Features
+    impl_trait_in_assoc_type,
+    never_type,
+)]
 #![expect(
     clippy::self_named_module_files,
     reason = "False positive because the modules is named as the crate directory."
