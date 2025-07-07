@@ -14,7 +14,7 @@ use hash_graph_authorization::{
         action::ActionName,
         principal::actor::AuthenticatedActor,
         resource::{EntityResourceConstraint, ResourceConstraint},
-        store::{PolicyCreationParams, PolicyStore as _},
+        store::{PolicyCreationParams, PolicyStore as _, PrincipalStore as _},
     },
     schema::{EntityOwnerSubject, EntityRelationAndSubject},
     zanzibar::Consistency,
@@ -706,7 +706,7 @@ where
     #[expect(clippy::too_many_lines)]
     async fn create_entities<R>(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_uuid: ActorEntityUuid,
         params: Vec<CreateEntityParams<R>>,
     ) -> Result<Vec<Entity>, Report<InsertionError>>
     where
@@ -714,8 +714,6 @@ where
     {
         let transaction_time = Timestamp::<TransactionTime>::now().remove_nanosecond();
         let mut relationships = Vec::with_capacity(params.len());
-        let mut entity_type_id_set = HashSet::new();
-        let mut checked_web_ids = HashSet::new();
         let mut entity_edition_ids = Vec::with_capacity(params.len());
 
         let mut entity_id_rows = Vec::with_capacity(params.len());
@@ -735,24 +733,137 @@ where
 
         let mut transaction = self.transaction().await.change_context(InsertionError)?;
 
-        let policy_components = PolicyComponents::builder(&transaction)
+        let actor_id = transaction
+            .determine_actor(actor_uuid)
+            .await
+            .change_context(InsertionError)?
+            .ok_or_else(|| Report::new(InsertionError).attach_printable("Actor not found"))?;
+
+        let mut policy_components_builder = PolicyComponents::builder(&transaction);
+
+        let mut entity_ids = Vec::with_capacity(params.len());
+
+        // We will use the added entity type IDs to check for the instantiation permission later.
+        // This means that we need to make sure, that exactly the required entity types are passed
+        // here.
+        let mut entity_type_id_set = HashSet::with_capacity(params.len());
+        for params in &params {
+            let entity_id = EntityId {
+                web_id: params.web_id,
+                entity_uuid: params
+                    .entity_uuid
+                    .unwrap_or_else(|| EntityUuid::new(Uuid::new_v4())),
+                draft_id: params.draft.then(|| DraftId::new(Uuid::new_v4())),
+            };
+            policy_components_builder.add_entity(
+                actor_id,
+                entity_id,
+                Cow::Owned(params.entity_type_ids.iter().cloned().collect()),
+            );
+            entity_ids.push(entity_id);
+
+            entity_type_id_set.extend(&params.entity_type_ids);
+        }
+
+        // The policy components builder will make sure, that also parent entity types are added to
+        // the set of entity type IDs. These are accessible via `tracked_entity_types` method.
+        let policy_components = policy_components_builder
             .with_actor(actor_id)
-            .with_entity_type_ids(
-                params
-                    .iter()
-                    .flat_map(|params| &params.entity_type_ids)
-                    .collect::<HashSet<_>>(),
-            )
-            .with_action(ActionName::Instantiate, false)
-            .with_action(ActionName::CreateEntity, false)
+            .with_entity_type_ids(entity_type_id_set)
+            .with_actions([ActionName::Instantiate, ActionName::CreateEntity], false)
             .with_action(ActionName::ViewEntity, true)
             .await
             .change_context(InsertionError)?;
 
+        let policy_set = policy_components
+            .build_policy_set([ActionName::Instantiate, ActionName::CreateEntity])
+            .change_context(InsertionError)?;
+
+        let mut forbidden_instantiations = Vec::new();
+        for entity_type_id in policy_components.tracked_entity_types() {
+            match policy_set
+                .evaluate(
+                    &Request {
+                        actor: policy_components.actor_id(),
+                        action: ActionName::Instantiate,
+                        resource: &ResourceId::EntityType(Cow::Borrowed(entity_type_id.into())),
+                        context: RequestContext::default(),
+                    },
+                    policy_components.context(),
+                )
+                .change_context(InsertionError)?
+            {
+                Authorized::Always => {}
+                Authorized::Never => {
+                    forbidden_instantiations.push(entity_type_id);
+                }
+            }
+        }
+
+        if !forbidden_instantiations.is_empty() {
+            return Err(Report::new(InsertionError)
+                .attach(StatusCode::PermissionDenied)
+                .attach_printable(
+                    "The actor does not have permission to instantiate one or more entity types",
+                )
+                .attach_printable(
+                    forbidden_instantiations
+                        .into_iter()
+                        .map(ToString::to_string)
+                        .map(Cow::Owned)
+                        .intersperse(Cow::Borrowed(", "))
+                        .collect::<String>(),
+                ));
+        }
+
+        let mut forbidden_entity_creations = Vec::new();
+        for entity_id in &entity_ids {
+            match policy_set
+                .evaluate(
+                    &Request {
+                        actor: policy_components.actor_id(),
+                        action: ActionName::CreateEntity,
+                        resource: &ResourceId::Entity(entity_id.entity_uuid),
+                        context: RequestContext::default(),
+                    },
+                    policy_components.context(),
+                )
+                .change_context(InsertionError)?
+            {
+                Authorized::Always => {}
+                Authorized::Never => {
+                    forbidden_entity_creations.push(entity_id);
+                }
+            }
+        }
+
+        if !forbidden_entity_creations.is_empty() {
+            return Err(Report::new(InsertionError)
+                .attach(StatusCode::PermissionDenied)
+                .attach_printable(
+                    "The actor does not have permission to create one or more entities",
+                )
+                .attach_printable(
+                    forbidden_entity_creations
+                        .into_iter()
+                        .map(ToString::to_string)
+                        .collect::<Vec<_>>()
+                        .join(", "),
+                ));
+        }
+
         let validator_provider = StoreProvider::new(&transaction, &policy_components);
 
         let mut validation_reports = HashMap::<usize, EntityValidationReport>::new();
-        for (index, mut params) in params.into_iter().enumerate() {
+
+        debug_assert_eq!(
+            params.len(),
+            entity_ids.len(),
+            "Number of parameters ({}) and entity ids ({}) must be the same",
+            params.len(),
+            entity_ids.len(),
+        );
+        for (index, (mut params, &entity_id)) in params.into_iter().zip(&entity_ids).enumerate() {
             let entity_type = ClosedMultiEntityType::from_multi_type_closed_schema(
                 stream::iter(&params.entity_type_ids)
                     .then(|entity_type_url| async {
@@ -765,18 +876,7 @@ where
                     })
                     .try_collect::<Vec<ClosedEntityType>>()
                     .await
-                    .change_context(InsertionError)?
-                    .into_iter()
-                    .inspect(|entity_type| {
-                        if !entity_type_id_set.contains(&entity_type.id) {
-                            entity_type_id_set.insert(entity_type.id.clone());
-                            for parent in &entity_type.all_of {
-                                if !entity_type_id_set.contains(&parent.id) {
-                                    entity_type_id_set.insert(parent.id.clone());
-                                }
-                            }
-                        }
-                    }),
+                    .change_context(InsertionError)?,
             )
             .change_context(InsertionError)?;
 
@@ -802,21 +902,10 @@ where
             let decision_time = params
                 .decision_time
                 .map_or_else(|| transaction_time.cast(), Timestamp::remove_nanosecond);
-            let entity_id = EntityId {
-                web_id: params.web_id,
-                entity_uuid: params
-                    .entity_uuid
-                    .unwrap_or_else(|| EntityUuid::new(Uuid::new_v4())),
-                draft_id: params.draft.then(|| DraftId::new(Uuid::new_v4())),
-            };
-
-            if entity_id.entity_uuid != entity_id.web_id.into() {
-                checked_web_ids.insert(entity_id.web_id);
-            }
 
             let entity_provenance = EntityProvenance {
                 inferred: InferredEntityProvenance {
-                    created_by_id: actor_id,
+                    created_by_id: actor_uuid,
                     created_at_transaction_time: transaction_time,
                     created_at_decision_time: decision_time,
                     first_non_draft_created_at_transaction_time: entity_id
@@ -829,7 +918,7 @@ where
                         .then_some(decision_time),
                 },
                 edition: EntityEditionProvenance {
-                    created_by_id: actor_id,
+                    created_by_id: actor_uuid,
                     archived_by_id: None,
                     provided: params.provenance,
                 },
@@ -957,83 +1046,6 @@ where
             );
         }
 
-        let policy_set = policy_components
-            .build_policy_set([ActionName::Instantiate, ActionName::CreateEntity])
-            .change_context(InsertionError)?;
-
-        let mut forbidden_instantiations = Vec::new();
-        for entity_type_id in &entity_type_id_set {
-            match policy_set
-                .evaluate(
-                    &Request {
-                        actor: policy_components.actor_id(),
-                        action: ActionName::Instantiate,
-                        resource: &ResourceId::EntityType(Cow::Borrowed(entity_type_id.into())),
-                        context: RequestContext::default(),
-                    },
-                    policy_components.context(),
-                )
-                .change_context(InsertionError)?
-            {
-                Authorized::Always => {}
-                Authorized::Never => {
-                    forbidden_instantiations.push(entity_type_id);
-                }
-            }
-        }
-
-        if !forbidden_instantiations.is_empty() {
-            return Err(Report::new(InsertionError)
-                .attach(StatusCode::PermissionDenied)
-                .attach_printable(
-                    "The actor does not have permission to instantiate one or more entity types",
-                )
-                .attach_printable(
-                    forbidden_instantiations
-                        .into_iter()
-                        .map(ToString::to_string)
-                        .collect::<Vec<_>>()
-                        .join(", "),
-                ));
-        }
-
-        // Cedar authorization check for entity creation (per web)
-        let mut forbidden_web_creations = Vec::new();
-        for web_id in &checked_web_ids {
-            match policy_set
-                .evaluate(
-                    &Request {
-                        actor: policy_components.actor_id(),
-                        action: ActionName::CreateEntity,
-                        resource: &ResourceId::Web(*web_id),
-                        context: RequestContext::default(),
-                    },
-                    policy_components.context(),
-                )
-                .change_context(InsertionError)?
-            {
-                Authorized::Always => {}
-                Authorized::Never => {
-                    forbidden_web_creations.push(web_id);
-                }
-            }
-        }
-
-        if !forbidden_web_creations.is_empty() {
-            return Err(Report::new(InsertionError)
-                .attach(StatusCode::PermissionDenied)
-                .attach_printable(
-                    "The actor does not have permission to create entities in one or more webs",
-                )
-                .attach_printable(
-                    forbidden_web_creations
-                        .into_iter()
-                        .map(ToString::to_string)
-                        .collect::<Vec<_>>()
-                        .join(", "),
-                ));
-        }
-
         let insertions = [
             InsertStatementBuilder::from_rows(Table::EntityIds, &entity_id_rows),
             InsertStatementBuilder::from_rows(Table::EntityDrafts, &entity_draft_rows),
@@ -1147,7 +1159,7 @@ where
                 && let Some(temporal_client) = &self.temporal_client
             {
                 temporal_client
-                    .start_update_entity_embeddings_workflow(actor_id, &entities)
+                    .start_update_entity_embeddings_workflow(actor_uuid, &entities)
                     .await
                     .change_context(InsertionError)?;
             }

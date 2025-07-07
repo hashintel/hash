@@ -1583,7 +1583,7 @@ where
 {
     async fn create_entities<R>(
         &mut self,
-        actor_id: ActorEntityUuid,
+        actor_uuid: ActorEntityUuid,
         params: Vec<CreateEntityParams<R>>,
     ) -> Result<Vec<Entity>, Report<InsertionError>>
     where
@@ -1599,7 +1599,7 @@ where
                 url: entity_type_id.clone(),
             };
             self.insert_external_types_by_reference(
-                actor_id,
+                actor_uuid,
                 OntologyTypeReference::EntityTypeReference(&entity_type_reference),
                 ConflictBehavior::Skip,
                 FetchBehavior::ExcludeProvidedReferences,
@@ -1608,7 +1608,7 @@ where
             .await?;
         }
 
-        self.store.create_entities(actor_id, params).await
+        self.store.create_entities(actor_uuid, params).await
     }
 
     async fn validate_entities(

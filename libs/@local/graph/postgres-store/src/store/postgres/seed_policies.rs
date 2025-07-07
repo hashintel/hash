@@ -392,9 +392,20 @@ fn web_create_entity_policies(role: &WebRole) -> impl Iterator<Item = PolicyCrea
             actor_type: None,
         }),
         actions: vec![ActionName::CreateEntity],
-        resource: Some(ResourceConstraint::Web {
+        resource: Some(ResourceConstraint::Entity(EntityResourceConstraint::Web {
             web_id: role.web_id,
-        }),
+            filter: match role.name {
+                RoleName::Administrator => EntityResourceFilter::All { filters: vec![] },
+                RoleName::Member => EntityResourceFilter::Not {
+                    filter: Box::new(EntityResourceFilter::Any {
+                        filters: vec![
+                            // Only admins can invite actors to an organization
+                            IS_MEMBER_OF.entity_is_of_base_type(),
+                        ],
+                    }),
+                },
+            },
+        })),
     })
 }
 
