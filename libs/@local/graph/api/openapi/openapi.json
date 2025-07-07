@@ -2782,13 +2782,13 @@
         }
       }
     },
-    "/entity-types/permissions/instantiate": {
+    "/entity-types/permissions": {
       "post": {
         "tags": [
           "Graph",
           "EntityType"
         ],
-        "operationId": "can_instantiate_entity_types",
+        "operationId": "has_permission_for_entity_types",
         "parameters": [
           {
             "name": "X-Authenticated-User-Actor-Id",
@@ -2804,10 +2804,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/VersionedUrl"
-                }
+                "$ref": "#/components/schemas/HasPermissionForEntityTypesParams"
               }
             }
           },
@@ -2815,20 +2812,20 @@
         },
         "responses": {
           "200": {
-            "description": "A list with the same indices as the input which determines which entity type can be instantiated",
+            "description": "Information if the actor has the permission for the entity types",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "array",
                   "items": {
-                    "type": "boolean"
+                    "$ref": "#/components/schemas/VersionedUrl"
                   }
                 }
               }
             }
           },
           "500": {
-            "description": "Store error occurred"
+            "description": "Internal error occurred"
           }
         }
       }
@@ -2977,47 +2974,6 @@
         }
       }
     },
-    "/entity-types/relationships": {
-      "post": {
-        "tags": [
-          "Graph",
-          "EntityType"
-        ],
-        "operationId": "modify_entity_type_authorization_relationships",
-        "parameters": [
-          {
-            "name": "X-Authenticated-User-Actor-Id",
-            "in": "header",
-            "description": "The ID of the actor which is used to authorize the request",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ActorEntityUuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/ModifyEntityTypeAuthorizationRelationship"
-                }
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "204": {
-            "description": "The relationship was modified for the entity"
-          },
-          "403": {
-            "description": "Permission denied"
-          }
-        }
-      }
-    },
     "/entity-types/unarchive": {
       "put": {
         "tags": [
@@ -3068,59 +3024,6 @@
           },
           "500": {
             "description": "Store error occurred"
-          }
-        }
-      }
-    },
-    "/entity-types/{entity_type_id}/permissions/{permission}": {
-      "get": {
-        "tags": [
-          "Graph",
-          "EntityType"
-        ],
-        "operationId": "check_entity_type_permission",
-        "parameters": [
-          {
-            "name": "X-Authenticated-User-Actor-Id",
-            "in": "header",
-            "description": "The ID of the actor which is used to authorize the request",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ActorEntityUuid"
-            }
-          },
-          {
-            "name": "entity_type_id",
-            "in": "path",
-            "description": "The entity type ID to check if the actor has the permission",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/VersionedUrl"
-            }
-          },
-          {
-            "name": "permission",
-            "in": "path",
-            "description": "The permission to check for",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/EntityTypePermission"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Information if the actor has the permission for the entity type",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PermissionResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal error occurred"
           }
         }
       }
@@ -6275,13 +6178,6 @@
           "propertyName": "kind"
         }
       },
-      "EntityTypePermission": {
-        "type": "string",
-        "enum": [
-          "update",
-          "view"
-        ]
-      },
       "EntityTypeQueryToken": {
         "type": "string",
         "description": "A single token in a [`EntityTypeQueryPath`].",
@@ -7833,6 +7729,29 @@
         },
         "additionalProperties": false
       },
+      "HasPermissionForEntityTypesParams": {
+        "type": "object",
+        "required": [
+          "action",
+          "entityTypeIds",
+          "includeParents"
+        ],
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "entityTypeIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VersionedUrl"
+            }
+          },
+          "includeParents": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
       "IncludeEntityTypeOption": {
         "type": "string",
         "enum": [
@@ -8533,25 +8452,6 @@
           },
           "resource": {
             "$ref": "#/components/schemas/EntityId"
-          }
-        }
-      },
-      "ModifyEntityTypeAuthorizationRelationship": {
-        "type": "object",
-        "required": [
-          "operation",
-          "resource",
-          "relationAndSubject"
-        ],
-        "properties": {
-          "operation": {
-            "$ref": "#/components/schemas/ModifyRelationshipOperation"
-          },
-          "relationAndSubject": {
-            "$ref": "#/components/schemas/EntityTypeRelationAndSubject"
-          },
-          "resource": {
-            "$ref": "#/components/schemas/VersionedUrl"
           }
         }
       },

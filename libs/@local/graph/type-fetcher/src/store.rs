@@ -52,8 +52,8 @@ use hash_graph_store::{
         ArchiveEntityTypeParams, CountEntityTypesParams, CreateEntityTypeParams, EntityTypeStore,
         GetClosedMultiEntityTypesResponse, GetEntityTypeSubgraphParams,
         GetEntityTypeSubgraphResponse, GetEntityTypesParams, GetEntityTypesResponse,
-        IncludeResolvedEntityTypeOption, UnarchiveEntityTypeParams,
-        UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
+        HasPermissionForEntityTypesParams, IncludeResolvedEntityTypeOption,
+        UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
     },
     error::{CheckPermissionError, InsertionError, QueryError, UpdateError},
     filter::{Filter, QueryRecord},
@@ -1565,13 +1565,13 @@ where
         self.store.reindex_entity_type_cache().await
     }
 
-    async fn can_instantiate_entity_types(
+    async fn has_permission_for_entity_types(
         &self,
-        authenticated_user: ActorEntityUuid,
-        entity_type_ids: &[VersionedUrl],
-    ) -> Result<Vec<bool>, Report<QueryError>> {
+        authenticated_actor: AuthenticatedActor,
+        params: HasPermissionForEntityTypesParams<'_>,
+    ) -> Result<HashSet<VersionedUrl>, Report<CheckPermissionError>> {
         self.store
-            .can_instantiate_entity_types(authenticated_user, entity_type_ids)
+            .has_permission_for_entity_types(authenticated_actor, params)
             .await
     }
 }

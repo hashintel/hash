@@ -110,15 +110,7 @@ impl PolicyComponents {
                 unreachable!("Action `{action}` is not tracked in this `PolicyComponents`")
             })
             .as_ref()
-            .unwrap_or_else(|| {
-                if cfg!(debug_assertions) {
-                    unreachable!("Action `{action}` is not optimized in this `PolicyComponents`")
-                }
-
-                tracing::warn!("No optimization data for action `{action}`");
-
-                EMPTY_OPTIMIZATION_DATA
-            })
+            .unwrap_or(EMPTY_OPTIMIZATION_DATA)
     }
 
     #[must_use]
