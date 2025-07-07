@@ -5,5 +5,5 @@
     "moduleResolution": "NodeNext",
     "types": ["vitest/importMeta"]
   },
-  "include": ["src", "tests", "eslint.config.js", "vitest.config.ts"]
+  "include": ["src", "tests", "vitest.config.ts"]
 }
