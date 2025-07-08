@@ -56,7 +56,7 @@ use hash_graph_store::{
     error::{InsertionError, UpdateError},
     query::ConflictBehavior,
 };
-use hash_graph_temporal_versioning::{LeftClosedTemporalInterval, Timestamp, TransactionTime};
+use hash_graph_temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
 use hash_status::StatusCode;
 use hash_temporal_client::TemporalClient;
 use postgres_types::{Json, ToSql};
