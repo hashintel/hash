@@ -21,16 +21,17 @@ use uuid::Uuid;
 
 use self::error::{
     ActorCreationError, BuildEntityContextError, BuildEntityTypeContextError,
-    BuildPrincipalContextError, ContextCreationError, CreatePolicyError, DetermineActorError,
-    EnsureSystemPoliciesError, GetPoliciesError, GetSystemAccountError, PolicyStoreError,
-    RemovePolicyError, RoleAssignmentError, TeamCreationError, TeamRoleCreationError,
-    TeamRoleError, UpdatePolicyError, WebCreationError, WebRoleCreationError, WebRoleError,
+    BuildPrincipalContextError, BuildPropertyTypeContextError, ContextCreationError,
+    CreatePolicyError, DetermineActorError, EnsureSystemPoliciesError, GetPoliciesError,
+    GetSystemAccountError, PolicyStoreError, RemovePolicyError, RoleAssignmentError,
+    TeamCreationError, TeamRoleCreationError, TeamRoleError, UpdatePolicyError, WebCreationError,
+    WebRoleCreationError, WebRoleError,
 };
 use super::{
     ContextBuilder, Effect, Policy, PolicyId,
     action::ActionName,
     principal::{PrincipalConstraint, actor::AuthenticatedActor},
-    resource::{EntityResource, EntityTypeResource, ResourceConstraint},
+    resource::{EntityResource, EntityTypeResource, PropertyTypeResource, ResourceConstraint},
 };
 
 #[derive(Debug, derive_more::Display)]
@@ -342,6 +343,18 @@ pub trait PolicyStore {
         entity_type_ids: &[&VersionedUrl],
     ) -> impl Future<
         Output = Result<Vec<EntityTypeResource<'_>>, Report<[BuildEntityTypeContextError]>>,
+    > + Send;
+
+    /// Builds a context used to evaluate policies for a set of entity types.
+    ///
+    /// # Errors
+    ///
+    /// - If a database error occurs
+    fn build_property_type_context(
+        &self,
+        property_type_ids: &[&VersionedUrl],
+    ) -> impl Future<
+        Output = Result<Vec<PropertyTypeResource<'_>>, Report<[BuildPropertyTypeContextError]>>,
     > + Send;
 
     /// Builds a context used to evaluate policies for a set of entities.

@@ -20,6 +20,12 @@ namespace HASH {
     is_remote: Bool,
   };
 
+  entity PropertyType in [Web] {
+    base_url: String,
+    version: Long,
+    is_remote: Bool,
+  };
+
   entity User, Machine, Ai in [HASH::Web::Role, HASH::Team::Role] {
     id: ActorId,
   };
@@ -40,7 +46,7 @@ namespace HASH {
 
   action create, view, update, archive in [all] appliesTo {
     principal: [User, Machine, Ai],
-    resource: [Entity, EntityType],
+    resource: [Entity, EntityType, PropertyType],
   };
 
   action createEntity in [create] appliesTo {
@@ -53,6 +59,11 @@ namespace HASH {
     resource: [EntityType],
   };
 
+  action createPropertyType in [create] appliesTo {
+    principal: [User, Machine, Ai],
+    resource: [PropertyType],
+  };
+
   action viewEntity in [view] appliesTo {
     principal: [User, Machine, Ai, Public],
     resource: [Entity],
@@ -61,6 +72,11 @@ namespace HASH {
   action viewEntityType in [view] appliesTo {
     principal: [User, Machine, Ai, Public],
     resource: [EntityType],
+  };
+
+  action viewPropertyType in [view] appliesTo {
+    principal: [User, Machine, Ai, Public],
+    resource: [PropertyType],
   };
 
   action updateEntity in [update] appliesTo {
@@ -73,6 +89,11 @@ namespace HASH {
     resource: [EntityType],
   };
 
+  action updatePropertyType in [update] appliesTo {
+    principal: [User, Machine, Ai],
+    resource: [PropertyType],
+  };
+
   action archiveEntity in [archive] appliesTo {
     principal: [User, Machine, Ai],
     resource: [Entity],
@@ -81,6 +102,11 @@ namespace HASH {
   action archiveEntityType in [archive] appliesTo {
     principal: [User, Machine, Ai],
     resource: [EntityType],
+  };
+
+  action archivePropertyType in [archive] appliesTo {
+    principal: [User, Machine, Ai],
+    resource: [PropertyType],
   };
 
   action instantiate in [all] appliesTo {

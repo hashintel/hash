@@ -4,11 +4,15 @@
 {"type":"principal","principalType":"role","roleType":"web","id":"00000000-0001-000a-0000-000000000000","webId":"00000000-0001-0000-0000-000000000000","name":"administrator"}
 {"type":"web","id":"00000000-0001-0000-0000-000000000000","relations":[{"relation":"owner","subject":{"kind":"account","subjectId":"00000000-0001-0000-0000-000000000000"}},{"relation":"entityTypeViewer","subject":{"kind":"public"}},{"relation":"propertyTypeViewer","subject":{"kind":"public"}},{"relation":"dataTypeViewer","subject":{"kind":"public"}}]}
 {"type":"action","name":"viewEntityType","parents":[]}
+{"type":"action","name":"viewPropertyType","parents":[]}
 {"type":"policy","id":"00000000-000F-0000-0000-000000000000","effect":"permit","principal":null,"resource":null,"transactionTime":{"start":{"kind":"inclusive","limit":"2001-01-01T00:00:00Z"},"end":{"kind":"unbounded"}}}
 {"type":"policyActions","policyId":"00000000-000F-0000-0000-000000000000","name":"viewEntityType","transactionTime":{"start":{"kind":"inclusive","limit":"2001-01-01T00:00:00Z"},"end":{"kind":"unbounded"}}}
+{"type":"policyActions","policyId":"00000000-000F-0000-0000-000000000000","name":"viewPropertyType","transactionTime":{"start":{"kind":"inclusive","limit":"2001-01-01T00:00:00Z"},"end":{"kind":"unbounded"}}}
 {"type":"action","name":"archiveEntityType","parents":[]}
+{"type":"action","name":"archivePropertyType","parents":[]}
 {"type":"policy","id":"00000000-0002-00aa-0000-000000000000","effect":"permit","principal":{"type":"role","roleType":"web","id":"00000000-0001-000a-0000-000000000000"},"resource":{"type":"web","webId":"00000000-0001-0000-0000-000000000000"},"transactionTime":{"start":{"kind":"inclusive","limit":"2001-01-01T00:00:00Z"},"end":{"kind":"unbounded"}}}
 {"type":"policyActions","policyId":"00000000-0002-00aa-0000-000000000000","name":"archiveEntityType","transactionTime":{"start":{"kind":"inclusive","limit":"2001-01-01T00:00:00Z"},"end":{"kind":"unbounded"}}}
+{"type":"policyActions","policyId":"00000000-0002-00aa-0000-000000000000","name":"archivePropertyType","transactionTime":{"start":{"kind":"inclusive","limit":"2001-01-01T00:00:00Z"},"end":{"kind":"unbounded"}}}
 {"type":"action","name":"viewEntity","parents":[]}
 {"type":"policy","id":"00000000-0001-00aa-0000-000000000000","effect":"permit","principal":{"type":"role","roleType":"web","id":"00000000-0001-000a-0000-000000000000"},"resource":{"type":"entity","webId":"00000000-0001-0000-0000-000000000000","filter":{"type": "all","filters": []}},"transactionTime":{"start":{"kind":"inclusive","limit":"2001-01-01T00:00:00Z"},"end":{"kind":"unbounded"}}}
 {"type":"policyActions","policyId":"00000000-0001-00aa-0000-000000000000","name":"viewEntity","transactionTime":{"start":{"kind":"inclusive","limit":"2001-01-01T00:00:00Z"},"end":{"kind":"unbounded"}}}

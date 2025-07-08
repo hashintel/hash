@@ -36,22 +36,26 @@ pub enum ActionName {
     Create,
     CreateEntity,
     CreateEntityType,
+    CreatePropertyType,
     CreateWeb,
 
     #[cfg_attr(feature = "codegen", specta(skip))]
     View,
     ViewEntity,
     ViewEntityType,
+    ViewPropertyType,
 
     #[cfg_attr(feature = "codegen", specta(skip))]
     Update,
     UpdateEntity,
     UpdateEntityType,
+    UpdatePropertyType,
 
     #[cfg_attr(feature = "codegen", specta(skip))]
     Archive,
     ArchiveEntity,
     ArchiveEntityType,
+    ArchivePropertyType,
 
     Instantiate,
 }
@@ -71,10 +75,16 @@ impl ActionName {
             | Self::Update
             | Self::Archive
             | Self::Instantiate => Some(Self::All),
-            Self::CreateEntity | Self::CreateEntityType => Some(Self::Create),
-            Self::ViewEntity | Self::ViewEntityType => Some(Self::View),
-            Self::UpdateEntity | Self::UpdateEntityType => Some(Self::Update),
-            Self::ArchiveEntity | Self::ArchiveEntityType => Some(Self::Archive),
+            Self::CreateEntity | Self::CreateEntityType | Self::CreatePropertyType => {
+                Some(Self::Create)
+            }
+            Self::ViewEntity | Self::ViewEntityType | Self::ViewPropertyType => Some(Self::View),
+            Self::UpdateEntity | Self::UpdateEntityType | Self::UpdatePropertyType => {
+                Some(Self::Update)
+            }
+            Self::ArchiveEntity | Self::ArchiveEntityType | Self::ArchivePropertyType => {
+                Some(Self::Archive)
+            }
         }
     }
 
@@ -369,28 +379,44 @@ mod tests {
         );
 
         // Second level actions have their direct parent and All as ancestors
-        for action in [ActionName::CreateEntity, ActionName::CreateEntityType] {
+        for action in [
+            ActionName::CreateEntity,
+            ActionName::CreateEntityType,
+            ActionName::CreatePropertyType,
+        ] {
             assert_eq!(
                 action.parents().collect::<Vec<_>>(),
                 vec![ActionName::Create, ActionName::All]
             );
         }
 
-        for action in [ActionName::ViewEntity, ActionName::ViewEntityType] {
+        for action in [
+            ActionName::ViewEntity,
+            ActionName::ViewEntityType,
+            ActionName::ViewPropertyType,
+        ] {
             assert_eq!(
                 action.parents().collect::<Vec<_>>(),
                 vec![ActionName::View, ActionName::All]
             );
         }
 
-        for action in [ActionName::UpdateEntity, ActionName::UpdateEntityType] {
+        for action in [
+            ActionName::UpdateEntity,
+            ActionName::UpdateEntityType,
+            ActionName::UpdatePropertyType,
+        ] {
             assert_eq!(
                 action.parents().collect::<Vec<_>>(),
                 vec![ActionName::Update, ActionName::All]
             );
         }
 
-        for action in [ActionName::ArchiveEntity, ActionName::ArchiveEntityType] {
+        for action in [
+            ActionName::ArchiveEntity,
+            ActionName::ArchiveEntityType,
+            ActionName::ArchivePropertyType,
+        ] {
             assert_eq!(
                 action.parents().collect::<Vec<_>>(),
                 vec![ActionName::Archive, ActionName::All]
@@ -400,22 +426,38 @@ mod tests {
 
     #[test]
     fn is_parent_of() {
-        for action in [ActionName::CreateEntity, ActionName::CreateEntityType] {
+        for action in [
+            ActionName::CreateEntity,
+            ActionName::CreateEntityType,
+            ActionName::CreatePropertyType,
+        ] {
             assert!(ActionName::Create.is_parent_of(action));
             assert!(action.is_child_of(ActionName::Create));
         }
 
-        for action in [ActionName::ViewEntity, ActionName::ViewEntityType] {
+        for action in [
+            ActionName::ViewEntity,
+            ActionName::ViewEntityType,
+            ActionName::ViewPropertyType,
+        ] {
             assert!(ActionName::View.is_parent_of(action));
             assert!(action.is_child_of(ActionName::View));
         }
 
-        for action in [ActionName::UpdateEntity, ActionName::UpdateEntityType] {
+        for action in [
+            ActionName::UpdateEntity,
+            ActionName::UpdateEntityType,
+            ActionName::UpdatePropertyType,
+        ] {
             assert!(ActionName::Update.is_parent_of(action));
             assert!(action.is_child_of(ActionName::Update));
         }
 
-        for action in [ActionName::ArchiveEntity, ActionName::ArchiveEntityType] {
+        for action in [
+            ActionName::ArchiveEntity,
+            ActionName::ArchiveEntityType,
+            ActionName::ArchivePropertyType,
+        ] {
             assert!(ActionName::Archive.is_parent_of(action));
             assert!(action.is_child_of(ActionName::Archive));
         }

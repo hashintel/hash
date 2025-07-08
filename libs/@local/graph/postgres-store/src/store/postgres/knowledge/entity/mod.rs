@@ -772,7 +772,14 @@ where
             .with_actor(actor_id)
             .with_entity_type_ids(entity_type_id_set)
             .with_actions([ActionName::Instantiate, ActionName::CreateEntity], false)
-            .with_actions([ActionName::ViewEntity, ActionName::ViewEntityType], true)
+            .with_actions(
+                [
+                    ActionName::ViewEntity,
+                    ActionName::ViewEntityType,
+                    ActionName::ViewPropertyType,
+                ],
+                true,
+            )
             .await
             .change_context(InsertionError)?;
 
@@ -1182,7 +1189,14 @@ where
     ) -> Result<HashMap<usize, EntityValidationReport>, Report<QueryError>> {
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor_id)
-            .with_actions([ActionName::ViewEntity, ActionName::ViewEntityType], true)
+            .with_actions(
+                [
+                    ActionName::ViewEntity,
+                    ActionName::ViewEntityType,
+                    ActionName::ViewPropertyType,
+                ],
+                true,
+            )
             .await
             .change_context(QueryError)?;
 
@@ -1321,9 +1335,23 @@ where
         actor_id: ActorEntityUuid,
         mut params: GetEntitySubgraphParams<'_>,
     ) -> Result<GetEntitySubgraphResponse<'static>, Report<QueryError>> {
+        let mut actions = vec![ActionName::ViewEntity];
+        if params.graph_resolve_depths.is_of_type.outgoing > 0 {
+            actions.push(ActionName::ViewEntityType);
+
+            if params
+                .graph_resolve_depths
+                .constrains_properties_on
+                .outgoing
+                > 0
+            {
+                actions.push(ActionName::ViewPropertyType);
+            }
+        }
+
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor_id)
-            .with_actions([ActionName::ViewEntity, ActionName::ViewEntityType], true)
+            .with_actions(actions, true)
             .into_future()
             .await
             .change_context(QueryError)?;
@@ -1654,7 +1682,14 @@ where
                 ],
                 false,
             )
-            .with_actions([ActionName::ViewEntity, ActionName::ViewEntityType], true)
+            .with_actions(
+                [
+                    ActionName::ViewEntity,
+                    ActionName::ViewEntityType,
+                    ActionName::ViewPropertyType,
+                ],
+                true,
+            )
             .await
             .change_context(UpdateError)?;
 

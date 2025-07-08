@@ -11,7 +11,8 @@ use hash_graph_authorization::policies::{
     Effect, OptimizationData,
     resource::{
         EntityResourceConstraint, EntityResourceFilter, EntityTypeResourceConstraint,
-        EntityTypeResourceFilter, ResourceConstraint,
+        EntityTypeResourceFilter, PropertyTypeResourceConstraint, PropertyTypeResourceFilter,
+        ResourceConstraint,
     },
 };
 use hash_graph_types::ontology::DataTypeLookup;
@@ -239,6 +240,197 @@ impl<'p> Filter<'p, PropertyTypeWithMetadata> {
             ParameterList::PropertyTypeIds(property_type_ids),
         )
     }
+
+    #[must_use]
+    pub fn for_resource_constraint(resource_constraint: &'p ResourceConstraint) -> Self {
+        match resource_constraint {
+            ResourceConstraint::Web { web_id } => Self::Equal(
+                Some(FilterExpression::Path {
+                    path: PropertyTypeQueryPath::WebId,
+                }),
+                Some(FilterExpression::Parameter {
+                    parameter: Parameter::Uuid((*web_id).into()),
+                    convert: None,
+                }),
+            ),
+            ResourceConstraint::PropertyType(property_type_constraint) => {
+                match property_type_constraint {
+                    PropertyTypeResourceConstraint::Exact { id } => {
+                        Self::for_versioned_url(id.as_url())
+                    }
+                    PropertyTypeResourceConstraint::Web { web_id, filter } => Self::All(vec![
+                        Self::Equal(
+                            Some(FilterExpression::Path {
+                                path: PropertyTypeQueryPath::WebId,
+                            }),
+                            Some(FilterExpression::Parameter {
+                                parameter: Parameter::Uuid((*web_id).into()),
+                                convert: None,
+                            }),
+                        ),
+                        Self::for_resource_filter(filter),
+                    ]),
+                    PropertyTypeResourceConstraint::Any { filter } => {
+                        Self::for_resource_filter(filter)
+                    }
+                }
+            }
+            ResourceConstraint::EntityType(_) | ResourceConstraint::Entity(_) => {
+                Self::Any(Vec::new())
+            }
+        }
+    }
+
+    #[must_use]
+    pub fn for_resource_filter(resource_filter: &'p PropertyTypeResourceFilter) -> Self {
+        match resource_filter {
+            PropertyTypeResourceFilter::All { filters } => {
+                Self::All(filters.iter().map(Self::for_resource_filter).collect())
+            }
+            PropertyTypeResourceFilter::Any { filters } => {
+                Self::Any(filters.iter().map(Self::for_resource_filter).collect())
+            }
+            PropertyTypeResourceFilter::Not { filter } => {
+                Self::Not(Box::new(Self::for_resource_filter(filter)))
+            }
+            PropertyTypeResourceFilter::IsBaseUrl { base_url } => Self::Equal(
+                Some(FilterExpression::Path {
+                    path: PropertyTypeQueryPath::BaseUrl,
+                }),
+                Some(FilterExpression::Parameter {
+                    parameter: Parameter::Text(Cow::Borrowed(base_url.as_str())),
+                    convert: None,
+                }),
+            ),
+            PropertyTypeResourceFilter::IsVersion { version } => Self::Equal(
+                Some(FilterExpression::Path {
+                    path: PropertyTypeQueryPath::Version,
+                }),
+                Some(FilterExpression::Parameter {
+                    parameter: Parameter::OntologyTypeVersion(*version),
+                    convert: None,
+                }),
+            ),
+            PropertyTypeResourceFilter::IsRemote => Self::Equal(
+                Some(FilterExpression::Path {
+                    path: PropertyTypeQueryPath::WebId,
+                }),
+                None,
+            ),
+        }
+    }
+
+    /// Creates filters using policy data with optimization applied.
+    ///
+    /// This method checks for optimization opportunities first, and if found,
+    /// creates more efficient database queries. If no optimizations are possible,
+    /// it falls back to the standard policy-based filter creation.
+    ///
+    /// # Optimizations
+    ///
+    /// Currently supports:
+    /// - Multiple exact property type permits → IN clause for property type UUIDs
+    /// - Multiple web permits → IN clause for web IDs
+    ///
+    /// # Arguments
+    ///
+    /// * `policies` - Iterator of (Effect, Option<&[`ResourceConstraint`]>) pairs
+    /// * `actor_id` - Optional actor ID for context-aware filters
+    /// * `optimization_data` - Pre-analyzed optimization opportunities
+    #[must_use]
+    pub fn for_policies(
+        policies: impl IntoIterator<Item = (Effect, Option<&'p ResourceConstraint>)>,
+        optimization_data: &'p OptimizationData,
+    ) -> Self {
+        // Follow the same pattern as for_policies: separate permits and forbids
+        let mut permits = Vec::new();
+        let mut forbids = Vec::new();
+        let mut blank_permit = false;
+
+        for (effect, resource) in policies {
+            match (resource, effect) {
+                (None, Effect::Permit) => blank_permit = true,
+                (None, Effect::Forbid) => return Self::Any(Vec::new()), // Blank forbid = deny all
+                (Some(resource), Effect::Permit) => {
+                    // Non-optimizable permits
+                    permits.push(Self::for_resource_constraint(resource));
+                }
+                (Some(resource), Effect::Forbid) => {
+                    // All forbids
+                    forbids.push(Self::for_resource_constraint(resource));
+                }
+            }
+        }
+
+        // Add optimized property type permits if any
+        match optimization_data.permitted_property_type_uuids.as_slice() {
+            [] => {}
+            &[property_type_uuid] => {
+                permits.push(Self::Equal(
+                    Some(FilterExpression::Path {
+                        path: PropertyTypeQueryPath::OntologyId,
+                    }),
+                    Some(FilterExpression::Parameter {
+                        parameter: Parameter::Uuid(property_type_uuid.into_uuid()),
+                        convert: None,
+                    }),
+                ));
+            }
+            property_type_uuids => {
+                // Use the Vec directly for the IN clause
+                permits.push(Self::In(
+                    FilterExpression::Path {
+                        path: PropertyTypeQueryPath::OntologyId,
+                    },
+                    ParameterList::PropertyTypeIds(property_type_uuids),
+                ));
+            }
+        }
+
+        // Add optimized web ID permits if any
+        match optimization_data.permitted_web_ids.as_slice() {
+            [] => {}
+            &[web_id] => {
+                permits.push(Self::Equal(
+                    Some(FilterExpression::Path {
+                        path: PropertyTypeQueryPath::WebId,
+                    }),
+                    Some(FilterExpression::Parameter {
+                        parameter: Parameter::Uuid(web_id.into()),
+                        convert: None,
+                    }),
+                ));
+            }
+            web_ids => {
+                // Use the Vec directly for the IN clause
+                permits.push(Self::In(
+                    FilterExpression::Path {
+                        path: PropertyTypeQueryPath::WebId,
+                    },
+                    ParameterList::WebIds(web_ids),
+                ));
+            }
+        }
+
+        // Apply the same combination logic as for_policies
+        if blank_permit {
+            if forbids.is_empty() {
+                Self::All(Vec::new()) // Allow all
+            } else {
+                Self::Not(Box::new(Self::Any(forbids))) // Allow all except forbids
+            }
+        } else {
+            match (!permits.is_empty(), !forbids.is_empty()) {
+                (false, _) => Self::Any(Vec::new()), // No permits = deny all
+                (true, false) => Self::Any(permits), // Only permits
+                (true, true) => Self::All(vec![
+                    // Both permits and forbids
+                    Self::Any(permits),
+                    Self::Not(Box::new(Self::Any(forbids))),
+                ]),
+            }
+        }
+    }
 }
 
 impl<'p> Filter<'p, EntityTypeWithMetadata> {
@@ -325,7 +517,9 @@ impl<'p> Filter<'p, EntityTypeWithMetadata> {
                     }
                 }
             }
-            ResourceConstraint::Entity(_) => Self::Any(Vec::new()),
+            ResourceConstraint::Entity(_) | ResourceConstraint::PropertyType(_) => {
+                Self::Any(Vec::new())
+            }
         }
     }
 
@@ -617,7 +811,9 @@ impl<'p> Filter<'p, Entity> {
                     Self::for_resource_filter(filter, actor_id)
                 }
             },
-            ResourceConstraint::EntityType(_) => Self::Any(Vec::new()),
+            ResourceConstraint::EntityType(_) | ResourceConstraint::PropertyType(_) => {
+                Self::Any(Vec::new())
+            }
         }
     }
 

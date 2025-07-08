@@ -17,8 +17,6 @@ import type {
   ArchivePropertyTypeParams,
   GetPropertyTypesParams,
   GetPropertyTypeSubgraphParams,
-  ModifyRelationshipOperation,
-  PropertyTypePermission,
   PropertyTypeRelationAndSubject,
   UnarchivePropertyTypeParams,
   UpdatePropertyTypeRequest,
@@ -299,32 +297,3 @@ export const getPropertyTypeAuthorizationRelationships: ImpureGraphFunction<
         ...(relationship as PropertyTypeRelationAndSubjectBranded),
       })),
     );
-
-export const modifyPropertyTypeAuthorizationRelationships: ImpureGraphFunction<
-  {
-    operation: ModifyRelationshipOperation;
-    relationship: PropertyTypeAuthorizationRelationship;
-  }[],
-  Promise<void>
-> = async ({ graphApi }, { actorId }, params) => {
-  await graphApi.modifyPropertyTypeAuthorizationRelationships(
-    actorId,
-    params.map(({ operation, relationship }) => ({
-      operation,
-      resource: relationship.resource.resourceId,
-      relationAndSubject: relationship,
-    })),
-  );
-};
-
-export const checkPropertyTypePermission: ImpureGraphFunction<
-  { propertyTypeId: VersionedUrl; permission: PropertyTypePermission },
-  Promise<boolean>
-> = async ({ graphApi }, { actorId }, params) =>
-  graphApi
-    .checkPropertyTypePermission(
-      actorId,
-      params.propertyTypeId,
-      params.permission,
-    )
-    .then(({ data }) => data.has_permission);

@@ -3695,6 +3695,54 @@
         }
       }
     },
+    "/property-types/permissions": {
+      "post": {
+        "tags": [
+          "Graph",
+          "PropertyType"
+        ],
+        "operationId": "has_permission_for_property_types",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HasPermissionForPropertyTypesParams"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Information if the actor has the permission for the property types",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/VersionedUrl"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error occurred"
+          }
+        }
+      }
+    },
     "/property-types/query": {
       "post": {
         "tags": [
@@ -3799,47 +3847,6 @@
         }
       }
     },
-    "/property-types/relationships": {
-      "post": {
-        "tags": [
-          "Graph",
-          "PropertyType"
-        ],
-        "operationId": "modify_property_type_authorization_relationships",
-        "parameters": [
-          {
-            "name": "X-Authenticated-User-Actor-Id",
-            "in": "header",
-            "description": "The ID of the actor which is used to authorize the request",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ActorEntityUuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/ModifyPropertyTypeAuthorizationRelationship"
-                }
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "204": {
-            "description": "The relationship was modified for the property"
-          },
-          "403": {
-            "description": "Permission denied"
-          }
-        }
-      }
-    },
     "/property-types/unarchive": {
       "put": {
         "tags": [
@@ -3890,59 +3897,6 @@
           },
           "500": {
             "description": "Store error occurred"
-          }
-        }
-      }
-    },
-    "/property-types/{property_type_id}/permissions/{permission}": {
-      "get": {
-        "tags": [
-          "Graph",
-          "PropertyType"
-        ],
-        "operationId": "check_property_type_permission",
-        "parameters": [
-          {
-            "name": "X-Authenticated-User-Actor-Id",
-            "in": "header",
-            "description": "The ID of the actor which is used to authorize the request",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ActorEntityUuid"
-            }
-          },
-          {
-            "name": "property_type_id",
-            "in": "path",
-            "description": "The property type ID to check if the actor has the permission",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/VersionedUrl"
-            }
-          },
-          {
-            "name": "permission",
-            "in": "path",
-            "description": "The permission to check for",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/PropertyTypePermission"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Information if the actor has the permission for the property type",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PermissionResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal error occurred"
           }
         }
       }
@@ -7748,6 +7702,25 @@
         },
         "additionalProperties": false
       },
+      "HasPermissionForPropertyTypesParams": {
+        "type": "object",
+        "required": [
+          "action",
+          "propertyTypeIds"
+        ],
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "propertyTypeIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VersionedUrl"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
       "IncludeEntityTypeOption": {
         "type": "string",
         "enum": [
@@ -8448,25 +8421,6 @@
           },
           "resource": {
             "$ref": "#/components/schemas/EntityId"
-          }
-        }
-      },
-      "ModifyPropertyTypeAuthorizationRelationship": {
-        "type": "object",
-        "required": [
-          "operation",
-          "resource",
-          "relationAndSubject"
-        ],
-        "properties": {
-          "operation": {
-            "$ref": "#/components/schemas/ModifyRelationshipOperation"
-          },
-          "relationAndSubject": {
-            "$ref": "#/components/schemas/PropertyTypeRelationAndSubject"
-          },
-          "resource": {
-            "$ref": "#/components/schemas/VersionedUrl"
           }
         }
       },

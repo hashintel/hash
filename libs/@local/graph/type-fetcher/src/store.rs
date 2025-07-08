@@ -8,16 +8,17 @@ use hash_graph_authorization::{
     policies::{
         ContextBuilder, Policy, PolicyId,
         principal::actor::AuthenticatedActor,
-        resource::{EntityResource, EntityTypeResource},
+        resource::{EntityResource, EntityTypeResource, PropertyTypeResource},
         store::{
             CreateWebParameter, CreateWebResponse, PolicyCreationParams, PolicyFilter, PolicyStore,
             PolicyUpdateOperation, PrincipalStore, ResolvePoliciesParams, RoleAssignmentStatus,
             RoleUnassignmentStatus,
             error::{
                 BuildEntityContextError, BuildEntityTypeContextError, BuildPrincipalContextError,
-                CreatePolicyError, DetermineActorError, EnsureSystemPoliciesError,
-                GetPoliciesError, GetSystemAccountError, RemovePolicyError, RoleAssignmentError,
-                TeamRoleError, UpdatePolicyError, WebCreationError, WebRoleError,
+                BuildPropertyTypeContextError, CreatePolicyError, DetermineActorError,
+                EnsureSystemPoliciesError, GetPoliciesError, GetSystemAccountError,
+                RemovePolicyError, RoleAssignmentError, TeamRoleError, UpdatePolicyError,
+                WebCreationError, WebRoleError,
             },
         },
     },
@@ -61,8 +62,8 @@ use hash_graph_store::{
     property_type::{
         ArchivePropertyTypeParams, CountPropertyTypesParams, CreatePropertyTypeParams,
         GetPropertyTypeSubgraphParams, GetPropertyTypeSubgraphResponse, GetPropertyTypesParams,
-        GetPropertyTypesResponse, PropertyTypeStore, UnarchivePropertyTypeParams,
-        UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
+        GetPropertyTypesResponse, HasPermissionForPropertyTypesParams, PropertyTypeStore,
+        UnarchivePropertyTypeParams, UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
     },
     query::{ConflictBehavior, QueryResult, Read, ReadPaginated, Sorting},
     subgraph::temporal_axes::{
@@ -365,6 +366,15 @@ where
         entity_type_ids: &[&VersionedUrl],
     ) -> Result<Vec<EntityTypeResource<'_>>, Report<[BuildEntityTypeContextError]>> {
         self.store.build_entity_type_context(entity_type_ids).await
+    }
+
+    async fn build_property_type_context(
+        &self,
+        property_type_ids: &[&VersionedUrl],
+    ) -> Result<Vec<PropertyTypeResource<'_>>, Report<[BuildPropertyTypeContextError]>> {
+        self.store
+            .build_property_type_context(property_type_ids)
+            .await
     }
 
     async fn build_entity_context(
@@ -1405,6 +1415,16 @@ where
     ) -> Result<(), Report<UpdateError>> {
         self.store
             .update_property_type_embeddings(actor_id, params)
+            .await
+    }
+
+    async fn has_permission_for_property_types(
+        &self,
+        authenticated_actor: AuthenticatedActor,
+        params: HasPermissionForPropertyTypesParams<'_>,
+    ) -> Result<HashSet<VersionedUrl>, Report<CheckPermissionError>> {
+        self.store
+            .has_permission_for_property_types(authenticated_actor, params)
             .await
     }
 }

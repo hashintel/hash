@@ -7,7 +7,7 @@ use type_system::{
         EntityId,
         id::{EntityEditionId, EntityUuid},
     },
-    ontology::{VersionedUrl, entity_type::EntityTypeUuid},
+    ontology::{VersionedUrl, entity_type::EntityTypeUuid, property_type::PropertyTypeUuid},
     principal::{actor::ActorId, actor_group::WebId},
 };
 
@@ -17,7 +17,7 @@ use super::{
     principal::actor::AuthenticatedActor,
     resource::{
         EntityResource, EntityResourceConstraint, EntityTypeResource, EntityTypeResourceConstraint,
-        ResourceConstraint,
+        PropertyTypeResource, PropertyTypeResourceConstraint, ResourceConstraint,
     },
     store::{PolicyStore, PrincipalStore, ResolvePoliciesParams, error::ContextCreationError},
 };
@@ -36,6 +36,8 @@ pub struct OptimizationData {
     pub permitted_entity_uuids: Vec<EntityUuid>,
     /// Entity Type UUIDs that can be optimized to IN clause for exact entity type permits
     pub permitted_entity_type_uuids: Vec<EntityTypeUuid>,
+    /// Property Type UUIDs that can be optimized to IN clause for exact property type permits
+    pub permitted_property_type_uuids: Vec<PropertyTypeUuid>,
     /// Web IDs that can be optimized to IN clause for web resource permits
     pub permitted_web_ids: Vec<WebId>,
 }
@@ -46,6 +48,7 @@ pub struct PolicyComponents {
     policies: Vec<Policy>,
     tracked_actions: HashMap<ActionName, Option<OptimizationData>>,
     tracked_entity_types: HashSet<VersionedUrl>,
+    tracked_property_types: HashSet<VersionedUrl>,
     context: Context,
 }
 
@@ -101,6 +104,7 @@ impl PolicyComponents {
         const EMPTY_OPTIMIZATION_DATA: &OptimizationData = &OptimizationData {
             permitted_entity_uuids: Vec::new(),
             permitted_entity_type_uuids: Vec::new(),
+            permitted_property_type_uuids: Vec::new(),
             permitted_web_ids: Vec::new(),
         };
 
@@ -110,20 +114,17 @@ impl PolicyComponents {
                 unreachable!("Action `{action}` is not tracked in this `PolicyComponents`")
             })
             .as_ref()
-            .unwrap_or_else(|| {
-                if cfg!(debug_assertions) {
-                    unreachable!("Action `{action}` is not optimized in this `PolicyComponents`")
-                }
-
-                tracing::warn!("No optimization data for action `{action}`");
-
-                EMPTY_OPTIMIZATION_DATA
-            })
+            .unwrap_or(EMPTY_OPTIMIZATION_DATA)
     }
 
     #[must_use]
     pub const fn tracked_entity_types(&self) -> &HashSet<VersionedUrl> {
         &self.tracked_entity_types
+    }
+
+    #[must_use]
+    pub const fn tracked_property_types(&self) -> &HashSet<VersionedUrl> {
+        &self.tracked_property_types
     }
 
     /// Analyzes policies and extracts optimization opportunities.
@@ -144,6 +145,7 @@ impl PolicyComponents {
     fn analyze_optimization_opportunities(&mut self, action: ActionName) {
         let mut entity_uuids_set = HashSet::new();
         let mut ontology_type_uuids_set = HashSet::new();
+        let mut property_type_uuids_set = HashSet::new();
         let mut web_ids_set = HashSet::new();
 
         let mut i = 0;
@@ -168,6 +170,15 @@ impl PolicyComponents {
                     })),
                 ) => {
                     ontology_type_uuids_set.insert(EntityTypeUuid::from_url(id.as_url()));
+                    true
+                }
+                (
+                    Effect::Permit,
+                    Some(ResourceConstraint::PropertyType(PropertyTypeResourceConstraint::Exact {
+                        id,
+                    })),
+                ) => {
+                    property_type_uuids_set.insert(PropertyTypeUuid::from_url(id.as_url()));
                     true
                 }
                 (Effect::Permit, Some(ResourceConstraint::Web { web_id })) => {
@@ -200,6 +211,7 @@ impl PolicyComponents {
             .replace(OptimizationData {
                 permitted_entity_uuids: entity_uuids_set.into_iter().collect(),
                 permitted_entity_type_uuids: ontology_type_uuids_set.into_iter().collect(),
+                permitted_property_type_uuids: property_type_uuids_set.into_iter().collect(),
                 permitted_web_ids: web_ids_set.into_iter().collect(),
             });
     }
@@ -263,6 +275,7 @@ pub struct PolicyComponentsBuilder<'a, S> {
     actor: AuthenticatedActor,
     context: ContextBuilder,
     entity_type_ids: HashSet<Cow<'a, VersionedUrl>>,
+    property_type_ids: HashSet<Cow<'a, VersionedUrl>>,
     entity_edition_ids: HashSet<EntityEditionId>,
     /// Actions to track, with optimization flag.
     actions: HashMap<ActionName, bool>,
@@ -276,6 +289,7 @@ impl<'a, S> PolicyComponentsBuilder<'a, S> {
             actor: AuthenticatedActor::Public,
             context: ContextBuilder::default(),
             entity_type_ids: HashSet::new(),
+            property_type_ids: HashSet::new(),
             entity_edition_ids: HashSet::new(),
             actions: HashMap::new(),
         }
@@ -312,6 +326,33 @@ impl<'a, S> PolicyComponentsBuilder<'a, S> {
         entity_types: impl IntoIterator<Item = &'a VersionedUrl>,
     ) -> Self {
         self.add_entity_type_ids(entity_types);
+        self
+    }
+
+    pub fn add_property_type_id(&mut self, property_type: &'a VersionedUrl) {
+        self.property_type_ids.insert(Cow::Borrowed(property_type));
+    }
+
+    pub fn add_property_type_ids(
+        &mut self,
+        property_type: impl IntoIterator<Item = &'a VersionedUrl>,
+    ) {
+        self.property_type_ids
+            .extend(property_type.into_iter().map(Cow::Borrowed));
+    }
+
+    #[must_use]
+    pub fn with_property_type_id(mut self, property_type: &'a VersionedUrl) -> Self {
+        self.add_property_type_id(property_type);
+        self
+    }
+
+    #[must_use]
+    pub fn with_property_type_ids(
+        mut self,
+        property_types: impl IntoIterator<Item = &'a VersionedUrl>,
+    ) -> Self {
+        self.add_property_type_ids(property_types);
         self
     }
 
@@ -427,6 +468,13 @@ impl<'a, S> PolicyComponentsBuilder<'a, S> {
             web_id,
         });
     }
+
+    pub fn add_property_type(&mut self, id: &VersionedUrl, web_id: Option<WebId>) {
+        self.context.add_property_type(&PropertyTypeResource {
+            id: Cow::Borrowed(id.into()),
+            web_id,
+        });
+    }
 }
 
 impl<S> IntoFuture for PolicyComponentsBuilder<'_, S>
@@ -499,6 +547,30 @@ where
                     .collect::<HashSet<_>>()
             };
 
+            let tracked_property_types = if self.property_type_ids.is_empty() {
+                HashSet::new()
+            } else {
+                let property_type_ids = self
+                    .property_type_ids
+                    .iter()
+                    .map(Cow::as_ref)
+                    .collect::<Vec<_>>();
+                let property_type_resources = self
+                    .store
+                    .build_property_type_context(&property_type_ids)
+                    .await
+                    .change_context_lazy(|| ContextCreationError::BuildPropertyTypeContext {
+                        property_type_ids: property_type_ids.into_iter().cloned().collect(),
+                    })?;
+                for property_type_resource in &property_type_resources {
+                    self.context.add_property_type(property_type_resource);
+                }
+                property_type_resources
+                    .into_iter()
+                    .map(|resource| resource.id.into_owned().into_url())
+                    .collect::<HashSet<_>>()
+            };
+
             let actions = self.actions.keys().copied().collect::<Vec<_>>();
             let policies = if actions.is_empty() {
                 Vec::new()
@@ -520,6 +592,7 @@ where
                 policies,
                 tracked_actions: actions.iter().map(|action| (*action, None)).collect(),
                 tracked_entity_types,
+                tracked_property_types,
                 context: self
                     .context
                     .build()
@@ -585,6 +658,7 @@ mod tests {
             policies,
             tracked_actions: HashMap::from([(ActionName::View, None)]),
             tracked_entity_types: HashSet::new(),
+            tracked_property_types: HashSet::new(),
             context: Context::default(),
         };
 
@@ -636,6 +710,7 @@ mod tests {
             policies: policies_without_optimization,
             tracked_actions: HashMap::from([(ActionName::View, None)]),
             tracked_entity_types: HashSet::new(),
+            tracked_property_types: HashSet::new(),
             context: Context::default(),
         };
 
@@ -661,6 +736,7 @@ mod tests {
             policies: policies_with_optimization,
             tracked_actions: HashMap::new(),
             tracked_entity_types: HashSet::new(),
+            tracked_property_types: HashSet::new(),
             context: Context::default(),
         };
 
@@ -694,6 +770,7 @@ mod tests {
             policies: vec![policy],
             tracked_actions: HashMap::from([(ActionName::View, None)]),
             tracked_entity_types: HashSet::new(),
+            tracked_property_types: HashSet::new(),
             context: Context::default(),
         };
 
@@ -716,7 +793,10 @@ mod tests {
             }
             ResourceConstraint::Web { .. }
             | ResourceConstraint::Entity(_)
-            | ResourceConstraint::EntityType(_) => panic!("should create exact entity constraint"),
+            | ResourceConstraint::EntityType(_)
+            | ResourceConstraint::PropertyType(_) => {
+                panic!("should create exact entity constraint")
+            }
         }
     }
 }
