@@ -240,12 +240,14 @@ where
             .await
     }
 
-    async fn is_assigned(
+    async fn get_actor_group_role(
         &mut self,
         actor_id: ActorEntityUuid,
         actor_group_id: ActorGroupEntityUuid,
     ) -> Result<Option<RoleName>, Report<RoleAssignmentError>> {
-        self.store.is_assigned(actor_id, actor_group_id).await
+        self.store
+            .get_actor_group_role(actor_id, actor_group_id)
+            .await
     }
 
     async fn get_role_assignments(

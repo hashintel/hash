@@ -1,5 +1,6 @@
 import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { getActorGroupRole } from "@local/hash-graph-sdk/principal/actor-group";
 import type { MutationAcceptOrgInvitationArgs } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
@@ -173,9 +174,14 @@ export const acceptOrgInvitationResolver: ResolverFn<
    * Although the creator must have been an administrator of the organization to issue the invitation,
    * they may have been removed as an admin since, in which case the link is no longer valid.
    */
-  const creatorIsOrgAdmin = await context.graphApi
-    .hasActorGroupRole(linkCreator, orgWebId, "administrator", linkCreator)
-    .then(({ data }) => data);
+  const creatorIsOrgAdmin = await getActorGroupRole(
+    context.graphApi,
+    systemAccountAuthentication,
+    {
+      actorId: linkCreator,
+      actorGroupId: orgWebId,
+    },
+  ).then((role) => role === "administrator");
 
   if (!creatorIsOrgAdmin) {
     await archiveInvitation();

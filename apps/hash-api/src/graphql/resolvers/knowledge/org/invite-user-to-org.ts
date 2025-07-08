@@ -6,6 +6,7 @@ import {
 } from "@blockprotocol/type-system";
 import type { EntityRelationAndSubjectBranded } from "@local/hash-graph-sdk/authorization";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { getActorGroupRole } from "@local/hash-graph-sdk/principal/actor-group";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
@@ -31,7 +32,6 @@ import { ApolloError } from "apollo-server-errors";
 import dedent from "dedent";
 
 import type { EmailTransporter } from "../../../../email/transporters";
-import { isActorGroupAdministrator } from "../../../../graph/account-permission-management";
 import {
   createEntity,
   getEntitySubgraphResponse,
@@ -219,10 +219,10 @@ export const inviteUserToOrgResolver: ResolverFn<
     );
   }
 
-  const isOrgAdmin = await isActorGroupAdministrator(context, authentication, {
+  const isOrgAdmin = await getActorGroupRole(context.graphApi, authentication, {
     actorId: authentication.actorId,
     actorGroupId: org.webId,
-  });
+  }).then((role) => role === "administrator");
 
   if (!isOrgAdmin) {
     throw new ApolloError(

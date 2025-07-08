@@ -1,9 +1,3 @@
-import {
-  addActorGroupMember,
-  getActorGroupMembers,
-  isActorGroupMember,
-  removeActorGroupMember,
-} from "@apps/hash-api/src/graph/account-permission-management";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
@@ -16,6 +10,12 @@ import {
 import { Logger } from "@local/hash-backend-utils/logger";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
+import {
+  addActorGroupMember,
+  getActorGroupMembers,
+  getActorGroupRole,
+  removeActorGroupMember,
+} from "@local/hash-graph-sdk/principal/actor-group";
 import { getTeamRoles } from "@local/hash-graph-sdk/principal/team";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -75,17 +75,17 @@ describe("Hash Instance", () => {
     authentication = { actorId: testHashInstanceAdmin.accountId };
 
     expect(
-      await isActorGroupMember(graphContext, authentication, {
+      await getActorGroupRole(graphContext.graphApi, authentication, {
         actorId: testHashInstanceAdmin.accountId,
         actorGroupId: instanceAdminTeamId,
       }),
-    ).toBeFalsy();
+    ).toBe(null);
   });
 
   it("can add a hash instance admin", async () => {
     expect(
       await getActorGroupMembers(
-        graphContext,
+        graphContext.graphApi,
         {
           actorId: systemAccountId,
         },
@@ -96,14 +96,14 @@ describe("Hash Instance", () => {
     ).not.toContain(testHashInstanceAdmin.accountId);
 
     expect(
-      await isActorGroupMember(graphContext, authentication, {
+      await getActorGroupRole(graphContext.graphApi, authentication, {
         actorId: testHashInstanceAdmin.accountId,
         actorGroupId: instanceAdminTeamId,
       }),
-    ).toBeFalsy();
+    ).toBe(null);
 
     await addActorGroupMember(
-      graphContext,
+      graphContext.graphApi,
       { actorId: systemAccountId },
       {
         actorId: testHashInstanceAdmin.accountId,
@@ -114,15 +114,15 @@ describe("Hash Instance", () => {
 
   it("can get the hash instance group members", async () => {
     expect(
-      await isActorGroupMember(graphContext, authentication, {
+      await getActorGroupRole(graphContext.graphApi, authentication, {
         actorId: testHashInstanceAdmin.accountId,
         actorGroupId: instanceAdminTeamId,
       }),
-    ).toBeTruthy();
+    ).toBe("member");
 
     expect(
       await getActorGroupMembers(
-        graphContext,
+        graphContext.graphApi,
         {
           actorId: systemAccountId,
         },
@@ -135,7 +135,7 @@ describe("Hash Instance", () => {
 
   it("can remove a hash instance admin", async () => {
     await removeActorGroupMember(
-      graphContext,
+      graphContext.graphApi,
       { actorId: systemAccountId },
       {
         actorId: testHashInstanceAdmin.accountId,
@@ -145,7 +145,7 @@ describe("Hash Instance", () => {
 
     expect(
       await getActorGroupMembers(
-        graphContext,
+        graphContext.graphApi,
         {
           actorId: systemAccountId,
         },
@@ -156,11 +156,11 @@ describe("Hash Instance", () => {
     ).not.toContain(testHashInstanceAdmin.accountId);
 
     expect(
-      await isActorGroupMember(graphContext, authentication, {
+      await getActorGroupRole(graphContext.graphApi, authentication, {
         actorId: testHashInstanceAdmin.accountId,
         actorGroupId: instanceAdminTeamId,
       }),
-    ).toBeFalsy();
+    ).toBe(null);
   });
 
   it("can read the hash instance team roles", async () => {

@@ -3,14 +3,14 @@ import {
   getDefinedPropertyFromPatchesGetter,
   isValueRemovedByPatches,
 } from "@local/hash-graph-sdk/entity";
+import {
+  addActorGroupAdministrator,
+  removeActorGroupAdministrator,
+} from "@local/hash-graph-sdk/principal/actor-group";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import { ApolloError, UserInputError } from "apollo-server-express";
 
 import { userHasAccessToHash } from "../../../../../shared/user-has-access-to-hash";
-import {
-  addActorGroupAdministrator,
-  removeActorGroupAdministrator,
-} from "../../../../account-permission-management";
 import type { ImpureGraphContext } from "../../../../context-types";
 import { modifyWebAuthorizationRelationships } from "../../../../ontology/primitive/util";
 import { systemAccountId } from "../../../../system-account";
@@ -140,7 +140,7 @@ export const userBeforeEntityUpdateHookCallback: BeforeUpdateEntityHookCallback 
       // Now that the user has completed signup, we can transfer the ownership of the web
       // allowing them to create entities and types.
       await addActorGroupAdministrator(
-        context,
+        context.graphApi,
         { actorId: systemAccountId },
         { actorId: user.accountId, actorGroupId: user.accountId },
       );
@@ -181,7 +181,7 @@ export const userBeforeEntityUpdateHookCallback: BeforeUpdateEntityHookCallback 
       );
 
       await removeActorGroupAdministrator(
-        context,
+        context.graphApi,
         { actorId: user.accountId },
         { actorId: systemAccountId, actorGroupId: user.accountId },
       );

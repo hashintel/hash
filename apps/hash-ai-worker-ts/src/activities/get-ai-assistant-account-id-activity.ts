@@ -1,8 +1,5 @@
 import type { ActorEntityUuid, AiId, WebId } from "@blockprotocol/type-system";
-import {
-  getAiIdByIdentifier,
-  getWebMachineId,
-} from "@local/hash-backend-utils/machine-actors";
+import { getAiIdByIdentifier } from "@local/hash-backend-utils/machine-actors";
 import type { GraphApi } from "@local/hash-graph-client";
 
 export const getAiAssistantAccountIdActivity = async (params: {
@@ -23,57 +20,12 @@ export const getAiAssistantAccountIdActivity = async (params: {
   }
 
   if (grantCreatePermissionForWeb) {
-    const aiAssistantHasPermission = await graphApiClient
-      .checkWebPermission(
-        aiAssistantAccountId,
-        grantCreatePermissionForWeb,
-        "update_entity",
-      )
-      .then((resp) => resp.data.has_permission);
-
-    if (!aiAssistantHasPermission) {
-      /** The AI Assistant does not have permission in the requested web, use the web-scoped bot to grant it */
-      const webMachineActorId = await getWebMachineId(
-        { graphApi: graphApiClient },
-        authentication,
-        { webId: grantCreatePermissionForWeb },
-      ).then((maybeMachineId) => {
-        if (!maybeMachineId) {
-          throw new Error(
-            `Failed to get web machine for web ID: ${grantCreatePermissionForWeb}`,
-          );
-        }
-        return maybeMachineId;
-      });
-
-      await graphApiClient.modifyWebAuthorizationRelationships(
-        webMachineActorId,
-        [
-          {
-            operation: "create",
-            resource: grantCreatePermissionForWeb,
-            relationAndSubject: {
-              subject: {
-                kind: "account",
-                subjectId: aiAssistantAccountId,
-              },
-              relation: "entityCreator",
-            },
-          },
-          {
-            operation: "create",
-            resource: grantCreatePermissionForWeb,
-            relationAndSubject: {
-              subject: {
-                kind: "account",
-                subjectId: aiAssistantAccountId,
-              },
-              relation: "entityEditor",
-            },
-          },
-        ],
-      );
-    }
+    await graphApiClient.assignActorGroupRole(
+      authentication.actorId,
+      grantCreatePermissionForWeb,
+      "member",
+      aiAssistantAccountId,
+    );
   }
 
   return aiAssistantAccountId;

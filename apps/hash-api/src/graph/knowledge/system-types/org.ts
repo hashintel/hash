@@ -20,6 +20,7 @@ import {
 } from "@local/hash-backend-utils/machine-actors";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { createPolicy, deletePolicyById } from "@local/hash-graph-sdk/policy";
+import { createOrgWeb } from "@local/hash-graph-sdk/principal/actor-group";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
@@ -35,7 +36,6 @@ import type {
 import type { PolicyId } from "@rust/hash-graph-authorization/types";
 
 import { logger } from "../../../logger";
-import { createOrgWeb } from "../../account-permission-management";
 import type {
   ImpureGraphFunction,
   PureGraphFunction,
@@ -155,7 +155,7 @@ export const createOrg: ImpureGraphFunction<
     });
   } else {
     const { webId, machineId } = await createOrgWeb(
-      ctx,
+      ctx.graphApi,
       { actorId: systemAccountId },
       {
         shortname,

@@ -49,7 +49,7 @@ use crate::rest::{AuthenticatedUserHeader, json::Json, status::report_to_respons
         get_team_roles,
 
         get_actor_group_role_assignments,
-        has_actor_group_role,
+        get_actor_group_role,
         assign_actor_group_role,
         unassign_actor_group_role,
 
@@ -152,17 +152,18 @@ impl PrincipalResource {
                         "/:actor_group_id",
                         Router::new().nest(
                             "/roles",
-                            Router::new().nest(
-                                "/:role/actors",
-                                Router::new()
-                                    .route("/", get(get_actor_group_role_assignments::<S, A>))
-                                    .route(
-                                        "/:actor_id",
-                                        get(has_actor_group_role::<S, A>)
-                                            .post(assign_actor_group_role::<S, A>)
-                                            .delete(unassign_actor_group_role::<S, A>),
-                                    ),
-                            ),
+                            Router::new()
+                                .route("/actors/:actor_id", get(get_actor_group_role::<S, A>))
+                                .nest(
+                                    "/:role/actors",
+                                    Router::new()
+                                        .route("/", get(get_actor_group_role_assignments::<S, A>))
+                                        .route(
+                                            "/:actor_id",
+                                            post(assign_actor_group_role::<S, A>)
+                                                .delete(unassign_actor_group_role::<S, A>),
+                                        ),
+                                ),
                         ),
                     ),
             )
@@ -723,16 +724,15 @@ where
 
 #[utoipa::path(
     get,
-    path = "/actor-groups/{actor_group_id}/roles/{role_name}/actors/{actor_id}",
+    path = "/actor-groups/{actor_group_id}/roles/actors/{actor_id}",
     tag = "Principal",
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
         ("actor_group_id" = ActorGroupEntityUuid, Path, description = "The ID of the actor group to check the role against"),
-        ("role_name" = RoleName, Path, description = "The role to be checked"),
         ("actor_id" = ActorEntityUuid, Path, description = "The ID of the actor to be checked"),
     ),
     responses(
-        (status = 200, content_type = "application/json", description = "Whether the actor is assigned the role", body = bool),
+        (status = 200, content_type = "application/json", description = "Whether the actor is assigned the role", body = RoleName),
         (status = 404, content_type = "application/json", description = "The team was not found"),
 
         (status = 500, description = "Store error occurred"),
@@ -742,17 +742,13 @@ where
     level = "info",
     skip(store_pool, authorization_api_pool, temporal_client)
 )]
-async fn has_actor_group_role<S, A>(
+async fn get_actor_group_role<S, A>(
     AuthenticatedUserHeader(actor): AuthenticatedUserHeader,
-    Path((actor_group_id, role_name, actor_id)): Path<(
-        ActorGroupEntityUuid,
-        RoleName,
-        ActorEntityUuid,
-    )>,
+    Path((actor_group_id, actor_id)): Path<(ActorGroupEntityUuid, ActorEntityUuid)>,
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     store_pool: Extension<Arc<S>>,
-) -> Result<Json<bool>, Response>
+) -> Result<Json<Option<RoleName>>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
@@ -768,13 +764,11 @@ where
         .await
         .map_err(report_to_response)?;
 
-    Ok(Json(
-        store
-            .is_assigned(actor_id, actor_group_id)
-            .await
-            .map_err(report_to_response)?
-            .is_some_and(|role| role == role_name),
-    ))
+    store
+        .get_actor_group_role(actor_id, actor_group_id)
+        .await
+        .map(Json)
+        .map_err(report_to_response)
 }
 
 #[utoipa::path(

@@ -9,6 +9,10 @@ import { getInstanceAdminsTeam } from "@local/hash-backend-utils/hash-instance";
 import { createWebMachineActorEntity } from "@local/hash-backend-utils/machine-actors";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
+  addActorGroupMember,
+  createUserActor,
+} from "@local/hash-graph-sdk/principal/actor-group";
+import {
   type FeatureFlag,
   featureFlags,
 } from "@local/hash-isomorphic-utils/feature-flags";
@@ -37,10 +41,6 @@ import type {
 import { kratosIdentityApi } from "../../../auth/ory-kratos";
 import { getPendingOrgInvitationsFromSubgraph } from "../../../graphql/resolvers/knowledge/org/shared";
 import { logger } from "../../../logger";
-import {
-  addActorGroupMember,
-  createUserActor,
-} from "../../account-permission-management";
 import type {
   ImpureGraphFunction,
   PureGraphFunction,
@@ -371,10 +371,14 @@ export const createUser: ImpureGraphFunction<
 
   const userShouldHavePermissionsOnWeb = !!shortname && !!displayName;
 
-  const { userId, machineId } = await createUserActor(ctx, authentication, {
-    shortname,
-    registrationComplete: userShouldHavePermissionsOnWeb,
-  });
+  const { userId, machineId } = await createUserActor(
+    ctx.graphApi,
+    authentication,
+    {
+      shortname,
+      registrationComplete: userShouldHavePermissionsOnWeb,
+    },
+  );
 
   await createWebMachineActorEntity(ctx, {
     webId: userId,
@@ -484,7 +488,7 @@ export const createUser: ImpureGraphFunction<
 
   if (isInstanceAdmin) {
     const instanceAdmins = await getInstanceAdminsTeam(ctx, authentication);
-    await addActorGroupMember(ctx, authentication, {
+    await addActorGroupMember(ctx.graphApi, authentication, {
       actorGroupId: instanceAdmins.id,
       actorId: user.accountId,
     });

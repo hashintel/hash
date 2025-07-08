@@ -1,3 +1,5 @@
+import { getActorGroupRole } from "@local/hash-graph-sdk/principal/actor-group";
+
 import { getFlowContext } from "../shared/get-flow-context.js";
 import { graphApiClient } from "../shared/graph-api-client.js";
 
@@ -17,15 +19,12 @@ export const userHasPermissionToRunFlowInWebActivity = async (): Promise<
 > => {
   const { userAuthentication, webId } = await getFlowContext();
 
-  const {
-    data: { has_permission: canCreateEntities },
-  } = await graphApiClient.checkWebPermission(
-    userAuthentication.actorId,
-    webId,
-    "create_entity",
-  );
+  const webRole = await getActorGroupRole(graphApiClient, userAuthentication, {
+    actorId: userAuthentication.actorId,
+    actorGroupId: webId,
+  });
 
-  if (!canCreateEntities) {
+  if (!webRole) {
     return {
       status: "missing-permission",
       missingPermissions: ["create_entity"],

@@ -11,6 +11,10 @@ import {
   getMachineEntityByIdentifier,
 } from "@local/hash-backend-utils/machine-actors";
 import { createPolicy, deletePolicyById } from "@local/hash-graph-sdk/policy";
+import {
+  addActorGroupMember,
+  createAiActor,
+} from "@local/hash-graph-sdk/principal/actor-group";
 import { getWebByShortname } from "@local/hash-graph-sdk/principal/web";
 import type { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -18,10 +22,6 @@ import type { SystemTypeWebShortname } from "@local/hash-isomorphic-utils/ontolo
 
 import { enabledIntegrations } from "../../integrations/enabled-integrations";
 import { logger } from "../../logger";
-import {
-  addActorGroupMember,
-  createAiActor,
-} from "../account-permission-management";
 import type { ImpureGraphContext } from "../context-types";
 import { createOrg, getOrgByShortname } from "../knowledge/system-types/org";
 import { systemAccountId } from "../system-account";
@@ -251,11 +251,15 @@ export const ensureSystemEntitiesExist = async (params: {
     }
 
     const aiIdentifier = "hash-ai";
-    const aiAssistantAccountId = await createAiActor(context, authentication, {
-      identifier: aiIdentifier,
-    });
+    const aiAssistantAccountId = await createAiActor(
+      context.graphApi,
+      authentication,
+      {
+        identifier: aiIdentifier,
+      },
+    );
 
-    await addActorGroupMember(context, authentication, {
+    await addActorGroupMember(context.graphApi, authentication, {
       actorId: aiAssistantAccountId,
       actorGroupId: hashWebId,
     });
