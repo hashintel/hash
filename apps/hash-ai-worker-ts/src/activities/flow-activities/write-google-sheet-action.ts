@@ -11,10 +11,7 @@ import { getWebMachineId } from "@local/hash-backend-utils/machine-actors";
 import type { VaultClient } from "@local/hash-backend-utils/vault";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
 import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import {
-  createDefaultAuthorizationRelationships,
-  generateEntityIdFilter,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { generateEntityIdFilter } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   googleEntityTypes,
   systemLinkEntityTypes,
@@ -428,10 +425,6 @@ export const writeGoogleSheetAction: FlowActionActivity<{
       );
     }
   } else {
-    const authRelationships = createDefaultAuthorizationRelationships({
-      actorId: userAccountId,
-    });
-
     entityToReturn = await HashEntity.create<GoogleSheetsFile>(
       graphApiClient,
       { actorId: webBotActorId },
@@ -440,7 +433,6 @@ export const writeGoogleSheetAction: FlowActionActivity<{
         properties: fileProperties,
         draft: false,
         webId,
-        relationships: authRelationships,
         provenance,
       },
     );
@@ -460,7 +452,6 @@ export const writeGoogleSheetAction: FlowActionActivity<{
         },
         properties: { value: {} },
         provenance,
-        relationships: authRelationships,
       },
     );
   }

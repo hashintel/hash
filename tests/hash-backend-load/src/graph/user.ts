@@ -1,7 +1,3 @@
-import {
-  type ActorEntityUuid,
-  extractWebIdFromEntityId,
-} from "@blockprotocol/type-system";
 import type { GetEntitiesRequest } from "@local/hash-graph-client/api";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
@@ -97,37 +93,6 @@ export const completeUserRegistration = async (params: {
       `No user with Kratos ID "${params.kratosIdentityId}" found.`,
     );
   }
-
-  const systemAccountId = await getSystemAccountId();
-  const graphApi = getGraphApiClient();
-  const accountId = extractWebIdFromEntityId(
-    user.metadata.recordId.entityId,
-  ) as ActorEntityUuid;
-
-  await graphApi.modifyWebAuthorizationRelationships(systemAccountId, [
-    {
-      operation: "delete",
-      resource: accountId,
-      relationAndSubject: {
-        relation: "owner",
-        subject: {
-          kind: "account",
-          subjectId: systemAccountId,
-        },
-      },
-    },
-    {
-      operation: "create",
-      resource: accountId,
-      relationAndSubject: {
-        relation: "owner",
-        subject: {
-          kind: "account",
-          subjectId: accountId,
-        },
-      },
-    },
-  ]);
 
   return user.patch(getGraphApiClient(), authentication, {
     propertyPatches: [

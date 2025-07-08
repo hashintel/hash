@@ -5,7 +5,6 @@ import type {
   SubgraphRootType,
 } from "@blockprotocol/graph";
 import type {
-  ActorEntityUuid,
   EntityId,
   Timestamp,
   VersionedUrl,
@@ -22,12 +21,6 @@ import type {
   PropertyTypeQueryToken,
   Selector,
 } from "@local/hash-graph-client";
-import type {
-  DataTypeRelationAndSubjectBranded,
-  EntityRelationAndSubjectBranded,
-  EntityTypeRelationAndSubjectBranded,
-  PropertyTypeRelationAndSubjectBranded,
-} from "@local/hash-graph-sdk/authorization";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 
 import type { SubgraphFieldsFragment } from "./graphql/api-types.gen.js";
@@ -291,117 +284,6 @@ export const mapGqlSubgraphFieldsFragmentToSubgraph = <
 >(
   subgraph: SubgraphFieldsFragment,
 ) => deserializeSubgraph<RootType>(subgraph);
-
-export const createDefaultAuthorizationRelationships = (params: {
-  actorId: ActorEntityUuid;
-}): EntityRelationAndSubjectBranded[] => [
-  {
-    relation: "administrator",
-    subject: {
-      kind: "account",
-      subjectId: params.actorId,
-    },
-  },
-  {
-    relation: "setting",
-    subject: {
-      kind: "setting",
-      subjectId: "administratorFromWeb",
-    },
-  },
-  {
-    relation: "setting",
-    subject: {
-      kind: "setting",
-      subjectId: "updateFromWeb",
-    },
-  },
-  {
-    relation: "setting",
-    subject: {
-      kind: "setting",
-      subjectId: "viewFromWeb",
-    },
-  },
-];
-
-export const createOrgMembershipAuthorizationRelationships = ({
-  memberAccountId,
-}: {
-  memberAccountId: ActorEntityUuid;
-}): EntityRelationAndSubjectBranded[] => [
-  {
-    relation: "setting",
-    subject: {
-      kind: "setting",
-      subjectId: "administratorFromWeb", // web admins can edit the link
-    },
-  },
-  {
-    relation: "editor",
-    subject: {
-      kind: "account",
-      subjectId: memberAccountId, // so can the user
-    },
-  },
-  {
-    relation: "viewer",
-    subject: {
-      kind: "public", // everyone in the world can see it (until we allow restricting this)
-    },
-  },
-];
-
-export const defaultPropertyTypeAuthorizationRelationships: PropertyTypeRelationAndSubjectBranded[] =
-  [
-    {
-      relation: "setting",
-      subject: {
-        kind: "setting",
-        subjectId: "updateFromWeb",
-      },
-    },
-    {
-      relation: "viewer",
-      subject: {
-        kind: "public",
-      },
-    },
-  ];
-
-export const defaultEntityTypeAuthorizationRelationships: EntityTypeRelationAndSubjectBranded[] =
-  [
-    {
-      relation: "setting",
-      subject: {
-        kind: "setting",
-        subjectId: "updateFromWeb",
-      },
-    },
-    {
-      relation: "viewer",
-      subject: {
-        kind: "public",
-      },
-    },
-  ];
-
-export const defaultDataTypeAuthorizationRelationships: DataTypeRelationAndSubjectBranded[] =
-  [
-    {
-      relation: "setting",
-      subject: {
-        kind: "setting",
-        subjectId: "updateFromWeb",
-      },
-    },
-    {
-      relation: "viewer",
-      subject: {
-        kind: "public",
-      },
-    },
-  ];
 
 export const notificationTypesToIgnore = [
   systemEntityTypes.notification.entityTypeId,

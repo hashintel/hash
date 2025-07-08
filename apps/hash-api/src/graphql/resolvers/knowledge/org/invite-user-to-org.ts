@@ -4,7 +4,6 @@ import {
   type EntityUuid,
   type WebId,
 } from "@blockprotocol/type-system";
-import type { EntityRelationAndSubjectBranded } from "@local/hash-graph-sdk/authorization";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { getActorGroupRole } from "@local/hash-graph-sdk/principal/actor-group";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
@@ -297,35 +296,6 @@ export const inviteUserToOrgResolver: ResolverFn<
     );
   }
 
-  const invitationAuthorizationRelationships: EntityRelationAndSubjectBranded[] =
-    [
-      {
-        relation: "administrator",
-        subject: {
-          kind: "account",
-          /**
-           * We use the system account to manage invitations (viewing and archiving) on the invited user's behalf.
-           * We cannot add the invited user directly, because:
-           *
-           * 1. They may not have an account yet (if invited via email with no account attached)
-           * 2. If they DO have an account and are invited by email, giving them permission on the entity would reveal
-           *    to the inviter which user account was associated with the email address (via inspection of the entity's permissions).
-           *
-           * Note that the inviter will know the user associated with an email if they accept the invitation.
-           */
-          subjectId: systemAccountId,
-        },
-      },
-      {
-        relation: "setting",
-        subject: {
-          kind: "setting",
-          subjectId: "administratorFromWeb",
-        },
-      },
-      /** We don't need any other permissions on the entity – normal web members don't need to view or manage pending invitations */
-    ];
-
   let invitation: HashEntity<InvitationViaEmail | InvitationViaShortname>;
 
   const expiresAtIsoString = new Date(
@@ -371,7 +341,6 @@ export const inviteUserToOrgResolver: ResolverFn<
           },
         },
         policies: [systemAccountViewInvitationPolicy],
-        relationships: invitationAuthorizationRelationships,
         webId: orgWebId,
       },
     );
@@ -395,7 +364,6 @@ export const inviteUserToOrgResolver: ResolverFn<
           },
         },
         policies: [systemAccountViewInvitationPolicy],
-        relationships: invitationAuthorizationRelationships,
         webId: orgWebId,
       },
     );
@@ -421,7 +389,6 @@ export const inviteUserToOrgResolver: ResolverFn<
       },
     ],
     properties: { value: {} },
-    relationships: invitationAuthorizationRelationships,
     webId: orgWebId,
   });
 

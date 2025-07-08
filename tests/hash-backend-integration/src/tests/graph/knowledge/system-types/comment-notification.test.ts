@@ -13,7 +13,6 @@ import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user"
 import { joinOrg } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
-import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { Text } from "@local/hash-isomorphic-utils/system-types/shared";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -106,9 +105,6 @@ describe("Comment Notification", () => {
                   { value: [] },
               },
             },
-            relationships: createDefaultAuthorizationRelationships({
-              actorId: recipientUser.accountId,
-            }),
           },
         ),
       },
@@ -193,9 +189,6 @@ describe("Comment Notification", () => {
                   { value: [] },
               },
             },
-            relationships: createDefaultAuthorizationRelationships({
-              actorId: triggerUser.accountId,
-            }),
           },
         ),
       },

@@ -31,7 +31,6 @@ import {
   type HashEntity,
 } from "@local/hash-graph-sdk/entity";
 import {
-  createDefaultAuthorizationRelationships,
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
@@ -114,14 +113,6 @@ describe("Entity CRU", () => {
           properties: {},
           allOf: [{ $ref: blockProtocolEntityTypes.link.entityTypeId }],
         },
-        relationships: [
-          {
-            relation: "viewer",
-            subject: {
-              kind: "public",
-            },
-          },
-        ],
       })
         .then((val) => {
           linkEntityTypeFriend = val;
@@ -137,14 +128,6 @@ describe("Entity CRU", () => {
           description: "The favorite book of a person",
           oneOf: [{ $ref: textDataTypeId }],
         },
-        relationships: [
-          {
-            relation: "viewer",
-            subject: {
-              kind: "public",
-            },
-          },
-        ],
       })
         .then((val) => {
           favoriteBookPropertyType = val;
@@ -160,14 +143,6 @@ describe("Entity CRU", () => {
           description: "The name of a person",
           oneOf: [{ $ref: textDataTypeId }],
         },
-        relationships: [
-          {
-            relation: "viewer",
-            subject: {
-              kind: "public",
-            },
-          },
-        ],
       })
         .then((val) => {
           namePropertyType = val;
@@ -199,14 +174,6 @@ describe("Entity CRU", () => {
           },
         ],
       }),
-      relationships: [
-        {
-          relation: "viewer",
-          subject: {
-            kind: "public",
-          },
-        },
-      ],
     });
 
     return async () => {
@@ -243,7 +210,6 @@ describe("Entity CRU", () => {
         },
       },
       entityTypeIds: [entityType.schema.$id],
-      relationships: createDefaultAuthorizationRelationships(authentication),
     });
   });
 
@@ -271,7 +237,6 @@ describe("Entity CRU", () => {
         systemEntityTypes.imageFile.entityTypeId,
         systemEntityTypes.text.entityTypeId,
       ],
-      relationships: createDefaultAuthorizationRelationships(authentication),
     });
   });
 
@@ -494,9 +459,6 @@ describe("Entity CRU", () => {
             },
           },
         ],
-        relationships: createDefaultAuthorizationRelationships({
-          actorId: testUser.accountId,
-        }),
       },
     );
 
@@ -550,7 +512,6 @@ describe("Entity CRU", () => {
           },
         },
         entityTypeIds: [systemEntityTypes.actor.entityTypeId],
-        relationships: createDefaultAuthorizationRelationships(authentication),
       }),
     ).rejects.toThrowError(`Could not insert into store`);
   });
@@ -592,7 +553,6 @@ describe("Entity CRU", () => {
           },
         },
         entityTypeIds: [systemEntityTypes.user.entityTypeId],
-        relationships: createDefaultAuthorizationRelationships(authentication),
       }),
     ).rejects.toThrowError(`Could not insert into store`);
   });
@@ -631,7 +591,6 @@ describe("Entity CRU", () => {
           },
         },
         entityTypeIds: [systemEntityTypes.machine.entityTypeId],
-        relationships: createDefaultAuthorizationRelationships(authentication),
       }),
     ).rejects.toThrowError(`Could not insert into store`);
   });
@@ -669,7 +628,6 @@ describe("Entity CRU", () => {
           },
         },
         entityTypeIds: [systemEntityTypes.organization.entityTypeId],
-        relationships: createDefaultAuthorizationRelationships(authentication),
       }),
     ).rejects.toThrowError(`Could not insert into store`);
   });
@@ -722,7 +680,6 @@ describe("Entity CRU", () => {
           },
         },
         entityTypeIds: [systemEntityTypes.hashInstance.entityTypeId],
-        relationships: createDefaultAuthorizationRelationships(authentication),
       }),
     ).rejects.toThrowError(`Could not insert into store`);
   });

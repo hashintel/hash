@@ -11,7 +11,6 @@ import { entityIdFromComponents } from "@blockprotocol/type-system";
 import { HashEntity, HashLinkEntity } from "@local/hash-graph-sdk/entity";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
-import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   blockProtocolPropertyTypes,
   systemDataTypes,
@@ -44,7 +43,6 @@ const createClaim = async ({
   propertyProvenance,
   provenance,
   subjectText,
-  userActorId,
 }: {
   claimText: string;
   creatorActorId: ActorEntityUuid;
@@ -54,7 +52,6 @@ const createClaim = async ({
   propertyProvenance: PropertyProvenance;
   provenance: ProvidedEntityEditionProvenance;
   subjectText: string;
-  userActorId: ActorEntityUuid;
 }) => {
   return await HashEntity.create<ClaimEntity>(
     graphApiClient,
@@ -65,9 +62,6 @@ const createClaim = async ({
       entityTypeIds: ["https://hash.ai/@h/types/entity-type/claim/v/1"],
       webId,
       provenance,
-      relationships: createDefaultAuthorizationRelationships({
-        actorId: userActorId,
-      }),
       properties: {
         value: {
           "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/":
@@ -122,8 +116,7 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
     /** @todo H-3619: Infer info on publisher and venue, and link to docs */
   } = documentMetadata;
 
-  const { createEntitiesAsDraft, webId, userAuthentication } =
-    await getFlowContext();
+  const { createEntitiesAsDraft, webId } = await getFlowContext();
 
   const textDataTypeMetadata: TextDataTypeMetadata = {
     dataTypeId:
@@ -190,7 +183,6 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
       propertyProvenance,
       provenance,
       subjectText: authorName,
-      userActorId: userAuthentication.actorId,
     });
 
     /**
@@ -208,9 +200,6 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
           leftEntityId: authorToDocClaim.entityId,
           rightEntityId: documentEntityId,
         },
-        relationships: createDefaultAuthorizationRelationships({
-          actorId: userAuthentication.actorId,
-        }),
         properties: { value: {} },
       },
     );
@@ -306,7 +295,6 @@ export const generateDocumentProposedEntitiesAndCreateClaims = async ({
         propertyProvenance,
         provenance,
         subjectText: authorName,
-        userActorId: userAuthentication.actorId,
       });
 
       authorProposedEntity.claims.isSubjectOf.push(

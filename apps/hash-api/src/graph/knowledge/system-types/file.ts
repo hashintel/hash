@@ -14,7 +14,6 @@ import {
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
-import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { normalizeWhitespace } from "@local/hash-isomorphic-utils/normalize";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
@@ -233,7 +232,6 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
       webId,
       properties: initialProperties,
       entityTypeIds: entityTypeIds as File["entityTypeIds"],
-      relationships: createDefaultAuthorizationRelationships(authentication),
     });
   }
 
@@ -397,8 +395,6 @@ export const createFileFromExternalUrl: ImpureGraphFunction<
           webId,
           properties,
           entityTypeIds: entityTypeIds as File["entityTypeIds"],
-          relationships:
-            createDefaultAuthorizationRelationships(authentication),
         });
   } catch (error) {
     throw new Error(

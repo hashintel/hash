@@ -127,24 +127,6 @@ export const googleOAuthCallback: RequestHandler<
       entityTypeIds: [googleEntityTypes.account.entityTypeId],
       webId: req.user.accountId as WebId,
       properties: googleAccountProperties,
-      relationships: [
-        {
-          // Only allow the Google bot to edit the Google Account entity
-          relation: "administrator",
-          subject: {
-            kind: "account",
-            subjectId: googleBotAccountId,
-          },
-        },
-        {
-          // Allow the user to view the Google Account entity
-          relation: "setting",
-          subject: {
-            kind: "setting",
-            subjectId: "viewFromWeb",
-          },
-        },
-      ],
     });
   }
 

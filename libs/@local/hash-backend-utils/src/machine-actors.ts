@@ -196,21 +196,6 @@ export const createMachineActorEntity = async (
         },
       },
       provenance,
-      relationships: [
-        {
-          relation: "administrator",
-          subject: {
-            kind: "account",
-            subjectId: actor.id,
-          },
-        },
-        {
-          relation: "viewer",
-          subject: {
-            kind: "public",
-          },
-        },
-      ],
     },
   );
 
