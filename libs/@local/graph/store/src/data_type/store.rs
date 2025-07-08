@@ -338,7 +338,7 @@ pub trait DataTypeStore {
     /// Checks if the actor has permission for the given data types.
     ///
     /// Returns a set of [`VersionedUrl`]s the actor has permission for. If the actor has no
-    /// permission for an data type, it will not be included in the set.
+    /// permission for a data type, it will not be included in the set.
     ///
     /// # Errors
     ///
