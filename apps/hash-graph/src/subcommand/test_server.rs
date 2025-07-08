@@ -2,6 +2,7 @@ use core::{net::SocketAddr, time::Duration};
 
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
+use futures::FutureExt as _;
 use hash_graph_authorization::{
     AuthorizationApi as _,
     backend::{SpiceDbOpenApi, ZanzibarBackend as _},
@@ -12,7 +13,7 @@ use hash_graph_postgres_store::{
     store::{DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, PostgresStoreSettings},
 };
 use reqwest::Client;
-use tokio::{net::TcpListener, time::timeout};
+use tokio::{net::TcpListener, signal, time::timeout};
 use tokio_postgres::NoTls;
 
 use crate::{
@@ -108,6 +109,13 @@ pub async fn test_server(args: TestServerArgs) -> Result<(), Report<GraphError>>
             .change_context(GraphError)?,
         router.into_make_service_with_connect_info::<SocketAddr>(),
     )
+    .with_graceful_shutdown(signal::ctrl_c().map(|result| match result {
+        Ok(()) => (),
+        Err(error) => {
+            tracing::error!("Failed to install Ctrl+C handler: {error}");
+            // Continue with shutdown even if signal handling had issues
+        }
+    }))
     .await
     .expect("failed to start server");
 

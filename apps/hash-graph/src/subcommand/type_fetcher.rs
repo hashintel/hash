@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 use clap::Parser;
 use error_stack::{Report, ResultExt as _};
-use futures::{StreamExt as _, future};
+use futures::{FutureExt as _, StreamExt as _, future};
 use hash_graph_type_fetcher::{
     fetcher::{Fetcher as _, FetcherRequest, FetcherResponse},
     fetcher_server::FetchServer,
@@ -12,7 +12,8 @@ use tarpc::{
     serde_transport::Transport,
     server::{self, Channel as _},
 };
-use tokio::time::timeout;
+use tokio::{signal, time::timeout};
+use tokio_util::sync::CancellationToken;
 
 use crate::{
     error::{GraphError, HealthcheckError},
@@ -52,6 +53,10 @@ pub struct TypeFetcherArgs {
     pub timeout: Option<u64>,
 }
 
+#[expect(
+    clippy::integer_division_remainder_used,
+    reason = "False positive on tokio::select!"
+)]
 pub async fn type_fetcher(args: TypeFetcherArgs) -> Result<(), Report<GraphError>> {
     if args.healthcheck {
         return wait_healthcheck(
@@ -76,30 +81,61 @@ pub async fn type_fetcher(args: TypeFetcherArgs) -> Result<(), Report<GraphError
     tracing::info!("Listening on port {}", listener.local_addr().port());
 
     listener.config_mut().max_frame_length(usize::MAX);
-    // Allow listeneer to accept up to 255 connections at a time.
+
+    let cancellation_token = CancellationToken::new();
+    let cancellation_token_clone = cancellation_token.clone();
+
+    // Allow listener to accept up to 255 connections at a time.
     //
     // The pipeline must be invoked, we do this with `for_each` because it doesn't contain any
     // useful information we would like to store or report on.
-    listener
-        .filter_map(|result| future::ready(result.ok()))
-        .map(server::BaseChannel::with_defaults)
-        .map(|channel| {
-            let mut server = FetchServer {
-                buffer_size: 10,
-                predefined_types: HashMap::new(),
-            };
-            server
-                .load_predefined_types()
-                .expect("should be able to load predefined types");
-            channel
-                .execute(server.serve())
-                .for_each(|response| async move {
-                    tokio::spawn(response);
+    let server_task = async move {
+        listener
+            .filter_map(|result| future::ready(result.ok()))
+            .map(server::BaseChannel::with_defaults)
+            .map(|channel| {
+                let cancellation_token = cancellation_token_clone.clone();
+                let mut server = FetchServer {
+                    buffer_size: 10,
+                    predefined_types: HashMap::new(),
+                };
+                server
+                    .load_predefined_types()
+                    .expect("should be able to load predefined types");
+                channel.execute(server.serve()).for_each(move |response| {
+                    let cancellation_token = cancellation_token.clone();
+                    async move {
+                        tokio::spawn(async move {
+                            tokio::select! {
+                                () = response => {}
+                                () = cancellation_token.cancelled() => {
+                                    tracing::debug!("Type fetcher response task cancelled");
+                                }
+                            }
+                        });
+                    }
                 })
-        })
-        .buffer_unordered(255)
-        .for_each(|()| async {})
-        .await;
+            })
+            .buffer_unordered(255)
+            .for_each(|()| async {})
+            .await;
+    };
+
+    tokio::select! {
+        () = server_task => {
+            tracing::info!("Type fetcher server task completed");
+        }
+        () = signal::ctrl_c().map(|result| match result {
+            Ok(()) => (),
+            Err(error) => {
+                tracing::error!("Failed to install Ctrl+C handler: {error}");
+                // Continue with shutdown even if signal handling had issues
+            }
+        }) => {
+            tracing::info!("Received SIGINT, shutting down type fetcher gracefully");
+            cancellation_token.cancel();
+        }
+    }
 
     Ok(())
 }

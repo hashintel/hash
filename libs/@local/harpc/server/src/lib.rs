@@ -85,6 +85,7 @@ impl FusedStream for TransactionStream {
 pub struct Server {
     session: SessionLayer,
     guard: DropGuard,
+    cancellation_token: CancellationToken,
 }
 
 impl Server {
@@ -104,6 +105,7 @@ impl Server {
 
         Ok(Self {
             session,
+            cancellation_token: token.clone(),
             guard: token.drop_guard(),
         })
     }
@@ -112,6 +114,12 @@ impl Server {
     #[must_use]
     pub fn events(&self) -> EventStream {
         self.session.events()
+    }
+
+    /// Returns the cancellation token for this server.
+    #[must_use]
+    pub fn cancellation_token(&self) -> CancellationToken {
+        self.cancellation_token.clone()
     }
 
     /// Starts listening for incoming connections on the specified address.
