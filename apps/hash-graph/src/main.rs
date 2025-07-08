@@ -1,6 +1,10 @@
 //! # HASH Graph
 //!
 //! ## Workspace dependencies
+#![feature(
+    // Language features
+    impl_trait_in_assoc_type
+)]
 #![cfg_attr(doc, doc = simple_mermaid::mermaid!("../docs/dependency-diagram.mmd"))]
 #![forbid(unsafe_code)]
 #![expect(

@@ -350,7 +350,7 @@ where
 
             match event {
                 None => {
-                    tracing::warn!("Session event stream ended, stopping session storage task");
+                    tracing::info!("Session event stream ended, stopping session storage task");
                     break;
                 }
                 Some(Ok(SessionEvent::SessionDropped { id })) => {
