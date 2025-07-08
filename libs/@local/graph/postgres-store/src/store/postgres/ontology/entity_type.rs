@@ -1664,6 +1664,40 @@ where
         actor_id: ActorEntityUuid,
         params: ArchiveEntityTypeParams<'_>,
     ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
+        let policy_components = PolicyComponents::builder(self)
+            .with_actor(actor_id)
+            .with_entity_type_id(&params.entity_type_id)
+            .with_actions([ActionName::ArchiveEntityType], false)
+            .await
+            .change_context(UpdateError)?;
+
+        match policy_components
+            .build_policy_set([ActionName::ArchiveEntityType])
+            .change_context(UpdateError)?
+            .evaluate(
+                &Request {
+                    actor: policy_components.actor_id(),
+                    action: ActionName::ArchiveEntityType,
+                    resource: &ResourceId::EntityType(Cow::Borrowed(
+                        (&*params.entity_type_id).into(),
+                    )),
+                    context: RequestContext::default(),
+                },
+                policy_components.context(),
+            )
+            .change_context(UpdateError)?
+        {
+            Authorized::Always => {}
+            Authorized::Never => {
+                return Err(Report::new(UpdateError)
+                    .attach(StatusCode::PermissionDenied)
+                    .attach_printable(format!(
+                        "The actor does not have permission to unarchive the entity type `{}`",
+                        params.entity_type_id
+                    )));
+            }
+        }
+
         self.archive_ontology_type(&params.entity_type_id, actor_id)
             .await
     }
@@ -1674,6 +1708,40 @@ where
         actor_id: ActorEntityUuid,
         params: UnarchiveEntityTypeParams<'_>,
     ) -> Result<OntologyTemporalMetadata, Report<UpdateError>> {
+        let policy_components = PolicyComponents::builder(self)
+            .with_actor(actor_id)
+            .with_entity_type_id(&params.entity_type_id)
+            .with_actions([ActionName::ArchiveEntityType], false)
+            .await
+            .change_context(UpdateError)?;
+
+        match policy_components
+            .build_policy_set([ActionName::ArchiveEntityType])
+            .change_context(UpdateError)?
+            .evaluate(
+                &Request {
+                    actor: policy_components.actor_id(),
+                    action: ActionName::ArchiveEntityType,
+                    resource: &ResourceId::EntityType(Cow::Borrowed(
+                        (&*params.entity_type_id).into(),
+                    )),
+                    context: RequestContext::default(),
+                },
+                policy_components.context(),
+            )
+            .change_context(UpdateError)?
+        {
+            Authorized::Always => {}
+            Authorized::Never => {
+                return Err(Report::new(UpdateError)
+                    .attach(StatusCode::PermissionDenied)
+                    .attach_printable(format!(
+                        "The actor does not have permission to publish the entity type `{}`",
+                        params.entity_type_id
+                    )));
+            }
+        }
+
         self.unarchive_ontology_type(
             &params.entity_type_id,
             &OntologyEditionProvenance {
