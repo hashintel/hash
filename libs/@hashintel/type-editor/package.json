@@ -35,8 +35,8 @@
   },
   "devDependencies": {
     "@local/eslint": "0.0.0-private",
-    "@mui/material": "5.17.1",
-    "@mui/system": "5.17.1",
+    "@mui/material": "5.18.0",
+    "@mui/system": "5.18.0",
     "@types/lodash.memoize": "4.1.9",
     "@types/lodash.uniqueid": "4.0.9",
     "eslint": "9.20.1",
