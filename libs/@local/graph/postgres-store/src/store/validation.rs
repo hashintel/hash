@@ -8,7 +8,7 @@ use hash_graph_authorization::{
     AuthorizationApi,
     backend::PermissionAssertion,
     policies::{PolicyComponents, action::ActionName},
-    schema::{DataTypePermission, EntityTypePermission, PropertyTypePermission},
+    schema::{DataTypePermission, PropertyTypePermission},
     zanzibar::Consistency,
 };
 use hash_graph_store::{
@@ -442,38 +442,24 @@ where
     C: AsClient,
     A: AuthorizationApi,
 {
-    async fn authorize_entity_type(
-        &self,
-        type_id: EntityTypeUuid,
-    ) -> Result<(), Report<QueryError>> {
-        if let Some(policy_components) = &self.policy_components {
-            self.store
-                .authorization_api
-                .check_entity_type_permission(
-                    policy_components
-                        .actor_id()
-                        .map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from),
-                    EntityTypePermission::View,
-                    type_id,
-                    Consistency::FullyConsistent,
-                )
-                .await
-                .change_context(QueryError)?
-                .assert_permission()
-                .change_context(QueryError)?;
-        }
-
-        Ok(())
-    }
-
     async fn fetch_entity_type(
         &self,
         type_id: &VersionedUrl,
+        policy_components: Option<&PolicyComponents>,
     ) -> Result<ClosedEntityTypeWithMetadata, Report<QueryError>> {
+        let mut filters = vec![Filter::<EntityTypeWithMetadata>::for_versioned_url(type_id)];
+
+        if let Some(policy_components) = policy_components {
+            filters.push(Filter::<EntityTypeWithMetadata>::for_policies(
+                policy_components.extract_filter_policies(ActionName::ViewEntityType),
+                policy_components.optimization_data(ActionName::ViewEntityType),
+            ));
+        }
+
         let mut schemas = self
             .store
             .read_closed_schemas(
-                &Filter::<EntityTypeWithMetadata>::for_versioned_url(type_id),
+                &filters,
                 Some(
                     &QueryTemporalAxesUnresolved::DecisionTime {
                         pinned: PinnedTemporalAxisUnresolved::new(None),
@@ -531,15 +517,10 @@ where
             return cached;
         }
 
-        if let Err(error) = self.authorize_entity_type(entity_type_id).await {
-            self.cache
-                .closed_entity_types_with_metadata
-                .deny(entity_type_id)
-                .await;
-            return Err(error);
-        }
-
-        let schema = match self.fetch_entity_type(type_id).await {
+        let schema = match self
+            .fetch_entity_type(type_id, self.policy_components)
+            .await
+        {
             Ok(schema) => schema,
             Err(error) => {
                 self.cache
@@ -577,11 +558,6 @@ where
             return cached;
         }
 
-        if let Err(error) = self.authorize_entity_type(entity_type_id).await {
-            self.cache.closed_entity_types.deny(entity_type_id).await;
-            return Err(error);
-        }
-
         let schema = <Self as OntologyTypeProvider<ClosedEntityTypeWithMetadata>>::provide_type(
             self, type_id,
         )
@@ -612,7 +588,7 @@ where
         let mut filters = vec![Filter::for_entity_by_entity_id(entity_id)];
 
         if let Some(policy_components) = &self.policy_components {
-            let filter = Filter::for_policies(
+            let filter = Filter::<Entity>::for_policies(
                 policy_components.extract_filter_policies(ActionName::ViewEntity),
                 policy_components.actor_id(),
                 policy_components.optimization_data(ActionName::ViewEntity),

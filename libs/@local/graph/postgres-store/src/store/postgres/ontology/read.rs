@@ -62,7 +62,7 @@ impl<C: AsClient, A: Send + Sync> PostgresStore<C, A> {
     #[tracing::instrument(level = "trace", skip(self, filter))]
     pub(crate) async fn read_closed_schemas<'f>(
         &self,
-        filter: &Filter<'f, EntityTypeWithMetadata>,
+        filter: &[Filter<'f, EntityTypeWithMetadata>],
         temporal_axes: Option<&'f QueryTemporalAxes>,
     ) -> Result<
         impl Stream<Item = Result<(EntityTypeUuid, ClosedEntityTypeWithMetadata), Report<QueryError>>>,
@@ -86,7 +86,9 @@ impl<C: AsClient, A: Send + Sync> PostgresStore<C, A> {
         let provenance_index =
             compiler.add_selection_path(&EntityTypeQueryPath::EditionProvenance(None));
 
-        compiler.add_filter(filter).change_context(QueryError)?;
+        for filter in filter {
+            compiler.add_filter(filter).change_context(QueryError)?;
+        }
         let (statement, parameters) = compiler.compile();
 
         Ok(self

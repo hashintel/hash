@@ -5,6 +5,7 @@ import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user"
 import { joinOrg } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import {
   archiveEntityType,
+  checkPermissionsOnEntityType,
   createEntityType,
   getClosedEntityTypes,
   getClosedMultiEntityTypes,
@@ -31,6 +32,7 @@ import {
 import { Logger } from "@local/hash-backend-utils/logger";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import { getClosedMultiEntityTypeFromMap } from "@local/hash-graph-sdk/entity";
+import { hasPermissionForEntityTypes } from "@local/hash-graph-sdk/entity-type";
 import type {
   ConstructEntityTypeParams,
   SystemDefinedProperties,
@@ -536,6 +538,27 @@ describe("Entity type CRU", () => {
       isOwnedOntologyElementMetadata(updatedEntityType.metadata) &&
         updatedEntityType.metadata.provenance.edition.createdById,
     ).toBe(testUser2.accountId);
+  });
+
+  it("can check permissions on an entity type", async () => {
+    const authentication = { actorId: testUser.accountId };
+
+    expect(
+      await checkPermissionsOnEntityType(graphContext, authentication, {
+        entityTypeId: createdEntityType.schema.$id,
+      }),
+    ).toStrictEqual({
+      edit: true,
+      instantiate: true,
+      view: true,
+    });
+
+    expect(
+      await hasPermissionForEntityTypes(graphContext.graphApi, authentication, {
+        entityTypeIds: [createdEntityType.schema.$id],
+        action: "viewEntityType",
+      }),
+    ).toStrictEqual([createdEntityType.schema.$id]);
   });
 
   it("can archive a entity type", async () => {

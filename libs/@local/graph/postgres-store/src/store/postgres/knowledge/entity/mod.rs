@@ -233,6 +233,7 @@ where
                     Self::filter_entity_types_by_permission(
                         self.read_shared_edges(&traversal_data, Some(0)).await?,
                         provider,
+                        subgraph.temporal_axes.resolved.clone(),
                     )
                     .await?
                     .flat_map(|edge| {
@@ -405,7 +406,7 @@ where
         temporal_axes: &QueryTemporalAxes,
         policy_components: &PolicyComponents,
     ) -> Result<GetEntitiesResponse<'static>, Report<QueryError>> {
-        let policy_filter = Filter::for_policies(
+        let policy_filter = Filter::<Entity>::for_policies(
             policy_components.extract_filter_policies(ActionName::ViewEntity),
             policy_components.actor_id(),
             policy_components.optimization_data(ActionName::ViewEntity),
@@ -771,7 +772,7 @@ where
             .with_actor(actor_id)
             .with_entity_type_ids(entity_type_id_set)
             .with_actions([ActionName::Instantiate, ActionName::CreateEntity], false)
-            .with_action(ActionName::ViewEntity, true)
+            .with_actions([ActionName::ViewEntity, ActionName::ViewEntityType], true)
             .await
             .change_context(InsertionError)?;
 
@@ -1181,7 +1182,7 @@ where
     ) -> Result<HashMap<usize, EntityValidationReport>, Report<QueryError>> {
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor_id)
-            .with_action(ActionName::ViewEntity, true)
+            .with_actions([ActionName::ViewEntity, ActionName::ViewEntityType], true)
             .await
             .change_context(QueryError)?;
 
@@ -1322,7 +1323,7 @@ where
     ) -> Result<GetEntitySubgraphResponse<'static>, Report<QueryError>> {
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor_id)
-            .with_action(ActionName::ViewEntity, true)
+            .with_actions([ActionName::ViewEntity, ActionName::ViewEntityType], true)
             .into_future()
             .await
             .change_context(QueryError)?;
@@ -1514,7 +1515,7 @@ where
             .await
             .change_context(QueryError)?;
 
-        let policy_filter = Filter::for_policies(
+        let policy_filter = Filter::<Entity>::for_policies(
             policy_components.extract_filter_policies(ActionName::ViewEntity),
             policy_components.actor_id(),
             policy_components.optimization_data(ActionName::ViewEntity),
@@ -1560,7 +1561,7 @@ where
 
         let mut filters = vec![Filter::for_entity_by_entity_id(entity_id)];
 
-        let filter = Filter::for_policies(
+        let filter = Filter::<Entity>::for_policies(
             policy_components.extract_filter_policies(ActionName::ViewEntity),
             policy_components.actor_id(),
             policy_components.optimization_data(ActionName::ViewEntity),
@@ -1653,7 +1654,7 @@ where
                 ],
                 false,
             )
-            .with_action(ActionName::ViewEntity, true)
+            .with_actions([ActionName::ViewEntity, ActionName::ViewEntityType], true)
             .await
             .change_context(UpdateError)?;
 
@@ -2249,7 +2250,7 @@ where
             .with_action(params.action, true)
             .await
             .change_context(CheckPermissionError::BuildPolicyContext)?;
-        let policy_filter = Filter::for_policies(
+        let policy_filter = Filter::<Entity>::for_policies(
             policy_components.extract_filter_policies(params.action),
             policy_components.actor_id(),
             policy_components.optimization_data(params.action),

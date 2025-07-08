@@ -7,7 +7,7 @@ use type_system::{
         EntityId,
         id::{EntityEditionId, EntityUuid},
     },
-    ontology::VersionedUrl,
+    ontology::{VersionedUrl, entity_type::EntityTypeUuid},
     principal::{actor::ActorId, actor_group::WebId},
 };
 
@@ -15,18 +15,27 @@ use super::{
     Context, ContextBuilder, Effect, Policy, PolicySet,
     action::ActionName,
     principal::actor::AuthenticatedActor,
-    resource::{EntityResource, EntityResourceConstraint, ResourceConstraint},
+    resource::{
+        EntityResource, EntityResourceConstraint, EntityTypeResource, EntityTypeResourceConstraint,
+        ResourceConstraint,
+    },
     store::{PolicyStore, PrincipalStore, ResolvePoliciesParams, error::ContextCreationError},
 };
 
-/// Optimization data extracted from policy analysis for database filter generation.
+/// Optimization data extracted from policy analysis for database entity filter generation.
 ///
 /// This structure holds vectors of identifiers that can be optimized from multiple
 /// OR conditions to efficient IN clauses in database queries.
 #[derive(Debug, Default)]
+#[expect(
+    clippy::struct_field_names,
+    reason = "We want to add `forbid` fields in the future as well"
+)]
 pub struct OptimizationData {
     /// Entity UUIDs that can be optimized to IN clause for exact entity permits
     pub permitted_entity_uuids: Vec<EntityUuid>,
+    /// Entity Type UUIDs that can be optimized to IN clause for exact entity type permits
+    pub permitted_entity_type_uuids: Vec<EntityTypeUuid>,
     /// Web IDs that can be optimized to IN clause for web resource permits
     pub permitted_web_ids: Vec<WebId>,
 }
@@ -91,6 +100,7 @@ impl PolicyComponents {
     pub fn optimization_data(&self, action: ActionName) -> &OptimizationData {
         const EMPTY_OPTIMIZATION_DATA: &OptimizationData = &OptimizationData {
             permitted_entity_uuids: Vec::new(),
+            permitted_entity_type_uuids: Vec::new(),
             permitted_web_ids: Vec::new(),
         };
 
@@ -133,6 +143,7 @@ impl PolicyComponents {
     #[tracing::instrument(level = "info", skip(self))]
     fn analyze_optimization_opportunities(&mut self, action: ActionName) {
         let mut entity_uuids_set = HashSet::new();
+        let mut ontology_type_uuids_set = HashSet::new();
         let mut web_ids_set = HashSet::new();
 
         let mut i = 0;
@@ -148,6 +159,15 @@ impl PolicyComponents {
                     Some(ResourceConstraint::Entity(EntityResourceConstraint::Exact { id })),
                 ) => {
                     entity_uuids_set.insert(*id);
+                    true
+                }
+                (
+                    Effect::Permit,
+                    Some(ResourceConstraint::EntityType(EntityTypeResourceConstraint::Exact {
+                        id,
+                    })),
+                ) => {
+                    ontology_type_uuids_set.insert(EntityTypeUuid::from_url(id.as_url()));
                     true
                 }
                 (Effect::Permit, Some(ResourceConstraint::Web { web_id })) => {
@@ -179,6 +199,7 @@ impl PolicyComponents {
             .or_default()
             .replace(OptimizationData {
                 permitted_entity_uuids: entity_uuids_set.into_iter().collect(),
+                permitted_entity_type_uuids: ontology_type_uuids_set.into_iter().collect(),
                 permitted_web_ids: web_ids_set.into_iter().collect(),
             });
     }
@@ -397,6 +418,13 @@ impl<'a, S> PolicyComponentsBuilder<'a, S> {
             ),
             entity_types,
             created_by: actor,
+        });
+    }
+
+    pub fn add_entity_type(&mut self, id: &VersionedUrl, web_id: Option<WebId>) {
+        self.context.add_entity_type(&EntityTypeResource {
+            id: Cow::Borrowed(id.into()),
+            web_id,
         });
     }
 }

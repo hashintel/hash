@@ -1,9 +1,12 @@
 use alloc::borrow::Cow;
 use core::iter;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
 use error_stack::Report;
-use hash_graph_authorization::schema::EntityTypeRelationAndSubject;
+use hash_graph_authorization::{
+    policies::{action::ActionName, principal::actor::AuthenticatedActor},
+    schema::EntityTypeRelationAndSubject,
+};
 use hash_graph_temporal_versioning::{Timestamp, TransactionTime};
 use hash_graph_types::Embedding;
 use serde::{Deserialize, Serialize};
@@ -22,7 +25,7 @@ use type_system::{
 
 use crate::{
     entity::ClosedMultiEntityTypeMap,
-    error::{InsertionError, QueryError, UpdateError},
+    error::{CheckPermissionError, InsertionError, QueryError, UpdateError},
     filter::Filter,
     query::ConflictBehavior,
     subgraph::{Subgraph, edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved},
@@ -246,6 +249,15 @@ pub struct UpdateEntityTypeEmbeddingParams<'a> {
     pub reset: bool,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct HasPermissionForEntityTypesParams<'a> {
+    #[cfg_attr(feature = "utoipa", schema(value_type = String))]
+    pub action: ActionName,
+    pub entity_type_ids: Cow<'a, [VersionedUrl]>,
+}
+
 /// Describes the API of a store implementation for [`EntityType`]s.
 pub trait EntityTypeStore {
     /// Creates a new [`EntityType`].
@@ -435,14 +447,19 @@ pub trait EntityTypeStore {
         &mut self,
     ) -> impl Future<Output = Result<(), Report<UpdateError>>> + Send;
 
-    /// Checks if the given entity types can be instantiated by the actor.
+    /// Checks if the actor has permission for the given entity types.
+    ///
+    /// Returns a set of [`VersionedUrl`]s the actor has permission for. If the actor has no
+    /// permission for an entity type, it will not be included in the set.
     ///
     /// # Errors
     ///
-    /// - If reading the entity types fails.
-    fn can_instantiate_entity_types(
+    /// - [`StoreError`] if the underlying store returns an error
+    ///
+    /// [`StoreError`]: CheckPermissionError::StoreError
+    fn has_permission_for_entity_types(
         &self,
-        authenticated_user: ActorEntityUuid,
-        entity_type_ids: &[VersionedUrl],
-    ) -> impl Future<Output = Result<Vec<bool>, Report<QueryError>>> + Send;
+        authenticated_actor: AuthenticatedActor,
+        params: HasPermissionForEntityTypesParams<'_>,
+    ) -> impl Future<Output = Result<HashSet<VersionedUrl>, Report<CheckPermissionError>>> + Send;
 }

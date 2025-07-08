@@ -19,13 +19,11 @@ import type { TemporalClient } from "@local/hash-backend-utils/temporal";
 import type {
   ArchiveEntityTypeParams,
   ClosedMultiEntityTypeMap,
-  EntityTypePermission,
   EntityTypeRelationAndSubject,
   GetClosedMultiEntityTypesParams,
   GetClosedMultiEntityTypesResponse as GetClosedMultiEntityTypesResponseGraphApi,
   GetEntityTypesParams,
   GetEntityTypeSubgraphParams,
-  ModifyRelationshipOperation,
   UnarchiveEntityTypeParams,
   UpdateEntityTypeRequest,
 } from "@local/hash-graph-client";
@@ -34,7 +32,7 @@ import type {
   EntityTypeRelationAndSubjectBranded,
   UserPermissionsOnEntityType,
 } from "@local/hash-graph-sdk/authorization";
-import { canInstantiateEntityTypes } from "@local/hash-graph-sdk/entity-type";
+import { hasPermissionForEntityTypes } from "@local/hash-graph-sdk/entity-type";
 import type {
   ClosedEntityTypeWithMetadata,
   ConstructEntityTypeParams,
@@ -67,31 +65,6 @@ export const getEntityTypeAuthorizationRelationships: ImpureGraphFunction<
       })),
     );
 
-export const modifyEntityTypeAuthorizationRelationships: ImpureGraphFunction<
-  {
-    operation: ModifyRelationshipOperation;
-    relationship: EntityTypeAuthorizationRelationship;
-  }[],
-  Promise<void>
-> = async ({ graphApi }, { actorId }, params) => {
-  await graphApi.modifyEntityTypeAuthorizationRelationships(
-    actorId,
-    params.map(({ operation, relationship }) => ({
-      operation,
-      resource: relationship.resource.resourceId,
-      relationAndSubject: relationship,
-    })),
-  );
-};
-
-export const checkEntityTypePermission: ImpureGraphFunction<
-  { entityTypeId: VersionedUrl; permission: EntityTypePermission },
-  Promise<boolean>
-> = async ({ graphApi }, { actorId }, params) =>
-  graphApi
-    .checkEntityTypePermission(actorId, params.entityTypeId, params.permission)
-    .then(({ data }) => data.has_permission);
-
 export const checkPermissionsOnEntityType: ImpureGraphFunction<
   { entityTypeId: VersionedUrl },
   Promise<UserPermissionsOnEntityType>
@@ -103,18 +76,24 @@ export const checkPermissionsOnEntityType: ImpureGraphFunction<
   const [canUpdate, canInstantiateEntities] = await Promise.all([
     isPublicUser
       ? false
-      : await checkEntityTypePermission(
-          graphContext,
+      : await hasPermissionForEntityTypes(
+          graphContext.graphApi,
           { actorId },
-          { entityTypeId, permission: "update" },
-        ),
+          {
+            entityTypeIds: [entityTypeId],
+            action: "updateEntityType",
+          },
+        ).then((permitted) => permitted.includes(entityTypeId)),
     isPublicUser
       ? false
-      : (
-          await canInstantiateEntityTypes(graphContext.graphApi, { actorId }, [
-            entityTypeId,
-          ])
-        )[0],
+      : await hasPermissionForEntityTypes(
+          graphContext.graphApi,
+          { actorId },
+          {
+            entityTypeIds: [entityTypeId],
+            action: "instantiate",
+          },
+        ).then((permitted) => permitted.includes(entityTypeId)),
   ]);
 
   return {

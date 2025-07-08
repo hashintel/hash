@@ -51,6 +51,10 @@ impl fmt::Display for DeletionError {
 pub enum CheckPermissionError {
     #[display("Could not resolve policies")]
     BuildPolicyContext,
+    #[display("Could not build policy set")]
+    BuildPolicySet,
+    #[display("Could not evaluate policy set")]
+    EvaluatePolicySet,
     #[display("Could not compile filter")]
     CompileFilter,
     #[display("Store operation failed")]
