@@ -30,9 +30,9 @@ use hash_temporal_client::TemporalClientConfig;
 use multiaddr::{Multiaddr, Protocol};
 use regex::Regex;
 use reqwest::{Client, Url};
-use tokio::{io, net::TcpListener, signal, task::JoinHandle, time::timeout};
+use tokio::{io, net::TcpListener, signal, time::timeout};
 use tokio_postgres::NoTls;
-use tokio_util::{codec::FramedWrite, sync::CancellationToken};
+use tokio_util::{codec::FramedWrite, sync::CancellationToken, task::TaskTracker};
 use type_system::ontology::json_schema::DomainValidator;
 
 use crate::{
@@ -186,23 +186,22 @@ pub struct ServerArgs {
     pub log_queries: Option<PathBuf>,
 }
 
-struct RpcServerJoinHandle {
-    join_handles: Vec<JoinHandle<()>>,
+#[derive(Debug)]
+struct RpcServerTaskTracker {
+    tracker: TaskTracker,
     cancellation_token: CancellationToken,
 }
 
-impl IntoFuture for RpcServerJoinHandle {
+impl IntoFuture for RpcServerTaskTracker {
     type Output = ();
 
     type IntoFuture = impl Future<Output = Self::Output>;
 
     fn into_future(self) -> Self::IntoFuture {
         async move {
+            self.tracker.close();
             self.cancellation_token.cancel();
-
-            for join_handle in self.join_handles.into_iter().rev() {
-                join_handle.await.expect("failed to join RPC server");
-            }
+            self.tracker.wait().await;
         }
     }
 }
@@ -210,7 +209,7 @@ impl IntoFuture for RpcServerJoinHandle {
 fn server_rpc<S, A>(
     address: RpcAddress,
     dependencies: Dependencies<S, A, ()>,
-) -> Result<RpcServerJoinHandle, Report<GraphError>>
+) -> Result<RpcServerTaskTracker, Report<GraphError>>
 where
     S: StorePool + Send + Sync + 'static,
     A: AuthorizationApiPool + Send + Sync + 'static,
@@ -229,9 +228,8 @@ where
         server.events(),
     );
 
-    let mut join_handles = Vec::new();
-
-    join_handles.push(tokio::spawn(task.into_future()));
+    let tracker = TaskTracker::new();
+    tracker.spawn(task.into_future());
 
     let socket_address: SocketAddr = SocketAddr::try_from(address).change_context(GraphError)?;
     let mut address = Multiaddr::empty();
@@ -247,17 +245,17 @@ where
     }
 
     #[expect(clippy::significant_drop_tightening, reason = "false positive")]
-    join_handles.push(tokio::spawn(async move {
+    tracker.spawn(async move {
         let stream = server
             .listen(address)
             .await
             .expect("server should be able to listen on address");
 
         harpc_server::serve::serve(stream, router).await;
-    }));
+    });
 
-    Ok(RpcServerJoinHandle {
-        join_handles,
+    Ok(RpcServerTaskTracker {
+        tracker,
         cancellation_token,
     })
 }
@@ -357,7 +355,7 @@ pub async fn server(args: ServerArgs) -> Result<(), Report<GraphError>> {
         (None, None)
     };
 
-    let (router, rpc_server_join_handle) = {
+    let (router, rpc_server_task_tracker) = {
         let dependencies = RestRouterDependencies {
             store: Arc::new(pool),
             authorization_api: Arc::new(zanzibar_client),
@@ -371,7 +369,7 @@ pub async fn server(args: ServerArgs) -> Result<(), Report<GraphError>> {
             clippy::if_then_some_else_none,
             reason = "False positive, this is in an async context"
         )]
-        let rpc_server_join_handle = if args.rpc_enabled {
+        let rpc_server_task_tracker = if args.rpc_enabled {
             tracing::info!("Starting RPC server...");
 
             Some(server_rpc(
@@ -388,7 +386,7 @@ pub async fn server(args: ServerArgs) -> Result<(), Report<GraphError>> {
             None
         };
 
-        (rest_api_router(dependencies), rpc_server_join_handle)
+        (rest_api_router(dependencies), rpc_server_task_tracker)
     };
 
     tracing::info!("Listening on {}", args.http_address);
@@ -398,21 +396,24 @@ pub async fn server(args: ServerArgs) -> Result<(), Report<GraphError>> {
             .change_context(GraphError)?,
         router.into_make_service_with_connect_info::<SocketAddr>(),
     )
-    .with_graceful_shutdown(
-        signal::ctrl_c().map(|error| error.expect("failed to install Ctrl+C handler")),
-    )
+    .with_graceful_shutdown(signal::ctrl_c().map(|result| match result {
+        Ok(()) => (),
+        Err(error) => {
+            tracing::error!("Failed to install Ctrl+C handler: {error}");
+            // Continue with shutdown even if signal handling had issues
+        }
+    }))
     .await
     .expect("failed to start server");
 
-    if let Some(rpc_server_join_handle) = rpc_server_join_handle {
-        rpc_server_join_handle.await;
+    if let Some(rpc_server_task_tracker) = rpc_server_task_tracker {
+        rpc_server_task_tracker.await;
     }
 
-    if let Some(log_queries_join_handle) = log_queries_join_handle {
-        log_queries_join_handle
-            .await
-            .expect("failed to join log queries")
-            .expect("failed to log queries");
+    if let Some(log_queries_join_handle) = log_queries_join_handle
+        && let Err(error) = log_queries_join_handle.await
+    {
+        tracing::error!("Failed to join log queries task: {error}");
     }
 
     Ok(())

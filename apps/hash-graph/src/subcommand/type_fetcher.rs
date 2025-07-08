@@ -125,7 +125,13 @@ pub async fn type_fetcher(args: TypeFetcherArgs) -> Result<(), Report<GraphError
         () = server_task => {
             tracing::info!("Type fetcher server task completed");
         }
-        () = signal::ctrl_c().map(|error| error.expect("failed to install Ctrl+C handler")) => {
+        () = signal::ctrl_c().map(|result| match result {
+            Ok(()) => (),
+            Err(error) => {
+                tracing::error!("Failed to install Ctrl+C handler: {error}");
+                // Continue with shutdown even if signal handling had issues
+            }
+        }) => {
             tracing::info!("Received SIGINT, shutting down type fetcher gracefully");
             cancellation_token.cancel();
         }

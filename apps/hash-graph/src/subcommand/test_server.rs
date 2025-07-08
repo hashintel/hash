@@ -109,9 +109,13 @@ pub async fn test_server(args: TestServerArgs) -> Result<(), Report<GraphError>>
             .change_context(GraphError)?,
         router.into_make_service_with_connect_info::<SocketAddr>(),
     )
-    .with_graceful_shutdown(
-        signal::ctrl_c().map(|error| error.expect("failed to install Ctrl+C handler")),
-    )
+    .with_graceful_shutdown(signal::ctrl_c().map(|result| match result {
+        Ok(()) => (),
+        Err(error) => {
+            tracing::error!("Failed to install Ctrl+C handler: {error}");
+            // Continue with shutdown even if signal handling had issues
+        }
+    }))
     .await
     .expect("failed to start server");
 
