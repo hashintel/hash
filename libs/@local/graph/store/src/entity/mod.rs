@@ -1,5 +1,3 @@
-#[cfg(feature = "utoipa")]
-pub use self::store::CreateEntityRequest;
 pub use self::{
     query::{
         EntityQueryCursor, EntityQueryPath, EntityQuerySorting, EntityQuerySortingRecord,

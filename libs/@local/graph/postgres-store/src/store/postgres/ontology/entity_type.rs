@@ -4,14 +4,9 @@ use std::collections::{HashMap, HashSet};
 
 use error_stack::{Report, ResultExt as _};
 use futures::{StreamExt as _, TryStreamExt as _};
-use hash_graph_authorization::{
-    AuthorizationApi,
-    backend::ModifyRelationshipOperation,
-    policies::{
-        Authorized, PolicyComponents, Request, RequestContext, ResourceId, action::ActionName,
-        principal::actor::AuthenticatedActor,
-    },
-    schema::{EntityTypeOwnerSubject, EntityTypeRelationAndSubject},
+use hash_graph_authorization::policies::{
+    Authorized, PolicyComponents, Request, RequestContext, ResourceId, action::ActionName,
+    principal::actor::AuthenticatedActor,
 };
 use hash_graph_store::{
     entity::ClosedMultiEntityTypeMap,
@@ -80,10 +75,9 @@ use crate::store::{
     validation::StoreProvider,
 };
 
-impl<C, A> PostgresStore<C, A>
+impl<C> PostgresStore<C>
 where
     C: AsClient,
-    A: AuthorizationApi,
 {
     #[tracing::instrument(level = "trace", skip(entity_types, provider))]
     pub(crate) async fn filter_entity_types_by_permission<I, T>(
@@ -774,25 +768,21 @@ where
     }
 }
 
-impl<C, A> EntityTypeStore for PostgresStore<C, A>
+impl<C> EntityTypeStore for PostgresStore<C>
 where
     C: AsClient,
-    A: AuthorizationApi,
 {
     #[tracing::instrument(level = "info", skip(self, params))]
     #[expect(clippy::too_many_lines)]
-    async fn create_entity_types<P, R>(
+    async fn create_entity_types<P>(
         &mut self,
         actor_id: ActorEntityUuid,
         params: P,
     ) -> Result<Vec<EntityTypeMetadata>, Report<InsertionError>>
     where
-        P: IntoIterator<Item = CreateEntityTypeParams<R>, IntoIter: Send> + Send,
-        R: IntoIterator<Item = EntityTypeRelationAndSubject> + Send + Sync,
+        P: IntoIterator<Item = CreateEntityTypeParams, IntoIter: Send> + Send,
     {
         let transaction = self.transaction().await.change_context(InsertionError)?;
-
-        let mut relationships = HashSet::new();
 
         let mut inserted_entity_type_metadata = Vec::new();
         let mut inserted_entity_types = Vec::new();
@@ -813,25 +803,10 @@ where
             let entity_type_id = EntityTypeUuid::from_url(&parameters.schema.id);
 
             if let OntologyOwnership::Local { web_id } = &parameters.ownership {
-                relationships.insert((
-                    entity_type_id,
-                    EntityTypeRelationAndSubject::Owner {
-                        subject: EntityTypeOwnerSubject::Web { id: *web_id },
-                        level: 0,
-                    },
-                ));
-
                 policy_components_builder.add_entity_type(&parameters.schema.id, Some(*web_id));
             } else {
                 policy_components_builder.add_entity_type(&parameters.schema.id, None);
             }
-
-            relationships.extend(
-                parameters
-                    .relationships
-                    .into_iter()
-                    .map(|relation_and_subject| (entity_type_id, relation_and_subject)),
-            );
 
             if let Some((_ontology_id, temporal_versioning)) = transaction
                 .create_ontology_metadata(
@@ -990,67 +965,30 @@ where
                 .await?;
         }
 
-        transaction
-            .authorization_api
-            .modify_entity_type_relations(relationships.clone().into_iter().map(
-                |(resource, relation_and_subject)| {
-                    (
-                        ModifyRelationshipOperation::Create,
-                        resource,
-                        relation_and_subject,
-                    )
-                },
-            ))
-            .await
-            .change_context(InsertionError)?;
+        transaction.commit().await.change_context(InsertionError)?;
 
-        if let Err(error) = transaction.commit().await.change_context(InsertionError) {
-            let mut error = error.expand();
-
-            if let Err(auth_error) = self
-                .authorization_api
-                .modify_entity_type_relations(relationships.into_iter().map(
-                    |(resource, relation_and_subject)| {
-                        (
-                            ModifyRelationshipOperation::Delete,
-                            resource,
-                            relation_and_subject,
-                        )
-                    },
-                ))
+        if !self.settings.skip_embedding_creation
+            && let Some(temporal_client) = &self.temporal_client
+        {
+            temporal_client
+                .start_update_entity_type_embeddings_workflow(
+                    actor_id,
+                    &inserted_entity_types
+                        .iter()
+                        .zip(&inserted_entity_type_metadata)
+                        .map(|((_, schema), metadata)| EntityTypeWithMetadata {
+                            schema: (**schema).clone(),
+                            metadata: metadata.clone(),
+                        })
+                        .collect::<Vec<_>>(),
+                )
                 .await
-                .change_context(InsertionError)
-            {
-                error.push(auth_error);
-            }
-
-            Err(error.change_context(InsertionError))
-        } else {
-            if !self.settings.skip_embedding_creation
-                && let Some(temporal_client) = &self.temporal_client
-            {
-                temporal_client
-                    .start_update_entity_type_embeddings_workflow(
-                        actor_id,
-                        &inserted_entity_types
-                            .iter()
-                            .zip(&inserted_entity_type_metadata)
-                            .map(|((_, schema), metadata)| EntityTypeWithMetadata {
-                                schema: (**schema).clone(),
-                                metadata: metadata.clone(),
-                            })
-                            .collect::<Vec<_>>(),
-                    )
-                    .await
-                    .change_context(InsertionError)?;
-            }
-
-            Ok(inserted_entity_type_metadata)
+                .change_context(InsertionError)?;
         }
+
+        Ok(inserted_entity_type_metadata)
     }
 
-    // TODO: take actor ID into consideration, but currently we don't have any non-public entity
-    //       types anyway.
     async fn count_entity_types(
         &self,
         actor_id: ActorEntityUuid,
@@ -1403,18 +1341,15 @@ where
 
     #[tracing::instrument(level = "info", skip(self, params))]
     #[expect(clippy::too_many_lines)]
-    async fn update_entity_types<P, R>(
+    async fn update_entity_types<P>(
         &mut self,
         actor_id: ActorEntityUuid,
         params: P,
     ) -> Result<Vec<EntityTypeMetadata>, Report<UpdateError>>
     where
-        P: IntoIterator<Item = UpdateEntityTypesParams<R>, IntoIter: Send> + Send,
-        R: IntoIterator<Item = EntityTypeRelationAndSubject> + Send + Sync,
+        P: IntoIterator<Item = UpdateEntityTypesParams, IntoIter: Send> + Send,
     {
         let transaction = self.transaction().await.change_context(UpdateError)?;
-
-        let mut relationships = HashSet::new();
 
         let mut updated_entity_type_metadata = Vec::new();
         let mut inserted_entity_types = Vec::new();
@@ -1454,15 +1389,6 @@ where
             let (_ontology_id, web_id, temporal_versioning) = transaction
                 .update_owned_ontology_id(&parameters.schema.id, &provenance.edition)
                 .await?;
-
-            relationships.extend(
-                iter::once(EntityTypeRelationAndSubject::Owner {
-                    subject: EntityTypeOwnerSubject::Web { id: web_id },
-                    level: 0,
-                })
-                .chain(parameters.relationships)
-                .map(|relation_and_subject| (entity_type_id, relation_and_subject)),
-            );
 
             entity_type_reference_ids.extend(
                 parameters
@@ -1614,63 +1540,28 @@ where
                 .change_context(UpdateError)?;
         }
 
-        transaction
-            .authorization_api
-            .modify_entity_type_relations(relationships.clone().into_iter().map(
-                |(entity_type_id, relation_and_subject)| {
-                    (
-                        ModifyRelationshipOperation::Create,
-                        entity_type_id,
-                        relation_and_subject,
-                    )
-                },
-            ))
-            .await
-            .change_context(UpdateError)?;
+        transaction.commit().await.change_context(UpdateError)?;
 
-        if let Err(error) = transaction.commit().await.change_context(UpdateError) {
-            let mut error = error.expand();
-
-            if let Err(auth_error) = self
-                .authorization_api
-                .modify_entity_type_relations(relationships.into_iter().map(
-                    |(entity_type_id, relation_and_subject)| {
-                        (
-                            ModifyRelationshipOperation::Delete,
-                            entity_type_id,
-                            relation_and_subject,
-                        )
-                    },
-                ))
+        if !self.settings.skip_embedding_creation
+            && let Some(temporal_client) = &self.temporal_client
+        {
+            temporal_client
+                .start_update_entity_type_embeddings_workflow(
+                    actor_id,
+                    &inserted_entity_types
+                        .iter()
+                        .zip(&updated_entity_type_metadata)
+                        .map(|((_, schema), metadata)| EntityTypeWithMetadata {
+                            schema: (**schema).clone(),
+                            metadata: metadata.clone(),
+                        })
+                        .collect::<Vec<_>>(),
+                )
                 .await
-                .change_context(UpdateError)
-            {
-                error.push(auth_error);
-            }
-
-            Err(error.change_context(UpdateError))
-        } else {
-            if !self.settings.skip_embedding_creation
-                && let Some(temporal_client) = &self.temporal_client
-            {
-                temporal_client
-                    .start_update_entity_type_embeddings_workflow(
-                        actor_id,
-                        &inserted_entity_types
-                            .iter()
-                            .zip(&updated_entity_type_metadata)
-                            .map(|((_, schema), metadata)| EntityTypeWithMetadata {
-                                schema: (**schema).clone(),
-                                metadata: metadata.clone(),
-                            })
-                            .collect::<Vec<_>>(),
-                    )
-                    .await
-                    .change_context(UpdateError)?;
-            }
-
-            Ok(updated_entity_type_metadata)
+                .change_context(UpdateError)?;
         }
+
+        Ok(updated_entity_type_metadata)
     }
 
     #[tracing::instrument(level = "info", skip(self))]

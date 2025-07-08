@@ -20,14 +20,11 @@ pub enum OntologyTypeMetadataRowBatch {
     ExternalMetadata(Vec<OntologyExternalMetadataRow>),
 }
 
-impl<C, A> WriteBatch<C, A> for OntologyTypeMetadataRowBatch
+impl<C> WriteBatch<C> for OntologyTypeMetadataRowBatch
 where
     C: AsClient,
-    A: Send + Sync,
 {
-    async fn begin(
-        postgres_client: &mut PostgresStore<C, A>,
-    ) -> Result<(), Report<InsertionError>> {
+    async fn begin(postgres_client: &mut PostgresStore<C>) -> Result<(), Report<InsertionError>> {
         postgres_client
             .as_client()
             .client()
@@ -58,7 +55,7 @@ where
 
     async fn write(
         self,
-        postgres_client: &mut PostgresStore<C, A>,
+        postgres_client: &mut PostgresStore<C>,
     ) -> Result<(), Report<InsertionError>> {
         let client = postgres_client.as_client().client();
         match self {
@@ -134,7 +131,7 @@ where
     }
 
     async fn commit(
-        postgres_client: &mut PostgresStore<C, A>,
+        postgres_client: &mut PostgresStore<C>,
         _ignore_validation_errors: bool,
     ) -> Result<(), Report<InsertionError>> {
         postgres_client

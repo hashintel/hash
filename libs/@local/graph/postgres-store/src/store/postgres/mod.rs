@@ -11,46 +11,36 @@ use alloc::{borrow::Cow, sync::Arc};
 use core::{fmt::Debug, hash::Hash};
 use std::collections::{HashMap, HashSet};
 
-use error_stack::{Report, ReportSink, ResultExt as _, TryReportStreamExt as _};
+use error_stack::{Report, ResultExt as _, TryReportStreamExt as _};
 use futures::{StreamExt as _, TryStreamExt as _};
-use hash_graph_authorization::{
-    AuthorizationApi,
-    backend::ModifyRelationshipOperation,
-    policies::{
-        Authorized, ContextBuilder, Effect, Policy, PolicyComponents, PolicyId, Request,
-        RequestContext, ResourceId,
-        action::ActionName,
-        principal::{PrincipalConstraint, actor::AuthenticatedActor},
-        resource::{
-            DataTypeId, DataTypeResource, EntityResource, EntityTypeId, EntityTypeResource,
-            PropertyTypeId, PropertyTypeResource, ResourceConstraint,
-        },
-        store::{
-            CreateWebParameter, CreateWebResponse, PolicyCreationParams, PolicyFilter, PolicyStore,
-            PolicyUpdateOperation, PrincipalFilter, PrincipalStore, ResolvePoliciesParams,
-            RoleAssignmentStatus, RoleUnassignmentStatus,
-            error::{
-                BuildDataTypeContextError, BuildEntityContextError, BuildEntityTypeContextError,
-                BuildPrincipalContextError, BuildPropertyTypeContextError, CreatePolicyError,
-                DetermineActorError, EnsureSystemPoliciesError, GetPoliciesError,
-                GetSystemAccountError, RemovePolicyError, RoleAssignmentError, TeamRoleError,
-                UpdatePolicyError, WebCreationError, WebRoleError,
-            },
-        },
+use hash_graph_authorization::policies::{
+    Authorized, ContextBuilder, Effect, Policy, PolicyComponents, PolicyId, Request,
+    RequestContext, ResourceId,
+    action::ActionName,
+    principal::{PrincipalConstraint, actor::AuthenticatedActor},
+    resource::{
+        DataTypeId, DataTypeResource, EntityResource, EntityTypeId, EntityTypeResource,
+        PropertyTypeId, PropertyTypeResource, ResourceConstraint,
     },
-    schema::{
-        AccountGroupAdministratorSubject, AccountGroupMemberSubject,
-        AccountGroupRelationAndSubject, WebDataTypeViewerSubject, WebEntityCreatorSubject,
-        WebEntityEditorSubject, WebEntityTypeViewerSubject, WebOwnerSubject,
-        WebPropertyTypeViewerSubject, WebRelationAndSubject, WebSubjectSet,
+    store::{
+        CreateWebParameter, CreateWebResponse, PolicyCreationParams, PolicyFilter, PolicyStore,
+        PolicyUpdateOperation, PrincipalFilter, PrincipalStore, ResolvePoliciesParams,
+        RoleAssignmentStatus, RoleUnassignmentStatus,
+        error::{
+            BuildDataTypeContextError, BuildEntityContextError, BuildEntityTypeContextError,
+            BuildPrincipalContextError, BuildPropertyTypeContextError, CreatePolicyError,
+            DetermineActorError, EnsureSystemPoliciesError, GetPoliciesError,
+            GetSystemAccountError, RemovePolicyError, RoleAssignmentError, TeamRoleError,
+            UpdatePolicyError, WebCreationError, WebRoleError,
+        },
     },
 };
 use hash_graph_store::{
     account::{
         AccountGroupInsertionError, AccountInsertionError, AccountStore, CreateAiActorParams,
         CreateMachineActorParams, CreateOrgWebParams, CreateTeamParams, CreateUserActorParams,
-        CreateUserActorResponse, GetActorError, QueryWebError, TeamRetrievalError,
-        WebInsertionError, WebRetrievalError,
+        CreateUserActorResponse, GetActorError, TeamRetrievalError, WebInsertionError,
+        WebRetrievalError,
     },
     error::{InsertionError, UpdateError},
     query::ConflictBehavior,
@@ -64,10 +54,7 @@ use tokio_postgres::{GenericClient as _, error::SqlState};
 use tracing::Instrument as _;
 use type_system::{
     Valid,
-    knowledge::entity::{
-        EntityId,
-        id::{EntityEditionId, EntityUuid},
-    },
+    knowledge::entity::{EntityId, id::EntityEditionId},
     ontology::{
         OntologyTemporalMetadata,
         data_type::{ClosedDataType, DataType, DataTypeUuid, schema::DataTypeResolveData},
@@ -112,17 +99,13 @@ impl Default for PostgresStoreSettings {
 }
 
 /// A Postgres-backed store
-pub struct PostgresStore<C, A> {
+pub struct PostgresStore<C> {
     client: C,
-    pub authorization_api: A,
     pub temporal_client: Option<Arc<TemporalClient>>,
     pub settings: PostgresStoreSettings,
 }
 
-impl<A> PostgresStore<tokio_postgres::Transaction<'_>, A>
-where
-    A: AuthorizationApi + Send + Sync,
-{
+impl PostgresStore<tokio_postgres::Transaction<'_>> {
     async fn get_or_create_system_machine_impl(
         &mut self,
         identifier: &str,
@@ -228,10 +211,9 @@ where
     }
 }
 
-impl<C, A> PrincipalStore for PostgresStore<C, A>
+impl<C> PrincipalStore for PostgresStore<C>
 where
     C: AsClient,
-    A: AuthorizationApi + Send + Sync,
 {
     async fn get_or_create_system_machine(
         &mut self,
@@ -254,10 +236,6 @@ where
         Ok(machine_id)
     }
 
-    #[expect(
-        clippy::too_many_lines,
-        reason = "The majority is SpiceDB and its error handling which will be removed soon"
-    )]
     async fn create_web(
         &mut self,
         actor: ActorId,
@@ -368,138 +346,12 @@ where
             }
         }
 
-        let owner = if parameter.is_actor_web {
-            // For user-webs we assign the administrator as the owner directly
-            WebOwnerSubject::Account {
-                id: parameter.administrator.into(),
-            }
-        } else {
-            // For non-user-webs we assign the administrator as the owner via the account group
-            transaction
-                .authorization_api
-                .modify_account_group_relations([(
-                    ModifyRelationshipOperation::Create,
-                    web_id.into(),
-                    AccountGroupRelationAndSubject::Administrator {
-                        subject: AccountGroupAdministratorSubject::Account {
-                            id: parameter.administrator.into(),
-                        },
-                        level: 0,
-                    },
-                )])
-                .await
-                .change_context(WebCreationError::RoleAssignmentError)?;
-
-            WebOwnerSubject::AccountGroup { id: web_id.into() }
-        };
-
-        let mut relationships = vec![
-            WebRelationAndSubject::Owner {
-                subject: owner,
-                level: 0,
-            },
-            WebRelationAndSubject::Owner {
-                subject: WebOwnerSubject::Account {
-                    id: machine_id.into(),
-                },
-                level: 0,
-            },
-            WebRelationAndSubject::EntityTypeViewer {
-                subject: WebEntityTypeViewerSubject::Public,
-                level: 0,
-            },
-            WebRelationAndSubject::PropertyTypeViewer {
-                subject: WebPropertyTypeViewerSubject::Public,
-                level: 0,
-            },
-            WebRelationAndSubject::DataTypeViewer {
-                subject: WebDataTypeViewerSubject::Public,
-                level: 0,
-            },
-        ];
-        if let WebOwnerSubject::AccountGroup { id } = owner {
-            relationships.extend([
-                WebRelationAndSubject::EntityCreator {
-                    subject: WebEntityCreatorSubject::AccountGroup {
-                        id,
-                        set: WebSubjectSet::Member,
-                    },
-                    level: 0,
-                },
-                WebRelationAndSubject::EntityEditor {
-                    subject: WebEntityEditorSubject::AccountGroup {
-                        id,
-                        set: WebSubjectSet::Member,
-                    },
-                    level: 0,
-                },
-                // TODO: Add ontology type creators
-            ]);
-        }
-
         transaction
-            .authorization_api
-            .modify_web_relations(
-                relationships
-                    .clone()
-                    .into_iter()
-                    .map(|relation_and_subject| {
-                        (
-                            ModifyRelationshipOperation::Create,
-                            web_id,
-                            relation_and_subject,
-                        )
-                    }),
-            )
-            .await
-            .change_context(WebCreationError::RoleAssignmentError)?;
-
-        let response = CreateWebResponse { web_id, machine_id };
-
-        if let Err(error) = transaction
             .commit()
             .await
-            .change_context(WebCreationError::StoreError)
-        {
-            let mut sink = ReportSink::<WebCreationError>::new();
-            sink.capture(error);
+            .change_context(WebCreationError::StoreError)?;
 
-            sink.attempt(
-                self.authorization_api
-                    .modify_web_relations(relationships.into_iter().map(|relation_and_subject| {
-                        (
-                            ModifyRelationshipOperation::Delete,
-                            web_id,
-                            relation_and_subject,
-                        )
-                    }))
-                    .await
-                    .change_context(WebCreationError::RoleAssignmentError),
-            );
-
-            if !parameter.is_actor_web {
-                sink.attempt(
-                    self.authorization_api
-                        .modify_account_group_relations([(
-                            ModifyRelationshipOperation::Delete,
-                            web_id.into(),
-                            AccountGroupRelationAndSubject::Administrator {
-                                subject: AccountGroupAdministratorSubject::Account {
-                                    id: parameter.administrator.into(),
-                                },
-                                level: 0,
-                            },
-                        )])
-                        .await
-                        .change_context(WebCreationError::RoleAssignmentError),
-                );
-            }
-
-            sink.finish_ok(response)
-                .change_context(WebCreationError::RoleAssignmentError)
-        } else {
-            Ok(response)
-        }
+        Ok(CreateWebResponse { web_id, machine_id })
     }
 
     async fn get_web_roles(
@@ -631,54 +483,12 @@ where
             .await
             .change_context(RoleAssignmentError::StoreError)?;
 
-        let permission_relation = match name {
-            RoleName::Administrator => AccountGroupRelationAndSubject::Administrator {
-                subject: AccountGroupAdministratorSubject::Account {
-                    id: actor_to_assign,
-                },
-                level: 0,
-            },
-            RoleName::Member => AccountGroupRelationAndSubject::Member {
-                subject: AccountGroupMemberSubject::Account {
-                    id: actor_to_assign,
-                },
-                level: 0,
-            },
-        };
         transaction
-            .authorization_api
-            .modify_account_group_relations([(
-                ModifyRelationshipOperation::Create,
-                actor_group_id.into(),
-                permission_relation,
-            )])
+            .commit()
             .await
             .change_context(RoleAssignmentError::StoreError)?;
 
-        if let Err(error) = transaction
-            .commit()
-            .await
-            .change_context(RoleAssignmentError::StoreError)
-        {
-            let mut error = error.expand();
-
-            if let Err(auth_error) = self
-                .authorization_api
-                .modify_account_group_relations([(
-                    ModifyRelationshipOperation::Delete,
-                    actor_group_id.into(),
-                    permission_relation,
-                )])
-                .await
-                .change_context(RoleAssignmentError::StoreError)
-            {
-                error.push(auth_error);
-            }
-
-            Err(error.change_context(RoleAssignmentError::StoreError))
-        } else {
-            Ok(status)
-        }
+        Ok(status)
     }
 
     async fn get_actor_group_role(
@@ -771,54 +581,12 @@ where
             .await
             .change_context(RoleAssignmentError::StoreError)?;
 
-        let permission_relation = match name {
-            RoleName::Administrator => AccountGroupRelationAndSubject::Administrator {
-                subject: AccountGroupAdministratorSubject::Account {
-                    id: actor_to_unassign,
-                },
-                level: 0,
-            },
-            RoleName::Member => AccountGroupRelationAndSubject::Member {
-                subject: AccountGroupMemberSubject::Account {
-                    id: actor_to_unassign,
-                },
-                level: 0,
-            },
-        };
         transaction
-            .authorization_api
-            .modify_account_group_relations([(
-                ModifyRelationshipOperation::Delete,
-                actor_group_id.into(),
-                permission_relation,
-            )])
+            .commit()
             .await
             .change_context(RoleAssignmentError::StoreError)?;
 
-        if let Err(error) = transaction
-            .commit()
-            .await
-            .change_context(RoleAssignmentError::StoreError)
-        {
-            let mut error = error.expand();
-
-            if let Err(auth_error) = self
-                .authorization_api
-                .modify_account_group_relations([(
-                    ModifyRelationshipOperation::Touch,
-                    actor_group_id.into(),
-                    permission_relation,
-                )])
-                .await
-                .change_context(RoleAssignmentError::StoreError)
-            {
-                error.push(auth_error);
-            }
-
-            Err(error.change_context(RoleAssignmentError::StoreError))
-        } else {
-            Ok(status)
-        }
+        Ok(status)
     }
 
     #[tracing::instrument(skip(self))]
@@ -1021,10 +789,9 @@ impl PolicyParts {
     }
 }
 
-impl<C, A> PolicyStore for PostgresStore<C, A>
+impl<C> PolicyStore for PostgresStore<C>
 where
     C: AsClient,
-    A: AuthorizationApi + Send + Sync,
 {
     async fn create_policy(
         &mut self,
@@ -2145,22 +1912,19 @@ impl<T> From<ResponseCountMap<T>> for HashMap<T, usize> {
     }
 }
 
-impl<C, A> PostgresStore<C, A>
+impl<C> PostgresStore<C>
 where
     C: AsClient,
-    A: Send + Sync,
 {
     /// Creates a new `PostgresDatabase` object.
     #[must_use]
     pub const fn new(
         client: C,
-        authorization_api: A,
         temporal_client: Option<Arc<TemporalClient>>,
         settings: PostgresStoreSettings,
     ) -> Self {
         Self {
             client,
-            authorization_api,
             temporal_client,
             settings,
         }
@@ -2733,24 +2497,20 @@ where
     /// - if the underlying client cannot start a transaction
     pub async fn transaction(
         &mut self,
-    ) -> Result<PostgresStore<tokio_postgres::Transaction<'_>, &'_ mut A>, Report<StoreError>> {
+    ) -> Result<PostgresStore<tokio_postgres::Transaction<'_>>, Report<StoreError>> {
         Ok(PostgresStore::new(
             self.client
                 .as_mut_client()
                 .transaction()
                 .await
                 .change_context(StoreError)?,
-            &mut self.authorization_api,
             self.temporal_client.clone(),
             self.settings.clone(),
         ))
     }
 }
 
-impl<A> PostgresStore<tokio_postgres::Transaction<'_>, A>
-where
-    A: Send + Sync,
-{
+impl PostgresStore<tokio_postgres::Transaction<'_>> {
     /// Inserts the specified ontology metadata.
     ///
     /// This first extracts the [`BaseUrl`] from the [`VersionedUrl`] and attempts to insert it into
@@ -2918,7 +2678,7 @@ where
     }
 }
 
-impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
+impl<C: AsClient> AccountStore for PostgresStore<C> {
     async fn create_user_actor(
         &mut self,
         actor_id: ActorEntityUuid,
@@ -3372,45 +3132,11 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
             .change_context(AccountGroupInsertionError)?;
 
         transaction
-            .authorization_api
-            .modify_account_group_relations([(
-                ModifyRelationshipOperation::Create,
-                team_id.into(),
-                AccountGroupRelationAndSubject::Administrator {
-                    subject: AccountGroupAdministratorSubject::Account { id: actor_id },
-                    level: 0,
-                },
-            )])
+            .commit()
             .await
             .change_context(AccountGroupInsertionError)?;
 
-        if let Err(error) = transaction
-            .commit()
-            .await
-            .change_context(AccountGroupInsertionError)
-        {
-            let mut error = error.expand();
-
-            if let Err(auth_error) = self
-                .authorization_api
-                .modify_account_group_relations([(
-                    ModifyRelationshipOperation::Delete,
-                    team_id.into(),
-                    AccountGroupRelationAndSubject::Administrator {
-                        subject: AccountGroupAdministratorSubject::Account { id: actor_id },
-                        level: 0,
-                    },
-                )])
-                .await
-                .change_context(AccountGroupInsertionError)
-            {
-                error.push(auth_error);
-            }
-
-            Err(error.change_context(AccountGroupInsertionError))
-        } else {
-            Ok(team_id)
-        }
+        Ok(team_id)
     }
 
     async fn get_team_by_id(
@@ -3502,37 +3228,11 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
                 }
             }))
     }
-
-    #[tracing::instrument(level = "info", skip(self))]
-    async fn identify_subject_id(
-        &self,
-        subject_id: EntityUuid,
-    ) -> Result<WebOwnerSubject, Report<QueryWebError>> {
-        let actor_uuid = ActorEntityUuid::new(subject_id);
-        if self
-            .is_actor(actor_uuid)
-            .await
-            .change_context(QueryWebError)?
-        {
-            Ok(WebOwnerSubject::Account { id: actor_uuid })
-        } else if self
-            .is_web(WebId::new(subject_id))
-            .await
-            .change_context(QueryWebError)?
-        {
-            Ok(WebOwnerSubject::AccountGroup {
-                id: ActorGroupEntityUuid::new(subject_id),
-            })
-        } else {
-            Err(Report::new(QueryWebError).attach_printable(subject_id))
-        }
-    }
 }
 
-impl<C, A> PostgresStore<C, A>
+impl<C> PostgresStore<C>
 where
     C: AsClient,
-    A: Send + Sync,
 {
     /// Deletes all principals (policies and actions) from the database.
     ///

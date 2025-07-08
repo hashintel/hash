@@ -1,6 +1,5 @@
 use clap::Parser;
 use error_stack::{Report, ResultExt as _, ensure};
-use hash_graph_authorization::NoAuthorization;
 use hash_graph_postgres_store::store::{
     DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, PostgresStoreSettings,
 };
@@ -54,7 +53,7 @@ pub async fn reindex_cache(args: ReindexCacheArgs) -> Result<(), Report<GraphErr
     })?;
 
     let mut store = pool
-        .acquire(NoAuthorization, None)
+        .acquire(None)
         .await
         .change_context(GraphError)
         .map_err(|report| {

@@ -16,10 +16,7 @@ mod user;
 mod web;
 
 use error_stack::{Report, ResultExt as _};
-use hash_graph_authorization::{
-    AuthorizationApi, NoAuthorization,
-    policies::store::{PolicyStore as _, PrincipalStore as _},
-};
+use hash_graph_authorization::policies::store::{PolicyStore as _, PrincipalStore as _};
 use hash_graph_postgres_store::{
     Environment, load_env,
     store::{
@@ -44,12 +41,12 @@ pub fn init_logging() {
         .try_init();
 }
 
-pub struct DatabaseTestWrapper<A: AuthorizationApi> {
+pub struct DatabaseTestWrapper {
     _pool: PostgresStorePool,
-    connection: <PostgresStorePool as StorePool>::Store<'static, A>,
+    connection: <PostgresStorePool as StorePool>::Store<'static>,
 }
 
-impl DatabaseTestWrapper<NoAuthorization> {
+impl DatabaseTestWrapper {
     pub(crate) async fn new() -> Self {
         load_env(Environment::Test);
         init_logging();
@@ -83,7 +80,7 @@ impl DatabaseTestWrapper<NoAuthorization> {
         .expect("could not connect to database");
 
         let connection = pool
-            .acquire_owned(NoAuthorization, None)
+            .acquire_owned(None)
             .await
             .expect("could not acquire a database connection");
 
@@ -95,8 +92,7 @@ impl DatabaseTestWrapper<NoAuthorization> {
 
     pub(crate) async fn seed(
         &mut self,
-    ) -> Result<(PostgresStore<impl AsClient, impl AuthorizationApi>, ActorId), Report<StoreError>>
-    {
+    ) -> Result<(PostgresStore<impl AsClient>, ActorId), Report<StoreError>> {
         let mut transaction = self.connection.transaction().await?;
 
         transaction

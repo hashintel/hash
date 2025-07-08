@@ -3,14 +3,10 @@ use std::collections::{HashMap, HashSet};
 
 use error_stack::Report;
 use futures::TryFutureExt as _;
-use hash_graph_authorization::{
-    policies::{
-        Effect,
-        action::ActionName,
-        principal::{PrincipalConstraint, actor::AuthenticatedActor},
-    },
-    schema::EntityRelationAndSubject,
-    zanzibar::Consistency,
+use hash_graph_authorization::policies::{
+    Effect,
+    action::ActionName,
+    principal::{PrincipalConstraint, actor::AuthenticatedActor},
 };
 use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use hash_graph_types::knowledge::entity::EntityEmbedding;
@@ -133,17 +129,9 @@ pub struct CreateEntityPolicyParams {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-#[cfg_attr(
-    feature = "utoipa",
-    derive(utoipa::ToSchema),
-    aliases(CreateEntityRequest = CreateEntityParams<Vec<EntityRelationAndSubject>>),
-)]
-#[serde(
-    rename_all = "camelCase",
-    deny_unknown_fields,
-    bound(deserialize = "R: Deserialize<'de>")
-)]
-pub struct CreateEntityParams<R> {
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CreateEntityParams {
     pub web_id: WebId,
     #[serde(default)]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
@@ -161,7 +149,6 @@ pub struct CreateEntityParams<R> {
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub link_data: Option<LinkData>,
     pub draft: bool,
-    pub relationships: R,
     #[cfg_attr(feature = "utoipa", schema(value_type = Vec<Object>))]
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub policies: Vec<CreateEntityPolicyParams>,
@@ -415,14 +402,11 @@ pub trait EntityStore {
     /// - if an [`EntityUuid`] was supplied and already exists in the store
     ///
     /// [`EntityType`]: type_system::ontology::entity_type::EntityType
-    fn create_entity<R>(
+    fn create_entity(
         &mut self,
         actor_id: ActorEntityUuid,
-        params: CreateEntityParams<R>,
-    ) -> impl Future<Output = Result<Entity, Report<InsertionError>>> + Send
-    where
-        R: IntoIterator<Item = EntityRelationAndSubject> + Send + Sync,
-    {
+        params: CreateEntityParams,
+    ) -> impl Future<Output = Result<Entity, Report<InsertionError>>> + Send {
         self.create_entities(actor_id, vec![params])
             .map_ok(|mut entities| {
                 let entity = entities.pop().expect("Expected a single entity");
@@ -432,13 +416,11 @@ pub trait EntityStore {
     }
 
     /// Creates new [`Entities`][Entity].
-    fn create_entities<R>(
+    fn create_entities(
         &mut self,
         actor_uuid: ActorEntityUuid,
-        params: Vec<CreateEntityParams<R>>,
-    ) -> impl Future<Output = Result<Vec<Entity>, Report<InsertionError>>> + Send
-    where
-        R: IntoIterator<Item = EntityRelationAndSubject> + Send + Sync;
+        params: Vec<CreateEntityParams>,
+    ) -> impl Future<Output = Result<Vec<Entity>, Report<InsertionError>>> + Send;
 
     /// Validates an [`Entity`].
     ///
@@ -448,11 +430,10 @@ pub trait EntityStore {
     fn validate_entity(
         &self,
         actor_id: ActorEntityUuid,
-        consistency: Consistency<'_>,
         params: ValidateEntityParams<'_>,
     ) -> impl Future<Output = Result<HashMap<usize, EntityValidationReport>, Report<QueryError>>> + Send
     {
-        self.validate_entities(actor_id, consistency, vec![params])
+        self.validate_entities(actor_id, vec![params])
     }
 
     /// Validates [`Entities`][Entity].
@@ -463,7 +444,6 @@ pub trait EntityStore {
     fn validate_entities(
         &self,
         actor_id: ActorEntityUuid,
-        consistency: Consistency<'_>,
         params: Vec<ValidateEntityParams<'_>>,
     ) -> impl Future<Output = Result<HashMap<usize, EntityValidationReport>, Report<QueryError>>> + Send;
 

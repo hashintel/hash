@@ -4,11 +4,7 @@ use std::collections::HashMap;
 
 use error_stack::{Report, ResultExt as _, ensure};
 use futures::TryStreamExt as _;
-use hash_graph_authorization::{
-    AuthorizationApi,
-    backend::PermissionAssertion,
-    policies::{PolicyComponents, action::ActionName},
-};
+use hash_graph_authorization::policies::{PolicyComponents, action::ActionName};
 use hash_graph_store::{
     error::QueryError,
     filter::Filter,
@@ -19,6 +15,7 @@ use hash_graph_store::{
 };
 use hash_graph_types::ontology::{DataTypeLookup, OntologyTypeProvider};
 use hash_graph_validation::EntityProvider;
+use hash_status::StatusCode;
 use tokio::sync::RwLock;
 use tokio_postgres::GenericClient as _;
 use type_system::{
@@ -89,7 +86,7 @@ where
         match access {
             Access::Granted(value) => Some(Ok(value)),
             Access::Denied => Some(Err(
-                Report::new(PermissionAssertion).change_context(QueryError)
+                Report::new(QueryError).attach(StatusCode::PermissionDenied)
             )),
             Access::Malformed => Some(Err(Report::new(QueryError).attach_printable(format!(
                 "The entry in the cache for key {key:?} is malformed. This means that a previous \
@@ -145,10 +142,9 @@ impl<'a, S> StoreProvider<'a, S> {
     }
 }
 
-impl<C, A> StoreProvider<'_, PostgresStore<C, A>>
+impl<C> StoreProvider<'_, PostgresStore<C>>
 where
     C: AsClient,
-    A: AuthorizationApi,
 {
     async fn authorize_data_type(&self, type_id: DataTypeUuid) -> Result<(), Report<QueryError>> {
         if let Some(policy_components) = &self.policy_components {
@@ -185,10 +181,9 @@ where
     }
 }
 
-impl<C, A> DataTypeLookup for StoreProvider<'_, PostgresStore<C, A>>
+impl<C> DataTypeLookup for StoreProvider<'_, PostgresStore<C>>
 where
     C: AsClient,
-    A: AuthorizationApi,
 {
     type ClosedDataType = Arc<ClosedDataType>;
     type DataTypeWithMetadata = Arc<DataTypeWithMetadata>;
@@ -367,10 +362,9 @@ where
     }
 }
 
-impl<C, A> StoreProvider<'_, PostgresStore<C, A>>
+impl<C> StoreProvider<'_, PostgresStore<C>>
 where
     C: AsClient,
-    A: AuthorizationApi,
 {
     async fn fetch_property_type(
         &self,
@@ -425,10 +419,9 @@ where
     }
 }
 
-impl<C, A> OntologyTypeProvider<PropertyType> for StoreProvider<'_, PostgresStore<C, A>>
+impl<C> OntologyTypeProvider<PropertyType> for StoreProvider<'_, PostgresStore<C>>
 where
     C: AsClient,
-    A: AuthorizationApi,
 {
     type Value = Arc<PropertyType>;
 
@@ -464,10 +457,9 @@ where
     }
 }
 
-impl<C, A> StoreProvider<'_, PostgresStore<C, A>>
+impl<C> StoreProvider<'_, PostgresStore<C>>
 where
     C: AsClient,
-    A: AuthorizationApi,
 {
     async fn fetch_entity_type(
         &self,
@@ -520,11 +512,9 @@ where
     }
 }
 
-impl<C, A> OntologyTypeProvider<ClosedEntityTypeWithMetadata>
-    for StoreProvider<'_, PostgresStore<C, A>>
+impl<C> OntologyTypeProvider<ClosedEntityTypeWithMetadata> for StoreProvider<'_, PostgresStore<C>>
 where
     C: AsClient,
-    A: AuthorizationApi,
 {
     type Value = Arc<ClosedEntityTypeWithMetadata>;
 
@@ -567,10 +557,9 @@ where
     }
 }
 
-impl<C, A> OntologyTypeProvider<ClosedEntityType> for StoreProvider<'_, PostgresStore<C, A>>
+impl<C> OntologyTypeProvider<ClosedEntityType> for StoreProvider<'_, PostgresStore<C>>
 where
     C: AsClient,
-    A: AuthorizationApi,
 {
     type Value = Arc<ClosedEntityType>;
 
@@ -601,10 +590,9 @@ where
     }
 }
 
-impl<C, A> EntityProvider for StoreProvider<'_, PostgresStore<C, A>>
+impl<C> EntityProvider for StoreProvider<'_, PostgresStore<C>>
 where
     C: AsClient,
-    A: AuthorizationApi,
 {
     #[expect(refining_impl_trait)]
     async fn provide_entity(&self, entity_id: EntityId) -> Result<Arc<Entity>, Report<QueryError>> {
