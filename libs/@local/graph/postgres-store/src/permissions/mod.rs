@@ -3,12 +3,9 @@ use std::collections::{HashMap, HashSet};
 
 use error_stack::{Report, ResultExt as _, ensure};
 use futures::TryStreamExt as _;
-use hash_graph_authorization::{
-    AuthorizationApi,
-    policies::{
-        action::ActionName,
-        store::{RoleAssignmentStatus, RoleUnassignmentStatus},
-    },
+use hash_graph_authorization::policies::{
+    action::ActionName,
+    store::{RoleAssignmentStatus, RoleUnassignmentStatus},
 };
 use hash_graph_store::account::{AccountStore as _, GetActorError};
 use tokio_postgres::{GenericClient as _, error::SqlState};
@@ -25,10 +22,9 @@ use crate::store::{AsClient, PostgresStore};
 mod error;
 pub use self::error::{ActionError, PolicyError, PrincipalError};
 
-impl<C, A> PostgresStore<C, A>
+impl<C> PostgresStore<C>
 where
     C: AsClient,
-    A: AuthorizationApi,
 {
     async fn is_principal(
         &self,

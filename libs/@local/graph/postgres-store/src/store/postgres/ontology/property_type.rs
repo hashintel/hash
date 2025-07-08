@@ -1,17 +1,11 @@
 use alloc::borrow::Cow;
-use core::iter;
 use std::collections::{HashMap, HashSet};
 
 use error_stack::{Report, ResultExt as _};
 use futures::{StreamExt as _, TryStreamExt as _};
-use hash_graph_authorization::{
-    AuthorizationApi,
-    backend::ModifyRelationshipOperation,
-    policies::{
-        Authorized, PolicyComponents, Request, RequestContext, ResourceId, action::ActionName,
-        principal::actor::AuthenticatedActor,
-    },
-    schema::{PropertyTypeOwnerSubject, PropertyTypeRelationAndSubject},
+use hash_graph_authorization::policies::{
+    Authorized, PolicyComponents, Request, RequestContext, ResourceId, action::ActionName,
+    principal::actor::AuthenticatedActor,
 };
 use hash_graph_store::{
     error::{CheckPermissionError, InsertionError, QueryError, UpdateError},
@@ -68,10 +62,9 @@ use crate::store::{
     validation::StoreProvider,
 };
 
-impl<C, A> PostgresStore<C, A>
+impl<C> PostgresStore<C>
 where
     C: AsClient,
-    A: AuthorizationApi,
 {
     #[tracing::instrument(level = "trace", skip(property_types, provider))]
     pub(crate) async fn filter_property_types_by_permission<I, T>(
@@ -403,25 +396,21 @@ where
     }
 }
 
-impl<C, A> PropertyTypeStore for PostgresStore<C, A>
+impl<C> PropertyTypeStore for PostgresStore<C>
 where
     C: AsClient,
-    A: AuthorizationApi,
 {
     #[tracing::instrument(level = "info", skip(self, params))]
     #[expect(clippy::too_many_lines)]
-    async fn create_property_types<P, R>(
+    async fn create_property_types<P>(
         &mut self,
         actor_id: ActorEntityUuid,
         params: P,
     ) -> Result<Vec<PropertyTypeMetadata>, Report<InsertionError>>
     where
-        P: IntoIterator<Item = CreatePropertyTypeParams<R>, IntoIter: Send> + Send,
-        R: IntoIterator<Item = PropertyTypeRelationAndSubject> + Send + Sync,
+        P: IntoIterator<Item = CreatePropertyTypeParams, IntoIter: Send> + Send,
     {
         let transaction = self.transaction().await.change_context(InsertionError)?;
-
-        let mut relationships = HashSet::new();
 
         let mut inserted_property_type_metadata = Vec::new();
         let mut inserted_property_types = Vec::new();
@@ -441,28 +430,12 @@ where
             };
 
             let record_id = OntologyTypeRecordId::from(parameters.schema.id.clone());
-            let property_type_id = PropertyTypeUuid::from_url(&parameters.schema.id);
 
             if let OntologyOwnership::Local { web_id } = &parameters.ownership {
-                relationships.insert((
-                    property_type_id,
-                    PropertyTypeRelationAndSubject::Owner {
-                        subject: PropertyTypeOwnerSubject::Web { id: *web_id },
-                        level: 0,
-                    },
-                ));
-
                 policy_components_builder.add_property_type(&parameters.schema.id, Some(*web_id));
             } else {
                 policy_components_builder.add_property_type(&parameters.schema.id, None);
             }
-
-            relationships.extend(
-                parameters
-                    .relationships
-                    .into_iter()
-                    .map(|relation_and_subject| (property_type_id, relation_and_subject)),
-            );
 
             if let Some((ontology_id, temporal_versioning)) = transaction
                 .create_ontology_metadata(
@@ -552,56 +525,18 @@ where
                 .attach_lazy(|| property_type.schema.clone())?;
         }
 
-        transaction
-            .authorization_api
-            .modify_property_type_relations(relationships.clone().into_iter().map(
-                |(resource, relation_and_subject)| {
-                    (
-                        ModifyRelationshipOperation::Create,
-                        resource,
-                        relation_and_subject,
-                    )
-                },
-            ))
-            .await
-            .change_context(InsertionError)?;
+        transaction.commit().await.change_context(InsertionError)?;
 
-        if let Err(error) = transaction.commit().await.change_context(InsertionError) {
-            let mut error = error.expand();
-
-            if let Err(auth_error) = self
-                .authorization_api
-                .modify_property_type_relations(relationships.into_iter().map(
-                    |(resource, relation_and_subject)| {
-                        (
-                            ModifyRelationshipOperation::Delete,
-                            resource,
-                            relation_and_subject,
-                        )
-                    },
-                ))
+        if !self.settings.skip_embedding_creation
+            && let Some(temporal_client) = &self.temporal_client
+        {
+            temporal_client
+                .start_update_property_type_embeddings_workflow(actor_id, &inserted_property_types)
                 .await
-                .change_context(InsertionError)
-            {
-                error.push(auth_error);
-            }
-
-            Err(error.change_context(InsertionError))
-        } else {
-            if !self.settings.skip_embedding_creation
-                && let Some(temporal_client) = &self.temporal_client
-            {
-                temporal_client
-                    .start_update_property_type_embeddings_workflow(
-                        actor_id,
-                        &inserted_property_types,
-                    )
-                    .await
-                    .change_context(InsertionError)?;
-            }
-
-            Ok(inserted_property_type_metadata)
+                .change_context(InsertionError)?;
         }
+
+        Ok(inserted_property_type_metadata)
     }
 
     async fn count_property_types(
@@ -775,18 +710,15 @@ where
 
     #[tracing::instrument(level = "info", skip(self, params))]
     #[expect(clippy::too_many_lines)]
-    async fn update_property_types<P, R>(
+    async fn update_property_types<P>(
         &mut self,
         actor_id: ActorEntityUuid,
         params: P,
     ) -> Result<Vec<PropertyTypeMetadata>, Report<UpdateError>>
     where
-        P: IntoIterator<Item = UpdatePropertyTypesParams<R>, IntoIter: Send> + Send,
-        R: IntoIterator<Item = PropertyTypeRelationAndSubject> + Send + Sync,
+        P: IntoIterator<Item = UpdatePropertyTypesParams, IntoIter: Send> + Send,
     {
         let transaction = self.transaction().await.change_context(UpdateError)?;
-
-        let mut relationships = HashSet::new();
 
         let mut updated_property_type_metadata = Vec::new();
         let mut inserted_property_types = Vec::new();
@@ -823,20 +755,10 @@ where
             });
 
             let record_id = OntologyTypeRecordId::from(parameters.schema.id.clone());
-            let property_type_id = PropertyTypeUuid::from_url(&parameters.schema.id);
 
             let (ontology_id, web_id, temporal_versioning) = transaction
                 .update_owned_ontology_id(&parameters.schema.id, &provenance.edition)
                 .await?;
-
-            relationships.extend(
-                iter::once(PropertyTypeRelationAndSubject::Owner {
-                    subject: PropertyTypeOwnerSubject::Web { id: web_id },
-                    level: 0,
-                })
-                .chain(parameters.relationships)
-                .map(|relation_and_subject| (property_type_id, relation_and_subject)),
-            );
 
             transaction
                 .insert_property_type_with_id(
@@ -905,67 +827,28 @@ where
             transaction
                 .insert_property_type_references(&property_type.schema, ontology_id)
                 .await
-                .change_context(InsertionError)
+                .change_context(UpdateError)
                 .attach_printable_lazy(|| {
                     format!(
                         "could not insert references for property type: {}",
                         &property_type.schema.id
                     )
                 })
-                .attach_lazy(|| property_type.schema.clone())
+                .attach_lazy(|| property_type.schema.clone())?;
+        }
+
+        transaction.commit().await.change_context(UpdateError)?;
+
+        if !self.settings.skip_embedding_creation
+            && let Some(temporal_client) = &self.temporal_client
+        {
+            temporal_client
+                .start_update_property_type_embeddings_workflow(actor_id, &inserted_property_types)
+                .await
                 .change_context(UpdateError)?;
         }
 
-        transaction
-            .authorization_api
-            .modify_property_type_relations(relationships.clone().into_iter().map(
-                |(resource, relation_and_subject)| {
-                    (
-                        ModifyRelationshipOperation::Create,
-                        resource,
-                        relation_and_subject,
-                    )
-                },
-            ))
-            .await
-            .change_context(UpdateError)?;
-
-        if let Err(error) = transaction.commit().await.change_context(InsertionError) {
-            let mut error = error.expand();
-
-            if let Err(auth_error) = self
-                .authorization_api
-                .modify_property_type_relations(relationships.into_iter().map(
-                    |(resource, relation_and_subject)| {
-                        (
-                            ModifyRelationshipOperation::Delete,
-                            resource,
-                            relation_and_subject,
-                        )
-                    },
-                ))
-                .await
-                .change_context(InsertionError)
-            {
-                error.push(auth_error);
-            }
-
-            Err(error.change_context(UpdateError))
-        } else {
-            if !self.settings.skip_embedding_creation
-                && let Some(temporal_client) = &self.temporal_client
-            {
-                temporal_client
-                    .start_update_property_type_embeddings_workflow(
-                        actor_id,
-                        &inserted_property_types,
-                    )
-                    .await
-                    .change_context(UpdateError)?;
-            }
-
-            Ok(updated_property_type_metadata)
-        }
+        Ok(updated_property_type_metadata)
     }
 
     #[tracing::instrument(level = "info", skip(self))]

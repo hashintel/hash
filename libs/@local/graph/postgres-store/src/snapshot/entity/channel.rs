@@ -9,9 +9,8 @@ use futures::{
     channel::mpsc::{self, Receiver, Sender},
     stream::{BoxStream, SelectAll, select_all},
 };
-use hash_graph_authorization::schema::EntityRelationAndSubject;
 use type_system::{
-    knowledge::entity::{Entity, id::EntityUuid},
+    knowledge::Entity,
     ontology::{InheritanceDepth, entity_type::EntityTypeUuid},
 };
 
@@ -231,7 +230,6 @@ impl Stream for EntityReceiver {
 /// [`EntityRowBatch`].
 pub(crate) fn channel(
     chunk_size: usize,
-    relation_rx: Receiver<(EntityUuid, EntityRelationAndSubject)>,
     embedding_rx: Receiver<EntityEmbeddingRow>,
 ) -> (EntitySender, EntityReceiver) {
     let (id_tx, id_rx) = mpsc::channel(chunk_size);
@@ -281,10 +279,6 @@ pub(crate) fn channel(
                 right_links_rx
                     .ready_chunks(chunk_size)
                     .map(EntityRowBatch::RightLinks)
-                    .boxed(),
-                relation_rx
-                    .ready_chunks(chunk_size)
-                    .map(EntityRowBatch::Relations)
                     .boxed(),
                 embedding_rx
                     .ready_chunks(chunk_size)

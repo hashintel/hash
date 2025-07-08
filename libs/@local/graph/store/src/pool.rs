@@ -2,7 +2,6 @@ use alloc::sync::Arc;
 use core::error::Error;
 
 use error_stack::Report;
-use hash_graph_authorization::AuthorizationApi;
 use hash_temporal_client::TemporalClient;
 
 use crate::{
@@ -20,7 +19,7 @@ pub trait StorePool {
     type Error: Error + Send + Sync + 'static;
 
     /// The store returned when acquiring.
-    type Store<'pool, A: AuthorizationApi>: AccountStore
+    type Store<'pool>: AccountStore
         + DataTypeStore
         + PropertyTypeStore
         + EntityTypeStore
@@ -31,11 +30,10 @@ pub trait StorePool {
     /// Retrieves a [`Store`] from the pool.
     ///
     /// [`Store`]: Self::Store
-    fn acquire<A: AuthorizationApi>(
+    fn acquire(
         &self,
-        authorization_api: A,
         temporal_client: Option<Arc<TemporalClient>>,
-    ) -> impl Future<Output = Result<Self::Store<'_, A>, Report<Self::Error>>> + Send;
+    ) -> impl Future<Output = Result<Self::Store<'_>, Report<Self::Error>>> + Send;
 
     /// Retrieves an owned [`Store`] from the pool.
     ///
@@ -45,9 +43,8 @@ pub trait StorePool {
     ///
     /// [`Store`]: Self::Store
     /// [`acquire`]: Self::acquire
-    fn acquire_owned<A: AuthorizationApi>(
+    fn acquire_owned(
         &self,
-        authorization_api: A,
         temporal_client: Option<Arc<TemporalClient>>,
-    ) -> impl Future<Output = Result<Self::Store<'static, A>, Report<Self::Error>>> + Send;
+    ) -> impl Future<Output = Result<Self::Store<'static>, Report<Self::Error>>> + Send;
 }

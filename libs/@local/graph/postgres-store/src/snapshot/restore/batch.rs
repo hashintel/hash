@@ -1,5 +1,4 @@
 use error_stack::Report;
-use hash_graph_authorization::{AuthorizationApi, backend::ZanzibarBackend};
 use hash_graph_store::error::InsertionError;
 
 use crate::{
@@ -11,17 +10,13 @@ use crate::{
             DataTypeRowBatch, EntityTypeRowBatch, OntologyTypeMetadataRowBatch,
             PropertyTypeRowBatch,
         },
-        owner::AccountRowBatch,
         policy::PolicyRowBatch,
         principal::PrincipalRowBatch,
-        web::WebBatch,
     },
     store::{AsClient, PostgresStore},
 };
 
 pub enum SnapshotRecordBatch {
-    Accounts(AccountRowBatch),
-    Webs(WebBatch),
     Principals(PrincipalRowBatch),
     OntologyTypes(OntologyTypeMetadataRowBatch),
     DataTypes(DataTypeRowBatch),
@@ -32,16 +27,11 @@ pub enum SnapshotRecordBatch {
     Policies(PolicyRowBatch),
 }
 
-impl<C, A> WriteBatch<C, A> for SnapshotRecordBatch
+impl<C> WriteBatch<C> for SnapshotRecordBatch
 where
     C: AsClient,
-    A: AuthorizationApi + ZanzibarBackend,
 {
-    async fn begin(
-        postgres_client: &mut PostgresStore<C, A>,
-    ) -> Result<(), Report<InsertionError>> {
-        AccountRowBatch::begin(postgres_client).await?;
-        WebBatch::begin(postgres_client).await?;
+    async fn begin(postgres_client: &mut PostgresStore<C>) -> Result<(), Report<InsertionError>> {
         PrincipalRowBatch::begin(postgres_client).await?;
         OntologyTypeMetadataRowBatch::begin(postgres_client).await?;
         DataTypeRowBatch::begin(postgres_client).await?;
@@ -55,11 +45,9 @@ where
 
     async fn write(
         self,
-        postgres_client: &mut PostgresStore<C, A>,
+        postgres_client: &mut PostgresStore<C>,
     ) -> Result<(), Report<InsertionError>> {
         match self {
-            Self::Accounts(account) => account.write(postgres_client).await,
-            Self::Webs(web) => web.write(postgres_client).await,
             Self::Principals(principals) => principals.write(postgres_client).await,
             Self::OntologyTypes(ontology) => ontology.write(postgres_client).await,
             Self::DataTypes(data_type) => data_type.write(postgres_client).await,
@@ -72,11 +60,9 @@ where
     }
 
     async fn commit(
-        postgres_client: &mut PostgresStore<C, A>,
+        postgres_client: &mut PostgresStore<C>,
         ignore_validation_errors: bool,
     ) -> Result<(), Report<InsertionError>> {
-        AccountRowBatch::commit(postgres_client, ignore_validation_errors).await?;
-        WebBatch::commit(postgres_client, ignore_validation_errors).await?;
         PrincipalRowBatch::commit(postgres_client, ignore_validation_errors).await?;
         OntologyTypeMetadataRowBatch::commit(postgres_client, ignore_validation_errors).await?;
         DataTypeRowBatch::commit(postgres_client, ignore_validation_errors).await?;

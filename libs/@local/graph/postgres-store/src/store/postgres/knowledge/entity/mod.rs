@@ -1,23 +1,17 @@
 mod query;
 mod read;
 use alloc::borrow::Cow;
-use core::{borrow::Borrow as _, iter::once, mem};
+use core::{borrow::Borrow as _, mem};
 use std::collections::{HashMap, HashSet};
 
 use error_stack::{FutureExt as _, Report, ResultExt as _, TryReportStreamExt as _, ensure};
 use futures::{StreamExt as _, TryStreamExt as _, stream};
-use hash_graph_authorization::{
-    AuthorizationApi,
-    backend::ModifyRelationshipOperation,
-    policies::{
-        Authorized, PolicyComponents, Request, RequestContext, ResourceId,
-        action::ActionName,
-        principal::actor::AuthenticatedActor,
-        resource::{EntityResourceConstraint, ResourceConstraint},
-        store::{PolicyCreationParams, PolicyStore as _, PrincipalStore as _},
-    },
-    schema::{EntityOwnerSubject, EntityRelationAndSubject},
-    zanzibar::Consistency,
+use hash_graph_authorization::policies::{
+    Authorized, PolicyComponents, Request, RequestContext, ResourceId,
+    action::ActionName,
+    principal::actor::AuthenticatedActor,
+    resource::{EntityResourceConstraint, ResourceConstraint},
+    store::{PolicyCreationParams, PolicyStore as _, PrincipalStore as _},
 };
 use hash_graph_store::{
     entity::{
@@ -120,10 +114,9 @@ struct GetEntitiesImplParams<'a> {
     include_type_titles: bool,
 }
 
-impl<C, A> PostgresStore<C, A>
+impl<C> PostgresStore<C>
 where
     C: AsClient,
-    A: AuthorizationApi,
 {
     /// Internal method to read an [`Entity`] into a [`TraversalContext`].
     ///
@@ -398,7 +391,7 @@ where
         Ok(())
     }
 
-    #[tracing::instrument(level = "info", skip(self, params))]
+    #[tracing::instrument(level = "info", skip(self, params, policy_components))]
     #[expect(clippy::too_many_lines)]
     async fn get_entities_impl(
         &self,
@@ -698,23 +691,18 @@ where
     }
 }
 
-impl<C, A> EntityStore for PostgresStore<C, A>
+impl<C> EntityStore for PostgresStore<C>
 where
     C: AsClient,
-    A: AuthorizationApi,
 {
     #[tracing::instrument(level = "info", skip(self, params))]
     #[expect(clippy::too_many_lines)]
-    async fn create_entities<R>(
+    async fn create_entities(
         &mut self,
         actor_uuid: ActorEntityUuid,
-        params: Vec<CreateEntityParams<R>>,
-    ) -> Result<Vec<Entity>, Report<InsertionError>>
-    where
-        R: IntoIterator<Item = EntityRelationAndSubject> + Send + Sync,
-    {
+        params: Vec<CreateEntityParams>,
+    ) -> Result<Vec<Entity>, Report<InsertionError>> {
         let transaction_time = Timestamp::<TransactionTime>::now().remove_nanosecond();
-        let mut relationships = Vec::with_capacity(params.len());
         let mut entity_edition_ids = Vec::with_capacity(params.len());
 
         let mut entity_id_rows = Vec::with_capacity(params.len());
@@ -1022,21 +1010,6 @@ where
 
             validation_params.push((entity_type, preprocessor.components));
 
-            let current_num_relationships = relationships.len();
-            relationships.extend(
-                params
-                    .relationships
-                    .into_iter()
-                    .chain(once(EntityRelationAndSubject::Owner {
-                        subject: EntityOwnerSubject::Web { id: params.web_id },
-                        level: 0,
-                    }))
-                    .map(|relation_and_subject| (entity_id, relation_and_subject)),
-            );
-            if relationships.len() == current_num_relationships {
-                return Err(Report::new(InsertionError)
-                    .attach_printable("At least one relationship must be provided"));
-            }
             policies.extend(
                 params
                     .policies
@@ -1102,20 +1075,6 @@ where
             .await
             .change_context(InsertionError)?;
 
-        transaction
-            .authorization_api
-            .modify_entity_relations(relationships.iter().copied().map(
-                |(entity_id, relation_and_subject)| {
-                    (
-                        ModifyRelationshipOperation::Create,
-                        entity_id,
-                        relation_and_subject,
-                    )
-                },
-            ))
-            .await
-            .change_context(InsertionError)?;
-
         for (index, (entity, (schema, components))) in
             entities.iter().zip(validation_params).enumerate()
         {
@@ -1141,40 +1100,18 @@ where
             Report::new(InsertionError).attach(validation_reports)
         );
 
-        let commit_result = transaction.commit().await.change_context(InsertionError);
-        if let Err(error) = commit_result {
-            let mut error = error.expand();
+        transaction.commit().await.change_context(InsertionError)?;
 
-            if let Err(auth_error) = self
-                .authorization_api
-                .modify_entity_relations(relationships.into_iter().map(
-                    |(entity_id, relation_and_subject)| {
-                        (
-                            ModifyRelationshipOperation::Delete,
-                            entity_id,
-                            relation_and_subject,
-                        )
-                    },
-                ))
+        if !self.settings.skip_embedding_creation
+            && let Some(temporal_client) = &self.temporal_client
+        {
+            temporal_client
+                .start_update_entity_embeddings_workflow(actor_uuid, &entities)
                 .await
-                .change_context(InsertionError)
-            {
-                error.push(auth_error);
-            }
-
-            Err(error.change_context(InsertionError))
-        } else {
-            if !self.settings.skip_embedding_creation
-                && let Some(temporal_client) = &self.temporal_client
-            {
-                temporal_client
-                    .start_update_entity_embeddings_workflow(actor_uuid, &entities)
-                    .await
-                    .change_context(InsertionError)?;
-            }
-
-            Ok(entities)
+                .change_context(InsertionError)?;
         }
+
+        Ok(entities)
     }
 
     // TODO: Relax constraints on entity validation for draft entities
@@ -1185,7 +1122,6 @@ where
     async fn validate_entities(
         &self,
         actor_id: ActorEntityUuid,
-        consistency: Consistency<'_>,
         params: Vec<ValidateEntityParams<'_>>,
     ) -> Result<HashMap<usize, EntityValidationReport>, Report<QueryError>> {
         let policy_components = PolicyComponents::builder(self)
@@ -2346,10 +2282,7 @@ struct LockedEntityEdition {
     transaction_time: LeftClosedTemporalInterval<TransactionTime>,
 }
 
-impl<A> PostgresStore<tokio_postgres::Transaction<'_>, A>
-where
-    A: Send + Sync,
-{
+impl PostgresStore<tokio_postgres::Transaction<'_>> {
     #[tracing::instrument(level = "trace", skip(self, entity_type_ids))]
     async fn insert_entity_edition(
         &self,

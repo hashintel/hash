@@ -1,17 +1,12 @@
 use alloc::{borrow::Cow, sync::Arc};
-use core::{iter, mem};
+use core::mem;
 use std::collections::{HashMap, HashSet};
 
 use error_stack::{Report, ResultExt as _};
 use futures::{StreamExt as _, TryStreamExt as _};
-use hash_graph_authorization::{
-    AuthorizationApi,
-    backend::ModifyRelationshipOperation,
-    policies::{
-        Authorized, PolicyComponents, Request, RequestContext, ResourceId, action::ActionName,
-        principal::actor::AuthenticatedActor,
-    },
-    schema::{DataTypeOwnerSubject, DataTypeRelationAndSubject},
+use hash_graph_authorization::policies::{
+    Authorized, PolicyComponents, Request, RequestContext, ResourceId, action::ActionName,
+    principal::actor::AuthenticatedActor,
 };
 use hash_graph_store::{
     data_type::{
@@ -71,10 +66,9 @@ use crate::store::{
     validation::StoreProvider,
 };
 
-impl<C, A> PostgresStore<C, A>
+impl<C> PostgresStore<C>
 where
     C: AsClient,
-    A: AuthorizationApi,
 {
     #[tracing::instrument(level = "trace", skip(data_types, provider))]
     pub(crate) async fn filter_data_types_by_permission<I, T>(
@@ -415,25 +409,21 @@ where
     }
 }
 
-impl<C, A> DataTypeStore for PostgresStore<C, A>
+impl<C> DataTypeStore for PostgresStore<C>
 where
     C: AsClient,
-    A: AuthorizationApi,
 {
     #[tracing::instrument(level = "info", skip(self, params))]
     #[expect(clippy::too_many_lines)]
-    async fn create_data_types<P, R>(
+    async fn create_data_types<P>(
         &mut self,
         actor_id: ActorEntityUuid,
         params: P,
     ) -> Result<Vec<DataTypeMetadata>, Report<InsertionError>>
     where
-        P: IntoIterator<Item = CreateDataTypeParams<R>, IntoIter: Send> + Send,
-        R: IntoIterator<Item = DataTypeRelationAndSubject> + Send + Sync,
+        P: IntoIterator<Item = CreateDataTypeParams, IntoIter: Send> + Send,
     {
         let transaction = self.transaction().await.change_context(InsertionError)?;
-
-        let mut relationships = HashSet::new();
 
         let mut inserted_data_type_metadata = Vec::new();
         let mut inserted_data_types = Vec::new();
@@ -454,25 +444,10 @@ where
             let record_id = OntologyTypeRecordId::from(parameters.schema.id.clone());
             let data_type_id = DataTypeUuid::from_url(&parameters.schema.id);
             if let OntologyOwnership::Local { web_id } = &parameters.ownership {
-                relationships.insert((
-                    data_type_id,
-                    DataTypeRelationAndSubject::Owner {
-                        subject: DataTypeOwnerSubject::Web { id: *web_id },
-                        level: 0,
-                    },
-                ));
-
                 policy_components_builder.add_data_type(&parameters.schema.id, Some(*web_id));
             } else {
                 policy_components_builder.add_data_type(&parameters.schema.id, None);
             }
-
-            relationships.extend(
-                parameters
-                    .relationships
-                    .into_iter()
-                    .map(|relation_and_subject| (data_type_id, relation_and_subject)),
-            );
 
             if let Some((_ontology_id, temporal_versioning)) = transaction
                 .create_ontology_metadata(
@@ -650,67 +625,28 @@ where
             .await
             .change_context(InsertionError)?;
 
-        #[expect(clippy::needless_collect, reason = "Higher ranked lifetime error")]
-        transaction
-            .authorization_api
-            .modify_data_type_relations(
-                relationships
-                    .iter()
-                    .map(|(resource, relation_and_subject)| {
-                        (
-                            ModifyRelationshipOperation::Create,
-                            *resource,
-                            *relation_and_subject,
-                        )
-                    })
-                    .collect::<Vec<_>>(),
-            )
-            .await
-            .change_context(InsertionError)?;
+        transaction.commit().await.change_context(InsertionError)?;
 
-        if let Err(error) = transaction.commit().await.change_context(InsertionError) {
-            let mut error = error.expand();
-
-            if let Err(auth_error) = self
-                .authorization_api
-                .modify_data_type_relations(relationships.into_iter().map(
-                    |(resource, relation_and_subject)| {
-                        (
-                            ModifyRelationshipOperation::Delete,
-                            resource,
-                            relation_and_subject,
-                        )
-                    },
-                ))
+        if !self.settings.skip_embedding_creation
+            && let Some(temporal_client) = &self.temporal_client
+        {
+            temporal_client
+                .start_update_data_type_embeddings_workflow(
+                    actor_id,
+                    &inserted_data_types
+                        .iter()
+                        .zip(&inserted_data_type_metadata)
+                        .map(|((_, schema), metadata)| DataTypeWithMetadata {
+                            schema: (**schema).clone(),
+                            metadata: metadata.clone(),
+                        })
+                        .collect::<Vec<_>>(),
+                )
                 .await
-                .change_context(InsertionError)
-            {
-                error.push(auth_error);
-            }
-
-            Err(error.change_context(InsertionError))
-        } else {
-            if !self.settings.skip_embedding_creation
-                && let Some(temporal_client) = &self.temporal_client
-            {
-                temporal_client
-                    .start_update_data_type_embeddings_workflow(
-                        actor_id,
-                        &inserted_data_types
-                            .iter()
-                            .zip(&inserted_data_type_metadata)
-                            .map(|((_, schema), metadata)| DataTypeWithMetadata {
-                                schema: (**schema).clone(),
-                                metadata: metadata.clone(),
-                            })
-                            .collect::<Vec<_>>(),
-                    )
-                    .await
-                    .change_context(InsertionError)?;
-            }
-
-            Ok(inserted_data_type_metadata)
+                .change_context(InsertionError)?;
         }
+
+        Ok(inserted_data_type_metadata)
     }
 
     async fn get_data_types(
@@ -862,18 +798,15 @@ where
 
     #[tracing::instrument(level = "info", skip(self, params))]
     #[expect(clippy::too_many_lines)]
-    async fn update_data_types<P, R>(
+    async fn update_data_types<P>(
         &mut self,
         actor_id: ActorEntityUuid,
         params: P,
     ) -> Result<Vec<DataTypeMetadata>, Report<UpdateError>>
     where
-        P: IntoIterator<Item = UpdateDataTypesParams<R>, IntoIter: Send> + Send,
-        R: IntoIterator<Item = DataTypeRelationAndSubject> + Send + Sync,
+        P: IntoIterator<Item = UpdateDataTypesParams, IntoIter: Send> + Send,
     {
         let transaction = self.transaction().await.change_context(UpdateError)?;
-
-        let mut relationships = HashSet::new();
 
         let mut updated_data_type_metadata = Vec::new();
         let mut inserted_data_types = Vec::new();
@@ -913,15 +846,6 @@ where
             let (_ontology_id, web_id, temporal_versioning) = transaction
                 .update_owned_ontology_id(&parameters.schema.id, &provenance.edition)
                 .await?;
-
-            relationships.extend(
-                iter::once(DataTypeRelationAndSubject::Owner {
-                    subject: DataTypeOwnerSubject::Web { id: web_id },
-                    level: 0,
-                })
-                .chain(parameters.relationships)
-                .map(|relation_and_subject| (data_type_id, relation_and_subject)),
-            );
 
             data_type_reference_ids.extend(
                 parameters
@@ -1093,67 +1017,28 @@ where
             .await
             .change_context(UpdateError)?;
 
-        #[expect(clippy::needless_collect, reason = "Higher ranked lifetime error")]
-        transaction
-            .authorization_api
-            .modify_data_type_relations(
-                relationships
-                    .iter()
-                    .map(|(resource, relation_and_subject)| {
-                        (
-                            ModifyRelationshipOperation::Create,
-                            *resource,
-                            *relation_and_subject,
-                        )
-                    })
-                    .collect::<Vec<_>>(),
-            )
-            .await
-            .change_context(UpdateError)?;
+        transaction.commit().await.change_context(UpdateError)?;
 
-        if let Err(error) = transaction.commit().await.change_context(InsertionError) {
-            let mut error = error.expand();
-
-            if let Err(auth_error) = self
-                .authorization_api
-                .modify_data_type_relations(relationships.into_iter().map(
-                    |(resource, relation_and_subject)| {
-                        (
-                            ModifyRelationshipOperation::Delete,
-                            resource,
-                            relation_and_subject,
-                        )
-                    },
-                ))
+        if !self.settings.skip_embedding_creation
+            && let Some(temporal_client) = &self.temporal_client
+        {
+            temporal_client
+                .start_update_data_type_embeddings_workflow(
+                    actor_id,
+                    &inserted_data_types
+                        .iter()
+                        .zip(&updated_data_type_metadata)
+                        .map(|((_, schema), metadata)| DataTypeWithMetadata {
+                            schema: (**schema).clone(),
+                            metadata: metadata.clone(),
+                        })
+                        .collect::<Vec<_>>(),
+                )
                 .await
-                .change_context(InsertionError)
-            {
-                error.push(auth_error);
-            }
-
-            Err(error.change_context(UpdateError))
-        } else {
-            if !self.settings.skip_embedding_creation
-                && let Some(temporal_client) = &self.temporal_client
-            {
-                temporal_client
-                    .start_update_data_type_embeddings_workflow(
-                        actor_id,
-                        &inserted_data_types
-                            .iter()
-                            .zip(&updated_data_type_metadata)
-                            .map(|((_, schema), metadata)| DataTypeWithMetadata {
-                                schema: (**schema).clone(),
-                                metadata: metadata.clone(),
-                            })
-                            .collect::<Vec<_>>(),
-                    )
-                    .await
-                    .change_context(UpdateError)?;
-            }
-
-            Ok(updated_data_type_metadata)
+                .change_context(UpdateError)?;
         }
+
+        Ok(updated_data_type_metadata)
     }
 
     #[tracing::instrument(level = "info", skip(self))]

@@ -17,7 +17,7 @@ use harpc_tower::{
     layer::{body_report::HandleBodyReportLayer, report::HandleReportLayer},
 };
 use harpc_types::subsystem::SubsystemId;
-use hash_graph_authorization::{AuthorizationApiPool, policies::store::PrincipalStore};
+use hash_graph_authorization::policies::store::PrincipalStore;
 use hash_graph_store::pool::StorePool;
 use hash_temporal_client::TemporalClient;
 
@@ -57,9 +57,8 @@ impl SubsystemIdentifier for GraphSubsystemId {
     }
 }
 
-pub struct Dependencies<S, A, C> {
+pub struct Dependencies<S, C> {
     pub store: Arc<S>,
-    pub authorization_api: Arc<A>,
     pub temporal_client: Option<TemporalClient>,
     pub codec: C,
 }
@@ -68,8 +67,8 @@ pub struct Dependencies<S, A, C> {
     clippy::significant_drop_tightening,
     reason = "false-positive in `AccountServer`"
 )]
-pub fn rpc_router<S, A, C, N>(
-    dependencies: Dependencies<S, A, C>,
+pub fn rpc_router<S, C, N>(
+    dependencies: Dependencies<S, C>,
     notifications: N,
 ) -> (
     Router<impl Route<RequestBody, ResponseBody: Send, Future: Send> + Send>,
@@ -77,9 +76,8 @@ pub fn rpc_router<S, A, C, N>(
 )
 where
     S: StorePool + Send + Sync + 'static,
-    A: AuthorizationApiPool + Send + Sync + 'static,
     C: ReportEncoder + ReportDecoder + Clone + Send + Sync + 'static,
-    for<'p, 'a> S::Store<'p, A::Api<'a>>: PrincipalStore,
+    for<'p> S::Store<'p>: PrincipalStore,
 {
     let builder = RouterBuilder::new(dependencies.codec)
         .with_builder(|builder| {
@@ -90,7 +88,6 @@ where
         .register(AuthenticationDelegate::new(AuthenticationServer))
         .register(AccountDelegate::new(AccountServer {
             store_pool: dependencies.store,
-            authorization_api_pool: dependencies.authorization_api,
             temporal_client: dependencies.temporal_client.map(Arc::new),
         }))
         .register(EchoDelegate::new(EchoServer));

@@ -20,7 +20,7 @@ use type_system::{
     provenance::{OriginProvenance, OriginType},
 };
 
-use crate::{DatabaseTestWrapper, property_type_relationships};
+use crate::DatabaseTestWrapper;
 
 #[tokio::test]
 async fn insert() {
@@ -40,7 +40,6 @@ async fn insert() {
             ownership: OntologyOwnership::Local {
                 web_id: WebId::new(api.account_id),
             },
-            relationships: property_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,
             provenance: ProvidedOntologyEditionProvenance {
                 actor_type: ActorType::User,
@@ -71,7 +70,6 @@ async fn query() {
             ownership: OntologyOwnership::Local {
                 web_id: WebId::new(api.account_id),
             },
-            relationships: property_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,
             provenance: ProvidedOntologyEditionProvenance {
                 actor_type: ActorType::User,
@@ -139,7 +137,6 @@ async fn update() {
             ownership: OntologyOwnership::Local {
                 web_id: WebId::new(api.account_id),
             },
-            relationships: property_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,
             provenance: ProvidedOntologyEditionProvenance {
                 actor_type: ActorType::User,
@@ -155,7 +152,6 @@ async fn update() {
         api.account_id,
         UpdatePropertyTypesParams {
             schema: user_id_pt_v2.clone(),
-            relationships: property_type_relationships(),
             provenance: ProvidedOntologyEditionProvenance {
                 actor_type: ActorType::User,
                 origin: OriginProvenance::from_empty_type(OriginType::Api),

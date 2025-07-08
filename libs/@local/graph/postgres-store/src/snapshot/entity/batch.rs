@@ -2,9 +2,6 @@ use std::collections::HashMap;
 
 use error_stack::{Report, ResultExt as _, ensure};
 use futures::{StreamExt as _, TryStreamExt as _, stream};
-use hash_graph_authorization::{
-    AuthorizationApi, backend::ZanzibarBackend, schema::EntityRelationAndSubject,
-};
 use hash_graph_store::{
     entity::{EntityStore as _, EntityValidationReport, ValidateEntityComponents},
     error::InsertionError,
@@ -16,7 +13,7 @@ use hash_graph_types::{
 use hash_graph_validation::{EntityPreprocessor, Validate as _};
 use tokio_postgres::GenericClient as _;
 use type_system::{
-    knowledge::{Entity, entity::id::EntityUuid, property::PropertyObjectWithMetadata},
+    knowledge::{Entity, property::PropertyObjectWithMetadata},
     ontology::entity_type::{ClosedEntityType, ClosedMultiEntityType},
 };
 
@@ -43,17 +40,13 @@ pub enum EntityRowBatch {
     LeftLinks(Vec<EntityHasLeftEntityRow>),
     RightLinks(Vec<EntityHasRightEntityRow>),
     Embeddings(Vec<EntityEmbeddingRow>),
-    Relations(Vec<(EntityUuid, EntityRelationAndSubject)>),
 }
 
-impl<C, A> WriteBatch<C, A> for EntityRowBatch
+impl<C> WriteBatch<C> for EntityRowBatch
 where
     C: AsClient,
-    A: ZanzibarBackend + AuthorizationApi,
 {
-    async fn begin(
-        postgres_client: &mut PostgresStore<C, A>,
-    ) -> Result<(), Report<InsertionError>> {
+    async fn begin(postgres_client: &mut PostgresStore<C>) -> Result<(), Report<InsertionError>> {
         postgres_client
             .as_client()
             .client()
@@ -101,7 +94,7 @@ where
     #[expect(clippy::too_many_lines)]
     async fn write(
         self,
-        postgres_client: &mut PostgresStore<C, A>,
+        postgres_client: &mut PostgresStore<C>,
     ) -> Result<(), Report<InsertionError>> {
         let client = postgres_client.as_client().client();
         match self {
@@ -221,13 +214,6 @@ where
                     tracing::info!("Read {} right entity links", rows.len());
                 }
             }
-            Self::Relations(relations) => {
-                postgres_client
-                    .authorization_api
-                    .touch_relationships(relations)
-                    .await
-                    .change_context(InsertionError)?;
-            }
             Self::Embeddings(embeddings) => {
                 let rows = client
                     .query(
@@ -250,7 +236,7 @@ where
 
     #[expect(clippy::too_many_lines)]
     async fn commit(
-        postgres_client: &mut PostgresStore<C, A>,
+        postgres_client: &mut PostgresStore<C>,
         ignore_validation_errors: bool,
     ) -> Result<(), Report<InsertionError>> {
         postgres_client

@@ -3,9 +3,8 @@ use core::iter;
 use std::collections::HashSet;
 
 use error_stack::Report;
-use hash_graph_authorization::{
-    policies::{action::ActionName, principal::actor::AuthenticatedActor},
-    schema::PropertyTypeRelationAndSubject,
+use hash_graph_authorization::policies::{
+    action::ActionName, principal::actor::AuthenticatedActor,
 };
 use hash_graph_temporal_versioning::{Timestamp, TransactionTime};
 use hash_graph_types::Embedding;
@@ -28,15 +27,10 @@ use crate::{
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(
-    rename_all = "camelCase",
-    deny_unknown_fields,
-    bound(deserialize = "R: Deserialize<'de>")
-)]
-pub struct CreatePropertyTypeParams<R> {
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CreatePropertyTypeParams {
     pub schema: PropertyType,
     pub ownership: OntologyOwnership,
-    pub relationships: R,
     pub conflict_behavior: ConflictBehavior,
     pub provenance: ProvidedOntologyEditionProvenance,
 }
@@ -103,9 +97,8 @@ pub struct GetPropertyTypesResponse {
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct UpdatePropertyTypesParams<R> {
+pub struct UpdatePropertyTypesParams {
     pub schema: PropertyType,
-    pub relationships: R,
     pub provenance: ProvidedOntologyEditionProvenance,
 }
 
@@ -156,14 +149,13 @@ pub trait PropertyTypeStore {
     /// - if the [`BaseUrl`] of the `property_type` already exists.
     ///
     /// [`BaseUrl`]: type_system::ontology::BaseUrl
-    fn create_property_type<R>(
+    fn create_property_type(
         &mut self,
         actor_id: ActorEntityUuid,
-        params: CreatePropertyTypeParams<R>,
+        params: CreatePropertyTypeParams,
     ) -> impl Future<Output = Result<PropertyTypeMetadata, Report<InsertionError>>> + Send
     where
         Self: Send,
-        R: IntoIterator<Item = PropertyTypeRelationAndSubject> + Send + Sync,
     {
         async move {
             Ok(self
@@ -182,14 +174,13 @@ pub trait PropertyTypeStore {
     /// - if any [`BaseUrl`] of the property type already exists.
     ///
     /// [`BaseUrl`]: type_system::ontology::BaseUrl
-    fn create_property_types<P, R>(
+    fn create_property_types<P>(
         &mut self,
         actor_id: ActorEntityUuid,
         params: P,
     ) -> impl Future<Output = Result<Vec<PropertyTypeMetadata>, Report<InsertionError>>> + Send
     where
-        P: IntoIterator<Item = CreatePropertyTypeParams<R>, IntoIter: Send> + Send,
-        R: IntoIterator<Item = PropertyTypeRelationAndSubject> + Send + Sync;
+        P: IntoIterator<Item = CreatePropertyTypeParams, IntoIter: Send> + Send;
 
     /// Count the number of [`PropertyType`]s specified by the [`CountPropertyTypesParams`].
     ///
@@ -231,14 +222,13 @@ pub trait PropertyTypeStore {
     /// # Errors
     ///
     /// - if the [`PropertyType`] doesn't exist.
-    fn update_property_type<R>(
+    fn update_property_type(
         &mut self,
         actor_id: ActorEntityUuid,
-        params: UpdatePropertyTypesParams<R>,
+        params: UpdatePropertyTypesParams,
     ) -> impl Future<Output = Result<PropertyTypeMetadata, Report<UpdateError>>> + Send
     where
         Self: Send,
-        R: IntoIterator<Item = PropertyTypeRelationAndSubject> + Send + Sync,
     {
         async move {
             Ok(self
@@ -254,14 +244,13 @@ pub trait PropertyTypeStore {
     /// # Errors
     ///
     /// - if the [`PropertyType`]s do not exist.
-    fn update_property_types<P, R>(
+    fn update_property_types<P>(
         &mut self,
         actor_id: ActorEntityUuid,
         params: P,
     ) -> impl Future<Output = Result<Vec<PropertyTypeMetadata>, Report<UpdateError>>> + Send
     where
-        P: IntoIterator<Item = UpdatePropertyTypesParams<R>, IntoIter: Send> + Send,
-        R: IntoIterator<Item = PropertyTypeRelationAndSubject> + Send + Sync;
+        P: IntoIterator<Item = UpdatePropertyTypesParams, IntoIter: Send> + Send;
 
     /// Archives the definition of an existing [`PropertyType`].
     ///

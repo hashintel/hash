@@ -1,9 +1,8 @@
 use core::iter::repeat_n;
 use std::collections::{HashMap, HashSet, hash_map::Entry};
 
-use hash_graph_authorization::{
-    AuthorizationApi,
-    policies::store::{CreateWebParameter, PolicyStore as _, PrincipalStore as _},
+use hash_graph_authorization::policies::store::{
+    CreateWebParameter, PolicyStore as _, PrincipalStore as _,
 };
 use hash_graph_postgres_store::store::AsClient as _;
 use hash_graph_store::entity::{CreateEntityParams, EntityStore as _};
@@ -126,10 +125,7 @@ const SEED_LINKS: &[(&str, usize, usize)] = &[
     clippy::significant_drop_tightening,
     reason = "transaction is committed which consumes the object"
 )]
-pub(crate) async fn seed_db<A: AuthorizationApi>(
-    account_id: ActorEntityUuid,
-    store_wrapper: &mut StoreWrapper<A>,
-) {
+pub(crate) async fn seed_db(account_id: ActorEntityUuid, store_wrapper: &mut StoreWrapper) {
     let mut transaction = store_wrapper
         .store
         .transaction()
@@ -206,7 +202,6 @@ pub(crate) async fn seed_db<A: AuthorizationApi>(
                         confidence: None,
                         link_data: None,
                         draft: false,
-                        relationships: [],
                         policies: Vec::new(),
                         provenance: ProvidedEntityEditionProvenance {
                             actor_type: ActorType::User,
@@ -262,7 +257,6 @@ pub(crate) async fn seed_db<A: AuthorizationApi>(
                             right_entity_provenance: PropertyProvenance::default(),
                         }),
                         draft: false,
-                        relationships: [],
                         policies: Vec::new(),
                         provenance: ProvidedEntityEditionProvenance {
                             actor_type: ActorType::User,
@@ -297,10 +291,7 @@ pub struct Samples {
     pub entity_types: HashMap<ActorEntityUuid, Vec<VersionedUrl>>,
 }
 
-async fn get_samples<A: AuthorizationApi>(
-    account_id: ActorEntityUuid,
-    store_wrapper: &StoreWrapper<A>,
-) -> Samples {
+async fn get_samples(account_id: ActorEntityUuid, store_wrapper: &StoreWrapper) -> Samples {
     let mut entity_types = HashMap::new();
     entity_types.insert(
         account_id,
@@ -365,8 +356,8 @@ async fn get_samples<A: AuthorizationApi>(
     samples
 }
 
-pub async fn setup_and_extract_samples<A: AuthorizationApi>(
-    store_wrapper: &mut StoreWrapper<A>,
+pub async fn setup_and_extract_samples(
+    store_wrapper: &mut StoreWrapper,
     account_id: ActorEntityUuid,
 ) -> Samples {
     // We use the existence of the account ID as a marker for if the DB has been seeded already

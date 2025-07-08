@@ -3,9 +3,8 @@ use core::iter;
 use std::collections::{HashMap, HashSet};
 
 use error_stack::Report;
-use hash_graph_authorization::{
-    policies::{action::ActionName, principal::actor::AuthenticatedActor},
-    schema::DataTypeRelationAndSubject,
+use hash_graph_authorization::policies::{
+    action::ActionName, principal::actor::AuthenticatedActor,
 };
 use hash_graph_temporal_versioning::{Timestamp, TransactionTime};
 use hash_graph_types::{self, Embedding};
@@ -30,15 +29,10 @@ use crate::{
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(
-    rename_all = "camelCase",
-    deny_unknown_fields,
-    bound(deserialize = "R: Deserialize<'de>")
-)]
-pub struct CreateDataTypeParams<R> {
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct CreateDataTypeParams {
     pub schema: DataType,
     pub ownership: OntologyOwnership,
-    pub relationships: R,
     pub conflict_behavior: ConflictBehavior,
     pub provenance: ProvidedOntologyEditionProvenance,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
@@ -107,9 +101,8 @@ pub struct GetDataTypesResponse {
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct UpdateDataTypesParams<R> {
+pub struct UpdateDataTypesParams {
     pub schema: DataType,
-    pub relationships: R,
     pub provenance: ProvidedOntologyEditionProvenance,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub conversions: HashMap<BaseUrl, Conversions>,
@@ -184,14 +177,13 @@ pub trait DataTypeStore {
     /// - if the [`BaseUrl`] of the `data_type` already exists.
     ///
     /// [`BaseUrl`]: type_system::ontology::BaseUrl
-    fn create_data_type<R>(
+    fn create_data_type(
         &mut self,
         actor_id: ActorEntityUuid,
-        params: CreateDataTypeParams<R>,
+        params: CreateDataTypeParams,
     ) -> impl Future<Output = Result<DataTypeMetadata, Report<InsertionError>>> + Send
     where
         Self: Send,
-        R: IntoIterator<Item = DataTypeRelationAndSubject> + Send + Sync,
     {
         async move {
             Ok(self
@@ -210,14 +202,13 @@ pub trait DataTypeStore {
     /// - if any [`BaseUrl`] of the data type already exists.
     ///
     /// [`BaseUrl`]: type_system::ontology::BaseUrl
-    fn create_data_types<P, R>(
+    fn create_data_types<P>(
         &mut self,
         actor_id: ActorEntityUuid,
         params: P,
     ) -> impl Future<Output = Result<Vec<DataTypeMetadata>, Report<InsertionError>>> + Send
     where
-        P: IntoIterator<Item = CreateDataTypeParams<R>, IntoIter: Send> + Send,
-        R: IntoIterator<Item = DataTypeRelationAndSubject> + Send + Sync;
+        P: IntoIterator<Item = CreateDataTypeParams, IntoIter: Send> + Send;
 
     /// Count the number of [`DataType`]s specified by the [`CountDataTypesParams`].
     ///
@@ -257,14 +248,13 @@ pub trait DataTypeStore {
     /// # Errors
     ///
     /// - if the [`DataType`] doesn't exist.
-    fn update_data_type<R>(
+    fn update_data_type(
         &mut self,
         actor_id: ActorEntityUuid,
-        params: UpdateDataTypesParams<R>,
+        params: UpdateDataTypesParams,
     ) -> impl Future<Output = Result<DataTypeMetadata, Report<UpdateError>>> + Send
     where
         Self: Send,
-        R: IntoIterator<Item = DataTypeRelationAndSubject> + Send + Sync,
     {
         async move {
             Ok(self
@@ -280,14 +270,13 @@ pub trait DataTypeStore {
     /// # Errors
     ///
     /// - if the [`DataType`]s do not exist.
-    fn update_data_types<P, R>(
+    fn update_data_types<P>(
         &mut self,
         actor_id: ActorEntityUuid,
         params: P,
     ) -> impl Future<Output = Result<Vec<DataTypeMetadata>, Report<UpdateError>>> + Send
     where
-        P: IntoIterator<Item = UpdateDataTypesParams<R>, IntoIter: Send> + Send,
-        R: IntoIterator<Item = DataTypeRelationAndSubject> + Send + Sync;
+        P: IntoIterator<Item = UpdateDataTypesParams, IntoIter: Send> + Send;
 
     /// Archives the definition of an existing [`DataType`].
     ///

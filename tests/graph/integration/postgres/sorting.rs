@@ -1,7 +1,6 @@
 use alloc::borrow::Cow;
 use std::collections::HashSet;
 
-use hash_graph_authorization::AuthorizationApi;
 use hash_graph_store::{
     entity::{
         CreateEntityParams, EntityQueryPath, EntityQuerySorting, EntityQuerySortingRecord,
@@ -36,8 +35,8 @@ use uuid::Uuid;
 
 use crate::{DatabaseApi, DatabaseTestWrapper};
 
-async fn test_root_sorting_chunked<const N: usize, const M: usize, A: AuthorizationApi>(
-    api: &DatabaseApi<'_, A>,
+async fn test_root_sorting_chunked<const N: usize, const M: usize>(
+    api: &DatabaseApi<'_>,
     sort: [(EntityQueryPath<'static>, Ordering, NullOrdering); N],
     expected_order: [PropertyObject; M],
 ) {
@@ -46,8 +45,8 @@ async fn test_root_sorting_chunked<const N: usize, const M: usize, A: Authorizat
     }
 }
 
-async fn test_root_sorting<A: AuthorizationApi>(
-    api: &DatabaseApi<'_, A>,
+async fn test_root_sorting(
+    api: &DatabaseApi<'_>,
     chunk_size: usize,
     sort: impl IntoIterator<Item = (EntityQueryPath<'static>, Ordering, NullOrdering)> + Send,
     expected_order: impl IntoIterator<Item = &PropertyObject> + Send,
@@ -146,9 +145,7 @@ async fn test_root_sorting<A: AuthorizationApi>(
     );
 }
 
-async fn insert<A: AuthorizationApi>(
-    database: &mut DatabaseTestWrapper<A>,
-) -> DatabaseApi<'_, &mut A> {
+async fn insert(database: &mut DatabaseTestWrapper) -> DatabaseApi<'_> {
     let mut api = database
         .seed(
             [
@@ -213,7 +210,6 @@ async fn insert<A: AuthorizationApi>(
                 confidence: None,
                 link_data: None,
                 draft: false,
-                relationships: [],
                 policies: Vec::new(),
                 provenance: ProvidedEntityEditionProvenance {
                     actor_type: ActorType::User,

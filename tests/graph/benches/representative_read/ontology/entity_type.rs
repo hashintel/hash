@@ -1,5 +1,4 @@
 use criterion::{BatchSize::SmallInput, Bencher};
-use hash_graph_authorization::AuthorizationApi;
 use hash_graph_store::{
     entity_type::{EntityTypeStore as _, GetEntityTypesParams},
     filter::Filter,
@@ -14,10 +13,10 @@ use type_system::{ontology::VersionedUrl, principal::actor::ActorEntityUuid};
 
 use crate::util::Store;
 
-pub fn bench_get_entity_type_by_id<A: AuthorizationApi>(
+pub fn bench_get_entity_type_by_id(
     bencher: &mut Bencher,
     runtime: &Runtime,
-    store: &Store<A>,
+    store: &Store,
     actor_id: ActorEntityUuid,
     entity_type_ids: &[VersionedUrl],
 ) {
