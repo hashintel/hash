@@ -1692,7 +1692,7 @@ where
                 return Err(Report::new(UpdateError)
                     .attach(StatusCode::PermissionDenied)
                     .attach_printable(format!(
-                        "The actor does not have permission to unarchive the entity type `{}`",
+                        "The actor does not have permission to archive the entity type `{}`",
                         params.entity_type_id
                     )));
             }
@@ -1736,7 +1736,7 @@ where
                 return Err(Report::new(UpdateError)
                     .attach(StatusCode::PermissionDenied)
                     .attach_printable(format!(
-                        "The actor does not have permission to publish the entity type `{}`",
+                        "The actor does not have permission to unarchive the entity type `{}`",
                         params.entity_type_id
                     )));
             }
