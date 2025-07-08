@@ -1,6 +1,7 @@
 import type { ActorEntityUuid, AiId, WebId } from "@blockprotocol/type-system";
 import { getAiIdByIdentifier } from "@local/hash-backend-utils/machine-actors";
 import type { GraphApi } from "@local/hash-graph-client";
+import { addActorGroupMember } from "@local/hash-graph-sdk/principal/actor-group";
 
 export const getAiAssistantAccountIdActivity = async (params: {
   authentication: { actorId: ActorEntityUuid };
@@ -20,12 +21,10 @@ export const getAiAssistantAccountIdActivity = async (params: {
   }
 
   if (grantCreatePermissionForWeb) {
-    await graphApiClient.assignActorGroupRole(
-      authentication.actorId,
-      grantCreatePermissionForWeb,
-      "member",
-      aiAssistantAccountId,
-    );
+    await addActorGroupMember(graphApiClient, authentication, {
+      actorId: aiAssistantAccountId,
+      actorGroupId: grantCreatePermissionForWeb,
+    });
   }
 
   return aiAssistantAccountId;
