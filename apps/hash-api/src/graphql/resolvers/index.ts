@@ -34,20 +34,15 @@ import { resolveCommentResolver } from "./knowledge/comment/resolve";
 import { commentTextUpdatedAtResolver } from "./knowledge/comment/text-updated-at";
 import { updateCommentTextResolver } from "./knowledge/comment/update-text";
 import {
-  addEntityEditorResolver,
-  addEntityOwnerResolver,
   addEntityViewerResolver,
   archiveEntitiesResolver,
   archiveEntityResolver,
   countEntitiesResolver,
   createEntityResolver,
-  getEntityAuthorizationRelationshipsResolver,
   getEntityResolver,
   getEntitySubgraphResolver,
   isEntityPublicResolver,
   queryEntitiesResolver,
-  removeEntityEditorResolver,
-  removeEntityOwnerResolver,
   removeEntityViewerResolver,
   updateEntitiesResolver,
   updateEntityResolver,
@@ -146,9 +141,11 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     getFlowRunById: loggedInAndSignedUpMiddleware(getFlowRunByIdResolver),
     queryEntities: queryEntitiesResolver,
     isEntityPublic: loggedInAndSignedUpMiddleware(isEntityPublicResolver),
-    getEntityAuthorizationRelationships: loggedInAndSignedUpMiddleware(
-      getEntityAuthorizationRelationshipsResolver,
-    ),
+    getEntityAuthorizationRelationships: loggedInAndSignedUpMiddleware(() => {
+      throw new Error(
+        "`getEntityAuthorizationRelationships` is not implemented",
+      );
+    }),
     countEntities: countEntitiesResolver,
     getEntitySubgraph: getEntitySubgraphResolver,
     hashInstanceSettings: hashInstanceSettingsResolver,
@@ -229,12 +226,18 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
 
     submitEarlyAccessForm: loggedInMiddleware(submitEarlyAccessFormResolver),
 
-    addEntityOwner: loggedInAndSignedUpMiddleware(addEntityOwnerResolver),
-    removeEntityOwner: loggedInAndSignedUpMiddleware(removeEntityOwnerResolver),
-    addEntityEditor: loggedInAndSignedUpMiddleware(addEntityEditorResolver),
-    removeEntityEditor: loggedInAndSignedUpMiddleware(
-      removeEntityEditorResolver,
-    ),
+    addEntityOwner: loggedInAndSignedUpMiddleware(() => {
+      throw new Error("`addEntityOwner` is not implemented");
+    }),
+    removeEntityOwner: loggedInAndSignedUpMiddleware(() => {
+      throw new Error("`removeEntityOwner` is not implemented");
+    }),
+    addEntityEditor: loggedInAndSignedUpMiddleware(() => {
+      throw new Error("`addEntityEditor` is not implemented");
+    }),
+    removeEntityEditor: loggedInAndSignedUpMiddleware(() => {
+      throw new Error("`removeEntityEditor` is not implemented");
+    }),
     addEntityViewer: loggedInAndSignedUpMiddleware(addEntityViewerResolver),
     removeEntityViewer: loggedInAndSignedUpMiddleware(
       removeEntityViewerResolver,

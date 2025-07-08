@@ -9,7 +9,6 @@ import {
   mergePropertyObjectAndMetadata,
 } from "@local/hash-graph-sdk/entity";
 import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-collection";
-import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -119,7 +118,6 @@ export const addBlockToBlockCollection: ImpureGraphFunction<
     entityTypeIds: canvasPosition
       ? [systemLinkEntityTypes.hasSpatiallyPositionedContent.linkEntityTypeId]
       : [systemLinkEntityTypes.hasIndexedContent.linkEntityTypeId],
-    relationships: createDefaultAuthorizationRelationships(authentication),
   });
 
   return linkEntity;

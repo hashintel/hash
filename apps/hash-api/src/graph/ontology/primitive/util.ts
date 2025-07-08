@@ -1,11 +1,5 @@
 import type { VersionedUrl, WebId } from "@blockprotocol/type-system";
 import { entityIdFromComponents } from "@blockprotocol/type-system";
-import type {
-  ModifyRelationshipOperation,
-  WebPermission,
-  WebRelationAndSubject,
-} from "@local/hash-graph-client";
-import type { WebAuthorizationRelationship } from "@local/hash-graph-sdk/authorization";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import { isSelfHostedInstance } from "@local/hash-isomorphic-utils/instance";
 
@@ -54,36 +48,3 @@ export const getWebShortname: ImpureGraphFunction<
 
   return namespace;
 };
-
-export const getWebAuthorizationRelationships: ImpureGraphFunction<
-  { webId: WebId },
-  Promise<WebRelationAndSubject[]>
-> = async ({ graphApi }, { actorId }, params) =>
-  graphApi
-    .getWebAuthorizationRelationships(actorId, params.webId)
-    .then(({ data }) => data);
-
-export const modifyWebAuthorizationRelationships: ImpureGraphFunction<
-  {
-    operation: ModifyRelationshipOperation;
-    relationship: WebAuthorizationRelationship;
-  }[],
-  Promise<void>
-> = async ({ graphApi }, { actorId }, params) => {
-  await graphApi.modifyWebAuthorizationRelationships(
-    actorId,
-    params.map(({ operation, relationship }) => ({
-      operation,
-      resource: relationship.resource.resourceId,
-      relationAndSubject: relationship,
-    })),
-  );
-};
-
-export const checkWebPermission: ImpureGraphFunction<
-  { webId: WebId; permission: WebPermission },
-  Promise<boolean>
-> = async ({ graphApi }, { actorId }, params) =>
-  graphApi
-    .checkWebPermission(actorId, params.webId, params.permission)
-    .then(({ data }) => data.has_permission);

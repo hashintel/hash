@@ -5,7 +5,6 @@ import {
 import type { EntityId, VersionedUrl } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import { getWebMachineId } from "@local/hash-backend-utils/machine-actors";
-import { createNotificationEntityPermissions } from "@local/hash-backend-utils/notifications";
 import type {
   CreateEntityParameters,
   HashEntity,
@@ -144,11 +143,6 @@ export const createMentionNotification: ImpureGraphFunction<
 
   const botAuthentication = { actorId: webMachineActorId };
 
-  const { linkEntityRelationships, notificationEntityRelationships } =
-    createNotificationEntityPermissions({
-      machineActorId: webMachineActorId,
-    });
-
   const entity = await createEntity<MentionNotificationEntity>(
     context,
     botAuthentication,
@@ -156,7 +150,6 @@ export const createMentionNotification: ImpureGraphFunction<
       webId,
       properties: { value: {} },
       entityTypeIds: [systemEntityTypes.mentionNotification.entityTypeId],
-      relationships: notificationEntityRelationships,
     },
   );
 
@@ -177,7 +170,6 @@ export const createMentionNotification: ImpureGraphFunction<
           rightEntityId: triggeredByUser.entity.metadata.recordId.entityId,
         },
         entityTypeIds: [systemLinkEntityTypes.triggeredByUser.linkEntityTypeId],
-        relationships: linkEntityRelationships,
       }),
       createLinkEntity<OccurredInEntity>(context, userAuthentication, {
         webId,
@@ -189,7 +181,6 @@ export const createMentionNotification: ImpureGraphFunction<
         entityTypeIds: [
           systemLinkEntityTypes.occurredInEntity.linkEntityTypeId,
         ],
-        relationships: linkEntityRelationships,
       }),
       createLinkEntity<OccurredInBlock>(context, userAuthentication, {
         webId,
@@ -199,7 +190,6 @@ export const createMentionNotification: ImpureGraphFunction<
           rightEntityId: occurredInBlock.entity.metadata.recordId.entityId,
         },
         entityTypeIds: [systemLinkEntityTypes.occurredInBlock.linkEntityTypeId],
-        relationships: linkEntityRelationships,
       }),
       occurredInComment
         ? createLinkEntity<OccurredInComment>(context, userAuthentication, {
@@ -213,7 +203,6 @@ export const createMentionNotification: ImpureGraphFunction<
             entityTypeIds: [
               systemLinkEntityTypes.occurredInComment.linkEntityTypeId,
             ],
-            relationships: linkEntityRelationships,
           })
         : [],
       createLinkEntity<OccurredInText>(context, userAuthentication, {
@@ -224,7 +213,6 @@ export const createMentionNotification: ImpureGraphFunction<
           rightEntityId: occurredInText.entity.metadata.recordId.entityId,
         },
         entityTypeIds: [systemLinkEntityTypes.occurredInText.linkEntityTypeId],
-        relationships: linkEntityRelationships,
       }),
     ].flat(),
   );
@@ -417,11 +405,6 @@ export const createCommentNotification: ImpureGraphFunction<
   });
   const authentication = { actorId: webMachineActorId };
 
-  const { linkEntityRelationships, notificationEntityRelationships } =
-    createNotificationEntityPermissions({
-      machineActorId: webMachineActorId,
-    });
-
   const notificationEntity = await createEntity<CommentNotificationEntity>(
     context,
     authentication,
@@ -429,7 +412,6 @@ export const createCommentNotification: ImpureGraphFunction<
       webId,
       properties: { value: {} },
       entityTypeIds: [systemEntityTypes.commentNotification.entityTypeId],
-      relationships: notificationEntityRelationships,
     },
   );
 
@@ -482,7 +464,6 @@ export const createCommentNotification: ImpureGraphFunction<
           rightEntityId,
         },
         entityTypeIds: [entityTypeId],
-        relationships: linkEntityRelationships,
       }),
     ),
   );

@@ -2,7 +2,6 @@ import type { EntityRootType } from "@blockprotocol/graph";
 import { getRoots } from "@blockprotocol/graph/stdlib";
 import type {
   ActorEntityUuid,
-  ActorGroupEntityUuid,
   AiId,
   ClosedTemporalBound,
   EntityUuid,
@@ -13,7 +12,6 @@ import type {
 } from "@blockprotocol/type-system";
 import { entityIdFromComponents } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
-import type { EntityRelationAndSubjectBranded } from "@local/hash-graph-sdk/authorization";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
@@ -38,7 +36,6 @@ import type {
 } from "@local/hash-isomorphic-utils/system-types/usagerecord";
 import { backOff } from "exponential-backoff";
 
-import { getInstanceAdminsTeam } from "./hash-instance.js";
 import { getWebMachineId } from "./machine-actors.js";
 
 /**
@@ -212,11 +209,6 @@ export const createUsageRecord = async (
    */
   const authentication = { actorId: userAccountId };
 
-  const hashInstanceAdminGroup = await getInstanceAdminsTeam(
-    context,
-    authentication,
-  );
-
   const serviceFeatureEntities = await context.graphApi
     .getEntities(authentication.actorId, {
       filter: {
@@ -265,43 +257,6 @@ export const createUsageRecord = async (
   }
   const serviceFeatureEntity = serviceFeatureEntities[0]!;
 
-  const entityRelationships: EntityRelationAndSubjectBranded[] = [
-    {
-      relation: "administrator",
-      subject: {
-        kind: "accountGroup",
-        subjectId: hashInstanceAdminGroup.id,
-        subjectSet: "member",
-      },
-    },
-    {
-      relation: "viewer",
-      subject: {
-        kind: "account",
-        subjectId: aiAssistantAccountId,
-      },
-    },
-  ];
-
-  if (assignUsageToWebId === userAccountId) {
-    entityRelationships.push({
-      relation: "viewer",
-      subject: {
-        kind: "account",
-        subjectId: userAccountId,
-      },
-    });
-  } else {
-    entityRelationships.push({
-      relation: "viewer",
-      subject: {
-        kind: "accountGroup",
-        subjectId: assignUsageToWebId as ActorGroupEntityUuid,
-        subjectSet: "administrator",
-      },
-    });
-  }
-
   const usageRecordEntityUuid = generateUuid() as EntityUuid;
   const recordsUsageOfEntityUuid = generateUuid() as EntityUuid;
 
@@ -327,7 +282,6 @@ export const createUsageRecord = async (
       properties,
       provenance,
       entityTypeIds: [systemEntityTypes.usageRecord.entityTypeId],
-      relationships: entityRelationships,
       policies: [
         {
           name: `usage-record-view-entity-${recordsUsageOfEntityUuid}`,
@@ -352,7 +306,6 @@ export const createUsageRecord = async (
         rightEntityId: serviceFeatureEntity.metadata.recordId.entityId,
       },
       entityTypeIds: [systemLinkEntityTypes.recordsUsageOf.linkEntityTypeId],
-      relationships: entityRelationships,
       policies: [
         {
           name: `usage-record-view-entity-${recordsUsageOfEntityUuid}`,

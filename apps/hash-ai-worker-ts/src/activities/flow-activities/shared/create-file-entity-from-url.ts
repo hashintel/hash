@@ -32,7 +32,6 @@ import {
   propertyObjectToPatches,
 } from "@local/hash-graph-sdk/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
-import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { normalizeWhitespace } from "@local/hash-isomorphic-utils/normalize";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type {
@@ -261,8 +260,6 @@ export const createFileEntityFromUrl = async (params: {
       entityTypeIds: entityTypeIds as [
         typeof systemEntityTypes.file.entityTypeId,
       ],
-      relationships:
-        createDefaultAuthorizationRelationships(userAuthentication),
       provenance,
     },
   );

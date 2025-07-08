@@ -22,10 +22,7 @@ import type {
   GetDataTypeSubgraphParams,
   UnarchiveDataTypeParams,
 } from "@local/hash-graph-client";
-import type {
-  DataTypeRelationAndSubjectBranded,
-  UserPermissionsOnDataType,
-} from "@local/hash-graph-sdk/authorization";
+import type { UserPermissionsOnDataType } from "@local/hash-graph-sdk/authorization";
 import { hasPermissionForDataTypes } from "@local/hash-graph-sdk/data-type";
 import type {
   ConstructDataTypeParams,
@@ -63,7 +60,6 @@ export const createDataType: ImpureGraphFunction<
     webId: WebId;
     schema: ConstructDataTypeParams;
     webShortname?: string;
-    relationships: DataTypeRelationAndSubjectBranded[];
     provenance?: ProvidedOntologyEditionProvenance;
     conversions?: DataTypeDirectConversionsMap | null;
   },
@@ -97,7 +93,6 @@ export const createDataType: ImpureGraphFunction<
     {
       schema,
       webId,
-      relationships: params.relationships,
       provenance: {
         ...ctx.provenance,
         ...params.provenance,
@@ -218,7 +213,6 @@ export const updateDataType: ImpureGraphFunction<
   {
     dataTypeId: VersionedUrl;
     schema: ConstructDataTypeParams;
-    relationships: DataTypeRelationAndSubjectBranded[];
     provenance?: ProvidedOntologyEditionProvenance;
     conversions: Record<BaseUrl, Conversions>;
   },
@@ -233,7 +227,6 @@ export const updateDataType: ImpureGraphFunction<
       kind: "dataType",
       ...schema,
     },
-    relationships: params.relationships,
     provenance: {
       ...ctx.provenance,
       ...params.provenance,

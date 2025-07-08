@@ -21,7 +21,6 @@ import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user"
 import type { WebId } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { HashLinkEntity } from "@local/hash-graph-sdk/entity";
-import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type {
   HasIndexedContent,
@@ -74,9 +73,6 @@ describe("Page", () => {
             { value: [] },
         },
       },
-      relationships: createDefaultAuthorizationRelationships({
-        actorId: testUser.accountId,
-      }),
     });
 
     return createBlock(graphContext, authentication, {

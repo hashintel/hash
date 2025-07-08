@@ -6,10 +6,7 @@ import type {
   HashLinkEntity,
 } from "@local/hash-graph-sdk/entity";
 import { sortBlockCollectionLinks } from "@local/hash-isomorphic-utils/block-collection";
-import {
-  createDefaultAuthorizationRelationships,
-  currentTimeInstantTemporalAxes,
-} from "@local/hash-isomorphic-utils/graph-queries";
+import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import {
   systemEntityTypes,
   systemLinkEntityTypes,
@@ -171,7 +168,6 @@ export const createPage: ImpureGraphFunction<
         ? systemEntityTypes.document.entityTypeId
         : systemEntityTypes.canvas.entityTypeId,
     ],
-    relationships: createDefaultAuthorizationRelationships(authentication),
   });
 
   const page = getPageFromEntity({ entity });
@@ -443,7 +439,6 @@ export const setPageParentPage: ImpureGraphFunction<
         rightEntityId: parentPage.entity.metadata.recordId.entityId,
       },
       entityTypeIds: [systemLinkEntityTypes.hasParent.linkEntityTypeId],
-      relationships: createDefaultAuthorizationRelationships(authentication),
     });
   }
 
