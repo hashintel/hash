@@ -69,14 +69,6 @@ resource "aws_security_group" "graph" {
   }
 
   egress {
-    from_port   = local.spicedb_container_http_port
-    to_port     = local.spicedb_container_http_port
-    protocol    = "tcp"
-    description = "Allow communication to SpiceDB"
-    cidr_blocks = [var.vpc.cidr_block]
-  }
-
-  egress {
     from_port   = var.temporal_port
     to_port     = var.temporal_port
     protocol    = "tcp"
@@ -118,7 +110,7 @@ resource "aws_ecs_task_definition" "graph" {
 }
 
 resource "aws_ecs_service" "graph" {
-  depends_on             = [aws_iam_role.task_role, aws_ecs_service.spicedb]
+  depends_on             = [aws_iam_role.task_role]
   name                   = local.graph_prefix
   cluster                = var.cluster_arn
   task_definition        = aws_ecs_task_definition.graph.arn
@@ -176,10 +168,6 @@ locals {
     Environment = concat([
       for env_var in var.graph_migration_env_vars :
       { name = env_var.name, value = env_var.value } if !env_var.secret
-      ],
-      [
-        { name = "HASH_SPICEDB_HOST", value = "http://${local.spicedb_container_http_port_dns}" },
-        { name = "HASH_SPICEDB_HTTP_PORT", value = tostring(local.spicedb_container_http_port) },
       ]
     )
     secrets = [
@@ -238,8 +226,6 @@ locals {
         { name = "HASH_GRAPH_RPC_PORT", value = tostring(local.graph_rpc_container_port) },
         { name = "HASH_GRAPH_TYPE_FETCHER_HOST", value = local.type_fetcher_container_port_dns },
         { name = "HASH_GRAPH_TYPE_FETCHER_PORT", value = tostring(local.type_fetcher_container_port) },
-        { name = "HASH_SPICEDB_HOST", value = "http://${local.spicedb_container_http_port_dns}" },
-        { name = "HASH_SPICEDB_HTTP_PORT", value = tostring(local.spicedb_container_http_port) },
         { name = "HASH_TEMPORAL_SERVER_HOST", value = var.temporal_host },
         { name = "HASH_TEMPORAL_SERVER_PORT", value = var.temporal_port },
       ]
