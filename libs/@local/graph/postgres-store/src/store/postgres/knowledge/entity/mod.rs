@@ -777,6 +777,7 @@ where
                     ActionName::ViewEntity,
                     ActionName::ViewEntityType,
                     ActionName::ViewPropertyType,
+                    ActionName::ViewDataType,
                 ],
                 true,
             )
@@ -1194,6 +1195,7 @@ where
                     ActionName::ViewEntity,
                     ActionName::ViewEntityType,
                     ActionName::ViewPropertyType,
+                    ActionName::ViewDataType,
                 ],
                 true,
             )
@@ -1346,6 +1348,10 @@ where
                 > 0
             {
                 actions.push(ActionName::ViewPropertyType);
+
+                if params.graph_resolve_depths.constrains_values_on.outgoing > 0 {
+                    actions.push(ActionName::ViewDataType);
+                }
             }
         }
 
@@ -1687,6 +1693,7 @@ where
                     ActionName::ViewEntity,
                     ActionName::ViewEntityType,
                     ActionName::ViewPropertyType,
+                    ActionName::ViewDataType,
                 ],
                 true,
             )

@@ -18,17 +18,15 @@ import { NotFoundError } from "@local/hash-backend-utils/error";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type {
   ArchiveDataTypeParams,
-  DataTypePermission,
   GetDataTypesParams,
   GetDataTypeSubgraphParams,
-  ModifyRelationshipOperation,
   UnarchiveDataTypeParams,
 } from "@local/hash-graph-client";
 import type {
-  DataTypeAuthorizationRelationship,
   DataTypeRelationAndSubjectBranded,
   UserPermissionsOnDataType,
 } from "@local/hash-graph-sdk/authorization";
+import { hasPermissionForDataTypes } from "@local/hash-graph-sdk/data-type";
 import type {
   ConstructDataTypeParams,
   DataTypeConversionTargets,
@@ -306,44 +304,6 @@ export const getDataTypeConversionTargets: ImpureGraphFunction<
     .getDataTypeConversionTargets(actorId, params)
     .then(({ data }) => mapGraphApiDataTypeConversions(data.conversions));
 
-export const getDataTypeAuthorizationRelationships: ImpureGraphFunction<
-  { dataTypeId: VersionedUrl },
-  Promise<DataTypeAuthorizationRelationship[]>
-> = async ({ graphApi }, { actorId }, params) =>
-  graphApi
-    .getDataTypeAuthorizationRelationships(actorId, params.dataTypeId)
-    .then(({ data }) =>
-      data.map((relationship) => ({
-        resource: { kind: "dataType", resourceId: params.dataTypeId },
-        ...(relationship as DataTypeRelationAndSubjectBranded),
-      })),
-    );
-
-export const modifyDataTypeAuthorizationRelationships: ImpureGraphFunction<
-  {
-    operation: ModifyRelationshipOperation;
-    relationship: DataTypeAuthorizationRelationship;
-  }[],
-  Promise<void>
-> = async ({ graphApi }, { actorId }, params) => {
-  await graphApi.modifyDataTypeAuthorizationRelationships(
-    actorId,
-    params.map(({ operation, relationship }) => ({
-      operation,
-      resource: relationship.resource.resourceId,
-      relationAndSubject: relationship,
-    })),
-  );
-};
-
-export const checkDataTypePermission: ImpureGraphFunction<
-  { dataTypeId: VersionedUrl; permission: DataTypePermission },
-  Promise<boolean>
-> = async ({ graphApi }, { actorId }, params) =>
-  graphApi
-    .checkDataTypePermission(actorId, params.dataTypeId, params.permission)
-    .then(({ data }) => data.has_permission);
-
 export const checkPermissionsOnDataType: ImpureGraphFunction<
   { dataTypeId: VersionedUrl },
   Promise<UserPermissionsOnDataType>
@@ -354,11 +314,11 @@ export const checkPermissionsOnDataType: ImpureGraphFunction<
 
   const canUpdate = isPublicUser
     ? false
-    : await checkDataTypePermission(
-        graphContext,
+    : await hasPermissionForDataTypes(
+        graphContext.graphApi,
         { actorId },
-        { dataTypeId, permission: "update" },
-      );
+        { dataTypeIds: [params.dataTypeId], action: "updateDataType" },
+      ).then((permitted) => permitted.includes(dataTypeId));
 
   return {
     edit: canUpdate,

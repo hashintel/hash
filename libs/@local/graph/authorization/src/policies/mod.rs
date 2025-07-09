@@ -26,7 +26,7 @@ use self::{
     action::ActionName,
     cedar::{FromCedarEntityUId as _, ToCedarEntityId},
     principal::{PrincipalConstraint, actor::PublicActor},
-    resource::{EntityTypeId, PropertyTypeId, ResourceConstraint},
+    resource::{DataTypeId, EntityTypeId, PropertyTypeId, ResourceConstraint},
 };
 pub use self::{
     cedar::PolicyExpressionTree,
@@ -132,6 +132,7 @@ pub enum ResourceId<'a> {
     Entity(EntityUuid),
     EntityType(Cow<'a, EntityTypeId>),
     PropertyType(Cow<'a, PropertyTypeId>),
+    DataType(Cow<'a, DataTypeId>),
 }
 
 impl ToCedarEntityId for ResourceId<'_> {
@@ -141,6 +142,7 @@ impl ToCedarEntityId for ResourceId<'_> {
             Self::Entity(entity) => entity.to_cedar_entity_type(),
             Self::EntityType(entity_type) => entity_type.to_cedar_entity_type(),
             Self::PropertyType(property_type) => property_type.to_cedar_entity_type(),
+            Self::DataType(data_type) => data_type.to_cedar_entity_type(),
         }
     }
 
@@ -150,6 +152,7 @@ impl ToCedarEntityId for ResourceId<'_> {
             Self::Entity(entity_uuid) => entity_uuid.to_eid(),
             Self::EntityType(entity_type) => entity_type.to_eid(),
             Self::PropertyType(property_type) => property_type.to_eid(),
+            Self::DataType(data_type) => data_type.to_eid(),
         }
     }
 }

@@ -1289,6 +1289,54 @@
         }
       }
     },
+    "/data-types/permissions": {
+      "post": {
+        "tags": [
+          "Graph",
+          "DataType"
+        ],
+        "operationId": "has_permission_for_data_types",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HasPermissionForDataTypesParams"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Information if the actor has the permission for the data types",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/VersionedUrl"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal error occurred"
+          }
+        }
+      }
+    },
     "/data-types/query": {
       "post": {
         "tags": [
@@ -1430,47 +1478,6 @@
         }
       }
     },
-    "/data-types/relationships": {
-      "post": {
-        "tags": [
-          "Graph",
-          "DataType"
-        ],
-        "operationId": "modify_data_type_authorization_relationships",
-        "parameters": [
-          {
-            "name": "X-Authenticated-User-Actor-Id",
-            "in": "header",
-            "description": "The ID of the actor which is used to authorize the request",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ActorEntityUuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/ModifyDataTypeAuthorizationRelationship"
-                }
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "204": {
-            "description": "The relationship was modified for the data"
-          },
-          "403": {
-            "description": "Permission denied"
-          }
-        }
-      }
-    },
     "/data-types/unarchive": {
       "put": {
         "tags": [
@@ -1521,106 +1528,6 @@
           },
           "500": {
             "description": "Store error occurred"
-          }
-        }
-      }
-    },
-    "/data-types/{data_type_id}/permissions/{permission}": {
-      "get": {
-        "tags": [
-          "Graph",
-          "DataType"
-        ],
-        "operationId": "check_data_type_permission",
-        "parameters": [
-          {
-            "name": "X-Authenticated-User-Actor-Id",
-            "in": "header",
-            "description": "The ID of the actor which is used to authorize the request",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ActorEntityUuid"
-            }
-          },
-          {
-            "name": "data_type_id",
-            "in": "path",
-            "description": "The data type ID to check if the actor has the permission",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/VersionedUrl"
-            }
-          },
-          {
-            "name": "permission",
-            "in": "path",
-            "description": "The permission to check for",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/DataTypePermission"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Information if the actor has the permission for the data type",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PermissionResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal error occurred"
-          }
-        }
-      }
-    },
-    "/data-types/{data_type_id}/relationships": {
-      "get": {
-        "tags": [
-          "Graph",
-          "DataType"
-        ],
-        "operationId": "get_data_type_authorization_relationships",
-        "parameters": [
-          {
-            "name": "X-Authenticated-User-Actor-Id",
-            "in": "header",
-            "description": "The ID of the actor which is used to authorize the request",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ActorEntityUuid"
-            }
-          },
-          {
-            "name": "data_type_id",
-            "in": "path",
-            "description": "The Data type to read the relations for",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/VersionedUrl"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "The relations of the data type",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/DataTypeRelationAndSubject"
-                  }
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Permission denied"
           }
         }
       }
@@ -7656,6 +7563,25 @@
         },
         "additionalProperties": false
       },
+      "HasPermissionForDataTypesParams": {
+        "type": "object",
+        "required": [
+          "action",
+          "dataTypeIds"
+        ],
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "dataTypeIds": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/VersionedUrl"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
       "HasPermissionForEntitiesParams": {
         "type": "object",
         "required": [
@@ -8383,25 +8309,6 @@
           },
           "properties": {
             "$ref": "#/components/schemas/PropertyMetadataValidationReport"
-          }
-        }
-      },
-      "ModifyDataTypeAuthorizationRelationship": {
-        "type": "object",
-        "required": [
-          "operation",
-          "resource",
-          "relationAndSubject"
-        ],
-        "properties": {
-          "operation": {
-            "$ref": "#/components/schemas/ModifyRelationshipOperation"
-          },
-          "relationAndSubject": {
-            "$ref": "#/components/schemas/DataTypeRelationAndSubject"
-          },
-          "resource": {
-            "$ref": "#/components/schemas/VersionedUrl"
           }
         }
       },

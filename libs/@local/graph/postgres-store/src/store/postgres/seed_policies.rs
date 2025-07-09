@@ -12,9 +12,9 @@ use hash_graph_authorization::{
         action::ActionName,
         principal::PrincipalConstraint,
         resource::{
-            EntityResourceConstraint, EntityResourceFilter, EntityTypeResourceConstraint,
-            EntityTypeResourceFilter, PropertyTypeResourceConstraint, PropertyTypeResourceFilter,
-            ResourceConstraint,
+            DataTypeResourceConstraint, DataTypeResourceFilter, EntityResourceConstraint,
+            EntityResourceFilter, EntityTypeResourceConstraint, EntityTypeResourceFilter,
+            PropertyTypeResourceConstraint, PropertyTypeResourceFilter, ResourceConstraint,
         },
         store::{
             PolicyCreationParams, PolicyFilter, PolicyStore as _, PolicyUpdateOperation,
@@ -332,13 +332,28 @@ fn global_view_ontology_policies() -> impl Iterator<Item = PolicyCreationParams>
                         },
                     )),
                 },
+                PolicyCreationParams {
+                    name: Some("authenticated-create-external-data-types".to_owned()),
+                    effect: Effect::Permit,
+                    principal: Some(PrincipalConstraint::ActorType { actor_type }),
+                    actions: vec![ActionName::CreateDataType],
+                    resource: Some(ResourceConstraint::DataType(
+                        DataTypeResourceConstraint::Any {
+                            filter: DataTypeResourceFilter::IsRemote,
+                        },
+                    )),
+                },
             ]
         })
         .chain(iter::once(PolicyCreationParams {
             name: Some("public-view-ontology".to_owned()),
             effect: Effect::Permit,
             principal: None,
-            actions: vec![ActionName::ViewEntityType, ActionName::ViewPropertyType],
+            actions: vec![
+                ActionName::ViewEntityType,
+                ActionName::ViewPropertyType,
+                ActionName::ViewDataType,
+            ],
             resource: None,
         }))
 }
@@ -627,7 +642,11 @@ fn web_crud_ontology_policies(role: &WebRole) -> impl Iterator<Item = PolicyCrea
                 role: RoleId::Web(role.id),
                 actor_type: None,
             }),
-            actions: vec![ActionName::CreateEntityType, ActionName::CreatePropertyType],
+            actions: vec![
+                ActionName::CreateEntityType,
+                ActionName::CreatePropertyType,
+                ActionName::CreateDataType,
+            ],
             resource: Some(ResourceConstraint::Web {
                 web_id: role.web_id,
             }),
@@ -639,7 +658,11 @@ fn web_crud_ontology_policies(role: &WebRole) -> impl Iterator<Item = PolicyCrea
                 role: RoleId::Web(role.id),
                 actor_type: None,
             }),
-            actions: vec![ActionName::UpdateEntityType, ActionName::UpdatePropertyType],
+            actions: vec![
+                ActionName::UpdateEntityType,
+                ActionName::UpdatePropertyType,
+                ActionName::UpdateDataType,
+            ],
             resource: Some(ResourceConstraint::Web {
                 web_id: role.web_id,
             }),
@@ -657,6 +680,7 @@ fn web_crud_ontology_policies(role: &WebRole) -> impl Iterator<Item = PolicyCrea
             actions: vec![
                 ActionName::ArchiveEntityType,
                 ActionName::ArchivePropertyType,
+                ActionName::ArchiveDataType,
             ],
             resource: Some(ResourceConstraint::Web {
                 web_id: role.web_id,

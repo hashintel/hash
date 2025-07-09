@@ -34,6 +34,7 @@ pub enum ActionName {
 
     #[cfg_attr(feature = "codegen", specta(skip))]
     Create,
+    CreateDataType,
     CreateEntity,
     CreateEntityType,
     CreatePropertyType,
@@ -41,18 +42,21 @@ pub enum ActionName {
 
     #[cfg_attr(feature = "codegen", specta(skip))]
     View,
+    ViewDataType,
     ViewEntity,
     ViewEntityType,
     ViewPropertyType,
 
     #[cfg_attr(feature = "codegen", specta(skip))]
     Update,
+    UpdateDataType,
     UpdateEntity,
     UpdateEntityType,
     UpdatePropertyType,
 
     #[cfg_attr(feature = "codegen", specta(skip))]
     Archive,
+    ArchiveDataType,
     ArchiveEntity,
     ArchiveEntityType,
     ArchivePropertyType,
@@ -75,16 +79,22 @@ impl ActionName {
             | Self::Update
             | Self::Archive
             | Self::Instantiate => Some(Self::All),
-            Self::CreateEntity | Self::CreateEntityType | Self::CreatePropertyType => {
-                Some(Self::Create)
-            }
-            Self::ViewEntity | Self::ViewEntityType | Self::ViewPropertyType => Some(Self::View),
-            Self::UpdateEntity | Self::UpdateEntityType | Self::UpdatePropertyType => {
-                Some(Self::Update)
-            }
-            Self::ArchiveEntity | Self::ArchiveEntityType | Self::ArchivePropertyType => {
-                Some(Self::Archive)
-            }
+            Self::CreateDataType
+            | Self::CreateEntity
+            | Self::CreateEntityType
+            | Self::CreatePropertyType => Some(Self::Create),
+            Self::ViewDataType
+            | Self::ViewEntity
+            | Self::ViewEntityType
+            | Self::ViewPropertyType => Some(Self::View),
+            Self::UpdateDataType
+            | Self::UpdateEntity
+            | Self::UpdateEntityType
+            | Self::UpdatePropertyType => Some(Self::Update),
+            Self::ArchiveDataType
+            | Self::ArchiveEntity
+            | Self::ArchiveEntityType
+            | Self::ArchivePropertyType => Some(Self::Archive),
         }
     }
 
@@ -380,6 +390,7 @@ mod tests {
 
         // Second level actions have their direct parent and All as ancestors
         for action in [
+            ActionName::CreateDataType,
             ActionName::CreateEntity,
             ActionName::CreateEntityType,
             ActionName::CreatePropertyType,
@@ -391,6 +402,7 @@ mod tests {
         }
 
         for action in [
+            ActionName::ViewDataType,
             ActionName::ViewEntity,
             ActionName::ViewEntityType,
             ActionName::ViewPropertyType,
@@ -402,6 +414,7 @@ mod tests {
         }
 
         for action in [
+            ActionName::UpdateDataType,
             ActionName::UpdateEntity,
             ActionName::UpdateEntityType,
             ActionName::UpdatePropertyType,
@@ -413,6 +426,7 @@ mod tests {
         }
 
         for action in [
+            ActionName::ArchiveDataType,
             ActionName::ArchiveEntity,
             ActionName::ArchiveEntityType,
             ActionName::ArchivePropertyType,
@@ -427,6 +441,7 @@ mod tests {
     #[test]
     fn is_parent_of() {
         for action in [
+            ActionName::CreateDataType,
             ActionName::CreateEntity,
             ActionName::CreateEntityType,
             ActionName::CreatePropertyType,
@@ -436,6 +451,7 @@ mod tests {
         }
 
         for action in [
+            ActionName::ViewDataType,
             ActionName::ViewEntity,
             ActionName::ViewEntityType,
             ActionName::ViewPropertyType,
@@ -445,6 +461,7 @@ mod tests {
         }
 
         for action in [
+            ActionName::UpdateDataType,
             ActionName::UpdateEntity,
             ActionName::UpdateEntityType,
             ActionName::UpdatePropertyType,
@@ -454,6 +471,7 @@ mod tests {
         }
 
         for action in [
+            ActionName::ArchiveDataType,
             ActionName::ArchiveEntity,
             ActionName::ArchiveEntityType,
             ActionName::ArchivePropertyType,

@@ -297,6 +297,7 @@ where
                         )
                         .await?,
                         provider,
+                        subgraph.temporal_axes.resolved.clone(),
                     )
                     .await?
                     .flat_map(|edge| {
@@ -678,13 +679,9 @@ where
         actor_id: ActorEntityUuid,
         mut params: GetPropertyTypeSubgraphParams<'_>,
     ) -> Result<GetPropertyTypeSubgraphResponse, Report<QueryError>> {
-        let actions = vec![ActionName::ViewPropertyType];
+        let mut actions = vec![ActionName::ViewPropertyType];
         if params.graph_resolve_depths.constrains_values_on.outgoing > 0 {
-            // TODO: Add ActionName::ViewDataType when DataType authorization is implemented
-            //       Following the same pattern as EntityType adding ViewPropertyType when
-            //       PropertyTypes are traversed. This prepares the subgraph method for
-            //       future DataType authorization support.
-            // actions.push(ActionName::ViewDataType);
+            actions.push(ActionName::ViewDataType);
         }
 
         let policy_components = PolicyComponents::builder(self)
