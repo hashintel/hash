@@ -265,9 +265,9 @@ pub enum EntityTypeRelationAndSubject {
         #[serde(skip)]
         level: u8,
     },
-    #[serde(skip)]
     Instantiator {
         subject: EntityTypeInstantiatorSubject,
+        #[serde(skip)]
         level: u8,
     },
 }
