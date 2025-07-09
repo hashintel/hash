@@ -1,8 +1,12 @@
 use alloc::borrow::Cow;
 use core::iter;
+use std::collections::HashSet;
 
 use error_stack::Report;
-use hash_graph_authorization::schema::PropertyTypeRelationAndSubject;
+use hash_graph_authorization::{
+    policies::{action::ActionName, principal::actor::AuthenticatedActor},
+    schema::PropertyTypeRelationAndSubject,
+};
 use hash_graph_temporal_versioning::{Timestamp, TransactionTime};
 use hash_graph_types::Embedding;
 use serde::{Deserialize, Serialize};
@@ -16,7 +20,7 @@ use type_system::{
 };
 
 use crate::{
-    error::{InsertionError, QueryError, UpdateError},
+    error::{CheckPermissionError, InsertionError, QueryError, UpdateError},
     filter::Filter,
     query::ConflictBehavior,
     subgraph::{Subgraph, edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved},
@@ -131,6 +135,15 @@ pub struct UpdatePropertyTypeEmbeddingParams<'a> {
     pub embedding: Embedding<'a>,
     pub updated_at_transaction_time: Timestamp<TransactionTime>,
     pub reset: bool,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct HasPermissionForPropertyTypesParams<'a> {
+    #[cfg_attr(feature = "utoipa", schema(value_type = String))]
+    pub action: ActionName,
+    pub property_type_ids: Cow<'a, [VersionedUrl]>,
 }
 
 /// Describes the API of a store implementation for [`PropertyType`]s.
@@ -280,4 +293,20 @@ pub trait PropertyTypeStore {
 
         params: UpdatePropertyTypeEmbeddingParams<'_>,
     ) -> impl Future<Output = Result<(), Report<UpdateError>>> + Send;
+
+    /// Checks if the actor has permission for the given property types.
+    ///
+    /// Returns a set of [`VersionedUrl`]s the actor has permission for. If the actor has no
+    /// permission for an property type, it will not be included in the set.
+    ///
+    /// # Errors
+    ///
+    /// - [`StoreError`] if the underlying store returns an error
+    ///
+    /// [`StoreError`]: CheckPermissionError::StoreError
+    fn has_permission_for_property_types(
+        &self,
+        authenticated_actor: AuthenticatedActor,
+        params: HasPermissionForPropertyTypesParams<'_>,
+    ) -> impl Future<Output = Result<HashSet<VersionedUrl>, Report<CheckPermissionError>>> + Send;
 }

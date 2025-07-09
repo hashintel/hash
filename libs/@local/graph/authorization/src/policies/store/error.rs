@@ -70,6 +70,17 @@ pub enum BuildEntityTypeContextError {
 impl Error for BuildEntityTypeContextError {}
 
 #[derive(Debug, derive_more::Display)]
+#[display("Could not build property type context: {_variant}")]
+pub enum BuildPropertyTypeContextError {
+    #[display("Property type with ID `{property_type_id}` does not exist")]
+    PropertyTypeNotFound { property_type_id: VersionedUrl },
+    #[display("Store operation failed")]
+    StoreError,
+}
+
+impl Error for BuildPropertyTypeContextError {}
+
+#[derive(Debug, derive_more::Display)]
 #[display("Could not build entity type context: {_variant}")]
 pub enum BuildEntityContextError {
     #[display("Entity with editionID `{}` does not exist", entity_edition_id.as_uuid())]
@@ -212,6 +223,11 @@ pub enum ContextCreationError {
         entity_type_ids.iter().map(VersionedUrl::to_string).collect::<Vec<_>>().join(", "))]
     BuildEntityTypeContext {
         entity_type_ids: HashSet<VersionedUrl>,
+    },
+    #[display("Could not build property type context for property types with IDs `{}`",
+        property_type_ids.iter().map(VersionedUrl::to_string).collect::<Vec<_>>().join(", "))]
+    BuildPropertyTypeContext {
+        property_type_ids: HashSet<VersionedUrl>,
     },
     #[display("Could not build entity context for entity with edition IDs `{}`",
         entity_edition_ids.iter().map(|id| id.as_uuid().to_string()).collect::<Vec<_>>().join(", "))]

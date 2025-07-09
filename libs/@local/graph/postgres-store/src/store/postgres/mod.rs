@@ -21,16 +21,20 @@ use hash_graph_authorization::{
         RequestContext, ResourceId,
         action::ActionName,
         principal::{PrincipalConstraint, actor::AuthenticatedActor},
-        resource::{EntityResource, EntityTypeId, EntityTypeResource, ResourceConstraint},
+        resource::{
+            EntityResource, EntityTypeId, EntityTypeResource, PropertyTypeId, PropertyTypeResource,
+            ResourceConstraint,
+        },
         store::{
             CreateWebParameter, CreateWebResponse, PolicyCreationParams, PolicyFilter, PolicyStore,
             PolicyUpdateOperation, PrincipalFilter, PrincipalStore, ResolvePoliciesParams,
             RoleAssignmentStatus, RoleUnassignmentStatus,
             error::{
                 BuildEntityContextError, BuildEntityTypeContextError, BuildPrincipalContextError,
-                CreatePolicyError, DetermineActorError, EnsureSystemPoliciesError,
-                GetPoliciesError, GetSystemAccountError, RemovePolicyError, RoleAssignmentError,
-                TeamRoleError, UpdatePolicyError, WebCreationError, WebRoleError,
+                BuildPropertyTypeContextError, CreatePolicyError, DetermineActorError,
+                EnsureSystemPoliciesError, GetPoliciesError, GetSystemAccountError,
+                RemovePolicyError, RoleAssignmentError, TeamRoleError, UpdatePolicyError,
+                WebCreationError, WebRoleError,
             },
         },
     },
@@ -1893,6 +1897,76 @@ where
             .try_collect()
             .await
             .change_context(BuildEntityTypeContextError::StoreError)?)
+    }
+
+    #[tracing::instrument(level = "debug", skip(self, property_type_ids))]
+    async fn build_property_type_context(
+        &self,
+        property_type_ids: &[&VersionedUrl],
+    ) -> Result<Vec<PropertyTypeResource<'_>>, Report<[BuildPropertyTypeContextError]>> {
+        let () = self
+            .as_client()
+            .query_raw(
+                "
+                    SELECT input.idx
+                    FROM unnest($1::text[]) WITH ORDINALITY AS input(url, idx)
+                    WHERE NOT EXISTS (
+                        SELECT 1 FROM property_types
+                        WHERE property_types.schema ->> '$id' = input.url
+                    )",
+                [&property_type_ids],
+            )
+            .await
+            .change_context(BuildPropertyTypeContextError::StoreError)?
+            .map(|row| {
+                let row = row.change_context(BuildPropertyTypeContextError::StoreError)?;
+                #[expect(
+                    clippy::cast_possible_truncation,
+                    clippy::cast_sign_loss,
+                    clippy::indexing_slicing,
+                    reason = "The index is 1-based and is always less than or equal to the length \
+                              of the array"
+                )]
+                Err(Report::new(
+                    BuildPropertyTypeContextError::PropertyTypeNotFound {
+                        property_type_id: property_type_ids[row.get::<_, i64>(0) as usize - 1]
+                            .clone(),
+                    },
+                ))
+            })
+            .try_collect_reports()
+            .await
+            .attach(StatusCode::NotFound)?;
+
+        Ok(self
+            .as_client()
+            .query_raw(
+                "
+                    SELECT
+                        ontology_ids.base_url,
+                        ontology_ids.version,
+                        ontology_owned_metadata.web_id
+                    FROM property_types
+                    INNER JOIN ontology_ids
+                        ON property_types.ontology_id = ontology_ids.ontology_id
+                    LEFT OUTER JOIN ontology_owned_metadata
+                        ON ontology_ids.ontology_id = ontology_owned_metadata.ontology_id
+                    WHERE property_types.schema ->> '$id' = any($1);
+                 ",
+                [&property_type_ids],
+            )
+            .await
+            .change_context(BuildPropertyTypeContextError::StoreError)?
+            .map_ok(|row| PropertyTypeResource {
+                id: Cow::Owned(PropertyTypeId::new(VersionedUrl {
+                    base_url: row.get(0),
+                    version: row.get(1),
+                })),
+                web_id: row.get(2),
+            })
+            .try_collect()
+            .await
+            .change_context(BuildPropertyTypeContextError::StoreError)?)
     }
 
     #[tracing::instrument(level = "debug", skip(self, entity_edition_ids))]

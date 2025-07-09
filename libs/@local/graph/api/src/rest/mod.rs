@@ -38,10 +38,7 @@ use hash_codec::numeric::Real;
 use hash_graph_authorization::{
     AuthorizationApiPool,
     policies::store::{PolicyStore, PrincipalStore},
-    schema::{
-        AccountGroupPermission, DataTypePermission, EntityPermission, EntityTypePermission,
-        PropertyTypePermission,
-    },
+    schema::{AccountGroupPermission, DataTypePermission, EntityPermission},
 };
 use hash_graph_postgres_store::store::error::VersionedUrlAlreadyExists;
 use hash_graph_store::{
@@ -317,19 +314,11 @@ pub enum OpenApiQuery<'a> {
     GetPropertyTypeAuthorizationRelationships {
         property_type_id: &'a VersionedUrl,
     },
-    CheckPropertyTypePermission {
-        property_type_id: &'a VersionedUrl,
-        permission: PropertyTypePermission,
-    },
     GetEntityTypes(&'a JsonValue),
     GetClosedMultiEntityTypes(&'a JsonValue),
     GetEntityTypeSubgraph(&'a JsonValue),
     GetEntityTypeAuthorizationRelationships {
         entity_type_id: &'a VersionedUrl,
-    },
-    CheckEntityTypePermission {
-        entity_type_id: &'a VersionedUrl,
-        permission: EntityTypePermission,
     },
     GetEntities(&'a JsonValue),
     CountEntities(&'a JsonValue),

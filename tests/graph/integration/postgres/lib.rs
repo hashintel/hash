@@ -78,8 +78,8 @@ use hash_graph_store::{
     property_type::{
         ArchivePropertyTypeParams, CountPropertyTypesParams, CreatePropertyTypeParams,
         GetPropertyTypeSubgraphParams, GetPropertyTypeSubgraphResponse, GetPropertyTypesParams,
-        GetPropertyTypesResponse, PropertyTypeStore, UnarchivePropertyTypeParams,
-        UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
+        GetPropertyTypesResponse, HasPermissionForPropertyTypesParams, PropertyTypeStore,
+        UnarchivePropertyTypeParams, UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
     },
     query::ConflictBehavior,
     subgraph::temporal_axes::QueryTemporalAxesUnresolved,
@@ -597,6 +597,16 @@ impl<A: AuthorizationApi> PropertyTypeStore for DatabaseApi<'_, A> {
     ) -> Result<(), Report<UpdateError>> {
         self.store
             .update_property_type_embeddings(actor_id, params)
+            .await
+    }
+
+    async fn has_permission_for_property_types(
+        &self,
+        authenticated_actor: AuthenticatedActor,
+        params: HasPermissionForPropertyTypesParams<'_>,
+    ) -> Result<HashSet<VersionedUrl>, Report<CheckPermissionError>> {
+        self.store
+            .has_permission_for_property_types(authenticated_actor, params)
             .await
     }
 }

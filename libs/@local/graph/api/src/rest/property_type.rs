@@ -1,18 +1,18 @@
 //! Web routes for CRU operations on Property types.
 
 use alloc::sync::Arc;
+use std::collections::HashSet;
 
 use axum::{
     Extension, Router,
     extract::Path,
-    http::StatusCode,
     response::Response,
     routing::{get, post, put},
 };
 use error_stack::{Report, ResultExt as _};
 use hash_graph_authorization::{
     AuthorizationApi as _, AuthorizationApiPool,
-    backend::{ModifyRelationshipOperation, PermissionAssertion},
+    policies::principal::actor::AuthenticatedActor,
     schema::{
         PropertyTypeEditorSubject, PropertyTypeOwnerSubject, PropertyTypePermission,
         PropertyTypeRelationAndSubject, PropertyTypeSetting, PropertyTypeSettingSubject,
@@ -28,9 +28,9 @@ use hash_graph_store::{
     pool::StorePool,
     property_type::{
         ArchivePropertyTypeParams, CreatePropertyTypeParams, GetPropertyTypeSubgraphParams,
-        GetPropertyTypesParams, GetPropertyTypesResponse, PropertyTypeQueryToken,
-        PropertyTypeStore as _, UnarchivePropertyTypeParams, UpdatePropertyTypeEmbeddingParams,
-        UpdatePropertyTypesParams,
+        GetPropertyTypesParams, GetPropertyTypesResponse, HasPermissionForPropertyTypesParams,
+        PropertyTypeQueryToken, PropertyTypeStore, UnarchivePropertyTypeParams,
+        UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
     },
     query::ConflictBehavior,
 };
@@ -55,7 +55,7 @@ use type_system::{
 use utoipa::{OpenApi, ToSchema};
 
 use crate::rest::{
-    AuthenticatedUserHeader, OpenApiQuery, PermissionResponse, QueryLogger, RestApiStore,
+    AuthenticatedUserHeader, OpenApiQuery, QueryLogger, RestApiStore,
     json::Json,
     status::{report_to_response, status_to_response},
     utoipa_typedef::{ListOrValue, MaybeListOfPropertyType, subgraph::Subgraph},
@@ -65,8 +65,7 @@ use crate::rest::{
 #[openapi(
     paths(
         get_property_type_authorization_relationships,
-        modify_property_type_authorization_relationships,
-        check_property_type_permission,
+        has_permission_for_property_types,
 
         create_property_type,
         load_external_property_type,
@@ -89,9 +88,9 @@ use crate::rest::{
             PropertyTypeViewerSubject,
             PropertyTypePermission,
             PropertyTypeRelationAndSubject,
-            ModifyPropertyTypeAuthorizationRelationship,
             PropertyTypeEmbedding,
             PropertyValueType,
+            HasPermissionForPropertyTypesParams,
 
             CreatePropertyTypeRequest,
             LoadExternalPropertyTypeRequest,
@@ -130,20 +129,15 @@ impl PropertyTypeResource {
                 )
                 .route("/bulk", put(update_property_types::<S, A>))
                 .route(
-                    "/relationships",
-                    post(modify_property_type_authorization_relationships::<A>),
+                    "/permissions",
+                    post(has_permission_for_property_types::<S, A>),
                 )
                 .nest(
                     "/:property_type_id",
-                    Router::new()
-                        .route(
-                            "/relationships",
-                            get(get_property_type_authorization_relationships::<A>),
-                        )
-                        .route(
-                            "/permissions/:permission",
-                            get(check_property_type_permission::<A>),
-                        ),
+                    Router::new().route(
+                        "/relationships",
+                        get(get_property_type_authorization_relationships::<A>),
+                    ),
                 )
                 .nest(
                     "/query",
@@ -833,88 +827,6 @@ where
         .map(Json)
 }
 
-#[derive(Debug, Deserialize, ToSchema)]
-#[serde(rename_all = "camelCase")]
-struct ModifyPropertyTypeAuthorizationRelationship {
-    operation: ModifyRelationshipOperation,
-    resource: VersionedUrl,
-    relation_and_subject: PropertyTypeRelationAndSubject,
-}
-
-#[utoipa::path(
-    post,
-    path = "/property-types/relationships",
-    tag = "PropertyType",
-    request_body = [ModifyPropertyTypeAuthorizationRelationship],
-    params(
-        ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
-    ),
-    responses(
-        (status = 204, description = "The relationship was modified for the property"),
-
-        (status = 403, description = "Permission denied"),
-    )
-)]
-#[tracing::instrument(level = "info", skip(authorization_api_pool))]
-async fn modify_property_type_authorization_relationships<A>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    authorization_api_pool: Extension<Arc<A>>,
-    relationships: Json<Vec<ModifyPropertyTypeAuthorizationRelationship>>,
-) -> Result<StatusCode, Response>
-where
-    A: AuthorizationApiPool + Send + Sync,
-{
-    let mut authorization_api = authorization_api_pool
-        .acquire()
-        .await
-        .map_err(report_to_response)?;
-
-    let (property_types, operations): (Vec<_>, Vec<_>) = relationships
-        .0
-        .into_iter()
-        .map(|request| {
-            let resource = PropertyTypeUuid::from_url(&request.resource);
-            (
-                resource,
-                (request.operation, resource, request.relation_and_subject),
-            )
-        })
-        .unzip();
-
-    let (permissions, _zookie) = authorization_api
-        .check_property_types_permission(
-            actor_id,
-            PropertyTypePermission::Update,
-            property_types,
-            Consistency::FullyConsistent,
-        )
-        .await
-        .map_err(report_to_response)?;
-
-    let mut failed = false;
-    // TODO: Change interface for `check_property_types_permission` to avoid this loop
-    for (_property_type_id, has_permission) in permissions {
-        if !has_permission {
-            tracing::error!("Insufficient permissions to modify relationship for property type");
-            failed = true;
-        }
-    }
-
-    if failed {
-        return Err(report_to_response(
-            Report::new(PermissionAssertion).attach(hash_status::StatusCode::PermissionDenied),
-        ));
-    }
-
-    // for request in relationships.0 {
-    authorization_api
-        .modify_property_type_relations(operations)
-        .await
-        .map_err(report_to_response)?;
-
-    Ok(StatusCode::NO_CONTENT)
-}
-
 #[utoipa::path(
     get,
     path = "/property-types/{property_type_id}/relationships",
@@ -969,57 +881,47 @@ where
 }
 
 #[utoipa::path(
-    get,
-    path = "/property-types/{property_type_id}/permissions/{permission}",
+    post,
+    path = "/property-types/permissions",
     tag = "PropertyType",
+    request_body = HasPermissionForPropertyTypesParams,
     params(
         ("X-Authenticated-User-Actor-Id" = ActorEntityUuid, Header, description = "The ID of the actor which is used to authorize the request"),
-        ("property_type_id" = VersionedUrl, Path, description = "The property type ID to check if the actor has the permission"),
-        ("permission" = PropertyTypePermission, Path, description = "The permission to check for"),
     ),
     responses(
-        (status = 200, body = PermissionResponse, description = "Information if the actor has the permission for the property type"),
+        (status = 200, body = Vec<VersionedUrl>, description = "Information if the actor has the permission for the property types"),
 
         (status = 500, description = "Internal error occurred"),
     )
 )]
-#[tracing::instrument(level = "info", skip(authorization_api_pool))]
-async fn check_property_type_permission<A>(
-    AuthenticatedUserHeader(actor_id): AuthenticatedUserHeader,
-    Path((property_type_id, permission)): Path<(VersionedUrl, PropertyTypePermission)>,
+#[tracing::instrument(
+    level = "info",
+    skip(store_pool, authorization_api_pool, temporal_client)
+)]
+async fn has_permission_for_property_types<S, A>(
+    AuthenticatedUserHeader(actor): AuthenticatedUserHeader,
+    temporal_client: Extension<Option<Arc<TemporalClient>>>,
+    store_pool: Extension<Arc<S>>,
     authorization_api_pool: Extension<Arc<A>>,
-    mut query_logger: Option<Extension<QueryLogger>>,
-) -> Result<Json<PermissionResponse>, Response>
+    Json(params): Json<HasPermissionForPropertyTypesParams<'static>>,
+) -> Result<Json<HashSet<VersionedUrl>>, Response>
 where
+    S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
+    for<'p, 'a> S::Store<'p, A::Api<'a>>: PropertyTypeStore,
 {
-    if let Some(query_logger) = &mut query_logger {
-        query_logger.capture(
-            actor_id,
-            OpenApiQuery::CheckPropertyTypePermission {
-                property_type_id: &property_type_id,
-                permission,
-            },
-        );
-    }
-
-    let response = Ok(Json(PermissionResponse {
-        has_permission: authorization_api_pool
-            .acquire()
-            .await
-            .map_err(report_to_response)?
-            .check_property_type_permission(
-                actor_id,
-                permission,
-                PropertyTypeUuid::from_url(&property_type_id),
-                Consistency::FullyConsistent,
-            )
-            .await
-            .map_err(report_to_response)?
-            .has_permission,
-    }));
-    if let Some(query_logger) = &mut query_logger {
-        query_logger.send().await.map_err(report_to_response)?;
-    }
-    response
+    store_pool
+        .acquire(
+            authorization_api_pool
+                .acquire()
+                .await
+                .map_err(report_to_response)?,
+            temporal_client.0,
+        )
+        .await
+        .map_err(report_to_response)?
+        .has_permission_for_property_types(AuthenticatedActor::from(actor), params)
+        .await
+        .map(Json)
+        .map_err(report_to_response)
 }

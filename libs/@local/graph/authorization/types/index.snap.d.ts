@@ -13,7 +13,7 @@ export interface Policy {
 }
 import type { Brand } from "@local/advanced-types/brand";
 export type PolicyId = Brand<string, "PolicyId">;
-export type ActionName = "createEntity" | "createEntityType" | "createWeb" | "viewEntity" | "viewEntityType" | "updateEntity" | "updateEntityType" | "archiveEntity" | "archiveEntityType" | "instantiate";
+export type ActionName = "createEntity" | "createEntityType" | "createPropertyType" | "createWeb" | "viewEntity" | "viewEntityType" | "viewPropertyType" | "updateEntity" | "updateEntityType" | "updatePropertyType" | "archiveEntity" | "archiveEntityType" | "archivePropertyType" | "instantiate";
 export type PrincipalConstraint = {
 	type: "actor"
 } & ActorId | {
@@ -33,7 +33,9 @@ export type ResourceConstraint = {
 	type: "entity"
 } & EntityResourceConstraint | {
 	type: "entityType"
-} & EntityTypeResourceConstraint;
+} & EntityTypeResourceConstraint | {
+	type: "propertyType"
+} & PropertyTypeResourceConstraint;
 export type EntityResourceConstraint = {
 	filter: EntityResourceFilter
 } | {
@@ -78,6 +80,33 @@ export type EntityTypeResourceFilter = {
 } | {
 	type: "not"
 	filter: EntityTypeResourceFilter
+} | {
+	type: "isBaseUrl"
+	baseUrl: BaseUrl
+} | {
+	type: "isVersion"
+	version: OntologyTypeVersion
+} | {
+	type: "isRemote"
+};
+export type PropertyTypeId = string;
+export type PropertyTypeResourceConstraint = {
+	filter: PropertyTypeResourceFilter
+} | {
+	id: PropertyTypeId
+} | {
+	webId: WebId
+	filter: PropertyTypeResourceFilter
+};
+export type PropertyTypeResourceFilter = {
+	type: "all"
+	filters: PropertyTypeResourceFilter[]
+} | {
+	type: "any"
+	filters: PropertyTypeResourceFilter[]
+} | {
+	type: "not"
+	filter: PropertyTypeResourceFilter
 } | {
 	type: "isBaseUrl"
 	baseUrl: BaseUrl

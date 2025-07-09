@@ -8,7 +8,7 @@ use hash_graph_authorization::{
     AuthorizationApi,
     backend::PermissionAssertion,
     policies::{PolicyComponents, action::ActionName},
-    schema::{DataTypePermission, PropertyTypePermission},
+    schema::DataTypePermission,
     zanzibar::Consistency,
 };
 use hash_graph_store::{
@@ -361,28 +361,56 @@ where
     C: AsClient,
     A: AuthorizationApi,
 {
-    async fn authorize_property_type(
+    async fn fetch_property_type(
         &self,
-        type_id: PropertyTypeUuid,
-    ) -> Result<(), Report<QueryError>> {
-        if let Some(policy_components) = &self.policy_components {
-            self.store
-                .authorization_api
-                .check_property_type_permission(
-                    policy_components
-                        .actor_id()
-                        .map_or_else(ActorEntityUuid::public_actor, ActorEntityUuid::from),
-                    PropertyTypePermission::View,
-                    type_id,
-                    Consistency::FullyConsistent,
-                )
-                .await
-                .change_context(QueryError)?
-                .assert_permission()
-                .change_context(QueryError)?;
+        type_id: &VersionedUrl,
+        policy_components: Option<&PolicyComponents>,
+    ) -> Result<PropertyTypeWithMetadata, Report<QueryError>> {
+        let mut filters = vec![Filter::<PropertyTypeWithMetadata>::for_versioned_url(
+            type_id,
+        )];
+
+        if let Some(policy_components) = policy_components {
+            filters.push(Filter::<PropertyTypeWithMetadata>::for_policies(
+                policy_components.extract_filter_policies(ActionName::ViewPropertyType),
+                policy_components.optimization_data(ActionName::ViewPropertyType),
+            ));
         }
 
-        Ok(())
+        let mut schemas = self
+            .store
+            .read(
+                &filters,
+                Some(
+                    &QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                    }
+                    .resolve(),
+                ),
+                false,
+            )
+            .await
+            .change_context(QueryError)?
+            .try_collect::<Vec<_>>()
+            .await
+            .change_context(QueryError)?;
+
+        ensure!(
+            schemas.len() <= 1,
+            Report::new(QueryError).attach_printable(format!(
+                "Expected exactly one property type to be returned from the query but {} were \
+                 returned",
+                schemas.len(),
+            ))
+        );
+
+        schemas.pop().ok_or_else(|| {
+            Report::new(QueryError).attach_printable(
+                "Expected exactly one property type to be returned from the query but none were \
+                 returned",
+            )
+        })
     }
 }
 
@@ -404,28 +432,16 @@ where
             return cached;
         }
 
-        if let Err(error) = self.authorize_property_type(property_type_id).await {
-            self.cache.property_types.deny(property_type_id).await;
-            return Err(error);
-        }
-
-        let schema = self
-            .store
-            .read_one(
-                &[Filter::<PropertyTypeWithMetadata>::for_versioned_url(
-                    type_id,
-                )],
-                Some(
-                    &QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(None, None),
-                    }
-                    .resolve(),
-                ),
-                false,
-            )
+        let schema = match self
+            .fetch_property_type(type_id, self.policy_components)
             .await
-            .map(|property_type| property_type.schema)?;
+        {
+            Ok(property_type) => property_type.schema,
+            Err(error) => {
+                self.cache.property_types.malformed(property_type_id).await;
+                return Err(error);
+            }
+        };
 
         let schema = self
             .cache
