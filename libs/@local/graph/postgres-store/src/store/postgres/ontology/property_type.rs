@@ -1049,7 +1049,7 @@ where
                 return Err(Report::new(UpdateError)
                     .attach(StatusCode::PermissionDenied)
                     .attach_printable(format!(
-                        "The actor does not have permission to publish the property type `{}`",
+                        "The actor does not have permission to unarchive the property type `{}`",
                         params.property_type_id
                     )));
             }
