@@ -407,7 +407,7 @@ where
 
         schemas.pop().ok_or_else(|| {
             Report::new(QueryError).attach_printable(
-                "Expected exactly one property type to be returned from the query but none was \
+                "Expected exactly one property type to be returned from the query but none were \
                  returned",
             )
         })
