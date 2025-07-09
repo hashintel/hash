@@ -3,16 +3,6 @@ locals {
   log_group_name           = "${local.prefix}log"
   param_prefix             = "${var.param_prefix}/app"
   app_grace_period_seconds = 300
-  spicedb_task_defs = [
-    {
-      task_def = local.spicedb_migration_container_def
-      env_vars = aws_ssm_parameter.spicedb_migration_env_vars
-    },
-    {
-      task_def = local.spicedb_service_container_def
-      env_vars = aws_ssm_parameter.spicedb_env_vars
-    },
-  ]
   graph_task_defs = [
     {
       task_def = local.graph_migration_container_def
@@ -255,17 +245,6 @@ resource "aws_iam_role" "execution_role" {
             Action = ["ssm:GetParameters"]
             Resource = concat(
               flatten([for def in local.task_defs : [for _, env_var in def.env_vars : env_var.arn]])
-            )
-          }
-        ],
-        [
-          {
-            Effect = "Allow"
-            Action = ["ssm:GetParameters"]
-            Resource = concat(
-              flatten([
-                for def in local.spicedb_task_defs : [for _, env_var in def.env_vars : env_var.arn]
-              ])
             )
           }
         ],
