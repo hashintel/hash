@@ -345,7 +345,7 @@ pub trait PolicyStore {
         Output = Result<Vec<EntityTypeResource<'_>>, Report<[BuildEntityTypeContextError]>>,
     > + Send;
 
-    /// Builds a context used to evaluate policies for a set of entity types.
+    /// Builds a context used to evaluate policies for a set of property types.
     ///
     /// # Errors
     ///
