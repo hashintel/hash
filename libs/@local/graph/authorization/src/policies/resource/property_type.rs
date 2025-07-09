@@ -99,7 +99,7 @@ impl PropertyTypeResource<'_> {
             iter::empty(),
             Extensions::none(),
         )
-        .expect("Entity type should be a valid Cedar entity")
+        .expect("Property type should be a valid Cedar entity")
     }
 }
 
