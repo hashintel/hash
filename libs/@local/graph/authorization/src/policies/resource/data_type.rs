@@ -99,7 +99,7 @@ impl DataTypeResource<'_> {
             iter::empty(),
             Extensions::none(),
         )
-        .expect("Entity type should be a valid Cedar entity")
+        .expect("Data type should be a valid Cedar entity")
     }
 }
 
