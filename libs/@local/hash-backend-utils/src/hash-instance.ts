@@ -1,6 +1,7 @@
 import type { ActorEntityUuid, Team, WebId } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
+import { getActorGroupRole } from "@local/hash-graph-sdk/principal/actor-group";
 import { getTeamByName } from "@local/hash-graph-sdk/principal/team";
 import {
   currentTimeInstantTemporalAxes,
@@ -119,12 +120,8 @@ export const isUserHashInstanceAdmin = async (
   { userAccountId }: { userAccountId: ActorEntityUuid },
 ): Promise<boolean> =>
   getInstanceAdminsTeam(ctx, authentication).then((team) =>
-    ctx.graphApi
-      .hasActorGroupRole(
-        authentication.actorId,
-        team.id,
-        "member",
-        userAccountId,
-      )
-      .then(({ data }) => data),
+    getActorGroupRole(ctx.graphApi, authentication, {
+      actorGroupId: team.id,
+      actorId: userAccountId,
+    }).then((role) => role === "member"),
   );

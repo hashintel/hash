@@ -1,9 +1,10 @@
 import type { ActorEntityUuid, AiId, WebId } from "@blockprotocol/type-system";
-import {
-  getAiIdByIdentifier,
-  getWebMachineId,
-} from "@local/hash-backend-utils/machine-actors";
+import { getAiIdByIdentifier } from "@local/hash-backend-utils/machine-actors";
 import type { GraphApi } from "@local/hash-graph-client";
+import {
+  addActorGroupMember,
+  getActorGroupRole,
+} from "@local/hash-graph-sdk/principal/actor-group";
 
 export const getAiAssistantAccountIdActivity = async (params: {
   authentication: { actorId: ActorEntityUuid };
@@ -22,57 +23,33 @@ export const getAiAssistantAccountIdActivity = async (params: {
     return null;
   }
 
+  // TODO: We want to add a toggle in the web settings to allow the AI assistant to be a member of the web.
+  //       With that, this branch can be removed.
+  //   see https://linear.app/hash/issue/H-4972/add-toggle-in-org-settings-to-enable-ai-flows-in-a-web
   if (grantCreatePermissionForWeb) {
-    const aiAssistantHasPermission = await graphApiClient
-      .checkWebPermission(
-        aiAssistantAccountId,
-        grantCreatePermissionForWeb,
-        "update_entity",
-      )
-      .then((resp) => resp.data.has_permission);
+    const webRole = await getActorGroupRole(graphApiClient, authentication, {
+      actorId: aiAssistantAccountId,
+      actorGroupId: grantCreatePermissionForWeb,
+    });
 
-    if (!aiAssistantHasPermission) {
-      /** The AI Assistant does not have permission in the requested web, use the web-scoped bot to grant it */
-      const webMachineActorId = await getWebMachineId(
-        { graphApi: graphApiClient },
+    // If the AI assistant is not a member of the web, we need to add them as a member.
+    // This can only be done if the user is an administrator of the web.
+    if (!webRole) {
+      const isWebAdmin = await getActorGroupRole(
+        graphApiClient,
         authentication,
-        { webId: grantCreatePermissionForWeb },
-      ).then((maybeMachineId) => {
-        if (!maybeMachineId) {
-          throw new Error(
-            `Failed to get web machine for web ID: ${grantCreatePermissionForWeb}`,
-          );
-        }
-        return maybeMachineId;
-      });
+        {
+          actorId: authentication.actorId,
+          actorGroupId: grantCreatePermissionForWeb,
+        },
+      ).then((role) => role === "administrator");
 
-      await graphApiClient.modifyWebAuthorizationRelationships(
-        webMachineActorId,
-        [
-          {
-            operation: "create",
-            resource: grantCreatePermissionForWeb,
-            relationAndSubject: {
-              subject: {
-                kind: "account",
-                subjectId: aiAssistantAccountId,
-              },
-              relation: "entityCreator",
-            },
-          },
-          {
-            operation: "create",
-            resource: grantCreatePermissionForWeb,
-            relationAndSubject: {
-              subject: {
-                kind: "account",
-                subjectId: aiAssistantAccountId,
-              },
-              relation: "entityEditor",
-            },
-          },
-        ],
-      );
+      if (isWebAdmin) {
+        await addActorGroupMember(graphApiClient, authentication, {
+          actorId: aiAssistantAccountId,
+          actorGroupId: grantCreatePermissionForWeb,
+        });
+      }
     }
   }
 

@@ -523,6 +523,62 @@
         }
       }
     },
+    "/actor-groups/{actor_group_id}/roles/actors/{actor_id}": {
+      "get": {
+        "tags": [
+          "Graph",
+          "Principal"
+        ],
+        "operationId": "get_actor_group_role",
+        "parameters": [
+          {
+            "name": "X-Authenticated-User-Actor-Id",
+            "in": "header",
+            "description": "The ID of the actor which is used to authorize the request",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          },
+          {
+            "name": "actor_group_id",
+            "in": "path",
+            "description": "The ID of the actor group to check the role against",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorGroupEntityUuid"
+            }
+          },
+          {
+            "name": "actor_id",
+            "in": "path",
+            "description": "The ID of the actor to be checked",
+            "required": true,
+            "schema": {
+              "$ref": "#/components/schemas/ActorEntityUuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Whether the actor is assigned the role",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleName"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The team was not found"
+          },
+          "500": {
+            "description": "Store error occurred"
+          }
+        }
+      }
+    },
     "/actor-groups/{actor_group_id}/roles/{role_name}/actors": {
       "get": {
         "tags": [
@@ -583,69 +639,6 @@
       }
     },
     "/actor-groups/{actor_group_id}/roles/{role_name}/actors/{actor_id}": {
-      "get": {
-        "tags": [
-          "Graph",
-          "Principal"
-        ],
-        "operationId": "has_actor_group_role",
-        "parameters": [
-          {
-            "name": "X-Authenticated-User-Actor-Id",
-            "in": "header",
-            "description": "The ID of the actor which is used to authorize the request",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ActorEntityUuid"
-            }
-          },
-          {
-            "name": "actor_group_id",
-            "in": "path",
-            "description": "The ID of the actor group to check the role against",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ActorGroupEntityUuid"
-            }
-          },
-          {
-            "name": "role_name",
-            "in": "path",
-            "description": "The role to be checked",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/RoleName"
-            }
-          },
-          {
-            "name": "actor_id",
-            "in": "path",
-            "description": "The ID of the actor to be checked",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ActorEntityUuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Whether the actor is assigned the role",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "boolean"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "The team was not found"
-          },
-          "500": {
-            "description": "Store error occurred"
-          }
-        }
-      },
       "post": {
         "tags": [
           "Graph",

@@ -7,15 +7,15 @@ import type {
 import { extractWebIdFromEntityId } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
 import type { HashLinkEntity } from "@local/hash-graph-sdk/entity";
+import {
+  addActorGroupMember,
+  removeActorGroupMember,
+} from "@local/hash-graph-sdk/principal/actor-group";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { createOrgMembershipAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { IsMemberOf } from "@local/hash-isomorphic-utils/system-types/shared";
 
-import {
-  addActorGroupMember,
-  removeActorGroupMember,
-} from "../../account-permission-management";
 import type {
   ImpureGraphFunction,
   PureGraphFunction,
@@ -129,7 +129,7 @@ export const createOrgMembership: ImpureGraphFunction<
   const userActorId = extractWebIdFromEntityId(userEntityId) as ActorEntityUuid;
   const orgWebId = extractWebIdFromEntityId(orgEntityId);
 
-  await addActorGroupMember(ctx, authentication, {
+  await addActorGroupMember(ctx.graphApi, authentication, {
     actorId: userActorId,
     actorGroupId: orgWebId,
   });
@@ -140,7 +140,7 @@ export const createOrgMembership: ImpureGraphFunction<
       orgEntityId,
     });
   } catch (error) {
-    await removeActorGroupMember(ctx, authentication, {
+    await removeActorGroupMember(ctx.graphApi, authentication, {
       actorId: userActorId,
       actorGroupId: orgWebId,
     });

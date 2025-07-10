@@ -1,3 +1,5 @@
+import { getActorGroupRole } from "@local/hash-graph-sdk/principal/actor-group";
+
 import { getFlowContext } from "../shared/get-flow-context.js";
 import { graphApiClient } from "../shared/graph-api-client.js";
 
@@ -11,24 +13,21 @@ export const userHasPermissionToRunFlowInWebActivity = async (): Promise<
       status: "ok";
     }
   | {
-      status: "missing-permission";
-      missingPermissions: "create_entity"[];
+      status: "not-role-in-web";
+      errorMessage: string;
     }
 > => {
   const { userAuthentication, webId } = await getFlowContext();
 
-  const {
-    data: { has_permission: canCreateEntities },
-  } = await graphApiClient.checkWebPermission(
-    userAuthentication.actorId,
-    webId,
-    "create_entity",
-  );
+  const webRole = await getActorGroupRole(graphApiClient, userAuthentication, {
+    actorId: userAuthentication.actorId,
+    actorGroupId: webId,
+  });
 
-  if (!canCreateEntities) {
+  if (!webRole) {
     return {
-      status: "missing-permission",
-      missingPermissions: ["create_entity"],
+      status: "not-role-in-web",
+      errorMessage: "User is not assigned to any role in the web",
     };
   }
 

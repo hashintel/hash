@@ -1,10 +1,10 @@
 import { entityIdFromComponents } from "@blockprotocol/type-system";
+import { removeActorGroupMember } from "@local/hash-graph-sdk/principal/actor-group";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import type { MutationRemoveUserFromOrgArgs } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { ApolloError } from "apollo-server-errors";
 
-import { removeActorGroupMember } from "../../../../graph/account-permission-management";
 import { getEntities } from "../../../../graph/knowledge/primitive/entity";
 import { getOrgById } from "../../../../graph/knowledge/system-types/org";
 import { getUserById } from "../../../../graph/knowledge/system-types/user";
@@ -103,7 +103,7 @@ export const removeUserFromOrgResolver: ResolverFn<
   }
 
   await Promise.all([
-    removeActorGroupMember(context, authentication, {
+    removeActorGroupMember(context.graphApi, authentication, {
       actorId: user.accountId,
       actorGroupId: orgWebId,
     }),

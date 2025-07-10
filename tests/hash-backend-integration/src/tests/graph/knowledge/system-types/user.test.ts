@@ -2,10 +2,6 @@ import {
   createKratosIdentity,
   kratosIdentityApi,
 } from "@apps/hash-api/src/auth/ory-kratos";
-import {
-  isActorGroupAdministrator,
-  isActorGroupMember,
-} from "@apps/hash-api/src/graph/account-permission-management";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import {
   checkEntityPermission,
@@ -22,6 +18,7 @@ import {
 import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
 import { extractEntityUuidFromEntityId } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
+import { getActorGroupRole } from "@local/hash-graph-sdk/principal/actor-group";
 import { getWebRoles } from "@local/hash-graph-sdk/principal/web";
 import {
   blockProtocolDataTypes,
@@ -90,30 +87,18 @@ describe("User model class", () => {
     ).toBe(true);
 
     expect(
-      await isActorGroupAdministrator(graphContext, authentication, {
+      await getActorGroupRole(graphContext.graphApi, authentication, {
         actorId: createdUser.accountId,
         actorGroupId: createdUser.accountId,
       }),
-    ).toBe(true);
-    expect(
-      await isActorGroupMember(graphContext, authentication, {
-        actorId: createdUser.accountId,
-        actorGroupId: createdUser.accountId,
-      }),
-    ).toBe(false);
+    ).toBe("administrator");
 
     expect(
-      await isActorGroupAdministrator(graphContext, authentication, {
+      await getActorGroupRole(graphContext.graphApi, authentication, {
         actorId: systemAccountId,
         actorGroupId: createdUser.accountId,
       }),
-    ).toBe(false);
-    expect(
-      await isActorGroupMember(graphContext, authentication, {
-        actorId: systemAccountId,
-        actorGroupId: createdUser.accountId,
-      }),
-    ).toBe(false);
+    ).toBe(null);
   });
 
   it("cannot create a user with a kratos identity id that is already taken", async () => {
@@ -232,30 +217,18 @@ describe("User model class", () => {
     });
 
     expect(
-      await isActorGroupAdministrator(graphContext, authentication, {
+      await getActorGroupRole(graphContext.graphApi, authentication, {
         actorId: incompleteUser.accountId,
         actorGroupId: incompleteUser.accountId,
       }),
-    ).toBe(false);
-    expect(
-      await isActorGroupMember(graphContext, authentication, {
-        actorId: incompleteUser.accountId,
-        actorGroupId: incompleteUser.accountId,
-      }),
-    ).toBe(false);
+    ).toBe(null);
 
     expect(
-      await isActorGroupAdministrator(graphContext, authentication, {
+      await getActorGroupRole(graphContext.graphApi, authentication, {
         actorId: systemAccountId,
         actorGroupId: incompleteUser.accountId,
       }),
-    ).toBe(true);
-    expect(
-      await isActorGroupMember(graphContext, authentication, {
-        actorId: systemAccountId,
-        actorGroupId: incompleteUser.accountId,
-      }),
-    ).toBe(false);
+    ).toBe("administrator");
 
     await expect(
       checkEntityPermission(
@@ -310,30 +283,18 @@ describe("User model class", () => {
     ).resolves.toBe(true);
 
     expect(
-      await isActorGroupAdministrator(graphContext, authentication, {
+      await getActorGroupRole(graphContext.graphApi, authentication, {
         actorId: incompleteUser.accountId,
         actorGroupId: incompleteUser.accountId,
       }),
-    ).toBe(true);
-    expect(
-      await isActorGroupMember(graphContext, authentication, {
-        actorId: incompleteUser.accountId,
-        actorGroupId: incompleteUser.accountId,
-      }),
-    ).toBe(false);
+    ).toBe("administrator");
 
     expect(
-      await isActorGroupAdministrator(graphContext, authentication, {
+      await getActorGroupRole(graphContext.graphApi, authentication, {
         actorId: systemAccountId,
         actorGroupId: incompleteUser.accountId,
       }),
-    ).toBe(false);
-    expect(
-      await isActorGroupMember(graphContext, authentication, {
-        actorId: systemAccountId,
-        actorGroupId: incompleteUser.accountId,
-      }),
-    ).toBe(false);
+    ).toBe(null);
   });
 
   afterAll(async () => {

@@ -479,7 +479,7 @@ pub trait PrincipalStore {
     /// [`ActorNotFound`]: RoleAssignmentError::ActorNotFound
     /// [`RoleNotFound`]: RoleAssignmentError::RoleNotFound
     /// [`StoreError`]: RoleAssignmentError::StoreError
-    async fn is_assigned(
+    async fn get_actor_group_role(
         &mut self,
         actor_id: ActorEntityUuid,
         actor_group_id: ActorGroupEntityUuid,
