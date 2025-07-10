@@ -13,8 +13,8 @@ export const userHasPermissionToRunFlowInWebActivity = async (): Promise<
       status: "ok";
     }
   | {
-      status: "missing-permission";
-      missingPermissions: "create_entity"[];
+      status: "not-role-in-web";
+      errorMessage: string;
     }
 > => {
   const { userAuthentication, webId } = await getFlowContext();
@@ -26,8 +26,8 @@ export const userHasPermissionToRunFlowInWebActivity = async (): Promise<
 
   if (!webRole) {
     return {
-      status: "missing-permission",
-      missingPermissions: ["create_entity"],
+      status: "not-role-in-web",
+      errorMessage: "User is not assigned to any role in the web",
     };
   }
 
