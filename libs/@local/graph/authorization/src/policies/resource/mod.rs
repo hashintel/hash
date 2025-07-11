@@ -1,6 +1,7 @@
 mod data_type;
 mod entity;
 mod entity_type;
+mod meta;
 mod property_type;
 
 use alloc::sync::Arc;
@@ -23,18 +24,23 @@ pub use self::{
         EntityTypeId, EntityTypeResource, EntityTypeResourceConstraint,
         EntityTypeResourceConstraints, EntityTypeResourceFilter,
     },
+    meta::{MetaResourceConstraint, MetaResourceFilter, PolicyMetaResource},
     property_type::{
         PropertyTypeId, PropertyTypeResource, PropertyTypeResourceConstraint,
         PropertyTypeResourceConstraints, PropertyTypeResourceFilter,
     },
 };
-use super::cedar::{FromCedarExpr as _, ToCedarEntityId as _};
+use super::{
+    PolicyId,
+    cedar::{FromCedarExpr as _, ToCedarEntityId as _},
+};
 use crate::policies::cedar::FromCedarEntityId as _;
 
 #[derive(Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[serde(tag = "type", rename_all = "camelCase", deny_unknown_fields)]
 pub enum ResourceConstraint {
+    Meta(MetaResourceConstraint),
     #[serde(rename_all = "camelCase")]
     Web {
         web_id: WebId,
@@ -68,6 +74,7 @@ impl ResourceConstraint {
     #[must_use]
     pub(crate) fn to_cedar(&self) -> (ast::ResourceConstraint, ast::Expr) {
         match self {
+            Self::Meta(meta) => meta.to_cedar_resource_constraint(),
             Self::Web { web_id } => (
                 ast::ResourceConstraint::is_in(Arc::new(web_id.to_euid())),
                 ast::Expr::val(true),
@@ -165,6 +172,7 @@ impl ResourceConstraint {
         }
     }
 
+    #[expect(clippy::too_many_lines)]
     fn try_from_cedar_is_in(
         resource_type: &ast::EntityType,
         in_resource: Option<&ast::EntityUID>,
@@ -247,6 +255,27 @@ impl ResourceConstraint {
 
             if *in_resource.entity_type() == **WebId::entity_type() {
                 Ok(Self::DataType(DataTypeResourceConstraint::Web {
+                    web_id: WebId::new(
+                        Uuid::from_str(in_resource.eid().as_ref())
+                            .change_context(InvalidResourceConstraint::InvalidPrincipalId)?,
+                    ),
+                    filter,
+                }))
+            } else {
+                bail!(InvalidResourceConstraint::UnexpectedEntityType(
+                    in_resource.entity_type().clone()
+                ))
+            }
+        } else if *resource_type == **PolicyId::entity_type() {
+            let filter = MetaResourceFilter::from_cedar(condition)
+                .change_context(InvalidResourceConstraint::InvalidResourceFilter)?;
+
+            let Some(in_resource) = in_resource else {
+                return Ok(Self::Meta(MetaResourceConstraint::Any { filter }));
+            };
+
+            if *in_resource.entity_type() == **WebId::entity_type() {
+                Ok(Self::Meta(MetaResourceConstraint::Web {
                     web_id: WebId::new(
                         Uuid::from_str(in_resource.eid().as_ref())
                             .change_context(InvalidResourceConstraint::InvalidPrincipalId)?,

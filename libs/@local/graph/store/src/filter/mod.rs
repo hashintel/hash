@@ -306,7 +306,8 @@ impl<'p> Filter<'p, DataTypeWithMetadata> {
                 ]),
                 DataTypeResourceConstraint::Any { filter } => Self::for_resource_filter(filter),
             },
-            ResourceConstraint::PropertyType(_)
+            ResourceConstraint::Meta(_)
+            | ResourceConstraint::PropertyType(_)
             | ResourceConstraint::EntityType(_)
             | ResourceConstraint::Entity(_) => Self::Any(Vec::new()),
         }
@@ -469,7 +470,8 @@ impl<'p> Filter<'p, PropertyTypeWithMetadata> {
                     }
                 }
             }
-            ResourceConstraint::DataType(_)
+            ResourceConstraint::Meta(_)
+            | ResourceConstraint::DataType(_)
             | ResourceConstraint::EntityType(_)
             | ResourceConstraint::Entity(_) => Self::Any(Vec::new()),
         }
@@ -705,7 +707,8 @@ impl<'p> Filter<'p, EntityTypeWithMetadata> {
                     }
                 }
             }
-            ResourceConstraint::DataType(_)
+            ResourceConstraint::Meta(_)
+            | ResourceConstraint::DataType(_)
             | ResourceConstraint::Entity(_)
             | ResourceConstraint::PropertyType(_) => Self::Any(Vec::new()),
         }
@@ -999,7 +1002,8 @@ impl<'p> Filter<'p, Entity> {
                     Self::for_resource_filter(filter, actor_id)
                 }
             },
-            ResourceConstraint::DataType(_)
+            ResourceConstraint::Meta(_)
+            | ResourceConstraint::DataType(_)
             | ResourceConstraint::EntityType(_)
             | ResourceConstraint::PropertyType(_) => Self::Any(Vec::new()),
         }

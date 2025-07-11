@@ -8,6 +8,10 @@ namespace HASH {
   entity Team in [Web, Team] {
   };
 
+  entity Policy in [Web] {
+    actions: Set<String>
+  };
+
   entity Entity in [Web] {
     entity_types: Set<EntityType>,
     entity_base_types: Set<String>,
@@ -50,9 +54,14 @@ namespace HASH {
     resource: [Web],
   };
 
-  action create, view, update, archive in [all] appliesTo {
+  action create, view, update, archive, delete in [all] appliesTo {
     principal: [User, Machine, Ai],
-    resource: [Entity, EntityType, PropertyType, DataType],
+    resource: [Entity, EntityType, PropertyType, DataType, Policy],
+  };
+
+  action createPolicy in [create] appliesTo {
+    principal: [User, Machine, Ai],
+    resource: [Policy],
   };
 
   action createEntity in [create] appliesTo {
@@ -75,6 +84,11 @@ namespace HASH {
     resource: [DataType],
   };
 
+  action viewPolicy in [view] appliesTo {
+    principal: [User, Machine, Ai, Public],
+    resource: [Policy],
+  };
+
   action viewEntity in [view] appliesTo {
     principal: [User, Machine, Ai, Public],
     resource: [Entity],
@@ -93,6 +107,11 @@ namespace HASH {
   action viewDataType in [view] appliesTo {
     principal: [User, Machine, Ai, Public],
     resource: [DataType],
+  };
+
+  action updatePolicy in [update] appliesTo {
+    principal: [User, Machine, Ai],
+    resource: [Policy],
   };
 
   action updateEntity in [update] appliesTo {
@@ -115,6 +134,11 @@ namespace HASH {
     resource: [DataType],
   };
 
+  action archivePolicy in [archive] appliesTo {
+    principal: [User, Machine, Ai],
+    resource: [Policy],
+  };
+
   action archiveEntity in [archive] appliesTo {
     principal: [User, Machine, Ai],
     resource: [Entity],
@@ -133,6 +157,11 @@ namespace HASH {
   action archiveDataType in [archive] appliesTo {
     principal: [User, Machine, Ai],
     resource: [DataType],
+  };
+
+  action deletePolicy in [delete] appliesTo {
+    principal: [User, Machine, Ai],
+    resource: [Policy],
   };
 
   action instantiate in [all] appliesTo {
