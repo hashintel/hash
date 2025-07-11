@@ -34,6 +34,7 @@ pub enum ActionName {
 
     #[cfg_attr(feature = "codegen", specta(skip))]
     Create,
+    CreatePolicy,
     CreateDataType,
     CreateEntity,
     CreateEntityType,
@@ -42,6 +43,7 @@ pub enum ActionName {
 
     #[cfg_attr(feature = "codegen", specta(skip))]
     View,
+    ViewPolicy,
     ViewDataType,
     ViewEntity,
     ViewEntityType,
@@ -49,6 +51,7 @@ pub enum ActionName {
 
     #[cfg_attr(feature = "codegen", specta(skip))]
     Update,
+    UpdatePolicy,
     UpdateDataType,
     UpdateEntity,
     UpdateEntityType,
@@ -56,10 +59,15 @@ pub enum ActionName {
 
     #[cfg_attr(feature = "codegen", specta(skip))]
     Archive,
+    ArchivePolicy,
     ArchiveDataType,
     ArchiveEntity,
     ArchiveEntityType,
     ArchivePropertyType,
+
+    #[cfg_attr(feature = "codegen", specta(skip))]
+    Delete,
+    DeletePolicy,
 
     Instantiate,
 }
@@ -78,23 +86,29 @@ impl ActionName {
             | Self::View
             | Self::Update
             | Self::Archive
+            | Self::Delete
             | Self::Instantiate => Some(Self::All),
-            Self::CreateDataType
+            Self::CreatePolicy
+            | Self::CreateDataType
             | Self::CreateEntity
             | Self::CreateEntityType
             | Self::CreatePropertyType => Some(Self::Create),
-            Self::ViewDataType
+            Self::ViewPolicy
+            | Self::ViewDataType
             | Self::ViewEntity
             | Self::ViewEntityType
             | Self::ViewPropertyType => Some(Self::View),
-            Self::UpdateDataType
+            Self::UpdatePolicy
+            | Self::UpdateDataType
             | Self::UpdateEntity
             | Self::UpdateEntityType
             | Self::UpdatePropertyType => Some(Self::Update),
-            Self::ArchiveDataType
+            Self::ArchivePolicy
+            | Self::ArchiveDataType
             | Self::ArchiveEntity
             | Self::ArchiveEntityType
             | Self::ArchivePropertyType => Some(Self::Archive),
+            Self::DeletePolicy => Some(Self::Delete),
         }
     }
 
@@ -304,7 +318,6 @@ mod tests {
             let action_name = ActionName::from_euid(action_id.name())?;
             for descendant_id in action_id.descendants() {
                 let descendant = ActionName::from_euid(descendant_id)?;
-                println!("{action_name} is parent of {descendant}");
                 assert!(
                     action_name.is_parent_of(descendant),
                     "{action_name} is not a parent of {descendant}"
@@ -390,6 +403,7 @@ mod tests {
 
         // Second level actions have their direct parent and All as ancestors
         for action in [
+            ActionName::CreatePolicy,
             ActionName::CreateDataType,
             ActionName::CreateEntity,
             ActionName::CreateEntityType,
@@ -402,6 +416,7 @@ mod tests {
         }
 
         for action in [
+            ActionName::ViewPolicy,
             ActionName::ViewDataType,
             ActionName::ViewEntity,
             ActionName::ViewEntityType,
@@ -414,6 +429,7 @@ mod tests {
         }
 
         for action in [
+            ActionName::UpdatePolicy,
             ActionName::UpdateDataType,
             ActionName::UpdateEntity,
             ActionName::UpdateEntityType,
@@ -426,6 +442,7 @@ mod tests {
         }
 
         for action in [
+            ActionName::ArchivePolicy,
             ActionName::ArchiveDataType,
             ActionName::ArchiveEntity,
             ActionName::ArchiveEntityType,
@@ -436,11 +453,23 @@ mod tests {
                 vec![ActionName::Archive, ActionName::All]
             );
         }
+
+        #[expect(
+            clippy::single_element_loop,
+            reason = "More actions may be added in the future"
+        )]
+        for action in [ActionName::DeletePolicy] {
+            assert_eq!(
+                action.parents().collect::<Vec<_>>(),
+                vec![ActionName::Delete, ActionName::All]
+            );
+        }
     }
 
     #[test]
     fn is_parent_of() {
         for action in [
+            ActionName::CreatePolicy,
             ActionName::CreateDataType,
             ActionName::CreateEntity,
             ActionName::CreateEntityType,
@@ -451,6 +480,7 @@ mod tests {
         }
 
         for action in [
+            ActionName::ViewPolicy,
             ActionName::ViewDataType,
             ActionName::ViewEntity,
             ActionName::ViewEntityType,
@@ -461,6 +491,7 @@ mod tests {
         }
 
         for action in [
+            ActionName::UpdatePolicy,
             ActionName::UpdateDataType,
             ActionName::UpdateEntity,
             ActionName::UpdateEntityType,
@@ -471,6 +502,7 @@ mod tests {
         }
 
         for action in [
+            ActionName::ArchivePolicy,
             ActionName::ArchiveDataType,
             ActionName::ArchiveEntity,
             ActionName::ArchiveEntityType,
@@ -478,6 +510,15 @@ mod tests {
         ] {
             assert!(ActionName::Archive.is_parent_of(action));
             assert!(action.is_child_of(ActionName::Archive));
+        }
+
+        #[expect(
+            clippy::single_element_loop,
+            reason = "More actions may be added in the future"
+        )]
+        for action in [ActionName::DeletePolicy] {
+            assert!(ActionName::Delete.is_parent_of(action));
+            assert!(action.is_child_of(ActionName::Delete));
         }
 
         // Negative cases

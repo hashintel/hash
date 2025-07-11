@@ -12,7 +12,8 @@ use hash_graph_authorization::policies::{
     resource::{
         DataTypeResourceConstraint, DataTypeResourceFilter, EntityResourceConstraint,
         EntityResourceFilter, EntityTypeResourceConstraint, EntityTypeResourceFilter,
-        PropertyTypeResourceConstraint, PropertyTypeResourceFilter, ResourceConstraint,
+        MetaResourceConstraint, MetaResourceFilter, PropertyTypeResourceConstraint,
+        PropertyTypeResourceFilter, ResourceConstraint,
     },
     store::{
         PolicyCreationParams, PolicyFilter, PolicyStore as _, PolicyUpdateOperation,
@@ -139,6 +140,24 @@ pub(crate) fn system_actor_create_web_policy(
     }
 }
 
+pub(crate) fn system_actor_meta_policy(system_machine_actor: MachineId) -> PolicyCreationParams {
+    // We create a few temporary policies in the Node API. To allow those to be created,
+    // we need to allow the system machine to create these policies.
+    PolicyCreationParams {
+        name: Some("system-machine-meta-policy".to_owned()),
+        effect: Effect::Permit,
+        principal: Some(PrincipalConstraint::Actor {
+            actor: ActorId::Machine(system_machine_actor),
+        }),
+        actions: vec![ActionName::CreatePolicy, ActionName::DeletePolicy],
+        resource: Some(ResourceConstraint::Meta(MetaResourceConstraint::Any {
+            filter: MetaResourceFilter::HasAction {
+                action: ActionName::Instantiate,
+            },
+        })),
+    }
+}
+
 fn system_actor_view_entity_policies(
     system_machine_actor: MachineId,
 ) -> impl Iterator<Item = PolicyCreationParams> {
@@ -165,6 +184,7 @@ pub(crate) fn system_actor_policies(
 ) -> impl Iterator<Item = PolicyCreationParams> {
     iter::once(system_actor_create_web_policy(system_machine_actor))
         .chain(system_actor_view_entity_policies(system_machine_actor))
+        .chain(iter::once(system_actor_meta_policy(system_machine_actor)))
 }
 
 fn google_bot_view_entity_policies(
@@ -235,6 +255,52 @@ pub(crate) fn linear_bot_policies(
 ) -> impl Iterator<Item = PolicyCreationParams> {
     linear_bot_created_entity_policies(linear_bot_machine)
         .chain(linear_bot_view_entity_policies(linear_bot_machine))
+}
+
+fn global_meta_policies() -> impl Iterator<Item = PolicyCreationParams> {
+    [ActorType::User, ActorType::Machine, ActorType::Ai]
+        .into_iter()
+        .map(|actor_type| PolicyCreationParams {
+            name: Some("authenticated-view-meta".to_owned()),
+            effect: Effect::Permit,
+            principal: Some(PrincipalConstraint::ActorType { actor_type }),
+            actions: vec![ActionName::ViewPolicy],
+            resource: Some(ResourceConstraint::Meta(MetaResourceConstraint::Any {
+                filter: MetaResourceFilter::All { filters: vec![] },
+            })),
+        })
+        .chain(iter::once(PolicyCreationParams {
+            name: Some("global-forbid-meta".to_owned()),
+            effect: Effect::Forbid,
+            principal: None,
+            actions: vec![
+                ActionName::CreatePolicy,
+                ActionName::UpdatePolicy,
+                ActionName::ArchivePolicy,
+                ActionName::DeletePolicy,
+            ],
+            resource: Some(ResourceConstraint::Meta(MetaResourceConstraint::Any {
+                filter: MetaResourceFilter::Any {
+                    filters: vec![
+                        MetaResourceFilter::HasAction {
+                            action: ActionName::CreateWeb,
+                        },
+                        MetaResourceFilter::HasAction {
+                            action: ActionName::DeletePolicy,
+                        },
+                        MetaResourceFilter::HasAction {
+                            action: ActionName::ViewEntityType,
+                        },
+                        MetaResourceFilter::HasAction {
+                            action: ActionName::ViewPropertyType,
+                        },
+                        MetaResourceFilter::HasAction {
+                            action: ActionName::ViewDataType,
+                        },
+                    ],
+                },
+            })),
+        }))
 }
 
 fn global_instantiate_policies() -> impl Iterator<Item = PolicyCreationParams> {
@@ -428,11 +494,32 @@ fn global_archive_entity_policies() -> impl Iterator<Item = PolicyCreationParams
 }
 
 pub(crate) fn global_policies() -> impl Iterator<Item = PolicyCreationParams> {
-    global_instantiate_policies()
+    global_meta_policies()
+        .chain(global_instantiate_policies())
         .chain(global_view_entity_policies())
         .chain(global_view_ontology_policies())
         .chain(global_update_entity_policies())
         .chain(global_archive_entity_policies())
+}
+
+fn web_meta_admin_policies(role: &WebRole) -> impl Iterator<Item = PolicyCreationParams> {
+    iter::once(PolicyCreationParams {
+        name: Some("default-web-meta".to_owned()),
+        effect: Effect::Permit,
+        principal: Some(PrincipalConstraint::Role {
+            role: RoleId::Web(role.id),
+            actor_type: None,
+        }),
+        actions: vec![
+            ActionName::CreatePolicy,
+            ActionName::UpdatePolicy,
+            ActionName::ArchivePolicy,
+        ],
+        resource: Some(ResourceConstraint::Meta(MetaResourceConstraint::Web {
+            web_id: role.web_id,
+            filter: MetaResourceFilter::All { filters: vec![] },
+        })),
+    })
 }
 
 fn web_create_entity_policies(role: &WebRole) -> impl Iterator<Item = PolicyCreationParams> {
@@ -690,12 +777,16 @@ fn web_crud_ontology_policies(role: &WebRole) -> impl Iterator<Item = PolicyCrea
 
 // TODO: Returning an iterator causes a borrow checker error
 pub(crate) fn web_policies(role: &WebRole) -> Vec<PolicyCreationParams> {
-    web_create_entity_policies(role)
+    let mut policies = web_create_entity_policies(role)
         .chain(web_view_entity_policies(role))
         .chain(web_update_entity_policies(role))
         .chain(web_archive_entity_policies(role))
         .chain(web_crud_ontology_policies(role))
-        .collect()
+        .collect::<Vec<_>>();
+    if role.name == RoleName::Administrator {
+        policies.extend(web_meta_admin_policies(role));
+    }
+    policies
 }
 
 fn instance_admins_view_entity_policy(
@@ -895,17 +986,17 @@ impl PostgresStore<Transaction<'_>> {
         }
 
         for policy_id in policies_to_remove {
-            self.archive_policy_by_id(authenticated_actor.into(), policy_id)
+            self.archive_policy_from_database(policy_id)
                 .await
                 .change_context(EnsureSystemPoliciesError::RemoveOldPolicyFailed)?;
         }
         for policy in policies_to_add {
-            self.create_policy(authenticated_actor.into(), policy)
+            self.insert_policy_into_database(&policy)
                 .await
                 .change_context(EnsureSystemPoliciesError::AddRequiredPoliciesFailed)?;
         }
         for (policy_id, operations) in policies_to_update {
-            self.update_policy_by_id(authenticated_actor.into(), policy_id, &operations)
+            self.update_policy_in_database(policy_id, &operations)
                 .await
                 .change_context(EnsureSystemPoliciesError::UpdatePolicyFailed)?;
         }

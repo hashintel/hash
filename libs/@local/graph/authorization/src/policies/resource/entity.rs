@@ -79,6 +79,7 @@ impl TryFrom<PolicyExpressionTree> for EntityResourceFilter {
             condition @ (PolicyExpressionTree::Is(_)
             | PolicyExpressionTree::In(_)
             | PolicyExpressionTree::BaseUrl(_)
+            | PolicyExpressionTree::HasAction(_)
             | PolicyExpressionTree::OntologyTypeVersion(_)) => {
                 Err(Report::new(InvalidEntityResourceFilter(condition)))
             }

@@ -153,6 +153,7 @@ impl TryFrom<PolicyExpressionTree> for DataTypeResourceFilter {
             | PolicyExpressionTree::In(_)
             | PolicyExpressionTree::IsOfType(_)
             | PolicyExpressionTree::IsOfBaseType(_)
+            | PolicyExpressionTree::HasAction(_)
             | PolicyExpressionTree::CreatedByPrincipal) => {
                 Err(Report::new(InvalidDataTypeResourceFilter(condition)))
             }
