@@ -6,7 +6,6 @@ use criterion_macro::criterion;
 use either::Either;
 use error_stack::Report;
 use hash_graph_api::rest::entity::{GetEntitiesRequest, GetEntitySubgraphRequest};
-use hash_graph_authorization::{backend::SpiceDbOpenApi, zanzibar::ZanzibarClient};
 use hash_graph_postgres_store::{
     Environment, load_env,
     store::{
@@ -372,23 +371,8 @@ fn bench_json_queries(crit: &mut Criterion) {
         ))
         .expect("pool should be able to be created");
 
-    let spicedb_client = SpiceDbOpenApi::new(
-        format!(
-            "{}:{}",
-            env::var("HASH_SPICEDB_HOST").unwrap_or_else(|_| "localhost".to_owned()),
-            env::var("HASH_SPICEDB_HTTP_PORT")
-                .map(|port| {
-                    port.parse::<u16>()
-                        .unwrap_or_else(|_| panic!("{port} is not a valid port"))
-                })
-                .unwrap_or(8443)
-        ),
-        Some(&env::var("HASH_SPICEDB_GRPC_PRESHARED_KEY").unwrap_or_else(|_| "secret".to_owned())),
-    )
-    .expect("SpiceDB client should be able to be instantiated");
-
     let store = runtime
-        .block_on(pool.acquire(ZanzibarClient::new(spicedb_client), None))
+        .block_on(pool.acquire(None))
         .expect("pool should be able to acquire store");
 
     for (query_type, requests) in groups {

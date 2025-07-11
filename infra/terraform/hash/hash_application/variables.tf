@@ -209,29 +209,3 @@ variable "temporal_port" {
   default     = "7233"
   description = "The port of the Temporal cluster to connect to."
 }
-
-variable "spicedb_image" {
-  type = object({
-    name    = string
-    version = string
-  })
-  description = "URL of the docker image for SpiceDB"
-}
-
-variable "spicedb_migration_env_vars" {
-  type = list(object({
-    name   = string,
-    secret = bool,
-    value  = string
-  }))
-  description = "A list of environment variables to save as system parameters and inject into the SpiceDB migration step"
-}
-
-variable "spicedb_env_vars" {
-  type = list(object({
-    name   = string,
-    secret = bool,
-    value  = string
-  }))
-  description = "A list of environment variables to save as system parameters and inject into the SpiceDB service"
-}

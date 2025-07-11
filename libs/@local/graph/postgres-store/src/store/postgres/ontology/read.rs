@@ -58,7 +58,7 @@ pub struct OntologyEdgeTraversal<L, R> {
     pub traversal_interval: RightBoundedTemporalInterval<VariableAxis>,
 }
 
-impl<C: AsClient, A: Send + Sync> PostgresStore<C, A> {
+impl<C: AsClient> PostgresStore<C> {
     #[tracing::instrument(level = "trace", skip(self, filter))]
     pub(crate) async fn read_closed_schemas<'f>(
         &self,

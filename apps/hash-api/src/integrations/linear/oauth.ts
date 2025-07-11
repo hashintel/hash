@@ -15,7 +15,6 @@ import {
   frontendUrl,
 } from "@local/hash-isomorphic-utils/environment";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
-import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { LinearIntegrationPropertiesWithMetadata } from "@local/hash-isomorphic-utils/system-types/linearintegration";
 import type { RequestHandler } from "express";
@@ -252,16 +251,6 @@ export const oAuthLinearCallback: RequestHandler<
         webId: userAccountId as WebId,
         entityUuid,
         properties: linearIntegrationProperties,
-        relationships: [
-          ...createDefaultAuthorizationRelationships(authentication),
-          {
-            relation: "editor",
-            subject: {
-              kind: "account",
-              subjectId: linearBotAccountId,
-            },
-          },
-        ],
       },
     );
 

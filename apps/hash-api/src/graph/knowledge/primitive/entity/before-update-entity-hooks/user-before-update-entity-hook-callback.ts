@@ -1,4 +1,4 @@
-import type { ActorEntityUuid, WebId } from "@blockprotocol/type-system";
+import type { ActorEntityUuid } from "@blockprotocol/type-system";
 import {
   getDefinedPropertyFromPatchesGetter,
   isValueRemovedByPatches,
@@ -12,7 +12,6 @@ import { ApolloError, UserInputError } from "apollo-server-express";
 
 import { userHasAccessToHash } from "../../../../../shared/user-has-access-to-hash";
 import type { ImpureGraphContext } from "../../../../context-types";
-import { modifyWebAuthorizationRelationships } from "../../../../ontology/primitive/util";
 import { systemAccountId } from "../../../../system-account";
 import {
   shortnameContainsInvalidCharacter,
@@ -143,41 +142,6 @@ export const userBeforeEntityUpdateHookCallback: BeforeUpdateEntityHookCallback 
         context.graphApi,
         { actorId: systemAccountId },
         { actorId: user.accountId, actorGroupId: user.accountId },
-      );
-
-      await modifyWebAuthorizationRelationships(
-        context,
-        { actorId: systemAccountId },
-        [
-          {
-            operation: "delete",
-            relationship: {
-              subject: {
-                kind: "account",
-                subjectId: systemAccountId,
-              },
-              resource: {
-                kind: "web",
-                resourceId: user.accountId as WebId,
-              },
-              relation: "owner",
-            },
-          },
-          {
-            operation: "create",
-            relationship: {
-              subject: {
-                kind: "account",
-                subjectId: user.accountId,
-              },
-              resource: {
-                kind: "web",
-                resourceId: user.accountId as WebId,
-              },
-              relation: "owner",
-            },
-          },
-        ],
       );
 
       await removeActorGroupAdministrator(

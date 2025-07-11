@@ -6,7 +6,6 @@ use axum::{
     response::{IntoResponse as _, Response},
 };
 use error_stack::Report;
-use hash_graph_authorization::backend::PermissionAssertion;
 use hash_graph_postgres_store::store::error::BaseUrlAlreadyExists;
 use hash_graph_store::entity::EntityValidationReport;
 use hash_status::{Status, StatusCode};
@@ -47,9 +46,7 @@ where
         .copied()
         .or_else(|| report.request_value::<StatusCode>().next())
         .unwrap_or_else(|| {
-            if report.contains::<PermissionAssertion>() {
-                StatusCode::PermissionDenied
-            } else if report.contains::<BaseUrlAlreadyExists>() {
+            if report.contains::<BaseUrlAlreadyExists>() {
                 StatusCode::AlreadyExists
             } else {
                 StatusCode::Unknown

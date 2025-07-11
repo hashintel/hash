@@ -8,7 +8,6 @@ import { getFlowRunEntityById } from "@local/hash-backend-utils/flows";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
 import { mapFlowRunToEntityProperties } from "@local/hash-isomorphic-utils/flows/mappings";
 import type { LocalFlowRun } from "@local/hash-isomorphic-utils/flows/types";
-import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { FlowRun } from "@local/hash-isomorphic-utils/system-types/shared";
 
@@ -66,8 +65,6 @@ export const persistFlowActivity = async (
       properties: flowRunProperties,
       provenance,
       draft: false,
-      relationships:
-        createDefaultAuthorizationRelationships(userAuthentication),
     });
   }
 };

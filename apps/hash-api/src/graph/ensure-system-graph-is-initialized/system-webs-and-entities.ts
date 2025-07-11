@@ -263,33 +263,6 @@ export const ensureSystemEntitiesExist = async (params: {
       actorId: aiAssistantAccountId,
       actorGroupId: hashWebId,
     });
-    await context.graphApi.modifyWebAuthorizationRelationships(
-      systemAccountId,
-      [
-        {
-          operation: "create",
-          resource: hashWebId,
-          relationAndSubject: {
-            subject: {
-              kind: "account",
-              subjectId: aiAssistantAccountId,
-            },
-            relation: "entityCreator",
-          },
-        },
-        {
-          operation: "create",
-          resource: hashWebId,
-          relationAndSubject: {
-            subject: {
-              kind: "account",
-              subjectId: aiAssistantAccountId,
-            },
-            relation: "entityEditor",
-          },
-        },
-      ],
-    );
 
     const instantiationPolicyId = await createPolicy(
       context.graphApi,

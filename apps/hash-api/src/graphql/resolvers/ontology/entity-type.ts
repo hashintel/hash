@@ -7,7 +7,6 @@ import type { UserPermissionsOnEntityType } from "@local/hash-graph-sdk/authoriz
 import type { SerializedSubgraph } from "@local/hash-graph-sdk/entity";
 import {
   currentTimeInstantTemporalAxes,
-  defaultEntityTypeAuthorizationRelationships,
   fullTransactionTimeAxis,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
@@ -55,7 +54,6 @@ export const createEntityTypeResolver: ResolverFn<
   const createdEntityType = await createEntityType(context, authentication, {
     webId: webId ?? (user.accountId as WebId),
     schema: entityType,
-    relationships: defaultEntityTypeAuthorizationRelationships,
   });
 
   return createdEntityType;
@@ -198,7 +196,6 @@ export const updateEntityTypeResolver: ResolverFn<
     {
       entityTypeId: params.entityTypeId,
       schema: params.updatedEntityType,
-      relationships: defaultEntityTypeAuthorizationRelationships,
     },
   );
 

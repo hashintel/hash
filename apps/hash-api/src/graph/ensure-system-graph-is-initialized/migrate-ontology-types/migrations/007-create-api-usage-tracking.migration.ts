@@ -456,31 +456,6 @@ const migrate: MigrationFunction = async ({
         },
       },
       webId: hashWebId,
-      relationships: [
-        {
-          // Let the system account administer the service entities
-          relation: "administrator",
-          subject: {
-            kind: "account",
-            subjectId: authentication.actorId,
-          },
-        },
-        {
-          // Let HASH org admins administer the service feature entities
-          relation: "setting",
-          subject: {
-            kind: "setting",
-            subjectId: "administratorFromWeb",
-          },
-        },
-        {
-          // Let everyone view the service feature entities
-          relation: "viewer",
-          subject: {
-            kind: "public",
-          },
-        },
-      ],
     });
   }
 

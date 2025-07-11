@@ -30,19 +30,9 @@ use alloc::borrow::Cow;
 use std::collections::{HashMap, HashSet};
 
 use error_stack::{Report, ResultExt as _};
-use hash_graph_authorization::{
-    AuthorizationApi, NoAuthorization,
-    policies::{
-        principal::actor::AuthenticatedActor,
-        store::{PolicyStore as _, PrincipalStore as _},
-    },
-    schema::{
-        DataTypeRelationAndSubject, DataTypeViewerSubject, EntityRelationAndSubject,
-        EntityTypeRelationAndSubject, EntityTypeSetting, EntityTypeSettingSubject,
-        EntityTypeViewerSubject, PropertyTypeRelationAndSubject, PropertyTypeSetting,
-        PropertyTypeSettingSubject, PropertyTypeViewerSubject,
-    },
-    zanzibar::Consistency,
+use hash_graph_authorization::policies::{
+    principal::actor::AuthenticatedActor,
+    store::{PolicyStore as _, PrincipalStore as _},
 };
 use hash_graph_postgres_store::{
     Environment, load_env,
@@ -101,51 +91,14 @@ use type_system::{
     provenance::{OriginProvenance, OriginType},
 };
 
-pub struct DatabaseTestWrapper<A: AuthorizationApi> {
+pub struct DatabaseTestWrapper {
     _pool: PostgresStorePool,
-    connection: <PostgresStorePool as StorePool>::Store<'static, A>,
+    connection: <PostgresStorePool as StorePool>::Store<'static>,
 }
 
-pub struct DatabaseApi<'pool, A: AuthorizationApi> {
-    store: PostgresStore<Transaction<'pool>, A>,
+pub struct DatabaseApi<'pool> {
+    store: PostgresStore<Transaction<'pool>>,
     account_id: ActorEntityUuid,
-}
-
-const fn data_type_relationships() -> [DataTypeRelationAndSubject; 1] {
-    [DataTypeRelationAndSubject::Viewer {
-        subject: DataTypeViewerSubject::Public,
-        level: 0,
-    }]
-}
-
-const fn property_type_relationships() -> [PropertyTypeRelationAndSubject; 2] {
-    [
-        PropertyTypeRelationAndSubject::Setting {
-            subject: PropertyTypeSettingSubject::Setting {
-                id: PropertyTypeSetting::UpdateFromWeb,
-            },
-            level: 0,
-        },
-        PropertyTypeRelationAndSubject::Viewer {
-            subject: PropertyTypeViewerSubject::Public,
-            level: 0,
-        },
-    ]
-}
-
-const fn entity_type_relationships() -> [EntityTypeRelationAndSubject; 2] {
-    [
-        EntityTypeRelationAndSubject::Setting {
-            subject: EntityTypeSettingSubject::Setting {
-                id: EntityTypeSetting::UpdateFromWeb,
-            },
-            level: 0,
-        },
-        EntityTypeRelationAndSubject::Viewer {
-            subject: EntityTypeViewerSubject::Public,
-            level: 0,
-        },
-    ]
 }
 
 pub fn init_logging() {
@@ -160,7 +113,7 @@ pub fn init_logging() {
         .try_init();
 }
 
-impl DatabaseTestWrapper<NoAuthorization> {
+impl DatabaseTestWrapper {
     pub async fn new() -> Self {
         load_env(Environment::Test);
         init_logging();
@@ -194,7 +147,7 @@ impl DatabaseTestWrapper<NoAuthorization> {
         .expect("could not connect to database");
 
         let connection = pool
-            .acquire_owned(NoAuthorization, None)
+            .acquire_owned(None)
             .await
             .expect("could not acquire a database connection");
 
@@ -205,13 +158,13 @@ impl DatabaseTestWrapper<NoAuthorization> {
     }
 }
 
-impl<A: AuthorizationApi> DatabaseTestWrapper<A> {
+impl DatabaseTestWrapper {
     pub async fn seed<D, P, E>(
         &mut self,
         data_types: D,
         property_types: P,
         entity_types: E,
-    ) -> Result<DatabaseApi<'_, &mut A>, Report<InsertionError>>
+    ) -> Result<DatabaseApi<'_>, Report<InsertionError>>
     where
         D: IntoIterator<Item = &'static str, IntoIter: Send> + Send,
         P: IntoIterator<Item = &'static str, IntoIter: Send> + Send,
@@ -255,7 +208,6 @@ impl<A: AuthorizationApi> DatabaseTestWrapper<A> {
                         ownership: OntologyOwnership::Local {
                             web_id: user_id.into(),
                         },
-                        relationships: data_type_relationships(),
                         conflict_behavior: ConflictBehavior::Skip,
                         provenance: ProvidedOntologyEditionProvenance {
                             actor_type: ActorType::User,
@@ -279,7 +231,6 @@ impl<A: AuthorizationApi> DatabaseTestWrapper<A> {
                         ownership: OntologyOwnership::Local {
                             web_id: user_id.into(),
                         },
-                        relationships: property_type_relationships(),
                         conflict_behavior: ConflictBehavior::Skip,
                         provenance: ProvidedOntologyEditionProvenance {
                             actor_type: ActorType::User,
@@ -302,7 +253,6 @@ impl<A: AuthorizationApi> DatabaseTestWrapper<A> {
                         ownership: OntologyOwnership::Local {
                             web_id: user_id.into(),
                         },
-                        relationships: entity_type_relationships(),
                         conflict_behavior: ConflictBehavior::Skip,
                         provenance: ProvidedOntologyEditionProvenance {
                             actor_type: ActorType::User,
@@ -321,15 +271,14 @@ impl<A: AuthorizationApi> DatabaseTestWrapper<A> {
     }
 }
 
-impl<A: AuthorizationApi> DataTypeStore for DatabaseApi<'_, A> {
-    async fn create_data_types<P, R>(
+impl DataTypeStore for DatabaseApi<'_> {
+    async fn create_data_types<P>(
         &mut self,
         actor_id: ActorEntityUuid,
         params: P,
     ) -> Result<Vec<DataTypeMetadata>, Report<InsertionError>>
     where
-        P: IntoIterator<Item = CreateDataTypeParams<R>, IntoIter: Send> + Send,
-        R: IntoIterator<Item = DataTypeRelationAndSubject> + Send + Sync,
+        P: IntoIterator<Item = CreateDataTypeParams, IntoIter: Send> + Send,
     {
         self.store.create_data_types(actor_id, params).await
     }
@@ -412,14 +361,13 @@ impl<A: AuthorizationApi> DataTypeStore for DatabaseApi<'_, A> {
         Ok(response)
     }
 
-    async fn update_data_types<P, R>(
+    async fn update_data_types<P>(
         &mut self,
         actor_id: ActorEntityUuid,
         params: P,
     ) -> Result<Vec<DataTypeMetadata>, Report<UpdateError>>
     where
-        P: IntoIterator<Item = UpdateDataTypesParams<R>, IntoIter: Send> + Send,
-        R: IntoIterator<Item = DataTypeRelationAndSubject> + Send + Sync,
+        P: IntoIterator<Item = UpdateDataTypesParams, IntoIter: Send> + Send,
     {
         self.store.update_data_types(actor_id, params).await
     }
@@ -475,15 +423,14 @@ impl<A: AuthorizationApi> DataTypeStore for DatabaseApi<'_, A> {
     }
 }
 
-impl<A: AuthorizationApi> PropertyTypeStore for DatabaseApi<'_, A> {
-    async fn create_property_types<P, R>(
+impl PropertyTypeStore for DatabaseApi<'_> {
+    async fn create_property_types<P>(
         &mut self,
         actor_id: ActorEntityUuid,
         params: P,
     ) -> Result<Vec<PropertyTypeMetadata>, Report<InsertionError>>
     where
-        P: IntoIterator<Item = CreatePropertyTypeParams<R>, IntoIter: Send> + Send,
-        R: IntoIterator<Item = PropertyTypeRelationAndSubject> + Send + Sync,
+        P: IntoIterator<Item = CreatePropertyTypeParams, IntoIter: Send> + Send,
     {
         self.store.create_property_types(actor_id, params).await
     }
@@ -572,14 +519,13 @@ impl<A: AuthorizationApi> PropertyTypeStore for DatabaseApi<'_, A> {
         Ok(response)
     }
 
-    async fn update_property_types<P, R>(
+    async fn update_property_types<P>(
         &mut self,
         actor_id: ActorEntityUuid,
         params: P,
     ) -> Result<Vec<PropertyTypeMetadata>, Report<UpdateError>>
     where
-        P: IntoIterator<Item = UpdatePropertyTypesParams<R>, IntoIter: Send> + Send,
-        R: IntoIterator<Item = PropertyTypeRelationAndSubject> + Send + Sync,
+        P: IntoIterator<Item = UpdatePropertyTypesParams, IntoIter: Send> + Send,
     {
         self.store.update_property_types(actor_id, params).await
     }
@@ -621,15 +567,14 @@ impl<A: AuthorizationApi> PropertyTypeStore for DatabaseApi<'_, A> {
     }
 }
 
-impl<A: AuthorizationApi> EntityTypeStore for DatabaseApi<'_, A> {
-    async fn create_entity_types<P, R>(
+impl EntityTypeStore for DatabaseApi<'_> {
+    async fn create_entity_types<P>(
         &mut self,
         actor_id: ActorEntityUuid,
         params: P,
     ) -> Result<Vec<EntityTypeMetadata>, Report<InsertionError>>
     where
-        P: IntoIterator<Item = CreateEntityTypeParams<R>, IntoIter: Send> + Send,
-        R: IntoIterator<Item = EntityTypeRelationAndSubject> + Send + Sync,
+        P: IntoIterator<Item = CreateEntityTypeParams, IntoIter: Send> + Send,
     {
         self.store.create_entity_types(actor_id, params).await
     }
@@ -737,14 +682,13 @@ impl<A: AuthorizationApi> EntityTypeStore for DatabaseApi<'_, A> {
         Ok(response)
     }
 
-    async fn update_entity_types<P, R>(
+    async fn update_entity_types<P>(
         &mut self,
         actor_id: ActorEntityUuid,
         params: P,
     ) -> Result<Vec<EntityTypeMetadata>, Report<UpdateError>>
     where
-        P: IntoIterator<Item = UpdateEntityTypesParams<R>, IntoIter: Send> + Send,
-        R: IntoIterator<Item = EntityTypeRelationAndSubject> + Send + Sync,
+        P: IntoIterator<Item = UpdateEntityTypesParams, IntoIter: Send> + Send,
     {
         self.store.update_entity_types(actor_id, params).await
     }
@@ -790,30 +734,21 @@ impl<A: AuthorizationApi> EntityTypeStore for DatabaseApi<'_, A> {
     }
 }
 
-impl<A> EntityStore for DatabaseApi<'_, A>
-where
-    A: AuthorizationApi,
-{
-    async fn create_entities<R>(
+impl EntityStore for DatabaseApi<'_> {
+    async fn create_entities(
         &mut self,
         actor_uuid: ActorEntityUuid,
-        params: Vec<CreateEntityParams<R>>,
-    ) -> Result<Vec<Entity>, Report<InsertionError>>
-    where
-        R: IntoIterator<Item = EntityRelationAndSubject> + Send + Sync,
-    {
+        params: Vec<CreateEntityParams>,
+    ) -> Result<Vec<Entity>, Report<InsertionError>> {
         self.store.create_entities(actor_uuid, params).await
     }
 
     async fn validate_entities(
         &self,
         actor_id: ActorEntityUuid,
-        consistency: Consistency<'_>,
         params: Vec<ValidateEntityParams<'_>>,
     ) -> Result<HashMap<usize, EntityValidationReport>, Report<QueryError>> {
-        self.store
-            .validate_entities(actor_id, consistency, params)
-            .await
+        self.store.validate_entities(actor_id, params).await
     }
 
     async fn get_entities(

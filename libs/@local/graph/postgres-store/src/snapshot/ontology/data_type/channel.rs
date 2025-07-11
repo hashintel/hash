@@ -10,7 +10,6 @@ use futures::{
     channel::mpsc::{self, Receiver, Sender},
     stream::{BoxStream, SelectAll, select_all},
 };
-use hash_graph_authorization::schema::DataTypeRelationAndSubject;
 use type_system::{
     Valid, Validator as _,
     ontology::{
@@ -43,7 +42,6 @@ pub struct DataTypeSender {
     metadata: OntologyTypeMetadataSender,
     schema: Sender<DataTypeRow>,
     conversions: Sender<Vec<DataTypeConversionsRow>>,
-    relations: Sender<(DataTypeUuid, Vec<DataTypeRelationAndSubject>)>,
 }
 
 // This is a direct wrapper around `Sink<mpsc::Sender<DataTypeRow>>` with and
@@ -60,9 +58,6 @@ impl Sink<DataTypeSnapshotRecord> for DataTypeSender {
         ready!(self.conversions.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not poll conversions sender")?;
-        ready!(self.relations.poll_ready_unpin(cx))
-            .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not poll relations sender")?;
 
         Poll::Ready(Ok(()))
     }
@@ -124,11 +119,6 @@ impl Sink<DataTypeSnapshotRecord> for DataTypeSender {
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send data conversions")?;
 
-        self.relations
-            .start_send_unpin((ontology_id, data_type.relations))
-            .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not send data relations")?;
-
         Ok(())
     }
 
@@ -141,9 +131,6 @@ impl Sink<DataTypeSnapshotRecord> for DataTypeSender {
         ready!(self.conversions.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not flush conversions sender")?;
-        ready!(self.relations.poll_flush_unpin(cx))
-            .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not flush relations sender")?;
 
         Poll::Ready(Ok(()))
     }
@@ -157,9 +144,6 @@ impl Sink<DataTypeSnapshotRecord> for DataTypeSender {
         ready!(self.conversions.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not close conversions sender")?;
-        ready!(self.relations.poll_close_unpin(cx))
-            .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not close relations sender")?;
 
         Poll::Ready(Ok(()))
     }
@@ -193,7 +177,6 @@ pub(crate) fn data_type_channel(
 ) -> (DataTypeSender, DataTypeReceiver) {
     let (schema_tx, schema_rx) = mpsc::channel(chunk_size);
     let (conversions_tx, conversions_rx) = mpsc::channel(chunk_size);
-    let (relations_tx, relations_rx) = mpsc::channel(chunk_size);
 
     (
         DataTypeSender {
@@ -201,7 +184,6 @@ pub(crate) fn data_type_channel(
             metadata: metadata_sender,
             schema: schema_tx,
             conversions: conversions_tx,
-            relations: relations_tx,
         },
         DataTypeReceiver {
             stream: select_all([
@@ -212,10 +194,6 @@ pub(crate) fn data_type_channel(
                 conversions_rx
                     .ready_chunks(chunk_size)
                     .map(|rows| DataTypeRowBatch::Conversions(rows.into_iter().flatten().collect()))
-                    .boxed(),
-                relations_rx
-                    .ready_chunks(chunk_size)
-                    .map(|relations| DataTypeRowBatch::Relations(relations.into_iter().collect()))
                     .boxed(),
                 embedding_rx
                     .ready_chunks(chunk_size)

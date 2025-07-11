@@ -1,12 +1,9 @@
 volumes:
   hash-vault-data:
 
+
 services:
   postgres:
-    environment:
-      HASH_SPICEDB_PG_USER: "${HASH_SPICEDB_PG_USER}"
-      HASH_SPICEDB_PG_PASSWORD: "${HASH_SPICEDB_PG_PASSWORD}"
-      HASH_SPICEDB_PG_DATABASE: "${HASH_SPICEDB_PG_DATABASE}"
     ports:
       - "${POSTGRES_PORT}:5432"
 
@@ -36,7 +33,7 @@ services:
       MINIO_ROOT_USER: ${AWS_S3_UPLOADS_ACCESS_KEY_ID}
       MINIO_ROOT_PASSWORD: ${AWS_S3_UPLOADS_SECRET_ACCESS_KEY}
       AWS_S3_UPLOADS_BUCKET: ${AWS_S3_UPLOADS_BUCKET}
-    entrypoint: >
+    entrypoint: |
       /bin/sh -c '
       mc config host add myminio http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD &&
       echo "Creating bucket $$AWS_S3_UPLOADS_BUCKET" &&
@@ -50,11 +47,7 @@ services:
         condition: on-failure
     healthcheck:
       # Port 14269 is the Jaeger admin endpoint
-      test:
-        [
-          "CMD-SHELL",
-          "wget --no-verbose --tries=1 --spider http://localhost:14269 || exit 1",
-        ]
+      test: [ "CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:14269 || exit 1" ]
       interval: 2s
       timeout: 2s
       retries: 10
@@ -92,39 +85,6 @@ services:
     command: >
       sh -c 'for i in $(seq 1 60); do wget -q --spider http://otel-collector:13133 && exit 0 || sleep 1; done; exit 1'
 
-  spicedb-migrate:
-    image: authzed/spicedb:v${HASH_SPICEDB_VERSION}
-    depends_on:
-      postgres:
-        condition: service_healthy
-    environment:
-      SPICEDB_DATASTORE_ENGINE: postgres
-      SPICEDB_DATASTORE_CONN_URI: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:${POSTGRES_PORT}/${HASH_SPICEDB_PG_DATABASE}"
-      SPICEDB_LOG_FORMAT: "console"
-    read_only: true
-    security_opt:
-      - no-new-privileges:true
-    command: migrate head
-
-  spicedb:
-    depends_on:
-      postgres:
-        condition: service_healthy
-      spicedb-migrate:
-        condition: service_completed_successfully
-      otel-collector-healthcheck:
-        condition: service_completed_successfully
-    ports:
-      - "${HASH_SPICEDB_HTTP_PORT}:8443"
-      - "${HASH_SPICEDB_GRPC_PORT}:50051"
-    environment:
-      SPICEDB_DATASTORE_ENGINE: postgres
-      SPICEDB_DATASTORE_CONN_URI: "postgres://${HASH_SPICEDB_PG_USER}:${HASH_SPICEDB_PG_PASSWORD}@postgres:${POSTGRES_PORT}/${HASH_SPICEDB_PG_DATABASE}?plan_cache_mode=force_custom_plan"
-      SPICEDB_GRPC_PRESHARED_KEY: "${HASH_SPICEDB_GRPC_PRESHARED_KEY}"
-      SPICEDB_OTEL_PROVIDER: "otlpgrpc"
-      SPICEDB_OTEL_ENDPOINT: "otel-collector:4317"
-      SPICEDB_OTEL_INSECURE: "True"
-
   kratos:
     depends_on:
       jaeger:
@@ -160,7 +120,7 @@ services:
     cap_add:
       - IPC_LOCK
     healthcheck:
-      test: ["CMD", "vault", "status"]
+      test: [ "CMD", "vault", "status" ]
       interval: 2s
       timeout: 2s
       retries: 10

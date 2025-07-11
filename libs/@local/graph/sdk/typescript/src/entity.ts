@@ -48,7 +48,7 @@ import type { Brand } from "@local/advanced-types/brand";
 import type { Subtype } from "@local/advanced-types/subtype";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import type {
-  CreateEntityRequest as GraphApiCreateEntityRequest,
+  CreateEntityParams as GraphApiCreateEntityParams,
   DiffEntityParams,
   Entity as GraphApiEntity,
   GetEntitiesRequest as GetEntitiesRequestGraphApi,
@@ -127,7 +127,7 @@ export type WebIdsMap = Record<WebId, number>;
 export type CreateEntityParameters<
   T extends TypeIdsAndPropertiesForEntity = TypeIdsAndPropertiesForEntity,
 > = Omit<
-  GraphApiCreateEntityRequest,
+  GraphApiCreateEntityParams,
   | "decisionTime"
   | "entityTypeIds"
   | "draft"

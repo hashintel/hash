@@ -12,7 +12,6 @@ import {
   removeActorGroupMember,
 } from "@local/hash-graph-sdk/principal/actor-group";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
-import { createOrgMembershipAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { IsMemberOf } from "@local/hash-isomorphic-utils/system-types/shared";
 
@@ -86,9 +85,6 @@ export const createOrgMembershipLinkEntity: ImpureGraphFunction<
       rightEntityId: orgEntityId,
     },
     entityTypeIds: [systemLinkEntityTypes.isMemberOf.linkEntityTypeId],
-    relationships: createOrgMembershipAuthorizationRelationships({
-      memberAccountId: userActorId,
-    }),
     policies: [
       {
         name: `org-membership-update-entity-${linkEntityEntityUuid}`,
