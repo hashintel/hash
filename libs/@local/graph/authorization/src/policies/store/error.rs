@@ -327,7 +327,7 @@ pub enum RemovePolicyError {
     BuildPolicyComponents,
     #[display("Could not create policy set")]
     PolicySetCreation,
-    #[display("Permission to view or update policy was denied")]
+    #[display("Permission to delete or archive policy was denied")]
     NotAuthorized,
     #[display("Store operation failed")]
     StoreError,
