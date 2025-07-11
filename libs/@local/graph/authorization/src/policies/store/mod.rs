@@ -144,7 +144,6 @@ pub struct PolicyFilter {
 #[cfg_attr(feature = "codegen", derive(specta::Type))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ResolvePoliciesParams<'a> {
-    pub actor: Option<ActorId>,
     pub actions: Cow<'a, [ActionName]>,
 }
 
