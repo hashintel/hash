@@ -306,6 +306,12 @@ pub enum CreatePolicyError {
     PolicyHasNoActions,
     #[display("Invalid principal constraint")]
     InvalidPrincipalConstraint,
+    #[display("Could not build policy components")]
+    BuildPolicyComponents,
+    #[display("Could not create policy set")]
+    PolicySetCreation,
+    #[display("Permission to create policy was denied")]
+    NotAuthorized,
     #[display("Store operation failed")]
     StoreError,
 }
@@ -317,6 +323,12 @@ impl Error for CreatePolicyError {}
 pub enum RemovePolicyError {
     #[display("Policy with ID `{id}` does not exist")]
     PolicyNotFound { id: PolicyId },
+    #[display("Could not build policy components")]
+    BuildPolicyComponents,
+    #[display("Could not create policy set")]
+    PolicySetCreation,
+    #[display("Permission to view or update policy was denied")]
+    NotAuthorized,
     #[display("Store operation failed")]
     StoreError,
 }
@@ -332,6 +344,12 @@ pub enum UpdatePolicyError {
     ActionNotFound { id: ActionName },
     #[display("No actions specified in policy")]
     PolicyHasNoActions,
+    #[display("Could not build policy components")]
+    BuildPolicyComponents,
+    #[display("Could not create policy set")]
+    PolicySetCreation,
+    #[display("Permission to update policy was denied")]
+    NotAuthorized,
     #[display("Store operation failed")]
     StoreError,
 }
@@ -341,10 +359,16 @@ impl Error for UpdatePolicyError {}
 #[derive(Debug, derive_more::Display)]
 #[display("Could not get policies for actor: {_variant}")]
 pub enum GetPoliciesError {
+    #[display("Actor with UUID `{actor_entity_uuid}` does not exist")]
+    ActorIdNotFound { actor_entity_uuid: ActorEntityUuid },
     #[display("Actor with ID `{actor_id}` does not exist")]
     ActorNotFound { actor_id: ActorId },
     #[display("Invalid principal constraint")]
     InvalidPrincipalConstraint,
+    #[display("Could not build policy components")]
+    BuildPolicyComponents,
+    #[display("Could not create policy set")]
+    PolicySetCreation,
     #[display("Store operation failed")]
     StoreError,
 }

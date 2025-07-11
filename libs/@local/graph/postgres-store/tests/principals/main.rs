@@ -20,13 +20,13 @@ use hash_graph_authorization::policies::store::{PolicyStore as _, PrincipalStore
 use hash_graph_postgres_store::{
     Environment, load_env,
     store::{
-        AsClient, DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, PostgresStore,
-        PostgresStorePool, PostgresStoreSettings, error::StoreError,
+        DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, PostgresStore, PostgresStorePool,
+        PostgresStoreSettings, error::StoreError,
     },
 };
 use hash_graph_store::pool::StorePool;
 use hash_telemetry::logging::env_filter;
-use tokio_postgres::NoTls;
+use tokio_postgres::{NoTls, Transaction};
 use type_system::principal::actor::ActorId;
 
 pub fn init_logging() {
@@ -92,7 +92,7 @@ impl DatabaseTestWrapper {
 
     pub(crate) async fn seed(
         &mut self,
-    ) -> Result<(PostgresStore<impl AsClient>, ActorId), Report<StoreError>> {
+    ) -> Result<(PostgresStore<Transaction<'_>>, ActorId), Report<StoreError>> {
         let mut transaction = self.connection.transaction().await?;
 
         transaction

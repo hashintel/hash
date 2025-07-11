@@ -11,7 +11,10 @@ use type_system::{
         VersionedUrl, data_type::DataTypeUuid, entity_type::EntityTypeUuid,
         property_type::PropertyTypeUuid,
     },
-    principal::{actor::ActorId, actor_group::WebId},
+    principal::{
+        actor::{ActorEntityUuid, ActorId},
+        actor_group::WebId,
+    },
 };
 
 use super::{
@@ -20,7 +23,7 @@ use super::{
     principal::actor::AuthenticatedActor,
     resource::{
         DataTypeResource, DataTypeResourceConstraint, EntityResource, EntityResourceConstraint,
-        EntityTypeResource, EntityTypeResourceConstraint, PropertyTypeResource,
+        EntityTypeResource, EntityTypeResourceConstraint, PolicyMetaResource, PropertyTypeResource,
         PropertyTypeResourceConstraint, ResourceConstraint,
     },
     store::{PolicyStore, PrincipalStore, ResolvePoliciesParams, error::ContextCreationError},
@@ -309,7 +312,7 @@ impl<'a, S> PolicyComponentsBuilder<'a, S> {
     pub fn new(store: &'a S) -> Self {
         Self {
             store,
-            actor: AuthenticatedActor::Public,
+            actor: AuthenticatedActor::Uuid(ActorEntityUuid::public_actor()),
             context: ContextBuilder::default(),
             entity_type_ids: HashSet::new(),
             property_type_ids: HashSet::new(),
@@ -530,6 +533,16 @@ impl<'a, S> PolicyComponentsBuilder<'a, S> {
             web_id,
         });
     }
+
+    pub fn add_policy_meta_resource(&mut self, policy: &PolicyMetaResource<'_>) {
+        self.context.add_policy_meta_resource(policy);
+    }
+
+    #[must_use]
+    pub fn with_policy_meta_resource(mut self, policy: &PolicyMetaResource<'_>) -> Self {
+        self.add_policy_meta_resource(policy);
+        self
+    }
 }
 
 impl<S> IntoFuture for PolicyComponentsBuilder<'_, S>
@@ -544,7 +557,6 @@ where
     fn into_future(mut self) -> Self::IntoFuture {
         async move {
             let actor_id = match self.actor {
-                AuthenticatedActor::Public => None,
                 AuthenticatedActor::Id(actor_id) => Some(actor_id),
                 AuthenticatedActor::Uuid(actor_uuid) => self
                     .store
@@ -656,9 +668,8 @@ where
             } else {
                 self.store
                     .resolve_policies_for_actor(
-                        self.actor,
+                        actor_id.into(),
                         ResolvePoliciesParams {
-                            actor: actor_id,
                             actions: Cow::Borrowed(&actions),
                         },
                     )
@@ -875,7 +886,8 @@ mod tests {
             ResourceConstraint::Entity(EntityResourceConstraint::Exact { id }) => {
                 assert_eq!(*id, entity_uuid);
             }
-            ResourceConstraint::Web { .. }
+            ResourceConstraint::Meta(_)
+            | ResourceConstraint::Web { .. }
             | ResourceConstraint::Entity(_)
             | ResourceConstraint::EntityType(_)
             | ResourceConstraint::PropertyType(_)

@@ -1,5 +1,5 @@
 use alloc::{borrow::Cow, sync::Arc};
-use core::error::Error;
+use core::{error::Error, str::FromStr};
 
 use cedar_policy_core::ast;
 use error_stack::{Report, ResultExt as _, TryReportTupleExt as _};
@@ -11,7 +11,9 @@ use type_system::{
 };
 
 use super::FromCedarEntityUId as _;
-use crate::policies::{ResourceId, cedar::FromCedarEntityId as _, resource::EntityTypeId};
+use crate::policies::{
+    ResourceId, action::ActionName, cedar::FromCedarEntityId as _, resource::EntityTypeId,
+};
 
 #[derive(Debug)]
 pub enum PolicyExpressionTree {
@@ -23,6 +25,7 @@ pub enum PolicyExpressionTree {
     In(WebId),
     BaseUrl(BaseUrl),
     OntologyTypeVersion(OntologyTypeVersion),
+    HasAction(ActionName),
     IsOfType(VersionedUrl),
     IsOfBaseType(BaseUrl),
     CreatedByPrincipal,
@@ -143,6 +146,7 @@ impl PolicyExpressionTree {
             | Self::In(_)
             | Self::BaseUrl(_)
             | Self::OntologyTypeVersion(_)
+            | Self::HasAction(_)
             | Self::IsOfType(_)
             | Self::IsOfBaseType(_)
             | Self::CreatedByPrincipal) => vec![expression],
@@ -156,6 +160,7 @@ impl PolicyExpressionTree {
             | Self::In(_)
             | Self::BaseUrl(_)
             | Self::OntologyTypeVersion(_)
+            | Self::HasAction(_)
             | Self::IsOfType(_)
             | Self::IsOfBaseType(_)
             | Self::CreatedByPrincipal) => all.push(expression),
@@ -184,6 +189,7 @@ impl PolicyExpressionTree {
             | Self::In(_)
             | Self::BaseUrl(_)
             | Self::OntologyTypeVersion(_)
+            | Self::HasAction(_)
             | Self::IsOfType(_)
             | Self::IsOfBaseType(_)
             | Self::CreatedByPrincipal) => vec![expression],
@@ -197,6 +203,7 @@ impl PolicyExpressionTree {
             | Self::In(_)
             | Self::BaseUrl(_)
             | Self::OntologyTypeVersion(_)
+            | Self::HasAction(_)
             | Self::IsOfType(_)
             | Self::IsOfBaseType(_)
             | Self::CreatedByPrincipal) => any.push(expression),
@@ -394,6 +401,7 @@ impl PolicyExpressionTree {
         rhs: &Arc<ast::Expr>,
     ) -> Result<Self, Report<ParseBinaryExpressionError>> {
         enum AttributeType {
+            HasAction,
             IsOfType,
             IsOfBaseType,
         }
@@ -401,6 +409,7 @@ impl PolicyExpressionTree {
         let attribute_type = match lhs.expr_kind() {
             ast::ExprKind::GetAttr { expr, attr } => {
                 let attr_type = match attr.as_str() {
+                    "actions" => Ok(AttributeType::HasAction),
                     "entity_types" => Ok(AttributeType::IsOfType),
                     "entity_base_types" => Ok(AttributeType::IsOfBaseType),
                     _ => Err(Report::new(ParseGetAttrExpressionError::InvalidAttribute(
@@ -445,6 +454,11 @@ impl PolicyExpressionTree {
                 BaseUrl::new(base_url.to_string())
                     .change_context(ParseBinaryExpressionError::Right)
                     .map(Self::IsOfBaseType)
+            }
+            (AttributeType::HasAction, ast::ExprKind::Lit(ast::Literal::String(action))) => {
+                ActionName::from_str(action)
+                    .change_context(ParseBinaryExpressionError::Right)
+                    .map(Self::HasAction)
             }
             _ => Err(Report::new(ParseExpressionError::Unexpected)
                 .change_context(ParseBinaryExpressionError::Right)),

@@ -21,7 +21,6 @@ use crate::policies::{
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum AuthenticatedActor {
-    Public,
     Id(ActorId),
     Uuid(ActorEntityUuid),
 }
@@ -29,7 +28,6 @@ pub enum AuthenticatedActor {
 impl From<AuthenticatedActor> for ActorEntityUuid {
     fn from(authenticated_actor: AuthenticatedActor) -> Self {
         match authenticated_actor {
-            AuthenticatedActor::Public => Self::public_actor(),
             AuthenticatedActor::Id(actor_id) => Self::new(actor_id),
             AuthenticatedActor::Uuid(actor_uuid) => actor_uuid,
         }
@@ -39,6 +37,12 @@ impl From<AuthenticatedActor> for ActorEntityUuid {
 impl From<ActorId> for AuthenticatedActor {
     fn from(actor_id: ActorId) -> Self {
         Self::Id(actor_id)
+    }
+}
+
+impl From<Option<ActorId>> for AuthenticatedActor {
+    fn from(actor_id: Option<ActorId>) -> Self {
+        actor_id.map_or_else(|| Self::Uuid(ActorEntityUuid::public_actor()), Self::Id)
     }
 }
 
