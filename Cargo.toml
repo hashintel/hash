@@ -285,7 +285,7 @@ uuid                           = { version = "=1.17.0", default-features = false
 walkdir                        = { version = "=2.5.0", default-features = false }
 wasm-bindgen                   = { version = "=0.2.100", default-features = false }
 wasm-bindgen-test              = { version = "=0.3.50", default-features = false }
-winnow                         = { version = "=0.7.11", default-features = false }
+winnow                         = { version = "=0.7.12", default-features = false }
 
 [profile.dev]
 # TODO: Use `codegen-backend = "cranelift"`
