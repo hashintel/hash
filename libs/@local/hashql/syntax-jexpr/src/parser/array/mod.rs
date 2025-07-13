@@ -10,7 +10,10 @@ use hashql_ast::node::{
 };
 
 use self::{
-    error::{empty, labeled_argument_invalid_identifier, labeled_argument_missing_prefix},
+    error::{
+        empty, labeled_argument_invalid_identifier, labeled_argument_missing_prefix,
+        labeled_arguments_length_mismatch,
+    },
     visit::visit_array,
 };
 use super::{error::ParserDiagnostic, string::parse_ident_labelled_argument_from_string};
@@ -61,7 +64,7 @@ fn parse_labelled_argument<'heap>(
 
     let mut labeled_arguments = Vec::new();
 
-    visit_object(state, token, |state, key| {
+    let range = visit_object(state, token, |state, key| {
         if !key.value.starts_with(':') {
             return Err(
                 labeled_argument_missing_prefix(state.insert_range(key.span), key.value)
@@ -98,6 +101,19 @@ fn parse_labelled_argument<'heap>(
 
         Ok(())
     })?;
+
+    if labeled_arguments.len() != 1 {
+        return Err(labeled_arguments_length_mismatch(
+            state.insert_range(range),
+            labeled_arguments
+                .get(1..)
+                .into_iter()
+                .flatten()
+                .map(|argument| argument.span),
+            labeled_arguments.len(),
+        )
+        .map_category(From::from));
+    }
 
     Ok(Some(labeled_arguments))
 }
@@ -209,6 +225,38 @@ mod tests {
             description => "Parses a function call with labeled arguments"
         }, {
             assert_snapshot!(insta::_macro_support::AutoName, result.dump, &result.input);
+        });
+    }
+
+    #[test]
+    fn parse_function_call_with_multiple_labeled_arguments() {
+        // Function call with labeled arguments
+        let error = run_array(
+            r##"
+                ["greet",
+                    {":age": {"#literal": 30},
+                     ":gender": {"#literal": "non-binary"}
+                    }
+                ]"##,
+        )
+        .expect_err("should fail to parse");
+
+        with_settings!({
+            description => "Multiple labeled arguments cannot exist in a single object"
+        }, {
+            assert_snapshot!(insta::_macro_support::AutoName, error.diagnostic, &error.input);
+        });
+    }
+
+    #[test]
+    fn parse_function_call_with_empty_object() {
+        // Function call with labeled arguments
+        let error = run_array(r#"["greet", {}]"#).expect_err("should fail to parse");
+
+        with_settings!({
+            description => "Empty objects are not allowed"
+        }, {
+            assert_snapshot!(insta::_macro_support::AutoName, error.diagnostic, &error.input);
         });
     }
 
