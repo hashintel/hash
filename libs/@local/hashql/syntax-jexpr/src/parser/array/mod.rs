@@ -7,6 +7,7 @@ use hashql_ast::node::{
         call::{Argument, LabeledArgument},
     },
     id::NodeId,
+    path::{Path, PathSegment},
 };
 
 use self::{
@@ -27,6 +28,58 @@ use crate::{
     span::Span,
 };
 
+fn parse_labelled_argument_shorthand<'heap>(
+    state: &mut ParserState<'heap, '_>,
+) -> Result<Vec<LabeledArgument<'heap>>, ParserDiagnostic> {
+    let token = state
+        .advance(SyntaxKind::String)
+        .change_category(From::from)?;
+
+    let TokenKind::String(value) = token.kind else {
+        unreachable!()
+    };
+
+    let token_span = state.insert_range(token.span);
+    let key = match parse_ident_labelled_argument_from_string(state, token_span, &value) {
+        Ok(value) => value,
+        Err(error) => {
+            return Err(
+                labeled_argument_invalid_identifier(state.spans(), token_span, error)
+                    .map_category(From::from),
+            );
+        }
+    };
+
+    Ok(vec![LabeledArgument {
+        id: NodeId::PLACEHOLDER,
+        span: token_span,
+        label: key,
+        value: Argument {
+            id: NodeId::PLACEHOLDER,
+            span: token_span,
+            value: state.heap().boxed(Expr {
+                id: NodeId::PLACEHOLDER,
+                span: token_span,
+                kind: ExprKind::Path(Path {
+                    id: NodeId::PLACEHOLDER,
+                    span: token_span,
+                    rooted: false,
+                    segments: {
+                        let mut segments = state.heap().vec(Some(1));
+                        segments.push(PathSegment {
+                            id: NodeId::PLACEHOLDER,
+                            span: token_span,
+                            name: key,
+                            arguments: state.heap().vec(Some(0)),
+                        });
+                        segments
+                    },
+                }),
+            }),
+        },
+    }])
+}
+
 // Peek twice, we know if it's a labeled argument if the first token is `{` and the second a
 // string that starts with `:`.
 fn parse_labelled_argument<'heap>(
@@ -38,6 +91,12 @@ fn parse_labelled_argument<'heap>(
     else {
         return Ok(None);
     };
+
+    if let TokenKind::String(peek1) = &peek1.kind
+        && peek1.starts_with(':')
+    {
+        return parse_labelled_argument_shorthand(state).map(Some);
+    }
 
     if peek1.kind.syntax() != SyntaxKind::LBrace {
         return Ok(None);
@@ -220,6 +279,18 @@ mod tests {
             r##"["greet", {":name": {"#literal": "Alice"}}, {":age": {"#literal": 30}}]"##,
         )
         .expect("should parse successfully");
+
+        with_settings!({
+            description => "Parses a function call with labeled arguments"
+        }, {
+            assert_snapshot!(insta::_macro_support::AutoName, result.dump, &result.input);
+        });
+    }
+
+    #[test]
+    fn parse_function_call_with_labeled_arguments_shorthand() {
+        // Function call with labeled arguments
+        let result = run_array(r#"["greet", "age", ":name"]"#).expect("should parse successfully");
 
         with_settings!({
             description => "Parses a function call with labeled arguments"
