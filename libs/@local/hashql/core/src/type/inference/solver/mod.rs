@@ -966,6 +966,10 @@ impl<'env, 'heap> InferenceSolver<'env, 'heap> {
     ///
     /// Returns `true` if the constraint is satisfiable, `false` otherwise. When unsatisfiable,
     /// appropriate diagnostic errors are pushed to the solver's diagnostic collection.
+    #[expect(
+        clippy::useless_let_if_seq,
+        reason = "More satisfiable checks to be added later"
+    )]
     fn solve_constraints_satisfiable(
         &mut self,
         variable: Variable,
