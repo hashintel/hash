@@ -3864,7 +3864,7 @@ dependencies = [
  "hashql-eval",
  "hashql-hir",
  "hashql-syntax-jexpr",
- "indicatif 0.17.11",
+ "indicatif",
  "line-index",
  "nextest-filtering",
  "nextest-metadata",
@@ -4532,18 +4532,6 @@ dependencies = [
  "equivalent",
  "hashbrown 0.15.4",
  "serde",
-]
-
-[[package]]
-name = "indicatif"
-version = "0.17.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "183b3088984b400f4cfac3620d5e076c84da5364016b4f49473de574b2586235"
-dependencies = [
- "console 0.15.11",
- "number_prefix",
- "portable-atomic",
- "web-time",
 ]
 
 [[package]]
@@ -6041,12 +6029,6 @@ dependencies = [
  "hermit-abi",
  "libc",
 ]
-
-[[package]]
-name = "number_prefix"
-version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "830b246a0e5f20af87141b25c173cd1b609bd7779a4617d6ec582abaf90870f3"
 
 [[package]]
 name = "object"
@@ -9683,7 +9665,7 @@ version = "0.3.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8c714cc8fc46db04fcfddbd274c6ef59bebb1b435155984e7c6e89c3ce66f200"
 dependencies = [
- "indicatif 0.18.0",
+ "indicatif",
  "tracing",
  "tracing-core",
  "tracing-subscriber",
