@@ -188,7 +188,7 @@ mime                           = { version = "=0.3.17", default-features = false
 multiaddr                      = { version = "=0.18.2", default-features = false }
 multistream-select             = { version = "=0.13.0", default-features = false }
 napi                           = { version = "=2.16.17", default-features = false }
-napi-build                     = { version = "=2.2.1", default-features = false }
+napi-build                     = { version = "=2.2.2", default-features = false }
 napi-derive                    = { version = "=2.16.13", default-features = false }
 nextest-filtering              = { version = "=0.16.0", default-features = false }
 nextest-metadata               = { version = "=0.12.2", default-features = false }
