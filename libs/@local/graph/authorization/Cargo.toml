@@ -21,24 +21,23 @@ specta         = { workspace = true, public = true, optional = true, features = 
 hash-codec = { workspace = true, features = ["bytes"] }
 
 # Private third-party dependencies
-bytes                  = { workspace = true, optional = true }
-cedar-policy-core      = { workspace = true }
-cedar-policy-validator = { workspace = true }
-derive-where           = { workspace = true }
-derive_more            = { workspace = true, features = ["display", "error", "from"] }
-enum-iterator          = { workspace = true }
-futures                = { workspace = true }
-serde                  = { workspace = true, features = ["derive", "unstable"] }
-serde_json             = { workspace = true }
-serde_plain            = { workspace = true }
-simple-mermaid         = { workspace = true }
-smol_str               = { workspace = true }
-tokio                  = { workspace = true }
-tokio-util             = { workspace = true, features = ["io"] }
-tracing                = { workspace = true, features = ["attributes"] }
-trait-variant          = { workspace = true }
-utoipa                 = { workspace = true, optional = true }
-uuid                   = { workspace = true, features = ["v4"] }
+bytes             = { workspace = true, optional = true }
+cedar-policy-core = { workspace = true }
+derive-where      = { workspace = true }
+derive_more       = { workspace = true, features = ["display", "error", "from"] }
+enum-iterator     = { workspace = true }
+futures           = { workspace = true }
+serde             = { workspace = true, features = ["derive", "unstable"] }
+serde_json        = { workspace = true }
+serde_plain       = { workspace = true }
+simple-mermaid    = { workspace = true }
+smol_str          = { workspace = true }
+tokio             = { workspace = true }
+tokio-util        = { workspace = true, features = ["io"] }
+tracing           = { workspace = true, features = ["attributes"] }
+trait-variant     = { workspace = true }
+utoipa            = { workspace = true, optional = true }
+uuid              = { workspace = true, features = ["v4"] }
 
 [dev-dependencies]
 hash-codegen      = { workspace = true }

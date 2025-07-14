@@ -1265,22 +1265,6 @@ dependencies = [
 
 [[package]]
 name = "cargo-util-schemas"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e63d2780ac94487eb9f1fea7b0d56300abc9eb488800854ca217f102f5caccca"
-dependencies = [
- "semver",
- "serde",
- "serde-untagged",
- "serde-value",
- "thiserror 1.0.69",
- "toml 0.8.23",
- "unicode-xid",
- "url",
-]
-
-[[package]]
-name = "cargo-util-schemas"
 version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7dc1a6f7b5651af85774ae5a34b4e8be397d9cf4bc063b7e6dbd99a841837830"
@@ -1290,7 +1274,7 @@ dependencies = [
  "serde-untagged",
  "serde-value",
  "thiserror 2.0.12",
- "toml",
+ "toml 0.8.23",
  "unicode-xid",
  "url",
 ]
@@ -1311,28 +1295,13 @@ dependencies = [
 
 [[package]]
 name = "cargo_metadata"
-version = "0.20.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4f7835cfc6135093070e95eb2b53e5d9b5c403dc3a6be6040ee026270aa82502"
-dependencies = [
- "camino",
- "cargo-platform 0.2.0",
- "cargo-util-schemas 0.2.0",
- "semver",
- "serde",
- "serde_json",
- "thiserror 2.0.12",
-]
-
-[[package]]
-name = "cargo_metadata"
 version = "0.21.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5cfca2aaa699835ba88faf58a06342a314a950d2b9686165e038286c30316868"
 dependencies = [
  "camino",
  "cargo-platform 0.2.0",
- "cargo-util-schemas 0.8.2",
+ "cargo-util-schemas",
  "semver",
  "serde",
  "serde_json",
@@ -1367,11 +1336,10 @@ dependencies = [
 
 [[package]]
 name = "cedar-policy-core"
-version = "4.4.1"
+version = "4.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dd896075d493e8283e960c94cf85d85773dc3359cf948a5f5ea88a6f249e8665"
+checksum = "7dda1924b69cc47f602d839782f3a9c5369f545897276c20fec9e2026562142e"
 dependencies = [
- "chrono",
  "educe 0.6.0",
  "either",
  "itertools 0.14.0",
@@ -1383,29 +1351,6 @@ dependencies = [
  "ref-cast",
  "regex",
  "rustc_lexer",
- "serde",
- "serde_json",
- "serde_with",
- "smol_str",
- "stacker",
- "thiserror 2.0.12",
-]
-
-[[package]]
-name = "cedar-policy-validator"
-version = "4.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2f40762e669e4ec5a4b3a2b3d3aa2567d768aa74b735760f13197312c1150f69"
-dependencies = [
- "cedar-policy-core",
- "educe 0.6.0",
- "itertools 0.14.0",
- "lalrpop",
- "lalrpop-util",
- "lazy_static",
- "miette",
- "nonempty",
- "ref-cast",
  "serde",
  "serde_json",
  "serde_with",
@@ -3424,7 +3369,6 @@ version = "0.0.0"
 dependencies = [
  "bytes",
  "cedar-policy-core",
- "cedar-policy-validator",
  "derive-where",
  "derive_more 2.0.1",
  "enum-iterator",
@@ -3764,7 +3708,7 @@ dependencies = [
  "aws-sdk-s3",
  "aws-types",
  "bytes",
- "cargo_metadata 0.20.0",
+ "cargo_metadata 0.21.0",
  "clap",
  "clap_complete",
  "criterion",
