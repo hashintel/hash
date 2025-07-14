@@ -316,6 +316,20 @@ jobs:
             exit 1;
           fi
 
+      - name: Check Cargo.lock stability
+        if: ${{ success() || failure() }}
+        run: |
+          if ! cargo update --workspace --locked; then
+            echo ''
+            echo ''
+            echo 'ℹ️ ℹ️ ℹ️'
+            echo 'Changes were detected in Cargo.lock file after running `cargo update --workspace`.'
+            echo 'This makes runtime less stable, so should be avoided.'
+            echo 'Please run `cargo update --workspace` locally and commit Cargo.lock.'
+            echo 'ℹ️ ℹ️ ℹ️'
+            exit 1;
+          fi
+
       - name: Validate renovate config
         if: ${{ success() || failure() }}
         run: |
