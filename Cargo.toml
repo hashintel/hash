@@ -107,8 +107,8 @@ approx                         = { version = "=0.5.1", default-features = false 
 ariadne                        = { version = "=0.5.1", default-features = false }
 async-scoped                   = { version = "=0.9.0", default-features = false }
 async-trait                    = { version = "=0.1.88", default-features = false }
-aws-config                     = { version = "=1.8.0" }
-aws-sdk-s3                     = { version = "=1.93.0", default-features = false }
+aws-config                     = { version = "=1.8.1" }
+aws-sdk-s3                     = { version = "=1.96.0", default-features = false }
 aws-types                      = { version = "=1.3.7", default-features = false }
 axum                           = { version = "=0.7.5" }
 axum-core                      = { version = "=0.5.0" }
@@ -117,13 +117,13 @@ bumpalo                        = { version = "=3.17.0", default-features = false
 bytes                          = { version = "=1.10.1" }
 bytes-utils                    = { version = "=0.1.4", default-features = false }
 camino                         = { version = "=1.1.10", default-features = false }
-cargo_metadata                 = { version = "=0.20.0", default-features = false }
+cargo_metadata                 = { version = "=0.21.0", default-features = false }
 cedar-policy-core              = { version = "=4.4.1", default-features = false }
 cedar-policy-validator         = { version = "=4.4.1", default-features = false }
 circular-buffer                = { version = "=1.1.0", default-features = false }
-clap                           = { version = "=4.5.40", features = ["color", "error-context", "help", "std", "suggestions", "usage"] }
-clap_builder                   = { version = "=4.5.40", default-features = false, features = ["std"] }
-clap_complete                  = { version = "=4.5.54", default-features = false }
+clap                           = { version = "=4.5.41", features = ["color", "error-context", "help", "std", "suggestions", "usage"] }
+clap_builder                   = { version = "=4.5.41", default-features = false, features = ["std"] }
+clap_complete                  = { version = "=4.5.55", default-features = false }
 console_error_panic_hook       = { version = "=0.1.7", default-features = false }
 convert_case                   = { version = "=0.8.0", default-features = false }
 criterion                      = { version = "=0.6.0" }
@@ -153,7 +153,7 @@ futures-io                     = { version = "=0.3.31", default-features = false
 futures-sink                   = { version = "=0.3.31", default-features = false }
 futures-util                   = { version = "=0.3.31", default-features = false }
 globset                        = { version = "=0.4.16", default-features = false }
-guppy                          = { version = "=0.17.19", default-features = false }
+guppy                          = { version = "=0.17.20", default-features = false }
 hashbrown                      = { version = "=0.15.4", default-features = false, features = ["inline-more", "nightly"] }
 hifijson                       = { version = "=0.2.2", default-features = false }
 http                           = { version = "=1.3.1", default-features = false }
@@ -163,7 +163,7 @@ image                          = { version = "=0.25.6", default-features = false
 include_dir                    = { version = "=0.7.4", default-features = false }
 indicatif                      = { version = "=0.17.11", default-features = false }
 indoc                          = { version = "=2.0.6", default-features = false }
-inferno                        = { version = "=0.12.2", default-features = false }
+inferno                        = { version = "=0.12.3", default-features = false }
 insta                          = { version = "=1.43.1", default-features = false }
 iso8601-duration               = { version = "=0.2.0", default-features = false }
 itertools                      = { version = "=0.14.0", default-features = false }
@@ -198,7 +198,7 @@ opentelemetry-appender-tracing = { version = "=0.30.1", default-features = false
 opentelemetry-otlp             = { version = "=0.30.0", default-features = false }
 opentelemetry_sdk              = { version = "=0.30.0", default-features = false }
 orx-concurrent-vec             = { version = "=3.6.0", default-features = false }
-owo-colors                     = { version = "=4.2.1", default-features = false }
+owo-colors                     = { version = "=4.2.2", default-features = false }
 oxc                            = { version = "=0.67.0", default-features = false, features = ["allocator_api"] }
 paste                          = { version = "=1.0.15", default-features = false }
 pdfium-render                  = { version = "=0.8.26" }
@@ -220,7 +220,7 @@ rapidfuzz                      = { version = "=0.5.0", default-features = false 
 rayon                          = { version = "=1.10.0", default-features = false }
 refinery                       = { version = "=0.8.16", default-features = false }
 regex                          = { version = "=1.11.1", default-features = false, features = ["perf", "unicode"] }
-reqwest                        = { version = "=0.12.20", default-features = false, features = ["rustls-tls"] }
+reqwest                        = { version = "=0.12.22", default-features = false, features = ["rustls-tls"] }
 roaring                        = { version = "=0.11.0", default-features = false }
 rpds                           = { version = "=1.1.1", default-features = false }
 rstest                         = { version = "=0.25.0", default-features = false }
@@ -252,7 +252,7 @@ test-strategy                  = { version = "=0.4.3", default-features = false 
 text-size                      = { version = "=1.1.1", default-features = false }
 thiserror                      = { version = "=2.0.12", default-features = false }
 time                           = { version = "=0.3.41", default-features = false }
-tokio                          = { version = "=1.45.1", default-features = false }
+tokio                          = { version = "=1.46.1", default-features = false }
 tokio-postgres                 = { version = "=0.7.13", default-features = false }
 tokio-stream                   = { version = "=0.1.17", default-features = false }
 tokio-test                     = { version = "=0.4.4", default-features = false }
@@ -272,7 +272,7 @@ tracing-indicatif              = { version = "=0.3.9", default-features = false 
 tracing-opentelemetry          = { version = "=0.31.0", default-features = false }
 tracing-subscriber             = { version = "=0.3.19", default-features = false }
 trait-variant                  = { version = "=0.1.2", default-features = false }
-trybuild                       = { version = "=1.0.105", default-features = false }
+trybuild                       = { version = "=1.0.106", default-features = false }
 tsify-next                     = { version = "=0.5.6", default-features = false }
 unicase                        = { version = "2.8.1", default-features = false }
 unicode-ident                  = { version = "=1.0.18", default-features = false }
@@ -285,7 +285,7 @@ uuid                           = { version = "=1.17.0", default-features = false
 walkdir                        = { version = "=2.5.0", default-features = false }
 wasm-bindgen                   = { version = "=0.2.100", default-features = false }
 wasm-bindgen-test              = { version = "=0.3.50", default-features = false }
-winnow                         = { version = "=0.7.11", default-features = false }
+winnow                         = { version = "=0.7.12", default-features = false }
 
 [profile.dev]
 # TODO: Use `codegen-backend = "cranelift"`
