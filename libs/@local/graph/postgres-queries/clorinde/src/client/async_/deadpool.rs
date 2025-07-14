@@ -9,6 +9,9 @@ use tokio_postgres::{
     types::BorrowToSql,
 };
 impl GenericClient for DeadpoolClient {
+    fn stmt_cache() -> bool {
+        true
+    }
     async fn prepare(&self, query: &str) -> Result<Statement, Error> {
         ClientWrapper::prepare_cached(self, query).await
     }
@@ -63,6 +66,9 @@ impl GenericClient for DeadpoolClient {
     }
 }
 impl GenericClient for DeadpoolTransaction<'_> {
+    fn stmt_cache() -> bool {
+        false
+    }
     async fn prepare(&self, query: &str) -> Result<Statement, Error> {
         DeadpoolTransaction::prepare_cached(self, query).await
     }
