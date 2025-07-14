@@ -167,7 +167,7 @@ describe("Policy CRUD", () => {
         },
         {
           type: "add-action",
-          action: "viewPropertyType",
+          action: "updateEntity",
         },
         {
           type: "remove-action",
@@ -214,7 +214,7 @@ describe("Policy CRUD", () => {
       [
         {
           type: "remove-action",
-          action: "viewPropertyType",
+          action: "updateEntity",
         },
       ],
     );
