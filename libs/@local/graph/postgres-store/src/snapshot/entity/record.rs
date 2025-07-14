@@ -1,18 +1,7 @@
-use hash_graph_authorization::schema::EntityRelationAndSubject;
 use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use hash_graph_types::Embedding;
 use serde::{Deserialize, Serialize};
-use type_system::{
-    knowledge::entity::id::{EntityId, EntityUuid},
-    ontology::BaseUrl,
-};
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct EntityRelationRecord {
-    pub entity_uuid: EntityUuid,
-    pub relation: EntityRelationAndSubject,
-}
+use type_system::{knowledge::entity::id::EntityId, ontology::BaseUrl};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
