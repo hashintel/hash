@@ -1561,6 +1561,7 @@ name = "clorinde"
 version = "0.0.0"
 dependencies = [
  "deadpool-postgres",
+ "fallible-iterator",
  "futures",
  "hash-graph-authorization",
  "postgres",
