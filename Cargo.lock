@@ -1336,11 +1336,10 @@ dependencies = [
 
 [[package]]
 name = "cedar-policy-core"
-version = "4.4.1"
+version = "4.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dd896075d493e8283e960c94cf85d85773dc3359cf948a5f5ea88a6f249e8665"
+checksum = "7dda1924b69cc47f602d839782f3a9c5369f545897276c20fec9e2026562142e"
 dependencies = [
- "chrono",
  "educe 0.6.0",
  "either",
  "itertools 0.14.0",
@@ -1352,29 +1351,6 @@ dependencies = [
  "ref-cast",
  "regex",
  "rustc_lexer",
- "serde",
- "serde_json",
- "serde_with",
- "smol_str",
- "stacker",
- "thiserror 2.0.12",
-]
-
-[[package]]
-name = "cedar-policy-validator"
-version = "4.4.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2f40762e669e4ec5a4b3a2b3d3aa2567d768aa74b735760f13197312c1150f69"
-dependencies = [
- "cedar-policy-core",
- "educe 0.6.0",
- "itertools 0.14.0",
- "lalrpop",
- "lalrpop-util",
- "lazy_static",
- "miette",
- "nonempty",
- "ref-cast",
  "serde",
  "serde_json",
  "serde_with",
@@ -3405,7 +3381,6 @@ version = "0.0.0"
 dependencies = [
  "bytes",
  "cedar-policy-core",
- "cedar-policy-validator",
  "derive-where",
  "derive_more 2.0.1",
  "enum-iterator",
