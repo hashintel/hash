@@ -14,7 +14,7 @@ type-system              = { workspace = true, public = true }
 # Public third-party dependencies
 
 # Private workspace dependencies
-clorinde = { path = "clorinde", default-features = false }
+clorinde = { path = "clorinde", default-features = false, features = ["deadpool"] }
 
 # Private third-party dependencies
 simple-mermaid = { workspace = true }
