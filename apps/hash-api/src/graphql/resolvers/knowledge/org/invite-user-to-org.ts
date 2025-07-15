@@ -1,13 +1,11 @@
 import {
   type EntityId,
   entityIdFromComponents,
-  type EntityUuid,
   type WebId,
 } from "@blockprotocol/type-system";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
 import { getActorGroupRole } from "@local/hash-graph-sdk/principal/actor-group";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
-import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
   currentTimeInstantTemporalAxes,
   generateVersionedUrlMatchingFilter,
@@ -26,7 +24,6 @@ import type {
   InvitationViaEmail,
   InvitationViaShortname,
 } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { CreateEntityPolicyParams } from "@rust/hash-graph-store/types";
 import { ApolloError } from "apollo-server-errors";
 import dedent from "dedent";
 
@@ -46,7 +43,6 @@ import {
   isUserMemberOfOrg,
   type User,
 } from "../../../../graph/knowledge/system-types/user";
-import { systemAccountId } from "../../../../graph/system-account";
 import type { ResolverFn } from "../../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../../context";
 import { graphQLContextToImpureGraphContext } from "../../util";
@@ -309,25 +305,12 @@ export const inviteUserToOrgResolver: ResolverFn<
     },
   };
 
-  const invitationEntityUuid = generateUuid() as EntityUuid;
-  const systemAccountViewInvitationPolicy: CreateEntityPolicyParams = {
-    name: `system-account-administer-org-invitation-${invitationEntityUuid}`,
-    effect: "permit",
-    actions: ["viewEntity"],
-    principal: {
-      type: "actor",
-      actorType: "machine",
-      id: systemAccountId,
-    },
-  };
-
   if (userEmail) {
     invitation = await createEntity<InvitationViaEmail>(
       context,
       authentication,
       {
         entityTypeIds: [systemEntityTypes.invitationViaEmail.entityTypeId],
-        entityUuid: invitationEntityUuid,
         properties: {
           value: {
             "https://hash.ai/@h/types/property-type/expired-at/":
@@ -340,7 +323,6 @@ export const inviteUserToOrgResolver: ResolverFn<
             },
           },
         },
-        policies: [systemAccountViewInvitationPolicy],
         webId: orgWebId,
       },
     );
@@ -350,7 +332,6 @@ export const inviteUserToOrgResolver: ResolverFn<
       authentication,
       {
         entityTypeIds: [systemEntityTypes.invitationViaShortname.entityTypeId],
-        entityUuid: invitationEntityUuid,
         properties: {
           value: {
             "https://hash.ai/@h/types/property-type/expired-at/":
@@ -363,31 +344,17 @@ export const inviteUserToOrgResolver: ResolverFn<
             },
           },
         },
-        policies: [systemAccountViewInvitationPolicy],
         webId: orgWebId,
       },
     );
   }
 
-  const linkEntityUuid = generateUuid() as EntityUuid;
   await createLinkEntity<HasIssuedInvitation>(context, authentication, {
     entityTypeIds: [systemLinkEntityTypes.hasIssuedInvitation.linkEntityTypeId],
     linkData: {
       leftEntityId: org.entity.metadata.recordId.entityId,
       rightEntityId: invitation.metadata.recordId.entityId,
     },
-    policies: [
-      {
-        name: `system-account-administer-org-invitation-link-${linkEntityUuid}`,
-        effect: "permit",
-        actions: ["viewEntity"],
-        principal: {
-          type: "actor",
-          actorType: "machine",
-          id: systemAccountId,
-        },
-      },
-    ],
     properties: { value: {} },
     webId: orgWebId,
   });

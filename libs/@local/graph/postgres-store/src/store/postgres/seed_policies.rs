@@ -73,6 +73,15 @@ static MACHINE: LazyLock<EntityTypeConfig> =
     LazyLock::new(|| EntityTypeConfig::new("https://hash.ai/@h/types/entity-type/machine/"));
 static COMMENT: LazyLock<EntityTypeConfig> =
     LazyLock::new(|| EntityTypeConfig::new("https://hash.ai/@h/types/entity-type/comment/"));
+static INVITATION_VIA_EMAIL: LazyLock<EntityTypeConfig> = LazyLock::new(|| {
+    EntityTypeConfig::new("https://hash.ai/@h/types/entity-type/invitation-via-email/")
+});
+static INVITATION_VIA_SHORTNAME: LazyLock<EntityTypeConfig> = LazyLock::new(|| {
+    EntityTypeConfig::new("https://hash.ai/@h/types/entity-type/invitation-via-shortname/")
+});
+static HAS_ISSUED_INVITATION: LazyLock<EntityTypeConfig> = LazyLock::new(|| {
+    EntityTypeConfig::new("https://hash.ai/@h/types/entity-type/has-issued-invitation/")
+});
 
 static SERVICE_FEATURE: LazyLock<EntityTypeConfig> = LazyLock::new(|| {
     EntityTypeConfig::new("https://hash.ai/@h/types/entity-type/service-feature/")
@@ -173,6 +182,9 @@ fn system_actor_view_entity_policies(
                 filters: vec![
                     SYNC_LINEAR_DATA_WITH.entity_is_of_base_type(),
                     PROSPECTIVE_USER.entity_is_of_base_type(),
+                    INVITATION_VIA_EMAIL.entity_is_of_base_type(),
+                    INVITATION_VIA_SHORTNAME.entity_is_of_base_type(),
+                    HAS_ISSUED_INVITATION.entity_is_of_base_type(),
                 ],
             },
         })),
