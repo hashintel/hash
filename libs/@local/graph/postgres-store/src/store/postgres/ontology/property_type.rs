@@ -4,8 +4,8 @@ use std::collections::{HashMap, HashSet};
 use error_stack::{Report, ResultExt as _};
 use futures::{StreamExt as _, TryStreamExt as _};
 use hash_graph_authorization::policies::{
-    Authorized, PolicyComponents, Request, RequestContext, ResourceId, action::ActionName,
-    principal::actor::AuthenticatedActor,
+    Authorized, MergePolicies, PolicyComponents, Request, RequestContext, ResourceId,
+    action::ActionName, principal::actor::AuthenticatedActor,
 };
 use hash_graph_store::{
     error::{CheckPermissionError, InsertionError, QueryError, UpdateError},
@@ -472,7 +472,7 @@ where
 
         let policy_components = policy_components_builder
             .with_actor(actor_id)
-            .with_actions([ActionName::CreatePropertyType], false)
+            .with_actions([ActionName::CreatePropertyType], MergePolicies::No)
             .await
             .change_context(InsertionError)?;
 
@@ -546,7 +546,7 @@ where
     ) -> Result<usize, Report<QueryError>> {
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor_id)
-            .with_action(ActionName::ViewPropertyType, true)
+            .with_action(ActionName::ViewPropertyType, MergePolicies::Yes)
             .await
             .change_context(QueryError)?;
 
@@ -593,7 +593,7 @@ where
     ) -> Result<GetPropertyTypesResponse, Report<QueryError>> {
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor_id)
-            .with_action(ActionName::ViewPropertyType, true)
+            .with_action(ActionName::ViewPropertyType, MergePolicies::Yes)
             .await
             .change_context(QueryError)?;
 
@@ -621,7 +621,7 @@ where
 
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor_id)
-            .with_actions(actions, true)
+            .with_actions(actions, MergePolicies::Yes)
             .await
             .change_context(QueryError)?;
 
@@ -787,7 +787,7 @@ where
         let policy_components = PolicyComponents::builder(&transaction)
             .with_actor(actor_id)
             .with_property_type_ids(&old_property_type_ids)
-            .with_actions([ActionName::UpdatePropertyType], false)
+            .with_actions([ActionName::UpdatePropertyType], MergePolicies::No)
             .await
             .change_context(UpdateError)?;
 
@@ -860,7 +860,7 @@ where
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor_id)
             .with_property_type_id(&params.property_type_id)
-            .with_actions([ActionName::ArchivePropertyType], false)
+            .with_actions([ActionName::ArchivePropertyType], MergePolicies::No)
             .await
             .change_context(UpdateError)?;
 
@@ -904,7 +904,7 @@ where
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor_id)
             .with_property_type_id(&params.property_type_id)
-            .with_actions([ActionName::ArchivePropertyType], false)
+            .with_actions([ActionName::ArchivePropertyType], MergePolicies::No)
             .await
             .change_context(UpdateError)?;
 
@@ -1044,7 +1044,7 @@ where
 
         let policy_components = PolicyComponents::builder(self)
             .with_actor(authenticated_actor)
-            .with_action(params.action, true)
+            .with_action(params.action, MergePolicies::Yes)
             .await
             .change_context(CheckPermissionError::BuildPolicyContext)?;
         let policy_filter = Filter::<PropertyTypeWithMetadata>::for_policies(

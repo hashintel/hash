@@ -51,6 +51,17 @@ pub struct OptimizationData {
     pub permitted_web_ids: Vec<WebId>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum MergePolicies {
+    /// Similar policies may be merged into a single policies.
+    ///
+    /// For example, if there are two policies that permit the same actor to view two different
+    /// entities by ID, it can be merged into a single policy.
+    Yes,
+    /// Similar policies may not be merged into a single policy.
+    No,
+}
+
 #[derive(Debug)]
 pub struct PolicyComponents {
     actor_id: Option<ActorId>,
@@ -303,8 +314,8 @@ pub struct PolicyComponentsBuilder<'a, S> {
     property_type_ids: HashSet<Cow<'a, VersionedUrl>>,
     data_type_ids: HashSet<Cow<'a, VersionedUrl>>,
     entity_edition_ids: HashSet<EntityEditionId>,
-    /// Actions to track, with optimization flag.
-    actions: HashMap<ActionName, bool>,
+    /// Actions to track, with merge policies flag.
+    actions: HashMap<ActionName, MergePolicies>,
 }
 
 impl<'a, S> PolicyComponentsBuilder<'a, S> {
@@ -442,8 +453,8 @@ impl<'a, S> PolicyComponentsBuilder<'a, S> {
     /// When `optimize` is `true`, the resulting [`PolicyComponents`] cannot be used
     /// to create a [`PolicySet`] for this action, as optimizable policies are
     /// extracted during analysis.
-    pub fn add_action(&mut self, action: ActionName, optimize: bool) {
-        self.actions.insert(action, optimize);
+    pub fn add_action(&mut self, action: ActionName, merge_policies: MergePolicies) {
+        self.actions.insert(action, merge_policies);
     }
 
     /// Adds multiple actions to be tracked during policy resolution.
@@ -455,9 +466,13 @@ impl<'a, S> PolicyComponentsBuilder<'a, S> {
     /// When `optimize` is `true`, the resulting [`PolicyComponents`] cannot be used
     /// to create a [`PolicySet`] for any of these actions, as optimizable policies
     /// are extracted during analysis.
-    pub fn add_actions(&mut self, actions: impl IntoIterator<Item = ActionName>, optimize: bool) {
+    pub fn add_actions(
+        &mut self,
+        actions: impl IntoIterator<Item = ActionName>,
+        merge_policies: MergePolicies,
+    ) {
         self.actions
-            .extend(actions.into_iter().map(|action| (action, optimize)));
+            .extend(actions.into_iter().map(|action| (action, merge_policies)));
     }
 
     /// Adds an action to be tracked and returns the builder.
@@ -470,8 +485,8 @@ impl<'a, S> PolicyComponentsBuilder<'a, S> {
     /// to create a [`PolicySet`] for this action, as optimizable policies are
     /// extracted during analysis.
     #[must_use]
-    pub fn with_action(mut self, action: ActionName, optimize: bool) -> Self {
-        self.add_action(action, optimize);
+    pub fn with_action(mut self, action: ActionName, merge_policies: MergePolicies) -> Self {
+        self.add_action(action, merge_policies);
         self
     }
 
@@ -488,9 +503,9 @@ impl<'a, S> PolicyComponentsBuilder<'a, S> {
     pub fn with_actions(
         mut self,
         actions: impl IntoIterator<Item = ActionName>,
-        optimize: bool,
+        merge_policies: MergePolicies,
     ) -> Self {
-        self.add_actions(actions, optimize);
+        self.add_actions(actions, merge_policies);
         self
     }
 
@@ -691,8 +706,8 @@ where
             };
 
             // Analyze for optimization opportunities if enabled
-            for (action, optimize) in &self.actions {
-                if *optimize {
+            for (action, merge_policies) in &self.actions {
+                if *merge_policies == MergePolicies::Yes {
                     policy_components.analyze_optimization_opportunities(*action);
                 }
             }
