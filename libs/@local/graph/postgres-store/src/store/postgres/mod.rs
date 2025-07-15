@@ -14,7 +14,7 @@ use std::collections::{HashMap, HashSet};
 use error_stack::{Report, ResultExt as _, TryReportStreamExt as _};
 use futures::{StreamExt as _, TryStreamExt as _};
 use hash_graph_authorization::policies::{
-    Authorized, ContextBuilder, Effect, Policy, PolicyComponents, PolicyId, Request,
+    Authorized, ContextBuilder, Effect, MergePolicies, Policy, PolicyComponents, PolicyId, Request,
     RequestContext, ResourceId,
     action::ActionName,
     principal::{PrincipalConstraint, actor::AuthenticatedActor},
@@ -668,7 +668,7 @@ where
     ) -> Result<CreateWebResponse, Report<WebCreationError>> {
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor)
-            .with_action(ActionName::CreateWeb, false)
+            .with_action(ActionName::CreateWeb, MergePolicies::No)
             .await
             .change_context(WebCreationError::BuildPolicyComponents)?;
 
@@ -1232,7 +1232,7 @@ where
 
         let policy_components = PolicyComponents::builder(&transaction)
             .with_actor(authenticated_actor)
-            .with_action(ActionName::CreatePolicy, false)
+            .with_action(ActionName::CreatePolicy, MergePolicies::No)
             .with_policy_meta_resource(&PolicyMetaResource {
                 id: policy_id,
                 actions: &policy.actions,
@@ -1327,7 +1327,7 @@ where
 
         let mut policy_components_builder = PolicyComponents::builder(self)
             .with_actor(authenticated_actor)
-            .with_action(ActionName::ViewPolicy, false);
+            .with_action(ActionName::ViewPolicy, MergePolicies::No);
         for policy in &policies {
             policy_components_builder.add_policy_meta_resource(&PolicyMetaResource::from(policy));
         }
@@ -1559,7 +1559,7 @@ where
 
         let old_policy_components = PolicyComponents::builder(&transaction)
             .with_actor(authenticated_actor)
-            .with_action(ActionName::UpdatePolicy, false)
+            .with_action(ActionName::UpdatePolicy, MergePolicies::No)
             .with_policy_meta_resource(&PolicyMetaResource::from(&old_policy))
             .await
             .change_context(UpdatePolicyError::BuildPolicyComponents)?;
@@ -1591,7 +1591,7 @@ where
 
         let updated_policy_components = PolicyComponents::builder(&transaction)
             .with_actor(authenticated_actor)
-            .with_actions([ActionName::UpdatePolicy], false)
+            .with_actions([ActionName::UpdatePolicy], MergePolicies::No)
             .with_policy_meta_resource(&PolicyMetaResource::from(&update_policy))
             .await
             .change_context(UpdatePolicyError::BuildPolicyComponents)?;
@@ -1641,7 +1641,7 @@ where
 
         let policy_components = PolicyComponents::builder(self)
             .with_actor(authenticated_actor)
-            .with_action(ActionName::ArchivePolicy, false)
+            .with_action(ActionName::ArchivePolicy, MergePolicies::No)
             .with_policy_meta_resource(&PolicyMetaResource::from(&policy))
             .await
             .change_context(RemovePolicyError::BuildPolicyComponents)?;
@@ -1687,7 +1687,7 @@ where
 
         let policy_components = PolicyComponents::builder(self)
             .with_actor(authenticated_actor)
-            .with_action(ActionName::DeletePolicy, false)
+            .with_action(ActionName::DeletePolicy, MergePolicies::No)
             .with_policy_meta_resource(&PolicyMetaResource::from(&policy))
             .await
             .change_context(RemovePolicyError::BuildPolicyComponents)?;

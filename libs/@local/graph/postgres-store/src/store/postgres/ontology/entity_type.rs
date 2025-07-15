@@ -5,8 +5,8 @@ use std::collections::{HashMap, HashSet};
 use error_stack::{Report, ResultExt as _};
 use futures::{StreamExt as _, TryStreamExt as _};
 use hash_graph_authorization::policies::{
-    Authorized, PolicyComponents, Request, RequestContext, ResourceId, action::ActionName,
-    principal::actor::AuthenticatedActor,
+    Authorized, MergePolicies, PolicyComponents, Request, RequestContext, ResourceId,
+    action::ActionName, principal::actor::AuthenticatedActor,
 };
 use hash_graph_store::{
     entity::ClosedMultiEntityTypeMap,
@@ -835,7 +835,7 @@ where
 
         let policy_components = policy_components_builder
             .with_actor(actor_id)
-            .with_actions([ActionName::CreateEntityType], false)
+            .with_actions([ActionName::CreateEntityType], MergePolicies::No)
             .await
             .change_context(InsertionError)?;
 
@@ -996,7 +996,7 @@ where
     ) -> Result<usize, Report<QueryError>> {
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor_id)
-            .with_action(ActionName::ViewEntityType, true)
+            .with_action(ActionName::ViewEntityType, MergePolicies::Yes)
             .await
             .change_context(QueryError)?;
 
@@ -1043,7 +1043,7 @@ where
     ) -> Result<GetEntityTypesResponse, Report<QueryError>> {
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor_id)
-            .with_action(ActionName::ViewEntityType, true)
+            .with_action(ActionName::ViewEntityType, MergePolicies::Yes)
             .await
             .change_context(QueryError)?;
 
@@ -1243,7 +1243,7 @@ where
 
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor_id)
-            .with_actions(actions, true)
+            .with_actions(actions, MergePolicies::Yes)
             .await
             .change_context(QueryError)?;
 
@@ -1408,7 +1408,7 @@ where
         let policy_components = PolicyComponents::builder(&transaction)
             .with_actor(actor_id)
             .with_entity_type_ids(&old_entity_type_ids)
-            .with_actions([ActionName::UpdateEntityType], false)
+            .with_actions([ActionName::UpdateEntityType], MergePolicies::No)
             .await
             .change_context(UpdateError)?;
 
@@ -1573,7 +1573,7 @@ where
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor_id)
             .with_entity_type_id(&params.entity_type_id)
-            .with_actions([ActionName::ArchiveEntityType], false)
+            .with_actions([ActionName::ArchiveEntityType], MergePolicies::No)
             .await
             .change_context(UpdateError)?;
 
@@ -1617,7 +1617,7 @@ where
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor_id)
             .with_entity_type_id(&params.entity_type_id)
-            .with_actions([ActionName::ArchiveEntityType], false)
+            .with_actions([ActionName::ArchiveEntityType], MergePolicies::No)
             .await
             .change_context(UpdateError)?;
 
@@ -1823,8 +1823,8 @@ where
 
             let policy_components = PolicyComponents::builder(self)
                 .with_actor(authenticated_actor)
-                .with_action(ActionName::Instantiate, false)
-                .with_action(ActionName::ViewEntityType, true)
+                .with_action(ActionName::Instantiate, MergePolicies::No)
+                .with_action(ActionName::ViewEntityType, MergePolicies::Yes)
                 .with_entity_type_ids(params.entity_type_ids.iter())
                 .await
                 .change_context(CheckPermissionError::BuildPolicyContext)?;
@@ -1915,7 +1915,7 @@ where
 
             let policy_components = PolicyComponents::builder(self)
                 .with_actor(authenticated_actor)
-                .with_action(params.action, true)
+                .with_action(params.action, MergePolicies::Yes)
                 .await
                 .change_context(CheckPermissionError::BuildPolicyContext)?;
             let policy_filter = Filter::<EntityTypeWithMetadata>::for_policies(
