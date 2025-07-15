@@ -446,12 +446,12 @@ impl<'a, S> PolicyComponentsBuilder<'a, S> {
 
     /// Adds an action to be tracked during policy resolution.
     ///
-    /// The `action` will be included in policy queries and evaluation. The `optimize`
+    /// The `action` will be included in policy queries and evaluation. The `merge_policies`
     /// parameter controls whether this action undergoes optimization analysis, which
     /// can improve database query performance by extracting optimizable policies.
     ///
-    /// When `optimize` is `true`, the resulting [`PolicyComponents`] cannot be used
-    /// to create a [`PolicySet`] for this action, as optimizable policies are
+    /// When `merge_policies` is [`MergePolicies::Yes`], the resulting [`PolicyComponents`] cannot
+    /// be used to create a [`PolicySet`] for this action, as optimizable policies are
     /// extracted during analysis.
     pub fn add_action(&mut self, action: ActionName, merge_policies: MergePolicies) {
         self.actions.insert(action, merge_policies);
@@ -460,11 +460,11 @@ impl<'a, S> PolicyComponentsBuilder<'a, S> {
     /// Adds multiple actions to be tracked during policy resolution.
     ///
     /// All provided `actions` will be included in policy queries and evaluation.
-    /// The `optimize` parameter applies to all actions and controls whether they
+    /// The `merge_policies` parameter applies to all actions and controls whether they
     /// undergo optimization analysis for improved database query performance.
     ///
-    /// When `optimize` is `true`, the resulting [`PolicyComponents`] cannot be used
-    /// to create a [`PolicySet`] for any of these actions, as optimizable policies
+    /// When `merge_policies` is [`MergePolicies::Yes`], the resulting [`PolicyComponents`] cannot
+    /// be used to create a [`PolicySet`] for any of these actions, as optimizable policies
     /// are extracted during analysis.
     pub fn add_actions(
         &mut self,
@@ -477,12 +477,12 @@ impl<'a, S> PolicyComponentsBuilder<'a, S> {
 
     /// Adds an action to be tracked and returns the builder.
     ///
-    /// The `action` will be included in policy queries and evaluation. The `optimize`
+    /// The `action` will be included in policy queries and evaluation. The `merge_policies`
     /// parameter controls whether this action undergoes optimization analysis, which
     /// can improve database query performance by extracting optimizable policies.
     ///
-    /// When `optimize` is `true`, the resulting [`PolicyComponents`] cannot be used
-    /// to create a [`PolicySet`] for this action, as optimizable policies are
+    /// When `merge_policies` is [`MergePolicies::Yes`], the resulting [`PolicyComponents`] cannot
+    /// be used to create a [`PolicySet`] for this action, as optimizable policies are
     /// extracted during analysis.
     #[must_use]
     pub fn with_action(mut self, action: ActionName, merge_policies: MergePolicies) -> Self {
@@ -493,11 +493,11 @@ impl<'a, S> PolicyComponentsBuilder<'a, S> {
     /// Adds multiple actions to be tracked and returns the builder.
     ///
     /// All provided `actions` will be included in policy queries and evaluation.
-    /// The `optimize` parameter applies to all actions and controls whether they
+    /// The `merge_policies` parameter applies to all actions and controls whether they
     /// undergo optimization analysis for improved database query performance.
     ///
-    /// When `optimize` is `true`, the resulting [`PolicyComponents`] cannot be used
-    /// to create a [`PolicySet`] for any of these actions, as optimizable policies
+    /// When `merge_policies` is [`MergePolicies::Yes`], the resulting [`PolicyComponents`] cannot
+    /// be used to create a [`PolicySet`] for any of these actions, as optimizable policies
     /// are extracted during analysis.
     #[must_use]
     pub fn with_actions(
