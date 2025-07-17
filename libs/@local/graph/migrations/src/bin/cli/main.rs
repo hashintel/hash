@@ -36,8 +36,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         .enable_all()
         .build()?
         .block_on(async {
-            let _telemetry_guard =
-                init_tracing(entry.tracing_config).expect("should be able to initialize telemetry");
+            let _telemetry_guard = init_tracing(entry.tracing_config, "Graph Migrations")
+                .expect("should be able to initialize telemetry");
 
             entry.subcommand.execute().await
         })

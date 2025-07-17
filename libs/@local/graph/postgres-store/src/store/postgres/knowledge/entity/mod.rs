@@ -1297,7 +1297,6 @@ where
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor_id)
             .with_actions(actions, MergePolicies::Yes)
-            .into_future()
             .await
             .change_context(QueryError)?;
 

@@ -9,14 +9,15 @@ use crate::OtlpConfig;
 
 pub(crate) fn provider(
     config: &OtlpConfig,
+    service_name: &'static str,
 ) -> Result<Option<SdkTracerProvider>, Report<ExporterBuildError>> {
-    let Some(endpoint) = config.traces_endpoint.as_deref() else {
+    let Some(endpoint) = config.endpoint.as_deref() else {
         return Ok(None);
     };
 
     Ok(Some(
         SdkTracerProvider::builder()
-            .with_resource(Resource::builder().with_service_name("graph").build())
+            .with_resource(Resource::builder().with_service_name(service_name).build())
             .with_batch_exporter(
                 SpanExporter::builder()
                     .with_tonic()
@@ -39,7 +40,9 @@ where
     // Allow correlating trace IDs
     global::set_text_map_propagator(TraceContextPropagator::new());
 
-    tracing_opentelemetry::layer().with_tracer(::opentelemetry::trace::TracerProvider::tracer(
-        provider, "graph",
-    ))
+    tracing_opentelemetry::layer()
+        .with_tracer(::opentelemetry::trace::TracerProvider::tracer(
+            provider, "graph",
+        ))
+        .with_filter(crate::logging::env_filter(None))
 }

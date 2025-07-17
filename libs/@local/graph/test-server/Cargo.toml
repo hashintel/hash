@@ -16,13 +16,14 @@ hash-graph-postgres-store = { workspace = true, public = true, features = ["utoi
 axum = { workspace = true, public = true }
 
 # Private workspace dependencies
-error-stack          = { workspace = true }
-hash-codec           = { workspace = true }
-hash-graph-api       = { workspace = true }
-hash-graph-store     = { workspace = true }
-hash-graph-type-defs = { workspace = true }
-hash-status          = { workspace = true }
-type-system          = { workspace = true }
+axum-tracing-opentelemetry = { workspace = true }
+error-stack                = { workspace = true }
+hash-codec                 = { workspace = true }
+hash-graph-api             = { workspace = true }
+hash-graph-store           = { workspace = true }
+hash-graph-type-defs       = { workspace = true }
+hash-status                = { workspace = true }
+type-system                = { workspace = true }
 
 # Private third-party dependencies
 futures        = { workspace = true }

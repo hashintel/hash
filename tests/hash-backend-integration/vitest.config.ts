@@ -14,7 +14,10 @@ export default defineConfig({
       include: ["**/*.{c,m,}{j,t}s{x,}"],
       exclude: ["**/node_modules/**", "**/dist/**"],
     },
-    setupFiles: ["@local/hash-backend-utils/environment"],
+    setupFiles: [
+      "@local/hash-backend-utils/environment",
+      "./src/tests/setup-opentelemetry.ts",
+    ],
     include: [
       "src/tests/graph/**/*.test.ts",
       "src/tests/subgraph/**/*.test.ts",

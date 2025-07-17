@@ -43,27 +43,28 @@ hash-graph-validation          = { workspace = true }
 type-system                    = { workspace = true, features = ["utoipa"] }
 
 # Private third-party dependencies
-async-trait           = { workspace = true }
-bytes                 = { workspace = true }
-derive-where          = { workspace = true }
-derive_more           = { workspace = true, features = ["display", "error"] }
-error-stack           = { workspace = true, features = ["futures", "spantrace", "unstable"] }
-frunk                 = { workspace = true }
-futures               = { workspace = true }
-hyper                 = { workspace = true }
-include_dir           = { workspace = true }
-mime                  = { workspace = true }
-opentelemetry         = { workspace = true }
-opentelemetry_sdk     = { workspace = true, features = ["rt-tokio"] }
-sentry                = { workspace = true }
-serde                 = { workspace = true, features = ['derive'] }
-serde_json            = { workspace = true }
-simple-mermaid        = { workspace = true }
-time                  = { workspace = true }
-tower                 = { workspace = true }
-tracing-opentelemetry = { workspace = true }
-utoipa                = { workspace = true }
-uuid                  = { workspace = true }
+async-trait                = { workspace = true }
+axum-tracing-opentelemetry = { workspace = true }
+bytes                      = { workspace = true }
+derive-where               = { workspace = true }
+derive_more                = { workspace = true, features = ["display", "error"] }
+error-stack                = { workspace = true, features = ["futures", "spantrace", "unstable"] }
+frunk                      = { workspace = true }
+futures                    = { workspace = true }
+hyper                      = { workspace = true }
+include_dir                = { workspace = true }
+mime                       = { workspace = true }
+opentelemetry              = { workspace = true }
+opentelemetry_sdk          = { workspace = true, features = ["rt-tokio"] }
+sentry                     = { workspace = true }
+serde                      = { workspace = true, features = ['derive'] }
+serde_json                 = { workspace = true }
+simple-mermaid             = { workspace = true }
+time                       = { workspace = true }
+tower                      = { workspace = true }
+tracing-opentelemetry      = { workspace = true }
+utoipa                     = { workspace = true }
+uuid                       = { workspace = true }
 
 [lints]
 workspace = true
