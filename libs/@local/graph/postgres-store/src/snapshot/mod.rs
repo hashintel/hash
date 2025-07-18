@@ -35,6 +35,7 @@ use hash_status::StatusCode;
 use postgres_types::{Json, ToSql};
 use serde::{Deserialize, Serialize};
 use tokio_postgres::error::SqlState;
+use tracing::Instrument as _;
 use type_system::{
     knowledge::entity::{
         Entity,
@@ -264,6 +265,12 @@ impl PostgresStorePool {
                 GROUP BY user_actor.id",
                 [] as [&(dyn ToSql + Sync); 0],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(SnapshotDumpError::Query)?
             .map_ok(|row| {
@@ -317,6 +324,12 @@ impl PostgresStorePool {
                 GROUP BY machine_actor.id, machine_actor.identifier",
                 [] as [&(dyn ToSql + Sync); 0],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(SnapshotDumpError::Query)?
             .map_ok(|row| {
@@ -371,6 +384,12 @@ impl PostgresStorePool {
                 GROUP BY ai_actor.id, ai_actor.identifier",
                 [] as [&(dyn ToSql + Sync); 0],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(SnapshotDumpError::Query)?
             .map_ok(|row| {
@@ -423,6 +442,12 @@ impl PostgresStorePool {
                 GROUP BY web.id, web.shortname",
                 [] as [&(dyn ToSql + Sync); 0],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(SnapshotDumpError::Query)?
             .map_ok(|row| {
@@ -460,6 +485,12 @@ impl PostgresStorePool {
                 GROUP BY team.id, parent.principal_type, parent.id, team.name",
                 [] as [&(dyn ToSql + Sync); 0],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(SnapshotDumpError::Query)?
             .map_ok(|row| {
@@ -504,6 +535,12 @@ impl PostgresStorePool {
                 FROM role",
                 [] as [&(dyn ToSql + Sync); 0],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(SnapshotDumpError::Query)?
             .map_ok(|row| {
@@ -558,6 +595,12 @@ impl PostgresStorePool {
                 ",
                 [] as [&(dyn ToSql + Sync); 0],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(SnapshotDumpError::Query)?
             .map_ok(|row| ActionSnapshotRecord {
@@ -593,6 +636,12 @@ impl PostgresStorePool {
                 ",
                 [] as [&(dyn ToSql + Sync); 0],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(SnapshotDumpError::Query)?
             .map_ok(|row| {
@@ -642,6 +691,12 @@ impl PostgresStorePool {
                 ",
                 [] as [&(dyn ToSql + Sync); 0],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(SnapshotDumpError::Query)?
             .map_ok(|row| PolicyActionSnapshotRecord {
@@ -694,6 +749,12 @@ impl PostgresStorePool {
                  JOIN ontology_ids USING (ontology_id)",
                 [] as [&(dyn ToSql + Sync); 0],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(SnapshotDumpError::Query)?
             .map(|result| result.change_context(SnapshotDumpError::Query))
@@ -726,6 +787,12 @@ impl PostgresStorePool {
                  JOIN ontology_ids USING (ontology_id)",
                 [] as [&(dyn ToSql + Sync); 0],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(SnapshotDumpError::Query)?
             .map(|result| result.change_context(SnapshotDumpError::Query))
@@ -758,6 +825,12 @@ impl PostgresStorePool {
                  JOIN ontology_ids USING (ontology_id)",
                 [] as [&(dyn ToSql + Sync); 0],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(SnapshotDumpError::Query)?
             .map(|result| result.change_context(SnapshotDumpError::Query))
@@ -796,6 +869,12 @@ impl PostgresStorePool {
                  FROM entity_embeddings",
                 [] as [&(dyn ToSql + Sync); 0],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(SnapshotDumpError::Query)?
             .map(|result| result.change_context(SnapshotDumpError::Query))

@@ -110,6 +110,13 @@ where
                     .store
                     .as_client()
                     .query_raw(&statement, parameters.iter().copied())
+                    .instrument(tracing::info_span!(
+                        "SELECT",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres",
+                        db.query.text = statement,
+                    ))
                     .await
                     .change_context(QueryError)?
                     .map_ok(|row| row.get::<_, DataTypeUuid>(data_type_uuid_idx))
@@ -157,6 +164,12 @@ where
                 ",
                 &[&data_types],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(QueryError)?
             .into_iter()
@@ -207,7 +220,13 @@ where
             let data_type_rows = self
                 .as_client()
                 .query(&statement, parameters)
-                .instrument(tracing::trace_span!("query"))
+                .instrument(tracing::info_span!(
+                    "SELECT",
+                    otel.kind = "client",
+                    db.system = "postgresql",
+                    peer.service = "Postgres",
+                    db.query.text = statement,
+                ))
                 .await
                 .change_context(QueryError)?;
 
@@ -238,9 +257,11 @@ where
             .as_client()
             .query(&statement, parameters)
             .instrument(tracing::info_span!(
-                "query_data_types",
-                statement_length = statement.len(),
-                param_count = parameters.len()
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+                db.query.text = statement,
             ))
             .await
             .change_context(QueryError)?;
@@ -383,6 +404,12 @@ where
                     DELETE FROM data_type_conversions;
                 ",
             )
+            .instrument(tracing::info_span!(
+                "DELETE",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(DeletionError)?;
 
@@ -395,6 +422,12 @@ where
                 ",
                 &[],
             )
+            .instrument(tracing::info_span!(
+                "DELETE",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(DeletionError)?
             .into_iter()
@@ -622,6 +655,13 @@ where
         transaction
             .as_client()
             .query(&statement, &parameters)
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+                db.query.text = statement,
+            ))
             .await
             .change_context(InsertionError)?;
 
@@ -1014,6 +1054,13 @@ where
         transaction
             .as_client()
             .query(&statement, &parameters)
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+                db.query.text = statement,
+            ))
             .await
             .change_context(UpdateError)?;
 
@@ -1198,6 +1245,12 @@ where
                 ",
                 &[&data_type_embeddings, &params.reset],
             )
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(UpdateError)?;
 
@@ -1246,6 +1299,13 @@ where
 
             self.as_client()
                 .query_raw(&statement, parameters.iter().copied())
+                .instrument(tracing::info_span!(
+                    "SELECT",
+                    otel.kind = "client",
+                    db.system = "postgresql",
+                    peer.service = "Postgres",
+                    db.query.text = statement,
+                ))
                 .await
                 .change_context(QueryError)?
                 .map_ok(|row| row.get::<_, DataTypeUuid>(data_type_uuid_idx))
@@ -1283,6 +1343,12 @@ where
                             WHERE conversion_a.source_data_type_ontology_id = $1;
                         "#,
                         &[&data_type_uuid])
+                    .instrument(tracing::info_span!(
+                        "SELECT",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres",
+                    ))
                     .await
                     .change_context(QueryError)?
                     .into_iter()
@@ -1307,6 +1373,12 @@ where
                         "#,
                         &[&data_type_uuid],
                     )
+                    .instrument(tracing::info_span!(
+                        "SELECT",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres"
+                    ))
                     .await
                     .change_context(QueryError)?
                     .into_iter()
@@ -1333,6 +1405,12 @@ where
                         "#,
                         &[&data_type_id.base_url],
                     )
+                    .instrument(tracing::info_span!(
+                        "SELECT",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres"
+                    ))
                     .await
                     .change_context(QueryError)?
                     .into_iter()
@@ -1366,6 +1444,12 @@ where
                     DELETE FROM data_type_inherits_from;
                 ",
             )
+            .instrument(tracing::info_span!(
+                "DELETE",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(UpdateError)?;
 
@@ -1413,6 +1497,12 @@ where
                     ",
                     &[&data_type_id, &closed_schema],
                 )
+                .instrument(tracing::info_span!(
+                    "UPDATE",
+                    otel.kind = "client",
+                    db.system = "postgresql",
+                    peer.service = "Postgres"
+                ))
                 .await
                 .change_context(UpdateError)?;
         }
@@ -1464,7 +1554,13 @@ where
         let (statement, parameters) = compiler.compile();
         self.as_client()
             .query_raw(&statement, parameters.iter().copied())
-            .instrument(tracing::trace_span!("query"))
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+                db.query.text = statement,
+            ))
             .await
             .change_context(CheckPermissionError::StoreError)?
             .map_ok(|row| row.get(versioned_url_idx))
