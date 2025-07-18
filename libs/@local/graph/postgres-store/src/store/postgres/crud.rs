@@ -116,7 +116,7 @@ where
                 "SELECT",
                 otel.kind = "client",
                 db.system = "postgresql",
-                peer.service = "postgresql",
+                peer.service = "Postgres",
                 db.query.text = %statement,
             ))
             .await
@@ -165,7 +165,7 @@ where
                 "SELECT",
                 otel.kind = "client",
                 db.system = "postgresql",
-                peer.service = "postgresql",
+                peer.service = "Postgres",
                 db.query.text = %statement,
             ))
             .await
@@ -198,7 +198,7 @@ where
                 "SELECT",
                 otel.kind = "client",
                 db.system = "postgresql",
-                peer.service = "postgresql",
+                peer.service = "Postgres",
                 db.query.text = %statement,
             ))
             .await
