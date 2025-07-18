@@ -2,7 +2,7 @@
 
 ## Overview
 
-The HASH Graph is a high-performance entity-graph query layer built in Rust. It provides a REST API for creating, querying, and managing entities, types, and their relationships within the HASH ecosystem. The Graph service is fully instrumented with OpenTelemetry for comprehensive observability.
+The HASH Graph is a high-performance entity-graph query layer. It provides a REST API for creating, querying, and managing entities, types, and their relationships within the HASH ecosystem. The Graph service is fully instrumented with OpenTelemetry for comprehensive observability.
 
 This crate creates a CLI interface to the graph libraries defined in [`libs/@local/graph`](../../libs/@local/graph).
 
@@ -169,31 +169,6 @@ OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
 ```
 
 All telemetry data is automatically sent to the [OpenTelemetry Collector](../hash-external-services/) and can be viewed in Grafana at http://localhost:3001.
-
-## Configuration
-
-### Environment Variables
-
-Key configuration options:
-
-```shell
-# Database
-HASH_GRAPH_PG_HOST=localhost
-HASH_GRAPH_PG_PORT=5432
-HASH_GRAPH_PG_DATABASE=hash_graph
-
-# Server
-HASH_GRAPH_HOST=0.0.0.0
-HASH_GRAPH_PORT=4000
-
-# Type Fetcher
-HASH_GRAPH_TYPE_FETCHER_HOST=0.0.0.0
-HASH_GRAPH_TYPE_FETCHER_PORT=4001
-
-# Telemetry
-HASH_GRAPH_LOG_LEVEL=info
-OTEL_SERVICE_NAME=hash-graph
-```
 
 ## Features
 
