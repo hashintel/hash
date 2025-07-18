@@ -13,7 +13,7 @@ export interface Policy {
 }
 import type { Brand } from "@local/advanced-types/brand";
 export type PolicyId = Brand<string, "PolicyId">;
-export type ActionName = "createDataType" | "createEntity" | "createEntityType" | "createPropertyType" | "createWeb" | "viewDataType" | "viewEntity" | "viewEntityType" | "viewPropertyType" | "updateDataType" | "updateEntity" | "updateEntityType" | "updatePropertyType" | "archiveDataType" | "archiveEntity" | "archiveEntityType" | "archivePropertyType" | "instantiate";
+export type ActionName = "createPolicy" | "createDataType" | "createEntity" | "createEntityType" | "createPropertyType" | "createWeb" | "viewPolicy" | "viewDataType" | "viewEntity" | "viewEntityType" | "viewPropertyType" | "updatePolicy" | "updateDataType" | "updateEntity" | "updateEntityType" | "updatePropertyType" | "archivePolicy" | "archiveDataType" | "archiveEntity" | "archiveEntityType" | "archivePropertyType" | "deletePolicy" | "instantiate";
 export type PrincipalConstraint = {
 	type: "actor"
 } & ActorId | {
@@ -27,6 +27,8 @@ export type PrincipalConstraint = {
 	actorType?: ActorType
 } & RoleId;
 export type ResourceConstraint = {
+	type: "meta"
+} & MetaResourceConstraint | {
 	type: "web"
 	webId: WebId
 } | {
@@ -118,6 +120,25 @@ export type EntityTypeResourceFilter = {
 } | {
 	type: "isRemote"
 };
+export type MetaResourceConstraint = {
+	filter: MetaResourceFilter
+} | {
+	webId: WebId
+	filter: MetaResourceFilter
+};
+export type MetaResourceFilter = {
+	type: "all"
+	filters: MetaResourceFilter[]
+} | {
+	type: "any"
+	filters: MetaResourceFilter[]
+} | {
+	type: "not"
+	filter: MetaResourceFilter
+} | {
+	type: "hasAction"
+	action: ActionName
+};
 export type PropertyTypeId = string;
 export type PropertyTypeResourceConstraint = {
 	filter: PropertyTypeResourceFilter
@@ -175,6 +196,5 @@ export type PrincipalFilter = {
 	filter: "constrained"
 } & PrincipalConstraint;
 export interface ResolvePoliciesParams {
-	actor: (ActorId | null);
 	actions: ActionName[];
 }

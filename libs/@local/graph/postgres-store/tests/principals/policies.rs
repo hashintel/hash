@@ -403,9 +403,8 @@ async fn global_policies() -> Result<(), Box<dyn Error>> {
     // Every actor should get global policies
     let user1_policies = client
         .resolve_policies_for_actor(
-            actor_id.into(),
+            ActorId::User(env.user1).into(),
             ResolvePoliciesParams {
-                actor: Some(ActorId::User(env.user1)),
                 actions: Cow::Borrowed(&[ActionName::All]),
             },
         )
@@ -415,9 +414,8 @@ async fn global_policies() -> Result<(), Box<dyn Error>> {
         .collect::<HashSet<_>>();
     let user2_policies = client
         .resolve_policies_for_actor(
-            actor_id.into(),
+            ActorId::User(env.user2).into(),
             ResolvePoliciesParams {
-                actor: Some(ActorId::User(env.user2)),
                 actions: Cow::Borrowed(&[ActionName::All]),
             },
         )
@@ -427,9 +425,8 @@ async fn global_policies() -> Result<(), Box<dyn Error>> {
         .collect::<HashSet<_>>();
     let machine_policies = client
         .resolve_policies_for_actor(
-            actor_id.into(),
+            ActorId::Machine(env.machine_id).into(),
             ResolvePoliciesParams {
-                actor: Some(ActorId::Machine(env.machine_id)),
                 actions: Cow::Borrowed(&[ActionName::All]),
             },
         )
@@ -439,9 +436,8 @@ async fn global_policies() -> Result<(), Box<dyn Error>> {
         .collect::<HashSet<_>>();
     let ai_policies = client
         .resolve_policies_for_actor(
-            actor_id.into(),
+            ActorId::Ai(env.ai_id).into(),
             ResolvePoliciesParams {
-                actor: Some(ActorId::Ai(env.ai_id)),
                 actions: Cow::Borrowed(&[ActionName::All]),
             },
         )
@@ -451,9 +447,8 @@ async fn global_policies() -> Result<(), Box<dyn Error>> {
         .collect::<HashSet<_>>();
     let nonexisting_policies = client
         .resolve_policies_for_actor(
-            actor_id.into(),
+            ActorId::User(UserId::new(Uuid::new_v4())).into(),
             ResolvePoliciesParams {
-                actor: Some(ActorId::User(UserId::new(Uuid::new_v4()))),
                 actions: Cow::Borrowed(&[ActionName::All]),
             },
         )
@@ -497,9 +492,8 @@ async fn actor_type_policies() -> Result<(), Box<dyn Error>> {
     // Test user type policies
     let user1_policies = client
         .resolve_policies_for_actor(
-            actor_id.into(),
+            ActorId::User(env.user1).into(),
             ResolvePoliciesParams {
-                actor: Some(ActorId::User(env.user1)),
                 actions: Cow::Owned(ActionName::all().collect()),
             },
         )
@@ -509,9 +503,8 @@ async fn actor_type_policies() -> Result<(), Box<dyn Error>> {
         .collect::<HashSet<_>>();
     let user2_policies = client
         .resolve_policies_for_actor(
-            actor_id.into(),
+            ActorId::User(env.user2).into(),
             ResolvePoliciesParams {
-                actor: Some(ActorId::User(env.user2)),
                 actions: Cow::Owned(ActionName::all().collect()),
             },
         )
@@ -521,9 +514,8 @@ async fn actor_type_policies() -> Result<(), Box<dyn Error>> {
         .collect::<HashSet<_>>();
     let machine_policies = client
         .resolve_policies_for_actor(
-            actor_id.into(),
+            ActorId::Machine(env.machine_id).into(),
             ResolvePoliciesParams {
-                actor: Some(ActorId::Machine(env.machine_id)),
                 actions: Cow::Owned(ActionName::all().collect()),
             },
         )
@@ -533,9 +525,8 @@ async fn actor_type_policies() -> Result<(), Box<dyn Error>> {
         .collect::<HashSet<_>>();
     let nonexisting_machine_policies = client
         .resolve_policies_for_actor(
-            actor_id.into(),
+            ActorId::Machine(MachineId::new(Uuid::new_v4())).into(),
             ResolvePoliciesParams {
-                actor: Some(ActorId::Machine(MachineId::new(Uuid::new_v4()))),
                 actions: Cow::Owned(ActionName::all().collect()),
             },
         )
@@ -593,9 +584,8 @@ async fn specific_actor_policies() -> Result<(), Box<dyn Error>> {
     // user1 has a specific policy assigned
     let user1_policies = client
         .resolve_policies_for_actor(
-            actor_id.into(),
+            ActorId::User(env.user1).into(),
             ResolvePoliciesParams {
-                actor: Some(ActorId::User(env.user1)),
                 actions: Cow::Owned(ActionName::all().collect()),
             },
         )
@@ -605,9 +595,8 @@ async fn specific_actor_policies() -> Result<(), Box<dyn Error>> {
         .collect::<HashSet<_>>();
     let user2_policies = client
         .resolve_policies_for_actor(
-            actor_id.into(),
+            ActorId::User(env.user2).into(),
             ResolvePoliciesParams {
-                actor: Some(ActorId::User(env.user2)),
                 actions: Cow::Owned(ActionName::all().collect()),
             },
         )
@@ -617,9 +606,8 @@ async fn specific_actor_policies() -> Result<(), Box<dyn Error>> {
         .collect::<HashSet<_>>();
     let nonexisting_user_policies = client
         .resolve_policies_for_actor(
-            actor_id.into(),
+            ActorId::User(UserId::new(Uuid::new_v4())).into(),
             ResolvePoliciesParams {
-                actor: Some(ActorId::User(UserId::new(Uuid::new_v4()))),
                 actions: Cow::Owned(ActionName::all().collect()),
             },
         )
@@ -655,9 +643,8 @@ async fn role_based_policies() -> Result<(), Box<dyn Error>> {
     // Test role-based policies
     let user1_policies = client
         .resolve_policies_for_actor(
-            actor_id.into(),
+            ActorId::User(env.user1).into(),
             ResolvePoliciesParams {
-                actor: Some(ActorId::User(env.user1)),
                 actions: Cow::Owned(ActionName::all().collect()),
             },
         )
@@ -667,9 +654,8 @@ async fn role_based_policies() -> Result<(), Box<dyn Error>> {
         .collect::<HashSet<_>>();
     let user2_policies = client
         .resolve_policies_for_actor(
-            actor_id.into(),
+            ActorId::User(env.user2).into(),
             ResolvePoliciesParams {
-                actor: Some(ActorId::User(env.user2)),
                 actions: Cow::Owned(ActionName::all().collect()),
             },
         )
@@ -701,9 +687,8 @@ async fn role_based_policies() -> Result<(), Box<dyn Error>> {
 
     let machine_policies = client
         .resolve_policies_for_actor(
-            actor_id.into(),
+            ActorId::Machine(special_machine_id).into(),
             ResolvePoliciesParams {
-                actor: Some(ActorId::Machine(special_machine_id)),
                 actions: Cow::Owned(ActionName::all().collect()),
             },
         )
@@ -737,9 +722,8 @@ async fn team_hierarchy_policies() -> Result<(), Box<dyn Error>> {
     // User2 has team1_role, AI has nested_team_role which is under team1
     let user2_policies = client
         .resolve_policies_for_actor(
-            actor_id.into(),
+            ActorId::User(env.user2).into(),
             ResolvePoliciesParams {
-                actor: Some(ActorId::User(env.user2)),
                 actions: Cow::Owned(ActionName::all().collect()),
             },
         )
@@ -749,9 +733,8 @@ async fn team_hierarchy_policies() -> Result<(), Box<dyn Error>> {
         .collect::<HashSet<_>>();
     let ai_policies = client
         .resolve_policies_for_actor(
-            actor_id.into(),
+            ActorId::Ai(env.ai_id).into(),
             ResolvePoliciesParams {
-                actor: Some(ActorId::Ai(env.ai_id)),
                 actions: Cow::Owned(ActionName::all().collect()),
             },
         )
@@ -787,9 +770,8 @@ async fn policy_count_and_content() -> Result<(), Box<dyn Error>> {
 
     let user1_policies = client
         .resolve_policies_for_actor(
-            actor_id.into(),
+            ActorId::User(env.user1).into(),
             ResolvePoliciesParams {
-                actor: Some(ActorId::User(env.user1)),
                 // We don't list `ViewEntity` here to test that it is still included in the
                 // resulting policy
                 actions: Cow::Borrowed(&[
@@ -807,9 +789,8 @@ async fn policy_count_and_content() -> Result<(), Box<dyn Error>> {
         .collect::<HashMap<_, _>>();
     let user2_policies = client
         .resolve_policies_for_actor(
-            actor_id.into(),
+            ActorId::User(env.user2).into(),
             ResolvePoliciesParams {
-                actor: Some(ActorId::User(env.user2)),
                 actions: Cow::Owned(ActionName::all().collect()),
             },
         )
@@ -819,9 +800,8 @@ async fn policy_count_and_content() -> Result<(), Box<dyn Error>> {
         .collect::<HashMap<_, _>>();
     let machine_policies = client
         .resolve_policies_for_actor(
-            actor_id.into(),
+            ActorId::Machine(env.machine_id).into(),
             ResolvePoliciesParams {
-                actor: Some(ActorId::Machine(env.machine_id)),
                 actions: Cow::Owned(ActionName::all().collect()),
             },
         )
@@ -831,9 +811,8 @@ async fn policy_count_and_content() -> Result<(), Box<dyn Error>> {
         .collect::<HashMap<_, _>>();
     let ai_policies = client
         .resolve_policies_for_actor(
-            actor_id.into(),
+            ActorId::Ai(env.ai_id).into(),
             ResolvePoliciesParams {
-                actor: Some(ActorId::Ai(env.ai_id)),
                 actions: Cow::Owned(ActionName::all().collect()),
             },
         )
@@ -843,9 +822,8 @@ async fn policy_count_and_content() -> Result<(), Box<dyn Error>> {
         .collect::<HashMap<_, _>>();
     let nonexistent_policies = client
         .resolve_policies_for_actor(
-            actor_id.into(),
+            ActorId::User(nonexistent_id).into(),
             ResolvePoliciesParams {
-                actor: Some(ActorId::User(nonexistent_id)),
                 actions: Cow::Owned(ActionName::all().collect()),
             },
         )
@@ -920,9 +898,8 @@ async fn role_assignment_changes() -> Result<(), Box<dyn Error>> {
     // Initial policy count
     let user2_policies = client
         .resolve_policies_for_actor(
-            actor_id.into(),
+            ActorId::User(env.user2).into(),
             ResolvePoliciesParams {
-                actor: Some(ActorId::User(env.user2)),
                 actions: Cow::Owned(ActionName::all().collect()),
             },
         )
@@ -945,9 +922,8 @@ async fn role_assignment_changes() -> Result<(), Box<dyn Error>> {
     // Should have fewer policies now
     let updated_policies = client
         .resolve_policies_for_actor(
-            actor_id.into(),
+            ActorId::User(env.user2).into(),
             ResolvePoliciesParams {
-                actor: Some(ActorId::User(env.user2)),
                 actions: Cow::Owned(ActionName::all().collect()),
             },
         )
@@ -972,9 +948,8 @@ async fn role_assignment_changes() -> Result<(), Box<dyn Error>> {
     // Should have different policies now after adding a new role
     let final_policies = client
         .resolve_policies_for_actor(
-            actor_id.into(),
+            ActorId::User(env.user2).into(),
             ResolvePoliciesParams {
-                actor: Some(ActorId::User(env.user2)),
                 actions: Cow::Owned(ActionName::all().collect()),
             },
         )
@@ -1021,9 +996,8 @@ async fn resource_constraints_are_preserved() -> Result<(), Box<dyn Error>> {
 
     let policies = client
         .resolve_policies_for_actor(
-            actor_id.into(),
+            ActorId::User(user_id).into(),
             ResolvePoliciesParams {
-                actor: Some(ActorId::User(user_id)),
                 actions: Cow::Borrowed(&[ActionName::All]),
             },
         )
@@ -1152,9 +1126,8 @@ async fn deep_team_hierarchy() -> Result<(), Box<dyn Error>> {
     // User should get all policies through the hierarchy
     let policies = client
         .resolve_policies_for_actor(
-            actor_id.into(),
+            ActorId::User(user_id).into(),
             ResolvePoliciesParams {
-                actor: Some(ActorId::User(user_id)),
                 actions: Cow::Borrowed(&[ActionName::All]),
             },
         )
