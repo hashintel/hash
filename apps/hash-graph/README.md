@@ -2,142 +2,247 @@
 
 ## Overview
 
-This directory contains the code pertaining to the HASH Graph Query Layer. To run the HASH Graph Query Layer make sure `just` is installed:
+The HASH Graph is a high-performance entity-graph query layer. It provides a REST API for creating, querying, and managing entities, types, and their relationships within the HASH ecosystem. The Graph service is fully instrumented with OpenTelemetry for comprehensive observability.
+
+This crate creates a CLI interface to the graph libraries defined in [`libs/@local/graph`](../../libs/@local/graph).
+
+## Architecture
+
+The Graph service consists of several key components:
+
+- **REST API Server** - Main HTTP interface with OpenAPI specification
+- **Type Fetcher Service** - Manages and validates type definitions via tarpc
+- **PostgreSQL Store** - Persistent storage layer with full transaction support
+- **Authorization Layer** - Permission-based access control
+- **Telemetry Integration** - Distributed tracing, metrics, and structured logging
+
+## Quick Start
+
+### Using the Integrated Development Environment
+
+The recommended way to run the Graph is through the integrated development setup:
 
 ```shell
-cargo install just
+# From repository root - starts Graph with all dependencies
+yarn start:graph
 ```
 
-This crate mainly creates a CLI interface to the graph crates defined in the [`libs/@local/graph`](../../libs/@local/graph) directory.
+This automatically starts the Graph service with proper external service dependencies and telemetry configuration.
 
-## Run the Graph
+### Standalone Development
 
-1. In order to set up the database, first the database has to be started:
+For Graph-specific development, you can run the service independently:
 
-<!-- markdownlint-disable no-blanks-blockquote -->
+1. **Start External Services**
 
-> [!IMPORTANT]  
-> At the moment, the _Graph_ starts the services it depends on differently to the rest of the codebase.
->
-> **Before running the following command:**
->
-> Before trying to run the `external-services`, ensure you call `deployment-down` to tear down any existing [external services](/apps/hash-external-services) that were started, as outlined in the ["Getting Started"](/README.md#--getting-started) section of the root README.
->
-> _In the future we plan to address this by revisiting the way the services are orchestrated, while still allowing for local non-container-based development._
+   ```shell
+   # From repository root
+   yarn external-services up --wait
+   ```
 
-```shell
-just deployment-up
-```
+2. **Run Database Migrations**
 
-_It is possible to teardown the database with the equivalent `deployment-down` task_
+   ```shell
+   cargo run --bin hash-graph -- migrate
+   ```
 
-Then, the Graph Query Layer can be started:
+3. **Start the Graph Server**
 
-```shell
-just run server
-```
+   ```shell
+   cargo run --bin hash-graph -- server
+   ```
 
-### Logging configuration
+4. **Start the Type Fetcher (if needed)**
 
-Some of the libraries used are very talkative in `trace` logging configurations, especially `mio`, `hyper`, and `tokio_util`.
-If you're interested in just increasing the logs for the Graph, we recommend specifically targeting the crates with `HASH_GRAPH_LOG_LEVEL=graph=trace,hash-graph=trace`.
+   ```shell
+   cargo run --bin hash-graph -- type-fetcher
+   ```
 
 ## Development
 
-In order to build run the following command:
+### Building
 
 ```shell
-just build
+# Debug build
+cargo build
+
+# Release build
+cargo build --release
 ```
 
-In order to create an optimized build, run:
+### Testing
 
 ```shell
-PROFILE=release just build
+# Run all tests (requires database)
+cargo test
+
+# Run specific test package
+cargo test --package hash-graph-postgres-store
 ```
 
-Please see the list of all possible `just` commands:
+### Code Quality
 
 ```shell
-just
+# Run clippy
+cargo clippy --all-features
+
+# Format code
+cargo fmt
 ```
 
-Every command line argument passed will also be forwarded to the subcommand, e.g. this will not only build the documentation but also open it in the browser:
+## API Documentation
+
+The Graph exposes a REST API with comprehensive OpenAPI specification:
+
+### Generate OpenAPI Client
+
+To generate the TypeScript client used by the frontend:
 
 ```shell
-just doc --open
+# From apps/hash-graph directory
+cargo run --bin openapi-spec-generator
 ```
 
-### API Definitions
+The OpenAPI spec is generated from code using [`utoipa`](https://github.com/juhaku/utoipa/). Complex types are defined manually in `libs/@local/graph/src/api/rest/json_schemas/`.
 
-The Graph's API is current exposed over REST with an accompanying OpenAPI spec.
+### Endpoints
 
-### Generate OpenAPI client
+Key API endpoints include:
 
-The HASH Graph produces an OpenAPI Spec while running, which can be used to generate the `@local/hash-graph-client` typescript client. In the `/apps/hash-graph` directory run:
+- **Entities**: CRUD operations for graph entities
+- **Types**: Entity and property type management
+- **Queries**: Structural queries across the graph
+- **Ontology**: Type system and schema operations
+
+## Database Management
+
+### Migrations
+
+Database schema is managed through [`refinery`](https://github.com/rust-db/refinery) migrations:
 
 ```shell
-just generate-openapi-specs
+# Apply migrations
+cargo run -- migrate
 ```
 
-Make sure to run this command whenever changes are made to the specification. CI will not pass otherwise.
+**Migration Format**: `V{number}__{description}.sql` in `postgres_migrations/`
 
-### Modifications
+- `V` prefix is required
+- Number determines execution order
+- Use incremental migrations (no rollbacks)
 
-The spec is mostly generated from the code using [`utoipa`](https://github.com/juhaku/utoipa/), although some of the more complex types are specified manually within [`libs/graph/src/api/rest/json_schemas`](libs/graph/src/api/rest/json_schemas).
+### Database Configuration
 
-As such, when modifying return values related to these types, it's important to update the accompanying schemas.
+The Graph connects to PostgreSQL with:
 
-#### Status
+- Full ACID transaction support
+- Connection pooling
+- Comprehensive query instrumentation
 
-Responses containing non-OK statuses are returned according to the `Status` format defined in the [`@local/status`](/libs/@local/status/README.md) package.
+## Observability
 
-The [`status.json`](libs/graph/src/api/rest/json_schemas/status.json) schema is responsible for the definition of this type, and should be updated whenever new payloads are added within [`./type-defs`](./type-defs).
-JSON schema definitions can be generated within the build directory by uncommenting the line in the lib's [`build.rs`](libs/api/build.rs).
+The Graph service includes comprehensive telemetry integration with the observability stack:
 
-To locate the build directory, run with `cargo build -vv` and search for "Generated files in:"
+### Distributed Tracing
 
-New payloads can then be added in the `definitions` and `oneOf` of the `Status` schema.
+- **Automatic instrumentation** for all HTTP requests and database queries
+- **Context propagation** across service boundaries (Type Fetcher communication via tarpc)
+- **Custom spans** for complex operations and business logic
+- **Database query tracing** with proper OpenTelemetry semantic conventions
 
-> [!NOTE]
-> Migrating to the above is in progress, and not all error responses currently satisfy the `Status` shape, consult the API spec to see.
+### Structured Logging
 
----
+- **Correlation IDs** linking logs to traces
+- **Structured output** with consistent field naming
+- **Configurable log levels** per module
 
-## Test the code
+### Configuration
 
-The code base has a few test suites. Except for the unit tests, every test suite requires an active database connection. The test setup uses `docker` to start the required services. To run all available tests, run:
+Set environment variables for enhanced logging:
 
 ```shell
-just test
+# Enhanced Graph logging (reduce noisy dependencies)
+HASH_GRAPH_LOG_LEVEL=trace,h2=info,tokio_util=debug,tower=info,tonic=info,hyper=info,tokio_postgres=info,rustls=info,tarpc=trace,libp2p_noise=info,libp2p_ping=info
+
+# OpenTelemetry endpoint (automatically configured in development)
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4317
 ```
 
-## Migrations
+All telemetry data is automatically sent to the [OpenTelemetry Collector](../hash-external-services/) and can be viewed in Grafana at http://localhost:3001.
 
-Migrations in the Graph are handled through [`refinery`](https://github.com/rust-db/refinery). The migrations are located at [./postgres_migrations](apps/hash-graph/postgres_migrations/) and can be manually added to.
+## Features
 
-The `V` prefix **is significant** and must be set followed by an incrementing number. This number specifies the sequence migrations are applied in. the `V` refers to a versioned migration. The migration file format is `[V]{1}__{2}.sql` in our case, where `{1}` is the incrementing sequence number and `{2}` is a display name for the migration.
+### Core Capabilities
 
-For undoing a migration we should create new migrations that undo changes. In general, migrations are easiest to manage from an Operations perspective if they are non-destructive wherever possible, doing as little data wrangling.
+- **Entity Management**: Create, update, delete, and query entities
+- **Type System**: Rich type definitions with inheritance and validation
+- **Structural Queries**: Complex graph traversal and filtering
+- **Authorization**: Fine-grained permission control
+- **Temporal Queries**: Query entity state at specific points in time
+- **Bulk Operations**: Efficient batch processing
 
-The tool we are using, `refinery`, also supports Rust based (`.rs`) migration files with the same naming scheme.
+### Performance
 
-Migrations are run through the same binary as the server using the following command:
+- **Connection Pooling**: Optimized database connections
+- **Query Optimization**: Efficient SQL generation
+- **Async Processing**: Non-blocking I/O throughout
+- **Instrumentation**: Comprehensive performance monitoring
+
+### Reliability
+
+- **Health Checks**: Built-in endpoint monitoring
+- **Graceful Shutdown**: Clean resource cleanup
+- **Error Handling**: Comprehensive error types with context
+
+## Status Format
+
+API responses containing non-OK statuses follow the `Status` format defined in [`@local/status`](/libs/@local/status/README.md).
+
+The [`status.json`](../../libs/@local/graph/src/api/rest/json_schemas/status.json) schema defines this type and should be updated when new error payloads are added.
+
+## Troubleshooting
+
+### Common Issues
+
+**Database Connection Errors**:
 
 ```shell
-just run migrate
+# Check external services are running
+docker ps
+
+# Verify database is accessible
+psql -h localhost -p 5432 -U postgres
 ```
 
-## Benchmark the code
-
-The benchmark suite can be run with:
+**Type Fetcher Communication**:
 
 ```shell
-just bench
+# Check Type Fetcher is running on tarpc port
+telnet localhost 4455
 ```
 
-> [!WARNING]
-> In terms of time, our benchmarks carry a fairly significant setup cost per suite upon initialization. As such, the benchmark databases **are not cleaned up** between or after runs.
+**Build Issues**:
 
-> [!WARNING]
-> This also means that if breaking changes are made to the seeding logic, **you must manually delete the benchmark tables to have them reseed**.
+```shell
+# Clean build artifacts
+cargo clean
+
+# Update dependencies
+cargo update
+```
+
+## Contributing
+
+### Code Organization
+
+- `src/main.rs` - Entry point and CLI argument parsing
+- `src/subcommand/` - Individual command implementations (server, migrate, type-fetcher, etc.)
+- `libs/@local/graph/` - Core graph logic and API definitions
+
+### Development Workflow
+
+1. **Make Changes**: Edit code in `src/` or `libs/@local/graph/`
+2. **Run Tests**: `cargo test`
+3. **Check Linting**: `cargo clippy`
+4. **Update API Spec**: Generate OpenAPI spec if API changed
+5. **Test Integration**: Run full development environment with `yarn dev`
