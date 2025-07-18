@@ -8,7 +8,6 @@ import type {
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
 import { mergePropertiesAndMetadata } from "@local/hash-graph-sdk/entity";
-import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { ApolloError, UserInputError } from "apollo-server-errors";
 import produce from "immer";
 
@@ -76,7 +75,6 @@ export const createEntityWithPlaceholdersFn =
         ],
         properties: entityDefinition.entityProperties ?? { value: {} },
         linkedEntities: entityDefinition.linkedEntities ?? undefined,
-        relationships: createDefaultAuthorizationRelationships(authentication),
       });
     }
   };

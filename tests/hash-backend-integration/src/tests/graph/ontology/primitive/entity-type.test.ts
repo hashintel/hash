@@ -110,14 +110,6 @@ beforeAll(async () => {
         type: "object",
         properties: {},
       },
-      relationships: [
-        {
-          relation: "viewer",
-          subject: {
-            kind: "public",
-          },
-        },
-      ],
     }).then((val) => {
       workerEntityType = val;
     }),
@@ -129,14 +121,6 @@ beforeAll(async () => {
         type: "object",
         properties: {},
       },
-      relationships: [
-        {
-          relation: "viewer",
-          subject: {
-            kind: "public",
-          },
-        },
-      ],
     }).then((val) => {
       addressEntityType = val;
     }),
@@ -147,14 +131,6 @@ beforeAll(async () => {
         description: "Favorite book of the user",
         oneOf: [{ $ref: textDataTypeId }],
       },
-      relationships: [
-        {
-          relation: "viewer",
-          subject: {
-            kind: "public",
-          },
-        },
-      ],
     }).then((val) => {
       favoriteBookPropertyType = val;
     }),
@@ -165,14 +141,6 @@ beforeAll(async () => {
         description: "The name of the user",
         oneOf: [{ $ref: textDataTypeId }],
       },
-      relationships: [
-        {
-          relation: "viewer",
-          subject: {
-            kind: "public",
-          },
-        },
-      ],
     }).then((val) => {
       namePropertyType = val;
     }),
@@ -186,14 +154,6 @@ beforeAll(async () => {
         properties: {},
         ...({} as Record<SystemDefinedProperties, never>),
       },
-      relationships: [
-        {
-          relation: "viewer",
-          subject: {
-            kind: "public",
-          },
-        },
-      ],
     }).then((val) => {
       knowsLinkEntityType = val;
     }),
@@ -206,14 +166,6 @@ beforeAll(async () => {
         allOf: [{ $ref: blockProtocolEntityTypes.link.entityTypeId }],
         properties: {},
       },
-      relationships: [
-        {
-          relation: "viewer",
-          subject: {
-            kind: "public",
-          },
-        },
-      ],
     }).then((val) => {
       previousAddressLinkEntityType = val;
     }),
@@ -267,21 +219,6 @@ describe("Entity type CRU", () => {
     createdEntityType = await createEntityType(graphContext, authentication, {
       webId: testOrg.webId,
       schema: entityTypeSchema,
-      relationships: [
-        {
-          relation: "setting",
-          subject: {
-            kind: "setting",
-            subjectId: "updateFromWeb",
-          },
-        },
-        {
-          relation: "viewer",
-          subject: {
-            kind: "public",
-          },
-        },
-      ],
     });
   });
 
@@ -515,15 +452,6 @@ describe("Entity type CRU", () => {
       {
         entityTypeId: createdEntityType.schema.$id,
         schema: { ...entityTypeSchema, title: updatedTitle },
-        relationships: [
-          {
-            relation: "setting",
-            subject: {
-              kind: "setting",
-              subjectId: "updateFromWeb",
-            },
-          },
-        ],
         provenance: {
           actorType: "machine",
           origin: {

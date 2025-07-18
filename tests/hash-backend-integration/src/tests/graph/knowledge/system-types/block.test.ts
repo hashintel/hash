@@ -14,7 +14,6 @@ import { createEntityType } from "@apps/hash-api/src/graph/ontology/primitive/en
 import type { EntityTypeWithMetadata, WebId } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import type { HashEntity } from "@local/hash-graph-sdk/entity";
-import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { generateTypeId } from "@local/hash-isomorphic-utils/ontology-types";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -67,21 +66,12 @@ describe("Block", () => {
         properties: [],
         outgoingLinks: [],
       }),
-      relationships: [
-        {
-          relation: "viewer",
-          subject: {
-            kind: "public",
-          },
-        },
-      ],
     });
 
     testBlockDataEntity = await createEntity(graphContext, authentication, {
       webId: testUser.accountId as WebId,
       properties: { value: {} },
       entityTypeIds: [dummyEntityType.schema.$id],
-      relationships: createDefaultAuthorizationRelationships(authentication),
     });
 
     return async () => {
@@ -135,7 +125,6 @@ describe("Block", () => {
         webId: testUser.accountId as WebId,
         properties: { value: {} },
         entityTypeIds: [dummyEntityType.schema.$id],
-        relationships: createDefaultAuthorizationRelationships(authentication),
       },
     );
 

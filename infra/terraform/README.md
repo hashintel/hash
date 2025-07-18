@@ -90,14 +90,11 @@ Secret environment should be provided in HashiCorp Vault. These are expected in 
   pg_hydra_user_password_raw: "changeme",
   pg_kratos_user_password_hash: "SCRAM-SHA-256$4096:calculateme-see-postgres_roles.tf",
   pg_kratos_user_password_raw: "changeme",
-  pg_spicedb_password_hash: "SCRAM-SHA-256$4096:calculateme-see-postgres_roles.tf",
-  pg_spicedb_password_raw: "changeme",
   pg_superuser_password: "changeme",
   pg_temporal_user_password_hash: "SCRAM-SHA-256$4096:calculateme-see-postgres_roles.tf",
   pg_temporal_user_password_raw: "changeme",
   pg_temporal_visibility_user_password_hash: "SCRAM-SHA-256$4096:calculateme-see-postgres_roles.tf",
   pg_temporal_visibility_user_password_raw: "changeme",
-  spicedb_grpc_preshared_key: "changeme",
 }
 ```
 

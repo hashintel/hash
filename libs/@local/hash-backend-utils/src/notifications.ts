@@ -1,5 +1,4 @@
 import type {
-  ActorEntityUuid,
   EntityId,
   ProvidedEntityEditionProvenance,
   Timestamp,
@@ -7,7 +6,6 @@ import type {
   WebId,
 } from "@blockprotocol/type-system";
 import type { GraphApi } from "@local/hash-graph-client";
-import type { EntityRelationAndSubjectBranded } from "@local/hash-graph-sdk/authorization";
 import { HashEntity } from "@local/hash-graph-sdk/entity";
 import {
   systemEntityTypes,
@@ -19,55 +17,6 @@ import type {
 } from "@local/hash-isomorphic-utils/system-types/graphchangenotification";
 
 import { getWebMachineId } from "./machine-actors.js";
-
-export const createNotificationEntityPermissions = ({
-  machineActorId,
-}: {
-  machineActorId: ActorEntityUuid;
-}): {
-  linkEntityRelationships: EntityRelationAndSubjectBranded[];
-  notificationEntityRelationships: EntityRelationAndSubjectBranded[];
-} => ({
-  linkEntityRelationships: [
-    {
-      relation: "administrator",
-      subject: {
-        kind: "account",
-        subjectId: machineActorId,
-      },
-    },
-    {
-      relation: "setting",
-      subject: {
-        kind: "setting",
-        subjectId: "viewFromWeb",
-      },
-    },
-  ],
-  notificationEntityRelationships: [
-    {
-      relation: "administrator",
-      subject: {
-        kind: "account",
-        subjectId: machineActorId,
-      },
-    },
-    {
-      relation: "setting",
-      subject: {
-        kind: "setting",
-        subjectId: "updateFromWeb",
-      },
-    },
-    {
-      relation: "setting",
-      subject: {
-        kind: "setting",
-        subjectId: "viewFromWeb",
-      },
-    },
-  ],
-});
 
 export const createGraphChangeNotification = async (
   context: { graphApi: GraphApi },
@@ -100,11 +49,6 @@ export const createGraphChangeNotification = async (
     return maybeMachineId;
   });
 
-  const { linkEntityRelationships, notificationEntityRelationships } =
-    createNotificationEntityPermissions({
-      machineActorId: webMachineActorId,
-    });
-
   const provenance: ProvidedEntityEditionProvenance = {
     actorType: "machine",
     origin: {
@@ -134,7 +78,6 @@ export const createGraphChangeNotification = async (
         },
       },
       provenance,
-      relationships: notificationEntityRelationships,
     },
   );
 
@@ -168,7 +111,6 @@ export const createGraphChangeNotification = async (
         },
       },
       provenance,
-      relationships: linkEntityRelationships,
     },
   );
 };

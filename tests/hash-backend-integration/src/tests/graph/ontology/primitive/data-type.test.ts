@@ -12,7 +12,6 @@ import {
   unarchiveDataType,
   updateDataType,
 } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
-import { modifyWebAuthorizationRelationships } from "@apps/hash-api/src/graph/ontology/primitive/util";
 import type { DataTypeWithMetadata } from "@blockprotocol/type-system";
 import { isOwnedOntologyElementMetadata } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
@@ -83,24 +82,6 @@ beforeAll(async () => {
     orgEntityId: testOrg.entity.metadata.recordId.entityId,
   });
 
-  // Currently, full access permissions are required to update a data type
-  await modifyWebAuthorizationRelationships(graphContext, authentication, [
-    {
-      relationship: {
-        resource: {
-          kind: "web",
-          resourceId: testOrg.webId,
-        },
-        relation: "owner",
-        subject: {
-          kind: "account",
-          subjectId: testUser2.accountId,
-        },
-      },
-      operation: "create",
-    },
-  ]);
-
   return async () => {
     await deleteKratosIdentity({
       kratosIdentityId: testUser.kratosIdentityId,
@@ -121,13 +102,6 @@ describe("Data type CRU", () => {
     createdDataType = await createDataType(graphContext, authentication, {
       webId: testOrg.webId,
       schema: dataTypeSchema,
-      relationships: [
-        { relation: "viewer", subject: { kind: "public" } },
-        {
-          relation: "setting",
-          subject: { kind: "setting", subjectId: "updateFromWeb" },
-        },
-      ],
       conversions: {},
     });
 
@@ -171,7 +145,6 @@ describe("Data type CRU", () => {
         titlePlural: updatedTitlePlural,
         icon: updatedIcon,
       },
-      relationships: [{ relation: "viewer", subject: { kind: "public" } }],
       conversions: {},
       // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
     }).catch((err) => Promise.reject(err));

@@ -2,17 +2,14 @@ use alloc::borrow::Cow;
 use core::error::Error;
 use std::collections::{HashMap, HashSet};
 
-use hash_graph_authorization::{
-    AuthorizationApi,
-    policies::{
-        Effect, PolicyId,
-        action::ActionName,
-        principal::PrincipalConstraint,
-        resource::{EntityResourceConstraint, EntityResourceFilter, ResourceConstraint},
-        store::{
-            CreateWebParameter, PolicyCreationParams, PolicyStore as _, PrincipalStore as _,
-            ResolvePoliciesParams,
-        },
+use hash_graph_authorization::policies::{
+    Effect, PolicyId,
+    action::ActionName,
+    principal::PrincipalConstraint,
+    resource::{EntityResourceConstraint, EntityResourceFilter, ResourceConstraint},
+    store::{
+        CreateWebParameter, PolicyCreationParams, PolicyStore as _, PrincipalStore as _,
+        ResolvePoliciesParams,
     },
 };
 use hash_graph_postgres_store::store::{AsClient, PostgresStore};
@@ -143,7 +140,7 @@ struct TestPolicyIds {
 /// ```
 #[expect(clippy::too_many_lines)]
 async fn setup_policy_test_environment(
-    client: &mut PostgresStore<impl AsClient, impl AuthorizationApi>,
+    client: &mut PostgresStore<impl AsClient>,
     actor_id: ActorId,
 ) -> Result<TestPolicyEnvironment, Box<dyn Error>> {
     // Create web teams (top level)

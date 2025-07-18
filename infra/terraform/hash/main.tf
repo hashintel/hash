@@ -162,7 +162,6 @@ module "postgres_roles" {
   pg_hydra_user_password_hash    = data.vault_kv_secret_v2.secrets.data["pg_hydra_user_password_hash"]
   pg_graph_user_password_hash    = data.vault_kv_secret_v2.secrets.data["pg_graph_user_password_hash"]
   pg_temporal_user_password_hash = data.vault_kv_secret_v2.secrets.data["pg_temporal_user_password_hash"]
-  pg_spicedb_user_password_hash  = data.vault_kv_secret_v2.secrets.data["pg_spicedb_user_password_hash"]
 }
 
 module "redis" {
@@ -247,10 +246,6 @@ module "application" {
     { name = "HASH_GRAPH_PG_PORT", secret = false, value = module.postgres.pg_port },
     { name = "HASH_GRAPH_PG_DATABASE", secret = false, value = "graph" },
     {
-      name  = "HASH_SPICEDB_GRPC_PRESHARED_KEY", secret = true,
-      value = sensitive(data.vault_kv_secret_v2.secrets.data["spicedb_grpc_preshared_key"])
-    },
-    {
       name  = "HASH_GRAPH_SENTRY_DSN", secret = true,
       value = sensitive(data.vault_kv_secret_v2.secrets.data["graph_sentry_dsn"])
     },
@@ -268,10 +263,6 @@ module "application" {
     { name = "HASH_GRAPH_PG_PORT", secret = false, value = module.postgres.pg_port },
     { name = "HASH_GRAPH_PG_DATABASE", secret = false, value = "graph" },
     { name = "HASH_GRAPH_RPC_ENABLED", secret = false, value = "true" },
-    {
-      name  = "HASH_SPICEDB_GRPC_PRESHARED_KEY", secret = true,
-      value = sensitive(data.vault_kv_secret_v2.secrets.data["spicedb_grpc_preshared_key"])
-    },
     {
       name  = "HASH_GRAPH_SENTRY_DSN", secret = true,
       value = sensitive(data.vault_kv_secret_v2.secrets.data["graph_sentry_dsn"])
@@ -495,32 +486,4 @@ module "application" {
   ]
   temporal_host = module.temporal.host
   temporal_port = module.temporal.port
-  spicedb_image = {
-    name    = "authzed/spicedb"
-    version = "1.28.0"
-  }
-  spicedb_migration_env_vars = [
-    { name = "SPICEDB_LOG_FORMAT", secret = false, value = "console" },
-    { name = "SPICEDB_DATASTORE_ENGINE", secret = false, value = "postgres" },
-    {
-      name  = "SPICEDB_DATASTORE_CONN_URI", secret = true,
-      value = sensitive("postgres://superuser:${data.vault_kv_secret_v2.secrets.data["pg_superuser_password"]}@${module.postgres.pg_host}:${module.postgres.pg_port}/spicedb")
-    },
-  ]
-  spicedb_env_vars = [
-    { name = "SPICEDB_LOG_FORMAT", secret = false, value = "console" },
-    { name = "SPICEDB_DATASTORE_ENGINE", secret = false, value = "postgres" },
-    {
-      name  = "SPICEDB_DATASTORE_CONN_URI", secret = true,
-      value = sensitive("postgres://spicedb:${data.vault_kv_secret_v2.secrets.data["pg_spicedb_user_password_raw"]}@${module.postgres.pg_host}:${module.postgres.pg_port}/spicedb?plan_cache_mode=force_custom_plan")
-    },
-    { name = "SPICEDB_HTTP_ENABLED", secret = false, value = "True" },
-    { name = "SPICEDB_SCHEMA_PREFIXES_REQUIRED", secret = false, value = "True" },
-    { name = "SPICEDB_TELEMETRY_ENDPOINT", secret = false, value = "" },
-    { name = "SPICEDB_DATASTORE_GC_WINDOW", secret = false, value = "2m0s" },
-    {
-      name  = "SPICEDB_GRPC_PRESHARED_KEY", secret = true,
-      value = sensitive(data.vault_kv_secret_v2.secrets.data["spicedb_grpc_preshared_key"])
-    },
-  ]
 }

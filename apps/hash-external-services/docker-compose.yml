@@ -3,6 +3,7 @@ volumes:
   hash-vault-data:
   logs:
 
+
 services:
   postgres:
     build:
@@ -34,34 +35,11 @@ services:
       - ./postgres/init-user-db.sh:/docker-entrypoint-initdb.d/init-user-db.sh:ro
     shm_size: 1GB
     healthcheck:
-      test:
-        ["CMD", "pg_isready", "-q", "-h", "postgres", "-U", "${POSTGRES_USER}"]
+      test: [ "CMD", "pg_isready", "-q", "-h", "postgres", "-U", "${POSTGRES_USER}" ]
       interval: 2s
       timeout: 2s
       retries: 5
     command: -c 'config_file=/etc/postgresql/postgresql.conf' --track_commit_timestamp=on
-
-  spicedb:
-    image: authzed/spicedb:v${HASH_SPICEDB_VERSION}
-    restart: on-failure
-    environment:
-      SPICEDB_HTTP_ENABLED: "True"
-      SPICEDB_HTTP_ADDR: ":${HASH_SPICEDB_HTTP_PORT}"
-      HASH_SPICEDB_GRPC_PORT: ":${HASH_SPICEDB_GRPC_PORT}"
-      SPICEDB_READONLY_GRPC_ENABLED: "False"
-      SPICEDB_SCHEMA_PREFIXES_REQUIRED: "True"
-      SPICEDB_TELEMETRY_ENDPOINT: ""
-      SPICEDB_LOG_FORMAT: "console"
-      SPICEDB_DATASTORE_CONN_POOL_READ_MAX_OPEN: "100"
-    command: serve
-    read_only: true
-    security_opt:
-      - no-new-privileges:true
-    healthcheck:
-      test: ["CMD", "grpc_health_probe", "-addr=localhost:50051"]
-      interval: 5s
-      timeout: 2s
-      retries: 10
 
   kratos-migrate:
     build:
@@ -166,7 +144,7 @@ services:
       restart_policy:
         condition: on-failure
     healthcheck:
-      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
+      test: [ "CMD-SHELL", "redis-cli ping | grep PONG" ]
       interval: 2s
       timeout: 2s
       retries: 5
@@ -210,17 +188,7 @@ services:
       temporal-migrate:
         condition: service_completed_successfully
     healthcheck:
-      test:
-        [
-          "CMD",
-          "temporal",
-          "workflow",
-          "list",
-          "--namespace",
-          "HASH",
-          "--address",
-          "temporal:7233",
-        ]
+      test: [ "CMD", "temporal", "workflow", "list", "--namespace", "HASH", "--address", "temporal:7233" ]
       interval: 10s
       timeout: 2s
       retries: 10
@@ -286,7 +254,7 @@ services:
     ports:
       - "${HASH_TEMPORAL_UI_PORT}:8080"
     healthcheck:
-      test: ["CMD", "/bin/sh", "-c", "nc -z $(hostname) 8080"]
+      test: [ "CMD", "/bin/sh", "-c", "nc -z $(hostname) 8080" ]
       interval: 2s
       timeout: 2s
       retries: 10

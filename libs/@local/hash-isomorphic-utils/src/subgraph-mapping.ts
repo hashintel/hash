@@ -21,6 +21,7 @@ import type {
   WebId,
 } from "@blockprotocol/type-system";
 import {
+  extractBaseUrl,
   extractWebIdFromEntityId,
   isEntityId,
 } from "@blockprotocol/type-system";
@@ -95,8 +96,10 @@ export const mapGraphApiEntityToEntity = <
      */
     properties:
       preserveProperties ||
-      !entity.metadata.entityTypeIds.includes(
-        systemEntityTypes.user.entityTypeId,
+      !entity.metadata.entityTypeIds.some(
+        (entityTypeId) =>
+          extractBaseUrl(entityTypeId as VersionedUrl) ===
+          systemEntityTypes.user.entityTypeBaseUrl,
       )
         ? entity.properties
         : filterProperties({
@@ -104,17 +107,25 @@ export const mapGraphApiEntityToEntity = <
             entity,
             userAccountId,
           }),
-    metadata: {
-      ...entity.metadata,
-      properties: {
-        ...entity.metadata.properties,
-        value: filterProperties<GraphApiPropertyObjectMetadata["value"]>({
-          properties: entity.metadata.properties?.value ?? {},
-          entity,
-          userAccountId,
-        }),
-      },
-    },
+    metadata:
+      preserveProperties ||
+      !entity.metadata.entityTypeIds.some(
+        (entityTypeId) =>
+          extractBaseUrl(entityTypeId as VersionedUrl) ===
+          systemEntityTypes.user.entityTypeBaseUrl,
+      )
+        ? entity.metadata
+        : {
+            ...entity.metadata,
+            properties: {
+              ...entity.metadata.properties,
+              value: filterProperties<GraphApiPropertyObjectMetadata["value"]>({
+                properties: entity.metadata.properties?.value ?? {},
+                entity,
+                userAccountId,
+              }),
+            },
+          },
   });
 };
 

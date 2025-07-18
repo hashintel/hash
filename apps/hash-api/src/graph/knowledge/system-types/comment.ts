@@ -1,6 +1,5 @@
 import type { EntityId, EntityUuid } from "@blockprotocol/type-system";
 import { EntityTypeMismatchError } from "@local/hash-backend-utils/error";
-import type { EntityRelationAndSubjectBranded } from "@local/hash-graph-sdk/authorization";
 import type {
   CreateEntityParameters,
   HashEntity,
@@ -154,31 +153,6 @@ export const createComment: ImpureGraphFunction<
 > = async (ctx, authentication, params): Promise<Comment> => {
   const { webId, textualContent, parentEntityId, author } = params;
 
-  // the author has full access, regardless of which web the comment belongs to (webId)
-  const relationships: EntityRelationAndSubjectBranded[] = [
-    {
-      relation: "administrator",
-      subject: {
-        kind: "account",
-        subjectId: author.accountId,
-      },
-    },
-    {
-      relation: "setting",
-      subject: {
-        kind: "setting",
-        subjectId: "administratorFromWeb",
-      },
-    },
-    {
-      relation: "setting",
-      subject: {
-        kind: "setting",
-        subjectId: "viewFromWeb",
-      },
-    },
-  ];
-
   const textEntityEntityUuid = generateUuid() as EntityUuid;
   const textEntity = await createEntity<TextEntity>(ctx, authentication, {
     webId,
@@ -198,7 +172,6 @@ export const createComment: ImpureGraphFunction<
       },
     },
     entityTypeIds: [systemEntityTypes.text.entityTypeId],
-    relationships,
     policies: [
       {
         name: `comment-text-creator-update-entity-${textEntityEntityUuid}`,
@@ -225,7 +198,6 @@ export const createComment: ImpureGraphFunction<
           rightEntityId: parentEntityId,
         },
         entityTypeIds: [systemLinkEntityTypes.hasParent.linkEntityTypeId],
-        relationships,
       },
       {
         webId,
@@ -234,7 +206,6 @@ export const createComment: ImpureGraphFunction<
           rightEntityId: author.entity.metadata.recordId.entityId,
         },
         entityTypeIds: [systemLinkEntityTypes.authoredBy.linkEntityTypeId],
-        relationships,
       },
       /**
        * The creation of the `hasText` link entity has to occur last so
@@ -248,10 +219,8 @@ export const createComment: ImpureGraphFunction<
           rightEntityId: textEntity.metadata.recordId.entityId,
         },
         entityTypeIds: [systemLinkEntityTypes.hasText.linkEntityTypeId],
-        relationships,
       },
     ],
-    relationships,
   });
 
   return getCommentFromEntity({ entity: commentEntity });

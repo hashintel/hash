@@ -12,7 +12,6 @@ import {
   type OutputNameForAction,
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type { PersistedEntity } from "@local/hash-isomorphic-utils/flows/types";
-import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type {
   HasObject,
@@ -229,9 +228,6 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
                 draft: createEditionAsDraft,
                 entityUuid,
                 webId,
-                relationships: createDefaultAuthorizationRelationships({
-                  actorId,
-                }),
               },
             ),
           {
@@ -294,9 +290,6 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
           leftEntityId: claimId,
           rightEntityId: entity.entityId,
         },
-        relationships: createDefaultAuthorizationRelationships({
-          actorId,
-        }),
         properties: { value: {} },
       },
     );

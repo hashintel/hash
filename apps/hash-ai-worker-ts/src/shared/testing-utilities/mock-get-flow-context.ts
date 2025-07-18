@@ -9,7 +9,6 @@ import { mapFlowRunToEntityProperties } from "@local/hash-isomorphic-utils/flows
 import type { RunFlowWorkflowParams } from "@local/hash-isomorphic-utils/flows/temporal-types";
 import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
-import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { Context } from "@temporalio/activity";
 // eslint-disable-next-line import/no-extraneous-dependencies
@@ -55,7 +54,6 @@ const createDummyFlow = async (params: { actorId: ActorEntityUuid }) => {
         },
       },
       draft: false,
-      relationships: createDefaultAuthorizationRelationships({ actorId }),
     },
   );
 

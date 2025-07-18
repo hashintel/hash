@@ -1,7 +1,7 @@
 use hash_graph_temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use hash_graph_types::Embedding;
 use serde::{Deserialize, Serialize};
-use type_system::{knowledge::entity::id::EntityId, ontology::BaseUrl};
+use type_system::{knowledge::entity::EntityId, ontology::BaseUrl};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

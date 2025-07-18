@@ -68,7 +68,6 @@ async fn insert() {
         confidence: None,
         link_data: None,
         draft: false,
-        relationships: [],
         policies: Vec::new(),
         provenance: ProvidedEntityEditionProvenance {
             actor_type: ActorType::User,
@@ -94,7 +93,6 @@ async fn insert() {
         confidence: None,
         link_data: None,
         draft: false,
-        relationships: [],
         policies: Vec::new(),
         provenance: ProvidedEntityEditionProvenance {
             actor_type: ActorType::User,
@@ -131,7 +129,6 @@ async fn insert() {
             right_entity_provenance: PropertyProvenance::default(),
         }),
         draft: false,
-        relationships: [],
         policies: Vec::new(),
         provenance: ProvidedEntityEditionProvenance {
             actor_type: ActorType::User,

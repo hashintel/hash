@@ -1,7 +1,6 @@
 use alloc::borrow::Cow;
 
 use criterion::{BatchSize::SmallInput, Bencher};
-use hash_graph_authorization::AuthorizationApi;
 use hash_graph_store::{
     entity::{
         EntityQueryPath, EntityQuerySorting, EntityStore as _, GetEntitiesParams,
@@ -23,10 +22,10 @@ use type_system::{knowledge::entity::id::EntityUuid, principal::actor::ActorEnti
 
 use crate::util::Store;
 
-pub fn bench_get_entity_by_id<A: AuthorizationApi>(
+pub fn bench_get_entity_by_id(
     bencher: &mut Bencher,
     runtime: &Runtime,
-    store: &Store<A>,
+    store: &Store,
     actor_id: ActorEntityUuid,
     entity_uuids: &[EntityUuid],
 ) {
@@ -80,10 +79,10 @@ pub fn bench_get_entity_by_id<A: AuthorizationApi>(
     );
 }
 
-pub fn bench_get_entities_by_property<A: AuthorizationApi>(
+pub fn bench_get_entities_by_property(
     bencher: &mut Bencher,
     runtime: &Runtime,
-    store: &Store<A>,
+    store: &Store,
     actor_id: ActorEntityUuid,
     graph_resolve_depths: GraphResolveDepths,
 ) {
@@ -136,10 +135,10 @@ pub fn bench_get_entities_by_property<A: AuthorizationApi>(
     });
 }
 
-pub fn bench_get_link_by_target_by_property<A: AuthorizationApi>(
+pub fn bench_get_link_by_target_by_property(
     bencher: &mut Bencher,
     runtime: &Runtime,
-    store: &Store<A>,
+    store: &Store,
     actor_id: ActorEntityUuid,
     graph_resolve_depths: GraphResolveDepths,
 ) {

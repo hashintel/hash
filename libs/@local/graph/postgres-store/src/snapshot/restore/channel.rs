@@ -10,25 +10,19 @@ use futures::{
     channel::mpsc::{self, Sender, UnboundedReceiver, UnboundedSender},
     stream::{BoxStream, SelectAll, select_all},
 };
-use hash_graph_authorization::schema::EntityRelationAndSubject;
-use type_system::{
-    knowledge::entity::id::EntityUuid,
-    ontology::{
-        data_type::DataTypeUuid, entity_type::EntityTypeUuid, property_type::PropertyTypeUuid,
-    },
+use type_system::ontology::{
+    data_type::DataTypeUuid, entity_type::EntityTypeUuid, property_type::PropertyTypeUuid,
 };
 
 use crate::{
     snapshot::{
-        AuthorizationRelation, SnapshotEntry, SnapshotMetadata, SnapshotRestoreError,
+        SnapshotEntry, SnapshotMetadata, SnapshotRestoreError,
         action::{self, ActionSender},
         entity::{self, EntitySender},
         ontology::{self, DataTypeSender, EntityTypeSender, PropertyTypeSender},
-        owner::{self, Owner, OwnerSender},
         policy::{self, PolicyActionSender, PolicyEditionSender},
         principal::{self, PrincipalSender},
         restore::batch::SnapshotRecordBatch,
-        web::{self, WebSender},
     },
     store::postgres::query::rows::{
         DataTypeEmbeddingRow, EntityEmbeddingRow, EntityTypeEmbeddingRow, PropertyTypeEmbeddingRow,
@@ -38,12 +32,10 @@ use crate::{
 #[derive(Debug, Clone)]
 pub struct SnapshotRecordSender {
     metadata: UnboundedSender<SnapshotMetadata>,
-    owner: OwnerSender,
     principal: PrincipalSender,
     action: ActionSender,
     policy_edition: PolicyEditionSender,
     policy_action: PolicyActionSender,
-    webs: WebSender,
     data_type: DataTypeSender,
     data_type_embedding: Sender<DataTypeEmbeddingRow<'static>>,
     property_type: PropertyTypeSender,
@@ -52,7 +44,6 @@ pub struct SnapshotRecordSender {
     entity_type_embedding: Sender<EntityTypeEmbeddingRow<'static>>,
     entity: EntitySender,
     entity_embedding: Sender<EntityEmbeddingRow>,
-    entity_relation: Sender<(EntityUuid, EntityRelationAndSubject)>,
 }
 
 impl Sink<SnapshotEntry> for SnapshotRecordSender {
@@ -65,7 +56,6 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
         ready!(self.metadata.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not poll metadata sender")?;
-        ready!(self.owner.poll_ready_unpin(cx)).attach_printable("could not poll owner sender")?;
         ready!(self.principal.poll_ready_unpin(cx))
             .attach_printable("could not poll principal sender")?;
         ready!(self.action.poll_ready_unpin(cx))
@@ -74,9 +64,6 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
             .attach_printable("could not poll policy sender")?;
         ready!(self.policy_action.poll_ready_unpin(cx))
             .attach_printable("could not poll policy action sender")?;
-        ready!(self.webs.poll_ready_unpin(cx))
-            .attach_printable("could not poll web sender")
-            .change_context(SnapshotRestoreError::Read)?;
         ready!(self.data_type.poll_ready_unpin(cx))
             .attach_printable("could not poll data type sender")?;
         ready!(self.data_type_embedding.poll_ready_unpin(cx))
@@ -94,9 +81,6 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
             .attach_printable("could not poll entity type embedding sender")?;
         ready!(self.entity.poll_ready_unpin(cx))
             .attach_printable("could not poll entity sender")?;
-        ready!(self.entity_relation.poll_ready_unpin(cx))
-            .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not poll entity relation sender")?;
         ready!(self.entity_embedding.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not poll entity embedding sender")?;
@@ -127,15 +111,6 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
                 .policy_action
                 .start_send_unpin(action)
                 .attach_printable("could not send policy action"),
-            SnapshotEntry::Web(web) => self
-                .webs
-                .start_send_unpin(web)
-                .change_context(SnapshotRestoreError::Read)
-                .attach_printable("could not send web"),
-            SnapshotEntry::AccountGroup(account_group) => self
-                .owner
-                .start_send_unpin(Owner::AccountGroup(account_group))
-                .attach_printable("could not send account group"),
             SnapshotEntry::DataType(data_type) => self
                 .data_type
                 .start_send_unpin(*data_type)
@@ -179,14 +154,6 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
                 .entity
                 .start_send_unpin(*entity)
                 .attach_printable("could not send entity"),
-            SnapshotEntry::Relation(AuthorizationRelation::Entity {
-                object: entity_uuid,
-                relationship: relation,
-            }) => self
-                .entity_relation
-                .start_send_unpin((entity_uuid, relation))
-                .change_context(SnapshotRestoreError::Read)
-                .attach_printable("could not send entity relation"),
             SnapshotEntry::EntityEmbedding(embedding) => self
                 .entity_embedding
                 .start_send_unpin(EntityEmbeddingRow {
@@ -210,10 +177,6 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
         ready!(self.metadata.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not flush metadata sender")?;
-        ready!(self.owner.poll_flush_unpin(cx)).attach_printable("could not flush owner sender")?;
-        ready!(self.webs.poll_flush_unpin(cx))
-            .attach_printable("could not flush web sender")
-            .change_context(SnapshotRestoreError::Read)?;
         ready!(self.principal.poll_flush_unpin(cx))
             .attach_printable("could not flush principal sender")?;
         ready!(self.action.poll_flush_unpin(cx))
@@ -239,9 +202,6 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
             .attach_printable("could not flush entity type embedding sender")?;
         ready!(self.entity.poll_flush_unpin(cx))
             .attach_printable("could not flush entity sender")?;
-        ready!(self.entity_relation.poll_flush_unpin(cx))
-            .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not flush entity relation sender")?;
         ready!(self.entity_embedding.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not flush entity embedding sender")?;
@@ -256,10 +216,6 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
         ready!(self.metadata.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not close metadata sender")?;
-        ready!(self.owner.poll_close_unpin(cx)).attach_printable("could not close owner sender")?;
-        ready!(self.webs.poll_close_unpin(cx))
-            .attach_printable("could not close web sender")
-            .change_context(SnapshotRestoreError::Read)?;
         ready!(self.principal.poll_close_unpin(cx))
             .attach_printable("could not close principal sender")?;
         ready!(self.action.poll_close_unpin(cx))
@@ -285,9 +241,6 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
             .attach_printable("could not close entity type embedding sender")?;
         ready!(self.entity.poll_close_unpin(cx))
             .attach_printable("could not close entity sender")?;
-        ready!(self.entity_relation.poll_close_unpin(cx))
-            .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not close entity relation sender")?;
         ready!(self.entity_embedding.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not close entity embedding sender")?;
@@ -316,11 +269,9 @@ pub(crate) fn channel(
     UnboundedReceiver<SnapshotMetadata>,
 ) {
     let (metadata_tx, metadata_rx) = mpsc::unbounded();
-    let (owner_tx, owner_rx) = owner::channel(chunk_size);
     let (principal_tx, principal_rx) = principal::channel(chunk_size);
     let (action_tx, action_rx) = action::channel(chunk_size);
     let (policy_edition_tx, policy_action_tx, policy_rx) = policy::channel(chunk_size);
-    let (web_tx, web_rx) = web::channel(chunk_size);
     let (ontology_metadata_tx, ontology_metadata_rx) =
         ontology::ontology_metadata_channel(chunk_size);
     let (data_type_embedding_tx, data_type_embedding_rx) = mpsc::channel(chunk_size);
@@ -338,20 +289,16 @@ pub(crate) fn channel(
     let (entity_type_embedding_tx, entity_type_embedding_rx) = mpsc::channel(chunk_size);
     let (entity_type_tx, entity_type_rx) =
         ontology::entity_type_channel(chunk_size, ontology_metadata_tx, entity_type_embedding_rx);
-    let (entity_relation_tx, entity_relation_rx) = mpsc::channel(chunk_size);
     let (entity_embedding_tx, entity_embedding_rx) = mpsc::channel(chunk_size);
-    let (entity_tx, entity_rx) =
-        entity::channel(chunk_size, entity_relation_rx, entity_embedding_rx);
+    let (entity_tx, entity_rx) = entity::channel(chunk_size, entity_embedding_rx);
 
     (
         SnapshotRecordSender {
-            owner: owner_tx,
             principal: principal_tx,
             action: action_tx,
             policy_edition: policy_edition_tx,
             policy_action: policy_action_tx,
             metadata: metadata_tx,
-            webs: web_tx,
             data_type: data_type_tx,
             data_type_embedding: data_type_embedding_tx,
             property_type: property_type_tx,
@@ -359,16 +306,13 @@ pub(crate) fn channel(
             entity_type: entity_type_tx,
             entity_type_embedding: entity_type_embedding_tx,
             entity: entity_tx,
-            entity_relation: entity_relation_tx,
             entity_embedding: entity_embedding_tx,
         },
         SnapshotRecordReceiver {
             stream: select_all(vec![
-                owner_rx.map(SnapshotRecordBatch::Accounts).boxed(),
                 principal_rx.map(SnapshotRecordBatch::Principals).boxed(),
                 action_rx.map(SnapshotRecordBatch::Actions).boxed(),
                 policy_rx.map(SnapshotRecordBatch::Policies).boxed(),
-                web_rx.map(SnapshotRecordBatch::Webs).boxed(),
                 ontology_metadata_rx
                     .map(SnapshotRecordBatch::OntologyTypes)
                     .boxed(),

@@ -25,10 +25,9 @@ fn create_postgres_migration(value: &refinery::Migration) -> Migration {
     Migration::new(name, state, value.checksum())
 }
 
-impl<C, A> StoreMigration for PostgresStore<C, A>
+impl<C> StoreMigration for PostgresStore<C>
 where
     C: AsClient<Client = Client>,
-    A: Send + Sync,
 {
     async fn run_migrations(&mut self) -> Result<Vec<Migration>, Report<MigrationError>> {
         Ok(embedded::migrations::runner()

@@ -104,21 +104,6 @@ describe("Property type CRU", () => {
       {
         webId: testOrg.webId,
         schema: propertyTypeSchema,
-        relationships: [
-          {
-            relation: "setting",
-            subject: {
-              kind: "setting",
-              subjectId: "updateFromWeb",
-            },
-          },
-          {
-            relation: "viewer",
-            subject: {
-              kind: "public",
-            },
-          },
-        ],
       },
     );
   });
@@ -156,15 +141,6 @@ describe("Property type CRU", () => {
           ...propertyTypeSchema,
           title: updatedTitle,
         },
-        relationships: [
-          {
-            relation: "setting",
-            subject: {
-              kind: "setting",
-              subjectId: "updateFromWeb",
-            },
-          },
-        ],
       },
       // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
     ).catch((err) => Promise.reject(err.data));

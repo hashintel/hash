@@ -5,21 +5,18 @@ use std::{
 };
 
 use error_stack::{Report, ResultExt as _};
-use hash_graph_authorization::{
-    AuthorizationApi,
-    policies::{
-        Effect,
-        action::ActionName,
-        principal::PrincipalConstraint,
-        resource::{
-            DataTypeResourceConstraint, DataTypeResourceFilter, EntityResourceConstraint,
-            EntityResourceFilter, EntityTypeResourceConstraint, EntityTypeResourceFilter,
-            PropertyTypeResourceConstraint, PropertyTypeResourceFilter, ResourceConstraint,
-        },
-        store::{
-            PolicyCreationParams, PolicyFilter, PolicyStore as _, PolicyUpdateOperation,
-            error::EnsureSystemPoliciesError,
-        },
+use hash_graph_authorization::policies::{
+    Effect,
+    action::ActionName,
+    principal::PrincipalConstraint,
+    resource::{
+        DataTypeResourceConstraint, DataTypeResourceFilter, EntityResourceConstraint,
+        EntityResourceFilter, EntityTypeResourceConstraint, EntityTypeResourceFilter,
+        PropertyTypeResourceConstraint, PropertyTypeResourceFilter, ResourceConstraint,
+    },
+    store::{
+        PolicyCreationParams, PolicyFilter, PolicyStore as _, PolicyUpdateOperation,
+        error::EnsureSystemPoliciesError,
     },
 };
 use tokio_postgres::Transaction;
@@ -755,10 +752,7 @@ pub(crate) fn instance_admins_policies(role: &TeamRole) -> Vec<PolicyCreationPar
         .collect()
 }
 
-impl<A> PostgresStore<Transaction<'_>, A>
-where
-    A: AuthorizationApi + Send + Sync,
-{
+impl PostgresStore<Transaction<'_>> {
     #[expect(clippy::too_many_lines)]
     pub(crate) async fn update_seeded_policies(
         &mut self,

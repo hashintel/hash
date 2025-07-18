@@ -146,47 +146,6 @@
         }
       }
     },
-    "/actor-groups/webs/relationships": {
-      "post": {
-        "tags": [
-          "Graph",
-          "Web"
-        ],
-        "operationId": "modify_web_authorization_relationships",
-        "parameters": [
-          {
-            "name": "X-Authenticated-User-Actor-Id",
-            "in": "header",
-            "description": "The ID of the actor which is used to authorize the request",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ActorEntityUuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/ModifyWebAuthorizationRelationship"
-                }
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "204": {
-            "description": "The relationship was modified for the web"
-          },
-          "403": {
-            "description": "Permission denied"
-          }
-        }
-      }
-    },
     "/actor-groups/webs/shortname/{shortname}": {
       "get": {
         "tags": [
@@ -275,106 +234,6 @@
         }
       }
     },
-    "/actor-groups/webs/{web_id}/permissions/{permission}": {
-      "get": {
-        "tags": [
-          "Graph",
-          "Web"
-        ],
-        "operationId": "check_web_permission",
-        "parameters": [
-          {
-            "name": "X-Authenticated-User-Actor-Id",
-            "in": "header",
-            "description": "The ID of the actor which is used to authorize the request",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ActorEntityUuid"
-            }
-          },
-          {
-            "name": "web_id",
-            "in": "path",
-            "description": "The web ID to check if the actor has the permission",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/EntityId"
-            }
-          },
-          {
-            "name": "permission",
-            "in": "path",
-            "description": "The permission to check for",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/WebPermission"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Information if the actor has the permission for the web",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PermissionResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal error occurred"
-          }
-        }
-      }
-    },
-    "/actor-groups/webs/{web_id}/relationships": {
-      "get": {
-        "tags": [
-          "Graph",
-          "Web"
-        ],
-        "operationId": "get_web_authorization_relationships",
-        "parameters": [
-          {
-            "name": "X-Authenticated-User-Actor-Id",
-            "in": "header",
-            "description": "The ID of the actor which is used to authorize the request",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ActorEntityUuid"
-            }
-          },
-          {
-            "name": "web_id",
-            "in": "path",
-            "description": "The web to read the relations for",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/WebId"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "The relations of the web",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/WebRelationAndSubject"
-                  }
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Permission denied"
-          }
-        }
-      }
-    },
     "/actor-groups/webs/{web_id}/roles": {
       "get": {
         "tags": [
@@ -416,109 +275,6 @@
           },
           "500": {
             "description": "Store error occurred"
-          }
-        }
-      }
-    },
-    "/actor-groups/{actor_group_id}/permissions/{permission}": {
-      "get": {
-        "tags": [
-          "Graph",
-          "Actor Group"
-        ],
-        "operationId": "check_account_group_permission",
-        "parameters": [
-          {
-            "name": "X-Authenticated-User-Actor-Id",
-            "in": "header",
-            "description": "The ID of the actor which is used to authorize the request",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ActorEntityUuid"
-            }
-          },
-          {
-            "name": "actor_group_id",
-            "in": "path",
-            "description": "The ID of the actor group to check if the actor has the permission",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ActorGroupEntityUuid"
-            }
-          },
-          {
-            "name": "permission",
-            "in": "path",
-            "description": "The permission to check for",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/AccountGroupPermission"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Information if the actor can add an owner",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PermissionResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal error occurred"
-          }
-        }
-      }
-    },
-    "/actor-groups/{actor_group_id}/relations": {
-      "get": {
-        "tags": [
-          "Graph",
-          "Actor Group"
-        ],
-        "operationId": "get_actor_group_relations",
-        "parameters": [
-          {
-            "name": "X-Authenticated-User-Actor-Id",
-            "in": "header",
-            "description": "The ID of the actor which is used to authorize the request",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ActorEntityUuid"
-            }
-          },
-          {
-            "name": "actor_group_id",
-            "in": "path",
-            "description": "The ID of the actor group to get relations from",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ActorGroupEntityUuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "List of members and administrators of the actor group",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/AccountGroupRelationAndSubject"
-                  }
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Permission denied"
-          },
-          "500": {
-            "description": "Internal error occurred"
           }
         }
       }
@@ -1547,7 +1303,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateEntityRequest"
+                "$ref": "#/components/schemas/CreateEntityParams"
               }
             }
           },
@@ -1652,7 +1408,7 @@
               "schema": {
                 "type": "array",
                 "items": {
-                  "$ref": "#/components/schemas/CreateEntityRequest"
+                  "$ref": "#/components/schemas/CreateEntityParams"
                 }
               }
             }
@@ -2015,47 +1771,6 @@
         }
       }
     },
-    "/entities/relationships": {
-      "post": {
-        "tags": [
-          "Graph",
-          "Entity"
-        ],
-        "operationId": "modify_entity_authorization_relationships",
-        "parameters": [
-          {
-            "name": "X-Authenticated-User-Actor-Id",
-            "in": "header",
-            "description": "The ID of the actor which is used to authorize the request",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ActorEntityUuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/ModifyEntityAuthorizationRelationship"
-                }
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "204": {
-            "description": "The relationship was modified for the entity"
-          },
-          "403": {
-            "description": "Permission denied"
-          }
-        }
-      }
-    },
     "/entities/validate": {
       "post": {
         "tags": [
@@ -2106,233 +1821,6 @@
           },
           "500": {
             "description": "Store error occurred"
-          }
-        }
-      }
-    },
-    "/entities/{entity_id}/administrators/{subject_id}": {
-      "post": {
-        "tags": [
-          "Graph",
-          "Entity"
-        ],
-        "operationId": "add_entity_administrator",
-        "parameters": [
-          {
-            "name": "X-Authenticated-User-Actor-Id",
-            "in": "header",
-            "description": "The ID of the actor which is used to authorize the request",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ActorEntityUuid"
-            }
-          },
-          {
-            "name": "entity_id",
-            "in": "path",
-            "description": "The Entity to add the administrator to",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/EntityId"
-            }
-          },
-          {
-            "name": "subject_id",
-            "in": "path",
-            "description": "The administrator to add to the entity",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/EntityUuid"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "The administrator was added to the entity"
-          },
-          "403": {
-            "description": "Permission denied"
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "Graph",
-          "Entity"
-        ],
-        "operationId": "remove_entity_administrator",
-        "parameters": [
-          {
-            "name": "X-Authenticated-User-Actor-Id",
-            "in": "header",
-            "description": "The ID of the actor which is used to authorize the request",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ActorEntityUuid"
-            }
-          },
-          {
-            "name": "entity_id",
-            "in": "path",
-            "description": "The Entity to remove the administrator from",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/EntityId"
-            }
-          },
-          {
-            "name": "subject_id",
-            "in": "path",
-            "description": "The administrator to remove from the entity",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/EntityUuid"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "The administrator was removed from the entity"
-          },
-          "403": {
-            "description": "Permission denied"
-          }
-        }
-      }
-    },
-    "/entities/{entity_id}/editors/{subject_id}": {
-      "post": {
-        "tags": [
-          "Graph",
-          "Entity"
-        ],
-        "operationId": "add_entity_editor",
-        "parameters": [
-          {
-            "name": "X-Authenticated-User-Actor-Id",
-            "in": "header",
-            "description": "The ID of the actor which is used to authorize the request",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ActorEntityUuid"
-            }
-          },
-          {
-            "name": "entity_id",
-            "in": "path",
-            "description": "The Entity to add the editor to",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/EntityId"
-            }
-          },
-          {
-            "name": "subject_id",
-            "in": "path",
-            "description": "The editor to add to the entity",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/EntityUuid"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "The editor was added to the entity"
-          },
-          "403": {
-            "description": "Permission denied"
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "Graph",
-          "Entity"
-        ],
-        "operationId": "remove_entity_editor",
-        "parameters": [
-          {
-            "name": "X-Authenticated-User-Actor-Id",
-            "in": "header",
-            "description": "The ID of the actor which is used to authorize the request",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ActorEntityUuid"
-            }
-          },
-          {
-            "name": "entity_id",
-            "in": "path",
-            "description": "The Entity to remove the editor from",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/EntityId"
-            }
-          },
-          {
-            "name": "subject_id",
-            "in": "path",
-            "description": "The editor to remove from the entity",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/EntityUuid"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "The editor was removed from the entity"
-          },
-          "403": {
-            "description": "Permission denied"
-          }
-        }
-      }
-    },
-    "/entities/{entity_id}/relationships": {
-      "get": {
-        "tags": [
-          "Graph",
-          "Entity"
-        ],
-        "operationId": "get_entity_authorization_relationships",
-        "parameters": [
-          {
-            "name": "X-Authenticated-User-Actor-Id",
-            "in": "header",
-            "description": "The ID of the actor which is used to authorize the request",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ActorEntityUuid"
-            }
-          },
-          {
-            "name": "entity_id",
-            "in": "path",
-            "description": "The Entity to read the relations for",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/EntityId"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "The relations of the entity",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/EntityRelationAndSubject"
-                  }
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Permission denied"
           }
         }
       }
@@ -2924,53 +2412,6 @@
           },
           "500": {
             "description": "Store error occurred"
-          }
-        }
-      }
-    },
-    "/entity-types/{entity_type_id}/relationships": {
-      "get": {
-        "tags": [
-          "Graph",
-          "EntityType"
-        ],
-        "operationId": "get_entity_type_authorization_relationships",
-        "parameters": [
-          {
-            "name": "X-Authenticated-User-Actor-Id",
-            "in": "header",
-            "description": "The ID of the actor which is used to authorize the request",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ActorEntityUuid"
-            }
-          },
-          {
-            "name": "entity_type_id",
-            "in": "path",
-            "description": "The Entity type to read the relations for",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/VersionedUrl"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "The relations of the entity type",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/EntityTypeRelationAndSubject"
-                  }
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Permission denied"
           }
         }
       }
@@ -3800,157 +3241,10 @@
           }
         }
       }
-    },
-    "/property-types/{property_type_id}/relationships": {
-      "get": {
-        "tags": [
-          "Graph",
-          "PropertyType"
-        ],
-        "operationId": "get_property_type_authorization_relationships",
-        "parameters": [
-          {
-            "name": "X-Authenticated-User-Actor-Id",
-            "in": "header",
-            "description": "The ID of the actor which is used to authorize the request",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/ActorEntityUuid"
-            }
-          },
-          {
-            "name": "property_type_id",
-            "in": "path",
-            "description": "The Property type to read the relations for",
-            "required": true,
-            "schema": {
-              "$ref": "#/components/schemas/VersionedUrl"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "The relations of the property type",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/PropertyTypeRelationAndSubject"
-                  }
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Permission denied"
-          }
-        }
-      }
     }
   },
   "components": {
     "schemas": {
-      "AccountGroupAdministratorSubject": {
-        "oneOf": [
-          {
-            "type": "object",
-            "required": [
-              "subjectId",
-              "kind"
-            ],
-            "properties": {
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "account"
-                ]
-              },
-              "subjectId": {
-                "$ref": "#/components/schemas/ActorEntityUuid"
-              }
-            }
-          }
-        ],
-        "discriminator": {
-          "propertyName": "kind"
-        }
-      },
-      "AccountGroupMemberSubject": {
-        "oneOf": [
-          {
-            "type": "object",
-            "required": [
-              "subjectId",
-              "kind"
-            ],
-            "properties": {
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "account"
-                ]
-              },
-              "subjectId": {
-                "$ref": "#/components/schemas/ActorEntityUuid"
-              }
-            }
-          }
-        ],
-        "discriminator": {
-          "propertyName": "kind"
-        }
-      },
-      "AccountGroupPermission": {
-        "type": "string",
-        "enum": [
-          "add_member",
-          "remove_member"
-        ]
-      },
-      "AccountGroupRelationAndSubject": {
-        "oneOf": [
-          {
-            "type": "object",
-            "required": [
-              "subject",
-              "relation"
-            ],
-            "properties": {
-              "relation": {
-                "type": "string",
-                "enum": [
-                  "administrator"
-                ]
-              },
-              "subject": {
-                "$ref": "#/components/schemas/AccountGroupAdministratorSubject"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "subject",
-              "relation"
-            ],
-            "properties": {
-              "relation": {
-                "type": "string",
-                "enum": [
-                  "member"
-                ]
-              },
-              "subject": {
-                "$ref": "#/components/schemas/AccountGroupMemberSubject"
-              }
-            }
-          }
-        ],
-        "discriminator": {
-          "propertyName": "relation"
-        }
-      },
       "ActorEntityUuid": {
         "$ref": "#/components/schemas/EntityUuid"
       },
@@ -4407,7 +3701,6 @@
         "required": [
           "schema",
           "webId",
-          "relationships",
           "provenance",
           "conversions"
         ],
@@ -4420,12 +3713,6 @@
           },
           "provenance": {
             "$ref": "#/components/schemas/ProvidedOntologyEditionProvenance"
-          },
-          "relationships": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/DataTypeRelationAndSubject"
-            }
           },
           "schema": {
             "oneOf": [
@@ -4446,14 +3733,13 @@
         },
         "additionalProperties": false
       },
-      "CreateEntityRequest": {
+      "CreateEntityParams": {
         "type": "object",
         "required": [
           "webId",
           "entityTypeIds",
           "properties",
           "draft",
-          "relationships",
           "provenance"
         ],
         "properties": {
@@ -4506,12 +3792,6 @@
           "provenance": {
             "$ref": "#/components/schemas/ProvidedEntityEditionProvenance"
           },
-          "relationships": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/EntityRelationAndSubject"
-            }
-          },
           "webId": {
             "$ref": "#/components/schemas/WebId"
           }
@@ -4523,18 +3803,11 @@
         "required": [
           "schema",
           "webId",
-          "relationships",
           "provenance"
         ],
         "properties": {
           "provenance": {
             "$ref": "#/components/schemas/ProvidedOntologyEditionProvenance"
-          },
-          "relationships": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/EntityTypeRelationAndSubject"
-            }
           },
           "schema": {
             "oneOf": [
@@ -4580,18 +3853,11 @@
         "required": [
           "schema",
           "webId",
-          "relationships",
           "provenance"
         ],
         "properties": {
           "provenance": {
             "$ref": "#/components/schemas/ProvidedOntologyEditionProvenance"
-          },
-          "relationships": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/PropertyTypeRelationAndSubject"
-            }
           },
           "schema": {
             "oneOf": [
@@ -4767,49 +4033,6 @@
           }
         }
       },
-      "DataTypeEditorSubject": {
-        "oneOf": [
-          {
-            "type": "object",
-            "required": [
-              "subjectId",
-              "kind"
-            ],
-            "properties": {
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "account"
-                ]
-              },
-              "subjectId": {
-                "$ref": "#/components/schemas/ActorEntityUuid"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "subjectId",
-              "kind"
-            ],
-            "properties": {
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "accountGroup"
-                ]
-              },
-              "subjectId": {
-                "$ref": "#/components/schemas/ActorGroupEntityUuid"
-              }
-            }
-          }
-        ],
-        "discriminator": {
-          "propertyName": "kind"
-        }
-      },
       "DataTypeInferenceError": {
         "oneOf": [
           {
@@ -4938,38 +4161,6 @@
           }
         ]
       },
-      "DataTypeOwnerSubject": {
-        "oneOf": [
-          {
-            "type": "object",
-            "required": [
-              "subjectId",
-              "kind"
-            ],
-            "properties": {
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "web"
-                ]
-              },
-              "subjectId": {
-                "$ref": "#/components/schemas/WebId"
-              }
-            }
-          }
-        ],
-        "discriminator": {
-          "propertyName": "kind"
-        }
-      },
-      "DataTypePermission": {
-        "type": "string",
-        "enum": [
-          "update",
-          "view"
-        ]
-      },
       "DataTypeQueryToken": {
         "type": "string",
         "description": "A single token in a [`DataTypeQueryPath`].",
@@ -4987,116 +4178,6 @@
           "embedding"
         ]
       },
-      "DataTypeRelationAndSubject": {
-        "oneOf": [
-          {
-            "type": "object",
-            "required": [
-              "subject",
-              "relation"
-            ],
-            "properties": {
-              "relation": {
-                "type": "string",
-                "enum": [
-                  "owner"
-                ]
-              },
-              "subject": {
-                "$ref": "#/components/schemas/DataTypeOwnerSubject"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "subject",
-              "relation"
-            ],
-            "properties": {
-              "relation": {
-                "type": "string",
-                "enum": [
-                  "setting"
-                ]
-              },
-              "subject": {
-                "$ref": "#/components/schemas/DataTypeSettingSubject"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "subject",
-              "relation"
-            ],
-            "properties": {
-              "relation": {
-                "type": "string",
-                "enum": [
-                  "editor"
-                ]
-              },
-              "subject": {
-                "$ref": "#/components/schemas/DataTypeEditorSubject"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "subject",
-              "relation"
-            ],
-            "properties": {
-              "relation": {
-                "type": "string",
-                "enum": [
-                  "viewer"
-                ]
-              },
-              "subject": {
-                "$ref": "#/components/schemas/DataTypeViewerSubject"
-              }
-            }
-          }
-        ],
-        "discriminator": {
-          "propertyName": "relation"
-        }
-      },
-      "DataTypeSetting": {
-        "type": "string",
-        "enum": [
-          "updateFromWeb"
-        ]
-      },
-      "DataTypeSettingSubject": {
-        "oneOf": [
-          {
-            "type": "object",
-            "required": [
-              "subjectId",
-              "kind"
-            ],
-            "properties": {
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "setting"
-                ]
-              },
-              "subjectId": {
-                "$ref": "#/components/schemas/DataTypeSetting"
-              }
-            }
-          }
-        ],
-        "discriminator": {
-          "propertyName": "kind"
-        }
-      },
       "DataTypeVertexId": {
         "type": "object",
         "required": [
@@ -5111,24 +4192,6 @@
             "$ref": "#/components/schemas/OntologyTypeVersion"
           }
         }
-      },
-      "DataTypeViewerSubject": {
-        "oneOf": [
-          {
-            "type": "object",
-            "required": [
-              "kind"
-            ],
-            "properties": {
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "public"
-                ]
-              }
-            }
-          }
-        ]
       },
       "DataTypeWithMetadata": {
         "type": "object",
@@ -5294,53 +4357,6 @@
           }
         }
       },
-      "EntityAdministratorSubject": {
-        "oneOf": [
-          {
-            "type": "object",
-            "required": [
-              "subjectId",
-              "kind"
-            ],
-            "properties": {
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "account"
-                ]
-              },
-              "subjectId": {
-                "$ref": "#/components/schemas/ActorEntityUuid"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "subjectId",
-              "subjectSet",
-              "kind"
-            ],
-            "properties": {
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "accountGroup"
-                ]
-              },
-              "subjectId": {
-                "$ref": "#/components/schemas/ActorGroupEntityUuid"
-              },
-              "subjectSet": {
-                "$ref": "#/components/schemas/EntitySubjectSet"
-              }
-            }
-          }
-        ],
-        "discriminator": {
-          "propertyName": "kind"
-        }
-      },
       "EntityEditionId": {
         "type": "string",
         "format": "uuid"
@@ -5369,53 +4385,6 @@
             }
           }
         ]
-      },
-      "EntityEditorSubject": {
-        "oneOf": [
-          {
-            "type": "object",
-            "required": [
-              "subjectId",
-              "kind"
-            ],
-            "properties": {
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "account"
-                ]
-              },
-              "subjectId": {
-                "$ref": "#/components/schemas/ActorEntityUuid"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "subjectId",
-              "subjectSet",
-              "kind"
-            ],
-            "properties": {
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "accountGroup"
-                ]
-              },
-              "subjectId": {
-                "$ref": "#/components/schemas/ActorGroupEntityUuid"
-              },
-              "subjectSet": {
-                "$ref": "#/components/schemas/EntitySubjectSet"
-              }
-            }
-          }
-        ],
-        "discriminator": {
-          "propertyName": "kind"
-        }
       },
       "EntityEmbedding": {
         "type": "object",
@@ -5497,39 +4466,6 @@
           }
         },
         "additionalProperties": false
-      },
-      "EntityOwnerSubject": {
-        "oneOf": [
-          {
-            "type": "object",
-            "required": [
-              "subjectId",
-              "kind"
-            ],
-            "properties": {
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "web"
-                ]
-              },
-              "subjectId": {
-                "$ref": "#/components/schemas/WebId"
-              }
-            }
-          }
-        ],
-        "discriminator": {
-          "propertyName": "kind"
-        }
-      },
-      "EntityPermission": {
-        "type": "string",
-        "enum": [
-          "full_access",
-          "update",
-          "view"
-        ]
       },
       "EntityProvenance": {
         "allOf": [
@@ -5640,143 +4576,6 @@
           }
         }
       },
-      "EntityRelationAndSubject": {
-        "oneOf": [
-          {
-            "type": "object",
-            "required": [
-              "subject",
-              "relation"
-            ],
-            "properties": {
-              "relation": {
-                "type": "string",
-                "enum": [
-                  "setting"
-                ]
-              },
-              "subject": {
-                "$ref": "#/components/schemas/EntitySettingSubject"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "subject",
-              "relation"
-            ],
-            "properties": {
-              "relation": {
-                "type": "string",
-                "enum": [
-                  "owner"
-                ]
-              },
-              "subject": {
-                "$ref": "#/components/schemas/EntityOwnerSubject"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "subject",
-              "relation"
-            ],
-            "properties": {
-              "relation": {
-                "type": "string",
-                "enum": [
-                  "administrator"
-                ]
-              },
-              "subject": {
-                "$ref": "#/components/schemas/EntityAdministratorSubject"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "subject",
-              "relation"
-            ],
-            "properties": {
-              "relation": {
-                "type": "string",
-                "enum": [
-                  "editor"
-                ]
-              },
-              "subject": {
-                "$ref": "#/components/schemas/EntityEditorSubject"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "subject",
-              "relation"
-            ],
-            "properties": {
-              "relation": {
-                "type": "string",
-                "enum": [
-                  "viewer"
-                ]
-              },
-              "subject": {
-                "$ref": "#/components/schemas/EntityViewerSubject"
-              }
-            }
-          }
-        ],
-        "discriminator": {
-          "propertyName": "relation"
-        }
-      },
-      "EntitySetting": {
-        "type": "string",
-        "enum": [
-          "administratorFromWeb",
-          "updateFromWeb",
-          "viewFromWeb"
-        ]
-      },
-      "EntitySettingSubject": {
-        "oneOf": [
-          {
-            "type": "object",
-            "required": [
-              "subjectId",
-              "kind"
-            ],
-            "properties": {
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "setting"
-                ]
-              },
-              "subjectId": {
-                "$ref": "#/components/schemas/EntitySetting"
-              }
-            }
-          }
-        ],
-        "discriminator": {
-          "propertyName": "kind"
-        }
-      },
-      "EntitySubjectSet": {
-        "type": "string",
-        "enum": [
-          "administrator",
-          "member"
-        ]
-      },
       "EntityTemporalMetadata": {
         "type": "object",
         "description": "Temporal metadata for tracking entity versions over time.\n\n[`EntityTemporalMetadata`] tracks two distinct time dimensions:\n- Decision time: When the entity was decided to exist in the real world\n- Transaction time: When the entity was recorded in the system\n\nThis bi-temporal approach allows precise tracking of when information was known\nversus when it was recorded, enabling accurate historical queries.",
@@ -5796,49 +4595,6 @@
       },
       "EntityType": {
         "$ref": "./models/entity_type.json"
-      },
-      "EntityTypeEditorSubject": {
-        "oneOf": [
-          {
-            "type": "object",
-            "required": [
-              "subjectId",
-              "kind"
-            ],
-            "properties": {
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "account"
-                ]
-              },
-              "subjectId": {
-                "$ref": "#/components/schemas/ActorEntityUuid"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "subjectId",
-              "kind"
-            ],
-            "properties": {
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "accountGroup"
-                ]
-              },
-              "subjectId": {
-                "$ref": "#/components/schemas/ActorGroupEntityUuid"
-              }
-            }
-          }
-        ],
-        "discriminator": {
-          "propertyName": "kind"
-        }
       },
       "EntityTypeEmbedding": {
         "type": "object",
@@ -5898,63 +4654,6 @@
           "propertyName": "op"
         }
       },
-      "EntityTypeInstantiatorSubject": {
-        "oneOf": [
-          {
-            "type": "object",
-            "required": [
-              "kind"
-            ],
-            "properties": {
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "public"
-                ]
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "subjectId",
-              "kind"
-            ],
-            "properties": {
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "account"
-                ]
-              },
-              "subjectId": {
-                "$ref": "#/components/schemas/ActorEntityUuid"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "subjectId",
-              "kind"
-            ],
-            "properties": {
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "accountGroup"
-                ]
-              },
-              "subjectId": {
-                "$ref": "#/components/schemas/ActorGroupEntityUuid"
-              }
-            }
-          }
-        ],
-        "discriminator": {
-          "propertyName": "kind"
-        }
-      },
       "EntityTypeMetadata": {
         "oneOf": [
           {
@@ -6007,31 +4706,6 @@
           }
         ]
       },
-      "EntityTypeOwnerSubject": {
-        "oneOf": [
-          {
-            "type": "object",
-            "required": [
-              "subjectId",
-              "kind"
-            ],
-            "properties": {
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "web"
-                ]
-              },
-              "subjectId": {
-                "$ref": "#/components/schemas/WebId"
-              }
-            }
-          }
-        ],
-        "discriminator": {
-          "propertyName": "kind"
-        }
-      },
       "EntityTypeQueryToken": {
         "type": "string",
         "description": "A single token in a [`EntityTypeQueryPath`].",
@@ -6053,103 +4727,6 @@
           "children",
           "embedding"
         ]
-      },
-      "EntityTypeRelationAndSubject": {
-        "oneOf": [
-          {
-            "type": "object",
-            "required": [
-              "subject",
-              "relation"
-            ],
-            "properties": {
-              "relation": {
-                "type": "string",
-                "enum": [
-                  "owner"
-                ]
-              },
-              "subject": {
-                "$ref": "#/components/schemas/EntityTypeOwnerSubject"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "subject",
-              "relation"
-            ],
-            "properties": {
-              "relation": {
-                "type": "string",
-                "enum": [
-                  "setting"
-                ]
-              },
-              "subject": {
-                "$ref": "#/components/schemas/EntityTypeSettingSubject"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "subject",
-              "relation"
-            ],
-            "properties": {
-              "relation": {
-                "type": "string",
-                "enum": [
-                  "editor"
-                ]
-              },
-              "subject": {
-                "$ref": "#/components/schemas/EntityTypeEditorSubject"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "subject",
-              "relation"
-            ],
-            "properties": {
-              "relation": {
-                "type": "string",
-                "enum": [
-                  "viewer"
-                ]
-              },
-              "subject": {
-                "$ref": "#/components/schemas/EntityTypeViewerSubject"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "subject",
-              "relation"
-            ],
-            "properties": {
-              "relation": {
-                "type": "string",
-                "enum": [
-                  "instantiator"
-                ]
-              },
-              "subject": {
-                "$ref": "#/components/schemas/EntityTypeInstantiatorSubject"
-              }
-            }
-          }
-        ],
-        "discriminator": {
-          "propertyName": "relation"
-        }
       },
       "EntityTypeResolveDefinitions": {
         "type": "object",
@@ -6179,37 +4756,6 @@
           }
         }
       },
-      "EntityTypeSetting": {
-        "type": "string",
-        "enum": [
-          "updateFromWeb"
-        ]
-      },
-      "EntityTypeSettingSubject": {
-        "oneOf": [
-          {
-            "type": "object",
-            "required": [
-              "subjectId",
-              "kind"
-            ],
-            "properties": {
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "setting"
-                ]
-              },
-              "subjectId": {
-                "$ref": "#/components/schemas/EntityTypeSetting"
-              }
-            }
-          }
-        ],
-        "discriminator": {
-          "propertyName": "kind"
-        }
-      },
       "EntityTypeVertexId": {
         "type": "object",
         "required": [
@@ -6224,24 +4770,6 @@
             "$ref": "#/components/schemas/OntologyTypeVersion"
           }
         }
-      },
-      "EntityTypeViewerSubject": {
-        "oneOf": [
-          {
-            "type": "object",
-            "required": [
-              "kind"
-            ],
-            "properties": {
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "public"
-                ]
-              }
-            }
-          }
-        ]
       },
       "EntityTypeWithMetadata": {
         "type": "object",
@@ -6359,67 +4887,6 @@
           "revisionId": {
             "$ref": "#/components/schemas/Timestamp"
           }
-        }
-      },
-      "EntityViewerSubject": {
-        "oneOf": [
-          {
-            "type": "object",
-            "required": [
-              "kind"
-            ],
-            "properties": {
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "public"
-                ]
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "subjectId",
-              "kind"
-            ],
-            "properties": {
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "account"
-                ]
-              },
-              "subjectId": {
-                "$ref": "#/components/schemas/ActorEntityUuid"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "subjectId",
-              "subjectSet",
-              "kind"
-            ],
-            "properties": {
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "accountGroup"
-                ]
-              },
-              "subjectId": {
-                "$ref": "#/components/schemas/ActorGroupEntityUuid"
-              },
-              "subjectSet": {
-                "$ref": "#/components/schemas/EntitySubjectSet"
-              }
-            }
-          }
-        ],
-        "discriminator": {
-          "propertyName": "kind"
         }
       },
       "Filter": {
@@ -8144,7 +6611,6 @@
             "type": "object",
             "required": [
               "schema",
-              "relationships",
               "provenance",
               "conversions"
             ],
@@ -8157,12 +6623,6 @@
               },
               "provenance": {
                 "$ref": "#/components/schemas/ProvidedOntologyEditionProvenance"
-              },
-              "relationships": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/DataTypeRelationAndSubject"
-                }
               },
               "schema": {
                 "$ref": "#/components/schemas/DataType"
@@ -8188,18 +6648,11 @@
             "type": "object",
             "required": [
               "schema",
-              "relationships",
               "provenance"
             ],
             "properties": {
               "provenance": {
                 "$ref": "#/components/schemas/ProvidedOntologyEditionProvenance"
-              },
-              "relationships": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/EntityTypeRelationAndSubject"
-                }
               },
               "schema": {
                 "$ref": "#/components/schemas/EntityType"
@@ -8225,18 +6678,11 @@
             "type": "object",
             "required": [
               "schema",
-              "relationships",
               "provenance"
             ],
             "properties": {
               "provenance": {
                 "$ref": "#/components/schemas/ProvidedOntologyEditionProvenance"
-              },
-              "relationships": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/PropertyTypeRelationAndSubject"
-                }
               },
               "schema": {
                 "$ref": "#/components/schemas/PropertyType"
@@ -8320,53 +6766,6 @@
           },
           "properties": {
             "$ref": "#/components/schemas/PropertyMetadataValidationReport"
-          }
-        }
-      },
-      "ModifyEntityAuthorizationRelationship": {
-        "type": "object",
-        "required": [
-          "operation",
-          "resource",
-          "relationSubject"
-        ],
-        "properties": {
-          "operation": {
-            "$ref": "#/components/schemas/ModifyRelationshipOperation"
-          },
-          "relationSubject": {
-            "$ref": "#/components/schemas/EntityRelationAndSubject"
-          },
-          "resource": {
-            "$ref": "#/components/schemas/EntityId"
-          }
-        }
-      },
-      "ModifyRelationshipOperation": {
-        "type": "string",
-        "description": "Used for mutating a single relationship within the service.",
-        "enum": [
-          "touch",
-          "create",
-          "delete"
-        ]
-      },
-      "ModifyWebAuthorizationRelationship": {
-        "type": "object",
-        "required": [
-          "operation",
-          "resource",
-          "relationAndSubject"
-        ],
-        "properties": {
-          "operation": {
-            "$ref": "#/components/schemas/ModifyRelationshipOperation"
-          },
-          "relationAndSubject": {
-            "$ref": "#/components/schemas/WebRelationAndSubject"
-          },
-          "resource": {
-            "$ref": "#/components/schemas/WebId"
           }
         }
       },
@@ -9600,49 +7999,6 @@
       "PropertyType": {
         "$ref": "./models/property_type.json"
       },
-      "PropertyTypeEditorSubject": {
-        "oneOf": [
-          {
-            "type": "object",
-            "required": [
-              "subjectId",
-              "kind"
-            ],
-            "properties": {
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "account"
-                ]
-              },
-              "subjectId": {
-                "$ref": "#/components/schemas/ActorEntityUuid"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "subjectId",
-              "kind"
-            ],
-            "properties": {
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "accountGroup"
-                ]
-              },
-              "subjectId": {
-                "$ref": "#/components/schemas/ActorGroupEntityUuid"
-              }
-            }
-          }
-        ],
-        "discriminator": {
-          "propertyName": "kind"
-        }
-      },
       "PropertyTypeEmbedding": {
         "type": "object",
         "required": [
@@ -9710,38 +8066,6 @@
           }
         ]
       },
-      "PropertyTypeOwnerSubject": {
-        "oneOf": [
-          {
-            "type": "object",
-            "required": [
-              "subjectId",
-              "kind"
-            ],
-            "properties": {
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "web"
-                ]
-              },
-              "subjectId": {
-                "$ref": "#/components/schemas/WebId"
-              }
-            }
-          }
-        ],
-        "discriminator": {
-          "propertyName": "kind"
-        }
-      },
-      "PropertyTypePermission": {
-        "type": "string",
-        "enum": [
-          "update",
-          "view"
-        ]
-      },
       "PropertyTypeQueryToken": {
         "type": "string",
         "description": "A single token in a [`DataTypeQueryPath`].",
@@ -9758,116 +8082,6 @@
           "embedding"
         ]
       },
-      "PropertyTypeRelationAndSubject": {
-        "oneOf": [
-          {
-            "type": "object",
-            "required": [
-              "subject",
-              "relation"
-            ],
-            "properties": {
-              "relation": {
-                "type": "string",
-                "enum": [
-                  "owner"
-                ]
-              },
-              "subject": {
-                "$ref": "#/components/schemas/PropertyTypeOwnerSubject"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "subject",
-              "relation"
-            ],
-            "properties": {
-              "relation": {
-                "type": "string",
-                "enum": [
-                  "setting"
-                ]
-              },
-              "subject": {
-                "$ref": "#/components/schemas/PropertyTypeSettingSubject"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "subject",
-              "relation"
-            ],
-            "properties": {
-              "relation": {
-                "type": "string",
-                "enum": [
-                  "editor"
-                ]
-              },
-              "subject": {
-                "$ref": "#/components/schemas/PropertyTypeEditorSubject"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "subject",
-              "relation"
-            ],
-            "properties": {
-              "relation": {
-                "type": "string",
-                "enum": [
-                  "viewer"
-                ]
-              },
-              "subject": {
-                "$ref": "#/components/schemas/PropertyTypeViewerSubject"
-              }
-            }
-          }
-        ],
-        "discriminator": {
-          "propertyName": "relation"
-        }
-      },
-      "PropertyTypeSetting": {
-        "type": "string",
-        "enum": [
-          "updateFromWeb"
-        ]
-      },
-      "PropertyTypeSettingSubject": {
-        "oneOf": [
-          {
-            "type": "object",
-            "required": [
-              "subjectId",
-              "kind"
-            ],
-            "properties": {
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "setting"
-                ]
-              },
-              "subjectId": {
-                "$ref": "#/components/schemas/PropertyTypeSetting"
-              }
-            }
-          }
-        ],
-        "discriminator": {
-          "propertyName": "kind"
-        }
-      },
       "PropertyTypeVertexId": {
         "type": "object",
         "required": [
@@ -9882,24 +8096,6 @@
             "$ref": "#/components/schemas/OntologyTypeVersion"
           }
         }
-      },
-      "PropertyTypeViewerSubject": {
-        "oneOf": [
-          {
-            "type": "object",
-            "required": [
-              "kind"
-            ],
-            "properties": {
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "public"
-                ]
-              }
-            }
-          }
-        ]
       },
       "PropertyTypeWithMetadata": {
         "type": "object",
@@ -10703,7 +8899,6 @@
         "required": [
           "schema",
           "typeToUpdate",
-          "relationships",
           "provenance",
           "conversions"
         ],
@@ -10716,12 +8911,6 @@
           },
           "provenance": {
             "$ref": "#/components/schemas/ProvidedOntologyEditionProvenance"
-          },
-          "relationships": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/DataTypeRelationAndSubject"
-            }
           },
           "schema": {
             "$ref": "#/components/schemas/UpdateDataType"
@@ -10795,18 +8984,11 @@
         "required": [
           "schema",
           "typeToUpdate",
-          "relationships",
           "provenance"
         ],
         "properties": {
           "provenance": {
             "$ref": "#/components/schemas/ProvidedOntologyEditionProvenance"
-          },
-          "relationships": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/EntityTypeRelationAndSubject"
-            }
           },
           "schema": {
             "$ref": "#/components/schemas/UpdateEntityType"
@@ -10849,18 +9031,11 @@
         "required": [
           "schema",
           "typeToUpdate",
-          "relationships",
           "provenance"
         ],
         "properties": {
           "provenance": {
             "$ref": "#/components/schemas/ProvidedOntologyEditionProvenance"
-          },
-          "relationships": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/PropertyTypeRelationAndSubject"
-            }
           },
           "schema": {
             "$ref": "#/components/schemas/UpdatePropertyType"
@@ -11090,393 +9265,8 @@
           }
         }
       },
-      "WebDataTypeViewerSubject": {
-        "oneOf": [
-          {
-            "type": "object",
-            "required": [
-              "kind"
-            ],
-            "properties": {
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "public"
-                ]
-              }
-            }
-          }
-        ]
-      },
-      "WebEntityCreatorSubject": {
-        "oneOf": [
-          {
-            "type": "object",
-            "required": [
-              "subjectId",
-              "kind"
-            ],
-            "properties": {
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "account"
-                ]
-              },
-              "subjectId": {
-                "$ref": "#/components/schemas/ActorEntityUuid"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "subjectId",
-              "kind"
-            ],
-            "properties": {
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "accountGroup"
-                ]
-              },
-              "subjectId": {
-                "$ref": "#/components/schemas/ActorGroupEntityUuid"
-              }
-            }
-          }
-        ],
-        "discriminator": {
-          "propertyName": "kind"
-        }
-      },
-      "WebEntityEditorSubject": {
-        "oneOf": [
-          {
-            "type": "object",
-            "required": [
-              "subjectId",
-              "kind"
-            ],
-            "properties": {
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "account"
-                ]
-              },
-              "subjectId": {
-                "$ref": "#/components/schemas/ActorEntityUuid"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "subjectId",
-              "kind"
-            ],
-            "properties": {
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "accountGroup"
-                ]
-              },
-              "subjectId": {
-                "$ref": "#/components/schemas/ActorGroupEntityUuid"
-              }
-            }
-          }
-        ],
-        "discriminator": {
-          "propertyName": "kind"
-        }
-      },
-      "WebEntityTypeViewerSubject": {
-        "oneOf": [
-          {
-            "type": "object",
-            "required": [
-              "kind"
-            ],
-            "properties": {
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "public"
-                ]
-              }
-            }
-          }
-        ]
-      },
-      "WebEntityViewerSubject": {
-        "oneOf": [
-          {
-            "type": "object",
-            "required": [
-              "kind"
-            ],
-            "properties": {
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "public"
-                ]
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "subjectId",
-              "kind"
-            ],
-            "properties": {
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "account"
-                ]
-              },
-              "subjectId": {
-                "$ref": "#/components/schemas/ActorEntityUuid"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "subjectId",
-              "kind"
-            ],
-            "properties": {
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "accountGroup"
-                ]
-              },
-              "subjectId": {
-                "$ref": "#/components/schemas/ActorGroupEntityUuid"
-              }
-            }
-          }
-        ],
-        "discriminator": {
-          "propertyName": "kind"
-        }
-      },
       "WebId": {
         "$ref": "#/components/schemas/ActorGroupEntityUuid"
-      },
-      "WebOwnerSubject": {
-        "oneOf": [
-          {
-            "type": "object",
-            "required": [
-              "subjectId",
-              "kind"
-            ],
-            "properties": {
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "account"
-                ]
-              },
-              "subjectId": {
-                "$ref": "#/components/schemas/ActorEntityUuid"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "subjectId",
-              "kind"
-            ],
-            "properties": {
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "accountGroup"
-                ]
-              },
-              "subjectId": {
-                "$ref": "#/components/schemas/ActorGroupEntityUuid"
-              }
-            }
-          }
-        ],
-        "discriminator": {
-          "propertyName": "kind"
-        }
-      },
-      "WebPermission": {
-        "type": "string",
-        "enum": [
-          "change_permission",
-          "create_entity",
-          "update_entity",
-          "view_entity",
-          "create_entity_type",
-          "create_property_type",
-          "create_data_type"
-        ]
-      },
-      "WebPropertyTypeViewerSubject": {
-        "oneOf": [
-          {
-            "type": "object",
-            "required": [
-              "kind"
-            ],
-            "properties": {
-              "kind": {
-                "type": "string",
-                "enum": [
-                  "public"
-                ]
-              }
-            }
-          }
-        ]
-      },
-      "WebRelationAndSubject": {
-        "oneOf": [
-          {
-            "type": "object",
-            "required": [
-              "subject",
-              "relation"
-            ],
-            "properties": {
-              "relation": {
-                "type": "string",
-                "enum": [
-                  "owner"
-                ]
-              },
-              "subject": {
-                "$ref": "#/components/schemas/WebOwnerSubject"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "subject",
-              "relation"
-            ],
-            "properties": {
-              "relation": {
-                "type": "string",
-                "enum": [
-                  "entityCreator"
-                ]
-              },
-              "subject": {
-                "$ref": "#/components/schemas/WebEntityCreatorSubject"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "subject",
-              "relation"
-            ],
-            "properties": {
-              "relation": {
-                "type": "string",
-                "enum": [
-                  "entityEditor"
-                ]
-              },
-              "subject": {
-                "$ref": "#/components/schemas/WebEntityEditorSubject"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "subject",
-              "relation"
-            ],
-            "properties": {
-              "relation": {
-                "type": "string",
-                "enum": [
-                  "entityViewer"
-                ]
-              },
-              "subject": {
-                "$ref": "#/components/schemas/WebEntityViewerSubject"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "subject",
-              "relation"
-            ],
-            "properties": {
-              "relation": {
-                "type": "string",
-                "enum": [
-                  "entityTypeViewer"
-                ]
-              },
-              "subject": {
-                "$ref": "#/components/schemas/WebEntityTypeViewerSubject"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "subject",
-              "relation"
-            ],
-            "properties": {
-              "relation": {
-                "type": "string",
-                "enum": [
-                  "propertyTypeViewer"
-                ]
-              },
-              "subject": {
-                "$ref": "#/components/schemas/WebPropertyTypeViewerSubject"
-              }
-            }
-          },
-          {
-            "type": "object",
-            "required": [
-              "subject",
-              "relation"
-            ],
-            "properties": {
-              "relation": {
-                "type": "string",
-                "enum": [
-                  "dataTypeViewer"
-                ]
-              },
-              "subject": {
-                "$ref": "#/components/schemas/WebDataTypeViewerSubject"
-              }
-            }
-          }
-        ],
-        "discriminator": {
-          "propertyName": "relation"
-        }
       }
     }
   },
@@ -11500,10 +9290,6 @@
     {
       "name": "Entity",
       "description": "entity management API"
-    },
-    {
-      "name": "ActorGroup",
-      "description": "ActorGroup management API"
     },
     {
       "name": "Permission",
