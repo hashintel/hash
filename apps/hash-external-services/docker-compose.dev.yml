@@ -1,5 +1,9 @@
 volumes:
   hash-vault-data:
+  loki_data:
+  tempo_data:
+  prometheus_data:
+  grafana_data:
 
 
 services:
@@ -40,34 +44,15 @@ services:
       mc mb myminio/$$AWS_S3_UPLOADS_BUCKET --ignore-existing
       '
 
-  jaeger:
-    image: jaegertracing/all-in-one:1.60
-    deploy:
-      restart_policy:
-        condition: on-failure
-    healthcheck:
-      # Port 14269 is the Jaeger admin endpoint
-      test: [ "CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:14269 || exit 1" ]
-      interval: 2s
-      timeout: 2s
-      retries: 10
-    ports:
-      # Jaeger UI
-      - "16686:16686"
-      # serve configs (sampling, etc.)
-      - "5778:5778"
-      # accept jaeger.thrift over Thrift-compact protocol (used by most SDKs)
-      - "6831:6831"
-    environment:
-      COLLECTOR_OTLP_ENABLED: "true"
-    read_only: true
-    security_opt:
-      - no-new-privileges:true
-
   otel-collector:
-    image: otel/opentelemetry-collector:0.128.0
+    image: otel/opentelemetry-collector-contrib:0.128.0
+    command: [ "--config=/etc/otelcol/config.yaml" ]
     depends_on:
-      jaeger:
+      tempo:
+        condition: service_healthy
+      loki:
+        condition: service_healthy
+      prometheus:
         condition: service_healthy
     volumes:
       - ./opentelemetry-collector/otel-collector-config.yaml:/etc/otelcol/config.yaml:ro
@@ -87,18 +72,28 @@ services:
 
   kratos:
     depends_on:
-      jaeger:
-        condition: service_healthy
+      otel-collector-healthcheck:
+        condition: service_completed_successfully
     ports:
       - "4433:4433" # public API
       - "4434:4434" # admin API
     environment:
       OAUTH2_PROVIDER_URL: "http://hydra:4445"
-      TRACING_PROVIDER: "jaeger"
-      TRACING_PROVIDERS_JAEGER_SAMPLING_SERVER_URL: "jaeger:5778/sampling"
-      TRACING_PROVIDERS_JAEGER_LOCAL_AGENT_ADDRESS: "jaeger:6831"
+      TRACING_PROVIDER: "otel"
+      TRACING_PROVIDERS_OTLP_INSECURE: "true"
+      TRACING_PROVIDERS_OTLP_SERVER_URL: "otel-collector:4318"
       LOG_LEVEL: trace
     command: serve --dev --watch-courier
+
+  hydra:
+    depends_on:
+      otel-collector-healthcheck:
+        condition: service_completed_successfully
+    environment:
+      TRACING_PROVIDER: "otel"
+      TRACING_PROVIDERS_OTLP_INSECURE: "true"
+      TRACING_PROVIDERS_OTLP_SERVER_URL: "otel-collector:4318"
+      LOG_LEVEL: trace
 
   mailslurper:
     ports:
@@ -130,3 +125,90 @@ services:
       VAULT_DEV_LISTEN_ADDRESS: "0.0.0.0:8200"
     security_opt:
       - no-new-privileges:true
+
+  # Grafana Loki - Log Aggregation
+  loki:
+    image: grafana/loki:3.5.2
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - ./loki/loki.yaml:/etc/loki/local-config.yaml:ro
+      - loki_data:/loki
+    restart: unless-stopped
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:3100/metrics" ]
+      interval: 2s
+      timeout: 2s
+      retries: 10
+
+  # Grafana Tempo - Distributed Tracing
+  tempo:
+    image: grafana/tempo:2.8.1
+    volumes:
+      - ./tempo/tempo.yaml:/etc/tempo.yaml:ro
+      - tempo_data:/var/tempo
+    restart: unless-stopped
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    command: [ "-config.file=/etc/tempo.yaml" ]
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:3200/status" ]
+      interval: 2s
+      timeout: 2s
+      retries: 10
+
+  # Prometheus - Metrics Storage
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+      - '--web.enable-remote-write-receiver'
+    restart: unless-stopped
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:9090/-/healthy" ]
+      interval: 2s
+      timeout: 2s
+      retries: 10
+
+  # Grafana - Telemetry Visualization
+  grafana:
+    image: grafana/grafana:12.0.2
+    ports:
+      - "3001:3000"
+    depends_on:
+      tempo:
+        condition: service_healthy
+      loki:
+        condition: service_healthy
+      prometheus:
+        condition: service_healthy
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "wget", "--spider", "-q", "http://localhost:3000/api/health" ]
+      interval: 2s
+      timeout: 2s
+      retries: 10
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
