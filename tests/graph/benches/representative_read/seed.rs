@@ -7,6 +7,7 @@ use hash_graph_authorization::policies::store::{
 use hash_graph_postgres_store::store::AsClient as _;
 use hash_graph_store::entity::{CreateEntityParams, EntityStore as _};
 use hash_graph_test_data::{data_type, entity, entity_type, property_type};
+use tracing::Instrument as _;
 use type_system::{
     knowledge::{
         entity::{LinkData, id::EntityUuid, provenance::ProvidedEntityEditionProvenance},
@@ -338,6 +339,12 @@ async fn get_samples(account_id: ActorEntityUuid, store_wrapper: &StoreWrapper) 
                 ",
                 &[&entity_type_id.base_url, &entity_type_id.version],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .unwrap_or_else(|err| {
                 panic!("failed to sample entities for entity type `{entity_type_id}`: {err}");
@@ -370,6 +377,12 @@ pub async fn setup_and_extract_samples(
             ",
             &[&account_id],
         )
+        .instrument(tracing::info_span!(
+            "SELECT",
+            otel.kind = "client",
+            db.system = "postgresql",
+            peer.service = "Postgres"
+        ))
         .await
         .expect("failed to check if account id exists")
         .get(0);

@@ -18,6 +18,7 @@ use hash_graph_validation::EntityProvider;
 use hash_status::StatusCode;
 use tokio::sync::RwLock;
 use tokio_postgres::GenericClient as _;
+use tracing::Instrument as _;
 use type_system::{
     Valid,
     knowledge::{Entity, entity::EntityId},
@@ -255,6 +256,12 @@ where
                 "SELECT closed_schema FROM data_types WHERE ontology_id = $1",
                 &[&data_type_uuid],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(QueryError)?
             .get(0);
@@ -289,6 +296,12 @@ where
                 ",
                 &[&child, &parent],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(QueryError)?
             .get(0))
@@ -341,6 +354,12 @@ where
                     &target.url.base_url,
                 ],
             )
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(QueryError)
             .attach_printable_lazy(|| {

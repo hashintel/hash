@@ -161,7 +161,12 @@ where
                     &traversal_data.pinned_timestamp,
                 ],
             )
-            .instrument(tracing::trace_span!("query"))
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(QueryError)?
             .into_iter()
@@ -281,7 +286,12 @@ where
                     &traversal_data.pinned_timestamp,
                 ],
             )
-            .instrument(tracing::trace_span!("query_edges"))
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(QueryError)?
             .map_ok(|row| {
@@ -367,6 +377,13 @@ where
                         .store
                         .as_client()
                         .query_raw(&statement, parameters.iter().copied())
+                        .instrument(tracing::info_span!(
+                            "SELECT",
+                            otel.kind = "client",
+                            db.system = "postgresql",
+                            peer.service = "Postgres",
+                            db.query.text = statement,
+                        ))
                         .instrument(tracing::trace_span!("query_permitted_entity_edition_ids"))
                         .await
                         .change_context(QueryError)?

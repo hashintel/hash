@@ -310,6 +310,12 @@ where
                     DELETE FROM entity_ids;
                 ",
             )
+            .instrument(tracing::info_span!(
+                "DELETE",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(DeletionError)?;
 
@@ -442,7 +448,13 @@ where
                 let entities = self
                     .as_client()
                     .query_raw(&statement, parameters.iter().copied())
-                    .instrument(tracing::trace_span!("query_entity_metadata"))
+                    .instrument(tracing::info_span!(
+                        "SELECT",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres",
+                        db.query.text = statement,
+                    ))
                     .await
                     .change_context(QueryError)?
                     .map_ok(move |row| {
@@ -540,7 +552,13 @@ where
                     Some(
                         self.as_client()
                             .query_raw(&statement, parameters.iter().copied())
-                            .instrument(tracing::trace_span!("query_entity_types"))
+                            .instrument(tracing::info_span!(
+                                "SELECT",
+                                otel.kind = "client",
+                                db.system = "postgresql",
+                                peer.service = "Postgres",
+                                db.query.text = statement,
+                            ))
                             .await
                             .change_context(QueryError)?
                             .map_ok(|row| {
@@ -592,9 +610,11 @@ where
             .as_client()
             .query(&statement, parameters)
             .instrument(tracing::info_span!(
-                "query_entities",
-                statement_length = statement.len(),
-                param_count = parameters.len()
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+                db.query.text = statement,
             ))
             .await
             .change_context(QueryError)?;
@@ -1055,6 +1075,13 @@ where
             transaction
                 .as_client()
                 .query(&statement, &parameters)
+                .instrument(tracing::info_span!(
+                    "INSERT",
+                    otel.kind = "client",
+                    db.system = "postgresql",
+                    peer.service = "Postgres",
+                    db.query.text = statement,
+                ))
                 .await
                 .change_context(InsertionError)?;
         }
@@ -1075,6 +1102,12 @@ where
                 ",
                 &[&entity_edition_ids],
             )
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(InsertionError)?;
 
@@ -1297,7 +1330,6 @@ where
         let policy_components = PolicyComponents::builder(self)
             .with_actor(actor_id)
             .with_actions(actions, MergePolicies::Yes)
-            .into_future()
             .await
             .change_context(QueryError)?;
 
@@ -1513,6 +1545,13 @@ where
         Ok(self
             .as_client()
             .query_raw(&statement, parameters.iter().copied())
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+                db.query.text = statement,
+            ))
             .await
             .change_context(QueryError)?
             .count()
@@ -1931,6 +1970,12 @@ where
                             &draft_id,
                         ],
                     )
+                    .instrument(tracing::info_span!(
+                        "INSERT",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres"
+                    ))
                     .await
                     .change_context(UpdateError)?;
                 params.entity_id.draft_id = Some(draft_id);
@@ -1968,6 +2013,12 @@ where
                                 &params.entity_id.entity_uuid,
                             ],
                         )
+                        .instrument(tracing::info_span!(
+                            "UPDATE",
+                            otel.kind = "client",
+                            db.system = "postgresql",
+                            peer.service = "Postgres"
+                        ))
                         .await
                         .change_context(UpdateError)?;
 
@@ -2051,6 +2102,7 @@ where
     }
 
     #[tracing::instrument(level = "info", skip(self, params))]
+    #[expect(clippy::too_many_lines)]
     async fn update_entity_embeddings(
         &mut self,
         _: ActorEntityUuid,
@@ -2124,6 +2176,12 @@ where
                             &params.updated_at_decision_time,
                         ],
                     )
+                    .instrument(tracing::info_span!(
+                        "DELETE",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres"
+                    ))
                     .await
                     .change_context(UpdateError)?;
             } else {
@@ -2144,6 +2202,12 @@ where
                             &params.updated_at_decision_time,
                         ],
                     )
+                    .instrument(tracing::info_span!(
+                        "DELETE",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres"
+                    ))
                     .await
                     .change_context(UpdateError)?;
             }
@@ -2165,6 +2229,12 @@ where
                 ",
                 &[&entity_embeddings],
             )
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(UpdateError)?;
 
@@ -2193,6 +2263,12 @@ where
                      GROUP BY entity_edition_id, target_entity_type_ontology_id;
                 ",
             )
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(UpdateError)?;
 
@@ -2255,7 +2331,13 @@ where
         let () = self
             .as_client()
             .query_raw(&statement, parameters.iter().copied())
-            .instrument(tracing::trace_span!("query"))
+            .instrument(tracing::info_span!(
+                "SELECT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+                db.query.text = statement,
+            ))
             .await
             .change_context(CheckPermissionError::StoreError)?
             .map_ok(|row| {
@@ -2312,6 +2394,12 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                 ",
                 &[&archived, &properties, &confidence, provenance, metadata],
             )
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(InsertionError)?
             .get(0);
@@ -2332,6 +2420,12 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                 ",
                 &[&edition_id, &entity_type_ontology_ids],
             )
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(InsertionError)?;
         self.as_client()
@@ -2349,6 +2443,12 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                 ",
                 &[&edition_id],
             )
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(InsertionError)?;
 
@@ -2385,6 +2485,12 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                         &decision_time,
                     ],
                 )
+                .instrument(tracing::info_span!(
+                    "SELECT",
+                    otel.kind = "client",
+                    db.system = "postgresql",
+                    peer.service = "Postgres"
+                ))
                 .await
         } else {
             self.as_client()
@@ -2408,6 +2514,12 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                         &decision_time,
                     ],
                 )
+                .instrument(tracing::info_span!(
+                    "SELECT",
+                    otel.kind = "client",
+                    db.system = "postgresql",
+                    peer.service = "Postgres"
+                ))
                 .await
         };
 
@@ -2464,6 +2576,12 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     &decision_time,
                 ],
             )
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(InsertionError)?;
 
@@ -2509,6 +2627,12 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                             &entity_edition_id,
                         ],
                     )
+                    .instrument(tracing::info_span!(
+                        "UPDATE",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres"
+                    ))
                     .await
                     .change_context(UpdateError)?
             } else {
@@ -2535,6 +2659,12 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                             &entity_edition_id,
                         ],
                     )
+                    .instrument(tracing::info_span!(
+                        "UPDATE",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres"
+                    ))
                     .await
                     .change_context(UpdateError)?
             }
@@ -2561,6 +2691,12 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                         &entity_edition_id,
                     ],
                 )
+                .instrument(tracing::info_span!(
+                    "UPDATE",
+                    otel.kind = "client",
+                    db.system = "postgresql",
+                    peer.service = "Postgres"
+                ))
                 .await
                 .change_context(UpdateError)?
         };
@@ -2594,6 +2730,12 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     &transaction_time,
                 ],
             )
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(UpdateError)?;
 
@@ -2626,6 +2768,12 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     &decision_time,
                 ],
             )
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(UpdateError)?;
 
@@ -2636,6 +2784,7 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
     }
 
     #[tracing::instrument(level = "trace", skip(self))]
+    #[expect(clippy::too_many_lines)]
     async fn archive_entity(
         &self,
         actor_id: ActorEntityUuid,
@@ -2665,6 +2814,12 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                         &decision_time,
                     ],
                 )
+                .instrument(tracing::info_span!(
+                    "UPDATE",
+                    otel.kind = "client",
+                    db.system = "postgresql",
+                    peer.service = "Postgres"
+                ))
                 .await
                 .change_context(UpdateError)?
         } else {
@@ -2688,6 +2843,12 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                         &decision_time,
                     ],
                 )
+                .instrument(tracing::info_span!(
+                    "UPDATE",
+                    otel.kind = "client",
+                    db.system = "postgresql",
+                    peer.service = "Postgres"
+                ))
                 .await
                 .change_context(UpdateError)?
         };
@@ -2721,6 +2882,12 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     &transaction_time,
                 ],
             )
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(UpdateError)?;
 
@@ -2734,6 +2901,12 @@ impl PostgresStore<tokio_postgres::Transaction<'_>> {
                     WHERE entity_edition_id = $1",
                 &[&locked_row.entity_edition_id, &actor_id],
             )
+            .instrument(tracing::info_span!(
+                "UPDATE",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(UpdateError)?;
 

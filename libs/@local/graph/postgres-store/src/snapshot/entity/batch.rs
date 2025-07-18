@@ -12,6 +12,7 @@ use hash_graph_types::{
 };
 use hash_graph_validation::{EntityPreprocessor, Validate as _};
 use tokio_postgres::GenericClient as _;
+use tracing::Instrument as _;
 use type_system::{
     knowledge::{Entity, property::PropertyObjectWithMetadata},
     ontology::entity_type::{ClosedEntityType, ClosedMultiEntityType},
@@ -85,6 +86,12 @@ where
                         ON COMMIT DROP;
                 ",
             )
+            .instrument(tracing::info_span!(
+                "CREATE",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(InsertionError)
             .attach_printable("could not create temporary tables")?;
@@ -109,6 +116,12 @@ where
                         ",
                         &[&ids],
                     )
+                    .instrument(tracing::info_span!(
+                        "INSERT",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres"
+                    ))
                     .await
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
@@ -126,6 +139,12 @@ where
                         ",
                         &[&drafts],
                     )
+                    .instrument(tracing::info_span!(
+                        "INSERT",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres"
+                    ))
                     .await
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
@@ -143,6 +162,12 @@ where
                         ",
                         &[&editions],
                     )
+                    .instrument(tracing::info_span!(
+                        "INSERT",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres"
+                    ))
                     .await
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
@@ -160,6 +185,12 @@ where
                         ",
                         &[&types],
                     )
+                    .instrument(tracing::info_span!(
+                        "INSERT",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres"
+                    ))
                     .await
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
@@ -176,6 +207,12 @@ where
                         ",
                         &[&temporal_metadata],
                     )
+                    .instrument(tracing::info_span!(
+                        "INSERT",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres"
+                    ))
                     .await
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
@@ -192,6 +229,12 @@ where
                         ",
                         &[&links],
                     )
+                    .instrument(tracing::info_span!(
+                        "INSERT",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres"
+                    ))
                     .await
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
@@ -208,6 +251,12 @@ where
                         ",
                         &[&links],
                     )
+                    .instrument(tracing::info_span!(
+                        "INSERT",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres"
+                    ))
                     .await
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
@@ -224,6 +273,12 @@ where
                         ",
                         &[&embeddings],
                     )
+                    .instrument(tracing::info_span!(
+                        "INSERT",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres"
+                    ))
                     .await
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
@@ -269,6 +324,12 @@ where
                         SELECT * FROM entity_embeddings_tmp;
             ",
             )
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(InsertionError)?;
 
@@ -395,6 +456,12 @@ where
                 ",
                 &[&edition_ids_updates, &properties_updates, &metadata_updates],
             )
+            .instrument(tracing::info_span!(
+                "UPDATE",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(InsertionError)?;
 

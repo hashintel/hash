@@ -86,6 +86,7 @@ impl<F> Drop for TracingGuard<F> {
 /// - [`InitTracingError`], if initializing the [`tracing_subscriber::Registry`] fails.
 pub fn init_tracing(
     config: TracingConfig,
+    service_name: &'static str,
 ) -> Result<TracingGuard<impl Drop>, Report<InitTracingError>> {
     let error_layer = ErrorLayer::default();
 
@@ -94,24 +95,24 @@ pub fn init_tracing(
 
     let sentry_layer = self::traces::sentry::layer(&config.sentry);
 
-    let otlp_logs_provider =
-        self::logging::otlp::provider(&config.otlp).change_context(InitTracingError)?;
+    let otlp_logs_provider = self::logging::otlp::provider(&config.otlp, service_name)
+        .change_context(InitTracingError)?;
     let otel_logs_layer = otlp_logs_provider.as_ref().map(self::logging::otlp::layer);
 
-    let otlp_traces_provider =
-        self::traces::otlp::provider(&config.otlp).change_context(InitTracingError)?;
+    let otlp_traces_provider = self::traces::otlp::provider(&config.otlp, service_name)
+        .change_context(InitTracingError)?;
     let otel_traces_layer = otlp_traces_provider.as_ref().map(self::traces::otlp::layer);
 
-    let otlp_metrics_provider =
-        self::metrics::otlp::provider(&config.otlp).change_context(InitTracingError)?;
+    let otlp_metrics_provider = self::metrics::otlp::provider(&config.otlp, service_name)
+        .change_context(InitTracingError)?;
     if let Some(provider) = &otlp_metrics_provider {
         ::opentelemetry::global::set_meter_provider(provider.clone());
     }
 
     tracing_subscriber::registry()
         .with(sentry_layer)
-        .with(otel_logs_layer)
         .with(otel_traces_layer)
+        .with(otel_logs_layer)
         .with(console_layer)
         .with(file_layer)
         .with(error_layer)

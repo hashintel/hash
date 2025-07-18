@@ -26,13 +26,17 @@ hash-graph-types               = { workspace = true }
 hash-temporal-client           = { workspace = true }
 
 # Private third-party dependencies
-derive_more    = { workspace = true, features = ["display", "error"] }
-futures        = { workspace = true }
-include_dir    = { workspace = true, features = ["glob"] }
-reqwest        = { workspace = true, features = ["json"] }
-serde          = { workspace = true, features = ["derive"] }
-simple-mermaid = { workspace = true }
-tracing        = { workspace = true }
+derive_more           = { workspace = true, features = ["display", "error"] }
+futures               = { workspace = true }
+include_dir           = { workspace = true, features = ["glob"] }
+opentelemetry         = { workspace = true }
+reqwest               = { workspace = true, features = ["json"] }
+reqwest-middleware    = { workspace = true }
+reqwest-tracing       = { workspace = true }
+serde                 = { workspace = true, features = ["derive"] }
+simple-mermaid        = { workspace = true }
+tracing               = { workspace = true }
+tracing-opentelemetry = { workspace = true }
 
 [lints]
 workspace = true

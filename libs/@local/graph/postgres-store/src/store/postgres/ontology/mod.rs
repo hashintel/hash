@@ -18,6 +18,7 @@ use hash_graph_store::{
 use serde::Deserialize;
 use time::OffsetDateTime;
 use tokio_postgres::{Row, Transaction};
+use tracing::Instrument as _;
 use type_system::{
     ontology::{
         DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata,
@@ -58,6 +59,12 @@ impl PostgresStore<Transaction<'_>> {
                 ",
                 &[&ontology_ids],
             )
+            .instrument(tracing::info_span!(
+                "DELETE",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(DeletionError)?;
 
@@ -69,6 +76,12 @@ impl PostgresStore<Transaction<'_>> {
                 ",
                 &[&ontology_ids],
             )
+            .instrument(tracing::info_span!(
+                "DELETE",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(DeletionError)?;
 
@@ -80,6 +93,12 @@ impl PostgresStore<Transaction<'_>> {
                 ",
                 &[&ontology_ids],
             )
+            .instrument(tracing::info_span!(
+                "DELETE",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(DeletionError)?;
 
@@ -93,6 +112,12 @@ impl PostgresStore<Transaction<'_>> {
                 ",
                 &[&ontology_ids],
             )
+            .instrument(tracing::info_span!(
+                "DELETE",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(DeletionError)?
             .into_iter()
@@ -107,6 +132,12 @@ impl PostgresStore<Transaction<'_>> {
                 ",
                 &[&base_urls],
             )
+            .instrument(tracing::info_span!(
+                "DELETE",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(DeletionError)?;
 

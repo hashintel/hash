@@ -1,6 +1,7 @@
 use error_stack::{Report, ResultExt as _};
 use hash_graph_store::error::InsertionError;
 use tokio_postgres::GenericClient as _;
+use tracing::Instrument as _;
 
 use super::table::{
     ActorRoleRow, AiActorRow, MachineActorRow, RoleRow, TeamRow, UserActorRow, WebRow,
@@ -55,6 +56,12 @@ where
                     ) ON COMMIT DROP;
                 ",
             )
+            .instrument(tracing::info_span!(
+                "CREATE",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(InsertionError)?;
 
@@ -78,6 +85,12 @@ where
                         ",
                         &[&users],
                     )
+                    .instrument(tracing::info_span!(
+                        "INSERT",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres"
+                    ))
                     .await
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
@@ -94,6 +107,12 @@ where
                         ",
                         &[&machines],
                     )
+                    .instrument(tracing::info_span!(
+                        "INSERT",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres"
+                    ))
                     .await
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
@@ -110,6 +129,12 @@ where
                         ",
                         &[&ais],
                     )
+                    .instrument(tracing::info_span!(
+                        "INSERT",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres"
+                    ))
                     .await
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
@@ -126,6 +151,12 @@ where
                         ",
                         &[&actor_roles],
                     )
+                    .instrument(tracing::info_span!(
+                        "INSERT",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres"
+                    ))
                     .await
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
@@ -142,6 +173,12 @@ where
                         ",
                         &[&webs],
                     )
+                    .instrument(tracing::info_span!(
+                        "INSERT",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres"
+                    ))
                     .await
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
@@ -158,6 +195,12 @@ where
                         ",
                         &[&teams],
                     )
+                    .instrument(tracing::info_span!(
+                        "INSERT",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres"
+                    ))
                     .await
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
@@ -174,6 +217,12 @@ where
                         ",
                         &[&roles],
                     )
+                    .instrument(tracing::info_span!(
+                        "INSERT",
+                        otel.kind = "client",
+                        db.system = "postgresql",
+                        peer.service = "Postgres"
+                    ))
                     .await
                     .change_context(InsertionError)?;
                 if !rows.is_empty() {
@@ -227,6 +276,12 @@ where
                     SELECT parent_id, child_id, depth FROM team_tree;
                 ",
             )
+            .instrument(tracing::info_span!(
+                "INSERT",
+                otel.kind = "client",
+                db.system = "postgresql",
+                peer.service = "Postgres",
+            ))
             .await
             .change_context(InsertionError)?;
         Ok(())
