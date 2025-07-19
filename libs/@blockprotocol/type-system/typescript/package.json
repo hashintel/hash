@@ -63,7 +63,7 @@
     "@types/node": "22.16.4",
     "@types/react": "19.1.8",
     "@vitest/coverage-istanbul": "3.2.4",
-    "eslint": "9.20.1",
+    "eslint": "9.31.0",
     "react": "19.1.0",
     "rimraf": "6.0.1",
     "rollup": "4.45.1",
