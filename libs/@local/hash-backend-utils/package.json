@@ -38,7 +38,7 @@
     "@local/internal-api-client": "0.0.0-private",
     "@local/status": "0.0.0-private",
     "@opensearch-project/opensearch": "2.13.0",
-    "@sentry/node": "9.38.0",
+    "@sentry/node": "9.39.0",
     "@smithy/protocol-http": "5.1.2",
     "@smithy/signature-v4": "5.1.2",
     "@temporalio/activity": "1.12.1",
