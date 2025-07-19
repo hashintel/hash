@@ -428,7 +428,7 @@ __metadata:
     mime-types: "npm:2.1.35"
     nanoid: "npm:3.3.11"
     nodemailer: "npm:6.10.1"
-    oembed-providers: "npm:1.0.20250430"
+    oembed-providers: "npm:1.0.20250715"
     openai: "npm:4.104.0"
     rimraf: "npm:6.0.1"
     ts-json-schema-generator: "npm:1.5.1"
@@ -36031,10 +36031,10 @@ __metadata:
   languageName: node
   linkType: hard
 
-"oembed-providers@npm:1.0.20250430":
-  version: 1.0.20250430
-  resolution: "oembed-providers@npm:1.0.20250430"
-  checksum: 10c0/2cd38c701bed135043ff513fb527b641db1bad81ccaa784ea994b8671a4d142e0dc2c8d5efcd7e06dad4cf90350030669bdbc29707c36a439d17ecd2adbe98c1
+"oembed-providers@npm:1.0.20250715":
+  version: 1.0.20250715
+  resolution: "oembed-providers@npm:1.0.20250715"
+  checksum: 10c0/2049dea42b6ad3f7b85f50f70947be26f693f9ca96b129c18b3960533f1b7733269e9d1d29a7068afc459f50a0975c6a49287a1e808859dd5f255b2ad85378ff
   languageName: node
   linkType: hard
 
