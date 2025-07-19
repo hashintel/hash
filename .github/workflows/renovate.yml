@@ -78,7 +78,7 @@ jobs:
           token: ${{ steps.app-token.outputs.token }}
 
       - name: Install Node.js
-        uses: jdx/mise-action@13abe502c30c1559a5c37dff303831bab82c9402 # v2.2.3
+        uses: jdx/mise-action@bfb9fa0b029db830a8c570757cee683df207a6c5 # v2.4.0
         with:
           install_args: node npm:renovate
         env:
