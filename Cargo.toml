@@ -246,7 +246,7 @@ tachyonix                      = { version = "=0.3.1", default-features = false 
 tarpc                          = { version = "=0.36.0", default-features = false }
 temporal-client                = { git = "https://github.com/temporalio/sdk-core", rev = "4a2368d" }
 temporal-sdk-core-protos       = { git = "https://github.com/temporalio/sdk-core", rev = "4a2368d" }
-test-fuzz                      = { version = "=7.2.0", default-features = false }
+test-fuzz                      = { version = "=7.2.1", default-features = false }
 test-log                       = { version = "=0.2.18", default-features = false }
 test-strategy                  = { version = "=0.4.3", default-features = false }
 text-size                      = { version = "=1.1.1", default-features = false }
