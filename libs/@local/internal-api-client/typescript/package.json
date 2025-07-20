@@ -15,7 +15,7 @@
     "axios": "1.10.0"
   },
   "devDependencies": {
-    "@openapitools/openapi-generator-cli": "2.21.2",
+    "@openapitools/openapi-generator-cli": "2.21.3",
     "@types/node": "22.16.4",
     "rimraf": "6.0.1",
     "typescript": "5.7.3"
